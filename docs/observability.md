@@ -63,7 +63,7 @@ To prevent exposing internal Actuator endpoints publicly, the actuator listener 
 
 ### Custom LineWatch Metrics
 
-We expose custom gauges in [LinewatchHealthMetrics.java](file://~/dev/ttc-reliability-navigator/backend/src/main/java/com/calebhabesh/linewatch/observability/LinewatchHealthMetrics.java):
+We expose custom gauges in [LinewatchHealthMetrics.java](../backend/src/main/java/com/calebhabesh/linewatch/observability/LinewatchHealthMetrics.java):
 
 #### Ingestion Status Gauges
 - `linewatch_ingestion_dashboard_live`: `1.0` if the last alert ingestion run was successful and fresh, `0.0` otherwise.
@@ -83,7 +83,7 @@ We expose custom gauges in [LinewatchHealthMetrics.java](file://~/dev/ttc-reliab
 
 ## Grafana Alloy Configuration
 
-Alloy configuration is defined in [config.alloy](file://~/dev/ttc-reliability-navigator/infra/observability/alloy/config.alloy).
+Alloy configuration is defined in [config.alloy](../infra/observability/alloy/config.alloy).
 
 - **App Scrape (30s)**: pulls metrics from `backend:9090/actuator/prometheus`.
 - **Host Scrape (60s)**: collects CPU, memory, network, and disk metrics via the built-in unix/node exporter.

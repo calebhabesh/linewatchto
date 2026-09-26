@@ -9,20 +9,26 @@ flows, not repeat every data-shape or styling assertion from the fast suite.
 | Tier | Command | Purpose |
 | --- | --- | --- |
 | Fast | `npm --prefix frontend run test:fast` | Fixture contracts, pure logic, adapters, source guardrails, and CSS architecture checks. |
+| Scripts | `npm --prefix frontend run test:scripts` | Benchmark measurements, OG image generator, and regional map normalizer CLI tests. |
+| All script tools | `npm --prefix frontend run test:scripts:all` | Node script tool tests plus operational shell suites (production release, staging, AWS lab). Run in CI. |
 | Smoke | `npm --prefix frontend run test:smoke` | A small Chromium desktop/mobile release gate: dashboard boot, map-to-detail flow, cross-network search, and source-honest fallback. |
-| Desktop shell | `npm --prefix frontend run test:shell:desktop` | Focused sidebar sizing, docking/overlay, station detail, collapse/restore, and cross-network layout checks. |
-| Mobile shell | `npm --prefix frontend run test:shell:mobile` | Focused pull-up sheet gestures, keyboard operation, saved state, motion, and notice layout checks. |
-| E2E regression | `npm --prefix frontend run test:e2e` | Chromium desktop/mobile interaction and layout coverage; stops after five failures to avoid wasting a feedback cycle. |
-| Visual | `npm --prefix frontend run test:visual` | Deliberate screenshot baselines only. |
+| Offline snapshot gate | `npm --prefix frontend run test:offline` | PWA offline dashboard fallback, snapshot hydration, and independent network retention on mobile Chromium. Also run in CI. |
+| Lifecycle | `npm --prefix frontend run test:lifecycle` | Focused account dialog transitions, service badges, and geographic map camera/instance lifecycle checks. |
+| Desktop shell | `npm --prefix frontend run test:shell:desktop` | Focused sidebar sizing, docking/overlay, station detail, collapse/restore, search entry, more navigation, and cross-network layout checks. |
+| Mobile shell | `npm --prefix frontend run test:shell:mobile` | Focused pull-up sheet gestures, touch friction, overview scroll, legend pill, default framing, and notice layout checks. |
+| Full shell | `npm --prefix frontend run test:shell` | Runs both desktop and mobile shell suites sequentially. |
+| E2E regression | `npm --prefix frontend run test:e2e` | Chromium desktop/mobile interaction and layout coverage across core user journeys; stops after five failures. |
+| Visual | `npm --prefix frontend run test:visual` | Deliberate screenshot baselines only (`visual-baselines.spec.ts`, `desktop-visual-acceptance.spec.ts`, `opaque-surfaces.spec.ts`). |
 | Browser compatibility | `npm --prefix frontend run test:browser-compat` | One focused SVG/map geometry contract in Chrome, Firefox, and WebKit. |
 | Mobile map fit | `npm --prefix frontend run test:map-fit` | Both rotated maps in mobile Chromium/WebKit: compact and changing viewports, safe areas, deferred gesture resizing, browser page zoom, and physical rotation. Also included in E2E and CI. |
+| Full release gate | `npm --prefix frontend run test:release` | Consolidated release candidate verification: runs fast tests, all script tools, typecheck, lint, build, smoke, browser-compat, map-fit, offline, and lifecycle gates. |
 
 `test:fixtures` remains as a backwards-compatible alias for `test:fast`, and
 `test:regression` aliases `test:e2e`.
 
 When a complete failure inventory is specifically needed, run
-`npm --prefix frontend run test:e2e:full`. A healthy `test:e2e` run still
-executes the entire catalog; its cap matters only when the suite is already
+`npm --prefix frontend run test:e2e:full`. A healthy `test:e2e` run executes the
+catalog without capping; its failure cap matters only when the suite is already
 broken.
 
 For sidebar or mobile sheet iteration, select the corresponding shell command
@@ -31,20 +37,10 @@ specs and stop after three failures. They still start a production app by
 default; use the build-reuse procedure below only when the build matches the
 code being tested.
 
-The E2E command selects an explicit file catalog; it does not currently include
-`desktop-profiles-and-collapse.spec.ts` or `mobile-service-sheet.spec.ts`.
-Run the shell commands explicitly when validating these behaviors. CI currently
-runs smoke, browser compatibility, and mobile map fit, not these shell suites or
-the full E2E catalog.
+CI runs fast frontend tests, operational script tool tests (`test:scripts:all`), smoke gate, browser compatibility,
+mobile map fit, and the offline snapshot gate.
 
-Known migration work: the desktop centering cases in
-`vertical-centering-and-switch.spec.ts` still expect retired floating status
-controls. Replace their layout expectations with sidebar/map workspace behavior
-before treating those cases as a reliable regression gate. Do not restore the
-retired UI to satisfy them or delete their map-centering coverage without a
-replacement.
-
-The smoke suite should stay small. Add a scenario only when its failure means
+The smoke suite stays intentionally small. Add a scenario only when its failure means
 the deployed dashboard is broadly unusable and the behavior is not already
 represented by an existing smoke flow. Feature-specific browser coverage
 belongs in the E2E regression suite. Pixel-level expectations belong in the

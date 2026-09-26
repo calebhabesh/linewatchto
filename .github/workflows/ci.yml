@@ -41,8 +41,8 @@ jobs:
       - name: Install frontend dependencies
         run: npm --prefix frontend ci
 
-      - name: Performance measurement tool tests
-        run: node scripts/tests/performance-measurements.test.mjs
+      - name: Script tool tests
+        run: npm --prefix frontend run test:scripts:all
 
       - name: Fast frontend tests
         run: npm --prefix frontend run test:fast
@@ -75,6 +75,11 @@ jobs:
 
       - name: Mobile rotated map viewport fit
         run: npm --prefix frontend run test:map-fit
+        env:
+          LINEWATCH_PLAYWRIGHT_REUSE_BUILD: "true"
+
+      - name: Offline dashboard snapshot gate
+        run: npm --prefix frontend run test:offline
         env:
           LINEWATCH_PLAYWRIGHT_REUSE_BUILD: "true"
 

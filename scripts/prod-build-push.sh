@@ -9,7 +9,7 @@ DOCKER_BIN="${DOCKER_BIN:-docker}"
 REGISTRY="$(linewatch_normalize_registry "${LINEWATCH_IMAGE_REGISTRY:-ghcr.io/calebhabesh}")"
 PLATFORM="${LINEWATCH_IMAGE_PLATFORM:-linux/arm64}"
 BUILDER="${LINEWATCH_BUILDX_BUILDER:-linewatch-prod-builder}"
-SOURCE_URL="https://github.com/calebhabesh/ttc-reliability-navigator"
+SOURCE_URL="https://github.com/calebhabesh/linewatchto"
 DEFAULT_SUPPORT_URL="https://ko-fi.com/linewatchto"
 
 if [[ "${LINEWATCH_SKIP_CLEAN_CHECK:-false}" != "true" ]]; then

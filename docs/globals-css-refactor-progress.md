@@ -1,6 +1,15 @@
-# Global CSS Refactor Progress
+# Global CSS Refactor Progress (Historical Log)
 
-## Current state
+> [!NOTE]
+> **Historical Archive (September 2026)**
+> This document records the progress and per-session logs of the 31 CSS modularization sessions (S00–S30) that decomposed the monolithic `globals.css` into domain-scoped stylesheets under `frontend/src/styles/`.
+>
+> The metrics and recommendations below reflect the historical refactoring state. For current CSS architecture, conventions, and ownership, see [frontend/AGENTS.md](../frontend/AGENTS.md). To generate current CSS metrics, run:
+> ```bash
+> npm --prefix frontend run metrics:css
+> ```
+
+## Historical S30 State (Archived)
 
 - Branch: `refactor/css-architecture`
 - Current session: S30

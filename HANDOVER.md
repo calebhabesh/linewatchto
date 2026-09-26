@@ -1,9 +1,19 @@
-# LineWatchTO - Handover Document
+# LineWatchTO - Handover Document (Historical Archive)
 
-**Target Audience:** Codex 5.5xhigh (or any other agent taking over)
-**Last Updated:** 2026-06-01
+> [!NOTE]
+> **Historical Context (June 1, 2026)**
+> This handover document is an archived record of the initial stabilization and ingestion foundation phase completed in June 2026.
+> It is **not** an active directive or task list. The roadmap milestones listed here (normalized live alert serving, station arrivals, GTFS geometry matching, commute impact matching, reliability analytics, etc.) have all been implemented and verified.
+>
+> **Active Entry Points:**
+> - [README.md](README.md) — Current overview, capabilities, architecture, and quickstart.
+> - [AGENTS.md](AGENTS.md) — Unified agent guide and task routing.
+> - [docs/refactor-plan/README.md](docs/refactor-plan/README.md) — Active refactoring roadmap and current handoffs.
+> - [docs/feature-reference.md](docs/feature-reference.md) — Comprehensive feature reference.
 
-## 1. Project State & Current Reality
+**Original Date:** 2026-06-01
+
+## 1. Project State & Historical Context (June 2026)
 We are building **LineWatchTO** (portfolio project name: **TTC Reliability Navigator**), a polished, high-density transit operations dashboard for Toronto's subway and LRT network. 
 
 The repository is a seeded full-stack dashboard demo with graceful frontend fixture fallback. It is not yet a live TTC dashboard, but the backend now has an opt-in TTC Live Alerts ingestion foundation.
@@ -42,14 +52,13 @@ npm --prefix frontend run build
 mvn -f backend/pom.xml test
 ```
 
-## 4. Next Important Steps (Roadmap)
-The "View" and basic "Controller" layer are done. The next major phase is the **Ingestion Engine**.
+## 4. Historical Next Steps (Delivered & Verified)
+The roadmap milestones identified during the June 2026 phase have all been completed and verified in the current codebase:
 
-1. **User-Facing Live Read Switch (Backend + Frontend):** Serve normalized TTC alerts and accessibility outages through the dashboard APIs while retaining fixture mode for demos and tests.
-2. **Live Station Arrivals (Backend + Frontend):** Add a public arrival-time provider and replace demo station estimates with source-labeled live predictions.
-3. **GTFS Geometry & Segment Matching (Backend):** Import static GTFS shapes and map normalized alerts to PostGIS `line_segments`.
-4. **Commute Impact Engine (Backend):** Implement the `POST /api/commutes/impact` endpoint using matched station and segment impacts.
-5. **Reliability Aggregation (Backend):** Build duration and frequency summaries from persisted snapshots.
+1. **User-Facing Live Read Switch (Backend + Frontend):** Implemented via freshness-gated normalized alerts (`AlertDashboardService`) and `/api/dashboard` with offline/fixture fallback.
+2. **Live Station Arrivals (Backend + Frontend):** Implemented via TTC GTFS-RT subway predictions and Metrolinx Next Service/TripUpdates with scheduled fallback.
+3. **GTFS Geometry & Segment Matching (Backend):** Implemented via streaming GTFS import, PostGIS spatial models, and schematic SVG / vector MapLibre projections.
+4. **Commute Impact Engine (Backend):** Implemented via `/api/account/commutes`, granular per-route notification rules, and Web Push notifications.
+5. **Reliability Aggregation (Backend):** Implemented via 30-day snapshot observation windows, GTFS daily service overlap, and Redis-cached metrics.
 
-**Guidelines for Codex:**
-Please adhere strictly to the rules in root and applicable scoped `AGENTS.md` files. Do not strip the graceful UI fallback logic, and do not introduce entirely new dependencies unless strictly necessary. Ensure you verify code using the provided CLI commands.
+For current engineering work, see [AGENTS.md](AGENTS.md) and [docs/refactor-plan/README.md](docs/refactor-plan/README.md).

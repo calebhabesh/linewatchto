@@ -1,25 +1,25 @@
-# LineWatchTO Remaining Slices Handoff
+# LineWatchTO Remaining Slices Handoff (Historical Archive)
 
-Last refreshed: 2026-06-02
+> [!NOTE]
+> **Historical Archive (June 2, 2026)**
+> This handoff document records the remaining feature slice plan as established on **June 2, 2026**.
+> All core slices described here (Nightly closure active-window gating, Live rapid transit arrivals, GTFS geometry matching, Commute impact matching, and Redis caching) plus account authentication, Web Push, and regional GO/UP expansion have been fully implemented, verified, and integrated into the application.
+>
+> **Active Entry Points:**
+> - [README.md](README.md) — Current product capabilities, architecture, and quickstart.
+> - [AGENTS.md](AGENTS.md) — Unified agent guide and task routing.
+> - [docs/refactor-plan/README.md](docs/refactor-plan/README.md) — Current refactoring plan, architecture cleanup, and handoffs.
+> - [docs/feature-reference.md](docs/feature-reference.md) — Comprehensive feature reference.
 
-This is the clean-context handoff for the remaining LineWatchTO work. Read this
-before starting a new feature slice. It intentionally stays at roadmap level:
-create a focused design spec and implementation plan for one slice at a time so
-later work is based on the code that actually exists when that slice begins.
+## Historical Session Prompt (Archived)
 
-## New Session Prompt
+The prompt below is preserved for historical reference only. Current development should consult [AGENTS.md](AGENTS.md) and [docs/refactor-plan/README.md](docs/refactor-plan/README.md).
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatchTO,
-an unofficial TTC reliability dashboard. Read AGENTS.md, README.md, and
-REMAINING_TASKS.md. Run git status --short --branch before editing. Preserve all
-existing user changes. Start with the first incomplete slice only. Before
-implementation, inspect the current code, use the brainstorming skill to confirm
-the slice boundary, write a focused design spec and implementation plan under
-docs/superpowers/, and use a dedicated git worktree after the current dirty UI
-batch has been reviewed and checkpointed. Use TDD where practical and run the
-verification commands listed in REMAINING_TASKS.md before claiming completion.
-Do not overclaim live data, production geometry, analytics, or caching.
+You are working on LineWatchTO, an unofficial transit reliability dashboard.
+Read AGENTS.md, README.md, and docs/refactor-plan/README.md.
+Run git status --short --branch before editing. Preserve all existing user changes.
+Follow the active plan chunk in docs/refactor-plan/ and verify with the documented suites.
 ```
 
 ## Snapshot Baseline

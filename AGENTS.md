@@ -32,7 +32,8 @@ Read the scoped guide before editing that directory, including when starting at 
 
 - Changing source semantics, alerts, arrivals, notices, commutes, push, or reliability: read the affected section of [domain invariants](docs/domain-invariants.md). For implementation background, search [feature reference](docs/feature-reference.md); confirm against code/tests.
 - Choosing integration/release checks or debugging the test harness: [testing](docs/testing.md). Docs-only work needs diff/link review, not application tests.
-- Deployment, Compose, or operational scripts: [operations guide](docs/operations-guide.md).
+- Deployment, Compose, or operational scripts: [operations guide](docs/operations-guide.md); use the [script inventory](docs/script-inventory.md) to find the owning tool and check.
+- Preparing a publication candidate: review [P4 evidence and owner decisions](docs/refactor-plan/p4-publication-evidence.md) and select release checks from [testing](docs/testing.md). Repository visibility, code license, and deployment decisions remain with the owner.
 - Setup and current product claims: relevant README sections. Update claims when behavior changes, not for cosmetic edits.
 
 ## Keep guidance lean

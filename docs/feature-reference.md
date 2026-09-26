@@ -12,7 +12,7 @@ The project is early but no longer an empty scaffold.
 - `frontend/` contains a Next.js App Router dashboard with SVG-backed TTC and GO/UP maps independently re-created by the developer in Inkscape, React-controlled alert overlays, active alerts, separate delay and Reduced Speed Zone submenus, upcoming closures, My Commutes impact cards, reliability summaries, display toggles, and a mobile bottom nav.
 - `mobile/` is an empty workspace for future native Android and iOS apps. The former Expo / React Native prototype was removed; this dated inventory does not describe a current native implementation.
 - `frontend/src/app/linewatch-data.ts` is the current typed fixture/API-shape seam.
-- `frontend/src/app/transit-map.tsx` loads the authored map asset and renders interactive overlay paths in the same SVG coordinate system.
+- `frontend/src/components/NetworkMap.tsx` dispatches the active map renderers (`InteractiveTtcMap.tsx`, `InteractiveRegionalMap.tsx`, and `GeographicNetworkMap.tsx`), rendering authored map assets, raster planes, and interactive overlay paths in SVG and MapLibre coordinates.
 - `frontend/public/assets/linewatch/` contains the authored TTC and GO/UP map SVGs, line legend SVG icons, and station accessibility SVG icons. Both maps were independently re-created in Inkscape for optimized app rendering and data referencing/formatting as derivative replicas of referenced TTC and Metrolinx maps; they are not downloaded official map files.
 - `frontend/tests/linewatch-data.test.mjs` verifies the fixture layer with Node's built-in test runner.
 - `backend/` contains a Spring Boot app with seeded dashboard APIs, TTC alert ingestion services, health endpoints, and backend tests.

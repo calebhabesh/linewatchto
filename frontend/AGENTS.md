@@ -4,7 +4,8 @@
 
 - `src/app/globals.css` is the CSS import manifest. Edit the owning file in `src/styles/{foundation,shell,map,station,account,panels,utilities}/`; preserve import order and inspect theme/responsive overrides of the selector. Avoid appending override piles to the manifest.
 - `src/app/linewatch-data.ts` is the fixture/API-shape seam; preserve complete source-labeled fallback. Follow existing adapters and Server/Client Component boundaries.
-- `src/app/transit-map.tsx` renders authored SVG maps with React overlays. Before changing map assets, geometry, IDs, or overlay anchoring, read [the map contract](../docs/ttc-map-asset-contract.md).
+- `src/app/dashboard-contract.ts` defines core dashboard contracts and types; `src/app/DataContext.tsx` distributes state to React components.
+- `src/components/NetworkMap.tsx` and its renderers (`InteractiveTtcMap.tsx`, `InteractiveRegionalMap.tsx`, `GeographicNetworkMap.tsx`) render authored SVG maps and raster planes with React overlays. Before changing map assets, geometry, IDs, or overlay anchoring, read [the map contract](../docs/ttc-map-asset-contract.md).
 
 ## UI requirements
 
@@ -21,6 +22,8 @@ Commands run from repo root:
 
 - Local CSS/copy: inspect the diff and affected view; use a focused browser check if needed. No mandatory build or application suite.
 - Finished behavior/TypeScript change: `npm --prefix frontend run test:fast`, `npm --prefix frontend run typecheck`, and `npm --prefix frontend run lint` once. Add regression tests for meaningful behavior, not incidental spacing or implementation strings.
+- Scripts/tooling: `npm --prefix frontend run test:scripts` covers Node CLI tools; run the affected Bash suite for operational scripts. `npm --prefix frontend run test:scripts:all` covers both for CI and release.
 - Rendering, routing, dependencies, bundling, or Server/Client boundaries: also `npm --prefix frontend run build` and relevant smoke/E2E scenarios.
-- Broad shell, navigation, map interaction, or cross-network changes: full smoke/E2E; shared design-system/global styling changes: full visual suite. Editing one local rule in a shared CSS file alone is not a global styling change.
+- Shell, navigation, map interaction, or cross-network changes: choose affected `test:shell:*`, `test:map-fit`, `test:lifecycle`, smoke, or E2E scenarios. Use the visual suite for broad shared styling changes; a local rule in a shared file does not require it.
+- Release candidate: `npm --prefix frontend run test:release` runs the complete frontend gate. Run `mvn -f backend/pom.xml test` separately for backend verification.
 - Before Playwright, read [testing](../docs/testing.md) for build reuse, focused tiers, and platform limitations. Suites sharing mutable stubs run serially. Review visual differences before updating snapshots.

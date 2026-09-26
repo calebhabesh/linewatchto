@@ -122,7 +122,7 @@ deployment rather than silently initialize an empty database or certificate stor
 
 ## Server-Local Files
 
-- Recommended checkout: `/home/ubuntu/ttc-reliability-navigator`.
+- Recommended checkout: `/home/ubuntu/linewatchto`.
 - Production env: `.env.production` in the checkout.
 - Production env template: `.env.production.example`.
 - Release env: `.env.release` in the checkout, written by `scripts/prod-deploy.sh` after a healthy deployment.
@@ -251,7 +251,7 @@ gzip -dc tmp/prod-backups/linewatch-postgres-YYYYMMDDTHHMMSSZ.sql.gz | \
 
 Observability is optional and runs in a separate compose profile `observability`. 
 
-Ensure your `.env.production` has the Grafana Cloud tokens and configurations populated as described in [docs/observability.md](file://~/dev/ttc-reliability-navigator/docs/observability.md).
+Ensure your `.env.production` has the Grafana Cloud tokens and configurations populated as described in [observability.md](observability.md).
 
 Start the Grafana Alloy collector:
 ```bash

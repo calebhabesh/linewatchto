@@ -11,6 +11,7 @@ operational workflow. Routine frontend styling does not require these documents.
 - Metrics/logging: [observability](observability.md). Actuator is private on port 9090 and blocked at Caddy; configured collectors/tokens are required for data claims.
 - Load incidents: [traffic-spike runbook](traffic-spike-runbook.md).
 - Performance measurements: `node scripts/measure-portfolio-performance.mjs --help`; retain workload/environment/success/failure metadata.
+- Script and tooling catalog: [script inventory](script-inventory.md).
 
 ## Alert scenarios
 
