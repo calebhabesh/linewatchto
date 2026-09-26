@@ -86,8 +86,9 @@ for (const feature of ["map-guide", "impact-details", "my-commutes", "my-station
         await page.getByRole("button", { name: "More", exact: true }).click();
         await page.getByRole("button", { name: feature === "my-commutes" ? "My Commutes" : "My Stations" }).click();
       } else {
-        await page.getByRole("button", { name: "Toggle menu" }).click();
-        await page.getByRole("menuitem", { name: feature === "my-commutes" ? "My Commutes" : "My Stations" }).click();
+        await page.getByRole("navigation", { name: "Navigation destinations" })
+          .getByRole("button", { name: feature === "my-commutes" ? /^My Commutes(?:,|$)/ : /^My Stations(?:,|$)/ })
+          .click();
       }
       const panel = feature === "my-commutes" ? page.locator(".commute-panel").last() : page.getByRole("region", { name: "My Stations" });
       await expect(panel).toBeVisible();
