@@ -7,6 +7,7 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { DelayIcon } from "./DelayIcon";
 import type { LineStatus } from "../app/linewatch-data";
 import type { NetworkId } from "../app/regional-data";
+import type { DashboardData } from "../app/dashboard-contract";
 import { dashboardStatusSourceLabel } from "../app/network-presentation";
 
 function BellFilledIcon({ size = 14 }: { size?: number }) {
@@ -58,6 +59,7 @@ type Props = {
   children?: ReactNode;
   fresh?: boolean;
   isConnectionIssue?: boolean;
+  snapshot?: DashboardData["snapshot"];
   lineStatuses: LineStatus[];
   activeAlertCount: number;
   delayCount: number;
@@ -81,6 +83,7 @@ export function MobileStatusPeek({
   children,
   fresh = false,
   isConnectionIssue = false,
+  snapshot,
   isReturningToMap = false,
   lineStatuses,
   activeAlertCount,
@@ -161,8 +164,11 @@ export function MobileStatusPeek({
     "compact",
   );
   const isLive = fresh && !isConnectionIssue;
-  const cachedLabel = connectionNotice?.hasSavedSnapshot === false ? "Unknown" : "Cached";
-  const sourceLabel = isLive ? "Live" : isConnectionIssue ? cachedLabel : rawSourceLabel;
+  const cachedLabel = snapshot
+    ? snapshot.savedAt !== null ? "Cached" : "Unknown"
+    : connectionNotice?.hasSavedSnapshot === false ? "Unknown" : "Cached";
+  const showCachedBadge = Boolean(snapshot) || isConnectionIssue || (dataSource === "backend" && !fresh);
+  const sourceLabel = isLive ? "Live" : showCachedBadge ? cachedLabel : rawSourceLabel;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -416,7 +422,7 @@ export function MobileStatusPeek({
             <span className="mobile-service-sheet-led-jewel" aria-hidden="true" />
             <span className="mobile-service-sheet-recessed-text" aria-hidden="true">LIVE</span>
           </div>
-        ) : isConnectionIssue ? (
+        ) : showCachedBadge ? (
           <div className="mobile-service-sheet-recessed-badge mobile-service-sheet-recessed-badge--cached" aria-label={cachedLabel}>
             <Clock size={11} strokeWidth={2.5} className="mobile-service-sheet-badge-icon" aria-hidden="true" />
             <span className="mobile-service-sheet-recessed-text" aria-hidden="true">{cachedLabel.toUpperCase()}</span>

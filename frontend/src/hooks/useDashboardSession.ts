@@ -344,7 +344,9 @@ export function useDashboardSession({
         () => isInitial
           ? getDashboardRefresh(networkId, { deferReliability: true })
           : getDashboardRefresh(networkId),
-        () => setDashboardRequestStates((current) => ({ ...current, [networkId]: "reconnecting" })),
+        // A retry is still an in-progress refresh. Report a connection issue
+        // only if every attempt fails in the catch below.
+        () => {},
       );
 
       // An in-flight response can finish after connectivity was lost. It must

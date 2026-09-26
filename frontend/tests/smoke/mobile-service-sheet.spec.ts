@@ -344,6 +344,19 @@ for (const [state, time] of [
     const nav = (await page.locator(".mobile-bottom-nav").boundingBox())!;
     const badgeBox = (await badge.boundingBox())!;
     const controlsBox = (await controls.boundingBox())!;
+    expect(Math.abs(heading.x - grid.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(heading.x + heading.width - grid.x - grid.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(noticeBox.x - grid.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(noticeBox.x + noticeBox.width - grid.x - grid.width)).toBeLessThanOrEqual(1);
+    if (state === "cached") {
+      const title = (await sheet.locator(".mobile-service-sheet-heading strong").boundingBox())!;
+      const indicator = (await sheet.locator(".mobile-service-sheet-recessed-badge").boundingBox())!;
+      const handle = (await sheet.locator(".station-sheet-drag-pill").boundingBox())!;
+      const impacts = (await sheet.locator(".mobile-status-peek-info-btn").boundingBox())!;
+      expect(Math.abs(indicator.x + indicator.width / 2 - handle.x - handle.width / 2)).toBeLessThanOrEqual(1);
+      expect(indicator.x - title.x - title.width).toBeGreaterThanOrEqual(8);
+      expect(impacts.x - indicator.x - indicator.width).toBeGreaterThanOrEqual(8);
+    }
     expect(await gridLocator.evaluate(el => getComputedStyle(el).rowGap)).toBe(initialRowGap);
     expect(badgeBox.height).toBeCloseTo(initialBadge.height, 0);
     expect(badgeBox.width).toBeCloseTo(initialBadge.width, 0);

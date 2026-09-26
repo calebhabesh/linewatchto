@@ -41,7 +41,6 @@ import {
   getLineStatusPresentation,
   getPlannedClosureCountBadgeLabel,
 } from "../app/current-service";
-import { dashboardStatusSourceLabel } from "../app/network-presentation";
 
 type StatusCategory =
   | "line-impacts"
@@ -55,7 +54,6 @@ type StatusCategory =
   | "trip-changes";
 
 type Props = {
-  pollText?: string;
   dataSource?: "backend" | "fallback";
   networkId?: NetworkId;
   snapshot?: { savedAt: number | null } | null;
@@ -85,7 +83,6 @@ const noticeLabels: Record<string, string> = {
 };
 
 export function DesktopStatusOverview({
-  pollText = "just now",
   dataSource = "backend",
   networkId = "ttc",
   snapshot,
@@ -128,17 +125,7 @@ export function DesktopStatusOverview({
     availability !== "unavailable" &&
     generatedAt?.live !== false;
 
-  const rawSourceLabel = dashboardStatusSourceLabel(
-    { networkId, dataSource },
-    pollText,
-    "compact",
-  );
   const cachedLabel = snapshot?.savedAt ? "Cached" : "Unknown";
-  const sourceLabel = isLive
-    ? "Live"
-    : snapshot || dataSource === "fallback" || availability === "fixture" || availability === "unavailable"
-    ? cachedLabel
-    : rawSourceLabel;
 
   const summary = currentServiceSummary(dashboardData, now);
   const activeCount = summary.rows.length;
@@ -197,7 +184,7 @@ export function DesktopStatusOverview({
               LIVE
             </span>
           </div>
-        ) : snapshot || dataSource === "fallback" || availability === "fixture" || availability === "unavailable" ? (
+        ) : (
           <div
             className="mobile-service-sheet-recessed-badge mobile-service-sheet-recessed-badge--cached"
             aria-label={cachedLabel}
@@ -205,16 +192,6 @@ export function DesktopStatusOverview({
             <Clock size={11} strokeWidth={2.5} className="mobile-service-sheet-badge-icon" aria-hidden="true" />
             <span className="mobile-service-sheet-recessed-text" aria-hidden="true">
               {cachedLabel.toUpperCase()}
-            </span>
-          </div>
-        ) : (
-          <div
-            className="mobile-service-sheet-recessed-badge mobile-service-sheet-recessed-badge--source"
-            aria-label={`Source: ${sourceLabel}`}
-          >
-            <span className="mobile-service-sheet-led-jewel mobile-service-sheet-led-jewel--muted" aria-hidden="true" />
-            <span className="mobile-service-sheet-recessed-text" aria-hidden="true">
-              {sourceLabel}
             </span>
           </div>
         )}

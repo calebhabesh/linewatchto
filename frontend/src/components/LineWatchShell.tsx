@@ -3286,7 +3286,6 @@ export function LineWatchShell({
       if (activeView === "status" || activeView === "map") {
         return (
           <DesktopStatusOverview
-            pollText={pollText}
             dataSource={displayData.dataSource}
             networkId={selectedNetwork}
             snapshot={displayData.snapshot}
@@ -5258,6 +5257,7 @@ export function LineWatchShell({
         <MobileStatusPeek
           fresh={isLive}
           isConnectionIssue={isConnectionIssue}
+          snapshot={displayData.snapshot}
           isReturningToMap={hasLeftMap}
           lineStatuses={lineStatuses}
           activeAlertCount={activeAlerts.length}
