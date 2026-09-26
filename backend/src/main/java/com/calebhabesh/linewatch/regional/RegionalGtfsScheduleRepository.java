@@ -21,8 +21,13 @@ public class RegionalGtfsScheduleRepository {
         this.jdbc = jdbc;
     }
 
-    @Transactional
-    public long replace(RegionalGtfsScheduleImport schedule, OffsetDateTime importedAt) {
+    public long beginReplacementImport(
+        String sourceSystem,
+        String sourceUrl,
+        OffsetDateTime importedAt,
+        LocalDate serviceStart,
+        LocalDate serviceEnd
+    ) {
         KeyHolder keys = new GeneratedKeyHolder();
         jdbc.update("""
             insert into regional_gtfs_schedule_imports (
@@ -31,15 +36,17 @@ public class RegionalGtfsScheduleRepository {
                 :sourceSystem, :sourceUrl, :importedAt, :serviceStart, :serviceEnd, false
             )
             """, new MapSqlParameterSource()
-            .addValue("sourceSystem", schedule.sourceSystem())
-            .addValue("sourceUrl", schedule.sourceUrl())
+            .addValue("sourceSystem", sourceSystem)
+            .addValue("sourceUrl", sourceUrl)
             .addValue("importedAt", importedAt)
-            .addValue("serviceStart", schedule.serviceStart())
-            .addValue("serviceEnd", schedule.serviceEnd()), keys, new String[]{"id"});
+            .addValue("serviceStart", serviceStart)
+            .addValue("serviceEnd", serviceEnd), keys, new String[]{"id"});
         Number key = keys.getKey();
         if (key == null) throw new IllegalStateException("Failed to create regional GTFS import");
-        long importId = key.longValue();
+        return key.longValue();
+    }
 
+    public void insertServices(long importId, List<RegionalGtfsScheduleImport.Service> services) {
         batch("""
             insert into regional_gtfs_services (
                 import_id, service_id, monday, tuesday, wednesday, thursday, friday,
@@ -48,47 +55,58 @@ public class RegionalGtfsScheduleRepository {
                 :importId, :serviceId, :monday, :tuesday, :wednesday, :thursday, :friday,
                 :saturday, :sunday, :startDate, :endDate
             )
-            """, schedule.services().stream().map(row -> new MapSqlParameterSource()
+            """, services.stream().map(row -> new MapSqlParameterSource()
             .addValue("importId", importId).addValue("serviceId", row.serviceId())
             .addValue("monday", row.monday()).addValue("tuesday", row.tuesday())
             .addValue("wednesday", row.wednesday()).addValue("thursday", row.thursday())
             .addValue("friday", row.friday()).addValue("saturday", row.saturday())
             .addValue("sunday", row.sunday()).addValue("startDate", row.startDate())
             .addValue("endDate", row.endDate())).toList());
+    }
+
+    public void insertServiceExceptions(long importId, List<RegionalGtfsScheduleImport.ServiceException> exceptions) {
         batch("""
             insert into regional_gtfs_service_exceptions (
                 import_id, service_id, service_date, exception_type
             ) values (:importId, :serviceId, :serviceDate, :exceptionType)
-            """, schedule.exceptions().stream().map(row -> new MapSqlParameterSource()
+            """, exceptions.stream().map(row -> new MapSqlParameterSource()
             .addValue("importId", importId).addValue("serviceId", row.serviceId())
             .addValue("serviceDate", row.serviceDate()).addValue("exceptionType", row.exceptionType())).toList());
+    }
 
-        for (int start = 0; start < schedule.departures().size(); start += 1000) {
-            List<RegionalGtfsScheduleImport.Departure> rows =
-                schedule.departures().subList(start, Math.min(start + 1000, schedule.departures().size()));
-            batch("""
-                insert into regional_gtfs_departures (
-                    import_id, station_id, line_id, service_id, trip_id, trip_short_name, direction,
-                    departure_seconds, platform, stop_sequence
-                ) values (
-                    :importId, :stationId, :lineId, :serviceId, :tripId, :tripShortName, :direction,
-                    :departureSeconds, :platform, :stopSequence
-                ) on conflict do nothing
-                """, rows.stream().map(row -> new MapSqlParameterSource()
-                .addValue("importId", importId).addValue("stationId", row.stationId())
-                .addValue("lineId", row.lineId()).addValue("serviceId", row.serviceId())
-                .addValue("tripId", row.tripId()).addValue("tripShortName", row.tripShortName())
-                .addValue("direction", row.direction())
-                .addValue("departureSeconds", row.departureSeconds())
-                .addValue("platform", row.platform()).addValue("stopSequence", row.stopSequence())).toList());
-        }
+    public void insertDepartures(long importId, List<RegionalGtfsScheduleImport.Departure> departures) {
+        batch("""
+            insert into regional_gtfs_departures (
+                import_id, station_id, line_id, service_id, trip_id, trip_short_name, direction,
+                departure_seconds, platform, stop_sequence
+            ) values (
+                :importId, :stationId, :lineId, :serviceId, :tripId, :tripShortName, :direction,
+                :departureSeconds, :platform, :stopSequence
+            ) on conflict do nothing
+            """, departures.stream().map(row -> new MapSqlParameterSource()
+            .addValue("importId", importId).addValue("stationId", row.stationId())
+            .addValue("lineId", row.lineId()).addValue("serviceId", row.serviceId())
+            .addValue("tripId", row.tripId()).addValue("tripShortName", row.tripShortName())
+            .addValue("direction", row.direction())
+            .addValue("departureSeconds", row.departureSeconds())
+            .addValue("platform", row.platform()).addValue("stopSequence", row.stopSequence())).toList());
+    }
 
+    public void activateImport(long importId, String sourceSystem) {
+        jdbc.query(
+            "SELECT pg_advisory_xact_lock(hashtext('regional_gtfs_activate_' || :sourceSystem))",
+            Map.of("sourceSystem", sourceSystem),
+            (rs, rowNum) -> null
+        );
         jdbc.update("""
             update regional_gtfs_schedule_imports
             set active = false
             where source_system = :sourceSystem and active = true
-            """, Map.of("sourceSystem", schedule.sourceSystem()));
+            """, Map.of("sourceSystem", sourceSystem));
         jdbc.update("update regional_gtfs_schedule_imports set active = true where id = :id", Map.of("id", importId));
+    }
+
+    public void pruneInactiveImports(String sourceSystem) {
         jdbc.update("""
             delete from regional_gtfs_schedule_imports
             where source_system = :sourceSystem
@@ -100,11 +118,33 @@ public class RegionalGtfsScheduleRepository {
                   order by imported_at desc, id desc
                   limit 1
               )
-            """, Map.of("sourceSystem", schedule.sourceSystem()));
+            """, Map.of("sourceSystem", sourceSystem));
+    }
+
+    public void analyzeTables() {
         jdbc.getJdbcTemplate().execute("""
             analyze regional_gtfs_schedule_imports, regional_gtfs_services,
                     regional_gtfs_service_exceptions, regional_gtfs_departures
             """);
+    }
+
+    @Transactional
+    public long replace(RegionalGtfsScheduleImport schedule, OffsetDateTime importedAt) {
+        long importId = beginReplacementImport(
+            schedule.sourceSystem(), schedule.sourceUrl(), importedAt,
+            schedule.serviceStart(), schedule.serviceEnd()
+        );
+        insertServices(importId, schedule.services());
+        insertServiceExceptions(importId, schedule.exceptions());
+        for (int start = 0; start < schedule.departures().size(); start += 1000) {
+            insertDepartures(
+                importId,
+                schedule.departures().subList(start, Math.min(start + 1000, schedule.departures().size()))
+            );
+        }
+        activateImport(importId, schedule.sourceSystem());
+        pruneInactiveImports(schedule.sourceSystem());
+        analyzeTables();
         return importId;
     }
 

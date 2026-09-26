@@ -6,6 +6,7 @@ import com.calebhabesh.linewatch.account.AccountService;
 import com.calebhabesh.linewatch.account.AuthCookieFactory;
 import com.calebhabesh.linewatch.account.AccountErrorResponse;
 import com.calebhabesh.linewatch.account.SessionToken;
+import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -24,10 +25,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class PushNotificationController {
     private final AccountService accountService;
     private final PushNotificationService pushNotificationService;
+    private final PushDeliveryDiagnosticsService pushDeliveryDiagnosticsService;
 
-    public PushNotificationController(AccountService accountService, PushNotificationService pushNotificationService) {
-        this.accountService = accountService;
-        this.pushNotificationService = pushNotificationService;
+    public PushNotificationController(
+        AccountService accountService,
+        PushNotificationService pushNotificationService,
+        PushDeliveryDiagnosticsService pushDeliveryDiagnosticsService
+    ) {
+        this.accountService = Objects.requireNonNull(accountService, "accountService");
+        this.pushNotificationService = Objects.requireNonNull(pushNotificationService, "pushNotificationService");
+        this.pushDeliveryDiagnosticsService = Objects.requireNonNull(pushDeliveryDiagnosticsService, "pushDeliveryDiagnosticsService");
     }
 
     @GetMapping("/config")
@@ -79,7 +86,7 @@ public class PushNotificationController {
         @SessionToken String rawSessionToken
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
-        return pushNotificationService.deliveryDiagnostics(account);
+        return pushDeliveryDiagnosticsService.forAccount(account.getId());
     }
 
     @GetMapping("/devices")

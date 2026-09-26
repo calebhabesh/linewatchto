@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -37,27 +38,6 @@ public class AlertDashboardService {
     private static final String REDUCED_SPEED_ZONE_KIND = "reduced-speed-zone";
     private static final String PLANNED_CLOSURE_KIND = "planned-closure";
 
-    private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
-    private static final DateTimeFormatter WINDOW_DATE_TIME_FORMATTER =
-        DateTimeFormatter.ofPattern("EEE, MMM d · h:mm a", Locale.ENGLISH);
-    private static final DateTimeFormatter WINDOW_DATE_TIME_WITH_YEAR_FORMATTER =
-        DateTimeFormatter.ofPattern("EEE, MMM d, uuuu · h:mm a", Locale.ENGLISH);
-    private static final DateTimeFormatter WINDOW_DAY_TIME_FORMATTER =
-        DateTimeFormatter.ofPattern("EEE, MMM d h:mm a", Locale.ENGLISH);
-    private static final DateTimeFormatter WINDOW_DAY_TIME_WITH_YEAR_FORMATTER =
-        DateTimeFormatter.ofPattern("EEE, MMM d, uuuu h:mm a", Locale.ENGLISH);
-    private static final DateTimeFormatter WINDOW_HOURS_FORMATTER =
-        DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH);
-    private static final DateTimeFormatter WINDOW_DATE_FORMATTER =
-        DateTimeFormatter.ofPattern("EEE, MMM d", Locale.ENGLISH);
-    private static final DateTimeFormatter WINDOW_DATE_WITH_YEAR_FORMATTER =
-        DateTimeFormatter.ofPattern("EEE, MMM d, uuuu", Locale.ENGLISH);
-    private static final Duration MAX_SINGLE_CLOSURE_WINDOW = Duration.ofHours(18);
-    private static final Duration MAX_PUBLICATION_START_SKEW = Duration.ofMinutes(5);
-    private static final Pattern TRUNCATED_CLOSURE_START = Pattern.compile(
-        "(?i)[,\\s]+starting(?:\\s+at)?\\s+\\d{1,2}\\s*$"
-    );
-
     private final AlertRepository alertRepository;
     private final LineSegmentRepository lineSegmentRepository;
     private final AlertSegmentMatcher segmentMatcher;
@@ -65,6 +45,28 @@ public class AlertDashboardService {
     private final IngestionFreshness ingestionFreshness;
     private final AlertActivePeriodRepository periodRepository;
     private final Clock clock;
+    private final TtcClosureProjector closureProjector;
+
+    @Autowired
+    public AlertDashboardService(
+        AlertRepository alertRepository,
+        LineSegmentRepository lineSegmentRepository,
+        AlertSegmentMatcher segmentMatcher,
+        ReducedSpeedZoneProjector reducedSpeedZoneProjector,
+        IngestionFreshness ingestionFreshness,
+        AlertActivePeriodRepository periodRepository,
+        Clock clock,
+        TtcClosureProjector closureProjector
+    ) {
+        this.alertRepository = alertRepository;
+        this.lineSegmentRepository = lineSegmentRepository;
+        this.segmentMatcher = segmentMatcher;
+        this.reducedSpeedZoneProjector = reducedSpeedZoneProjector;
+        this.ingestionFreshness = ingestionFreshness;
+        this.periodRepository = periodRepository;
+        this.clock = clock;
+        this.closureProjector = java.util.Objects.requireNonNull(closureProjector, "closureProjector");
+    }
 
     public AlertDashboardService(
         AlertRepository alertRepository,
@@ -75,57 +77,124 @@ public class AlertDashboardService {
         AlertActivePeriodRepository periodRepository,
         Clock clock
     ) {
-        this.alertRepository = alertRepository;
-        this.lineSegmentRepository = lineSegmentRepository;
-        this.segmentMatcher = segmentMatcher;
-        this.reducedSpeedZoneProjector = reducedSpeedZoneProjector;
-        this.ingestionFreshness = ingestionFreshness;
-        this.periodRepository = periodRepository;
-        this.clock = clock;
+        this(
+            alertRepository,
+            lineSegmentRepository,
+            segmentMatcher,
+            reducedSpeedZoneProjector,
+            ingestionFreshness,
+            periodRepository,
+            clock,
+            new TtcClosureProjector(segmentMatcher)
+        );
+    }
+
+    public TtcDashboardReadModel createReadModel() {
+        return createReadModel(Optional.empty());
+    }
+
+    public TtcDashboardReadModel createReadModel(Optional<com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot> latestRun) {
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        boolean live = latestRun != null && latestRun.isPresent()
+            ? ingestionFreshness.isFresh(latestRun)
+            : ingestionFreshness.isDashboardFresh();
+        List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
+
+        if (!live) {
+            return TtcDashboardReadModel.offline(now, latestRun, segments);
+        }
+
+        List<AlertEntity> activeAlerts = alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE);
+        List<AlertEntity> plannedAlerts = alertRepository.findByActiveTrueAndType(PLANNED_CLOSURE_TYPE);
+        List<String> plannedIds = plannedAlerts.stream().map(AlertEntity::getId).toList();
+        Map<String, List<AlertActivePeriodRepository.AlertPeriod>> periods = plannedIds.isEmpty()
+            ? Map.of()
+            : periodRepository.findByAlertIds(plannedIds);
+
+        List<TtcClosureProjector.ClosureProjection> closureProjections = plannedAlerts.isEmpty()
+            ? List.of()
+            : closureProjector.project(plannedAlerts, periods, segments, now);
+
+        List<AlertEntity> rszAlerts = activeAlerts.stream()
+            .filter(a -> hasImpactKind(a, REDUCED_SPEED_ZONE_KIND))
+            .toList();
+        ReducedSpeedZoneProjector.Projection reducedSpeedProjection =
+            reducedSpeedZoneProjector.project(rszAlerts, segments);
+
+        List<ActiveAlertDto> activeAlertDtos = computeActiveAlerts(segments, activeAlerts, closureProjections);
+        List<DelayAlertDto> delayDtos = computeDelays(segments, activeAlerts);
+        List<ReducedSpeedZoneDto> rszDtos = computeReducedSpeedZones(segments, reducedSpeedProjection);
+        List<PlannedClosureDto> plannedDtos = computePlannedClosures(segments, closureProjections);
+        List<PlannedClosureDto> activePlannedDtos = computeActivePlannedClosures(segments, closureProjections);
+        Map<String, List<SegmentImpact>> segmentImpacts = computeSegmentImpacts(segments, activeAlerts, closureProjections, reducedSpeedProjection);
+        List<StationNodeImpact> stationNodeImpacts = computeStationNodeImpacts(segments, activeAlerts, reducedSpeedProjection);
+
+        return new TtcDashboardReadModel(
+            now,
+            latestRun != null ? latestRun : Optional.empty(),
+            true,
+            segments,
+            activeAlerts,
+            plannedAlerts,
+            periods,
+            closureProjections,
+            reducedSpeedProjection,
+            activeAlertDtos,
+            delayDtos,
+            rszDtos,
+            plannedDtos,
+            activePlannedDtos,
+            segmentImpacts,
+            stationNodeImpacts
+        );
     }
 
     public List<ActiveAlertDto> activeAlerts() {
+        return activeAlerts(null);
+    }
+
+    public List<ActiveAlertDto> activeAlerts(TtcDashboardReadModel readModel) {
+        if (readModel != null) {
+            return readModel.activeAlerts();
+        }
         if (!ingestionFreshness.isDashboardFresh()) {
             return List.of();
         }
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
-        List<ActiveAlertDto> routeAlerts = alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE).stream()
-            .filter(alert -> hasImpactKind(alert, SUSPENSION_KIND))
-            .map(alert -> toActiveAlert(alert, segments))
-            .toList();
-        List<ActiveAlertDto> activeClosures = plannedClosureViews(segments).stream()
-            .filter(view -> view.closure().activeNow())
-            .map(view -> toActiveClosureAlert(view, segments))
-            .toList();
-
-        List<ActiveAlertDto> alerts = new ArrayList<>(routeAlerts);
-        alerts.addAll(activeClosures);
-        return alerts.stream()
-            .sorted(activeAlertComparator(segments))
-            .toList();
+        List<AlertEntity> activeRouteAlerts = alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE);
+        List<TtcClosureProjector.ClosureProjection> closureProjections = plannedClosureProjections(segments);
+        return computeActiveAlerts(segments, activeRouteAlerts, closureProjections);
     }
 
     public List<DelayAlertDto> delays() {
+        return delays(null);
+    }
+
+    public List<DelayAlertDto> delays(TtcDashboardReadModel readModel) {
+        if (readModel != null) {
+            return readModel.delays();
+        }
         if (!ingestionFreshness.isDashboardFresh()) {
             return List.of();
         }
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
-        return alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE).stream()
-            .filter(alert -> hasImpactKind(alert, DELAY_KIND))
-            .map(alert -> toDelayAlert(alert, segments))
-            .sorted(delayAlertComparator(segments))
-            .toList();
+        List<AlertEntity> activeRouteAlerts = alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE);
+        return computeDelays(segments, activeRouteAlerts);
     }
 
     public List<ReducedSpeedZoneDto> reducedSpeedZones() {
+        return reducedSpeedZones(null);
+    }
+
+    public List<ReducedSpeedZoneDto> reducedSpeedZones(TtcDashboardReadModel readModel) {
+        if (readModel != null) {
+            return readModel.reducedSpeedZones();
+        }
         if (!ingestionFreshness.isDashboardFresh()) {
             return List.of();
         }
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
-        return reducedSpeedProjection(segments).zones().stream()
-            .map(this::toReducedSpeedZoneDto)
-            .sorted(reducedSpeedZoneComparator(segments))
-            .toList();
+        return computeReducedSpeedZones(segments, reducedSpeedProjection(segments));
     }
 
     private ReducedSpeedZoneProjector.Projection reducedSpeedProjection(
@@ -138,13 +207,18 @@ public class AlertDashboardService {
     }
 
     public List<PlannedClosureDto> plannedClosures() {
+        return plannedClosures(null);
+    }
+
+    public List<PlannedClosureDto> plannedClosures(TtcDashboardReadModel readModel) {
+        if (readModel != null) {
+            return readModel.plannedClosures();
+        }
         if (!ingestionFreshness.isDashboardFresh()) {
             return List.of();
         }
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
-        return plannedClosureDtos(segments).stream()
-            .sorted(plannedClosureComparator(segments))
-            .toList();
+        return computePlannedClosures(segments, plannedClosureProjections(segments));
     }
 
     public Set<String> dashboardVisiblePlannedClosureIds() {
@@ -164,150 +238,203 @@ public class AlertDashboardService {
     }
 
     private List<PlannedClosureDto> plannedClosureDtos(List<LineSegmentEntity> segments) {
-        return plannedClosureViews(segments).stream()
-            .map(PlannedClosureView::closure)
+        return plannedClosureProjections(segments).stream()
+            .map(TtcClosureProjector.ClosureProjection::canonicalClosure)
             .toList();
     }
 
-    private List<PlannedClosureView> plannedClosureViews(List<LineSegmentEntity> segments) {
-        List<AlertEntity> sourceAlerts = alertRepository.findByActiveTrueAndType(PLANNED_CLOSURE_TYPE).stream()
-            .filter(alert -> hasImpactKind(alert, PLANNED_CLOSURE_KIND))
-            .filter(this::isCurrentOrFuture)
-            .toList();
-
+    private List<TtcClosureProjector.ClosureProjection> plannedClosureProjections(
+        List<LineSegmentEntity> segments
+    ) {
+        List<AlertEntity> sourceAlerts = alertRepository.findByActiveTrueAndType(PLANNED_CLOSURE_TYPE);
         if (sourceAlerts.isEmpty()) {
             return List.of();
         }
-
         List<String> alertIds = sourceAlerts.stream().map(AlertEntity::getId).toList();
         Map<String, List<AlertActivePeriodRepository.AlertPeriod>> periodsByAlertId =
             periodRepository.findByAlertIds(alertIds);
-        Map<String, AlertEntity> alertsBySourceId = sourceAlerts.stream()
-            .filter(alert -> !isBlank(alert.getSourceId()))
-            .collect(java.util.stream.Collectors.toMap(
-                AlertEntity::getSourceId,
-                Function.identity(),
-                (first, ignored) -> first,
-                LinkedHashMap::new
-            ));
-        Set<String> linkedChildSourceIds = new LinkedHashSet<>();
-        for (List<AlertActivePeriodRepository.AlertPeriod> periods : periodsByAlertId.values()) {
-            for (AlertActivePeriodRepository.AlertPeriod period : periods) {
-                if (isStructurallyValidClosureWindow(period)
-                    && !isParentPeriod(period)
-                    && alertsBySourceId.containsKey(period.sourcePeriodId())) {
-                    linkedChildSourceIds.add(period.sourcePeriodId());
-                }
-            }
-        }
-
-        return sourceAlerts.stream()
-            .filter(alert -> !isRestoration(alert))
-            .filter(alert -> !linkedChildSourceIds.contains(alert.getSourceId()))
-            .map(alert -> {
-                List<AlertActivePeriodRepository.AlertPeriod> periods = periodsByAlertId.get(alert.getId());
-                WindowState ws = windowState(alert, periods);
-                return new AlertWithWindowState(alert, ws);
-            })
-            .map(aw -> new PlannedClosureView(
-                toPlannedClosure(aw.alert, segments, aw.ws),
-                aw.ws.activeSourcePeriodId() == null
-                    ? null
-                    : currentClosureSourceAlert(
-                        alertsBySourceId.get(aw.ws.activeSourcePeriodId())
-                    )
-            ))
-            .toList();
-    }
-
-    private AlertEntity currentClosureSourceAlert(AlertEntity alert) {
-        return alert == null || isRestoration(alert) ? null : alert;
-    }
-
-    private boolean isRestoration(AlertEntity alert) {
-        return TtcServiceState.isRestoration(
-            alert.getEffect(),
-            alert.getSeverity(),
-            alert.getTitle(),
-            alert.getDescription(),
-            alert.getEffectDescription()
+        return closureProjector.project(
+            sourceAlerts,
+            periodsByAlertId,
+            segments,
+            OffsetDateTime.now(clock)
         );
     }
 
     public List<PlannedClosureDto> activePlannedClosures() {
+        return activePlannedClosures(null);
+    }
+
+    public List<PlannedClosureDto> activePlannedClosures(TtcDashboardReadModel readModel) {
+        if (readModel != null) {
+            return readModel.activePlannedClosures();
+        }
         if (!ingestionFreshness.isDashboardFresh()) {
             return List.of();
         }
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
-        return plannedClosureViews(segments).stream()
-            .filter(view -> view.closure().activeNow())
-            .map(view -> activeClosurePresentation(view, segments))
-            .sorted(plannedClosureComparator(segments))
-            .toList();
+        return computeActivePlannedClosures(segments, plannedClosureProjections(segments));
     }
 
-    private record AlertWithWindowState(AlertEntity alert, WindowState ws) {}
-
-    private record PlannedClosureView(
-        PlannedClosureDto closure,
-        AlertEntity currentSourceAlert
-    ) {}
-
     public Map<String, List<SegmentImpact>> activeSegmentImpacts() {
+        return activeSegmentImpacts(null);
+    }
+
+    public Map<String, List<SegmentImpact>> activeSegmentImpacts(TtcDashboardReadModel readModel) {
+        if (readModel != null) {
+            return readModel.segmentImpacts();
+        }
         if (!ingestionFreshness.isDashboardFresh()) {
             return Map.of();
         }
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
+        List<AlertEntity> activeRouteAlerts = alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE);
+        List<TtcClosureProjector.ClosureProjection> closureProjections = plannedClosureProjections(segments);
+        ReducedSpeedZoneProjector.Projection reducedSpeedProjection = reducedSpeedProjection(segments);
+        return computeSegmentImpacts(segments, activeRouteAlerts, closureProjections, reducedSpeedProjection);
+    }
+
+    public List<StationNodeImpact> activeStationNodeImpacts() {
+        return activeStationNodeImpacts(null);
+    }
+
+    public List<StationNodeImpact> activeStationNodeImpacts(TtcDashboardReadModel readModel) {
+        if (readModel != null) {
+            return readModel.stationNodeImpacts();
+        }
+        if (!ingestionFreshness.isDashboardFresh()) {
+            return List.of();
+        }
+        List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
+        List<AlertEntity> activeRouteAlerts = alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE);
+        ReducedSpeedZoneProjector.Projection reducedSpeedProjection = reducedSpeedProjection(segments);
+        return computeStationNodeImpacts(segments, activeRouteAlerts, reducedSpeedProjection);
+    }
+
+    private List<ActiveAlertDto> computeActiveAlerts(
+        List<LineSegmentEntity> segments,
+        List<AlertEntity> activeRouteAlerts,
+        List<TtcClosureProjector.ClosureProjection> closureProjections
+    ) {
+        List<ActiveAlertDto> routeAlerts = activeRouteAlerts != null ? activeRouteAlerts.stream()
+            .filter(alert -> hasImpactKind(alert, SUSPENSION_KIND))
+            .map(alert -> toActiveAlert(alert, segments))
+            .toList() : List.of();
+        List<ActiveAlertDto> activeClosures = closureProjections != null ? closureProjections.stream()
+            .filter(TtcClosureProjector.ClosureProjection::activeNow)
+            .map(TtcClosureProjector.ClosureProjection::activeClosureAlert)
+            .toList() : List.of();
+
+        List<ActiveAlertDto> alerts = new ArrayList<>(routeAlerts);
+        alerts.addAll(activeClosures);
+        return alerts.stream()
+            .sorted(activeAlertComparator(segments))
+            .toList();
+    }
+
+    private List<DelayAlertDto> computeDelays(
+        List<LineSegmentEntity> segments,
+        List<AlertEntity> activeRouteAlerts
+    ) {
+        if (activeRouteAlerts == null) {
+            return List.of();
+        }
+        return activeRouteAlerts.stream()
+            .filter(alert -> hasImpactKind(alert, DELAY_KIND))
+            .map(alert -> toDelayAlert(alert, segments))
+            .sorted(delayAlertComparator(segments))
+            .toList();
+    }
+
+    private List<ReducedSpeedZoneDto> computeReducedSpeedZones(
+        List<LineSegmentEntity> segments,
+        ReducedSpeedZoneProjector.Projection reducedSpeedProjection
+    ) {
+        if (reducedSpeedProjection == null || reducedSpeedProjection.zones() == null) {
+            return List.of();
+        }
+        return reducedSpeedProjection.zones().stream()
+            .map(this::toReducedSpeedZoneDto)
+            .sorted(reducedSpeedZoneComparator(segments))
+            .toList();
+    }
+
+    private List<PlannedClosureDto> computePlannedClosures(
+        List<LineSegmentEntity> segments,
+        List<TtcClosureProjector.ClosureProjection> closureProjections
+    ) {
+        if (closureProjections == null) {
+            return List.of();
+        }
+        return closureProjections.stream()
+            .map(TtcClosureProjector.ClosureProjection::canonicalClosure)
+            .sorted(plannedClosureComparator(segments))
+            .toList();
+    }
+
+    private List<PlannedClosureDto> computeActivePlannedClosures(
+        List<LineSegmentEntity> segments,
+        List<TtcClosureProjector.ClosureProjection> closureProjections
+    ) {
+        if (closureProjections == null) {
+            return List.of();
+        }
+        return closureProjections.stream()
+            .filter(TtcClosureProjector.ClosureProjection::activeNow)
+            .map(TtcClosureProjector.ClosureProjection::activePresentation)
+            .sorted(plannedClosureComparator(segments))
+            .toList();
+    }
+
+    private Map<String, List<SegmentImpact>> computeSegmentImpacts(
+        List<LineSegmentEntity> segments,
+        List<AlertEntity> activeRouteAlerts,
+        List<TtcClosureProjector.ClosureProjection> closureProjections,
+        ReducedSpeedZoneProjector.Projection reducedSpeedProjection
+    ) {
         Map<String, List<SegmentImpact>> impacts = new LinkedHashMap<>();
-        List<AlertEntity> activeRouteAlerts =
-            alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE);
 
-        for (AlertEntity alert : activeRouteAlerts) {
-            if (!hasImpactKind(alert, DELAY_KIND) && !hasImpactKind(alert, SUSPENSION_KIND)) {
-                continue;
-            }
-            for (String segmentId : affectedSegmentIds(alert, segments)) {
-                LineSegmentEntity segment = segments.stream()
-                    .filter(s -> s.getId().equals(segmentId))
-                    .findFirst()
-                    .orElse(null);
-                String travelDir = segment != null ? travelDirection(alert, segment) : "bidirectional";
-                appendImpact(impacts, segmentId, new SegmentImpact(
-                    alert.getImpactKind(),
-                    alert.getId(),
-                    travelDir,
-                    List.of(alert.getId())
-                ));
+        if (activeRouteAlerts != null) {
+            for (AlertEntity alert : activeRouteAlerts) {
+                if (!hasImpactKind(alert, DELAY_KIND) && !hasImpactKind(alert, SUSPENSION_KIND)) {
+                    continue;
+                }
+                for (String segmentId : affectedSegmentIds(alert, segments)) {
+                    LineSegmentEntity segment = segments != null ? segments.stream()
+                        .filter(s -> s.getId().equals(segmentId))
+                        .findFirst()
+                        .orElse(null) : null;
+                    String travelDir = segment != null ? travelDirection(alert, segment) : "bidirectional";
+                    appendImpact(impacts, segmentId, new SegmentImpact(
+                        alert.getImpactKind(),
+                        alert.getId(),
+                        travelDir,
+                        List.of(alert.getId())
+                    ));
+                }
             }
         }
 
-        for (PlannedClosureView view : plannedClosureViews(segments).stream()
-            .filter(candidate -> candidate.closure().activeNow())
-            .toList()) {
-            PlannedClosureDto closure = activeClosurePresentation(view, segments);
-            AlertEntity currentSourceAlert = view.currentSourceAlert();
-            String cardId = currentSourceAlert == null ? closure.id() : currentSourceAlert.getId();
-            for (String segmentId : closure.previewSegmentIds()) {
-                appendImpact(impacts, segmentId, new SegmentImpact(
-                    SUSPENSION_KIND,
+        if (closureProjections != null) {
+            for (TtcClosureProjector.ClosureProjection projection : closureProjections) {
+                for (Map.Entry<String, SegmentImpact> entry : projection.activeSegmentImpacts()) {
+                    appendImpact(impacts, entry.getKey(), entry.getValue());
+                }
+            }
+        }
+
+        if (reducedSpeedProjection != null && reducedSpeedProjection.segmentImpacts() != null) {
+            for (ReducedSpeedZoneProjector.SegmentImpact impact : reducedSpeedProjection.segmentImpacts().values()) {
+                String cardId = impact.reducedSpeedZoneIds().isEmpty()
+                    ? null
+                    : impact.reducedSpeedZoneIds().getFirst();
+                appendImpact(impacts, impact.segmentId(), new SegmentImpact(
+                    REDUCED_SPEED_ZONE_KIND,
                     cardId,
-                    "bidirectional",
-                    List.of(cardId)
+                    impact.travelDirection().wireValue(),
+                    impact.sourceAlertIds()
                 ));
             }
-        }
-
-        ReducedSpeedZoneProjector.Projection projection = reducedSpeedProjection(segments);
-        for (ReducedSpeedZoneProjector.SegmentImpact impact : projection.segmentImpacts().values()) {
-            String cardId = impact.reducedSpeedZoneIds().isEmpty()
-                ? null
-                : impact.reducedSpeedZoneIds().getFirst();
-            appendImpact(impacts, impact.segmentId(), new SegmentImpact(
-                REDUCED_SPEED_ZONE_KIND,
-                cardId,
-                impact.travelDirection().wireValue(),
-                impact.sourceAlertIds()
-            ));
         }
         impacts.replaceAll((segmentId, segmentImpacts) -> segmentImpacts.stream()
             .sorted(Comparator.comparingInt(this::impactPriority))
@@ -316,317 +443,47 @@ public class AlertDashboardService {
         return impacts;
     }
 
-    public List<StationNodeImpact> activeStationNodeImpacts() {
-        if (!ingestionFreshness.isDashboardFresh()) {
-            return List.of();
-        }
-        List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
+    private List<StationNodeImpact> computeStationNodeImpacts(
+        List<LineSegmentEntity> segments,
+        List<AlertEntity> activeRouteAlerts,
+        ReducedSpeedZoneProjector.Projection reducedSpeedProjection
+    ) {
         List<StationNodeImpact> impacts = new ArrayList<>();
 
-        for (AlertEntity alert : alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE)) {
-            if (!hasImpactKind(alert, DELAY_KIND) && !hasImpactKind(alert, SUSPENSION_KIND)) {
-                continue;
+        if (activeRouteAlerts != null) {
+            for (AlertEntity alert : activeRouteAlerts) {
+                if (!hasImpactKind(alert, DELAY_KIND) && !hasImpactKind(alert, SUSPENSION_KIND)) {
+                    continue;
+                }
+                List<String> affectedSegmentIds = affectedSegmentIds(alert, segments);
+                resolvedNodeStationId(alert.getStationIds(), affectedSegmentIds)
+                    .ifPresent(stationId -> impacts.add(new StationNodeImpact(
+                        stationId,
+                        alert.getImpactKind(),
+                        alert.getId(),
+                        alert.getTitle(),
+                        sourceLabel(alert, "TTC Live Alerts")
+                    )));
             }
-            List<String> affectedSegmentIds = affectedSegmentIds(alert, segments);
-            resolvedNodeStationId(alert.getStationIds(), affectedSegmentIds)
-                .ifPresent(stationId -> impacts.add(new StationNodeImpact(
-                    stationId,
-                    alert.getImpactKind(),
-                    alert.getId(),
-                    alert.getTitle(),
-                    sourceLabel(alert, "TTC Live Alerts")
-                )));
         }
 
-        for (ReducedSpeedZoneProjector.ReducedSpeedZone zone : reducedSpeedProjection(segments).zones()) {
-            resolvedNodeStationId(rszStationIds(zone), zone.affectedSegmentIds())
-                .ifPresent(stationId -> impacts.add(new StationNodeImpact(
-                    stationId,
-                    REDUCED_SPEED_ZONE_KIND,
-                    zone.id(),
-                    zone.displayDirection().equals("Direction not specified")
-                        ? "Reduced Speed Zone"
-                        : "Reduced Speed Zone " + zone.displayDirection(),
-                    sourceLabel(zone.sourceAlerts().getFirst(), "TTC Live Alerts")
-                )));
+        if (reducedSpeedProjection != null && reducedSpeedProjection.zones() != null) {
+            for (ReducedSpeedZoneProjector.ReducedSpeedZone zone : reducedSpeedProjection.zones()) {
+                resolvedNodeStationId(rszStationIds(zone), zone.affectedSegmentIds())
+                    .ifPresent(stationId -> impacts.add(new StationNodeImpact(
+                        stationId,
+                        REDUCED_SPEED_ZONE_KIND,
+                        zone.id(),
+                        zone.displayDirection().equals("Direction not specified")
+                            ? "Reduced Speed Zone"
+                            : "Reduced Speed Zone " + zone.displayDirection(),
+                        sourceLabel(zone.sourceAlerts().getFirst(), "TTC Live Alerts")
+                    )));
+            }
         }
 
         return impacts;
     }
-
-    private boolean isCurrentOrFuture(AlertEntity alert) {
-        OffsetDateTime endsAt = alert.getActivePeriodEnd();
-        return endsAt == null || !endsAt.isBefore(OffsetDateTime.now(clock));
-    }
-
-    private boolean startsAtOrBefore(OffsetDateTime startsAt, OffsetDateTime now) {
-        return startsAt == null || !startsAt.isAfter(now);
-    }
-
-    private boolean endsAfter(OffsetDateTime endsAt, OffsetDateTime now) {
-        return endsAt == null || endsAt.isAfter(now);
-    }
-
-    private boolean isNightly(
-        AlertEntity alert,
-        List<AlertActivePeriodRepository.AlertPeriod> periods
-    ) {
-        if (periods == null || periods.isEmpty()) {
-            return false;
-        }
-        String alertText = String.join(" ",
-            nullToEmpty(alert.getTitle()),
-            nullToEmpty(alert.getDescription()),
-            nullToEmpty(alert.getEffectDescription())
-        ).toLowerCase(Locale.ROOT);
-        if (alertText.contains("late opening")
-            || alertText.matches(
-                "(?s).*\\b(?:service|trains?)\\s+(?:(?:will\\s+)?start|starts?)"
-                    + "\\s+(?:at|by)\\b.*"
-            )) {
-            return false;
-        }
-        if (alertText.contains("nightly")
-            || alertText.contains("each night")
-            || alertText.contains("every night")) {
-            return true;
-        }
-        if (periods.size() > 1) {
-            return true;
-        }
-        AlertActivePeriodRepository.AlertPeriod period = periods.getFirst();
-        if (isParentPeriod(period) || period.startsAt() == null || period.endsAt() == null) {
-            return false;
-        }
-        LocalDate startsOn = period.startsAt().atZoneSameInstant(TORONTO_ZONE).toLocalDate();
-        LocalDate endsOn = period.endsAt().atZoneSameInstant(TORONTO_ZONE).toLocalDate();
-        return endsOn.isAfter(startsOn)
-            && Duration.between(period.startsAt(), period.endsAt()).compareTo(Duration.ofHours(12)) <= 0;
-    }
-
-    private WindowState windowState(AlertEntity alert, List<AlertActivePeriodRepository.AlertPeriod> periods) {
-        OffsetDateTime now = OffsetDateTime.now(clock);
-        boolean hasStoredPeriods = periods != null && !periods.isEmpty();
-        boolean parentOnlyRecurringWindow = hasStoredPeriods
-            && periods.size() == 1
-            && isParentPeriod(periods.getFirst())
-            && isRecurringClosureParentWindow(alert);
-        boolean recurringParentWindow = (!hasStoredPeriods || parentOnlyRecurringWindow)
-            && isRecurringClosureParentWindow(alert);
-        boolean hasUsablePeriods = hasStoredPeriods && !parentOnlyRecurringWindow;
-        boolean hasChildPeriods = hasStoredPeriods && periods.stream().anyMatch(p -> !isParentPeriod(p));
-        List<AlertActivePeriodRepository.AlertPeriod> usablePeriods = hasUsablePeriods
-            ? (hasChildPeriods ? periods.stream().filter(p -> !isParentPeriod(p)).toList() : periods)
-            : recurringParentWindow
-                ? List.of()
-                : List.of(new AlertActivePeriodRepository.AlertPeriod(
-                alert.getId(),
-                "parent",
-                alert.getActivePeriodStart(),
-                alert.getActivePeriodEnd(),
-                0,
-                false
-            ));
-        List<AlertActivePeriodRepository.AlertPeriod> reliablePeriods = usablePeriods.stream()
-            .filter(period -> isReliableClosureWindow(alert, period))
-            .toList();
-        boolean nightly = isNightly(alert, reliablePeriods) || recurringParentWindow;
-        String windowHours = closureWindowHours(reliablePeriods);
-        String windowDates = closureWindowDates(reliablePeriods, nightly, now);
-
-        Optional<AlertActivePeriodRepository.AlertPeriod> active = reliablePeriods.stream()
-            .filter(period -> !isParentPeriod(period)
-                || isBoundedSingleWindow(period)
-                || period.sourceCurrentContinuous())
-            .filter(period -> startsAtOrBefore(period.startsAt(), now))
-            .filter(period -> endsAfter(period.endsAt(), now))
-            .findFirst();
-
-        if (active.isPresent()) {
-            AlertActivePeriodRepository.AlertPeriod period = active.orElseThrow();
-            return new WindowState(true, "active-now", nightly,
-                period.startsAt(), period.endsAt(), window(period.startsAt(), period.endsAt()),
-                null, null, null, windowHours, windowDates, period.sourcePeriodId());
-        }
-
-        Optional<AlertActivePeriodRepository.AlertPeriod> next = reliablePeriods.stream()
-            .filter(period -> period.startsAt().isAfter(now))
-            .min(Comparator.comparing(
-                AlertActivePeriodRepository.AlertPeriod::startsAt,
-                Comparator.naturalOrder()
-            ));
-
-        if (next.isPresent()) {
-            AlertActivePeriodRepository.AlertPeriod period = next.orElseThrow();
-            return new WindowState(false, "upcoming", nightly,
-                null, null, null,
-                period.startsAt(), period.endsAt(), window(period.startsAt(), period.endsAt()),
-                windowHours, windowDates, null);
-        }
-
-        return new WindowState(false, "unknown", nightly,
-            null, null, null, null, null, null, windowHours, windowDates, null);
-    }
-
-    private boolean isReliableClosureWindow(
-        AlertEntity alert,
-        AlertActivePeriodRepository.AlertPeriod period
-    ) {
-        if (!isStructurallyValidClosureWindow(period)) {
-            return false;
-        }
-        if (period.sourceCurrentContinuous()) {
-            return true;
-        }
-        if (!isParentPeriod(period) || isBoundedSingleWindow(period)) {
-            return true;
-        }
-        OffsetDateTime publishedAt = sourceUpdatedAt(alert);
-        if (publishedAt == null) {
-            return false;
-        }
-        return period.startsAt().isAfter(publishedAt.plus(MAX_PUBLICATION_START_SKEW));
-    }
-
-    private boolean isStructurallyValidClosureWindow(
-        AlertActivePeriodRepository.AlertPeriod period
-    ) {
-        return period != null
-            && period.startsAt() != null
-            && period.endsAt() != null
-            && period.endsAt().isAfter(period.startsAt());
-    }
-
-    private boolean isBoundedSingleWindow(AlertActivePeriodRepository.AlertPeriod period) {
-        return isStructurallyValidClosureWindow(period)
-            && Duration.between(period.startsAt(), period.endsAt()).compareTo(MAX_SINGLE_CLOSURE_WINDOW) <= 0;
-    }
-
-    private String closureWindowHours(List<AlertActivePeriodRepository.AlertPeriod> periods) {
-        LinkedHashSet<String> ranges = new LinkedHashSet<>();
-        for (AlertActivePeriodRepository.AlertPeriod period : periods) {
-            if (period.startsAt() == null || period.endsAt() == null) {
-                continue;
-            }
-            ranges.add(
-                WINDOW_HOURS_FORMATTER.format(period.startsAt().atZoneSameInstant(TORONTO_ZONE))
-                    + " – "
-                    + WINDOW_HOURS_FORMATTER.format(period.endsAt().atZoneSameInstant(TORONTO_ZONE))
-            );
-        }
-        if (ranges.isEmpty()) {
-            return null;
-        }
-        return ranges.size() == 1 ? ranges.getFirst() : "Varies by closure date";
-    }
-
-    private String closureWindowDates(
-        List<AlertActivePeriodRepository.AlertPeriod> periods,
-        boolean nightly,
-        OffsetDateTime now
-    ) {
-        List<LocalDate> startDates = periods.stream()
-            .map(AlertActivePeriodRepository.AlertPeriod::startsAt)
-            .filter(java.util.Objects::nonNull)
-            .map(value -> value.atZoneSameInstant(TORONTO_ZONE).toLocalDate())
-            .distinct()
-            .sorted()
-            .toList();
-        if (startDates.isEmpty()) {
-            return null;
-        }
-
-        if (nightly) {
-            return summarizedDates(startDates, now);
-        }
-
-        LocalDate firstDate = startDates.getFirst();
-        LocalDate lastDate = periods.stream()
-            .map(AlertActivePeriodRepository.AlertPeriod::endsAt)
-            .filter(java.util.Objects::nonNull)
-            .map(value -> value.atZoneSameInstant(TORONTO_ZONE).toLocalDate())
-            .max(Comparator.naturalOrder())
-            .orElse(firstDate);
-        if (firstDate.equals(lastDate)) {
-            return formattedClosureDate(firstDate, now);
-        }
-        return formattedClosureDate(firstDate, now) + " – " + formattedClosureDate(lastDate, now);
-    }
-
-    private String summarizedDates(List<LocalDate> dates, OffsetDateTime now) {
-        if (dates == null || dates.isEmpty()) {
-            return null;
-        }
-        if (dates.size() == 1) {
-            return formattedClosureDate(dates.getFirst(), now);
-        }
-        List<String> formattedSpans = new ArrayList<>();
-        int i = 0;
-        while (i < dates.size()) {
-            LocalDate start = dates.get(i);
-            LocalDate end = start;
-            while (i + 1 < dates.size() && dates.get(i + 1).equals(end.plusDays(1))) {
-                end = dates.get(i + 1);
-                i++;
-            }
-            if (start.equals(end)) {
-                formattedSpans.add(formattedClosureDate(start, now));
-            } else {
-                formattedSpans.add(formattedClosureDate(start, now) + " – " + formattedClosureDate(end, now));
-            }
-            i++;
-        }
-        return String.join("; ", formattedSpans);
-    }
-
-    private String formattedClosureDate(LocalDate date, OffsetDateTime now) {
-        int currentTorontoYear = now.atZoneSameInstant(TORONTO_ZONE).getYear();
-        DateTimeFormatter formatter = date.getYear() == currentTorontoYear
-            ? WINDOW_DATE_FORMATTER
-            : WINDOW_DATE_WITH_YEAR_FORMATTER;
-        return formatter.format(date);
-    }
-
-    private boolean isParentPeriod(AlertActivePeriodRepository.AlertPeriod period) {
-        return "parent".equalsIgnoreCase(period.sourcePeriodId());
-    }
-
-    private boolean isRecurringClosureParentWindow(AlertEntity alert) {
-        OffsetDateTime startsAt = alert.getActivePeriodStart();
-        OffsetDateTime endsAt = alert.getActivePeriodEnd();
-        if (startsAt == null || endsAt == null) {
-            return false;
-        }
-        if (Duration.between(startsAt, endsAt).compareTo(MAX_SINGLE_CLOSURE_WINDOW) <= 0) {
-            return false;
-        }
-        String text = String.join(" ",
-            nullToEmpty(alert.getTitle()),
-            nullToEmpty(alert.getDescription()),
-            nullToEmpty(alert.getEffectDescription()),
-            nullToEmpty(alert.getCause()),
-            nullToEmpty(alert.getCauseDescription()),
-            nullToEmpty(alert.getRawPayload())
-        ).toLowerCase(Locale.ROOT);
-        return text.contains("nightly")
-            || text.contains("closure windows")
-            || text.contains("early access");
-    }
-
-    private record WindowState(
-        boolean activeNow,
-        String timingStatus,
-        boolean nightly,
-        OffsetDateTime activeWindowStart,
-        OffsetDateTime activeWindowEnd,
-        String activeWindowLabel,
-        OffsetDateTime nextWindowStart,
-        OffsetDateTime nextWindowEnd,
-        String nextWindowLabel,
-        String windowHours,
-        String windowDates,
-        String activeSourcePeriodId
-    ) {}
 
     private void appendImpact(
         Map<String, List<SegmentImpact>> impacts,
@@ -658,86 +515,6 @@ public class AlertDashboardService {
         );
     }
 
-    private PlannedClosureDto activeClosurePresentation(
-        PlannedClosureView view,
-        List<LineSegmentEntity> segments
-    ) {
-        PlannedClosureDto closure = view.closure();
-        AlertEntity currentSourceAlert = view.currentSourceAlert();
-        if (currentSourceAlert == null) {
-            return closure;
-        }
-        TransitLineEntity line = currentSourceAlert.getLine();
-        List<String> previewSegmentIds = closure.previewSegmentIds().isEmpty()
-            ? affectedSegmentIds(currentSourceAlert, segments)
-            : closure.previewSegmentIds();
-        return new PlannedClosureDto(
-            closure.id(),
-            line == null ? closure.lineId() : line.getId(),
-            line == null ? closure.lineNumber() : line.getNumber(),
-            closureDisplayTitle(
-                currentSourceAlert.getTitle(),
-                closure.windowHours(),
-                closure.windowDates(),
-                closure.nightly(),
-                isOvernightClosure(
-                    closure.activeWindowStart() == null ? closure.nextWindowStart() : closure.activeWindowStart(),
-                    closure.activeWindowEnd() == null ? closure.nextWindowEnd() : closure.activeWindowEnd()
-                )
-            ),
-            closure.window(),
-            location(currentSourceAlert),
-            displayDirection(currentSourceAlert),
-            currentSourceAlert.getDescription(),
-            closure.startedAt(),
-            sourceUpdatedAt(currentSourceAlert),
-            previewSegmentIds,
-            !isBlank(currentSourceAlert.getShuttleType()),
-            sourceLabel(currentSourceAlert, "TTC Service Advisory"),
-            cause(currentSourceAlert),
-            resolution(currentSourceAlert),
-            closure.activeNow(),
-            closure.timingStatus(),
-            closure.nightly(),
-            closure.activeWindowStart(),
-            closure.activeWindowEnd(),
-            closure.activeWindowLabel(),
-            closure.nextWindowStart(),
-            closure.nextWindowEnd(),
-            closure.nextWindowLabel(),
-            closure.windowHours(),
-            closure.windowDates(),
-            closureNotificationTitle(currentSourceAlert.getTitle()),
-            plannedClosureTravelDirection(currentSourceAlert, previewSegmentIds, segments)
-        );
-    }
-
-    private ActiveAlertDto toActiveClosureAlert(
-        PlannedClosureView view,
-        List<LineSegmentEntity> segments
-    ) {
-        PlannedClosureDto closure = activeClosurePresentation(view, segments);
-        AlertEntity currentSourceAlert = view.currentSourceAlert();
-        return new ActiveAlertDto(
-            currentSourceAlert == null ? closure.id() : currentSourceAlert.getId(),
-            closure.lineId(),
-            closure.lineNumber(),
-            closure.title(),
-            "planned",
-            closure.location(),
-            closure.displayDirection(),
-            closure.description(),
-            closure.activeWindowStart() == null ? closure.startedAt() : closure.activeWindowStart(),
-            closure.updatedAt(),
-            closure.previewSegmentIds(),
-            closure.shuttle(),
-            closure.source(),
-            closure.cause(),
-            closure.resolution(),
-            currentSourceAlert == null ? null : view.closure().id(),
-            closure.notificationTitle()
-        );
-    }
 
     private DelayAlertDto toDelayAlert(AlertEntity alert, List<LineSegmentEntity> segments) {
         TransitLineEntity line = alert.getLine();
@@ -757,200 +534,12 @@ public class AlertDashboardService {
         );
     }
 
-    private OffsetDateTime sourceUpdatedAt(AlertEntity alert) {
+    static OffsetDateTime sourceUpdatedAt(AlertEntity alert) {
         OffsetDateTime sourceUpdatedAt = alert.getSourceUpdatedAt();
         if (sourceUpdatedAt == null) {
             return alert.getUpdatedAt();
         }
         return sourceUpdatedAt;
-    }
-
-    private PlannedClosureDto toPlannedClosure(AlertEntity alert, List<LineSegmentEntity> segments, WindowState ws) {
-        TransitLineEntity line = alert.getLine();
-        List<String> previewSegmentIds = affectedSegmentIds(alert, segments);
-        return new PlannedClosureDto(
-            alert.getId(),
-            line == null ? null : line.getId(),
-            line == null ? null : line.getNumber(),
-            closureDisplayTitle(alert.getTitle(), ws),
-            displayWindow(alert, ws),
-            location(alert),
-            displayDirection(alert),
-            alert.getDescription(),
-            alert.getActivePeriodStart(),
-            alert.getSourceUpdatedAt(),
-            previewSegmentIds,
-            !isBlank(alert.getShuttleType()),
-            sourceLabel(alert, "TTC Service Advisory"),
-            cause(alert),
-            resolution(alert),
-            ws.activeNow(),
-            ws.timingStatus(),
-            ws.nightly(),
-            ws.activeWindowStart(),
-            ws.activeWindowEnd(),
-            ws.activeWindowLabel(),
-            ws.nextWindowStart(),
-            ws.nextWindowEnd(),
-            ws.nextWindowLabel(),
-            ws.windowHours(),
-            ws.windowDates(),
-            closureNotificationTitle(alert.getTitle()),
-            plannedClosureTravelDirection(alert, previewSegmentIds, segments)
-        );
-    }
-
-    private String plannedClosureTravelDirection(
-        AlertEntity alert,
-        List<String> previewSegmentIds,
-        List<LineSegmentEntity> segments
-    ) {
-        if (previewSegmentIds.isEmpty()) {
-            return "bidirectional";
-        }
-        return segments.stream()
-            .filter(segment -> previewSegmentIds.getFirst().equals(segment.getId()))
-            .findFirst()
-            .map(segment -> travelDirection(alert, segment))
-            .orElse("bidirectional");
-    }
-
-    private String closureNotificationTitle(String title) {
-        if (isBlank(title)) {
-            return title;
-        }
-        return TRUNCATED_CLOSURE_START.matcher(title.trim()).replaceFirst("").trim();
-    }
-
-    private String closureDisplayTitle(String title, WindowState ws) {
-        OffsetDateTime windowStart = ws.activeWindowStart() == null
-            ? ws.nextWindowStart()
-            : ws.activeWindowStart();
-        OffsetDateTime windowEnd = ws.activeWindowEnd() == null
-            ? ws.nextWindowEnd()
-            : ws.activeWindowEnd();
-        return closureDisplayTitle(
-            title,
-            ws.windowHours(),
-            ws.windowDates(),
-            ws.nightly(),
-            isOvernightClosure(windowStart, windowEnd)
-        );
-    }
-
-    private String closureDisplayTitle(
-        String title,
-        String windowHours,
-        String windowDates,
-        boolean nightly,
-        boolean overnight
-    ) {
-        if (isBlank(title)) {
-            return title;
-        }
-        String trimmed = title.trim();
-        java.util.regex.Matcher matcher = TRUNCATED_CLOSURE_START.matcher(trimmed);
-        if (!matcher.find()) {
-            return trimmed;
-        }
-
-        String baseTitle = matcher.replaceFirst("").replaceFirst("[\\s,;:.]+$", "").trim();
-        String hours = naturalClosureHours(windowHours);
-        String dates = naturalClosureDates(windowDates);
-        boolean discreteOccurrences = windowDates != null && windowDates.contains(";");
-        boolean isDateRange = windowDates != null && (windowDates.contains("–") || windowDates.contains("—") || windowDates.contains(" - "));
-        if (hours == null && dates == null) {
-            return baseTitle;
-        }
-
-        StringBuilder titleBuilder = new StringBuilder(baseTitle);
-        if (dates != null) {
-            String dateConnector;
-            if (isDateRange && !discreteOccurrences) {
-                dateConnector = overnight ? " overnight from " : " from ";
-            } else {
-                dateConnector = overnight ? " overnight on " : " on ";
-            }
-            titleBuilder.append(dateConnector).append(dates);
-        } else if (overnight) {
-            titleBuilder.append(" overnight");
-        }
-        titleBuilder.append('.');
-        if (hours != null) {
-            String closureSubject = overnight && nightly
-                ? "Each nightly closure"
-                : nightly
-                    ? "Each scheduled closure"
-                    : "The closure";
-            titleBuilder.append(' ')
-                .append(closureSubject)
-                .append(" runs from ")
-                .append(hours);
-            if (overnight) {
-                titleBuilder.append(" the following morning");
-            }
-            titleBuilder.append('.');
-        }
-        return titleBuilder.toString();
-    }
-
-    private boolean isOvernightClosure(OffsetDateTime startsAt, OffsetDateTime endsAt) {
-        if (startsAt == null || endsAt == null) {
-            return false;
-        }
-        LocalDate localStartDate = startsAt.atZoneSameInstant(TORONTO_ZONE).toLocalDate();
-        LocalDate localEndDate = endsAt.atZoneSameInstant(TORONTO_ZONE).toLocalDate();
-        return localEndDate.isAfter(localStartDate);
-    }
-
-    private String naturalClosureHours(String windowHours) {
-        if (isBlank(windowHours) || "Varies by closure date".equalsIgnoreCase(windowHours)) {
-            return null;
-        }
-        return windowHours.replace(" – ", " until ");
-    }
-
-    private String naturalClosureDates(String windowDates) {
-        if (isBlank(windowDates)) {
-            return null;
-        }
-        List<String> occurrences = java.util.Arrays.stream(windowDates.split(";\\s*"))
-            .map(this::expandedClosureDateNames)
-            .toList();
-        if (occurrences.size() == 2) {
-            return occurrences.getFirst() + " and " + occurrences.getLast();
-        }
-        if (occurrences.size() > 2) {
-            return String.join(", ", occurrences.subList(0, occurrences.size() - 1))
-                + ", and "
-                + occurrences.getLast();
-        }
-        return occurrences.getFirst();
-    }
-
-    private String expandedClosureDateNames(String windowDate) {
-        String natural = windowDate.replaceAll("\\s*[–—-]+\\s*", " to ");
-        String[][] names = {
-            {"Mon", "Monday"}, {"Tue", "Tuesday"}, {"Wed", "Wednesday"},
-            {"Thu", "Thursday"}, {"Fri", "Friday"}, {"Sat", "Saturday"}, {"Sun", "Sunday"},
-            {"Jan", "January"}, {"Feb", "February"}, {"Mar", "March"}, {"Apr", "April"},
-            {"Jun", "June"}, {"Jul", "July"}, {"Aug", "August"}, {"Sep", "September"},
-            {"Oct", "October"}, {"Nov", "November"}, {"Dec", "December"}
-        };
-        for (String[] name : names) {
-            natural = natural.replaceAll("\\b" + name[0] + "\\b", name[1]);
-        }
-        return natural;
-    }
-
-    private String displayWindow(AlertEntity alert, WindowState ws) {
-        if (ws.nightly()) {
-            return "Nightly closure windows";
-        }
-        if ("unknown".equals(ws.timingStatus())) {
-            return "Closure timing unavailable";
-        }
-        return window(alert.getActivePeriodStart(), alert.getActivePeriodEnd());
     }
 
     private List<String> affectedSegmentIds(AlertEntity alert, List<LineSegmentEntity> segments) {
@@ -963,7 +552,7 @@ public class AlertDashboardService {
         );
     }
 
-    private String location(AlertEntity alert) {
+    static String location(AlertEntity alert) {
         if (isBlank(alert.getStartStationId()) || isBlank(alert.getEndStationId())) {
             return "";
         }
@@ -973,7 +562,7 @@ public class AlertDashboardService {
         return stationLabel(alert.getStartStationId()) + " to " + stationLabel(alert.getEndStationId());
     }
 
-    private String displayDirection(AlertEntity alert) {
+    static String displayDirection(AlertEntity alert) {
         AlertDirection direction = AlertDirection.fromWireValue(alert.getDirection());
         if (isUnionLineOneStationOnlyAlert(alert)) {
             Optional<String> unionTerminal = unionLineOneTerminal(alert);
@@ -998,7 +587,7 @@ public class AlertDashboardService {
         };
     }
 
-    private boolean isUnionLineOneStationOnlyAlert(AlertEntity alert) {
+    static boolean isUnionLineOneStationOnlyAlert(AlertEntity alert) {
         TransitLineEntity line = alert.getLine();
         return line != null
             && "line-1".equals(line.getId())
@@ -1006,7 +595,7 @@ public class AlertDashboardService {
             && "union".equals(alert.getEndStationId());
     }
 
-    private Optional<String> unionLineOneTerminal(AlertEntity alert) {
+    static Optional<String> unionLineOneTerminal(AlertEntity alert) {
         String text = String.join(" ",
             nullToEmpty(alert.getTitle()),
             nullToEmpty(alert.getDescription()),
@@ -1029,7 +618,7 @@ public class AlertDashboardService {
         return Optional.empty();
     }
 
-    private String travelDirection(AlertEntity alert, LineSegmentEntity segment) {
+    static String travelDirection(AlertEntity alert, LineSegmentEntity segment) {
         AlertDirection direction = AlertDirection.fromWireValue(alert.getDirection());
         if (direction == AlertDirection.BIDIRECTIONAL || direction == AlertDirection.UNKNOWN) {
             return "bidirectional";
@@ -1048,7 +637,7 @@ public class AlertDashboardService {
         return "bidirectional";
     }
 
-    private AlertDirection opposite(AlertDirection direction) {
+    static AlertDirection opposite(AlertDirection direction) {
         return switch (direction) {
             case NORTHBOUND -> AlertDirection.SOUTHBOUND;
             case SOUTHBOUND -> AlertDirection.NORTHBOUND;
@@ -1058,7 +647,7 @@ public class AlertDashboardService {
         };
     }
 
-    private String bidirectionalLabel(TransitLineEntity line) {
+    static String bidirectionalLabel(TransitLineEntity line) {
         String num = line != null ? line.getNumber() : "";
         if ("1".equals(num)) {
             return "Northbound & Southbound";
@@ -1097,7 +686,7 @@ public class AlertDashboardService {
                 .map(detail -> toDirectionalDetailDto(detail, zone.sourceAlerts()))
                 .toList(),
             sourceLabel(first, "TTC Live Alerts"),
-            firstNonBlank(zone.sourceAlerts(), this::cause),
+            firstNonBlank(zone.sourceAlerts(), AlertDashboardService::cause),
             groupedResolution(zone.sourceAlerts()),
             firstNonBlank(zone.sourceAlerts(), AlertEntity::getRszLength),
             firstNonBlank(zone.sourceAlerts(), AlertEntity::getStationDistance),
@@ -1141,7 +730,7 @@ public class AlertDashboardService {
         return "Multiple affected sections";
     }
 
-    private String sourceLabel(AlertEntity alert, String liveAlertsDefault) {
+    static String sourceLabel(AlertEntity alert, String liveAlertsDefault) {
         if (TtcSubwayClosureParser.SOURCE_ALERT_TYPE.equalsIgnoreCase(
             alert.getSourceAlertType()
         )) {
@@ -1179,7 +768,7 @@ public class AlertDashboardService {
             : Optional.empty();
     }
 
-    private String stationLabel(String stationId) {
+    static String stationLabel(String stationId) {
         return StationDisplayNameFormatter.fromStationId(stationId);
     }
 
@@ -1234,7 +823,7 @@ public class AlertDashboardService {
         return multipleDates ? "Multiple Dates" : resolution;
     }
 
-    private String cause(AlertEntity alert) {
+    static String cause(AlertEntity alert) {
         if (!isBlank(alert.getCauseDescription())) {
             return cleanMetadataValue(alert.getCauseDescription());
         }
@@ -1244,14 +833,14 @@ public class AlertDashboardService {
         return null;
     }
 
-    private String resolution(AlertEntity alert) {
+    static String resolution(AlertEntity alert) {
         if (!isBlank(alert.getTargetRemoval())) {
             return cleanMetadataValue(alert.getTargetRemoval());
         }
         return null;
     }
 
-    private String cleanMetadataValue(String value) {
+    static String cleanMetadataValue(String value) {
         if (value == null) {
             return null;
         }
@@ -1259,51 +848,18 @@ public class AlertDashboardService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    static String closureDisplayTitle(
+        String title,
+        String windowHours,
+        String windowDates,
+        boolean nightly,
+        boolean overnight
+    ) {
+        return TtcClosureProjector.closureDisplayTitle(title, windowHours, windowDates, nightly, overnight);
+    }
+
     private String window(OffsetDateTime startsAt, OffsetDateTime endsAt) {
-        if (startsAt == null && endsAt == null) {
-            return "Timing TBD";
-        }
-        int currentTorontoYear = OffsetDateTime.now(clock).atZoneSameInstant(TORONTO_ZONE).getYear();
-        if (startsAt == null) {
-            ZonedDateTime endZdt = endsAt.atZoneSameInstant(TORONTO_ZONE);
-            DateTimeFormatter formatter = endZdt.getYear() == currentTorontoYear
-                ? WINDOW_DATE_TIME_FORMATTER
-                : WINDOW_DATE_TIME_WITH_YEAR_FORMATTER;
-            return "Until " + formatter.format(endZdt);
-        }
-        if (endsAt == null) {
-            ZonedDateTime startZdt = startsAt.atZoneSameInstant(TORONTO_ZONE);
-            DateTimeFormatter formatter = startZdt.getYear() == currentTorontoYear
-                ? WINDOW_DATE_TIME_FORMATTER
-                : WINDOW_DATE_TIME_WITH_YEAR_FORMATTER;
-            return "From " + formatter.format(startZdt);
-        }
-
-        ZonedDateTime startZdt = startsAt.atZoneSameInstant(TORONTO_ZONE);
-        ZonedDateTime endZdt = endsAt.atZoneSameInstant(TORONTO_ZONE);
-        LocalDate startDate = startZdt.toLocalDate();
-        LocalDate endDate = endZdt.toLocalDate();
-
-        DateTimeFormatter startFormatter = startZdt.getYear() == currentTorontoYear
-            ? WINDOW_DATE_TIME_FORMATTER
-            : WINDOW_DATE_TIME_WITH_YEAR_FORMATTER;
-
-        if (startDate.equals(endDate)) {
-            return startFormatter.format(startZdt) + " – " + WINDOW_HOURS_FORMATTER.format(endZdt);
-        }
-
-        if (endDate.equals(startDate.plusDays(1))
-            && Duration.between(startsAt, endsAt).compareTo(MAX_SINGLE_CLOSURE_WINDOW) <= 0) {
-            DateTimeFormatter endDayTimeFormatter = endZdt.getYear() == currentTorontoYear
-                ? WINDOW_DAY_TIME_FORMATTER
-                : WINDOW_DAY_TIME_WITH_YEAR_FORMATTER;
-            return startFormatter.format(startZdt) + " – " + endDayTimeFormatter.format(endZdt);
-        }
-
-        DateTimeFormatter endFormatter = endZdt.getYear() == currentTorontoYear
-            ? WINDOW_DATE_TIME_FORMATTER
-            : WINDOW_DATE_TIME_WITH_YEAR_FORMATTER;
-        return startFormatter.format(startZdt) + " – " + endFormatter.format(endZdt);
+        return TtcClosureProjector.window(startsAt, endsAt, OffsetDateTime.now(clock));
     }
 
     private Comparator<ActiveAlertDto> activeAlertComparator(List<LineSegmentEntity> segments) {
@@ -1334,15 +890,10 @@ public class AlertDashboardService {
     }
 
     private Comparator<PlannedClosureDto> plannedClosureComparator(List<LineSegmentEntity> segments) {
-        Map<String, Integer> segmentOrders = segmentOrders(segments);
-        return Comparator
-            .comparingInt((PlannedClosureDto dto) -> lineSortOrder(dto.lineId(), dto.lineNumber()))
-            .thenComparingInt(dto -> firstSegmentOrder(dto.previewSegmentIds(), segmentOrders))
-            .thenComparing(PlannedClosureDto::startedAt, Comparator.nullsLast(Comparator.naturalOrder()))
-            .thenComparing(PlannedClosureDto::id, Comparator.nullsLast(Comparator.naturalOrder()));
+        return TtcClosureProjector.plannedClosureComparator(segments);
     }
 
-    private Map<String, Integer> segmentOrders(List<LineSegmentEntity> segments) {
+    static Map<String, Integer> segmentOrders(List<LineSegmentEntity> segments) {
         Map<String, Integer> orders = new LinkedHashMap<>();
         for (LineSegmentEntity segment : segments) {
             orders.put(segment.getId(), segment.getSortOrder());
@@ -1350,7 +901,7 @@ public class AlertDashboardService {
         return orders;
     }
 
-    private int firstSegmentOrder(List<String> segmentIds, Map<String, Integer> segmentOrders) {
+    static int firstSegmentOrder(List<String> segmentIds, Map<String, Integer> segmentOrders) {
         if (segmentIds == null || segmentIds.isEmpty()) {
             return Integer.MAX_VALUE;
         }
@@ -1361,7 +912,7 @@ public class AlertDashboardService {
             .orElse(Integer.MAX_VALUE);
     }
 
-    private int lineSortOrder(String lineId, String lineNumber) {
+    static int lineSortOrder(String lineId, String lineNumber) {
         if (!isBlank(lineNumber)) {
             try {
                 return Integer.parseInt(lineNumber);
@@ -1387,15 +938,15 @@ public class AlertDashboardService {
         };
     }
 
-    private boolean hasImpactKind(AlertEntity alert, String kind) {
+    static boolean hasImpactKind(AlertEntity alert, String kind) {
         return kind.equalsIgnoreCase(alert.getImpactKind());
     }
 
-    private boolean isBlank(String value) {
+    static boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
 
-    private String nullToEmpty(String value) {
+    static String nullToEmpty(String value) {
         return value == null ? "" : value;
     }
 

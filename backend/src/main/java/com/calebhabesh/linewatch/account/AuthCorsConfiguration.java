@@ -11,7 +11,7 @@ public class AuthCorsConfiguration implements WebMvcConfigurer {
     private final List<String> allowedOrigins;
 
     public AuthCorsConfiguration(
-        @Value("${linewatch.auth.allowed-origins:http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:4173,http://192.168.*:*,http://10.*:*,http://172.16.*:*,http://*.local:*}") List<String> allowedOrigins
+        @Value("${linewatch.auth.allowed-origins:http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:4173,http://127.0.0.1:4175,http://192.168.*:*,http://10.*:*,http://172.16.*:*,http://*.local:*}") List<String> allowedOrigins
     ) {
         this.allowedOrigins = allowedOrigins;
     }

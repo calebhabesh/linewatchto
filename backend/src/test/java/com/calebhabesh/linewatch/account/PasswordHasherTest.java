@@ -17,4 +17,12 @@ class PasswordHasherTest {
         assertThat(hasher.matches("correct horse battery staple", hash)).isTrue();
         assertThat(hasher.matches("wrong password", hash)).isFalse();
     }
+
+    @Test
+    void supportsCustomWorkFactorForTesting() {
+        PasswordHasher fastHasher = new PasswordHasher(4);
+        String hash = fastHasher.hash("test-pass");
+        assertThat(hash).startsWith("$2a$04$");
+        assertThat(fastHasher.matches("test-pass", hash)).isTrue();
+    }
 }

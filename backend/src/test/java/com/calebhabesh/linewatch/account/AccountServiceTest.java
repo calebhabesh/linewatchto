@@ -35,7 +35,7 @@ class AccountServiceTest {
     private final GoogleIdentityVerifier googleIdentityVerifier = mock(GoogleIdentityVerifier.class);
     private final AccountSessionRequestContext sessionRequestContext = mock(AccountSessionRequestContext.class);
     private final GoogleAuthProperties googleAuthProperties = googleProperties();
-    private final PasswordHasher passwordHasher = new PasswordHasher();
+    private final PasswordHasher passwordHasher = new PasswordHasher(4);
     private final SessionTokenService tokenService = new SessionTokenService();
     private final PasswordResetLinkFactory passwordResetLinkFactory = new PasswordResetLinkFactory("https://linewatch.example");
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T14:30:00Z"), ZoneOffset.UTC);

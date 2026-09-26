@@ -33,7 +33,7 @@ class AccountSessionRenewalIntegrationTest {
     private final AccountRepository accountRepository = mock(AccountRepository.class);
     private final UserSessionRepository sessionRepository = mock(UserSessionRepository.class);
     private final PasswordResetTokenRepository passwordResetTokenRepository = mock(PasswordResetTokenRepository.class);
-    private final PasswordHasher passwordHasher = new PasswordHasher();
+    private final PasswordHasher passwordHasher = new PasswordHasher(4);
     private final SessionTokenService tokenService = new SessionTokenService();
     private final PasswordResetEmailSender passwordResetEmailSender = mock(PasswordResetEmailSender.class);
     private final PasswordResetLinkFactory passwordResetLinkFactory = new PasswordResetLinkFactory("https://linewatch.example");

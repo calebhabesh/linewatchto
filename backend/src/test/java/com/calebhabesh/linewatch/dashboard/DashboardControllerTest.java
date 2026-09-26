@@ -159,6 +159,32 @@ class DashboardControllerTest {
         assertThat(response.message()).contains("not configured");
     }
 
+    @Test
+    void delegatesDirectlyToTtcDashboardServiceWhenConstructedWithPrimaryConstructor() {
+        TtcDashboardService ttcService = mock(TtcDashboardService.class);
+        DashboardController primaryController = new DashboardController(
+            ttcService,
+            regionalDashboardService,
+            cache,
+            cacheProperties
+        );
+        DashboardResponses.DashboardResponse expected = new DashboardResponses.DashboardResponse(
+            "ttc", "available", List.of(), "ok", null, null, List.of(), List.of(), List.of(), List.of(), null
+        );
+        when(ttcService.remainingFreshness()).thenReturn(Optional.of(Duration.ofSeconds(20)));
+        when(ttcService.dashboard()).thenReturn(expected);
+
+        DashboardResponses.DashboardResponse response = primaryController.dashboard("ttc");
+
+        assertThat(response).isSameAs(expected);
+        verify(cache).getOrCompute(
+            org.mockito.ArgumentMatchers.eq("dashboard:full:ttc"),
+            any(),
+            org.mockito.ArgumentMatchers.eq(Duration.ofSeconds(20)),
+            any()
+        );
+    }
+
     private DashboardResponses.DashboardResponse regionalUnavailableDashboard() {
         return new DashboardResponses.DashboardResponse(
             "regional", "unavailable", List.of("metrolinx-go-service-alerts", "metrolinx-up-gtfs-alerts"),

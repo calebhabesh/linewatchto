@@ -14,7 +14,12 @@ import org.junit.jupiter.api.Test;
 class PushNotificationControllerTest {
     private final AccountService accountService = mock(AccountService.class);
     private final PushNotificationService pushNotificationService = mock(PushNotificationService.class);
-    private final PushNotificationController controller = new PushNotificationController(accountService, pushNotificationService);
+    private final PushDeliveryDiagnosticsService pushDeliveryDiagnosticsService = mock(PushDeliveryDiagnosticsService.class);
+    private final PushNotificationController controller = new PushNotificationController(
+        accountService,
+        pushNotificationService,
+        pushDeliveryDiagnosticsService
+    );
     private final AccountEntity account = AccountEntity.create(
         "user_1",
         "rider@example.com",
@@ -108,12 +113,12 @@ class PushNotificationControllerTest {
         PushResponses.PushDeliveryDiagnosticsResponse expected =
             new PushResponses.PushDeliveryDiagnosticsResponse(java.util.List.of());
         when(accountService.requireAccount("raw-token")).thenReturn(account);
-        when(pushNotificationService.deliveryDiagnostics(account)).thenReturn(expected);
+        when(pushDeliveryDiagnosticsService.forAccount(account.getId())).thenReturn(expected);
 
         PushResponses.PushDeliveryDiagnosticsResponse response = controller.diagnostics("raw-token");
 
         assertThat(response).isEqualTo(expected);
-        verify(pushNotificationService).deliveryDiagnostics(account);
+        verify(pushDeliveryDiagnosticsService).forAccount(account.getId());
     }
 
     @Test

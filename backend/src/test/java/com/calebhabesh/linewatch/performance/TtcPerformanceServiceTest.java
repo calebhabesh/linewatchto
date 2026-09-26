@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.performance;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -181,6 +182,62 @@ class TtcPerformanceServiceTest {
         assertThat(response.status()).isEqualTo("unavailable");
         assertThat(response.metrics()).isEmpty();
         assertThat(response.message()).contains("temporarily unavailable");
+    }
+
+    @Test
+    void performanceDelegatesToCurrentWhenCacheNotConfigured() {
+        when(client.fetch()).thenReturn(new TtcPerformanceResponses.SnapshotResponse(
+            "available", "TTC.ca", "https://www.ttc.ca/", "On-time performance",
+            "June 7, 2026 7:00 AM", OffsetDateTime.parse("2026-06-07T12:00:00Z"), false,
+            "Official TTC performance metrics loaded from TTC.ca.",
+            List.of(new TtcPerformanceResponses.MetricResponse("line-1", "Line 1", "subway", 94, 90, "94%", null))
+        ));
+
+        TtcPerformanceResponses.SnapshotResponse response = service.performance();
+
+        assertThat(response.status()).isEqualTo("available");
+        assertThat(response.metrics()).singleElement().satisfies(metric -> assertThat(metric.id()).isEqualTo("line-1"));
+    }
+
+    @Test
+    void performanceUsesDashboardCacheWhenConfigured() {
+        com.calebhabesh.linewatch.cache.DashboardCacheService mockCache = mock(com.calebhabesh.linewatch.cache.DashboardCacheService.class);
+        com.calebhabesh.linewatch.cache.DashboardCacheProperties cacheProps = new com.calebhabesh.linewatch.cache.DashboardCacheProperties();
+        TtcPerformanceService cachedService = new TtcPerformanceService(
+            client, properties, clock, redis, objectMapper, mockCache, cacheProps
+        );
+        TtcPerformanceResponses.SnapshotResponse cachedResponse = new TtcPerformanceResponses.SnapshotResponse(
+            "available", "TTC.ca", "https://www.ttc.ca/", "On-time performance",
+            "June 7, 2026 7:00 AM", OffsetDateTime.parse("2026-06-07T12:00:00Z"), false,
+            "Cached metrics",
+            List.of(new TtcPerformanceResponses.MetricResponse("line-1", "Line 1", "subway", 94, 90, "94%", null))
+        );
+        when(mockCache.getOrComputeIf(
+            org.mockito.ArgumentMatchers.eq("performance"),
+            any(),
+            org.mockito.ArgumentMatchers.eq(cacheProps.getPerformanceTtl()),
+            any(),
+            any()
+        )).thenReturn(cachedResponse);
+
+        TtcPerformanceResponses.SnapshotResponse response = cachedService.performance();
+
+        assertThat(response).isSameAs(cachedResponse);
+    }
+
+    @Test
+    void isCacheableSnapshotEvaluatesCorrectly() {
+        assertThat(TtcPerformanceService.isCacheableSnapshot(null)).isFalse();
+        assertThat(TtcPerformanceService.isCacheableSnapshot(new TtcPerformanceResponses.SnapshotResponse(
+            "disabled", "TTC.ca", "", "", "", null, false, "", null
+        ))).isFalse();
+        assertThat(TtcPerformanceService.isCacheableSnapshot(new TtcPerformanceResponses.SnapshotResponse(
+            "disabled", "TTC.ca", "", "", "", null, false, "", List.of()
+        ))).isFalse();
+        assertThat(TtcPerformanceService.isCacheableSnapshot(new TtcPerformanceResponses.SnapshotResponse(
+            "available", "TTC.ca", "", "", "", null, false, "",
+            List.of(new TtcPerformanceResponses.MetricResponse("line-1", "Line 1", "subway", 90, 90, "90%", null))
+        ))).isTrue();
     }
 
     private static final class MutableClock extends Clock {

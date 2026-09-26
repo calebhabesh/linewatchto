@@ -8,7 +8,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,18 +19,22 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class RegionalGtfsScheduleImportService {
     private static final DateTimeFormatter GTFS_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-    private final RegionalGtfsScheduleRepository repository;
-    private final Clock clock;
+    private final RegionalGtfsScheduleImportWriter writer;
+
+    @Autowired
+    public RegionalGtfsScheduleImportService(RegionalGtfsScheduleImportWriter writer) {
+        this.writer = writer;
+    }
 
     public RegionalGtfsScheduleImportService(RegionalGtfsScheduleRepository repository, Clock clock) {
-        this.repository = repository;
-        this.clock = clock;
+        this(new RegionalGtfsScheduleImportWriter(repository, clock));
     }
 
     public ImportSummary importZip(Path zipPath, String sourceSystem, String sourceUrl) throws IOException {
@@ -43,7 +46,6 @@ public class RegionalGtfsScheduleImportService {
         Map<String, StopInfo> stops = new HashMap<>();
         List<RegionalGtfsScheduleImport.Service> services = new ArrayList<>();
         List<RegionalGtfsScheduleImport.ServiceException> exceptions = new ArrayList<>();
-        List<RegionalGtfsScheduleImport.Departure> departures = new ArrayList<>();
         Set<String> serviceIds = new HashSet<>();
         LocalDate[] range = new LocalDate[2];
 
@@ -90,31 +92,17 @@ public class RegionalGtfsScheduleImportService {
                     row.value("service_id"), serviceDate, Integer.parseInt(row.value("exception_type"))
                 ));
             });
-            forEach(zip, "stop_times.txt", row -> {
-                TripInfo trip = trips.get(row.value("trip_id"));
-                StopInfo stop = stops.get(row.value("stop_id"));
-                if (trip == null || stop == null) return;
-                String stationId = stationId(stop, stops, row.value("stop_id"));
-                if (stationId == null || RegionalNetworkCatalog.route(trip.lineId())
-                    .map(route -> !route.stationIds().contains(stationId)).orElse(true)) return;
-                String departureTime = firstNonBlank(row.value("departure_time"), row.value("arrival_time"));
-                if (departureTime.isBlank()) return;
-                departures.add(new RegionalGtfsScheduleImport.Departure(
-                    stationId, trip.lineId(), trip.serviceId(), row.value("trip_id"), trip.shortName(),
-                    trip.direction(), GtfsCsvReader.seconds(departureTime), stop.platform(),
-                    integer(row.value("stop_sequence"))
-                ));
-            });
         }
 
-        if (routes.isEmpty() || trips.isEmpty() || departures.isEmpty() || range[0] == null || range[1] == null) {
+        if (routes.isEmpty() || trips.isEmpty() || range[0] == null || range[1] == null) {
             throw new IOException("Regional GTFS feed did not contain mapped rail schedule coverage");
         }
-        RegionalGtfsScheduleImport schedule = new RegionalGtfsScheduleImport(
-            sourceSystem, sourceUrl, range[0], range[1], services, exceptions, departures
+
+        RegionalGtfsPreparedImport prepared = new RegionalGtfsPreparedImport(
+            sourceSystem, sourceUrl, range[0], range[1], services, exceptions, routes.size(), trips, stops
         );
-        long importId = repository.replace(schedule, OffsetDateTime.now(clock));
-        return new ImportSummary(importId, sourceSystem, routes.size(), trips.size(), departures.size(), range[0], range[1]);
+
+        return writer.write(zipPath, prepared);
     }
 
     private String lineId(String sourceSystem, GtfsCsvReader.Row row) {
@@ -135,7 +123,7 @@ public class RegionalGtfsScheduleImportService {
         return null;
     }
 
-    private String stationId(StopInfo stop, Map<String, StopInfo> stops, String stopId) {
+    static String stationId(StopInfo stop, Map<String, StopInfo> stops, String stopId) {
         for (String code : List.of(stop.code(), stopId)) {
             var mapped = RegionalNetworkCatalog.stationIdForStopCode(code);
             if (mapped.isPresent()) return mapped.get();
@@ -177,11 +165,11 @@ public class RegionalGtfsScheduleImportService {
         if (range[1] == null || value.isAfter(range[1])) range[1] = value;
     }
 
-    private String firstNonBlank(String first, String second) {
+    static String firstNonBlank(String first, String second) {
         return first == null || first.isBlank() ? second == null ? "" : second : first;
     }
 
-    private Integer integer(String value) {
+    static Integer integer(String value) {
         try {
             return value == null || value.isBlank() ? null : Integer.valueOf(value.trim());
         } catch (NumberFormatException ignored) {
@@ -202,9 +190,9 @@ public class RegionalGtfsScheduleImportService {
         return firstNonBlank(row.value("trip_headsign"), route.name());
     }
 
-    private record RouteInfo(String lineId, String name) {}
-    private record TripInfo(String lineId, String serviceId, String shortName, String direction) {}
-    private record StopInfo(String code, String parentId, String platform) {}
+    record RouteInfo(String lineId, String name) {}
+    record TripInfo(String lineId, String serviceId, String shortName, String direction) {}
+    record StopInfo(String code, String parentId, String platform) {}
     public record ImportSummary(
         long importId, String sourceSystem, int routes, int trips, int departures,
         LocalDate serviceStart, LocalDate serviceEnd

@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -40,16 +41,15 @@ public class PushNotificationService {
     private final PushNotificationDeliveryRepository deliveryRepository;
     private final PushNotificationEventRepository eventRepository;
     private final SavedCommuteRepository savedCommuteRepository;
-    private final SavedCommutePushPlanner planner;
+    private final PushCandidateResolver candidateResolver;
     private final PushNotificationPreferenceService preferenceService;
-    private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner;
-    private final RegionalLineSubscriptionPushPlanner regionalLineSubscriptionPushPlanner;
     private final PushNotificationClientEventRepository clientEventRepository;
     private final WebPushClient webPushClient;
     private final PushReceiptTokenService receiptTokenService;
     private final IngestionFreshness ingestionFreshness;
     private final RegionalIngestionFreshness regionalIngestionFreshness;
     private final PushSubscriptionLifecycleService lifecycleService;
+    private final PushDeliveryDiagnosticsService diagnosticsService;
     private final PushEndpointPolicy endpointPolicy;
     private final Clock clock;
 
@@ -60,16 +60,15 @@ public class PushNotificationService {
         PushNotificationDeliveryRepository deliveryRepository,
         PushNotificationEventRepository eventRepository,
         SavedCommuteRepository savedCommuteRepository,
-        SavedCommutePushPlanner planner,
+        PushCandidateResolver candidateResolver,
         PushNotificationPreferenceService preferenceService,
-        LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
-        RegionalLineSubscriptionPushPlanner regionalLineSubscriptionPushPlanner,
         PushNotificationClientEventRepository clientEventRepository,
         WebPushClient webPushClient,
         PushReceiptTokenService receiptTokenService,
         IngestionFreshness ingestionFreshness,
         RegionalIngestionFreshness regionalIngestionFreshness,
-        PushSubscriptionLifecycleService lifecycleService
+        PushSubscriptionLifecycleService lifecycleService,
+        PushDeliveryDiagnosticsService diagnosticsService
     ) {
         this(
             properties,
@@ -77,17 +76,16 @@ public class PushNotificationService {
             deliveryRepository,
             eventRepository,
             savedCommuteRepository,
-            planner,
+            candidateResolver,
             preferenceService,
-            lineSubscriptionPushPlanner,
-            regionalLineSubscriptionPushPlanner,
             clientEventRepository,
             webPushClient,
             ingestionFreshness,
             regionalIngestionFreshness,
             receiptTokenService,
             Clock.systemUTC(),
-            lifecycleService
+            lifecycleService,
+            diagnosticsService
         );
     }
 
@@ -97,47 +95,32 @@ public class PushNotificationService {
         PushNotificationDeliveryRepository deliveryRepository,
         PushNotificationEventRepository eventRepository,
         SavedCommuteRepository savedCommuteRepository,
-        SavedCommutePushPlanner planner,
+        PushCandidateResolver candidateResolver,
         PushNotificationPreferenceService preferenceService,
-        LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
         PushNotificationClientEventRepository clientEventRepository,
         WebPushClient webPushClient,
         IngestionFreshness ingestionFreshness,
+        RegionalIngestionFreshness regionalIngestionFreshness,
         PushReceiptTokenService receiptTokenService,
-        Clock clock
+        Clock clock,
+        PushSubscriptionLifecycleService lifecycleService,
+        PushDeliveryDiagnosticsService diagnosticsService
     ) {
-        this(properties, subscriptionRepository, deliveryRepository, eventRepository, savedCommuteRepository, planner,
-            preferenceService, lineSubscriptionPushPlanner, null, clientEventRepository, webPushClient, ingestionFreshness,
-            null, receiptTokenService, clock, null);
-    }
-
-    PushNotificationService(
-        PushProperties properties, PushSubscriptionRepository subscriptionRepository,
-        PushNotificationDeliveryRepository deliveryRepository, PushNotificationEventRepository eventRepository,
-        SavedCommuteRepository savedCommuteRepository, SavedCommutePushPlanner planner,
-        PushNotificationPreferenceService preferenceService, LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
-        RegionalLineSubscriptionPushPlanner regionalLineSubscriptionPushPlanner,
-        PushNotificationClientEventRepository clientEventRepository, WebPushClient webPushClient,
-        IngestionFreshness ingestionFreshness, RegionalIngestionFreshness regionalIngestionFreshness,
-        PushReceiptTokenService receiptTokenService, Clock clock,
-        PushSubscriptionLifecycleService lifecycleService
-    ) {
-        this.properties = properties;
-        this.subscriptionRepository = subscriptionRepository;
-        this.deliveryRepository = deliveryRepository;
-        this.eventRepository = eventRepository;
-        this.savedCommuteRepository = savedCommuteRepository;
-        this.planner = planner;
-        this.preferenceService = preferenceService;
-        this.lineSubscriptionPushPlanner = lineSubscriptionPushPlanner;
-        this.regionalLineSubscriptionPushPlanner = regionalLineSubscriptionPushPlanner;
-        this.clientEventRepository = clientEventRepository;
-        this.webPushClient = webPushClient;
-        this.receiptTokenService = receiptTokenService;
-        this.ingestionFreshness = ingestionFreshness;
-        this.regionalIngestionFreshness = regionalIngestionFreshness;
-        this.clock = clock;
-        this.lifecycleService = lifecycleService;
+        this.properties = Objects.requireNonNull(properties, "properties");
+        this.subscriptionRepository = Objects.requireNonNull(subscriptionRepository, "subscriptionRepository");
+        this.deliveryRepository = Objects.requireNonNull(deliveryRepository, "deliveryRepository");
+        this.eventRepository = Objects.requireNonNull(eventRepository, "eventRepository");
+        this.savedCommuteRepository = Objects.requireNonNull(savedCommuteRepository, "savedCommuteRepository");
+        this.candidateResolver = Objects.requireNonNull(candidateResolver, "candidateResolver");
+        this.preferenceService = Objects.requireNonNull(preferenceService, "preferenceService");
+        this.clientEventRepository = Objects.requireNonNull(clientEventRepository, "clientEventRepository");
+        this.webPushClient = Objects.requireNonNull(webPushClient, "webPushClient");
+        this.ingestionFreshness = Objects.requireNonNull(ingestionFreshness, "ingestionFreshness");
+        this.regionalIngestionFreshness = Objects.requireNonNull(regionalIngestionFreshness, "regionalIngestionFreshness");
+        this.receiptTokenService = Objects.requireNonNull(receiptTokenService, "receiptTokenService");
+        this.clock = Objects.requireNonNull(clock, "clock");
+        this.lifecycleService = Objects.requireNonNull(lifecycleService, "lifecycleService");
+        this.diagnosticsService = Objects.requireNonNull(diagnosticsService, "diagnosticsService");
         this.endpointPolicy = new PushEndpointPolicy();
     }
 
@@ -361,45 +344,7 @@ public class PushNotificationService {
 
     @Transactional(readOnly = true)
     public PushResponses.PushDeliveryDiagnosticsResponse deliveryDiagnostics(AccountEntity account) {
-        List<PushNotificationDeliveryEntity> deliveries = deliveryRepository.findRecentDeliveriesForAccount(
-            account.getId(),
-            PageRequest.of(0, 50)
-        );
-        if (deliveries.isEmpty()) {
-            return new PushResponses.PushDeliveryDiagnosticsResponse(List.of());
-        }
-
-        List<String> deliveryIds = deliveries.stream()
-            .map(PushNotificationDeliveryEntity::getId)
-            .toList();
-        Map<String, List<PushNotificationClientEventEntity>> eventsByDeliveryId = clientEventRepository
-            .findByDeliveryIds(deliveryIds)
-            .stream()
-            .filter(clientEvent -> clientEvent.getDelivery() != null)
-            .collect(Collectors.groupingBy(clientEvent -> clientEvent.getDelivery().getId()));
-
-        List<PushResponses.PushDeliveryDiagnosticResponse> responseDeliveries = deliveries.stream()
-            .map(delivery -> toDiagnosticResponse(
-                delivery,
-                eventsByDeliveryId.getOrDefault(delivery.getId(), List.of())
-            ))
-            .toList();
-
-        Map<String, PushResponses.PushDeliveryDiagnosticResponse> responsesByDeliveryId = responseDeliveries.stream()
-            .collect(Collectors.toMap(PushResponses.PushDeliveryDiagnosticResponse::id, response -> response));
-        Map<String, List<PushNotificationDeliveryEntity>> deliveriesByEventId = deliveries.stream()
-            .collect(Collectors.groupingBy(
-                delivery -> delivery.getEvent().getId(),
-                LinkedHashMap::new,
-                Collectors.toList()
-            ));
-        List<PushSubscriptionEntity> subscriptions = subscriptionRepository.findByAccountIdOrderByUpdatedAtDesc(account.getId());
-        List<PushResponses.PushNotificationDiagnosticGroupResponse> notificationGroups = deliveriesByEventId.values()
-            .stream()
-            .map(groupDeliveries -> toDiagnosticGroup(groupDeliveries, responsesByDeliveryId, subscriptions))
-            .toList();
-
-        return new PushResponses.PushDeliveryDiagnosticsResponse(notificationGroups, responseDeliveries);
+        return diagnosticsService.forAccount(account);
     }
 
     @Transactional
@@ -450,7 +395,7 @@ public class PushNotificationService {
             result,
             now
         ));
-        return new PushResponses.PushDeviceTestResponse(toDiagnosticResponse(delivery, List.of()));
+        return new PushResponses.PushDeviceTestResponse(diagnosticsService.toDiagnosticResponse(delivery, List.of()));
     }
 
     @Transactional(readOnly = true)
@@ -539,25 +484,25 @@ public class PushNotificationService {
         return subscriptionRepository.findByAccountIdAndEndpointHash(account.getId(), endpointHash)
             .filter(PushSubscriptionEntity::isEnabled)
             .map(subscription -> {
-                if (!ingestionFreshness.isDashboardFresh() && regionalIngestionFreshness == null) {
-                    return new PushResponses.ActivePushNotificationsResponse(List.of(), List.of(), false);
-                }
                 PushNotificationPreferenceEntity preferences = preferenceService.preferenceEntityForAccountId(account.getId());
                 List<SavedCommuteEntity> commutes =
                     savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc(account.getId());
                 List<PushNotificationCandidate> commuteCandidates = commutes
                     .stream()
-                    .flatMap(commute -> savedCommuteCandidatesFor(commute, preferences).stream())
+                    .flatMap(commute -> candidateResolver.resolveCommuteCandidates(commute, preferences).stream())
                     .toList();
                 
                 List<String> subscribedLineIds = preferenceService.subscribedLineIds(account.getId());
-                boolean ttcScope = commutes.stream().anyMatch(commute -> !"regional".equals(commute.getNetworkId()))
-                    || subscribedLineIds.stream().anyMatch(lineId -> !regionalLine(lineId));
-                boolean regionalScope = commutes.stream().anyMatch(commute -> "regional".equals(commute.getNetworkId()))
-                    || subscribedLineIds.stream().anyMatch(this::regionalLine);
+                boolean hasExplicitRegionalScope = commutes.stream().anyMatch(commute -> "regional".equals(commute.getNetworkId()))
+                    || subscribedLineIds.stream().anyMatch(PushCandidateResolver::isRegionalLine);
+                boolean hasExplicitTtcScope = commutes.stream().anyMatch(commute -> !"regional".equals(commute.getNetworkId()))
+                    || subscribedLineIds.stream().anyMatch(lineId -> !PushCandidateResolver.isRegionalLine(lineId));
+
+                boolean regionalScope = hasExplicitRegionalScope;
+                boolean ttcScope = hasExplicitTtcScope || !hasExplicitRegionalScope;
                 boolean cleanupAllowed = (!ttcScope || ingestionFreshness.isDashboardFresh())
-                    && (!regionalScope || (regionalIngestionFreshness != null && regionalIngestionFreshness.isFresh()));
-                List<PushNotificationCandidate> lineCandidates = lineCandidatesFor(
+                    && (!regionalScope || regionalIngestionFreshness.isFresh());
+                List<PushNotificationCandidate> lineCandidates = candidateResolver.resolveLineCandidates(
                     account.getId(), subscribedLineIds, preferences
                 );
                 
@@ -579,38 +524,6 @@ public class PushNotificationService {
                 return new PushResponses.ActivePushNotificationsResponse(activeTags, retainedTags, cleanupAllowed);
             })
             .orElse(new PushResponses.ActivePushNotificationsResponse(List.of(), List.of(), true));
-    }
-
-    private List<PushNotificationCandidate> savedCommuteCandidatesFor(
-        SavedCommuteEntity commute,
-        PushNotificationPreferenceEntity preferences
-    ) {
-        PlannedClosureFollowUpPolicy policy = preferences.getPlannedClosureFollowUpPolicy();
-        return policy == null ? planner.candidatesFor(commute) : planner.candidatesFor(commute, policy);
-    }
-
-    private List<PushNotificationCandidate> lineCandidatesFor(
-        String accountId,
-        List<String> subscribedLineIds,
-        PushNotificationPreferenceEntity preferences
-    ) {
-        PlannedClosureFollowUpPolicy policy = preferences.getPlannedClosureFollowUpPolicy();
-        List<String> ttcLineIds = subscribedLineIds.stream().filter(lineId -> !regionalLine(lineId)).toList();
-        List<PushNotificationCandidate> candidates = new ArrayList<>(policy == null
-            ? lineSubscriptionPushPlanner.candidatesFor(accountId, ttcLineIds)
-            : lineSubscriptionPushPlanner.candidatesFor(accountId, ttcLineIds, policy));
-        if (regionalLineSubscriptionPushPlanner != null) {
-            candidates.addAll(regionalLineSubscriptionPushPlanner.candidatesFor(
-                accountId,
-                subscribedLineIds.stream().filter(this::regionalLine).toList(),
-                policy == null ? PlannedClosureFollowUpPolicy.SMART : policy
-            ));
-        }
-        return List.copyOf(candidates);
-    }
-
-    private boolean regionalLine(String lineId) {
-        return lineId != null && lineId.startsWith("regional-");
     }
 
     private List<String> retainedNotificationTags(String accountId, String endpointHash, List<String> activeNotificationKeys) {
@@ -669,191 +582,7 @@ public class PushNotificationService {
         ));
     }
 
-    private PushResponses.PushDeliveryDiagnosticResponse toDiagnosticResponse(
-        PushNotificationDeliveryEntity delivery,
-        List<PushNotificationClientEventEntity> clientEvents
-    ) {
-        PushNotificationEventEntity event = delivery.getEvent();
-        PushSubscriptionEntity subscription = delivery.getSubscription();
-        List<PushResponses.PushClientEventResponse> eventResponses = clientEvents.stream()
-            .sorted(Comparator.comparing(PushNotificationClientEventEntity::getOccurredAt))
-            .map(clientEvent -> new PushResponses.PushClientEventResponse(
-                clientEvent.getStage(),
-                clientEvent.getMessage(),
-                instantString(clientEvent.getOccurredAt())
-            ))
-            .toList();
-
-        return new PushResponses.PushDeliveryDiagnosticResponse(
-            delivery.getId(),
-            event.getTitle(),
-            PushNotificationDisplayTags.forEvent(event),
-            event.getNotificationState(),
-            event.getCategory(),
-            event.getEventType(),
-            event.getLineId(),
-            lineNumberFor(event.getLineId()),
-            instantString(event.getCreatedAt()),
-            deviceLabel(subscription),
-            subscription.getUserAgent(),
-            endpointHashPrefix(subscription.getEndpointHash()),
-            installationIdPrefix(subscription.getInstallationId()),
-            subscription.getRegistrationReason(),
-            subscription.isEnabled(),
-            delivery.getStatus(),
-            delivery.getHttpStatus(),
-            delivery.getMessage(),
-            instantString(delivery.getCreatedAt()),
-            instantString(delivery.getDisplayedAt()),
-            delivery.getAttemptCount(),
-            eventResponses
-        );
-    }
-
-    private PushResponses.PushNotificationDiagnosticGroupResponse toDiagnosticGroup(
-        List<PushNotificationDeliveryEntity> deliveries,
-        Map<String, PushResponses.PushDeliveryDiagnosticResponse> responsesByDeliveryId,
-        List<PushSubscriptionEntity> subscriptions
-    ) {
-        PushNotificationEventEntity event = deliveries.getFirst().getEvent();
-        List<PushResponses.PushDeliveryDiagnosticResponse> attempts = deliveries.stream()
-            .map(delivery -> responsesByDeliveryId.get(delivery.getId()))
-            .filter(java.util.Objects::nonNull)
-            .toList();
-        List<PushResponses.PushRecipientDiagnosticResponse> recipients = recipientDiagnostics(
-            event,
-            deliveries,
-            responsesByDeliveryId,
-            subscriptions
-        );
-
-        return new PushResponses.PushNotificationDiagnosticGroupResponse(
-            event.getId(),
-            event.getTitle(),
-            PushNotificationDisplayTags.forEvent(event),
-            event.getNotificationKey(),
-            event.getSourceIncidentKey(),
-            event.getNotificationState(),
-            event.getCategory(),
-            event.getEventType(),
-            event.getLineId(),
-            lineNumberFor(event.getLineId()),
-            instantString(event.getCreatedAt()),
-            attempts,
-            recipients
-        );
-    }
-
-    private List<PushResponses.PushRecipientDiagnosticResponse> recipientDiagnostics(
-        PushNotificationEventEntity event,
-        List<PushNotificationDeliveryEntity> deliveries,
-        Map<String, PushResponses.PushDeliveryDiagnosticResponse> responsesByDeliveryId,
-        List<PushSubscriptionEntity> subscriptions
-    ) {
-        Map<String, PushNotificationDeliveryEntity> deliveryBySubscriptionId = deliveries.stream()
-            .collect(Collectors.toMap(
-                delivery -> delivery.getSubscription().getId(),
-                delivery -> delivery,
-                (first, second) -> first,
-                LinkedHashMap::new
-            ));
-        List<PushResponses.PushRecipientDiagnosticResponse> recipients = new ArrayList<>();
-        java.util.Set<String> includedSubscriptionIds = new java.util.HashSet<>();
-        for (PushSubscriptionEntity subscription : subscriptions) {
-            recipients.add(toRecipientDiagnostic(
-                event,
-                subscription,
-                deliveryBySubscriptionId.get(subscription.getId()),
-                responsesByDeliveryId
-            ));
-            includedSubscriptionIds.add(subscription.getId());
-        }
-        for (PushNotificationDeliveryEntity delivery : deliveries) {
-            PushSubscriptionEntity subscription = delivery.getSubscription();
-            if (includedSubscriptionIds.add(subscription.getId())) {
-                recipients.add(toRecipientDiagnostic(event, subscription, delivery, responsesByDeliveryId));
-            }
-        }
-        return recipients;
-    }
-
-    private PushResponses.PushRecipientDiagnosticResponse toRecipientDiagnostic(
-        PushNotificationEventEntity event,
-        PushSubscriptionEntity subscription,
-        PushNotificationDeliveryEntity delivery,
-        Map<String, PushResponses.PushDeliveryDiagnosticResponse> responsesByDeliveryId
-    ) {
-        PushResponses.PushDeliveryDiagnosticResponse deliveryResponse =
-            delivery == null ? null : responsesByDeliveryId.get(delivery.getId());
-        RecipientReason reason = delivery == null
-            ? notAttemptedReason(event, subscription)
-            : new RecipientReason("attempted", "Delivery was attempted for this device.");
-        return new PushResponses.PushRecipientDiagnosticResponse(
-            subscription.getId(),
-            deviceLabel(subscription),
-            subscription.getUserAgent(),
-            endpointHashPrefix(subscription.getEndpointHash()),
-            installationIdPrefix(subscription.getInstallationId()),
-            subscription.getRegistrationReason(),
-            subscription.isEnabled(),
-            instantString(subscription.getEnabledAt()),
-            instantString(subscription.getDisabledAt()),
-            delivery == null ? "not-attempted" : "attempted",
-            reason.code(),
-            reason.description(),
-            deliveryResponse
-        );
-    }
-
-    private RecipientReason notAttemptedReason(PushNotificationEventEntity event, PushSubscriptionEntity subscription) {
-        Instant eventCreatedAt = event.getCreatedAt();
-        if (eventCreatedAt == null) {
-            return new RecipientReason(
-                "event-created-at-missing",
-                "Notification creation time was not recorded."
-            );
-        }
-        Instant eventTriggeredAt = event.deliveryEligibilityAt();
-        Instant enabledAt = subscription.getEnabledAt();
-        Instant createdAt = subscription.getCreatedAt();
-        if ((enabledAt != null && eventTriggeredAt.isBefore(enabledAt))
-            || (createdAt != null && eventTriggeredAt.isBefore(createdAt))) {
-            return new RecipientReason(
-                "subscription-registered-after-event",
-                "Device was enabled after this notification became eligible."
-            );
-        }
-        if (!subscription.isEnabled()) {
-            Instant disabledAt = subscription.getDisabledAt();
-            if (disabledAt != null && !disabledAt.isAfter(eventCreatedAt)) {
-                return new RecipientReason(
-                    "subscription-disabled-before-event",
-                    "Device was disabled before this notification was created."
-                );
-            }
-            return new RecipientReason(
-                "subscription-disabled",
-                "Device is currently disabled."
-            );
-        }
-        return new RecipientReason(
-            "eligible-no-delivery-recorded",
-            "Device appears eligible, but no delivery attempt was recorded."
-        );
-    }
-
-    private String lineNumberFor(String lineId) {
-        return switch (lineId == null ? "" : lineId) {
-            case "line-1" -> "1";
-            case "line-2" -> "2";
-            case "line-4" -> "4";
-            case "line-5" -> "5";
-            case "line-6" -> "6";
-            default -> null;
-        };
-    }
-
-    private String deviceLabel(PushSubscriptionEntity subscription) {
+    static String deviceLabel(PushSubscriptionEntity subscription) {
         String userAgent = subscription.getUserAgent();
         if (userAgent == null || userAgent.isBlank()) {
             return "Unknown device";
@@ -880,7 +609,7 @@ public class PushNotificationService {
         return normalized;
     }
 
-    private String endpointHashPrefix(String endpointHash) {
+    static String endpointHashPrefix(String endpointHash) {
         if (endpointHash == null || endpointHash.isBlank()) {
             return "";
         }
@@ -888,7 +617,7 @@ public class PushNotificationService {
         return normalized.substring(0, Math.min(12, normalized.length()));
     }
 
-    private String installationIdPrefix(String installationId) {
+    static String installationIdPrefix(String installationId) {
         if (installationId == null || installationId.isBlank()) return null;
         String normalized = installationId.trim();
         return normalized.substring(0, Math.min(8, normalized.length()));
@@ -942,7 +671,7 @@ public class PushNotificationService {
     }
 
     private void recordLifecycle(PushSubscriptionEntity subscription, String eventType, String reason) {
-        if (lifecycleService == null || subscription == null) return;
+        if (subscription == null) return;
         String normalizedReason = reason == null || reason.isBlank() ? "unspecified" : reason.trim().substring(0, Math.min(80, reason.trim().length()));
         lifecycleService.record(subscription, eventType, normalizedReason, clock.instant());
     }
@@ -1052,7 +781,7 @@ public class PushNotificationService {
         SavedCommuteEntity commute,
         PushSubscriptionEntity subscription
     ) {
-        return planner.candidatesFor(commute)
+        return candidateResolver.resolveCommuteCandidates(commute, (PlannedClosureFollowUpPolicy) null)
             .stream()
             .filter(candidate -> subscriptionAllowsCandidate(subscription, candidate))
             .toList();
@@ -1149,5 +878,4 @@ public class PushNotificationService {
     }
 
     private record DisplayTag(String notificationKey, String notificationState) {}
-    private record RecipientReason(String code, String description) {}
 }

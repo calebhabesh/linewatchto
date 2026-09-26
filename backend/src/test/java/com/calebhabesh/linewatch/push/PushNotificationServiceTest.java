@@ -9,6 +9,7 @@ import com.calebhabesh.linewatch.account.AccountEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteRepository;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
+import com.calebhabesh.linewatch.regional.RegionalIngestionFreshness;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -29,11 +30,24 @@ class PushNotificationServiceTest {
     private final SavedCommutePushPlanner planner = mock(SavedCommutePushPlanner.class);
     private final PushNotificationPreferenceService preferenceService = mock(PushNotificationPreferenceService.class);
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
+    private final RegionalLineSubscriptionPushPlanner regionalLineSubscriptionPushPlanner = mock(RegionalLineSubscriptionPushPlanner.class);
+    private final PushCandidateResolver candidateResolver = new PushCandidateResolver(
+        planner,
+        lineSubscriptionPushPlanner,
+        regionalLineSubscriptionPushPlanner
+    );
     private final PushNotificationClientEventRepository clientEventRepository = mock(PushNotificationClientEventRepository.class);
     private final WebPushClient webPushClient = mock(WebPushClient.class);
     private final IngestionFreshness ingestionFreshness = mock(IngestionFreshness.class);
+    private final RegionalIngestionFreshness regionalIngestionFreshness = mock(RegionalIngestionFreshness.class);
     private final PushReceiptTokenService receiptTokenService = new PushReceiptTokenService(properties);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), ZoneOffset.UTC);
+    private final PushSubscriptionLifecycleService lifecycleService = mock(PushSubscriptionLifecycleService.class);
+    private final PushDeliveryDiagnosticsService diagnosticsService = new PushDeliveryDiagnosticsService(
+        deliveryRepository,
+        clientEventRepository,
+        subscriptionRepository
+    );
     private final PushNotificationFormatter formatter = new PushNotificationFormatter();
     private final PushNotificationService service = new PushNotificationService(
         properties,
@@ -41,14 +55,16 @@ class PushNotificationServiceTest {
         deliveryRepository,
         eventRepository,
         savedCommuteRepository,
-        planner,
+        candidateResolver,
         preferenceService,
-        lineSubscriptionPushPlanner,
         clientEventRepository,
         webPushClient,
         ingestionFreshness,
+        regionalIngestionFreshness,
         receiptTokenService,
-        clock
+        clock,
+        lifecycleService,
+        diagnosticsService
     );
 
     private final AccountEntity account = AccountEntity.create(
@@ -65,6 +81,7 @@ class PushNotificationServiceTest {
         properties.setClearedNotificationRetention(Duration.ofHours(4));
         properties.setReceiptSigningSecret("test-receipt-secret");
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        when(regionalIngestionFreshness.isFresh()).thenReturn(true);
         when(planner.candidatesFor(any(SavedCommuteEntity.class), any(PlannedClosureFollowUpPolicy.class)))
             .thenAnswer(invocation -> planner.candidatesFor(invocation.getArgument(0)));
         when(lineSubscriptionPushPlanner.candidatesFor(
@@ -154,6 +171,58 @@ class PushNotificationServiceTest {
         assertThat(response.retainedTags()).containsExactly(
             "saved-commute-impact|commute_1|outbound|reduced-speed-zone|rsz-line-1|active",
             "saved-commute-impact|commute_1|outbound|reduced-speed-zone|rsz-line-1"
+        );
+        assertThat(response.cleanupAllowed()).isTrue();
+    }
+
+    @Test
+    void activeNotificationsResolvesMixedTtcAndRegionalLineCandidates() {
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_sub_mixed",
+            account,
+            "https://fcm.googleapis.com/fcm/send/subscription-mixed",
+            PushNotificationService.hashEndpoint("https://fcm.googleapis.com/fcm/send/subscription-mixed"),
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            Instant.parse("2026-06-05T14:45:00Z")
+        );
+
+        when(subscriptionRepository.findByAccountIdAndEndpointHash(
+            "user_1",
+            PushNotificationService.hashEndpoint("https://fcm.googleapis.com/fcm/send/subscription-mixed")
+        )).thenReturn(Optional.of(subscription));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of());
+
+        PushNotificationPreferenceEntity preferences = mock(PushNotificationPreferenceEntity.class);
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1", "regional-lw"));
+
+        PushNotificationCandidate ttcCandidate = candidate(
+            null, null, "line-1", "1", "line-current", "delay", "on-change",
+            "line-current|line-1|delay-1", "dedupe-ttc",
+            "Line 1 Delay", "Delays on Line 1", clock.instant(), "/?line=line-1"
+        );
+        PushNotificationCandidate regionalCandidate = candidate(
+            null, null, "regional-lw", "LW", "line-current", "delay", "on-change",
+            "line-current|regional-lw|delay-lw", "dedupe-reg",
+            "Lakeshore West Delay", "Delays on LW", clock.instant(), "/?network=regional&panel=delays"
+        );
+
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-1"))).thenReturn(List.of(ttcCandidate));
+        when(regionalLineSubscriptionPushPlanner.candidatesFor("user_1", List.of("regional-lw"), PlannedClosureFollowUpPolicy.SMART))
+            .thenReturn(List.of(regionalCandidate));
+        when(preferenceService.allows(preferences, ttcCandidate)).thenReturn(true);
+        when(preferenceService.allows(preferences, regionalCandidate)).thenReturn(true);
+
+        PushResponses.ActivePushNotificationsResponse response = service.activeNotifications(
+            account,
+            new PushRequests.SubscriptionEndpointRequest("https://fcm.googleapis.com/fcm/send/subscription-mixed")
+        );
+
+        assertThat(response.activeTags()).containsExactly(
+            "line-current|line-1|delay-1|active",
+            "line-current|regional-lw|delay-lw|active"
         );
         assertThat(response.cleanupAllowed()).isTrue();
     }
@@ -520,14 +589,16 @@ class PushNotificationServiceTest {
             deliveryRepository,
             eventRepository,
             savedCommuteRepository,
-            planner,
+            candidateResolver,
             preferenceService,
-            lineSubscriptionPushPlanner,
             clientEventRepository,
             webPushClient,
             ingestionFreshness,
+            regionalIngestionFreshness,
             tokenService,
-            clock
+            clock,
+            lifecycleService,
+            diagnosticsService
         );
         PushNotificationCandidate candidate = candidate(
             null,
@@ -1434,5 +1505,108 @@ class PushNotificationServiceTest {
         assertThat(response).isEqualTo(updated);
         verify(subscriptionRepository, never()).findByAccountIdAndEnabledTrue(anyString());
         verify(subscriptionRepository, never()).save(any());
+    }
+
+    @Test
+    void constructorRequiresAllCollaboratorsNonNull() {
+        org.junit.jupiter.api.Assertions.assertThrows(
+            NullPointerException.class,
+            () -> new PushNotificationService(null, subscriptionRepository, deliveryRepository, eventRepository, savedCommuteRepository, candidateResolver, preferenceService, clientEventRepository, webPushClient, ingestionFreshness, regionalIngestionFreshness, receiptTokenService, clock, lifecycleService, diagnosticsService)
+        );
+        org.junit.jupiter.api.Assertions.assertThrows(
+            NullPointerException.class,
+            () -> new PushNotificationService(properties, subscriptionRepository, deliveryRepository, eventRepository, savedCommuteRepository, null, preferenceService, clientEventRepository, webPushClient, ingestionFreshness, regionalIngestionFreshness, receiptTokenService, clock, lifecycleService, diagnosticsService)
+        );
+        org.junit.jupiter.api.Assertions.assertThrows(
+            NullPointerException.class,
+            () -> new PushNotificationService(properties, subscriptionRepository, deliveryRepository, eventRepository, savedCommuteRepository, candidateResolver, preferenceService, clientEventRepository, webPushClient, null, regionalIngestionFreshness, receiptTokenService, clock, lifecycleService, diagnosticsService)
+        );
+        org.junit.jupiter.api.Assertions.assertThrows(
+            NullPointerException.class,
+            () -> new PushNotificationService(properties, subscriptionRepository, deliveryRepository, eventRepository, savedCommuteRepository, candidateResolver, preferenceService, clientEventRepository, webPushClient, ingestionFreshness, null, receiptTokenService, clock, lifecycleService, diagnosticsService)
+        );
+        org.junit.jupiter.api.Assertions.assertThrows(
+            NullPointerException.class,
+            () -> new PushNotificationService(properties, subscriptionRepository, deliveryRepository, eventRepository, savedCommuteRepository, candidateResolver, preferenceService, clientEventRepository, webPushClient, ingestionFreshness, regionalIngestionFreshness, receiptTokenService, clock, null, diagnosticsService)
+        );
+        org.junit.jupiter.api.Assertions.assertThrows(
+            NullPointerException.class,
+            () -> new PushNotificationService(properties, subscriptionRepository, deliveryRepository, eventRepository, savedCommuteRepository, candidateResolver, preferenceService, clientEventRepository, webPushClient, ingestionFreshness, regionalIngestionFreshness, receiptTokenService, clock, lifecycleService, null)
+        );
+    }
+
+    @Test
+    void activeNotificationsHonorsIndependentTtcAndRegionalFreshness() {
+        String endpoint = "https://fcm.googleapis.com/fcm/send/freshness-test";
+        String endpointHash = PushNotificationService.hashEndpoint(endpoint);
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "sub_freshness", account, endpoint, endpointHash, "p256dh", "auth", "Android", clock.instant()
+        );
+        when(subscriptionRepository.findByAccountIdAndEndpointHash("user_1", endpointHash))
+            .thenReturn(Optional.of(subscription));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of());
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(
+            PushNotificationPreferenceEntity.create(account, clock.instant())
+        );
+
+        PushRequests.SubscriptionEndpointRequest request = new PushRequests.SubscriptionEndpointRequest(endpoint);
+
+        // Case 1: TTC stale, regional fresh, user has TTC line subscription -> cleanup disallowed
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(false);
+        when(regionalIngestionFreshness.isFresh()).thenReturn(true);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
+        assertThat(service.activeNotifications(account, request).cleanupAllowed()).isFalse();
+
+        // Case 2: TTC stale, regional fresh, user has Regional line subscription only -> cleanup allowed
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("regional-lw"));
+        assertThat(service.activeNotifications(account, request).cleanupAllowed()).isTrue();
+
+        // Case 3: TTC fresh, regional stale, user has Regional line subscription -> cleanup disallowed
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        when(regionalIngestionFreshness.isFresh()).thenReturn(false);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("regional-lw"));
+        assertThat(service.activeNotifications(account, request).cleanupAllowed()).isFalse();
+
+        // Case 4: TTC fresh, regional stale, user has TTC line subscription only -> cleanup allowed
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
+        assertThat(service.activeNotifications(account, request).cleanupAllowed()).isTrue();
+
+        // Case 5: Both stale, user has mixed subscriptions -> cleanup disallowed
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(false);
+        when(regionalIngestionFreshness.isFresh()).thenReturn(false);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1", "regional-lw"));
+        assertThat(service.activeNotifications(account, request).cleanupAllowed()).isFalse();
+
+        // Case 6: Both fresh, user has mixed subscriptions -> cleanup allowed
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        when(regionalIngestionFreshness.isFresh()).thenReturn(true);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1", "regional-lw"));
+        assertThat(service.activeNotifications(account, request).cleanupAllowed()).isTrue();
+    }
+
+    @Test
+    void saveSubscriptionRecordsLifecycleEvents() {
+        String endpoint = "https://fcm.googleapis.com/fcm/send/lifecycle-test";
+        String endpointHash = PushNotificationService.hashEndpoint(endpoint);
+        PushRequests.SaveSubscriptionRequest request = new PushRequests.SaveSubscriptionRequest(
+            endpoint,
+            new PushRequests.PushSubscriptionKeys("p256dh", "auth"),
+            "Chrome Android",
+            "initial-registration"
+        );
+
+        when(subscriptionRepository.findByAccountIdAndEndpointHash("user_1", endpointHash)).thenReturn(Optional.empty());
+        when(subscriptionRepository.findByEndpointHashAndEnabledTrue(endpointHash)).thenReturn(List.of());
+        when(subscriptionRepository.save(any(PushSubscriptionEntity.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.saveSubscription(account, request);
+
+        verify(lifecycleService).record(
+            any(PushSubscriptionEntity.class),
+            eq("registered"),
+            eq("initial-registration"),
+            eq(clock.instant())
+        );
     }
 }

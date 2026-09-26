@@ -4,9 +4,13 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
+import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
+import com.calebhabesh.linewatch.cache.DashboardCacheService;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -20,21 +24,55 @@ public class TtcPerformanceService {
     private final Clock clock;
     private final StringRedisTemplate redis;
     private final ObjectMapper objectMapper;
+    private final DashboardCacheService cache;
+    private final DashboardCacheProperties cacheProperties;
     private volatile CachedPerformanceSnapshot lastAttempt;
     private volatile TtcPerformanceResponses.SnapshotResponse lastSuccessfulSnapshot;
 
+    @Autowired
     public TtcPerformanceService(
-        TtcPerformanceClient client, 
-        TtcPerformanceProperties properties, 
+        TtcPerformanceClient client,
+        TtcPerformanceProperties properties,
         Clock clock,
         StringRedisTemplate redis,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        DashboardCacheService cache,
+        DashboardCacheProperties cacheProperties
     ) {
         this.client = client;
         this.properties = properties;
         this.clock = clock;
         this.redis = redis;
         this.objectMapper = objectMapper;
+        this.cache = cache;
+        this.cacheProperties = cacheProperties;
+    }
+
+    public TtcPerformanceService(
+        TtcPerformanceClient client,
+        TtcPerformanceProperties properties,
+        Clock clock,
+        StringRedisTemplate redis,
+        ObjectMapper objectMapper
+    ) {
+        this(client, properties, clock, redis, objectMapper, null, null);
+    }
+
+    public TtcPerformanceResponses.SnapshotResponse performance() {
+        if (cache == null || cacheProperties == null) {
+            return current();
+        }
+        return cache.getOrComputeIf(
+            "performance",
+            new TypeReference<TtcPerformanceResponses.SnapshotResponse>() {},
+            cacheProperties.getPerformanceTtl(),
+            TtcPerformanceService::isCacheableSnapshot,
+            this::current
+        );
+    }
+
+    public static boolean isCacheableSnapshot(TtcPerformanceResponses.SnapshotResponse snapshot) {
+        return snapshot != null && snapshot.metrics() != null && !snapshot.metrics().isEmpty();
     }
 
     public TtcPerformanceResponses.SnapshotResponse current() {

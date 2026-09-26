@@ -33,10 +33,16 @@ class PushNotificationDispatchServiceTest {
     private final PushNotificationPreferenceService preferenceService = mock(PushNotificationPreferenceService.class);
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
     private final RegionalLineSubscriptionPushPlanner regionalLineSubscriptionPushPlanner = mock(RegionalLineSubscriptionPushPlanner.class);
+    private final PushCandidateResolver candidateResolver = new PushCandidateResolver(
+        planner,
+        lineSubscriptionPushPlanner,
+        regionalLineSubscriptionPushPlanner
+    );
     private final PushLineEventObservationService lineEventObservationService = mock(PushLineEventObservationService.class);
     private final PushSavedCommuteEventObservationService savedCommuteObservationService = mock(PushSavedCommuteEventObservationService.class);
     private final IngestionFreshness ingestionFreshness = mock(IngestionFreshness.class);
     private final RegionalIngestionFreshness regionalIngestionFreshness = mock(RegionalIngestionFreshness.class);
+    private final PushSubscriptionLifecycleService lifecycleService = mock(PushSubscriptionLifecycleService.class);
     private final AlertHistoryRepository alertHistoryRepository = mock(AlertHistoryRepository.class);
     private final PushProperties pushProperties = new PushProperties();
     private final PushReceiptTokenService receiptTokenService = new PushReceiptTokenService(pushProperties);
@@ -44,22 +50,23 @@ class PushNotificationDispatchServiceTest {
     private final PushNotificationFormatter formatter = new PushNotificationFormatter();
     private final PushNotificationDispatchService service = new PushNotificationDispatchService(
         savedCommuteRepository,
-        planner,
+        candidateResolver,
         eventRepository,
         subscriptionRepository,
         deliveryRepository,
         clientEventRepository,
         webPushClient,
         preferenceService,
-        lineSubscriptionPushPlanner,
         lineEventObservationService,
         savedCommuteObservationService,
         formatter,
         receiptTokenService,
         ingestionFreshness,
+        regionalIngestionFreshness,
         alertHistoryRepository,
         pushProperties,
-        clock
+        clock,
+        lifecycleService
     );
 
     private final AccountEntity account = AccountEntity.create(
@@ -75,6 +82,7 @@ class PushNotificationDispatchServiceTest {
     void setUp() {
         pushProperties.setReceiptSigningSecret("test-receipt-secret");
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        when(regionalIngestionFreshness.isFresh()).thenReturn(true);
         when(planner.candidatesFor(any(SavedCommuteEntity.class), any(PlannedClosureFollowUpPolicy.class)))
             .thenAnswer(invocation -> planner.candidatesFor(invocation.getArgument(0)));
         when(lineSubscriptionPushPlanner.candidatesFor(
@@ -235,6 +243,7 @@ class PushNotificationDispatchServiceTest {
 
         assertThat(subscription.isEnabled()).isFalse();
         verify(subscriptionRepository).save(subscription);
+        verify(lifecycleService).record(subscription, "disabled", "push-service-410", clock.instant());
     }
 
     @Test
@@ -1630,28 +1639,6 @@ class PushNotificationDispatchServiceTest {
 
     @Test
     void doesNotClearRegionalObservationWhenMetrolinxIngestionIsStaleEvenIfTtcIsFresh() {
-        PushNotificationDispatchService regionalService = new PushNotificationDispatchService(
-            savedCommuteRepository,
-            planner,
-            eventRepository,
-            subscriptionRepository,
-            deliveryRepository,
-            clientEventRepository,
-            webPushClient,
-            preferenceService,
-            lineSubscriptionPushPlanner,
-            regionalLineSubscriptionPushPlanner,
-            lineEventObservationService,
-            savedCommuteObservationService,
-            formatter,
-            receiptTokenService,
-            ingestionFreshness,
-            regionalIngestionFreshness,
-            alertHistoryRepository,
-            pushProperties,
-            clock,
-            null
-        );
         when(regionalIngestionFreshness.isFresh()).thenReturn(false);
         PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
         when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
@@ -1675,7 +1662,7 @@ class PushNotificationDispatchServiceTest {
         );
         when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
 
-        regionalService.evaluateSavedCommuteNotifications();
+        service.evaluateSavedCommuteNotifications();
 
         verify(lineEventObservationService, never()).markCleared(observation, clock.instant());
         verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
@@ -2250,13 +2237,6 @@ class PushNotificationDispatchServiceTest {
 
     @Test
     void regionalCurrentToPlannedCorrectionClosesObservationWithoutServiceRestoredPush() {
-        PushNotificationDispatchService regionalService = new PushNotificationDispatchService(
-            savedCommuteRepository, planner, eventRepository, subscriptionRepository, deliveryRepository,
-            clientEventRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
-            regionalLineSubscriptionPushPlanner, lineEventObservationService, savedCommuteObservationService,
-            formatter, receiptTokenService, ingestionFreshness, regionalIngestionFreshness,
-            alertHistoryRepository, pushProperties, clock, null
-        );
         PushNotificationPreferenceEntity preferences = spy(
             PushNotificationPreferenceEntity.create(account, clock.instant())
         );
@@ -2293,7 +2273,7 @@ class PushNotificationDispatchServiceTest {
         when(eventRepository.existsByDedupeKey("planned-dedupe")).thenReturn(true);
         when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
 
-        regionalService.evaluateSavedCommuteNotifications();
+        service.evaluateSavedCommuteNotifications();
 
         verify(lineEventObservationService).markCleared(observation, clock.instant());
         verify(eventRepository, never()).save(argThat(event -> "CLEARED".equals(event.getNotificationState())));
@@ -2302,13 +2282,6 @@ class PushNotificationDispatchServiceTest {
 
     @Test
     void regionalCommuteCurrentToPlannedCorrectionReclassifiesActiveLifecycle() {
-        PushNotificationDispatchService regionalService = new PushNotificationDispatchService(
-            savedCommuteRepository, planner, eventRepository, subscriptionRepository, deliveryRepository,
-            clientEventRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
-            regionalLineSubscriptionPushPlanner, lineEventObservationService, savedCommuteObservationService,
-            formatter, receiptTokenService, ingestionFreshness, regionalIngestionFreshness,
-            alertHistoryRepository, pushProperties, clock, null
-        );
         SavedCommuteEntity commute = SavedCommuteEntity.create(
             "commute_regional", account, "Barrie commute", "regional", "allandale-waterfront", "union",
             false, Instant.parse("2026-06-01T14:00:00Z")
@@ -2349,7 +2322,7 @@ class PushNotificationDispatchServiceTest {
         when(eventRepository.save(activeEvent)).thenReturn(activeEvent);
         when(savedCommuteObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
 
-        regionalService.evaluateSavedCommuteNotifications();
+        service.evaluateSavedCommuteNotifications();
 
         assertThat(activeEvent.getNotificationState()).isEqualTo("RECLASSIFIED");
         verify(eventRepository).save(activeEvent);
@@ -3008,5 +2981,86 @@ class PushNotificationDispatchServiceTest {
             candidate.deliveryAllowed(),
             sourceUpdatedAt
         );
+    }
+
+    @Test
+    void constructorRequiresAllCollaboratorsNonNull() {
+        org.junit.jupiter.api.Assertions.assertThrows(
+            NullPointerException.class,
+            () -> new PushNotificationDispatchService(null, candidateResolver, eventRepository, subscriptionRepository, deliveryRepository, clientEventRepository, webPushClient, preferenceService, lineEventObservationService, savedCommuteObservationService, formatter, receiptTokenService, ingestionFreshness, regionalIngestionFreshness, alertHistoryRepository, pushProperties, clock, lifecycleService)
+        );
+        org.junit.jupiter.api.Assertions.assertThrows(
+            NullPointerException.class,
+            () -> new PushNotificationDispatchService(savedCommuteRepository, null, eventRepository, subscriptionRepository, deliveryRepository, clientEventRepository, webPushClient, preferenceService, lineEventObservationService, savedCommuteObservationService, formatter, receiptTokenService, ingestionFreshness, regionalIngestionFreshness, alertHistoryRepository, pushProperties, clock, lifecycleService)
+        );
+        org.junit.jupiter.api.Assertions.assertThrows(
+            NullPointerException.class,
+            () -> new PushNotificationDispatchService(savedCommuteRepository, candidateResolver, eventRepository, subscriptionRepository, deliveryRepository, clientEventRepository, webPushClient, preferenceService, lineEventObservationService, savedCommuteObservationService, formatter, receiptTokenService, null, regionalIngestionFreshness, alertHistoryRepository, pushProperties, clock, lifecycleService)
+        );
+        org.junit.jupiter.api.Assertions.assertThrows(
+            NullPointerException.class,
+            () -> new PushNotificationDispatchService(savedCommuteRepository, candidateResolver, eventRepository, subscriptionRepository, deliveryRepository, clientEventRepository, webPushClient, preferenceService, lineEventObservationService, savedCommuteObservationService, formatter, receiptTokenService, ingestionFreshness, null, alertHistoryRepository, pushProperties, clock, lifecycleService)
+        );
+        org.junit.jupiter.api.Assertions.assertThrows(
+            NullPointerException.class,
+            () -> new PushNotificationDispatchService(savedCommuteRepository, candidateResolver, eventRepository, subscriptionRepository, deliveryRepository, clientEventRepository, webPushClient, preferenceService, lineEventObservationService, savedCommuteObservationService, formatter, receiptTokenService, ingestionFreshness, regionalIngestionFreshness, alertHistoryRepository, pushProperties, clock, null)
+        );
+    }
+
+    @Test
+    void evaluateAccountHonorsIndependentTtcAndRegionalFreshness() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of());
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1", "regional-lw"));
+
+        PushNotificationCandidate ttcCandidate = candidate(
+            null, null, "line-1", "1", "line-current", "delay", "on-change",
+            "line-current|line-1|delay-ttc", "dedupe-ttc-freshness",
+            "Line 1 Delay", "Delays on Line 1", clock.instant(), "/?line=line-1"
+        );
+        PushNotificationCandidate regionalCandidate = candidate(
+            null, null, "regional-lw", "LW", "line-current", "delay", "on-change",
+            "line-current|regional-lw|delay-reg", "dedupe-reg-freshness",
+            "Lakeshore West Delay", "Delays on LW", clock.instant(), "/?network=regional&panel=delays"
+        );
+
+        PushLineEventObservationEntity ttcObs = PushLineEventObservationEntity.create("ttc_obs", ttcCandidate, clock.instant());
+        PushLineEventObservationEntity regObs = PushLineEventObservationEntity.create("reg_obs", regionalCandidate, clock.instant());
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(ttcObs, regObs));
+
+        // Planners return no active candidates (disruptions are resolved in feeds)
+        when(lineSubscriptionPushPlanner.candidatesFor(eq("user_1"), anyList())).thenReturn(List.of());
+        when(regionalLineSubscriptionPushPlanner.candidatesFor(eq("user_1"), anyList(), any())).thenReturn(List.of());
+
+        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of());
+
+        // Case 1: TTC is stale, Regional is fresh
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(false);
+        when(regionalIngestionFreshness.isFresh()).thenReturn(true);
+
+        service.evaluateSavedCommuteNotifications();
+
+        // TTC observation is NOT cleared because TTC ingestion is stale
+        verify(lineEventObservationService, never()).markCleared(ttcObs, clock.instant());
+        // Regional observation IS cleared because Regional ingestion is fresh
+        verify(lineEventObservationService).markCleared(regObs, clock.instant());
+
+        // Reset observation mock for Case 2
+        reset(lineEventObservationService);
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(ttcObs, regObs));
+
+        // Case 2: TTC is fresh, Regional is stale
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        when(regionalIngestionFreshness.isFresh()).thenReturn(false);
+
+        service.evaluateSavedCommuteNotifications();
+
+        // TTC observation IS cleared because TTC ingestion is fresh
+        verify(lineEventObservationService).markCleared(ttcObs, clock.instant());
+        // Regional observation is NOT cleared because Regional ingestion is stale
+        verify(lineEventObservationService, never()).markCleared(regObs, clock.instant());
     }
 }

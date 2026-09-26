@@ -16,6 +16,7 @@ import java.time.ZoneId;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -42,15 +43,13 @@ public class PushNotificationDispatchService {
     );
     
     private final SavedCommuteRepository savedCommuteRepository;
-    private final SavedCommutePushPlanner planner;
+    private final PushCandidateResolver candidateResolver;
     private final PushNotificationEventRepository eventRepository;
     private final PushSubscriptionRepository subscriptionRepository;
     private final PushNotificationDeliveryRepository deliveryRepository;
     private final PushNotificationClientEventRepository clientEventRepository;
     private final WebPushClient webPushClient;
     private final PushNotificationPreferenceService preferenceService;
-    private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner;
-    private final RegionalLineSubscriptionPushPlanner regionalLineSubscriptionPushPlanner;
     private final PushLineEventObservationService lineEventObservationService;
     private final PushSavedCommuteEventObservationService savedCommuteObservationService;
     private final PushNotificationFormatter formatter;
@@ -65,15 +64,13 @@ public class PushNotificationDispatchService {
     @Autowired
     public PushNotificationDispatchService(
         SavedCommuteRepository savedCommuteRepository,
-        SavedCommutePushPlanner planner,
+        PushCandidateResolver candidateResolver,
         PushNotificationEventRepository eventRepository,
         PushSubscriptionRepository subscriptionRepository,
         PushNotificationDeliveryRepository deliveryRepository,
         PushNotificationClientEventRepository clientEventRepository,
         WebPushClient webPushClient,
         PushNotificationPreferenceService preferenceService,
-        LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
-        RegionalLineSubscriptionPushPlanner regionalLineSubscriptionPushPlanner,
         PushLineEventObservationService lineEventObservationService,
         PushSavedCommuteEventObservationService savedCommuteObservationService,
         PushNotificationFormatter formatter,
@@ -85,60 +82,23 @@ public class PushNotificationDispatchService {
         PushSubscriptionLifecycleService lifecycleService
     ) {
         this(
-            savedCommuteRepository, planner, eventRepository, subscriptionRepository,
-            deliveryRepository, clientEventRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
-            regionalLineSubscriptionPushPlanner,
-            lineEventObservationService,
-            savedCommuteObservationService,
-            formatter,
-            receiptTokenService,
-            ingestionFreshness,
-            regionalIngestionFreshness,
-            alertHistoryRepository,
-            pushProperties,
-            Clock.systemUTC(),
-            lifecycleService
+            savedCommuteRepository, candidateResolver, eventRepository, subscriptionRepository,
+            deliveryRepository, clientEventRepository, webPushClient, preferenceService,
+            lineEventObservationService, savedCommuteObservationService, formatter, receiptTokenService,
+            ingestionFreshness, regionalIngestionFreshness, alertHistoryRepository, pushProperties,
+            Clock.systemUTC(), lifecycleService
         );
     }
 
     PushNotificationDispatchService(
         SavedCommuteRepository savedCommuteRepository,
-        SavedCommutePushPlanner planner,
+        PushCandidateResolver candidateResolver,
         PushNotificationEventRepository eventRepository,
         PushSubscriptionRepository subscriptionRepository,
         PushNotificationDeliveryRepository deliveryRepository,
         PushNotificationClientEventRepository clientEventRepository,
         WebPushClient webPushClient,
         PushNotificationPreferenceService preferenceService,
-        LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
-        PushLineEventObservationService lineEventObservationService,
-        PushSavedCommuteEventObservationService savedCommuteObservationService,
-        PushNotificationFormatter formatter,
-        PushReceiptTokenService receiptTokenService,
-        IngestionFreshness ingestionFreshness,
-        AlertHistoryRepository alertHistoryRepository,
-        PushProperties pushProperties,
-        Clock clock
-    ) {
-        this(
-            savedCommuteRepository, planner, eventRepository, subscriptionRepository,
-            deliveryRepository, clientEventRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
-            null, lineEventObservationService, savedCommuteObservationService, formatter, receiptTokenService,
-            ingestionFreshness, null, alertHistoryRepository, pushProperties, clock, null
-        );
-    }
-
-    PushNotificationDispatchService(
-        SavedCommuteRepository savedCommuteRepository,
-        SavedCommutePushPlanner planner,
-        PushNotificationEventRepository eventRepository,
-        PushSubscriptionRepository subscriptionRepository,
-        PushNotificationDeliveryRepository deliveryRepository,
-        PushNotificationClientEventRepository clientEventRepository,
-        WebPushClient webPushClient,
-        PushNotificationPreferenceService preferenceService,
-        LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
-        RegionalLineSubscriptionPushPlanner regionalLineSubscriptionPushPlanner,
         PushLineEventObservationService lineEventObservationService,
         PushSavedCommuteEventObservationService savedCommuteObservationService,
         PushNotificationFormatter formatter,
@@ -150,26 +110,24 @@ public class PushNotificationDispatchService {
         Clock clock,
         PushSubscriptionLifecycleService lifecycleService
     ) {
-        this.savedCommuteRepository = savedCommuteRepository;
-        this.planner = planner;
-        this.eventRepository = eventRepository;
-        this.subscriptionRepository = subscriptionRepository;
-        this.deliveryRepository = deliveryRepository;
-        this.clientEventRepository = clientEventRepository;
-        this.webPushClient = webPushClient;
-        this.preferenceService = preferenceService;
-        this.lineSubscriptionPushPlanner = lineSubscriptionPushPlanner;
-        this.regionalLineSubscriptionPushPlanner = regionalLineSubscriptionPushPlanner;
-        this.lineEventObservationService = lineEventObservationService;
-        this.savedCommuteObservationService = savedCommuteObservationService;
-        this.formatter = formatter;
-        this.receiptTokenService = receiptTokenService;
-        this.ingestionFreshness = ingestionFreshness;
-        this.regionalIngestionFreshness = regionalIngestionFreshness;
-        this.alertHistoryRepository = alertHistoryRepository;
-        this.pushProperties = pushProperties;
-        this.clock = clock;
-        this.lifecycleService = lifecycleService;
+        this.savedCommuteRepository = Objects.requireNonNull(savedCommuteRepository, "savedCommuteRepository");
+        this.candidateResolver = Objects.requireNonNull(candidateResolver, "candidateResolver");
+        this.eventRepository = Objects.requireNonNull(eventRepository, "eventRepository");
+        this.subscriptionRepository = Objects.requireNonNull(subscriptionRepository, "subscriptionRepository");
+        this.deliveryRepository = Objects.requireNonNull(deliveryRepository, "deliveryRepository");
+        this.clientEventRepository = Objects.requireNonNull(clientEventRepository, "clientEventRepository");
+        this.webPushClient = Objects.requireNonNull(webPushClient, "webPushClient");
+        this.preferenceService = Objects.requireNonNull(preferenceService, "preferenceService");
+        this.lineEventObservationService = Objects.requireNonNull(lineEventObservationService, "lineEventObservationService");
+        this.savedCommuteObservationService = Objects.requireNonNull(savedCommuteObservationService, "savedCommuteObservationService");
+        this.formatter = Objects.requireNonNull(formatter, "formatter");
+        this.receiptTokenService = Objects.requireNonNull(receiptTokenService, "receiptTokenService");
+        this.ingestionFreshness = Objects.requireNonNull(ingestionFreshness, "ingestionFreshness");
+        this.regionalIngestionFreshness = Objects.requireNonNull(regionalIngestionFreshness, "regionalIngestionFreshness");
+        this.alertHistoryRepository = Objects.requireNonNull(alertHistoryRepository, "alertHistoryRepository");
+        this.pushProperties = Objects.requireNonNull(pushProperties, "pushProperties");
+        this.clock = Objects.requireNonNull(clock, "clock");
+        this.lifecycleService = Objects.requireNonNull(lifecycleService, "lifecycleService");
     }
 
     record FreshnessScope(boolean ttcFresh, boolean regionalFresh) {
@@ -187,7 +145,7 @@ public class PushNotificationDispatchService {
         String lastError = null;
         FreshnessScope freshnessScope = new FreshnessScope(
             ingestionFreshness.isDashboardFresh(),
-            regionalIngestionFreshness != null && regionalIngestionFreshness.isFresh()
+            regionalIngestionFreshness.isFresh()
         );
         for (String accountId : subscriptionRepository.findEnabledAccountIds()) {
             accountsEvaluated++;
@@ -215,7 +173,7 @@ public class PushNotificationDispatchService {
             accountId,
             new FreshnessScope(
                 ingestionFreshness.isDashboardFresh(),
-                regionalIngestionFreshness != null && regionalIngestionFreshness.isFresh()
+                regionalIngestionFreshness.isFresh()
             )
         );
     }
@@ -227,11 +185,11 @@ public class PushNotificationDispatchService {
             java.util.Map<String, SavedCommuteEntity> commutesById = commutes.stream()
                 .collect(java.util.stream.Collectors.toMap(SavedCommuteEntity::getId, commute -> commute));
             List<PushNotificationCandidate> savedCommuteCandidates = commutes.stream()
-                .flatMap(commute -> savedCommuteCandidatesFor(commute, preferences).stream())
+                .flatMap(commute -> candidateResolver.resolveCommuteCandidates(commute, preferences).stream())
                 .toList();
 
             List<String> subscribedLineIds = preferenceService.subscribedLineIds(accountId);
-            List<PushNotificationCandidate> lineCandidates = lineCandidatesFor(
+            List<PushNotificationCandidate> lineCandidates = candidateResolver.resolveLineCandidates(
                 accountId, subscribedLineIds, preferences
             );
             Set<String> subscribedLineIdSet = new java.util.HashSet<>(subscribedLineIds);
@@ -343,36 +301,6 @@ public class PushNotificationDispatchService {
         return message == null || message.isBlank() ? exception.getClass().getSimpleName() : message;
     }
 
-    private List<PushNotificationCandidate> savedCommuteCandidatesFor(
-        SavedCommuteEntity commute,
-        PushNotificationPreferenceEntity preferences
-    ) {
-        PlannedClosureFollowUpPolicy policy = preferences.getPlannedClosureFollowUpPolicy();
-        return policy == null ? planner.candidatesFor(commute) : planner.candidatesFor(commute, policy);
-    }
-
-    private List<PushNotificationCandidate> lineCandidatesFor(
-        String accountId,
-        List<String> subscribedLineIds,
-        PushNotificationPreferenceEntity preferences
-    ) {
-        PlannedClosureFollowUpPolicy policy = preferences.getPlannedClosureFollowUpPolicy();
-        List<String> ttcLineIds = subscribedLineIds.stream()
-            .filter(lineId -> !regionalLine(lineId))
-            .toList();
-        List<PushNotificationCandidate> candidates = new java.util.ArrayList<>(policy == null
-            ? lineSubscriptionPushPlanner.candidatesFor(accountId, ttcLineIds)
-            : lineSubscriptionPushPlanner.candidatesFor(accountId, ttcLineIds, policy));
-        if (regionalLineSubscriptionPushPlanner != null) {
-            List<String> regionalLineIds = subscribedLineIds.stream().filter(this::regionalLine).toList();
-            candidates.addAll(regionalLineSubscriptionPushPlanner.candidatesFor(
-                accountId,
-                regionalLineIds,
-                policy == null ? PlannedClosureFollowUpPolicy.SMART : policy
-            ));
-        }
-        return List.copyOf(candidates);
-    }
 
     private boolean lineCurrentDeliveryIsTimely(
         PushNotificationCandidate candidate,
@@ -768,13 +696,13 @@ public class PushNotificationDispatchService {
 
     private boolean freshForLine(String lineId) {
         if (regionalLine(lineId)) {
-            return regionalIngestionFreshness != null && regionalIngestionFreshness.isFresh();
+            return regionalIngestionFreshness.isFresh();
         }
         return ingestionFreshness.isDashboardFresh();
     }
 
     private boolean regionalLine(String lineId) {
-        return lineId != null && lineId.startsWith("regional-");
+        return PushCandidateResolver.isRegionalLine(lineId);
     }
 
     private boolean compatibleLocations(String first, String second) {
@@ -1097,9 +1025,7 @@ public class PushNotificationDispatchService {
         String reason = "push-service-" + (result.httpStatus() == null ? "invalid" : result.httpStatus());
         subscription.disable(now, reason);
         subscriptionRepository.save(subscription);
-        if (lifecycleService != null) {
-            lifecycleService.record(subscription, "disabled", reason, now);
-        }
+        lifecycleService.record(subscription, "disabled", reason, now);
     }
 
     private boolean subscriptionEnabledForEvent(PushSubscriptionEntity subscription, PushNotificationEventEntity event) {

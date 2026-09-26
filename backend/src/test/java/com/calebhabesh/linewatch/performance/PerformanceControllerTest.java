@@ -40,4 +40,20 @@ class PerformanceControllerTest {
         assertThat(response.status()).isEqualTo("available");
         assertThat(response.metrics()).singleElement().satisfies(metric -> assertThat(metric.valueLabel()).isEqualTo("91%"));
     }
+
+    @Test
+    void delegatesDirectlyToServicePerformanceWhenConstructedWithSingleArg() {
+        PerformanceController primaryController = new PerformanceController(service);
+        TtcPerformanceResponses.SnapshotResponse expected = new TtcPerformanceResponses.SnapshotResponse(
+            "available", "TTC.ca", "https://www.ttc.ca/", "On-time performance",
+            "June 7, 2026 7:00 AM", OffsetDateTime.parse("2026-06-07T12:00:00Z"), false,
+            "Official TTC performance metrics loaded from TTC.ca.",
+            List.of(new TtcPerformanceResponses.MetricResponse("line-1", "Line 1", "subway", 95, 90, "95%", null))
+        );
+        when(service.performance()).thenReturn(expected);
+
+        TtcPerformanceResponses.SnapshotResponse response = primaryController.performance();
+
+        assertThat(response).isSameAs(expected);
+    }
 }
