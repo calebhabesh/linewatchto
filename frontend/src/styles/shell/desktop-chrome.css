@@ -2803,7 +2803,7 @@
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
   margin: 0;
   overflow: hidden;
   padding: 12px;
@@ -2954,9 +2954,10 @@
 }
 
 .desktop-status-incident-location {
+  margin-top: 4px;
   background: var(--panel-soft);
   border-left: 2px solid currentColor;
-  padding: 6px 8px;
+  padding: 4px 8px;
   width: 100%;
   color: var(--text, #0f172a);
   font-size: 15px;
@@ -2969,17 +2970,18 @@
 }
 
 .desktop-status-incident-direction {
+  margin-top: 4px;
   color: var(--incident-direction-text);
   font-size: 13px;
   font-weight: 600;
-  line-height: 20px;
+  line-height: 16px;
 }
 
 .desktop-status-incident-timing {
   color: var(--text);
   font-size: 13px;
   font-weight: 600;
-  line-height: 20px;
+  line-height: 16px;
 }
 
 .desktop-status-sub-badges {

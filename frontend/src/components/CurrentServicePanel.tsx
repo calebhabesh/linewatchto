@@ -1,5 +1,8 @@
 "use client";
 
+import { IncidentStationSpan } from "./IncidentStationSpan";
+import { RegionalIncidentDetails } from "./RegionalIncidentDetails";
+
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowRight, BusFront, Info, TrainFront } from "lucide-react";
 import type { DashboardData } from "../app/DataContext";
@@ -14,6 +17,7 @@ import {
 } from "../app/current-service";
 import { DESKTOP_SERVICE_SHEET_STORAGE_KEY, parseDesktopServiceSheetPosition } from "../app/desktop-service-sheet-state";
 import { LineBadge } from "./ImpactCardFields";
+import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { goNoticeRouteBadgeStyle, goNoticeRouteLabel } from "../app/go-bus-route-colors";
@@ -381,28 +385,31 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                 <div className="current-service-line-copy-main" data-has-impacts="true">
                   {item.rows.map((row) => {
                     const incident = currentServiceIncidentPresentation(row);
+                    const alertKind = row.iconKind || row.kind;
                     return (
-                      <button
-                        type="button"
-                        className="current-service-impact current-service-impact--compact"
-                        data-impact-kind={row.iconKind || row.kind}
-                        key={`${row.kind}:${row.id}`}
-                        onClick={() => onImpact({ kind: row.kind, id: row.id })}
-                      >
-                        <span className="current-service-impact-heading">
-                          <strong data-kind={row.iconKind || row.kind}>
-                            <ImpactTypeIcon kind={row.iconKind || row.kind} size={16} />
-                            {incident.title}
-                          </strong>
-                        </span>
-                        <span className="current-service-impact-location">{row.location}</span>
-                        {row.direction && <span className="current-service-impact-direction">{row.direction}</span>}
-                        {(incident.timing || row.shuttle) && (
-                          <span className="current-service-impact-timing">
-                            {[incident.timing, row.shuttle ? "Shuttle Buses Running" : null].filter(Boolean).join(" · ")}
+                      <IncidentElectricBorder key={`${row.kind}:${row.id}`} kind={alertKind}>
+                        <button
+                          type="button"
+                          className="current-service-impact current-service-impact--compact"
+                          data-impact-kind={alertKind}
+                          onClick={() => onImpact({ kind: row.kind, id: row.id })}
+                        >
+                          <span className="current-service-impact-heading">
+                            <strong data-kind={alertKind}>
+                              <ImpactTypeIcon kind={alertKind} size={16} />
+                              {incident.title}
+                            </strong>
                           </span>
-                        )}
-                      </button>
+                          <span className="current-service-impact-location"><IncidentStationSpan location={row.location} /></span>
+                          {row.direction && <span className="current-service-impact-direction">{row.direction}</span>}
+                          {(incident.timing || row.shuttle) && (
+                            <span className="current-service-impact-timing">
+                              {[incident.timing, row.shuttle ? "Shuttle Buses Running" : null].filter(Boolean).join(" · ")}
+                            </span>
+                          )}
+                            {data.networkId === "regional" && <RegionalIncidentDetails row={row} className="current-service-impact-timing" />}
+                        </button>
+                      </IncidentElectricBorder>
                     );
                   })}
                 </div>
@@ -428,14 +435,12 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                         className="current-service-badge-incident-button"
                         onClick={() => onCategory("reduced-speed-zones", item.line.id)}
                         title={`View ${item.line.name} Reduced Speed Zones`}
-                        aria-label={`${item.line.name}: ${item.rszCount > 1 ? `${item.rszCount} Reduced Speed Zones` : "Reduced Speed Zones"}`}
+                        aria-label={`${item.line.name}: ${item.rszCount} Reduced Speed ${item.rszCount === 1 ? "Zone" : "Zones"}`}
                       >
                         <span className="current-service-rsz-pill">
                           <ImpactTypeIcon kind="reduced-speed-zone" size={11} />
                           <span>
-                            {item.rszCount > 1
-                              ? `${item.rszCount} Reduced Speed Zones`
-                              : "Reduced Speed Zones"}
+                            {`${item.rszCount} Reduced Speed ${item.rszCount === 1 ? "Zone" : "Zones"}`}
                           </span>
                         </span>
                       </button>
@@ -499,14 +504,12 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                         className="current-service-badge-incident-button"
                         onClick={() => onCategory("reduced-speed-zones", line.id)}
                         title={`View ${line.name} Reduced Speed Zones`}
-                        aria-label={`${line.name}: ${presentation.rszCount && presentation.rszCount > 1 ? `${presentation.rszCount} Reduced Speed Zones` : "Reduced Speed Zones"}`}
+                        aria-label={`${line.name}: ${presentation.rszCount} Reduced Speed ${presentation.rszCount === 1 ? "Zone" : "Zones"}`}
                       >
                         <span className="current-service-rsz-pill">
                           <ImpactTypeIcon kind="reduced-speed-zone" size={11} />
                           <span>
-                            {presentation.rszCount && presentation.rszCount > 1
-                              ? `${presentation.rszCount} Reduced Speed Zones`
-                              : "Reduced Speed Zones"}
+                            {`${presentation.rszCount} Reduced Speed ${presentation.rszCount === 1 ? "Zone" : "Zones"}`}
                           </span>
                         </span>
                       </button>

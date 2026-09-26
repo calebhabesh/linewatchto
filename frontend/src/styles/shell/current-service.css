@@ -692,6 +692,7 @@
 .linewatch-shell.high-contrast .current-service-impact--compact[data-impact-kind]::before,
 .linewatch-shell.high-contrast .current-service-notice-copy[data-category]::before { background: currentColor; }
 .current-service-impact--compact + .current-service-impact--compact { margin-top: 6px; }
+.current-service .current-service-line-copy-main > .electric-border + .electric-border { margin-top: 6px; }
 .current-service-impact-heading { display: flex; align-items: center; gap: 4px; font-size: 13.5px; }
 .current-service-impact-heading strong { display: inline-flex; align-items: center; gap: 4px; font-size: 13.5px; font-weight: 700; }
 .current-service-impact-heading strong svg { width: 16px; height: 16px; min-width: 16px; min-height: 16px; flex-shrink: 0; display: inline-block; vertical-align: middle; margin: 0; }
@@ -1439,6 +1440,7 @@
   .mobile-service-sheet .current-service-line-copy-main[data-has-impacts="true"] {
     align-items: stretch;
     flex-direction: column;
+    padding-left: 0;
   }
   .mobile-service-sheet .current-service-reassurance {
     display: flex;
@@ -1467,11 +1469,27 @@
     gap: 8px;
     padding: 8px 0;
   }
-  .mobile-service-sheet .current-service-impact { min-height: 44px; padding: 4px 0; gap: 6px; }
+  .mobile-service-sheet .current-service-impact {
+    --mobile-incident-color: var(--electric-border-color);
+    min-height: 44px;
+    padding: 10px;
+    gap: 3px;
+    border: 1px solid color-mix(in srgb, var(--mobile-incident-color) 25%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--mobile-incident-color) 8%, var(--panel-opaque));
+    box-shadow: none;
+  }
+  .mobile-service-sheet .current-service-impact--compact::before { display: none; }
+  .linewatch-shell.high-contrast .mobile-service-sheet .current-service-impact {
+    --mobile-incident-color: var(--text);
+    background: var(--panel-opaque);
+    border-color: var(--text);
+    box-shadow: none;
+  }
   .mobile-service-sheet .current-service-impact-heading strong { font-size: 14px; font-weight: 700; gap: 5px; line-height: 20px; }
-  .mobile-service-sheet .current-service-impact-location { background: var(--panel-soft); border-left: 2px solid currentColor; padding: 4px 6px; font-size: 15px; font-weight: 650; line-height: 20px; color: var(--text); }
-  .mobile-service-sheet .current-service-impact-direction { font-size: 13px; font-weight: 600; line-height: 20px; color: var(--incident-direction-text); }
-  .mobile-service-sheet .current-service-impact-timing { font-size: 13px; font-weight: 600; line-height: 20px; color: var(--text); }
+  .mobile-service-sheet .current-service-impact-location { margin-top: 4px; background: var(--panel-soft); border-left: 2px solid currentColor; padding: 4px 6px; font-size: 15px; font-weight: 650; line-height: 20px; color: var(--text); }
+  .mobile-service-sheet .current-service-impact-direction { margin-top: 4px; font-size: 13px; font-weight: 600; line-height: 16px; color: var(--incident-direction-text); }
+  .mobile-service-sheet .current-service-impact-timing { font-size: 13px; font-weight: 600; line-height: 16px; color: var(--text); }
   .mobile-service-sheet .current-service-normal-label strong { font-size: 14px; font-weight: 700; }
   .mobile-service-sheet .current-service-rsz-label { font-size: 13.5px; font-weight: 600; }
   .mobile-service-sheet .current-service-notice {
@@ -2077,4 +2095,12 @@
     background: inherit;
     pointer-events: none;
   }
+}
+
+/* Provider publication time is secondary to the rider impact and station span. */
+.current-service .current-service-impact-timing.regional-incident-update,
+.desktop-status-incident-row .desktop-status-incident-timing.regional-incident-update {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
 }

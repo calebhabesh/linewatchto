@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
   currentServiceSummary,
+  regionalIncidentFacts,
   currentServiceIncidentPresentation,
   currentSurfaceNotices,
   getCanonicalAlertTitle,
@@ -29,7 +30,7 @@ test("current service prioritizes severity, excludes RSZs, and stays stable thro
   const first = currentServiceSummary(input);
   assert.deepEqual(first.rows.map((row) => row.id), ["s", "a", "b"]);
   input.delays[0].updatedAt = "2026-09-09T12:00:00Z";
-  assert.deepEqual(currentServiceSummary(input).rows, first.rows);
+  assert.deepEqual(currentServiceSummary(input).rows.map(row => row.id), first.rows.map(row => row.id));
   assert.deepEqual(first.unaffected.map((line) => line.id), []);
 });
 
@@ -112,6 +113,7 @@ test("published closure windows enter within 24 hours, transition, expire, and y
   assert.equal(currentServiceSummary(input, now - 1).rows.length, 0);
   assert.equal(currentServiceSummary(input, now - 1).upcoming.length, 1);
   assert.equal(currentServiceSummary(input, now).rows[0].condition, "Upcoming Closure");
+  assert.equal(currentServiceSummary(input, now).rows[0].kind, "planned-closure");
   assert.equal(currentServiceSummary(input, now).upcoming.length, 0);
   assert.equal(currentServiceSummary(input, Date.parse(closure.nextWindowStart)).rows[0].condition, "Planned Closure in Effect");
   assert.equal(currentServiceSummary(input, Date.parse(closure.nextWindowEnd)).rows.length, 0);
@@ -119,7 +121,41 @@ test("published closure windows enter within 24 hours, transition, expire, and y
   assert.deepEqual(currentServiceSummary(input, now).rows.map((row) => row.id), ["child"]);
 });
 
-test("active planned closures use the active icon and published end while keeping detail navigation", () => {
+test("regional planned notices without structured windows remain line badges without becoming current incidents", () => {
+  const now = Date.parse("2026-09-26T12:00:00Z");
+  const closure = impact("barrie-plan", "regional-br", {
+    activeNow: false, timingStatus: "unknown", startedAt: "2026-10-03T04:00:00Z",
+    nextWindowStart: null, nextWindowEnd: null,
+  });
+  const input = data({ networkId: "regional", lineStatuses: [line("regional-br"), line("regional-up")], plannedClosures: [closure] });
+  const summary = currentServiceSummary(input, now);
+  assert.deepEqual(summary.upcoming.map(item => item.id), ["barrie-plan"]);
+  assert.deepEqual(summary.rows, []);
+  assert.deepEqual(summary.unaffected.map(item => item.id), ["regional-br", "regional-up"]);
+  assert.deepEqual(currentServiceSummary({ ...input, networkId: "ttc" }, now).upcoming, []);
+  for (const freshness of [{ generatedAt: { live: false } }, { availability: "fixture" }, { availability: "unavailable" }]) {
+    assert.deepEqual(currentServiceSummary({ ...input, ...freshness }, now).upcoming, []);
+  }
+  for (const activeAlert of [impact(closure.id, closure.lineId), impact("child", closure.lineId, { relatedPlannedClosureId: closure.id })]) {
+    assert.deepEqual(currentServiceSummary({ ...input, activeAlerts: [activeAlert] }, now).upcoming, []);
+  }
+  assert.deepEqual(currentServiceSummary({ ...input, plannedClosures: [{ ...closure, activeNow: true }] }, now).upcoming, []);
+});
+
+test("regional badges respect structured windows and exclude expired or invalid windows", () => {
+  const now = Date.parse("2026-09-26T12:00:00Z");
+  const input = data({ networkId: "regional", lineStatuses: [line("regional-br")], plannedClosures: [
+    impact("later", "regional-br", { nextWindowStart: "2026-10-03T04:00:00Z", nextWindowEnd: "2026-10-05T04:00:00Z" }),
+    impact("within-24h", "regional-br", { nextWindowStart: "2026-09-27T04:00:00Z", nextWindowEnd: "2026-09-28T04:00:00Z" }),
+    impact("expired", "regional-br", { nextWindowStart: "2026-09-24T04:00:00Z", nextWindowEnd: "2026-09-25T04:00:00Z" }),
+    impact("invalid", "regional-br", { nextWindowStart: "invalid", nextWindowEnd: "invalid" }),
+  ] });
+  const summary = currentServiceSummary(input, now);
+  assert.deepEqual(summary.upcoming.map(item => item.id), ["later"]);
+  assert.deepEqual(summary.rows.map(item => item.id), ["within-24h"]);
+});
+
+test("active planned closures open active alerts under both canonical and child IDs", () => {
   const now = Date.parse("2026-09-10T04:00:00Z");
   for (const child of [false, true]) {
     const summary = currentServiceSummary(data({
@@ -129,7 +165,8 @@ test("active planned closures use the active icon and published end while keepin
     assert.equal(summary.rows[0].condition, "Planned Closure in Effect");
     assert.equal(summary.rows[0].iconKind, "suspension");
     assert.match(summary.rows[0].timing, /^Ends .* at .+\(1hr\)$/);
-    assert.equal(summary.rows[0].kind, child ? "suspension" : "planned-closure");
+    assert.equal(summary.rows[0].kind, "suspension");
+    assert.equal(summary.rows[0].id, child ? "child" : "parent");
   }
 });
 
@@ -331,7 +368,7 @@ test("CurrentServicePanel desktop content animates on entrance and suppresses du
 test("pull-up impact rows name the condition and put direction below the location", () => {
   const panel = readFileSync(new URL("../src/components/CurrentServicePanel.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
-  assert.ok(panel.includes('className="current-service-impact-location">{row.location}</span>'));
+  assert.ok(panel.includes('className="current-service-impact-location"><IncidentStationSpan location={row.location} /></span>'));
   assert.ok(panel.includes('className="current-service-impact-direction">{row.direction}</span>'));
   assert.match(styles, /\.current-service-impact-direction\s*\{[^}]*display:\s*block;/);
 });
@@ -395,9 +432,9 @@ test("sub-badges and surface routes use flex alignment without letter wrapping",
 
   // ElectricBorder stays on rail incidents; surface notices remain compact
   const desktopStatusSource = readFileSync(new URL("../src/components/DesktopStatusOverview.tsx", import.meta.url), "utf8");
-  assert.match(desktopStatusSource, /<ElectricBorder[\s\S]*?<button[^>]*className="desktop-status-incident-row"/);
+  assert.match(desktopStatusSource, /<IncidentElectricBorder[\s\S]*?<button[^>]*className="desktop-status-incident-row"/);
   const surfaceSection = desktopStatusSource.slice(desktopStatusSource.indexOf('className="desktop-status-surface-list"'));
-  assert.doesNotMatch(surfaceSection, /<ElectricBorder/);
+  assert.doesNotMatch(surfaceSection, /<IncidentElectricBorder/);
 });
 
 test("desktop incident copy distinguishes active, upcoming and last-reported closures", () => {
@@ -407,4 +444,45 @@ test("desktop incident copy distinguishes active, upcoming and last-reported clo
   const saved = currentServiceSummary(data({ snapshot: { savedAt: Date.parse("2026-09-09T16:00:00Z") }, activeAlerts: [impact("closure", "1", { relatedPlannedClosureId: "parent" })] })).rows[0];
   assert.deepEqual(currentServiceIncidentPresentation(saved), { title: "Last Reported: Planned Closure · In Effect", timing: undefined });
   assert.equal(currentServiceIncidentPresentation({ ...row, kind: "suspension", condition: "No Service" }).title, "No Service");
+});
+
+
+test("regional rider facts survive summary projection, deduplication and saved snapshots", () => {
+  const details = { cause: "Signal Problems", updatedAt: "2026-09-26T14:00:00Z", publishedAt: "2026-09-25T12:00:00Z", maximumDelayMinutes: 20, replacementService: "go-bus" };
+  const input = data({ activeAlerts: [impact("a", "1", details)], delays: [impact("a", "1"), impact("b", "2", details)] });
+  const rows = currentServiceSummary(input).rows;
+  assert.equal(rows.length, 2);
+  for (const row of rows) {
+    assert.deepEqual(regionalIncidentFacts(row), {
+      cause: "Signal Problems", service: "Reported Delay: 20 min · GO Buses Replace Trains",
+      publishedAt: details.publishedAt,
+    });
+  }
+  const saved = currentServiceSummary({ ...input, snapshot: { savedAt: Date.parse(details.updatedAt) }, generatedAt: { live: false } });
+  assert.match(saved.rows[0].condition, /^Last reported:/);
+  assert.equal(saved.rows[0].updatedAt, details.updatedAt);
+});
+
+test("regional rider facts omit unknown, invalid and generic values", () => {
+  const row = currentServiceSummary(data({ activeAlerts: [impact("a", "1")] })).rows[0];
+  for (const cause of [undefined, " ", "Metrolinx service update", "Unknown", "Modified Trip"]) {
+    assert.deepEqual(regionalIncidentFacts({ ...row, cause, maximumDelayMinutes: -1, replacementService: "unknown", updatedAt: "bad", publishedAt: "bad" }), {
+      cause: undefined, service: "", publishedAt: undefined,
+    });
+  }
+});
+
+
+test("regional incident publication time never falls back to a fresh poll timestamp", () => {
+  const input = data({ activeAlerts: [impact("a", "1", { updatedAt: "2026-09-26T14:00:00Z" })] });
+  assert.equal(regionalIncidentFacts(currentServiceSummary(input).rows[0]).publishedAt, undefined);
+  input.activeAlerts[0].publishedAt = "2026-09-24T12:00:00Z";
+  input.activeAlerts[0].updatedAt = "2026-09-26T15:00:00Z";
+  assert.equal(regionalIncidentFacts(currentServiceSummary(input).rows[0]).publishedAt, "2026-09-24T12:00:00Z");
+});
+
+
+test("regional incident facts never present a feed validity boundary as a scheduled service end", () => {
+  const row = currentServiceSummary(data({ activeAlerts: [impact("a", "1")] })).rows[0];
+  assert.equal(Object.hasOwn(regionalIncidentFacts({ ...row, scheduledEndAt: "2026-09-27T04:12:00Z" }), "scheduledEndAt"), false);
 });

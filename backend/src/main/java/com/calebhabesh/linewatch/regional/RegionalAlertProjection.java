@@ -13,7 +13,7 @@ final class RegionalAlertProjection {
             alert.id(), alert.sourceSystem(), alert.sourceId(), alert.lineId(), "advisory",
             alert.title(), alert.description(), alert.cause(), null, alert.activePeriodEnd(),
             alert.sourceUpdatedAt(), alert.stationIds(), java.util.List.of(), alert.activePeriodBasis(),
-            alert.rawPayload());
+            alert.rawPayload(), alert.replacementService(), alert.maximumDelayMinutes(), alert.publishedAt());
         if (now.isBefore(alert.activePeriodStart().toInstant())) {
             if (!"planned-closure".equals(alert.impactKind())) return null;
             return alert;
@@ -23,6 +23,7 @@ final class RegionalAlertProjection {
             alert.id(), alert.sourceSystem(), alert.sourceId(), alert.lineId(), "suspension",
             alert.title(), alert.description(), alert.cause(), alert.activePeriodStart(),
             alert.activePeriodEnd(), alert.sourceUpdatedAt(), alert.stationIds(),
-            alert.affectedSegmentIds(), alert.activePeriodBasis(), alert.rawPayload());
+            alert.affectedSegmentIds(), alert.activePeriodBasis(), alert.rawPayload(),
+            alert.replacementService(), alert.maximumDelayMinutes(), alert.publishedAt());
     }
 }

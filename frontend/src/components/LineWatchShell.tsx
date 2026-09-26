@@ -292,12 +292,13 @@ export function LineWatchShell({
   const viewForImpactSelection = useCallback((nextSelection: NonNullable<ImpactSelection>): ActiveView => {
     if (
       nextSelection.kind === "planned-closure" &&
+      !plannedClosures.some((closure) => closure.id === nextSelection.id) &&
       activeAlerts.some((alert) => alert.id === nextSelection.id)
     ) {
       return "alerts";
     }
     return viewForImpactKind(nextSelection.kind);
-  }, [activeAlerts, viewForImpactKind]);
+  }, [activeAlerts, plannedClosures, viewForImpactKind]);
 
   const [isDark, setIsDark] = useState(initialVisualPreferences.theme === "dark");
   const [highContrast, setHighContrast] = useState(initialVisualPreferences.highContrast);

@@ -35,6 +35,25 @@ class RegionalDashboardServiceTest {
     }
 
     @Test
+    void exposesPublishedRiderDetailsWithoutInventingRecoveryTimes() {
+        when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
+        OffsetDateTime end = OffsetDateTime.parse("2026-07-28T20:00:00Z");
+        when(alertStore.findActiveAlerts()).thenReturn(List.of(new RegionalNormalizedAlert(
+            "rider-details", MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M1", "regional-ki", "delay",
+            "Delay", "Reported delays", "Signal Problems", OffsetDateTime.parse("2026-07-28T17:00:00Z"), end,
+            OffsetDateTime.parse("2026-07-28T18:12:00Z"), List.of("bloor"), List.of(),
+            "source-active-period", "private source payload", "go-bus", 20, OffsetDateTime.parse("2026-07-27T15:00:00Z")
+        )));
+        var dashboard = service.dashboard();
+        assertThat(dashboard.incidentDetails().get("rider-details"))
+            .isEqualTo(new DashboardResponses.IncidentDetails("go-bus", 20, OffsetDateTime.parse("2026-07-27T15:00:00Z")));
+        assertThat(dashboard.delays().getFirst().cause()).isEqualTo("Signal Problems");
+        assertThat(dashboard.delays().getFirst().updatedAt()).isEqualTo(OffsetDateTime.parse("2026-07-28T18:12:00Z"));
+        when(freshness.remainingFreshness(any())).thenReturn(Optional.empty());
+        assertThat(service.dashboard().incidentDetails()).isEmpty();
+    }
+
+    @Test
     void exposesFreshRegionalAlertsStatusesAndReviewedMapImpacts() {
         when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
         when(alertStore.findActiveAlerts()).thenReturn(List.of(new RegionalNormalizedAlert(

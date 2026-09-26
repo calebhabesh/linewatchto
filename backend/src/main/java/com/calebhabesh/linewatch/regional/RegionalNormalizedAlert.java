@@ -18,8 +18,34 @@ public record RegionalNormalizedAlert(
     List<String> stationIds,
     List<String> affectedSegmentIds,
     String activePeriodBasis,
-    String rawPayload
+    String rawPayload,
+    String replacementService,
+    Integer maximumDelayMinutes,
+    OffsetDateTime publishedAt
 ) {
+    public RegionalNormalizedAlert(
+        String id, String sourceSystem, String sourceId, String lineId, String impactKind,
+        String title, String description, String cause, OffsetDateTime activePeriodStart,
+        OffsetDateTime activePeriodEnd, OffsetDateTime sourceUpdatedAt, List<String> stationIds,
+        List<String> affectedSegmentIds, String activePeriodBasis, String rawPayload,
+        String replacementService, Integer maximumDelayMinutes
+    ) {
+        this(id, sourceSystem, sourceId, lineId, impactKind, title, description, cause,
+            activePeriodStart, activePeriodEnd, sourceUpdatedAt, stationIds, affectedSegmentIds,
+            activePeriodBasis, rawPayload, replacementService, maximumDelayMinutes, null);
+    }
+
+    public RegionalNormalizedAlert(
+        String id, String sourceSystem, String sourceId, String lineId, String impactKind,
+        String title, String description, String cause, OffsetDateTime activePeriodStart,
+        OffsetDateTime activePeriodEnd, OffsetDateTime sourceUpdatedAt, List<String> stationIds,
+        List<String> affectedSegmentIds, String activePeriodBasis, String rawPayload
+    ) {
+        this(id, sourceSystem, sourceId, lineId, impactKind, title, description, cause,
+            activePeriodStart, activePeriodEnd, sourceUpdatedAt, stationIds, affectedSegmentIds,
+            activePeriodBasis, rawPayload, null, null);
+    }
+
     public RegionalNormalizedAlert(
         String id,
         String sourceSystem,

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-import { formatImpactTimestamp, formatOperationalDateTime, formatRelativeImpactTime } from "../src/app/impact-time.ts";
+import { formatPublicationTimestamp, formatImpactTimestamp, formatOperationalDateTime, formatRelativeImpactTime } from "../src/app/impact-time.ts";
 
 describe("impact timestamp formatting", () => {
   it("formats card timestamp fields with an absolute anchor and compact age", () => {
@@ -115,3 +115,12 @@ describe("impact timestamp formatting", () => {
   });
 });
 
+
+
+it("publication timestamps include compact elapsed age without suggesting a fresh update", () => {
+  const now = new Date("2026-09-26T16:00:00Z");
+  assert.equal(formatPublicationTimestamp("2026-09-24T14:18:00Z", now), "Sep 24, 10:18 AM (2d)");
+  assert.equal(formatPublicationTimestamp("2026-09-26T15:30:00Z", now), "Sep 26, 11:30 AM (30m)");
+  assert.equal(formatPublicationTimestamp("2026-09-26T16:00:00Z", now), "Sep 26, 12:00 PM (<1m)");
+  assert.equal(formatPublicationTimestamp("2026-09-27T16:00:00Z", now), "Sep 27, 12:00 PM");
+});

@@ -1,8 +1,9 @@
-import type { ActiveAlert, DelayAlert, ImpactKind, LineStatus, PlannedClosure, ReducedSpeedZone } from "./linewatch-data.ts";
+import type { ActiveAlert, DelayAlert, IncidentRiderDetails, ImpactKind, LineStatus, PlannedClosure, ReducedSpeedZone } from "./linewatch-data.ts";
 import { countReducedSpeedZones } from "./reduced-speed-zone-count.ts";
 import { compareSurfaceNotices } from "./surface-notice-groups.ts";
 
 export type CurrentServiceData = {
+  networkId?: "ttc" | "regional";
   snapshot?: { savedAt: number | null };
   activeAlerts: ActiveAlert[];
   delays: DelayAlert[];
@@ -12,7 +13,7 @@ export type CurrentServiceData = {
   generatedAt: { live: boolean };
   availability: "available" | "degraded" | "unavailable" | "fixture";
 };
-export type CurrentServiceRow = {
+export type CurrentServiceRow = IncidentRiderDetails & {
   id: string;
   kind: ImpactKind;
   iconKind?: ImpactKind;
@@ -21,6 +22,8 @@ export type CurrentServiceRow = {
   condition: string;
   location: string;
   timing?: string;
+  cause?: string | null;
+  updatedAt?: string | null;
   direction?: string | null;
   shuttle: boolean;
   priority: number;
@@ -47,6 +50,31 @@ export function getPlannedClosureCountBadgeLabel(count: number): string {
   return `${count} Planned Closures`;
 }
 
+function incidentRiderDetails(incident: IncidentRiderDetails & { cause?: string | null; updatedAt?: string | null }) {
+  return {
+    cause: incident.cause,
+    updatedAt: incident.updatedAt,
+    publishedAt: incident.publishedAt,
+    replacementService: incident.replacementService,
+    maximumDelayMinutes: incident.maximumDelayMinutes,
+  };
+}
+
+/** Optional, source-reported facts only; generic classifier fallbacks add no rider information. */
+export function regionalIncidentFacts(row: CurrentServiceRow) {
+  const cause = row.cause?.trim();
+  const delay = row.maximumDelayMinutes;
+  return {
+    cause: cause && !/^(unknown|other(?: cause)?|metrolinx service update|modified trip|no service|delay(?:s)?)$/i.test(cause) ? cause : undefined,
+    service: [
+      Number.isInteger(delay) && delay! > 0 ? `Reported Delay: ${delay} min` : undefined,
+      row.replacementService === "go-bus" ? "GO Buses Replace Trains"
+        : row.replacementService === "bus" ? "Buses Replace Trains" : undefined,
+    ].filter(Boolean).join(" · "),
+    publishedAt: row.publishedAt && Number.isFinite(Date.parse(row.publishedAt)) ? row.publishedAt : undefined,
+  };
+}
+
 /** Presentation of the dashboard's already time-gated impacts, never a second feed. */
 export function currentServiceSummary(data: CurrentServiceData, now = 0) {
   const fresh = data.generatedAt.live && data.availability !== "unavailable" && data.availability !== "fixture";
@@ -57,19 +85,20 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
     const planned = alert.severity === "planned" || !!closure || !!alert.relatedPlannedClosureId;
     return ({
     id: alert.id,
-    kind: alert.severity === "planned" ? "planned-closure" : alert.severity === "delay" ? "delay" : "suspension",
+    kind: alert.severity === "delay" ? "delay" : "suspension",
     lineId: alert.lineId, lineNumber: alert.lineNumber,
     condition: planned ? "Planned Closure in Effect" : /\bbypass(?:ing|ed)?\b/i.test(alert.title) ? "Bypassing station" : alert.severity === "delay" ? "Delays" : alert.severity === "planned" ? "Closure in effect" : "No Service",
     iconKind: planned ? "suspension" : undefined,
     timing: planned ? windowTime(closure?.activeWindowEnd, now, true) : undefined,
     location: alert.location || alert.title,
     direction: alert.displayDirection, shuttle: alert.shuttle,
+    ...incidentRiderDetails(alert),
     priority: alert.severity === "delay" ? 1 : 0,
   });
   });
   for (const delay of data.delays) {
     if (rows.some((row) => row.id === delay.id && row.lineId === delay.lineId)) continue;
-    rows.push({ id: delay.id, kind: "delay", lineId: delay.lineId, lineNumber: delay.lineNumber, condition: "Delays", location: delay.location || delay.title, direction: delay.displayDirection, shuttle: false, priority: 1 });
+    rows.push({ id: delay.id, kind: "delay", lineId: delay.lineId, lineNumber: delay.lineNumber, condition: "Delays", location: delay.location || delay.title, direction: delay.displayDirection, shuttle: false, priority: 1, ...incidentRiderDetails(delay) });
   }
   // Published windows starting within 24 hours (or active now) qualify as current service entries.
   const qualifyingClosures = data.plannedClosures.filter((closure) => {
@@ -93,18 +122,21 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
       timing: windowTime(active ? closure.nextWindowEnd : closure.nextWindowStart, now, active),
       location: closure.location || closure.title,
       direction: closure.displayDirection,
+      ...incidentRiderDetails(closure),
       shuttle: closure.shuttle,
       priority: active ? 0 : 2,
     });
   }
 
-  // Planned closures with published windows that are > 24hrs out qualify for subtle line badges.
+  // Regional notices can lack structured service windows. Keep them discoverable
+  // as badges without treating their publication/validity dates as a schedule.
   const upcoming = data.plannedClosures.filter((closure) => {
+    if (closure.activeNow || data.activeAlerts.some((alert) => alert.id === closure.id || alert.relatedPlannedClosureId === closure.id)) return false;
     const start = Date.parse(closure.nextWindowStart || "");
     const end = Date.parse(closure.nextWindowEnd || "");
-    return now > 0 && !closure.activeNow && Number.isFinite(start) && Number.isFinite(end)
-      && end > start && end > now && start > now + 24 * 60 * 60 * 1000
-      && !data.activeAlerts.some((alert) => alert.id === closure.id || alert.relatedPlannedClosureId === closure.id);
+    if (data.networkId === "regional" && !closure.nextWindowStart && !closure.nextWindowEnd) return true;
+    return now > 0 && Number.isFinite(start) && Number.isFinite(end)
+      && end > start && end > now && start > now + 24 * 60 * 60 * 1000;
   }).sort((a, b) => Date.parse(a.nextWindowStart || "") - Date.parse(b.nextWindowStart || "") || a.id.localeCompare(b.id));
 
   // Stable within severity and line: source timestamp changes must not move a row.

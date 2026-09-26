@@ -82,8 +82,21 @@ public class RegionalDashboardService {
             delays(alerts),
             List.of(),
             plannedClosures(alerts),
-            unavailablePerformance()
+            unavailablePerformance(),
+            incidentDetails(alerts)
         );
+    }
+
+    private Map<String, DashboardResponses.IncidentDetails> incidentDetails(List<RegionalNormalizedAlert> alerts) {
+        Map<String, DashboardResponses.IncidentDetails> details = new LinkedHashMap<>();
+        for (RegionalNormalizedAlert alert : alerts) {
+            if ("advisory".equals(alert.impactKind())) continue;
+            details.put(alert.id(), new DashboardResponses.IncidentDetails(
+                alert.replacementService(), alert.maximumDelayMinutes(),
+                alert.publishedAt()
+            ));
+        }
+        return details;
     }
 
     public Optional<Duration> remainingFreshness() {

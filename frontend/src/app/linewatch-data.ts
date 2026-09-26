@@ -112,7 +112,14 @@ export type Station = {
   interchange?: boolean;
 };
 
-export type ActiveAlert = {
+export type IncidentRiderDetails = {
+  /** Provider publication time, independent of feed refresh / updatedAt. */
+  publishedAt?: string | null;
+  replacementService?: "go-bus" | "bus" | null;
+  maximumDelayMinutes?: number | null;
+};
+
+export type ActiveAlert = IncidentRiderDetails & {
   id: string;
   lineId: string;
   lineNumber: string;
@@ -135,7 +142,7 @@ export type ActiveAlert = {
   relatedPlannedClosureId?: string | null;
 };
 
-export type DelayAlert = {
+export type DelayAlert = IncidentRiderDetails & {
   id: string;
   lineId: string;
   lineNumber: string;
@@ -150,7 +157,7 @@ export type DelayAlert = {
   cause?: string | null;
 };
 
-export type PlannedClosure = {
+export type PlannedClosure = IncidentRiderDetails & {
   id: string;
   lineId: string;
   lineNumber: string;

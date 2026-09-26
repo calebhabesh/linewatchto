@@ -208,13 +208,15 @@ describe("station detail panel layout", () => {
   });
 
   it("surfaces accessibility outage counts near the top of the regional station panel", () => {
+    const disruptionIndex = regionalPanelSource.indexOf('data-station-disruption-warning');
     const outageSummaryIndex = regionalPanelSource.indexOf('data-station-access-outage-summary');
     const headerDetailsIndex = regionalPanelSource.indexOf('data-station-header-line-details');
     const arrivalsIndex = regionalPanelSource.indexOf('data-station-section="arrivals"');
 
     assert.notEqual(outageSummaryIndex, -1);
     assert.notEqual(headerDetailsIndex, -1);
-    assert.ok(headerDetailsIndex < outageSummaryIndex);
+    assert.ok(headerDetailsIndex < disruptionIndex);
+    assert.ok(disruptionIndex < outageSummaryIndex);
     assert.ok(outageSummaryIndex < arrivalsIndex);
     assert.match(regionalPanelSource, /StationAccessOutageBadge/);
     assert.match(regionalPanelSource, /formatStationOutageLabel\("elevator", elevatorOutagesCount\)/);
@@ -222,6 +224,12 @@ describe("station detail panel layout", () => {
     assert.match(regionalPanelSource, /station-access-outage-badge/);
     assert.match(regionalPanelSource, /handleJumpToAccessibility/);
     assert.match(regionalPanelSource, /ref=\{accessibilityDetailsRef\}/);
+  });
+
+  it("warns about current regional service impacts without treating upcoming closures as disruptions", () => {
+    assert.match(regionalPanelSource, /currentImpacts = impacts\.filter\(\(impact\) => impact\.tone !== "planned"\)/);
+    assert.match(regionalPanelSource, /currentImpacts\.length > 0 &&[\s\S]*?data-station-disruption-warning/);
+    assert.match(regionalPanelSource, /currentImpacts\.map\(\(impact\) =>[\s\S]*?onClick=\{\(\) => onSelectImpact\(\{ kind: impact\.kind, id: impact\.id \}\)\}/);
   });
 
   it("provides quick jump icon navigation for subsections in both TTC and Regional station panels", () => {
@@ -485,4 +493,3 @@ describe("station detail panel layout", () => {
     assert.match(navButtonsSource, /px-1\.5 md:px-2\.5 py-1 md:py-1\.5/);
   });
 });
-

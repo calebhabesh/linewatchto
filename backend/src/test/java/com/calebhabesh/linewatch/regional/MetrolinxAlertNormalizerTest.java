@@ -172,6 +172,7 @@ class MetrolinxAlertNormalizerTest {
             assertThat(alert.sourceSystem()).isEqualTo(MetrolinxSourceSystem.GO_SERVICE_ALERTS);
             assertThat(alert.lineId()).isEqualTo("regional-up");
             assertThat(alert.impactKind()).isEqualTo("planned-closure");
+            assertThat(alert.replacementService()).isEqualTo("go-bus");
             assertThat(alert.stationIds()).isEmpty();
             assertThat(alert.affectedSegmentIds()).containsExactly(
                 "segment-up-union-bloor",
@@ -309,6 +310,7 @@ class MetrolinxAlertNormalizerTest {
         });
         assertThat(normalizer.normalize(feed)).singleElement().satisfies(alert -> {
             assertThat(alert.impactKind()).isEqualTo("advisory");
+            assertThat(alert.maximumDelayMinutes()).isEqualTo(20);
             assertThat(alert.stationIds()).containsExactly("kitchener", "stratford");
             assertThat(alert.affectedSegmentIds()).isEmpty();
         });

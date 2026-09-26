@@ -9,6 +9,7 @@ import type { AccountCommutePathPreview } from "../app/commute-data";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
+import { relatedPlannedClosureId } from "../app/related-planned-closure";
 import { CardSource, ImpactRouteHeader, LineBadge, MetadataGrid, RelatedPlannedClosureButton, CommutePathPreviewCardBanner } from "./ImpactCardFields";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { DirectionalZoneCount } from "./DirectionalZoneCount";
@@ -123,7 +124,7 @@ export function getSelectedImpactDetails(
       resolution: alert.resolution,
       reason: alert.reason,
       targetRemoval: alert.targetRemoval,
-      relatedPlannedClosureId: alert.relatedPlannedClosureId,
+      relatedPlannedClosureId: relatedPlannedClosureId(alert, data.plannedClosures),
       segmentIds: alert.affectedSegmentIds ?? [],
     };
   }
@@ -174,6 +175,7 @@ export function getSelectedImpactDetails(
       resolution: alertDelay.resolution,
       reason: alertDelay.reason,
       targetRemoval: alertDelay.targetRemoval,
+      relatedPlannedClosureId: relatedPlannedClosureId(alertDelay, data.plannedClosures),
       segmentIds: alertDelay.affectedSegmentIds ?? [],
     };
   }

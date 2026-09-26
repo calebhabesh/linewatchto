@@ -119,13 +119,13 @@ function stationImpactButtonClassName(tone: RegionalStationImpact["tone"]) {
   return `${base} border-[#FEEC41]/35 bg-[#FEEC41]/10 hover:bg-[#FEEC41]/20`;
 }
 
-function RegionalStationImpactIcon({ impact }: { impact: RegionalStationImpact }) {
-  if (impact.kind === "delay") return <DelayIcon size={26} className="shrink-0 delay-tone" />;
-  if (impact.kind === "reduced-speed-zone") return <Construction size={26} className="rsz-tone shrink-0" />;
+function RegionalStationImpactIcon({ impact, size = 26 }: { impact: RegionalStationImpact; size?: number }) {
+  if (impact.kind === "delay") return <DelayIcon size={size} className="shrink-0 delay-tone" />;
+  if (impact.kind === "reduced-speed-zone") return <Construction size={size} className="rsz-tone shrink-0" />;
   if (impact.kind === "planned-closure" && impact.tone !== "active") {
-    return <PlannedClosureIcon size={26} className="shrink-0 text-blue-500" />;
+    return <PlannedClosureIcon size={size} className="shrink-0 text-blue-500" />;
   }
-  return <AlertTriangle size={26} className="shrink-0 text-red-500" />;
+  return <AlertTriangle size={size} className="shrink-0 text-red-500" />;
 }
 
 type StationAccessOutageAssetType = "elevator" | "escalator";
@@ -377,6 +377,7 @@ export function RegionalStationDetailPanel({
     }
     return [...related.values()];
   }, [dashboard, station.id]);
+  const currentImpacts = impacts.filter((impact) => impact.tone !== "planned");
   const arrivalGroups = sortArrivalGroupsByPinnedLine(
     groupRegionalStationArrivals(arrivalSnapshot.arrivals, station.id),
     pinnedLineIds,
@@ -722,6 +723,33 @@ export function RegionalStationDetailPanel({
           />
 
           <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto md:mt-3.5 mt-2 pb-3 station-detail-scroll station-detail-section-stack">
+            {currentImpacts.length > 0 && (
+              <div
+                className="station-detail-disruption-card flex w-full flex-wrap items-center justify-start gap-2.5 shrink-0 rounded-md p-2.5 text-xs font-semibold"
+                data-station-disruption-warning
+              >
+                <div className="station-disruption-heading flex items-center gap-2 font-extrabold text-amber-900 dark:text-white">
+                  <AlertCircle size={19} className="animate-terminating-blink shrink-0 text-amber-600 dark:text-orange-400" />
+                  <span className="station-disruption-heading-text">Schedule May Be Disrupted:</span>
+                </div>
+                <div className="station-impact-jump-actions">
+                  {currentImpacts.map((impact) => (
+                    <button
+                      key={`${impact.kind}:${impact.id}`}
+                      type="button"
+                      onClick={() => onSelectImpact({ kind: impact.kind, id: impact.id })}
+                      aria-label={`Open ${impact.classification} details: ${impact.title}`}
+                      title={`Open ${impact.classification}: ${impact.title}`}
+                      className="station-impact-jump-button"
+                    >
+                      <RegionalStationImpactIcon impact={impact} size={17} />
+                      <span className="station-impact-jump-button-label">Press</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {hasAccessibilityOutages && (
               <button
                 type="button"

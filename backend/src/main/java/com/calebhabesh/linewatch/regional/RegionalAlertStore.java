@@ -198,12 +198,17 @@ public class RegionalAlertStore {
 
     public List<RegionalNormalizedAlert> findActiveAlerts() {
         return jdbc.query("""
-            select id, source_system, source_id, line_id, impact_kind, title, description,
-                   cause, active_period_start, active_period_end, source_updated_at,
-                   station_ids::text, affected_segment_ids::text, active_period_basis
-            from regional_alerts
-            where active = true and source_updated_at >= :seenAfter
-            order by source_updated_at desc nulls last, id
+            select a.id, a.source_system, a.source_id, a.line_id, a.impact_kind, a.title, a.description,
+                   a.cause, a.active_period_start, a.active_period_end, a.source_updated_at,
+                   a.station_ids::text, a.affected_segment_ids::text, a.active_period_basis,
+                   s.deterministic_classification ->> 'replacementService' as replacement_service,
+                   (s.deterministic_classification ->> 'maximumDelayMinutes')::integer as maximum_delay_minutes,
+                   (s.deterministic_classification ->> 'publishedAt')::timestamptz as published_at
+            from regional_alerts a
+            left join metrolinx_alert_source_records s
+              on s.source_system = a.source_system and s.source_id = a.source_id and s.active = true
+            where a.active = true and a.source_updated_at >= :seenAfter
+            order by a.source_updated_at desc nulls last, a.id
             """, new MapSqlParameterSource("seenAfter", OffsetDateTime.now(clock)
                 .minus(properties.getMaxDashboardAge())), (resultSet, rowNumber) -> new RegionalNormalizedAlert(
                 resultSet.getString("id"),
@@ -220,7 +225,9 @@ public class RegionalAlertStore {
                 strings(resultSet.getString("station_ids")),
                 strings(resultSet.getString("affected_segment_ids")),
                 resultSet.getString("active_period_basis"),
-                ""
+                "", resultSet.getString("replacement_service"),
+                resultSet.getObject("maximum_delay_minutes", Integer.class),
+                resultSet.getObject("published_at", OffsetDateTime.class)
             )).stream().map(alert -> RegionalAlertProjection.at(alert, clock.instant()))
             .filter(java.util.Objects::nonNull).toList();
     }

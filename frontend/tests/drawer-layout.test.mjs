@@ -251,9 +251,9 @@ describe("floating menu layout", () => {
   it("links TTC active closure children back to their canonical planned closure", () => {
     assert.match(linewatchDataSource, /relatedPlannedClosureId\?: string \| null/);
     assert.match(activeAlertsSource, /RelatedPlannedClosureButton/);
-    assert.match(activeAlertsSource, /kind: "planned-closure", id: alert\.relatedPlannedClosureId/);
+    assert.match(activeAlertsSource, /kind: "planned-closure", id: closureId/);
     assert.match(mobileImpactInspectorSource, /relatedPlannedClosureId/);
-    assert.match(impactCardFieldsSource, /View Details/);
+    assert.match(impactCardFieldsSource, /View Planned Closure/);
     assert.match(globalCss, /\.related-planned-closure-button\s*\{[^}]*background:\s*#1e293b;[^}]*border:\s*1px solid rgba\(59, 130, 246, 0\.35\);[^}]*color:\s*#ffffff;[^}]*min-height:\s*28px/s);
     assert.match(globalCss, /\.dark \.related-planned-closure-button\s*\{[^}]*background:\s*#1e293b;[^}]*color:\s*#ffffff/s);
     assert.match(interactiveMapSource, /kind === "suspension"/);

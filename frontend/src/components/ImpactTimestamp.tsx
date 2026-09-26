@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatFullImpactTimestamp, formatImpactTimestamp } from "../app/impact-time";
+import { formatFullImpactTimestamp, formatImpactTimestamp, formatPublicationTimestamp } from "../app/impact-time";
 
-export function ImpactTimestamp({ timestamp }: { timestamp?: string | null }) {
+export function ImpactTimestamp({ timestamp, format }: { timestamp?: string | null; format?: "publication" }) {
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -15,12 +15,12 @@ export function ImpactTimestamp({ timestamp }: { timestamp?: string | null }) {
 
   return (
     <time
-      className="impact-timestamp"
+      className={format === "publication" ? "incident-publication-timestamp" : "impact-timestamp"}
       dateTime={timestamp}
       title={formatFullImpactTimestamp(timestamp)}
       suppressHydrationWarning
     >
-      {formatImpactTimestamp(timestamp)}
+      {format === "publication" ? formatPublicationTimestamp(timestamp) : formatImpactTimestamp(timestamp)}
     </time>
   );
 }

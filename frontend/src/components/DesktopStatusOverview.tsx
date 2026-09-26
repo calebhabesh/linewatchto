@@ -1,5 +1,8 @@
 "use client";
 
+import { IncidentStationSpan } from "./IncidentStationSpan";
+import { RegionalIncidentDetails } from "./RegionalIncidentDetails";
+
 import { useEffect, useState } from "react";
 import {
   AlertTriangle,
@@ -22,21 +25,10 @@ import { TransitLineBadge } from "./TransitLineBadge";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { GoodServiceCheckIcon } from "./CurrentServicePanel";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
-import { ElectricBorder } from "./ui/ElectricBorder";
+import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { NetworkSelector } from "./NetworkSelector";
 import { goNoticeRouteBadgeStyle, goNoticeRouteLabel } from "../app/go-bus-route-colors";
 import { surfaceNoticePreviewLocation } from "../app/surface-notice-groups";
-
-function getAlertElectricColor(kind: string): string {
-  switch (kind) {
-    case "delay":
-      return "#f59e0b";
-    case "planned-closure":
-      return "#3b82f6";
-    default:
-      return "#ef4444";
-  }
-}
 
 import type { NetworkId } from "../app/regional-data";
 import type { ImpactSelection } from "../app/linewatch-data";
@@ -284,13 +276,7 @@ export function DesktopStatusOverview({
                       const incident = currentServiceIncidentPresentation(row);
                       const alertKind = row.iconKind || row.kind;
                       return (
-                        <ElectricBorder
-                          key={`${row.kind}:${row.id}`}
-                          color={getAlertElectricColor(alertKind)}
-                          borderRadius={8}
-                          speed={0.15}
-                          chaos={0.007}
-                        >
+                        <IncidentElectricBorder key={`${row.kind}:${row.id}`} kind={alertKind}>
                           <button
                             type="button"
                             className="desktop-status-incident-row"
@@ -313,7 +299,7 @@ export function DesktopStatusOverview({
                               </strong>
                             </div>
                             <div className="desktop-status-incident-location">
-                              {row.location}
+                              <IncidentStationSpan location={row.location} />
                             </div>
                             {row.direction && (
                               <div className="desktop-status-incident-direction">{row.direction}</div>
@@ -323,8 +309,9 @@ export function DesktopStatusOverview({
                                 {[incident.timing, row.shuttle ? "Shuttle Buses Running" : null].filter(Boolean).join(" · ")}
                               </div>
                             )}
+                            {regional && <RegionalIncidentDetails row={row} className="desktop-status-incident-timing" />}
                           </button>
-                        </ElectricBorder>
+                        </IncidentElectricBorder>
                       );
                     })}
                   </div>
@@ -350,14 +337,12 @@ export function DesktopStatusOverview({
                           className="desktop-status-badge-incident-button"
                           onClick={() => onOpenCategory("reduced-speed-zones", item.line.id)}
                           title={`View ${item.line.name} Reduced Speed Zones`}
-                          aria-label={`${item.line.name}: ${item.rszCount > 1 ? `${item.rszCount} Reduced Speed Zones` : "Reduced Speed Zones"}`}
+                          aria-label={`${item.line.name}: ${item.rszCount} Reduced Speed ${item.rszCount === 1 ? "Zone" : "Zones"}`}
                         >
                           <span className="desktop-status-rsz-pill">
                             <ImpactTypeIcon kind="reduced-speed-zone" size={11} />
                             <span>
-                              {item.rszCount > 1
-                                ? `${item.rszCount} Reduced Speed Zones`
-                                : "Reduced Speed Zones"}
+                              {`${item.rszCount} Reduced Speed ${item.rszCount === 1 ? "Zone" : "Zones"}`}
                             </span>
                           </span>
                         </button>
@@ -433,14 +418,12 @@ export function DesktopStatusOverview({
                         className="desktop-status-badge-incident-button"
                         onClick={() => onOpenCategory("reduced-speed-zones", line.id)}
                         title={`View ${line.name} Reduced Speed Zones`}
-                        aria-label={`${line.name}: ${presentation.rszCount && presentation.rszCount > 1 ? `${presentation.rszCount} Reduced Speed Zones` : "Reduced Speed Zones"}`}
+                        aria-label={`${line.name}: ${presentation.rszCount} Reduced Speed ${presentation.rszCount === 1 ? "Zone" : "Zones"}`}
                       >
                         <span className="desktop-status-rsz-pill">
                           <ImpactTypeIcon kind="reduced-speed-zone" size={11} />
                           <span>
-                            {presentation.rszCount && presentation.rszCount > 1
-                              ? `${presentation.rszCount} Reduced Speed Zones`
-                              : "Reduced Speed Zones"}
+                            {`${presentation.rszCount} Reduced Speed ${presentation.rszCount === 1 ? "Zone" : "Zones"}`}
                           </span>
                         </span>
                       </button>

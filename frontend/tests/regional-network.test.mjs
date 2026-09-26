@@ -336,11 +336,15 @@ describe("network-scoped regional dashboard", () => {
         lines: regionalDashboardData.lineStatuses.map((line) => ({ ...line, status: "normal", statusLabel: "Normal" })),
       },
       activeAlerts: [],
-      delays: [],
+      delays: [{ id: "rider-details-test", lineId: "regional-ki", cause: "Signal Problems" }],
+      incidentDetails: { "rider-details-test": { maximumDelayMinutes: 20, replacementService: "go-bus" } },
       reducedSpeedZones: [],
       plannedClosures: [],
       performance: regionalDashboardData.ttcPerformance,
     });
+    assert.equal(live.delays[0].maximumDelayMinutes, 20);
+    assert.equal(live.delays[0].replacementService, "go-bus");
+    assert.equal(live.delays[0].cause, "Signal Problems");
     assert.equal(live.dataSource, "backend");
     assert.equal(live.generatedAt.live, true);
     assert.match(live.ingestionHealth[0].value, /Fresh regional data/);

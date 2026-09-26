@@ -519,7 +519,8 @@ public class MetrolinxAlertNormalizer {
             stationIds, "advisory".equals(impactKind) || "unknown".equals(impact.scope())
                 ? List.of() : RegionalNetworkCatalog.segmentIds(route.id(), stationIds),
             impact.basis(),
-            classification.primaryRawPayload()
+            classification.primaryRawPayload(), classification.replacementService(),
+            classification.maximumDelayMinutes(), classification.publishedAt()
         );
     }
 

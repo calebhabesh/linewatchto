@@ -642,8 +642,7 @@
 .station-detail-panel .surface-connections-details,
 .station-detail-panel .station-accessibility-details,
 .station-detail-panel .station-detail-loading,
-.station-detail-disruption-card,
-[data-station-access-outage-summary] {
+.station-detail-disruption-card {
   border: none !important;
   border-radius: 8px;
   box-shadow:

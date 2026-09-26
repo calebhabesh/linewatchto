@@ -15,6 +15,7 @@ import { dashboardImpactSourcesLabel } from "../app/dashboard-source-label";
 import { CompactImpactListItem, CompactImpactTimeValue } from "./CompactImpactListItem";
 import { useImpactListView } from "../hooks/useImpactListView";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
+import { relatedPlannedClosureId } from "../app/related-planned-closure";
 
 interface Props {
   selection: ImpactSelection;
@@ -84,22 +85,6 @@ export function ActiveAlertsPanel({
     }
   };
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "suspension":
-        return "suspension-card-border";
-      case "planned":
-        return "planned-closure-card-border";
-      case "delay":
-        return "delay-card-border";
-      case "rsz":
-      case "reduced-speed-zone":
-        return "rsz-card-border";
-      default:
-        return "suspension-card-border";
-    }
-  };
-
   return (
     <section className={`panel min-w-0 border border-transparent rounded-2xl ${embedded ? "embedded-impact-panel" : ""}`}>
       <PanelHeader
@@ -146,6 +131,7 @@ export function ActiveAlertsPanel({
         ) : (
           visibleAlerts.map((alert) => {
             const alertImpactKind = impactKindForAlert(alert);
+            const closureId = relatedPlannedClosureId(alert, plannedClosures);
             const isActive = selection?.id === alert.id && selection?.kind === alertImpactKind;
             const overlappingImpacts = getOverlappingImpactRefs(
               { kind: alertImpactKind, id: alert.id, segmentIds: alert.affectedSegmentIds ?? [] },
@@ -171,7 +157,12 @@ export function ActiveAlertsPanel({
                   ]}
                   status={alert.shuttle ? <><Bus size={11} /> Shuttle</> : null}
                   active={isActive}
-                  toneClassName={getSeverityColor(alert.severity)}
+                  toneClassName="suspension-card-border"
+                  details={closureId ? (
+                    <RelatedPlannedClosureButton
+                      onClick={() => onSelectImpact({ kind: "planned-closure", id: closureId })}
+                    />
+                  ) : undefined}
                   onShowOnMap={() => handleAlertClick(alert)}
                 />
               );
@@ -181,9 +172,7 @@ export function ActiveAlertsPanel({
               <div
                 key={alert.id}
                 data-impact-card-id={alert.id}
-                className={`alert-card min-w-0 w-full text-left p-3 rounded-lg ${getSeverityColor(
-                  alert.severity
-                )} transition-all ${
+                className={`alert-card min-w-0 w-full text-left p-3 rounded-lg suspension-card-border transition-all ${
                   isActive ? "!bg-blue-50 dark:!bg-blue-950 is-active" : ""
                 }`}
               >
@@ -198,8 +187,13 @@ export function ActiveAlertsPanel({
                   onMapAction={() => handleAlertClick(alert)}
                   onFocusMap={onFocusMap}
                   mapActionVariant={mapActionVariant}
-                  badges={showImpactTypeIndicator || alert.shuttle ? (
+                  badges={closureId || showImpactTypeIndicator || alert.shuttle ? (
                     <>
+                      {closureId ? (
+                        <RelatedPlannedClosureButton
+                          onClick={() => onSelectImpact({ kind: "planned-closure", id: closureId })}
+                        />
+                      ) : null}
                       {showImpactTypeIndicator ? (
                         <span className={`impact-card-type-badge ${impactKindForAlert(alert)}`}>
                           <ImpactTypeIcon kind={impactKindForAlert(alert)} size={13} />
@@ -233,14 +227,6 @@ export function ActiveAlertsPanel({
                     startedAt={alert.startedAt}
                     updatedAt={alert.updatedAt}
                     updatedAgo={alert.updatedAgo}
-                    extraRows={alert.relatedPlannedClosureId ? [{
-                      label: "Planned Closure",
-                      value: (
-                        <RelatedPlannedClosureButton
-                          onClick={() => onSelectImpact({ kind: "planned-closure", id: alert.relatedPlannedClosureId! })}
-                        />
-                      ),
-                    }] : undefined}
                   />
                 </div>
                 

@@ -3527,7 +3527,7 @@ test("shows an active planned closure in both current and scheduled views", asyn
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
   const activeClosureChildCard = page.locator('[data-impact-card-id="stub-active-closure-child-line-1"]');
   await expect(activeClosureChildCard).toBeVisible();
-  await expect(activeClosureChildCard.getByRole("term").filter({ hasText: "Planned Closure" })).toBeVisible();
+  await expect(activeClosureChildCard.locator(".impact-card-badges").getByRole("button", { name: "View related planned closure details" })).toBeVisible();
   await expect(activeClosureChildCard.getByRole("button", { name: "View related planned closure details" })).toBeVisible();
 
   await activeClosureChildCard.getByRole("button", { name: "View on Map" }).click();
@@ -3579,6 +3579,67 @@ test("shows an active planned closure in both current and scheduled views", asyn
   await expect(upcomingClosureCard.getByText("Active Alert", { exact: true })).toHaveCount(2);
   await expect(upcomingClosureCard.getByText("Active Closure", { exact: true })).toHaveCount(0);
 });
+
+for (const sameIdProjection of [false, true]) {
+  test(`links active alerts back to planned closures with red card edges (${sameIdProjection ? "canonical" : "linked child"})`, async ({ page, request, isMobile }, testInfo) => {
+    await setStubMode(request, "seeded");
+    await page.setViewportSize({ width: isMobile ? 360 : 1440, height: isMobile ? 800 : 1000 });
+    const activeAlertId = sameIdProjection ? "stub-closure-line-1" : "stub-active-closure-child-line-1";
+    if (sameIdProjection) {
+      await page.route("**/api/dashboard?network=ttc", async (route) => {
+        const response = await route.fetch();
+        const dashboard = await response.json();
+        dashboard.activeAlerts = dashboard.activeAlerts.map((alert: { id: string; relatedPlannedClosureId?: string }) =>
+          alert.id === "stub-active-closure-child-line-1"
+            ? { ...alert, id: activeAlertId, relatedPlannedClosureId: undefined, shuttle: true }
+            : alert,
+        );
+        await route.fulfill({ response, json: dashboard });
+      });
+    }
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
+    if (isMobile) {
+      await page.getByRole("button", { name: "Status", exact: true }).click();
+      await page.locator(".mobile-status-actions").getByRole("button", { name: /Closure/ }).click();
+    } else {
+      await page.getByRole("navigation", { name: "Desktop primary navigation" }).getByRole("button", { name: /^Planned Closures/ }).click();
+    }
+    const closureCard = page.locator('[data-impact-card-id="stub-closure-line-1"]');
+    await expect(closureCard).toBeVisible();
+    await closureCard.getByRole("button", { name: "View active alert", exact: true }).click();
+    if (isMobile) {
+      const inspector = page.locator('[data-mobile-impact-inspector]');
+      await expect(inspector.getByRole("button", { name: "View related planned closure details" })).toBeVisible();
+      await inspector.getByRole("button", { name: "View in List" }).click();
+    }
+    await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
+    const alertCard = page.locator(`[data-impact-card-id="${activeAlertId}"]`);
+    for (const card of await page.locator(".alert-card").all()) {
+      await expect(card).toHaveCSS("border-left-color", "rgba(239, 68, 68, 0.85)");
+    }
+    await expect(alertCard.locator(".impact-card-badges").getByRole("button", { name: "View related planned closure details" })).toBeVisible();
+    await alertCard.screenshot({ path: testInfo.outputPath("active-alert-card.png") });
+    await alertCard.getByRole("button", { name: "View related planned closure details" }).click();
+    if (isMobile) {
+      await page.locator('[data-mobile-impact-inspector]').getByRole("button", { name: "View in List" }).click();
+    }
+    await expect(page.getByRole("heading", { name: "Planned Closures" })).toBeVisible();
+    await expect(closureCard.getByText("Current window", { exact: true })).toBeVisible();
+    await closureCard.getByRole("button", { name: "View active alert", exact: true }).click();
+    if (isMobile) {
+      await page.locator('[data-mobile-impact-inspector]').getByRole("button", { name: "View in List" }).click();
+    }
+    await page.getByRole("button", { name: "List view", exact: true }).click();
+    await expect(alertCard).toHaveCSS("border-left-color", "rgba(239, 68, 68, 0.85)");
+    await alertCard.getByText("Details", { exact: true }).click();
+    await alertCard.getByRole("button", { name: "View related planned closure details" }).click();
+    if (isMobile) {
+      await page.locator('[data-mobile-impact-inspector]').getByRole("button", { name: "View in List" }).click();
+    }
+    await expect(page.getByRole("heading", { name: "Planned Closures" })).toBeVisible();
+  });
+}
 
 test("shows a compact map hint when multiple alert types overlap", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");

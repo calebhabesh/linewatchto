@@ -130,19 +130,26 @@
    Station Access Outages Banner Button
    ========================================================================== */
 
+.station-detail-disruption-card,
+[data-station-access-outage-summary] {
+  min-height: 52px;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
 [data-station-access-outage-summary] {
   border: none;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 1px 3px rgba(0, 0, 0, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.90),
+    0 2px 8px rgba(15, 23, 42, 0.08);
   background: #fef2f2;
 }
 
 .dark [data-station-access-outage-summary] {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 3px rgba(0, 0, 0, 0.3);
-  background: #26171a;
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 3px 10px rgba(0, 0, 0, 0.38);
+  background: linear-gradient(180deg, #301c20 0%, #211316 100%);
 }
 
 [data-station-access-outage-summary]:hover {
@@ -150,7 +157,7 @@
 }
 
 .dark [data-station-access-outage-summary]:hover {
-  background: #361f23;
+  background: linear-gradient(180deg, #402429 0%, #2c191d 100%);
 }
 
 /* ==========================================================================

@@ -56,7 +56,7 @@ export function RelatedPlannedClosureButton({ onClick }: { onClick: () => void }
       aria-label="View related planned closure details"
     >
       <PlannedClosureIcon size={14} aria-hidden="true" />
-      <span>View Details</span>
+      <span>View Planned Closure</span>
     </button>
   );
 }

@@ -58,7 +58,7 @@ test("multiple rail incidents stack without overlapping", async ({ page, isMobil
     .filter({ has: page.locator(".current-service-impact--compact") })
     .filter({ hasText: "Planned Closure" })
     .first();
-  const incidents = incidentGroup.locator(":scope > .current-service-impact--compact");
+  const incidents = incidentGroup.locator(".current-service-impact--compact");
   await expect.poll(() => incidents.count()).toBeGreaterThanOrEqual(2);
 
   const boxes = await incidents.evaluateAll(elements => elements.map(element => {

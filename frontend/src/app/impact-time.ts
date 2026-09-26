@@ -117,6 +117,16 @@ export function formatImpactTimestamp(
   return `${anchor} (${formatCompactAge(date, now)})`;
 }
 
+/** Provider publication time with a compact elapsed age, never a poll timestamp. */
+export function formatPublicationTimestamp(timestamp: string, now = new Date()): string {
+  const date = parseImpactDate(timestamp);
+  if (!date) return timestamp;
+  const anchor = formatOperationalDateTime(timestamp, { now });
+  if (date.getTime() > now.getTime()) return anchor;
+  const age = formatCompactAge(date, now).replace(/ ago$/, "").replace("Just Now", "<1m");
+  return `${anchor} (${age})`;
+}
+
 export function formatOperationalDateTime(
   timestamp: string,
   options: ImpactTimestampOptions = {},

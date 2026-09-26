@@ -665,6 +665,7 @@ export type RegionalDashboardApiResponse = {
   reducedSpeedZones: DashboardData["reducedSpeedZones"];
   plannedClosures: DashboardData["plannedClosures"];
   performance: DashboardData["ttcPerformance"];
+  incidentDetails?: Record<string, import("./linewatch-data").IncidentRiderDetails>;
 };
 
 export function regionalDashboardDataFromApi(
@@ -706,10 +707,10 @@ export function regionalDashboardDataFromApi(
     stations: payload.map.stations,
     lineStatuses: payload.status.lines,
     generatedAt: payload.status.generatedAt,
-    activeAlerts: payload.activeAlerts,
-    delays: payload.delays,
+    activeAlerts: payload.activeAlerts.map(alert => ({ ...alert, ...payload.incidentDetails?.[alert.id] })),
+    delays: payload.delays.map(alert => ({ ...alert, ...payload.incidentDetails?.[alert.id] })),
     reducedSpeedZones: payload.reducedSpeedZones,
-    plannedClosures: payload.plannedClosures,
+    plannedClosures: payload.plannedClosures.map(closure => ({ ...closure, ...payload.incidentDetails?.[closure.id] })),
     stationNodeImpacts: payload.map.stationNodeImpacts,
     reliability,
     ttcPerformance: payload.performance,
