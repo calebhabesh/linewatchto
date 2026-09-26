@@ -38,7 +38,15 @@ build_and_push() {
   local component="${1:?component is required}"
   local dockerfile="${2:?dockerfile is required}"
   local context="${3:?context is required}"
+  local image
   shift 3
+
+  image="$(linewatch_image_ref "$REGISTRY" "$component" "$SHA")"
+  if [[ "${LINEWATCH_ALLOW_IMAGE_OVERWRITE:-false}" != "true" ]] && \
+    "$DOCKER_BIN" buildx imagetools inspect "$image" >/dev/null 2>&1; then
+    printf 'Reusing published image %s\n' "$image"
+    return
+  fi
 
   "$DOCKER_BIN" buildx build \
     --builder "$BUILDER" \
@@ -46,7 +54,7 @@ build_and_push() {
     --file "$dockerfile" \
     --label "org.opencontainers.image.source=$SOURCE_URL" \
     --label "org.opencontainers.image.revision=$SHA" \
-    --tag "$(linewatch_image_ref "$REGISTRY" "$component" "$SHA")" \
+    --tag "$image" \
     --push \
     "$@" \
     "$context"
@@ -64,7 +72,7 @@ build_and_push frontend "$ROOT_DIR/frontend/Dockerfile" "$ROOT_DIR/frontend" \
   --build-arg "NEXT_PUBLIC_LINEWATCH_BING_SITE_VERIFICATION=${NEXT_PUBLIC_LINEWATCH_BING_SITE_VERIFICATION:-}"
 
 cat <<EOF
-Published LineWatchTO release:
+Available LineWatchTO release:
   $REGISTRY/linewatch-frontend:$SHA
   $REGISTRY/linewatch-backend:$SHA
   $REGISTRY/linewatch-postgres:$SHA

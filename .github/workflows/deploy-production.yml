@@ -1,0 +1,156 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Full 40-character Git SHA to deploy (leave blank for selected main commit)
+        required: false
+        type: string
+      recover_missing_manifest:
+        description: Recover digests from SHA tags if a CI artifact expired (use only for recovery)
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify release
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.release.outputs.sha }}
+      frontend_image: ${{ steps.images.outputs.frontend_image }}
+      backend_image: ${{ steps.images.outputs.backend_image }}
+      postgres_image: ${{ steps.images.outputs.postgres_image }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Verify SHA and successful CI
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_SHA: ${{ inputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == refs/heads/main ]] || { echo 'Run this workflow from main.' >&2; exit 1; }
+          sha="${REQUESTED_SHA:-$GITHUB_SHA}"
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo 'Enter a full lowercase Git SHA.' >&2; exit 1; }
+          git cat-file -e "$sha^{commit}"
+          git merge-base --is-ancestor "$sha" "$GITHUB_SHA" || { echo 'SHA is not on main.' >&2; exit 1; }
+          runs="$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
+            -f head_sha="$sha" -f branch=main -f event=push -f per_page=100)"
+          run_id="$(jq -r --arg sha "$sha" \
+            '[.workflow_runs[] | select(.head_sha == $sha)] | sort_by(.run_number) | last \
+            | select(.conclusion == "success") | .id // empty' <<< "$runs")"
+          [[ -n "$run_id" ]] || { echo "No successful latest main push CI run for $sha." >&2; exit 1; }
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+
+      - name: Retrieve exact release manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+          CI_RUN_ID: ${{ steps.release.outputs.run_id }}
+          RECOVER_MISSING_MANIFEST: ${{ inputs.recover_missing_manifest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/release"
+          if gh run download "$CI_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name "release-images-$RELEASE_SHA" --dir "$RUNNER_TEMP/release"; then
+            exit 0
+          fi
+          if git cat-file -e "$RELEASE_SHA:scripts/prod-publish-release.sh" 2>/dev/null && \
+            [[ "$RECOVER_MISSING_MANIFEST" != true ]]; then
+            echo 'This CI-built release is missing its digest manifest; refusing to substitute a mutable tag.' >&2
+            exit 1
+          fi
+          echo 'Recovering a release from its SHA tags; verify the selected commit before continuing.'
+          scripts/prod-record-image-digests.sh "$RELEASE_SHA" "$RUNNER_TEMP/release/release-images.env"
+
+      - name: Verify exact published image digests
+        id: images
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+        run: scripts/prod-verify-release-manifest.sh "$RUNNER_TEMP/release/release-images.env" "$RELEASE_SHA"
+
+  deploy:
+    name: Backup and deploy
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://linewatchto.ca
+    timeout-minutes: 30
+    env:
+      RELEASE_SHA: ${{ needs.verify.outputs.sha }}
+      FRONTEND_IMAGE: ${{ needs.verify.outputs.frontend_image }}
+      BACKEND_IMAGE: ${{ needs.verify.outputs.backend_image }}
+      POSTGRES_IMAGE: ${{ needs.verify.outputs.postgres_image }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '22' }}
+      VPS_DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH || '/home/ubuntu/linewatchto' }}
+    steps:
+      - name: Checkout deployment script
+        uses: actions/checkout@v5
+
+      - name: Set up Node for public smoke check
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Configure SSH and private network
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
+          VPS_WIREGUARD_CONFIG: ${{ secrets.VPS_WIREGUARD_CONFIG }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${VPS_HOST:?Set production secret VPS_HOST}"
+          : "${VPS_USER:?Set production secret VPS_USER}"
+          : "${VPS_SSH_KEY:?Set production secret VPS_SSH_KEY}"
+          : "${VPS_SSH_KNOWN_HOSTS:?Set production secret VPS_SSH_KNOWN_HOSTS}"
+          [[ "$VPS_SSH_PORT" =~ ^[0-9]{1,5}$ ]] || { echo 'Invalid VPS_SSH_PORT.' >&2; exit 1; }
+          [[ "$VPS_DEPLOY_PATH" =~ ^/[a-zA-Z0-9_./-]+$ ]] || { echo 'Invalid VPS_DEPLOY_PATH.' >&2; exit 1; }
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$VPS_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          if [[ -n "$VPS_WIREGUARD_CONFIG" ]]; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq wireguard-tools
+            printf '%s\n' "$VPS_WIREGUARD_CONFIG" | sudo tee /etc/wireguard/wg0.conf >/dev/null
+            sudo chmod 600 /etc/wireguard/wg0.conf
+            sudo wg-quick up wg0
+          fi
+
+      - name: Backup and deploy production
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i "$HOME/.ssh/deploy_key" \
+            -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \
+            -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
+            bash -se -- "$RELEASE_SHA" "$VPS_DEPLOY_PATH" \
+            "$FRONTEND_IMAGE" "$BACKEND_IMAGE" "$POSTGRES_IMAGE" \
+            < scripts/prod-remote-release.sh
+
+      - name: Verify public production endpoints
+        env:
+          LINEWATCH_DEPLOY_FRONTEND_URL: https://linewatchto.ca
+          LINEWATCH_DEPLOY_BACKEND_URL: https://api.linewatchto.ca
+        run: node scripts/smoke-deploy.mjs

@@ -6,7 +6,7 @@ operational workflow. Routine frontend styling does not require these documents.
 ## Infrastructure
 
 - Local data services: `docker compose up -d postgres redis`.
-- Production: [VPS runbook](production-vps.md). ARM64 images are built on the development server and published to public GHCR; the VPS pulls releases selected through `.env.release` and does not build them. The custom PostGIS image uses official multi-architecture PostgreSQL 17 because the selected `postgis/postgis` tag is AMD64-only.
+- Production: [VPS runbook](production-vps.md). Successful `main` CI builds ARM64 images and publishes them to public GHCR; the manual GitHub Actions deployment button backs up and deploys the recorded image digests. The VPS pulls releases selected through `.env.release` and does not build them. The custom PostGIS image uses official multi-architecture PostgreSQL 17 because the selected `postgis/postgis` tag is AMD64-only.
 - Staging: [staging runbook](staging.md). Keep `.env.staging`, volumes, and locally built images isolated. Never point staging at `.env.production`, `.env.release`, production volumes/tags, or copy production secrets into staging.
 - Metrics/logging: [observability](observability.md). Actuator is private on port 9090 and blocked at Caddy; configured collectors/tokens are required for data claims.
 - Load incidents: [traffic-spike runbook](traffic-spike-runbook.md).

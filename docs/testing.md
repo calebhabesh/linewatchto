@@ -38,7 +38,8 @@ default; use the build-reuse procedure below only when the build matches the
 code being tested.
 
 CI runs fast frontend tests, operational script tool tests (`test:scripts:all`), smoke gate, browser compatibility,
-mobile map fit, and the offline snapshot gate.
+mobile map fit, and the offline snapshot gate. After backend and frontend jobs pass on a `main` push,
+CI builds and publishes native ARM64 production images and checks the published frontend `/healthz` endpoint.
 
 The smoke suite stays intentionally small. Add a scenario only when its failure means
 the deployed dashboard is broadly unusable and the behavior is not already

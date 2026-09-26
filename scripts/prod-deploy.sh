@@ -29,7 +29,8 @@ REGISTRY="$(linewatch_normalize_registry "${REGISTRY:-ghcr.io/calebhabesh}")"
 mkdir -p "$(dirname "$RELEASE_ENV")"
 CANDIDATE="$(mktemp "${RELEASE_ENV}.candidate.XXXXXX")"
 trap 'rm -f -- "$CANDIDATE"' EXIT
-linewatch_write_release_env "$CANDIDATE" "$REGISTRY" "$TAG"
+linewatch_write_release_env "$CANDIDATE" "$REGISTRY" "$TAG" \
+  "${LINEWATCH_FRONTEND_IMAGE:-}" "${LINEWATCH_BACKEND_IMAGE:-}" "${LINEWATCH_POSTGRES_IMAGE:-}"
 
 export LINEWATCH_PROD_ENV_FILE="$PROD_ENV"
 export LINEWATCH_RELEASE_ENV_FILE="$CANDIDATE"

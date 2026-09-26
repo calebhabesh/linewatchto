@@ -6,7 +6,7 @@ x-logging: &default-logging
 
 services:
   postgres:
-    image: ${LINEWATCH_IMAGE_REGISTRY:-ghcr.io/calebhabesh}/linewatch-postgres:${LINEWATCH_IMAGE_TAG:?Set LINEWATCH_IMAGE_TAG in .env.release}
+    image: ${LINEWATCH_POSTGRES_IMAGE:-${LINEWATCH_IMAGE_REGISTRY:-ghcr.io/calebhabesh}/linewatch-postgres:${LINEWATCH_IMAGE_TAG:?Set LINEWATCH_IMAGE_TAG in .env.release}}
     restart: unless-stopped
     mem_limit: 8g
     environment:
@@ -41,7 +41,7 @@ services:
       retries: 5
 
   backend:
-    image: ${LINEWATCH_IMAGE_REGISTRY:-ghcr.io/calebhabesh}/linewatch-backend:${LINEWATCH_IMAGE_TAG:?Set LINEWATCH_IMAGE_TAG in .env.release}
+    image: ${LINEWATCH_BACKEND_IMAGE:-${LINEWATCH_IMAGE_REGISTRY:-ghcr.io/calebhabesh}/linewatch-backend:${LINEWATCH_IMAGE_TAG:?Set LINEWATCH_IMAGE_TAG in .env.release}}
     restart: unless-stopped
     mem_limit: 6g
     env_file:
@@ -71,7 +71,7 @@ services:
       start_period: 45s
 
   frontend:
-    image: ${LINEWATCH_IMAGE_REGISTRY:-ghcr.io/calebhabesh}/linewatch-frontend:${LINEWATCH_IMAGE_TAG:?Set LINEWATCH_IMAGE_TAG in .env.release}
+    image: ${LINEWATCH_FRONTEND_IMAGE:-${LINEWATCH_IMAGE_REGISTRY:-ghcr.io/calebhabesh}/linewatch-frontend:${LINEWATCH_IMAGE_TAG:?Set LINEWATCH_IMAGE_TAG in .env.release}}
     restart: unless-stopped
     mem_limit: 1g
     environment:

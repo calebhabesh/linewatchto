@@ -48,6 +48,30 @@ linewatch_image_ref() {
   printf '%s/linewatch-%s:%s\n' "$registry" "$component" "$tag"
 }
 
+linewatch_validate_pinned_image() {
+  local registry
+  local component="${2-}"
+  local image="${3-}"
+  local prefix
+  local digest
+
+  registry="$(linewatch_normalize_registry "${1-}")" || return 1
+  case "$component" in
+    frontend|backend|postgres) ;;
+    *) linewatch_die "unsupported image component: $component"; return 1 ;;
+  esac
+  prefix="$registry/linewatch-$component@"
+  if [[ "$image" != "$prefix"* ]]; then
+    linewatch_die "invalid pinned $component image reference"
+    return 1
+  fi
+  digest="${image#"$prefix"}"
+  if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+    linewatch_die "invalid pinned $component image digest"
+    return 1
+  fi
+}
+
 linewatch_require_clean_worktree() {
   local repo="${1-}"
   local status
@@ -64,6 +88,9 @@ linewatch_write_release_env() {
   local output="${1-}"
   local registry
   local tag="${3-}"
+  local frontend_image="${4-}"
+  local backend_image="${5-}"
+  local postgres_image="${6-}"
   local parent
   local basename
   local temp
@@ -71,6 +98,15 @@ linewatch_write_release_env() {
 
   registry="$(linewatch_normalize_registry "${2-}")" || return 1
   linewatch_validate_image_tag "$tag" || return 1
+  if [[ -n "$frontend_image" || -n "$backend_image" || -n "$postgres_image" ]]; then
+    if [[ -z "$frontend_image" || -z "$backend_image" || -z "$postgres_image" ]]; then
+      linewatch_die "all three pinned image references are required together"
+      return 1
+    fi
+    linewatch_validate_pinned_image "$registry" frontend "$frontend_image" || return 1
+    linewatch_validate_pinned_image "$registry" backend "$backend_image" || return 1
+    linewatch_validate_pinned_image "$registry" postgres "$postgres_image" || return 1
+  fi
 
   if [[ -z "$output" ]]; then
     linewatch_die "release env output path cannot be empty"
@@ -111,10 +147,13 @@ linewatch_write_release_env() {
     return 1
   fi
 
-  if ! printf \
-    'LINEWATCH_IMAGE_REGISTRY=%s\nLINEWATCH_IMAGE_TAG=%s\n' \
-    "$registry" \
-    "$tag" > "$temp"; then
+  if ! {
+    printf 'LINEWATCH_IMAGE_REGISTRY=%s\nLINEWATCH_IMAGE_TAG=%s\n' "$registry" "$tag"
+    if [[ -n "$frontend_image" ]]; then
+      printf 'LINEWATCH_FRONTEND_IMAGE=%s\nLINEWATCH_BACKEND_IMAGE=%s\nLINEWATCH_POSTGRES_IMAGE=%s\n' \
+        "$frontend_image" "$backend_image" "$postgres_image"
+    fi
+  } > "$temp"; then
     umask "$old_umask"
     rm -f -- "$temp" || true
     return 1

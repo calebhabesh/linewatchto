@@ -83,7 +83,7 @@ alloy: 512 MB, only when the observability profile is enabled
 
 The backend JVM heap remains capped separately by `JAVA_TOOL_OPTIONS=-Xmx4g`; the backend container limit includes JVM native memory, metaspace, thread stacks, and process overhead. The caps intentionally leave several GB for Ubuntu, Docker, kernel memory, filesystem cache, WireGuard, deploys, backups, and temporary burst overhead.
 
-Production application images are built on the development server, published as ARM64 GHCR images, and selected on the VPS through `.env.release`. The VPS never runs `docker compose build` or `up --build`.
+Production application images are built by the successful `main` CI run on a native ARM64 GitHub runner and published to GHCR. The CI run records each image's registry digest. The manual GitHub Actions deployment button selects those exact digests through `.env.release`; the VPS never runs `docker compose build` or `up --build`.
 
 The production PostGIS image is built from `infra/postgres/Dockerfile`, which extends the official multi-architecture `postgres:17-bookworm` image. The official `postgis/postgis` image used for local development does not publish an ARM64 manifest for the selected tag.
 
@@ -140,12 +140,13 @@ Replace the example `POSTGRES_PASSWORD`. Compose passes that value to both Postg
 
 ## Release Responsibilities
 
-The development server owns:
+GitHub Actions CI owns:
 
-- Docker Buildx and GHCR write authentication.
-- ARM64 image builds for `frontend`, `backend`, and `postgres`.
-- Publishing immutable tags under one full Git SHA.
-- Anonymous registry verification before the VPS deploys.
+- Backend and frontend validation before publication.
+- Native ARM64 builds for `frontend`, `backend`, and `postgres` after both CI jobs pass on a `main` push.
+- GHCR publication under the full Git SHA using the workflow's `GITHUB_TOKEN`.
+- A per-run `release-images-<full-git-sha>` artifact recording the exact image digests.
+- A startup check against the published frontend image, then digest and revision verification before deployment.
 
 The VPS owns:
 
@@ -153,7 +154,21 @@ The VPS owns:
 - `.env.production`, `.env.release`, Docker volumes, Caddy data, and WireGuard access.
 - Pulling published images, health-gated startup, backups, logs, and rollback.
 
-One-time GHCR login on the development server:
+For the existing `linewatch-frontend`, `linewatch-backend`, and `linewatch-postgres` GHCR packages, grant this repository **Actions write access** to each package if they were first published with a personal access token. The CI `publish` job uses `packages: write` and `GITHUB_TOKEN`; it does not need a stored GHCR token. Keep these packages public so the VPS can pull without registry credentials. See [GitHub's package access settings](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility#ensuring-workflow-access-to-your-package).
+
+The frontend image's public build settings come from **repository Actions variables** (not the VPS runtime env file). Set any values you currently supply to `prod-build-push.sh`:
+
+| Optional repository variable | Default when unset |
+| --- | --- |
+| `NEXT_PUBLIC_LINEWATCH_SUPPORT_URL` | `https://ko-fi.com/linewatchto` |
+| `NEXT_PUBLIC_LINEWATCH_DASHBOARD_REFRESH_MS` | `30000` |
+| `NEXT_PUBLIC_LINEWATCH_TRAIN_MARKER_REFRESH_MS` | `4000` |
+| `NEXT_PUBLIC_LINEWATCH_GOOGLE_SITE_VERIFICATION` | Empty |
+| `NEXT_PUBLIC_LINEWATCH_BING_SITE_VERIFICATION` | Empty |
+
+These values are compiled into the public frontend image. Change one by changing the variable and pushing a new commit; existing SHA images are reused on reruns, so a variable change alone does not replace an existing release.
+
+The local builder remains as an emergency fallback. It reuses an existing SHA tag rather than replacing it. To deliberately rebuild an existing tag, set `LINEWATCH_ALLOW_IMAGE_OVERWRITE=true`; doing so can change what that tag points to, so use a new commit for normal releases. If manual GHCR authentication is needed on the development server:
 
 ```bash
 export CR_PAT=your_write_packages_token
@@ -161,13 +176,13 @@ printf '%s' "$CR_PAT" | docker login ghcr.io -u calebhabesh --password-stdin
 unset CR_PAT
 ```
 
-Build and publish from a clean development-server checkout:
+Build and publish from a clean development-server checkout only for the manual fallback:
 
 ```bash
 scripts/prod-build-push.sh
 ```
 
-The first command-line push creates private GHCR packages. Link `linewatch-frontend`, `linewatch-backend`, and `linewatch-postgres` to this repository, make them public, then verify anonymous reads:
+If a GHCR package is newly created as private, make it public before VPS deployment. Verify anonymous reads for all three images:
 
 ```bash
 docker logout ghcr.io
@@ -178,6 +193,34 @@ docker pull ghcr.io/calebhabesh/linewatch-postgres:<full-git-sha>
 
 ## Common Commands
 
+### Deploy through GitHub Actions
+
+1. Push the commit to `main` and wait for the **CI** workflow to pass.
+2. CI builds and publishes the three ARM64 images under that full SHA, checks the frontend image, and saves their digests in the run's release artifact.
+3. In GitHub, open **Actions → Deploy Production → Run workflow**, select `main`, and leave `sha` blank to deploy the selected main commit. Enter a previous full SHA to redeploy an older release.
+
+The deploy workflow checks the latest main-push CI result for that SHA, downloads its digest artifact, and verifies all three images still exist for the selected commit. It then connects to the VPS, locks the release, fetches the commit, runs `prod-backup-postgres.sh`, checks out the commit, and runs `prod-deploy.sh` with the pinned digests. GitHub Actions executes the public HTTP smoke check afterward. A failed backup stops before checkout and deployment. The workflow fails if the public smoke check fails; it does not automatically roll back after the release file has been promoted.
+
+For commits made **before** CI image publication, the deploy workflow can verify and recover digests from the older SHA tags, but the older checkout's Compose configuration deploys by tag. Digest-pinned deployment applies to releases containing the new Compose and deployment scripts. For CI-built commits, a missing or expired release artifact stops deployment by default. In a recovery case, select **Recover digests from SHA tags** on the button; this verifies the image revision labels and pins the current tag digests, but cannot prove they are the same digests originally recorded by CI. GitHub Actions artifacts have a configurable retention period; retain the artifact for the rollback window you need. [GitHub artifact retention](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts)
+
+Create a GitHub Environment named `production` and add these **environment secrets**:
+
+| Name | Value |
+| --- | --- |
+| `VPS_HOST` | SSH host; use `10.0.0.1` when connecting over WireGuard. |
+| `VPS_USER` | SSH user with access to the production checkout and Docker, currently `ubuntu`. |
+| `VPS_SSH_KEY` | Private key for a dedicated deploy SSH key whose public key is authorized on the VPS. |
+| `VPS_SSH_KNOWN_HOSTS` | Pinned SSH host key entry for `VPS_HOST`; verify the fingerprint through an existing trusted connection before storing it. |
+| `VPS_WIREGUARD_CONFIG` | Full client `wg0.conf` for a **dedicated Actions peer**, if SSH is private to WireGuard. Add its public key as a new peer on the VPS first. Omit only when the runner has another authorized SSH route. |
+
+Optional `production` environment **variables** are `VPS_SSH_PORT` (default `22`) and `VPS_DEPLOY_PATH` (default `/home/ubuntu/linewatchto`). Keep `.env.production`, `.env.release`, provider credentials, and persistent volumes on the VPS; they are not Actions secrets. If using WireGuard, the runner config should route only the VPS tunnel address through the peer (for example `AllowedIPs = 10.0.0.1/32`), and the VPS must allow that dedicated peer to reach SSH. Do not open public SSH solely for this workflow. GitHub's [WireGuard runner guide](https://docs.github.com/en/actions/how-tos/manage-runners/github-hosted-runners/connect-to-a-private-network/connect-with-wireguard) describes the peer setup.
+
+The production checkout needs a working `origin` fetch and must have no tracked local changes. Actions leaves it detached at the deployed SHA. The new workflow file and scripts must be pushed to `main` before the button appears. No production credentials or WireGuard keys belong in Git.
+
+The current backup script keeps only the latest verified local dump, deleting the prior dump after a successful new backup. Arrange separate retained/off-host backups before relying on this as your only restore point. A failed dump preserves the previous one. `.env.release` records the deployed SHA and exact image digests; old GHCR versions can be pulled again after local Docker image pruning, provided they have not been deleted from GHCR. Rollback across Flyway migrations still requires schema compatibility review.
+
+### Manual fallback
+
 Validate configuration:
 
 ```bash
@@ -187,7 +230,8 @@ scripts/prod-compose.sh config
 First deployment:
 
 ```bash
-git pull --ff-only
+git fetch --no-tags origin main
+git checkout --detach <full-git-sha>
 scripts/prod-deploy.sh <full-git-sha>
 ```
 
@@ -198,9 +242,13 @@ Once the candidate stack is healthy and the release file has been promoted, depl
 Routine deployment after the first database exists:
 
 ```bash
-git pull --ff-only
+git fetch --no-tags origin main
 scripts/prod-backup-postgres.sh
+git checkout --detach <full-git-sha>
 scripts/prod-deploy.sh <full-git-sha>
+LINEWATCH_DEPLOY_FRONTEND_URL=https://linewatchto.ca \
+LINEWATCH_DEPLOY_BACKEND_URL=https://api.linewatchto.ca \
+node scripts/smoke-deploy.mjs
 ```
 
 Check state:
@@ -218,6 +266,8 @@ scripts/prod-compose.sh logs -f caddy frontend backend
 Rollback to a previous image set:
 
 ```bash
+scripts/prod-backup-postgres.sh
+git checkout --detach <previous-full-git-sha>
 scripts/prod-deploy.sh <previous-full-git-sha>
 ```
 
