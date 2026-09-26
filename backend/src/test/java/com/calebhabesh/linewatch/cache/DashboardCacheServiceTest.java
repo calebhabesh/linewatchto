@@ -132,12 +132,15 @@ class DashboardCacheServiceTest {
     @Test
     void sharesOneComputationAcrossConcurrentCacheMisses() throws Exception {
         when(redis.opsForValue()).thenReturn(values);
-        AtomicInteger reads = new AtomicInteger();
-        CountDownLatch secondCallerRead = new CountDownLatch(1);
-        when(values.get("linewatch:dashboard:v1:test")).thenAnswer(ignored -> {
-            if (reads.incrementAndGet() >= 3) secondCallerRead.countDown();
-            return null;
-        });
+        when(values.get("linewatch:dashboard:v1:test")).thenReturn(null);
+
+        CountDownLatch secondCallerJoined = new CountDownLatch(1);
+        DashboardCacheService synchronizedCache = new DashboardCacheService(redis, new ObjectMapper().findAndRegisterModules(), properties) {
+            @Override
+            void onInFlightJoined(String redisKey) {
+                secondCallerJoined.countDown();
+            }
+        };
 
         AtomicInteger computations = new AtomicInteger();
         CountDownLatch computationStarted = new CountDownLatch(1);
@@ -158,14 +161,14 @@ class DashboardCacheServiceTest {
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
-            Future<List<String>> first = executor.submit(() -> cache.getOrCompute(
+            Future<List<String>> first = executor.submit(() -> synchronizedCache.getOrCompute(
                 "test", new TypeReference<List<String>>() {}, Duration.ofSeconds(30), supplier
             ));
             assertThat(computationStarted.await(5, TimeUnit.SECONDS)).isTrue();
-            Future<List<String>> second = executor.submit(() -> cache.getOrCompute(
+            Future<List<String>> second = executor.submit(() -> synchronizedCache.getOrCompute(
                 "test", new TypeReference<List<String>>() {}, Duration.ofSeconds(30), supplier
             ));
-            assertThat(secondCallerRead.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(secondCallerJoined.await(5, TimeUnit.SECONDS)).isTrue();
 
             releaseComputation.countDown();
 

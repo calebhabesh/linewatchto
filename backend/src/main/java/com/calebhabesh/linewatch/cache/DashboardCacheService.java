@@ -58,6 +58,7 @@ public class DashboardCacheService {
         CompletableFuture<Object> computation = new CompletableFuture<>();
         CompletableFuture<Object> existing = inFlight.putIfAbsent(redisKey, computation);
         if (existing != null) {
+            onInFlightJoined(redisKey);
             return await(existing);
         }
 
@@ -138,5 +139,9 @@ public class DashboardCacheService {
         } catch (Exception exception) {
             log.warn("Dashboard cache eviction failed", exception);
         }
+    }
+
+    void onInFlightJoined(String redisKey) {
+        // Package-private hook for tests to observe a concurrent caller joining an in-flight computation.
     }
 }
