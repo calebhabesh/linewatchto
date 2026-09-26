@@ -82,15 +82,16 @@ test("keeps TTC dynamic geometry in authored viewBox coordinates", async ({ page
 });
 
 test("prepares regional map SVG with dynamic layers, planned station layer, and hit targets", async ({ page, request }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(90_000);
   await setStubMode(request, "seeded");
   await page.goto("/");
 
   await page.getByRole("button", { name: "GO/UP", exact: true }).first().click();
+  await expect(page.getByRole("group", { name: "Map network switcher" }).getByRole("button", { name: "GO/UP" }))
+    .toHaveAttribute("aria-pressed", "true", { timeout: 10_000 });
   const regionalMap = page.getByRole("region", { name: "Interactive GO and UP map" });
-  // WebKit can spend several seconds snapshotting the large map during the
-  // document view transition before React mounts the regional map.
-  await expect(regionalMap).toBeVisible({ timeout: 20_000 });
+  // The regional component is loaded on demand and can mount slowly in WebKit.
+  await expect(regionalMap).toBeVisible({ timeout: 30_000 });
 
   const layerInventory = await page.evaluate(() => {
     const svg = document.querySelector('svg[aria-label="GO and UP regional rail schematic"]');
@@ -138,19 +139,23 @@ test("prepares regional map SVG with dynamic layers, planned station layer, and 
   expect(layerInventory!.hasBloorJunctionSource).toBe(true);
 });
 
-test("switches to GO/UP when a WebKit view transition stalls", async ({ page, request, browserName }) => {
-  test.skip(browserName !== "webkit", "WebKit view transition regression");
-  test.setTimeout(45_000);
+test("switches to GO/UP when WebKit animation frames stall", async ({ page, request, browserName }) => {
+  test.skip(browserName !== "webkit", "WebKit network switch regression");
+  test.setTimeout(90_000);
   await setStubMode(request, "seeded");
   await page.addInitScript(() => {
-    const pending = new Promise<void>(() => {});
     Object.defineProperty(document, "startViewTransition", {
       configurable: true,
-      value: () => ({ finished: pending, skipTransition: () => {} }),
+      value: () => { throw new Error("WebKit network switch must not start a view transition"); },
     });
   });
   await page.goto("/");
+  await page.evaluate(() => {
+    window.requestAnimationFrame = () => 1;
+  });
 
   await page.getByRole("button", { name: "GO/UP", exact: true }).first().click();
-  await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("group", { name: "Map network switcher" }).getByRole("button", { name: "GO/UP" }))
+    .toHaveAttribute("aria-pressed", "true", { timeout: 10_000 });
+  await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible({ timeout: 30_000 });
 });

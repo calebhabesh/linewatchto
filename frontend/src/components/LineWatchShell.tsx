@@ -247,6 +247,7 @@ export function LineWatchShell({
     mobileNetworkTransitionRef.current?.cancel();
     networkFadeAnimationRef.current?.cancel();
     networkViewTransitionRef.current?.skipTransition();
+    networkViewTransitionRef.current = null;
     delete document.documentElement.dataset.networkTransitionPhase;
     delete document.documentElement.dataset.networkTransitionDirection;
   }, []);
@@ -2007,7 +2008,9 @@ export function LineWatchShell({
       };
     };
 
-    if (reducedMotion || !transitionDocument.startViewTransition) {
+    // WebKit can leave the map switch waiting for the view-transition snapshot.
+    // Use the immediate path so the selected network is never stuck pending.
+    if (reducedMotion || navigator.vendor === "Apple Computer, Inc." || !transitionDocument.startViewTransition) {
       applyNetworkChange();
       networkTransitionTargetRef.current = null;
       return;

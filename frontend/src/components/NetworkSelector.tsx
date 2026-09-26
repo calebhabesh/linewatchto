@@ -52,7 +52,9 @@ export function NetworkSelector({
     pendingTargetRef.current = nextNetwork;
     setPendingNetwork(nextNetwork);
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    // WebKit may throttle animation frames while the map is rendering. Hand off
+    // immediately so the selected network cannot remain pending indefinitely.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || navigator.vendor === "Apple Computer, Inc.") {
       onChange(nextNetwork);
       return;
     }
