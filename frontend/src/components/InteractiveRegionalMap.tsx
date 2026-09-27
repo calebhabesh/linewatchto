@@ -76,6 +76,7 @@ import {
   computeInsetViewportFocus,
   currentDevicePixelRatio,
   distanceBetweenPoints,
+  exceedsMapTapMovement,
   mapPointFromViewportPoint,
   midpointBetweenPoints,
   logicalViewportSizeForOrientation,
@@ -1631,7 +1632,7 @@ function InteractiveRegionalMapComponent({
     pendingDragPointRef.current = point;
 
     const drag = dragRef.current;
-    if (drag && drag.pointerId === event.pointerId && (Math.abs(point.x - drag.x) > 3 || Math.abs(point.y - drag.y) > 3)) {
+    if (drag && drag.pointerId === event.pointerId && exceedsMapTapMovement(drag, point, 8)) {
       cameraAdjustedByUserRef.current = true;
       dragMovedRef.current = true;
       pointerActivationRef.current = null;
@@ -1687,14 +1688,20 @@ function InteractiveRegionalMapComponent({
     pointerActivationRef.current = null;
     if (event.type === "pointerup" && !dragMovedRef.current && activation) {
       suppressNextClickRef.current = true;
+      window.setTimeout(() => {
+        suppressNextClickRef.current = false;
+      }, 450);
       if (activation.type === "station") {
         onSelectStationId(activation.id);
       } else {
         onSelectImpact(activation.selection);
       }
     } else if (event.type === "pointerup" && !dragMovedRef.current && !activation) {
-      onSelectImpact(null);
-      onSelectStationId(null);
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target?.closest(".overlap-indicator, [data-regional-impact-kind], [data-regional-station-id], button, [role='button'], [data-map-chooser-keepout]")) {
+        onSelectImpact(null);
+        onSelectStationId(null);
+      }
     }
     setCamera({ ...cameraRef.current });
     setUserGestureMotion(false);

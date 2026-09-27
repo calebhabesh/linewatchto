@@ -648,6 +648,18 @@ function InteractiveTtcMapComponent({
   const [mapViewportSize, setMapViewportSize] = useState({ width: 392, height: 720 });
   const [chooserKeepoutBoxes, setChooserKeepoutBoxes] = useState<SvgBounds[]>([]);
   const automaticResizeRefitBlockedRef = useRef(false);
+  const suppressNextMapClickRef = useRef(false);
+  const suppressNextMapClickTimerRef = useRef<number | null>(null);
+  const suppressNextMapClick = useCallback(() => {
+    suppressNextMapClickRef.current = true;
+    if (suppressNextMapClickTimerRef.current !== null) {
+      window.clearTimeout(suppressNextMapClickTimerRef.current);
+    }
+    suppressNextMapClickTimerRef.current = window.setTimeout(() => {
+      suppressNextMapClickRef.current = false;
+      suppressNextMapClickTimerRef.current = null;
+    }, 450);
+  }, []);
 
   useLayoutEffect(() => observeMobileMapFrame(containerRef.current, () => {
     if (!isMapActive) return;
@@ -2066,6 +2078,11 @@ function InteractiveTtcMapComponent({
         data-map-zoom-active="false"
         className="relative w-full h-full overflow-hidden select-none touch-none cursor-grab"
         onPointerDown={(event) => {
+          suppressNextMapClickRef.current = false;
+          if (suppressNextMapClickTimerRef.current !== null) {
+            window.clearTimeout(suppressNextMapClickTimerRef.current);
+            suppressNextMapClickTimerRef.current = null;
+          }
           clearMapHover(event.target instanceof Element && Boolean(event.target.closest(".station-label-hit-target")));
           handlePointerDown(event);
         }}
@@ -2080,8 +2097,23 @@ function InteractiveTtcMapComponent({
         onClick={(event) => {
           if (shouldSuppressMapClick()) return;
           setExpandedOverlapBadgeId(null);
+          if (suppressNextMapClickRef.current) {
+            suppressNextMapClickRef.current = false;
+            return;
+          }
           const target = event.target instanceof Element ? event.target : null;
-          if (target?.closest(".station-hit-target, .station-label-hit-target, [data-overlay-interaction-target], [data-map-highlight-id], .overlap-indicator, button, [role='button'], [data-map-chooser-keepout]")) return;
+          const elementAtPoint = typeof document !== "undefined" && event.clientX && event.clientY
+            ? document.elementFromPoint(event.clientX, event.clientY)
+            : null;
+          const hitElement = target?.closest(".station-hit-target, .station-label-hit-target, [data-overlay-interaction-target], [data-map-highlight-id], .overlap-indicator, button, [role='button'], [data-map-chooser-keepout]")
+            ?? elementAtPoint?.closest(".station-hit-target, .station-label-hit-target, [data-overlay-interaction-target], [data-map-highlight-id], .overlap-indicator, button, [role='button'], [data-map-chooser-keepout]");
+          if (hitElement) {
+            const stationLabel = hitElement.closest<SVGElement>(".station-label-hit-target");
+            if (stationLabel?.dataset.stationLabelId) {
+              onSelectStationId(stationLabel.dataset.stationLabelId);
+            }
+            return;
+          }
           onSelectImpact(null);
           onSelectStationId(null);
         }}
@@ -2488,6 +2520,7 @@ function InteractiveTtcMapComponent({
                     exiting={exiting}
                     onSelectImpact={onSelectImpact}
                     shouldSuppressMapClick={shouldSuppressMapClick}
+                    suppressNextMapClick={suppressNextMapClick}
                     onHoverChange={setMapImpactHover}
                   />
                 ))}
@@ -2588,6 +2621,7 @@ function InteractiveTtcMapComponent({
                             onPointerUp={(event) => {
                               if (event.pointerType === "mouse" && event.button !== 0) return;
                               if (shouldSuppressMapClick()) return;
+                              suppressNextMapClick();
                               if (hasMultipleVisualAnchors) {
                                 setTtcStationHovered(mapRootRef.current, station.id, false);
                               }
@@ -2597,8 +2631,8 @@ function InteractiveTtcMapComponent({
                               // Primary mouse/touch activation is handled on pointerup because
                               // browsers can drop the later synthesized click when the map camera
                               // transform is committed between pointerdown and click.
-                              if (event.detail !== 0 || shouldSuppressMapClick()) return;
                               event.stopPropagation();
+                              if (event.detail !== 0 || shouldSuppressMapClick()) return;
                               if (hasMultipleVisualAnchors) {
                                 setTtcStationHovered(mapRootRef.current, station.id, false);
                               }
@@ -2672,14 +2706,15 @@ function InteractiveTtcMapComponent({
                               if (exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
                               event.stopPropagation();
                               if (shouldSuppressMapClick()) return;
+                              suppressNextMapClick();
                               onSelectImpact({ kind: impact.kind, id: impact.cardId });
                             }}
                             onClick={(event) => {
+                              event.stopPropagation();
                               if (exiting) return;
                               // Pointer activation is handled on pointerup so a map-camera
                               // update cannot retarget the synthesized click to the station.
                               if (event.detail !== 0 || shouldSuppressMapClick()) return;
-                              event.stopPropagation();
                               onSelectImpact({ kind: impact.kind, id: impact.cardId });
                             }}
                             onKeyDown={(event) => {
@@ -2701,11 +2736,16 @@ function InteractiveTtcMapComponent({
                               if (event.pointerType !== "mouse") return;
                               setMapImpactHover(null);
                             }}
-                            onFocus={() => setMapImpactHover({
-                              kind: impact.kind,
-                              id: impact.cardId,
-                              activationKey: `station:${impact.kind}:${impact.cardId}`,
-                            })}
+                            onFocus={() => {
+                              if (typeof window !== "undefined" && !window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+                                return;
+                              }
+                              setMapImpactHover({
+                                kind: impact.kind,
+                                id: impact.cardId,
+                                activationKey: `station:${impact.kind}:${impact.cardId}`,
+                              });
+                            }}
                             onBlur={() => setMapImpactHover(null)}
                             pointerEvents={exiting ? "none" : "stroke"}
                             role="button"
@@ -2775,9 +2815,20 @@ function InteractiveTtcMapComponent({
                           // Pointer capture can fail if the browser ended the pointer first.
                         }
                       }}
+                      onPointerUp={(event) => {
+                        if (event.pointerType === "mouse" && event.button !== 0) return;
+                        try {
+                          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                            event.currentTarget.releasePointerCapture(event.pointerId);
+                          }
+                        } catch {
+                          // Pointer capture may already be released by the browser during cancellation.
+                        }
+                      }}
                       onClick={(event) => {
                         event.stopPropagation();
                         if (shouldSuppressMapClick()) return;
+                        suppressNextMapClick();
                         onSelectStationId(station.id);
                       }}
                       pointerEvents="all"
@@ -4515,6 +4566,7 @@ function OverlayInteractionTarget({
   exiting,
   onSelectImpact,
   shouldSuppressMapClick,
+  suppressNextMapClick,
   onHoverChange,
 }: {
   segment: RenderedNetworkSegment;
@@ -4524,6 +4576,7 @@ function OverlayInteractionTarget({
   exiting?: boolean;
   onSelectImpact: (selection: ImpactSelection) => void;
   shouldSuppressMapClick: () => boolean;
+  suppressNextMapClick?: () => void;
   onHoverChange: (impact: TtcImpactHoverIdentity | null) => void;
 }) {
   const impactKind = impact?.kind ?? "planned-closure";
@@ -4558,8 +4611,8 @@ function OverlayInteractionTarget({
         // Pointer activation is owned by pointerup below. A map-camera commit or
         // the desktop panel opening can otherwise retarget/drop the later
         // synthesized click after the user has visibly pressed this path.
-        if (exiting || event.detail !== 0 || shouldSuppressMapClick()) return;
         event.stopPropagation();
+        if (exiting || event.detail !== 0 || shouldSuppressMapClick()) return;
         selectCurrentImpact();
       }}
       onKeyDown={(event) => {
@@ -4576,6 +4629,9 @@ function OverlayInteractionTarget({
         onHoverChange(null);
       }}
       onFocus={() => {
+        if (typeof window !== "undefined" && !window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+          return;
+        }
         if (!exiting) onHoverChange(hoverIdentity);
       }}
       onBlur={() => onHoverChange(null)}
@@ -4590,6 +4646,7 @@ function OverlayInteractionTarget({
       onPointerUp={(event) => {
         if (exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
         if (shouldSuppressMapClick()) return;
+        suppressNextMapClick?.();
         selectCurrentImpact();
       }}
       pointerEvents={exiting ? "none" : "stroke"}

@@ -1705,6 +1705,9 @@ export function installRegionalOverlaySession(
   };
 
   const handleFocusIn = (event: FocusEvent) => {
+    if (typeof window !== "undefined" && !window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      return;
+    }
     const impact = regionalImpactIdentity(event.target);
     setLinkedImpactHover(impact, true);
     if (impact) options?.onHoverImpact?.(impact);

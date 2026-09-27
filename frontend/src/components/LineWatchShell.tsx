@@ -841,9 +841,16 @@ export function LineWatchShell({
         : Math.max(0, window.innerHeight - height - offsetTop);
       const keyboardOpen = !pageZoomed
         && (keyboardInset > 120 || height < window.innerHeight * 0.78);
+      // visualViewport dimensions shrink during browser page zoom or when iOS
+      // WebKit excludes bottom safe-areas / dynamic chrome. Only contract the
+      // layout shell when the software keyboard is active, keeping full window
+      // height for edge-to-edge chrome and preventing floating nav gaps on iOS.
+      const effectiveViewportHeight = pageZoomed || !keyboardOpen
+        ? Math.max(window.innerHeight, Math.round(layoutHeight))
+        : layoutHeight;
       const root = document.documentElement;
 
-      root.style.setProperty("--visual-viewport-height", `${Math.round(layoutHeight)}px`);
+      root.style.setProperty("--visual-viewport-height", `${Math.round(effectiveViewportHeight)}px`);
       root.style.setProperty("--visual-viewport-width", `${Math.round(layoutWidth)}px`);
       root.style.setProperty("--visual-viewport-offset-top", `${Math.round(offsetTop)}px`);
       root.style.setProperty("--visual-viewport-offset-left", `${Math.round(offsetLeft)}px`);

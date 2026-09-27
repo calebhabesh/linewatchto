@@ -123,11 +123,13 @@
     visibility 0s linear 70ms;
 }
 
-.regional-impact-hover-foreground[data-regional-impact-hovered="true"],
-.regional-impact-top-hover-foreground[data-regional-impact-hovered="true"] {
-  opacity: 1;
-  visibility: visible;
-  transition-delay: 0s;
+@media (hover: hover) and (pointer: fine) {
+  .regional-impact-hover-foreground[data-regional-impact-hovered="true"],
+  .regional-impact-top-hover-foreground[data-regional-impact-hovered="true"] {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
+  }
 }
 
 .regional-station-impact-hover-foreground {
@@ -138,10 +140,12 @@
     visibility 0s linear 70ms;
 }
 
-.regional-station-impact-hover-foreground[data-regional-impact-hovered="true"] {
-  opacity: 1;
-  visibility: visible;
-  transition-delay: 0s;
+@media (hover: hover) and (pointer: fine) {
+  .regional-station-impact-hover-foreground[data-regional-impact-hovered="true"] {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
+  }
 }
 
 .regional-impact-path,
@@ -339,9 +343,11 @@
   }
 }
 
-.regional-impact-hover-foreground[data-regional-impact-hovered="true"] .regional-impact-hover-boundary,
-.regional-impact-top-hover-foreground[data-regional-impact-hovered="true"] .regional-impact-hover-boundary {
-  opacity: 0.94 !important;
+@media (hover: hover) and (pointer: fine) {
+  .regional-impact-hover-foreground[data-regional-impact-hovered="true"] .regional-impact-hover-boundary,
+  .regional-impact-top-hover-foreground[data-regional-impact-hovered="true"] .regional-impact-hover-boundary {
+    opacity: 0.94 !important;
+  }
 }
 
 .regional-overlay-segment-group[data-regional-impact-selected="true"] .regional-impact-path {

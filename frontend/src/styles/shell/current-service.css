@@ -1100,7 +1100,7 @@
 @media (max-width: 767px) {
   :root {
     --mobile-bottom-nav-height: 70px;
-    --mobile-bottom-nav-bottom-offset: var(--mobile-safe-bottom);
+    --mobile-bottom-nav-bottom-offset: 0px;
     --mobile-bottom-nav-side-inset: 0px;
     --mobile-status-peek-height: 176px;
   }
@@ -1112,9 +1112,9 @@
   .linewatch-shell .mobile-bottom-nav {
     inset-inline: 0;
     bottom: 0;
-    height: calc(var(--mobile-bottom-nav-height) + var(--mobile-safe-bottom));
+    height: var(--mobile-bottom-nav-height);
     min-height: 0;
-    padding: 3px max(8px, var(--mobile-safe-right)) calc(3px + var(--mobile-safe-bottom)) max(8px, var(--mobile-safe-left));
+    padding: 3px max(8px, var(--mobile-safe-right)) 5px max(8px, var(--mobile-safe-left));
     border-radius: 0;
     border: none;
     border-top: none;

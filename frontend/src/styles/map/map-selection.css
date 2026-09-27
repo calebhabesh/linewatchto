@@ -11,10 +11,12 @@
     visibility 0s linear 70ms;
 }
 
-.ttc-impact-hover-foreground[data-ttc-impact-hovered="true"] {
-  opacity: 1;
-  visibility: visible;
-  transition-delay: 0s;
+@media (hover: hover) and (pointer: fine) {
+  .ttc-impact-hover-foreground[data-ttc-impact-hovered="true"] {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
+  }
 }
 
 .motion-paused .ttc-impact-hover-foreground {
