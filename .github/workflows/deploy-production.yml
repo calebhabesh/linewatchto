@@ -152,7 +152,8 @@ jobs:
           ssh -i "$HOME/.ssh/deploy_key" \
             -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \
             -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
-            bash -se -- "$RELEASE_SHA" "$VPS_DEPLOY_PATH" \
+            bash -c "'"'tmp="$(mktemp)" && cat > "$tmp" && bash "$tmp" "$@" < /dev/null; res=$?; rm -f "$tmp"; exit $res'"'" bash \
+            "$RELEASE_SHA" "$VPS_DEPLOY_PATH" \
             "$FRONTEND_IMAGE" "$BACKEND_IMAGE" "$POSTGRES_IMAGE" \
             < scripts/prod-remote-release.sh
 

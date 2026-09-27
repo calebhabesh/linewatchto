@@ -31,7 +31,7 @@ LINEWATCH_PROD_ENV_FILE="$ENV_FILE" \
 LINEWATCH_RELEASE_ENV_FILE="${LINEWATCH_RELEASE_ENV_FILE:-$ROOT_DIR/.env.release}" \
 LINEWATCH_PROD_COMPOSE_FILE="$COMPOSE_FILE" \
   "$ROOT_DIR/scripts/prod-compose.sh" exec -T postgres \
-    sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > "$TEMP_OUTPUT"
+    sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' < /dev/null | gzip > "$TEMP_OUTPUT"
 
 gzip -t "$TEMP_OUTPUT"
 mv -- "$TEMP_OUTPUT" "$OUTPUT"

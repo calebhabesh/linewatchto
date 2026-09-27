@@ -58,7 +58,7 @@ if ! linewatch_compose up \
 fi
 
 if ! linewatch_compose run --rm --no-deps --entrypoint caddy caddy \
-  validate --config /etc/caddy/Caddyfile --adapter caddyfile; then
+  validate --config /etc/caddy/Caddyfile --adapter caddyfile < /dev/null; then
   printf 'Deployment failed: the mounted production Caddyfile is invalid.\n' >&2
   printf 'The previous release tag remains recorded as %s.\n' "${PREVIOUS_TAG:-none}" >&2
   exit 1
