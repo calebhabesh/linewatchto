@@ -1,4 +1,5 @@
 "use client";
+import { CardinalNorthIcon } from "./CardinalNorthIcon";
 
 import { useMapViewportPersistence } from "../hooks/useMapViewportPersistence";
 import { observeMobileMapFrame, readMapStationCenterX, readMobileMapFrameInsets, readMobileImpactInspectorInset } from "../hooks/mobileMapFrame";
@@ -473,6 +474,7 @@ function InteractiveRegionalMapComponent({
     };
   }, [svgMarkup]);
   const entranceWasDeferredRef = useRef(false);
+  const activeContainerRectRef = useRef<DOMRect | null>(null);
   const lastFocusedTargetKeyRef = useRef<string | null>(null);
   const lastFocusLayoutKeyRef = useRef("");
   const shouldAnimateProgrammaticTransform = !reducedMotion && !mobilePerformanceMode && pageVisible;
@@ -1564,9 +1566,11 @@ function InteractiveRegionalMapComponent({
     // not apply the stronger programmatic-flight simplification, which removes
     // alert glows while a rider is simply dragging the map.
     endCameraMotion();
+    const rect = event.currentTarget.getBoundingClientRect();
+    activeContainerRectRef.current = rect;
     const point = clientPointToLogicalViewportPoint(
       { x: event.clientX, y: event.clientY },
-      event.currentTarget.getBoundingClientRect(),
+      rect,
       viewportOrientation,
     );
 
@@ -1617,9 +1621,10 @@ function InteractiveRegionalMapComponent({
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (!activePointersRef.current.has(event.pointerId)) return;
+    const rect = activeContainerRectRef.current ?? event.currentTarget.getBoundingClientRect();
     const point = clientPointToLogicalViewportPoint(
       { x: event.clientX, y: event.clientY },
-      event.currentTarget.getBoundingClientRect(),
+      rect,
       viewportOrientation,
     );
     activePointersRef.current.set(event.pointerId, point);
@@ -1677,6 +1682,7 @@ function InteractiveRegionalMapComponent({
     pinchGestureRef.current = null;
     pendingDragPointRef.current = null;
     dragRef.current = null;
+    activeContainerRectRef.current = null;
     const activation = pointerActivationRef.current;
     pointerActivationRef.current = null;
     if (event.type === "pointerup" && !dragMovedRef.current && activation) {
@@ -2037,13 +2043,7 @@ function InteractiveRegionalMapComponent({
               data-muted={Boolean(selection || selectedStationId || commutePathPreview) ? "true" : "false"}
             />
             <g aria-label="Cardinal North Compass" transform="translate(14800, 5100)">
-              <image
-                href="/assets/linewatch/cardinal-north.svg"
-                width="1000"
-                height="1000"
-                className="opacity-90"
-                style={{ filter: isDark ? "invert(1)" : "none" }}
-              />
+              <CardinalNorthIcon width={1000} height={1000} dark={isDark} />
             </g>
             <g aria-label="Overlapping alert badges">
               {overlapBadges.map((badge) => (

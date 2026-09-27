@@ -1,8 +1,10 @@
 "use client";
 
 import { Bookmark, LoaderCircle, X } from "lucide-react";
+import type { PointerEventHandler } from "react";
 
 type Props = {
+  onPointerDown?: PointerEventHandler<HTMLElement>;
   stationName: string;
   updating?: boolean;
   saved: boolean;
@@ -14,6 +16,7 @@ type Props = {
 };
 
 export function StationDetailHeader({
+  onPointerDown,
   stationName,
   updating = false,
   saved,
@@ -24,7 +27,7 @@ export function StationDetailHeader({
   closeLabel = "Close station details",
 }: Props) {
   return (
-    <header className="station-detail-header flex items-start justify-between gap-3 shrink-0">
+    <header onPointerDown={onPointerDown} className="station-detail-header flex items-start justify-between gap-3 shrink-0">
       <div className="min-w-0 flex-1">
         <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 md:block md:leading-none">
           Station

@@ -7,8 +7,8 @@ export const MOBILE_STATION_SHEET_STORAGE_KEY = "linewatch-mobile-station-sheet-
 export const MOBILE_STATION_SHEET_RESIZE_EVENT = "linewatch:station-sheet-resize";
 export const MOBILE_SHEET_FLOOR_RATIO = 0.50;
 export const MOBILE_SHEET_DEFAULT_RATIO = 0.50;
-export const MOBILE_SHEET_EXPANDED_RATIO = 0.90;
-export const MOBILE_SHEET_CEILING_RATIO = 0.92;
+export const MOBILE_SHEET_EXPANDED_RATIO = 1;
+export const MOBILE_SHEET_CEILING_RATIO = 1;
 export const MOBILE_SHEET_SNAP_THRESHOLD = 0.68;
 
 export function clampSheetRatio(ratio: number): number {
@@ -130,6 +130,7 @@ export function useMobileDraggableSheet() {
   }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (window.innerWidth >= 768 || (e.target as Element).closest("button, a, input, select, textarea")) return;
     if (e.button !== 0) return;
     const target = e.currentTarget as HTMLElement;
 

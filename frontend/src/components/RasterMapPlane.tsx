@@ -108,7 +108,8 @@ export function RasterMapPlane({
 
   if (!displayedSource) return null;
 
-  if (svgViewBox) {
+  const hasCutout = Boolean(cutoutMarkup || cutoutElementHref);
+  if (svgViewBox && hasCutout) {
     const [viewBoxX = "0", viewBoxY = "0", viewBoxWidth = "0", viewBoxHeight = "0"] = svgViewBox.split(/\s+/);
     const maskId = `${network}-${plane}-raster-mask`;
     return (

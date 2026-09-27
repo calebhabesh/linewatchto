@@ -112,6 +112,7 @@ export function usePanZoom({
   const dragPointerTypeRef = useRef<string | null>(null);
   const cameraInitializedRef = useRef(false);
   const cameraAdjustedByUserRef = useRef(false);
+  const activeContainerRectRef = useRef<DOMRect | null>(null);
 
   const shouldAnimateProgrammaticTransform = !reducedMotion && !disableProgrammaticMotion;
   useEffect(() => {
@@ -569,7 +570,7 @@ export function usePanZoom({
   }, [viewportOrientation]);
 
   const pointFromClientPoint = useCallback((clientX: number, clientY: number): PanZoomPoint => {
-    const rect = containerRef.current?.getBoundingClientRect();
+    const rect = activeContainerRectRef.current ?? containerRef.current?.getBoundingClientRect();
     if (!rect) {
       return { x: clientX, y: clientY };
     }
@@ -653,6 +654,7 @@ export function usePanZoom({
     if (activePointersRef.current.size === 0) {
       gestureMovedRef.current = false;
       suppressMapClickRef.current = false;
+      activeContainerRectRef.current = containerRef.current?.getBoundingClientRect() ?? null;
     }
 
     cancelAnimation();
@@ -777,6 +779,7 @@ export function usePanZoom({
       return;
     }
 
+    activeContainerRectRef.current = null;
     setUserGestureMotion(false);
     setPointerDragging(false);
     activeDragPointerIdRef.current = null;
@@ -798,6 +801,7 @@ export function usePanZoom({
 
   const handlePointerCancel = useCallback((e: PointerEvent<HTMLDivElement>) => {
     suppressMapClickRef.current = true;
+    activeContainerRectRef.current = null;
     finishPointerInteraction(e);
   }, [finishPointerInteraction]);
 

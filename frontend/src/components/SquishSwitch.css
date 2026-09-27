@@ -149,3 +149,66 @@
     transition-duration: 1ms;
   }
 }
+
+@media (max-width: 767px), (pointer: coarse) {
+  .mobile-display-switch {
+    appearance: none;
+    -webkit-appearance: none;
+    position: relative;
+    flex: none;
+    width: 38px;
+    height: 22px;
+    margin: 0;
+    border: 1px solid #94a3b8;
+    border-radius: 999px;
+    background: #cbd5e1;
+    cursor: pointer;
+  }
+
+  .mobile-display-switch::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffffff;
+  }
+
+  .mobile-display-switch:checked {
+    border-color: var(--mobile-switch-track-on, #2563eb);
+    background: var(--mobile-switch-track-on, #2563eb);
+  }
+
+  .mobile-display-switch:checked::before {
+    left: 18px;
+  }
+
+  .mobile-display-switch:focus-visible {
+    outline: 2px solid var(--logo-blue, #2563eb);
+    outline-offset: 3px;
+  }
+
+  .mobile-display-switch:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .dark .mobile-display-switch:not(:checked) {
+    border-color: #64748b;
+    background: #475569;
+  }
+
+  .linewatch-shell.high-contrast .mobile-display-switch {
+    border-color: #ffffff;
+  }
+
+  .linewatch-shell.high-contrast .mobile-display-switch:checked {
+    background: #ffffff;
+  }
+
+  .linewatch-shell.high-contrast .mobile-display-switch:checked::before {
+    background: #000000;
+  }
+}

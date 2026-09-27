@@ -564,6 +564,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
       />
 
       <StationDetailHeader
+        onPointerDown={dragHandleProps.onPointerDown}
         stationName={station?.name ?? selectedStationName ?? "Station details"}
         updating={updating}
         saved={saved}

@@ -654,6 +654,7 @@ export function RegionalStationDetailPanel({
       />
 
       <StationDetailHeader
+        onPointerDown={dragHandleProps.onPointerDown}
         stationName={station.name}
         saved={saved}
         savePending={savePending}

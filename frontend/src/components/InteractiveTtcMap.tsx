@@ -1,4 +1,5 @@
 "use client";
+import { CardinalNorthIcon } from "./CardinalNorthIcon";
 
 import { useRetainedHover } from "../hooks/useRetainedHover";
 import { memo, useEffect, useState, useMemo, useLayoutEffect, useRef, useCallback } from "react";
@@ -2428,7 +2429,7 @@ function InteractiveTtcMapComponent({
                 />
               </g>
               <g aria-label="Cardinal North Compass" transform="translate(7600, 2300) scale(4)">
-                <image href="/assets/linewatch/cardinal-north.svg" width="75" height="100" className="opacity-90" style={{ filter: isDark ? "invert(1)" : "none" }} />
+                <CardinalNorthIcon width={75} height={100} dark={isDark} />
               </g>
             </svg>
 
@@ -2774,14 +2775,9 @@ function InteractiveTtcMapComponent({
                           // Pointer capture can fail if the browser ended the pointer first.
                         }
                       }}
-                      onPointerUp={(event) => {
-                        if (event.pointerType === "mouse" && event.button !== 0) return;
-                        if (shouldSuppressMapClick()) return;
-                        onSelectStationId(station.id);
-                      }}
                       onClick={(event) => {
-                        if (event.detail !== 0 || shouldSuppressMapClick()) return;
                         event.stopPropagation();
+                        if (shouldSuppressMapClick()) return;
                         onSelectStationId(station.id);
                       }}
                       pointerEvents="all"

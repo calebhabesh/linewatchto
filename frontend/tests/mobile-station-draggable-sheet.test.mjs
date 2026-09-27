@@ -32,8 +32,8 @@ describe("mobile station draggable sheet UX", () => {
   it("defines bounded floor and ceiling constants for vertical sheet drag", () => {
     assert.equal(MOBILE_SHEET_FLOOR_RATIO, 0.50);
     assert.equal(MOBILE_SHEET_DEFAULT_RATIO, 0.50);
-    assert.equal(MOBILE_SHEET_EXPANDED_RATIO, 0.90);
-    assert.equal(MOBILE_SHEET_CEILING_RATIO, 0.92);
+    assert.equal(MOBILE_SHEET_EXPANDED_RATIO, 1);
+    assert.equal(MOBILE_SHEET_CEILING_RATIO, 1);
   });
 
   it("clamps sheet height ratio safely within floor and ceiling bounds", () => {
@@ -42,7 +42,7 @@ describe("mobile station draggable sheet UX", () => {
     assert.equal(clampSheetRatio(0.75), 0.75);
     assert.equal(clampSheetRatio(0.90), 0.90);
     assert.equal(clampSheetRatio(0.92), 0.92);
-    assert.equal(clampSheetRatio(0.99), 0.92);
+    assert.equal(clampSheetRatio(0.99), 0.99);
     assert.equal(clampSheetRatio(Number.NaN), 0.50);
     assert.equal(clampSheetRatio(Number.POSITIVE_INFINITY), 0.50);
   });
@@ -64,7 +64,7 @@ describe("mobile station draggable sheet UX", () => {
 
     // Clamps out-of-range values on write
     writeStoredSheetHeightRatio(mockStorage, 1.20);
-    assert.equal(readStoredSheetHeightRatio(mockStorage), 0.92);
+    assert.equal(readStoredSheetHeightRatio(mockStorage), 1);
 
     writeStoredSheetHeightRatio(mockStorage, 0.20);
     assert.equal(readStoredSheetHeightRatio(mockStorage), 0.50);
@@ -169,8 +169,8 @@ describe("mobile station draggable sheet UX", () => {
     assert.equal(computeDampedRatio(0.20), 0.50);
 
     // Above ceiling (0.92) firmly clamps to ceiling without rubber-band rebound
-    assert.equal(computeDampedRatio(0.98), 0.92);
-    assert.equal(computeDampedRatio(1.20), 0.92);
+    assert.equal(computeDampedRatio(0.98), 0.98);
+    assert.equal(computeDampedRatio(1.20), 1);
   });
 
   it("renders Jump To buttons with words and icons in a space-efficient grid and places Access Outages inside scrollable area below Jump To", () => {
@@ -316,11 +316,11 @@ describe("mobile station draggable sheet UX", () => {
     // 1. Station panel stylesheet enforces 0.92 base height for mobile-map-inspector-station
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-map-inspector-station \.station-detail-panel[\s\S]*?height:\s*calc\(var\(--visual-viewport-height,\s*100dvh\)\s*\*\s*0\.92\)/,
+      /height:\s*calc\(var\(--visual-viewport-height,\s*100dvh\) - var\(--mobile-safe-top, 0px\)\)/,
     );
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-map-inspector-station \.station-detail-panel[\s\S]*?max-height:\s*calc\(var\(--visual-viewport-height,\s*100dvh\)\s*\*\s*0\.92\)/,
+      /max-height:\s*calc\(var\(--visual-viewport-height,\s*100dvh\) - var\(--mobile-safe-top, 0px\)\)/,
     );
 
     // 2. Minimum point (floor) is established at 50%

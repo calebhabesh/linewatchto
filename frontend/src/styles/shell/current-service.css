@@ -1539,7 +1539,8 @@
   .mobile-service-sheet .current-service-all { min-height: 44px; font-size: 13px; }
   .linewatch-shell:has(.mobile-service-sheet) .mobile-map-controls-group { z-index: 41; }
   /* Map chrome stays mounted beneath the sheet throughout direct manipulation. */
-  .linewatch-shell:has(.mobile-service-sheet) .mobile-app-topbar { z-index: 41; }
+  .linewatch-shell:has(.mobile-service-sheet) .mobile-app-topbar,
+  .linewatch-shell.mobile-map-inspector-station .mobile-app-topbar { z-index: 41; }
   .linewatch-shell.dark .mobile-service-sheet {
     background: #111315;
     box-shadow: 0 -8px 28px #0004, inset 0 1px 2px rgba(255, 255, 255, 0.09), inset 0 6px 10px -7px rgba(255, 255, 255, 0.10);

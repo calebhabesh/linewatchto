@@ -476,6 +476,12 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   transform: none !important;
 }
 
+/* Changing the preference should not replay the entry motion of an open sheet. */
+.floating-panel-shell:not([data-closing="true"]):not([data-going-back="true"]):has(.mobile-more-sheet[data-motion-preference-changed="true"]),
+.mobile-view-content-wrapper:not([data-closing="true"]):not([data-going-back="true"]):has(.mobile-more-sheet[data-motion-preference-changed="true"]) {
+  animation: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .desktop-view-content-wrapper,
   .mobile-view-content-wrapper,

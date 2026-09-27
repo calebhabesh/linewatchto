@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useId, useRef, useState } from 'react';
+import { forwardRef, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { animate, motion, useMotionValue, useReducedMotion, useSpring, useTransform, useVelocity } from 'motion/react';
 import './SquishSwitch.css';
 
@@ -9,8 +9,61 @@ const SWELL_SPRING = { stiffness: 520, damping: 34, mass: 0.6 };
 const MAX_STRETCH = 0.4;
 const STRETCH_SPEED = 600;
 const TAP_SLOP = { fine: 4, coarse: 8 };
+const MOBILE_SWITCH_QUERY = '(max-width: 767px), (pointer: coarse)';
 
-const SquishSwitch = forwardRef(function SquishSwitch({
+const subscribeToMobileSwitch = callback => {
+  const media = window.matchMedia(MOBILE_SWITCH_QUERY);
+  media.addEventListener('change', callback);
+  return () => media.removeEventListener('change', callback);
+};
+const getMobileSwitchSnapshot = () => window.matchMedia(MOBILE_SWITCH_QUERY).matches;
+const getServerSwitchSnapshot = () => false;
+
+const PlainSwitch = forwardRef(function PlainSwitch({
+  checked,
+  defaultChecked = false,
+  onChange,
+  label = '',
+  disabled = false,
+  trackOnColor,
+  ariaLabel,
+  ariaBusy,
+  className = '',
+  id,
+  role = 'switch',
+  title
+}, forwardedRef) {
+  const [inner, setInner] = useState(defaultChecked);
+  const autoId = useId();
+  const buttonId = id ?? autoId;
+  const on = checked === undefined ? inner : checked;
+
+  return (
+    <span className={`squish-switch-root${className ? ` ${className}` : ''}`}>
+      <input
+        ref={forwardedRef}
+        id={buttonId}
+        type="checkbox"
+        role={role}
+        aria-label={ariaLabel}
+        aria-busy={ariaBusy || undefined}
+        disabled={disabled}
+        title={title}
+        className="mobile-display-switch"
+        style={trackOnColor ? { '--mobile-switch-track-on': trackOnColor } : undefined}
+        checked={on}
+        onChange={event => {
+          const next = event.currentTarget.checked;
+          if (checked === undefined) setInner(next);
+          onChange?.(next);
+        }}
+      />
+      {label ? <label htmlFor={buttonId} className="squish-switch__label">{label}</label> : null}
+    </span>
+  );
+});
+
+const AnimatedSquishSwitch = forwardRef(function AnimatedSquishSwitch({
   checked,
   defaultChecked = false,
   onChange,
@@ -204,6 +257,17 @@ const SquishSwitch = forwardRef(function SquishSwitch({
       ) : null}
     </span>
   );
+});
+
+const SquishSwitch = forwardRef(function SquishSwitch(props, forwardedRef) {
+  const usePlainSwitch = useSyncExternalStore(
+    subscribeToMobileSwitch,
+    getMobileSwitchSnapshot,
+    getServerSwitchSnapshot
+  );
+  return usePlainSwitch
+    ? <PlainSwitch {...props} ref={forwardedRef} />
+    : <AnimatedSquishSwitch {...props} ref={forwardedRef} />;
 });
 
 export default SquishSwitch;

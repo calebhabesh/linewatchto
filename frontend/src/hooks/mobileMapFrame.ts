@@ -58,7 +58,21 @@ export function observeMobileMapFrame(viewport: HTMLElement | null, onResize: ()
 
   let mutationObserver: MutationObserver | null = null;
   if (typeof MutationObserver !== "undefined") {
-    mutationObserver = new MutationObserver(() => {
+    const isFrameElement = (node: Node): boolean => {
+      if (!(node instanceof HTMLElement)) return false;
+      return Boolean(
+        node.matches(".mobile-app-chip-scroll, .mobile-service-sheet, .mobile-service-sheet-minimum") ||
+        node.querySelector(".mobile-app-chip-scroll, .mobile-service-sheet, .mobile-service-sheet-minimum")
+      );
+    };
+
+    mutationObserver = new MutationObserver((mutations) => {
+      const hasRelevantChange = mutations.some((mutation) =>
+        Array.from(mutation.addedNodes).some(isFrameElement) ||
+        Array.from(mutation.removedNodes).some(isFrameElement)
+      );
+      if (!hasRelevantChange) return;
+
       observeElements();
       checkInsetsAndResize();
     });

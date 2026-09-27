@@ -517,6 +517,11 @@
     transform: scale(0.99);
   }
 
+  .mobile-more-toggle-row:active {
+    transform: none;
+  }
+
+
   .dark .mobile-more-row {
     background: #151821;
     color: #e2e8f0; /* slate-200 */

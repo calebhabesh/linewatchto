@@ -201,9 +201,23 @@ export function ElectricBorder({
 
     let { width, height } = updateSize();
     let lastDpr = Math.min(window.devicePixelRatio || 1, 2);
+    let motionPaused = false;
+
+    const handleSheetMotion = (event: Event) => {
+      motionPaused = Boolean((event as CustomEvent<{ paused?: boolean }>).detail?.paused);
+      if (!motionPaused && animationRef.current === null) {
+        lastFrameTimeRef.current = performance.now();
+        animationRef.current = requestAnimationFrame(drawElectricBorder);
+      }
+    };
+    window.addEventListener("linewatch:sheet-motion", handleSheetMotion);
 
     const drawElectricBorder = (currentTime: number) => {
       if (!canvas || !ctx) return;
+      if (motionPaused) {
+        animationRef.current = null;
+        return;
+      }
 
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       if (dpr !== lastDpr) {
@@ -297,6 +311,7 @@ export function ElectricBorder({
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
+      window.removeEventListener("linewatch:sheet-motion", handleSheetMotion);
       resizeObserver.disconnect();
     };
   }, [color, speed, chaos, borderRadius, octavedNoise, getRoundedRectPoint]);

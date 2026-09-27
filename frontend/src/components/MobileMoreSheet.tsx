@@ -111,6 +111,7 @@ export function MobileMoreSheet({
 
   const canResetLocalAppCache = process.env.NODE_ENV !== "production";
   const [isAndroid, setIsAndroid] = useState(false);
+  const [motionPreferenceChanged, setMotionPreferenceChanged] = useState(false);
   useEffect(() => {
     if (typeof navigator !== "undefined") {
       setIsAndroid(/Android/i.test(navigator.userAgent));
@@ -126,7 +127,7 @@ export function MobileMoreSheet({
   });
 
   return (
-    <section className="mobile-more-sheet panel" aria-label="More LineWatchTO options">
+    <section className="mobile-more-sheet panel" data-motion-preference-changed={motionPreferenceChanged ? "true" : undefined} aria-label="More LineWatchTO options">
       <div className="mobile-more-content-scroll">
         <div className="mobile-sheet-heading">
           <div className="mobile-more-brand">
@@ -427,7 +428,10 @@ export function MobileMoreSheet({
           <div className="mobile-more-row mobile-more-toggle-row">
             <Pause size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             <label htmlFor="mobile-reduced-motion-switch">Reduced Motion</label>
-            <SquishSwitch id="mobile-reduced-motion-switch" checked={reducedMotion} ariaLabel="Reduced Motion" className="ml-auto shrink-0" onChange={onToggleReducedMotion} />
+            <SquishSwitch id="mobile-reduced-motion-switch" checked={reducedMotion} ariaLabel="Reduced Motion" className="ml-auto shrink-0" onChange={() => {
+              setMotionPreferenceChanged(true);
+              onToggleReducedMotion();
+            }} />
           </div>
           <div className="mobile-more-row mobile-more-toggle-row">
             <Sparkles size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />

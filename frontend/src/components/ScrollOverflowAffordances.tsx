@@ -108,7 +108,6 @@ export function ScrollOverflowAffordances() {
       });
     };
     const mutationObserver = new MutationObserver((mutations) => {
-      let needsUpdate = false;
       mutations.forEach((mutation) => {
         if (mutation.type === "childList") {
           mutation.addedNodes.forEach((node) => {
@@ -117,19 +116,32 @@ export function ScrollOverflowAffordances() {
           mutation.removedNodes.forEach((node) => {
             if (node instanceof HTMLElement) visitListsWithin(node, unregisterElement);
           });
-          needsUpdate = true;
+          const target = mutation.target;
+          if (target instanceof HTMLElement) {
+            const owningList = target.matches(SCROLL_LIST_SELECTOR)
+              ? target
+              : target.closest<HTMLElement>(SCROLL_LIST_SELECTOR);
+            if (owningList && trackedElements.has(owningList)) {
+              updateOverflowAffordance(owningList);
+            }
+          }
         } else if (mutation.type === "attributes") {
           if (
             mutation.attributeName !== MORE_BELOW_ATTRIBUTE &&
             mutation.attributeName !== "data-scroll-more-right"
           ) {
-            needsUpdate = true;
+            const target = mutation.target;
+            if (target instanceof HTMLElement) {
+              const owningList = target.matches(SCROLL_LIST_SELECTOR)
+                ? target
+                : target.closest<HTMLElement>(SCROLL_LIST_SELECTOR);
+              if (owningList && trackedElements.has(owningList)) {
+                updateOverflowAffordance(owningList);
+              }
+            }
           }
         }
       });
-      if (needsUpdate) {
-        scheduleUpdate();
-      }
     });
 
     visitListsWithin(shell, registerElement);
@@ -141,7 +153,7 @@ export function ScrollOverflowAffordances() {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ["class", "style", "hidden", "aria-expanded", "data-expanded", "data-nav-direction"],
+      attributeFilter: ["hidden", "aria-expanded", "data-expanded", "data-nav-direction", "open"],
     });
 
     return () => {

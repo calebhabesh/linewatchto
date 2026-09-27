@@ -14,6 +14,7 @@ export function reserveSheetMotionBudget(element: HTMLElement): (settleMs?: numb
       && typeof svg.animationsPaused === "function" && !svg.animationsPaused());
   animations.forEach(animation => animation.pause());
   svgRoots.forEach(svg => svg.pauseAnimations());
+  window.dispatchEvent(new CustomEvent("linewatch:sheet-motion", { detail: { paused: true } }));
   let released = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const resume = () => {
@@ -24,6 +25,7 @@ export function reserveSheetMotionBudget(element: HTMLElement): (settleMs?: numb
       if (animation.playState === "paused") animation.play();
     });
     svgRoots.forEach(svg => { if (svg.isConnected) svg.unpauseAnimations(); });
+    window.dispatchEvent(new CustomEvent("linewatch:sheet-motion", { detail: { paused: false } }));
   };
   return (settleMs = 0) => {
     if (timer !== undefined) clearTimeout(timer);

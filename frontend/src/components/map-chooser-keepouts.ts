@@ -72,33 +72,60 @@ export function mutationChangesMapChooserKeepouts(records: MutationRecord[]): bo
 export function observeMapChooserKeepouts(onChange: () => void): () => void {
   const observedKeepouts = new Set<HTMLElement>();
   let animationFrame: number | null = null;
+  let active = false;
+
+  const chooserIsOpen = () => Boolean(document.querySelector("[data-overlap-chooser]"));
 
   const scheduleChange = () => {
+    if (!active) return;
     if (animationFrame !== null) return;
     animationFrame = window.requestAnimationFrame(() => {
       animationFrame = null;
+      if (!active) return;
       scan();
       onChange();
     });
   };
   const resizeObserver = new ResizeObserver(scheduleChange);
   const scan = () => {
+    if (!active) return;
     visibleMapChooserKeepouts().forEach((element) => {
       if (observedKeepouts.has(element)) return;
       observedKeepouts.add(element);
       resizeObserver.observe(element);
     });
   };
-  const mutationObserver = new MutationObserver((records) => {
+  // The chooser itself is the only consumer of these measurements. Start a
+  // scan when it mounts, then keep its placement current while it is open.
+  const attributeObserver = new MutationObserver((records) => {
     if (mutationChangesMapChooserKeepouts(records)) scheduleChange();
   });
-
-  scan();
-  mutationObserver.observe(document.body, {
-    attributes: true,
-    childList: true,
-    subtree: true,
+  const syncChooser = () => {
+    const next = chooserIsOpen();
+    if (active === next) return;
+    active = next;
+    if (active) {
+      attributeObserver.observe(document.body, { attributes: true, subtree: true });
+      scheduleChange();
+    } else {
+      attributeObserver.disconnect();
+      resizeObserver.disconnect();
+      observedKeepouts.clear();
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+      animationFrame = null;
+    }
+  };
+  const mutationObserver = new MutationObserver((records) => {
+    const chooserChanged = records.some((record) =>
+      [...record.addedNodes, ...record.removedNodes].some((node) =>
+        node instanceof Element && (node.matches("[data-overlap-chooser]") || node.querySelector("[data-overlap-chooser]")),
+      ),
+    );
+    if (chooserChanged) syncChooser();
+    if (active && mutationChangesMapChooserKeepouts(records)) scheduleChange();
   });
+  mutationObserver.observe(document.body, { childList: true, subtree: true });
+  syncChooser();
   window.addEventListener("resize", scheduleChange);
   window.addEventListener("scroll", scheduleChange, true);
   document.addEventListener("transitionrun", scheduleChange, true);
@@ -111,6 +138,7 @@ export function observeMapChooserKeepouts(onChange: () => void): () => void {
   return () => {
     if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
     mutationObserver.disconnect();
+    attributeObserver.disconnect();
     resizeObserver.disconnect();
     window.removeEventListener("resize", scheduleChange);
     window.removeEventListener("scroll", scheduleChange, true);
