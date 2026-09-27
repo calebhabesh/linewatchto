@@ -52,8 +52,7 @@ jobs:
           runs="$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
             -f head_sha="$sha" -f branch=main -f event=push -f per_page=100)"
           run_id="$(jq -r --arg sha "$sha" \
-            '[.workflow_runs[] | select(.head_sha == $sha)] | sort_by(.run_number) | last \
-            | select(.conclusion == "success") | .id // empty' <<< "$runs")"
+            '[.workflow_runs[] | select(.head_sha == $sha)] | sort_by(.run_number) | last | select(.conclusion == "success") | .id // empty' <<< "$runs")"
           [[ -n "$run_id" ]] || { echo "No successful latest main push CI run for $sha." >&2; exit 1; }
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
