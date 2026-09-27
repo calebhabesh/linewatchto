@@ -466,8 +466,9 @@ describe("station detail panel layout", () => {
   });
 
   it("uniformly increases spacing around station name, transit line badges, and Jump To grid on desktop while keeping mobile compact", () => {
-    // StationDetailHeader: relieves collision above station name on desktop
-    assert.match(stationHeaderSource, /-mt-1 md:mt-0\.5/);
+    // StationDetailHeader: relieves collision above station name on desktop, balances mobile vertical padding, and top-aligns Station label
+    assert.match(stationHeaderSource, /className="block leading-none text-\[10px\]/);
+    assert.match(stationHeaderSource, /my-0\.5 md:mb-0 md:mt-0\.5/);
 
     // StationDetailPanel line badges and scroll area desktop margins
     assert.match(panelSource, /md:mt-3\.5[\s\S]*?md:gap-2\.5[\s\S]*?data-station-header-line-details/);

@@ -2,7 +2,15 @@
 import { CardinalNorthIcon } from "./CardinalNorthIcon";
 
 import { useMapViewportPersistence } from "../hooks/useMapViewportPersistence";
-import { observeMobileMapFrame, readMapStationCenterX, readMobileMapFrameInsets, readMobileImpactInspectorInset } from "../hooks/mobileMapFrame";
+import {
+  observeMobileMapFrame,
+  readMapStationCenterX,
+  readMobileMapFrameInsets,
+  readMobileImpactInspectorInset,
+  readMobileImpactInspectorTop,
+  readMobilePillBottom,
+  readMobileStationSubmenuTop,
+} from "../hooks/mobileMapFrame";
 import { clearMapViewport } from "../app/map-viewport-preference";
 import { useRetainedHover } from "../hooks/useRetainedHover";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
@@ -26,7 +34,6 @@ import {
   type EstimatedTrainMarker,
 } from "../app/train-markers";
 import { useDashboardData } from "../app/DataContext";
-import { readStoredSheetHeightRatio } from "../hooks/useMobileDraggableSheet";
 import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
 import {
   getRegionalMapMarkup,
@@ -1273,11 +1280,25 @@ function InteractiveRegionalMapComponent({
     const effectiveFitScale = currentFitted?.scale ?? fitScale ?? 0.35;
     const preferredTargetScale = clampPanZoomScale(effectiveFitScale * (isMobile ? 3.8 : 1.8), effectiveFitScale);
     const focusPadding = isMobile ? 24 : 40;
+    const topPillBottom = isMobile ? readMobilePillBottom(viewport) : 0;
+    const mobileStationTop = isMobile && selectedStationId
+      ? readMobileStationSubmenuTop(viewport, logicalHeight)
+      : logicalHeight;
+    const mobileImpactTop = isMobile && selection
+      ? readMobileImpactInspectorTop(viewport, logicalHeight)
+      : logicalHeight;
+
     const focusInsets = {
       left: focusPadding,
       right: focusPadding,
-      top: Math.max(desktopMapTopInset, focusPadding),
-      bottom: Math.max(desktopMapBottomInset, focusPadding, readMobileImpactInspectorInset(viewport) + focusPadding),
+      top: isMobile
+        ? Math.max(focusPadding, topPillBottom)
+        : Math.max(desktopMapTopInset, focusPadding),
+      bottom: isMobile
+        ? (selectedStationId
+            ? Math.max(focusPadding, logicalHeight - mobileStationTop)
+            : Math.max(focusPadding, logicalHeight - mobileImpactTop))
+        : Math.max(desktopMapBottomInset, focusPadding, readMobileImpactInspectorInset(viewport) + focusPadding),
     };
 
     if (!isMobile) {
@@ -1289,13 +1310,12 @@ function InteractiveRegionalMapComponent({
 
     if (selectedStationId) {
       const targetScale = preferredTargetScale;
-      const storedRatio = readStoredSheetHeightRatio(typeof window !== "undefined" ? window.localStorage : null);
       const focusX = isMobile
         ? logicalWidth / 2
         : (logicalWidth + focusInsets.left - focusInsets.right) / 2;
       const focusY =
         isMobile && viewportOrientation !== "rotated-landscape"
-          ? (logicalHeight * (1 - storedRatio)) / 2
+          ? (topPillBottom + mobileStationTop) / 2
           : (viewportOrientation === "rotated-landscape" ? logicalHeight * 0.34 : logicalHeight / 2);
 
       animateCameraTo(snapCameraToDevicePixels({
@@ -1349,6 +1369,7 @@ function InteractiveRegionalMapComponent({
     logicalViewportSize,
     selectedMapElements,
     selectedStationId,
+    selection,
     viewportOrientation,
   ]);
 

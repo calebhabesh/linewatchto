@@ -34,7 +34,6 @@ import {
   type MapContentBounds,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
-import { readStoredSheetHeightRatio } from "../hooks/useMobileDraggableSheet";
 import { ZoomIn, ZoomOut, Locate, Sun, Moon, X } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import { NetworkSelector } from "./NetworkSelector";
@@ -79,7 +78,13 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
-import { observeMobileMapFrame, readMobileImpactInspectorInset } from "../hooks/mobileMapFrame";
+import {
+  observeMobileMapFrame,
+  readMobileImpactInspectorInset,
+  readMobileImpactInspectorTop,
+  readMobilePillBottom,
+  readMobileStationSubmenuTop,
+} from "../hooks/mobileMapFrame";
 import { useMapLabelFontReady } from "../hooks/useMapLabelFontReady";
 import { usePageVisibility } from "../hooks/usePageVisibility";
 import { useRotatedListDragScroll } from "../hooks/useRotatedListDragScroll";
@@ -1045,11 +1050,25 @@ function InteractiveTtcMapComponent({
     const isMobile = typeof window !== "undefined" && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches;
     const preferredTargetScale = clampPanZoomScale(effectiveFitScale * (isMobile ? 3.8 : 1.8), effectiveFitScale);
     const focusPadding = isMobile ? 24 : 40;
+    const topPillBottom = isMobile ? readMobilePillBottom(viewport) : 0;
+    const mobileStationTop = isMobile && selectedStationId
+      ? readMobileStationSubmenuTop(viewport, logicalHeight)
+      : logicalHeight;
+    const mobileImpactTop = isMobile && selection
+      ? readMobileImpactInspectorTop(viewport, logicalHeight)
+      : logicalHeight;
+
     const selectionFocusInsets = {
       left: focusPadding,
       right: focusPadding,
-      top: isMobile ? focusPadding : Math.max(desktopMapTopInset + 16, focusPadding),
-      bottom: Math.max(focusPadding, readMobileImpactInspectorInset(viewport) + focusPadding),
+      top: isMobile
+        ? Math.max(focusPadding, topPillBottom)
+        : Math.max(desktopMapTopInset + 16, focusPadding),
+      bottom: isMobile
+        ? (selectedStationId
+            ? Math.max(focusPadding, logicalHeight - mobileStationTop)
+            : Math.max(focusPadding, logicalHeight - mobileImpactTop))
+        : Math.max(focusPadding, readMobileImpactInspectorInset(viewport) + focusPadding),
     };
 
     if (!isMobile && typeof window !== "undefined") {
@@ -1067,13 +1086,12 @@ function InteractiveTtcMapComponent({
         const mapX = pt.x * scaleFactor;
         const mapY = pt.y * scaleFactor;
         const targetScale = preferredTargetScale;
-        const storedRatio = readStoredSheetHeightRatio(typeof window !== "undefined" ? window.localStorage : null);
         const focusX = isMobile
           ? logicalWidth / 2
           : (logicalWidth + selectionFocusInsets.left - selectionFocusInsets.right) / 2;
         const focusY =
           isMobile && viewportOrientation !== "rotated-landscape"
-            ? (logicalHeight * (1 - storedRatio)) / 2
+            ? (topPillBottom + mobileStationTop) / 2
             : (viewportOrientation === "rotated-landscape" ? logicalHeight * 0.34 : logicalHeight / 2);
 
         animateTransformTo({

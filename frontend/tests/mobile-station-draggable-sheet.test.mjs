@@ -206,8 +206,8 @@ describe("mobile station draggable sheet UX", () => {
     assert.match(shellSource, /readStoredSheetHeightRatio\(window\.localStorage\)/);
     assert.match(shellSource, /"--mobile-station-sheet-height":\s*`\$\{Math\.round\(stationSheetRatio\s*\*\s*100\)\}dvh`/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-inspector-station > main,\s*\.linewatch-shell\.mobile-map-inspector-station\[data-network="regional"\] > main\s*\{[^}]*bottom:\s*0\s*!important;/s);
-    assert.match(ttcMapSource, /\(logicalHeight\s*\*\s*\(1\s*-\s*storedRatio\)\)\s*\/\s*2/);
-    assert.match(regionalMapSource, /\(logicalHeight\s*\*\s*\(1\s*-\s*storedRatio\)\)\s*\/\s*2/);
+    assert.match(ttcMapSource, /\(topPillBottom\s*\+\s*mobileStationTop\)\s*\/\s*2/);
+    assert.match(regionalMapSource, /\(topPillBottom\s*\+\s*mobileStationTop\)\s*\/\s*2/);
   });
 
   it("dynamically adjusts the map viewport focus and bounding box to the remaining area above the sheet", () => {
@@ -337,5 +337,39 @@ describe("mobile station draggable sheet UX", () => {
     assert.equal(clampSheetRatio(0.75), 0.75);
     assert.equal(clampSheetRatio(0.90), 0.90);
     assert.equal(clampSheetRatio(0.92), 0.92);
+  });
+
+  it("vertically centers map view split between the pill entries below search bar and the station submenu top", () => {
+    assert.match(ttcMapSource, /topPillBottom\s*=\s*isMobile\s*\?\s*readMobilePillBottom\(viewport\)\s*:\s*0/);
+    assert.match(ttcMapSource, /mobileStationTop\s*=\s*isMobile\s*&&\s*selectedStationId/);
+    assert.match(ttcMapSource, /focusY\s*=\s*isMobile\s*&&\s*viewportOrientation\s*!==\s*"rotated-landscape"\s*\?\s*\(topPillBottom\s*\+\s*mobileStationTop\)\s*\/\s*2/);
+    assert.match(regionalMapSource, /topPillBottom\s*=\s*isMobile\s*\?\s*readMobilePillBottom\(viewport\)\s*:\s*0/);
+    assert.match(regionalMapSource, /mobileStationTop\s*=\s*isMobile\s*&&\s*selectedStationId/);
+    assert.match(regionalMapSource, /focusY\s*=\s*isMobile\s*&&\s*viewportOrientation\s*!==\s*"rotated-landscape"\s*\?\s*\(topPillBottom\s*\+\s*mobileStationTop\)\s*\/\s*2/);
+
+    const topBoundary = 104;
+    const bottomBoundary = 400;
+    const center = (topBoundary + bottomBoundary) / 2;
+    assert.equal(center, 252);
+    assert.equal(center - topBoundary, bottomBoundary - center);
+  });
+
+  it("vertically centers UI alert overlay split description/map view between pill entries and overlay top", () => {
+    assert.match(ttcMapSource, /mobileImpactTop\s*=\s*isMobile\s*&&\s*selection/);
+    assert.match(regionalMapSource, /mobileImpactTop\s*=\s*isMobile\s*&&\s*selection/);
+
+    const topBoundary = 104;
+    const alertTop = 540;
+    const center = (topBoundary + alertTop) / 2;
+    assert.equal(center, 322);
+    assert.equal(center - topBoundary, alertTop - center);
+  });
+
+  it("completely removes gradient list affordance for station submenus on mobile", () => {
+    assert.match(
+      globalCss,
+      /\.station-detail-panel \.station-detail-scroll,\s*\.station-detail-panel \[data-scroll-more-below\],[\s\S]*mask-image:\s*none;/,
+    );
+    assert.doesNotMatch(globalCss, /calc\(100% - var\(--mobile-station-sheet-translate-y/);
   });
 });

@@ -73,7 +73,11 @@ import {
   observeMapChooserKeepouts,
   visibleMapChooserKeepouts,
 } from "./map-chooser-keepouts";
-import { readMobileImpactInspectorInset } from "../hooks/mobileMapFrame";
+import {
+  readMobileImpactInspectorTop,
+  readMobilePillBottom,
+  readMobileStationSubmenuTop,
+} from "../hooks/mobileMapFrame";
 import {
   installTransitLayers,
   applyGeographicDynamicState,
@@ -162,16 +166,12 @@ const GEOGRAPHIC_CHOOSER_MIN_HEIGHT = 142;
 const GEOGRAPHIC_MOBILE_SELECTION_MAX_ZOOM = 14.75;
 
 function geographicMobileSelectionPadding(container: HTMLElement) {
-  const containerRect = container.getBoundingClientRect();
-  const topChromeBottom = visibleMapChooserKeepouts()
-    .filter((element) => element.matches(".mobile-app-topbar, .map-utility-cluster"))
-    .map((element) => element.getBoundingClientRect().bottom)
-    .filter((bottom) => bottom > containerRect.top && bottom < containerRect.bottom)
-    .reduce((bottom, nextBottom) => Math.max(bottom, nextBottom), containerRect.top);
+  const topPillBottom = readMobilePillBottom(container);
+  const inspectorTop = readMobileImpactInspectorTop(container, container.clientHeight);
 
   return {
-    top: Math.max(104, Math.ceil(topChromeBottom - containerRect.top + 16)),
-    bottom: Math.max(96, Math.ceil(readMobileImpactInspectorInset(container) + 32)),
+    top: Math.max(104, Math.ceil(topPillBottom + 16)),
+    bottom: Math.max(96, Math.ceil(container.clientHeight - inspectorTop + 16)),
     left: 72,
     right: 72,
   };
@@ -1240,10 +1240,18 @@ export function GeographicNetworkMap({
         const coords = getStationCoordinates(catalogRef.current, selectedStationId);
         if (coords) {
           const targetZoom = Math.max(map.getZoom(), STATION_FOCUS_ZOOM);
+          const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+          const container = containerRef.current;
+          const padding = isMobile && container ? {
+            top: readMobilePillBottom(container),
+            bottom: Math.max(0, container.clientHeight - readMobileStationSubmenuTop(container, container.clientHeight)),
+            left: 0,
+            right: 0,
+          } : undefined;
           if (reducedMotion) {
-            map.jumpTo({ center: coords, zoom: targetZoom });
+            map.jumpTo({ center: coords, zoom: targetZoom, padding });
           } else {
-            map.flyTo({ center: coords, zoom: targetZoom, essential: true });
+            map.flyTo({ center: coords, zoom: targetZoom, padding, essential: true });
           }
         }
       }

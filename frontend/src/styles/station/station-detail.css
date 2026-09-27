@@ -448,26 +448,14 @@
     padding-bottom: calc(var(--mobile-station-sheet-translate-y, 50dvh) + 16px + var(--mobile-safe-bottom, 0px));
   }
 
-  .linewatch-shell .station-detail-panel:not(.station-detail-sheet-dragging) .station-detail-scroll[data-scroll-more-below],
-  .linewatch-shell.mobile-map-inspector-station .station-detail-panel:not(.station-detail-sheet-dragging) .station-detail-scroll[data-scroll-more-below] {
-    -webkit-mask-image: linear-gradient(
-      to bottom,
-      #000 0,
-      #000 calc(100% - var(--mobile-station-sheet-translate-y, 50dvh) - 20px),
-      rgba(0, 0, 0, 0.85) calc(100% - var(--mobile-station-sheet-translate-y, 50dvh) - 12px),
-      rgba(0, 0, 0, 0.45) calc(100% - var(--mobile-station-sheet-translate-y, 50dvh) - 5px),
-      transparent calc(100% - var(--mobile-station-sheet-translate-y, 50dvh)),
-      transparent 100%
-    );
-    mask-image: linear-gradient(
-      to bottom,
-      #000 0,
-      #000 calc(100% - var(--mobile-station-sheet-translate-y, 50dvh) - 20px),
-      rgba(0, 0, 0, 0.85) calc(100% - var(--mobile-station-sheet-translate-y, 50dvh) - 12px),
-      rgba(0, 0, 0, 0.45) calc(100% - var(--mobile-station-sheet-translate-y, 50dvh) - 5px),
-      transparent calc(100% - var(--mobile-station-sheet-translate-y, 50dvh)),
-      transparent 100%
-    );
+  /* Completely remove gradient list affordance for station submenus on mobile (Android and iOS). */
+  .station-detail-panel .station-detail-scroll,
+  .station-detail-panel [data-scroll-more-below],
+  .linewatch-shell .station-detail-panel .station-detail-scroll,
+  .linewatch-shell.mobile-map-inspector-station .station-detail-panel .station-detail-scroll,
+  .linewatch-shell .station-detail-panel [data-scroll-more-below] {
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .station-sheet-drag-handle-container {

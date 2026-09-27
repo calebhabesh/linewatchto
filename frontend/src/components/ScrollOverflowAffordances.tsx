@@ -53,6 +53,13 @@ function updateOverflowAffordance(element: HTMLElement) {
       && element.scrollLeft + element.clientWidth < element.scrollWidth - 2);
     return;
   }
+  // Completely remove gradient list affordance for station submenus on mobile (Android and iOS)
+  if (typeof window !== "undefined" && window.innerWidth < 768) {
+    if (element.matches(".station-detail-scroll") || element.closest(".station-detail-panel")) {
+      element.removeAttribute(MORE_BELOW_ATTRIBUTE);
+      return;
+    }
+  }
   const hasVisibleViewport = element.clientHeight > 0;
   const hasMoreBelow = hasVisibleViewport
     && element.scrollHeight > element.clientHeight + 2

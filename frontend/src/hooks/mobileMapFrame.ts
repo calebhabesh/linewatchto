@@ -1,3 +1,5 @@
+import { readStoredSheetHeightRatio } from "./useMobileDraggableSheet.ts";
+
 const lastKnownMobileInsetsByShell = new WeakMap<object, Map<string, { top: number; bottom: number }>>();
 
 function getCachedInsets(shell: Element): { top: number; bottom: number } | null {
@@ -137,3 +139,83 @@ export function readMapStationCenterX(viewport: HTMLElement | null, stationId: s
   return new DOMPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)
     .matrixTransform(matrix).x;
 }
+
+/**
+ * Bottom boundary of the pill entries below the search bar in the mobile topbar.
+ * Returns the distance from the top of the viewport container to the bottom of the pill entries.
+ */
+export function readMobilePillBottom(viewport: HTMLElement | null): number {
+  if (!viewport || typeof window === "undefined") return 0;
+  const shell = viewport.closest?.(".linewatch-shell") ?? document.querySelector(".linewatch-shell");
+  const chips = shell?.querySelector<HTMLElement>(".mobile-app-chip-scroll");
+  if (chips) {
+    const chipsRect = chips.getBoundingClientRect?.();
+    if (chipsRect && chipsRect.bottom > 0) {
+      const viewportRect = viewport.getBoundingClientRect();
+      return Math.max(0, chipsRect.bottom - viewportRect.top);
+    }
+  }
+  const topbar = shell?.querySelector<HTMLElement>(".mobile-app-topbar");
+  if (topbar) {
+    const topbarRect = topbar.getBoundingClientRect?.();
+    if (topbarRect && topbarRect.bottom > 0) {
+      const viewportRect = viewport.getBoundingClientRect();
+      return Math.max(0, topbarRect.bottom - viewportRect.top);
+    }
+  }
+  return 0;
+}
+
+/**
+ * Top boundary of the station submenu sheet on mobile.
+ * Returns the distance from the top of the viewport container to the top of the station submenu.
+ */
+export function readMobileStationSubmenuTop(
+  viewport: HTMLElement | null,
+  fallbackViewportHeight: number,
+): number {
+  if (!viewport || typeof window === "undefined") {
+    const storedRatio = readStoredSheetHeightRatio(null);
+    return fallbackViewportHeight * (1 - storedRatio);
+  }
+  const shell = viewport.closest?.(".linewatch-shell") ?? document.querySelector(".linewatch-shell");
+  const panel = shell?.querySelector<HTMLElement>(".station-detail-panel");
+  if (panel) {
+    const panelRect = panel.getBoundingClientRect?.();
+    if (panelRect && panelRect.top > 0) {
+      const viewportRect = viewport.getBoundingClientRect();
+      return Math.max(0, panelRect.top - viewportRect.top);
+    }
+  }
+  const storedRatio = readStoredSheetHeightRatio(window.localStorage);
+  return fallbackViewportHeight * (1 - storedRatio);
+}
+
+/**
+ * Top boundary of the mobile impact/alert inspector overlay.
+ * Returns the distance from the top of the viewport container to the top of the inspector.
+ */
+export function readMobileImpactInspectorTop(
+  viewport: HTMLElement | null,
+  fallbackViewportHeight: number,
+): number {
+  if (!viewport || typeof window === "undefined") return fallbackViewportHeight;
+  const shell = viewport.closest?.(".linewatch-shell.mobile-map-inspector-impact") ?? document.querySelector(".linewatch-shell.mobile-map-inspector-impact");
+  const inspector = shell?.querySelector<HTMLElement>(".mobile-impact-inspector");
+  if (inspector) {
+    const inspectorRect = inspector.getBoundingClientRect?.();
+    const viewportRect = viewport.getBoundingClientRect();
+    if (inspectorRect && inspectorRect.top > 0) {
+      return Math.max(0, inspectorRect.top - viewportRect.top);
+    }
+    if (inspectorRect && inspectorRect.height > 0) {
+      return Math.max(0, fallbackViewportHeight - inspectorRect.height);
+    }
+  }
+  const inspectorInset = readMobileImpactInspectorInset(viewport);
+  if (inspectorInset > 0) {
+    return Math.max(0, fallbackViewportHeight - inspectorInset);
+  }
+  return fallbackViewportHeight;
+}
+

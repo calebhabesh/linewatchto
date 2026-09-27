@@ -29,10 +29,10 @@ export function StationDetailHeader({
   return (
     <header onPointerDown={onPointerDown} className="station-detail-header flex items-start justify-between gap-3 shrink-0">
       <div className="min-w-0 flex-1">
-        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 md:block md:leading-none">
+        <span className="block leading-none text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Station
         </span>
-        <h2 className="-mt-1 md:mt-0.5 break-words text-[32px] sm:text-4xl font-black tracking-tight leading-[1.1] text-slate-950 dark:text-white">
+        <h2 className="my-0.5 md:mb-0 md:mt-0.5 break-words text-[32px] sm:text-4xl font-black tracking-tight leading-[1.1] text-slate-950 dark:text-white">
           {stationName}
         </h2>
         {updating ? (

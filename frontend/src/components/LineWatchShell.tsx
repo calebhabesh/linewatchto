@@ -3493,6 +3493,7 @@ export function LineWatchShell({
     selection?.kind,
     selection?.id,
     selectedStationId,
+    stationSheetRatio,
   ]);
 
   const showMobileStatusPeek = !showClosedScreen && !rotatedMapMode && !showPwaInstallNudge && activeView === "map" && !selection && !selectedStationId && !commutePathPreview;
