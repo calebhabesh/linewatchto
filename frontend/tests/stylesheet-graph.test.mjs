@@ -1293,7 +1293,7 @@ describe("stylesheet-graph helper", () => {
     const analysis = analyzeStylesheetGraph();
     assert.equal(analysis.files.length, 53);
     assert.equal(analysis.vendorImports.length, 1);
-    assert.equal(analysis.ast.rules, 5601);
+    assert.equal(analysis.ast.rules, 5602);
     assert.equal(analysis.ast.importants, 518);
     assert.equal(analysis.ast.classSubstrings, 18);
   });

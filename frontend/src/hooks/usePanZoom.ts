@@ -632,9 +632,10 @@ export function usePanZoom({
 
   const startGestureInteraction = useCallback((pointerType: string) => {
     setUserGestureMotion(true);
-    setMapTransition("none");
+    // Preserve the idle desktop ease during a drag, matching the regional map.
+    // Reduced-motion and mobile modes already set the idle transition to none.
     dragPointerTypeRef.current = pointerType;
-  }, [setMapTransition, setUserGestureMotion]);
+  }, [setUserGestureMotion]);
 
   const captureActivePointers = useCallback((element: HTMLDivElement) => {
     for (const pointerId of activePointersRef.current.keys()) {

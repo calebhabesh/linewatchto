@@ -147,6 +147,13 @@
 .raster-map-top-plane { z-index: 3; }
 .raster-map-interaction-plane { z-index: 4; }
 
+/* Regional label PNGs use the SVG label viewBox, whose aspect ratio differs
+   from the full map stage. Match the hover SVG's centered meet projection so
+   switching between the two paint paths cannot move station names. */
+.regional-map-stage img.raster-map-plane--labels {
+  object-fit: contain;
+}
+
 /* The camera stage owns movement; it must not gain a transient will-change
    layer when Center or a direct gesture starts. */
 .linewatch-shell.mobile-performance-mode :is(.ttc-map-stage, .regional-map-stage) {
