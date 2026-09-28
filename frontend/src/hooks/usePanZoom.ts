@@ -510,7 +510,7 @@ export function usePanZoom({
   }, [defaultTransformForViewport, isMapCurrentlyActive, viewportOrientation]);
 
   useEffect(() => {
-    if (!isMapActive) return;
+    if (!isMapActive || document.visibilityState === "hidden") return;
     const el = containerRef.current;
     if (!el) return;
     const physicalWidth = el.clientWidth;
@@ -968,7 +968,8 @@ export function usePanZoom({
   }, [recenter, reducedMotion, persistenceKey]);
 
   const refitIfCameraUntouched = useCallback(() => {
-    if (!isMapCurrentlyActive()) return;
+    // Background layout measurements must never replace the rider's camera.
+    if (document.visibilityState === "hidden" || !isMapCurrentlyActive()) return;
     if (!cameraInitializedRef.current || cameraAdjustedByUserRef.current) return;
     moveToDefaultCamera(false, false);
   }, [isMapCurrentlyActive, moveToDefaultCamera]);

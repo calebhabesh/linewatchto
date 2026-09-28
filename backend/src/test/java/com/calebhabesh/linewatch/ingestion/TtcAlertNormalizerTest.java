@@ -218,6 +218,51 @@ class TtcAlertNormalizerTest {
     }
 
     @Test
+    void endedEarlyWebsiteAdvisoryIsNotRepublishedFromItsOldScheduleAndShuttleCopy() {
+        TtcFetchedRecord fetched = new TtcSubwayClosureParser().parse(
+            "completed-weekend", URI.create("https://www.ttc.ca/service-advisories/subway-service/example"),
+            """
+                <html><body>
+                  <h1>
+                    <span class="field-routename">Line 1 (Yonge-University)</span>
+                    <span class="field-satitle">ENDED EARLY - Finch to Sheppard-Yonge stations - Full weekend closure</span>
+                  </h1>
+                  <div class="sa-effective-date">
+                    <span class="field-starteffectivedate">September 25, 2026</span>
+                    <span class="field-endeffectivedate">September 27, 2026</span>
+                  </div>
+                  <div class="component content"><div class="u-type--body">
+                    <p>Subway service will be replaced by shuttle buses for planned signal work until Sunday.</p>
+                  </div></div>
+                </body></html>
+                """
+        );
+
+        assertThat(normalizer.normalizeRoute(fetched).shouldPersist()).isFalse();
+    }
+
+    @Test
+    void keepsLiveEndedEarlyClosureIdentityForItsLinkedParent() throws Exception {
+        TtcAlertRecord record = new ObjectMapper().findAndRegisterModules().readValue("""
+            {
+              "id": "completed-child", "alertType": "Planned", "route": "1", "routeType": "Subway",
+              "title": "Line 1 – ENDED EARLY - Full weekend closure",
+              "description": "Shuttle buses will replace subway service for planned track work until Sunday.",
+              "effect": "NO_SERVICE", "effectDesc": "Subway closure",
+              "stopStart": "Finch", "stopEnd": "Sheppard-Yonge",
+              "activePeriod": {"start": "2026-09-25T00:00:00Z", "end": "2026-09-28T00:00:00Z"}
+            }
+            """, TtcAlertRecord.class);
+
+        NormalizedRouteAlert normalized = normalizer.normalizeRoute(fetched(record)).projection().orElseThrow();
+
+        assertThat(normalized.sourceId()).isEqualTo("completed-child");
+        assertThat(normalized.impactKind()).isEqualTo(AlertImpactKind.PLANNED_CLOSURE);
+        assertThat(TtcServiceState.isRestoration(normalized)).isTrue();
+        assertThat(normalized.sourceUpdatedAt()).isNull();
+    }
+
+    @Test
     void marksExplicitCurrentParentPeriodAsContinuousWeekendClosure() throws Exception {
         String body = new String(
             getClass().getResourceAsStream(

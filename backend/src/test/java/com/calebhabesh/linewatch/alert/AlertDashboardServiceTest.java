@@ -15,6 +15,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -37,6 +38,44 @@ class AlertDashboardServiceTest {
         alertActivePeriodRepository,
         CLOCK
     );
+
+    @Test
+    void retainedEndedEarlyChildPreventsScheduledParentFromReappearing() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        AlertEntity parent = alert(
+            "ttc-route-parent", "planned-closure", "planned", "Weekend closure",
+            "Shuttle buses replace subway service.", "kipling", "jane", now.minusDays(1), "Will Operate"
+        );
+        ReflectionTestUtils.setField(parent, "activePeriodEnd", now.plusHours(8));
+        AlertEntity completed = alert(
+            "ttc-route-child", "planned-closure", "planned", "ENDED EARLY - Weekend closure",
+            "Shuttle buses replace subway service.", "kipling", "jane", null, "Will Operate"
+        );
+        ReflectionTestUtils.setField(completed, "active", false);
+        ReflectionTestUtils.setField(completed, "activePeriodEnd", now.minusMinutes(30));
+        when(alertRepository.findByActiveTrueAndType("planned-closure")).thenReturn(List.of(parent));
+        when(alertRepository.findByActiveFalseAndTypeAndSourceIdIn("planned-closure", Set.of("child")))
+            .thenReturn(List.of(completed));
+        when(alertActivePeriodRepository.findByAlertIds(List.of(parent.getId()))).thenReturn(Map.of(
+            parent.getId(), List.of(new AlertActivePeriodRepository.AlertPeriod(
+                parent.getId(), "child", now.minusDays(1), now.plusHours(8), 0
+            ))
+        ));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-kipling-jane", "line-2", "kipling", "jane", 0)
+        ));
+
+        assertThat(service.plannedClosures()).isEmpty();
+        assertThat(service.activePlannedClosures()).isEmpty();
+        assertThat(service.activeAlerts()).isEmpty();
+        assertThat(service.activeSegmentImpacts()).isEmpty();
+        assertThat(service.dashboardVisiblePlannedClosureIds()).isEmpty();
+        TtcDashboardReadModel readModel = service.createReadModel();
+        assertThat(readModel.plannedClosures()).isEmpty();
+        assertThat(readModel.activeAlerts()).isEmpty();
+        assertThat(readModel.segmentImpacts()).isEmpty();
+    }
 
     @Test
     void activeAlertsUseNormalizedActiveAlertTypeAndMatchedSegments() {

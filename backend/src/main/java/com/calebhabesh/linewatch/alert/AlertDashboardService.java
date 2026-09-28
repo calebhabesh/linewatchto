@@ -113,7 +113,7 @@ public class AlertDashboardService {
 
         List<TtcClosureProjector.ClosureProjection> closureProjections = plannedAlerts.isEmpty()
             ? List.of()
-            : closureProjector.project(plannedAlerts, periods, segments, now);
+            : projectPlannedClosures(plannedAlerts, periods, segments, now);
 
         List<AlertEntity> rszAlerts = activeAlerts.stream()
             .filter(a -> hasImpactKind(a, REDUCED_SPEED_ZONE_KIND))
@@ -253,12 +253,38 @@ public class AlertDashboardService {
         List<String> alertIds = sourceAlerts.stream().map(AlertEntity::getId).toList();
         Map<String, List<AlertActivePeriodRepository.AlertPeriod>> periodsByAlertId =
             periodRepository.findByAlertIds(alertIds);
-        return closureProjector.project(
+        return projectPlannedClosures(
             sourceAlerts,
             periodsByAlertId,
             segments,
             OffsetDateTime.now(clock)
         );
+    }
+
+    private List<TtcClosureProjector.ClosureProjection> projectPlannedClosures(
+        List<AlertEntity> activeAlerts,
+        Map<String, List<AlertActivePeriodRepository.AlertPeriod>> periods,
+        List<LineSegmentEntity> segments,
+        OffsetDateTime now
+    ) {
+        Set<String> linkedSourceIds = new LinkedHashSet<>();
+        for (List<AlertActivePeriodRepository.AlertPeriod> alertPeriods : periods.values()) {
+            for (AlertActivePeriodRepository.AlertPeriod period : alertPeriods) {
+                if (!isBlank(period.sourcePeriodId()) && !"parent".equalsIgnoreCase(period.sourcePeriodId())) {
+                    linkedSourceIds.add(period.sourcePeriodId());
+                }
+            }
+        }
+        List<AlertEntity> projectionSources = new ArrayList<>(activeAlerts);
+        if (!linkedSourceIds.isEmpty()) {
+            // A completed child remains authoritative for its exact occurrence even
+            // after missing-poll confirmation marks the retained record inactive.
+            alertRepository.findByActiveFalseAndTypeAndSourceIdIn(PLANNED_CLOSURE_TYPE, linkedSourceIds)
+                .stream()
+                .filter(alert -> TtcServiceState.hasEndedEarlyStatus(alert.getTitle()))
+                .forEach(projectionSources::add);
+        }
+        return closureProjector.project(projectionSources, periods, segments, now);
     }
 
     public List<PlannedClosureDto> activePlannedClosures() {

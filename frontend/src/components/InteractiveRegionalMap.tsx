@@ -738,7 +738,7 @@ function InteractiveRegionalMapComponent({
   }, [animateCameraTo, fittedCamera]);
 
   const refitUntouchedNetwork = useCallback(() => {
-    if (!isMapActiveRef.current) return;
+    if (document.visibilityState === "hidden" || !isMapActiveRef.current) return;
     if (!cameraInitializedRef.current || cameraAdjustedByUserRef.current) return;
     const fitted = fittedCamera();
     if (!fitted) return;
@@ -1080,6 +1080,7 @@ function InteractiveRegionalMapComponent({
   });
 
   const reconcileRegionalViewport = useCallback(() => {
+    if (document.visibilityState === "hidden") return;
     const viewport = viewportRef.current;
     if (!viewport || !isMapActiveRef.current || !cameraInitializedRef.current) return;
     const physicalWidth = viewport.clientWidth;
@@ -1136,7 +1137,7 @@ function InteractiveRegionalMapComponent({
     const viewport = viewportRef.current;
     if (!viewport) return;
     const observer = new ResizeObserver(() => {
-      if (!isMapActiveRef.current) return;
+      if (document.visibilityState === "hidden" || !isMapActiveRef.current) return;
       if (!cameraInitializedRef.current) {
         initializeMapCamera();
         return;
@@ -1155,8 +1156,25 @@ function InteractiveRegionalMapComponent({
       refitUntouchedNetwork();
       reconcileRegionalViewport();
     };
+    let resumeFrame: number | null = null;
+    const handleVisibilityChange = () => {
+      if (resumeFrame !== null) window.cancelAnimationFrame(resumeFrame);
+      resumeFrame = null;
+      if (document.visibilityState !== "visible") return;
+      // Reconcile a real window resize that happened while hidden. Unchanged
+      // dimensions leave the camera alone rather than fitting it again.
+      resumeFrame = window.requestAnimationFrame(() => {
+        resumeFrame = null;
+        reconcileRegionalViewport();
+      });
+    };
     window.addEventListener("resize", handleWindowResize);
-    return () => window.removeEventListener("resize", handleWindowResize);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("resize", handleWindowResize);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (resumeFrame !== null) window.cancelAnimationFrame(resumeFrame);
+    };
   }, [reconcileRegionalViewport, refitUntouchedNetwork]);
 
   useEffect(() => {

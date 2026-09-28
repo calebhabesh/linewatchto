@@ -463,6 +463,114 @@ class TtcClosureProjectorTest {
     }
 
     @Test
+    void endedEarlyChildRemovesCompletedWeekendClosureFromCurrentService() {
+        OffsetDateTime now = OffsetDateTime.parse("2026-09-27T17:00:00Z");
+        OffsetDateTime start = OffsetDateTime.parse("2026-09-26T03:59:00Z");
+        OffsetDateTime scheduledEnd = OffsetDateTime.parse("2026-09-28T04:00:00Z");
+
+        AlertEntity parent = withLine(alert(
+            "weekend-parent", "planned-closure", "planned",
+            "Line 1 full weekend closure", "Shuttle buses replace service.",
+            "finch", "sheppard-yonge", start, "Will Operate"
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(parent, "activePeriodStart", start);
+        ReflectionTestUtils.setField(parent, "activePeriodEnd", scheduledEnd);
+
+        AlertEntity child = withLine(alert(
+            "weekend-child", "planned-closure", "planned",
+            "Line 1 – ENDED EARLY - Finch to Sheppard-Yonge – Full weekend closure",
+            "Subway service will be replaced by shuttle buses until Sunday.",
+            "finch", "sheppard-yonge", now.minusMinutes(5), "Will Operate"
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(child, "activePeriodStart", start);
+        ReflectionTestUtils.setField(child, "activePeriodEnd", scheduledEnd);
+
+        Map<String, List<AlertPeriod>> periods = Map.of(
+            "weekend-parent", List.of(new AlertPeriod(
+                "weekend-parent", "weekend-child", start, scheduledEnd, 0
+            )),
+            "weekend-child", List.of(new AlertPeriod(
+                "weekend-child", "parent", start, scheduledEnd, 0
+            ))
+        );
+        List<LineSegmentEntity> segments = List.of(
+            segment("finch-sheppard-yonge", "line-1", "finch", "sheppard-yonge", 0)
+        );
+
+        assertThat(projector.project(List.of(parent, child), periods, segments, now)).isEmpty();
+    }
+
+    @Test
+    void endedEarlyNightlyOccurrenceKeepsLaterScheduledWindow() {
+        OffsetDateTime now = OffsetDateTime.parse("2026-09-27T17:00:00Z");
+        OffsetDateTime start = OffsetDateTime.parse("2026-09-27T04:00:00Z");
+        OffsetDateTime end = OffsetDateTime.parse("2026-09-27T21:00:00Z");
+        OffsetDateTime nextStart = OffsetDateTime.parse("2026-09-28T04:00:00Z");
+        OffsetDateTime nextEnd = OffsetDateTime.parse("2026-09-28T09:00:00Z");
+
+        AlertEntity parent = withLine(alert(
+            "nightly-parent", "planned-closure", "planned",
+            "Nightly planned closure", "Shuttles operate nightly.",
+            "finch", "sheppard-yonge", now.minusDays(1), "Will Operate"
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(parent, "activePeriodStart", start);
+        ReflectionTestUtils.setField(parent, "activePeriodEnd", nextEnd);
+        AlertEntity child = withLine(alert(
+            "nightly-child", "planned-closure", "planned",
+            "Line 1 – ENDED EARLY - nightly closure", "Service will resume tonight.",
+            "finch", "sheppard-yonge", now.minusMinutes(5), null
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(child, "activePeriodStart", start);
+        ReflectionTestUtils.setField(child, "activePeriodEnd", end);
+
+        List<ClosureProjection> projections = projector.project(
+            List.of(parent, child),
+            Map.of("nightly-parent", List.of(
+                new AlertPeriod("nightly-parent", "nightly-child", start, end, 0),
+                new AlertPeriod("nightly-parent", "next-child", nextStart, nextEnd, 1)
+            )),
+            List.of(),
+            now
+        );
+
+        assertThat(projections).singleElement().satisfies(projection -> {
+            assertThat(projection.activeNow()).isFalse();
+            assertThat(projection.activeClosureAlert()).isNull();
+            assertThat(projection.activeSegmentImpacts()).isEmpty();
+            assertThat(projection.canonicalClosure().timingStatus()).isEqualTo("upcoming");
+            assertThat(projection.canonicalClosure().nextWindowStart()).isEqualTo(nextStart);
+        });
+    }
+
+    @Test
+    void endedEarlyStandaloneClosureAndParentAreNotPublished() {
+        OffsetDateTime now = OffsetDateTime.parse("2026-09-27T17:00:00Z");
+        OffsetDateTime end = now.plusHours(12);
+        AlertEntity standalone = withLine(alert(
+            "standalone", "planned-closure", "planned",
+            "ENDED EARLY - Line 1 full weekend closure", "Closure was scheduled through Sunday.",
+            "finch", "sheppard-yonge", now.minusMinutes(5), null
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(standalone, "activePeriodEnd", end);
+        AlertEntity parent = withLine(alert(
+            "parent", "planned-closure", "planned",
+            "Line 1 – ENDED EARLY - full weekend closure", "Closure was scheduled through Sunday.",
+            "finch", "sheppard-yonge", now.minusMinutes(5), null
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(parent, "activePeriodEnd", end);
+
+        assertThat(projector.project(List.of(standalone), Map.of(), List.of(), now)).isEmpty();
+        AlertEntity child = withLine(alert(
+            "child", "planned-closure", "planned", "Weekend closure", "Shuttles operate.",
+            "finch", "sheppard-yonge", now.minusHours(1), "Will Operate"
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(child, "activePeriodEnd", end);
+        assertThat(projector.project(List.of(parent, child), Map.of(
+            "parent", List.of(new AlertPeriod("parent", "child", now.minusHours(1), end, 0))
+        ), List.of(), now)).isEmpty();
+    }
+
+    @Test
     void malformedAndPublicationEnvelopeWindowsFiltered() {
         OffsetDateTime now = OffsetDateTime.parse("2026-06-01T12:00:00Z");
 

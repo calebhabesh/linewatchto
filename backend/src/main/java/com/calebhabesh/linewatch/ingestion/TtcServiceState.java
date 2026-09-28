@@ -1,9 +1,20 @@
 package com.calebhabesh.linewatch.ingestion;
 
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 public final class TtcServiceState {
+    // Match TTC's editorial status label, not prose about subway service ending early.
+    private static final Pattern ENDED_EARLY_STATUS = Pattern.compile(
+        "(?:^|[-–—:])\\s*ended early\\s*(?:[-–—:]|$)",
+        Pattern.CASE_INSENSITIVE
+    );
+
     private TtcServiceState() {}
+
+    public static boolean hasEndedEarlyStatus(String title) {
+        return title != null && ENDED_EARLY_STATUS.matcher(title).find();
+    }
 
     public static boolean isRestoration(NormalizedRouteAlert alert) {
         return alert != null && isRestoration(
@@ -24,6 +35,9 @@ public final class TtcServiceState {
     ) {
         if ("NO_EFFECT".equalsIgnoreCase(effect)
             || "Regular".equalsIgnoreCase(severity)) {
+            return true;
+        }
+        if (hasEndedEarlyStatus(title)) {
             return true;
         }
         String text = String.join(" ",

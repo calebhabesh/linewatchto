@@ -111,8 +111,18 @@ public class TtcClosureProjector {
         List<LineSegmentEntity> safeSegments = segments == null ? List.of() : segments;
         Map<String, List<AlertPeriod>> safePeriods = periodsByAlertId == null ? Map.of() : periodsByAlertId;
 
+        // Keep completion signals from inactive or expired children. Their parent can
+        // still carry the original scheduled end after the child leaves the live feed.
+        Set<String> completedSourceIds = alerts.stream()
+            .filter(Objects::nonNull)
+            .filter(alert -> TtcServiceState.hasEndedEarlyStatus(alert.getTitle()))
+            .map(AlertEntity::getSourceId)
+            .filter(sourceId -> !AlertDashboardService.isBlank(sourceId))
+            .collect(Collectors.toSet());
+
         List<AlertEntity> sourceAlerts = alerts.stream()
             .filter(Objects::nonNull)
+            .filter(AlertEntity::isActive)
             .filter(alert -> alert.getType() == null || PLANNED_CLOSURE_TYPE.equalsIgnoreCase(alert.getType()))
             .filter(alert -> PLANNED_CLOSURE_KIND.equalsIgnoreCase(alert.getImpactKind()))
             .filter(alert -> isCurrentOrFuture(alert, evaluationTime))
@@ -150,7 +160,22 @@ public class TtcClosureProjector {
             .filter(alert -> !linkedChildSourceIds.contains(alert.getSourceId()))
             .map(alert -> {
                 List<AlertPeriod> periods = safePeriods.get(alert.getId());
+                boolean completedChildWindow = periods != null && periods.stream()
+                    .anyMatch(period -> !isParentPeriod(period)
+                        && completedSourceIds.contains(period.sourcePeriodId()));
+                if (completedChildWindow) {
+                    periods = periods.stream()
+                        .filter(period -> !isParentPeriod(period))
+                        .filter(period -> !completedSourceIds.contains(period.sourcePeriodId()))
+                        .toList();
+                    if (periods.isEmpty()) {
+                        return Optional.<ClosureProjection>empty();
+                    }
+                }
                 WindowState ws = windowState(alert, periods, evaluationTime);
+                if (completedChildWindow && "unknown".equals(ws.timingStatus())) {
+                    return Optional.<ClosureProjection>empty();
+                }
                 PlannedClosureDto canonicalClosure = toPlannedClosure(alert, safeSegments, ws, evaluationTime);
                 AlertEntity currentSourceAlert = ws.activeSourcePeriodId() == null
                     ? null
@@ -161,13 +186,14 @@ public class TtcClosureProjector {
                 ActiveAlertDto activeClosureAlert = ws.activeNow()
                     ? toActiveClosureAlert(activePresentation, currentSourceAlert, canonicalClosure.id())
                     : null;
-                return new ClosureProjection(
+                return Optional.of(new ClosureProjection(
                     canonicalClosure,
                     currentSourceAlert,
                     activePresentation,
                     activeClosureAlert
-                );
+                ));
             })
+            .flatMap(Optional::stream)
             .toList();
     }
 
