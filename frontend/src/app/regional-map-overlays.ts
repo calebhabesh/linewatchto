@@ -1327,13 +1327,11 @@ export function regionalCollisionAdjustedOverlapBadges(
           ...occupiedBoxes,
           ...alertOverlayBoxes,
           ...stationAlertBoxes,
+          // Reused and aligned positions must also clear unalerted routes.
+          ...transitLineBoxes,
         ];
         const hardOverlapArea = hardCollisionBoxes.reduce(
           (total, occupied) => total + regionalCollisionIntersectionArea(box, occupied),
-          0,
-        );
-        const transitLineOverlapArea = transitLineBoxes.reduce(
-          (total, transitLine) => total + regionalCollisionIntersectionArea(box, transitLine),
           0,
         );
         const preferredDeviation = Math.hypot(
@@ -1351,7 +1349,6 @@ export function regionalCollisionAdjustedOverlapBadges(
           stable,
           aligned,
           score: hardOverlapArea * 1_000_000
-            + transitLineOverlapArea * 10_000
             + anchorDistance
             + preferredDeviation * 0.05,
         };
@@ -1987,6 +1984,8 @@ export function installRegionalOverlaySession(
     }
 
     for (const closure of data.plannedClosures) {
+      // A corridor preview uses its rail without drawing rings at each station.
+      if (closure.previewSegmentIds.length > 0) continue;
       for (const stationId of closure.previewStationIds ?? []) {
         const stationVisual = svg.querySelector<SVGElement>(`#station-${CSS.escape(stationId)}`);
         if (!stationVisual) continue;

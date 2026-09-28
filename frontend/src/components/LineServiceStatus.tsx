@@ -1,6 +1,15 @@
 import { Plus } from "lucide-react";
 import { lineAdvisoryCountLabel, type LineStatusPresentation } from "../app/current-service";
 
+export function LineAdvisoryCount({ count }: { count: number }) {
+  return (
+    <span className="line-service-advisory-count current-service-notice-service">
+      <Plus size={12} strokeWidth={2.5} aria-hidden="true" />
+      {lineAdvisoryCountLabel(count)}
+    </span>
+  );
+}
+
 export function LineServiceStatus({ presentation }: { presentation: LineStatusPresentation }) {
   return (
     <span className="line-service-conditional">
@@ -10,10 +19,7 @@ export function LineServiceStatus({ presentation }: { presentation: LineStatusPr
       </svg>
       <strong>{presentation.label}</strong>
       {presentation.advisoryCount ? (
-        <span className="line-service-advisory-count current-service-notice-service">
-          <Plus size={12} strokeWidth={2.5} aria-hidden="true" />
-          {lineAdvisoryCountLabel(presentation.advisoryCount)}
-        </span>
+        <LineAdvisoryCount count={presentation.advisoryCount} />
       ) : null}
     </span>
   );

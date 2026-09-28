@@ -37,7 +37,7 @@ import {
 } from "../app/regional-arrivals";
 import type { StationSummary } from "../app/station-data";
 import type { AccessibilityOutageDetail } from "../app/accessibility-outage-data";
-import { stationImpactSelection } from "../app/station-impact-types";
+import { plannedClosuresForStation, stationImpactSelection } from "../app/station-impact-types";
 import { formatImpactTimestamp } from "../app/impact-time";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
@@ -364,20 +364,12 @@ export function RegionalStationDetailPanel({
         add(impact.kind, impact.cardId, card?.title ?? `${segment.label} impact`);
       }
     }
-    // Upcoming closures are preview geometry, not current network impacts.
-    const stationSegmentIds = new Set(dashboard.networkSegments
-      .filter((segment) => segment.stationAId === station.id || segment.stationBId === station.id)
-      .map((segment) => segment.id));
-    for (const closure of dashboard.plannedClosures) {
-      if (closure.previewStationIds?.includes(station.id)
-        || closure.previewSegmentIds.some((id) => stationSegmentIds.has(id))) {
-        const selection = stationImpactSelection(closure.id, dashboard);
-        if (selection) add(selection.kind, selection.id, closure.title);
-      }
+    for (const closure of plannedClosuresForStation(station.id, dashboard.plannedClosures, dashboard.networkSegments)) {
+      const selection = stationImpactSelection(closure.id, dashboard);
+      if (selection) add(selection.kind, selection.id, closure.title);
     }
     return [...related.values()];
   }, [dashboard, station.id]);
-  const currentImpacts = impacts.filter((impact) => impact.tone !== "planned");
   const arrivalGroups = sortArrivalGroupsByPinnedLine(
     groupRegionalStationArrivals(arrivalSnapshot.arrivals, station.id),
     pinnedLineIds,
@@ -540,6 +532,33 @@ export function RegionalStationDetailPanel({
       behavior: "smooth",
       block: "start",
     });
+  };
+
+  const handleJumpToStationImpact = (impact: RegionalStationImpact) => {
+    const impactElement = document.getElementById(`station-impact-${impact.kind}-${impact.id}`);
+    if (!impactElement) return;
+
+    const section = impactElement.closest("details");
+    if (section) section.open = true;
+    const scroller = impactElement.closest<HTMLElement>(".station-detail-scroll");
+    if (scroller) {
+      const top = scroller.scrollTop
+        + impactElement.getBoundingClientRect().top
+        - scroller.getBoundingClientRect().top
+        - scroller.clientTop
+        - 8;
+      scroller.scrollTo({
+        top: Math.max(0, top),
+        behavior: reducedMotion ? "instant" : "smooth",
+      });
+    }
+
+    impactElement.classList.remove("station-impact-card-highlight");
+    void impactElement.offsetWidth;
+    impactElement.classList.add("station-impact-card-highlight");
+    window.setTimeout(() => {
+      impactElement.classList.remove("station-impact-card-highlight");
+    }, 2200);
   };
 
   const isGoRailStation = station.lineIds.some((id) => id !== "regional-up");
@@ -724,7 +743,7 @@ export function RegionalStationDetailPanel({
           />
 
           <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto md:mt-3.5 mt-2 pb-3 station-detail-scroll station-detail-section-stack">
-            {currentImpacts.length > 0 && (
+            {impacts.length > 0 && (
               <div
                 className="station-detail-disruption-card flex w-full flex-wrap items-center justify-start gap-2.5 shrink-0 rounded-md p-2.5 text-xs font-semibold"
                 data-station-disruption-warning
@@ -734,13 +753,13 @@ export function RegionalStationDetailPanel({
                   <span className="station-disruption-heading-text">Schedule May Be Disrupted:</span>
                 </div>
                 <div className="station-impact-jump-actions">
-                  {currentImpacts.map((impact) => (
+                  {impacts.map((impact) => (
                     <button
                       key={`${impact.kind}:${impact.id}`}
                       type="button"
-                      onClick={() => onSelectImpact({ kind: impact.kind, id: impact.id })}
-                      aria-label={`Open ${impact.classification} details: ${impact.title}`}
-                      title={`Open ${impact.classification}: ${impact.title}`}
+                      onClick={() => handleJumpToStationImpact(impact)}
+                      aria-label={`Jump to station impact: ${impact.classification} - ${impact.title}`}
+                      title={`Jump to ${impact.classification}: ${impact.title}`}
                       className="station-impact-jump-button"
                     >
                       <RegionalStationImpactIcon impact={impact} size={17} />
@@ -1303,6 +1322,7 @@ export function RegionalStationDetailPanel({
                     impacts.map((impact) => (
                       <div
                         key={`${impact.kind}:${impact.id}`}
+                        id={`station-impact-${impact.kind}-${impact.id}`}
                         data-station-impact-tone={impact.tone}
                         className={stationImpactCardClassName(impact.tone)}
                       >

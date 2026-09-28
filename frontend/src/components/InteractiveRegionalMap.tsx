@@ -475,7 +475,9 @@ function InteractiveRegionalMapComponent({
   const selectionIntroTimerRef = useRef<number | null>(null);
   const readyNotifiedRef = useRef(false);
   const sessionRef = useRef<RegionalOverlaySession | null>(null);
-  useEffect(() => {
+  // Dispose the previous SVG session before layout effects install its replacement.
+  // Passive cleanup runs too late and can dispose the newly installed session.
+  useLayoutEffect(() => {
     return () => {
       sessionRef.current?.dispose();
       sessionRef.current = null;

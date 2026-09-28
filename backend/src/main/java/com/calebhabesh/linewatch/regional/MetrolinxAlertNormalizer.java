@@ -41,7 +41,7 @@ public class MetrolinxAlertNormalizer {
         "MODIFIED_SERVICE", "DETOUR", "NO_EFFECT", "OTHER_EFFECT", "UNKNOWN_EFFECT"
     );
     private static final List<String> NO_SERVICE_PHRASES = List.of(
-        "no go train service", "no train service", "no rail service", "service suspended",
+        "no go train service", "no go transit service", "no train service", "no rail service", "service suspended",
         "service suspension", "all trips cancelled", "all trains cancelled", "trains are not running",
         "trains not running", "line closed", "planned closure", "rail service is closed"
     );
@@ -152,6 +152,25 @@ public class MetrolinxAlertNormalizer {
             .toList();
         String title = text(message, "SubjectEnglish");
         String description = text(message, "BodyEnglish");
+        // Information/E-Ticket records can omit Lines while naming the corridor in
+        // the subject. Resolve that rail identity before classify() filters unmapped rows.
+        // Explicit bus or unrecognized route tags must never become rail alerts.
+        if (values(message.path("Lines"), "Code").isEmpty() && !stationIds.isEmpty()) {
+            String subject = title.toLowerCase(Locale.CANADA);
+            List<String> namedLines = RegionalNetworkCatalog.routes().stream()
+                .filter(route -> subject.contains(route.name().toLowerCase(Locale.CANADA) + " line")
+                    || ("UP".equals(route.number()) && subject.contains("up express")))
+                .filter(route -> route.stationIds().containsAll(stationIds))
+                .map(RegionalNetworkCatalog.Route::id).toList();
+            if (!namedLines.isEmpty()) {
+                lineIds = namedLines;
+            } else {
+                List<String> candidates = RegionalNetworkCatalog.routes().stream()
+                    .filter(route -> route.stationIds().containsAll(stationIds))
+                    .map(RegionalNetworkCatalog.Route::id).toList();
+                if (candidates.size() == 1) lineIds = candidates;
+            }
+        }
         String category = text(message, "Category");
         String subcategory = text(message, "SubCategory");
         List<String> tripNumbers = values(message.path("Trips"), "TripNumber").stream()

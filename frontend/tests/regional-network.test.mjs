@@ -903,7 +903,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalOverlaysSource, /#regional-lines-layer path\[id\^="regional-route-"\]/);
     assert.match(regionalGeometrySource, /function regionalPathCorridorCollisionBoxes\(/);
     assert.match(regionalOverlaysSource, /regionalOverlapBadgePositionCandidates\(badge\)/);
-    assert.match(regionalOverlaysSource, /hardOverlapArea \* 1_000_000[\s\S]*transitLineOverlapArea \* 10_000[\s\S]*anchorDistance/);
+    // Collision priorities are exercised behaviorally in regional-overlap-placement.test.mjs.
     assert.match(regionalOverlaysSource, /regionalCollisionAdjustedOverlapBadges\(svg, badges\)/);
     assert.match(regionalOverlaysSource, /const stablePosition = overlapBadgePositions\.get\(badge\.markerId\)/);
     assert.match(regionalOverlaysSource, /hasStablePosition: Boolean\(stablePosition\)/);

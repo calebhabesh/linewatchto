@@ -950,6 +950,12 @@
   height: auto;
 }
 
+.line-impact-panel-stack > .embedded-impact-panel > .alert-stack,
+.line-impact-panel-stack > .embedded-impact-panel > .closure-stack {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 .embedded-impact-panel + .embedded-impact-panel > .alert-stack,
 .embedded-impact-panel + .embedded-impact-panel > .closure-stack {
   padding-top: 0;

@@ -226,10 +226,13 @@ describe("station detail panel layout", () => {
     assert.match(regionalPanelSource, /ref=\{accessibilityDetailsRef\}/);
   });
 
-  it("warns about current regional service impacts without treating upcoming closures as disruptions", () => {
-    assert.match(regionalPanelSource, /currentImpacts = impacts\.filter\(\(impact\) => impact\.tone !== "planned"\)/);
-    assert.match(regionalPanelSource, /currentImpacts\.length > 0 &&[\s\S]*?data-station-disruption-warning/);
-    assert.match(regionalPanelSource, /currentImpacts\.map\(\(impact\) =>[\s\S]*?onClick=\{\(\) => onSelectImpact\(\{ kind: impact\.kind, id: impact\.id \}\)\}/);
+  it("jumps from regional station warnings to planned closure cards", () => {
+    assert.match(regionalPanelSource, /plannedClosuresForStation\(station\.id, dashboard\.plannedClosures, dashboard\.networkSegments\)/);
+    assert.match(regionalPanelSource, /impacts\.length > 0 &&[\s\S]*?data-station-disruption-warning/);
+    assert.match(regionalPanelSource, /impacts\.map\(\(impact\) =>[\s\S]*?onClick=\{\(\) => handleJumpToStationImpact\(impact\)\}/);
+    assert.match(regionalPanelSource, /id=\{`station-impact-\$\{impact\.kind\}-\$\{impact\.id\}`\}/);
+    assert.match(panelSource, /plannedClosuresForStation\(station\.id, plannedClosures, networkSegments\)/);
+    assert.match(panelSource, /stationPlannedClosures\.length > 0/);
   });
 
   it("provides quick jump icon navigation for subsections in both TTC and Regional station panels", () => {
@@ -269,7 +272,7 @@ describe("station detail panel layout", () => {
 
     const regionalLineHeaderIdx = regionalPanelSource.indexOf("data-station-header-line-details");
     const regionalNavIdx = regionalPanelSource.indexOf("<StationSubmenuNavButtons");
-    const regionalScrollIdx = regionalPanelSource.indexOf("station-detail-scroll");
+    const regionalScrollIdx = regionalPanelSource.indexOf("station-detail-scroll station-detail-section-stack", regionalNavIdx);
     assert.ok(regionalLineHeaderIdx !== -1 && regionalNavIdx !== -1 && regionalScrollIdx !== -1);
     assert.ok(regionalLineHeaderIdx < regionalNavIdx, "Regional nav buttons must be below line badges");
     assert.ok(regionalNavIdx < regionalScrollIdx, "Regional nav buttons must be above scrollable content stack");

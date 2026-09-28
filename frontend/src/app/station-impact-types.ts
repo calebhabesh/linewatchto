@@ -140,3 +140,20 @@ export function stationImpactSelectionsByStation(data: StationImpactRouteData) {
     [...selectionsByStation].map(([stationId, selections]) => [stationId, [...selections.values()]]),
   );
 }
+
+export function plannedClosuresForStation<T extends Pick<PlannedClosure, "id" | "previewSegmentIds" | "previewStationIds">>(
+  stationId: string,
+  plannedClosures: T[],
+  networkSegments: Pick<NetworkSegment, "id" | "stationAId" | "stationBId">[],
+): T[] {
+  const stationSegmentIds = new Set(
+    networkSegments
+      .filter((segment) => segment.stationAId === stationId || segment.stationBId === stationId)
+      .map((segment) => segment.id),
+  );
+
+  return plannedClosures.filter((closure) =>
+    closure.previewStationIds?.includes(stationId)
+    || closure.previewSegmentIds.some((segmentId) => stationSegmentIds.has(segmentId)),
+  );
+}

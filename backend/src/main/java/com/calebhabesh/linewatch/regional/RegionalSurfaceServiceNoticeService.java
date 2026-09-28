@@ -85,11 +85,19 @@ public class RegionalSurfaceServiceNoticeService {
         NoticeDetail ordinary = normalize(record);
         List<NoticeDetail> notices = new ArrayList<>();
         if (ordinary != null) notices.add(ordinary);
-        if (!MetrolinxSourceSystem.GO_SERVICE_ALERTS.equals(record.sourceSystem())
-            || record.classificationJson() == null) return notices;
+        if (!Set.of(MetrolinxSourceSystem.GO_SERVICE_ALERTS,
+                MetrolinxSourceSystem.GO_INFORMATION_ALERTS, MetrolinxSourceSystem.GO_MARKETING_ALERTS)
+            .contains(record.sourceSystem()) || record.classificationJson() == null) return notices;
         try {
             RegionalAlertClassification classification = objectMapper.readValue(
                 record.classificationJson(), RegionalAlertClassification.class);
+            // A verified rail impact belongs to the canonical dashboard. Preserve
+            // separate timetable/uncertain clauses below, but omit its generic duplicate.
+            var feed = new MetrolinxFeed(record.lastSeenAt(), List.of(), Map.of());
+            boolean canonicalImpact = new MetrolinxAlertNormalizer(objectMapper, clock)
+                .normalize(feed, List.of(classification)).stream()
+                .anyMatch(alert -> !"advisory".equals(alert.impactKind()));
+            if (canonicalImpact) notices.clear();
             JsonNode message = objectMapper.readTree(record.rawPayload());
             List<String> routes = values(message.path("Lines"), "Code").stream()
                 .map(this::canonicalRouteCode).distinct().toList();

@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 import {
   distinctStationImpacts,
+  plannedClosuresForStation,
   stationImpactKindsByStation,
   stationImpactSelection,
   stationImpactSelectionsByStation,
@@ -17,6 +18,20 @@ const outageBadge = readFileSync(new URL("../src/components/StationOutageBadge.t
 const styles = readAppStylesheet();
 
 describe("station impact type badges", () => {
+  it("matches planned closures to a station through preview stations or adjacent segments", () => {
+    const closures = plannedClosuresForStation(
+      "sheppard-yonge",
+      [
+        { id: "station-closure", previewStationIds: ["sheppard-yonge"], previewSegmentIds: [] },
+        { id: "segment-closure", previewStationIds: [], previewSegmentIds: ["line-4-sheppard-yonge-bayview"] },
+        { id: "other-closure", previewStationIds: ["bayview"], previewSegmentIds: [] },
+      ],
+      [{ id: "line-4-sheppard-yonge-bayview", stationAId: "sheppard-yonge", stationBId: "bayview" }],
+    );
+
+    assert.deepEqual(closures.map((closure) => closure.id), ["station-closure", "segment-closure"]);
+  });
+
   it("resolves Reduced Speed Zone source alerts before their broad delay severity", () => {
     const selection = stationImpactSelection("rsz-source-1", {
       activeAlerts: [{

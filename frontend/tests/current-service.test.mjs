@@ -448,7 +448,7 @@ test("getPlannedClosureCountBadgeLabel formats planned closure count badge", () 
   assert.equal(getPlannedClosureCountBadgeLabel(5), "5 Planned Closures");
 });
 
-test("sub-badges and surface routes use flex alignment without letter wrapping", () => {
+test("sub-badges and surface routes use flex alignment with safe wrapping", () => {
   const currentServiceStyles = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
   const desktopChromeStyles = readFileSync(new URL("../src/styles/shell/desktop-chrome.css", import.meta.url), "utf8");
 
@@ -457,11 +457,11 @@ test("sub-badges and surface routes use flex alignment without letter wrapping",
   assert.match(currentServiceStyles, /\.current-service-planned-pill\s*\{[^}]*white-space:\s*nowrap;/s);
   assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*padding-left:\s*0;/s);
   assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*flex-direction:\s*row;/s);
-  assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*flex-wrap:\s*nowrap;/s);
+  assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*flex-wrap:\s*wrap;/s);
   assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*margin-top:\s*5px;/s);
 
   assert.match(desktopChromeStyles, /\.desktop-status-sub-badges\s*\{[^}]*flex-direction:\s*row;/s);
-  assert.match(desktopChromeStyles, /\.desktop-status-sub-badges\s*\{[^}]*flex-wrap:\s*nowrap;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-sub-badges\s*\{[^}]*flex-wrap:\s*wrap;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-sub-badges\s*\{[^}]*margin-top:\s*5px;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-kicker-header\s*\{[^}]*margin-top:\s*-6px;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-kicker-header\s*\{[^}]*margin-bottom:\s*-2px;/s);

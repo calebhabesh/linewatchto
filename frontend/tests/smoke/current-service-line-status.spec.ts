@@ -65,3 +65,42 @@ for (const network of ["ttc", "regional"] as const) {
     });
   }
 }
+
+test("urgent line rows also show their non-urgent advisory count", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await installDismissedTransientUi(page);
+  await page.setViewportSize({ width: isMobile ? 360 : 1440, height: 900 });
+  await page.route("**/api/dashboard?network=ttc", async (route) => {
+    const response = await request.get(`${stubUrl}/api/dashboard?network=ttc`);
+    const payload = await response.json();
+    const line = payload.status.lines[0];
+    payload.status.lines = payload.status.lines.map((candidate: Record<string, unknown>) => ({
+      ...candidate, status: "normal", statusLabel: "Normal Service",
+    }));
+    payload.activeAlerts = [{ ...payload.activeAlerts[0], lineId: line.id, lineNumber: line.number }];
+    payload.delays = [];
+    payload.reducedSpeedZones = [{ ...payload.reducedSpeedZones[0], lineId: line.id, lineNumber: line.number }];
+    payload.plannedClosures = [{
+      ...payload.plannedClosures[0],
+      lineId: line.id,
+      lineNumber: line.number,
+      activeNow: false,
+      timingStatus: "upcoming",
+      nextWindowStart: "2026-08-20T03:00:00Z",
+      nextWindowEnd: "2026-08-20T06:00:00Z",
+    }];
+    await route.fulfill({ response, json: payload });
+  });
+
+  await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
+  if (isMobile) await page.getByRole("button", { name: "Expand service sheet" }).click();
+  const line = page.locator(isMobile ? ".current-service-line" : ".desktop-status-rail-line-group").first();
+  const advisoryCount = line.locator(".line-service-advisory-count");
+  await expect(advisoryCount).toHaveText("2 advisories");
+  const countFits = await advisoryCount.evaluate((element) => {
+    const row = element.parentElement?.getBoundingClientRect();
+    const count = element.getBoundingClientRect();
+    return Boolean(row && count.left >= row.left - 1 && count.right <= row.right + 1);
+  });
+  expect(countFits).toBe(true);
+});

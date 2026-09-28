@@ -20,7 +20,7 @@ import { DESKTOP_SERVICE_SHEET_STORAGE_KEY, parseDesktopServiceSheetPosition } f
 import { LineBadge } from "./ImpactCardFields";
 import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
-import { LineServiceStatus } from "./LineServiceStatus";
+import { LineAdvisoryCount, LineServiceStatus } from "./LineServiceStatus";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { goNoticeRouteBadgeStyle, goNoticeRouteLabel } from "../app/go-bus-route-colors";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
@@ -304,6 +304,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
         rows,
         closureCount,
         rszCount,
+        advisoryCount: closureCount + rszCount,
       };
     })
     .filter((item) => item.rows.length > 0);
@@ -447,6 +448,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                         </span>
                       </button>
                     )}
+                    {item.advisoryCount > 0 && <LineAdvisoryCount count={item.advisoryCount} />}
                   </div>
                 )}
               </div>

@@ -161,6 +161,31 @@ class RegionalSurfaceServiceNoticeServiceTest {
             .singleElement().satisfies(notice -> assertThat(notice.routeIds()).containsExactly("KI"));
     }
 
+    @Test
+    void canonicalConstructionClosureDoesNotAlsoAppearAsAnOrdinaryServiceChange() throws Exception {
+        String payload = """
+            {"Code":"BLOOR-CLOSURE", "PostedDateTime":"2026-07-28 09:00:00",
+             "SubjectEnglish":"Kitchener Line Service Adjustments Oct. 3-4",
+             "BodyEnglish":"No GO Transit service at this station due to planned construction.",
+             "SubCategory":"E-Ticket", "Lines":[], "Stops":[{"Code":"BL"}]}
+            """;
+        var source = new MetrolinxFetchedRecord(MetrolinxSourceSystem.GO_INFORMATION_ALERTS,
+            "BLOOR-CLOSURE", payload);
+        var feed = new MetrolinxFeed(OffsetDateTime.now(CLOCK), List.of(source), java.util.Map.of());
+        var normalizer = new MetrolinxAlertNormalizer(CLOCK);
+        var classifications = normalizer.classify(feed);
+        assertThat(normalizer.normalize(feed, classifications)).singleElement()
+            .satisfies(alert -> assertThat(alert.impactKind()).isEqualTo("planned-closure"));
+        var mapper = new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules();
+        when(freshness.isFresh()).thenReturn(true);
+        when(properties.getMaxDashboardAge()).thenReturn(java.time.Duration.ofMinutes(10));
+        when(repository.findActiveRecords(any())).thenReturn(List.of(
+            new RegionalSurfaceServiceNoticeReadRepository.SourceRecord(source.sourceSystem(),
+                source.sourceId(), payload, OffsetDateTime.now(CLOCK),
+                mapper.writeValueAsString(classifications.getFirst()))));
+        assertThat(service().getSurfaceNotices(null, null, null).notices()).isEmpty();
+    }
+
     private RegionalSurfaceServiceNoticeService service() {
         return new RegionalSurfaceServiceNoticeService(repository, freshness,
             new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules(), CLOCK, properties);

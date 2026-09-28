@@ -1,4 +1,5 @@
 import { expect, test, type Locator } from "@playwright/test";
+import { installDismissedTransientUi } from "./test-support";
 
 const stubUrl = process.env.LINEWATCH_SMOKE_STUB_URL ?? "http://127.0.0.1:4174";
 const openMapPreviewUrl = "/?previewTime=2026-08-14T16:00:00.000Z";
@@ -97,11 +98,7 @@ test("overlapping count glyphs stay inside their badge through viewport and cont
 
 test("TTC and GO/UP map overlap counts stay bounded through mobile compositor changes", async ({ page, request, isMobile }) => {
   await page.setViewportSize(isMobile ? { width: 412, height: 915 } : { width: 1280, height: 800 });
-  await page.addInitScript(() => {
-    window.localStorage.setItem("linewatch-welcome-seen-v1", "true");
-    window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
-    window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
-  });
+  await installDismissedTransientUi(page);
 
   await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
   await page.goto(openMapPreviewUrl);

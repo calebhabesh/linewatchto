@@ -3002,7 +3002,7 @@
   align-items: center;
   display: flex;
   flex-direction: row;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 5px;
   margin-top: 5px;
   max-width: 100%;

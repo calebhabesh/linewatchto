@@ -189,7 +189,7 @@ describe("mobile station draggable sheet UX", () => {
 
     // Verify RegionalStationDetailPanel layout order as well
     const regNavIndex = regionalPanelSource.indexOf("<StationSubmenuNavButtons");
-    const regScrollIndex = regionalPanelSource.indexOf("station-detail-scroll");
+    const regScrollIndex = regionalPanelSource.indexOf("station-detail-scroll station-detail-section-stack", regNavIndex);
     const regOutageIndex = regionalPanelSource.indexOf("data-station-access-outage-summary");
     assert.ok(regNavIndex > 0);
     assert.ok(regScrollIndex > regNavIndex, "Regional scrollable section must begin after StationSubmenuNavButtons");

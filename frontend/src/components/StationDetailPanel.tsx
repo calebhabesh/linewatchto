@@ -39,7 +39,7 @@ import {
   type StationDetail,
   type StationImpact,
 } from "../app/station-data";
-import { distinctStationImpacts } from "../app/station-impact-types";
+import { distinctStationImpacts, plannedClosuresForStation } from "../app/station-impact-types";
 import { useDashboardData } from "../app/DataContext";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
@@ -283,7 +283,7 @@ function arrivalSourceTitle(arrivals: StationArrival[]) {
 }
 
 export function StationDetailPanel({ stationResult, loading, updating, selectedStationName, onClose, onSelectImpact, reducedMotion, authenticated = false, saved = false, savePending = false, onToggleSaved, onRequestSignIn }: Props) {
-  const { activeAlerts, delays, reducedSpeedZones, plannedClosures, snapshot } = useDashboardData();
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, snapshot } = useDashboardData();
   const subwayOperatingState = useSubwayOperatingState();
   const rawStation = stationResult?.data ?? null;
   const station = rawStation && snapshot ? { ...rawStation, arrivals: [], impacts: [],
@@ -293,8 +293,26 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
   const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
 
   const source = stationResult?.source;
+  const stationPlannedClosures = station
+    ? plannedClosuresForStation(station.id, plannedClosures, networkSegments)
+    : [];
   const distinctImpacts = station
-    ? distinctStationImpacts(station.impacts, { activeAlerts, delays, reducedSpeedZones, plannedClosures })
+    ? distinctStationImpacts(
+      [
+        ...station.impacts,
+        ...stationPlannedClosures.map((closure): StationImpact => ({
+          id: closure.id,
+          type: "planned-closure",
+          severity: "planned",
+          title: closure.title,
+          summary: closure.description,
+          updatedAgo: closure.updatedAgo ?? null,
+          updatedAt: closure.updatedAt,
+          source: closure.source,
+        })),
+      ],
+      { activeAlerts, delays, reducedSpeedZones, plannedClosures },
+    )
     : [];
   const stationNotices = station?.notices ?? [];
   const hasArrivalCountdownTicker = station?.arrivals.some(
@@ -620,7 +638,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
           )}
 
           <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto md:mt-3.5 mt-2 pb-3 station-detail-scroll station-detail-section-stack">
-            {station && station.arrivalContext?.scheduleMayBeDisrupted && (
+            {station && (station.arrivalContext?.scheduleMayBeDisrupted || stationPlannedClosures.length > 0) && (
               <div
                 className="station-detail-disruption-card flex w-full flex-wrap items-center justify-start gap-2.5 shrink-0 rounded-md p-2.5 text-xs font-semibold"
                 data-station-disruption-warning

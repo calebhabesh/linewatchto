@@ -24,7 +24,7 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { GoodServiceCheckIcon } from "./CurrentServicePanel";
-import { LineServiceStatus } from "./LineServiceStatus";
+import { LineAdvisoryCount, LineServiceStatus } from "./LineServiceStatus";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { NetworkSelector } from "./NetworkSelector";
@@ -145,6 +145,7 @@ export function DesktopStatusOverview({
         rows,
         closureCount,
         rszCount,
+        advisoryCount: closureCount + rszCount,
       };
     })
     .filter((item) => item.rows.length > 0);
@@ -326,6 +327,7 @@ export function DesktopStatusOverview({
                           </span>
                         </button>
                       )}
+                      {item.advisoryCount > 0 && <LineAdvisoryCount count={item.advisoryCount} />}
                     </div>
                   )}
                 </div>

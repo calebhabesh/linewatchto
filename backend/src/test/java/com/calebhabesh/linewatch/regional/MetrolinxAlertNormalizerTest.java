@@ -660,6 +660,53 @@ class MetrolinxAlertNormalizerTest {
         });
     }
 
+    @Test
+    void constructionStationClosuresUseCanonicalPlannedAndActiveWindows() throws Exception {
+        for (String wording : List.of("No GO train service", "No GO Transit service")) {
+            var notice = new MetrolinxFetchedRecord(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "construction-station", """
+                {"Code":"construction-station", "PostedDateTime":"2026-09-28 04:41:00",
+                 "SubjectEnglish":"Kitchener Line Service Adjustments Oct. 3-4",
+                 "BodyEnglish":"%s at this station due to planned construction. Sign up for On the GO alerts.",
+                 "Category":"Service Disruption", "SubCategory":"E-Ticket.",
+                 "Lines":[], "Stops":[{"Code":"BL"}]}
+                """.formatted(wording));
+            assertThat(normalizer.normalize(feed(notice))).singleElement().satisfies(alert -> {
+                assertThat(alert.impactKind()).isEqualTo("planned-closure");
+                assertThat(alert.stationIds()).containsExactly("bloor");
+                assertThat(alert.affectedSegmentIds()).isEmpty();
+                assertThat(RegionalAlertProjection.at(alert, Instant.parse("2026-10-03T03:59:59Z"))
+                    .impactKind()).isEqualTo("planned-closure");
+                assertThat(RegionalAlertProjection.at(alert, Instant.parse("2026-10-03T04:00:00Z"))
+                    .impactKind()).isEqualTo("suspension");
+                assertThat(RegionalAlertProjection.at(alert, Instant.parse("2026-10-05T04:00:00Z")))
+                    .isNull();
+            });
+        }
+    }
+
+    @Test
+    void untaggedConstructionAdjustmentsAndAmbiguousStationsDoNotInventClosures() throws Exception {
+        for (String title : List.of("Kitchener Line Service Adjustments Oct. 3-4", "Service Adjustments Oct. 3-4")) {
+            var notice = serviceAlert("""
+                {"Code":"adjustment", "PostedDateTime":"2026-09-28 04:41:00",
+                 "SubjectEnglish":"%s",
+                 "BodyEnglish":"GO train service is adjusted due to planned construction.",
+                 "Lines":[], "Stops":[{"Code":"BL"}]}
+                """.formatted(title));
+            assertThat(normalizer.normalize(feed(notice))).isEmpty();
+        }
+        var bus = serviceAlert("""
+            {"Code":"bus", "PostedDateTime":"2026-09-28 04:41:00",
+             "SubjectEnglish":"Kitchener Line Service Adjustments Oct. 3-4",
+             "BodyEnglish":"No GO Transit service at this station due to planned construction.",
+             "Lines":[{"Code":"30"}], "Stops":[{"Code":"BL"}]}
+            """);
+        assertThat(normalizer.normalize(feed(bus))).isEmpty();
+        var ambiguous = serviceAlert(bus.rawPayload()
+            .replace("Kitchener Line Service", "Service").replace("{\"Code\":\"30\"}", ""));
+        assertThat(normalizer.normalize(feed(ambiguous))).isEmpty();
+    }
+
     private MetrolinxFeed feed(MetrolinxFetchedRecord... records) {
         return new MetrolinxFeed(
             OffsetDateTime.parse("2026-07-28T18:12:32Z"),
