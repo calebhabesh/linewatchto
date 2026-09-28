@@ -13,12 +13,14 @@ import {
   currentSurfaceNotices,
   currentServiceIncidentPresentation,
   getLineStatusPresentation,
+  lineStatusDescription,
   getPlannedClosureCountBadgeLabel,
 } from "../app/current-service";
 import { DESKTOP_SERVICE_SHEET_STORAGE_KEY, parseDesktopServiceSheetPosition } from "../app/desktop-service-sheet-state";
 import { LineBadge } from "./ImpactCardFields";
 import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
+import { LineServiceStatus } from "./LineServiceStatus";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { goNoticeRouteBadgeStyle, goNoticeRouteLabel } from "../app/go-bus-route-colors";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
@@ -377,7 +379,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
         {data.snapshot && <p className="p-2 text-xs">Current status unknown.{data.snapshot?.savedAt != null ? " Saved reports follow; service may have changed." : " Connect for service information."}</p>}
         <ServiceList rail>
           {affectedLines.map((item) => (
-            <div className="current-service-line" key={item.line.id}>
+            <div className="current-service-line" data-has-advisories={item.closureCount > 0 || item.rszCount > 0} key={item.line.id}>
               <div className="current-service-line-badge-wrap">
                 <LineBadge lineId={item.line.id} lineNumber={item.rows[0].lineNumber} size={28} />
               </div>
@@ -461,10 +463,12 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                   type="button"
                   className="current-service-clear-btn w-full text-left"
                   onClick={onStatus}
-                  aria-label={`${line.name}: ${presentation.label}`}
+                  aria-label={`${line.name}: ${lineStatusDescription(presentation)}`}
                 >
                   <div className="current-service-line-copy-main">
-                    {presentation.isNormal ? (
+                    {presentation.qualifiers?.length ? (
+                      <LineServiceStatus presentation={presentation} />
+                    ) : presentation.isNormal ? (
                       <span className="current-service-normal-label">
                         <GoodServiceCheckIcon size={16} />
                         <strong>{presentation.label}</strong>
@@ -483,7 +487,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                   </div>
                 </button>
                 {(closureCount > 0 || presentation.hasRsz) && (
-                  <div className="current-service-sub-badges">
+                  <div className="current-service-sub-badges current-service-remaining-sub-badges">
                     {closureCount > 0 && (
                       <button
                         type="button"

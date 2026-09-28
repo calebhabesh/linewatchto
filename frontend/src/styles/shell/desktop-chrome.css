@@ -2588,7 +2588,21 @@
   display: flex;
   gap: 10px;
   padding: 2px 0;
+  position: relative;
   width: 100%;
+}
+
+.desktop-status-rail-line-group[data-has-advisories="true"]::before {
+  border-bottom: 1px solid var(--border-strong);
+  border-left: 1px solid var(--border-strong);
+  border-bottom-left-radius: 4px;
+  bottom: 12px;
+  content: "";
+  left: 14px;
+  pointer-events: none;
+  position: absolute;
+  top: 35px;
+  width: 19px;
 }
 
 .desktop-status-line-badge-btn {
@@ -2642,7 +2656,7 @@
   left: 0;
   top: 2px;
   bottom: 2px;
-  width: 2px;
+  width: 3px;
   border-radius: 9999px;
   background: var(--border-strong, rgba(15, 23, 42, 0.16));
   pointer-events: none;
@@ -3126,7 +3140,21 @@
 
 .desktop-status-remaining-sub-badges {
   margin-left: 38px;
+  position: relative;
   width: calc(100% - 38px);
+}
+
+.desktop-status-remaining-sub-badges::before {
+  border-bottom: 1px solid var(--border-strong);
+  border-left: 1px solid var(--border-strong);
+  border-bottom-left-radius: 4px;
+  content: "";
+  height: calc(50% + 4px);
+  left: -24px;
+  pointer-events: none;
+  position: absolute;
+  top: -4px;
+  width: 19px;
 }
 
 .desktop-status-remaining-row:hover {
@@ -3167,7 +3195,7 @@
   left: 0;
   top: 2px;
   bottom: 2px;
-  width: 2px;
+  width: 3px;
   border-radius: 9999px;
   background: var(--border-strong, rgba(15, 23, 42, 0.16));
   pointer-events: none;
@@ -3855,10 +3883,11 @@
    Desktop Sidebar Adapters for Embedded Panels
    -------------------------------------------------------------------------- */
 
-.desktop-sidebar-container .panel:not(.network-selector),
+/* Embedded impact sections grow inside the line submenu's single scroll area.
+   Constraining them to the sidebar height hides cards from its scroll range. */
+.desktop-sidebar-container .panel:not(.network-selector):not(.embedded-impact-panel),
 .desktop-sidebar-container .station-detail-panel,
 .desktop-sidebar-container .station-search-panel,
-.desktop-sidebar-container .embedded-impact-panel,
 .desktop-sidebar-container .commute-panel,
 .desktop-sidebar-container .analytics-panel,
 .desktop-sidebar-container .desktop-source-status-panel {

@@ -24,6 +24,7 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { GoodServiceCheckIcon } from "./CurrentServicePanel";
+import { LineServiceStatus } from "./LineServiceStatus";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { NetworkSelector } from "./NetworkSelector";
@@ -39,6 +40,7 @@ import {
   currentSurfaceNotices,
   currentServiceIncidentPresentation,
   getLineStatusPresentation,
+  lineStatusDescription,
   getPlannedClosureCountBadgeLabel,
 } from "../app/current-service";
 
@@ -232,7 +234,7 @@ export function DesktopStatusOverview({
         {qualifyingLines.length > 0 && (
           <div className="desktop-status-rail-incident-list">
             {qualifyingLines.map((item) => (
-              <div className="desktop-status-rail-line-group" key={item.line.id}>
+              <div className="desktop-status-rail-line-group" data-has-advisories={item.closureCount > 0 || item.rszCount > 0} key={item.line.id}>
                 <button
                   type="button"
                   className="desktop-status-line-badge-btn"
@@ -341,8 +343,8 @@ export function DesktopStatusOverview({
                   type="button"
                   className="desktop-status-remaining-row"
                   onClick={() => onOpenCategory("line-impacts", line.id)}
-                  aria-label={`View ${line.name} line impacts: ${presentation.label}`}
-                  title={`View ${line.name} menu: ${presentation.label}`}
+                  aria-label={`View ${line.name} line impacts: ${lineStatusDescription(presentation)}`}
+                  title={`View ${line.name} menu: ${lineStatusDescription(presentation)}`}
                 >
                   <div className="desktop-status-line-badge-btn" aria-hidden="true">
                     <TransitLineBadge
@@ -354,7 +356,9 @@ export function DesktopStatusOverview({
                   </div>
                   <div className="desktop-status-remaining-copy">
                     <div className="desktop-status-remaining-main">
-                      {presentation.isNormal ? (
+                      {presentation.qualifiers?.length ? (
+                        <LineServiceStatus presentation={presentation} />
+                      ) : presentation.isNormal ? (
                         <span className="desktop-status-remaining-status desktop-status-remaining-status--normal">
                           <GoodServiceCheckIcon size={16} />
                           <strong>{presentation.label}</strong>

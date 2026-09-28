@@ -8,6 +8,8 @@ import {
   currentSurfaceNotices,
   getCanonicalAlertTitle,
   getLineStatusPresentation,
+  lineStatusDescription,
+  lineAdvisoryCountLabel,
   getPlannedClosureCountBadgeLabel,
 } from "../src/app/current-service.ts";
 
@@ -254,8 +256,9 @@ test("getLineStatusPresentation accurately classifies operational states", () =>
   assert.equal(resNormal.label, "Normal Service");
   assert.equal(resNormal.isNormal, true);
   assert.equal(resNormal.hasRsz, false);
+  assert.equal(resNormal.advisoryCount, undefined);
 
-  // 2. RSZ-only line -> Normal Service with hasRsz: true (subtle indicator)
+  // 2. RSZ-only line keeps Normal Service copy with a distinct condition presentation.
   const rszData = data({
     lineStatuses: [line1, line2],
     reducedSpeedZones: [impact("rsz-1", "1", { location: "Lawrence to York Mills" })],
@@ -264,9 +267,11 @@ test("getLineStatusPresentation accurately classifies operational states", () =>
   const resRsz = getLineStatusPresentation(line1, rszData, rszSummary);
   assert.equal(resRsz.state, "reduced-speed-zones");
   assert.equal(resRsz.label, "Normal Service");
-  assert.equal(resRsz.isNormal, true);
+  assert.equal(resRsz.isNormal, false);
   assert.equal(resRsz.hasRsz, true);
   assert.equal(resRsz.rszCount, 1);
+  assert.equal(resRsz.advisoryCount, 1);
+  assert.equal(lineStatusDescription(resRsz), "Normal Service, Speed zones, + 1 advisory");
 
   // 3. Closed line
   const resClosed = getLineStatusPresentation(lineClosed, normalData, normalSummary);
@@ -309,6 +314,55 @@ test("getLineStatusPresentation accurately classifies operational states", () =>
   assert.equal(resSnap.isNormal, false);
 });
 
+test("line status distinguishes future closures and speed zones together", () => {
+  const now = Date.parse("2026-09-28T12:00:00Z");
+  const input = data({
+    plannedClosures: [impact("future", "1", {
+      nextWindowStart: "2026-09-30T03:00:00Z",
+      nextWindowEnd: "2026-09-30T06:00:00Z",
+    })],
+  });
+  const closureOnly = getLineStatusPresentation(input.lineStatuses[0], input, currentServiceSummary(input, now));
+  assert.equal(closureOnly.isNormal, false);
+  assert.equal(closureOnly.state, "running");
+  assert.equal(closureOnly.advisoryCount, 1);
+  assert.equal(lineStatusDescription(closureOnly), "Normal Service, Closure planned, + 1 advisory");
+
+  input.reducedSpeedZones = [impact("speed-zone", "1")];
+  const combined = getLineStatusPresentation(input.lineStatuses[0], input, currentServiceSummary(input, now));
+  assert.equal(combined.isNormal, false);
+  assert.equal(combined.advisoryCount, 2);
+  assert.equal(lineStatusDescription(combined), "Normal Service, Speed zones, Closure planned, + 2 advisories");
+  assert.deepEqual(combined.qualifiers.map(({ kind }) => kind), ["reduced-speed-zones", "planned-closure"]);
+  assert.equal(lineStatusDescription(getLineStatusPresentation(input.lineStatuses[1], input, currentServiceSummary(input, now))), "Normal Service");
+});
+
+test("unwindowed regional closure qualifies line status without inventing timing", () => {
+  const input = data({ networkId: "regional", plannedClosures: [impact("notice", "1")] });
+  const presentation = getLineStatusPresentation(input.lineStatuses[0], input, currentServiceSummary(input));
+  assert.equal(presentation.isNormal, false);
+  assert.equal(lineStatusDescription(presentation), "Normal Service, Closure planned, + 1 advisory");
+});
+
+test("closure qualifiers never replace closed, disrupted, unavailable, or saved status", () => {
+  for (const extra of [
+    { availability: "unavailable" },
+    { availability: "fixture" },
+    { generatedAt: { live: false } },
+    { snapshot: { savedAt: 1234 } },
+    { lineStatuses: [line("1", "closed", "Closed")] },
+    { lineStatuses: [line("1", "ready", "Not Running")] },
+    { lineStatuses: [line("1", "delay", "Delays")] },
+    { lineStatuses: [line("1", "suspension", "No Service")] },
+  ]) {
+    const input = data({ networkId: "regional", reducedSpeedZones: [impact("speed-zone", "1")], plannedClosures: [impact("notice", "1")], ...extra });
+    const presentation = getLineStatusPresentation(input.lineStatuses[0], input, currentServiceSummary(input));
+    assert.equal(presentation.isNormal, false);
+    assert.equal(presentation.qualifiers, undefined);
+    assert.equal(presentation.advisoryCount, undefined);
+  }
+});
+
 test("line status counts underlying TTC slow orders instead of grouped map records", () => {
   const line1 = line("1", "normal", "Normal Service");
   const groupedZones = Array.from({ length: 10 }, (_, index) => impact(`rsz-${index}`, "1", {
@@ -322,6 +376,21 @@ test("line status counts underlying TTC slow orders instead of grouped map recor
 
   assert.equal(groupedZones.length, 10);
   assert.equal(presentation.rszCount, 15);
+  assert.equal(presentation.advisoryCount, 15);
+});
+
+test("advisory total sums underlying speed zones and upcoming closure badge counts", () => {
+  const now = Date.parse("2026-09-28T12:00:00Z");
+  const futureWindow = { nextWindowStart: "2026-09-30T03:00:00Z", nextWindowEnd: "2026-09-30T06:00:00Z" };
+  const input = data({
+    networkId: "ttc",
+    reducedSpeedZones: [impact("group", "1", { sourceAlertIds: ["slow-order-a", "slow-order-b", "slow-order-c"] })],
+    plannedClosures: [impact("closure-a", "1", futureWindow), impact("closure-b", "1", futureWindow), impact("other-line-closure", "2", futureWindow)],
+  });
+  const presentation = getLineStatusPresentation(input.lineStatuses[0], input, currentServiceSummary(input, now));
+  assert.equal(presentation.advisoryCount, 5);
+  assert.equal(lineAdvisoryCountLabel(presentation.advisoryCount), "5 advisories");
+  assert.equal(lineAdvisoryCountLabel(1), "1 advisory");
 });
 
 test("CurrentServicePanel renders individual remaining-line rows with route badges and accurate status text", () => {

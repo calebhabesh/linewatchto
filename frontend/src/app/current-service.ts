@@ -218,6 +218,7 @@ export function currentServiceIncidentPresentation(row: CurrentServiceRow) {
 export type LineStatusPresentationState =
   | "normal"
   | "reduced-speed-zones"
+  | "running"
   | "closed"
   | "ready"
   | "delay"
@@ -231,12 +232,26 @@ export type LineStatusPresentation = {
   isNormal: boolean;
   hasRsz: boolean;
   rszCount?: number;
+  advisoryCount?: number;
+  qualifiers?: { kind: "reduced-speed-zones" | "planned-closure"; label: string }[];
 };
+
+export function lineStatusDescription(presentation: LineStatusPresentation): string {
+  return [
+    presentation.label,
+    ...(presentation.qualifiers ?? []).map(({ label }) => label),
+    ...(presentation.advisoryCount ? [`+ ${lineAdvisoryCountLabel(presentation.advisoryCount)}`] : []),
+  ].join(", ");
+}
+
+export function lineAdvisoryCountLabel(count: number): string {
+  return `${count} ${count === 1 ? "advisory" : "advisories"}`;
+}
 
 export function getLineStatusPresentation(
   line: LineStatus,
   data: CurrentServiceData,
-  summary: { fresh: boolean; rows: CurrentServiceRow[] },
+  summary: { fresh: boolean; rows: CurrentServiceRow[]; upcoming?: PlannedClosure[] },
 ): LineStatusPresentation {
   if (data.snapshot) {
     return {
@@ -305,13 +320,20 @@ export function getLineStatusPresentation(
   }
 
   const rszList = (data.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id);
-  if (rszList.length > 0) {
+  const closureCount = (summary.upcoming ?? []).filter((closure) => closure.lineId === line.id).length;
+  if (rszList.length > 0 || closureCount > 0) {
+    const rszCount = countReducedSpeedZones(rszList);
+    const qualifiers: NonNullable<LineStatusPresentation["qualifiers"]> = [];
+    if (rszList.length > 0) qualifiers.push({ kind: "reduced-speed-zones", label: "Speed zones" });
+    if (closureCount > 0) qualifiers.push({ kind: "planned-closure", label: "Closure planned" });
     return {
-      state: "reduced-speed-zones",
+      state: rszList.length > 0 ? "reduced-speed-zones" : "running",
       label: "Normal Service",
-      isNormal: true,
-      hasRsz: true,
-      rszCount: countReducedSpeedZones(rszList),
+      isNormal: false,
+      hasRsz: rszList.length > 0,
+      rszCount: rszList.length > 0 ? rszCount : undefined,
+      advisoryCount: rszCount + closureCount,
+      qualifiers,
     };
   }
 
