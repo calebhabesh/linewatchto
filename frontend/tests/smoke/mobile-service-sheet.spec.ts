@@ -1,6 +1,49 @@
 import { expect, test } from "@playwright/test";
 import { installDismissedTransientUi } from "./test-support";
 
+test("mobile service sheet only scrolls vertically and fits its content", async ({ page, isMobile, request }) => {
+  test.skip(!isMobile);
+  await request.post("http://127.0.0.1:4174/__test/mode", { data: { mode: "seeded" } });
+  await installDismissedTransientUi(page);
+  await page.addInitScript(() => {
+    localStorage.setItem("linewatch-mobile-service-sheet-snap-v1", "halfway");
+  });
+  await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
+
+  const sheet = page.locator(".mobile-service-sheet");
+  const details = sheet.locator(".mobile-service-sheet-details");
+  await expect(details).toBeVisible();
+
+  for (const network of ["TTC", "GO/UP"] as const) {
+    await page.locator(".mobile-map-network-switch").getByRole("button", { name: network, exact: true }).dispatchEvent("click");
+    await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", network === "TTC" ? "ttc" : "regional");
+    await expect(details.locator(".current-service-columns")).toBeVisible();
+
+    for (const width of [360, 393, 412]) {
+      await page.setViewportSize({ width, height: 852 });
+      for (const snap of ["halfway", "expanded"] as const) {
+        await sheet.locator(".mobile-service-sheet-handle").press(snap === "expanded" ? "End" : "Home");
+        if (snap === "halfway") await sheet.locator(".mobile-service-sheet-handle").press("ArrowUp");
+        await expect(sheet).toHaveAttribute("data-snap", snap);
+        await expect.poll(() => details.evaluate(element => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
+        const scroll = await details.evaluate(element => {
+          element.scrollLeft = 100;
+          element.scrollTop = element.scrollHeight;
+          return {
+            left: element.scrollLeft,
+            top: element.scrollTop,
+            maxTop: element.scrollHeight - element.clientHeight,
+          };
+        });
+        expect(scroll.left).toBe(0);
+        if (network === "TTC" && snap === "halfway") expect(scroll.maxTop).toBeGreaterThan(0);
+        expect(scroll.top).toBeCloseTo(scroll.maxTop, 0);
+        await expect(details.locator(".current-service-all").last()).toBeInViewport();
+      }
+    }
+  }
+});
+
 test("compact mobile overview headings and close buttons stay inside their scroll area", async ({ page, isMobile, request }) => {
   test.skip(!isMobile);
   await request.post("http://127.0.0.1:4174/__test/mode", { data: { mode: "seeded" } });

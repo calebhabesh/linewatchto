@@ -1472,7 +1472,20 @@
   }
   .mobile-service-sheet .mobile-status-peek-badge-icon { flex: 0 0 13px; width: 13px; height: 13px; margin: 0; }
   .mobile-service-sheet .mobile-status-peek-chevron { display: none; }
-  .mobile-service-sheet-details { overflow-y: auto; overscroll-behavior-y: contain; min-height: 0; flex: 1; padding: 0 12px 0 0; margin-right: -12px; margin-bottom: calc(var(--service-sheet-expanded-height) - var(--service-sheet-visible-height)); }
+  .mobile-service-sheet-details {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-x: none;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y pinch-zoom;
+    overflow-wrap: anywhere;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+    padding: 0 12px 0 0;
+    margin-right: -12px;
+    margin-bottom: calc(var(--service-sheet-expanded-height) - var(--service-sheet-visible-height));
+  }
   /* Paint the full content while the shell moves using only a transform.
      Settled positions constrain the scroll area to the visible sheet height. */
   .mobile-service-sheet[data-dragging="true"] .mobile-service-sheet-details { margin-bottom: 0; }
@@ -1487,6 +1500,27 @@
     animation: none;
   }
   .mobile-service-sheet .current-service::before { display: none; }
+  /* Keep the border's outer stroke/glow in WebKit as well as Chromium.
+     Constrain the oversized canvas separately so it cannot widen the sheet. */
+  .mobile-service-sheet .electric-border { clip-path: inset(-4px round 12px); }
+  .mobile-service-sheet .eb-canvas-container {
+    inset: -4px;
+    transform: none;
+    overflow: hidden;
+    border-radius: 12px;
+  }
+  .mobile-service-sheet .eb-canvas {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .mobile-service-sheet .line-service-conditional,
+  .mobile-service-sheet .current-service-notice-copy > .current-service-notice-heading { flex-wrap: wrap; }
+  .mobile-service-sheet .current-service-clear,
+  .mobile-service-sheet .line-service-conditional strong,
+  .mobile-service-sheet .line-service-advisory-count,
+  .mobile-service-sheet .current-service-notice-service { white-space: normal; }
   .mobile-service-sheet .current-service-heading h2 { display: none; }
   .mobile-service-sheet .current-service-heading > span { font-size: 12px; margin-bottom: 12px; margin-left: 0; text-align: left; }
   .mobile-service-sheet .current-service-columns { display: flex; flex-direction: column; gap: 24px; }
