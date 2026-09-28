@@ -333,6 +333,7 @@ export function LineWatchShell({
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState<boolean>(false);
   const [windowWidth, setWindowWidth] = useState<number>(1200);
   const [mobileInspectorDetent, setMobileInspectorDetent] = useState<MobileInspectorDetent>("details-focus");
+  const handledImpactDeepLinkRef = useRef<string | null>(null);
   const [mapLayoutSignal, setMapLayoutSignal] = useState(0);
   const [mapPresentationMode, setMapPresentationMode] = useState<MapPresentationMode>("standard");
   const [rotatedMapViewportFrame, setRotatedMapViewportFrame] = useState<{
@@ -460,6 +461,7 @@ export function LineWatchShell({
     onSetMobileInspectorDetent: (detent) => {
       setMobileInspectorDetent(detent);
     },
+    getMobileInspectorDetent: () => mobileInspectorDetent,
     onRecordPwaEngagement: () => {
       recordPwaInstallEngagement();
     },
@@ -490,6 +492,9 @@ export function LineWatchShell({
     stationPanelActivationKey,
     selectionAttentionGeneration,
     mobileImpactReturnView,
+    impactBackContext,
+    handleSelectImpactDetails,
+    dismissImpactNavigation,
     impactListLaunch,
     lineImpactLaunch,
     accessibilityOutageTarget,
@@ -1257,12 +1262,16 @@ export function LineWatchShell({
       // Notification URLs include their category panel as a fallback. A concrete
       // impact should instead take the same focused map path as View on Map, where
       // mobile reserves a real viewport above the selected impact details.
-      pushBrowserNavigationEntry();
-      selectionBackBehaviorRef.current = "clear";
-      selectionRef.current = impactSelection;
-      setSelection(impactSelection);
-      setMobileInspectorDetent("details-focus");
-      setActiveView("map");
+      const deepLinkKey = `${requestedNetwork}:${impactKind}:${impactId}`;
+      if (handledImpactDeepLinkRef.current !== deepLinkKey) {
+        handledImpactDeepLinkRef.current = deepLinkKey;
+        pushBrowserNavigationEntry();
+        selectionBackBehaviorRef.current = "clear";
+        selectionRef.current = impactSelection;
+        setSelection(impactSelection);
+        setMobileInspectorDetent("details-focus");
+        setActiveView("map");
+      }
       if (panel) {
         nextParams.delete("panel");
         shouldReplaceUrl = true;
@@ -2261,15 +2270,23 @@ export function LineWatchShell({
     }
     setIsClosingSearch(false);
     stationSearchInputRef.current?.blur();
-    setSelectedStationId(null);
-    setCommutePathPreview(null);
-    setSelectionAttentionGeneration((current) => current + 1);
-    selectionBackBehaviorRef.current = "restore-view";
-    selectionRef.current = nextSelection;
-    setSelection(nextSelection);
-    setMobileInspectorDetent("details-focus");
-    navigateForward(viewForImpactSelection(nextSelection));
-  }, [navigateForward, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, viewForImpactSelection]);
+    handleSelectImpactDetails(nextSelection);
+  }, [handleSelectImpactDetails, searchClosingTimeoutRef, setIsClosingSearch]);
+
+  const handleRelatedImpact = useCallback((nextSelection: ImpactSelection) => {
+    if (!nextSelection) return;
+    if (isMobile && activeView === "map") {
+      handleMapSelectImpact(nextSelection);
+    } else {
+      handleSelectImpactDetails(nextSelection);
+    }
+  }, [activeView, handleMapSelectImpact, handleSelectImpactDetails, isMobile]);
+
+  const handleReturnImpactToMap = isMobile
+    && impactBackContext?.origin.activeView === "map"
+    && impactBackContext.origin.selection?.kind === selection?.kind
+    && impactBackContext.origin.selection?.id === selection?.id
+    ? handleSubmenuBack : undefined;
 
   const handleSearchSelectStation = (stationId: string, networkId: NetworkId) => {
     if (searchClosingTimeoutRef.current) {
@@ -2464,6 +2481,10 @@ export function LineWatchShell({
   }, [setActiveView, setMapLayoutSignal, setMobileInspectorDetent, setMapPresentationMode]);
 
   const handleClearMobileImpactSelection = useCallback(() => {
+    if (dismissImpactNavigation()) {
+      setMobileInspectorDetent("map-focus");
+      return;
+    }
     if (selectionRef.current) consumeBrowserNavigationEntries();
     selectionRef.current = null;
     const shouldRestoreOrigin = selectionBackBehaviorRef.current === "restore-view";
@@ -2474,7 +2495,7 @@ export function LineWatchShell({
     if (shouldRestoreOrigin) {
       restoreMapDrilldownOrigin();
     }
-  }, [consumeBrowserNavigationEntries, restoreMapDrilldownOrigin, setMobileInspectorDetent, setSelection]);
+  }, [consumeBrowserNavigationEntries, dismissImpactNavigation, restoreMapDrilldownOrigin, selectionBackBehaviorRef, selectionRef, setMobileImpactReturnView, setMobileInspectorDetent, setSelection]);
 
   const handleClearRotatedSelection = useCallback(() => {
     if (selectionRef.current || selectedStationIdRef.current) consumeBrowserNavigationEntries();
@@ -2629,6 +2650,8 @@ export function LineWatchShell({
             lineId={lineImpactLaunch.lineId}
             selection={selection}
             onSelectImpact={handleMapSelectImpact}
+            onSelectRelatedImpact={handleRelatedImpact}
+            onReturnToMap={handleReturnImpactToMap}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             onFocusMap={handleFocusMapFromPanel}
@@ -2640,6 +2663,8 @@ export function LineWatchShell({
             key={`alerts-${impactListLaunch.requestId}`}
             selection={selection}
             onSelectImpact={handleMapSelectImpact}
+            onSelectRelatedImpact={handleRelatedImpact}
+            onReturnToMap={handleReturnImpactToMap}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             onFocusMap={handleFocusMapFromPanel}
@@ -2654,6 +2679,8 @@ export function LineWatchShell({
             key={`delays-${impactListLaunch.requestId}`}
             selection={selection}
             onSelectImpact={handleMapSelectImpact}
+            onSelectRelatedImpact={handleRelatedImpact}
+            onReturnToMap={handleReturnImpactToMap}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             onFocusMap={handleFocusMapFromPanel}
@@ -2668,6 +2695,8 @@ export function LineWatchShell({
             key={`reduced-speed-zones-${impactListLaunch.requestId}`}
             selection={selection}
             onSelectImpact={handleMapSelectImpact}
+            onSelectRelatedImpact={handleRelatedImpact}
+            onReturnToMap={handleReturnImpactToMap}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             onFocusMap={handleFocusMapFromPanel}
@@ -2682,6 +2711,8 @@ export function LineWatchShell({
             key={`closures-${impactListLaunch.requestId}`}
             selection={selection}
             onSelectImpact={handleMapSelectImpact}
+            onSelectRelatedImpact={handleRelatedImpact}
+            onReturnToMap={handleReturnImpactToMap}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             onFocusMap={handleFocusMapFromPanel}
@@ -5228,6 +5259,7 @@ export function LineWatchShell({
           detent={mobileInspectorDetent}
           onChangeDetent={setMobileInspectorDetent}
           onUnfocus={handleClearMobileImpactSelection}
+          onBack={impactBackContext?.origin.selection ? handleSubmenuBack : undefined}
           unfocusLabel={mobileImpactReturnView === "my-stations" ? "Back to My Stations" : undefined}
           onViewFullDetails={() => navigateForward(viewForImpactSelection(selection))}
           onSelectImpact={handleMapSelectImpact}

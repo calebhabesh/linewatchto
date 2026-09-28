@@ -67,6 +67,45 @@ export interface NavigationState {
   searchReturnContext: SearchReturnContext | null;
   crossNetworkStationSelection: { networkId: NetworkId; stationId: string } | null;
   mobileImpactReturnView: "my-stations" | null;
+  impactHistory: readonly ImpactNavigationContext[];
+}
+
+export interface ImpactNavigationContext {
+  origin: Pick<NavigationState, "activeView" | "viewHistory" | "selection" | "selectionBackBehavior" | "mobileImpactReturnView">;
+  destinationView: ActiveView;
+  destinationSelection: NonNullable<ImpactSelection>;
+  inspectorDetent?: "map-focus" | "details-focus";
+  scrollTop?: number;
+}
+
+const sameImpact = (a: ImpactSelection, b: ImpactSelection) => a?.kind === b?.kind && a?.id === b?.id;
+
+export function impactReturnContext(state: Pick<NavigationState, "activeView" | "selection" | "impactHistory">): ImpactNavigationContext | null {
+  const context = state.impactHistory.at(-1);
+  return context && context.destinationView === state.activeView && sameImpact(context.destinationSelection, state.selection)
+    ? context : null;
+}
+
+function withImpactHistory(state: NavigationState, nextState: NavigationState): NavigationState {
+  if (!nextState.selection || state.selectedStationId || state.stationDrilldownOrigin || state.commutePathPreview) return nextState;
+  if (state.activeView === nextState.activeView && sameImpact(state.selection, nextState.selection)) return nextState;
+  return {
+    ...nextState,
+    impactHistory: [...(impactReturnContext(state) ? state.impactHistory : []), {
+      origin: {
+        activeView: state.activeView, viewHistory: state.viewHistory, selection: state.selection,
+        selectionBackBehavior: state.selectionBackBehavior, mobileImpactReturnView: state.mobileImpactReturnView,
+      },
+      destinationView: nextState.activeView,
+      destinationSelection: nextState.selection,
+    }],
+  };
+}
+
+export function transitionImpactBack(state: NavigationState): NavigationState | null {
+  const context = impactReturnContext(state);
+  if (!context) return null;
+  return { ...state, ...context.origin, impactHistory: state.impactHistory.slice(0, -1), navDirection: "back" };
 }
 
 export const INITIAL_NAVIGATION_STATE: NavigationState = {
@@ -82,6 +121,7 @@ export const INITIAL_NAVIGATION_STATE: NavigationState = {
   searchReturnContext: null,
   crossNetworkStationSelection: null,
   mobileImpactReturnView: null,
+  impactHistory: [],
 };
 
 export type BrowserHistoryEffect =
@@ -380,6 +420,7 @@ export function transitionNavigateRoot(
       stationDrilldownOrigin: null,
       searchReturnContext: nextView === "search" ? state.searchReturnContext : null,
       navDirection: "root",
+      impactHistory: [],
     },
     historyEffect,
   };
@@ -397,13 +438,13 @@ export function transitionNavigateForward(
   }
 
   return {
-    nextState: {
+    nextState: withImpactHistory(state, {
       ...state,
       activeView: nextView,
       viewHistory: pushViewHistory(state.viewHistory, state.activeView, nextView),
       searchReturnContext: nextView === "search" ? state.searchReturnContext : null,
       navDirection: "forward",
-    },
+    }),
     historyEffect: { type: "push" },
   };
 }
@@ -427,6 +468,7 @@ export function transitionClosePanel(
       selection: null,
       searchReturnContext: null,
       mobileImpactReturnView: null,
+      impactHistory: [],
       navDirection: "back",
     },
     historyEffect: { type: "consume", count: currentDepth },
@@ -441,6 +483,10 @@ export function transitionSubmenuBack(
   state: NavigationState,
   options: { isMobile: boolean },
 ): NavigationTransitionResult {
+  const impactBack = transitionImpactBack(state);
+  if (impactBack && !state.stationDrilldownOrigin && !state.commutePathPreview) {
+    return { nextState: impactBack, historyEffect: { type: "consume", count: 1 } };
+  }
   const stationOriginId = state.stationDrilldownOrigin;
   if (stationOriginId) {
     return {
@@ -452,6 +498,7 @@ export function transitionSubmenuBack(
         stationDrilldownOrigin: null,
         selection: null,
         selectionBackBehavior: "clear",
+        impactHistory: [],
         navDirection: "back",
       },
       historyEffect: { type: "consume", count: 1 },
@@ -562,12 +609,15 @@ export function transitionSelectImpact(
         ...state,
         selection: null,
         selectionBackBehavior: "clear",
+        impactHistory: [],
       },
       historyEffect: state.selection ? { type: "consume", count: 1 } : { type: "none" },
     };
   }
 
-  const historyEffect: BrowserHistoryEffect = state.selection ? { type: "none" } : { type: "push" };
+  const changesImpact = !sameImpact(state.selection, selection);
+  const changesView = state.activeView !== (isMobile ? "map" : targetView);
+  const historyEffect: BrowserHistoryEffect = changesImpact || changesView ? { type: "push" } : { type: "none" };
   const currentView = state.activeView;
 
   if (isMobile) {
@@ -585,7 +635,7 @@ export function transitionSelectImpact(
         : pushViewHistory(state.viewHistory, currentView, "map" as ActiveView);
 
     return {
-      nextState: {
+      nextState: withImpactHistory(state, {
         ...state,
         selectedStationId: null,
         commutePathPreview: state.commutePathPreview ? null : state.commutePathPreview,
@@ -595,7 +645,7 @@ export function transitionSelectImpact(
         viewHistory,
         mobileImpactReturnView: preservesOrigin ? state.mobileImpactReturnView : null,
         navDirection: "forward",
-      },
+      }),
       historyEffect,
     };
   }
@@ -607,7 +657,7 @@ export function transitionSelectImpact(
       : pushViewHistory(state.viewHistory, currentView, targetView);
 
   return {
-    nextState: {
+    nextState: withImpactHistory(state, {
       ...state,
       selectedStationId: null,
       commutePathPreview: state.commutePathPreview ? null : state.commutePathPreview,
@@ -616,9 +666,29 @@ export function transitionSelectImpact(
       activeView: targetView,
       viewHistory,
       navDirection: "forward",
-    },
+    }),
     historyEffect,
   };
+}
+
+/** Open an impact's list detail without implicitly opening its map. */
+export function transitionSelectImpactDetails(
+  state: NavigationState,
+  selection: NonNullable<ImpactSelection>,
+  targetView: ActiveView,
+): NavigationTransitionResult {
+  const nextState = withImpactHistory(state, {
+    ...state,
+    activeView: targetView,
+    viewHistory: pushViewHistory(state.viewHistory, state.activeView, targetView),
+    selectedStationId: null,
+    commutePathPreview: null,
+    selection,
+    selectionBackBehavior: "restore-view",
+    navDirection: "forward",
+  });
+  const changesLocation = state.activeView !== targetView || !sameImpact(state.selection, selection);
+  return { nextState, historyEffect: changesLocation ? { type: "push" } : { type: "none" } };
 }
 
 /**
@@ -765,6 +835,7 @@ export function transitionApplyNetworkChange(
       selectedStationId: pendingStationSelection ? pendingStationSelection.stationId : null,
       crossNetworkStationSelection: null,
       selection: null,
+      impactHistory: [],
       commutePathPreview: null,
       stationDrilldownOrigin: null,
     },
@@ -785,6 +856,10 @@ export function transitionBrowserBack(
   nextState: NavigationState;
   actionTaken: InAppBackAction;
 } {
+  const impactBack = transitionImpactBack(state);
+  if (impactBack && !options.accountDialogOpen && !state.selectedStationId && !state.commutePathPreview && !state.stationDrilldownOrigin) {
+    return { nextState: impactBack, actionTaken: state.activeView === "map" ? "clear-impact" : "navigate-view" };
+  }
   const action = resolveInAppBackAction({
     accountDialogOpen: Boolean(options.accountDialogOpen),
     stationOpen: Boolean(state.selectedStationId),

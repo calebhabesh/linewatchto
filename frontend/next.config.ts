@@ -52,6 +52,10 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL: environmentLabel(),
   },
   output: "standalone",
+  experimental: {
+    // Avoid dev cache write/compaction failures that leave chunks unavailable.
+    turbopackFileSystemCacheForDev: false,
+  },
   turbopack: {
     root: process.cwd(),
   },

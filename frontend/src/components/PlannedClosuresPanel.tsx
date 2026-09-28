@@ -20,6 +20,8 @@ import { useImpactListView } from "../hooks/useImpactListView";
 interface Props {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
+  onSelectRelatedImpact?: (selection: ImpactSelection) => void;
+  onReturnToMap?: () => void;
   onBack?: () => void;
   onClose?: () => void;
   onFocusMap?: () => void;
@@ -55,6 +57,8 @@ function formatClosureScheduleValue(value: string) {
 export function PlannedClosuresPanel({
   selection,
   onSelectImpact,
+  onSelectRelatedImpact = onSelectImpact,
+  onReturnToMap,
   onBack,
   onClose,
   onFocusMap,
@@ -177,9 +181,9 @@ export function PlannedClosuresPanel({
                   status={[closure.activeNow && "Active now", closure.nightly && "Nightly", closure.shuttle && "Shuttle"].filter(Boolean).join(" · ") || null}
                   active={isActive}
                   toneClassName="planned-closure-card-border"
-                  onShowOnMap={() => handleClosureClick(closure.id)}
+                  onShowOnMap={isActive && onReturnToMap ? onReturnToMap : () => handleClosureClick(closure.id)}
                   mapUnavailable={!hasMapTarget}
-                  mapActionLabel="Map"
+                  mapActionLabel={isActive && onReturnToMap ? "Back" : "Map"}
                 />
               );
             }
@@ -199,8 +203,9 @@ export function PlannedClosuresPanel({
                   location={closure.location}
                   direction={closure.displayDirection}
                   isMapActive={isActive}
+                  onReturnToMap={onReturnToMap}
                   onMapAction={() => handleClosureClick(closure.id)}
-                  mapActionLabel="Map"
+                  mapActionLabel={isActive && onReturnToMap ? "Back" : "Map"}
                   mapUnavailable={!hasMapTarget}
                   onFocusMap={onFocusMap}
                   mapActionVariant={mapActionVariant}
@@ -242,7 +247,7 @@ export function PlannedClosuresPanel({
                   overlaps={(
                     <OverlappingImpactRefs
                       overlaps={overlappingImpacts}
-                      onSelectImpact={onSelectImpact}
+                      onSelectImpact={onSelectRelatedImpact}
                       label="Overlapping impacts"
                     />
                   )}

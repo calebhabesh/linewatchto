@@ -60,6 +60,7 @@ type Props = {
   detent: MobileInspectorDetent;
   onChangeDetent: (detent: MobileInspectorDetent) => void;
   onUnfocus: () => void;
+  onBack?: () => void;
   unfocusLabel?: string;
   onViewFullDetails: () => void;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -415,6 +416,7 @@ export function MobileImpactInspector({
   detent,
   onChangeDetent,
   onUnfocus,
+  onBack,
   unfocusLabel = "Unfocus impact",
   onViewFullDetails,
   onSelectImpact,
@@ -516,9 +518,16 @@ export function MobileImpactInspector({
             {details.categoryLabel}
           </h2>
         </div>
-        <button type="button" onClick={handleUnfocusClick} className="mobile-impact-inspector-icon-button" aria-label={unfocusLabel}>
-          {unfocusLabel === "Unfocus impact" ? <X size={20} /> : <ArrowLeft size={20} />}
-        </button>
+        <div className="mobile-impact-inspector-header-actions" role="group" aria-label="Impact navigation">
+          {onBack ? (
+            <button type="button" onClick={onBack} className="mobile-impact-inspector-icon-button" aria-label="Back to previous impact">
+              <ArrowLeft size={20} aria-hidden="true" />
+            </button>
+          ) : null}
+          <button type="button" onClick={handleUnfocusClick} className="mobile-impact-inspector-icon-button" aria-label={unfocusLabel}>
+            {unfocusLabel === "Unfocus impact" ? <X size={20} /> : <ArrowLeft size={20} />}
+          </button>
+        </div>
       </div>
 
       <div className="mobile-impact-inspector-scroll" key={selectedDetailKey}>

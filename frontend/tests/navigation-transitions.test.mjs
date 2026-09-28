@@ -5,6 +5,9 @@ import {
   INITIAL_NAVIGATION_STATE,
   transitionNavigateForward,
   transitionClosePanel,
+  transitionSelectImpact,
+  transitionSelectImpactDetails,
+  transitionNavigateRoot,
   transitionSubmenuBack,
   transitionSelectStation,
   transitionCloseStation,
@@ -22,6 +25,59 @@ import {
   isStatusSubView,
   defaultSubmenuBackFallback,
 } from "../src/app/navigation-transitions.ts";
+
+it("browser Back from View in List restores the same selected map impact", () => {
+  const selection = { kind: "reduced-speed-zone", id: "zone-a" };
+  const map = transitionSelectImpact(INITIAL_NAVIGATION_STATE, {
+    selection, targetView: "reduced-speed-zones", isMobile: true,
+  }).nextState;
+  const list = transitionNavigateForward(map, "reduced-speed-zones").nextState;
+  const back = transitionBrowserBack(list, { isMobile: true }).nextState;
+  assert.equal(back.activeView, "map");
+  assert.deepEqual(back.selection, selection);
+  assert.deepEqual(back.viewHistory, map.viewHistory);
+});
+
+it("overlapping list details restore the previous alert before leaving the list", () => {
+  const list = transitionNavigateForward(INITIAL_NAVIGATION_STATE, "delays").nextState;
+  const a = transitionSelectImpactDetails(list, { kind: "delay", id: "a" }, "delays").nextState;
+  const b = transitionSelectImpactDetails(a, { kind: "delay", id: "b" }, "delays").nextState;
+  const backToA = transitionSubmenuBack(b, { isMobile: true }).nextState;
+  assert.deepEqual(backToA.selection, a.selection);
+  assert.equal(backToA.activeView, "delays");
+  assert.equal(backToA.impactHistory.length, 1);
+  const backToList = transitionBrowserBack(backToA, { isMobile: true }).nextState;
+  assert.equal(backToList.activeView, "delays");
+  assert.equal(backToList.selection, null);
+  assert.equal(backToList.impactHistory.length, 0);
+});
+
+it("overlapping map details restore the previous alert on browser Back", () => {
+  const a = transitionSelectImpact(INITIAL_NAVIGATION_STATE, {
+    selection: { kind: "delay", id: "a" }, targetView: "delays", isMobile: true,
+  }).nextState;
+  const b = transitionSelectImpact(a, {
+    selection: { kind: "planned-closure", id: "b" }, targetView: "closures", isMobile: true,
+  });
+  assert.equal(b.historyEffect.type, "push");
+  const back = transitionBrowserBack(b.nextState, { isMobile: true }).nextState;
+  assert.equal(back.activeView, "map");
+  assert.deepEqual(back.selection, a.selection);
+  assert.deepEqual(back.impactHistory, a.impactHistory);
+});
+
+it("root navigation discards alert drilldown history", () => {
+  const detail = transitionSelectImpactDetails(INITIAL_NAVIGATION_STATE, { kind: "delay", id: "a" }, "delays").nextState;
+  assert.equal(transitionNavigateRoot(detail, "status").nextState.impactHistory.length, 0);
+  assert.equal(transitionClosePanel(detail).nextState.impactHistory.length, 0);
+});
+
+it("opening list details records a browser step even from a station context", () => {
+  const station = transitionSelectStation(INITIAL_NAVIGATION_STATE, "st-clair").nextState;
+  const detail = transitionSelectImpactDetails(station, { kind: "delay", id: "a" }, "delays");
+  assert.equal(detail.historyEffect.type, "push");
+  assert.equal(detail.nextState.activeView, "delays");
+});
 
 describe("Navigation Transition Table — Required Rows", () => {
   // Row 1: map → station → impact → back

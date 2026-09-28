@@ -352,7 +352,6 @@ export function MetadataGrid({
 
 export interface ImpactCardMapButtonProps {
   onClick: (e?: React.MouseEvent) => void;
-  isActive: boolean;
   onFocusMap?: () => void;
   title: string;
   actionLabel?: string;
@@ -363,19 +362,18 @@ export interface ImpactCardMapButtonProps {
 
 export function ImpactCardMapButton({
   onClick,
-  isActive,
   title,
   actionLabel,
   variant = "labeled",
   className = "",
   disabled = false,
 }: ImpactCardMapButtonProps) {
-  const labelText = actionLabel ?? (isActive ? "Back" : "Map");
+  const labelText = actionLabel ?? "Map";
   const isBack = labelText.toLowerCase().includes("back") || labelText.toLowerCase().includes("unfocus");
   const ariaText = disabled
     ? `${title}: location unavailable on map`
-    : isBack ? `Back: ${title} (unfocus)` : `View ${title} on map`;
-  const tooltipText = isBack ? "Back (Unfocus)" : "View on Map";
+    : isBack ? `Back to map: ${title}` : `View ${title} on map`;
+  const tooltipText = isBack ? "Back to map" : "View on Map";
 
   return (
     <button
@@ -384,9 +382,8 @@ export function ImpactCardMapButton({
         e.stopPropagation();
         onClick(e);
       }}
-      className={`impact-card-map-btn ${variant === "icon-only" ? "impact-card-map-btn--icon-only" : "impact-card-map-btn--labeled"} ${isActive ? "is-active" : ""} ${className}`.trim()}
+      className={`impact-card-map-btn ${variant === "icon-only" ? "impact-card-map-btn--icon-only" : "impact-card-map-btn--labeled"} ${className}`.trim()}
       aria-label={ariaText}
-      aria-pressed={isActive}
       title={disabled ? "Location unavailable on map" : tooltipText}
       disabled={disabled}
       data-variant={variant}
@@ -416,6 +413,7 @@ export function ImpactCardShell({
   direction,
   isMapActive,
   onMapAction,
+  onReturnToMap,
   onFocusMap,
   mapActionVariant,
   mapActionLabel,
@@ -433,6 +431,7 @@ export function ImpactCardShell({
   direction?: string | null;
   isMapActive: boolean;
   onMapAction: () => void;
+  onReturnToMap?: () => void;
   onFocusMap?: () => void;
   mapActionVariant?: "icon-only" | "labeled";
   mapActionLabel?: string;
@@ -447,12 +446,11 @@ export function ImpactCardShell({
       <div className="impact-card-utility-row">
         <LineBadge lineId={lineId} lineNumber={lineNumber} size={lineBadgeSize} />
         <ImpactCardMapButton
-          onClick={onMapAction}
-          isActive={isMapActive}
+          onClick={isMapActive && onReturnToMap ? onReturnToMap : onMapAction}
           onFocusMap={onFocusMap}
           title={title}
           variant={mapActionVariant}
-          actionLabel={mapActionLabel}
+          actionLabel={isMapActive && onReturnToMap ? "Back" : mapActionLabel}
           disabled={mapUnavailable}
         />
       </div>

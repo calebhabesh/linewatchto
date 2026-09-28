@@ -19,6 +19,8 @@ import { ImpactTypeIcon } from "./ImpactTypeIcon";
 interface Props {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
+  onSelectRelatedImpact?: (selection: ImpactSelection) => void;
+  onReturnToMap?: () => void;
   onBack?: () => void;
   onClose?: () => void;
   onFocusMap?: () => void;
@@ -35,6 +37,8 @@ interface Props {
 export function DelaysPanel({
   selection,
   onSelectImpact,
+  onSelectRelatedImpact = onSelectImpact,
+  onReturnToMap,
   onBack,
   onClose,
   onFocusMap,
@@ -62,13 +66,8 @@ export function DelaysPanel({
   if (embedded && visibleDelays.length === 0) return null;
 
   const handleDelayClick = (delayId: string) => {
-    const isActivating = !(selection?.kind === "delay" && selection.id === delayId);
-    onSelectImpact(
-      isActivating ? { kind: "delay", id: delayId } : null,
-    );
-    if (isActivating && onFocusMap) {
-      onFocusMap();
-    }
+    onSelectImpact({ kind: "delay", id: delayId });
+    onFocusMap?.();
   };
 
   return (
@@ -137,9 +136,10 @@ export function DelaysPanel({
                     { column: 2, label: "Started", value: <CompactImpactTimeValue timestamp={delay.startedAt} /> },
                     { column: 3, label: "Updated", value: <CompactImpactTimeValue timestamp={delay.updatedAt} /> },
                   ]}
+                  mapActionLabel={isActive && onReturnToMap ? "Back" : "Map"}
                   active={isActive}
                   toneClassName="delay-card-border"
-                  onShowOnMap={() => handleDelayClick(delay.id)}
+                  onShowOnMap={isActive && onReturnToMap ? onReturnToMap : () => handleDelayClick(delay.id)}
                 />
               );
             }
@@ -159,6 +159,7 @@ export function DelaysPanel({
                   location={delay.location}
                   direction={delay.displayDirection}
                   isMapActive={isActive}
+                  onReturnToMap={onReturnToMap}
                   onMapAction={() => handleDelayClick(delay.id)}
                   onFocusMap={onFocusMap}
                   mapActionVariant={mapActionVariant}
@@ -171,7 +172,7 @@ export function DelaysPanel({
                   overlaps={(
                     <OverlappingImpactRefs
                       overlaps={overlappingImpacts}
-                      onSelectImpact={onSelectImpact}
+                      onSelectImpact={onSelectRelatedImpact}
                       label="Overlapping impacts"
                     />
                   )}

@@ -20,6 +20,8 @@ import { relatedPlannedClosureId } from "../app/related-planned-closure";
 interface Props {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
+  onSelectRelatedImpact?: (selection: ImpactSelection) => void;
+  onReturnToMap?: () => void;
   onBack?: () => void;
   onClose?: () => void;
   onFocusMap?: () => void;
@@ -45,6 +47,8 @@ function impactKindForAlert(alert: ActiveAlert): ImpactKind {
 export function ActiveAlertsPanel({
   selection,
   onSelectImpact,
+  onSelectRelatedImpact = onSelectImpact,
+  onReturnToMap,
   onBack,
   onClose,
   onFocusMap,
@@ -73,16 +77,8 @@ export function ActiveAlertsPanel({
 
   const handleAlertClick = (alert: ActiveAlert) => {
     const alertImpactKind = impactKindForAlert(alert);
-    const isActive = selection?.id === alert.id && selection?.kind === alertImpactKind;
-    const isActivating = !isActive;
-    
-    onSelectImpact(
-      isActivating ? { kind: alertImpactKind, id: alert.id } : null
-    );
-    
-    if (isActivating && onFocusMap) {
-      onFocusMap();
-    }
+    onSelectImpact({ kind: alertImpactKind, id: alert.id });
+    onFocusMap?.();
   };
 
   return (
@@ -156,14 +152,15 @@ export function ActiveAlertsPanel({
                     ...(alert.resolution ? [{ column: 4 as const, label: "Est. Resolution", value: alert.resolution }] : []),
                   ]}
                   status={alert.shuttle ? <><Bus size={11} /> Shuttle</> : null}
+                  mapActionLabel={isActive && onReturnToMap ? "Back" : "Map"}
                   active={isActive}
                   toneClassName="suspension-card-border"
                   details={closureId ? (
                     <RelatedPlannedClosureButton
-                      onClick={() => onSelectImpact({ kind: "planned-closure", id: closureId })}
+                      onClick={() => onSelectRelatedImpact({ kind: "planned-closure", id: closureId })}
                     />
                   ) : undefined}
-                  onShowOnMap={() => handleAlertClick(alert)}
+                  onShowOnMap={isActive && onReturnToMap ? onReturnToMap : () => handleAlertClick(alert)}
                 />
               );
             }
@@ -184,6 +181,7 @@ export function ActiveAlertsPanel({
                   location={alert.location}
                   direction={alert.displayDirection}
                   isMapActive={isActive}
+                  onReturnToMap={onReturnToMap}
                   onMapAction={() => handleAlertClick(alert)}
                   onFocusMap={onFocusMap}
                   mapActionVariant={mapActionVariant}
@@ -191,7 +189,7 @@ export function ActiveAlertsPanel({
                     <>
                       {closureId ? (
                         <RelatedPlannedClosureButton
-                          onClick={() => onSelectImpact({ kind: "planned-closure", id: closureId })}
+                          onClick={() => onSelectRelatedImpact({ kind: "planned-closure", id: closureId })}
                         />
                       ) : null}
                       {showImpactTypeIndicator ? (
@@ -211,7 +209,7 @@ export function ActiveAlertsPanel({
                   overlaps={(
                     <OverlappingImpactRefs
                       overlaps={overlappingImpacts}
-                      onSelectImpact={onSelectImpact}
+                      onSelectImpact={onSelectRelatedImpact}
                       label="Overlapping impacts"
                     />
                   )}

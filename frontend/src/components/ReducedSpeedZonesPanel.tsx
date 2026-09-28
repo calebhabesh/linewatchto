@@ -32,6 +32,8 @@ const formatSpeed = (val: string | null | undefined): string | null => {
 interface Props {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
+  onSelectRelatedImpact?: (selection: ImpactSelection) => void;
+  onReturnToMap?: () => void;
   onBack?: () => void;
   onClose?: () => void;
   onFocusMap?: () => void;
@@ -48,6 +50,8 @@ interface Props {
 export function ReducedSpeedZonesPanel({
   selection,
   onSelectImpact,
+  onSelectRelatedImpact = onSelectImpact,
+  onReturnToMap,
   onBack,
   onClose,
   onFocusMap,
@@ -76,13 +80,8 @@ export function ReducedSpeedZonesPanel({
   if (embedded && visibleZones.length === 0) return null;
 
   const handleReducedSpeedZoneClick = (alertId: string) => {
-    const isActivating = !(selection?.kind === "reduced-speed-zone" && selection.id === alertId);
-    onSelectImpact(
-      isActivating ? { kind: "reduced-speed-zone", id: alertId } : null,
-    );
-    if (isActivating && onFocusMap) {
-      onFocusMap();
-    }
+    onSelectImpact({ kind: "reduced-speed-zone", id: alertId });
+    onFocusMap?.();
   };
 
   return (
@@ -172,9 +171,10 @@ export function ReducedSpeedZonesPanel({
                     updatedValue={showUpdatedBreakdown ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="updatedAt" /> : undefined}
                     extraRows={[{label: "Est. Resolution", value: showResolutionBreakdown ? <ReducedSpeedZoneResolutionBreakdown zone={zone} /> : reducedSpeedZoneResolutionText(zone)}]}
                   />}
+                  mapActionLabel={isActive && onReturnToMap ? "Back" : "Map"}
                   active={isActive}
                   toneClassName="rsz-card-border"
-                  onShowOnMap={() => handleReducedSpeedZoneClick(zone.id)}
+                  onShowOnMap={isActive && onReturnToMap ? onReturnToMap : () => handleReducedSpeedZoneClick(zone.id)}
                 />
               );
             }
@@ -195,6 +195,7 @@ export function ReducedSpeedZonesPanel({
                   location={zone.location}
                   direction={zone.displayDirection}
                   isMapActive={isActive}
+                  onReturnToMap={onReturnToMap}
                   onMapAction={() => handleReducedSpeedZoneClick(zone.id)}
                   onFocusMap={onFocusMap}
                   mapActionVariant={mapActionVariant}
@@ -207,7 +208,7 @@ export function ReducedSpeedZonesPanel({
                   overlaps={(
                     <OverlappingImpactRefs
                       overlaps={overlappingImpacts}
-                      onSelectImpact={onSelectImpact}
+                      onSelectImpact={onSelectRelatedImpact}
                       label="Overlapping impacts"
                     />
                   )}

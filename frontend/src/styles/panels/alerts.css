@@ -83,21 +83,21 @@
 }
 
 /* Lucide MapPinned: red pin, blue folded-map base */
-.impact-card-map-btn svg path:first-of-type,
-.impact-card-map-btn svg circle {
+.impact-card-map-btn .map-pinned-icon path:first-of-type,
+.impact-card-map-btn .map-pinned-icon circle {
   stroke: #ef4444;
 }
 
-.dark .impact-card-map-btn svg path:first-of-type,
-.dark .impact-card-map-btn svg circle {
+.dark .impact-card-map-btn .map-pinned-icon path:first-of-type,
+.dark .impact-card-map-btn .map-pinned-icon circle {
   stroke: #f87171;
 }
 
-.impact-card-map-btn svg path:last-of-type {
+.impact-card-map-btn .map-pinned-icon path:last-of-type {
   stroke: #2563eb;
 }
 
-.dark .impact-card-map-btn svg path:last-of-type {
+.dark .impact-card-map-btn .map-pinned-icon path:last-of-type {
   stroke: #60a5fa;
 }
 
@@ -155,41 +155,8 @@
   filter: none;
 }
 
-/* Active / Focused on map */
-.impact-card-map-btn.is-active {
-  background: #2563eb;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.20);
-  color: #ffffff;
-}
-
-.dark .impact-card-map-btn.is-active {
-  background: #1d4ed8;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-}
-
-.impact-card-map-btn.is-active:hover {
-  background: #1d4ed8;
-}
-
-.dark .impact-card-map-btn.is-active:hover {
-  background: #2563eb;
-}
-
-.impact-card-map-btn.is-active svg path:first-of-type,
-.impact-card-map-btn.is-active svg circle {
-  stroke: #ffffff;
-}
-
-.impact-card-map-btn.is-active svg path:last-of-type {
-  stroke: #bfdbfe;
-}
-
-.impact-card-map-btn.is-active .impact-card-back-icon path {
-  stroke: #ffffff;
-}
-
-.impact-card-map-btn.is-active .impact-card-map-btn__label {
-  color: #ffffff;
+.impact-card-map-btn .impact-card-back-icon path {
+  stroke: currentColor;
 }
 
 /* High contrast mode support */
@@ -204,23 +171,6 @@
 .high-contrast .impact-card-map-btn svg circle {
   stroke: currentColor;
 }
-
-.high-contrast .impact-card-map-btn.is-active {
-  background: #ffffff;
-  border: 1px solid #ffffff;
-  box-shadow: none;
-  color: #000000;
-}
-
-.high-contrast .impact-card-map-btn.is-active svg path,
-.high-contrast .impact-card-map-btn.is-active svg circle {
-  stroke: #000000;
-}
-
-.high-contrast .impact-card-map-btn.is-active .impact-card-map-btn__label {
-  color: #000000;
-}
-
 
 [data-impact-card-id],
 .closure-card,

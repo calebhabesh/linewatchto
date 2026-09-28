@@ -209,7 +209,7 @@ describe("My Stations UI", () => {
     assert.match(panel, /saved-commute-impact-map-button/);
     assert.match(shell, /onSelectImpactDetails=\{handleMyStationsSelectImpactDetails\}/);
     assert.match(shell, /onSelectAccessibilityOutageDetails=\{handleMyStationsSelectAccessibilityOutageDetails\}/);
-    assert.match(shell, /navigateForward\(viewForImpactSelection\(nextSelection\)\)/);
+    assert.match(shell, /handleSelectImpactDetails\(nextSelection\)/);
     assert.match(shell, /initialTarget=\{accessibilityOutageTarget\}/);
     assert.match(shell, /navigateForward\("accessibility-outages"\)/);
     assert.match(shell, /expandedDisruptionStationIds=\{expandedMyStationDisruptionIds\}/);

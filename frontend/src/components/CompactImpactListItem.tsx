@@ -67,7 +67,7 @@ export function CompactImpactListItem({
   const renderedFacts: CompactImpactFact[] = direction
     ? [{ label: "Direction", value: direction }, ...facts]
     : facts;
-  const effectiveMapActionLabel = mapUnavailable ? "No map location" : mapActionLabel ?? (active ? "Back" : "Map");
+  const effectiveMapActionLabel = mapUnavailable ? "No map location" : mapActionLabel ?? "Map";
   const mapActionIsBack = effectiveMapActionLabel === "Back";
 
   const content = (
@@ -79,9 +79,8 @@ export function CompactImpactListItem({
       disabled={mapUnavailable}
       aria-label={mapUnavailable
         ? `${title}: location unavailable on map`
-        : mapActionIsBack ? `Back to ${title} details: ${location}` : `Show ${title} on map: ${location}`}
-      aria-pressed={active}
-      title={mapUnavailable ? "Location unavailable on map" : mapActionIsBack ? "Back to details" : "View on map"}
+        : mapActionIsBack ? `Back to map: ${title}: ${location}` : `Show ${title} on map: ${location}`}
+      title={mapUnavailable ? "Location unavailable on map" : mapActionIsBack ? "Back to map" : "View on map"}
     >
       <LineBadge lineId={lineId} lineNumber={lineNumber} />
       <span className="compact-impact-list-item__body">

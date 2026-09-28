@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import {
   type ActiveView,
   type ImpactCategoryView,
@@ -11,6 +11,9 @@ import {
   transitionNavigateForward,
   transitionSubmenuBack,
   transitionSelectImpact,
+  transitionSelectImpactDetails,
+  impactReturnContext,
+  type ImpactNavigationContext,
   transitionBrowserBack,
   isStatusSubView,
   searchReturnDestinationAndLabel,
@@ -44,6 +47,7 @@ export interface UseNavigationTransitionsOptions {
   onClearPersistedCommuteDraft: () => void;
   onResetMapPresentation?: () => void;
   onSetMobileInspectorDetent?: (detent: "map-focus" | "details-focus") => void;
+  getMobileInspectorDetent?: () => "map-focus" | "details-focus";
   onRecordPwaEngagement?: () => void;
   onDesktopSidebarEnsureOpen?: () => void;
   onAnnounceDesktop?: (message: string) => void;
@@ -63,6 +67,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     onClearPersistedCommuteDraft,
     onResetMapPresentation,
     onSetMobileInspectorDetent,
+    getMobileInspectorDetent,
     onRecordPwaEngagement,
     onDesktopSidebarEnsureOpen,
     onAnnounceDesktop: announceDesktop,
@@ -84,6 +89,12 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
   const [stationPanelActivationKey, setStationPanelActivationKey] = useState(0);
   const [selectionAttentionGeneration, setSelectionAttentionGeneration] = useState(0);
   const [mobileImpactReturnView, setMobileImpactReturnView] = useState<"my-stations" | null>(null);
+  const [impactHistory, setImpactHistory] = useState<readonly ImpactNavigationContext[]>([]);
+  const impactHistoryRef = useRef<readonly ImpactNavigationContext[]>([]);
+  const getInspectorDetentRef = useRef(getMobileInspectorDetent);
+  useEffect(() => {
+    getInspectorDetentRef.current = getMobileInspectorDetent;
+  }, [getMobileInspectorDetent]);
 
   // Feature launches & targets
   const [impactListLaunch, setImpactListLaunch] = useState({ lineId: null as string | null, requestId: 0 });
@@ -209,10 +220,66 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     searchReturnContext: searchReturnContextRef.current,
     crossNetworkStationSelection: crossNetworkStationSelectionRef.current,
     mobileImpactReturnView,
+    impactHistory: impactHistoryRef.current,
   }), [commutesFocusedCommuteId, mobileImpactReturnView, navDirection]);
+
+  const syncImpactHistory = useCallback((nextState: NavigationState) => {
+    const nextHistory = nextState.impactHistory;
+    const addedContext = nextHistory.at(-1);
+    const selector = addedContext ? VIEW_SCROLL_SELECTORS[addedContext.origin.activeView] : null;
+    const scrollTop = selector ? document.querySelector<HTMLElement>(selector)?.scrollTop : undefined;
+    const history = addedContext && nextState.navDirection === "forward" && addedContext !== impactHistoryRef.current.at(-1)
+      ? [...nextHistory.slice(0, -1), { ...addedContext, inspectorDetent: getInspectorDetentRef.current?.(), scrollTop }]
+      : nextHistory;
+    impactHistoryRef.current = history;
+    setImpactHistory(history);
+  }, []);
+
+  const saveCurrentViewScroll = useCallback(() => {
+    const selector = VIEW_SCROLL_SELECTORS[activeViewRef.current];
+    const element = selector ? document.querySelector<HTMLElement>(selector) : null;
+    if (element) viewScrollPositionsRef.current[activeViewRef.current] = element.scrollTop;
+  }, []);
+
+  const applyImpactBack = useCallback((nextState: NavigationState) => {
+    const context = impactHistoryRef.current.at(-1);
+    syncImpactHistory(nextState);
+    activeViewRef.current = nextState.activeView;
+    viewHistoryRef.current = nextState.viewHistory;
+    selectionRef.current = nextState.selection;
+    selectionBackBehaviorRef.current = nextState.selectionBackBehavior;
+    setActiveView(nextState.activeView);
+    setViewHistory(nextState.viewHistory);
+    setSelection(nextState.selection);
+    setSelectionBackBehavior(nextState.selectionBackBehavior);
+    setMobileImpactReturnView(nextState.mobileImpactReturnView);
+    setNavDirection("back");
+    if (context?.scrollTop !== undefined) {
+      viewScrollPositionsRef.current[nextState.activeView] = context.scrollTop;
+      const selector = VIEW_SCROLL_SELECTORS[nextState.activeView];
+      if (selector) window.requestAnimationFrame(() => {
+        const element = document.querySelector<HTMLElement>(selector);
+        if (element) element.scrollTop = context.scrollTop!;
+      });
+    }
+    if (nextState.activeView === "map" && nextState.selection) {
+      onSetMobileInspectorDetent?.(context?.inspectorDetent ?? "details-focus");
+    }
+  }, [onSetMobileInspectorDetent, syncImpactHistory]);
+
+  const dismissImpactNavigation = useCallback(() => {
+    const state = getCurrentNavigationState();
+    if (!impactReturnContext(state) || state.stationDrilldownOrigin || state.commutePathPreview) return false;
+    const origin = state.impactHistory[0].origin;
+    consumeBrowserNavigationEntries(state.impactHistory.length);
+    applyImpactBack({ ...state, ...origin, selection: null, selectionBackBehavior: "clear", impactHistory: [], navDirection: "back" });
+    return true;
+  }, [applyImpactBack, consumeBrowserNavigationEntries, getCurrentNavigationState]);
 
   // Navigate Root
   const navigateRoot = useCallback((nextView: ActiveView) => {
+    impactHistoryRef.current = [];
+    setImpactHistory([]);
     if (searchClosingTimeoutRef.current) {
       window.clearTimeout(searchClosingTimeoutRef.current);
       searchClosingTimeoutRef.current = null;
@@ -252,6 +319,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     }
 
     const result = transitionNavigateForward(getCurrentNavigationState(), nextView);
+    syncImpactHistory(result.nextState);
     pushBrowserNavigationEntry();
 
     viewHistoryRef.current = result.nextState.viewHistory;
@@ -261,11 +329,13 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     setNavDirection(result.nextState.navDirection);
     setViewHistory(result.nextState.viewHistory);
     setActiveView(result.nextState.activeView);
-  }, [getCurrentNavigationState, pushBrowserNavigationEntry]);
+  }, [getCurrentNavigationState, pushBrowserNavigationEntry, syncImpactHistory]);
 
   // Close Panel
   const handleClosePanel = useCallback(() => {
     if (isClosingPanel) return;
+    impactHistoryRef.current = [];
+    setImpactHistory([]);
     consumeBrowserNavigationEntries(browserNavigationDepthRef.current);
     setIsClosingPanel(true);
     viewHistoryRef.current = [];
@@ -299,6 +369,10 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     const stationOriginId = stationDrilldownOriginRef.current;
     const currentState = getCurrentNavigationState();
     const result = transitionSubmenuBack(currentState, { isMobile });
+    if (impactReturnContext(currentState) && !stationOriginId && !currentState.commutePathPreview) {
+      applyImpactBack(result.nextState);
+      return;
+    }
 
     const finishBackNavigation = () => {
       backTimeoutRef.current = null;
@@ -350,7 +424,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
 
     setIsGoingBack(true);
     backTimeoutRef.current = window.setTimeout(finishBackNavigation, 240);
-  }, [consumeBrowserNavigationEntries, getCurrentNavigationState, isGoingBack, isMobile, reducedMotion]);
+  }, [applyImpactBack, consumeBrowserNavigationEntries, getCurrentNavigationState, isGoingBack, isMobile, reducedMotion]);
 
   const navigateToMapDrilldown = useCallback(() => {
     const currentView = activeViewRef.current;
@@ -442,6 +516,8 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     }
 
     if (!nextSelection) {
+      impactHistoryRef.current = [];
+      setImpactHistory([]);
       if (selectionRef.current) consumeBrowserNavigationEntries();
       selectionRef.current = null;
       selectionBackBehaviorRef.current = "clear";
@@ -450,8 +526,8 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
       return;
     }
 
-    if (!selectionRef.current) pushBrowserNavigationEntry();
     setSelectionAttentionGeneration((current) => current + 1);
+    saveCurrentViewScroll();
 
     const targetView = viewForImpactSelection(nextSelection);
     const result = transitionSelectImpact(getCurrentNavigationState(), {
@@ -459,6 +535,8 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
       targetView,
       isMobile,
     });
+    if (result.historyEffect.type === "push") pushBrowserNavigationEntry();
+    syncImpactHistory(result.nextState);
 
     selectionRef.current = nextSelection;
     setSelection(nextSelection);
@@ -482,7 +560,29 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     onDesktopSidebarEnsureOpen?.();
     activeViewRef.current = targetView;
     setActiveView(targetView);
-  }, [consumeBrowserNavigationEntries, getCurrentNavigationState, isMobile, onDesktopSidebarEnsureOpen, onRecordPwaEngagement, onSetMobileInspectorDetent, pushBrowserNavigationEntry, viewForImpactSelection]);
+  }, [consumeBrowserNavigationEntries, getCurrentNavigationState, isMobile, onDesktopSidebarEnsureOpen, onRecordPwaEngagement, onSetMobileInspectorDetent, pushBrowserNavigationEntry, saveCurrentViewScroll, syncImpactHistory, viewForImpactSelection]);
+
+  const handleSelectImpactDetails = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
+    saveCurrentViewScroll();
+    const result = transitionSelectImpactDetails(getCurrentNavigationState(), nextSelection, viewForImpactSelection(nextSelection));
+    if (result.historyEffect.type === "push") pushBrowserNavigationEntry();
+    syncImpactHistory(result.nextState);
+    selectedStationIdRef.current = null;
+    setSelectedStationId(null);
+    commutePathPreviewRef.current = null;
+    setCommutePathPreview(null);
+    selectionRef.current = result.nextState.selection;
+    setSelection(result.nextState.selection);
+    selectionBackBehaviorRef.current = result.nextState.selectionBackBehavior;
+    setSelectionBackBehavior(result.nextState.selectionBackBehavior);
+    activeViewRef.current = result.nextState.activeView;
+    setActiveView(result.nextState.activeView);
+    viewHistoryRef.current = result.nextState.viewHistory;
+    setViewHistory(result.nextState.viewHistory);
+    setNavDirection("forward");
+    setSelectionAttentionGeneration((current) => current + 1);
+    onDesktopSidebarEnsureOpen?.();
+  }, [getCurrentNavigationState, onDesktopSidebarEnsureOpen, pushBrowserNavigationEntry, saveCurrentViewScroll, syncImpactHistory, viewForImpactSelection]);
 
   // Station Select Impact
   const handleStationSelectImpact = useCallback((nextSelection: ImpactSelection) => {
@@ -699,6 +799,8 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
 
   // Apply Network Change
   const applyNetworkChange = useCallback((networkId: NetworkId) => {
+    impactHistoryRef.current = [];
+    setImpactHistory([]);
     const pending = crossNetworkStationSelectionRef.current?.networkId === networkId
       ? crossNetworkStationSelectionRef.current
       : null;
@@ -722,6 +824,128 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
   }, []);
 
   // Popstate Listener
+  const handlePopState = useEffectEvent((event: PopStateEvent) => {
+    const navState = event.state?.[BROWSER_NAVIGATION_STATE_KEY] as BrowserNavigationState | undefined;
+    browserNavigationDepthRef.current = navState?.sessionId === browserNavigationSessionRef.current ? navState.depth : 0;
+
+    if (suppressedPopstateCountRef.current > 0) {
+      suppressedPopstateCountRef.current -= 1;
+      return;
+    }
+
+    setNavDirection("back");
+    onResetMapPresentation?.();
+    onSetMobileInspectorDetent?.("map-focus");
+
+    if (accountDialogOpen) {
+      onCloseAccountDialog();
+      return;
+    }
+
+    const currentState = getCurrentNavigationState();
+    const backResult = transitionBrowserBack(currentState, {
+      isMobile,
+      accountDialogOpen,
+    });
+    if (impactReturnContext(currentState) && !currentState.selectedStationId && !currentState.commutePathPreview && !currentState.stationDrilldownOrigin) {
+      applyImpactBack(backResult.nextState);
+      return;
+    }
+
+    switch (backResult.actionTaken) {
+      case "close-account-dialog":
+        onCloseAccountDialog();
+        return;
+
+      case "close-station":
+        selectedStationIdRef.current = null;
+        setSelectedStationId(null);
+        if (stationDrilldownOriginRef.current) {
+          handleSubmenuBack();
+        }
+        return;
+
+      case "close-commute-preview":
+        if (commutePathPreviewRef.current) {
+          setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
+        }
+        commutePathPreviewRef.current = null;
+        setCommutePathPreview(null);
+        selectionRef.current = null;
+        setSelection(null);
+        activeViewRef.current = "commutes";
+        setActiveView("commutes");
+        return;
+
+      case "navigate-view":
+        if (stationDrilldownOriginRef.current) {
+          const originStationId = stationDrilldownOriginRef.current;
+          stationDrilldownOriginRef.current = null;
+          viewHistoryRef.current = [];
+          setViewHistory([]);
+          activeViewRef.current = "map";
+          setActiveView("map");
+          selectionRef.current = null;
+          setSelection(null);
+          setSelectionBackBehavior("clear");
+          selectionBackBehaviorRef.current = "clear";
+          setAccessibilityOutageTarget(null);
+          selectedStationIdRef.current = originStationId;
+          setSelectedStationId(originStationId);
+          return;
+        }
+        if (selectionRef.current && selectionBackBehaviorRef.current === "clear" && !commutePathPreviewRef.current) {
+          selectionRef.current = null;
+          setSelection(null);
+          return;
+        }
+        if (commutePathPreviewRef.current) {
+          setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
+          commutePathPreviewRef.current = null;
+          setCommutePathPreview(null);
+          setActiveView("commutes");
+          activeViewRef.current = "commutes";
+          selectionRef.current = null;
+          setSelection(null);
+          setSelectionBackBehavior("clear");
+          selectionBackBehaviorRef.current = "clear";
+          setAccessibilityOutageTarget(null);
+          return;
+        }
+
+        const previous = { view: backResult.nextState.activeView, history: backResult.nextState.viewHistory };
+        if (commutePathPreviewRef.current && previous.view === "commutes") {
+          commutePathPreviewRef.current = null;
+          setCommutePathPreview(null);
+        }
+        viewHistoryRef.current = backResult.nextState.viewHistory;
+        setViewHistory(backResult.nextState.viewHistory);
+        activeViewRef.current = backResult.nextState.activeView;
+        setActiveView(backResult.nextState.activeView);
+        if (backResult.nextState.activeView !== "map") {
+          selectionRef.current = null;
+          setSelection(null);
+          setSelectionBackBehavior("clear");
+          selectionBackBehaviorRef.current = "clear";
+        }
+        setAccessibilityOutageTarget(null);
+        return;
+
+      case "clear-impact":
+        selectionRef.current = null;
+        setSelection(null);
+        if (selectionBackBehaviorRef.current === "restore-view") {
+          handleSubmenuBack();
+        }
+        setSelectionBackBehavior("clear");
+        selectionBackBehaviorRef.current = "clear";
+        return;
+
+      case "none":
+        return;
+    }
+  });
+
   useEffect(() => {
     const sessionId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
     browserNavigationSessionRef.current = sessionId;
@@ -731,130 +955,13 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
       [BROWSER_NAVIGATION_STATE_KEY]: { sessionId, depth: 0 } satisfies BrowserNavigationState,
     }, "", currentBrowserLocalPath());
 
-    const handlePopState = (event: PopStateEvent) => {
-      const navState = event.state?.[BROWSER_NAVIGATION_STATE_KEY] as BrowserNavigationState | undefined;
-      browserNavigationDepthRef.current = navState?.sessionId === sessionId ? navState.depth : 0;
-
-      if (suppressedPopstateCountRef.current > 0) {
-        suppressedPopstateCountRef.current -= 1;
-        return;
-      }
-
-      setNavDirection("back");
-      onResetMapPresentation?.();
-      onSetMobileInspectorDetent?.("map-focus");
-
-      if (accountDialogOpen) {
-        onCloseAccountDialog();
-        return;
-      }
-
-      const currentState = getCurrentNavigationState();
-      const backResult = transitionBrowserBack(currentState, {
-        isMobile,
-        accountDialogOpen,
-      });
-
-      switch (backResult.actionTaken) {
-        case "close-account-dialog":
-          onCloseAccountDialog();
-          return;
-
-        case "close-station":
-          selectedStationIdRef.current = null;
-          setSelectedStationId(null);
-          if (stationDrilldownOriginRef.current) {
-            handleSubmenuBack();
-          }
-          return;
-
-        case "close-commute-preview":
-          if (commutePathPreviewRef.current) {
-            setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
-          }
-          commutePathPreviewRef.current = null;
-          setCommutePathPreview(null);
-          selectionRef.current = null;
-          setSelection(null);
-          activeViewRef.current = "commutes";
-          setActiveView("commutes");
-          return;
-
-        case "navigate-view":
-          if (stationDrilldownOriginRef.current) {
-            const originStationId = stationDrilldownOriginRef.current;
-            stationDrilldownOriginRef.current = null;
-            viewHistoryRef.current = [];
-            setViewHistory([]);
-            activeViewRef.current = "map";
-            setActiveView("map");
-            selectionRef.current = null;
-            setSelection(null);
-            setSelectionBackBehavior("clear");
-            selectionBackBehaviorRef.current = "clear";
-            setAccessibilityOutageTarget(null);
-            selectedStationIdRef.current = originStationId;
-            setSelectedStationId(originStationId);
-            return;
-          }
-          if (selectionRef.current && selectionBackBehaviorRef.current === "clear" && !commutePathPreviewRef.current) {
-            selectionRef.current = null;
-            setSelection(null);
-            return;
-          }
-          if (commutePathPreviewRef.current) {
-            setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
-            commutePathPreviewRef.current = null;
-            setCommutePathPreview(null);
-            setActiveView("commutes");
-            activeViewRef.current = "commutes";
-            selectionRef.current = null;
-            setSelection(null);
-            setSelectionBackBehavior("clear");
-            selectionBackBehaviorRef.current = "clear";
-            setAccessibilityOutageTarget(null);
-            return;
-          }
-
-          const previous = { view: backResult.nextState.activeView, history: backResult.nextState.viewHistory };
-          if (commutePathPreviewRef.current && previous.view === "commutes") {
-            commutePathPreviewRef.current = null;
-            setCommutePathPreview(null);
-          }
-          viewHistoryRef.current = backResult.nextState.viewHistory;
-          setViewHistory(backResult.nextState.viewHistory);
-          activeViewRef.current = backResult.nextState.activeView;
-          setActiveView(backResult.nextState.activeView);
-          if (backResult.nextState.activeView !== "map") {
-            selectionRef.current = null;
-            setSelection(null);
-            setSelectionBackBehavior("clear");
-            selectionBackBehaviorRef.current = "clear";
-          }
-          setAccessibilityOutageTarget(null);
-          return;
-
-        case "clear-impact":
-          selectionRef.current = null;
-          setSelection(null);
-          if (selectionBackBehaviorRef.current === "restore-view") {
-            handleSubmenuBack();
-          }
-          setSelectionBackBehavior("clear");
-          selectionBackBehaviorRef.current = "clear";
-          return;
-
-        case "none":
-          return;
-      }
-    };
-
-    window.addEventListener("popstate", handlePopState);
+    const listener = (event: PopStateEvent) => handlePopState(event);
+    window.addEventListener("popstate", listener);
     return () => {
-      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("popstate", listener);
       browserNavigationSessionRef.current = "";
     };
-  }, [accountDialogOpen, getCurrentNavigationState, handleSubmenuBack, isMobile, onCloseAccountDialog, onResetMapPresentation, onSetMobileInspectorDetent]);
+  }, []);
 
   // Desktop Escape Listener
   useEffect(() => {
@@ -918,6 +1025,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     stationPanelActivationKey,
     selectionAttentionGeneration,
     mobileImpactReturnView,
+    impactBackContext: impactReturnContext({ activeView, selection, impactHistory }),
 
     // Feature launches & targets
     impactListLaunch,
@@ -953,6 +1061,8 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     handleSelectStationId,
     closeSelectedStation,
     handleMapSelectImpact,
+    handleSelectImpactDetails,
+    dismissImpactNavigation,
     handleStationSelectImpact,
     previewCommute,
     clearCommutePreview,

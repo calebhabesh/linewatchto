@@ -49,11 +49,11 @@ describe("alert card and list views", () => {
     assert.match(compactRowSource, /CompactImpactLocation/);
     assert.match(compactRowSource, /data-impact-card-id=\{impactId\}/);
     assert.match(compactRowSource, /Show .* on map/);
-    assert.match(compactRowSource, /Back to .* details/);
-    assert.match(compactRowSource, /aria-pressed=\{active\}/);
-    assert.match(compactRowSource, /active \? "Back" : "Map"/);
+    assert.match(compactRowSource, /Back to map/);
+    assert.doesNotMatch(compactRowSource, /aria-pressed/);
+    assert.match(compactRowSource, /mapActionLabel \?\? "Map"/);
     assert.match(compactRowSource, /mapActionIsBack \? \([\s\S]*?<ArrowLeft[\s\S]*?: \([\s\S]*?<JumpToLocationIcon/);
-    assert.match(panelSources[3], /mapActionLabel="Map"/);
+    assert.match(panelSources[3], /onReturnToMap \? "Back" : "Map"/);
     assert.match(compactRowSource, /label: "Direction"/);
     assert.match(compactRowSource, /CompactImpactTimeValue/);
     assert.match(panelSources[2], /label: "Reduced Speed"/);

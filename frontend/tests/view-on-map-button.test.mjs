@@ -47,25 +47,23 @@ describe("44px View on Map button", () => {
     assert.match(globalCss, /\.impact-card-map-btn:focus-visible\s*\{[^}]*outline:/s);
 
     // Lucide MapPinned dual-tone icon: red pin, blue folded-map base
-    assert.match(globalCss, /\.impact-card-map-btn svg path:first-of-type[\s\S]*?stroke:\s*#ef4444/);
-    assert.match(globalCss, /\.impact-card-map-btn svg path:last-of-type[\s\S]*?stroke:\s*#2563eb/);
+    assert.match(globalCss, /\.impact-card-map-btn \.map-pinned-icon path:first-of-type[\s\S]*?stroke:\s*#ef4444/);
+    assert.match(globalCss, /\.impact-card-map-btn \.map-pinned-icon path:last-of-type[\s\S]*?stroke:\s*#2563eb/);
 
     // JumpToLocationIcon dual-tone icon preserved for other consumers
     assert.match(globalCss, /\.jump-to-corners path[\s\S]*?stroke:\s*#ffffff\s*!important/);
     assert.match(globalCss, /\.jump-to-pin[\s\S]*?color:\s*#2563eb/);
 
-    // Unfocus / is-active state
-    assert.match(globalCss, /\.impact-card-map-btn\.is-active\s*\{[^}]*background:\s*#2563eb/s);
-    assert.match(globalCss, /\.dark \.impact-card-map-btn\.is-active\s*\{[^}]*background:\s*#1d4ed8/s);
+    assert.doesNotMatch(globalCss, /\.impact-card-map-btn\.is-active/);
   });
 
-  it("renders 'Map' when inactive and 'Back' when active with stable toggle dimensions", () => {
+  it("keeps Map and Back navigation actions at stable dimensions", () => {
     assert.match(impactCardFieldsSource, /Back/);
     assert.match(impactCardFieldsSource, /Map/);
     assert.match(impactCardFieldsSource, /isBack \? \([\s\S]*?<ArrowLeft[\s\S]*?: \([\s\S]*?<MapPinned/);
-    assert.match(impactCardFieldsSource, /aria-pressed/);
+    assert.doesNotMatch(impactCardFieldsSource, /aria-pressed/);
     assert.match(globalCss, /\.impact-card-map-btn--labeled\s*\{[^}]*min-width:\s*78px;[^}]*width:\s*78px/s);
-    assert.match(globalCss, /\.impact-card-map-btn\.is-active \.impact-card-back-icon path\s*\{[^}]*stroke:\s*#ffffff;/s);
+    assert.match(globalCss, /\.impact-card-map-btn \.impact-card-back-icon path\s*\{[^}]*stroke:\s*currentColor;/s);
     assert.match(globalCss, /\.impact-card-map-btn__label/);
   });
 });

@@ -1736,11 +1736,19 @@
   }
 
   .mobile-impact-inspector-header {
-    align-items: flex-start;
+    align-items: center;
     display: flex;
     flex: 0 0 auto;
     gap: 10px;
     justify-content: space-between;
+  }
+
+  .mobile-impact-inspector-header-actions {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    gap: 8px;
+    margin-left: auto;
   }
 
   .mobile-impact-inspector-title-row {

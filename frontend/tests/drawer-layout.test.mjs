@@ -396,8 +396,8 @@ describe("floating menu layout", () => {
     assert.doesNotMatch(activeAlertsSource, /Preview on Map|Hide Map Preview/);
     assert.doesNotMatch(reducedSpeedZonesSource, /Preview Reduced Speed Zone|Hide Map Preview/);
     assert.doesNotMatch(plannedClosuresSource, /Preview on Map|Hide Map Preview/);
-    assert.match(impactCardFieldsSource, /isActive \? "Back" : "Map"/);
-    assert.match(impactCardFieldsSource, /aria-pressed=\{isActive\}/);
+    assert.match(impactCardFieldsSource, /isMapActive && onReturnToMap \? "Back" : mapActionLabel/);
+    assert.doesNotMatch(impactCardFieldsSource, /aria-pressed/);
     assert.match(shellSource, /MobileImpactInspector/);
     assert.match(shellSource, /mobileImpactInspectorOpen/);
     assert.match(shellSource, /mobileStationInspectorOpen/);
@@ -475,7 +475,7 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /function viewForImpactSelection|const viewForImpactSelection = useCallback/);
     assert.match(shellSource, /nextSelection\.kind === "planned-closure"/);
     assert.match(shellSource, /activeAlerts\.some\(\(alert\) => alert\.id === nextSelection\.id\)/);
-    assert.match(shellSource, /(?:navigateForward|setActiveView)\(.*viewForImpactSelection\(nextSelection\)\)/);
+    assert.match(shellSource, /handleSelectImpactDetails\(nextSelection\)/);
     assert.match(interactiveMapSource, /activeAlerts\.find\(\(alert\) => alert\.id === selection\.id\)\?\.affectedSegmentIds/);
     assert.match(interactiveMapSource, /activeAlerts\.find\(\(alert\) => alert\.id === impact\.cardId\)\?\.affectedSegmentIds/);
   });

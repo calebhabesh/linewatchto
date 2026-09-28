@@ -28,6 +28,8 @@ type Props = {
   lineId: string;
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
+  onSelectRelatedImpact?: (selection: ImpactSelection) => void;
+  onReturnToMap?: () => void;
   onBack?: () => void;
   onClose?: () => void;
   onFocusMap?: () => void;
@@ -50,7 +52,7 @@ function matchesQuery(item: { title: string; location: string; description?: str
     .includes(query);
 }
 
-export function LineImpactsPanel({ lineId, selection, onSelectImpact, onBack, onClose, onFocusMap }: Props) {
+export function LineImpactsPanel({ lineId, selection, onSelectImpact, onSelectRelatedImpact, onReturnToMap, onBack, onClose, onFocusMap }: Props) {
   const dashboard = useDashboardData();
   const { viewMode, setViewMode } = useImpactListView();
   const line = dashboard.lineStatuses.find((candidate) => candidate.id === lineId);
@@ -107,7 +109,7 @@ export function LineImpactsPanel({ lineId, selection, onSelectImpact, onBack, on
   const visibleNoticeCount = category === "all" || category === "notices"
     ? lineNotices.filter(notice => matchesNoticeFilters(notice, { query }, Date.parse(noticesResponse?.generatedAt ?? ""))).length : 0;
   const visibleItemCount = searchableItems.filter((item) => matchesQuery(item, normalizedQuery)).length + visibleNoticeCount;
-  const sharedProps = { selection, onSelectImpact, onFocusMap, initialLineId: lineId, embedded: true, showImpactTypeIndicator: true, externalQuery: query };
+  const sharedProps = { selection, onSelectImpact, onSelectRelatedImpact, onReturnToMap, onFocusMap, initialLineId: lineId, embedded: true, showImpactTypeIndicator: true, externalQuery: query };
   const standardSort: ImpactListSort = sort === "location" ? "location" : "updated";
 
   return (
