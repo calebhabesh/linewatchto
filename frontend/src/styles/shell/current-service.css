@@ -700,6 +700,10 @@
 .current-service-inline-timing { color: var(--muted); font-size: inherit; }
 .current-service-impact-direction { display: block; color: var(--muted); font-size: 11px; line-height: 1.35; }
 .current-service-impact-timing { display: block; font-size: 10.5px; color: var(--muted); line-height: 1.35; }
+.incident-countdown { color: var(--muted); white-space: nowrap; }
+.incident-countdown[data-stage="soon"] { color: var(--incident-countdown-soon); }
+.incident-countdown[data-stage="imminent"] { color: var(--incident-countdown-imminent); }
+.incident-shuttle { display: block; margin-top: 2px; }
 .current-service-notice-text, .current-service-notice-copy > span { display: block; font-size: 12px; line-height: 1.35; color: var(--foreground); }
 .current-service-notice-copy strong { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; }
 .current-service-notice-copy > .current-service-notice-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; min-width: 0; }

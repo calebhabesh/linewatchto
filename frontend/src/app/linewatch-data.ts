@@ -113,6 +113,7 @@ export type Station = {
 };
 
 export type IncidentRiderDetails = {
+  serviceEffect?: "suspension" | "delay" | "limited-service" | null;
   /** Provider publication time, independent of feed refresh / updatedAt. */
   publishedAt?: string | null;
   replacementService?: "go-bus" | "bus" | null;
@@ -155,6 +156,9 @@ export type DelayAlert = IncidentRiderDetails & {
   updatedAt?: string | null;
   source: string;
   cause?: string | null;
+  relatedPlannedClosureId?: string | null;
+  activeWindowEnd?: string | null;
+  shuttle?: boolean;
 };
 
 export type PlannedClosure = IncidentRiderDetails & {
@@ -543,14 +547,14 @@ export const reliabilitySnapshot: ReliabilitySnapshot = {
   breakdown: [
     { impactKind: "delay", label: "Delays", incidents: 28, incidentDisruptionMinutes: 340, percentage: 56.7 },
     { impactKind: "reduced-speed-zone", label: "Reduced Speed Zones", incidents: 12, incidentDisruptionMinutes: 180, percentage: 30.0 },
-    { impactKind: "planned-closure", label: "Planned Closures", incidents: 3, incidentDisruptionMinutes: 80, percentage: 13.3 },
+    { impactKind: "planned-closure", label: "Planned Advisories", incidents: 3, incidentDisruptionMinutes: 80, percentage: 13.3 },
   ],
 };
 
 export const ingestionHealth: IngestionHealthItem[] = [
   { label: "GTFS snapshot", value: "4 lines / 16 display stops", state: "ok" },
   { label: "Service alerts", value: "0 active in fixture mode", state: "ok" },
-  { label: "Planned closures", value: "0 upcoming in fixture mode", state: "ok" },
+  { label: "Planned Advisories", value: "0 upcoming in fixture mode", state: "ok" },
   { label: "Snapshot history", value: "1,284 alert samples", state: "ok" },
 ];
 

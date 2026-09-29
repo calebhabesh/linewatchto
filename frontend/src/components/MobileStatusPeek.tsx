@@ -226,7 +226,7 @@ export function MobileStatusPeek({
           count: activeAlertCount,
           badgeClass: "mobile-status-peek-count-badge active-alerts",
           icon: <AlertTriangle size={13} />,
-          full: activeAlertCount === 1 ? "Active Alert" : "Active Alerts",
+          full: activeAlertCount === 1 ? "Suspension" : "Suspensions",
         },
         {
           key: "delays",
@@ -247,7 +247,7 @@ export function MobileStatusPeek({
           count: plannedClosureCount,
           badgeClass: "mobile-status-peek-count-badge planned-closures",
           icon: <PlannedClosureIcon size={13} />,
-          full: plannedClosureCount === 1 ? "Planned Closure" : "Planned Closures",
+          full: plannedClosureCount === 1 ? "Planned Advisory" : "Planned Advisories",
         },
       ]
     : [
@@ -256,7 +256,7 @@ export function MobileStatusPeek({
           count: activeAlertCount,
           badgeClass: "mobile-status-peek-count-badge active-alerts",
           icon: <AlertTriangle size={13} />,
-          full: activeAlertCount === 1 ? "Active Alert" : "Active Alerts",
+          full: activeAlertCount === 1 ? "Suspension" : "Suspensions",
         },
         {
           key: "delays",
@@ -277,7 +277,7 @@ export function MobileStatusPeek({
           count: plannedClosureCount,
           badgeClass: "mobile-status-peek-count-badge planned-closures",
           icon: <PlannedClosureIcon size={13} />,
-          full: plannedClosureCount === 1 ? "Planned Closure" : "Planned Closures",
+          full: plannedClosureCount === 1 ? "Planned Advisory" : "Planned Advisories",
         },
       ];
 

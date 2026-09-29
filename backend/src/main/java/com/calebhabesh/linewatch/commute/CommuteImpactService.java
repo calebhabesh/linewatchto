@@ -64,7 +64,8 @@ public class CommuteImpactService {
             ));
         }
 
-        for (AlertDashboardService.DelayAlertDto alert : dashboardService.delays()) {
+        List<AlertDashboardService.DelayAlertDto> delayAlerts = dashboardService.delays();
+        for (AlertDashboardService.DelayAlertDto alert : delayAlerts) {
             List<String> matchedSegmentIds = currentSegmentIntersection(
                 alert.affectedSegmentIds(),
                 pathDirectionsBySegmentId,
@@ -78,8 +79,9 @@ public class CommuteImpactService {
             putMatch(matchesByIdentity, new CommuteResponses.MatchedImpactResponse(
                 alert.id(), "delay", "current", "minor", alert.title(), alert.lineId(), alert.lineNumber(),
                 alert.location(), alert.displayDirection(), alert.description(), alert.source(), matchedSegmentIds, List.of(),
-                alert.startedAt(), alert.updatedAt(), null, "active-now", alert.startedAt()
-            ));
+                alert.startedAt(), alert.updatedAt(), null, "active-now", alert.startedAt(),
+                null, null, false, alert.notificationTitle(), alert.cause(), alert.shuttle()
+            ).withServiceEffect(alert.serviceEffect(), alert.relatedPlannedClosureId()));
         }
 
         for (AlertDashboardService.ReducedSpeedZoneDto zone : dashboardService.reducedSpeedZones()) {
@@ -104,16 +106,22 @@ public class CommuteImpactService {
             if (!pathStationIds.contains(impact.stationId())) {
                 continue;
             }
+            AlertDashboardService.DelayAlertDto delay = delayAlerts.stream()
+                .filter(alert -> impact.cardId().equals(alert.id())).findFirst().orElse(null);
             putMatch(matchesByIdentity, new CommuteResponses.MatchedImpactResponse(
                 impact.cardId(), impact.kind(), "current", severityForKind(impact.kind()), impact.title(),
                 null, null, impact.stationId(), null, null, impact.source(), List.of(), List.of(impact.stationId()),
-                null, null, null, "active-now", null
-            ));
+                delay == null ? null : delay.startedAt(), delay == null ? null : delay.updatedAt(), null, "active-now",
+                delay == null ? null : delay.startedAt()
+            ).withServiceEffect(delay == null ? null : delay.serviceEffect(), delay == null ? null : delay.relatedPlannedClosureId()));
         }
 
         for (AlertDashboardService.PlannedClosureDto closure : dashboardService.plannedClosures()) {
-            List<String> matchedSegmentIds = intersection(closure.previewSegmentIds(), pathSegmentIds);
-            if (matchedSegmentIds.isEmpty()) {
+            List<String> matchedSegmentIds = intersection(closure.previewSegmentIds(), pathSegmentIds).stream()
+                .filter(id -> travelDirectionMatches(pathDirectionsBySegmentId.getOrDefault(id, Set.of("bidirectional")), closure.travelDirection()))
+                .toList();
+            List<String> matchedStationIds = intersection(closure.previewStationIds(), pathStationIds);
+            if (matchedSegmentIds.isEmpty() && matchedStationIds.isEmpty()) {
                 continue;
             }
             boolean activeNow = closure.activeNow() || "active-now".equals(closure.timingStatus());
@@ -121,7 +129,9 @@ public class CommuteImpactService {
                 "planned".equals(alert.severity())
                     && (closure.id().equals(alert.id()) || closure.id().equals(alert.relatedPlannedClosureId()))
             );
-            if (representedByActiveAlert) {
+            boolean representedByDelay = activeNow && delayAlerts.stream().anyMatch(delay ->
+                closure.id().equals(delay.id()) || closure.id().equals(delay.relatedPlannedClosureId()));
+            if (representedByActiveAlert || representedByDelay) {
                 continue;
             }
             OffsetDateTime eventStartAt = closure.nextWindowStart() != null
@@ -132,11 +142,11 @@ public class CommuteImpactService {
             putMatch(matchesByIdentity, new CommuteResponses.MatchedImpactResponse(
                 closure.id(), "planned-closure", activeNow ? "current" : "planned", activeNow ? "major" : "planned",
                 closure.title(), closure.lineId(), closure.lineNumber(),
-                closure.location(), closure.displayDirection(), closure.description(), closure.source(), matchedSegmentIds, List.of(),
+                closure.location(), closure.displayDirection(), closure.description(), closure.source(), matchedSegmentIds, matchedStationIds,
                 closure.startedAt(), closure.updatedAt(), closure.window(), closure.timingStatus(), eventStartAt,
                 closure.windowHours(), closure.windowDates(), false,
                 closure.notificationTitle(), closure.cause(), closure.shuttle()
-            ));
+            ).withServiceEffect(closure.serviceEffect(), closure.id()));
         }
 
         List<CommuteResponses.MatchedImpactResponse> matches = matchesByIdentity.values().stream()
@@ -330,7 +340,10 @@ public class CommuteImpactService {
                 null,
                 null,
                 "low",
-                "Typical commute: " + durationLabel(baselineSeconds) + ". Major disruption on this route; travel time is not reliable."
+                "Typical commute: " + durationLabel(baselineSeconds)
+                    + (immediateMatches.stream().anyMatch(match -> "limited-service".equals(match.serviceEffect()))
+                        ? ". Limited service on this route; additional travel time is unknown."
+                        : ". Major disruption on this route; travel time is not reliable.")
             );
         }
 
@@ -382,6 +395,7 @@ public class CommuteImpactService {
     private boolean hasUnreliableTravelTimeImpact(List<CommuteResponses.MatchedImpactResponse> matches) {
         return matches.stream().anyMatch(match ->
             "suspension".equals(match.kind()) || "planned-closure".equals(match.kind())
+                || "limited-service".equals(match.serviceEffect())
         );
     }
 

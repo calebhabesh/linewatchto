@@ -216,6 +216,23 @@ public class TtcAlertNormalizer {
     }
 
     private Classification classifyRoute(TtcAlertRecord record) {
+        boolean limitedWording = TtcLimitedService.hasWording(record.title(), record.description(), record.headerText(), record.effectDesc());
+        if (limitedWording) {
+            if (TtcServiceState.hasEndedEarlyStatus(record.title())) {
+                boolean planned = isPlannedClosure(record);
+                return new Classification(planned ? "planned-closure" : "active-alert", planned ? "planned" : "delay", AlertImpactKind.LIMITED_SERVICE);
+            }
+            if (!TtcLimitedService.isAffirmative(record.title(), record.description(), record.headerText(), record.effectDesc())
+                || isRestoration(record) || !supportsLimitedService(record)) {
+                return null;
+            }
+            boolean planned = isPlannedClosure(record);
+            if (!planned && TtcLimitedService.isFuture(record.title(), record.description(), record.headerText())) {
+                return null;
+            }
+            return new Classification(planned ? "planned-closure" : "active-alert",
+                planned ? "planned" : "delay", AlertImpactKind.LIMITED_SERVICE);
+        }
         if (isPlannedClosure(record)) {
             return new Classification(
                 "planned-closure",
@@ -237,6 +254,15 @@ public class TtcAlertNormalizer {
         }
 
         return null;
+    }
+
+    private boolean supportsLimitedService(TtcAlertRecord record) {
+        // Only the generic cause is overridden. Contradictory structured effects
+        // remain unmatched until a provider-specific precedence rule is verified.
+        String effect = lowercase(record.effect());
+        return (effect.isBlank() || Set.of("limited_service", "reduced_service", "significant_delays", "delays",
+            "moderate_delays", "minor_delays", "unknown_effect").contains(effect))
+            && !equalsIgnoreCase(record.effectDesc(), "Reduced Speed Zone");
     }
 
     private boolean isReducedSpeedZone(TtcAlertRecord record) {
@@ -290,7 +316,9 @@ public class TtcAlertNormalizer {
             || websiteAdvisory
             || isGtfsRt(record))
             && !hasOperationalIncidentCause(record)
-            && plannedClosureEvidence;
+            && plannedClosureEvidence
+            && (equalsIgnoreCase(record.effect(), "NO_SERVICE") || hasClosureText(record)
+                || TtcLimitedService.isAffirmative(record.title(), record.description(), record.headerText(), record.effectDesc()));
     }
 
     private boolean isSuspension(TtcAlertRecord record) {
@@ -337,7 +365,8 @@ public class TtcAlertNormalizer {
     }
 
     private boolean hasClosureText(TtcAlertRecord record) {
-        String text = sourceText(record);
+        String text = String.join(" ", nullToEmpty(record.title()), nullToEmpty(record.description()),
+            nullToEmpty(record.headerText()), nullToEmpty(record.effectDesc())).toLowerCase(Locale.ROOT);
         return text.contains("closure")
             || text.contains("no service")
             || text.contains("no subway service")

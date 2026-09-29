@@ -54,10 +54,10 @@ function typeLabel(
   kind: MapImpactKind,
   details: ReturnType<typeof getSelectedImpactDetails>,
 ): string {
-  if (kind === "suspension") return details?.categoryLabel ?? "Active Alert";
+  if (kind === "suspension") return details?.categoryLabel ?? "Suspension";
   if (kind !== "planned-closure") return impactKindLabel(kind);
-  if (details?.categoryLabel === "Upcoming Closure") return "Planned Closure";
-  return details?.categoryLabel ?? "Planned Closure";
+  if (details?.categoryLabel === "Upcoming Closure") return "Planned Advisory";
+  return details?.categoryLabel ?? "Planned Advisory";
 }
 
 export function MapOverlapChooser({

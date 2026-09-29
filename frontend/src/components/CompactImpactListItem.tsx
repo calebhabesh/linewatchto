@@ -62,7 +62,7 @@ export function CompactImpactListItem({
   mapUnavailable = false,
   mapActionLabel,
 }: Props) {
-  const omitTitle = hideTypeLabel && /^(planned closure|reduced speed zone|delay|service delay|service suspension|suspension|active alert)$/i.test(title.trim());
+  const omitTitle = hideTypeLabel && /^(planned closure|planned advisory|reduced speed zone|delay|service delay|service suspension|suspension|active alert)$/i.test(title.trim());
   const routeFirst = locationFirst || omitTitle;
   const renderedFacts: CompactImpactFact[] = direction
     ? [{ label: "Direction", value: direction }, ...facts]

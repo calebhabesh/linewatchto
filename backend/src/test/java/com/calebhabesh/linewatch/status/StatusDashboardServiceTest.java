@@ -67,6 +67,29 @@ class StatusDashboardServiceTest {
     }
 
     @Test
+    void scheduledLimitedServiceChangesLineStatusToDelayRatherThanClosure() {
+        TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1);
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        AlertDashboardService.PlannedClosureDto advisory = new AlertDashboardService.PlannedClosureDto(
+            "limited", "line-1", "1", "Limited service", "Tonight", "Vaughan to Finch West", "Both directions",
+            "There is limited subway service.", now.minusHours(1), now, List.of("affected"), false,
+            "Synthetic test fixture", "Closure - Planned Track Work", null, true, "active-now", true,
+            now.minusHours(1), now.plusHours(1), "Tonight", null, null, null, "11 PM–2 AM", "Sep 28–Oct 1"
+        ).withServiceEffect("limited-service");
+        StatusController.LineStatusDto status = org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+            service, "toDto", line, List.<AlertEntity>of(), List.of(advisory), now);
+        assertThat(status.status()).isEqualTo("delay");
+        assertThat(status.statusLabel()).isEqualTo("Limited service");
+        StatusController.LineStatusDto specificDelay = org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+            service, "toDto", line, List.<AlertEntity>of(), List.of(advisory.withServiceEffect("delay")), now);
+        assertThat(specificDelay.status()).isEqualTo("delay");
+        assertThat(specificDelay.statusLabel()).isEqualTo("Delayed");
+        StatusController.LineStatusDto suspension = org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+            service, "toDto", line, List.<AlertEntity>of(), List.of(advisory.withServiceEffect("suspension")), now);
+        assertThat(suspension.status()).isEqualTo("planned");
+    }
+
+    @Test
     void doesNotClaimLiveModeBeforeFirstSuccessfulIngestionRun() {
         when(repository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
                 new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1)

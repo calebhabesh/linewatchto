@@ -357,10 +357,10 @@ describe("alert history filtering", () => {
 
     assert.equal(options[0].value, ALL_TYPES_VALUE);
     assert.equal(options[0].label, "All Types");
-    assert.ok(options.some((o) => o.value === "suspension" && o.label === "Active Alert"));
+    assert.ok(options.some((o) => o.value === "suspension" && o.label === "Suspension"));
     assert.ok(options.some((o) => o.value === "delay" && o.label === "Delay"));
     assert.ok(options.some((o) => o.value === "reduced-speed-zone" && o.label === "Reduced Speed Zone"));
-    assert.ok(options.some((o) => o.value === "planned-closure" && o.label === "Planned Closure"));
+    assert.ok(options.some((o) => o.value === "planned-closure" && o.label === "Planned Advisory"));
   });
 
   it("builds categorized sort groups for logical organization", () => {
@@ -398,11 +398,11 @@ describe("alert history filtering", () => {
   });
 
   it("formats canonical alert type names consistently", () => {
-    assert.equal(formatAlertTypeName("suspension"), "Active Alert");
-    assert.equal(formatAlertTypeName("active-alert"), "Active Alert");
+    assert.equal(formatAlertTypeName("suspension"), "Suspension");
+    assert.equal(formatAlertTypeName("active-alert"), "Suspension");
     assert.equal(formatAlertTypeName("delay"), "Delay");
     assert.equal(formatAlertTypeName("reduced-speed-zone"), "Reduced Speed Zone");
-    assert.equal(formatAlertTypeName("planned-closure"), "Planned Closure");
+    assert.equal(formatAlertTypeName("planned-closure"), "Planned Advisory");
   });
 
   it("sorts by longest duration descending", () => {

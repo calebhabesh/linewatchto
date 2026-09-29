@@ -1039,7 +1039,7 @@ export function LineWatchShell({
     setSelection(null);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMobileInspectorDetent("map-focus");
-    announceDesktop("Selected planned closure is no longer available");
+    announceDesktop("Selected planned advisory is no longer available");
   }, [announceDesktop, displayData.plannedClosures, selection, setMobileInspectorDetent]);
   const [accessibilityOutageState, setAccessibilityOutageState] = useState<{
     networkId: NetworkId;
@@ -2572,10 +2572,10 @@ export function LineWatchShell({
     switch (activeView) {
       case "status": return "Current service status";
       case "line-impacts": return "Line service impacts";
-      case "alerts": return "Active alerts";
+      case "alerts": return "Suspensions";
       case "delays": return "Delays";
       case "reduced-speed-zones": return "Reduced Speed Zones";
-      case "closures": return "Planned closures";
+      case "closures": return "Planned Advisories";
       case "commutes": return "My Commutes";
       case "my-stations": return "My Stations";
       case "notifications": return "Notifications";
@@ -2978,12 +2978,12 @@ export function LineWatchShell({
         navigateRoot(dest);
         announceDesktop(
           dest === "alerts"
-            ? "Active Alerts"
+            ? "Suspensions"
             : dest === "delays"
               ? "Delays"
               : dest === "reduced-speed-zones"
                 ? "Reduced Speed Zones"
-                : "Planned Closures",
+                : "Planned Advisories",
         );
         return;
       case "trip-changes":
@@ -4189,7 +4189,7 @@ export function LineWatchShell({
                     className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <AlertTriangle size={18} className="text-slate-500 dark:text-slate-400" /> Active Alerts
+                      <AlertTriangle size={18} className="text-slate-500 dark:text-slate-400" /> Suspensions
                     </div>
                     {activeAlerts.length > 0 && (
                       <span
@@ -4249,7 +4249,7 @@ export function LineWatchShell({
                     className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <PlannedClosureIcon size={18} className="text-slate-500 dark:text-slate-400" /> Planned Closures
+                      <PlannedClosureIcon size={18} className="text-slate-500 dark:text-slate-400" /> Planned Advisories
                     </div>
                     {plannedClosures.length > 0 && (
                       <span
@@ -5180,14 +5180,14 @@ export function LineWatchShell({
               className="desktop-status-chip desktop-status-chip--alerts"
               data-count={activeAlerts.length === 0 ? "zero" : "positive"}
               onClick={() => openImpactCategory("alerts")}
-              aria-label={`${activeAlerts.length} ${activeAlerts.length === 1 ? "active alert" : "active alerts"}`}
-              title={`${activeAlerts.length} ${activeAlerts.length === 1 ? "Active Alert" : "Active Alerts"}`}
+              aria-label={`${activeAlerts.length} ${activeAlerts.length === 1 ? "suspension" : "suspensions"}`}
+              title={`${activeAlerts.length} ${activeAlerts.length === 1 ? "Suspension" : "Suspensions"}`}
             >
               <AlertTriangle size={18} aria-hidden="true" />
               <span className="desktop-status-chip-count" data-digit-count={activeAlerts.length >= 10 ? "multiple" : "single"}>
                 <span className="desktop-status-chip-count-value">{activeAlerts.length}</span>
               </span>
-              <span className="desktop-status-chip-label">{activeAlerts.length === 1 ? "Active Alert" : "Active Alerts"}</span>
+              <span className="desktop-status-chip-label">{activeAlerts.length === 1 ? "Suspension" : "Suspensions"}</span>
             </button>
             <button
               type="button"
@@ -5208,14 +5208,14 @@ export function LineWatchShell({
               className="desktop-status-chip desktop-status-chip--closures"
               data-count={plannedClosures.length === 0 ? "zero" : "positive"}
               onClick={() => openImpactCategory("closures")}
-              aria-label={`${plannedClosures.length} ${plannedClosures.length === 1 ? "planned closure" : "planned closures"}`}
-              title={`${plannedClosures.length} ${plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}`}
+              aria-label={`${plannedClosures.length} ${plannedClosures.length === 1 ? "planned advisory" : "planned advisories"}`}
+              title={`${plannedClosures.length} ${plannedClosures.length === 1 ? "Planned Advisory" : "Planned Advisories"}`}
             >
               <PlannedClosureIcon size={18} aria-hidden="true" />
               <span className="desktop-status-chip-count" data-digit-count={plannedClosures.length >= 10 ? "multiple" : "single"}>
                 <span className="desktop-status-chip-count-value">{plannedClosures.length}</span>
               </span>
-              <span className="desktop-status-chip-label">{plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}</span>
+              <span className="desktop-status-chip-label">{plannedClosures.length === 1 ? "Planned Advisory" : "Planned Advisories"}</span>
             </button>
             {selectedNetwork === "ttc" ? <button
               type="button"

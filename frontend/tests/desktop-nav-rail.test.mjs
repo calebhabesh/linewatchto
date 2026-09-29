@@ -71,7 +71,7 @@ describe("desktop navigation destinations", () => {
     assert.match(railSource, /selectedNetwork === "regional"[\s\S]*?key: "trip-changes"[\s\S]*?key: "closures"/);
     assert.match(railSource, /key: "reduced-speed-zones"[\s\S]*?key: "closures"/);
     assert.match(railSource, /className="desktop-rail-alert-shortcuts"[\s\S]*?className="desktop-rail-divider"/);
-    assert.match(railSource, /lines: \["Active", "Alerts"\]/);
+    assert.match(railSource, /lines: \["Suspensions"\]/);
     assert.match(railSource, /lines: \["Reduced", "Speed", "Zones"\]/);
     assert.match(railSource, /shortcut\.count > 0/);
   });

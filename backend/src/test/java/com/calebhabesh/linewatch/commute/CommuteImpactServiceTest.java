@@ -17,6 +17,55 @@ class CommuteImpactServiceTest {
     private final CommuteImpactService service = new CommuteImpactService(dashboardService);
 
     @Test
+    void limitedServiceMatchesDelayBucketButHasNoNumericTravelTimeEstimate() {
+        when(dashboardService.delays()).thenReturn(List.of(new AlertDashboardService.DelayAlertDto(
+            "limited", "line-1", "1", "Limited service", "Finch to Sheppard-Yonge", null,
+            "There is limited subway service.", List.of("affected"), null, null, "TTC Live Alerts", null,
+            "limited-service", "planned-parent", null, false, "Limited service")));
+        when(dashboardService.activeSegmentImpacts()).thenReturn(Map.of("affected", List.of(
+            new AlertDashboardService.SegmentImpact("delay", "limited", "bidirectional", List.of("limited")))));
+        CommuteResponses.ImpactResponse impact = service.impactFor(path(List.of("finch", "sheppard-yonge"), List.of("affected")));
+        assertThat(impact.matchedImpacts()).singleElement().satisfies(match -> {
+            assertThat(match.kind()).isEqualTo("delay");
+            assertThat(match.serviceEffect()).isEqualTo("limited-service");
+            assertThat(match.relatedPlannedClosureId()).isEqualTo("planned-parent");
+        });
+        assertThat(impact.travelTimeEstimate().estimatedLowSeconds()).isNull();
+        assertThat(impact.travelTimeEstimate().extraHighSeconds()).isNull();
+        assertThat(impact.travelTimeEstimate().summary()).contains("additional travel time is unknown");
+    }
+
+    @Test
+    void stationOnlyLimitedAdvisoryMatchesOnlyRoutesThroughThatStation() {
+        AlertDashboardService.PlannedClosureDto advisory = new AlertDashboardService.PlannedClosureDto(
+            "local", "line-1", "1", "Limited service at Finch", "Tonight", "Finch", "Both directions",
+            "There will be limited service.", OffsetDateTime.parse("2026-09-29T03:00:00Z"), null,
+            List.of(), false, "Synthetic fixture", null, null).withServiceEffect("limited-service")
+            .withPreviewStationIds(List.of("finch"));
+        when(dashboardService.plannedClosures()).thenReturn(List.of(advisory));
+        assertThat(service.impactFor(path(List.of("finch", "north-york-centre"), List.of("unaffected"))).matchedImpacts())
+            .singleElement().satisfies(match -> {
+                assertThat(match.matchedStationIds()).containsExactly("finch");
+                assertThat(match.matchedSegmentIds()).isEmpty();
+                assertThat(match.serviceEffect()).isEqualTo("limited-service");
+            });
+        assertThat(service.impactFor(path(List.of("eglinton", "davisville"), List.of("unaffected"))).matchedImpacts()).isEmpty();
+    }
+
+    @Test
+    void oneDirectionLimitedAdvisoryDoesNotMatchTheOppositeCommuteDirection() {
+        AlertDashboardService.PlannedClosureDto advisory = new AlertDashboardService.PlannedClosureDto(
+            "directional", "line-1", "1", "Limited service", "Tonight", "Eglinton to Davisville", "Southbound",
+            "There will be limited service southbound.", null, null, List.of("affected"), false, "Synthetic fixture", null, null,
+            false, "upcoming", false, null, null, null, OffsetDateTime.parse("2026-09-29T03:00:00Z"),
+            OffsetDateTime.parse("2026-09-29T06:00:00Z"), "Tonight", null, null, "Limited service", "forward")
+            .withServiceEffect("limited-service");
+        when(dashboardService.plannedClosures()).thenReturn(List.of(advisory));
+        assertThat(service.impactFor(pathWithHop(List.of("eglinton", "davisville"), "affected", "forward")).matchedImpacts()).hasSize(1);
+        assertThat(service.impactFor(pathWithHop(List.of("davisville", "eglinton"), "affected", "reverse")).matchedImpacts()).isEmpty();
+    }
+
+    @Test
     void returnsClearImpactWhenNoDashboardImpactsMatchThePath() {
         when(dashboardService.activeAlerts()).thenReturn(List.of());
         when(dashboardService.delays()).thenReturn(List.of());

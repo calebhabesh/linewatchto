@@ -104,7 +104,8 @@ public class AlertDashboardService {
             return TtcDashboardReadModel.offline(now, latestRun, segments);
         }
 
-        List<AlertEntity> activeAlerts = alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE);
+        List<AlertEntity> activeAlerts = alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE).stream()
+            .filter(this::isCurrentRouteImpact).toList();
         List<AlertEntity> plannedAlerts = alertRepository.findByActiveTrueAndType(PLANNED_CLOSURE_TYPE);
         List<String> plannedIds = plannedAlerts.stream().map(AlertEntity::getId).toList();
         Map<String, List<AlertActivePeriodRepository.AlertPeriod>> periods = plannedIds.isEmpty()
@@ -122,12 +123,12 @@ public class AlertDashboardService {
             reducedSpeedZoneProjector.project(rszAlerts, segments);
 
         List<ActiveAlertDto> activeAlertDtos = computeActiveAlerts(segments, activeAlerts, closureProjections);
-        List<DelayAlertDto> delayDtos = computeDelays(segments, activeAlerts);
+        List<DelayAlertDto> delayDtos = computeDelays(segments, activeAlerts, closureProjections);
         List<ReducedSpeedZoneDto> rszDtos = computeReducedSpeedZones(segments, reducedSpeedProjection);
         List<PlannedClosureDto> plannedDtos = computePlannedClosures(segments, closureProjections);
         List<PlannedClosureDto> activePlannedDtos = computeActivePlannedClosures(segments, closureProjections);
         Map<String, List<SegmentImpact>> segmentImpacts = computeSegmentImpacts(segments, activeAlerts, closureProjections, reducedSpeedProjection);
-        List<StationNodeImpact> stationNodeImpacts = computeStationNodeImpacts(segments, activeAlerts, reducedSpeedProjection);
+        List<StationNodeImpact> stationNodeImpacts = computeStationNodeImpacts(segments, activeAlerts, reducedSpeedProjection, closureProjections);
 
         return new TtcDashboardReadModel(
             now,
@@ -179,7 +180,7 @@ public class AlertDashboardService {
         }
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
         List<AlertEntity> activeRouteAlerts = alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE);
-        return computeDelays(segments, activeRouteAlerts);
+        return computeDelays(segments, activeRouteAlerts, plannedClosureProjections(segments));
     }
 
     public List<ReducedSpeedZoneDto> reducedSpeedZones() {
@@ -277,6 +278,14 @@ public class AlertDashboardService {
         }
         List<AlertEntity> projectionSources = new ArrayList<>(activeAlerts);
         if (!linkedSourceIds.isEmpty()) {
+            alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE).stream()
+                .filter(alert -> linkedSourceIds.contains(alert.getSourceId()))
+                .forEach(projectionSources::add);
+            alertRepository.findByActiveFalseAndTypeAndSourceIdIn(ACTIVE_ALERT_TYPE, linkedSourceIds).stream()
+                .filter(alert -> TtcServiceState.hasEndedEarlyStatus(alert.getTitle()))
+                .forEach(projectionSources::add);
+        }
+        if (!linkedSourceIds.isEmpty()) {
             // A completed child remains authoritative for its exact occurrence even
             // after missing-poll confirmation marks the retained record inactive.
             alertRepository.findByActiveFalseAndTypeAndSourceIdIn(PLANNED_CLOSURE_TYPE, linkedSourceIds)
@@ -334,7 +343,16 @@ public class AlertDashboardService {
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
         List<AlertEntity> activeRouteAlerts = alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE);
         ReducedSpeedZoneProjector.Projection reducedSpeedProjection = reducedSpeedProjection(segments);
-        return computeStationNodeImpacts(segments, activeRouteAlerts, reducedSpeedProjection);
+        return computeStationNodeImpacts(segments, activeRouteAlerts, reducedSpeedProjection, plannedClosureProjections(segments));
+    }
+
+    private boolean isCurrentRouteImpact(AlertEntity alert) {
+        if (TtcServiceState.isRestoration(alert.getEffect(), alert.getSeverity(), alert.getTitle(),
+            alert.getDescription(), alert.getEffectDescription())) return false;
+        if (!"limited-service".equals(alert.getImpactKind())) return true;
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        return (alert.getActivePeriodStart() == null || !alert.getActivePeriodStart().isAfter(now))
+            && (alert.getActivePeriodEnd() == null || alert.getActivePeriodEnd().isAfter(now));
     }
 
     private List<ActiveAlertDto> computeActiveAlerts(
@@ -342,12 +360,19 @@ public class AlertDashboardService {
         List<AlertEntity> activeRouteAlerts,
         List<TtcClosureProjector.ClosureProjection> closureProjections
     ) {
+        Set<String> projectedIds = closureProjections == null ? Set.of() : closureProjections.stream()
+            .filter(TtcClosureProjector.ClosureProjection::activeNow)
+            .map(projection -> projection.activeClosureAlert().id())
+            .collect(java.util.stream.Collectors.toSet());
         List<ActiveAlertDto> routeAlerts = activeRouteAlerts != null ? activeRouteAlerts.stream()
+            .filter(this::isCurrentRouteImpact)
+            .filter(alert -> !projectedIds.contains(alert.getId()))
             .filter(alert -> hasImpactKind(alert, SUSPENSION_KIND))
             .map(alert -> toActiveAlert(alert, segments))
             .toList() : List.of();
         List<ActiveAlertDto> activeClosures = closureProjections != null ? closureProjections.stream()
             .filter(TtcClosureProjector.ClosureProjection::activeNow)
+            .filter(projection -> "suspension".equals(projection.activePresentation().serviceEffect()))
             .map(TtcClosureProjector.ClosureProjection::activeClosureAlert)
             .toList() : List.of();
 
@@ -360,16 +385,29 @@ public class AlertDashboardService {
 
     private List<DelayAlertDto> computeDelays(
         List<LineSegmentEntity> segments,
-        List<AlertEntity> activeRouteAlerts
+        List<AlertEntity> activeRouteAlerts,
+        List<TtcClosureProjector.ClosureProjection> projections
     ) {
-        if (activeRouteAlerts == null) {
-            return List.of();
+        List<DelayAlertDto> result = new ArrayList<>();
+        Set<String> projectedIds = new LinkedHashSet<>();
+        for (TtcClosureProjector.ClosureProjection projection : projections) {
+            if (!projection.activeNow()) continue;
+            ActiveAlertDto alert = projection.activeClosureAlert();
+            projectedIds.add(alert.id());
+            if ("suspension".equals(projection.activePresentation().serviceEffect())) continue;
+            result.add(new DelayAlertDto(alert.id(), alert.lineId(), alert.lineNumber(), alert.title(),
+                alert.location(), alert.displayDirection(), alert.description(), alert.affectedSegmentIds(),
+                alert.startedAt(), alert.updatedAt(), alert.source(), alert.cause(), projection.activePresentation().serviceEffect(),
+                projection.id(), projection.activePresentation().activeWindowEnd(), alert.shuttle(), alert.notificationTitle()));
         }
-        return activeRouteAlerts.stream()
-            .filter(alert -> hasImpactKind(alert, DELAY_KIND))
-            .map(alert -> toDelayAlert(alert, segments))
-            .sorted(delayAlertComparator(segments))
-            .toList();
+        if (activeRouteAlerts != null) {
+            activeRouteAlerts.stream()
+                .filter(this::isCurrentRouteImpact)
+                .filter(alert -> hasImpactKind(alert, DELAY_KIND) || hasImpactKind(alert, "limited-service"))
+                .filter(alert -> !projectedIds.contains(alert.getId()))
+                .map(alert -> toDelayAlert(alert, segments)).forEach(result::add);
+        }
+        return result.stream().sorted(delayAlertComparator(segments)).toList();
     }
 
     private List<ReducedSpeedZoneDto> computeReducedSpeedZones(
@@ -422,9 +460,13 @@ public class AlertDashboardService {
 
         if (activeRouteAlerts != null) {
             for (AlertEntity alert : activeRouteAlerts) {
-                if (!hasImpactKind(alert, DELAY_KIND) && !hasImpactKind(alert, SUSPENSION_KIND)) {
+                if (!isCurrentRouteImpact(alert)) continue;
+                if (!hasImpactKind(alert, DELAY_KIND) && !hasImpactKind(alert, "limited-service") && !hasImpactKind(alert, SUSPENSION_KIND)) {
                     continue;
                 }
+                if (closureProjections != null && closureProjections.stream().anyMatch(projection ->
+                    projection.activeNow() && projection.currentSourceAlert() != null
+                        && alert.getId().equals(projection.currentSourceAlert().getId()))) continue;
                 for (String segmentId : affectedSegmentIds(alert, segments)) {
                     LineSegmentEntity segment = segments != null ? segments.stream()
                         .filter(s -> s.getId().equals(segmentId))
@@ -432,7 +474,7 @@ public class AlertDashboardService {
                         .orElse(null) : null;
                     String travelDir = segment != null ? travelDirection(alert, segment) : "bidirectional";
                     appendImpact(impacts, segmentId, new SegmentImpact(
-                        alert.getImpactKind(),
+                        "limited-service".equals(alert.getImpactKind()) ? DELAY_KIND : alert.getImpactKind(),
                         alert.getId(),
                         travelDir,
                         List.of(alert.getId())
@@ -472,20 +514,22 @@ public class AlertDashboardService {
     private List<StationNodeImpact> computeStationNodeImpacts(
         List<LineSegmentEntity> segments,
         List<AlertEntity> activeRouteAlerts,
-        ReducedSpeedZoneProjector.Projection reducedSpeedProjection
+        ReducedSpeedZoneProjector.Projection reducedSpeedProjection,
+        List<TtcClosureProjector.ClosureProjection> projections
     ) {
         List<StationNodeImpact> impacts = new ArrayList<>();
 
         if (activeRouteAlerts != null) {
             for (AlertEntity alert : activeRouteAlerts) {
-                if (!hasImpactKind(alert, DELAY_KIND) && !hasImpactKind(alert, SUSPENSION_KIND)) {
+                if (!isCurrentRouteImpact(alert)) continue;
+                if (!hasImpactKind(alert, DELAY_KIND) && !hasImpactKind(alert, "limited-service") && !hasImpactKind(alert, SUSPENSION_KIND)) {
                     continue;
                 }
                 List<String> affectedSegmentIds = affectedSegmentIds(alert, segments);
                 resolvedNodeStationId(alert.getStationIds(), affectedSegmentIds)
                     .ifPresent(stationId -> impacts.add(new StationNodeImpact(
                         stationId,
-                        alert.getImpactKind(),
+                        "limited-service".equals(alert.getImpactKind()) ? DELAY_KIND : alert.getImpactKind(),
                         alert.getId(),
                         alert.getTitle(),
                         sourceLabel(alert, "TTC Live Alerts")
@@ -508,6 +552,17 @@ public class AlertDashboardService {
             }
         }
 
+        for (TtcClosureProjector.ClosureProjection projection : projections) {
+            if (!projection.activeNow()) continue;
+            PlannedClosureDto presentation = projection.activePresentation();
+            String cardId = projection.activeClosureAlert().id();
+            for (String stationId : presentation.previewStationIds()) {
+                if (impacts.stream().anyMatch(impact -> cardId.equals(impact.cardId()) && stationId.equals(impact.stationId()))) continue;
+                impacts.add(new StationNodeImpact(stationId,
+                    "suspension".equals(presentation.serviceEffect()) ? "suspension" : "delay",
+                    cardId, presentation.title(), presentation.source()));
+            }
+        }
         return impacts;
     }
 
@@ -556,7 +611,9 @@ public class AlertDashboardService {
             alert.getActivePeriodStart(),
             sourceUpdatedAt(alert),
             sourceLabel(alert, "TTC Live Alerts"),
-            cause(alert)
+            cause(alert),
+            "limited-service".equals(alert.getImpactKind()) ? "limited-service" : "delay",
+            null, null, !isBlank(alert.getShuttleType()), alert.getTitle()
         );
     }
 
@@ -1053,8 +1110,20 @@ public class AlertDashboardService {
         OffsetDateTime startedAt,
         OffsetDateTime updatedAt,
         String source,
-        String cause
-    ) {}
+        String cause,
+        String serviceEffect,
+        String relatedPlannedClosureId,
+        OffsetDateTime activeWindowEnd,
+        boolean shuttle,
+        @com.fasterxml.jackson.annotation.JsonIgnore String notificationTitle
+    ) {
+        public DelayAlertDto(String id, String lineId, String lineNumber, String title, String location,
+            String displayDirection, String description, List<String> affectedSegmentIds,
+            OffsetDateTime startedAt, OffsetDateTime updatedAt, String source, String cause) {
+            this(id, lineId, lineNumber, title, location, displayDirection, description, affectedSegmentIds,
+                startedAt, updatedAt, source, cause, "delay", null, null, false, title);
+        }
+    }
 
     public record PlannedClosureDto(
         String id,
@@ -1085,8 +1154,51 @@ public class AlertDashboardService {
         String windowDates,
         @com.fasterxml.jackson.annotation.JsonIgnore String notificationTitle,
         String travelDirection,
-        List<String> previewStationIds
+        List<String> previewStationIds,
+        String serviceEffect
     ) {
+        public PlannedClosureDto(
+            String id,
+            String lineId,
+            String lineNumber,
+            String title,
+            String window,
+            String location,
+            String displayDirection,
+            String description,
+            OffsetDateTime startedAt,
+            OffsetDateTime updatedAt,
+            List<String> previewSegmentIds,
+            boolean shuttle,
+            String source,
+            String cause,
+            String resolution,
+            boolean activeNow,
+            String timingStatus,
+            boolean nightly,
+            OffsetDateTime activeWindowStart,
+            OffsetDateTime activeWindowEnd,
+            String activeWindowLabel,
+            OffsetDateTime nextWindowStart,
+            OffsetDateTime nextWindowEnd,
+            String nextWindowLabel,
+            String windowHours,
+            String windowDates,
+            String notificationTitle,
+            String travelDirection,
+            List<String> previewStationIds
+        ) {
+            this(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, previewStationIds, "suspension");
+        }
+
+        public PlannedClosureDto withServiceEffect(String effect) {
+            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, previewStationIds, effect);
+        }
+
+        public PlannedClosureDto withPreviewStationIds(List<String> stationIds) {
+            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, stationIds, serviceEffect);
+        }
+
         public PlannedClosureDto(
             String id, String lineId, String lineNumber, String title, String window, String location,
             String displayDirection, String description, OffsetDateTime startedAt, OffsetDateTime updatedAt,

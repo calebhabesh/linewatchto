@@ -84,7 +84,7 @@ export function ActiveAlertsPanel({
   return (
     <section className={`panel min-w-0 border border-transparent rounded-2xl ${embedded ? "embedded-impact-panel" : ""}`}>
       <PanelHeader
-        title="Active Alerts"
+        title="Suspensions"
         icon={<AlertTriangle className="w-5 h-5 text-red-500 shrink-0" aria-hidden="true" />}
         onBack={onBack}
         onClose={onClose}
@@ -99,7 +99,7 @@ export function ActiveAlertsPanel({
       />
       {activeAlerts.length > 0 ? (
         <ImpactListToolbar
-          noun="active alerts"
+          noun="suspensions"
           totalCount={activeAlerts.length}
           visibleCount={visibleAlerts.length}
           lineIds={lineIds}
@@ -122,7 +122,7 @@ export function ActiveAlertsPanel({
       <div className={`alert-stack min-w-0 p-3 flex flex-col gap-2 ${viewMode === "list" ? "is-list-view" : ""} ${visibleAlerts.length === 0 ? "is-empty" : ""}`}>
         {visibleAlerts.length === 0 ? (
           <div className="text-center py-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
-            {activeAlerts.length === 0 ? "No Active Alerts" : "No active alerts match these filters"}
+            {activeAlerts.length === 0 ? "No Suspensions" : "No suspensions match these filters"}
           </div>
         ) : (
           visibleAlerts.map((alert) => {

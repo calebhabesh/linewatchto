@@ -32,6 +32,10 @@ public class PushNotificationFormatter {
 
     public FormattedPushNotification formatActive(PushNotificationFacts facts) {
         String subject = notificationSubject(facts.lineId(), facts.lineNumber(), facts.eventType());
+        if (com.calebhabesh.linewatch.ingestion.TtcLimitedService.isAffirmative(facts.sourceTitle(), facts.sourceDescription())) {
+            subject = PushLineCatalog.identity(facts.lineId(), facts.lineNumber())
+                + ("planned-closure".equals(facts.eventType()) ? " Planned limited service" : " Limited service");
+        }
         String location = normalizeDisplayText(facts.location());
         String displayDirection = normalizeText(facts.displayDirection());
         String scopeLabel = scopeLabel(facts.commuteLabel(), facts.legId());
@@ -48,11 +52,11 @@ public class PushNotificationFormatter {
         if ("planned-closure".equals(facts.eventType())) {
             String closureDates = normalizeText(facts.closureDates());
             if (!closureDates.isEmpty()) {
-                bodyParts.add("Closure dates: " + stripTerminalPunctuation(closureDates) + ".");
+                bodyParts.add("Advisory dates: " + stripTerminalPunctuation(closureDates) + ".");
             }
             String closureHours = normalizeText(facts.closureHours());
             if (!closureHours.isEmpty()) {
-                bodyParts.add("Closure hours: " + stripTerminalPunctuation(closureHours) + ".");
+                bodyParts.add("Advisory hours: " + stripTerminalPunctuation(closureHours) + ".");
             }
         }
         if (facts.shuttle()) {
@@ -159,18 +163,11 @@ public class PushNotificationFormatter {
     }
 
     private String closureStartLine(Instant sourceEventAt) {
-        return "🕗 Closure starts " + EVENT_TIME_FORMATTER.format(sourceEventAt);
+        return "🕗 Advisory starts " + EVENT_TIME_FORMATTER.format(sourceEventAt);
     }
 
     private String eventLabel(String eventType) {
-        return switch (normalizeText(eventType).toLowerCase(Locale.ROOT)) {
-            case "suspension" -> "Suspension";
-            case "delay" -> "Delay";
-            case "trip-cancellation" -> "Train Cancellation";
-            case "reduced-speed-zone" -> "Reduced Speed Zone";
-            case "planned-closure" -> "Planned Closure";
-            default -> "Service Alert";
-        };
+        return com.calebhabesh.linewatch.alert.AlertCategoryLabels.singular(eventType);
     }
 
     private String scopeLabel(String commuteLabel, String legId) {
@@ -343,7 +340,7 @@ public class PushNotificationFormatter {
             case "delay" -> "Delays";
             case "trip-cancellation" -> "Train cancelled";
             case "reduced-speed-zone" -> "Reduced speeds";
-            case "planned-closure" -> "Planned closure";
+            case "planned-closure" -> "Planned advisory";
             default -> "Service alert";
         };
     }

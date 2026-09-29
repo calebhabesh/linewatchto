@@ -68,7 +68,7 @@ export function stationImpactSelection(
     return { kind, id: activeAlert.id };
   }
 
-  const delay = data.delays.find((impact) => impact.id === impactId);
+  const delay = data.delays.find((impact) => impact.id === impactId || impact.relatedPlannedClosureId === impactId);
   if (delay) return { kind: "delay", id: delay.id };
 
   const plannedClosure = data.plannedClosures.find((impact) => impact.id === impactId);

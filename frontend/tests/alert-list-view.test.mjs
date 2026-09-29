@@ -86,7 +86,7 @@ describe("alert card and list views", () => {
     assert.match(compactRowSource, /<details className="compact-impact-disclosure__details">/);
     assert.match(compactRowSource, /compact-impact-list-item compact-impact-disclosure/);
     assert.ok(compactRowSource.indexOf("</button>") < compactRowSource.indexOf("<details"));
-    assert.match(panelSources[3], /title="Planned Closure"/);
+    assert.match(panelSources[3], /title=\{serviceEffectLabel\(closure, true\)\}/);
     assert.match(panelSources[3], /closure.shuttle && "Shuttle"/);
     assert.match(globalCss, /\.planned-closure-metadata > \.is-window-row\s*\{[^}]*grid-column: 1 \/ -1;/s);
     assert.match(

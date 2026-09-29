@@ -129,6 +129,11 @@ public class StatusDashboardService {
         List<AlertEntity> lineAlerts = allActiveAlerts.stream()
             .filter(a -> a.getLine() != null && a.getLine().getId().equals(entity.getId()))
             .filter(a -> !"reduced-speed-zone".equalsIgnoreCase(a.getImpactKind()))
+            .filter(a -> !com.calebhabesh.linewatch.ingestion.TtcServiceState.isRestoration(
+                a.getEffect(), a.getSeverity(), a.getTitle(), a.getDescription(), a.getEffectDescription()))
+            .filter(a -> !"limited-service".equals(a.getImpactKind())
+                || ((a.getActivePeriodStart() == null || !a.getActivePeriodStart().isAfter(now))
+                    && (a.getActivePeriodEnd() == null || a.getActivePeriodEnd().isAfter(now))))
             .toList();
 
         // Filter active planned closures for this specific line
@@ -144,10 +149,13 @@ public class StatusDashboardService {
         boolean hasSuspension = lineAlerts.stream()
             .anyMatch(a -> "suspension".equalsIgnoreCase(a.getSeverity()));
 
-        boolean hasActiveClosure = !lineClosures.isEmpty();
+        boolean hasActiveClosure = lineClosures.stream().anyMatch(c -> "suspension".equals(c.serviceEffect()));
+        boolean hasLimitedService = lineClosures.stream().anyMatch(c -> "limited-service".equals(c.serviceEffect()))
+            || lineAlerts.stream().anyMatch(alert -> "limited-service".equals(alert.getImpactKind()));
 
         boolean hasDelay = lineAlerts.stream()
-            .anyMatch(a -> "delay".equalsIgnoreCase(a.getSeverity()));
+            .anyMatch(a -> "delay".equalsIgnoreCase(a.getSeverity()))
+            || lineClosures.stream().anyMatch(c -> "delay".equals(c.serviceEffect()));
 
         if (hasSuspension) {
             status = "suspension";
@@ -184,6 +192,13 @@ public class StatusDashboardService {
                 summary = "Active planned closure affecting this line.";
             }
             updatedAgo = updatedAgo(mostRecentClosure.updatedAt(), now);
+        } else if (hasLimitedService) {
+            status = "delay";
+            statusLabel = "Limited service";
+            summary = lineClosures.stream().filter(c -> "limited-service".equals(c.serviceEffect()))
+                .map(AlertDashboardService.PlannedClosureDto::title).findFirst()
+                .orElseGet(() -> lineAlerts.stream().filter(alert -> "limited-service".equals(alert.getImpactKind()))
+                    .findFirst().orElseThrow().getTitle());
         } else if (hasDelay) {
             status = "delay";
             statusLabel = "Delayed";
@@ -195,13 +210,16 @@ public class StatusDashboardService {
                     if (a2.getSourceUpdatedAt() == null) return 1;
                     return a1.getSourceUpdatedAt().compareTo(a2.getSourceUpdatedAt());
                 })
-                .orElse(lineAlerts.getFirst());
+                .orElse(null);
 
-            summary = mostRecent.getTitle();
+            summary = mostRecent == null ? lineClosures.stream()
+                .filter(c -> "delay".equals(c.serviceEffect())).findFirst().orElseThrow().title() : mostRecent.getTitle();
             if (summary == null || summary.isBlank()) {
                 summary = "Active service alert affecting this line.";
             }
-            updatedAgo = updatedAgo(mostRecent.getSourceUpdatedAt(), now);
+            updatedAgo = updatedAgo(mostRecent == null ? lineClosures.stream()
+                .filter(c -> "delay".equals(c.serviceEffect())).findFirst().orElseThrow().updatedAt()
+                : mostRecent.getSourceUpdatedAt(), now);
         } else if (!lineAlerts.isEmpty()) {
             status = "delay";
             statusLabel = "Degraded";

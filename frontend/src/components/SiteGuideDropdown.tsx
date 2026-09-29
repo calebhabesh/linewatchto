@@ -346,7 +346,7 @@ export function SiteGuideDropdown({
               title="What LineWatchTO Does"
             >
               <p>
-                LineWatchTO covers TTC subway/LRT and GO/UP rail, showing alerts, delays, reduced speed zones, planned closures, and station details across both networks. Save stations to My Stations and set up My Commutes to track how disruptions affect your regular routes. It displays live backend updates when ingestion is running, and falls back to demo fixtures otherwise.
+                LineWatchTO covers TTC subway/LRT and GO/UP rail, showing alerts, delays, reduced speed zones, planned advisories, and station details across both networks. Save stations to My Stations and set up My Commutes to track how disruptions affect your regular routes. It displays live backend updates when ingestion is running, and falls back to demo fixtures otherwise.
               </p>
             </GuideSection>
 
@@ -414,7 +414,7 @@ export function SiteGuideDropdown({
                     </svg>
                   }
                   label="Tap a Colored Overlay"
-                  text="Tap any line overlay to view its active alert or closure card."
+                  text="Tap any line overlay to view its suspension or closure card."
                 />
                 <GuideActionRow icon={<MapIcon size={14} />} label="Tap a Station" text="Tap a station dot to view accessibility status, alerts, and arrivals. Use the bookmark icon to save it to My Stations for quick access." />
                 <GuideActionRow
@@ -423,7 +423,7 @@ export function SiteGuideDropdown({
                   text="Choose the TTC or GO/UP rail route you intend to take. LineWatchTO checks that route for disruptions; it does not find the fastest journey or account for buses, walking, and transfer time. For a mixed-network commute, save one route for each system."
                 />
                 <GuideActionRow icon={<MapPin size={14} />} label="My Stations" text="Save your frequented stations to keep arrivals and service impacts close at hand. Tap the bookmark icon on any station card, or use the My Stations panel." />
-                <GuideActionRow icon={<Search size={14} />} label="Station & Alert Search" text="Use the search icon to quickly jump to any station or find active alerts." />
+                <GuideActionRow icon={<Search size={14} />} label="Station & Alert Search" text="Use the search icon to quickly jump to any station or find service impacts." />
                 <GuideActionRow
                   icon={
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
@@ -495,7 +495,7 @@ export function SiteGuideDropdown({
                 />
                 <OverlayGuideRow
                   icon={<ImpactTypeIcon kind="planned-closure" size={16} />}
-                  title="Planned Closure Preview"
+                  title="Planned Advisory Preview"
                   text="Smoky-white lane with blue calendar-alert icons previews scheduled closures. Both ways stays static. An explicitly one-way closure uses slowly moving calendars followed by evenly spaced chevrons."
                   previews={
                     <>

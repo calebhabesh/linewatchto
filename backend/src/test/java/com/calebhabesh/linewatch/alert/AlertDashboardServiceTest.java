@@ -40,6 +40,99 @@ class AlertDashboardServiceTest {
     );
 
     @Test
+    void scheduledStationOnlyLimitedServiceRemainsALocalDelayRing() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        AlertEntity parent = alert("limited-station", "planned-closure", "planned", "Limited service at Jane",
+            "There is limited service at Jane station.", "jane", "jane", now.minusHours(1), null);
+        ReflectionTestUtils.setField(parent, "impactKind", "limited-service");
+        ReflectionTestUtils.setField(parent, "stationIds", List.of("jane"));
+        ReflectionTestUtils.setField(parent, "activePeriodEnd", now.plusHours(1));
+        when(alertRepository.findByActiveTrueAndType("planned-closure")).thenReturn(List.of(parent));
+        when(alertActivePeriodRepository.findByAlertIds(List.of(parent.getId()))).thenReturn(Map.of(
+            parent.getId(), List.of(new AlertActivePeriodRepository.AlertPeriod(parent.getId(), "parent",
+                now.minusHours(1), now.plusHours(1), 0))));
+        assertThat(service.activeSegmentImpacts()).isEmpty();
+        assertThat(service.activeStationNodeImpacts()).singleElement().satisfies(impact -> {
+            assertThat(impact.stationId()).isEqualTo("jane");
+            assertThat(impact.kind()).isEqualTo("delay");
+        });
+        assertThat(service.plannedClosures().getFirst().previewStationIds()).containsExactly("jane");
+    }
+
+    @Test
+    void completedOrFutureLimitedServiceCannotLeakIntoCurrentDelayOrMapLists() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        AlertEntity ended = alert("ended-limited", "active-alert", "delay", "ENDED EARLY - Limited service",
+            "There was limited subway service.", "kipling", "jane", now, null);
+        AlertEntity future = alert("future-limited", "active-alert", "delay", "Limited service",
+            "There will be limited subway service.", "kipling", "jane", now, null);
+        ReflectionTestUtils.setField(ended, "impactKind", "limited-service");
+        ReflectionTestUtils.setField(future, "impactKind", "limited-service");
+        ReflectionTestUtils.setField(future, "activePeriodStart", now.plusHours(1));
+        when(alertRepository.findByActiveTrueAndType("active-alert")).thenReturn(List.of(ended, future));
+        assertThat(service.delays()).isEmpty();
+        assertThat(service.activeSegmentImpacts()).isEmpty();
+        assertThat(service.activeStationNodeImpacts()).isEmpty();
+    }
+
+    @Test
+    void scheduledLimitedServiceProjectsOnlyIntoDelaysWithParentDetails() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        AlertEntity parent = alert("ttc-route-limited-parent", "planned-closure", "planned", "Limited service",
+            "There will be limited subway service due to planned track work.", "kipling", "jane", now.minusHours(1), null);
+        ReflectionTestUtils.setField(parent, "impactKind", "limited-service");
+        ReflectionTestUtils.setField(parent, "activePeriodEnd", now.plusHours(1));
+        when(alertRepository.findByActiveTrueAndType("planned-closure")).thenReturn(List.of(parent));
+        when(alertActivePeriodRepository.findByAlertIds(List.of(parent.getId()))).thenReturn(Map.of(
+            parent.getId(), List.of(new AlertActivePeriodRepository.AlertPeriod(parent.getId(), "parent",
+                now.minusHours(1), now.plusHours(1), 0))));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("limited-span", "line-2", "kipling", "jane", 1)));
+        assertThat(service.activeAlerts()).isEmpty();
+        assertThat(service.delays()).singleElement().satisfies(delay -> {
+            assertThat(delay.serviceEffect()).isEqualTo("limited-service");
+            assertThat(delay.relatedPlannedClosureId()).isEqualTo(parent.getId());
+            assertThat(delay.activeWindowEnd()).isEqualTo(now.plusHours(1));
+            assertThat(delay.shuttle()).isFalse();
+        });
+        assertThat(service.plannedClosures()).singleElement().satisfies(advisory -> {
+            assertThat(advisory.activeNow()).isTrue();
+            assertThat(advisory.serviceEffect()).isEqualTo("limited-service");
+        });
+        assertThat(service.activeSegmentImpacts().get("limited-span")).singleElement()
+            .extracting(AlertDashboardService.SegmentImpact::kind).isEqualTo("delay");
+    }
+
+    @Test
+    void linkedChildSuspensionOverridesOnlyItsOccurrenceWithoutDuplicateCurrentCards() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        AlertEntity parent = alert("ttc-route-limited-parent", "planned-closure", "planned", "Limited nightly service",
+            "There will be limited subway service.", "kipling", "jane", now.minusHours(1), null);
+        ReflectionTestUtils.setField(parent, "impactKind", "limited-service");
+        AlertEntity child = alert("ttc-route-limited-child", "active-alert", "suspension", "No service",
+            "There is no subway service.", "kipling", "jane", now.minusMinutes(30), "Will Operate");
+        when(alertRepository.findByActiveTrueAndType("planned-closure")).thenReturn(List.of(parent));
+        when(alertRepository.findByActiveTrueAndType("active-alert")).thenReturn(List.of(child));
+        when(alertActivePeriodRepository.findByAlertIds(List.of(parent.getId()))).thenReturn(Map.of(
+            parent.getId(), List.of(new AlertActivePeriodRepository.AlertPeriod(parent.getId(), child.getSourceId(),
+                now.minusHours(1), now.plusHours(1), 0))));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("limited-span", "line-2", "kipling", "jane", 1)));
+        assertThat(service.activeAlerts()).singleElement().satisfies(alert -> {
+            assertThat(alert.id()).isEqualTo(child.getId());
+            assertThat(alert.relatedPlannedClosureId()).isEqualTo(parent.getId());
+        });
+        assertThat(service.delays()).isEmpty();
+        assertThat(service.activeSegmentImpacts().get("limited-span")).singleElement()
+            .extracting(AlertDashboardService.SegmentImpact::kind).isEqualTo("suspension");
+        assertThat(service.plannedClosures().getFirst().serviceEffect()).isEqualTo("limited-service");
+    }
+
+    @Test
     void retainedEndedEarlyChildPreventsScheduledParentFromReappearing() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         OffsetDateTime now = OffsetDateTime.now(CLOCK);
@@ -990,7 +1083,7 @@ class AlertDashboardServiceTest {
             assertThat(dto.nightly()).isFalse();
             assertThat(dto.nextWindowStart()).isEqualTo(OffsetDateTime.parse("2026-08-24T10:05:00Z"));
             assertThat(dto.nextWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-08-24T15:00:00Z"));
-            assertThat(dto.windowHours()).isEqualTo("Varies by closure date");
+            assertThat(dto.windowHours()).isEqualTo("Varies by advisory date");
         });
         assertThat(lateOpeningService.activeAlerts()).isEmpty();
         assertThat(lateOpeningService.activeSegmentImpacts())

@@ -18,6 +18,29 @@ class LineSubscriptionPushPlannerTest {
     private final LineSubscriptionPushPlanner planner = new LineSubscriptionPushPlanner(dashboardService, clock, formatter);
 
     @Test
+    void plannedLimitedServiceKeepsOccurrenceNotificationIdentityAndPreferenceType() {
+        OffsetDateTime startsAt = OffsetDateTime.parse("2026-06-05T14:00:00Z");
+        when(dashboardService.activeAlerts()).thenReturn(List.of(new AlertDashboardService.ActiveAlertDto(
+            "parent", "line-1", "1", "Nightly closure", "planned", "Vaughan to Finch West", "Both directions",
+            "There is no subway service.", startsAt, startsAt, List.of("affected"), false,
+            "TTC Live Alerts", "Closure - Planned Track Work", null, null)));
+        PushNotificationCandidate before = planner.candidatesFor("account", List.of("line-1")).getFirst();
+        when(dashboardService.activeAlerts()).thenReturn(List.of());
+        when(dashboardService.delays()).thenReturn(List.of(new AlertDashboardService.DelayAlertDto(
+            "child", "line-1", "1", "Limited service", "Vaughan to Finch West", "Both directions",
+            "There is limited subway service.", List.of("affected"), startsAt, startsAt,
+            "TTC Live Alerts", "Closure - Planned Track Work", "limited-service", "parent", startsAt.plusHours(3),
+            false, "There is limited subway service.")));
+        List<PushNotificationCandidate> corrected = planner.candidatesFor("account", List.of("line-1"));
+        assertThat(corrected).hasSize(1);
+        assertThat(corrected.getFirst().eventType()).isEqualTo("planned-closure");
+        assertThat(corrected.getFirst().sourceIncidentKey()).isEqualTo(before.sourceIncidentKey());
+        assertThat(corrected.getFirst().notification().body()).contains("limited subway service");
+        assertThat(corrected.getFirst().notification().title()).contains("Planned limited service");
+        assertThat(corrected.getFirst().url()).contains("panel=delays");
+    }
+
+    @Test
     void plansLineSuspensionAndDelayAndRSZAndPlannedClosure() {
         AlertDashboardService.ActiveAlertDto suspension = new AlertDashboardService.ActiveAlertDto(
             "alert-1",
@@ -161,14 +184,14 @@ class LineSubscriptionPushPlannerTest {
             .satisfies(candidate -> assertThat(candidate.reminderBucket()).isEqualTo("closure-24h"));
 
         for (PushNotificationCandidate candidate : closureCandidates) {
-            assertThat(candidate.title()).isEqualTo("⚠️ Line 1 Yonge-University Planned Closure");
+            assertThat(candidate.title()).isEqualTo("⚠️ Line 1 Yonge-University Planned Advisory");
             assertThat(candidate.sourceEventAt()).isEqualTo(eventStart.toInstant());
             assertThat(candidate.url()).isEqualTo("/?panel=closures&impactKind=planned-closure&impactId=closure-1");
             if ("closure-24h".equals(candidate.reminderBucket())) {
                 assertThat(candidate.body()).contains("Starts within 24 hours.");
             }
-            assertThat(candidate.body()).contains("Closure dates: Sat, Jun 6 – Mon, Jun 8.");
-            assertThat(candidate.body()).contains("Closure hours: 12:00 AM – 5:00 AM.");
+            assertThat(candidate.body()).contains("Advisory dates: Sat, Jun 6 – Mon, Jun 8.");
+            assertThat(candidate.body()).contains("Advisory hours: 12:00 AM – 5:00 AM.");
             assertThat(candidate.body()).startsWith(
                 "Synthetic scenario: no subway service between St George and Sheppard West for a test closure."
             );
@@ -280,7 +303,7 @@ class LineSubscriptionPushPlannerTest {
             .singleElement()
             .satisfies(candidate -> {
                 assertThat(candidate.sourceEventAt()).isEqualTo(scheduledOpening.toInstant());
-                assertThat(candidate.body()).contains("Closure hours: 8:07 AM – 11:00 AM.");
+                assertThat(candidate.body()).contains("Advisory hours: 8:07 AM – 11:00 AM.");
                 assertThat(candidate.body()).doesNotContain("12:00 AM");
             });
     }
@@ -324,7 +347,7 @@ class LineSubscriptionPushPlannerTest {
                 .startsWith("line-current|line-2|planned-closure-");
             assertThat(candidate.notificationKey())
                 .startsWith("line-current|line-2|planned-closure|planned-closure-");
-            assertThat(candidate.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Planned Closure");
+            assertThat(candidate.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Planned Advisory");
             assertThat(candidate.body()).contains("No subway service between Jane and Ossington stations");
             assertThat(candidate.body()).doesNotContain("Each nightly closure runs");
             assertThat(candidate.sourceEventAt()).isEqualTo(windowStart.toInstant());

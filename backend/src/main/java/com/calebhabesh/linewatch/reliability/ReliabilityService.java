@@ -158,15 +158,7 @@ public class ReliabilityService {
     }
 
     private String formatImpactKindLabel(String impactKind) {
-        if (impactKind == null) return "Service Notices";
-        return switch (impactKind.toLowerCase().replace('_', '-')) {
-            case "delay" -> "Delays";
-            case "reduced-speed-zone", "rsz" -> "Reduced Speed Zones";
-            case "planned-closure", "closure" -> "Planned Closures";
-            case "suspension" -> "Active Alerts";
-            case "cancellation" -> "Train Cancellations";
-            default -> "Service Notices";
-        };
+        return com.calebhabesh.linewatch.alert.AlertCategoryLabels.plural(impactKind);
     }
 
     private ReliabilityMetric metric(

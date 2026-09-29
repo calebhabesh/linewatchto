@@ -26,7 +26,7 @@ export const NOTIFICATION_EVENT_OPTIONS: Array<{
   { key: "suspensions", label: "Suspensions" },
   { key: "delays", label: "Delays" },
   { key: "tripCancellations", label: "Train Cancellations" },
-  { key: "plannedClosures", label: "Planned Closures" },
+  { key: "plannedClosures", label: "Planned Advisories" },
   { key: "serviceRestored", label: "Service Restored" },
   { key: "reducedSpeedZones", label: "Reduced Speed Zones" },
 ];

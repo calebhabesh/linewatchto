@@ -88,7 +88,7 @@ describe("mobile bottom sheet UX", () => {
     assert.match(statusSheetSource, /useDashboardData/);
     assert.match(statusSheetSource, /<h3>Alerts<\/h3>/);
     assert.match(statusSheetSource, /<h3>Line Status<\/h3>/);
-    assert.match(statusSheetSource, /lineClosures\.length === 1 \? "Planned Closure" : "Planned Closures"/);
+    assert.match(statusSheetSource, /lineClosures\.length === 1 \? "Planned Advisory" : "Planned Advisories"/);
     assert.match(statusSheetSource, /<h2[^>]*>System Status<\/h2>/);
     assert.match(statusSheetSource, /mobile-status-sheet-live-blip/);
     assert.match(globalCss, /\.mobile-sheet-heading h2\s*\{[^}]*font-size:\s*22px/s);

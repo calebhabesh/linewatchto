@@ -786,7 +786,7 @@ describe("asset-backed map layering", () => {
       /opacity:\s*1,\s*transform:\s*"translate\(0px, 0px\) scale\(1\)"/,
     );
     assert.match(interactiveMapSource, /details\.displayDirection/);
-    assert.match(interactiveMapSource, /return "Planned Closure"/);
+    assert.match(interactiveMapSource, /return "Planned Advisory"/);
     assert.match(interactiveMapSource, /details\?\.closureDateLabel/);
     assert.match(interactiveMapSource, /overlap-chooser-choice-date/);
     assert.match(globalCss, /\.overlap-chooser-choice-date\s*\{[^}]*color:\s*#3b82f6;[^}]*font-size:\s*11px;/s);

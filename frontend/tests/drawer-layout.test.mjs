@@ -253,15 +253,15 @@ describe("floating menu layout", () => {
     assert.match(activeAlertsSource, /RelatedPlannedClosureButton/);
     assert.match(activeAlertsSource, /kind: "planned-closure", id: closureId/);
     assert.match(mobileImpactInspectorSource, /relatedPlannedClosureId/);
-    assert.match(impactCardFieldsSource, /View Planned Closure/);
+    assert.match(impactCardFieldsSource, /View Planned Advisory/);
     assert.match(globalCss, /\.related-planned-closure-button\s*\{[^}]*background:\s*#1e293b;[^}]*border:\s*1px solid rgba\(59, 130, 246, 0\.35\);[^}]*color:\s*#ffffff;[^}]*min-height:\s*28px/s);
     assert.match(globalCss, /\.dark \.related-planned-closure-button\s*\{[^}]*background:\s*#1e293b;[^}]*color:\s*#ffffff/s);
     assert.match(interactiveMapSource, /kind === "suspension"/);
-    assert.match(interactiveMapSource, /details\?\.categoryLabel \?\? "Active Alert"/);
+    assert.match(interactiveMapSource, /details\?\.categoryLabel \?\? "Suspension"/);
     assert.match(plannedClosuresSource, /alert\.relatedPlannedClosureId === closure\.id/);
     assert.match(plannedClosuresSource, /closure\.activeNow && alert\.id === closure\.id/);
     assert.doesNotMatch(plannedClosuresSource, /label: "Status"/);
-    assert.match(plannedClosuresSource, /kind: "suspension", id: activeAlert\.id/);
+    assert.match(plannedClosuresSource, /kind: currentKind, id: currentImpact\.id/);
     assert.match(plannedClosuresSource, /<span>Active Now<\/span>/);
     assert.match(plannedClosuresSource, /Currently Inactive/);
     assert.match(plannedClosuresSource, /Upcoming/);
@@ -274,8 +274,8 @@ describe("floating menu layout", () => {
   it("presents planned closure schedule fields in the shared metadata grid", () => {
     assert.match(plannedClosuresSource, /closure\.windowHours/);
     assert.match(plannedClosuresSource, /closure\.windowDates/);
-    assert.match(plannedClosuresSource, /Closure hours/);
-    assert.match(plannedClosuresSource, /Closure dates/);
+    assert.match(plannedClosuresSource, /Advisory hours/);
+    assert.match(plannedClosuresSource, /Advisory dates/);
     assert.doesNotMatch(plannedClosuresSource, /closure\.nightly \? "Closure nights"/);
     assert.match(plannedClosuresSource, /Current window/);
     assert.match(plannedClosuresSource, /Next window/);
@@ -283,18 +283,18 @@ describe("floating menu layout", () => {
     assert.match(plannedClosuresSource, /replace\(\/\\s\*\[–—\]\\s\*\/g, " – "\)/);
     assert.match(plannedClosuresSource, /formatClosureScheduleValue\(specificWindowLabel\)/);
     assert.match(plannedClosuresSource, /<MetadataGrid[\s\S]*?leadingRows=\{\[/s);
-    assert.match(plannedClosuresSource, /label:\s*"Closure hours"/);
-    assert.match(plannedClosuresSource, /label:\s*"Closure dates"/);
+    assert.match(plannedClosuresSource, /label:\s*"Advisory hours"/);
+    assert.match(plannedClosuresSource, /label:\s*"Advisory dates"/);
     assert.match(plannedClosuresSource, /label:\s*specificWindowHeading/);
-    assert.match(plannedClosuresSource, /label:\s*"Closure window"/);
+    assert.match(plannedClosuresSource, /label:\s*"Advisory window"/);
     assert.doesNotMatch(plannedClosuresSource, /planned-closure-schedule/);
     assert.doesNotMatch(globalCss, /\.planned-closure-schedule/);
     assert.ok(
-      plannedClosuresSource.indexOf('label: "Closure dates"')
-        < plannedClosuresSource.indexOf('label: "Closure hours"'),
+      plannedClosuresSource.indexOf('label: "Advisory dates"')
+        < plannedClosuresSource.indexOf('label: "Advisory hours"'),
       "closure dates should be rendered before closure hours",
     );
-    assert.match(impactCardFieldsSource, /\.\.\.renderedLeadingRows,[\s\S]*?causeValue \? \["Cause"/s);
+    assert.match(impactCardFieldsSource, /\.\.\.renderedLeadingRows,[\s\S]*?causeValue \? \["Source cause"/s);
     assert.match(impactCardFieldsSource, /index < renderedLeadingRows\.length \? "is-emphasized"/);
     assert.match(plannedClosuresSource, /className="no-border planned-closure-metadata"/);
     assert.match(globalCss, /\.planned-closure-metadata \.is-emphasized dt\s*\{[^}]*color:\s*var\(--color-logo-blue\);[^}]*text-shadow:/s);

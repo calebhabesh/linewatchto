@@ -152,11 +152,11 @@ function impactToneClass(kind: NonNullable<ImpactSelection>["kind"]) {
 }
 
 function getImpactLabel(kind: string) {
-  if (kind === "suspension") return "active alert";
+  if (kind === "suspension") return "suspension";
   if (kind === "delay") return "delay";
   if (kind === "reduced-speed-zone") return "reduced speed zone";
-  if (kind === "planned-closure") return "planned closure";
-  return "active alert";
+  if (kind === "planned-closure") return "planned advisory";
+  return "suspension";
 }
 
 function stationPreviewImpactsFor(selectedStationId: string, data: DashboardData): StationPreviewImpact[] {

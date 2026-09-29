@@ -1,5 +1,7 @@
 "use client";
 
+import { serviceEffectLabel } from "../app/alert-categories";
+
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import { AlertCircle, AlertTriangle, ArrowRight, BadgeInfo, Bus, ChevronDown, ConciergeBell, Construction, ExternalLink, FileText, GitMerge, Train } from "lucide-react";
@@ -111,14 +113,14 @@ function getStationImpactDetailsTarget(
     if (matchingAlert.severity === "planned") {
       return {
         label: "Active Closure",
-        selection: { kind: "planned-closure", id: matchingAlert.id },
+        selection: { kind: "suspension", id: matchingAlert.id },
         tone: "active",
       };
     }
 
     if (matchingAlert.severity === "suspension") {
       return {
-        label: "Active Alert",
+        label: "Suspension",
         selection: { kind: "suspension", id: matchingAlert.id },
         tone: "active",
       };
@@ -131,21 +133,21 @@ function getStationImpactDetailsTarget(
     };
   }
 
-  const plannedClosure = plannedClosures.find((closure) => closure.id === impact.id);
-  if (plannedClosure) {
+  const delay = delays.find((d) => d.id === impact.id || d.relatedPlannedClosureId === impact.id);
+  if (delay) {
     return {
-      label: "Planned Closure",
-      selection: { kind: "planned-closure", id: plannedClosure.id },
-      tone: "planned",
+      label: serviceEffectLabel(delay),
+      selection: { kind: "delay", id: delay.id },
+      tone: "delay",
     };
   }
 
-  const delay = delays.find((d) => d.id === impact.id);
-  if (delay) {
+  const plannedClosure = plannedClosures.find((closure) => closure.id === impact.id);
+  if (plannedClosure) {
     return {
-      label: "Delay",
-      selection: { kind: "delay", id: delay.id },
-      tone: "delay",
+      label: serviceEffectLabel(plannedClosure, true),
+      selection: { kind: "planned-closure", id: plannedClosure.id },
+      tone: "planned",
     };
   }
 
@@ -237,10 +239,10 @@ function fallbackStationImpactTone(impact: StationImpact): StationImpactDetailsT
 
 function fallbackStationImpactLabel(impact: StationImpact): string {
   if (impact.type === "planned-closure" || impact.severity === "planned") {
-    return "Planned Closure";
+    return "Planned Advisory";
   }
   if (impact.severity === "suspension") {
-    return "Active Alert";
+    return "Suspension";
   }
   return "Delay";
 }

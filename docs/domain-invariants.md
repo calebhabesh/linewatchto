@@ -16,7 +16,8 @@ and test evidence. Background inventory: [feature reference](feature-reference.m
 
 - Ordinary delays and explicit Reduced Speed Zones are distinct. Schematic Diagram placements use reviewed topology and authored SVG geometry; Geographic map placements project the same logical topology and active impacts onto published GTFS track geometry and station coordinates, not inferred physical tracking. Estimated train markers are conservative schematic placements in Diagram mode and are omitted from Geographic map mode.
 - Preserve direction-aware segment matching and single-station rings. Station-only regional impacts must not become corridor-wide overlays.
-- TTC nightly closures remain canonical planned events and project current impacts only during effective parent/child windows. Exact parent-period IDs link standalone active children; show one current map impact with access to the related planned closure.
+- Display buckets are Suspensions, Delays, Planned Advisories, and Reduced Speed Zones. Keep service effect separate from scheduled/current timing: limited service is a delay-bucket restriction without implied delay minutes, frequency reduction, single tracking, shuttle service, or shutdown. Generic source causes are labelled source details, not effect evidence; contradictory structured effects remain unclassified.
+- TTC scheduled advisories remain canonical planned events and project current impacts only during effective parent/child windows. Exact parent-period IDs link standalone active children; show one current map impact with access to the related planned advisory. Limited service uses delay styling while active and blue planned previews. A child's more specific evidence affects only its linked occurrence.
 - An explicit TTC `ENDED EARLY` title status completes that closure or its exactly linked occurrence. Omit it from current impacts and planned listings, preserve later occurrences and source history, and retain completion evidence after the child leaves the feed. `ENDING EARLY` and service that "will end early" do not establish completion.
 - Accessibility outages, surface notices, and reviewed station-page notices do not drive service status, segment overlays, commute matching, reliability incidents, or push. Station-page notices are station-detail-only. My Stations does not send push.
 - TTC GTFS-RT service-alert supplementation is bus/streetcar-only; it does not drive rapid-transit map/status/commute/push paths.
@@ -47,7 +48,7 @@ and test evidence. Background inventory: [feature reference](feature-reference.m
 - Commute cancellation pushes additionally require exact schedule matching, at least two ordered path stops in matching direction, the scheduled trip inside the selected leg schedule, and current time inside its notification window.
 - Enabling/editing route rules silently baselines active impacts. Impacts beginning outside a window may notify once when the natural window opens. Planned/restored commute pushes respect the selected leg's open window; restored also requires its toggle and a prior active commute delivery.
 - Preserve distinct update re-notification, unchanged-snapshot deduplication, separate active/restored lifecycle entries, high transport urgency, and non-silent persistent display requests. Browser policy can still remove notifications.
-- Planned-closure follow-up policy is shared by commute and line streams (Smart, Within 24 Hours, Day Of, Announcements Only), emitting one applicable timing candidate per evaluation.
+- Planned-advisory follow-up policy is shared by commute and line streams (Smart, Within 24 Hours, Day Of, Announcements Only), emitting one applicable timing candidate per evaluation.
 
 ## Reliability and public claims
 

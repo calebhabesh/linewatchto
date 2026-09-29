@@ -1,3 +1,4 @@
+import { serviceEffectLabel } from "../app/alert-categories.ts";
 import type {
   ActiveAlert,
   DelayAlert,
@@ -40,7 +41,7 @@ function impactKindForActiveAlert(alert: ActiveAlert): ImpactKind {
 
 function labelForActiveAlert(alert: ActiveAlert): string {
   if (alert.severity === "delay") return "Delay";
-  return "Active Alert";
+  return "Suspension";
 }
 
 function overlapPriority(kind: ImpactKind): number {
@@ -162,7 +163,8 @@ export function getOverlappingImpactRefs(
     data,
   );
   const currentActiveAlert = data.activeAlerts.find((alert) => alert.id === currentImpact.id);
-  const relatedPlannedClosureId = currentActiveAlert?.relatedPlannedClosureId;
+  const relatedPlannedClosureId = currentActiveAlert?.relatedPlannedClosureId
+    ?? data.delays.find(delay => delay.id === currentImpact.id)?.relatedPlannedClosureId;
   const activePlannedClosureIds = new Set(
     data.activeAlerts
       .filter((alert) => alert.severity === "planned")
@@ -213,7 +215,7 @@ export function getOverlappingImpactRefs(
       {
         key: `planned-closure-${closure.id}`,
         kind: "planned-closure",
-        label: "Planned Closure",
+        label: serviceEffectLabel(closure, true),
         location: closure.location,
         selection: { kind: "planned-closure", id: closure.id },
       },
@@ -226,7 +228,7 @@ export function getOverlappingImpactRefs(
       {
         key: `delay-${delay.id}`,
         kind: "delay",
-        label: "Delay",
+        label: serviceEffectLabel(delay),
         location: delay.location,
         selection: { kind: "delay", id: delay.id },
       },

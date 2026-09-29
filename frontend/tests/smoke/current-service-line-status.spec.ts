@@ -40,8 +40,8 @@ for (const network of ["ttc", "regional"] as const) {
         ? page.getByRole("region", { name: "Current Service", exact: true })
         : page.locator(".desktop-status-overview");
       const status = network === "ttc"
-        ? "Normal Service, Speed zones, Closure planned"
-        : "Normal Service, Closure planned";
+        ? "Normal Service, Speed zones, Advisory planned"
+        : "Normal Service, Advisory planned";
       const affected = service.getByRole("button", { name: new RegExp(status) });
       await expect(affected).toBeVisible();
       await expect(affected.locator(".current-service-good-service-icon")).toHaveCount(0);
@@ -59,9 +59,9 @@ for (const network of ["ttc", "regional"] as const) {
       await service.screenshot({ path: `/tmp/linewatch-status-${network}-${theme}-${isMobile ? "mobile" : "desktop"}.png` });
 
       const closureBadge = service.locator(isMobile ? ".current-service-badge-incident-button" : ".desktop-status-badge-incident-button")
-        .filter({ hasText: "Planned Closure" });
+        .filter({ hasText: "Planned Advisory" });
       await closureBadge.click();
-      await expect(page.getByRole("heading", { name: "Planned Closures", exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Planned Advisories", exact: true })).toBeVisible();
     });
   }
 }

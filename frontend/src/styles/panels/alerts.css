@@ -667,7 +667,6 @@
   }
 }
 
-.planned-closure-status-button,
 .planned-closure-status-inactive {
   align-items: center;
   border-radius: 6px;
@@ -680,6 +679,16 @@
 }
 
 .planned-closure-status-button {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 750;
+  gap: 5px;
+  line-height: 1;
+  min-height: 25px;
+  padding: 4px 8px;
+  white-space: nowrap;
   background: rgba(220, 38, 38, 0.08);
   border: 1px solid rgba(220, 38, 38, 0.18);
   color: #dc2626;
@@ -701,6 +710,18 @@
 .dark .planned-closure-status-button:hover {
   background: rgba(239, 68, 68, 0.22);
   border-color: rgba(239, 68, 68, 0.4);
+}
+
+.planned-closure-status-button.is-delay,
+.dark .planned-closure-status-button.is-delay {
+  background: var(--badge-pill-bg-delays);
+  border-color: rgba(234, 179, 8, 0.35);
+  color: var(--badge-pill-text-delays);
+}
+
+.planned-closure-status-button.is-delay:hover,
+.dark .planned-closure-status-button.is-delay:hover {
+  border-color: rgba(234, 179, 8, 0.6);
 }
 
 .related-planned-closure-button:active,

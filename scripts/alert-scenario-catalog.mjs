@@ -15,6 +15,7 @@ export const scenarioNames = [
   "line-5-suspension",
   "nightly-closure-active-window",
   "station-node-impact",
+  "limited-service-active-window",
 ];
 
 export const scenarioExpectations = {
@@ -148,6 +149,9 @@ export const scenarioExpectations = {
     accessibilityCount: 0,
     impactKinds: ["planned-closure"],
     guidePathIds: [],
+  },
+  "limited-service-active-window": {
+    routeCount: 2, accessibilityCount: 0, impactKinds: ["limited-service"], guidePathIds: [],
   },
   "station-node-impact": {
     routeCount: 1,
@@ -911,6 +915,32 @@ function nightlyClosureActiveWindow(now) {
   ]);
 }
 
+function limitedServiceActiveWindow(now) {
+  const parent = routeAlert(now, {
+    id: "scenario-limited-parent", alertType: "Planned", route: "1",
+    stopStart: "Vaughan Metropolitan Centre", stopEnd: "Finch West",
+    stopIDList: ["Vaughan Metropolitan Centre", "Highway 407", "Pioneer Village", "York University", "Finch West"],
+    title: "Limited nightly service between Vaughan and Finch West",
+    headerText: "Line 1: Limited nightly service between Vaughan and Finch West",
+    description: "There will be limited nightly subway service due to planned track work.",
+    effect: "LIMITED_SERVICE", effectDesc: "Limited service", direction: "Both ways",
+    cause: "MAINTENANCE", causeDescription: "Closure - Planned Track Work",
+    activePeriod: finitePeriod(now, -60, 1500), activePeriodGroup: ["Current", "Nightly"],
+    childAlerts: [
+      { id: "scenario-limited-child", startTime: iso(now, -60), endTime: iso(now, 120) },
+      { id: "scenario-limited-next", startTime: iso(now, 1380), endTime: iso(now, 1560) },
+    ],
+  });
+  const child = routeAlert(now, {
+    ...parent, id: "scenario-limited-child", alertType: "Live",
+    title: "There is limited subway service between Vaughan and Finch West stations.",
+    headerText: "Line 1: There is limited subway service between Vaughan and Finch West stations.",
+    description: "There is limited subway service due to planned track work.",
+    activePeriod: finitePeriod(now, -60, 120), childAlerts: [],
+  });
+  return feed(now, [parent, child]);
+}
+
 function stationNodeImpact(now) {
   return feed(now, [
     routeAlert(now, {
@@ -945,6 +975,8 @@ export function buildScenarioFeed(name, options = {}) {
       return line5Suspension(now);
     case "nightly-closure-active-window":
       return nightlyClosureActiveWindow(now);
+    case "limited-service-active-window":
+      return limitedServiceActiveWindow(now);
     case "station-node-impact":
       return stationNodeImpact(now);
     default:

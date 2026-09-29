@@ -1,3 +1,4 @@
+import { currentAdvisoryBucket } from "./alert-categories.ts";
 /**
  * Map Alert Selector
  *
@@ -69,12 +70,13 @@ export function getImpactPriority(kind: MapImpactKind | ImpactKind): number {
 export function buildActiveClosureImpactCardIds(
   activeAlerts: ActiveAlert[] = [],
   plannedClosures: PlannedClosure[] = [],
+  delays: DelayAlert[] = [],
 ): Map<string, string> {
   const cardIds = new Map<string, string>();
 
   for (const closure of plannedClosures) {
     if (!closure.activeNow && closure.timingStatus !== "active-now") continue;
-    const activeAlert = activeAlerts.find(
+    const activeAlert = [...activeAlerts, ...delays].find(
       (alert) => alert.id === closure.id || alert.relatedPlannedClosureId === closure.id,
     );
     cardIds.set(closure.id, activeAlert?.id ?? closure.id);
@@ -92,12 +94,12 @@ export function buildActiveClosureImpactCardIds(
 }
 
 /**
- * Normalizes an impact on a segment if it refers to an active planned closure,
- * reclassifying it as a suspension pointing to the active alert card ID.
+ * Resolves an active planned advisory to its current effect and current card ID.
  */
 export function normalizeActiveClosureMapImpact(
   impact: MapImpact,
   activeClosureImpactCardIds: Map<string, string>,
+  plannedAdvisories: PlannedClosure[] = [],
 ): MapImpact {
   if (impact.kind !== "planned-closure") return impact;
   const activeCardId = activeClosureImpactCardIds.get(impact.cardId);
@@ -105,7 +107,7 @@ export function normalizeActiveClosureMapImpact(
 
   return {
     ...impact,
-    kind: "suspension",
+    kind: currentAdvisoryBucket(plannedAdvisories.find(advisory => advisory.id === impact.cardId) ?? {}),
     cardId: activeCardId,
     sourceAlertIds: [activeCardId],
   };
@@ -113,13 +115,14 @@ export function normalizeActiveClosureMapImpact(
 
 /**
  * Resolves eligible planned closures for map presentation.
- * Excludes closures that are currently active (already represented as active suspensions),
+ * Excludes advisories that are currently active (already represented as current impacts),
  * unless explicitly selected by the user.
  */
 export function getEligiblePlannedClosures(
   plannedClosures: PlannedClosure[] = [],
   activeAlerts: ActiveAlert[] = [],
   selection?: ImpactSelection,
+  delays: DelayAlert[] = [],
 ): {
   linkedPlannedClosureIds: Set<string>;
   currentPlannedClosureIds: Set<string>;
@@ -128,7 +131,7 @@ export function getEligiblePlannedClosures(
   activeClosureImpactCardIds: Map<string, string>;
 } {
   const linkedPlannedClosureIds = new Set(
-    activeAlerts
+    [...activeAlerts, ...delays]
       .map((alert) => alert.relatedPlannedClosureId)
       .filter((id): id is string => Boolean(id)),
   );
@@ -150,7 +153,7 @@ export function getEligiblePlannedClosures(
       (selection?.kind === "planned-closure" && selection.id === closure.id),
   );
 
-  const activeClosureImpactCardIds = buildActiveClosureImpactCardIds(activeAlerts, plannedClosures);
+  const activeClosureImpactCardIds = buildActiveClosureImpactCardIds(activeAlerts, plannedClosures, delays);
 
   return {
     linkedPlannedClosureIds,
@@ -159,6 +162,20 @@ export function getEligiblePlannedClosures(
     eligiblePlannedClosures,
     activeClosureImpactCardIds,
   };
+}
+
+/** Local planned previews share eligibility with rail previews. */
+export function plannedAdvisoryStationImpacts(
+  plannedClosures: PlannedClosure[] = [],
+  activeAlerts: ActiveAlert[] = [],
+  delays: DelayAlert[] = [],
+  selection?: ImpactSelection,
+): StationNodeImpact[] {
+  return getEligiblePlannedClosures(plannedClosures, activeAlerts, selection, delays).eligiblePlannedClosures
+    .filter(advisory => !advisory.previewSegmentIds.length)
+    .flatMap(advisory => (advisory.previewStationIds ?? []).map(stationId => ({
+      stationId, kind: "planned-closure" as const, cardId: advisory.id, title: advisory.title,
+    })));
 }
 
 /**
@@ -315,14 +332,11 @@ export function selectUnifiedLogicalImpacts({
   eligiblePlannedClosures: PlannedClosure[];
   overlapPlannedClosures: PlannedClosure[];
 } {
-  void delays;
-  void network;
-
   const {
     eligiblePlannedClosures,
     overlapPlannedClosures,
     activeClosureImpactCardIds,
-  } = getEligiblePlannedClosures(plannedClosures, activeAlerts, selection);
+  } = getEligiblePlannedClosures(plannedClosures, activeAlerts, selection, delays);
 
   const impactsList: LogicalMapImpact[] = [];
   const processedImpactCardIds = new Set<string>();
@@ -444,14 +458,14 @@ export function selectUnifiedLogicalImpacts({
       allCardIds,
       lineId: closure.lineId,
       affectedSegmentIds,
-      affectedStationIds: [...new Set(affectedStationIds)],
+      affectedStationIds: [...new Set([...affectedStationIds, ...(closure.previewStationIds ?? [])])],
       kind: "planned-closure",
       travelDirection: resolvedDirection.travelDirection,
       directionCertainty: resolvedDirection.directionCertainty,
       timingStatus: "preview",
       priority: getImpactPriority("planned-closure"),
       label: closure.title,
-      isStationOnly: false,
+      isStationOnly: affectedSegmentIds.length === 0,
     });
     processedImpactCardIds.add(closure.id);
   }
@@ -491,7 +505,7 @@ export function selectUnifiedLogicalImpacts({
       : [];
 
     for (const rawImp of impacts) {
-      const imp = normalizeActiveClosureMapImpact(rawImp, activeClosureImpactCardIds);
+      const imp = normalizeActiveClosureMapImpact(rawImp, activeClosureImpactCardIds, plannedClosures);
       if (processedImpactCardIds.has(imp.cardId)) continue;
       processedImpactCardIds.add(imp.cardId);
 

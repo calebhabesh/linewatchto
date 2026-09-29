@@ -1,3 +1,4 @@
+import { ALERT_CATEGORIES } from "./alert-categories.ts";
 import type {
   ActiveAlert,
   DelayAlert,
@@ -55,27 +56,27 @@ export type ImpactSearchData = {
 export const IMPACT_SEARCH_CATEGORIES: ImpactSearchCategory[] = [
   {
     kind: "suspension",
-    label: "Active Alerts",
-    singularLabel: "Active Alert",
-    aliases: ["active alert", "alert", "suspension", "suspended", "no service", "shutdown"],
+    label: ALERT_CATEGORIES["suspension"].label,
+    singularLabel: ALERT_CATEGORIES["suspension"].singular,
+    aliases: ["suspensions", "active alerts", "active alert", "alert", "suspension", "suspended", "no service", "shutdown"],
   },
   {
     kind: "delay",
-    label: "Delays",
-    singularLabel: "Delay",
-    aliases: ["delay", "delayed", "degraded", "longer travel", "travel time"],
+    label: ALERT_CATEGORIES["delay"].label,
+    singularLabel: ALERT_CATEGORIES["delay"].singular,
+    aliases: ["limited service", "delay", "delayed", "degraded", "longer travel", "travel time"],
   },
   {
     kind: "reduced-speed-zone",
-    label: "Reduced Speed Zones",
-    singularLabel: "Reduced Speed Zone",
+    label: ALERT_CATEGORIES["reduced-speed-zone"].label,
+    singularLabel: ALERT_CATEGORIES["reduced-speed-zone"].singular,
     aliases: ["reduced speed zone", "reduced speed", "slow zone", "slowdown", "rsz"],
   },
   {
     kind: "planned-closure",
-    label: "Planned Closures",
-    singularLabel: "Planned Closure",
-    aliases: ["planned closure", "closure", "closed", "weekend closure", "nightly closure", "shutdown"],
+    label: ALERT_CATEGORIES["planned-closure"].label,
+    singularLabel: ALERT_CATEGORIES["planned-closure"].singular,
+    aliases: ["planned advisories", "planned advisory", "planned limited service", "planned closure", "closure", "closed", "weekend closure", "nightly closure", "shutdown"],
   },
 ];
 

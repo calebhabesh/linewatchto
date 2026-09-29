@@ -123,16 +123,16 @@ export function DesktopNavRail({
 
   const alertShortcuts = selectedNetwork === "regional"
     ? [
-        { key: "alerts", label: "Active Alerts", lines: ["Active", "Alerts"], count: activeAlertCount, countLabel: activeAlertCount === 1 ? "active alert" : "active alerts", icon: <AlertTriangle size={21} aria-hidden="true" /> },
+        { key: "alerts", label: "Suspensions", lines: ["Suspensions"], count: activeAlertCount, countLabel: activeAlertCount === 1 ? "suspension" : "suspensions", icon: <AlertTriangle size={21} aria-hidden="true" /> },
         { key: "delays", label: "Delays", lines: ["Delays"], count: delayCount, countLabel: delayCount === 1 ? "delay" : "delays", icon: <DelayIcon size={21} /> },
         { key: "trip-changes", label: "Trip Changes", lines: ["Trip", "Changes"], count: tripChangeCount, countLabel: tripChangeCount === 1 ? "trip change" : "trip changes", icon: <TrainFront size={21} aria-hidden="true" /> },
-        { key: "closures", label: "Planned Closures", lines: ["Planned", "Closures"], count: plannedClosureCount, countLabel: plannedClosureCount === 1 ? "planned closure" : "planned closures", icon: <PlannedClosureIcon size={21} /> },
+        { key: "closures", label: "Planned Advisories", lines: ["Planned", "Advisories"], count: plannedClosureCount, countLabel: plannedClosureCount === 1 ? "planned advisory" : "planned advisories", icon: <PlannedClosureIcon size={21} /> },
       ] as const
     : [
-        { key: "alerts", label: "Active Alerts", lines: ["Active", "Alerts"], count: activeAlertCount, countLabel: activeAlertCount === 1 ? "active alert" : "active alerts", icon: <AlertTriangle size={21} aria-hidden="true" /> },
+        { key: "alerts", label: "Suspensions", lines: ["Suspensions"], count: activeAlertCount, countLabel: activeAlertCount === 1 ? "suspension" : "suspensions", icon: <AlertTriangle size={21} aria-hidden="true" /> },
         { key: "delays", label: "Delays", lines: ["Delays"], count: delayCount, countLabel: delayCount === 1 ? "delay" : "delays", icon: <DelayIcon size={21} /> },
         { key: "reduced-speed-zones", label: "Reduced Speed Zones", lines: ["Reduced", "Speed", "Zones"], count: reducedSpeedZoneCount, countLabel: reducedSpeedZoneCount === 1 ? "reduced speed zone" : "reduced speed zones", icon: <Construction size={21} aria-hidden="true" /> },
-        { key: "closures", label: "Planned Closures", lines: ["Planned", "Closures"], count: plannedClosureCount, countLabel: plannedClosureCount === 1 ? "planned closure" : "planned closures", icon: <PlannedClosureIcon size={21} /> },
+        { key: "closures", label: "Planned Advisories", lines: ["Planned", "Advisories"], count: plannedClosureCount, countLabel: plannedClosureCount === 1 ? "planned advisory" : "planned advisories", icon: <PlannedClosureIcon size={21} /> },
       ] as const;
 
   const feedbackIndex = RAIL_ITEMS.length + noticeShortcuts.length + alertShortcuts.length;
@@ -235,7 +235,7 @@ export function DesktopNavRail({
           let badgeLabel = "";
           if (key === "status" && statusAlertCount > 0) {
             badge = statusAlertCount;
-            badgeLabel = `${badge} active alerts`;
+            badgeLabel = `${badge} service impacts`;
           } else if (key === "stations" && savedStationsAffectedCount > 0) {
             badge = savedStationsAffectedCount;
             badgeLabel = `${badge} affected stations`;

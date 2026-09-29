@@ -27,10 +27,10 @@ test("mobile Current Service badges open their matching impact panels", async ({
   await page.getByRole("button", { name: "Expand service sheet" }).click();
   const service = page.getByRole("region", { name: "Current Service", exact: true });
 
-  const plannedClosureBadge = service.locator(".current-service-badge-incident-button").filter({ hasText: "Planned Closure" });
+  const plannedClosureBadge = service.locator(".current-service-badge-incident-button").filter({ hasText: "Planned Advisory" });
   await expect(plannedClosureBadge).toBeVisible();
   await plannedClosureBadge.click();
-  await expect(page.getByRole("heading", { name: "Planned Closures", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Planned Advisories", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Back", exact: true }).click();
   await page.getByRole("button", { name: "Expand service sheet" }).click();

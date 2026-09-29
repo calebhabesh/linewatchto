@@ -42,7 +42,7 @@ final class TtcPlannedClosureWindowReconciler {
         NormalizedRouteAlert alert,
         OffsetDateTime now
     ) {
-        if (alert.impactKind() != AlertImpactKind.PLANNED_CLOSURE
+        if (!"planned-closure".equals(alert.type())
             || !isRecurringClosure(alert)) {
             return alert;
         }
@@ -132,7 +132,7 @@ final class TtcPlannedClosureWindowReconciler {
         NormalizedRouteAlert alert,
         Set<String> restorationSourceIds
     ) {
-        if (alert.impactKind() != AlertImpactKind.PLANNED_CLOSURE
+        if (!"planned-closure".equals(alert.type())
             || alert.periods().stream()
                 .noneMatch(period -> restorationSourceIds.contains(period.sourcePeriodId()))) {
             return alert;

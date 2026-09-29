@@ -1,3 +1,4 @@
+import { serviceEffectLabel } from "./alert-categories.ts";
 import type { ActiveAlert, DelayAlert, IncidentRiderDetails, ImpactKind, LineStatus, PlannedClosure, ReducedSpeedZone } from "./linewatch-data.ts";
 import { countReducedSpeedZones } from "./reduced-speed-zone-count.ts";
 import { compareSurfaceNotices } from "./surface-notice-groups.ts";
@@ -22,6 +23,7 @@ export type CurrentServiceRow = IncidentRiderDetails & {
   condition: string;
   location: string;
   timing?: string;
+  timingTarget?: string | null;
   cause?: string | null;
   updatedAt?: string | null;
   direction?: string | null;
@@ -38,16 +40,34 @@ export function windowTime(value: string | null | undefined, now: number, ending
     : new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", weekday: "short" }).format(time);
   const clock = new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", hour: "numeric", minute: "2-digit", hour12: true }).format(time);
   const label = `${day} at ${clock}`;
-  const minutes = Math.max(1, Math.ceil((time - now) / 60_000));
-  const remaining = minutes < 60 ? `${minutes}min` : `${Math.round(minutes / 60)}hr`;
-  return `${ending ? "Ends " : ""}${label}${now > 0 && time > now ? ` (${remaining})` : ""}`;
+  const remaining = remainingWindowTime(time, now);
+  return `${ending ? "Ends " : ""}${label}${remaining ? ` (${remaining})` : ""}`;
+}
+
+function remainingWindowTime(time: number, now: number): string | undefined {
+  if (!Number.isFinite(now) || now <= 0 || time <= now) return undefined;
+  const minutes = Math.floor((time - now) / 60_000);
+  if (minutes < 1) return "<1m";
+  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 24 * 60) {
+    const remainder = minutes % 60;
+    return `${Math.floor(minutes / 60)}h${remainder ? ` ${remainder}m` : ""}`;
+  }
+  const hours = Math.floor((minutes % (24 * 60)) / 60);
+  return `${Math.floor(minutes / (24 * 60))}d${hours ? ` ${hours}h` : ""}`;
+}
+
+export function windowCountdownStage(value: string | null | undefined, now: number) {
+  const remaining = Date.parse(value || "") - now;
+  if (!Number.isFinite(remaining) || now <= 0 || remaining <= 0) return undefined;
+  return remaining <= 15 * 60_000 ? "imminent" : remaining <= 60 * 60_000 ? "soon" : "distant";
 }
 
 export function getPlannedClosureCountBadgeLabel(count: number): string {
   if (count <= 1) {
-    return "1 Planned Closure";
+    return "1 Planned Advisory";
   }
-  return `${count} Planned Closures`;
+  return `${count} Planned Advisories`;
 }
 
 function incidentRiderDetails(incident: IncidentRiderDetails & { cause?: string | null; updatedAt?: string | null }) {
@@ -57,6 +77,7 @@ function incidentRiderDetails(incident: IncidentRiderDetails & { cause?: string 
     publishedAt: incident.publishedAt,
     replacementService: incident.replacementService,
     maximumDelayMinutes: incident.maximumDelayMinutes,
+    serviceEffect: incident.serviceEffect,
   };
 }
 
@@ -90,6 +111,7 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
     condition: planned ? "Planned Closure in Effect" : /\bbypass(?:ing|ed)?\b/i.test(alert.title) ? "Bypassing station" : alert.severity === "delay" ? "Delays" : alert.severity === "planned" ? "Closure in effect" : "No Service",
     iconKind: planned ? "suspension" : undefined,
     timing: planned ? windowTime(closure?.activeWindowEnd, now, true) : undefined,
+    timingTarget: planned ? closure?.activeWindowEnd : undefined,
     location: alert.location || alert.title,
     direction: alert.displayDirection, shuttle: alert.shuttle,
     ...incidentRiderDetails(alert),
@@ -98,7 +120,13 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
   });
   for (const delay of data.delays) {
     if (rows.some((row) => row.id === delay.id && row.lineId === delay.lineId)) continue;
-    rows.push({ id: delay.id, kind: "delay", lineId: delay.lineId, lineNumber: delay.lineNumber, condition: "Delays", location: delay.location || delay.title, direction: delay.displayDirection, shuttle: false, priority: 1, ...incidentRiderDetails(delay) });
+    const closure = data.plannedClosures.find(item => item.id === delay.relatedPlannedClosureId);
+    rows.push({ id: delay.id, kind: "delay", lineId: delay.lineId, lineNumber: delay.lineNumber,
+      condition: delay.serviceEffect === "limited-service" ? "Limited service" : "Delays",
+      timing: windowTime(delay.activeWindowEnd ?? closure?.activeWindowEnd, now, true),
+      timingTarget: delay.activeWindowEnd ?? closure?.activeWindowEnd,
+      location: delay.location || delay.title, direction: delay.displayDirection, shuttle: !!delay.shuttle,
+      priority: 1, ...incidentRiderDetails(delay) });
   }
   // Published windows starting within 24 hours (or active now) qualify as current service entries.
   const qualifyingClosures = data.plannedClosures.filter((closure) => {
@@ -117,9 +145,12 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
       kind: "planned-closure",
       lineId: closure.lineId,
       lineNumber: closure.lineNumber,
-      condition: active ? "Planned Closure in Effect" : "Upcoming Closure",
-      iconKind: active ? "suspension" : undefined,
+      condition: closure.serviceEffect === "limited-service"
+        ? active ? "Limited service" : "Planned limited service"
+        : active ? "Planned Closure in Effect" : "Upcoming Closure",
+      iconKind: active ? closure.serviceEffect === "limited-service" ? "delay" : "suspension" : undefined,
       timing: windowTime(active ? closure.nextWindowEnd : closure.nextWindowStart, now, active),
+      timingTarget: active ? closure.nextWindowEnd : closure.nextWindowStart,
       location: closure.location || closure.title,
       direction: closure.displayDirection,
       ...incidentRiderDetails(closure),
@@ -143,7 +174,7 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
   const lineOrder = new Map(data.lineStatuses.map((line, index) => [line.id, index]));
   rows.sort((a, b) => a.priority - b.priority || (lineOrder.get(a.lineId) ?? 99) - (lineOrder.get(b.lineId) ?? 99) || a.id.localeCompare(b.id));
   const affected = new Set([...rows.map((row) => row.lineId), ...(data.reducedSpeedZones ?? []).map((rsz) => rsz.lineId)]);
-  return { fresh, rows: data.snapshot ? rows.map((row) => ({ ...row, condition: `Last reported: ${row.condition}`, timing: undefined })) : rows, unaffected: fresh ? data.lineStatuses.filter((line) => !affected.has(line.id)) : [], upcoming };
+  return { fresh, rows: data.snapshot ? rows.map((row) => ({ ...row, condition: `Last reported: ${row.condition}`, timing: undefined, timingTarget: undefined })) : rows, unaffected: fresh ? data.lineStatuses.filter((line) => !affected.has(line.id)) : [], upcoming };
 }
 
 export function currentSurfaceNotices(
@@ -165,8 +196,10 @@ export function getCanonicalAlertTitle(row: CurrentServiceRow): string {
   const isSnapshot = row.condition.startsWith("Last reported: ");
   const rawCondition = isSnapshot ? row.condition.replace(/^Last reported:\s*/, "") : row.condition;
 
-  let title = "Active Alert";
-  if (
+  let title = "Suspension";
+  if (row.serviceEffect === "limited-service") {
+    title = serviceEffectLabel(row, row.priority === 2);
+  } else if (
     rawCondition === "Planned Closure in Effect" ||
     rawCondition === "Closure in effect" ||
     (row.kind === "planned-closure" && row.iconKind === "suspension")
@@ -191,7 +224,7 @@ export function getCanonicalAlertTitle(row: CurrentServiceRow): string {
     rawCondition === "No Service" ||
     rawCondition === "Active Alert"
   ) {
-    title = "Active Alert";
+    title = "Suspension";
   } else {
     title = rawCondition;
   }
@@ -204,9 +237,9 @@ export function currentServiceIncidentPresentation(row: CurrentServiceRow) {
   const title = getCanonicalAlertTitle(row)
     .replace("Planned Closure in Effect", "Planned Closure · In Effect")
     .replace(/Planned Closure$/, "Planned Closure · Upcoming")
-    .replace("Active Alert", row.condition.endsWith("No Service") ? "No Service" : "Active Alert")
+    .replace("Suspension", row.condition.endsWith("No Service") ? "No Service" : "Suspension")
     .replace("Last reported:", "Last Reported:");
-  const timing = row.timing?.replace(/\s+\(\d+(?:min|hr)\)$/, "");
+  const timing = row.timing;
   return {
     title,
     timing: timing && row.priority === 2 && !/^(Starts|Ends) /.test(timing)
@@ -325,7 +358,7 @@ export function getLineStatusPresentation(
     const rszCount = countReducedSpeedZones(rszList);
     const qualifiers: NonNullable<LineStatusPresentation["qualifiers"]> = [];
     if (rszList.length > 0) qualifiers.push({ kind: "reduced-speed-zones", label: "Speed zones" });
-    if (closureCount > 0) qualifiers.push({ kind: "planned-closure", label: "Closure planned" });
+    if (closureCount > 0) qualifiers.push({ kind: "planned-closure", label: "Advisory planned" });
     return {
       state: rszList.length > 0 ? "reduced-speed-zones" : "running",
       label: "Normal Service",

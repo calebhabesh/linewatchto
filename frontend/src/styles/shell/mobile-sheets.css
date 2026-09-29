@@ -1441,6 +1441,13 @@
     white-space: nowrap;
   }
 
+  .mobile-view-content-wrapper[data-active-view="closures"] .panel-header-title,
+  .mobile-view-content-wrapper[data-active-view="closures"] .panel-header-title > span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
   /* Compact variant only for long titles that cannot fit at 22px on narrow portrait screens */
   .floating-panel-shell .panel-header-title--compact,
   .mobile-view-content-wrapper[data-active-view="reduced-speed-zones"] .panel-heading h2,

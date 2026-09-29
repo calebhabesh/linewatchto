@@ -2004,7 +2004,7 @@ export function installRegionalOverlaySession(
         marker.setAttribute("r", String(Math.max(58, anchor.radius * 1.45)));
         marker.setAttribute("role", "button");
         marker.setAttribute("tabindex", "0");
-        marker.setAttribute("aria-label", `${closure.title} at ${stationName}, ${closure.activeNow ? "active planned closure" : "upcoming planned closure"} details`);
+        marker.setAttribute("aria-label", `${closure.title} at ${stationName}, ${closure.activeNow ? "active planned advisory" : "upcoming planned advisory"} details`);
         plannedStationLayer.append(marker);
       }
     }

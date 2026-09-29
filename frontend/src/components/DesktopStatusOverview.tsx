@@ -2,6 +2,7 @@
 
 import { IncidentStationSpan } from "./IncidentStationSpan";
 import { RegionalIncidentDetails } from "./RegionalIncidentDetails";
+import { IncidentTiming } from "./IncidentTiming";
 
 import { useEffect, useState } from "react";
 import {
@@ -225,7 +226,7 @@ export function DesktopStatusOverview({
             className="current-service-active-count"
             data-count={activeCount > 0 ? "positive" : "zero"}
             data-single-digit={activeCount < 10 ? "true" : "false"}
-            aria-label={`${activeCount} rail alerts, delays, and closures`}
+            aria-label={`${activeCount} rail suspensions, delays, and planned advisories`}
           >
             {activeCount}
           </span>
@@ -286,7 +287,7 @@ export function DesktopStatusOverview({
                             )}
                             {(incident.timing || row.shuttle) && (
                               <div className="desktop-status-incident-timing">
-                                {[incident.timing, row.shuttle ? "Shuttle Buses Running" : null].filter(Boolean).join(" · ")}
+                                <IncidentTiming timing={incident.timing} target={row.timingTarget} now={now} shuttle={row.shuttle} />
                               </div>
                             )}
                             {regional && <RegionalIncidentDetails row={row} className="desktop-status-incident-timing" />}
@@ -302,7 +303,7 @@ export function DesktopStatusOverview({
                           type="button"
                           className="desktop-status-badge-incident-button"
                           onClick={() => onOpenCategory("closures", item.line.id)}
-                          title={`View ${item.line.name} Planned Closures`}
+                          title={`View ${item.line.name} Planned Advisories`}
                           aria-label={`${item.line.name}: ${getPlannedClosureCountBadgeLabel(item.closureCount)}`}
                         >
                           <span className="desktop-status-planned-pill">
@@ -386,7 +387,7 @@ export function DesktopStatusOverview({
                         type="button"
                         className="desktop-status-badge-incident-button"
                         onClick={() => onOpenCategory("closures", line.id)}
-                        title={`View ${line.name} Planned Closures`}
+                        title={`View ${line.name} Planned Advisories`}
                         aria-label={`${line.name}: ${getPlannedClosureCountBadgeLabel(closureCount)}`}
                       >
                         <span className="desktop-status-planned-pill">
@@ -527,7 +528,7 @@ export function DesktopStatusOverview({
               activeAlerts.length === 0 ? "mobile-status-peek-count-badge--empty" : ""
             } desktop-status-category-capsule`}
             onClick={() => onOpenCategory("alerts")}
-            aria-label={`${activeAlerts.length} ${activeAlerts.length === 1 ? "Active Alert" : "Active Alerts"}`}
+            aria-label={`${activeAlerts.length} ${activeAlerts.length === 1 ? "Suspension" : "Suspensions"}`}
           >
             <span className="mobile-status-peek-badge-icon" aria-hidden="true">
               <AlertTriangle size={13} />
@@ -539,7 +540,7 @@ export function DesktopStatusOverview({
               <span className="mobile-status-peek-count-circle-value">{activeAlerts.length}</span>
             </span>
             <span className="mobile-status-peek-badge-label">
-              {activeAlerts.length === 1 ? "Active Alert" : "Active Alerts"}
+              {activeAlerts.length === 1 ? "Suspension" : "Suspensions"}
             </span>
             <ArrowRight size={10} strokeWidth={2.75} className="mobile-status-peek-chevron" aria-hidden="true" />
           </button>
@@ -626,7 +627,7 @@ export function DesktopStatusOverview({
             } desktop-status-category-capsule`}
             onClick={() => onOpenCategory("closures")}
             aria-label={`${plannedClosures.length} ${
-              plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"
+              plannedClosures.length === 1 ? "Planned Advisory" : "Planned Advisories"
             }`}
           >
             <span className="mobile-status-peek-badge-icon" aria-hidden="true">
@@ -639,7 +640,7 @@ export function DesktopStatusOverview({
               <span className="mobile-status-peek-count-circle-value">{plannedClosures.length}</span>
             </span>
             <span className="mobile-status-peek-badge-label">
-              {plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}
+              {plannedClosures.length === 1 ? "Planned Advisory" : "Planned Advisories"}
             </span>
             <ArrowRight size={10} strokeWidth={2.75} className="mobile-status-peek-chevron" aria-hidden="true" />
           </button>

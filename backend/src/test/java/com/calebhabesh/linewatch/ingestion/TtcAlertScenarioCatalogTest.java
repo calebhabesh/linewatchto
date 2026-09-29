@@ -66,6 +66,7 @@ class TtcAlertScenarioCatalogTest {
             Arguments.of("nightly-closure-active-window.json", 1, 0, EnumSet.of(
                 AlertImpactKind.PLANNED_CLOSURE
             )),
+            Arguments.of("limited-service-active-window.json", 2, 0, EnumSet.of(AlertImpactKind.LIMITED_SERVICE)),
             Arguments.of("station-node-impact.json", 1, 0, EnumSet.of(
                 AlertImpactKind.DELAY
             ))

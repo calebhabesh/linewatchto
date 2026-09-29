@@ -525,6 +525,7 @@ export function normalizeEventTypeKey(eventType: string): string {
   ) {
     return "suspension";
   }
+  if (normalized === "limited-service") return "delay";
   if (
     normalized === "reduced-speed-zone" ||
     normalized === "reduced_speed_zone"
@@ -553,8 +554,9 @@ export function formatAlertTypeName(eventType: string): string {
     normalized === "active-alert" ||
     normalized === "active_alert"
   ) {
-    return "Active Alert";
+    return "Suspension";
   }
+  if (normalized === "limited-service") return "Limited service";
   if (normalized === "delay") {
     return "Delay";
   }
@@ -569,7 +571,7 @@ export function formatAlertTypeName(eventType: string): string {
     normalized === "planned_closure" ||
     normalized === "closure"
   ) {
-    return "Planned Closure";
+    return "Planned Advisory";
   }
   return eventType
     .split(/[-_\s]+/)

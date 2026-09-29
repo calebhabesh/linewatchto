@@ -2,6 +2,7 @@
 
 import { IncidentStationSpan } from "./IncidentStationSpan";
 import { RegionalIncidentDetails } from "./RegionalIncidentDetails";
+import { IncidentTiming } from "./IncidentTiming";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowRight, BusFront, Info, TrainFront } from "lucide-react";
@@ -359,7 +360,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
         </span>
       </button>
     </div>
-    <header className="current-service-heading"><h2>Current Service</h2><span>Active alerts, delays & planned closures starting within 24h</span></header>
+    <header className="current-service-heading"><h2>Current Service</h2><span>Suspensions, delays & planned advisories starting within 24h</span></header>
     {!summary.fresh && <p key={`avail-${data.networkId}`} className="current-service-availability">{data.availability === "fixture" ? "Demo data · Current status unavailable" : "Current status unavailable"}</p>}
     <div key={data.networkId} className="current-service-columns">
       <section aria-label="Rail service status">
@@ -371,7 +372,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
               className="current-service-active-count"
               data-count={activeCount > 0 ? "positive" : "zero"}
               data-single-digit={activeCount < 10 ? "true" : "false"}
-              aria-label={`${activeCount} rail alerts, delays, and closures`}
+              aria-label={`${activeCount} rail suspensions, delays, and planned advisories`}
             >
               {activeCount}
             </span>
@@ -407,7 +408,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                           {row.direction && <span className="current-service-impact-direction">{row.direction}</span>}
                           {(incident.timing || row.shuttle) && (
                             <span className="current-service-impact-timing">
-                              {[incident.timing, row.shuttle ? "Shuttle Buses Running" : null].filter(Boolean).join(" · ")}
+                              <IncidentTiming timing={incident.timing} target={row.timingTarget} now={now} shuttle={row.shuttle} />
                             </span>
                           )}
                             {data.networkId === "regional" && <RegionalIncidentDetails row={row} className="current-service-impact-timing" />}
@@ -423,7 +424,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                         type="button"
                         className="current-service-badge-incident-button"
                         onClick={() => onCategory("closures", item.line.id)}
-                        title={`View ${item.line.name} Planned Closures`}
+                        title={`View ${item.line.name} Planned Advisories`}
                         aria-label={`${item.line.name}: ${getPlannedClosureCountBadgeLabel(item.closureCount)}`}
                       >
                         <span className="current-service-planned-pill">
@@ -495,7 +496,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                         type="button"
                         className="current-service-badge-incident-button"
                         onClick={() => onCategory("closures", line.id)}
-                        title={`View ${line.name} Planned Closures`}
+                        title={`View ${line.name} Planned Advisories`}
                         aria-label={`${line.name}: ${getPlannedClosureCountBadgeLabel(closureCount)}`}
                       >
                         <span className="current-service-planned-pill">
@@ -529,7 +530,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
           {!affectedLines.length && !remainingLines.length && (
             <p className="current-service-clear">
               <GoodServiceCheckIcon size={14} />
-              <span>No active alerts, delays, or upcoming closures</span>
+              <span>No suspensions, delays, or upcoming advisories</span>
             </p>
           )}
         </ServiceList>

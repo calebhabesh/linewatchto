@@ -1,0 +1,138 @@
+{
+  "lastUpdated": "2026-06-03T14:59:00.000Z",
+  "total": 2,
+  "routes": [
+    {
+      "id": "scenario-limited-parent",
+      "priority": 0,
+      "alertType": "Planned",
+      "lastUpdated": "2026-06-03T14:55:00.000Z",
+      "activePeriod": {
+        "start": "2026-06-03T14:00:00.000Z",
+        "end": "2026-06-04T16:00:00.000Z"
+      },
+      "activePeriodGroup": [
+        "Current",
+        "Nightly"
+      ],
+      "routeOrder": 1,
+      "route": "1",
+      "routeBranch": "",
+      "routeTypeSrc": "400",
+      "routeType": "Subway",
+      "stopStart": "Vaughan Metropolitan Centre",
+      "stopEnd": "Finch West",
+      "stopStartId": null,
+      "stopEndId": null,
+      "stops": [],
+      "title": "Limited nightly service between Vaughan and Finch West",
+      "description": "There will be limited nightly subway service due to planned track work.",
+      "url": "",
+      "urlPlaceholder": "",
+      "accessibility": "Routes",
+      "effect": "LIMITED_SERVICE",
+      "effectDesc": "Limited service",
+      "severityOrder": 1,
+      "severity": "Critical",
+      "customHeaderText": null,
+      "headerText": "Line 1: Limited nightly service between Vaughan and Finch West",
+      "direction": "Both ways",
+      "cause": "MAINTENANCE",
+      "causeDescription": "Closure - Planned Track Work",
+      "stopIDList": [
+        "Vaughan Metropolitan Centre",
+        "Highway 407",
+        "Pioneer Village",
+        "York University",
+        "Finch West"
+      ],
+      "stopNameList": [],
+      "stopRouteList": [],
+      "rszLength": null,
+      "distance": null,
+      "trackPercent": null,
+      "reducedSpeed": null,
+      "averageSpeed": null,
+      "targetRemoval": null,
+      "shuttleType": null,
+      "shuttleStart": null,
+      "shuttleEnd": null,
+      "elevatorCode": null,
+      "escalatorCode": null,
+      "criticality": 0,
+      "childAlerts": [
+        {
+          "id": "scenario-limited-child",
+          "startTime": "2026-06-03T14:00:00.000Z",
+          "endTime": "2026-06-03T17:00:00.000Z"
+        },
+        {
+          "id": "scenario-limited-next",
+          "startTime": "2026-06-04T14:00:00.000Z",
+          "endTime": "2026-06-04T17:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": "scenario-limited-child",
+      "priority": 0,
+      "alertType": "Live",
+      "lastUpdated": "2026-06-03T14:55:00.000Z",
+      "activePeriod": {
+        "start": "2026-06-03T14:00:00.000Z",
+        "end": "2026-06-03T17:00:00.000Z"
+      },
+      "activePeriodGroup": [
+        "Current",
+        "Nightly"
+      ],
+      "routeOrder": 1,
+      "route": "1",
+      "routeBranch": "",
+      "routeTypeSrc": "400",
+      "routeType": "Subway",
+      "stopStart": "Vaughan Metropolitan Centre",
+      "stopEnd": "Finch West",
+      "stopStartId": null,
+      "stopEndId": null,
+      "stops": [],
+      "title": "There is limited subway service between Vaughan and Finch West stations.",
+      "description": "There is limited subway service due to planned track work.",
+      "url": "",
+      "urlPlaceholder": "",
+      "accessibility": "Routes",
+      "effect": "LIMITED_SERVICE",
+      "effectDesc": "Limited service",
+      "severityOrder": 1,
+      "severity": "Critical",
+      "customHeaderText": null,
+      "headerText": "Line 1: There is limited subway service between Vaughan and Finch West stations.",
+      "direction": "Both ways",
+      "cause": "MAINTENANCE",
+      "causeDescription": "Closure - Planned Track Work",
+      "stopIDList": [
+        "Vaughan Metropolitan Centre",
+        "Highway 407",
+        "Pioneer Village",
+        "York University",
+        "Finch West"
+      ],
+      "stopNameList": [],
+      "stopRouteList": [],
+      "rszLength": null,
+      "distance": null,
+      "trackPercent": null,
+      "reducedSpeed": null,
+      "averageSpeed": null,
+      "targetRemoval": null,
+      "shuttleType": null,
+      "shuttleStart": null,
+      "shuttleEnd": null,
+      "elevatorCode": null,
+      "escalatorCode": null,
+      "criticality": 0,
+      "childAlerts": []
+    }
+  ],
+  "accessibility": []
+}

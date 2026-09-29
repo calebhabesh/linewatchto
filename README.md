@@ -1,6 +1,6 @@
 # LineWatchTO
 
-LineWatchTO is an unofficial transit reliability dashboard for Toronto's TTC subway/LRT and GO/UP rail networks. Designed as a dark, high-density, map-first web application, it combines source-linked service alerts, planned closures, GTFS route data, My Commutes impact checks, and historical alert snapshots to quickly answer:
+LineWatchTO is an unofficial transit reliability dashboard for Toronto's TTC subway/LRT and GO/UP rail networks. Designed as a dark, high-density, map-first web application, it combines source-linked service alerts, planned advisories, GTFS route data, My Commutes impact checks, and historical alert snapshots to quickly answer:
 
 > **Is my route affected now, later today, or this weekend?**
 
@@ -16,11 +16,11 @@ The project is built as a production-grade full-stack application featuring grac
   - Semantic SVG-backed schematic maps for the TTC subway/LRT network (Lines 1, 2, 4, 5, 6) and GO/UP regional network (all 8 rail corridors), independently authored in Inkscape.
   - Optional Geographic Map view with a compact **Diagram / Map** toggle, powered by MapLibre GL JS and OpenFreeMap vector basemaps with automatic light/dark mode adaptation.
   - Multi-plane raster rendering: pre-rendered static raster planes ensure 60 FPS panning and zooming on desktop without re-rasterizing large SVG text trees.
-  - Dynamic overlay system: active suspensions (red), ordinary delays with static effect (orange), Reduced Speed Zones with directional chevrons, and upcoming planned closures (blue preview).
+  - Dynamic overlay system: active suspensions (red), ordinary delays with static effect (orange), Reduced Speed Zones with directional chevrons, and upcoming planned advisories (blue preview).
   - Schematic estimated train markers inferred from GTFS-RT subway and regional vehicle positions.
 
 - **Service Alerts & Current Status**:
-  - Compact Current Service readout grouping active alerts and delays by rail line alongside a dedicated surface/service notice column.
+  - Compact Current Service readout grouping suspensions and delays by rail line alongside a dedicated surface/service notice column.
   - Network-scoped service notices: TTC bus and streetcar service changes; GO/UP Metrolinx Information, Marketing, and rail timetable announcements.
   - Searchable accessibility outages panel tracking elevator and escalator disruptions across both networks.
   - 30-day disruption analytics and alert lifecycle history derived from durable snapshot records.
@@ -28,7 +28,7 @@ The project is built as a production-grade full-stack application featuring grac
 - **My Commutes & Account Features**:
   - Account-backed monitored routes (e.g. `Finch -> Union`) with weighted rapid-transit path calculation.
   - Direction-aware disruption matching with standard-vs-impacted travel time estimates.
-  - Granular Web Push notifications: independent outbound and return schedules in `America/Toronto`, event-type filters (suspensions, delays, Reduced Speed Zones, cancellations), and planned closure follow-up policies.
+  - Granular Web Push notifications: independent outbound and return schedules in `America/Toronto`, event-type filters (suspensions, delays, Reduced Speed Zones, cancellations), and planned advisory follow-up policies.
   - Account-backed My Stations watchlist for quick station access and compact arrival previews.
   - Optional Google sign-in and email/password authentication with secure session cookies.
 

@@ -153,16 +153,16 @@ class SavedCommutePushPlannerTest {
 
         assertThat(candidates).singleElement().satisfies(candidate -> {
             assertThat(candidate.legId()).isEqualTo("return");
-            assertThat(candidate.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Planned Closure");
+            assertThat(candidate.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Planned Advisory");
             assertThat(candidate.body()).startsWith(
                 "There will be no subway service between Keele and Union stations."
             );
             assertThat(candidate.body()).doesNotContain("Each nightly closure runs");
-            assertThat(candidate.body()).contains("Closure dates: Sun, Jun 7 – Mon, Jun 8.");
-            assertThat(candidate.body()).contains("Closure hours: 12:00 AM – 5:00 AM.");
+            assertThat(candidate.body()).contains("Advisory dates: Sun, Jun 7 – Mon, Jun 8.");
+            assertThat(candidate.body()).contains("Advisory hours: 12:00 AM – 5:00 AM.");
             assertThat(candidate.body()).contains("Shuttle buses are running.");
             assertThat(candidate.body()).contains("Affects Evening Route (Return).");
-            assertThat(candidate.body()).endsWith("🕗 Closure starts Jun 7, 12:00 AM");
+            assertThat(candidate.body()).endsWith("🕗 Advisory starts Jun 7, 12:00 AM");
             assertThat(candidate.category()).isEqualTo("saved-commute-planned");
         });
     }
@@ -212,7 +212,7 @@ class SavedCommutePushPlannerTest {
         assertThat(candidates).singleElement().satisfies(candidate -> {
             assertThat(candidate.category()).isEqualTo("saved-commute-current");
             assertThat(candidate.sourceEventAt()).isEqualTo(windowStart.toInstant());
-            assertThat(candidate.body()).endsWith("🕗 Closure starts Jun 5, 10:30 AM");
+            assertThat(candidate.body()).endsWith("🕗 Advisory starts Jun 5, 10:30 AM");
         });
     }
 
@@ -716,7 +716,7 @@ class SavedCommutePushPlannerTest {
         PushNotificationCandidate candidate = regionalPlanner.candidatesFor(commute).getFirst();
 
         assertThat(candidate.deliveryAllowed()).isTrue();
-        assertThat(candidate.body()).contains("Closure dates: Aug 17–18.");
+        assertThat(candidate.body()).contains("Advisory dates: Aug 17–18.");
         assertThat(candidate.body()).doesNotContain("12:00 AM").doesNotContain("Closure starts");
         assertThat(candidate.sourceEventAt()).isNull();
     }

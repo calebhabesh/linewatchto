@@ -232,7 +232,7 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
       await expect(card).toBeVisible();
       const mapButton = card.locator(".impact-card-map-btn");
       await mapButton.click();
-      await expect(mapButton).toHaveAttribute("aria-pressed", "true");
+      await expect(card).toHaveClass(/highlight-active-card/);
       await expect(geoMap).toHaveAttribute("data-status", "ready");
     }
   });

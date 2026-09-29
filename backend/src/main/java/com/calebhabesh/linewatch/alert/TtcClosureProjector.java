@@ -124,7 +124,8 @@ public class TtcClosureProjector {
             .filter(Objects::nonNull)
             .filter(AlertEntity::isActive)
             .filter(alert -> alert.getType() == null || PLANNED_CLOSURE_TYPE.equalsIgnoreCase(alert.getType()))
-            .filter(alert -> PLANNED_CLOSURE_KIND.equalsIgnoreCase(alert.getImpactKind()))
+            .filter(alert -> PLANNED_CLOSURE_KIND.equalsIgnoreCase(alert.getImpactKind())
+                || "limited-service".equalsIgnoreCase(alert.getImpactKind()))
             .filter(alert -> isCurrentOrFuture(alert, evaluationTime))
             .toList();
 
@@ -132,7 +133,10 @@ public class TtcClosureProjector {
             return List.of();
         }
 
-        Map<String, AlertEntity> alertsBySourceId = sourceAlerts.stream()
+        Map<String, AlertEntity> alertsBySourceId = alerts.stream()
+            .filter(Objects::nonNull)
+            .filter(AlertEntity::isActive)
+            .filter(alert -> isCurrentOrFuture(alert, evaluationTime))
             .filter(alert -> !AlertDashboardService.isBlank(alert.getSourceId()))
             .collect(Collectors.toMap(
                 AlertEntity::getSourceId,
@@ -407,7 +411,7 @@ public class TtcClosureProjector {
         if (ranges.isEmpty()) {
             return null;
         }
-        return ranges.size() == 1 ? ranges.getFirst() : "Varies by closure date";
+        return ranges.size() == 1 ? ranges.getFirst() : "Varies by advisory date";
     }
 
     private String closureWindowDates(
@@ -504,7 +508,9 @@ public class TtcClosureProjector {
     }
 
     private AlertEntity currentClosureSourceAlert(AlertEntity alert) {
-        return alert == null || isRestoration(alert) ? null : alert;
+        return alert == null || isRestoration(alert)
+            || !Set.of("limited-service", "delay", "suspension", "planned-closure").contains(
+                AlertDashboardService.nullToEmpty(alert.getImpactKind())) ? null : alert;
     }
 
     private boolean isRestoration(AlertEntity alert) {
@@ -554,7 +560,8 @@ public class TtcClosureProjector {
             ws.windowDates(),
             closureNotificationTitle(alert.getTitle()),
             plannedClosureTravelDirection(alert, previewSegmentIds, segments)
-        );
+        ).withServiceEffect("limited-service".equals(alert.getImpactKind()) ? "limited-service" : "suspension")
+            .withPreviewStationIds(previewSegmentIds.isEmpty() ? alert.getStationIds() : List.of());
     }
 
     private PlannedClosureDto activeClosurePresentation(
@@ -566,9 +573,12 @@ public class TtcClosureProjector {
             return closure;
         }
         TransitLineEntity line = currentSourceAlert.getLine();
-        List<String> previewSegmentIds = closure.previewSegmentIds().isEmpty()
-            ? affectedSegmentIds(currentSourceAlert, segments)
-            : closure.previewSegmentIds();
+        List<String> childSegmentIds = affectedSegmentIds(currentSourceAlert, segments);
+        boolean hasChildScope = (!AlertDashboardService.isBlank(currentSourceAlert.getStartStationId())
+            && !AlertDashboardService.isBlank(currentSourceAlert.getEndStationId()))
+            || !currentSourceAlert.getStationIds().isEmpty();
+        List<String> previewSegmentIds = childSegmentIds.isEmpty() && !hasChildScope
+            ? closure.previewSegmentIds() : childSegmentIds;
         return new PlannedClosureDto(
             closure.id(),
             line == null ? closure.lineId() : line.getId(),
@@ -607,7 +617,9 @@ public class TtcClosureProjector {
             closure.windowDates(),
             closureNotificationTitle(currentSourceAlert.getTitle()),
             plannedClosureTravelDirection(currentSourceAlert, previewSegmentIds, segments)
-        );
+        ).withServiceEffect("limited-service".equals(currentSourceAlert.getImpactKind()) ? "limited-service"
+            : "delay".equals(currentSourceAlert.getImpactKind()) ? "delay" : "suspension")
+            .withPreviewStationIds(previewSegmentIds.isEmpty() ? currentSourceAlert.getStationIds() : List.of());
     }
 
     private ActiveAlertDto toActiveClosureAlert(
@@ -750,7 +762,8 @@ public class TtcClosureProjector {
     }
 
     private static String naturalClosureHours(String windowHours) {
-        if (AlertDashboardService.isBlank(windowHours) || "Varies by closure date".equalsIgnoreCase(windowHours)) {
+        if (AlertDashboardService.isBlank(windowHours) || "Varies by advisory date".equalsIgnoreCase(windowHours)
+            || "Varies by closure date".equalsIgnoreCase(windowHours)) {
             return null;
         }
         return windowHours.replace(" – ", " until ");
@@ -950,9 +963,9 @@ public class TtcClosureProjector {
             PlannedClosureDto presentation = activePresentation != null ? activePresentation : canonicalClosure;
             String cardId = currentSourceAlert == null ? canonicalClosure.id() : currentSourceAlert.getId();
             SegmentImpact impact = new SegmentImpact(
-                SUSPENSION_KIND,
+                "suspension".equals(presentation.serviceEffect()) ? SUSPENSION_KIND : "delay",
                 cardId,
-                "bidirectional",
+                presentation.travelDirection(),
                 List.of(cardId)
             );
             List<Map.Entry<String, SegmentImpact>> impacts = new ArrayList<>();

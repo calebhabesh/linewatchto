@@ -23,6 +23,77 @@ class TtcClosureProjectorTest {
     private final TtcClosureProjector projector = new TtcClosureProjector();
 
     @Test
+    void limitedServiceKeepsNightlyWindowsAndExactLinkedChildEffect() {
+        OffsetDateTime start = OffsetDateTime.parse("2026-09-29T03:00:00Z");
+        OffsetDateTime end = OffsetDateTime.parse("2026-09-29T06:00:00Z");
+        AlertEntity parent = withLine(alert("limited-parent", "planned-closure", "planned",
+            "Limited nightly service", "There will be limited nightly service due to planned track work.",
+            "vaughan", "finch-west", start, null), "line-1", "1");
+        ReflectionTestUtils.setField(parent, "impactKind", "limited-service");
+        ReflectionTestUtils.setField(parent, "activePeriodStart", start);
+        ReflectionTestUtils.setField(parent, "activePeriodEnd", end.plusDays(1));
+        List<LineSegmentEntity> segments = List.of(segment("affected", "line-1", "vaughan", "finch-west", 1));
+        Map<String, List<AlertPeriod>> periods = Map.of(parent.getId(), List.of(
+            new AlertPeriod(parent.getId(), "limited-child", start, end, 0),
+            new AlertPeriod(parent.getId(), "later-child", start.plusDays(1), end.plusDays(1), 1)));
+        for (OffsetDateTime now : List.of(start, start.plusHours(1), end.minusSeconds(1))) {
+            ClosureProjection projection = projector.project(List.of(parent), periods, segments, now).getFirst();
+            assertThat(projection.canonicalClosure().serviceEffect()).isEqualTo("limited-service");
+            assertThat(projection.activeNow()).isTrue();
+            assertThat(projection.activeSegmentImpacts()).singleElement().satisfies(entry -> {
+                assertThat(entry.getValue().kind()).isEqualTo("delay");
+                assertThat(entry.getValue().cardId()).isEqualTo(parent.getId());
+            });
+        }
+        for (OffsetDateTime now : List.of(start.minusSeconds(1), end, end.plusHours(12))) {
+            ClosureProjection projection = projector.project(List.of(parent), periods, segments, now).getFirst();
+            assertThat(projection.activeNow()).isFalse();
+            assertThat(projection.activeSegmentImpacts()).isEmpty();
+        }
+        AlertEntity child = withLine(alert("limited-child", "active-alert", "delay", "Limited service",
+            "There is limited subway service.", "vaughan", "finch-west", start, null), "line-1", "1");
+        ReflectionTestUtils.setField(child, "impactKind", "limited-service");
+        ReflectionTestUtils.setField(child, "activePeriodEnd", end);
+        List<ClosureProjection> linked = projector.project(List.of(parent, child), periods, segments, start.plusHours(1));
+        assertThat(linked).hasSize(1);
+        assertThat(linked.getFirst().activeClosureAlert().relatedPlannedClosureId()).isEqualTo(parent.getId());
+        assertThat(linked.getFirst().activeSegmentImpacts().getFirst().getValue().cardId()).isEqualTo(child.getId());
+        // A more specific child changes only its own occurrence.
+        ReflectionTestUtils.setField(child, "impactKind", "suspension");
+        assertThat(projector.project(List.of(parent, child), periods, segments, start.plusHours(1))
+            .getFirst().activeSegmentImpacts().getFirst().getValue().kind()).isEqualTo("suspension");
+        assertThat(projector.project(List.of(parent, child), periods, segments, start.plusDays(1).plusHours(1))
+            .getFirst().activeSegmentImpacts().getFirst().getValue().kind()).isEqualTo("delay");
+        ReflectionTestUtils.setField(child, "title", "ENDING EARLY - Limited service");
+        assertThat(projector.project(List.of(parent, child), periods, segments, start.plusHours(1)).getFirst().activeNow()).isTrue();
+        ReflectionTestUtils.setField(child, "title", "ENDED EARLY - Limited service");
+        ReflectionTestUtils.setField(child, "active", false);
+        ClosureProjection completed = projector.project(List.of(parent, child), periods, segments, start.plusHours(1)).getFirst();
+        assertThat(completed.activeNow()).isFalse();
+        assertThat(completed.canonicalClosure().nextWindowStart()).isEqualTo(start.plusDays(1));
+    }
+
+    @Test
+    void exactChildStationScopeDoesNotExpandToParentRouteSpan() {
+        OffsetDateTime now = OffsetDateTime.parse("2026-09-29T04:00:00Z");
+        AlertEntity parent = withLine(alert("limited-parent", "planned-closure", "planned",
+            "Limited nightly service", "There will be limited nightly service.", "vaughan", "finch-west", now, null), "line-1", "1");
+        ReflectionTestUtils.setField(parent, "impactKind", "limited-service");
+        AlertEntity child = withLine(alert("limited-child", "active-alert", "delay", "Limited service at Finch West",
+            "There is limited service at Finch West.", "finch-west", "finch-west", now, null), "line-1", "1");
+        ReflectionTestUtils.setField(child, "impactKind", "limited-service");
+        ReflectionTestUtils.setField(child, "stationIds", List.of("finch-west"));
+        ClosureProjection projection = projector.project(List.of(parent, child), Map.of(parent.getId(), List.of(
+            new AlertPeriod(parent.getId(), child.getSourceId(), now.minusHours(1), now.plusHours(1), 0))),
+            List.of(segment("parent-span", "line-1", "vaughan", "finch-west", 1)), now).getFirst();
+        assertThat(projection.canonicalClosure().previewSegmentIds()).containsExactly("parent-span");
+        assertThat(projection.activePresentation().previewSegmentIds()).isEmpty();
+        assertThat(projection.activePresentation().previewStationIds()).containsExactly("finch-west");
+        assertThat(projection.activeClosureAlert().affectedSegmentIds()).isEmpty();
+        assertThat(projection.activeSegmentImpacts()).isEmpty();
+    }
+
+    @Test
     void nullAndEmptyInputsHandledSafely() {
         OffsetDateTime now = OffsetDateTime.parse("2026-06-01T12:00:00Z");
 
@@ -425,7 +496,7 @@ class TtcClosureProjectorTest {
         );
 
         assertThat(projections).singleElement().satisfies(proj -> {
-            assertThat(proj.canonicalClosure().windowHours()).isEqualTo("Varies by closure date");
+            assertThat(proj.canonicalClosure().windowHours()).isEqualTo("Varies by advisory date");
             assertThat(proj.canonicalClosure().nightly()).isFalse();
         });
     }

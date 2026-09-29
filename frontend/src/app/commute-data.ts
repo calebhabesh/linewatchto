@@ -29,6 +29,8 @@ export type AccountCommutePathSegmentHop = {
 };
 
 export type AccountMatchedImpact = {
+  serviceEffect?: string | null;
+  relatedPlannedClosureId?: string | null;
   id: string;
   kind: "suspension" | "delay" | "reduced-speed-zone" | "planned-closure";
   status: "current" | "planned";

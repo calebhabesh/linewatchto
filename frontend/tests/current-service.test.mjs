@@ -11,6 +11,8 @@ import {
   lineStatusDescription,
   lineAdvisoryCountLabel,
   getPlannedClosureCountBadgeLabel,
+  windowTime,
+  windowCountdownStage,
 } from "../src/app/current-service.ts";
 
 const line = (id, status = "normal", statusLabel = "Normal Service") => ({
@@ -166,7 +168,7 @@ test("active planned closures open active alerts under both canonical and child 
     }), now);
     assert.equal(summary.rows[0].condition, "Planned Closure in Effect");
     assert.equal(summary.rows[0].iconKind, "suspension");
-    assert.match(summary.rows[0].timing, /^Ends .* at .+\(1hr\)$/);
+    assert.match(summary.rows[0].timing, /^Ends .* at .+\(1h\)$/);
     assert.equal(summary.rows[0].kind, "suspension");
     assert.equal(summary.rows[0].id, child ? "child" : "parent");
   }
@@ -227,7 +229,7 @@ test("canonical alert type names match canonical specifications", () => {
   // Active Alert (rapid-transit suspension/alert)
   assert.equal(getCanonicalAlertTitle({
     id: "s1", kind: "suspension", lineId: "1", lineNumber: "1", condition: "No Service", location: "Bloor to Eglinton", shuttle: true, priority: 0,
-  }), "Active Alert");
+  }), "Suspension");
 
   // Bypassing Station
   assert.equal(getCanonicalAlertTitle({
@@ -326,13 +328,13 @@ test("line status distinguishes future closures and speed zones together", () =>
   assert.equal(closureOnly.isNormal, false);
   assert.equal(closureOnly.state, "running");
   assert.equal(closureOnly.advisoryCount, 1);
-  assert.equal(lineStatusDescription(closureOnly), "Normal Service, Closure planned, + 1 advisory");
+  assert.equal(lineStatusDescription(closureOnly), "Normal Service, Advisory planned, + 1 advisory");
 
   input.reducedSpeedZones = [impact("speed-zone", "1")];
   const combined = getLineStatusPresentation(input.lineStatuses[0], input, currentServiceSummary(input, now));
   assert.equal(combined.isNormal, false);
   assert.equal(combined.advisoryCount, 2);
-  assert.equal(lineStatusDescription(combined), "Normal Service, Speed zones, Closure planned, + 2 advisories");
+  assert.equal(lineStatusDescription(combined), "Normal Service, Speed zones, Advisory planned, + 2 advisories");
   assert.deepEqual(combined.qualifiers.map(({ kind }) => kind), ["reduced-speed-zones", "planned-closure"]);
   assert.equal(lineStatusDescription(getLineStatusPresentation(input.lineStatuses[1], input, currentServiceSummary(input, now))), "Normal Service");
 });
@@ -341,7 +343,7 @@ test("unwindowed regional closure qualifies line status without inventing timing
   const input = data({ networkId: "regional", plannedClosures: [impact("notice", "1")] });
   const presentation = getLineStatusPresentation(input.lineStatuses[0], input, currentServiceSummary(input));
   assert.equal(presentation.isNormal, false);
-  assert.equal(lineStatusDescription(presentation), "Normal Service, Closure planned, + 1 advisory");
+  assert.equal(lineStatusDescription(presentation), "Normal Service, Advisory planned, + 1 advisory");
 });
 
 test("closure qualifiers never replace closed, disrupted, unavailable, or saved status", () => {
@@ -443,9 +445,9 @@ test("pull-up impact rows name the condition and put direction below the locatio
 });
 
 test("getPlannedClosureCountBadgeLabel formats planned closure count badge", () => {
-  assert.equal(getPlannedClosureCountBadgeLabel(1), "1 Planned Closure");
-  assert.equal(getPlannedClosureCountBadgeLabel(2), "2 Planned Closures");
-  assert.equal(getPlannedClosureCountBadgeLabel(5), "5 Planned Closures");
+  assert.equal(getPlannedClosureCountBadgeLabel(1), "1 Planned Advisory");
+  assert.equal(getPlannedClosureCountBadgeLabel(2), "2 Planned Advisories");
+  assert.equal(getPlannedClosureCountBadgeLabel(5), "5 Planned Advisories");
 });
 
 test("sub-badges and surface routes use flex alignment with safe wrapping", () => {
@@ -506,13 +508,72 @@ test("sub-badges and surface routes use flex alignment with safe wrapping", () =
   assert.doesNotMatch(surfaceSection, /<IncidentElectricBorder/);
 });
 
-test("desktop incident copy distinguishes active, upcoming and last-reported closures", () => {
-  const row = { id: "closure", kind: "planned-closure", iconKind: "suspension", condition: "Planned Closure in Effect", location: "Finch to Sheppard-Yonge", priority: 0, timing: "Ends Mon at 5:00 AM (50hr)", shuttle: true };
-  assert.deepEqual(currentServiceIncidentPresentation(row), { title: "Planned Closure · In Effect", timing: "Ends Mon at 5:00 AM" });
-  assert.deepEqual(currentServiceIncidentPresentation({ ...row, condition: "Upcoming Closure", iconKind: undefined, priority: 2, timing: "today at 11:00 PM (30min)" }), { title: "Planned Closure · Upcoming", timing: "Starts today at 11:00 PM" });
+test("shared incident copy retains countdowns for active and upcoming closures", () => {
+  const row = { id: "closure", kind: "planned-closure", iconKind: "suspension", condition: "Planned Closure in Effect", location: "Finch to Sheppard-Yonge", priority: 0, timing: "Ends Mon at 5:00 AM (2d 2h)", shuttle: true };
+  assert.deepEqual(currentServiceIncidentPresentation(row), { title: "Planned Closure · In Effect", timing: "Ends Mon at 5:00 AM (2d 2h)" });
+  assert.deepEqual(currentServiceIncidentPresentation({ ...row, condition: "Upcoming Closure", iconKind: undefined, priority: 2, timing: "today at 11:00 PM (30m)" }), { title: "Planned Closure · Upcoming", timing: "Starts today at 11:00 PM (30m)" });
   const saved = currentServiceSummary(data({ snapshot: { savedAt: Date.parse("2026-09-09T16:00:00Z") }, activeAlerts: [impact("closure", "1", { relatedPlannedClosureId: "parent" })] })).rows[0];
   assert.deepEqual(currentServiceIncidentPresentation(saved), { title: "Last Reported: Planned Closure · In Effect", timing: undefined });
   assert.equal(currentServiceIncidentPresentation({ ...row, kind: "suspension", condition: "No Service" }).title, "No Service");
+});
+
+test("window countdowns use compact units and truncate the smallest displayed unit", () => {
+  const now = Date.parse("2026-09-28T16:00:00Z");
+  for (const [milliseconds, expected] of [
+    [1, "<1m"], [59_999, "<1m"], [60_000, "1m"], [12 * 60_000, "12m"],
+    [60 * 60_000 - 1, "59m"], [60 * 60_000, "1h"], [200 * 60_000, "3h 20m"],
+    [24 * 60 * 60_000 - 1, "23h 59m"], [24 * 60 * 60_000, "1d"],
+    [48 * 60 * 60_000, "2d"], [51 * 60 * 60_000, "2d 3h"],
+  ]) {
+    assert.ok(windowTime(new Date(now + milliseconds).toISOString(), now).endsWith(` (${expected})`));
+  }
+  for (const value of [null, undefined, "", "invalid"]) assert.equal(windowTime(value, now), undefined);
+  for (const reference of [0, now, now + 1]) {
+    assert.doesNotMatch(windowTime(new Date(now).toISOString(), reference), /\([^)]*\)/);
+  }
+});
+
+test("countdown colors reflect the exact time remaining without implying restoration", () => {
+  const now = Date.parse("2026-09-28T16:00:00Z");
+  for (const [remaining, expected] of [
+    [60 * 60_000 + 1, "distant"], [60 * 60_000, "soon"],
+    [15 * 60_000 + 1, "soon"], [15 * 60_000, "imminent"], [1, "imminent"],
+    [0, undefined], [-1, undefined],
+  ]) {
+    assert.equal(windowCountdownStage(new Date(now + remaining).toISOString(), now), expected);
+  }
+  for (const value of [null, undefined, "invalid"]) assert.equal(windowCountdownStage(value, now), undefined);
+  assert.equal(windowCountdownStage("2026-09-28T17:00:00Z", 0), undefined);
+});
+
+test("TTC and GO/UP countdowns track upcoming starts and the active occurrence's end", () => {
+  const now = Date.parse("2026-09-28T16:00:00Z");
+  for (const [networkId, lineId] of [["ttc", "1"], ["regional", "regional-lw"], ["regional", "regional-up"]]) {
+    const closure = impact("parent", lineId, {
+      nextWindowStart: "2026-09-28T19:20:00Z", nextWindowEnd: "2026-09-30T22:20:00Z",
+    });
+    const input = data({ networkId, lineStatuses: [line(lineId)], plannedClosures: [closure] });
+    const upcoming = currentServiceIncidentPresentation(currentServiceSummary(input, now).rows[0]);
+    assert.match(upcoming.timing, /^Starts today at 3:20 PM \(3h 20m\)$/);
+    const active = currentServiceIncidentPresentation(currentServiceSummary(input, Date.parse(closure.nextWindowStart)).rows[0]);
+    assert.match(active.timing, /^Ends Wed at 6:20 PM \(2d 3h\)$/);
+
+    closure.activeNow = true;
+    closure.activeWindowEnd = "2026-09-28T17:00:00Z";
+    input.activeAlerts = [impact("child", lineId, { relatedPlannedClosureId: closure.id })];
+    assert.match(currentServiceSummary(input, now).rows[0].timing, /\(1h\)$/);
+    assert.equal(currentServiceSummary(input, now).rows[0].timingTarget, closure.activeWindowEnd);
+    for (const endpoint of [null, "invalid", "2026-09-28T15:00:00Z"]) {
+      closure.activeWindowEnd = endpoint;
+      assert.doesNotMatch(currentServiceSummary(input, now).rows[0].timing || "", /\([^)]*\)/);
+    }
+    closure.activeWindowEnd = "2026-09-28T17:00:00Z";
+    assert.equal(currentServiceSummary({ ...input, snapshot: { savedAt: now } }, now).rows[0].timing, undefined);
+    assert.equal(currentServiceSummary({ ...input, snapshot: { savedAt: now } }, now).rows[0].timingTarget, undefined);
+    input.activeAlerts = [impact("unscheduled", lineId, { startedAt: "2026-09-28T15:00:00Z", targetRemoval: "Tomorrow" })];
+    input.plannedClosures = [];
+    assert.equal(currentServiceSummary(input, now).rows[0].timing, undefined);
+  }
 });
 
 

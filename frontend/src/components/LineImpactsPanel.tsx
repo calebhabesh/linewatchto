@@ -36,10 +36,10 @@ type Props = {
 };
 
 const CATEGORY_LABELS: Record<Exclude<LineImpactCategory, "all">, string> = {
-  alerts: "Active Alerts",
+  alerts: "Suspensions",
   delays: "Delays",
   "reduced-speed-zones": "Reduced Speed Zones",
-  closures: "Planned Closures",
+  closures: "Planned Advisories",
   notices: "Service Notices",
 };
 

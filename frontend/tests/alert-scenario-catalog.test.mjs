@@ -11,7 +11,7 @@ const svg = readFileSync(
 
 describe("alert scenario catalog", () => {
   it("contains TTC Live Alerts feed envelopes for every indexed scenario", () => {
-    assert.equal(index.scenarios.length, 7);
+    assert.equal(index.scenarios.length, 8);
     for (const scenario of index.scenarios) {
       const feed = JSON.parse(readFileSync(new URL(scenario.file, scenarioRoot), "utf8"));
       assert.ok(Array.isArray(feed.routes), `${scenario.name} routes array`);

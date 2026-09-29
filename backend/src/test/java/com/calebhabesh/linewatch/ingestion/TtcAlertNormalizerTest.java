@@ -52,6 +52,80 @@ class TtcAlertNormalizerTest {
     }
 
     @Test
+    void currentLimitedServiceWithAnEndingEarlyFollowupRemainsCurrent() {
+        TtcAlertRecord record = copyServiceState(fetchedRecord("1", "Subway", null).record(),
+            "ENDING EARLY - Limited service", "There is limited subway service. It will end early at 1 AM.", null, null);
+        NormalizedRouteAlert normalized = normalizer.normalizeRoute(fetched(record)).projection().orElseThrow();
+        assertThat(normalized.type()).isEqualTo("active-alert");
+        assertThat(normalized.impactKind()).isEqualTo(AlertImpactKind.LIMITED_SERVICE);
+        assertThat(TtcServiceState.isRestoration(normalized)).isFalse();
+    }
+
+    @Test
+    void genericTrackWorkCauseAndSchedulingWithoutEffectEvidenceDoNotImplySuspension() {
+        TtcAlertRecord record = copyServiceState(feed.routes().getFirst().record(),
+            "Scheduled track work", "Track work is scheduled for tonight.", "UNKNOWN_EFFECT", null);
+        assertThat(normalizer.normalizeRoute(fetched(record)).shouldPersist()).isFalse();
+    }
+
+    @Test
+    void endedEarlyLimitedChildRetainsCompletionEvidenceWithoutClaimingService() {
+        TtcAlertRecord record = copyServiceState(fetchedRecord("1", "Subway", null).record(),
+            "ENDED EARLY - Limited service", "There was limited subway service.", null, null);
+        NormalizedRouteAlert normalized = normalizer.normalizeRoute(fetched(record)).projection().orElseThrow();
+        assertThat(normalized.impactKind()).isEqualTo(AlertImpactKind.LIMITED_SERVICE);
+        assertThat(TtcServiceState.isRestoration(normalized)).isTrue();
+    }
+
+    @Test
+    void limitedServiceOverridesGenericClosureCauseAndChangesClassificationFingerprint() {
+        TtcAlertRecord original = feed.routes().getFirst().record();
+        String description = "There will be limited nightly service starting 11 p.m. between Vaughan and Finch West stations due to planned track work.";
+        TtcAlertRecord limited = copyServiceState(original, "Limited nightly service", description, null, null);
+        NormalizedRouteAlert normalized = normalizer.normalizeRoute(fetched(limited)).projection().orElseThrow();
+        assertThat(normalized.impactKind()).isEqualTo(AlertImpactKind.LIMITED_SERVICE);
+        assertThat(normalized.type()).isEqualTo("planned-closure");
+        assertThat(normalized.severity()).isEqualTo("planned");
+        assertThat(normalized.causeDescription()).isEqualTo(original.causeDescription());
+        assertThat(normalized.sourceId()).isEqualTo(original.id());
+        assertThat(normalized.periods()).hasSameSizeAs(original.childAlerts());
+        NormalizedRouteAlert legacy = normalizer.normalizeRoute(fetched(original)).projection().orElseThrow();
+        assertThat(normalized.fingerprint()).isNotEqualTo(legacy.fingerprint());
+        assertThat(TtcAlertStore.shouldAppendActiveSnapshot(legacy.fingerprint(), true, normalized.fingerprint())).isTrue();
+        assertThat(TtcAlertStore.shouldAppendActiveSnapshot(normalized.fingerprint(), true, normalized.fingerprint())).isFalse();
+    }
+
+    @Test
+    void standaloneCurrentLimitedServiceIsADelayWithoutInventedRszMetadata() {
+        TtcAlertRecord record = copyServiceState(fetchedRecord("1", "Subway", null).record(),
+            "Limited service", "There is limited subway service between Eglinton and Davisville.", null, null);
+        NormalizedRouteAlert normalized = normalizer.normalizeRoute(fetched(record)).projection().orElseThrow();
+        assertThat(normalized.type()).isEqualTo("active-alert");
+        assertThat(normalized.severity()).isEqualTo("delay");
+        assertThat(normalized.impactKind()).isEqualTo(AlertImpactKind.LIMITED_SERVICE);
+        assertThat(normalized.reducedSpeed()).isNull();
+        assertThat(normalized.shuttleType()).isNull();
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource(delimiter = '|', value = {
+        "There is no limited subway service.|",
+        "There is no longer limited subway service.|",
+        "Limited subway service is no longer in effect.|",
+        "There will not be limited subway service.|",
+        "Limited subway service has ended.|",
+        "Limited subway service may operate.|",
+        "There will be limited subway service tomorrow.|",
+        "There is limited subway service.|NO_SERVICE",
+        "There is limited subway service.|DETOUR",
+        "There is limited subway service.|NO_EFFECT"
+    })
+    void ambiguousFutureRestoredOrContradictoryLimitedServiceStaysUnmatched(String text, String effect) {
+        TtcAlertRecord record = copyServiceState(fetchedRecord("1", "Subway", null).record(), text, text, effect, null);
+        assertThat(normalizer.normalizeRoute(fetched(record)).shouldPersist()).isFalse();
+    }
+
+    @Test
     void normalizesRecurringPlannedClosureWithChildPeriod() {
         TtcAlertRecord record = feed.routes().getFirst().record();
         record = copyRszMetadata(record, record.effectDesc(), "600 metres", null, null, null, null);

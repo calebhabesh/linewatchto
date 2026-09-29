@@ -14,7 +14,7 @@ public final class SavedCommuteAlertRules {
         return commute != null
             && commute.isNotificationEnabled()
             && legAllowed(commute, legId)
-            && eventTypeAllowed(commute, match == null ? null : match.kind());
+            && eventTypeAllowed(commute, match == null ? null : match.relatedPlannedClosureId() != null ? "planned-closure" : match.kind());
     }
 
     public static boolean legAllowed(SavedCommuteEntity commute, String legId) {

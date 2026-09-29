@@ -107,7 +107,7 @@ function MapOverlayLegend() {
           height={24}
           className="opening-welcome-legend-asset"
         />
-        <span>Planned Closure</span>
+        <span>Planned Advisory</span>
       </li>
       <li>
         <Image

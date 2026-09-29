@@ -10,6 +10,22 @@ class TtcSubwayClosureParserTest {
     private final TtcSubwayClosureParser parser = new TtcSubwayClosureParser();
 
     @Test
+    void limitedServiceAdvisoryPageDoesNotReintroduceNoServiceOrShuttles() {
+        TtcAlertRecord record = parser.parse("synthetic-limited", URI.create("https://www.ttc.ca/service-advisories/subway-service/example"),
+            page("Line 1 (Yonge-University)", "Vaughan to Finch West stations – Limited nightly service",
+                "September 28, 2026", "October 1, 2026",
+                "There will be limited nightly subway service starting at 11 p.m. between Vaughan and Finch West stations due to planned track work.")
+        ).record();
+        assertThat(record.effect()).isEqualTo("LIMITED_SERVICE");
+        assertThat(record.effectDesc()).isEqualTo("Limited service");
+        assertThat(record.causeDescription()).isEqualTo("Planned Track Work");
+        assertThat(record.shuttleType()).isNull();
+        assertThat(record.stopStart()).isEqualTo("Vaughan");
+        assertThat(record.stopEnd()).isEqualTo("Finch West");
+        assertThat(record.description()).contains("limited nightly subway service");
+    }
+
+    @Test
     void parsesCurrentTtcNightlyClosurePageIntoFourOvernightWindows() {
         TtcAlertRecord record = parser.parse(
             "60e186da-b21a-4c75-ab60-78d60b99f3f7",

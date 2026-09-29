@@ -1,5 +1,7 @@
 "use client";
 
+import { serviceEffectLabel } from "../app/alert-categories";
+
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AlertTriangle, ArrowLeft, ArrowRight, ChevronDown, ChevronUp, Construction, ExternalLink, X } from "lucide-react";
 import type { DashboardData } from "../app/DataContext";
@@ -107,7 +109,7 @@ export function getSelectedImpactDetails(
     return {
       id: alert.id,
       kind: "suspension",
-      categoryLabel: "Active Alert",
+      categoryLabel: "Suspension",
       tone: "suspension",
       icon: <AlertTriangle size={16} className="text-red-500" />,
       lineId: alert.lineId,
@@ -136,7 +138,7 @@ export function getSelectedImpactDetails(
       return {
         id: delay.id,
         kind: "delay",
-        categoryLabel: "Delay",
+        categoryLabel: serviceEffectLabel(delay),
         tone: "delay",
         icon: <DelayIcon size={16} className="delay-tone" />,
         lineId: delay.lineId,
@@ -149,6 +151,8 @@ export function getSelectedImpactDetails(
         startedAt: delay.startedAt,
         updatedAt: delay.updatedAt,
         cause: delay.cause,
+        shuttle: delay.shuttle,
+        relatedPlannedClosureId: delay.relatedPlannedClosureId,
         segmentIds: delay.affectedSegmentIds ?? [],
       };
     }
@@ -282,11 +286,11 @@ export function getSelectedImpactDetails(
       targetRemoval: activeClosure.targetRemoval,
       leadingRows: closure ? [
         {
-          label: "Closure dates",
+          label: "Advisory dates",
           value: closure.windowDates ? formatClosureScheduleValue(closure.windowDates) : null,
         },
         {
-          label: "Closure hours",
+          label: "Advisory hours",
           value: closure.windowHours ? formatClosureScheduleValue(closure.windowHours) : null,
         },
         {
@@ -294,7 +298,7 @@ export function getSelectedImpactDetails(
           value: specificWindowLabel ? formatClosureScheduleValue(specificWindowLabel) : null,
         },
         {
-          label: "Closure window",
+          label: "Advisory window",
           value: hasScheduleDetails ? null : closure.window,
         },
       ] : undefined,
@@ -331,7 +335,7 @@ export function getSelectedImpactDetails(
   return {
     id: closure.id,
     kind: "planned-closure",
-    categoryLabel: closure.activeNow ? "Active Closure Window" : "Planned Closure",
+    categoryLabel: closure.activeNow ? "Active Advisory Window" : "Planned Advisory",
     tone: "planned-closure",
     icon: <PlannedClosureIcon size={16} className="text-blue-500" />,
     lineId: closure.lineId,
@@ -357,11 +361,11 @@ export function getSelectedImpactDetails(
     targetRemoval: closure.targetRemoval,
     leadingRows: [
       {
-        label: "Closure dates",
+        label: "Advisory dates",
         value: closure.windowDates ? formatClosureScheduleValue(closure.windowDates) : null,
       },
       {
-        label: "Closure hours",
+        label: "Advisory hours",
         value: closure.windowHours ? formatClosureScheduleValue(closure.windowHours) : null,
       },
       {
@@ -369,7 +373,7 @@ export function getSelectedImpactDetails(
         value: specificWindowLabel ? formatClosureScheduleValue(specificWindowLabel) : null,
       },
       {
-        label: "Closure window",
+        label: "Advisory window",
         value: hasScheduleDetails ? null : closure.window,
       },
     ],
@@ -381,7 +385,7 @@ export function getSelectedImpactDetails(
             type="button"
             className="planned-closure-status-button"
             onClick={() => onSelectImpact({ kind: "suspension", id: activeAlert.id })}
-            aria-label="View active alert"
+            aria-label="View suspension"
           >
             <ImpactTypeIcon kind="suspension" size={13} />
             <span>Active Now</span>
@@ -565,7 +569,7 @@ export function MobileImpactInspector({
             leadingRows={details.leadingRows}
             extraRows={[
               ...(details.relatedPlannedClosureId ? [{
-                label: "Planned Closure",
+                label: "Planned Advisory",
                 value: (
                   <RelatedPlannedClosureButton
                     onClick={() => onSelectImpact({ kind: "planned-closure", id: details.relatedPlannedClosureId! })}

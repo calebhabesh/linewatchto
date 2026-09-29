@@ -116,16 +116,16 @@ test.describe("Desktop Visual Acceptance (Step 3)", () => {
     await page.screenshot({ path: join(SCREENSHOT_DIR, "status-overview-regional-dark-1440x900.png") });
   });
 
-  test("4. Rich Impact Cards - Planned Closures (uniform 560px)", async ({ page, request, isMobile }) => {
+  test("4. Rich Impact Cards - Planned Advisories (uniform 560px)", async ({ page, request, isMobile }) => {
     test.skip(isMobile);
     await setStubMode(request, "seeded");
     await prepareDesktopPage(page, { theme: "dark", viewport: { width: 1440, height: 900 } });
 
-    await page.getByRole("button", { name: /Planned Closures/i }).click();
+    await page.getByRole("button", { name: /Planned Advisories/i }).click();
     const sidebar = page.locator(".desktop-sidebar-container");
     const box = await sidebar.boundingBox();
     expect(box?.width).toBe(560);
-    await expect(page.getByRole("heading", { name: "Planned Closures" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Planned Advisories" })).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: join(SCREENSHOT_DIR, "rich-impact-cards-closures-1440x900.png") });
   });
@@ -205,7 +205,7 @@ test.describe("Desktop Visual Acceptance (Step 3)", () => {
     await setStubMode(request, "seeded");
     await prepareDesktopPage(page, { theme: "dark", viewport: { width: 1024, height: 768 } });
 
-    await page.getByRole("button", { name: /Planned Closures/i }).click();
+    await page.getByRole("button", { name: /Planned Advisories/i }).click();
     const sidebar = page.locator(".desktop-sidebar-container");
     await expect(sidebar).toHaveClass(/desktop-sidebar-container--overlay/);
     await page.waitForTimeout(300);

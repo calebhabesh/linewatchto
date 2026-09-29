@@ -8,6 +8,8 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +74,8 @@ public class ReliabilityRepository {
             .toList();
 
         Map<String, List<EvaluatedEpisode>> byKind = evaluated.stream()
-            .collect(Collectors.groupingBy(episode -> normalizeImpactKind(episode.impactKind())));
+            .collect(Collectors.groupingBy(episode -> "limited-service".equals(normalizeImpactKind(episode.impactKind()))
+                ? "delay" : normalizeImpactKind(episode.impactKind())));
         List<BreakdownRow> breakdown = byKind.entrySet().stream()
             .map(entry -> new BreakdownRow(
                 entry.getKey(),
@@ -484,27 +487,40 @@ public class ReliabilityRepository {
                 (first, second) -> first
             ));
         Map<String, List<RawEpisode>> byAlert = raw.stream().collect(Collectors.groupingBy(RawEpisode::alertId));
+        Map<String, List<RawEpisode>> bySource = raw.stream().filter(episode -> episode.sourceId() != null)
+            .collect(Collectors.groupingBy(RawEpisode::sourceId));
         List<Episode> episodes = new ArrayList<>();
         for (Map.Entry<String, List<RawEpisode>> entry : byAlert.entrySet()) {
             List<RawEpisode> alertEpisodes = entry.getValue();
             RawEpisode representative = alertEpisodes.getFirst();
-            if (isClosure(representative.impactKind())) {
+            String linkedParent = childPeriodParent.get(representative.sourceId());
+            if (linkedParent != null && byAlert.containsKey(linkedParent) && !linkedParent.equals(entry.getKey())) continue;
+            if (isClosure(representative.impactKind())
+                || ("limited-service".equals(representative.impactKind()) && periodsByAlert.containsKey(entry.getKey()))) {
                 String parentAlertId = childPeriodParent.get(representative.sourceId());
                 if (parentAlertId != null && !parentAlertId.equals(representative.alertId())) continue;
                 OffsetDateTime firstObserved = alertEpisodes.stream().map(RawEpisode::openedAt)
                     .min(OffsetDateTime::compareTo).orElse(since);
                 boolean sourceActive = alertEpisodes.stream().anyMatch(RawEpisode::sourceActive);
-                for (TimeRange occurrence : ReliabilityIntervalCalculator.merge(
-                    periodsByAlert.getOrDefault(entry.getKey(), List.of()).stream()
-                        .map(period -> new TimeRange(later(period.startsAt(), firstObserved), period.endsAt()))
-                        .toList(),
-                    Duration.ZERO
-                )) {
-                    if (occurrence.end().isAfter(since) && occurrence.start().isBefore(until)) {
-                        episodes.add(new Episode(
-                            representative.lineId(), representative.impactKind(), List.of(occurrence),
-                            !occurrence.end().isAfter(until), sourceActive
-                        ));
+                Map<String, List<TimeRange>> rangesByEffect = new LinkedHashMap<>();
+                for (ClosurePeriodRecord period : periodsByAlert.getOrDefault(entry.getKey(), List.of())) {
+                    // Only exact linked evidence may override this occurrence's canonical effect.
+                    String effect = bySource.getOrDefault(period.sourcePeriodId(), List.of()).stream()
+                        .filter(child -> !child.openedAt().isAfter(period.endsAt()))
+                        .filter(child -> child.clearedAt() == null || child.clearedAt().isAfter(period.startsAt()))
+                        .max(Comparator.comparing(RawEpisode::openedAt))
+                        .map(RawEpisode::impactKind).orElse(representative.impactKind());
+                    rangesByEffect.computeIfAbsent(effect, ignored -> new ArrayList<>())
+                        .add(new TimeRange(later(period.startsAt(), firstObserved), period.endsAt()));
+                }
+                for (Map.Entry<String, List<TimeRange>> effect : rangesByEffect.entrySet()) {
+                    for (TimeRange occurrence : ReliabilityIntervalCalculator.merge(effect.getValue(), Duration.ZERO)) {
+                        if (occurrence.end().isAfter(since) && occurrence.start().isBefore(until)) {
+                            episodes.add(new Episode(
+                                representative.lineId(), effect.getKey(), List.of(occurrence),
+                                !occurrence.end().isAfter(until), sourceActive
+                            ));
+                        }
                     }
                 }
             } else {
@@ -572,11 +588,18 @@ public class ReliabilityRepository {
     private List<RawEpisode> rawTtcEpisodes(OffsetDateTime until) {
         return jdbc.query("""
             with lifecycle as (
-                select s.alert_id, s.source_id, s.line_id, s.snapshot_time, s.active, s.impact_kind,
+                select s.id, s.alert_id, s.source_id, s.line_id, s.snapshot_time, s.active, s.impact_kind,
                        lag(s.active) over (partition by s.alert_id order by s.snapshot_time, s.id) previous_active
                 from snapshots s where s.snapshot_time < :until
             )
-            select o.alert_id, o.source_id, o.line_id, o.impact_kind, o.snapshot_time opened_at,
+            select o.alert_id, o.source_id, o.line_id,
+                   coalesce((select c.impact_kind from lifecycle c
+                       where c.alert_id = o.alert_id and c.active = true
+                         and c.snapshot_time >= o.snapshot_time
+                         and c.snapshot_time < coalesce((select min(e.snapshot_time) from lifecycle e
+                             where e.alert_id = o.alert_id and e.snapshot_time > o.snapshot_time and e.active = false), :until)
+                       order by c.snapshot_time desc, c.id desc limit 1), o.impact_kind) impact_kind,
+                   o.snapshot_time opened_at,
                    (select min(c.snapshot_time) from lifecycle c
                     where c.alert_id = o.alert_id and c.snapshot_time > o.snapshot_time and c.active = false) cleared_at,
                    not exists (select 1 from lifecycle c where c.alert_id = o.alert_id
@@ -635,7 +658,7 @@ public class ReliabilityRepository {
             union all
             select alert.id, 'fallback', alert.active_period_start, alert.active_period_end
             from alerts alert
-            where alert.impact_kind in ('planned-closure', 'planned_closure')
+            where alert.type = 'planned-closure'
               and alert.active_period_start is not null and alert.active_period_end is not null
               and alert.active_period_end > alert.active_period_start
               and alert.active_period_end - alert.active_period_start <= interval '80 hours'

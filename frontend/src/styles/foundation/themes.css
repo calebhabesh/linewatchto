@@ -16,6 +16,8 @@
   --danger: #dc2626;
   --warning: #d97706;
   --incident-direction-text: #92400e;
+  --incident-countdown-soon: #6d28d9;
+  --incident-countdown-imminent: #7e22ce;
   --ok: #16a34a;
   --planned: #2563eb;
   --planned-preview-rail: #f1f5f9;
@@ -96,6 +98,8 @@
   --danger: #ff4545;
   --warning: #ff9f1c;
   --incident-direction-text: #e5bd68;
+  --incident-countdown-soon: #b7a7d7;
+  --incident-countdown-imminent: #d8b4fe;
   --ok: #30d175;
   --planned: #4aa3ff;
   --planned-preview-rail: #f1f5f9;
@@ -210,6 +214,8 @@
   --danger: #ff2a2a;
   --warning: #ffd400;
   --incident-direction-text: #ffffff;
+  --incident-countdown-soon: #e9d5ff;
+  --incident-countdown-imminent: #e9d5ff;
   --ok: #28ff80;
   --planned: #4ab5ff;
   --planned-preview-rail: #ffffff;

@@ -1,5 +1,7 @@
 "use client";
 
+import { serviceEffectLabel } from "../app/alert-categories";
+
 import { AlertCircle, AlertTriangle, ArrowRight, BadgeInfo, Bus, ChevronDown, ConciergeBell, Construction, ExternalLink, FileText, GitMerge, LoaderCircle, Train, Wifi } from "lucide-react";
 import Image from "next/image";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
@@ -331,10 +333,10 @@ export function RegionalStationDetailPanel({
         kind === "reduced-speed-zone"
           ? "Reduced Speed Zone"
           : kind === "planned-closure"
-            ? active ? "Active Closure" : "Planned Closure"
+            ? active ? "Active Closure" : serviceEffectLabel(planned ?? {}, true)
             : kind === "suspension"
-              ? "Active Alert"
-              : "Delay";
+              ? "Suspension"
+              : serviceEffectLabel(delay ?? {});
 
       related.set(`${kind}:${id}`, {
         kind,

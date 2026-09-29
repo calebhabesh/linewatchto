@@ -128,7 +128,7 @@ function disruptionKindLabel(kind: SavedStationDisruptionKind) {
     case "suspension": return "Suspension";
     case "delay": return "Delay";
     case "reduced-speed-zone": return "Reduced Speed Zone";
-    case "planned-closure": return "Planned Closure";
+    case "planned-closure": return "Planned Advisory";
     case "active-closure": return "Active Closure";
     case "elevator": return "Elevator Outage";
     case "escalator": return "Escalator Outage";
@@ -430,7 +430,7 @@ function SavedStationRow({
                     <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={kind} size={15} /></span>
                     <div className="saved-commute-impact-copy">
                       <div className="saved-commute-impact-details">
-                        <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{disruptionKindLabel(kind)}</span></strong></div>
+                        <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{dashboard.delays.find(item => item.id === (selection?.id ?? impactId))?.serviceEffect === "limited-service" ? "Limited service" : disruptionKindLabel(kind)}</span></strong></div>
                         <span>{stationImpactContext(selection?.id ?? impactId, saved.station.name, dashboard)}</span>
                       </div>
                       <div className="saved-commute-impact-action">
@@ -769,7 +769,7 @@ function SavedStationRow({
                     <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={kind} size={15} /></span>
                     <div className="saved-commute-impact-copy">
                       <div className="saved-commute-impact-details">
-                        <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{disruptionKindLabel(kind)}</span></strong></div>
+                        <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{dashboard.delays.find(item => item.id === (selection?.id ?? impactId))?.serviceEffect === "limited-service" ? "Limited service" : disruptionKindLabel(kind)}</span></strong></div>
                         <span>{stationImpactContext(selection?.id ?? impactId, saved.station.name, dashboard)}</span>
                       </div>
                       <div className="saved-commute-impact-action">
@@ -1372,7 +1372,7 @@ export function MyStationsPanel({
                   <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
                   <div className="text-xs">
                     <span className="font-bold text-slate-800 dark:text-slate-200 block">Disruptions & Accessibility Outages</span>
-                    <span className="text-slate-500 dark:text-slate-400">View active delays, suspensions, closures, and elevator or escalator outages in one place.</span>
+                    <span className="text-slate-500 dark:text-slate-400">View active delays, suspensions, planned advisories, and elevator or escalator outages in one place.</span>
                   </div>
                 </div>
 

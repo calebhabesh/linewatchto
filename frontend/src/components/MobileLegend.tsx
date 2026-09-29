@@ -114,10 +114,10 @@ export function MobileLegend({
       ? "affected"
       : "good";
 
-    if (alertCount > 0) impacts.push({ count: alertCount, kind: "suspension", label: "active alert" });
+    if (alertCount > 0) impacts.push({ count: alertCount, kind: "suspension", label: "suspension" });
     if (delayCount > 0) impacts.push({ count: delayCount, kind: "delay", label: "delay" });
     if (zoneCount > 0) impacts.push({ count: zoneCount, kind: "reduced-speed-zone", label: "reduced speed zone" });
-    if (closureCount > 0) impacts.push({ count: closureCount, kind: "planned-closure", label: "planned closure" });
+    if (closureCount > 0) impacts.push({ count: closureCount, kind: "planned-closure", label: "planned advisory" });
 
     return {
       ...line,

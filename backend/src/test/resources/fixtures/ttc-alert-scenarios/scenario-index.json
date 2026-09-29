@@ -197,6 +197,16 @@
         "delay"
       ],
       "guidePathIds": []
+    },
+    {
+      "name": "limited-service-active-window",
+      "file": "limited-service-active-window.json",
+      "routeCount": 2,
+      "accessibilityCount": 0,
+      "impactKinds": [
+        "limited-service"
+      ],
+      "guidePathIds": []
     }
   ]
 }

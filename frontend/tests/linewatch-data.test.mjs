@@ -64,7 +64,7 @@ describe("LineWatch dashboard fixture data", () => {
       "0 active in fixture mode",
     );
     assert.equal(
-      ingestionHealth.find((item) => item.label === "Planned closures")?.value,
+      ingestionHealth.find((item) => item.label === "Planned Advisories")?.value,
       "0 upcoming in fixture mode",
     );
   });

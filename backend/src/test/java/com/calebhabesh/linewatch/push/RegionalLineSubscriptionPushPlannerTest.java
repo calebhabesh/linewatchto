@@ -110,7 +110,7 @@ class RegionalLineSubscriptionPushPlannerTest {
         ).getFirst();
 
         assertThat(candidate.category()).isEqualTo("line-planned");
-        assertThat(candidate.body()).contains("Closure dates: Aug 30–31.");
+        assertThat(candidate.body()).contains("Advisory dates: Aug 30–31.");
         assertThat(candidate.body()).doesNotContain("12:00 AM").doesNotContain("Closure starts");
         assertThat(candidate.sourceEventAt()).isNull();
     }

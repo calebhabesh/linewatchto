@@ -59,7 +59,7 @@ export function MobileStatusSheet({ dataSource = "backend", onOpenCategory, onCl
           <div className="mobile-status-actions" aria-label="Service impact categories">
             <button type="button" className="mobile-status-btn-alerts" onClick={() => onOpenCategory("alerts")} data-count={activeAlerts.length > 0 ? "positive" : "zero"}>
               <AlertTriangle size={16} className="text-red-500 dark:text-red-400 shrink-0" />
-              <span className="mobile-status-btn-text">Active Alerts</span>
+              <span className="mobile-status-btn-text">Suspensions</span>
               <span className="mobile-status-btn-circle" data-count={activeAlerts.length > 0 ? "positive" : "zero"}>
                 {activeAlerts.length}
               </span>
@@ -80,7 +80,7 @@ export function MobileStatusSheet({ dataSource = "backend", onOpenCategory, onCl
             </button> : null}
             <button type="button" className="mobile-status-btn-closures" onClick={() => onOpenCategory("closures")} data-count={plannedClosures.length > 0 ? "positive" : "zero"}>
               <PlannedClosureIcon size={16} className="text-blue-500 dark:text-blue-400 shrink-0" />
-              <span className="mobile-status-btn-text">Planned Closures</span>
+              <span className="mobile-status-btn-text">Planned Advisories</span>
               <span className="mobile-status-btn-circle" data-count={plannedClosures.length > 0 ? "positive" : "zero"}>
                 {plannedClosures.length}
               </span>
@@ -160,7 +160,7 @@ export function MobileStatusSheet({ dataSource = "backend", onOpenCategory, onCl
                     {lineAlerts.length > 0 ? (
                       <span className="mobile-line-status-impact-label mobile-line-status-btn-alerts">
                         <AlertTriangle size={12} className="text-red-500 dark:text-red-400 shrink-0" />
-                        <span><span className="mobile-line-status-impact-count">{lineAlerts.length}</span>{lineAlerts.length === 1 ? "Active Alert" : "Active Alerts"}</span>
+                        <span><span className="mobile-line-status-impact-count">{lineAlerts.length}</span>{lineAlerts.length === 1 ? "Suspension" : "Suspensions"}</span>
                       </span>
                     ) : null}
                     {lineDelays.length > 0 ? (
@@ -178,7 +178,7 @@ export function MobileStatusSheet({ dataSource = "backend", onOpenCategory, onCl
                     {lineClosures.length > 0 ? (
                       <span className="mobile-line-status-impact-label mobile-line-status-btn-closures">
                         <PlannedClosureIcon size={12} className="text-blue-500 dark:text-blue-400 shrink-0" />
-                        <span><span className="mobile-line-status-impact-count">{lineClosures.length}</span>{lineClosures.length === 1 ? "Planned Closure" : "Planned Closures"}</span>
+                        <span><span className="mobile-line-status-impact-count">{lineClosures.length}</span>{lineClosures.length === 1 ? "Planned Advisory" : "Planned Advisories"}</span>
                       </span>
                     ) : null}
                   </span>

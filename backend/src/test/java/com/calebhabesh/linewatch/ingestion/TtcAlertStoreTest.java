@@ -23,6 +23,34 @@ import org.springframework.test.util.ReflectionTestUtils;
 class TtcAlertStoreTest {
 
     @Test
+    void refreshCorrectsStoredEffectDespiteIdenticalSourcePayloadWithoutNewIdentity() throws Exception {
+        NamedParameterJdbcTemplate jdbc = mock(NamedParameterJdbcTemplate.class);
+        String sourceId = "limited-source";
+        OffsetDateTime now = OffsetDateTime.parse("2026-09-29T04:00:00Z");
+        NormalizedRouteAlert corrected = new NormalizedRouteAlert(
+            "ttc-route-" + sourceId, sourceId, "line-1", "planned-closure", "planned",
+            "Limited nightly service", "There will be limited nightly service.", "Planned", null,
+            null, AlertDirection.BIDIRECTIONAL, "MAINTENANCE", "Closure - Planned Track Work", null,
+            AlertImpactKind.LIMITED_SERVICE, null, null, null, null, null, "vaughan", "finch-west",
+            now.minusHours(1), now.plusHours(2), now.minusHours(1), null, null, null,
+            "synthetic unchanged source payload", List.of("vaughan", "finch-west"),
+            List.of(new NormalizedAlertPeriod("parent", now.minusHours(1), now.plusHours(2), 0)),
+            "corrected-classification-fingerprint");
+        ResultSet existing = mock(ResultSet.class);
+        when(existing.getString("normalized_fingerprint")).thenReturn("legacy-classification-fingerprint");
+        when(existing.getBoolean("active")).thenReturn(true);
+        when(jdbc.query(contains("select normalized_fingerprint"), any(SqlParameterSource.class), any(RowMapper.class)))
+            .thenAnswer(invocation -> List.of(((RowMapper<?>) invocation.getArgument(2)).mapRow(existing, 0)));
+        new TtcAlertStore(jdbc).upsertRouteAlert(corrected, now);
+        org.mockito.ArgumentCaptor<SqlParameterSource> params = org.mockito.ArgumentCaptor.forClass(SqlParameterSource.class);
+        verify(jdbc).update(contains("on conflict (source_id)"), params.capture());
+        assertThat(params.getValue().getValue("impactKind")).isEqualTo("limited-service");
+        assertThat(params.getValue().getValue("sourceId")).isEqualTo(sourceId);
+        assertThat(params.getValue().getValue("rawPayload")).isEqualTo(corrected.rawPayload());
+        verify(jdbc).update(contains("insert into snapshots"), any(SqlParameterSource.class));
+    }
+
+    @Test
     void appendsSnapshotOnlyForNewOrChangedFingerprint() {
         assertThat(TtcAlertStore.shouldAppendSnapshot(null, "new")).isTrue();
         assertThat(TtcAlertStore.shouldAppendSnapshot("old", "new")).isTrue();

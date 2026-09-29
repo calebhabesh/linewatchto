@@ -5,7 +5,7 @@ const IMPACT_KIND_LABELS: Record<ImpactKind, string> = {
   suspension: "Suspension",
   delay: "Delay",
   "reduced-speed-zone": "Reduced Speed Zone",
-  "planned-closure": "Planned Closure",
+  "planned-closure": "Planned Advisory",
 };
 
 export function StationImpactTypeBadges({ kinds }: { kinds: ImpactKind[] }) {

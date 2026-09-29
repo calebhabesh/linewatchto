@@ -147,7 +147,7 @@ public class SavedCommutePushPlanner {
             ? List.<CommuteResponses.MatchedImpactResponse>of()
             : impact.matchedImpacts()) {
             if ("current".equals(match.status())) {
-                String eventType = match.kind(); // e.g. "delay", "suspension", "reduced-speed-zone"
+                String eventType = match.relatedPlannedClosureId() != null ? "planned-closure" : match.kind();
                 candidates.add(candidateFor(commute, legId, path, match, "saved-commute-current", eventType, "on-change"));
             } else if ("planned".equals(match.status())) {
                 String eventType = "planned-closure";
@@ -400,7 +400,7 @@ public class SavedCommutePushPlanner {
                 match.matchedSegmentIds(),
                 match.location(),
                 eventTime,
-                match.id()
+                match.relatedPlannedClosureId() == null ? match.id() : match.relatedPlannedClosureId()
             );
         }
         String id = safe(match.id());

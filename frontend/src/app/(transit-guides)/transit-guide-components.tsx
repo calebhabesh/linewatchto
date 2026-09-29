@@ -653,7 +653,7 @@ export function NetworkGuidePage({ networkSlug }: { networkSlug: TransitGuideNet
               <li>Source- and freshness-labeled rail service impacts</li>
               <li>Station details and accessibility outages</li>
               <li>{ttc ? "Fresh TTC arrivals with schedule fallback where supported" : "Fresh regional arrivals where supported, with published schedules kept distinct"}</li>
-              <li>{ttc ? "Planned closures, surface connections, and reviewed station notices" : "GO trip changes and service notices kept separate from corridor status"}</li>
+              <li>{ttc ? "Planned advisories, surface connections, and reviewed station notices" : "GO trip changes and service notices kept separate from corridor status"}</li>
               <li>Thirty-day reliability with explicit coverage confidence</li>
             </ul>
           </section>
@@ -986,7 +986,7 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
             <ul className={styles.plainList}>
               <li>Normalized rail service-impact intervals that overlap verified successful polling.</li>
               <li>Only the applicable published daily service span when schedule coverage is available.</li>
-              <li>Planned closures only during their applicable active windows.</li>
+              <li>Planned service impacts only during their applicable active windows.</li>
               <li>Unique service-impact time separately from additive incident-hours, so overlapping incidents are not hidden.</li>
               {!ttc ? <li>Distinct observed train cancellations as a separate count, with exact schedule matches distinguished from source-labeled unmatched notices.</li> : null}
             </ul>

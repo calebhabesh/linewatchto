@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
 import { ArrowRight, Bus } from "lucide-react";
+import { serviceEffectLabel } from "../app/alert-categories";
 import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/commute-data";
@@ -93,7 +94,8 @@ export function PlannedClosuresPanel({
   return (
     <section className={`panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl ${embedded ? "embedded-impact-panel" : ""}`}>
       <PanelHeader
-        title="Planned Closures"
+        title="Planned Advisories"
+        titleCompact
         icon={<PlannedClosureIcon size={20} className="w-5 h-5 text-blue-500 shrink-0" aria-hidden="true" />}
         onBack={onBack}
         onClose={onClose}
@@ -108,7 +110,7 @@ export function PlannedClosuresPanel({
       />
       {plannedClosures.length > 0 ? (
         <ImpactListToolbar
-          noun="planned closures"
+          noun="planned advisories"
           totalCount={plannedClosures.length}
           visibleCount={visibleClosures.length}
           lineIds={lineIds}
@@ -132,7 +134,7 @@ export function PlannedClosuresPanel({
       <div className={`closure-stack min-w-0 p-3 flex flex-col gap-2 ${viewMode === "list" ? "is-list-view" : ""} ${visibleClosures.length === 0 ? "is-empty" : ""}`}>
         {visibleClosures.length === 0 ? (
           <div className="text-center py-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
-            {plannedClosures.length === 0 ? "No Planned Closures" : "No planned closures match these filters"}
+            {plannedClosures.length === 0 ? "No Planned Advisories" : "No planned advisories match these filters"}
           </div>
         ) : (
           visibleClosures.map((closure) => {
@@ -144,6 +146,9 @@ export function PlannedClosuresPanel({
                 closure.activeNow && alert.id === closure.id
               ),
             );
+            const activeDelay = delays.find(delay => delay.relatedPlannedClosureId === closure.id || (closure.activeNow && delay.id === closure.id));
+            const currentImpact = activeDelay ?? activeAlert;
+            const currentKind = activeDelay ? "delay" : "suspension";
             const specificWindowLabel = closure.activeNow
               ? closure.activeWindowLabel
               : closure.nextWindowLabel;
@@ -164,7 +169,7 @@ export function PlannedClosuresPanel({
                   impactId={closure.id}
                   lineId={closure.lineId}
                   lineNumber={closure.lineNumber}
-                  title="Planned Closure"
+                  title={serviceEffectLabel(closure, true)}
                   locationFirst
                   details={<><p>{closure.title}</p><p>Direction: {closure.displayDirection || "Not reported"}</p><p>Started: <CompactImpactTimeValue timestamp={closure.startedAt} /></p></>}
                   location={closure.location}
@@ -172,7 +177,7 @@ export function PlannedClosuresPanel({
                     ...((closure.windowDates || closure.windowHours) ? [{ label: "Schedule", value: [closure.windowDates, closure.windowHours].filter(Boolean).map(value => formatClosureScheduleValue(value!)).join(" · "), emphasized: true }] : []),
                     {
                       column: 1,
-                      label: specificWindowLabel ? listWindowHeading : "Closure Window",
+                      label: specificWindowLabel ? listWindowHeading : "Advisory Window",
                       emphasized: true,
                       value: specificWindowLabel ? formatClosureScheduleValue(specificWindowLabel) : closure.window,
                     },
@@ -211,14 +216,14 @@ export function PlannedClosuresPanel({
                   mapActionVariant={mapActionVariant}
                   badges={(
                     <>
-                      {activeAlert ? (
+                      {currentImpact ? (
                         <button
                           type="button"
-                          className="planned-closure-status-button"
-                          onClick={() => onSelectImpact({ kind: "suspension", id: activeAlert.id })}
-                          aria-label="View active alert"
+                          className={`planned-closure-status-button ${currentKind === "delay" ? "is-delay" : ""}`}
+                          onClick={() => onSelectImpact({ kind: currentKind, id: currentImpact.id })}
+                          aria-label="View current impact"
                         >
-                          <ImpactTypeIcon kind="suspension" size={13} />
+                          <ImpactTypeIcon kind={currentKind} size={13} />
                           <span>Active Now</span>
                           <ArrowRight size={13} aria-hidden="true" />
                         </button>
@@ -227,10 +232,10 @@ export function PlannedClosuresPanel({
                           {closure.activeNow ? "Currently Inactive" : "Upcoming"}
                         </span>
                       )}
-                      {showImpactTypeIndicator ? (
+                      {(showImpactTypeIndicator || closure.serviceEffect === "limited-service") ? (
                         <span className="impact-card-type-badge planned-closure">
                           <ImpactTypeIcon kind="planned-closure" size={13} />
-                          Planned closure
+                          {serviceEffectLabel(closure, true)}
                         </span>
                       ) : null}
                       {closure.nightly ? (
@@ -265,13 +270,13 @@ export function PlannedClosuresPanel({
                     updatedAgo={closure.updatedAgo}
                     leadingRows={[
                       {
-                        label: "Closure dates",
+                        label: "Advisory dates",
                         value: closure.windowDates
                           ? formatClosureScheduleValue(closure.windowDates)
                           : null,
                       },
                       {
-                        label: "Closure hours",
+                        label: "Advisory hours",
                         value: closure.windowHours
                           ? formatClosureScheduleValue(closure.windowHours)
                           : null,
@@ -283,7 +288,7 @@ export function PlannedClosuresPanel({
                           : null,
                       },
                       {
-                        label: "Closure window",
+                        label: "Advisory window",
                         value: hasScheduleDetails ? null : closure.window,
                       },
                     ]}

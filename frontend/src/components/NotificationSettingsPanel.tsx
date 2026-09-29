@@ -157,8 +157,8 @@ export function NotificationSettingsPanel({
               <div className="flex items-start gap-2.5">
                 <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
                 <div className="text-xs">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Planned Closure Reminders</span>
-                  <span className="text-slate-500 dark:text-slate-400">Receive advance heads-up notifications for supported TTC and GO/UP planned closures and service updates.</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Planned Advisory Reminders</span>
+                  <span className="text-slate-500 dark:text-slate-400">Receive advance heads-up notifications for supported TTC and GO/UP planned advisories and service updates.</span>
                 </div>
               </div>
 
@@ -251,7 +251,7 @@ export function NotificationSettingsPanel({
                     </span>
                     <div>
                       <strong>Current Disruptions Affecting My Commutes</strong>
-                      <em>Delays, suspensions, planned closures, regional train cancellations, TTC Reduced Speed Zones, and cleared updates only when they affect a saved route.</em>
+                      <em>Delays, suspensions, planned advisories, regional train cancellations, TTC Reduced Speed Zones, and cleared updates only when they affect a saved route.</em>
                       {!subscribed && accountNotificationsDesired ? (
                         <p className="notification-settings-muted-warning text-xs text-slate-400 dark:text-slate-500 italic mt-1.5">
                           Account notifications are on. Enable this device to receive pushes here.
@@ -289,7 +289,7 @@ export function NotificationSettingsPanel({
                       <PlannedClosureIcon size={15} className="text-blue-600 dark:text-blue-400" aria-hidden="true" />
                     </span>
                     <div>
-                      <strong>Planned Closure Reminders</strong>
+                      <strong>Planned Advisory Reminders</strong>
                       <em>Upcoming closure notices for monitored saved-commute routes.</em>
                       {!subscribed && accountNotificationsDesired ? (
                         <p className="notification-settings-muted-warning text-xs text-slate-400 dark:text-slate-500 italic mt-1.5">
@@ -307,7 +307,7 @@ export function NotificationSettingsPanel({
                     <NotificationSwitch
                       checked={preferences.savedCommutes.plannedClosureReminders}
                       disabled={busy || !preferencesLoaded}
-                      label="Planned closure reminders"
+                      label="Planned advisory reminders"
                       onChange={(checked) => {
                         updatePreferences({
                           ...preferences,
@@ -434,7 +434,7 @@ export function NotificationSettingsPanel({
                   },
                   {
                     key: "plannedClosures" as const,
-                    label: "Planned Closures",
+                    label: "Planned Advisories",
                     icon: <PlannedClosureIcon size={15} className="text-blue-500" />,
                   },
                   {
@@ -493,14 +493,14 @@ export function NotificationSettingsPanel({
 
             <div className="notification-settings-section">
               <div className="notification-settings-section-header notification-follow-up-header">
-                <h3>Planned Closure Follow-ups</h3>
+                <h3>Planned Advisory Follow-ups</h3>
                 <span>Global</span>
               </div>
               <p className="notification-settings-note">
                 New and meaningfully changed closures follow the stream and event filters above automatically. Choose if LineWatchTO should add one scheduled follow-up for My Commutes and line subscriptions.
               </p>
               <fieldset className="notification-follow-up-options" disabled={busy || !preferencesLoaded}>
-                <legend className="sr-only">Planned closure follow-up policy</legend>
+                <legend className="sr-only">Planned advisory follow-up policy</legend>
                 {[
                   {
                     value: "smart" as const,

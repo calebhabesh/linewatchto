@@ -89,20 +89,24 @@ public class LineSubscriptionPushPlanner {
 
         for (AlertDashboardService.DelayAlertDto delay : dashboardService.delays()) {
             if (subscribedLineIds.contains(delay.lineId())) {
+                boolean planned = delay.relatedPlannedClosureId() != null;
+                String eventType = planned ? "planned-closure" : "delay";
+                String impactId = planned ? PlannedClosurePushIdentity.stableId(delay.lineId(),
+                    delay.affectedSegmentIds(), delay.location(), delay.startedAt(), delay.relatedPlannedClosureId()) : delay.id();
                 candidates.add(createLineCandidate(
                     accountId,
                     delay.lineId(),
                     delay.lineNumber(),
                     "line-current",
-                    "delay",
+                    eventType,
                     "on-change",
-                    delay.id(),
+                    impactId,
                     delay.location(),
                     delay.displayDirection(),
                     delay.cause(),
-                    delay.title(),
+                    notificationTitle(delay.notificationTitle(), delay.title()),
                     delay.description(),
-                    false,
+                    delay.shuttle(),
                     delay.startedAt() == null ? null : delay.startedAt().toInstant(),
                     delay.updatedAt(),
                     impactUrl("delays", "delay", delay.id())

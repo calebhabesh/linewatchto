@@ -22,7 +22,7 @@ describe("official TTC performance panel source", () => {
     assert.match(source, /Incident-Hours/);
     assert.match(source, /Median Completed Incident/);
     assert.match(source, /formatReliabilityRange/);
-    assert.match(source, /Planned Closures/);
+    assert.match(source, /Planned Advisories/);
     assert.match(source, /#FEEC41/);
     assert.match(source, /aria-label="100% stacked bar/);
     assert.match(source, /dark:text-white/);

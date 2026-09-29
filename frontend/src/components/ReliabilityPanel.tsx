@@ -196,6 +196,7 @@ function formatReliabilityTitleCase(value: string): string {
 
 function getImpactKindColor(kind: string): { stroke: string; bg: string; text: string } {
   switch (kind.toLowerCase().replace(/_/g, "-")) {
+    case "limited-service":
     case "delay":
       return { stroke: "#FEEC41", bg: "bg-[#FEEC41]", text: "text-yellow-600 dark:text-yellow-300" };
     case "reduced-speed-zone":
@@ -215,6 +216,7 @@ function getImpactKindColor(kind: string): { stroke: string; bg: string; text: s
 
 function getImpactKindCanonicalLabel(kind: string, rawLabel?: string): string {
   switch (kind.toLowerCase().replace(/_/g, "-")) {
+    case "limited-service":
     case "delay":
       return "Delays";
     case "reduced-speed-zone":
@@ -222,14 +224,14 @@ function getImpactKindCanonicalLabel(kind: string, rawLabel?: string): string {
       return "Reduced Speed Zones";
     case "planned-closure":
     case "closure":
-      return "Planned Closures";
+      return "Planned Advisories";
     case "suspension":
-      return "Active Alerts";
+      return "Suspensions";
     case "cancellation":
       return "Train Cancellations";
     default:
-      if (rawLabel === "Planned Closures (Active Window Only)") {
-        return "Planned Closures";
+      if (rawLabel === "Planned Advisories (Active Window Only)" || rawLabel === "Planned Closures (Active Window Only)") {
+        return "Planned Advisories";
       }
       return rawLabel || "Service Notices";
   }
@@ -515,7 +517,7 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
                         <DisruptionDuration minutes={item.serviceImpactMinutes} />
                       </span>
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans leading-tight mt-0.5">
-                        Active Alert Time
+                        Suspension Time
                       </span>
                     </div>
                     <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 font-medium shrink-0 px-1 select-none">

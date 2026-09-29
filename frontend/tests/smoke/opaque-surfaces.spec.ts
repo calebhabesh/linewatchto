@@ -50,7 +50,7 @@ for (const theme of ["light", "dark", "high-contrast"]) {
       await page.getByRole("button", { name: "Toggle menu" }).click();
       await expectOpaque(page.locator("#linewatch-main-menu"));
       await page.screenshot({ path: `/tmp/linewatch-menu-${theme}.png` });
-      await page.getByRole("menuitem", { name: /Active Alerts/i }).click();
+      await page.getByRole("menuitem", { name: /Suspensions/i }).click();
       await expectOpaque(page.locator(".floating-panel-scroll"));
       await page.screenshot({ path: `/tmp/linewatch-submenu-${theme}.png` });
     }

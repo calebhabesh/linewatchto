@@ -178,13 +178,8 @@ public class AlertHistoryService {
 
     private String canonicalEventTypeName(String eventType) {
         if (eventType == null) return "Alert";
-        return switch (eventType.trim().toLowerCase(java.util.Locale.ROOT)) {
-            case "suspension", "active-alert", "active_alert" -> "Active Alert";
-            case "delay" -> "Delay";
-            case "reduced-speed-zone", "reduced_speed_zone" -> "Reduced Speed Zone";
-            case "planned-closure", "planned_closure" -> "Planned Closure";
-            default -> titleCase(eventType.replace("-", " "));
-        };
+        String label = AlertCategoryLabels.singular(eventType);
+        return "Service Alert".equals(label) ? titleCase(eventType.replace("-", " ")) : label;
     }
 
     private String eventStateLabel(String state) {

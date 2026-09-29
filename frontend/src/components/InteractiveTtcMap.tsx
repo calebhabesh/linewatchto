@@ -2,7 +2,7 @@
 import { CardinalNorthIcon } from "./CardinalNorthIcon";
 
 import { useRetainedHover } from "../hooks/useRetainedHover";
-import { memo, useEffect, useState, useMemo, useLayoutEffect, useRef, useCallback } from "react";
+import { memo, useEffect, useState, useMemo, useLayoutEffect, useRef, useCallback, type CSSProperties } from "react";
 import {
   composeNetworkSegmentPath,
   extrapolatedPathFrame,
@@ -122,7 +122,7 @@ import {
   visibleMapChooserKeepouts,
 } from "./map-chooser-keepouts";
 import { isMapWheelScrollRegionTarget } from "./map-wheel-events";
-import { getImpactPriority } from "../app/map-alert-selector";
+import { getImpactPriority, plannedAdvisoryStationImpacts } from "../app/map-alert-selector";
 import {
   OVERLAP_CHOOSER_MOBILE_BREAKPOINT,
   boundsForBadgePosition,
@@ -411,7 +411,11 @@ function InteractiveTtcMapComponent({
   onMapViewChange?: (view: MapViewPreference) => void;
   selectionAttentionGeneration?: number;
 }) {
-  const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations, mapAsset } = useDashboardData();
+  const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts: activeStationNodeImpacts, stations: mapStations, mapAsset } = useDashboardData();
+  const stationNodeImpacts = useMemo(() => [
+    ...activeStationNodeImpacts,
+    ...plannedAdvisoryStationImpacts(plannedClosures, activeAlerts, delays, selection),
+  ], [activeStationNodeImpacts, plannedClosures, activeAlerts, delays, selection]);
   const [svgParts, setSvgParts] = useState<TtcMapMarkupParts | null>(() => (
     ttcMapMarkupCache.get(mapAsset.src) ?? null
   ));
@@ -1325,10 +1329,10 @@ function InteractiveTtcMapComponent({
   }, [stations]);
 
   const linkedPlannedClosureIds = useMemo(() => new Set(
-    activeAlerts
+    [...activeAlerts, ...delays]
       .map((alert) => alert.relatedPlannedClosureId)
       .filter((id): id is string => Boolean(id)),
-  ), [activeAlerts]);
+  ), [activeAlerts, delays]);
   const currentPlannedClosureIds = useMemo(() => new Set([
     ...linkedPlannedClosureIds,
     ...plannedClosures
@@ -1347,8 +1351,8 @@ function InteractiveTtcMapComponent({
     [currentPlannedClosureIds, plannedClosures, selection],
   );
   const activeClosureImpactCardIds = useMemo(
-    () => buildActiveClosureImpactCardIds(activeAlerts, plannedClosures),
-    [activeAlerts, plannedClosures],
+    () => buildActiveClosureImpactCardIds(activeAlerts, plannedClosures, delays),
+    [activeAlerts, plannedClosures, delays],
   );
 
   const plannedPreviewSegmentIds = useMemo(() => {
@@ -1381,7 +1385,7 @@ function InteractiveTtcMapComponent({
         return {
           ...segment,
           impacts: segment.impacts?.map((impact) =>
-            normalizeActiveClosureMapImpact(impact, activeClosureImpactCardIds)
+            normalizeActiveClosureMapImpact(impact, activeClosureImpactCardIds, plannedClosures)
           ),
           pathD: resolveNetworkSegmentPath(segment, mapStations, anchorPoints, guidePaths),
           patternOriginX: originX,
@@ -1390,7 +1394,7 @@ function InteractiveTtcMapComponent({
         } as RenderedNetworkSegment;
       })
       .filter((segment): segment is RenderedNetworkSegment => Boolean(segment.pathD));
-  }, [networkSegments, mapStations, anchorPoints, guidePaths, activeClosureImpactCardIds]);
+  }, [networkSegments, mapStations, anchorPoints, guidePaths, activeClosureImpactCardIds, plannedClosures]);
 
   const renderedOverlaySegments = useMemo(() => {
     return renderedNetworkSegments.filter((segment) => {
@@ -2691,6 +2695,8 @@ function InteractiveTtcMapComponent({
                   const isLarge = isStationVisuallyLarge(station);
                   const effectRadius = stationImpactEffectRadius(isLarge);
                   const impactRingRadius = stationImpactRingRadius(isLarge);
+                  const effectColor = impact.kind === "delay" ? "#f59e0b"
+                    : impact.kind === "planned-closure" ? "var(--planned-preview-ink)" : undefined;
                   const impactDirection = stationImpactDirectionForImpact(impact, directionData);
                   const directionLabel = impactDirection?.displayDirection
                     ? ` (${impactDirection.displayDirection})`
@@ -2707,6 +2713,7 @@ function InteractiveTtcMapComponent({
                           <circle
                             aria-label={`${impact.title}: ${station.name}${directionLabel}`}
                             className={`station-impact-ring ${impact.kind} ${selected ? "selected" : ""}`}
+                            style={effectColor ? { stroke: effectColor, filter: `drop-shadow(0 0 6px ${effectColor})`, "--station-impact-glow": effectColor } as CSSProperties : undefined}
                             cx={point.x}
                             cy={point.y}
                             r={impactRingRadius}
@@ -2771,6 +2778,7 @@ function InteractiveTtcMapComponent({
                           />
                           <circle
                             className="station-impact-dot-red-glow"
+                            style={effectColor ? { fill: effectColor, filter: `drop-shadow(0 0 6px ${effectColor})`, "--station-impact-glow": effectColor } as CSSProperties : undefined}
                             cx={point.x}
                             cy={point.y}
                             r={effectRadius}
@@ -2778,6 +2786,7 @@ function InteractiveTtcMapComponent({
                           />
                           <circle
                             className="station-impact-dot-red-ping"
+                            style={effectColor ? { fill: effectColor, stroke: effectColor } : undefined}
                             cx={point.x}
                             cy={point.y}
                             r={effectRadius}
@@ -3605,10 +3614,10 @@ function overlapChooserTypeLabel(
   kind: MapImpactKind,
   details: ReturnType<typeof getSelectedImpactDetails>,
 ): string {
-  if (kind === "suspension") return details?.categoryLabel ?? "Active Alert";
+  if (kind === "suspension") return details?.categoryLabel ?? "Suspension";
   if (kind !== "planned-closure") return labelForImpactKind(kind);
-  if (details?.categoryLabel === "Upcoming Closure") return "Planned Closure";
-  return details?.categoryLabel ?? "Planned Closure";
+  if (details?.categoryLabel === "Upcoming Closure") return "Planned Advisory";
+  return details?.categoryLabel ?? "Planned Advisory";
 }
 
 function impactLayerKey(impact: MapImpact) {
@@ -4608,7 +4617,7 @@ function OverlayInteractionTarget({
   };
   const ariaLabel = impact
     ? `${impact.kind}: ${segment.label}`
-    : `${plannedClosure?.title ?? "Planned closure"}: ${segment.label}`;
+    : `${plannedClosure?.title ?? "Planned advisory"}: ${segment.label}`;
   const selectCurrentImpact = () => {
     if (impact) {
       onSelectImpact({ kind: impact.kind, id: impact.cardId });
@@ -4777,7 +4786,7 @@ function OverlaySegment({
 
   const ariaLabel = impact
     ? `${impact.kind}: ${segment.label}`
-    : `${plannedClosure?.title ?? "Planned closure"}: ${segment.label}`;
+    : `${plannedClosure?.title ?? "Planned advisory"}: ${segment.label}`;
   const selectedClass = isSelectedImpact ? "selected" : "";
   const connectedClass =
     isMultiSegment || (isSelectedImpact && selectedSegmentIds.length > 1)

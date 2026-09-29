@@ -21,10 +21,10 @@ test("Current Service appears in desktop sidebar with live pill, categories, rai
 
   // Category capsules
   const catGrid = sidebar.locator(".desktop-status-categories-grid");
-  await expect(catGrid.getByRole("button", { name: /Active Alert/i })).toBeVisible();
+  await expect(catGrid.getByRole("button", { name: /Suspension/i })).toBeVisible();
   await expect(catGrid.getByRole("button", { name: /Delay/i })).toBeVisible();
   await expect(catGrid.getByRole("button", { name: /Reduced Speed Zone/i })).toBeVisible();
-  await expect(catGrid.getByRole("button", { name: /Planned Closure/i })).toBeVisible();
+  await expect(catGrid.getByRole("button", { name: /Planned Advisor(?:y|ies)/i })).toBeVisible();
 
   // Rail incident section
   const railSection = sidebar.locator(".desktop-status-rail-section");
@@ -83,10 +83,10 @@ test("desktop Current Service badges open their matching impact panels", async (
   await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
 
   const sidebar = page.locator("#desktop-sidebar-container");
-  const plannedClosureBadge = sidebar.locator(".desktop-status-badge-incident-button").filter({ hasText: "Planned Closure" });
+  const plannedClosureBadge = sidebar.locator(".desktop-status-badge-incident-button").filter({ hasText: "Planned Advisory" });
   await expect(plannedClosureBadge).toBeVisible();
   await plannedClosureBadge.click();
-  await expect(page.getByRole("heading", { name: "Planned Closures", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Planned Advisories", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Back", exact: true }).click();
   const reducedSpeedZoneBadge = sidebar.locator(".desktop-status-badge-incident-button").filter({ hasText: "Reduced Speed Zone" }).first();

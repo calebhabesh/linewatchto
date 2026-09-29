@@ -86,7 +86,7 @@ public class PushNotificationPreferenceService {
                 throw new AccountException(
                     HttpStatus.BAD_REQUEST,
                     "invalid_planned_closure_follow_up",
-                    "Planned closure follow-up must be smart, within-24-hours, day-of, or announcements-only."
+                    "Planned advisory follow-up must be smart, within-24-hours, day-of, or announcements-only."
                 );
             }
         }

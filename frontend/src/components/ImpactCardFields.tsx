@@ -53,10 +53,10 @@ export function RelatedPlannedClosureButton({ onClick }: { onClick: () => void }
       type="button"
       className="related-planned-closure-button"
       onClick={onClick}
-      aria-label="View related planned closure details"
+      aria-label="View related planned advisory details"
     >
       <PlannedClosureIcon size={14} aria-hidden="true" />
-      <span>View Planned Closure</span>
+      <span>View Planned Advisory</span>
     </button>
   );
 }
@@ -285,7 +285,7 @@ export function MetadataGrid({
 
   const rows = [
     ...renderedLeadingRows,
-    causeValue ? ["Cause", causeValue, null] as const : null,
+    causeValue ? ["Source cause", causeValue, null] as const : null,
     resolutionValue ? ["Est. Resolution", resolutionValue, null] as const : null,
     ...renderedExtraRows,
     ["Started", startedValue ?? <ImpactTimestamp key="started" timestamp={startedAt} />, null] as const,
@@ -333,7 +333,7 @@ export function MetadataGrid({
             className={[
               index < renderedLeadingRows.length ? "is-emphasized" + (isWindowField ? " is-window-row" : "") : "",
               isClosureSchedule && !isWindowField ? "is-closure-schedule-row" : "",
-              label === "Planned Closure" ? "is-planned-closure-row" : "",
+              label === "Planned Advisory" ? "is-planned-closure-row" : "",
               label === "Status" ? "is-status-row" : "",
               (label === "Started" && startedValue) || (label === "Updated" && updatedValue)
                 ? "has-directional-timing"

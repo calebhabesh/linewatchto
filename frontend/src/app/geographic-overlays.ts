@@ -630,6 +630,7 @@ export function projectImpactedLinks(
   options?: {
     plannedClosures?: PlannedClosure[];
     activeAlerts?: ActiveAlert[];
+    delays?: import("./linewatch-data.ts").DelayAlert[];
     selection?: ImpactSelection;
   },
 ): FeatureCollection<ProjectedImpactLinkFeature> {
@@ -640,6 +641,7 @@ export function projectImpactedLinks(
     options?.plannedClosures ?? [],
     options?.activeAlerts ?? [],
     options?.selection,
+    options?.delays ?? [],
   );
 
   // Normalize segments and attach planned-closure preview impacts
@@ -647,7 +649,7 @@ export function projectImpactedLinks(
     const impacts: MapImpact[] = [];
     if (seg.impacts && seg.impacts.length > 0) {
       for (const raw of seg.impacts) {
-        const norm = normalizeActiveClosureMapImpact(raw, activeClosureImpactCardIds);
+        const norm = normalizeActiveClosureMapImpact(raw, activeClosureImpactCardIds, options?.plannedClosures ?? []);
         const activeAlert = options?.activeAlerts?.find(
           (a) => a.id === norm.cardId || norm.sourceAlertIds?.includes(a.id),
         );

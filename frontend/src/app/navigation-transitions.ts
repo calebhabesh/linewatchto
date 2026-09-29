@@ -1,3 +1,4 @@
+import { ALERT_CATEGORIES } from "./alert-categories.ts";
 /**
  * Pure navigation state transitions and deep-link resolution for LineWatchTO.
  *
@@ -141,9 +142,9 @@ export const SEARCH_RETURN_LABELS: Record<string, string> = {
   "my-stations": "My Stations",
   commutes: "My Commutes",
   "source-status": "Source Status",
-  alerts: "Active Alerts",
+  alerts: ALERT_CATEGORIES.suspension.label,
   delays: "Delays",
-  closures: "Planned Closures",
+  closures: ALERT_CATEGORIES["planned-closure"].label,
   "reduced-speed-zones": "Reduced Speed Zones",
   "alert-history": "Alert History",
   "line-impacts": "Line Impacts",

@@ -167,6 +167,11 @@ public class TtcSubwayClosureParser {
         if (reducedSpeed) {
             return new AdvisoryClassification(false, "SIGNIFICANT_DELAYS", "Reduced Speed Zone", null, null);
         }
+        if (TtcLimitedService.hasWording(text)) {
+            return TtcLimitedService.isAffirmative(text)
+                ? new AdvisoryClassification(true, "LIMITED_SERVICE", "Limited service", "MAINTENANCE", "Planned Track Work")
+                : new AdvisoryClassification(false, null, null, null, null);
+        }
         if (closure) {
             return new AdvisoryClassification(
                 planned,

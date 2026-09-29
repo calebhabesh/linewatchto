@@ -178,7 +178,7 @@ test.describe("Visual Regression Baselines", () => {
     });
 
     await page.locator(".desktop-status-cat-btn--alerts").click();
-    await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Suspensions" })).toBeVisible();
     await expect(page).toHaveScreenshot("high-contrast-panel-state.png");
   });
 
@@ -193,7 +193,7 @@ test.describe("Visual Regression Baselines", () => {
     });
 
     await page.locator(".desktop-status-cat-btn--alerts").click();
-    await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Suspensions" })).toBeVisible();
     await expect(page).toHaveScreenshot("current-status-alerts-panel.png");
   });
 

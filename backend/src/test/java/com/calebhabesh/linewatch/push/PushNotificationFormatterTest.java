@@ -77,13 +77,13 @@ class PushNotificationFormatterTest {
         ));
 
         assertThat(result.body()).isEqualTo("""
-            Planned closure between Keele and Union stations.
-            Closure dates: Sat, Jun 6 – Sun, Jun 7.
-            Closure hours: 11:59 PM – 5:00 AM.
+            Planned advisory between Keele and Union stations.
+            Advisory dates: Sat, Jun 6 – Sun, Jun 7.
+            Advisory hours: 11:59 PM – 5:00 AM.
             Shuttle buses are running.
             Starts today.
             Affects Evening Route (Return).
-            🕗 Closure starts Jun 7, 12:00 AM""");
+            🕗 Advisory starts Jun 7, 12:00 AM""");
     }
 
     @Test

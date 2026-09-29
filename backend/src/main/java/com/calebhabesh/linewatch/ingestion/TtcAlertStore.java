@@ -427,7 +427,7 @@ public class TtcAlertStore {
 
     private void replaceAlertPeriods(NormalizedRouteAlert alert, OffsetDateTime now) {
         List<NormalizedAlertPeriod> existingPeriods = findAlertPeriods(alert.id());
-        boolean preserveStartedWindows = alert.impactKind() == AlertImpactKind.PLANNED_CLOSURE
+        boolean preserveStartedWindows = "planned-closure".equals(alert.type())
             && (hasChildPeriods(alert.periods()) || hasChildPeriods(existingPeriods));
         List<NormalizedAlertPeriod> periods = reconcilePlannedClosurePeriods(
             existingPeriods,

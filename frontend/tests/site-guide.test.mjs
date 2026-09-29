@@ -199,7 +199,7 @@ describe("site guide dropdown", () => {
     assert.doesNotMatch(guideSource, /both ways shows a red-and-white striped lane/);
     assert.match(guideSource, /"Delay"/);
     assert.match(guideSource, /Reduced Speed Zone/);
-    assert.match(guideSource, /Planned Closure Preview/);
+    assert.match(guideSource, /Planned Advisory Preview/);
     assert.match(guideSource, /Both ways stays static/);
     assert.match(guideSource, /explicitly one-way closure uses slowly moving calendars followed by evenly spaced chevrons/);
     assert.match(guideSource, /info-one-way-closure\.svg" label="One Way"/);
