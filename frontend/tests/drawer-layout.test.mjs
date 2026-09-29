@@ -263,8 +263,7 @@ describe("floating menu layout", () => {
     assert.doesNotMatch(plannedClosuresSource, /label: "Status"/);
     assert.match(plannedClosuresSource, /kind: currentKind, id: currentImpact\.id/);
     assert.match(plannedClosuresSource, /<span>Active Now<\/span>/);
-    assert.match(plannedClosuresSource, /Currently Inactive/);
-    assert.match(plannedClosuresSource, /Upcoming/);
+    assert.match(plannedClosuresSource, /<PlannedAdvisoryStatus closure=\{closure\}/);
     assert.match(globalCss, /\.planned-closure-status-button/);
     assert.match(globalCss, /\.planned-closure-status-button\s*\{[^}]*background:\s*rgba\(220, 38, 38, 0\.08\);[^}]*border:\s*1px solid rgba\(220, 38, 38, 0\.18\);[^}]*color:\s*#dc2626/s);
     assert.match(globalCss, /\.dark \.planned-closure-status-button\s*\{[^}]*background:\s*rgba\(239, 68, 68, 0\.16\);[^}]*color:\s*#f87171/s);

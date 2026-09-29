@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { installDismissedTransientUi, setStubMode } from "./test-support";
+import { installDismissedTransientUi, setStubMode, stubUrl } from "./test-support";
 
 test.use({ serviceWorkers: "block" });
 
@@ -21,7 +21,7 @@ for (const theme of ["light", "dark"] as const) {
         const segment = payload.map.segments.find((item: { id: string }) => item.id === "stub-line-1-eglinton-davisville")
           ?? payload.map.segments.find((item: { lineId: string }) => item.lineId === "line-1");
         const details = {
-          id: "limited-child", lineId: "line-1", lineNumber: "1", title: "Limited service", location: "Eglinton to Davisville",
+          id: "limited-child", lineId: "line-1", lineNumber: "1", title: "Limited service between Eglinton and Davisville due to planned track work", location: "Eglinton to Davisville",
           description: "Synthetic fixture: there is limited subway service due to planned track work.",
           displayDirection: "Both directions", source: "Synthetic test fixture", cause: "Closure - Planned Track Work",
           serviceEffect: "limited-service", relatedPlannedClosureId: "limited-parent", affectedSegmentIds: [segment.id],
@@ -59,6 +59,9 @@ for (const theme of ["light", "dark"] as const) {
       await expect(current).toHaveClass(/delay-card-border/);
       await expect(current).toContainText("Limited service");
       await expect(current).toContainText("Source cause");
+      await expect(current.locator(".impact-card-title")).toHaveText("Limited service between Eglinton and Davisville due to planned track work");
+      await expect(current.locator(".impact-overlap-refs")).toHaveCount(0);
+      await expect(current.locator(".impact-card-badges").getByRole("button", { name: "View related planned advisory details" })).toBeVisible();
       await current.getByRole("button", { name: "View related planned advisory details" }).click();
       await expect(page.getByRole("heading", { name: "Planned Advisories", exact: true })).toBeVisible();
       if (isMobile) {
@@ -71,6 +74,8 @@ for (const theme of ["light", "dark"] as const) {
       await expect(planned).toContainText("Planned limited service");
       await expect(planned).toContainText("Advisory dates");
       await expect(planned).toContainText("Advisory hours");
+      await expect(planned.locator(".impact-overlap-refs")).toHaveCount(0);
+      await expect(planned.getByRole("button", { name: "View current impact" })).toHaveClass(/is-delay/);
       await expect(planned.getByRole("button", { name: "View current impact" })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: `/tmp/linewatch-limited-planned-${theme}-${mapView}-${isMobile ? "mobile" : "desktop"}.png` });
@@ -129,4 +134,60 @@ test("station-only limited service keeps orange current and blue local planned m
   await expect(page.locator(".station-impact-ring.planned-closure")).toHaveCount(1);
   await expect(page.locator(".station-impact-ring.planned-closure")).toHaveCSS("stroke", "rgb(8, 127, 255)");
   await page.screenshot({ path: `/tmp/linewatch-limited-station-${isMobile ? "mobile" : "desktop"}.png` });
+});
+
+test("nightly advisory keeps full dates and the next occurrence between active windows", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await installDismissedTransientUi(page, "2026-09-29T16:00:00Z");
+  await page.setViewportSize({ width: isMobile ? 360 : 1440, height: 900 });
+  await page.addInitScript(() => localStorage.setItem("linewatch-impact-list-view-v1", "cards"));
+  await page.route("**/api/dashboard?network=ttc", async route => {
+    const response = await route.fetch();
+    const payload = await response.json();
+    const segment = payload.map.segments.find((item: { lineId: string }) => item.lineId === "line-1");
+    payload.activeAlerts = [];
+    payload.delays = [];
+    payload.reducedSpeedZones = [];
+    payload.plannedClosures = [{
+      id: "between-nights", lineId: "line-1", lineNumber: "1", title: "Limited nightly service",
+      description: "Synthetic nightly limited-service fixture.", location: "Eglinton to Davisville", source: "Synthetic test fixture",
+      previewSegmentIds: [segment.id], activeNow: false, timingStatus: "upcoming", nightly: true, serviceEffect: "limited-service",
+      windowDates: "Mon, Sep 28 – Thu, Oct 1", windowHours: "11 PM – 2 AM", window: "Mon, Sep 28 – Thu, Oct 1",
+      nextWindowStart: "2026-09-30T03:00:00Z", nextWindowEnd: "2026-09-30T06:00:00Z",
+      nextWindowLabel: "Tue, Sep 29 · 11 PM – Wed, Sep 30 2 AM",
+    }];
+    payload.map.segments = payload.map.segments.map((item: Record<string, unknown>) => ({ ...item, impacts: [], overlay: "clear", alertId: null }));
+    payload.map.stationNodeImpacts = [];
+    payload.status.lines = payload.status.lines.map((line: Record<string, unknown>) => ({ ...line, status: "normal", statusLabel: "Normal Service" }));
+    await route.fulfill({ response, json: payload });
+  });
+  await page.goto("/");
+  if (isMobile) {
+    await page.getByRole("button", { name: "Status", exact: true }).click();
+    await page.locator(".mobile-status-actions").getByRole("button", { name: /Planned Advisories/ }).click();
+  } else {
+    await page.getByRole("navigation", { name: "Desktop primary navigation" }).getByRole("button", { name: /^Planned Advisories/ }).click();
+  }
+  const card = page.locator('[data-impact-card-id="between-nights"]');
+  await expect(card).toContainText("Next Tonight");
+  await expect(card).toContainText("Mon, Sep 28 – Thu, Oct 1");
+  await expect(card).toContainText("Wed, Sep 30");
+  await expect(card.getByRole("button", { name: "View current impact" })).toHaveCount(0);
+  await expect(card.locator(".impact-overlap-refs")).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("regional delay cards retain their descriptive source headline", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "regional-live");
+  await installDismissedTransientUi(page);
+  await page.setViewportSize({ width: isMobile ? 360 : 1440, height: 900 });
+  await page.addInitScript(() => localStorage.setItem("linewatch-impact-list-view-v1", "cards"));
+  const payload = await (await request.get(`${stubUrl}/api/dashboard?network=regional`)).json();
+  const delay = payload.delays.find((item: { id: string }) => item.id === "regional-demo-delay");
+  expect(delay).toBeTruthy();
+  await page.goto("/?network=regional&panel=delays");
+  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", "regional");
+  const card = page.locator('[data-impact-card-id="regional-demo-delay"]');
+  await expect(card.locator(".impact-card-title")).toHaveText(delay.title);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

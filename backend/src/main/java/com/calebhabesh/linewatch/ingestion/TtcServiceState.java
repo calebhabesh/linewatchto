@@ -9,6 +9,9 @@ public final class TtcServiceState {
         "(?:^|[-–—:])\\s*ended early\\s*(?:[-–—:]|$)",
         Pattern.CASE_INSENSITIVE
     );
+    private static final Pattern REGULAR_SERVICE_RESTORED = Pattern.compile(
+        "\\bregular service\\s+(?:has (?:resumed|returned)|(?:is|has been) (?:restored|resumed)|is (?:operating|running)|resumed|restored)\\b"
+    );
 
     private TtcServiceState() {}
 
@@ -47,7 +50,9 @@ public final class TtcServiceState {
         ).toLowerCase(Locale.ROOT);
         return text.contains("service has resumed")
             || text.contains("service is restored")
-            || text.contains("regular service")
+            || "regular service".equalsIgnoreCase(nullToEmpty(title).trim())
+            || "regular service".equalsIgnoreCase(nullToEmpty(effectDescription).trim())
+            || REGULAR_SERVICE_RESTORED.matcher(text).find()
             || text.contains("delays have cleared")
             || text.contains("delays are cleared")
             || text.contains("delays cleared")

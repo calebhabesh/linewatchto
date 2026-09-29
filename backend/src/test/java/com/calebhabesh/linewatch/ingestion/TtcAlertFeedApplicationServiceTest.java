@@ -468,7 +468,29 @@ class TtcAlertFeedApplicationServiceTest {
         );
     }
 
+    @Test
+    void prefersFeedLimitedServiceAndDeactivatesTheMatchingWebsiteSingleTrackAdvisory() {
+        TtcFetchedRecord liveFetched = fetchedRoute("live-limited");
+        TtcFetchedRecord websiteFetched = fetchedRoute("website-single-track");
+        NormalizedRouteAlert live = plannedClosure("live-limited", "Planned", AlertImpactKind.LIMITED_SERVICE);
+        NormalizedRouteAlert website = plannedClosure("website-single-track", TtcSubwayClosureParser.SOURCE_ALERT_TYPE, AlertImpactKind.LIMITED_SERVICE);
+        when(store.upsertSource("routes", liveFetched, NOW)).thenReturn("routes:live-limited");
+        when(store.upsertSource("subway-closures", websiteFetched, NOW)).thenReturn("subway-closures:website-single-track");
+        when(normalizer.normalizeRoute(liveFetched)).thenReturn(NormalizationResult.matched(live));
+        when(normalizer.normalizeRoute(websiteFetched)).thenReturn(NormalizationResult.matched(website));
+        service.apply(new TtcAlertFeed(feed.lastUpdated(), List.of(liveFetched), List.of()), new TtcSubwayClosureSnapshot(true, List.of(websiteFetched)));
+        verify(store).upsertRouteAlert(live, NOW);
+        verify(store, never()).upsertRouteAlert(website, NOW);
+        verify(store).deactivateMissingWebsiteAdvisories(Set.of(), NOW);
+        // A real closure on the same corridor still remains an independent impact.
+        assertThat(TtcAlertFeedApplicationService.sameAdvisory(live, plannedClosure("real-closure", "Planned"), NOW)).isFalse();
+    }
+
     private NormalizedRouteAlert plannedClosure(String sourceId, String sourceType) {
+        return plannedClosure(sourceId, sourceType, AlertImpactKind.PLANNED_CLOSURE);
+    }
+
+    private NormalizedRouteAlert plannedClosure(String sourceId, String sourceType, AlertImpactKind kind) {
         OffsetDateTime startsAt = OffsetDateTime.parse("2026-08-31T23:59:00-04:00");
         OffsetDateTime endsAt = OffsetDateTime.parse("2026-09-01T06:00:00-04:00");
         return new NormalizedRouteAlert(
@@ -480,13 +502,13 @@ class TtcAlertFeedApplicationServiceTest {
             "Line 2 closure",
             "Planned track work",
             sourceType,
-            "NO_SERVICE",
-            "Subway closure",
+            kind == AlertImpactKind.LIMITED_SERVICE ? "LIMITED_SERVICE" : "NO_SERVICE",
+            kind == AlertImpactKind.LIMITED_SERVICE ? "Limited service" : "Subway closure",
             AlertDirection.BIDIRECTIONAL,
             "MAINTENANCE",
             "Closure - Planned Track Work",
             null,
-            AlertImpactKind.PLANNED_CLOSURE,
+            kind,
             null,
             null,
             null,

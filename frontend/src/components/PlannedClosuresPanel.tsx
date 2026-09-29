@@ -13,6 +13,7 @@ import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlap
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
+import { PlannedAdvisoryStatus } from "./PlannedAdvisoryStatus";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { dashboardImpactSourcesLabel } from "../app/dashboard-source-label";
 import { CompactImpactListItem, CompactImpactTimeValue } from "./CompactImpactListItem";
@@ -183,7 +184,7 @@ export function PlannedClosuresPanel({
                     },
                     { column: 3, label: "Updated", value: <CompactImpactTimeValue timestamp={closure.updatedAt} fallback={closure.updatedAgo} /> },
                   ]}
-                  status={[closure.activeNow && "Active now", closure.nightly && "Nightly", closure.shuttle && "Shuttle"].filter(Boolean).join(" · ") || null}
+                  status={<><span>{currentImpact ? "Active now" : <PlannedAdvisoryStatus closure={closure} />}</span>{closure.nightly ? " · Nightly" : ""}{closure.shuttle ? " · Shuttle" : ""}</>}
                   active={isActive}
                   toneClassName="planned-closure-card-border"
                   onShowOnMap={isActive && onReturnToMap ? onReturnToMap : () => handleClosureClick(closure.id)}
@@ -229,7 +230,7 @@ export function PlannedClosuresPanel({
                         </button>
                       ) : (
                         <span className={`planned-closure-status-inactive ${closure.activeNow ? "is-inactive" : "is-upcoming"}`}>
-                          {closure.activeNow ? "Currently Inactive" : "Upcoming"}
+                          <PlannedAdvisoryStatus closure={closure} />
                         </span>
                       )}
                       {(showImpactTypeIndicator || closure.serviceEffect === "limited-service") ? (

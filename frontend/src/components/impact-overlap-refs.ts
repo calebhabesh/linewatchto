@@ -166,10 +166,11 @@ export function getOverlappingImpactRefs(
   const relatedPlannedClosureId = currentActiveAlert?.relatedPlannedClosureId
     ?? data.delays.find(delay => delay.id === currentImpact.id)?.relatedPlannedClosureId;
   const activePlannedClosureIds = new Set(
-    data.activeAlerts
+    [...data.activeAlerts
       .filter((alert) => alert.severity === "planned")
       .flatMap((alert) => [alert.id, alert.relatedPlannedClosureId])
       .filter((id): id is string => Boolean(id)),
+    ...data.delays.flatMap(delay => delay.relatedPlannedClosureId ? [delay.relatedPlannedClosureId] : [])],
   );
 
   const addRef = (ref: OverlappingImpactRef, segmentIds: string[]) => {
@@ -224,6 +225,7 @@ export function getOverlappingImpactRefs(
   }
 
   for (const delay of data.delays) {
+    if (delay.relatedPlannedClosureId === currentImpact.id) continue;
     addRef(
       {
         key: `delay-${delay.id}`,

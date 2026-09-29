@@ -9,6 +9,7 @@ import { searchDashboardImpacts, matchImpactCategories } from "../src/app/alert-
 import { normalizeActiveClosureMapImpact, getEligiblePlannedClosures, plannedAdvisoryStationImpacts } from "../src/app/map-alert-selector.ts";
 import { normalizeEventTypeKey, formatAlertTypeName, isSameEventType, buildAlertHistoryTypeOptions } from "../src/components/alert-history-filters.ts";
 import { getOverlappingImpactRefs } from "../src/components/impact-overlap-refs.ts";
+import { plannedAdvisoryStatus } from "../src/app/planned-advisory-status.ts";
 
 const parent = {
   id: "parent", lineId: "line-1", lineNumber: "1", title: "Limited nightly service",
@@ -61,6 +62,23 @@ test("search preserves old category aliases while using new buckets and specific
 test("linked planned parent is not a second overlapping current impact", () => {
   const refs = getOverlappingImpactRefs({ kind: "delay", id: "child", segmentIds: ["span"] }, data);
   assert.ok(!refs.some(ref => ref.selection.id === "parent"));
+});
+
+test("planned advisory excludes its linked delay while preserving independent overlapping incidents", () => {
+  const otherDelay = { ...child, id: "independent", relatedPlannedClosureId: undefined };
+  const refs = getOverlappingImpactRefs({ kind: "planned-closure", id: "parent", segmentIds: ["span"] }, { ...data, delays: [child, otherDelay] });
+  assert.deepEqual(refs.map(ref => ref.selection), [{ kind: "delay", id: "independent" }]);
+  const fromOther = getOverlappingImpactRefs({ kind: "delay", id: "independent", segmentIds: ["span"] }, { ...data, delays: [child, otherDelay] });
+  assert.deepEqual(fromOther.map(ref => ref.selection), [{ kind: "delay", id: "child" }]);
+});
+
+test("nightly advisory status uses Toronto dates and keeps incomplete schedules explicit", () => {
+  const nightly = { nightly: true, timingStatus: "upcoming", nextWindowStart: "2026-09-30T03:00:00Z" };
+  assert.equal(plannedAdvisoryStatus(nightly, Date.parse("2026-09-29T16:00:00Z")), "Next Tonight");
+  assert.equal(plannedAdvisoryStatus(nightly, Date.parse("2026-09-29T03:30:00Z")), "Next: Tue, Sep 29");
+  assert.equal(plannedAdvisoryStatus({ ...nightly, nightly: false }, Date.parse("2026-09-29T16:00:00Z")), "Next: Tue, Sep 29");
+  assert.equal(plannedAdvisoryStatus({ timingStatus: "unknown" }, null), "Schedule incomplete");
+  assert.equal(plannedAdvisoryStatus({ nextWindowStart: "invalid" }, null), "Schedule incomplete");
 });
 
 test("legacy and offline payloads retain source-honest compatibility", () => {

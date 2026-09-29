@@ -30,6 +30,30 @@ class TtcAlertNormalizerTest {
     private TtcAlertFeed feed;
     private TtcAlertNormalizer normalizer;
 
+    @Test
+    void websiteSingleTrackOperationNormalizesAsLimitedServiceDespitePossibleDelayWording() {
+        String html = """
+            <html><body>
+              <h1><span class="field-routename">Line 1</span><span class="field-satitle">Vaughan Metropolitan Centre to Finch West stations – Planned single-track operation, nightly starting at 11 p.m. from Monday, September 28 to Thursday, October 1, 2026</span></h1>
+              <div class="sa-effective-date"><span class="field-starteffectivedate">September 28, 2026</span><span>October 1, 2026</span></div>
+              <div class="component content"><div class="u-type--body">
+                <p>Subway service will operate on a single track nightly starting at 11 p.m. due to maintenance.</p>
+                <p>Customers may experience delays of up to 15 minutes.</p>
+                <p>Regular service will resume every morning at approximately 6 a.m.</p>
+              </div></div>
+            </body></html>
+            """;
+        TtcFetchedRecord parsed = new TtcSubwayClosureParser().parse("synthetic-single-track",
+            URI.create("https://www.ttc.ca/service-advisories/subway-service/example"), html);
+        NormalizedRouteAlert result = normalizer.normalizeRoute(parsed).projection().orElseThrow();
+        assertThat(result.impactKind()).isEqualTo(AlertImpactKind.LIMITED_SERVICE);
+        assertThat(result.type()).isEqualTo("planned-closure");
+        assertThat(result.periods()).hasSize(4);
+        assertThat(result.periods().getFirst().startsAt()).isEqualTo(OffsetDateTime.parse("2026-09-28T23:00:00-04:00"));
+        assertThat(result.periods().getLast().endsAt()).isEqualTo(OffsetDateTime.parse("2026-10-02T06:00:00-04:00"));
+        assertThat(TtcServiceState.isRestoration(result)).isFalse();
+    }
+
     @BeforeEach
     void setUp() throws Exception {
         when(stationRepository.existsById(anyString())).thenReturn(true);
@@ -115,6 +139,8 @@ class TtcAlertNormalizerTest {
         "There will not be limited subway service.|",
         "Limited subway service has ended.|",
         "Limited subway service may operate.|",
+        "There may be limited subway service.|",
+        "There could possibly be limited subway service.|",
         "There will be limited subway service tomorrow.|",
         "There is limited subway service.|NO_SERVICE",
         "There is limited subway service.|DETOUR",

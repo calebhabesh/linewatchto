@@ -10,6 +10,7 @@ import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/commute-data";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
+import { PlannedAdvisoryStatus } from "./PlannedAdvisoryStatus";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { relatedPlannedClosureId } from "../app/related-planned-closure";
 import { CardSource, ImpactRouteHeader, LineBadge, MetadataGrid, RelatedPlannedClosureButton, CommutePathPreviewCardBanner } from "./ImpactCardFields";
@@ -39,6 +40,7 @@ type SelectedImpactDetails = {
   shuttle?: boolean;
   nightly?: boolean;
   activeNow?: boolean;
+  statusAction?: ReactNode;
   window?: string;
   closureDateLabel?: string;
   startedAt?: string | null;
@@ -324,6 +326,9 @@ export function getSelectedImpactDetails(
       closure.activeNow && alert.id === closure.id
     ),
   );
+  const activeDelay = data.delays.find(delay => delay.relatedPlannedClosureId === closure.id || (closure.activeNow && delay.id === closure.id));
+  const currentImpact = activeDelay ?? activeAlert;
+  const currentKind = activeDelay ? "delay" : "suspension";
   const specificWindowLabel = closure.activeNow
     ? closure.activeWindowLabel
     : closure.nextWindowLabel;
@@ -377,27 +382,22 @@ export function getSelectedImpactDetails(
         value: hasScheduleDetails ? null : closure.window,
       },
     ],
-    trailingRows: [
-      {
-        label: "Status",
-        value: activeAlert && onSelectImpact ? (
+    statusAction: currentImpact && onSelectImpact ? (
           <button
             type="button"
-            className="planned-closure-status-button"
-            onClick={() => onSelectImpact({ kind: "suspension", id: activeAlert.id })}
-            aria-label="View suspension"
+            className={`planned-closure-status-button ${currentKind === "delay" ? "is-delay" : ""}`}
+            onClick={() => onSelectImpact({ kind: currentKind, id: currentImpact.id })}
+            aria-label="View current impact"
           >
-            <ImpactTypeIcon kind="suspension" size={13} />
+            <ImpactTypeIcon kind={currentKind} size={13} />
             <span>Active Now</span>
             <ArrowRight size={13} aria-hidden="true" />
           </button>
         ) : (
           <span className="planned-closure-status-inactive">
-            {closure.activeNow ? "Active Now" : "Currently Inactive"}
+            <PlannedAdvisoryStatus closure={closure} />
           </span>
         ),
-      },
-    ],
     segmentIds: closure.previewSegmentIds ?? [],
   };
 }
@@ -537,16 +537,21 @@ export function MobileImpactInspector({
       <div className="mobile-impact-inspector-scroll" key={selectedDetailKey}>
         <ImpactRouteHeader location={details.location} direction={details.displayDirection} />
 
-        {details.description ? (
-          <p className="mobile-impact-inspector-description">{details.description}</p>
-        ) : null}
-
         <div className="mobile-impact-inspector-badges">
+          {details.statusAction}
+          {details.relatedPlannedClosureId ? <RelatedPlannedClosureButton onClick={() => onSelectImpact({ kind: "planned-closure", id: details.relatedPlannedClosureId! })} /> : null}
           <CardSource source={details.source} />
           {details.nightly ? <span className="mobile-impact-inspector-badge nightly">Nightly</span> : null}
           {details.shuttle ? <span className="mobile-impact-inspector-badge shuttle">Shuttle</span> : null}
-          {details.activeNow ? <span className="mobile-impact-inspector-badge active-now">Active Now</span> : null}
+          {details.activeNow && !details.statusAction ? <span className="mobile-impact-inspector-badge active-now">Active Now</span> : null}
         </div>
+
+        {selection.kind === "delay" || details.description ? (
+          <div className="mobile-impact-inspector-description">
+            {selection.kind === "delay" ? <strong>{details.title}</strong> : null}
+            {details.description && (selection.kind !== "delay" || details.description !== details.title) ? <p>{details.description}</p> : null}
+          </div>
+        ) : null}
 
         <OverlappingImpactRefs
           overlaps={overlappingImpacts}
@@ -567,17 +572,7 @@ export function MobileImpactInspector({
             startedValue={details.startedValue}
             updatedValue={details.updatedValue}
             leadingRows={details.leadingRows}
-            extraRows={[
-              ...(details.relatedPlannedClosureId ? [{
-                label: "Planned Advisory",
-                value: (
-                  <RelatedPlannedClosureButton
-                    onClick={() => onSelectImpact({ kind: "planned-closure", id: details.relatedPlannedClosureId! })}
-                  />
-                ),
-              }] : []),
-              ...(details.extraRows ?? []),
-            ]}
+            extraRows={details.extraRows}
             trailingRows={details.trailingRows}
           />
         ) : null}

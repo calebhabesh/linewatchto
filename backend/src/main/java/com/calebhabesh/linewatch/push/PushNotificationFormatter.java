@@ -128,6 +128,29 @@ public class PushNotificationFormatter {
         );
     }
 
+    public FormattedPushNotification formatScheduledWindowEnded(
+        String notificationSubject,
+        String eventLocation,
+        String displayDirection,
+        String scopeLabel,
+        Instant endedAt
+    ) {
+        String subject = normalizeText(notificationSubject);
+        if (subject.isEmpty()) subject = "TTC Planned Advisory";
+        String location = normalizeDisplayText(eventLocation);
+        String direction = normalizeText(displayDirection);
+        String normalizedScope = emptyToNull(normalizeText(scopeLabel));
+        String window = subject.toLowerCase(Locale.ROOT).contains("limited service")
+            ? "Scheduled limited-service window" : "Scheduled advisory window";
+        List<String> bodyParts = new ArrayList<>();
+        bodyParts.add(window + " ended" + (location.isEmpty() ? "." : " at " + location + "."));
+        if (normalizedScope != null) bodyParts.add("No longer affects " + normalizedScope + ".");
+        bodyParts.add(clockLine(endedAt));
+        return new FormattedPushNotification(
+            "🕗 " + subject + " Window Ended", String.join("\n", bodyParts), subject,
+            location.isEmpty() ? null : location, direction.isEmpty() ? null : direction, normalizedScope, endedAt);
+    }
+
     public FormattedPushNotification withSourceEventAt(
         FormattedPushNotification notification,
         Instant sourceEventAt

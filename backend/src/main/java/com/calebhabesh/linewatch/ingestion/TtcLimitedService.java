@@ -12,7 +12,8 @@ public final class TtcLimitedService {
             + "|\\b(?:no (?:subway |lrt |train )?service|service (?:is |will be )?(?:suspended|closed))\\b"
             + "|\\blimited[^.!]*\\bno longer\\b"
             + "|\\b(?:will not|won't|not be)\\b[^.!]*\\blimited\\b"
-            + "|\\b(?:may|might|could)\\b");
+            + "|\\b(?:may|might|could)\\s+(?:(?:possibly|potentially|also|still|be|have|offer|provide|operate|experience|some)\\s+){0,3}limited\\b"
+            + "|\\blimited (?:nightly )?(?:(?:subway|lrt|train|rail) )?service\\s+(?:may|might|could)\\b");
     private static final Pattern CURRENT = Pattern.compile("\\bthere (?:is|are) limited (?:nightly )?(?:(?:subway|lrt|train|rail) )?service\\b");
     private static final Pattern FUTURE = Pattern.compile("\\b(?:will|starting|starts|scheduled|tomorrow)\\b");
 

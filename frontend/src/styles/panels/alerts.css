@@ -734,6 +734,10 @@
   outline-offset: 2px;
 }
 
+.planned-closure-status-button.is-delay:focus-visible {
+  outline-color: var(--badge-pill-text-delays);
+}
+
 .planned-closure-status-inactive {
   background: rgba(100, 116, 139, 0.08);
   border: 1px solid rgba(100, 116, 139, 0.2);

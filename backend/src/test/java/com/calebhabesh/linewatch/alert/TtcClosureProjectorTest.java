@@ -23,6 +23,46 @@ class TtcClosureProjectorTest {
     private final TtcClosureProjector projector = new TtcClosureProjector();
 
     @Test
+    void keepsPublishedNightlyDateRangeWhenOnlyRemainingOccurrencesAreInTheFeed() {
+        OffsetDateTime start = OffsetDateTime.parse("2026-09-29T23:00:00-04:00");
+        AlertEntity parent = withLine(alert("limited-parent", "planned-closure", "planned",
+            "Limited nightly service from Monday, September 28 to Thursday, October 1, 2026",
+            "There will be limited nightly service.", "vaughan", "finch-west", start.minusDays(4), null), "line-1", "1");
+        ReflectionTestUtils.setField(parent, "impactKind", "limited-service");
+        ReflectionTestUtils.setField(parent, "activePeriodEnd", start.plusDays(3));
+        Map<String, List<AlertPeriod>> periods = Map.of(parent.getId(), List.of(
+            new AlertPeriod(parent.getId(), "tue", start, start.plusHours(3), 0),
+            new AlertPeriod(parent.getId(), "wed", start.plusDays(1), start.plusDays(1).plusHours(3), 1),
+            new AlertPeriod(parent.getId(), "thu", start.plusDays(2), start.plusDays(2).plusHours(3), 2)));
+        ClosureProjection upcoming = projector.project(List.of(parent), periods, List.of(), start.minusHours(10)).getFirst();
+        assertThat(upcoming.canonicalClosure().windowDates()).isEqualTo("Mon, Sep 28 – Thu, Oct 1");
+        assertThat(upcoming.canonicalClosure().nextWindowStart()).isEqualTo(start);
+        assertThat(upcoming.canonicalClosure().nextWindowEnd()).isEqualTo(start.plusHours(3));
+        assertThat(upcoming.activeNow()).isFalse();
+        ClosureProjection active = projector.project(List.of(parent), periods, List.of(), start.plusHours(1)).getFirst();
+        assertThat(active.canonicalClosure().windowDates()).isEqualTo(upcoming.canonicalClosure().windowDates());
+        assertThat(active.canonicalClosure().activeWindowLabel()).contains("Tue, Sep 29").contains("Wed, Sep 30");
+        assertThat(active.activeNow()).isTrue();
+    }
+
+    @Test
+    void publishedDatesNeverCreateActiveWindowsForIncompleteNightlySchedules() {
+        OffsetDateTime start = OffsetDateTime.parse("2026-09-28T00:00:00-04:00");
+        AlertEntity parent = withLine(alert("incomplete", "planned-closure", "planned",
+            "Limited nightly service from Monday, September 28 to Thursday, October 1, 2026",
+            "There will be limited nightly service starting at 11 p.m.", "vaughan", "finch-west", start, null), "line-1", "1");
+        ReflectionTestUtils.setField(parent, "impactKind", "limited-service");
+        ReflectionTestUtils.setField(parent, "activePeriodStart", start);
+        ReflectionTestUtils.setField(parent, "activePeriodEnd", start.plusDays(4));
+        ClosureProjection result = projector.project(List.of(parent), Map.of(), List.of(), start.plusHours(23)).getFirst();
+        assertThat(result.activeNow()).isFalse();
+        assertThat(result.canonicalClosure().timingStatus()).isEqualTo("unknown");
+        assertThat(result.canonicalClosure().windowHours()).isNull();
+        assertThat(result.canonicalClosure().windowDates()).isEqualTo("Mon, Sep 28 – Thu, Oct 1");
+        assertThat(result.activeSegmentImpacts()).isEmpty();
+    }
+
+    @Test
     void limitedServiceKeepsNightlyWindowsAndExactLinkedChildEffect() {
         OffsetDateTime start = OffsetDateTime.parse("2026-09-29T03:00:00Z");
         OffsetDateTime end = OffsetDateTime.parse("2026-09-29T06:00:00Z");

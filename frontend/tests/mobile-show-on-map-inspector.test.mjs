@@ -46,7 +46,8 @@ describe("mobile Show on Map inspector", () => {
     assert.match(inspectorSource, /<h2 className="mobile-impact-inspector-title">/);
     assert.match(inspectorSource, /\{details\.icon\}/);
     assert.match(inspectorSource, /\{details\.categoryLabel\}/);
-    assert.doesNotMatch(inspectorSource, /\{details\.title\}/);
+    const heading = inspectorSource.match(/<h2 className="mobile-impact-inspector-title">[\s\S]*?<\/h2>/)?.[0] ?? "";
+    assert.doesNotMatch(heading, /\{details\.title\}/);
     assert.match(globalCss, /\.mobile-impact-inspector-title\s*\{[^}]*color:\s*var\(--text\)/s);
   });
 

@@ -10,6 +10,53 @@ class TtcSubwayClosureParserTest {
     private final TtcSubwayClosureParser parser = new TtcSubwayClosureParser();
 
     @Test
+    void explicitSingleTrackOperationIsLimitedServiceWithPublishedOvernightWindows() {
+        TtcAlertRecord record = parser.parse("synthetic-single-track", URI.create("https://www.ttc.ca/service-advisories/subway-service/example"),
+            page("Line 1 (Yonge-University)", "Vaughan to Finch West stations – Planned single-track operation, nightly starting at 11 p.m.",
+                "September 28, 2026", "October 1, 2026",
+                "Subway service between Vaughan and Finch West stations will operate on a single track nightly starting at 11 p.m. due to structural maintenance. Regular service will resume every morning at approximately 6 a.m.")
+        ).record();
+        assertThat(record.effect()).isEqualTo("LIMITED_SERVICE");
+        assertThat(record.childAlerts()).hasSize(4);
+        assertThat(record.childAlerts().getFirst().startTime()).isEqualTo(OffsetDateTime.parse("2026-09-28T23:00:00-04:00"));
+        assertThat(record.childAlerts().getLast().endTime()).isEqualTo(OffsetDateTime.parse("2026-10-02T06:00:00-04:00"));
+        assertThat(record.shuttleType()).isNull();
+    }
+
+    @Test
+    void readsUnclassedEffectiveEndDateWithoutCollapsingTheAdvisoryToOneDay() {
+        String html = page("Line 1", "Vaughan to Finch West stations – Limited nightly service",
+            "September 28, 2026", "October 1, 2026",
+            "There will be limited nightly subway service starting at 11 p.m. Regular service resumes each morning at 2 a.m.")
+            .replace("class=\"field-endeffectivedate\"", "class=\"effective-end\"");
+        TtcAlertRecord record = parser.parse("synthetic-date", URI.create("https://www.ttc.ca/service-advisories/subway-service/example"), html).record();
+        assertThat(record.childAlerts()).hasSize(4);
+        assertThat(record.activePeriod().end()).isEqualTo(OffsetDateTime.parse("2026-10-02T02:00:00-04:00"));
+    }
+
+    @Test
+    void incompleteNightlyScheduleDoesNotInventMidnightOccurrences() {
+        TtcAlertRecord record = parser.parse("synthetic-incomplete", URI.create("https://www.ttc.ca/service-advisories/subway-service/example"),
+            page("Line 1", "Vaughan to Finch West stations – Limited nightly service", "September 28, 2026", "October 1, 2026",
+                "There will be limited nightly subway service starting at 11 p.m. due to planned track work.")
+        ).record();
+        assertThat(record.childAlerts()).isEmpty();
+        assertThat(record.activePeriod().start()).isEqualTo(OffsetDateTime.parse("2026-09-28T00:00:00-04:00"));
+        assertThat(record.activePeriod().end()).isEqualTo(OffsetDateTime.parse("2026-10-02T00:00:00-04:00"));
+    }
+
+    @Test
+    void publishedTitleEndDateKeepsAllNightsWhenOnlyTheStartDateFieldIsPresent() {
+        String html = page("Line 1", "Vaughan to Finch West stations – Limited nightly service from Monday, September 28 to Thursday, October 1, 2026",
+            "September 28, 2026", "October 1, 2026",
+            "There will be limited nightly subway service starting at 11 p.m. Service resumes each morning at 2 a.m.")
+            .replace("<span class=\"field-endeffectivedate\">October 1, 2026</span>", "");
+        TtcAlertRecord record = parser.parse("synthetic-title-date", URI.create("https://www.ttc.ca/service-advisories/subway-service/example"), html).record();
+        assertThat(record.childAlerts()).hasSize(4);
+        assertThat(record.childAlerts().getLast().endTime()).isEqualTo(OffsetDateTime.parse("2026-10-02T02:00:00-04:00"));
+    }
+
+    @Test
     void limitedServiceAdvisoryPageDoesNotReintroduceNoServiceOrShuttles() {
         TtcAlertRecord record = parser.parse("synthetic-limited", URI.create("https://www.ttc.ca/service-advisories/subway-service/example"),
             page("Line 1 (Yonge-University)", "Vaughan to Finch West stations – Limited nightly service",

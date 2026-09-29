@@ -42,6 +42,15 @@ public class TtcSubwayClosureParser {
     private static final Pattern CLOCK_TIME = Pattern.compile(
         "(?i)\\b(1[0-2]|0?[1-9])(?::([0-5][0-9]))?\\s*([ap])\\.?m\\.?\\b"
     );
+    private static final Pattern EFFECTIVE_DATE = Pattern.compile(
+        "(?i)\\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\\s+\\d{1,2},\\s+\\d{4}\\b"
+    );
+    private static final Pattern TITLE_END_DATE = Pattern.compile(
+        "(?i)\\bto\\s+(?:(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\\s+)?(" + EFFECTIVE_DATE.pattern() + ")"
+    );
+    private static final Pattern SINGLE_TRACK_SERVICE = Pattern.compile(
+        "(?i)\\b(?:subway|lrt|train)\\s+service\\b[^.!]{0,180}\\b(?:will operate|operates|is operating)\\s+on\\s+a\\s+single\\s+track\\b"
+    );
 
     public TtcFetchedRecord parse(String sourceId, URI sourceUri, String html) {
         Document document = Jsoup.parse(html == null ? "" : html, sourceUri.toString());
@@ -67,6 +76,16 @@ public class TtcSubwayClosureParser {
         LocalDate endDate = parseDate(text(document.selectFirst(
             ".sa-effective-date .field-endeffectivedate"
         )));
+        // Some TTC pages render the second effective date without the field class.
+        if (endDate == null) {
+            Matcher titleEnd = TITLE_END_DATE.matcher(advisoryTitle);
+            if (titleEnd.find()) {
+                endDate = parseDate(titleEnd.group(1));
+            } else {
+                Matcher dates = EFFECTIVE_DATE.matcher(java.util.Objects.toString(text(document.selectFirst(".sa-effective-date")), ""));
+                while (dates.find()) endDate = parseDate(dates.group());
+            }
+        }
         if (endDate == null && startDate != null) {
             endDate = startDate;
         }
@@ -81,8 +100,8 @@ public class TtcSubwayClosureParser {
         List<TtcAlertChildPeriod> periods = startDate == null
             ? List.of()
             : periods(sourceId, startDate, endDate, combinedText);
-        OffsetDateTime startsAt = periods.isEmpty() ? null : periods.getFirst().startTime();
-        OffsetDateTime endsAt = periods.isEmpty() ? null : periods.getLast().endTime();
+        OffsetDateTime startsAt = periods.isEmpty() ? (startDate == null ? null : at(startDate, LocalTime.MIDNIGHT)) : periods.getFirst().startTime();
+        OffsetDateTime endsAt = periods.isEmpty() ? (endDate == null ? null : at(endDate.plusDays(1), LocalTime.MIDNIGHT)) : periods.getLast().endTime();
         // Keep the original prefix so already-ingested advisories retain their lifecycle identity.
         String stableId = "ttc-ca-closure-" + sourceId.toLowerCase(Locale.ROOT)
             .replaceAll("[^a-z0-9]+", "-")
@@ -172,6 +191,14 @@ public class TtcSubwayClosureParser {
                 ? new AdvisoryClassification(true, "LIMITED_SERVICE", "Limited service", "MAINTENANCE", "Planned Track Work")
                 : new AdvisoryClassification(false, null, null, null, null);
         }
+        // Explicit operation on one track establishes continued service. A generic
+        // mention of single tracking or maintenance does not establish the effect.
+        if (SINGLE_TRACK_SERVICE.matcher(text).find()
+            && !normalized.contains("no service")
+            && !normalized.contains("service is suspended")
+            && !normalized.contains("service will be suspended")) {
+            return new AdvisoryClassification(true, "LIMITED_SERVICE", "Limited service", "MAINTENANCE", "Planned Track Work");
+        }
         if (closure) {
             return new AdvisoryClassification(
                 planned,
@@ -215,8 +242,8 @@ public class TtcSubwayClosureParser {
         String text
     ) {
         String normalized = text.toLowerCase(Locale.ROOT);
-        LocalTime closureTime = timeAfter(text, "(?:starting|starts?|end(?:s|ed)? early)\\s+at");
-        LocalTime resumeTime = timeAfter(text, "resume(?:s)?(?: each morning)?\\s+at");
+        LocalTime closureTime = timeAfter(text, "(?:starting|starts?|end(?:s|ed)? early)(?:\\s+at)?");
+        LocalTime resumeTime = timeAfter(text, "resume(?:s)?(?: (?:each|every) morning)?\\s+at");
         boolean nightly = normalized.contains("nightly") || normalized.contains("each morning");
         if (nightly && closureTime != null && resumeTime != null) {
             List<TtcAlertChildPeriod> periods = new ArrayList<>();
@@ -232,6 +259,9 @@ public class TtcSubwayClosureParser {
             }
             return List.copyOf(periods);
         }
+        // Date envelopes are not occurrence windows. Keep incomplete nightly
+        // schedules as parent-only advisories instead of a midnight-to-midnight child.
+        if (nightly) return List.of();
 
         LocalTime lateOpening = timeAfter(
             text,

@@ -147,7 +147,10 @@ public class PushNotificationEventEntity {
         PushNotificationFormatter formatter,
         boolean deliveryAllowed
     ) {
-        FormattedPushNotification notification = formatter.formatCleared(
+        FormattedPushNotification notification = "planned-closure".equals(activeEvent.eventType)
+            ? formatter.formatScheduledWindowEnded(activeEvent.notificationSubject, activeEvent.eventLocation,
+                activeEvent.displayDirection, activeEvent.scopeLabel, clearedAt)
+            : formatter.formatCleared(
             activeEvent.notificationSubject,
             activeEvent.eventLocation,
             activeEvent.displayDirection,
@@ -198,7 +201,10 @@ public class PushNotificationEventEntity {
         Instant now,
         PushNotificationFormatter formatter
     ) {
-        FormattedPushNotification notification = formatter.formatCleared(
+        FormattedPushNotification notification = "planned-closure".equals(observation.getEventType())
+            ? formatter.formatScheduledWindowEnded(observation.getNotificationSubject(), observation.getEventLocation(),
+                observation.getDisplayDirection(), observation.getScopeLabel(), clearedAt)
+            : formatter.formatCleared(
             observation.getNotificationSubject(),
             observation.getEventLocation(),
             observation.getDisplayDirection(),

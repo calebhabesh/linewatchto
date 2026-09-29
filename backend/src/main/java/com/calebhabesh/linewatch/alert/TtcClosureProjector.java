@@ -64,6 +64,15 @@ public class TtcClosureProjector {
     private static final Pattern TRUNCATED_CLOSURE_START = Pattern.compile(
         "(?i)[,\\s]+starting(?:\\s+at)?\\s+\\d{1,2}\\s*$"
     );
+    private static final String MONTHS = "January|February|March|April|May|June|July|August|September|October|November|December";
+    private static final Pattern PUBLISHED_DATE_RANGE = Pattern.compile(
+        "(?i)\\b(" + MONTHS + ")\\s+(\\d{1,2})(?:,?\\s+(\\d{4}))?\\s+(?:to|[–—-])\\s+"
+            + "(?:(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\\s+)?"
+            + "(" + MONTHS + ")\\s+(\\d{1,2})(?:,?\\s+(\\d{4}))?\\b"
+    );
+    private static final DateTimeFormatter PUBLISHED_DATE = new java.time.format.DateTimeFormatterBuilder()
+        .parseCaseInsensitive().appendPattern("MMMM d uuuu").toFormatter(Locale.ENGLISH)
+        .withResolverStyle(java.time.format.ResolverStyle.STRICT);
 
     private final AlertSegmentMatcher segmentMatcher;
 
@@ -328,7 +337,7 @@ public class TtcClosureProjector {
             .toList();
         boolean nightly = isNightly(alert, reliablePeriods) || recurringParentWindow;
         String windowHours = closureWindowHours(reliablePeriods);
-        String windowDates = closureWindowDates(reliablePeriods, nightly, now);
+        String windowDates = closureWindowDates(alert, reliablePeriods, nightly, now);
 
         Optional<AlertPeriod> active = reliablePeriods.stream()
             .filter(period -> !isParentPeriod(period)
@@ -415,6 +424,7 @@ public class TtcClosureProjector {
     }
 
     private String closureWindowDates(
+        AlertEntity alert,
         List<AlertPeriod> periods,
         boolean nightly,
         OffsetDateTime now
@@ -426,6 +436,10 @@ public class TtcClosureProjector {
             .distinct()
             .sorted()
             .toList();
+        if (nightly) {
+            List<LocalDate> published = publishedNightlyDateRange(alert, startDates);
+            if (!published.isEmpty()) return summarizedDates(published, now);
+        }
         if (startDates.isEmpty()) {
             return null;
         }
@@ -445,6 +459,32 @@ public class TtcClosureProjector {
             return formattedClosureDate(firstDate, now);
         }
         return formattedClosureDate(firstDate, now) + " – " + formattedClosureDate(lastDate, now);
+    }
+
+    // Published date copy supplies display context only. It never creates an
+    // occurrence or changes an active/next window when past periods leave the feed.
+    private List<LocalDate> publishedNightlyDateRange(AlertEntity alert, List<LocalDate> occurrenceDates) {
+        OffsetDateTime anchor = alert.getActivePeriodEnd() == null ? alert.getActivePeriodStart() : alert.getActivePeriodEnd();
+        if (anchor == null && occurrenceDates.isEmpty()) return List.of();
+        int anchorYear = occurrenceDates.isEmpty() ? anchor.atZoneSameInstant(TORONTO_ZONE).getYear() : occurrenceDates.getLast().getYear();
+        java.util.regex.Matcher matcher = PUBLISHED_DATE_RANGE.matcher(
+            AlertDashboardService.nullToEmpty(alert.getTitle()) + " " + AlertDashboardService.nullToEmpty(alert.getDescription()));
+        while (matcher.find()) {
+            try {
+                int endYear = matcher.group(6) == null ? anchorYear : Integer.parseInt(matcher.group(6));
+                LocalDate end = LocalDate.parse(matcher.group(4) + " " + matcher.group(5) + " " + endYear, PUBLISHED_DATE);
+                int startYear = matcher.group(3) == null ? endYear : Integer.parseInt(matcher.group(3));
+                LocalDate start = LocalDate.parse(matcher.group(1) + " " + matcher.group(2) + " " + startYear, PUBLISHED_DATE);
+                if (matcher.group(3) == null && start.isAfter(end)) start = start.minusYears(1);
+                if (start.isAfter(end) || java.time.temporal.ChronoUnit.DAYS.between(start, end) > 366) continue;
+                LocalDate publishedStart = start;
+                if (occurrenceDates.stream().anyMatch(date -> date.isBefore(publishedStart) || date.isAfter(end))) continue;
+                return start.datesUntil(end.plusDays(1)).toList();
+            } catch (java.time.DateTimeException | NumberFormatException ignored) {
+                // Malformed publication copy leaves verified occurrence dates intact.
+            }
+        }
+        return List.of();
     }
 
     private String summarizedDates(List<LocalDate> dates, OffsetDateTime now) {

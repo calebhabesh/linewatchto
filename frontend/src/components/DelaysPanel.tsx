@@ -156,7 +156,7 @@ export function DelaysPanel({
                 <ImpactCardShell
                   lineId={delay.lineId}
                   lineNumber={delay.lineNumber}
-                  title={serviceEffectLabel(delay)}
+                  title={delay.title}
                   description={delay.description}
                   location={delay.location}
                   direction={delay.displayDirection}
@@ -165,12 +165,19 @@ export function DelaysPanel({
                   onMapAction={() => handleDelayClick(delay.id)}
                   onFocusMap={onFocusMap}
                   mapActionVariant={mapActionVariant}
-                  badges={showImpactTypeIndicator ? (
-                    <span className="impact-card-type-badge delay">
-                      <ImpactTypeIcon kind="delay" size={13} />
-                      {serviceEffectLabel(delay)}
-                    </span>
-                  ) : undefined}
+                  badges={(
+                    <>
+                      {delay.relatedPlannedClosureId ? (
+                        <RelatedPlannedClosureButton onClick={() => onSelectRelatedImpact({ kind: "planned-closure", id: delay.relatedPlannedClosureId! })} />
+                      ) : null}
+                      {showImpactTypeIndicator ? (
+                        <span className="impact-card-type-badge delay">
+                          <ImpactTypeIcon kind="delay" size={13} />
+                          {serviceEffectLabel(delay)}
+                        </span>
+                      ) : null}
+                    </>
+                  )}
                   overlaps={(
                     <OverlappingImpactRefs
                       overlaps={overlappingImpacts}
@@ -189,9 +196,6 @@ export function DelaysPanel({
                   />
                 </div>
 
-                {delay.relatedPlannedClosureId ? (
-                  <RelatedPlannedClosureButton onClick={() => onSelectRelatedImpact({ kind: "planned-closure", id: delay.relatedPlannedClosureId! })} />
-                ) : null}
                 {isActive && commutePathPreview ? (
                   <CommutePathPreviewCardBanner
                     commutePathPreview={commutePathPreview}
