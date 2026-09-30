@@ -10,6 +10,15 @@ export function LineAdvisoryCount({ count }: { count: number }) {
   );
 }
 
+export function LineAdvisorySummary({ count }: { count: number }) {
+  return (
+    <div className="line-service-advisory-summary">
+      <span>Other advisories</span>
+      <LineAdvisoryCount count={count} />
+    </div>
+  );
+}
+
 export function LineServiceStatus({ presentation }: { presentation: LineStatusPresentation }) {
   return (
     <span className="line-service-conditional">

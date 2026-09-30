@@ -235,6 +235,7 @@ export function getCanonicalAlertTitle(row: CurrentServiceRow): string {
 /** Compact incident copy shared by desktop and mobile status views. */
 export function currentServiceIncidentPresentation(row: CurrentServiceRow) {
   const title = getCanonicalAlertTitle(row)
+    .replace(/\blimited service\b/i, "Limited Service")
     .replace("Planned Closure in Effect", "Planned Closure · In Effect")
     .replace(/Planned Closure$/, "Planned Closure · Upcoming")
     .replace("Suspension", row.condition.endsWith("No Service") ? "No Service" : "Suspension")

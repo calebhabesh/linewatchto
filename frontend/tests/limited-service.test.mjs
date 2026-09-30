@@ -32,7 +32,7 @@ test("limited service uses one delay row and retains its specific effect and nig
   const summary = currentServiceSummary(data, Date.parse("2026-09-29T04:00:00Z"));
   assert.equal(summary.rows.length, 1);
   assert.equal(summary.rows[0].kind, "delay");
-  assert.equal(currentServiceIncidentPresentation(summary.rows[0]).title, "Limited service");
+  assert.equal(currentServiceIncidentPresentation(summary.rows[0]).title, "Limited Service");
   assert.equal(summary.rows[0].timingTarget, parent.activeWindowEnd);
   assert.equal(summary.rows[0].maximumDelayMinutes, undefined);
   assert.equal(summary.rows[0].shuttle, false);
@@ -84,7 +84,7 @@ test("nightly advisory status uses Toronto dates and keeps incomplete schedules 
 test("legacy and offline payloads retain source-honest compatibility", () => {
   assert.equal(currentServiceSummary({ ...data, availability: "unavailable", generatedAt: { live: false } }).rows.length, 0);
   const saved = currentServiceSummary({ ...data, availability: "unavailable", generatedAt: { live: false }, snapshot: { savedAt: Date.parse("2026-09-29T04:00:00Z") } });
-  assert.equal(currentServiceIncidentPresentation(saved.rows[0]).title, "Last Reported: Limited service");
+  assert.equal(currentServiceIncidentPresentation(saved.rows[0]).title, "Last Reported: Limited Service");
   assert.equal(saved.rows[0].timing, undefined);
 });
 

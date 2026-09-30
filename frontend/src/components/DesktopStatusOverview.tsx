@@ -25,7 +25,7 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { GoodServiceCheckIcon } from "./CurrentServicePanel";
-import { LineAdvisoryCount, LineServiceStatus } from "./LineServiceStatus";
+import { LineAdvisorySummary, LineServiceStatus } from "./LineServiceStatus";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { NetworkSelector } from "./NetworkSelector";
@@ -298,6 +298,7 @@ export function DesktopStatusOverview({
                   </div>
                   {(item.closureCount > 0 || item.rszCount > 0) && (
                     <div className="desktop-status-sub-badges">
+                      <LineAdvisorySummary count={item.advisoryCount} />
                       {item.closureCount > 0 && (
                         <button
                           type="button"
@@ -328,7 +329,6 @@ export function DesktopStatusOverview({
                           </span>
                         </button>
                       )}
-                      {item.advisoryCount > 0 && <LineAdvisoryCount count={item.advisoryCount} />}
                     </div>
                   )}
                 </div>
