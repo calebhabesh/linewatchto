@@ -233,9 +233,8 @@ function setTtcStationHovered(root: HTMLElement | null, stationId: string, hover
 const MAP_PULSE_CYCLE_MS = 2400;
 // Synchronized blur and pulse effects scale with every additional disruption.
 // Dense snapshots drop ambient effects. Directional motion is separately
-// reserved for one selected corridor, with at most four glyphs per lane.
+// reserved for one selected corridor. Selection must not change glyph density.
 const MAX_CONTINUOUSLY_ANIMATED_OVERLAY_LAYERS = 8;
-const MAX_ANIMATED_GLYPHS_PER_LANE = 4;
 const SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
   "aura-pulse",
   "map-overlay-rail-pulse",
@@ -3711,7 +3710,6 @@ function measureMotionLane(
   requestedStep: number,
   normalOffset: number,
   direction: "forward" | "reverse",
-  maxGlyphs: number,
 ): MotionLaneMetrics | null {
   if (typeof document === "undefined") return null;
 
@@ -3721,25 +3719,10 @@ function measureMotionLane(
     const length = path.getTotalLength();
     if (length <= 0) return null;
 
-    const count = Math.min(maxGlyphs, Math.max(1, Math.floor(length / requestedStep)));
-    const step = length / count;
-    const staticFrames = Array.from({ length: count }, (_, index) => {
-      const distance = direction === "forward"
-        ? index * step
-        : length - index * step;
-      const frame = extrapolatedPathFrame(path, length, distance);
-      if (!frame) return { x: 0, y: 0, rotation: 0 };
-
-      const angle = Math.atan2(frame.tangent.y, frame.tangent.x);
-      return {
-        x: frame.point.x - normalOffset * Math.sin(angle),
-        y: frame.point.y + normalOffset * Math.cos(angle),
-        rotation: angle * (180 / Math.PI) + (direction === "reverse" ? 180 : 0),
-      };
-    });
+    const count = Math.max(1, Math.floor(length / requestedStep));
     let motionPathD = pathD;
 
-    if (normalOffset !== 0 && Number.isFinite(maxGlyphs)) {
+    if (normalOffset !== 0) {
       // SVG animateMotion does not have a perpendicular-offset primitive.
       // Resolve the two bidirectional lanes once when their path changes,
       // rather than re-sampling every glyph on every animation frame.
@@ -3761,6 +3744,23 @@ function measureMotionLane(
           .join(" ");
       }
     }
+
+    // Resting glyphs and moving glyphs share the offset lane's distance and
+    // tangent, including on curves where the two lanes have different lengths.
+    path.setAttribute("d", motionPathD);
+    const laneLength = path.getTotalLength();
+    const staticFrames = Array.from({ length: count }, (_, index) => {
+      const progress = index / count;
+      const distance = laneLength * (direction === "forward" ? progress : 1 - progress);
+      const frame = extrapolatedPathFrame(path, laneLength, distance);
+      if (!frame) return { x: 0, y: 0, rotation: 0 };
+      return {
+        x: frame.point.x,
+        y: frame.point.y,
+        rotation: Math.atan2(frame.tangent.y, frame.tangent.x) * (180 / Math.PI)
+          + (direction === "reverse" ? 180 : 0),
+      };
+    });
 
     return {
       count,
@@ -3786,6 +3786,26 @@ function staticMotionGlyphTransform(
     : `translate(${frame.x} ${frame.y})`;
 }
 
+function startGlyphLaneMotion(root: SVGGElement | null) {
+  // Start at this selection's time, rather than the SVG document's time.
+  root?.querySelectorAll<SVGAnimationElement>("animateMotion").forEach((motion) => {
+    const now = motion.ownerSVGElement?.getCurrentTime() ?? 0;
+    motion.setAttribute("begin", `${now}s`);
+  });
+}
+
+function glyphMotionKeyPoints(progress: number, direction: "forward" | "reverse") {
+  // The repeated key time wraps at the corridor endpoint. Encoding each
+  // glyph's resting progress avoids starting new animations in the past.
+  return direction === "reverse"
+    ? `${1 - progress};0;1;${1 - progress}`
+    : `${progress};1;0;${progress}`;
+}
+
+function glyphMotionKeyTimes(progress: number) {
+  return `0;${1 - progress};${1 - progress};1`;
+}
+
 function MotionGlyphLane({
   pathD,
   step,
@@ -3803,6 +3823,7 @@ function MotionGlyphLane({
   renderGlyph: (index: number) => React.ReactNode;
   rotateGlyph?: boolean | ((index: number) => boolean);
 }) {
+  const laneRef = useRef<SVGGElement>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -3814,15 +3835,18 @@ function MotionGlyphLane({
     ? direction === "reverse" ? 18 : -18
     : 0;
   const metrics = useMemo(
-    () => mounted ? measureMotionLane(pathD, step, normalOffset, direction,
-      reducedMotion ? Infinity : MAX_ANIMATED_GLYPHS_PER_LANE) : null,
-    [direction, mounted, normalOffset, pathD, reducedMotion, step],
+    () => mounted ? measureMotionLane(pathD, step, normalOffset, direction) : null,
+    [direction, mounted, normalOffset, pathD, step],
   );
+
+  useLayoutEffect(() => {
+    if (!reducedMotion) startGlyphLaneMotion(laneRef.current);
+  }, [metrics, reducedMotion]);
 
   if (!metrics) return null;
 
   return (
-    <g data-motion-glyph-lane>
+    <g ref={laneRef} data-motion-glyph-lane>
       {Array.from({ length: metrics.count }, (_, index) => {
         const shouldRotate = typeof rotateGlyph === "function" ? rotateGlyph(index) : rotateGlyph;
         const staticTransform = reducedMotion
@@ -3836,11 +3860,11 @@ function MotionGlyphLane({
           >
             {!reducedMotion ? (
               <animateMotion
-                begin={`${-(metrics.durationSeconds * index / metrics.count)}s`}
+                begin="indefinite"
                 calcMode="linear"
                 dur={`${metrics.durationSeconds}s`}
-                keyPoints={direction === "reverse" ? "1;0" : "0;1"}
-                keyTimes="0;1"
+                keyPoints={glyphMotionKeyPoints(index / metrics.count, direction)}
+                keyTimes={glyphMotionKeyTimes(index / metrics.count)}
                 path={metrics.motionPathD}
                 repeatCount="indefinite"
                 rotate={shouldRotate ? (direction === "reverse" ? "auto-reverse" : "auto") : "0"}
@@ -4061,6 +4085,7 @@ function PlannedClosureIconLane({
   travelDirection: TravelDirection;
   reducedMotion: boolean;
 }) {
+  const laneRef = useRef<SVGGElement>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -4078,8 +4103,7 @@ function PlannedClosureIconLane({
       if (length <= 0) return { length: 0, points: [] };
 
       const isDirectional = travelDirection !== "bidirectional";
-      const count = Math.min(isDirectional && !reducedMotion ? MAX_ANIMATED_GLYPHS_PER_LANE : Infinity,
-        Math.max(1, isDirectional ? Math.round(length / 124) : Math.floor(length / 112)));
+      const count = Math.max(1, isDirectional ? Math.round(length / 124) : Math.floor(length / 112));
       const step = length / count;
       return {
         length,
@@ -4106,12 +4130,16 @@ function PlannedClosureIconLane({
     } catch {
       return { length: 0, points: [] };
     }
-  }, [mounted, pathD, reducedMotion, travelDirection]);
+  }, [mounted, pathD, travelDirection]);
+
+  useLayoutEffect(() => {
+    if (!reducedMotion) startGlyphLaneMotion(laneRef.current);
+  }, [pathMetrics, reducedMotion]);
 
   if (Array.isArray(pathMetrics) || pathMetrics.points.length === 0) return null;
 
   return (
-    <g className="planned-closure-icon-lane" aria-hidden="true">
+    <g ref={laneRef} className="planned-closure-icon-lane" aria-hidden="true">
       {pathMetrics.points.map((point, index) => {
         if (travelDirection === "bidirectional") {
           return (
@@ -4131,8 +4159,6 @@ function PlannedClosureIconLane({
         const durationSeconds = Math.max(28, pathMetrics.length / 13);
         const calendarOffset = direction === "reverse" ? 1 - point.progress : point.progress;
         const chevronOffset = direction === "reverse" ? 1 - point.chevronProgress : point.chevronProgress;
-        const calendarBegin = `${-(durationSeconds * calendarOffset)}s`;
-        const chevronBegin = `${-(durationSeconds * chevronOffset)}s`;
         const staticAngle = point.angle + (direction === "reverse" ? 180 : 0);
 
         return (
@@ -4143,11 +4169,11 @@ function PlannedClosureIconLane({
             <g transform={reducedMotion ? `translate(${point.x} ${point.y})` : undefined}>
               {!reducedMotion ? (
                 <animateMotion
-                  begin={calendarBegin}
+                  begin="indefinite"
                   calcMode="linear"
                   dur={`${durationSeconds}s`}
-                  keyPoints={direction === "reverse" ? "1;0" : "0;1"}
-                  keyTimes="0;1"
+                  keyPoints={glyphMotionKeyPoints(calendarOffset, direction)}
+                  keyTimes={glyphMotionKeyTimes(calendarOffset)}
                   path={pathD}
                   repeatCount="indefinite"
                   rotate="0"
@@ -4168,11 +4194,11 @@ function PlannedClosureIconLane({
             >
               {!reducedMotion ? (
                 <animateMotion
-                  begin={chevronBegin}
+                  begin="indefinite"
                   calcMode="linear"
                   dur={`${durationSeconds}s`}
-                  keyPoints={direction === "reverse" ? "1;0" : "0;1"}
-                  keyTimes="0;1"
+                  keyPoints={glyphMotionKeyPoints(chevronOffset, direction)}
+                  keyTimes={glyphMotionKeyTimes(chevronOffset)}
                   path={pathD}
                   repeatCount="indefinite"
                   rotate={direction === "reverse" ? "auto-reverse" : "auto"}

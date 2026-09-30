@@ -221,9 +221,6 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /travelDirection === "bidirectional"[\s\S]*?planned-closure-map-icon planned-closure-map-icon--static/);
     assert.match(interactiveMapSource, /<animateMotion[\s\S]*?calcMode="linear"[\s\S]*?repeatCount="indefinite"[\s\S]*?rotate="0"/);
     assert.match(interactiveMapSource, /className="planned-closure-direction-chevron"/);
-    assert.match(interactiveMapSource, /begin=\{calendarBegin\}/);
-    assert.match(interactiveMapSource, /begin=\{chevronBegin\}/);
-    assert.match(interactiveMapSource, /keyPoints=\{direction === "reverse" \? "1;0" : "0;1"\}/);
     assert.match(interactiveMapSource, /d="M -10 -13 L 10 0 L -10 13"/);
     assert.match(interactiveMapSource, /rotate=\{direction === "reverse" \? "auto-reverse" : "auto"\}/);
     assert.match(interactiveMapSource, /x=\{-36\}[\s\S]*?y=\{-36\}[\s\S]*?width=\{72\}[\s\S]*?height=\{72\}/);
