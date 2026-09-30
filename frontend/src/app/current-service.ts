@@ -159,13 +159,13 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
     });
   }
 
-  // Regional notices can lack structured service windows. Keep them discoverable
+  // Planned notices can lack structured service windows. Keep them discoverable
   // as badges without treating their publication/validity dates as a schedule.
   const upcoming = data.plannedClosures.filter((closure) => {
     if (closure.activeNow || data.activeAlerts.some((alert) => alert.id === closure.id || alert.relatedPlannedClosureId === closure.id)) return false;
     const start = Date.parse(closure.nextWindowStart || "");
     const end = Date.parse(closure.nextWindowEnd || "");
-    if (data.networkId === "regional" && !closure.nextWindowStart && !closure.nextWindowEnd) return true;
+    if (!closure.nextWindowStart && !closure.nextWindowEnd) return true;
     return now > 0 && Number.isFinite(start) && Number.isFinite(end)
       && end > start && end > now && start > now + 24 * 60 * 60 * 1000;
   }).sort((a, b) => Date.parse(a.nextWindowStart || "") - Date.parse(b.nextWindowStart || "") || a.id.localeCompare(b.id));

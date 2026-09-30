@@ -51,7 +51,7 @@ test("lines with active RSZs are marked affected and excluded from Good Service 
 test("active closure appears once under its linked child identity; planned closures are excluded", () => {
   const summary = currentServiceSummary(data({ activeAlerts: [impact("child", "2", { relatedPlannedClosureId: "parent" })], plannedClosures: [impact("parent", "2", { activeNow: true }), impact("future", "1", { activeNow: false })] }));
   assert.deepEqual(summary.rows.map((row) => row.id), ["child"]);
-  assert.deepEqual(summary.upcoming, []);
+  assert.deepEqual(summary.upcoming.map(row => row.id), ["future"]);
   assert.deepEqual(summary.unaffected.map((row) => row.id), ["1", "4"]);
 });
 
@@ -125,38 +125,65 @@ test("published closure windows enter within 24 hours, transition, expire, and y
   assert.deepEqual(currentServiceSummary(input, now).rows.map((row) => row.id), ["child"]);
 });
 
-test("regional planned notices without structured windows remain line badges without becoming current incidents", () => {
+test("TTC and regional planned notices without structured windows remain line badges without becoming current incidents", () => {
   const now = Date.parse("2026-09-26T12:00:00Z");
-  const closure = impact("barrie-plan", "regional-br", {
-    activeNow: false, timingStatus: "unknown", startedAt: "2026-10-03T04:00:00Z",
-    nextWindowStart: null, nextWindowEnd: null,
-  });
-  const input = data({ networkId: "regional", lineStatuses: [line("regional-br"), line("regional-up")], plannedClosures: [closure] });
-  const summary = currentServiceSummary(input, now);
-  assert.deepEqual(summary.upcoming.map(item => item.id), ["barrie-plan"]);
-  assert.deepEqual(summary.rows, []);
-  assert.deepEqual(summary.unaffected.map(item => item.id), ["regional-br", "regional-up"]);
-  assert.deepEqual(currentServiceSummary({ ...input, networkId: "ttc" }, now).upcoming, []);
-  for (const freshness of [{ generatedAt: { live: false } }, { availability: "fixture" }, { availability: "unavailable" }]) {
-    assert.deepEqual(currentServiceSummary({ ...input, ...freshness }, now).upcoming, []);
+  for (const [networkId, lineId, otherLineId] of [["ttc", "2", "1"], ["regional", "regional-br", "regional-up"]]) {
+    const closure = impact("undated-plan", lineId, {
+      activeNow: false, timingStatus: "unknown", startedAt: "2026-10-03T04:00:00Z",
+      nextWindowStart: null, nextWindowEnd: null,
+    });
+    const input = data({ networkId, lineStatuses: [line(lineId), line(otherLineId)], plannedClosures: [closure] });
+    const summary = currentServiceSummary(input, now);
+    assert.deepEqual(summary.upcoming.map(item => item.id), ["undated-plan"]);
+    assert.deepEqual(summary.rows, []);
+    assert.deepEqual(summary.unaffected.map(item => item.id), [lineId, otherLineId]);
+    for (const freshness of [{ generatedAt: { live: false } }, { availability: "fixture" }, { availability: "unavailable" }]) {
+      assert.deepEqual(currentServiceSummary({ ...input, ...freshness }, now).upcoming, []);
+    }
+    for (const activeAlert of [impact(closure.id, closure.lineId), impact("child", closure.lineId, { relatedPlannedClosureId: closure.id })]) {
+      assert.deepEqual(currentServiceSummary({ ...input, activeAlerts: [activeAlert] }, now).upcoming, []);
+    }
+    assert.deepEqual(currentServiceSummary({ ...input, plannedClosures: [{ ...closure, activeNow: true }] }, now).upcoming, []);
   }
-  for (const activeAlert of [impact(closure.id, closure.lineId), impact("child", closure.lineId, { relatedPlannedClosureId: closure.id })]) {
-    assert.deepEqual(currentServiceSummary({ ...input, activeAlerts: [activeAlert] }, now).upcoming, []);
-  }
-  assert.deepEqual(currentServiceSummary({ ...input, plannedClosures: [{ ...closure, activeNow: true }] }, now).upcoming, []);
 });
 
-test("regional badges respect structured windows and exclude expired or invalid windows", () => {
-  const now = Date.parse("2026-09-26T12:00:00Z");
-  const input = data({ networkId: "regional", lineStatuses: [line("regional-br")], plannedClosures: [
-    impact("later", "regional-br", { nextWindowStart: "2026-10-03T04:00:00Z", nextWindowEnd: "2026-10-05T04:00:00Z" }),
-    impact("within-24h", "regional-br", { nextWindowStart: "2026-09-27T04:00:00Z", nextWindowEnd: "2026-09-28T04:00:00Z" }),
-    impact("expired", "regional-br", { nextWindowStart: "2026-09-24T04:00:00Z", nextWindowEnd: "2026-09-25T04:00:00Z" }),
-    impact("invalid", "regional-br", { nextWindowStart: "invalid", nextWindowEnd: "invalid" }),
-  ] });
+test("TTC advisory counts include dated and undated notices while excluding displayed planned entries", () => {
+  const now = Date.parse("2026-09-30T03:34:00Z");
+  const unknownTiming = { timingStatus: "unknown", nextWindowStart: null, nextWindowEnd: null };
+  const input = data({
+    networkId: "ttc",
+    plannedClosures: [
+      impact("oct-5", "2", { nextWindowStart: "2026-10-05T03:00:00Z", nextWindowEnd: "2026-10-09T09:00:00Z" }),
+      impact("oct-13", "2", { nextWindowStart: "2026-10-13T03:00:00Z", nextWindowEnd: "2026-10-16T09:00:00Z" }),
+      impact("kipling-jane", "2", unknownTiming),
+      impact("st-george-broadview", "2", unknownTiming),
+      impact("within-24h", "2", { nextWindowStart: "2026-09-30T04:00:00Z", nextWindowEnd: "2026-09-30T09:00:00Z" }),
+      impact("other-line", "1", unknownTiming),
+    ],
+    reducedSpeedZones: [impact("group", "2", { sourceAlertIds: ["slow-a", "slow-b", "slow-c"] })],
+  });
   const summary = currentServiceSummary(input, now);
-  assert.deepEqual(summary.upcoming.map(item => item.id), ["later"]);
+  assert.equal(summary.upcoming.filter(item => item.lineId === "2").length, 4);
   assert.deepEqual(summary.rows.map(item => item.id), ["within-24h"]);
+  const presentation = getLineStatusPresentation(input.lineStatuses[1], input, summary);
+  assert.equal(presentation.advisoryCount, 7);
+  assert.equal(input.plannedClosures[2].timingStatus, "unknown");
+  assert.equal(input.plannedClosures[2].nextWindowStart, null);
+});
+
+test("TTC and regional badges respect structured windows and exclude expired or invalid windows", () => {
+  const now = Date.parse("2026-09-26T12:00:00Z");
+  for (const [networkId, lineId] of [["ttc", "2"], ["regional", "regional-br"]]) {
+    const input = data({ networkId, lineStatuses: [line(lineId)], plannedClosures: [
+      impact("later", lineId, { nextWindowStart: "2026-10-03T04:00:00Z", nextWindowEnd: "2026-10-05T04:00:00Z" }),
+      impact("within-24h", lineId, { nextWindowStart: "2026-09-27T04:00:00Z", nextWindowEnd: "2026-09-28T04:00:00Z" }),
+      impact("expired", lineId, { nextWindowStart: "2026-09-24T04:00:00Z", nextWindowEnd: "2026-09-25T04:00:00Z" }),
+      impact("invalid", lineId, { nextWindowStart: "invalid", nextWindowEnd: "invalid" }),
+    ] });
+    const summary = currentServiceSummary(input, now);
+    assert.deepEqual(summary.upcoming.map(item => item.id), ["later"]);
+    assert.deepEqual(summary.rows.map(item => item.id), ["within-24h"]);
+  }
 });
 
 test("active planned closures open active alerts under both canonical and child IDs", () => {
