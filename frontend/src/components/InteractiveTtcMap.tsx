@@ -427,6 +427,7 @@ function InteractiveTtcMapComponent({
   const [activeHoveredStationLabelId, setHoveredStationLabelId] = useState<string | null>(null);
   const hoveredStationLabelId = useRetainedHover(activeHoveredStationLabelId);
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
+  const overlapBadgeFocusToRestoreRef = useRef<string | null>(null);
   const mapLabelFontReady = useMapLabelFontReady();
   const pageVisible = usePageVisibility();
   const useMobileRendering = mobilePerformanceMode || mobilePerformanceModeMatches();
@@ -473,9 +474,16 @@ function InteractiveTtcMapComponent({
 
   const mapSvgRef = useRef<SVGSVGElement>(null);
   const mapRootRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const segmentId = overlapBadgeFocusToRestoreRef.current;
+    if (expandedOverlapBadgeId !== null || segmentId === null) return;
+    overlapBadgeFocusToRestoreRef.current = null;
+    mapRootRef.current
+      ?.querySelector<SVGGElement>(`[data-overlap-segment-id="${CSS.escape(segmentId)}"] .overlap-indicator`)
+      ?.focus({ preventScroll: true });
+  }, [expandedOverlapBadgeId]);
   const hoveredMapImpactRef = useRef<TtcImpactHoverIdentity | null>(null);
   const externallyHoveredImpactKeysRef = useRef(new Set<string>());
-  const chooserHoveredImpactRef = useRef<MapImpact | null>(null);
   const mapControlRailRef = useRef<HTMLDivElement>(null);
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(() => {
     if (typeof window === "undefined" || window.innerWidth < 768) return 0;
@@ -1981,21 +1989,22 @@ function InteractiveTtcMapComponent({
     clearTtcTransientHover(mapRootRef.current);
     hoveredMapImpactRef.current = null;
     externallyHoveredImpactKeysRef.current.clear();
-    chooserHoveredImpactRef.current = null;
     if (!preserveStationLabel) setHoveredStationLabelId(null);
   }, []);
 
   const highlightOverlapChooserImpact = useCallback((impact: MapImpact | null) => {
-    const previousImpact = chooserHoveredImpactRef.current;
-    if (previousImpact) {
-      setExternalImpactsHovered([previousImpact], false, "chooser");
-    }
-    chooserHoveredImpactRef.current = impact;
-    if (impact) {
-      setExternalImpactsHovered([impact], true, "chooser");
-    }
-  }, [setExternalImpactsHovered]);
+    if (!expandedOverlapBadge) return;
+    setExternalImpactsHovered(expandedOverlapBadge.impacts, false, "chooser");
+    setExternalImpactsHovered(impact ? [impact] : expandedOverlapBadge.impacts, true, "chooser");
+  }, [expandedOverlapBadge, setExternalImpactsHovered]);
 
+  useLayoutEffect(() => {
+    if (!expandedOverlapBadge) return;
+    highlightOverlapChooserImpact(null);
+    return () => {
+      setExternalImpactsHovered(expandedOverlapBadge.impacts, false, "chooser");
+    };
+  }, [expandedOverlapBadge, highlightOverlapChooserImpact, setExternalImpactsHovered]);
 
   return (
     <div
@@ -2987,12 +2996,6 @@ function InteractiveTtcMapComponent({
                         clearMapHover();
                         setExpandedOverlapBadgeId(null);
                       }}
-                      onHoverChange={(hovered) => setExternalImpactsHovered(
-                        badge.impacts,
-                        hovered,
-                        "badge",
-                        badge.segmentId,
-                      )}
                       shouldSuppressMapClick={shouldSuppressMapClick}
                     />
                   ))}
@@ -3017,14 +3020,8 @@ function InteractiveTtcMapComponent({
             onHoverImpact={highlightOverlapChooserImpact}
             onClose={(restoreFocus) => {
               clearMapHover();
+              overlapBadgeFocusToRestoreRef.current = restoreFocus ? expandedOverlapBadge.segmentId : null;
               setExpandedOverlapBadgeId(null);
-              if (!restoreFocus) return;
-              window.requestAnimationFrame(() => {
-                const escapedId = CSS.escape(expandedOverlapBadge.segmentId);
-                mapRootRef.current
-                  ?.querySelector<SVGGElement>(`[data-overlap-segment-id="${escapedId}"] .overlap-indicator`)
-                  ?.focus();
-              });
             }}
             reducedMotion={reducedMotion}
             compactMotion={mapViewportSize.width <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT}
@@ -4208,6 +4205,7 @@ function OverlapChooser({
   const data = useDashboardData();
   const surfaceRef = useRef<HTMLDivElement>(null);
   const firstChoiceRef = useRef<HTMLButtonElement>(null);
+  const initialFocusPendingRef = useRef(true);
   const closingRef = useRef(false);
   const isRotated = viewportOrientation === "rotated-landscape";
   const { scrollContainerProps } = useRotatedListDragScroll(isRotated);
@@ -4237,71 +4235,34 @@ function OverlapChooser({
         maxHeight: layout.height,
       };
 
-  const animatedEntranceRef = useRef(false);
-
-  useEffect(() => () => onHoverImpact(null), [onHoverImpact]);
-
   useLayoutEffect(() => {
-    const focusFrame = window.requestAnimationFrame(() => firstChoiceRef.current?.focus({ preventScroll: true }));
-    if (reducedMotion || animatedEntranceRef.current) {
-      return () => window.cancelAnimationFrame(focusFrame);
-    }
-    animatedEntranceRef.current = true;
-    const targetX = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetX;
-    const targetY = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetY;
-    surfaceRef.current?.animate([
-      {
-        borderRadius: "999px",
-        opacity: 0,
-        transform: `translate(${targetX}px, ${targetY}px) scale(0.08)`,
-      },
-      {
-        borderRadius: "28px",
-        opacity: 0.85,
-        offset: 0.6,
-        transform: `translate(${Math.round(targetX * 0.38)}px, ${Math.round(targetY * 0.38)}px) scale(0.68)`,
-      },
-      {
-        borderRadius: "16px",
-        opacity: 1,
-        transform: "translate(0px, 0px) scale(1)",
-      },
+    const focusFrame = window.requestAnimationFrame(() => {
+      firstChoiceRef.current?.focus({ preventScroll: true });
+      initialFocusPendingRef.current = false;
+    });
+    const animation = reducedMotion ? undefined : surfaceRef.current?.animate([
+      { opacity: 0, transform: "scale(0.98)" },
+      { opacity: 1, transform: "scale(1)" },
     ], {
-      duration: compactMotion ? 190 : 230,
-      easing: "cubic-bezier(0.35, 0.9, 0.65, 1)",
-      fill: "both",
+      duration: compactMotion ? 100 : 140,
+      easing: "ease-out",
     });
     return () => {
       window.cancelAnimationFrame(focusFrame);
+      animation?.cancel();
     };
-  }, [compactMotion, layout.anchorOffsetX, layout.anchorOffsetY, reducedMotion, viewportOrientation]);
+  }, [compactMotion, reducedMotion]);
 
   const close = async (restoreFocus: boolean) => {
     if (closingRef.current) return;
     closingRef.current = true;
     if (!reducedMotion) {
-      const targetX = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetX;
-      const targetY = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetY;
       const animation = surfaceRef.current?.animate([
-        {
-          borderRadius: "16px",
-          opacity: 1,
-          transform: "translate(0px, 0px) scale(1)",
-        },
-        {
-          borderRadius: "28px",
-          opacity: 0.85,
-          offset: 0.4,
-          transform: `translate(${Math.round(targetX * 0.38)}px, ${Math.round(targetY * 0.38)}px) scale(0.68)`,
-        },
-        {
-          borderRadius: "999px",
-          opacity: 0,
-          transform: `translate(${targetX}px, ${targetY}px) scale(0.08)`,
-        },
+        { opacity: 1, transform: "scale(1)" },
+        { opacity: 0, transform: "scale(0.98)" },
       ], {
-        duration: compactMotion ? 190 : 230,
-        easing: "cubic-bezier(0.35, 0, 0.65, 0.1)",
+        duration: compactMotion ? 70 : 100,
+        easing: "ease-in",
         fill: "forwards",
       });
       try {
@@ -4366,6 +4327,12 @@ function OverlapChooser({
                   if (event.pointerType !== "mouse") return;
                   onHoverImpact(null);
                 }}
+                onFocus={(event) => {
+                  if (!initialFocusPendingRef.current && event.currentTarget.matches(":focus-visible")) {
+                    onHoverImpact(impact);
+                  }
+                }}
+                onBlur={() => onHoverImpact(null)}
                 onClick={() => {
                   onHoverImpact(null);
                   onClose(false);
@@ -4403,7 +4370,7 @@ function OverlapIndicatorMarker({
   selection: ImpactSelection;
   isOpen: boolean;
   onToggle: () => void;
-  onHoverChange: (hovered: boolean) => void;
+  onHoverChange?: (hovered: boolean) => void;
   shouldSuppressMapClick: () => boolean;
 }) {
   return (

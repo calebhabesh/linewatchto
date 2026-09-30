@@ -45,8 +45,8 @@ describe("TTC Chooser Placement - Sizing and Priority", () => {
   it("maintains the canonical disruption priority hierarchy", () => {
     assert.ok(getImpactPriority("suspension") > getImpactPriority("delay"));
     assert.ok(getImpactPriority("delay") > getImpactPriority("planned-closure"));
-    assert.ok(getImpactPriority("planned-closure") > getImpactPriority("reduced-speed-zone"));
-    assert.ok(getImpactPriority("reduced-speed-zone") > getImpactPriority("clear"));
+    assert.ok(getImpactPriority("reduced-speed-zone") > getImpactPriority("planned-closure"));
+    assert.ok(getImpactPriority("planned-closure") > getImpactPriority("clear"));
   });
 
   it("calculates desktop chooser dimensions with clamped heights", () => {

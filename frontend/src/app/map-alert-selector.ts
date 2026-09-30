@@ -46,7 +46,7 @@ export type OverlapKindCount = {
 };
 
 /**
- * Priority rank for impacts: suspension > delay > planned-closure > reduced-speed-zone.
+ * Priority rank for impacts: suspension > delay > reduced-speed-zone > planned-closure.
  */
 export function getImpactPriority(kind: MapImpactKind | ImpactKind): number {
   switch (kind) {
@@ -55,9 +55,9 @@ export function getImpactPriority(kind: MapImpactKind | ImpactKind): number {
     case "delay":
       return 3;
     case "planned-closure":
-      return 2;
-    case "reduced-speed-zone":
       return 1;
+    case "reduced-speed-zone":
+      return 2;
     default:
       return 0;
   }

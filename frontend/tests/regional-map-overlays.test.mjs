@@ -144,15 +144,15 @@ describe("regional map overlays lifecycle and utilities", () => {
 
   describe("regionalImpactPriority", () => {
     it("orders disruption kinds by ascending severity", () => {
-      assert.equal(regionalImpactPriority("reduced-speed-zone"), 0);
-      assert.equal(regionalImpactPriority("planned-closure"), 1);
+      assert.equal(regionalImpactPriority("reduced-speed-zone"), 1);
+      assert.equal(regionalImpactPriority("planned-closure"), 0);
       assert.equal(regionalImpactPriority("delay"), 2);
       assert.equal(regionalImpactPriority("suspension"), 3);
       assert.equal(regionalImpactPriority("unknown-kind"), -1);
 
       const kinds = ["suspension", "reduced-speed-zone", "delay", "planned-closure"];
       const sorted = [...kinds].sort((a, b) => regionalImpactPriority(a) - regionalImpactPriority(b));
-      assert.deepEqual(sorted, ["reduced-speed-zone", "planned-closure", "delay", "suspension"]);
+      assert.deepEqual(sorted, ["planned-closure", "reduced-speed-zone", "delay", "suspension"]);
     });
   });
 

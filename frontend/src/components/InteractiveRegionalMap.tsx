@@ -1879,7 +1879,7 @@ function InteractiveRegionalMapComponent({
   const openRegionalOverlapChooser = useCallback((badge: RegionalOverlapBadge) => {
     if (!positionRegionalOverlapChooser(badge)) return;
     setExpandedOverlapBadgeId(badge.markerId);
-    setRegionalOverlapImpactsHovered(badge.impacts, false);
+    setRegionalOverlapImpactsHovered(badge.impacts, true);
   }, [positionRegionalOverlapChooser, setRegionalOverlapImpactsHovered]);
 
   const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
@@ -1908,8 +1908,13 @@ function InteractiveRegionalMapComponent({
   const hoverRegionalChooserImpact = useCallback((impact: MapImpact | null) => {
     if (!expandedOverlapBadge) return;
     setRegionalOverlapImpactsHovered(expandedOverlapBadge.impacts, false);
-    if (impact) setRegionalOverlapImpactsHovered([impact], true);
+    setRegionalOverlapImpactsHovered(impact ? [impact] : expandedOverlapBadge.impacts, true);
   }, [expandedOverlapBadge, setRegionalOverlapImpactsHovered]);
+  useLayoutEffect(() => {
+    if (!expandedOverlapBadge) return;
+    hoverRegionalChooserImpact(null);
+    return () => setRegionalOverlapImpactsHovered(expandedOverlapBadge.impacts, false);
+  }, [expandedOverlapBadge, hoverRegionalChooserImpact, setRegionalOverlapImpactsHovered]);
   const closeRegionalChooserWithFocus = useCallback((restoreFocus: boolean) => {
     const markerId = expandedOverlapBadge?.markerId;
     closeRegionalOverlapChooser();
@@ -2113,8 +2118,11 @@ function InteractiveRegionalMapComponent({
                       openRegionalOverlapChooser(badge);
                     }
                   }}
-                  onHoverChange={(hovered) =>
-                    setRegionalOverlapImpactsHovered(badge.impacts, hovered)}
+                  onHoverChange={(hovered) => {
+                    if (expandedOverlapBadgeId !== badge.markerId) {
+                      setRegionalOverlapImpactsHovered(badge.impacts, hovered);
+                    }
+                  }}
                 />
               ))}
             </g>

@@ -1,8 +1,140 @@
 import { expect, test, type Locator } from "@playwright/test";
-import { installDismissedTransientUi } from "./test-support";
+import { installDismissedTransientUi, setStubMode } from "./test-support";
 
 const stubUrl = process.env.LINEWATCH_SMOKE_STUB_URL ?? "http://127.0.0.1:4174";
 const openMapPreviewUrl = "/?previewTime=2026-08-14T16:00:00.000Z";
+
+test("default map hierarchy preserves effect priority without extra outlines", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "map-authoritative-overlap");
+  await installDismissedTransientUi(page);
+  await page.setViewportSize(isMobile ? { width: 360, height: 800 } : { width: 1440, height: 900 });
+  await page.goto("/");
+  const overlays = page.getByLabel("Disruption overlays", { exact: true });
+  const speedZone = overlays.locator('[data-map-impact-id="reduced-speed-zone-stub-line-1-overlap"]');
+  await expect(speedZone).toBeAttached();
+  const orderedKinds = await overlays.locator(":scope > [data-map-impact-kind]").evaluateAll((elements) =>
+    elements.map((element) => element.getAttribute("data-map-impact-kind")),
+  );
+  const priority = ["planned-closure", "reduced-speed-zone", "delay", "suspension"];
+  expect(orderedKinds.map((kind) => priority.indexOf(kind!))).toEqual(
+    orderedKinds.map((kind) => priority.indexOf(kind!)).sort((a, b) => a - b),
+  );
+  await expect(page.locator("[data-secondary-overlap-kind]")).toHaveCount(0);
+  await expect(page.locator("[data-overlap-chooser]")).toHaveCount(0);
+  await expect(page.locator('[data-ttc-impact-hovered="true"]')).toHaveCount(0);
+  await page.screenshot({ path: `/tmp/linewatch-hierarchy-${isMobile ? "mobile" : "desktop"}.png` });
+  if (!isMobile) {
+    await setStubMode(request, "regional-live");
+    await page.getByRole("group", { name: "Select transit network" })
+      .getByRole("button", { name: "GO/UP", exact: true }).click();
+    await expect(page.locator(".regional-map .regional-overlay-segment-group").first()).toBeAttached();
+    await expect(page.locator("[data-secondary-overlap-kind]")).toHaveCount(0);
+    await page.screenshot({ path: "/tmp/linewatch-hierarchy-regional.png" });
+  }
+});
+
+for (const network of ["TTC", "GO/UP"] as const) {
+  test(`${network} chooser preserves the group preview and previews mouse and keyboard choices`, async ({ page, request, isMobile }) => {
+    test.skip(isMobile && network === "GO/UP", "Desktop network selector coverage");
+    await setStubMode(request, "regional-live");
+    await installDismissedTransientUi(page);
+    await page.setViewportSize(isMobile ? { width: 360, height: 800 } : { width: 1440, height: 900 });
+    await page.goto("/");
+    if (network === "GO/UP") {
+      await page.getByRole("group", { name: "Select transit network" })
+        .getByRole("button", { name: network, exact: true }).click();
+    }
+    const marker = network === "TTC"
+      ? page.locator('[data-overlap-segment-id="stub-line-1-segment"]')
+      : page.getByRole("button", { name: /Overlapping alerts: Delay x2 on Union to Niagara Falls/ });
+    await expect(marker).toBeVisible();
+    await marker.dispatchEvent("click");
+    const chooser = page.locator("[data-overlap-chooser]");
+    const choices = chooser.locator(".overlap-chooser-choice");
+    await expect(choices.first()).toBeFocused();
+    const identities = await choices.evaluateAll((elements) => elements.map((element) =>
+      `${element.getAttribute("data-overlap-choice-kind")}:${element.getAttribute("data-overlap-choice-id")}`,
+    ).sort());
+    const previewedIdentities = () => page.locator(network === "TTC"
+      ? '[data-ttc-impact-hovered="true"]'
+      : '.regional-impact-hover-foreground[data-regional-impact-hovered="true"]',
+    ).evaluateAll((elements, network) => [...new Set(elements.map((element) =>
+      network === "TTC"
+        ? `${element.getAttribute("data-ttc-hover-impact-kind")}:${element.getAttribute("data-ttc-hover-impact-id")}`
+        : `${element.getAttribute("data-regional-hover-impact-kind")}:${element.getAttribute("data-regional-hover-impact-id")}`,
+    ))].sort(), network);
+    await expect.poll(previewedIdentities).toEqual(identities);
+    if (isMobile) {
+      await choices.nth(1).click();
+      await expect(chooser).toHaveCount(0);
+      return;
+    }
+    await choices.nth(1).hover();
+    const secondIdentity = await choices.nth(1).evaluate((element) =>
+      `${element.getAttribute("data-overlap-choice-kind")}:${element.getAttribute("data-overlap-choice-id")}`,
+    );
+    await expect.poll(previewedIdentities).toEqual([secondIdentity]);
+    await chooser.getByRole("button", { name: "Close alert chooser" }).hover();
+    await expect.poll(previewedIdentities).toEqual(identities);
+    await page.keyboard.press("Tab");
+    await expect(choices.nth(1)).toBeFocused();
+    await expect.poll(previewedIdentities).toEqual([secondIdentity]);
+    await page.keyboard.press("Enter");
+    await expect(chooser).toHaveCount(0);
+  });
+}
+
+for (const network of ["TTC", "GO/UP"] as const) {
+  for (const reducedMotion of [false, true]) {
+    test(`${network} chooser opens and closes with ${reducedMotion ? "reduced" : "simple"} motion`, async ({ page, request, isMobile }) => {
+      test.skip(isMobile, "Desktop network selector coverage");
+      await setStubMode(request, "regional-live");
+      await installDismissedTransientUi(page);
+      await page.emulateMedia({ reducedMotion: reducedMotion ? "reduce" : "no-preference" });
+      await page.addInitScript(() => {
+        const animate = Element.prototype.animate;
+        Element.prototype.animate = function (frames, options) {
+          const animation = animate.call(this, frames, options);
+          if (this instanceof HTMLElement && this.matches("[data-overlap-chooser]")) {
+            const effect = animation.effect as KeyframeEffect;
+            this.dataset.animationProperties = [...new Set(effect.getKeyframes().flatMap((frame) =>
+              Object.keys(frame).filter((key) => !["offset", "computedOffset", "easing", "composite"].includes(key)),
+            ))].sort().join(",");
+            this.dataset.animationDuration = String(effect.getTiming().duration);
+          }
+          return animation;
+        };
+      });
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto("/");
+      if (network === "GO/UP") {
+        await page.getByRole("group", { name: "Select transit network" })
+          .getByRole("button", { name: network, exact: true }).click();
+      }
+      const marker = network === "TTC"
+        ? page.locator('[data-overlap-segment-id="stub-line-1-segment"]')
+        : page.getByRole("button", { name: /Overlapping alerts: Delay x2 on Union to Niagara Falls/ });
+      await expect(marker).toBeVisible();
+      await marker.dispatchEvent("click");
+      const chooser = page.locator("[data-overlap-chooser]");
+      await expect(chooser).toBeVisible();
+      await expect(chooser.locator(".overlap-chooser-choice").first()).toBeFocused();
+      if (reducedMotion) {
+        await expect(chooser).not.toHaveAttribute("data-animation-properties");
+      } else {
+        await expect(chooser).toHaveAttribute("data-animation-properties", "opacity,transform");
+        await expect(chooser).toHaveAttribute("data-animation-duration", "140");
+        await expect.poll(() => chooser.evaluate((element) => element.getAnimations().length)).toBe(0);
+      }
+      await page.keyboard.press("Escape");
+      if (!reducedMotion) {
+        await expect(chooser).toHaveAttribute("data-animation-duration", "100");
+      }
+      await expect(chooser).toHaveCount(0);
+      await expect(network === "TTC" ? marker.getByRole("button") : marker).toBeFocused();
+    });
+  }
+}
 
 async function expectGlyphInsideBadge(badge: Locator) {
   await expect(badge).toBeVisible();
@@ -237,3 +369,55 @@ test("nav badges are visibly centered for single and multi-digit counts (1, 2, 9
   }
 });
 
+
+for (const width of [1440, 1024]) {
+  test(`alert chooser clears the open desktop sidebar at ${width}px`, async ({ page, request, isMobile }) => {
+    test.skip(isMobile, "Desktop sidebar coverage");
+    await setStubMode(request, "seeded");
+    await installDismissedTransientUi(page);
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    const sidebar = page.locator("#desktop-sidebar-container");
+    await expect(sidebar).toBeVisible();
+    const marker = page.locator('[data-overlap-segment-id="stub-line-1-segment"]');
+    await expect(marker).toBeVisible();
+    await marker.dispatchEvent("click");
+    const chooser = page.locator("[data-overlap-chooser]");
+    await expect(chooser).toBeVisible();
+    const expectClearSidebar = async () => {
+      await expect.poll(async () => {
+        const panelBox = await sidebar.boundingBox();
+        const chooserBox = await chooser.boundingBox();
+        return Boolean(panelBox && chooserBox
+          && chooserBox.x >= panelBox.x + panelBox.width + 7
+          && chooserBox.x + chooserBox.width <= width);
+      }).toBe(true);
+    };
+    await expectClearSidebar();
+    await page.getByRole("button", { name: "Collapse sidebar", exact: true }).click();
+    await expect(sidebar).toHaveAttribute("aria-hidden", "true");
+    await expect(chooser).toBeVisible();
+    await page.getByRole("button", { name: "Expand sidebar", exact: true }).click();
+    await expectClearSidebar();
+    await chooser.getByRole("button", { name: "Close alert chooser" }).click();
+    await expect(chooser).toHaveCount(0);
+  });
+}
+
+test("alert chooser stays within the compact phone viewport", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await installDismissedTransientUi(page);
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/");
+  const marker = page.locator('[data-overlap-segment-id="stub-line-1-segment"]');
+  await expect(marker).toBeVisible();
+  await marker.dispatchEvent("click");
+  const chooser = page.locator("[data-overlap-chooser]");
+  await expect(chooser).toBeVisible();
+  await expect.poll(async () => {
+    const box = await chooser.boundingBox();
+    return Boolean(box && box.x >= 0 && box.x + box.width <= 360);
+  }).toBe(true);
+  await chooser.getByRole("button", { name: "Close alert chooser" }).click();
+  await expect(chooser).toHaveCount(0);
+});

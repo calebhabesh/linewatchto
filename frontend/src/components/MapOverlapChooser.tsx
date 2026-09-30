@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useEffect,
   useLayoutEffect,
   useRef,
   type PointerEvent,
@@ -92,6 +91,7 @@ export function MapOverlapChooser({
   const data = useDashboardData();
   const surfaceRef = useRef<HTMLDivElement>(null);
   const firstChoiceRef = useRef<HTMLButtonElement>(null);
+  const initialFocusPendingRef = useRef(true);
   const closingRef = useRef(false);
   const isRotated = viewportOrientation === "rotated-landscape";
   const { scrollContainerProps } = useRotatedListDragScroll(isRotated);
@@ -121,72 +121,34 @@ export function MapOverlapChooser({
         maxHeight: chooserSize.height,
       };
 
-  const animatedEntranceRef = useRef(false);
-
-  useEffect(() => () => onHoverImpact(null), [onHoverImpact]);
-
   useLayoutEffect(() => {
-    const focusFrame = window.requestAnimationFrame(() =>
-      firstChoiceRef.current?.focus({ preventScroll: true }));
-    if (reducedMotion || animatedEntranceRef.current) {
-      return () => window.cancelAnimationFrame(focusFrame);
-    }
-    animatedEntranceRef.current = true;
-    const targetX = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetX;
-    const targetY = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetY;
-    surfaceRef.current?.animate([
-      {
-        borderRadius: "999px",
-        opacity: 0,
-        transform: `translate(${targetX}px, ${targetY}px) scale(0.08)`,
-      },
-      {
-        borderRadius: "28px",
-        opacity: 0.85,
-        offset: 0.6,
-        transform: `translate(${Math.round(targetX * 0.38)}px, ${Math.round(targetY * 0.38)}px) scale(0.68)`,
-      },
-      {
-        borderRadius: "16px",
-        opacity: 1,
-        transform: "translate(0px, 0px) scale(1)",
-      },
+    const focusFrame = window.requestAnimationFrame(() => {
+      firstChoiceRef.current?.focus({ preventScroll: true });
+      initialFocusPendingRef.current = false;
+    });
+    const animation = reducedMotion ? undefined : surfaceRef.current?.animate([
+      { opacity: 0, transform: "scale(0.98)" },
+      { opacity: 1, transform: "scale(1)" },
     ], {
-      duration: compactMotion ? 190 : 230,
-      easing: "cubic-bezier(0.35, 0.9, 0.65, 1)",
-      fill: "both",
+      duration: compactMotion ? 100 : 140,
+      easing: "ease-out",
     });
     return () => {
       window.cancelAnimationFrame(focusFrame);
+      animation?.cancel();
     };
-  }, [compactMotion, layout.anchorOffsetX, layout.anchorOffsetY, reducedMotion, viewportOrientation]);
+  }, [compactMotion, reducedMotion]);
 
   const close = async (restoreFocus: boolean) => {
     if (closingRef.current) return;
     closingRef.current = true;
     if (!reducedMotion) {
-      const targetX = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetX;
-      const targetY = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetY;
       const animation = surfaceRef.current?.animate([
-        {
-          borderRadius: "16px",
-          opacity: 1,
-          transform: "translate(0px, 0px) scale(1)",
-        },
-        {
-          borderRadius: "28px",
-          opacity: 0.85,
-          offset: 0.4,
-          transform: `translate(${Math.round(targetX * 0.38)}px, ${Math.round(targetY * 0.38)}px) scale(0.68)`,
-        },
-        {
-          borderRadius: "999px",
-          opacity: 0,
-          transform: `translate(${targetX}px, ${targetY}px) scale(0.08)`,
-        },
+        { opacity: 1, transform: "scale(1)" },
+        { opacity: 0, transform: "scale(0.98)" },
       ], {
-        duration: compactMotion ? 190 : 230,
-        easing: "cubic-bezier(0.35, 0, 0.65, 0.1)",
+        duration: compactMotion ? 70 : 100,
+        easing: "ease-in",
         fill: "forwards",
       });
       try {
@@ -251,6 +213,12 @@ export function MapOverlapChooser({
                   if (event.pointerType !== "mouse") return;
                   onHoverImpact(null);
                 }}
+                onFocus={(event) => {
+                  if (!initialFocusPendingRef.current && event.currentTarget.matches(":focus-visible")) {
+                    onHoverImpact(impact);
+                  }
+                }}
+                onBlur={() => onHoverImpact(null)}
                 onClick={() => {
                   onHoverImpact(null);
                   onClose(false);

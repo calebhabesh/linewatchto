@@ -773,7 +773,7 @@ export function projectImpactedLinks(
       }
     }
 
-    // Pick highest-priority impact: suspension > delay > planned-closure > reduced-speed-zone
+    // Pick highest-priority impact: suspension > delay > reduced-speed-zone > planned-closure
     let primary = uniqueImpacts[0];
     for (let i = 1; i < uniqueImpacts.length; i++) {
       if (getImpactPriority(uniqueImpacts[i].kind) > getImpactPriority(primary.kind)) {

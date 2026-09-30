@@ -30,7 +30,7 @@ describe("desktop overlap badge hover", () => {
     assert.match(overlapIndicatorSource, /onBlur=\{\(\) => onHoverChange\?\.\(false\)\}/);
   });
 
-  it("drops the group highlight when the badge opens its alert chooser", () => {
+  it("clears transient badge hover before handing preview ownership to the chooser", () => {
     assert.match(
       overlapIndicatorSource,
       /const activate = \(\) => \{\s*onHoverChange\?\.\(false\);\s*onActivate\(\);\s*\}/,
@@ -41,9 +41,5 @@ describe("desktop overlap badge hover", () => {
       /if \(!open && window\.matchMedia\("\(hover: hover\) and \(pointer: fine\)"\)\.matches/,
     );
     assert.match(mapSource, /clearMapHover\(\);\s*setExpandedOverlapBadgeId\(badge\.segmentId\)/);
-    assert.doesNotMatch(
-      mapSource,
-      /className=\{`overlap-chooser-choice \$\{impact\.kind\}`\}[\s\S]*?onFocus=\{\(\) => onHoverImpact\(impact\)\}/,
-    );
   });
 });

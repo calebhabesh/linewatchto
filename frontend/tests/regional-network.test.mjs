@@ -753,7 +753,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalGeometrySource, /function continuousRegionalOverlayRunPath\(/);
     assert.match(regionalOverlaysSource, /continuousRegionalOverlayRunPath\(documentNode, run\) \?\? run\.pathD/);
     assert.match(regionalOverlaysSource, /regionalImpactPriority\(left\.impact\.kind\) - regionalImpactPriority\(right\.impact\.kind\)/);
-    assert.match(regionalOverlaysSource, /case "reduced-speed-zone":\s*return 0;[\s\S]*case "planned-closure":\s*return 1;[\s\S]*case "delay":\s*return 2;[\s\S]*case "suspension":\s*return 3;/);
+    assert.match(regionalOverlaysSource, /case "planned-closure":\s*return 0;[\s\S]*case "reduced-speed-zone":\s*return 1;[\s\S]*case "delay":\s*return 2;[\s\S]*case "suspension":\s*return 3;/);
     assert.match(regionalOverlaysSource, /const corridorWideAlerts = (?:data\.)?activeAlerts[\s\S]*regionalImpactPriority\(leftKind\) - regionalImpactPriority\(rightKind\)/);
     assert.match(regionalOverlaysSource, /`\$\{REGIONAL_IMPACT_OVERLAY_WIDTH\}px`/);
     assert.doesNotMatch(regionalOverlaysSource, /REGIONAL_IMPACT_OVERLAY_WIDTH - layerIndex/);

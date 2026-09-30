@@ -108,11 +108,11 @@ test("Session 2: Shared pure semantic alert selector", async (t) => {
     assert.equal(eligiblePlannedClosures[0].id, "closure-active-1");
   });
 
-  await t.test("priority ordering follows suspension > delay > planned-closure > RSZ", () => {
+  await t.test("priority ordering follows suspension > delay > RSZ > planned-closure", () => {
     assert.ok(getImpactPriority("suspension") > getImpactPriority("delay"));
     assert.ok(getImpactPriority("delay") > getImpactPriority("planned-closure"));
-    assert.ok(getImpactPriority("planned-closure") > getImpactPriority("reduced-speed-zone"));
-    assert.ok(getImpactPriority("reduced-speed-zone") > getImpactPriority("clear"));
+    assert.ok(getImpactPriority("reduced-speed-zone") > getImpactPriority("planned-closure"));
+    assert.ok(getImpactPriority("planned-closure") > getImpactPriority("clear"));
   });
 
   await t.test("normalizes active closure segment impacts to suspensions pointing to active alert", () => {
@@ -318,9 +318,9 @@ test("Session 2: Overlap hierarchy, stroke layering & secondary selection", asyn
     assert.equal(b4.features[0].properties.visualItemCount, 4);
     assert.equal(b4.features[0].properties.slot0_kind, "suspension");
     assert.equal(b4.features[0].properties.slot1_kind, "delay");
-    assert.equal(b4.features[0].properties.slot2_kind, "planned-closure");
+    assert.equal(b4.features[0].properties.slot2_kind, "reduced-speed-zone");
     assert.equal(b4.features[0].properties.slot3_kind, "more");
-    assert.equal(b4.features[0].properties.slot3_count, 1); // +1 remaining (RSZ)
+    assert.equal(b4.features[0].properties.slot3_count, 1); // +1 remaining (planned advisory)
     assert.equal(b4.features[0].properties.allCardIds.length, 4);
   });
 

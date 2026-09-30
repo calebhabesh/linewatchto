@@ -3661,7 +3661,7 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   const overlapMarkerBox = await overlapMarker.boundingBox();
 
   await overlapMarker.dispatchEvent("click");
-  await expect(page.locator("[data-hover-priority-impact]")).toHaveCount(0);
+  await expect.poll(() => page.locator("[data-hover-priority-impact]").count()).toBeGreaterThan(0);
   const overlapChooser = page.locator("[data-overlap-chooser]");
   await expect.poll(async () => overlapChooser.evaluate((element) =>
     element.getAnimations().some((animation) => animation.playState === "running"),

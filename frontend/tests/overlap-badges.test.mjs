@@ -799,8 +799,8 @@ describe("map overlap badge grouping", () => {
 
     assert.deepEqual(counts, [
       { kind: "delay", count: 2 },
-      { kind: "planned-closure", count: 1 },
       { kind: "reduced-speed-zone", count: 1 },
+      { kind: "planned-closure", count: 1 },
     ]);
   });
 

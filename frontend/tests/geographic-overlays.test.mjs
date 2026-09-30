@@ -105,7 +105,7 @@ describe("geographic overlays: live disruption & alert projection", () => {
   it("maintains canonical impact priority order", () => {
     assert.ok(getImpactPriority("suspension") > getImpactPriority("delay"));
     assert.ok(getImpactPriority("delay") > getImpactPriority("planned-closure"));
-    assert.ok(getImpactPriority("planned-closure") > getImpactPriority("reduced-speed-zone"));
+    assert.ok(getImpactPriority("reduced-speed-zone") > getImpactPriority("planned-closure"));
   });
 
   it("returns canonical impact colors matching network styling", () => {

@@ -59,7 +59,6 @@
   padding: 12px;
   pointer-events: auto;
   transform-origin: center;
-  will-change: transform, opacity;
   backface-visibility: hidden;
   width: 100%;
 }

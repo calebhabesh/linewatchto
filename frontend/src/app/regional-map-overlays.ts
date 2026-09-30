@@ -189,9 +189,9 @@ export function regionalImpactVisualState(kind: ImpactKind) {
 
 export function regionalImpactPriority(kind: ImpactKind) {
   switch (kind) {
-    case "reduced-speed-zone":
-      return 0;
     case "planned-closure":
+      return 0;
+    case "reduced-speed-zone":
       return 1;
     case "delay":
       return 2;

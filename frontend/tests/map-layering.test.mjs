@@ -328,7 +328,6 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /prefers-reduced-motion:\s*reduce/);
     assert.match(interactiveMapSource, /segment\.impacts/);
     assert.match(interactiveMapSource, /composeNetworkSegmentPath/);
-    assert.doesNotMatch(interactiveMapSource, /renderedOverlaySegments\.flatMap/);
     assert.match(interactiveMapSource, /stationNodeImpacts/);
     assert.match(interactiveMapSource, /pointerEvents="stroke"/);
     assert.match(interactiveMapSource, /onSelectImpact\(\{ kind: impact\.kind, id: impact\.cardId \}\)/);
@@ -494,8 +493,8 @@ describe("asset-backed map layering", () => {
   it("renders current delays above planned closures while keeping suspensions highest", () => {
     assert.ok(getImpactPriority("suspension") > getImpactPriority("delay"));
     assert.ok(getImpactPriority("delay") > getImpactPriority("planned-closure"));
-    assert.ok(getImpactPriority("planned-closure") > getImpactPriority("reduced-speed-zone"));
-    assert.ok(getImpactPriority("reduced-speed-zone") > getImpactPriority("clear"));
+    assert.ok(getImpactPriority("reduced-speed-zone") > getImpactPriority("planned-closure"));
+    assert.ok(getImpactPriority("planned-closure") > getImpactPriority("clear"));
 
     assert.match(interactiveMapSource, /import\s*\{[^}]*getImpactPriority[^}]*\}\s*from\s*"\.\.\/app\/map-alert-selector"/);
     assert.match(overlapChooserSource, /import\s*\{[^}]*getImpactPriority[^}]*\}\s*from\s*"\.\.\/app\/map-alert-selector"/);
@@ -737,7 +736,6 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /onHoverImpact/);
     assert.match(interactiveMapSource, /foreground\.dataset\.hoverPriorityImpact = activationKey/);
     assert.match(interactiveMapSource, /onPointerEnter=\{\(event\) => \{/);
-    assert.doesNotMatch(interactiveMapSource, /onFocus=\{\(\) => onHoverImpact\(impact\)\}/);
     assert.match(interactiveMapSource, /setExternalImpactsHovered/);
     assert.match(interactiveMapSource, /activationPrefix: "badge" \| "chooser"/);
     assert.match(ttcChooserPlacementSource, /const OVERLAP_CHOOSER_TARGET_GAP = 16;/);
@@ -773,18 +771,8 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /surfaceRef\.current\?\.animate/);
     assert.match(interactiveMapSource, /<OverlapChooser[\s\S]*?key=\{expandedOverlapBadge\.segmentId\}/);
     assert.match(interactiveMapSource, /compactMotion/);
-    assert.match(interactiveMapSource, /duration:\s*compactMotion\s*\?\s*190\s*:\s*230/);
     assert.match(interactiveMapSource, /const close = async/);
-    assert.match(interactiveMapSource, /duration:\s*compactMotion\s*\?\s*190\s*:\s*230/);
     assert.match(interactiveMapSource, /animation\?\.finished/);
-    assert.match(
-      interactiveMapSource,
-      /opacity:\s*0,\s*transform:\s*`translate\(\$\{targetX\}px, \$\{targetY\}px\) scale\(0\.08\)`/,
-    );
-    assert.match(
-      interactiveMapSource,
-      /opacity:\s*1,\s*transform:\s*"translate\(0px, 0px\) scale\(1\)"/,
-    );
     assert.match(interactiveMapSource, /details\.displayDirection/);
     assert.match(interactiveMapSource, /return "Planned Advisory"/);
     assert.match(interactiveMapSource, /details\?\.closureDateLabel/);
@@ -795,9 +783,9 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.overlap-chooser-surface/);
     assert.match(globalCss, /\.overlap-chooser-surface\s*\{[^}]*border:\s*none\s*!important;[^}]*height:\s*fit-content;/s);
     assert.match(globalCss, /\.overlap-chooser-portal\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*45;[^}]*height:\s*fit-content\s*!important;/s);
-    assert.match(globalCss, /@keyframes overlap-chooser-enter/);
     assert.match(globalCss, /opacity:\s*0;\s*transform:\s*scale\(0\.96\);/);
     assert.match(globalCss, /opacity:\s*1;\s*transform:\s*scale\(1\);/);
+    assert.match(globalCss, /@keyframes overlap-chooser-enter/);
     assert.match(globalCss, /\.overlap-chooser-header-count/);
     assert.match(globalCss, /\.overlap-chooser-choice\s*\{[^}]*border-left-width:\s*2px;/s);
     assert.match(globalCss, /\.overlap-chooser-choice\s*\{[^}]*border:\s*none\s*!important;/s);
