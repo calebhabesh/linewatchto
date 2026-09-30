@@ -92,10 +92,10 @@ test("prepares regional map SVG with dynamic layers, planned station layer, and 
   const regionalMap = page.getByRole("region", { name: "Interactive GO and UP map" });
   // The regional component is loaded on demand and can mount slowly in WebKit.
   await expect(regionalMap).toBeVisible({ timeout: 30_000 });
+  const regionalSvg = regionalMap.locator('svg[aria-label="GO and UP regional rail schematic"]');
+  await expect(regionalSvg).toBeAttached({ timeout: 30_000 });
 
-  const layerInventory = await page.evaluate(() => {
-    const svg = document.querySelector('svg[aria-label="GO and UP regional rail schematic"]');
-    if (!svg) return null;
+  const layerInventory = await regionalSvg.evaluate((svg) => {
 
     const plannedStationLayer = svg.querySelector("#regional-dynamic-planned-station-layer");
     const segmentLayer = svg.querySelector("#regional-dynamic-segment-layer");
