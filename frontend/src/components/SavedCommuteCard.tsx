@@ -1,4 +1,5 @@
 "use client";
+import { IncidentStationSpan } from "./IncidentStationSpan";
 
 import type { CSSProperties, ReactNode } from "react";
 import {
@@ -272,8 +273,10 @@ export const IMPACT_KIND_ORDER: AccountMatchedImpact["kind"][] = [
 ];
 
 export function impactKindCountLabel(kind: AccountMatchedImpact["kind"], count: number) {
-  const label = impactKindLabel(kind);
-  return `${count} ${label}${count === 1 ? "" : "s"}`;
+  const label = count !== 1 && kind === "planned-closure"
+    ? "Planned Advisories"
+    : `${impactKindLabel(kind)}${count === 1 ? "" : "s"}`;
+  return `${count} ${label}`;
 }
 
 export function summarizeMatchedImpacts(impacts: AccountMatchedImpact[]) {
@@ -534,7 +537,7 @@ export function SavedCommuteCard({
             </div>
             <span className="text-slate-600 dark:text-slate-400">
               {toTitleCase(impactLineLabel(impact))}
-              {impact.location ? `: ${toTitleCase(impact.location)}` : ""}
+              {impact.location ? <>: <IncidentStationSpan location={toTitleCase(impact.location)} /></> : null}
               {impact.displayDirection ? ` (${toTitleCase(impact.displayDirection)})` : ""}
             </span>
           </div>

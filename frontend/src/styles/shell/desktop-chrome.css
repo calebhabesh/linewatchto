@@ -3000,6 +3000,7 @@
 
 .desktop-status-sub-badges {
   align-items: center;
+  container-type: inline-size;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -3058,14 +3059,14 @@
   color: #1d4ed8;
   display: inline-flex;
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: clamp(11.5px, 3.8cqi, 12px);
   font-weight: 600;
   gap: 3.5px;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.015em;
   line-height: 1.2;
   margin-left: 0;
-  min-height: 20px;
-  padding: 2.5px 7.5px 2.5px 6.5px;
+  min-height: 24px;
+  padding: 3px 5px;
   white-space: nowrap;
 }
 
@@ -3077,7 +3078,9 @@
 
 .desktop-status-planned-pill svg {
   flex-shrink: 0;
+  height: 12px;
   opacity: 0.9;
+  width: 12px;
 }
 
 .desktop-status-rsz-pill {
@@ -3089,14 +3092,14 @@
   color: #b45309;
   display: inline-flex;
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: clamp(11.5px, 3.8cqi, 12px);
   font-weight: 600;
   gap: 3.5px;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.015em;
   line-height: 1.2;
   margin-left: 0;
-  min-height: 20px;
-  padding: 2.5px 7.5px 2.5px 6.5px;
+  min-height: 24px;
+  padding: 3px 5px;
   white-space: nowrap;
 }
 
@@ -3108,7 +3111,17 @@
 
 .desktop-status-rsz-pill svg {
   flex-shrink: 0;
+  height: 12px;
   opacity: 0.85;
+  width: 12px;
+}
+
+@container (max-width: 320px) {
+  .desktop-status-planned-pill,
+  .desktop-status-rsz-pill {
+    gap: 2px;
+    padding-inline: 3px;
+  }
 }
 
 .desktop-status-remaining-list {

@@ -34,6 +34,43 @@ test("default map hierarchy preserves effect priority without extra outlines", a
 });
 
 for (const network of ["TTC", "GO/UP"] as const) {
+  for (const closeAction of ["close button", "Escape"] as const) {
+    test(`${network} chooser clears hover outlines after closing with ${closeAction}`, async ({ page, request, isMobile }) => {
+      test.skip(isMobile, "Mouse hover requires a desktop pointer");
+      await setStubMode(request, "regional-live");
+      await installDismissedTransientUi(page);
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto("/");
+      if (network === "GO/UP") {
+        await page.getByRole("group", { name: "Select transit network" })
+          .getByRole("button", { name: network, exact: true }).click();
+      }
+      const marker = network === "TTC"
+        ? page.locator('[data-overlap-segment-id="stub-line-1-segment"]').getByRole("button")
+        : page.getByRole("button", { name: /Overlapping alerts: Delay x2 on Union to Niagara Falls/ });
+      await marker.dispatchEvent("click");
+      const chooser = page.locator("[data-overlap-chooser]");
+      const previews = page.locator(network === "TTC"
+        ? '[data-ttc-impact-hovered="true"]'
+        : '.regional-impact-hover-foreground[data-regional-impact-hovered="true"]');
+      await expect(chooser.locator(".overlap-chooser-choice").first()).toBeFocused();
+      await chooser.locator(".overlap-chooser-choice").nth(1).hover();
+      await expect(previews.first()).toBeAttached();
+      if (closeAction === "Escape") {
+        await page.keyboard.press("Escape");
+      } else {
+        await chooser.getByRole("button", { name: "Close alert chooser" }).click();
+      }
+      await expect(chooser).toHaveCount(0);
+      await expect(marker).toBeFocused();
+      await expect(previews).toHaveCount(0);
+      // A subsequent user focus should still preview the group normally.
+      await marker.evaluate((element) => (element as SVGGElement).blur());
+      await marker.focus();
+      await expect(previews.first()).toBeAttached();
+    });
+  }
+
   test(`${network} chooser preserves the group preview and previews mouse and keyboard choices`, async ({ page, request, isMobile }) => {
     test.skip(isMobile && network === "GO/UP", "Desktop network selector coverage");
     await setStubMode(request, "regional-live");
@@ -420,4 +457,119 @@ test("alert chooser stays within the compact phone viewport", async ({ page, req
   }).toBe(true);
   await chooser.getByRole("button", { name: "Close alert chooser" }).click();
   await expect(chooser).toHaveCount(0);
+});
+
+for (const network of ["TTC", "GO/UP"] as const) {
+  test(`${network} alert chooser survives panning and menu navigation but dismisses on map selection`, async ({ page, request, isMobile }) => {
+    test.skip(isMobile && network === "GO/UP", "Desktop network selector coverage");
+    await setStubMode(request, network === "TTC" ? "seeded" : "regional-live");
+    await installDismissedTransientUi(page);
+    await page.setViewportSize(isMobile ? { width: 360, height: 800 } : { width: 1440, height: 900 });
+    await page.goto(openMapPreviewUrl);
+    if (network === "GO/UP") {
+      await page.getByRole("group", { name: "Select transit network" })
+        .getByRole("button", { name: network, exact: true }).click();
+    }
+    const marker = network === "TTC"
+      ? page.locator('[data-overlap-segment-id="stub-line-1-segment"]')
+      : page.getByRole("button", { name: /Overlapping alerts: Delay x2 on Union to Niagara Falls/ });
+    const chooser = page.locator("[data-overlap-chooser]");
+    const outsideControl = page.getByRole("button", { name: "Center map view", exact: true });
+    await marker.dispatchEvent("click");
+    await expect(chooser.locator(".overlap-chooser-choice").first()).toBeFocused();
+    await outsideControl.focus();
+    await expect(chooser).toBeVisible();
+    await expect(outsideControl).toBeFocused();
+
+    const viewport = page.locator(network === "TTC" ? '[data-map-pan-zoom-viewport]' : '.regional-map-viewport');
+    const stage = viewport.locator(network === "TTC" ? '.ttc-map-stage' : '.regional-map-stage');
+    const before = await stage.getAttribute("style");
+    await viewport.dispatchEvent("pointerdown", { pointerId: 45, pointerType: "mouse", button: 0, clientX: 200, clientY: 200 });
+    await viewport.dispatchEvent("pointermove", { pointerId: 45, pointerType: "mouse", buttons: 1, clientX: 240, clientY: 230 });
+    await viewport.dispatchEvent("pointerup", { pointerId: 45, pointerType: "mouse", button: 0, clientX: 240, clientY: 230 });
+    await expect.poll(() => stage.getAttribute("style")).not.toBe(before);
+    await expect(chooser).toBeVisible();
+
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await expect(chooser).toBeVisible();
+    if (isMobile) {
+      await page.getByRole("button", { name: "Map", exact: true }).click();
+    } else {
+      await page.locator('[data-dest="status"]').click();
+    }
+    const target = network === "TTC"
+      ? page.locator('.map-segment-hit-target').first()
+      : page.locator('.regional-station-hit-target[data-regional-station-id="weston"]');
+    await target.press("Enter");
+    await expect(chooser).toHaveCount(0);
+  });
+}
+
+test("planned chooser distinguishes closure and limited service with readable dates and joined arrows", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await installDismissedTransientUi(page);
+  await page.setViewportSize({ width: isMobile ? 360 : 1440, height: 900 });
+  await page.route("**/api/dashboard?network=ttc", async (route) => {
+    const response = await route.fetch();
+    const payload = await response.json();
+    payload.plannedClosures = ["suspension", "limited-service"].map((serviceEffect, index) => ({
+      ...payload.plannedClosures.find((closure: { activeNow: boolean }) => !closure.activeNow),
+      id: `stub-upcoming-advisory-${index}`,
+      serviceEffect,
+      location: "St Clair West < - > Cedarvale",
+    }));
+    await route.fulfill({ response, json: payload });
+  });
+  await page.goto(openMapPreviewUrl);
+  await page.locator('[data-overlap-segment-id="stub-line-1-segment"]').dispatchEvent("click");
+  const chooser = page.locator("[data-overlap-chooser]");
+  const planned = chooser.locator('[data-overlap-choice-kind="planned-closure"]');
+  await expect(planned.locator(".overlap-chooser-choice-effect")).toHaveText([" · Closure", " · Limited Service"]);
+  for (const choice of await planned.all()) {
+    const heading = await choice.locator("strong").evaluate((element) => {
+      const style = getComputedStyle(element);
+      const effect = getComputedStyle(element.querySelector(".overlap-chooser-choice-effect")!);
+      return {
+        fontSize: style.fontSize,
+        effectFontSize: effect.fontSize,
+        fontWeight: style.fontWeight,
+        effectFontWeight: effect.fontWeight,
+        height: element.getBoundingClientRect().height,
+        lineHeight: parseFloat(style.lineHeight),
+        width: element.getBoundingClientRect().width,
+        availableWidth: element.parentElement!.clientWidth,
+      };
+    });
+    expect(heading.effectFontSize).toBe(heading.fontSize);
+    expect(heading.effectFontWeight).toBe(heading.fontWeight);
+    expect(heading.height).toBeLessThan(heading.lineHeight * 1.5);
+    expect(heading.width).toBeLessThanOrEqual(heading.availableWidth + 1);
+  }
+  await expect(planned.first().locator(".overlap-chooser-choice-date")).toBeVisible();
+  expect(await planned.first().locator(".overlap-chooser-choice-date").evaluate((element) =>
+    parseFloat(getComputedStyle(element).fontSize),
+  )).toBeGreaterThanOrEqual(12);
+  await expect(planned.first().locator(".overlap-chooser-choice-location svg")).toBeVisible();
+  await expect(planned.first()).not.toContainText("< - >");
+  await planned.last().scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `/tmp/linewatch-chooser-polish-${isMobile ? "mobile" : "desktop"}.png` });
+});
+
+test("focusing a TTC impact preserves the hit widths of other overlays", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await installDismissedTransientUi(page);
+  await page.setViewportSize({ width: isMobile ? 360 : 1440, height: 900 });
+  await page.goto(openMapPreviewUrl);
+  const targets = page.locator('[aria-label="Disruption overlay interaction targets"] [data-overlay-interaction-target]');
+  await expect(targets.first()).toBeAttached();
+  const widths = () => targets.evaluateAll(elements => Object.fromEntries(elements.map(element => [
+    element.getAttribute("data-overlay-interaction-target"), getComputedStyle(element).strokeWidth,
+  ])));
+  const before = await widths();
+  await targets.first().dispatchEvent("click");
+  await expect(page.locator('[data-selected-impact-emphasis]').first()).toBeAttached();
+  const after = await widths();
+  for (const [id, width] of Object.entries(before)) {
+    if (id in after) expect(after[id], `Hit width for ${id}`).toBe(width);
+  }
 });

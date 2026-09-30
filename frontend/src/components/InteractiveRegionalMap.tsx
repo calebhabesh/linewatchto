@@ -66,7 +66,7 @@ import type { MapBounds, MapPoint } from "../app/map-geometry";
 type SvgPoint = MapPoint;
 type SvgBounds = MapBounds;
 
-import { MapOverlapIndicator } from "./MapOverlapIndicator";
+import { MapOverlapIndicator, restoreMapOverlapIndicatorFocus } from "./MapOverlapIndicator";
 import {
   MapOverlapChooser,
   type MapOverlapChooserLayout,
@@ -1799,7 +1799,7 @@ function InteractiveRegionalMapComponent({
     const compact = logicalViewportSize.width <= 640;
     const width = Math.max(
       240,
-      Math.min(compact ? 280 : 360, logicalViewportSize.width - 32),
+      Math.min(compact ? 376 : 420, logicalViewportSize.width - (compact ? 24 : 32)),
     );
     const height = compact
       ? Math.min(380, 56 + badge.impacts.length * 64)
@@ -1921,7 +1921,7 @@ function InteractiveRegionalMapComponent({
     if (!restoreFocus || !markerId) return;
     window.requestAnimationFrame(() => {
       const viewport = viewportRef.current;
-      if (viewport) regionalOverlapMarker(viewport, markerId)?.focus();
+      if (viewport) restoreMapOverlapIndicatorFocus(regionalOverlapMarker(viewport, markerId));
     });
   }, [closeRegionalOverlapChooser, expandedOverlapBadge]);
 
@@ -1948,7 +1948,6 @@ function InteractiveRegionalMapComponent({
             return;
           }
           if (dragMovedRef.current) return;
-          if (expandedOverlapBadgeId) closeRegionalOverlapChooser();
           activateTarget(event.target);
         }}
         onKeyDown={onKeyDown}
@@ -2140,6 +2139,7 @@ function InteractiveRegionalMapComponent({
       {expandedOverlapBadge && overlapChooserLayout && overlapChooserSize && overlapChooserViewportSize ? (
         <MapOverlapChooser
           key={expandedOverlapBadge.markerId}
+          selectionKey={focusTargetKey}
           markerId={expandedOverlapBadge.markerId}
           label={expandedOverlapBadge.label}
           impacts={expandedOverlapBadge.impacts}

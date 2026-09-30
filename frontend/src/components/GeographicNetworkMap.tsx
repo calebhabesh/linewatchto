@@ -878,8 +878,6 @@ export function GeographicNetworkMap({
 
       const features = map.queryRenderedFeatures(e.point, { layers: interactiveLayers });
       if (features.length === 0) {
-        setOverlapChooser(null);
-        setHoveredOverlapImpact(null);
         callbacksRef.current.onSelectStationId?.(null);
         callbacksRef.current.onSelectImpact?.(null as unknown as ImpactSelection);
       }
@@ -1518,14 +1516,9 @@ export function GeographicNetworkMap({
         const width = container.clientWidth;
         const height = container.clientHeight;
         const point = map.project(overlapChooser.coordinate);
-        if (point.x < 0 || point.y < 0 || point.x > width || point.y > height) {
-          setOverlapChooser(null);
-          setHoveredOverlapImpact(null);
-          return;
-        }
         const compact = width <= 640;
         const requestedChooserSize = {
-          width: compact ? Math.max(240, Math.min(280, width - 48)) : Math.min(360, width - 32),
+          width: compact ? Math.max(240, Math.min(376, width - 24)) : Math.min(420, width - 32),
           height: compact
             ? Math.min(380, 56 + overlapChooser.impacts.length * 64)
             : Math.min(440, 68 + overlapChooser.impacts.length * 88),
@@ -1744,6 +1737,7 @@ export function GeographicNetworkMap({
 
       {overlapChooser && overlapChooserLayout ? (
         <MapOverlapChooser
+          selectionKey={selection ? `${selection.kind}:${selection.id}:${selectionAttentionGeneration}` : selectedStationId ? `station:${selectedStationId}` : commutePathPreview ? `commute:${commutePathPreview.id}:${commutePathPreview.legId}` : null}
           markerId={overlapChooser.markerId}
           label={overlapChooser.label}
           impacts={overlapChooser.impacts}

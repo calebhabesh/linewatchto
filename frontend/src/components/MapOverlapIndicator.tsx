@@ -17,6 +17,19 @@ export type MapOverlapIndicatorSize = {
   height: number;
 };
 
+const restoringIndicatorFocus = new WeakSet<SVGGElement>();
+
+/** Return keyboard focus after dismissal without starting a new map preview. */
+export function restoreMapOverlapIndicatorFocus(indicator: SVGGElement | null | undefined) {
+  if (!indicator) return;
+  restoringIndicatorFocus.add(indicator);
+  try {
+    indicator.focus({ preventScroll: true });
+  } finally {
+    restoringIndicatorFocus.delete(indicator);
+  }
+}
+
 const OVERLAP_INDICATOR_SCALE = 1.5;
 const OVERLAP_BADGE_CIRCLE_RADIUS = 35;
 const OVERLAP_BADGE_ITEM_GAP = 10;
@@ -263,8 +276,9 @@ export function MapOverlapIndicator({
         onPointerLeave={(event) => {
           if (event.pointerType === "mouse") onHoverChange?.(false);
         }}
-        onFocus={() => {
-          if (!open && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+        onFocus={(event) => {
+          if (!open && !restoringIndicatorFocus.has(event.currentTarget)
+            && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
             onHoverChange?.(true);
           }
         }}

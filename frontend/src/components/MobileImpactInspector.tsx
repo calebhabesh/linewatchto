@@ -43,6 +43,7 @@ type SelectedImpactDetails = {
   statusAction?: ReactNode;
   window?: string;
   closureDateLabel?: string;
+  serviceEffect?: "suspension" | "delay" | "limited-service" | null;
   startedAt?: string | null;
   updatedAt?: string | null;
   updatedAgo?: string | null;
@@ -276,6 +277,7 @@ export function getSelectedImpactDetails(
       nightly: closure?.nightly,
       activeNow: true,
       window: closure?.window,
+      serviceEffect: activeClosure.serviceEffect ?? closure?.serviceEffect,
       closureDateLabel: closure?.windowDates
         ? formatClosureScheduleValue(closure.windowDates)
         : undefined,
@@ -354,6 +356,7 @@ export function getSelectedImpactDetails(
     nightly: closure.nightly,
     activeNow: closure.activeNow,
     window: closure.window,
+    serviceEffect: closure.serviceEffect,
     closureDateLabel: closure.windowDates
       ? formatClosureScheduleValue(closure.windowDates)
       : undefined,

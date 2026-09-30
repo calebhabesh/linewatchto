@@ -1,4 +1,6 @@
 "use client";
+import { useAlertChooserDismissal } from "../hooks/useAlertChooserDismissal";
+import { IncidentStationSpan } from "./IncidentStationSpan";
 import { CardinalNorthIcon } from "./CardinalNorthIcon";
 
 import { useRetainedHover } from "../hooks/useRetainedHover";
@@ -72,6 +74,7 @@ import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import {
   MapOverlapIndicator,
   mapOverlapIndicatorSizeForKindCount,
+  restoreMapOverlapIndicatorFocus,
   type MapOverlapIndicatorSize,
 } from "./MapOverlapIndicator";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
@@ -478,9 +481,8 @@ function InteractiveTtcMapComponent({
     const segmentId = overlapBadgeFocusToRestoreRef.current;
     if (expandedOverlapBadgeId !== null || segmentId === null) return;
     overlapBadgeFocusToRestoreRef.current = null;
-    mapRootRef.current
-      ?.querySelector<SVGGElement>(`[data-overlap-segment-id="${CSS.escape(segmentId)}"] .overlap-indicator`)
-      ?.focus({ preventScroll: true });
+    restoreMapOverlapIndicatorFocus(mapRootRef.current
+      ?.querySelector<SVGGElement>(`[data-overlap-segment-id="${CSS.escape(segmentId)}"] .overlap-indicator`));
   }, [expandedOverlapBadgeId]);
   const hoveredMapImpactRef = useRef<TtcImpactHoverIdentity | null>(null);
   const externallyHoveredImpactKeysRef = useRef(new Set<string>());
@@ -2140,7 +2142,6 @@ function InteractiveTtcMapComponent({
         }}
         onClick={(event) => {
           if (shouldSuppressMapClick()) return;
-          setExpandedOverlapBadgeId(null);
           if (suppressNextMapClickRef.current) {
             suppressNextMapClickRef.current = false;
             return;
@@ -2551,7 +2552,6 @@ function InteractiveTtcMapComponent({
                     segment={segment}
                     impact={impact}
                     plannedClosure={closure}
-                    selectionActive={Boolean(selection)}
                     exiting={exiting}
                     onSelectImpact={onSelectImpact}
                     shouldSuppressMapClick={shouldSuppressMapClick}
@@ -3020,6 +3020,7 @@ function InteractiveTtcMapComponent({
           <OverlapChooser
             key={expandedOverlapBadge.segmentId}
             badge={expandedOverlapBadge}
+            selectionKey={focusTargetKey ? `${focusTargetKey}:${selectionAttentionGeneration}` : null}
             layout={expandedOverlapChooserLayout}
             onSelectImpact={onSelectImpact}
             onHoverImpact={highlightOverlapChooserImpact}
@@ -3607,9 +3608,7 @@ function formatOverlapChooserLocation(
 ): string {
   if (!details) return fallbackLocation;
   const linePrefix = details.lineNumber ? `Line ${details.lineNumber}: ` : "";
-  const direction = details.displayDirection?.trim();
-  const directionSuffix = direction ? ` (${direction})` : "";
-  return `${linePrefix}${details.location || fallbackLocation}${directionSuffix}`;
+  return `${linePrefix}${details.location || fallbackLocation}`;
 }
 
 function overlapChooserTypeLabel(
@@ -4218,6 +4217,7 @@ function PlannedClosureIconLane({
 
 function OverlapChooser({
   badge,
+  selectionKey,
   layout,
   onSelectImpact,
   onHoverImpact,
@@ -4228,6 +4228,7 @@ function OverlapChooser({
   viewportSize,
 }: {
   badge: OverlapBadgeWithChooser;
+  selectionKey: string | null;
   layout: OverlapChooserScreenLayout;
   onSelectImpact: (selection: ImpactSelection) => void;
   onHoverImpact: (impact: MapImpact | null) => void;
@@ -4239,6 +4240,7 @@ function OverlapChooser({
 }) {
   const data = useDashboardData();
   const surfaceRef = useRef<HTMLDivElement>(null);
+  useAlertChooserDismissal(selectionKey, onClose);
   const firstChoiceRef = useRef<HTMLButtonElement>(null);
   const initialFocusPendingRef = useRef(true);
   const closingRef = useRef(false);
@@ -4378,11 +4380,13 @@ function OverlapChooser({
                   <ImpactTypeIcon kind={impact.kind} size={26} />
                 </span>
                 <span className="overlap-chooser-choice-copy">
-                  <strong>{overlapChooserTypeLabel(impact.kind, details)}</strong>
+                  <strong>{overlapChooserTypeLabel(impact.kind, details)}{impact.kind === "planned-closure" && details?.serviceEffect ? (
+                    <span className="overlap-chooser-choice-effect"><span aria-hidden="true"> · </span>{details.serviceEffect === "limited-service" ? "Limited Service" : details.serviceEffect === "suspension" ? "Closure" : "Delay"}</span>
+                  ) : null}</strong>
                   {impact.kind === "planned-closure" && details?.closureDateLabel ? (
                     <span className="overlap-chooser-choice-date">{details.closureDateLabel}</span>
                   ) : null}
-                  <span className="overlap-chooser-choice-location">{formatOverlapChooserLocation(details, badge.label)}</span>
+                  <span className="overlap-chooser-choice-location"><IncidentStationSpan location={formatOverlapChooserLocation(details, badge.label)} />{details?.displayDirection?.trim() ? <span className="overlap-chooser-choice-direction"> ({details.displayDirection.trim()})</span> : null}</span>
                 </span>
               </button>
             );
@@ -4591,7 +4595,6 @@ function OverlayInteractionTarget({
   segment,
   impact,
   plannedClosure,
-  selectionActive,
   exiting,
   onSelectImpact,
   shouldSuppressMapClick,
@@ -4601,7 +4604,6 @@ function OverlayInteractionTarget({
   segment: RenderedNetworkSegment;
   impact: MapImpact | null;
   plannedClosure: PlannedClosure | undefined;
-  selectionActive: boolean;
   exiting?: boolean;
   onSelectImpact: (selection: ImpactSelection) => void;
   shouldSuppressMapClick: () => boolean;
@@ -4631,9 +4633,7 @@ function OverlayInteractionTarget({
   return (
     <path
       aria-label={ariaLabel}
-      className={selectionActive
-        ? "map-segment-hit-target selection-context"
-        : "map-segment-hit-target"}
+      className="map-segment-hit-target"
       d={segment.pathD}
       data-overlay-interaction-target={targetId}
       onClick={(event) => {

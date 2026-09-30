@@ -5,6 +5,8 @@ import {
   useRef,
   type PointerEvent,
 } from "react";
+import { useAlertChooserDismissal } from "../hooks/useAlertChooserDismissal";
+import { IncidentStationSpan } from "./IncidentStationSpan";
 import { X } from "lucide-react";
 import type {
   ImpactSelection,
@@ -44,9 +46,7 @@ function formatLocation(
 ): string {
   if (!details) return fallbackLocation;
   const linePrefix = details.lineNumber ? `Line ${details.lineNumber}: ` : "";
-  const direction = details.displayDirection?.trim();
-  const directionSuffix = direction ? ` (${direction})` : "";
-  return `${linePrefix}${details.location || fallbackLocation}${directionSuffix}`;
+  return `${linePrefix}${details.location || fallbackLocation}`;
 }
 
 function typeLabel(
@@ -61,6 +61,7 @@ function typeLabel(
 
 export function MapOverlapChooser({
   markerId,
+  selectionKey,
   label,
   impacts,
   chooserSize,
@@ -75,6 +76,7 @@ export function MapOverlapChooser({
   viewportSize,
 }: {
   markerId: string;
+  selectionKey?: string | null;
   label: string;
   impacts: MapImpact[];
   chooserSize: { width: number; height: number };
@@ -90,6 +92,7 @@ export function MapOverlapChooser({
 }) {
   const data = useDashboardData();
   const surfaceRef = useRef<HTMLDivElement>(null);
+  useAlertChooserDismissal(selectionKey, onClose);
   const firstChoiceRef = useRef<HTMLButtonElement>(null);
   const initialFocusPendingRef = useRef(true);
   const closingRef = useRef(false);
@@ -229,11 +232,13 @@ export function MapOverlapChooser({
                   <ImpactTypeIcon kind={impact.kind} size={26} />
                 </span>
                 <span className="overlap-chooser-choice-copy">
-                  <strong>{typeLabel(impact.kind, details)}</strong>
+                  <strong>{typeLabel(impact.kind, details)}{impact.kind === "planned-closure" && details?.serviceEffect ? (
+                    <span className="overlap-chooser-choice-effect"><span aria-hidden="true"> · </span>{details.serviceEffect === "limited-service" ? "Limited Service" : details.serviceEffect === "suspension" ? "Closure" : "Delay"}</span>
+                  ) : null}</strong>
                   {impact.kind === "planned-closure" && details?.closureDateLabel ? (
                     <span className="overlap-chooser-choice-date">{details.closureDateLabel}</span>
                   ) : null}
-                  <span className="overlap-chooser-choice-location">{formatLocation(details, label)}</span>
+                  <span className="overlap-chooser-choice-location"><IncidentStationSpan location={formatLocation(details, label)} />{details?.displayDirection?.trim() ? <span className="overlap-chooser-choice-direction"> ({details.displayDirection.trim()})</span> : null}</span>
                 </span>
               </button>
             );

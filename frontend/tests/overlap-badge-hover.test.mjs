@@ -38,7 +38,7 @@ describe("desktop overlap badge hover", () => {
     assert.match(overlapIndicatorSource, /if \(!open && event\.pointerType === "mouse"\) onHoverChange\?\.\(true\)/);
     assert.match(
       overlapIndicatorSource,
-      /if \(!open && window\.matchMedia\("\(hover: hover\) and \(pointer: fine\)"\)\.matches/,
+      /if \(!open &&[^{}]*window\.matchMedia\("\(hover: hover\) and \(pointer: fine\)"\)\.matches/,
     );
     assert.match(mapSource, /clearMapHover\(\);\s*setExpandedOverlapBadgeId\(badge\.segmentId\)/);
   });

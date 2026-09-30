@@ -418,6 +418,7 @@
 .overlap-chooser-choice-copy strong {
   font-size: 17px;
   font-weight: 850;
+  letter-spacing: -0.015em;
   line-height: 1.15;
 }
 
@@ -433,9 +434,18 @@
   color: #cbd5e1;
 }
 
+.overlap-chooser-choice-direction {
+  color: var(--incident-direction-text);
+  display: block;
+}
+
+.overlap-chooser-choice-effect {
+  font: inherit;
+}
+
 .overlap-chooser-choice-date {
   color: #3b82f6;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.01em;
   line-height: 1.2;
@@ -508,7 +518,7 @@
   }
 
   .overlap-chooser-choice-copy strong {
-    font-size: 15px;
+    font-size: 14px;
   }
 
   .overlap-chooser-choice-location {
@@ -517,7 +527,7 @@
   }
 
   .overlap-chooser-choice-date {
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.2;
     margin: 1px 0 2px;
   }

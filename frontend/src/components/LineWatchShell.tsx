@@ -625,12 +625,25 @@ export function LineWatchShell({
     return readStoredSheetHeightRatio(window.localStorage);
   });
 
-  const handleMapSelectImpact = useCallback((nextSelection: ImpactSelection) => {
+  const [desktopMapFocus, setDesktopMapFocus] = useState<{
+    selection: NonNullable<ImpactSelection>;
+    attentionGeneration: number;
+    network: NetworkId;
+  } | null>(null);
+
+  const handleMapSelectImpact = useCallback((nextSelection: ImpactSelection, focusOnMap = true) => {
+    if (!isMobile) {
+      setDesktopMapFocus(nextSelection && focusOnMap ? {
+        selection: nextSelection,
+        attentionGeneration: selectionAttentionGeneration + 1,
+        network: selectedNetwork,
+      } : null);
+    }
     if (nextSelection && isMobile) {
       setMobileInspectorDetent("details-focus");
     }
     navMapSelectImpact(nextSelection);
-  }, [isMobile, navMapSelectImpact, setMobileInspectorDetent]);
+  }, [isMobile, navMapSelectImpact, selectedNetwork, selectionAttentionGeneration, setMobileInspectorDetent]);
 
   const handleSelectStationId = useCallback((id: string | null) => {
     navSelectStationId(id);
@@ -2283,11 +2296,18 @@ export function LineWatchShell({
     }
   }, [activeView, handleMapSelectImpact, handleSelectImpactDetails, isMobile]);
 
-  const handleReturnImpactToMap = isMobile
-    && impactBackContext?.origin.activeView === "map"
-    && impactBackContext.origin.selection?.kind === selection?.kind
-    && impactBackContext.origin.selection?.id === selection?.id
-    ? handleSubmenuBack : undefined;
+  const desktopImpactIsMapFocused = !isMobile
+    && desktopMapFocus?.network === selectedNetwork
+    && desktopMapFocus.attentionGeneration === selectionAttentionGeneration
+    && desktopMapFocus.selection.kind === selection?.kind
+    && desktopMapFocus.selection.id === selection?.id;
+  const handleReturnImpactToMap = desktopImpactIsMapFocused
+    ? () => handleMapSelectImpact(null)
+    : isMobile
+      && impactBackContext?.origin.activeView === "map"
+      && impactBackContext.origin.selection?.kind === selection?.kind
+      && impactBackContext.origin.selection?.id === selection?.id
+      ? handleSubmenuBack : undefined;
 
   const handleSearchSelectStation = (stationId: string, networkId: NetworkId) => {
     if (searchClosingTimeoutRef.current) {
@@ -3358,7 +3378,7 @@ export function LineWatchShell({
               navigateForward(view);
             }}
             onSelectImpact={(impactSelection) => {
-              handleMapSelectImpact(impactSelection);
+              handleMapSelectImpact(impactSelection, false);
             }}
             onSelectSurfaceNotice={handleSearchOpenSurfaceNotice}
             onNetworkChange={handleNetworkChange}

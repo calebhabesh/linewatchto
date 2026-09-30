@@ -17,9 +17,9 @@ export type OverlapBadgeSize = MapOverlapIndicatorSize;
 
 export const MAP_VIEWBOX_BOUNDS: SvgBounds = { x: 0, y: 0, width: 8250, height: 4000 };
 export const MAP_SVG_TO_CSS_SCALE = 4500 / MAP_VIEWBOX_BOUNDS.width;
-export const OVERLAP_CHOOSER_WIDTH = 360;
+export const OVERLAP_CHOOSER_WIDTH = 420;
 export const OVERLAP_CHOOSER_MOBILE_BREAKPOINT = 640;
-export const OVERLAP_CHOOSER_MOBILE_WIDTH = 280;
+export const OVERLAP_CHOOSER_MOBILE_WIDTH = 376;
 export const OVERLAP_CHOOSER_TARGET_GAP = 16;
 export const OVERLAP_CHOOSER_GAP_DEVIATION_WEIGHT = 4;
 export const OVERLAP_CHOOSER_UI_GAP = 8;
@@ -125,7 +125,7 @@ export function overlapChooserSize(
 ): OverlapBadgeSize {
   const isMobile = viewportWidth <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT;
   const maximumWidth = isMobile ? OVERLAP_CHOOSER_MOBILE_WIDTH : OVERLAP_CHOOSER_WIDTH;
-  const horizontalMargin = isMobile ? 48 : 32;
+  const horizontalMargin = isMobile ? 24 : 32;
   return {
     width: Math.max(240, Math.min(maximumWidth, viewportWidth - horizontalMargin)),
     height: isMobile

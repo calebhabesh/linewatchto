@@ -1,4 +1,5 @@
 "use client";
+import { IncidentStationSpan } from "./IncidentStationSpan";
 
 import { FilterSearchRow } from "./FilterSearchRow";
 
@@ -136,8 +137,10 @@ function disruptionKindLabel(kind: SavedStationDisruptionKind) {
 }
 
 function disruptionKindCountLabel(kind: SavedStationDisruptionKind, count: number) {
-  const label = disruptionKindLabel(kind);
-  return `${count} ${label}${count === 1 ? "" : "s"}`;
+  const label = count !== 1 && kind === "planned-closure"
+    ? "Planned Advisories"
+    : `${disruptionKindLabel(kind)}${count === 1 ? "" : "s"}`;
+  return `${count} ${label}`;
 }
 
 function disruptionKindClassName(kind: SavedStationDisruptionKind) {
@@ -431,7 +434,7 @@ function SavedStationRow({
                     <div className="saved-commute-impact-copy">
                       <div className="saved-commute-impact-details">
                         <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{dashboard.delays.find(item => item.id === (selection?.id ?? impactId))?.serviceEffect === "limited-service" ? "Limited service" : disruptionKindLabel(kind)}</span></strong></div>
-                        <span>{stationImpactContext(selection?.id ?? impactId, saved.station.name, dashboard)}</span>
+                        <span><IncidentStationSpan location={stationImpactContext(selection?.id ?? impactId, saved.station.name, dashboard)} /></span>
                       </div>
                       <div className="saved-commute-impact-action">
                         <button
@@ -473,7 +476,7 @@ function SavedStationRow({
           <section className="saved-station-arrivals" aria-label={`Arrivals at ${saved.station.name}`}>
             <div className="station-arrival-line-divider saved-station-section-divider" aria-hidden="true" />
             <div className="saved-station-arrivals-heading flex flex-col items-start text-left gap-0.5 min-w-0">
-              <span className="saved-station-section-title flex items-center justify-start text-left gap-2 min-w-0 font-extrabold text-slate-900 dark:text-white truncate">
+              <span className="saved-station-section-title station-subsection-header flex items-center justify-start text-left gap-2 min-w-0 font-extrabold text-slate-900 dark:text-white truncate">
                 <span className="w-1 h-3.5 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                 <Train size={18} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
                 <strong>Train Arrivals</strong>
@@ -770,7 +773,7 @@ function SavedStationRow({
                     <div className="saved-commute-impact-copy">
                       <div className="saved-commute-impact-details">
                         <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{dashboard.delays.find(item => item.id === (selection?.id ?? impactId))?.serviceEffect === "limited-service" ? "Limited service" : disruptionKindLabel(kind)}</span></strong></div>
-                        <span>{stationImpactContext(selection?.id ?? impactId, saved.station.name, dashboard)}</span>
+                        <span><IncidentStationSpan location={stationImpactContext(selection?.id ?? impactId, saved.station.name, dashboard)} /></span>
                       </div>
                       <div className="saved-commute-impact-action">
                         <button
@@ -815,7 +818,7 @@ function SavedStationRow({
           <section className="saved-station-arrivals" aria-label={`Arrivals at ${saved.station.name}`}>
               <div className="station-arrival-line-divider saved-station-section-divider" aria-hidden="true" />
               <div className="saved-station-arrivals-heading flex flex-col items-start text-left gap-0.5 min-w-0">
-                <span className="saved-station-section-title flex items-center justify-start text-left gap-2 min-w-0 font-extrabold text-slate-900 dark:text-white truncate">
+                <span className="saved-station-section-title station-subsection-header flex items-center justify-start text-left gap-2 min-w-0 font-extrabold text-slate-900 dark:text-white truncate">
                   <span className="w-1 h-3.5 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                   <Train size={18} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
                   <strong>{arrivalHeading}</strong>

@@ -104,3 +104,33 @@ test("overlapping detail Back restores the previous alert", async ({ page, reque
   await expect(page.locator(`[data-impact-card-id="${originalId}"]`)).toHaveClass(/is-active/);
   await expect(page.locator(`[data-impact-card-id="${originalId}"] .impact-card-map-btn`)).toHaveText("Map");
 });
+
+for (const view of ["cards", "list"] as const) {
+  test(`desktop ${view} Map action becomes Back and clears impact focus`, async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop card focus behavior");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.addInitScript(view => localStorage.setItem("linewatch-impact-list-view-v1", view), view);
+    await page.goto("/?panel=closures");
+    const id = "stub-upcoming-closure-line-1";
+    const card = page.locator(`[data-impact-card-id="${id}"]`);
+    const mapAction = view === "cards" ? card.locator(".impact-card-map-btn") : card;
+    await expect(mapAction).toContainText("Map");
+    await mapAction.click();
+    await expect(mapAction).toContainText("Back");
+    await expect(page.locator(`[data-map-highlight-id="${id}"]`).first()).toBeAttached();
+    await expect(card).toHaveClass(/is-active/);
+    const camera = page.locator(".ttc-map-stage");
+    await expect(page.locator("[data-map-pan-zoom-viewport]")).toHaveAttribute("data-map-camera-moving", "false");
+    const focusedCamera = await camera.getAttribute("style");
+    await mapAction.click();
+    await expect(mapAction).toContainText("Map");
+    await expect(card).not.toHaveClass(/is-active/);
+    await expect(page.locator('[data-map-highlight-id]')).toHaveCount(0);
+    await expect(page.locator('[data-selected-impact-emphasis]')).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Planned Advisories", exact: true })).toBeVisible();
+    await expect(camera).toHaveAttribute("style", focusedCamera!);
+    await mapAction.click();
+    await expect(mapAction).toContainText("Back");
+    await expect(page.locator(`[data-map-highlight-id="${id}"]`).first()).toBeAttached();
+  });
+}

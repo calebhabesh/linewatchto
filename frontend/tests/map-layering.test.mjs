@@ -773,7 +773,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /return "Planned Advisory"/);
     assert.match(interactiveMapSource, /details\?\.closureDateLabel/);
     assert.match(interactiveMapSource, /overlap-chooser-choice-date/);
-    assert.match(globalCss, /\.overlap-chooser-choice-date\s*\{[^}]*color:\s*#3b82f6;[^}]*font-size:\s*11px;/s);
+    assert.match(globalCss, /\.overlap-chooser-choice-date\s*\{[^}]*color:\s*#3b82f6;[^}]*font-size:\s*12px;/s);
     assert.doesNotMatch(interactiveMapSource, /overlap-chooser-choice-action/);
     assert.doesNotMatch(interactiveMapSource, /details\?\.title \?\? labelForImpactKind/);
     assert.match(globalCss, /\.overlap-chooser-surface/);
@@ -790,7 +790,7 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.overlap-chooser-list\s*\{[^}]*grid-auto-rows:\s*max-content;[^}]*margin-right:\s*-6px;[^}]*padding-right:\s*6px;/s);
     assert.match(globalCss, /\.overlap-chooser-choice\.reduced-speed-zone\s*\{[^}]*rgba\(245,\s*158,\s*11,\s*0\.42\)/s);
     assert.match(globalCss, /\.motion-paused \.overlap-chooser-surface/);
-    assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.overlap-chooser-choice-copy strong\s*\{[^}]*font-size:\s*15px;/s);
+    assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.overlap-chooser-choice-copy strong\s*\{[^}]*font-size:\s*14px;/s);
     assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.overlap-chooser-object\.open \.overlap-chooser-surface\s*\{[^}]*animation:\s*none;/s);
     assert.doesNotMatch(interactiveMapSource, /selectPrimaryImpact/);
   });
@@ -822,20 +822,11 @@ describe("asset-backed map layering", () => {
     );
   });
 
-  it("keeps the overlap chooser open when a map pan produces a click", () => {
-    assert.match(
-      interactiveMapSource,
-      /onClick=\{\(event\) => \{\s*if \(shouldSuppressMapClick\(\)\) return;\s*setExpandedOverlapBadgeId\(null\);[\s\S]*?onSelectImpact\(null\);[\s\S]*?onSelectStationId\(null\);\s*\}\}/s,
-    );
-  });
-
   it("keeps selected alert hover corridors continuous above map artwork", () => {
     assert.match(interactiveMapSource, /function OverlayInteractionTarget/);
     assert.match(interactiveMapSource, /aria-label="Disruption overlay interaction targets"/);
-    assert.match(interactiveMapSource, /selectionActive=\{Boolean\(selection\)\}/);
     assert.match(interactiveMapSource, /const hitRadius = hasMultipleVisualAnchors/);
     assert.match(interactiveMapSource, /renderInteractionTarget=\{false\}/);
-    assert.match(globalCss, /\.map-segment-hit-target\.selection-context\s*\{[^}]*stroke-width:\s*190px;/s);
   });
 
   it("retains disappearing map overlays long enough to fade out", () => {
