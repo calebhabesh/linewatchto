@@ -204,11 +204,9 @@ export function readMobileImpactInspectorTop(
   const inspector = shell?.querySelector<HTMLElement>(".mobile-impact-inspector");
   if (inspector) {
     const inspectorRect = inspector.getBoundingClientRect?.();
-    const viewportRect = viewport.getBoundingClientRect();
-    if (inspectorRect && inspectorRect.top > 0) {
-      return Math.max(0, inspectorRect.top - viewportRect.top);
-    }
     if (inspectorRect && inspectorRect.height > 0) {
+      // The inspector is anchored to the bottom. Its entrance translation moves
+      // rect.top, but the camera must reserve its final height from the start.
       return Math.max(0, fallbackViewportHeight - inspectorRect.height);
     }
   }
@@ -218,4 +216,3 @@ export function readMobileImpactInspectorTop(
   }
   return fallbackViewportHeight;
 }
-

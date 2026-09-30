@@ -232,9 +232,10 @@ function setTtcStationHovered(root: HTMLElement | null, stationId: string, hover
 // separate dashboard snapshots.
 const MAP_PULSE_CYCLE_MS = 2400;
 // Synchronized blur and pulse effects scale with every additional disruption.
-// Dense snapshots keep their directional glyph motion but drop those ambient
-// effects so alerts remain readable and map interaction stays responsive.
+// Dense snapshots drop ambient effects. Directional motion is separately
+// reserved for one selected corridor, with at most four glyphs per lane.
 const MAX_CONTINUOUSLY_ANIMATED_OVERLAY_LAYERS = 8;
+const MAX_ANIMATED_GLYPHS_PER_LANE = 4;
 const SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
   "aura-pulse",
   "map-overlay-rail-pulse",
@@ -997,9 +998,12 @@ function InteractiveTtcMapComponent({
     const root = containerRef.current;
     if (!root) return [];
     if (selection) {
+      // Measure corridor paths rather than their visual groups: newly enabled
+      // animateMotion glyphs can still be at the SVG origin in this commit.
+      // Including them would frame the space between the origin and corridor.
       return [
         ...root.querySelectorAll<SVGGraphicsElement>(
-          `[data-selected-commute-impact-overlay="${CSS.escape(selection.id)}"], [data-selected-impact-emphasis="${CSS.escape(selection.id)}"], [data-map-impact-id="${CSS.escape(selection.id)}"], [data-station-impact-selection-id="${CSS.escape(selection.id)}"]`,
+          `[data-selected-impact-emphasis="${CSS.escape(selection.id)}"], [data-map-impact-id="${CSS.escape(selection.id)}"] > .asset-alert-path, [data-station-impact-selection-id="${CSS.escape(selection.id)}"]`,
         ),
       ];
     }
@@ -1489,8 +1493,18 @@ function InteractiveTtcMapComponent({
   );
 
   const overlayPulseMotionPaused = mapEffectMotionPaused
+    || !selection
     || renderedImpactLayers.length + plannedPreviewLayers.length
       > MAX_CONTINUOUSLY_ANIMATED_OVERLAY_LAYERS;
+
+  // A selection can own multiple disconnected corridors or retained exit
+  // layers. Only one current corridor receives the continuous motion budget.
+  const selectedMotionLayerKey = selection
+    ? retainedImpactLayers.find(({ item: { impact }, exiting }) => !exiting
+      && impact.kind === selection.kind && impact.cardId === selection.id)?.key
+      ?? retainedPlannedPreviewLayers.find(({ item: { closure }, exiting }) => !exiting
+        && selection.kind === "planned-closure" && closure.id === selection.id)?.key
+    : undefined;
 
   const selectedImpactEmphasis = useMemo<SelectedImpactEmphasisLayer | null>(() => {
     if (!selection) return null;
@@ -2266,16 +2280,7 @@ function InteractiveTtcMapComponent({
                       numOctaves="2"
                       seed="7"
                       result="noise"
-                    >
-                      {reducedMotion ? null : (
-                        <animate
-                          attributeName="seed"
-                          values="7;19;3;31;11;7"
-                          dur="700ms"
-                          repeatCount="indefinite"
-                        />
-                      )}
-                    </feTurbulence>
+                    />
                     <feColorMatrix in="noise" type="saturate" values="0" result="monoNoise" />
                     <feComposite in="monoNoise" in2="SourceGraphic" operator="in" />
                   </filter>
@@ -2309,7 +2314,7 @@ function InteractiveTtcMapComponent({
                         selectedSegmentIds={selectedSegmentIds}
                         onSelectImpact={onSelectImpact}
                         shouldSuppressMapClick={shouldSuppressMapClick}
-                        reducedMotion={mapEffectMotionPaused}
+                        reducedMotion={mapEffectMotionPaused || exiting || key !== selectedMotionLayerKey}
                         exiting={exiting}
                         renderInteractionTarget={false}
                       />
@@ -2715,6 +2720,7 @@ function InteractiveTtcMapComponent({
                     <g
                       key={key}
                       className={exiting ? "map-layer-exiting" : "map-layer-current"}
+                      data-map-station-impact-motion-paused={mapEffectMotionPaused || !selected || exiting ? "true" : "false"}
                       style={exiting ? { pointerEvents: "none" } : undefined}
                     >
                       {visualAnchors.map(({ id: anchorId, point }) => (
@@ -3705,6 +3711,7 @@ function measureMotionLane(
   requestedStep: number,
   normalOffset: number,
   direction: "forward" | "reverse",
+  maxGlyphs: number,
 ): MotionLaneMetrics | null {
   if (typeof document === "undefined") return null;
 
@@ -3714,7 +3721,7 @@ function measureMotionLane(
     const length = path.getTotalLength();
     if (length <= 0) return null;
 
-    const count = Math.max(1, Math.floor(length / requestedStep));
+    const count = Math.min(maxGlyphs, Math.max(1, Math.floor(length / requestedStep)));
     const step = length / count;
     const staticFrames = Array.from({ length: count }, (_, index) => {
       const distance = direction === "forward"
@@ -3732,7 +3739,7 @@ function measureMotionLane(
     });
     let motionPathD = pathD;
 
-    if (normalOffset !== 0) {
+    if (normalOffset !== 0 && Number.isFinite(maxGlyphs)) {
       // SVG animateMotion does not have a perpendicular-offset primitive.
       // Resolve the two bidirectional lanes once when their path changes,
       // rather than re-sampling every glyph on every animation frame.
@@ -3807,8 +3814,9 @@ function MotionGlyphLane({
     ? direction === "reverse" ? 18 : -18
     : 0;
   const metrics = useMemo(
-    () => mounted ? measureMotionLane(pathD, step, normalOffset, direction) : null,
-    [direction, mounted, normalOffset, pathD, step],
+    () => mounted ? measureMotionLane(pathD, step, normalOffset, direction,
+      reducedMotion ? Infinity : MAX_ANIMATED_GLYPHS_PER_LANE) : null,
+    [direction, mounted, normalOffset, pathD, reducedMotion, step],
   );
 
   if (!metrics) return null;
@@ -4070,7 +4078,8 @@ function PlannedClosureIconLane({
       if (length <= 0) return { length: 0, points: [] };
 
       const isDirectional = travelDirection !== "bidirectional";
-      const count = Math.max(1, isDirectional ? Math.round(length / 124) : Math.floor(length / 112));
+      const count = Math.min(isDirectional && !reducedMotion ? MAX_ANIMATED_GLYPHS_PER_LANE : Infinity,
+        Math.max(1, isDirectional ? Math.round(length / 124) : Math.floor(length / 112)));
       const step = length / count;
       return {
         length,
@@ -4097,7 +4106,7 @@ function PlannedClosureIconLane({
     } catch {
       return { length: 0, points: [] };
     }
-  }, [mounted, pathD, travelDirection]);
+  }, [mounted, pathD, reducedMotion, travelDirection]);
 
   if (Array.isArray(pathMetrics) || pathMetrics.points.length === 0) return null;
 

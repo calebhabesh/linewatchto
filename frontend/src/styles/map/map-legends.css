@@ -50,7 +50,7 @@
 .desktop-legend-route-badge {
   --desktop-legend-outline-width: 3.5px;
   align-items: center;
-  animation: desktop-legend-badge-pulse 3.5s ease-in-out infinite;
+  /* Keep the glow static; affected badges flash through opacity below. */
   box-shadow: 0 0 4px color-mix(in srgb, var(--desktop-legend-ring-color) 40%, transparent);
   box-sizing: border-box;
   display: flex;
@@ -63,7 +63,6 @@
   backface-visibility: hidden;
   contain: layout paint style;
   isolation: isolate;
-  will-change: box-shadow;
 }
 
 .desktop-legend-route-badge--ttc {
@@ -139,18 +138,6 @@
 
 .desktop-legend-route-badge.service-tone-good {
   --desktop-legend-ring-color: #22e37b;
-}
-
-@keyframes desktop-legend-badge-pulse {
-  0% {
-    box-shadow: 0 0 3px color-mix(in srgb, var(--desktop-legend-ring-color) 35%, transparent);
-  }
-  42% {
-    box-shadow: 0 0 9px color-mix(in srgb, var(--desktop-legend-ring-color) 78%, transparent);
-  }
-  75%, 100% {
-    box-shadow: 0 0 3px color-mix(in srgb, var(--desktop-legend-ring-color) 35%, transparent);
-  }
 }
 
 @keyframes legend-badge-inner-red-flash {

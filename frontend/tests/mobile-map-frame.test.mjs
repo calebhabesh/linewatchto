@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readMobileMapFrameInsets } from '../src/hooks/mobileMapFrame.ts';
+import { readMobileImpactInspectorTop, readMobileMapFrameInsets } from '../src/hooks/mobileMapFrame.ts';
 
 test('mobile default frame uses shortcuts and overview height independently of sheet translation', () => {
   const previous = globalThis.window;
@@ -19,6 +19,25 @@ test('mobile default frame uses shortcuts and overview height independently of s
     assert.deepEqual(readMobileMapFrameInsets(viewport), { top: 112, bottom: 246 });
     globalThis.window.innerWidth = 1280;
     assert.equal(readMobileMapFrameInsets(viewport), null);
+  } finally {
+    if (previous === undefined) delete globalThis.window;
+    else globalThis.window = previous;
+  }
+});
+
+test('impact camera reserves the settled inspector height throughout its slide-in animation', () => {
+  const previous = globalThis.window;
+  let animatedTop = 780;
+  const inspector = { getBoundingClientRect: () => ({ top: animatedTop, height: 390 }) };
+  const viewport = {
+    closest: () => ({ querySelector: () => inspector }),
+    getBoundingClientRect: () => ({ top: 0, bottom: 780 }),
+  };
+  try {
+    globalThis.window = { innerWidth: 360, innerHeight: 780 };
+    for (animatedTop of [780, 620, 390]) {
+      assert.equal(readMobileImpactInspectorTop(viewport, 780), 390);
+    }
   } finally {
     if (previous === undefined) delete globalThis.window;
     else globalThis.window = previous;

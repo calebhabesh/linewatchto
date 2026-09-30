@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useEffect, useRef, useCallback } from "react";
+import { usePageVisibility } from "../../hooks/usePageVisibility";
 
 export interface ElectricBorderProps {
   children?: React.ReactNode;
   color?: string;
   speed?: number;
+  reducedMotion?: boolean;
   chaos?: number;
   borderRadius?: number;
   className?: string;
@@ -16,6 +18,7 @@ export function ElectricBorder({
   children,
   color = "#3b82f6",
   speed = 0.2,
+  reducedMotion = false,
   chaos = 0.01,
   borderRadius = 8,
   className = "",
@@ -23,9 +26,7 @@ export function ElectricBorder({
 }: ElectricBorderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number | null>(null);
-  const timeRef = useRef(0);
-  const lastFrameTimeRef = useRef(0);
+  const pageVisible = usePageVisibility();
 
   // Noise functions
   const random = useCallback((x: number) => {
@@ -105,49 +106,49 @@ export function ElectricBorder({
       let accumulated = 0;
 
       // Top edge
-      if (distance <= accumulated + straightWidth) {
+      if (straightWidth > 0 && distance <= accumulated + straightWidth) {
         const progress = (distance - accumulated) / straightWidth;
         return { x: left + radius + progress * straightWidth, y: top };
       }
       accumulated += straightWidth;
 
       // Top-right corner
-      if (distance <= accumulated + cornerArc) {
+      if (cornerArc > 0 && distance <= accumulated + cornerArc) {
         const progress = (distance - accumulated) / cornerArc;
         return getCornerPoint(left + width - radius, top + radius, radius, -Math.PI / 2, Math.PI / 2, progress);
       }
       accumulated += cornerArc;
 
       // Right edge
-      if (distance <= accumulated + straightHeight) {
+      if (straightHeight > 0 && distance <= accumulated + straightHeight) {
         const progress = (distance - accumulated) / straightHeight;
         return { x: left + width, y: top + radius + progress * straightHeight };
       }
       accumulated += straightHeight;
 
       // Bottom-right corner
-      if (distance <= accumulated + cornerArc) {
+      if (cornerArc > 0 && distance <= accumulated + cornerArc) {
         const progress = (distance - accumulated) / cornerArc;
         return getCornerPoint(left + width - radius, top + height - radius, radius, 0, Math.PI / 2, progress);
       }
       accumulated += cornerArc;
 
       // Bottom edge
-      if (distance <= accumulated + straightWidth) {
+      if (straightWidth > 0 && distance <= accumulated + straightWidth) {
         const progress = (distance - accumulated) / straightWidth;
         return { x: left + width - radius - progress * straightWidth, y: top + height };
       }
       accumulated += straightWidth;
 
       // Bottom-left corner
-      if (distance <= accumulated + cornerArc) {
+      if (cornerArc > 0 && distance <= accumulated + cornerArc) {
         const progress = (distance - accumulated) / cornerArc;
         return getCornerPoint(left + radius, top + height - radius, radius, Math.PI / 2, Math.PI / 2, progress);
       }
       accumulated += cornerArc;
 
       // Left edge
-      if (distance <= accumulated + straightHeight) {
+      if (straightHeight > 0 && distance <= accumulated + straightHeight) {
         const progress = (distance - accumulated) / straightHeight;
         return { x: left, y: top + height - radius - progress * straightHeight };
       }
@@ -164,157 +165,144 @@ export function ElectricBorder({
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return;
-
-    if (typeof window === "undefined") return;
-
-    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (motionQuery.matches) {
-      return;
-    }
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const octaves = 10;
-    const lacunarity = 1.6;
-    const gain = 0.7;
-    const amplitude = chaos;
-    const frequency = 10;
-    const baseFlatness = 0;
-    const displacement = 60;
-    const borderOffset = 60;
+    // CSS glow layers keep the incident border visible when motion is disabled.
+    if (reducedMotion || !pageVisible) {
+      if (reducedMotion) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const frameInterval = 1000 / 24;
+    const borderOffset = 12;
+    let frameId: number | null = null;
+    let timerId: number | null = null;
+    let time = 0;
+    let lastFrameTime = 0;
+    let visible = false;
+    let sheetMotionPaused = false;
+    let hovered = container.matches(":hover");
+    let focused = container.contains(document.activeElement);
+    let points: Array<{ x: number; y: number; progress: number }> = [];
+
+    const stop = () => {
+      if (frameId !== null) cancelAnimationFrame(frameId);
+      if (timerId !== null) window.clearTimeout(timerId);
+      frameId = null;
+      timerId = null;
+      lastFrameTime = 0;
+    };
 
     const updateSize = () => {
-      const rect = container.getBoundingClientRect();
-      const width = Math.max(rect.width + borderOffset * 2, 1);
-      const height = Math.max(rect.height + borderOffset * 2, 1);
-
+      const { width, height } = container.getBoundingClientRect();
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-      ctx.scale(dpr, dpr);
-
-      return { width, height };
+      canvas.width = Math.max(1, Math.round((width + borderOffset * 2) * dpr));
+      canvas.height = Math.max(1, Math.round((height + borderOffset * 2) * dpr));
+      canvas.style.width = `${width + borderOffset * 2}px`;
+      canvas.style.height = `${height + borderOffset * 2}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (width <= 0 || height <= 0) { points = []; return; }
+      const radius = Math.max(0, Math.min(borderRadius, width / 2, height / 2));
+      // Cache geometry until the card resizes; bound noise work on wide rows.
+      const sampleCount = Math.max(8, Math.min(384, Math.ceil(2 * (width + height) / 4)));
+      points = Array.from({ length: sampleCount + 1 }, (_, index) => ({
+        ...getRoundedRectPoint(index / sampleCount, borderOffset, borderOffset, width, height, radius),
+        progress: index / sampleCount,
+      }));
     };
 
-    let { width, height } = updateSize();
-    let lastDpr = Math.min(window.devicePixelRatio || 1, 2);
-    let motionPaused = false;
-
-    const handleSheetMotion = (event: Event) => {
-      motionPaused = Boolean((event as CustomEvent<{ paused?: boolean }>).detail?.paused);
-      if (!motionPaused && animationRef.current === null) {
-        lastFrameTimeRef.current = performance.now();
-        animationRef.current = requestAnimationFrame(drawElectricBorder);
-      }
-    };
-    window.addEventListener("linewatch:sheet-motion", handleSheetMotion);
-
-    const drawElectricBorder = (currentTime: number) => {
-      if (!canvas || !ctx) return;
-      if (motionPaused) {
-        animationRef.current = null;
-        return;
-      }
-
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      if (dpr !== lastDpr) {
-        lastDpr = dpr;
-        const newSize = updateSize();
-        width = newSize.width;
-        height = newSize.height;
-      }
-
-      const deltaTime = (currentTime - lastFrameTimeRef.current) / 1000;
-      timeRef.current += deltaTime * speed;
-      lastFrameTimeRef.current = currentTime;
-
+    const canDraw = () => visible && !sheetMotionPaused && !motionQuery.matches;
+    const canAnimate = () => canDraw() && (hovered || focused);
+    const draw = () => {
+      ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.scale(dpr, dpr);
-
+      ctx.restore();
       ctx.strokeStyle = color;
       ctx.lineWidth = 1.5;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-
-      const scale = displacement;
-      const left = borderOffset;
-      const top = borderOffset;
-      const borderWidth = width - 2 * borderOffset;
-      const borderHeight = height - 2 * borderOffset;
-      const maxRadius = Math.min(borderWidth, borderHeight) / 2;
-      const radius = Math.min(borderRadius, maxRadius);
-
-      const approximatePerimeter = 2 * (borderWidth + borderHeight) + 2 * Math.PI * radius;
-      const sampleCount = Math.floor(approximatePerimeter / 2);
-
       ctx.beginPath();
-
-      for (let i = 0; i <= sampleCount; i++) {
-        const progress = i / sampleCount;
-
-        const point = getRoundedRectPoint(progress, left, top, borderWidth, borderHeight, radius);
-
-        const xNoise = octavedNoise(
-          progress * 8,
-          octaves,
-          lacunarity,
-          gain,
-          amplitude,
-          frequency,
-          timeRef.current,
-          0,
-          baseFlatness
-        );
-
-        const yNoise = octavedNoise(
-          progress * 8,
-          octaves,
-          lacunarity,
-          gain,
-          amplitude,
-          frequency,
-          timeRef.current,
-          1,
-          baseFlatness
-        );
-
-        const displacedX = point.x + xNoise * scale;
-        const displacedY = point.y + yNoise * scale;
-
-        if (i === 0) {
-          ctx.moveTo(displacedX, displacedY);
-        } else {
-          ctx.lineTo(displacedX, displacedY);
-        }
-      }
-
+      points.forEach(({ x, y, progress }, index) => {
+        // Fine noise octaves had negligible displacement but dominated CPU.
+        const xNoise = octavedNoise(progress * 8, 4, 1.6, 0.7, chaos, 10, time, 0, 0);
+        const yNoise = octavedNoise(progress * 8, 4, 1.6, 0.7, chaos, 10, time, 1, 0);
+        if (index === 0) ctx.moveTo(x + xNoise * 60, y + yNoise * 60);
+        else ctx.lineTo(x + xNoise * 60, y + yNoise * 60);
+      });
       ctx.closePath();
       ctx.stroke();
-
-      animationRef.current = requestAnimationFrame(drawElectricBorder);
     };
 
-    const resizeObserver = new ResizeObserver(() => {
-      const newSize = updateSize();
-      width = newSize.width;
-      height = newSize.height;
-    });
-    resizeObserver.observe(container);
+    const schedule = () => {
+      timerId = window.setTimeout(() => {
+        timerId = null;
+        frameId = requestAnimationFrame(tick);
+      }, frameInterval);
+    };
+    const tick = (now: number) => {
+      frameId = null;
+      if (!canAnimate()) return;
+      const delta = lastFrameTime ? Math.min(now - lastFrameTime, 100) : frameInterval;
+      time += delta / 1000 * speed;
+      lastFrameTime = now;
+      draw();
+      schedule();
+    };
+    const synchronize = () => {
+      stop();
+      if (motionQuery.matches) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+      if (!canDraw()) return;
+      draw();
+      if (canAnimate()) schedule();
+    };
+    const handlePointerEnter = () => { hovered = true; synchronize(); };
+    const handlePointerLeave = () => { hovered = false; synchronize(); };
+    const handleFocusIn = () => { focused = true; synchronize(); };
+    const handleFocusOut = (event: FocusEvent) => {
+      focused = event.relatedTarget instanceof Node && container.contains(event.relatedTarget);
+      synchronize();
+    };
+    const handleSheetMotion = (event: Event) => {
+      sheetMotionPaused = Boolean((event as CustomEvent<{ paused?: boolean }>).detail?.paused);
+      synchronize();
+    };
 
-    animationRef.current = requestAnimationFrame(drawElectricBorder);
+    const handleResize = () => { updateSize(); synchronize(); };
+    updateSize();
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(container);
+    const intersectionObserver = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      synchronize();
+    });
+    intersectionObserver.observe(container);
+    motionQuery.addEventListener("change", synchronize);
+    container.addEventListener("pointerenter", handlePointerEnter);
+    container.addEventListener("pointerleave", handlePointerLeave);
+    container.addEventListener("focusin", handleFocusIn);
+    container.addEventListener("focusout", handleFocusOut);
+    window.addEventListener("linewatch:sheet-motion", handleSheetMotion);
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-      window.removeEventListener("linewatch:sheet-motion", handleSheetMotion);
+      stop();
       resizeObserver.disconnect();
+      intersectionObserver.disconnect();
+      motionQuery.removeEventListener("change", synchronize);
+      container.removeEventListener("pointerenter", handlePointerEnter);
+      container.removeEventListener("pointerleave", handlePointerLeave);
+      container.removeEventListener("focusin", handleFocusIn);
+      container.removeEventListener("focusout", handleFocusOut);
+      window.removeEventListener("linewatch:sheet-motion", handleSheetMotion);
+      window.removeEventListener("resize", handleResize);
     };
-  }, [color, speed, chaos, borderRadius, octavedNoise, getRoundedRectPoint]);
+  }, [color, speed, chaos, borderRadius, reducedMotion, pageVisible, octavedNoise, getRoundedRectPoint]);
 
   const vars = {
     "--electric-border-color": color,

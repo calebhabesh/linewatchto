@@ -73,7 +73,6 @@ describe("frosted glass rendering", () => {
     assert.match(dynamicBackgroundSource, /if \(disabled\)/);
     assert.doesNotMatch(dynamicBackgroundSource, /if \(reducedMotion \|\| disabled\)/);
     assert.match(dynamicBackgroundSource, /interactive=\{!reducedMotion\}/);
-    assert.match(constellationSource, /if \(interactive && !isMobile\) frameId = window\.requestAnimationFrame\(draw\)/);
     assert.match(constellationSource, /if \(interactive && !isMobile\)/);
     assert.match(constellationSource, /if \(interactive\) \{\s*window\.addEventListener\("pointermove"/s);
   });

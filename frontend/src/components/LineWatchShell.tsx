@@ -64,6 +64,7 @@ import { LogsDropdown, SourceDiagnosticsBody, SourceStatusRefreshButton } from "
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { ScrollOverflowAffordances } from "./ScrollOverflowAffordances";
 import { DataProvider, DashboardData } from "../app/DataContext";
+import { DecorativeMotionPausedContext } from "./DecorativeMotionContext";
 import { snapshotNotice } from "../app/dashboard-snapshot";
 import {
   useDashboardSession,
@@ -3660,6 +3661,7 @@ export function LineWatchShell({
   let actionIndex = 0;
   return (
     <DataProvider data={displayData}>
+      <DecorativeMotionPausedContext.Provider value={reducedMotion || highContrast}>
       <div
         style={shellViewportStyle}
         data-active-view={activeView}
@@ -5408,6 +5410,7 @@ export function LineWatchShell({
         {desktopLiveAnnouncement}
       </div>
     </div>
+      </DecorativeMotionPausedContext.Provider>
     </DataProvider>
   );
 }

@@ -213,6 +213,17 @@
   display: none;
 }
 
+/* SVG filter pulses repaint the map. Keep unfocused and budget-paused
+   beacons static while preserving their rings, colors, and hit targets. */
+[data-map-station-impact-motion-paused="true"] .station-impact-ring,
+[data-map-station-impact-motion-paused="true"] .station-impact-dot-red-glow,
+[data-map-station-impact-motion-paused="true"] .station-impact-dot-red-ping,
+[data-map-overlay-motion-paused="true"] .station-impact-ring,
+[data-map-overlay-motion-paused="true"] .station-impact-dot-red-glow,
+[data-map-overlay-motion-paused="true"] .station-impact-dot-red-ping {
+  animation: none;
+}
+
 /* ============================================================
    Section 5: Station Impact Direction Glyphs
    ============================================================ */

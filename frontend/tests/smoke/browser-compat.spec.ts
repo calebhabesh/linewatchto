@@ -87,8 +87,8 @@ test("prepares regional map SVG with dynamic layers, planned station layer, and 
   await page.goto("/");
 
   await page.getByRole("button", { name: "GO/UP", exact: true }).first().click();
-  await expect(page.getByRole("group", { name: "Map network switcher" }).getByRole("button", { name: "GO/UP" }))
-    .toHaveAttribute("aria-pressed", "true", { timeout: 10_000 });
+  await expect(page.locator(".linewatch-shell"))
+    .toHaveAttribute("data-network", "regional", { timeout: 10_000 });
   const regionalMap = page.getByRole("region", { name: "Interactive GO and UP map" });
   // The regional component is loaded on demand and can mount slowly in WebKit.
   await expect(regionalMap).toBeVisible({ timeout: 30_000 });

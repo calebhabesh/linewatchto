@@ -19,7 +19,7 @@ flows, not repeat every data-shape or styling assertion from the fast suite.
 | Full shell | `npm --prefix frontend run test:shell` | Runs both desktop and mobile shell suites sequentially. |
 | E2E regression | `npm --prefix frontend run test:e2e` | Chromium desktop/mobile interaction and layout coverage across core user journeys; stops after five failures. |
 | Visual | `npm --prefix frontend run test:visual` | Deliberate screenshot baselines only (`visual-baselines.spec.ts`, `desktop-visual-acceptance.spec.ts`, `opaque-surfaces.spec.ts`). |
-| Browser compatibility | `npm --prefix frontend run test:browser-compat` | One focused SVG/map geometry contract in Chrome, Firefox, and WebKit. |
+| Browser compatibility | `npm --prefix frontend run test:browser-compat` | SVG/map geometry in Chrome, Firefox, and WebKit; animation and canvas budgets in Chrome, Firefox, and mobile Chromium. |
 | Mobile map fit | `npm --prefix frontend run test:map-fit` | Both rotated maps in mobile Chromium/WebKit: compact and changing viewports, safe areas, deferred gesture resizing, browser page zoom, and physical rotation. Also included in E2E and CI. |
 | Full release gate | `npm --prefix frontend run test:release` | Consolidated release candidate verification: runs fast tests, all script tools, typecheck, lint, build, smoke, browser-compat, map-fit, offline, and lifecycle gates. |
 

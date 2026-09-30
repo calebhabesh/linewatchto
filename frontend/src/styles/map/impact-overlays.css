@@ -276,8 +276,8 @@
   animation: none;
 }
 
-/* Keep high-alert snapshots responsive by pausing continuous corridor pulses.
-   Station beacons and directional glyph motion remain active. */
+/* Reserve continuous corridor pulses for a focused, bounded snapshot.
+   Directional glyphs receive a separate per-selection budget. */
 [data-map-overlay-motion-paused="true"] .asset-alert-path-glow,
 [data-map-overlay-motion-paused="true"] .asset-alert-path.planned-preview,
 [data-map-overlay-motion-paused="true"] .asset-alert-path.delay-candy,

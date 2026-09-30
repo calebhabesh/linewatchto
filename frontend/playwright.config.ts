@@ -56,7 +56,7 @@ export default defineConfig({
     },
     {
       name: "desktop-firefox",
-      testMatch: /browser-compat\.spec\.ts/,
+      testMatch: /(browser-compat|animation-budget)\.spec\.ts/,
       use: { ...devices["Desktop Firefox"] },
     },
     {

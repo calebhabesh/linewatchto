@@ -21,6 +21,7 @@ const POINTER_DISTANCE = 105;
 const MOBILE_BREAKPOINT = 768;
 const MOBILE_NODE_SPACING = 108;
 const MOBILE_CONNECTION_DISTANCE = 104;
+const FRAME_INTERVAL_MS = 1000 / 20;
 
 export function ConstellationBackground({
   interactive = true,
@@ -38,9 +39,12 @@ export function ConstellationBackground({
     let width = 0;
     let height = 0;
     let frameId: number | null = null;
+    let timerId: number | null = null;
+    let lastDrawTime = 0;
     let nodes: Node[] = [];
     let isMobile = false;
     let lifecycleForeground = document.visibilityState !== "hidden";
+    let sheetMotionPaused = false;
     const pointer = { x: Number.POSITIVE_INFINITY, y: Number.POSITIVE_INFINITY };
 
     const createNodes = () => {
@@ -78,7 +82,11 @@ export function ConstellationBackground({
 
     const draw = () => {
       frameId = null;
-      if (!lifecycleForeground) return;
+      if (!lifecycleForeground || sheetMotionPaused) return;
+      const now = performance.now();
+      // Preserve drift speed while drawing fewer frames; never jump on resume.
+      const motionScale = lastDrawTime ? Math.min(now - lastDrawTime, 100) / (1000 / 60) : 1;
+      lastDrawTime = now;
 
       // Clear in physical backing-store coordinates. This remains correct if
       // the device pixel ratio changed while the PWA was suspended.
@@ -97,15 +105,15 @@ export function ConstellationBackground({
           const pointerDistance = Math.hypot(pointerX, pointerY);
           if (pointerDistance < POINTER_DISTANCE && pointerDistance > 0) {
             const force = (POINTER_DISTANCE - pointerDistance) / POINTER_DISTANCE;
-            node.x += (pointerX / pointerDistance) * force * 0.7;
-            node.y += (pointerY / pointerDistance) * force * 0.7;
+            node.x += (pointerX / pointerDistance) * force * 0.7 * motionScale;
+            node.y += (pointerY / pointerDistance) * force * 0.7 * motionScale;
           }
 
         }
 
         if (interactive && !isMobile) {
-          node.x += node.vx;
-          node.y += node.vy;
+          node.x += node.vx * motionScale;
+          node.y += node.vy * motionScale;
           if (node.x < -4) node.x = width + 4;
           if (node.x > width + 4) node.x = -4;
           if (node.y < -4) node.y = height + 4;
@@ -114,8 +122,11 @@ export function ConstellationBackground({
 
         for (let peerIndex = index + 1; peerIndex < nodes.length; peerIndex += 1) {
           const peer = nodes[peerIndex];
-          const distance = Math.hypot(node.x - peer.x, node.y - peer.y);
-          if (distance >= connectionDistance) continue;
+          const dx = node.x - peer.x;
+          const dy = node.y - peer.y;
+          const distanceSquared = dx * dx + dy * dy;
+          if (distanceSquared >= connectionDistance * connectionDistance) continue;
+          const distance = Math.sqrt(distanceSquared);
 
           const opacity = (1 - distance / connectionDistance)
             * (isMobile ? (isDark ? 0.09 : 0.07) : (isDark ? 0.18 : 0.16));
@@ -138,18 +149,25 @@ export function ConstellationBackground({
       }
 
       // Mobile retains the visual texture without a continuous canvas redraw.
-      if (interactive && !isMobile) frameId = window.requestAnimationFrame(draw);
+      if (interactive && !isMobile) {
+        timerId = window.setTimeout(() => {
+          timerId = null;
+          frameId = window.requestAnimationFrame(draw);
+        }, FRAME_INTERVAL_MS);
+      }
     };
 
     const stop = () => {
-      if (frameId === null) return;
-      window.cancelAnimationFrame(frameId);
+      if (frameId !== null) window.cancelAnimationFrame(frameId);
+      if (timerId !== null) window.clearTimeout(timerId);
       frameId = null;
+      timerId = null;
+      lastDrawTime = 0;
     };
 
     const start = () => {
       stop();
-      if (!lifecycleForeground) return;
+      if (!lifecycleForeground || sheetMotionPaused) return;
       draw();
     };
 
@@ -194,8 +212,13 @@ export function ConstellationBackground({
     const recoverAfterPointerDown = () => {
       // A pointer event proves the document is foregrounded even if WebKit
       // omitted pageshow/focus and visibilityState is temporarily stale.
-      if (!interactive || isMobile || frameId !== null) return;
+      if (!interactive || isMobile || sheetMotionPaused || frameId !== null || timerId !== null) return;
       resetAfterResume();
+    };
+    const handleSheetMotion = (event: Event) => {
+      sheetMotionPaused = Boolean((event as CustomEvent<{ paused?: boolean }>).detail?.paused);
+      if (sheetMotionPaused) stop();
+      else start();
     };
 
     resetCanvas(true);
@@ -207,6 +230,7 @@ export function ConstellationBackground({
     window.addEventListener("pageshow", resetAfterResume);
     window.addEventListener("focus", resetAfterResume);
     window.addEventListener("pointerdown", recoverAfterPointerDown, { passive: true });
+    window.addEventListener("linewatch:sheet-motion", handleSheetMotion);
     if (interactive) {
       window.addEventListener("pointermove", handlePointerMove, { passive: true });
       document.documentElement.addEventListener("pointerleave", handlePointerLeave);
@@ -221,6 +245,7 @@ export function ConstellationBackground({
       window.removeEventListener("pageshow", resetAfterResume);
       window.removeEventListener("focus", resetAfterResume);
       window.removeEventListener("pointerdown", recoverAfterPointerDown);
+      window.removeEventListener("linewatch:sheet-motion", handleSheetMotion);
       window.removeEventListener("pointermove", handlePointerMove);
       document.documentElement.removeEventListener("pointerleave", handlePointerLeave);
     };

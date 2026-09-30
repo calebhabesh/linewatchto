@@ -323,7 +323,6 @@ describe("asset-backed map layering", () => {
     assert.match(mapGeometrySource, /svgElementMatrixToRootCoordinates\(path, root\)/);
     assert.match(interactiveMapSource, /travelDirection !== "reverse"/);
     assert.match(interactiveMapSource, /travelDirection !== "forward"/);
-    assert.match(interactiveMapSource, /reducedMotion \? null : \(/);
     assert.match(globalCss, /\.motion-paused \.asset-alert-path-glow/);
     assert.match(globalCss, /prefers-reduced-motion:\s*reduce/);
     assert.match(interactiveMapSource, /segment\.impacts/);
