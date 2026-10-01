@@ -50,6 +50,9 @@ export SERVER_ADDRESS
 
 : "${LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS:=true}"
 export LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS
+# Recovery dev links require loopback-only origins; preserve explicit overrides.
+: "${LINEWATCH_AUTH_ALLOWED_ORIGINS:=http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002,http://localhost:3003,http://127.0.0.1:3003,http://127.0.0.1:4173,http://127.0.0.1:4175}"
+export LINEWATCH_AUTH_ALLOWED_ORIGINS
 : "${LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED:=true}"
 export LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED
 
