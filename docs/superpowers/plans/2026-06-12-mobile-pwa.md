@@ -15,7 +15,7 @@
 LineWatchTO should use a conservative offline policy.
 
 - The installed app should launch full-screen/standalone on mobile.
-- Icons should use the supplied LineWatch assets from `~/Pictures/Assets/LineWatch/PWA-Icons`.
+- Icons should use the supplied LineWatch assets from `${LINEWATCH_ASSET_DIR}/PWA-Icons`.
 - Static app assets, map SVG, icons, fonts, and the offline page may be cached.
 - Live dashboard/API responses must not be cached by the service worker.
 - Offline navigation should show a dedicated offline page stating that current TTC service cannot be verified.
@@ -70,10 +70,10 @@ Expected: FAIL because the manifest, service worker, copied icons, offline page,
 
 - [ ] Create `frontend/public/assets/linewatch/pwa/`.
 - [ ] Copy:
-  - `~/Pictures/Assets/LineWatch/PWA-Icons/app-icon-192.png` to `frontend/public/assets/linewatch/pwa/app-icon-192.png`
-  - `~/Pictures/Assets/LineWatch/PWA-Icons/app-icon-512.png` to `frontend/public/assets/linewatch/pwa/app-icon-512.png`
-  - `~/Pictures/Assets/LineWatch/PWA-Icons/apple-touch-icon.png` to `frontend/public/assets/linewatch/pwa/apple-touch-icon.png`
-  - `~/Pictures/Assets/LineWatch/PWA-Icons/maskable-app-icon-512.png` to `frontend/public/assets/linewatch/pwa/maskable-app-icon-512.png`
+  - `${LINEWATCH_ASSET_DIR}/PWA-Icons/app-icon-192.png` to `frontend/public/assets/linewatch/pwa/app-icon-192.png`
+  - `${LINEWATCH_ASSET_DIR}/PWA-Icons/app-icon-512.png` to `frontend/public/assets/linewatch/pwa/app-icon-512.png`
+  - `${LINEWATCH_ASSET_DIR}/PWA-Icons/apple-touch-icon.png` to `frontend/public/assets/linewatch/pwa/apple-touch-icon.png`
+  - `${LINEWATCH_ASSET_DIR}/PWA-Icons/maskable-app-icon-512.png` to `frontend/public/assets/linewatch/pwa/maskable-app-icon-512.png`
 
 ## Task 3: Add Manifest And Metadata
 

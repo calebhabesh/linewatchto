@@ -1,6 +1,6 @@
 {
   "total": 4,
-  "lastUpdated": "2026-06-01T07:36:33.367Z",
+  "lastUpdated": "2026-06-01T07:30:00Z",
   "futureUnknownField": "ignored",
   "routes": [
     {
@@ -11,12 +11,20 @@
         "start": "2026-06-01T05:30:00Z",
         "end": "2026-06-06T00:30:00Z"
       },
-      "activePeriodGroup": ["Current", "Weekend"],
+      "activePeriodGroup": [
+        "Current",
+        "Weekend"
+      ],
       "route": "1",
       "routeType": "Subway",
       "stopStart": "St George",
       "stopEnd": "Sheppard West",
-      "stopIDList": ["Sheppard West", "Wilson", "Yorkdale", "St George"],
+      "stopIDList": [
+        "Sheppard West",
+        "Wilson",
+        "Yorkdale",
+        "St George"
+      ],
       "title": "Synthetic scenario: no subway service between St George and Sheppard West for a test closure.",
       "headerText": "Line 1 Yonge-University: Synthetic scenario: no subway service between St George and Sheppard West for a test closure.",
       "effect": "REDUCED_SERVICE",
@@ -32,7 +40,8 @@
           "startTime": "2026-06-01T23:59:00Z",
           "endTime": "2026-06-02T03:30:00Z"
         }
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "synthetic-rsz-line-1",
@@ -46,14 +55,18 @@
       "routeType": "Subway",
       "stopStart": "Eglinton",
       "stopEnd": "Davisville",
-      "stopIDList": ["Davisville", "Eglinton"],
+      "stopIDList": [
+        "Davisville",
+        "Eglinton"
+      ],
       "title": "Synthetic scenario: reduced speed southbound between Eglinton and Davisville.",
       "headerText": "Line 1 Yonge-University: Synthetic scenario: reduced speed southbound between Eglinton and Davisville.",
       "effect": "SIGNIFICANT_DELAYS",
       "effectDesc": "Reduced Speed Zone",
       "cause": "MAINTENANCE",
       "causeDescription": "Track issue",
-      "childAlerts": []
+      "childAlerts": [],
+      "_linewatchScenarioOrigin": "synthetic"
     }
   ],
   "accessibility": [
@@ -71,7 +84,8 @@
       "effect": "ACCESSIBILITY_ISSUE",
       "effectDesc": "Out of service",
       "elevatorCode": "TEST-E1",
-      "childAlerts": []
+      "childAlerts": [],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "synthetic-escalator-pioneer-village",
@@ -87,7 +101,8 @@
       "effect": "ACCESSIBILITY_ISSUE",
       "effectDesc": "Out of service",
       "escalatorCode": "TEST-S1",
-      "childAlerts": []
+      "childAlerts": [],
+      "_linewatchScenarioOrigin": "synthetic"
     }
   ],
   "siteWide": null,
@@ -114,5 +129,6 @@
       "description": "Some fare vending machines are temporarily unavailable."
     }
   ],
-  "stops": []
+  "stops": [],
+  "fixtureOrigin": "synthetic"
 }

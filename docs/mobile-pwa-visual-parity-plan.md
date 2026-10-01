@@ -18,7 +18,7 @@ This plan intentionally does not authorize backend or product-scope expansion. E
 Use these sources in this order:
 
 1. `AGENTS.md` is the source of truth for product capabilities, terminology, source honesty, colors, verification, and non-claims.
-2. The approved PWA reference images in `~/dev/assets/LineWatch/Reddit/updated-aug-2026/final-2` are the source of truth for visual composition and density.
+2. The approved PWA reference images in `${LINEWATCH_REFERENCE_DIR}` are the source of truth for visual composition and density.
 3. The current PWA implementation in `frontend/src/components/LineWatchShell.tsx`, related panel components, and the mobile sections of `frontend/src/app/globals.css` is the source of truth for states not visible in the reference images.
 4. The current native implementation is the source of truth for native data flow, providers, routing contracts, gesture behavior, caching, and tests.
 

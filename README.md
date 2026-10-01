@@ -1,237 +1,189 @@
 # LineWatchTO
 
-LineWatchTO is an unofficial transit reliability dashboard for Toronto's TTC subway/LRT and GO/UP rail networks. Designed as a dark, high-density, map-first web application, it combines source-linked service alerts, planned advisories, GTFS route data, My Commutes impact checks, and historical alert snapshots to quickly answer:
+**Is my route affected now, later today, or this weekend?**
 
-> **Is my route affected now, later today, or this weekend?**
+LineWatchTO is an unofficial transit dashboard for Toronto's TTC subway/LRT and GO/UP rail networks. It brings service disruptions, planned advisories, station information, and saved commute checks into a map you can use on desktop or your phone. Built and maintained as a personal full-stack project, it serves riders who want to understand how a disruption affects their usual route.
 
-The project is built as a production-grade full-stack application featuring graceful local-fixture fallback, resilient offline PWA snapshot hydration, streaming GTFS schedule ingestion, and server-side provider isolation.
+**[Open the dashboard](https://linewatchto.ca)** · [Run locally](#run-locally) · [Architecture](#architecture) · [Contributing](CONTRIBUTING.md)
 
----
+[![TTC desktop dashboard with live service status and the full subway/LRT network in view](docs/assets/ttc-desktop.png)](docs/assets/ttc-desktop.png)
 
-## Current Capabilities & Boundaries
+*Captured from [linewatchto.ca](https://linewatchto.ca) on September 30, 2026 at 7:23 p.m. EDT, with fresh TTC service data. Screenshots are dated snapshots; open the dashboard for current conditions. Click any image to view it at full resolution.*
 
-### Core Capabilities
+## What riders can do
 
-- **Interactive Transit Maps**:
-  - Semantic SVG-backed schematic maps for the TTC subway/LRT network (Lines 1, 2, 4, 5, 6) and GO/UP regional network (all 8 rail corridors), independently authored in Inkscape.
-  - Optional Geographic Map view with a compact **Diagram / Map** toggle, powered by MapLibre GL JS and OpenFreeMap vector basemaps with automatic light/dark mode adaptation.
-  - Multi-plane raster rendering: pre-rendered static raster planes ensure 60 FPS panning and zooming on desktop without re-rasterizing large SVG text trees.
-  - Dynamic overlay system: active suspensions (red), ordinary delays with static effect (orange), Reduced Speed Zones with directional chevrons, and upcoming planned advisories (blue preview).
-  - Schematic estimated train markers inferred from GTFS-RT subway and regional vehicle positions.
+| Rider question | What the dashboard provides |
+| --- | --- |
+| Where is service affected? | TTC and GO/UP schematic maps, a geographic map option, and direction-aware disruption overlays. |
+| Will it affect my usual route? | **My Commutes** matches disruptions to saved routes, with separate outbound/return legs and optional Web Push rules. |
+| What is happening at my station? | Station details, source-labeled live or scheduled arrivals, surface connections, accessibility outages, and **My Stations** bookmarks. |
+| What is coming up? | Planned advisories, searchable service notices, and station-specific information. |
+| What has happened over time? | Alert lifecycle history and disruption analytics with coverage and confidence boundaries. |
 
-- **Service Alerts & Current Status**:
-  - Compact Current Service readout grouping suspensions and delays by rail line alongside a dedicated surface/service notice column.
-  - Network-scoped service notices: TTC bus and streetcar service changes; GO/UP Metrolinx Information, Marketing, and rail timetable announcements.
-  - Searchable accessibility outages panel tracking elevator and escalator disruptions across both networks.
-  - 30-day disruption analytics and alert lifecycle history derived from durable snapshot records.
+<table>
+  <tr>
+    <th>Phone dashboard</th>
+    <th>Union station and live arrivals</th>
+  </tr>
+  <tr>
+    <td><a href="docs/assets/ttc-mobile.png"><img src="docs/assets/ttc-mobile.png" width="260" alt="Live TTC phone dashboard showing the map, current impact categories, and bottom navigation"></a></td>
+    <td><a href="docs/assets/station-details.png"><img src="docs/assets/station-details.png" width="440" alt="Union station details with source-labeled live TTC subway arrival predictions and surface connections"></a></td>
+  </tr>
+</table>
 
-- **My Commutes & Account Features**:
-  - Account-backed monitored routes (e.g. `Finch -> Union`) with weighted rapid-transit path calculation.
-  - Direction-aware disruption matching with standard-vs-impacted travel time estimates.
-  - Granular Web Push notifications: independent outbound and return schedules in `America/Toronto`, event-type filters (suspensions, delays, Reduced Speed Zones, cancellations), and planned advisory follow-up policies.
-  - Account-backed My Stations watchlist for quick station access and compact arrival previews.
-  - Optional Google sign-in and email/password authentication with secure session cookies.
+*Public production views captured during the same session, without an account. The station detail is a deliberate close-up; the desktop overviews show the full network. Arrival predictions and scheduled departures retain their source labels.*
 
-- **Station Arrivals & Surface Connections**:
-  - Rapid-transit arrivals: live predictions from TTC GTFS-RT Subway Trip Updates and Metrolinx Next Service, falling back seamlessly to static GTFS scheduled service.
-  - Mapped station details: station-line tags, reviewed line-specific wheelchair and elevator accessibility, and reviewed station notices.
-  - Station surface connections: live/scheduled bus and streetcar connections indexed via static-GTFS parent-station relationships.
+<details>
+<summary>See the GO/UP regional rail dashboard</summary>
 
-- **Resilient Offline Architecture**:
-  - Graceful fixture fallback: if the backend is offline or unreachable, the frontend falls back seamlessly to typed local fixtures (`frontend/src/app/linewatch-data.ts`).
-  - Installable PWA: service worker caches the application shell and retains 7-day last-successful public dashboard snapshots for offline viewing with honest freshness labeling.
+[![GO and UP regional dashboard with the full rail network and live network-specific status](docs/assets/regional-desktop.png)](docs/assets/regional-desktop.png)
 
-### Invariants & Boundaries
+*Captured at 7:23 p.m. EDT with fresh regional service data. TTC and regional source availability were checked independently.*
 
-- **Unofficial Status**: LineWatchTO is an independent, unofficial project. It is not affiliated with, endorsed by, or operated by the Toronto Transit Commission (TTC) or Metrolinx.
-- **Data Freshness Invariant**: Live service claims require active, enabled ingestion and fresh source data. If an ingestion window expires, live impacts are suppressed rather than presented as stale current data.
-- **Schematic Placements**: On-map estimated train markers are schematic topological projections derived from GTFS-RT predictions, not physical GPS tracking.
-- **Server-Side Isolation**: Third-party API credentials (such as the Metrolinx developer key) and raw upstream payloads remain strictly server-side and are never exposed to the client or checked into Git.
-- **Surface Transit Scope**: Buses and streetcars appear in searchable service notices and station surface connections; they do not generate map overlays, line status, or commute disruption routes.
+</details>
 
----
+## Engineering decisions
 
-## Repository Layout
+The difficult part is turning several feeds into a consistent rider experience while keeping uncertainty visible.
 
-```text
-backend/   Spring Boot API, ingestion poller, spatial models, and backend tests
-frontend/  Next.js dashboard, typed fixtures, UI components, styles, and web tests
-mobile/    Native workspace for future platform projects (see mobile/AGENTS.md)
-docs/      Domain invariants, operations runbooks, test guides, and architecture references
-scripts/   Operational, scenario, and asset-generation CLI tools (see docs/script-inventory.md)
+| Problem | Implementation and tradeoff |
+| --- | --- |
+| A healthy feed can coexist with a failed one. | [Independent source and feature gates](docs/domain-invariants.md#sources-freshness-and-offline-reads) keep TTC, regional alerts, arrivals, schedules, and train markers from borrowing each other's live status. |
+| A closure on a line may miss a rider's route or direction. | [Weighted path calculation](backend/src/main/java/com/calebhabesh/linewatch/commute/CommutePathService.java) and [segment/direction matching](backend/src/main/java/com/calebhabesh/linewatch/commute/CommuteImpactService.java) evaluate each commute leg. The feature monitors routes within one network; it does not recommend detours or plan cross-network journeys. |
+| Large schedule archives can overwhelm a small server. | The [GTFS importer](backend/src/main/java/com/calebhabesh/linewatch/arrival/schedule/GtfsScheduleImportService.java) streams input and [batches stop-time writes](backend/src/main/java/com/calebhabesh/linewatch/arrival/schedule/GtfsScheduleImportWriter.java), rather than keeping the complete feed in memory. |
+| Detailed SVG maps are expensive to redraw during gestures. | [Pre-rendered map planes](docs/map-asset-preparation.md) carry static artwork while React overlays handle changing impacts and selections. Geographic mode uses MapLibre GL JS and OpenFreeMap. |
+| A saved dashboard can look live after connectivity fails. | [Separate public snapshots](frontend/src/app/dashboard-snapshot.ts) retain each network for up to seven days, label saved context, and make current status unknown. The [service worker](frontend/public/sw.js) excludes API responses and account pages from its offline cache. |
+
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph sources[Transit sources]
+        alerts[TTC / Metrolinx alerts]
+        realtime[GTFS realtime]
+        schedules[Static GTFS]
+    end
+
+    subgraph server[Server boundary]
+        ingest["Poll / normalize<br/>Check freshness"]
+        importer["Streaming<br/>schedule import"]
+        database[(PostgreSQL / PostGIS)]
+        cache[(Redis cache)]
+        api["REST API / domain services<br/>Dashboard, accounts,<br/>commute matching"]
+        push[Optional Web Push]
+        ingest --> database
+        ingest -->|invalidate on success| cache
+        importer --> database
+        database --> api
+        cache --> api
+        api -->|eligible route / line rules| push
+    end
+
+    subgraph browser[Browser]
+        web["Next.js dashboard<br/>Interactive maps"]
+        saved["Public offline snapshots<br/>PWA shell"]
+        notifications[Device notifications]
+        web --> saved
+    end
+
+    alerts --> ingest
+    realtime --> ingest
+    schedules --> importer
+    api -->|public / authenticated responses| web
+    push --> notifications
 ```
 
-Key guidance files:
-- [AGENTS.md](AGENTS.md) — Unified agent guide and task routing.
-- [frontend/AGENTS.md](frontend/AGENTS.md) — Web UI conventions, CSS ownership, and frontend checks.
-- [backend/AGENTS.md](backend/AGENTS.md) — API contracts, persistence constraints, and backend checks.
-- [mobile/AGENTS.md](mobile/AGENTS.md) — Native mobile workspace guidance.
-
----
-
-## Quickstart & Local Setup
-
-### Prerequisites
-
-- **Node.js**: 20+ with npm
-- **Java**: 21 LTS
-- **Build Tool**: Apache Maven 3.9+
-- **Container Engine**: Docker and Docker Compose
-
-### 1. Instant Frontend (Fixture Mode)
-
-Run the dashboard immediately with zero database or backend configuration. The application detects the missing backend and serves typed, realistic local fixtures:
-
-```bash
-npm --prefix frontend install
-npm --prefix frontend run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) to view the full interactive dashboard.
-
-### 2. Full-Stack Local Development
-
-To run with the complete Spring Boot backend, PostgreSQL/PostGIS, and Redis:
-
-```bash
-# Prepare environment configuration
-cp .env.example .env
-
-# Start PostgreSQL/PostGIS and Redis
-docker compose up -d postgres redis
-
-# Run Spring Boot backend (port 8080)
-mvn -f backend/pom.xml spring-boot:run
-
-# In another terminal, start the Next.js frontend (port 3000)
-npm --prefix frontend run dev
-```
-
-### 3. Live Alert Ingestion Profile
-
-Alert polling is disabled by default for offline-safe local development. To start the backend with opt-in live polling for TTC Live Alerts:
-
-```bash
-scripts/dev-live-backend.sh
-```
-
-Optional Metrolinx GO/UP polling can be enabled by adding your developer key to `.env.local`:
-```bash
-LINEWATCH_INGESTION_METROLINX_ENABLED=true
-LINEWATCH_INGESTION_METROLINX_API_KEY=your_key_here
-```
-
-### 4. Alert Scenario Test Harness
-
-LineWatchTO includes an isolated scenario harness to test the dashboard against deterministic, synthetic, and curated alert datasets without live external network calls:
-
-```bash
-# Start backend against curated scenarios (e.g. all-alert-types, line-5-suspension)
-scripts/dev-alert-scenario-backend.sh all-alert-types
-
-# Start frontend in another terminal
-scripts/dev-alert-scenario-frontend.sh all-alert-types
-```
-
-For GO/UP regional alert scenarios, use `dev-regional-alert-scenario-backend.sh` and `dev-regional-alert-scenario-frontend.sh`. See [docs/operations-guide.md](docs/operations-guide.md#alert-scenarios).
-
----
-
-## Architecture & Technology Stack
-
-```text
-External Sources (TTC Live Alerts, TTC GTFS-RT, Metrolinx Open API)
-       |
-       v
-Spring Boot Backend (Java 21)
-  ├── Ingestion & Normalization Engine (scheduled pollers, source-ID upserts, snapshot tracking)
-  ├── Streaming GTFS Importer (bounded 1 GB heap, transactional batches)
-  ├── Spatial Domain Layer (PostGIS transit lines, stations, segment matching)
-  ├── Redis Live Status Cache (network-scoped, cache eviction upon successful ingestion)
-  └── REST API (/api/dashboard, /api/map, /api/alerts, /api/stations, /api/account)
-       |
-       v
-Next.js 15 App Router Frontend
-  ├── Server Component Dashboard Entry (with graceful linewatch-data.ts fallback)
-  ├── Interactive Map Engine (Dual-layer: pre-rendered raster planes + live SVG React overlays)
-  ├── Geographic Map Engine (MapLibre GL JS + OpenFreeMap vector basemaps)
-  ├── Unified Sidebar & Responsive Shell (desktop rail / mobile snap sheets)
-  └── PWA Service Worker (offline snapshot hydration, high-urgency Web Push display)
-```
+Provider credentials and retained raw source records stay on the server. Public responses expose normalized rider information; authenticated features use session cookies. Operator endpoints are disabled by default and blocked at the production edge.
 
 | Layer | Technologies |
 | --- | --- |
-| **Frontend** | Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, MapLibre GL JS, Lucide Icons |
-| **Backend** | Java 21, Spring Boot 3.3, Spring Web, Spring Data JPA / Hibernate Spatial, Flyway |
-| **Data & Cache** | PostgreSQL 17 with PostGIS, Redis 7 (append-only persistence) |
-| **Production** | Oracle Cloud ARM64 Ampere VPS, Caddy (reverse proxy & auto TLS), Docker Compose |
+| Web | Next.js App Router, React, TypeScript, Tailwind CSS, MapLibre GL JS |
+| API | Java 21, Spring Boot, Spring Data JPA / Hibernate Spatial, Flyway |
+| Storage | PostgreSQL with PostGIS, Redis |
+| Delivery | Docker Compose, ARM64 container images, Caddy |
+| Verification | Node test runner, Playwright, Maven, GitHub Actions |
 
----
+Exact dependency versions live in [frontend/package.json](frontend/package.json), [frontend/package-lock.json](frontend/package-lock.json), and [backend/pom.xml](backend/pom.xml).
 
-## Verification & Test Tiers
+## How data states are chosen
 
-LineWatchTO enforces strict test tiering to allow fast, proportional iteration. See [docs/testing.md](docs/testing.md) for full tier details.
-
-```bash
-# Fast unit & contract checks (~1.7s)
-npm --prefix frontend run test:fast
-
-# Route type generation & TypeScript check
-npm --prefix frontend run typecheck
-
-# Code formatting & lint
-npm --prefix frontend run lint
-
-# Script & tooling catalog checks (~150ms)
-npm --prefix frontend run test:scripts
-
-# Backend unit & integration test suite (~15s)
-mvn -f backend/pom.xml test
-
-# Lean Playwright browser smoke gate (Chromium desktop & mobile)
-npm --prefix frontend run test:smoke
-
-# PWA offline hydration test
-npm --prefix frontend run test:offline
-
-# Production static build
-npm --prefix frontend run build
+```mermaid
+flowchart TD
+    connection{Backend reachable?}
+    connection -->|Yes| fresh{"This feature / network:<br/>enabled provider and fresh<br/>successful mapped data?"}
+    fresh -->|Yes| source["Source-backed results<br/>Source and timestamps"]
+    fresh -->|No| schedule{"Arrival request with<br/>an active static schedule?"}
+    schedule -->|Yes| scheduled["Scheduled arrivals<br/>Explicitly labeled"]
+    schedule -->|No| unknown["Current state unknown / unavailable<br/>Suppress live claims"]
+    connection -->|No| snapshot{"Saved network snapshot<br/>within seven days?"}
+    snapshot -->|Yes| offline["Offline saved context<br/>Current status unknown"]
+    offline --> suppressed["Hide arrivals, train markers,<br/>and current commute checks"]
+    snapshot -->|No| fallback["Labeled fixtures /<br/>unavailable state"]
 ```
 
----
+Fresh alerts do not establish live arrivals or train positions. Estimated train markers are conservative schematic placements, not physical GPS tracking, and are omitted from geographic mode. Surface notices and accessibility outages do not become rail disruption overlays or commute impacts. See the [domain invariants](docs/domain-invariants.md) for the exact boundaries.
 
-## Documentation & Runbooks
+## Run locally
 
-Comprehensive guides and technical documentation are maintained in `docs/`:
+### Dashboard demo
 
-- **Operations & Runbooks**:
-  - [docs/operations-guide.md](docs/operations-guide.md) — Operational scenarios, script routing, and infrastructure summary.
-  - [docs/production-vps.md](docs/production-vps.md) — Production Oracle VPS hosting, ARM64 container builds, WireGuard, and deployment.
-  - [docs/staging.md](docs/staging.md) — On-demand development server staging stack.
-  - [docs/observability.md](docs/observability.md) — Prometheus metrics, Grafana Alloy collector, and Loki container logging.
-  - [docs/traffic-spike-runbook.md](docs/traffic-spike-runbook.md) — Traffic surge preparation, caching, and rate limiting.
-- **Reference & Specifications**:
-  - [docs/script-inventory.md](docs/script-inventory.md) — Comprehensive reference catalog of all 51 repository scripts.
-  - [docs/testing.md](docs/testing.md) — Test tiers, Playwright runner isolation, and execution costs.
-  - [docs/domain-invariants.md](docs/domain-invariants.md) — Invariants for alerts, freshness, arrivals, and commutes.
-  - [docs/source-licensing-launch-gates.md](docs/source-licensing-launch-gates.md) — Data boundaries, Open Government Licence notices, and launch gates.
-  - [docs/map-asset-preparation.md](docs/map-asset-preparation.md) — SVG map normalization and multi-plane raster generation.
-  - [docs/feature-reference.md](docs/feature-reference.md) — Detailed feature inventory for targeted lookup.
-  - [docs/refactor-plan/README.md](docs/refactor-plan/README.md) — Refactoring plan, progress tracking, and session handoffs.
+Use Node.js 24 LTS and npm. No database, backend, account, or provider key is needed to explore the map and fixture fallback.
 
----
+```bash
+npm --prefix frontend ci
+npm --prefix frontend run dev
+```
 
-## Contributing & Security
+Open [localhost:3000](http://localhost:3000). Without a backend, current service is unknown and demo data is labeled. Account persistence, live arrivals, and push delivery require their configured backend services.
 
-- **Contributing**: Please read [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, safe fixture practices, test requirements, and generated asset policies.
-- **Security**: Security policies and vulnerability reporting procedures are detailed in [SECURITY.md](SECURITY.md). Please report vulnerabilities privately via GitHub Private Vulnerability Reporting.
+### Full stack
 
----
+You also need Java 21, Maven 3.9+, and Docker Compose. The checked-in [.env.example](.env.example) contains local defaults and empty or placeholder provider credentials.
 
-## License & Attribution
+```bash
+cp .env.example .env
+docker compose up -d postgres redis
+mvn -f backend/pom.xml spring-boot:run
+```
 
-This is an unofficial commuter tool and independent software project. It is not affiliated with, endorsed by, or operated by the Toronto Transit Commission (TTC) or Metrolinx.
+In another terminal, run `npm --prefix frontend run dev`. Alert ingestion is disabled by default. For opt-in live development, use `scripts/dev-live-backend.sh`; keep provider credentials in ignored local environment files. See the [operations guide](docs/operations-guide.md) for source configuration and isolated alert scenarios.
 
-- Transit names, marks, service colors, and referenced map designs remain the property of TTC, Metrolinx, or their respective owners.
-- Derivative schematic maps were independently drawn in Inkscape for application visualization and do not constitute official transit publications.
-- Contains information licensed under the **Open Government Licence – Toronto** (applying to City of Toronto open-data inputs, including the official TTC GTFS Realtime dataset).
+## Verification
+
+```bash
+npm --prefix frontend run test:fast
+npm --prefix frontend run typecheck
+npm --prefix frontend run lint
+mvn -f backend/pom.xml test
+```
+
+The [testing guide](docs/testing.md) describes browser smoke, offline, map-fit, lifecycle, and release gates. Test counts and timings depend on the checkout and environment; a historical passing run is not a claim that the current checkout has been verified.
+
+## Repository and documentation
+
+```text
+frontend/  Dashboard, maps, typed fixtures, PWA, web tests
+backend/   REST API, source ingestion, schedules, accounts, persistence, API tests
+mobile/    Reserved native workspace; no native app yet
+docs/      Domain rules, architecture references, runbooks, publication evidence
+scripts/   Development scenarios, data/asset tooling, operational commands
+infra/     Optional infrastructure configuration
+```
+
+| Start here | Purpose |
+| --- | --- |
+| [Contributing](CONTRIBUTING.md) / [agent guide](AGENTS.md) | Local workflow, safe fixtures, ownership, and proportional checks |
+| [Domain invariants](docs/domain-invariants.md) / [feature reference](docs/feature-reference.md) | Behavior and source boundaries |
+| [Operations](docs/operations-guide.md) / [script inventory](docs/script-inventory.md) | Setup variants, scenarios, deployment, and tooling |
+| [Security policy](SECURITY.md) / [publication audit](docs/publication-audit-2026-09-30.md) | Private reporting and the scope of the latest repository audit |
+| [Source launch gates](docs/source-licensing-launch-gates.md) | Source, map, and naming approval requirements |
+
+## License and attribution
+
+Project code and original documentation are licensed under [MIT](LICENSE). This code license does not grant rights to third-party transit data, adapted map artwork, names, or marks. Bundled fonts retain their [own license notices](frontend/public/assets/fonts/README.md).
+
+LineWatchTO is independent and unofficial. It is not affiliated with, endorsed by, or operated by TTC or Metrolinx. The project author drew the schematic maps in Inkscape, using the [TTC route map](https://www.ttc.ca/routes-and-schedules/1/0) and [Metrolinx GO system map](https://assets.metrolinx.com/image/upload/v1695737837/Images/GO/system-map.png) as visual references. See [credits and third-party notices](THIRD_PARTY_NOTICES.md).
+
+Contains information licensed under the Open Government Licence – Toronto.
+
+That attribution applies to identified City of Toronto open-data inputs, including TTC GTFS Realtime. TTC Live Alerts, TTC website material, and Metrolinx API records have separate [source terms](docs/source-licensing-launch-gates.md). Committed alert examples are synthetic; provider credentials and downloaded source responses stay outside Git.

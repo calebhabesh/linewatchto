@@ -15,7 +15,7 @@
 Use this prompt in a fresh Gemini session:
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-14-global-accessibility-and-surface-notices.md before editing.
+You are working in . on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-14-global-accessibility-and-surface-notices.md before editing.
 
 Current request: implement two TTC Live Map parity slices:
 1. A global Accessibility Outages menu with elevator/escalator drill-ins grouped by TTC rapid-transit line and station.

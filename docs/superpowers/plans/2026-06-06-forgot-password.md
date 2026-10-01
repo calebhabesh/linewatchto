@@ -15,7 +15,7 @@
 Use this exact prompt if starting a fresh Gemini session:
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-06-forgot-password.md before editing. Implement the plan task-by-task using TDD. Preserve existing user changes, do not revert unrelated dirty files, do not claim live TTC status unless fresh ingestion is active, and run the verification commands at the end before saying work is complete.
+You are working in . on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-06-forgot-password.md before editing. Implement the plan task-by-task using TDD. Preserve existing user changes, do not revert unrelated dirty files, do not claim live TTC status unless fresh ingestion is active, and run the verification commands at the end before saying work is complete.
 ```
 
 ## Current State

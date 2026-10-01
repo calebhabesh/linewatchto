@@ -15,7 +15,7 @@
 Use this exact prompt if starting a fresh Gemini session:
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-05-map-interaction-stability-polish.md before editing. Implement the plan task-by-task. Preserve user changes, do not touch unrelated files, do not claim the dashboard is live unless fresh ingestion is active, and run the verification commands listed at the end before saying work is complete.
+You are working in . on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-05-map-interaction-stability-polish.md before editing. Implement the plan task-by-task. Preserve user changes, do not touch unrelated files, do not claim the dashboard is live unless fresh ingestion is active, and run the verification commands listed at the end before saying work is complete.
 ```
 
 ## Current Diagnosis
@@ -25,7 +25,7 @@ You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial
 - `frontend/src/hooks/usePanZoom.ts` updates `transformRef` mostly from effects or drag events. Programmatic transforms such as `zoomToPoint` and `recenter` should commit to both state and ref synchronously so a pointer-down immediately after an animation starts does not use stale coordinates.
 - `frontend/src/app/page.tsx:59` uses all-or-nothing fallback. One transient failed endpoint can swap the entire dashboard to local fixtures for a refresh.
 - `frontend/src/components/InteractiveTtcMap.tsx:705-779` renders station flash, selected rings, hit targets, and station impact rings from `StationSummary.mapX/mapY`, not from actual SVG dot geometry.
-- The checked-in map asset `frontend/public/assets/linewatch/ttc-subway-map-edited.svg` is byte-identical to `~/Pictures/Assets/LineWatch/TTC_Subway_Map_Edited.svg`, so reimporting that file alone will not fix Cedarvale.
+- The checked-in map asset `frontend/public/assets/linewatch/ttc-subway-map-edited.svg` is byte-identical to `${LINEWATCH_ASSET_DIR}/TTC_Subway_Map_Edited.svg`, so reimporting that file alone will not fix Cedarvale.
 - Cedarvale's SVG path is inside a transformed group around `frontend/public/assets/linewatch/ttc-subway-map-edited.svg:7721-7726`. The visual center is affected by `transform="translate(0,7.70436)"`, while fallback/backend seed data currently uses `cedarvale` as `mapY: 1802`.
 - The top-center map controls in `InteractiveTtcMap.tsx:479-526` rely on text/drop shadows over the SVG. They need an actual rail/background, not dynamic intersection detection.
 
@@ -38,7 +38,7 @@ You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial
 - Legitimate alert resolution or new alert appearance transitions without a blank map-overlay frame.
 - Station hit targets, station flashes, selected indicators, and station impact rings use the actual SVG station center when an SVG element exists.
 - Cedarvale's selection flash is centered on the Cedarvale station dot in the current checked-in SVG.
-- Reimporting `~/Pictures/Assets/LineWatch/TTC_Subway_Map_Edited.svg` is not required unless that external file later differs from the checked-in asset.
+- Reimporting `${LINEWATCH_ASSET_DIR}/TTC_Subway_Map_Edited.svg` is not required unless that external file later differs from the checked-in asset.
 - The "Center", "Out", zoom slider, and "In" controls remain readable over station names, route lines, overlays, and high-contrast mode.
 
 ## File Structure
@@ -100,7 +100,7 @@ Expected: Existing fixture/source tests pass before behavior changes. If they fa
 Run:
 
 ```bash
-sha256sum frontend/public/assets/linewatch/ttc-subway-map-edited.svg ~/Pictures/Assets/LineWatch/TTC_Subway_Map_Edited.svg
+sha256sum frontend/public/assets/linewatch/ttc-subway-map-edited.svg ${LINEWATCH_ASSET_DIR}/TTC_Subway_Map_Edited.svg
 ```
 
 Expected: The hashes currently match. Do not reimport the SVG unless the hashes differ in a future run.
@@ -996,7 +996,7 @@ Manual browser checks:
 
 ## Self-Review Notes
 
-- This plan intentionally does not recommend reimporting `~/Pictures/Assets/LineWatch/TTC_Subway_Map_Edited.svg` because it currently matches the checked-in asset exactly.
+- This plan intentionally does not recommend reimporting `${LINEWATCH_ASSET_DIR}/TTC_Subway_Map_Edited.svg` because it currently matches the checked-in asset exactly.
 - Runtime SVG station-center extraction is the primary fix for off-center flashes because the rendered SVG is the visual source of truth.
 - Persisted coordinate updates are optional and should be additive through `V17`, not by editing old migrations.
 - The overlay-refresh fix has two layers: retain last good backend payload across transient fallback refreshes, then fade real overlay diffs for legitimate alert changes.

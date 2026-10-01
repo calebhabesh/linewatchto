@@ -76,7 +76,8 @@
           "startTime": "2026-06-03T19:00:00.000Z",
           "endTime": "2026-06-03T20:30:00.000Z"
         }
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     }
   ],
   "accessibility": []

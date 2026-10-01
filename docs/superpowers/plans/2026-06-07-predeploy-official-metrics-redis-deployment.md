@@ -12,7 +12,7 @@
 
 ## Execution Rules For Gemini 3.5 Flash
 
-- Work from repository root: `~/dev/ttc-reliability-navigator`.
+- Work from repository root: `.`.
 - Before editing, run `git status --short --branch`.
 - Preserve all existing local changes. At the time this plan was written, the worktree had dirty frontend files including `frontend/next-env.d.ts`, `LineWatchShell.tsx`, `SavedCommutesPanel.tsx`, and related tests. Review those diffs before modifying the same files.
 - Do not claim LineWatchTO is an official TTC product.

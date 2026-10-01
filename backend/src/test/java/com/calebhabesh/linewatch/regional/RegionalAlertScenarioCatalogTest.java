@@ -128,18 +128,17 @@ class RegionalAlertScenarioCatalogTest {
     }
 
     @Test
-    void reviewedSamplesAndSyntheticRecordsRemainExplicitlyDistinguishable() throws Exception {
+    void publicScenariosUseSyntheticRecordsOnly() throws Exception {
         JsonNode root = fixture("all-alert-types.json");
         List<JsonNode> records = new ArrayList<>();
         root.path("go").path("Messages").path("Message").forEach(records::add);
         root.path("up").path("entity").forEach(records::add);
 
-        assertThat(records).extracting(record -> record.path("_linewatchScenarioOrigin").asText())
-            .contains("synthetic", "synthetic");
-        assertThat(records).filteredOn(record -> "synthetic".equals(
-            record.path("_linewatchScenarioOrigin").asText()
-        )).extracting(record -> record.path("Code").asText())
-            .containsExactlyInAnyOrder("LW-SCENARIO-KI-ADJUSTMENT", "LW-SCENARIO-AG-ELEVATOR", "LW-SCENARIO-UN-MAINTENANCE");
+        assertThat(records).isNotEmpty().allSatisfy(record -> {
+            assertThat(record.path("_linewatchScenarioOrigin").asText()).isEqualTo("synthetic");
+            String id = record.has("Code") ? record.path("Code").asText() : record.path("id").asText();
+            assertThat(id).startsWith(record.has("Code") ? "LW-SCENARIO-" : "linewatch-up-");
+        });
     }
 
     private Scenario parse(String fileName) throws Exception {

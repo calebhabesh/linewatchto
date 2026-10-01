@@ -27,5 +27,6 @@ Use `scripts/dev-alert-scenario-backend.sh <scenario-name>` and
 `dev-regional-alert-scenario-backend.sh` / `dev-regional-alert-scenario-frontend.sh`
 scripts for GO/UP. The shared `all-alert-types` backend serves both source shapes;
 TTC-focused scenarios disable regional ingestion to avoid leaking configured live
-regional data into a synthetic scenario. Reviewed captures and synthetic gap-fill
-records are never current public service information.
+regional data into a synthetic scenario. All committed scenario records are authored
+synthetic examples, including the reusable templates in `scripts/alert-scenario-templates.mjs`.
+They are never current public service information.

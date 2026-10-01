@@ -15,7 +15,7 @@
 Use this prompt in a fresh Gemini session:
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, REMAINING_TASKS.md, and docs/superpowers/plans/2026-06-03-gemini-remaining-slices.md before editing.
+You are working in . on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, REMAINING_TASKS.md, and docs/superpowers/plans/2026-06-03-gemini-remaining-slices.md before editing.
 
 Current target baseline from Codex review: main at 7e91c5b style(frontend): layout cause field inline to prevent wrapping. The old REMAINING_TASKS.md section about an uncommitted UI batch is stale if git status is clean; the UI batch has been committed on main. Start with Slice 1: nightly closure active-window gating.
 

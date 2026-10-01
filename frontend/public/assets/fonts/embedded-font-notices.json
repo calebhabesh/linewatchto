@@ -1,0 +1,1263 @@
+{
+  "description": "Original notice fields extracted from the bundled WOFF2 name tables. Files are unmodified; publisher terms govern each family.",
+  "fonts": [
+    {
+      "file": "array-bold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2018-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Frode Helland"
+        ],
+        "11": [
+          "https://www.indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "array-regular.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2018-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Frode Helland"
+        ],
+        "11": [
+          "https://www.indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "array-semibold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2018-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Array Semibold"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Frode Helland"
+        ],
+        "11": [
+          "https://www.indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "bespokestencil-bold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Jeremie Hornus, Theo Guillard, Morgane Pambrun, Alisa Nowak, Joachim Vu"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "bespokestencil-extrabold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Bespoke Stencil Extrabold"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Jeremie Hornus, Theo Guillard, Morgane Pambrun, Alisa Nowak, Joachim Vu"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "bespokestencil-medium.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Bespoke Stencil Medium"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Jeremie Hornus, Theo Guillard, Morgane Pambrun, Alisa Nowak, Joachim Vu"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "bespokestencil-regular.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Jeremie Hornus, Theo Guillard, Morgane Pambrun, Alisa Nowak, Joachim Vu"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "chillax-bold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2019-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Manushi Parikh"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "chillax-medium.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2019-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Chillax Medium"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Manushi Parikh"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "chillax-semibold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2019-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Chillax Semibold"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Manushi Parikh"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "clashdisplay-bold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "clashdisplay-medium.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Clash Display Medium"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "clashdisplay-regular.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "clashdisplay-semibold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Clash Display Semibold"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "excon-black.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2016-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Excon Black"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Alisa Nowak"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "excon-bold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2016-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Alisa Nowak"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "excon-medium.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2016-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Excon Medium"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Alisa Nowak"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "excon-regular.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2016-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Alisa Nowak"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "generalsans-bold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Frode Helland"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "generalsans-medium.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "General Sans Medium"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Frode Helland"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "generalsans-regular.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Frode Helland"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "generalsans-semibold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "General Sans Semibold"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Frode Helland"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "handjet.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2018 The Handjet Project Authors (https://github.com/rosettatype/Handjet/)"
+        ],
+        "1": [
+          "Handjet"
+        ],
+        "8": [],
+        "9": [],
+        "11": [],
+        "13": [],
+        "14": [
+          "https://scripts.sil.org/OFL"
+        ]
+      }
+    },
+    {
+      "file": "jetbrains-mono-extrabold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)"
+        ],
+        "1": [
+          "JetBrains Mono ExtraBold"
+        ],
+        "8": [
+          "JetBrains"
+        ],
+        "9": [
+          "Philipp Nurullin, Konstantin Bulenkov"
+        ],
+        "11": [
+          "https://www.jetbrains.com"
+        ],
+        "13": [
+          "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://openfontlicense.org"
+        ],
+        "14": [
+          "https://openfontlicense.org"
+        ]
+      }
+    },
+    {
+      "file": "jetbrains-mono-semibold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)"
+        ],
+        "1": [
+          "JetBrains Mono SemiBold"
+        ],
+        "8": [
+          "JetBrains"
+        ],
+        "9": [
+          "Philipp Nurullin, Konstantin Bulenkov"
+        ],
+        "11": [
+          "https://www.jetbrains.com"
+        ],
+        "13": [
+          "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://openfontlicense.org"
+        ],
+        "14": [
+          "https://openfontlicense.org"
+        ]
+      }
+    },
+    {
+      "file": "kola-regular.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Indian Type Foundry"
+        ],
+        "11": [
+          "https://www.indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "pixeloidsans-bold.woff2",
+      "notices": {
+        "0": [
+          "\u00a9 2020-2025 GGBotNet. All Rights Reserved."
+        ],
+        "1": [
+          "Pixeloid Sans"
+        ],
+        "8": [
+          "GGBotNet"
+        ],
+        "9": [
+          "GGBotNet"
+        ],
+        "11": [
+          "https://ggbot.net"
+        ],
+        "13": [
+          "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL"
+        ],
+        "14": [
+          "https://scripts.sil.org/OFL"
+        ]
+      }
+    },
+    {
+      "file": "pixeloidsans.woff2",
+      "notices": {
+        "0": [
+          "\u00a9 2020-2025 GGBotNet. All Rights Reserved."
+        ],
+        "1": [
+          "Pixeloid Sans"
+        ],
+        "8": [
+          "GGBotNet"
+        ],
+        "9": [
+          "GGBotNet"
+        ],
+        "11": [
+          "https://ggbot.net"
+        ],
+        "13": [
+          "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL"
+        ],
+        "14": [
+          "https://scripts.sil.org/OFL"
+        ]
+      }
+    },
+    {
+      "file": "plein-black.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Plein Black"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Inga Ploennigs"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "plein-bold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Inga Ploennigs"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "plein-medium.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Plein Medium"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Inga Ploennigs"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "plein-regular.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Inga Ploennigs"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "ranade-bold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Easha Ranade"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "ranade-medium.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Ranade Medium"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Easha Ranade"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "ranade-regular.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Easha Ranade"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "rx100-regular.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Anurag Gautam"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "satoshi-bold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Deni Anggara"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "satoshi-medium.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Satoshi Medium"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Deni Anggara"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "satoshi-regular.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2017-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Deni Anggara"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "spacegrotesk.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk)"
+        ],
+        "1": [
+          "Space Grotesk Light"
+        ],
+        "8": [],
+        "9": [],
+        "11": [],
+        "13": [],
+        "14": [
+          "https://scripts.sil.org/OFL"
+        ]
+      }
+    },
+    {
+      "file": "striper-regular.woff2",
+      "notices": {
+        "0": [
+          "Copyright (c) 2017 Fontstore Pte Ltd. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Fontstore Pte Ltd\nFontstore Pte Ltd\n"
+        ],
+        "9": [
+          "Jitka Janeckova"
+        ],
+        "11": [
+          "www.fontstore.com"
+        ],
+        "13": [
+          "Fontstore Pte Ltd"
+        ],
+        "14": [
+          "www.fontstore.com"
+        ]
+      }
+    },
+    {
+      "file": "switzer-bold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2015-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Jeremie Hornus"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "switzer-medium.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2015-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Switzer Medium"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Jeremie Hornus"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "switzer-regular.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2015-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Jeremie Hornus"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "switzer-semibold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2015-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Switzer Semibold"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Jeremie Hornus"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "tabular-regular.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2016-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "J\u00e9r\u00e9mie Hornus,  Julie Soudanne"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "tabular-semibold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2016-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "Tabular Semibold"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "J\u00e9r\u00e9mie Hornus,  Julie Soudanne"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "tanker-regular.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2016-2021 Indian Type Foundry. All rights reserved."
+        ],
+        "1": [
+          "false"
+        ],
+        "8": [
+          "Indian Type Foundry"
+        ],
+        "9": [
+          "Ruosi Huang"
+        ],
+        "11": [
+          "https://indiantypefoundry.com"
+        ],
+        "13": [
+          "This Font Software is protected under domestic and international trademark and copyright law. You agree to identify the ITF fonts by name and credit the ITF's ownership of the trademarks and copyrights in any design or production credits."
+        ],
+        "14": [
+          "https://fontshare.com/terms"
+        ]
+      }
+    },
+    {
+      "file": "texgyreheros-bold.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2006, 2009 for TeX Gyre extensions by B. Jackowski and J.M. Nowacki (on behalf of TeX users groups). This work is released under the GUST Font License --  see http://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt for details."
+        ],
+        "1": [
+          "TeX Gyre Heros",
+          "TeXGyreHeros"
+        ],
+        "8": [],
+        "9": [],
+        "11": [],
+        "13": [],
+        "14": []
+      }
+    },
+    {
+      "file": "texgyreheros-regular.woff2",
+      "notices": {
+        "0": [
+          "Copyright 2006, 2009 for TeX Gyre extensions by B. Jackowski and J.M. Nowacki (on behalf of TeX users groups). This work is released under the GUST Font License --  see http://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt for details."
+        ],
+        "1": [
+          "TeX Gyre Heros",
+          "TeXGyreHeros"
+        ],
+        "8": [],
+        "9": [],
+        "11": [],
+        "13": [],
+        "14": []
+      }
+    }
+  ]
+}

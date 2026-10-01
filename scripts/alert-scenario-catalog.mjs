@@ -198,7 +198,7 @@ function rebaseRecord(now, record, options = {}) {
   return next;
 }
 
-function historicalRoute(now, bookmarkKey, overrides = {}, rebaseOptions = {}) {
+function templateRoute(now, bookmarkKey, overrides = {}, rebaseOptions = {}) {
   return rebaseRecord(
     now,
     { ...alertScenarioTemplates.routes[bookmarkKey], ...overrides },
@@ -207,10 +207,10 @@ function historicalRoute(now, bookmarkKey, overrides = {}, rebaseOptions = {}) {
 }
 
 function modeledRoute(now, bookmarkKey, overrides = {}, rebaseOptions = {}) {
-  return historicalRoute(now, bookmarkKey, overrides, rebaseOptions);
+  return templateRoute(now, bookmarkKey, overrides, rebaseOptions);
 }
 
-function historicalAccessibility(now, bookmarkKey, overrides = {}, rebaseOptions = {}) {
+function templateAccessibility(now, bookmarkKey, overrides = {}, rebaseOptions = {}) {
   return rebaseRecord(
     now,
     { ...alertScenarioTemplates.accessibility[bookmarkKey], ...overrides },
@@ -340,8 +340,8 @@ function feed(now, routes, accessibility = []) {
   return {
     lastUpdated: iso(now, -1),
     total: routes.length + accessibility.length,
-    routes,
-    accessibility,
+    routes: routes.map((record) => ({ ...record, _linewatchScenarioOrigin: "synthetic" })),
+    accessibility: accessibility.map((record) => ({ ...record, _linewatchScenarioOrigin: "synthetic" })),
   };
 }
 
@@ -622,7 +622,7 @@ function allAlertTypes(now) {
       cause: "MEDICAL_EMERGENCY",
       causeDescription: "Emergency alarm",
     }),
-    historicalRoute(now, "line-1-rsz-eglinton-davisville"),
+    templateRoute(now, "line-1-rsz-eglinton-davisville"),
     activeGapFillRoute(now, {
       id: "scenario-rsz-line-2-jane-runnymede",
       route: "2",
@@ -659,7 +659,7 @@ function allAlertTypes(now) {
       reducedSpeed: "15 km/h",
       targetRemoval: "This month",
     }),
-    historicalRoute(now, "line-1-planned-st-george-sheppard-west", {
+    templateRoute(now, "line-1-planned-st-george-sheppard-west", {
       direction: "Both ways",
     }, {
       activePeriod: finitePeriod(now, -120, 720),
@@ -733,8 +733,8 @@ function allAlertTypes(now) {
       ],
     }),
   ], [
-    historicalAccessibility(now, "warden-elevator-test-e1"),
-    historicalAccessibility(now, "pioneer-village-escalator-test-s1"),
+    templateAccessibility(now, "warden-elevator-test-e1"),
+    templateAccessibility(now, "pioneer-village-escalator-test-s1"),
   ]);
 }
 

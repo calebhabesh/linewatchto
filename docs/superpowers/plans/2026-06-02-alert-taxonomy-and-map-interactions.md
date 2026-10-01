@@ -1123,7 +1123,7 @@ git commit -m "feat: add delay data and alert timestamps"
 
 **Files:**
 
-- Copy: `~/Pictures/Assets/LineWatch/delay-icon.svg`
+- Copy: `${LINEWATCH_ASSET_DIR}/delay-icon.svg`
 - Create: `frontend/public/assets/linewatch/delay-icon.svg`
 - Create: `frontend/src/components/DelaysPanel.tsx`
 - Create: `frontend/src/hooks/useScrollSelectedImpactCard.ts`
@@ -1139,7 +1139,7 @@ git commit -m "feat: add delay data and alert timestamps"
 Run:
 
 ```bash
-cp ~/Pictures/Assets/LineWatch/delay-icon.svg \
+cp ${LINEWATCH_ASSET_DIR}/delay-icon.svg \
   frontend/public/assets/linewatch/delay-icon.svg
 ```
 
@@ -1550,7 +1550,7 @@ git commit -m "feat: make map impacts clickable"
 
 **Files:**
 
-- Inspect: `~/Pictures/Assets/LineWatch/TTC_Subway Map_Edited.svg`
+- Inspect: `${LINEWATCH_ASSET_DIR}/TTC_Subway Map_Edited.svg`
 - Inspect: `frontend/public/assets/linewatch/ttc-subway-map-edited.svg`
 - Create: `frontend/tests/map-asset-guides.test.mjs`
 - Modify only if needed: `frontend/public/assets/linewatch/ttc-subway-map-edited.svg`
@@ -1561,10 +1561,10 @@ Run:
 
 ```bash
 sha256sum \
-  "~/Pictures/Assets/LineWatch/TTC_Subway Map_Edited.svg" \
+  "${LINEWATCH_ASSET_DIR}/TTC_Subway Map_Edited.svg" \
   frontend/public/assets/linewatch/ttc-subway-map-edited.svg
 rg -n "segment-guides-layer|non-linear-guides-layer|king|union|st-andrew|st-george|spadina|dupont" \
-  "~/Pictures/Assets/LineWatch/TTC_Subway Map_Edited.svg" \
+  "${LINEWATCH_ASSET_DIR}/TTC_Subway Map_Edited.svg" \
   frontend/public/assets/linewatch/ttc-subway-map-edited.svg
 ```
 

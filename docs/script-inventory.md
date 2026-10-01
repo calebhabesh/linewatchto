@@ -62,7 +62,7 @@ These scripts fetch public transit GTFS archives, generate scenario fixtures, an
 | `scripts/import-ttc-gtfs-schedule.sh` | GTFS Ingestion | Ingests TTC schedule trips and stop times into PostgreSQL | Path to GTFS zip (`$1`), PostgreSQL (`5434`) | Ingested schedule departures in database | `RegionalGtfsScheduleImportIntegrationTest` | Enforces 1 GB heap streaming budget |
 | `scripts/generate-alert-scenarios.mjs` | Alerts / Fixtures | Regenerates checked-in TTC alert scenario fixture files | `scripts/alert-scenario-catalog.mjs` | JSON files in `backend/src/test/resources/fixtures/ttc-alert-scenarios/` | `performance-measurements.test.mjs` | Regenerates committed synthetic fixtures |
 | `scripts/generate-regional-alert-scenarios.mjs` | Regional / Fixtures | Regenerates checked-in Metrolinx alert scenario fixture files | `scripts/regional-alert-scenario-catalog.mjs` | JSON files in `backend/src/test/resources/fixtures/metrolinx-alert-scenarios/` | `frontend/tests/scenario-scripts.test.mjs` | Regenerates committed regional fixtures |
-| `scripts/alert-scenario-templates.mjs` | Alerts / History | Evaluates alert history timestamps and generates navigation bookmarks | Optional `--since`, `--until`, `--network` | JSON bookmarks | `frontend/tests/scenario-scripts.test.mjs` | Analyzes historical disruption clusters |
+| `scripts/alert-scenario-templates.mjs` | Alerts / Fixtures | Authored synthetic route and accessibility templates used by the scenario catalog | Imported by `alert-scenario-catalog.mjs` | TTC-shaped synthetic records | `frontend/tests/alert-scenario-catalog.test.mjs` | No captured provider responses |
 
 ---
 

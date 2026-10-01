@@ -47,7 +47,7 @@ Create a Flyway migration that completes `station_lines` for every mapped Line
 1, 2, 4, 5, and 6 stop and applies the researched accessibility values from:
 
 ```text
-~/Pictures/Assets/LineWatch/ttc_station_accessibility_lines_1_2_4_5_6.csv
+${LINEWATCH_ASSET_DIR}/ttc_station_accessibility_lines_1_2_4_5_6.csv
 ```
 
 The CSV is an authoring input, not a runtime dependency. Encode the reviewed

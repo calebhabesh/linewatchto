@@ -62,4 +62,4 @@ Start with a backend health-controller test so the scaffold has a real automated
 
 ## GitHub Repository
 
-The local repo should be initialized at `~/dev/ttc-reliability-navigator`. The intended GitHub repository name is `ttc-reliability-navigator`. The user-facing product name remains `LineWatchTO`.
+The local repo should be initialized at `.`. The intended GitHub repository name is `ttc-reliability-navigator`. The user-facing product name remains `LineWatchTO`.

@@ -42,7 +42,7 @@ The main architectural work is introducing an explicit network/source boundary a
 A custom SVG map has been authored and is the visual starting point:
 
 ```text
-~/Pictures/Assets/LineWatch/Maps/Metrolinx_Custom_Map.svg
+${LINEWATCH_ASSET_DIR}/Maps/Metrolinx_Custom_Map.svg
 ```
 
 The external path remains the editable authoring source. A prepared application copy is stored at:

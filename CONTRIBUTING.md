@@ -1,6 +1,6 @@
 # Contributing to LineWatchTO
 
-Thank you for your interest in contributing to LineWatchTO. This guide explains how to set up your local development environment, run test tiers proportionally, work safely with fixtures, and manage generated assets.
+This guide explains how to set up your local development environment, run test tiers proportionally, work safely with fixtures, and manage generated assets. Project code and original documentation use the [MIT license](LICENSE); third-party data and assets retain their separate terms.
 
 ---
 
@@ -18,7 +18,7 @@ LineWatchTO is an unofficial transit reliability dashboard for Toronto's TTC sub
 
 ## 2. Environment & Prerequisites
 
-- **Node.js**: 20+ with npm
+- **Node.js**: 24 LTS with npm (matches the frontend container)
 - **Java**: 21 LTS
 - **Build tool**: Apache Maven 3.9+
 - **Database & Cache**: Docker and Docker Compose (PostgreSQL 16/17 with PostGIS, Redis 7)
@@ -129,6 +129,9 @@ LineWatchTO maintains pre-generated assets in Git so normal builds and checkouts
    npm --prefix frontend run screenshots:onboarding
    npm --prefix frontend run screenshots:onboarding:check
    ```
+
+4. **README presentation**:
+   Keep the README's behavior, boundaries, setup commands, and diagrams accurate when changing the product. Dependency manifests own exact versions; avoid undated test counts, benchmark claims, or adoption numbers. Capture README screenshots from public application views with fresh relevant source data, preserve source labels and dated captions, and review images for account details or operational identifiers. Onboarding and test captures keep their synthetic data and demo labels. See [README image provenance](docs/assets/README.md).
 
 ---
 

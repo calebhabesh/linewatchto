@@ -2,6 +2,8 @@
 
 This document records the publication readiness evidence, dependency audit, verification results, and owner decisions for the **LineWatchTO** release candidate in accordance with **Stage 10 (Chunk P4)** of [docs/refactor-plan/06-publication.md](06-publication.md).
 
+**Historical candidate evidence (2026-09-25).** Versions, advisory dispositions, test counts, and passing results below describe that candidate and must not be treated as verification of later checkouts. See the [September 30 repository audit](../publication-audit-2026-09-30.md) for current credential-scan scope, privacy findings, and publication decisions.
+
 ---
 
 ## 1. Candidate Baseline & Repository Provenance
@@ -145,14 +147,15 @@ Browser Playwright Suites:
 
 ---
 
-## 5. Outstanding Owner Decisions Prior to Publication
+## 5. Owner Decisions and Current Publication Candidate
 
-The technical refactoring and test-suite stabilization are complete. Publication readiness is achieved from an engineering perspective. The following governance decisions remain with the project owner:
+The results above are historical. Current repository publication preparation is recorded in the [September 30 candidate report](../publication-candidate-2026-09-30.md).
 
 1. **Code License Selection**:
-   - Select and commit a root `LICENSE` file (e.g., MIT, Apache 2.0, or AGPL).
+   - Resolved on 2026-09-30: project code and original documentation use the root [MIT license](../../LICENSE). Third-party source data and assets retain separate terms.
 2. **External Data Source Approvals**:
-   - In accordance with [docs/source-licensing-launch-gates.md](../source-licensing-launch-gates.md), confirm written approval/terms for TTC and Metrolinx open data usage, and maintain records in the designated private location before public launch or marketing.
+   - In accordance with [docs/source-licensing-launch-gates.md](../source-licensing-launch-gates.md), keep deployed integration terms and any agreements in a private operational location. The owner chose to retain the authored maps with source credits; public fixtures use synthetic records.
 3. **Repository Visibility & Deployment**:
    - The repository remains private until the owner authorizes visibility changes.
+   - The owner chose a sanitized copy preserving development history, with old workstation details removed. The private source history remains intact; see the [candidate report](../publication-candidate-2026-09-30.md).
    - Production deployment is executed separately via [scripts/prod-deploy.sh](../../scripts/prod-deploy.sh).

@@ -14,7 +14,7 @@
 
 - `frontend/src/components/InteractiveTtcMap.tsx` owns the top-right map button rail. Current order is `<LogsDropdown />`, then the sun/moon theme button. Add the guide as the third button so the order is ingestion logs, dark-mode shifter, site guide/info.
 - `frontend/src/components/LineWatchShell.tsx` owns account dialog state and `handleSubmitAccount`. The worktree already had local modifications in this file when this plan was written. Start by reading the current file and do not overwrite unrelated changes.
-- The guide icon source is outside the repo at `~/Pictures/Assets/LineWatch/site-guide.svg`. The app must not reference that absolute path at runtime. Copy it to `frontend/public/assets/linewatch/site-guide.svg`.
+- The guide icon source is outside the repo at `${LINEWATCH_ASSET_DIR}/site-guide.svg`. The app must not reference that absolute path at runtime. Copy it to `frontend/public/assets/linewatch/site-guide.svg`.
 - Current backend email validation only checks for an `@`; current backend password validation requires 10 characters. Frontend submits raw form values and turns most registration failures into `Could not create that account.`
 - Do not present LineWatchTO as official TTC software. Do not claim live service data unless the current dashboard state is fresh and backend-backed.
 
@@ -140,7 +140,7 @@ mkdir -p frontend/public/assets/linewatch
 Run:
 
 ```bash
-cp ~/Pictures/Assets/LineWatch/site-guide.svg frontend/public/assets/linewatch/site-guide.svg
+cp ${LINEWATCH_ASSET_DIR}/site-guide.svg frontend/public/assets/linewatch/site-guide.svg
 ```
 
 Expected: `frontend/public/assets/linewatch/site-guide.svg` exists and contains an `<svg>`.

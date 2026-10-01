@@ -15,7 +15,7 @@
 Use this prompt when starting implementation:
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial TTC reliability dashboard.
+You are working in . on LineWatchTO, an unofficial TTC reliability dashboard.
 
 Read these files before editing:
 - AGENTS.md

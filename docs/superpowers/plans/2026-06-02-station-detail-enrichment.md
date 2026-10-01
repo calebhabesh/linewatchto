@@ -99,7 +99,7 @@ on conflict (station_id, line_id) do update set
 ```
 
 Expand that `values` clause to exactly `117` explicit tuples from
-`~/Pictures/Assets/LineWatch/ttc_station_accessibility_lines_1_2_4_5_6.csv`
+`${LINEWATCH_ASSET_DIR}/ttc_station_accessibility_lines_1_2_4_5_6.csv`
 using station IDs already seeded in V1 and line membership authored in V7.
 Use `Northbound / Southbound` for every Line 1 row and `Eastbound / Westbound`
 for every Line 2, 4, 5, and 6 row. Duplicate the station-level CSV value across
@@ -472,8 +472,8 @@ Expected: FAIL because the panel does not render the authored assets.
 Run:
 
 ```bash
-cp ~/Pictures/Assets/LineWatch/wheel-chair-symbol.svg frontend/public/assets/linewatch/wheel-chair-symbol.svg
-cp ~/Pictures/Assets/LineWatch/elevator-icon.svg frontend/public/assets/linewatch/elevator-icon.svg
+cp ${LINEWATCH_ASSET_DIR}/wheel-chair-symbol.svg frontend/public/assets/linewatch/wheel-chair-symbol.svg
+cp ${LINEWATCH_ASSET_DIR}/elevator-icon.svg frontend/public/assets/linewatch/elevator-icon.svg
 ```
 
 - [ ] **Step 4: Update the station panel**

@@ -15,7 +15,7 @@
 Use this prompt in the implementation session:
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-03-alert-scenario-harness.md before editing.
+You are working in . on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-03-alert-scenario-harness.md before editing.
 
 Implement the alert scenario harness task-by-task. Preserve all existing user changes. Start with git status --short and do not reset, checkout, delete, or rewrite unrelated files. This repo currently has many modified frontend/backend files and an untracked scripts/mock-alerts-server.js prototype; treat them as user work and only edit that prototype if you are replacing it with the scenario-aware mock server described in this plan.
 
@@ -29,9 +29,9 @@ Do not add dependencies. Do not claim imported GTFS, production segment matching
 - The frontend already has tests for map guide paths, map geometry fallback, fixture data, API-stub smoke rendering, overlay clicks, station rings, and raw logs.
 - `backend/src/test/resources/fixtures/ttc-synthetic-alerts.json` is the only committed TTC feed fixture envelope.
 - The user has three external sample alert objects:
-  - `~/Pictures/Assets/LineWatch/sample1.json`
-  - `~/Pictures/Assets/LineWatch/sample2.json`
-  - `~/Pictures/Assets/LineWatch/sample3.json`
+  - `${LINEWATCH_ASSET_DIR}/sample1.json`
+  - `${LINEWATCH_ASSET_DIR}/sample2.json`
+  - `${LINEWATCH_ASSET_DIR}/sample3.json`
 - `scripts/mock-alerts-server.js` currently exists as an untracked prototype that serves only `sample3.json`. Replace or wrap it only inside the scenario-server task.
 
 ## Scope
@@ -134,7 +134,7 @@ Run:
 sed -n '1,220p' scripts/mock-alerts-server.js
 ```
 
-Expected: the prototype serves `~/Pictures/Assets/LineWatch/sample3.json` only. Keep its intent, but replace its implementation with the scenario-aware wrapper in Task 3.
+Expected: the prototype serves `${LINEWATCH_ASSET_DIR}/sample3.json` only. Keep its intent, but replace its implementation with the scenario-aware wrapper in Task 3.
 
 ## Task 1: Add Scenario Catalog Source
 

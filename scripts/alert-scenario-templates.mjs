@@ -1,8 +1,8 @@
 export const SYNTHETIC_TEMPLATE_SOURCE_KIND = "synthetic-template";
 export const MODELED_GAP_FILL_SOURCE_KIND = "modeled-gap-fill";
 
-// Authored synthetic TTC-shaped templates for parser/scenario coverage.
-// The scenario catalog rebases timestamps before serving these in dev/test feeds.
+// Authored synthetic TTC-shaped records for deterministic parser and scenario coverage.
+// These do not describe actual events; the catalog rebases their test timestamps.
 export const alertScenarioTemplates = {
   routes: {
     "line-1-planned-st-george-sheppard-west": {

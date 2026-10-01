@@ -43,11 +43,11 @@ describe("regional alert scenario catalog", () => {
     assert.deepEqual(expected.scopes, ["unverified", "segment", "station"]);
   });
 
-  it("identifies reviewed samples separately from synthetic breadth records", () => {
+  it("uses authored synthetic records for every regional scenario", () => {
     const fixture = JSON.parse(readFileSync(new URL("all-alert-types.json", fixtureRoot), "utf8"));
     const records = [...fixture.go.Messages.Message, ...fixture.up.entity];
     const origins = new Set(records.map((record) => record._linewatchScenarioOrigin));
-    assert.deepEqual([...origins].sort(), ["synthetic", "synthetic"]);
+    assert.deepEqual([...origins].sort(), ["synthetic"]);
     assert.ok(records.some((record) => record.Code === "LW-SCENARIO-KI-ADJUSTMENT"));
     assert.ok(records.some((record) => record.Code === "LW-SCENARIO-AG-ELEVATOR"));
     assert.ok(records.some((record) => record.Code === "LW-SCENARIO-UN-MAINTENANCE"));

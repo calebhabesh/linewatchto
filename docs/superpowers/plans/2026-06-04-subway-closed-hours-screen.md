@@ -72,7 +72,7 @@ Open-hours state:
 Run from repo root:
 
 ```bash
-cp ~/Pictures/Assets/LineWatch/closed-alert.svg frontend/public/assets/linewatch/closed-alert.svg
+cp ${LINEWATCH_ASSET_DIR}/closed-alert.svg frontend/public/assets/linewatch/closed-alert.svg
 ```
 
 Expected: `frontend/public/assets/linewatch/closed-alert.svg` exists.

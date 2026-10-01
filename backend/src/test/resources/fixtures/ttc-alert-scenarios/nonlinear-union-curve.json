@@ -56,7 +56,8 @@
       "elevatorCode": null,
       "escalatorCode": null,
       "criticality": 0,
-      "childAlerts": []
+      "childAlerts": [],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-rsz-union-king-north",
@@ -112,7 +113,8 @@
       "elevatorCode": null,
       "escalatorCode": null,
       "criticality": 0,
-      "childAlerts": []
+      "childAlerts": [],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-suspension-st-andrew-union",
@@ -168,7 +170,8 @@
       "elevatorCode": null,
       "escalatorCode": null,
       "criticality": 0,
-      "childAlerts": []
+      "childAlerts": [],
+      "_linewatchScenarioOrigin": "synthetic"
     }
   ],
   "accessibility": []

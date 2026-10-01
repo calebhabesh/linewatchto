@@ -40,7 +40,8 @@
       "shuttleEnd": "Kennedy",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-active-line-1-dupont-cedarvale",
@@ -72,7 +73,8 @@
       "shuttleEnd": "Cedarvale",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-active-line-1-king-union",
@@ -103,7 +105,8 @@
       "shuttleEnd": "Union",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-active-line-1-museum-st-george",
@@ -134,7 +137,8 @@
       "shuttleEnd": "St George",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-station-node-bloor-yonge-line-1",
@@ -161,7 +165,8 @@
       "direction": "Both ways",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-station-node-bloor-yonge-line-2",
@@ -188,7 +193,8 @@
       "direction": "Both ways",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-delay-line-4",
@@ -216,7 +222,8 @@
       "direction": "Eastbound",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-delay-line-1-union-st-andrew",
@@ -244,7 +251,8 @@
       "direction": "Northbound",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-delay-line-1-dupont-spadina",
@@ -272,7 +280,8 @@
       "direction": "Southbound",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-delay-line-2-main-street-kennedy",
@@ -302,7 +311,8 @@
       "direction": "Both ways",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-delay-line-2-jane-runnymede",
@@ -330,7 +340,8 @@
       "direction": "Both ways",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-station-node-jane-overlap",
@@ -357,7 +368,8 @@
       "direction": "Eastbound",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-station-node-keele",
@@ -384,7 +396,8 @@
       "direction": "Westbound",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-station-node-dundas-west-bidirectional",
@@ -411,7 +424,8 @@
       "direction": "Both ways",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-station-node-union-vaughan",
@@ -438,7 +452,8 @@
       "direction": "Northbound To Vaughan Metropolitan Centre",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-station-node-spadina",
@@ -465,7 +480,8 @@
       "direction": "Both ways",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-station-node-lawrence-west",
@@ -492,7 +508,8 @@
       "direction": "Both ways",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-station-node-spadina-line-2-westbound",
@@ -519,7 +536,8 @@
       "direction": "Westbound",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "synthetic-rsz-line-1",
@@ -546,7 +564,8 @@
       "childAlerts": [],
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-rsz-line-2-jane-runnymede",
@@ -578,7 +597,8 @@
       "targetRemoval": "This week",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-rsz-line-1-wilson-yorkdale-directionless",
@@ -610,7 +630,8 @@
       "targetRemoval": "This month",
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "synthetic-planned-line-1",
@@ -650,7 +671,8 @@
           "endTime": "2026-06-03T16:10:00.000Z"
         }
       ],
-      "direction": "Both ways"
+      "direction": "Both ways",
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-planned-line-1-northbound-early-access",
@@ -691,7 +713,8 @@
           "endTime": "2026-06-03T16:10:00.000Z"
         }
       ],
-      "direction": "Northbound"
+      "direction": "Northbound",
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-planned-line-2-long-upcoming",
@@ -738,7 +761,8 @@
           "endTime": "2026-06-07T15:00:00.000Z"
         }
       ],
-      "direction": "Both ways"
+      "direction": "Both ways",
+      "_linewatchScenarioOrigin": "synthetic"
     }
   ],
   "accessibility": [
@@ -759,7 +783,8 @@
       "childAlerts": [],
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "synthetic-escalator-pioneer-village",
@@ -778,7 +803,8 @@
       "childAlerts": [],
       "activePeriodGroup": [
         "Current"
-      ]
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
     }
   ]
 }

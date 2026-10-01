@@ -192,9 +192,9 @@ class LineSubscriptionPushPlannerTest {
             }
             assertThat(candidate.body()).contains("Advisory dates: Sat, Jun 6 – Mon, Jun 8.");
             assertThat(candidate.body()).contains("Advisory hours: 12:00 AM – 5:00 AM.");
-            assertThat(candidate.body()).startsWith(
-                "Synthetic scenario: no subway service between St George and Sheppard West for a test closure."
-            );
+            assertThat(candidate.body())
+                .startsWith("There will be no subway service between")
+                .contains("St George", "Sheppard West");
             assertThat(candidate.body()).doesNotContain("Each nightly closure runs");
         }
     }

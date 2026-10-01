@@ -20,7 +20,8 @@ describe("privacy and acknowledgement content", () => {
     assert.match(combinedCopy, /not affiliated with, endorsed by, or operated by the TTC/i);
     assert.match(combinedCopy, /Contains information licensed under the Open Government Licence – Toronto\./);
     assert.match(combinedCopy, /does not apply to TTC Live Alerts or Metrolinx source records/i);
-    assert.match(combinedCopy, /Regional naming, branding, and derivative map use remain a launch gate pending written Metrolinx confirmation/i);
+    assert.match(combinedCopy, /TTC and Metrolinx map references credited/i);
+    assert.match(combinedCopy, /does not grant rights to third-party names, marks, or referenced designs/i);
     assert.match(combinedCopy, /independently re-created the rapid-transit map in Inkscape/i);
     assert.match(combinedCopy, /independently re-created the GO\/UP regional map in Inkscape/i);
     assert.match(combinedCopy, /optimized app rendering and data referencing\/formatting/i);

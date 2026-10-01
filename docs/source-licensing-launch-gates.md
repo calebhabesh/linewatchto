@@ -1,6 +1,6 @@
 # Source Licensing and Naming Launch Gates
 
-Last reviewed: 2026-08-31
+Last reviewed: 2026-09-30
 
 LineWatchTO is an unofficial, independent project. Technical readiness does not by itself authorize public use of a source, name, map, or mark.
 
@@ -20,17 +20,21 @@ The public acknowledgements panel must include the exact statement:
 
 That statement applies only to identified City of Toronto open-data inputs, including the official TTC GTFS Realtime dataset. It must not be presented as licensing TTC Live Alerts, TTC website assets, or Metrolinx API records.
 
-## Written Approval Required Before Public Launch
+## Repository publication decision
 
-Public launch remains blocked until the project owner records appropriate written confirmation for:
+On September 30, 2026, the owner chose to publish the Inkscape-authored TTC and regional schematic maps with explicit reference credits. Keep those drawings, their raster planes, and the README screenshots; preserve the [credits and third-party notices](../THIRD_PARTY_NOTICES.md), visible map attribution, and unofficial-project wording. This records the owner's publication decision, not a claim that a transit agency granted permission or endorsement.
+
+Use synthetic alert/parser examples in the public repository. Exclude captured provider responses and credentials from both the published tree and its reachable history. Sanitize personal workstation paths and addresses while preserving the development commit history.
+
+## Live integration terms
+
+The owner is responsible for confirming the applicable source terms before enabling or changing live integrations, including:
 
 - TTC Live Alerts use and normalized republication;
 - TTC website monitoring and reviewed republication of station-page notices;
-- the adapted TTC map asset;
-- Metrolinx API source use under the registered agreement; and
-- rider-facing use of GO, GO Transit, and UP Express names or marks.
+- Metrolinx API source use under the registered agreement.
 
-Store approvals outside the public repository and record only the approver, scope, date, expiry or revocation terms, and internal document location in the private launch checklist. If approval is not obtained, disable the affected integration and replace permission-sensitive names/assets before launch.
+Store agreements and approval correspondence outside the public repository. Record only the scope, date, expiry or revocation terms, and internal document location in a private operational checklist. Publishing source code and credited authored maps does not establish permission for every deployed integration. Transit names and marks remain with their respective owners and must not suggest affiliation or endorsement.
 
 ## Operator Raw Access
 

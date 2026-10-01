@@ -29,7 +29,6 @@
         "station"
       ],
       "recordOrigins": [
-        "synthetic",
         "synthetic"
       ]
     },
@@ -71,7 +70,6 @@
         "unverified"
       ],
       "recordOrigins": [
-        "synthetic",
         "synthetic"
       ]
     },

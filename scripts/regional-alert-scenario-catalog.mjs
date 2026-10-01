@@ -19,7 +19,7 @@ export const regionalScenarioExpectations = {
       "regional-mi", "regional-rh", "regional-st", "regional-up",
     ],
     scopes: ["unverified", "segment", "station"],
-    recordOrigins: ["synthetic", "synthetic"],
+    recordOrigins: ["synthetic"],
   },
   "go-corridor-overlap": {
     goRecordCount: 3,
@@ -39,7 +39,7 @@ export const regionalScenarioExpectations = {
     impactKinds: ["advisory"],
     lineIds: ["regional-ki"],
     scopes: ["unverified"],
-    recordOrigins: ["synthetic", "synthetic"],
+    recordOrigins: ["synthetic"],
   },
   "up-service-alerts": {
     goRecordCount: 0,
@@ -147,7 +147,7 @@ function records(now) {
     stops: ["BL"],
     subCategory: "Service Suspension",
   });
-  const reviewedKiDelay = goMessage(now, {
+  const kiAdjustment = goMessage(now, {
     code: "LW-SCENARIO-KI-ADJUSTMENT",
     subject: "Kitchener line service adjustment",
     body: "Synthetic scenario: test trains are five minutes later than usual.",
@@ -217,7 +217,7 @@ function records(now) {
     endOffset: 300,
   });
   return {
-    leDelay, lePlanned, lwRouteDelay, stationSuspension, reviewedKiDelay, multiLine,
+    leDelay, lePlanned, lwRouteDelay, stationSuspension, kiAdjustment, multiLine,
     elevator, unionMaintenance, escalator, upSuspension, upStationDelay, upPlanned,
   };
 }
@@ -230,7 +230,7 @@ export function buildRegionalScenario(name, { now = DEFAULT_NOW } = {}) {
   const selected = {
     "all-alert-types": {
       go: [
-        r.leDelay, r.lePlanned, r.lwRouteDelay, r.stationSuspension, r.reviewedKiDelay,
+        r.leDelay, r.lePlanned, r.lwRouteDelay, r.stationSuspension, r.kiAdjustment,
         r.multiLine, r.elevator, r.unionMaintenance, r.escalator,
       ],
       up: [r.upSuspension, r.upStationDelay, r.upPlanned],

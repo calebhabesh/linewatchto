@@ -1,0 +1,98 @@
+{
+  "origin": "https://linewatchto.ca",
+  "authentication": "signed out",
+  "captures": [
+    {
+      "network": "ttc",
+      "sourceSystems": [
+        "ttc-live-alerts",
+        "ttc-scheduled-service"
+      ],
+      "sourceStatus": {
+        "time": "7:23 PM",
+        "date": "Sep 30, 2026",
+        "live": true,
+        "lastPoll": "succeeded just now"
+      },
+      "capturedAt": "2026-09-30T23:23:21.339Z",
+      "viewport": "1600x1000",
+      "pixelRatio": 2,
+      "file": "ttc-desktop.png",
+      "imagePixels": [
+        3200,
+        2000
+      ],
+      "framing": "Full viewport; fitted desktop network"
+    },
+    {
+      "network": "ttc",
+      "sourceSystems": [
+        "ttc-live-alerts",
+        "ttc-scheduled-service"
+      ],
+      "sourceStatus": {
+        "time": "7:23 PM",
+        "date": "Sep 30, 2026",
+        "live": true,
+        "lastPoll": "succeeded just now"
+      },
+      "capturedAt": "2026-09-30T23:23:21.971Z",
+      "viewport": "1600x1000",
+      "pixelRatio": 2,
+      "file": "station-details.png",
+      "imagePixels": [
+        1120,
+        1792
+      ],
+      "framing": "Union station panel / Train Arrivals section",
+      "arrivalsSource": "TTC GTFS-RT subway trip updates"
+    },
+    {
+      "network": "regional",
+      "sourceSystems": [
+        "metrolinx-go-service-alerts",
+        "metrolinx-go-information-alerts",
+        "metrolinx-go-marketing-alerts",
+        "metrolinx-go-gtfs-alerts",
+        "metrolinx-up-gtfs-alerts"
+      ],
+      "sourceStatus": {
+        "time": "7:23 p.m.",
+        "date": "Sep 30, 2026",
+        "live": true,
+        "lastPoll": "succeeded just now"
+      },
+      "capturedAt": "2026-09-30T23:23:24.041Z",
+      "viewport": "1600x1000",
+      "pixelRatio": 2,
+      "file": "regional-desktop.png",
+      "imagePixels": [
+        3200,
+        2000
+      ],
+      "framing": "Full viewport; fitted desktop network"
+    },
+    {
+      "network": "ttc",
+      "sourceSystems": [
+        "ttc-live-alerts",
+        "ttc-scheduled-service"
+      ],
+      "sourceStatus": {
+        "time": "7:23 PM",
+        "date": "Sep 30, 2026",
+        "live": true,
+        "lastPoll": "succeeded just now"
+      },
+      "capturedAt": "2026-09-30T23:23:25.200Z",
+      "viewport": "412x915",
+      "pixelRatio": 2,
+      "file": "ttc-mobile.png",
+      "imagePixels": [
+        824,
+        1830
+      ],
+      "framing": "Full viewport; natural phone framing"
+    }
+  ]
+}

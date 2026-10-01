@@ -106,7 +106,7 @@ class TtcAlertScenarioCatalogTest {
     }
 
     @Test
-    void allAlertTypesDeclaresRealHistoryAndModeledCoverageMatrix() throws Exception {
+    void allAlertTypesDeclaresSyntheticTemplateAndModeledCoverageMatrix() throws Exception {
         JsonNode allAlertTypes = scenarioIndexEntry(parseScenarioIndex(), "all-alert-types");
 
         assertThat(allAlertTypes).isNotNull();

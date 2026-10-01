@@ -23,14 +23,14 @@ export const acknowledgementSections: NoticeSection[] = [
     title: "TTC Map Acknowledgement",
     body: "The LineWatchTO developer independently re-created the rapid-transit map in Inkscape, using the TTC route map as a direct visual reference. The SVG is a derivative replica created for optimized app rendering and data referencing/formatting; it is not a downloaded TTC map file. TTC names, marks, route and station names, line colors, and the referenced map design remain the property of the Toronto Transit Commission or their respective owners.",
     bullets: [
-      "The derivative map is being treated as permission-sensitive; independent re-creation does not imply TTC affiliation or endorsement.",
+      "The TTC route map is credited as the visual reference; this authored recreation does not imply TTC affiliation or endorsement.",
     ],
   },
   {
     title: "Metrolinx Map Acknowledgement",
     body: "The LineWatchTO developer independently re-created the GO/UP regional map in Inkscape, using the Metrolinx GO system map as a direct visual reference. The SVG is a derivative replica created for optimized app rendering and data referencing/formatting; it is not a downloaded Metrolinx map image. GO, UP Express, Metrolinx, route and station names, service colors, marks, and the referenced map design remain the property of Metrolinx or their respective owners.",
     bullets: [
-      "The derivative map is being treated as permission-sensitive; independent re-creation does not imply Metrolinx affiliation or endorsement.",
+      "The Metrolinx GO system map is credited as the visual reference; this authored recreation does not imply Metrolinx affiliation or endorsement.",
     ],
   },
   {
@@ -46,7 +46,7 @@ export const acknowledgementSections: NoticeSection[] = [
     body: "LineWatchTO does not treat TTC Live Alerts or Metrolinx API records as Toronto open data. Public launch of those integrations requires written source-owner confirmation appropriate to the intended use.",
     bullets: [
       "GO, GO Transit, UP Express, TTC, and related names and marks belong to their respective owners. Their use identifies transit services and does not imply affiliation or endorsement.",
-      "Regional naming, branding, and derivative map use remain a launch gate pending written Metrolinx confirmation; TTC Live Alerts and derivative TTC map use remain permission-sensitive pending written TTC confirmation.",
+      "The schematic drawings were authored in Inkscape with TTC and Metrolinx map references credited. Project licensing does not grant rights to third-party names, marks, or referenced designs.",
     ],
   },
   {

@@ -58,7 +58,8 @@
       "elevatorCode": null,
       "escalatorCode": null,
       "criticality": 0,
-      "childAlerts": []
+      "childAlerts": [],
+      "_linewatchScenarioOrigin": "synthetic"
     },
     {
       "id": "scenario-rsz-queens-park-dundas-long",
@@ -120,7 +121,8 @@
       "elevatorCode": null,
       "escalatorCode": null,
       "criticality": 0,
-      "childAlerts": []
+      "childAlerts": [],
+      "_linewatchScenarioOrigin": "synthetic"
     }
   ],
   "accessibility": []

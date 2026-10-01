@@ -63,8 +63,16 @@ artifacts/onboarding/
 **/.terraform/
 *.tfstate
 *.tfstate.*
+*.tfvars
+*.tfvars.json
 crash.log
 crash.*.log
+
+# Local private keys and signing material
+*.pem
+*.key
+*.p12
+*.pfx
 
 # Playwright
 test-results/

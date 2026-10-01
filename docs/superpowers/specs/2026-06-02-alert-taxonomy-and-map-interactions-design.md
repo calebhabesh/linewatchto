@@ -125,7 +125,7 @@ Planned closure overlays should activate only while the Toronto clock is inside 
 
 ### Slice 3: Station Metadata And Accessibility
 
-Load `~/Pictures/Assets/LineWatch/ttc_station_accessibility_lines_1_2_4_5_6.csv`, copy the supplied accessibility icons into frontend assets, and enrich station reads:
+Load `${LINEWATCH_ASSET_DIR}/ttc_station_accessibility_lines_1_2_4_5_6.csv`, copy the supplied accessibility icons into frontend assets, and enrich station reads:
 
 - every mapped stop has accurate line membership;
 - static station metadata distinguishes wheelchair accessibility from elevator presence;
@@ -449,7 +449,7 @@ The topmost hit target opens the highest-priority visible impact. Underlying car
 
 ### Delays Submenu
 
-Copy `~/Pictures/Assets/LineWatch/delay-icon.svg` into the repository frontend assets during implementation.
+Copy `${LINEWATCH_ASSET_DIR}/delay-icon.svg` into the repository frontend assets during implementation.
 
 Add a `Delays` submenu entry with:
 
@@ -540,7 +540,7 @@ seg-line-1-dupont-spadina
 The supplied edited asset at:
 
 ```text
-~/Pictures/Assets/LineWatch/TTC_Subway Map_Edited.svg
+${LINEWATCH_ASSET_DIR}/TTC_Subway Map_Edited.svg
 ```
 
 contains hidden nonlinear shapes under:
