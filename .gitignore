@@ -23,6 +23,7 @@ frontend/coverage/
 frontend/.vercel/
 frontend/tsconfig.tsbuildinfo
 frontend/next-env.d.ts
+frontend/public/assets/maplibre/
 
 # Native mobile build output and signing files
 mobile/android/.gradle/

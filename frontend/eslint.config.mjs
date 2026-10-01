@@ -5,7 +5,7 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
-  globalIgnores([".next/**", ".next-scenario/**", ".next-account-edits/**", ".next-onboarding/**", "out/**", "build/**", "tmp/**", "next-env.d.ts"]),
+  globalIgnores([".next/**", ".next-scenario/**", ".next-account-edits/**", ".next-onboarding/**", "out/**", "build/**", "tmp/**", "next-env.d.ts", "public/assets/maplibre/**"]),
 ]);
 
 export default eslintConfig;

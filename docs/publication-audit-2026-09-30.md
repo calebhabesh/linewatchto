@@ -41,6 +41,11 @@ The content audit covers the local working-file publication candidate and local 
 
 For these documentation/ignore-rule changes, verification consists of diff and local-link review, image inspection, Mermaid rendering, ignore-rule checks, and a final working-file credential scan. After replacing parser/scenario fixtures, the fresh publication copy passed frontend fast tests, typecheck, lint (17 existing warnings), and all 1,219 backend tests. The earlier [P4 release results](refactor-plan/p4-publication-evidence.md) remain historical evidence for their original candidate; no new deployment or complete browser release suite was performed.
 
+The subsequent [dependency security review](dependency-security-review-2026-09-30.md)
+records frontend/backend dependency fixes, current zero-finding package scans,
+and additional build/browser verification. Consult that review for the candidate's
+current dependency and release-check status.
+
 ## Repeating the credential checks
 
 Use Gitleaks with full redaction and keep reports outside the repository. Include all refs when scanning history:

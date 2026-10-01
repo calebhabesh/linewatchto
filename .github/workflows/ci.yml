@@ -41,6 +41,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm --prefix frontend ci
 
+      - name: Check frontend dependency advisories
+        run: npm --prefix frontend audit --audit-level=high
+
       - name: Script tool tests
         run: npm --prefix frontend run test:scripts:all
 

@@ -1,7 +1,9 @@
 # Publication candidate — September 30, 2026
 
-Status: repository privacy/history and attribution preparation complete. This is
-publication preparation, not a deployment or a dependency-security release.
+Status: repository privacy/history and attribution preparation complete.
+Dependency fixes and their validation are recorded in the
+[security follow-up](dependency-security-review-2026-09-30.md). Publication and
+production deployment remain separate owner transitions.
 
 ## Candidate and preserved history
 
@@ -9,8 +11,9 @@ The isolated publication copy is the sibling checkout `../linewatchto-publicatio
 The original `linewatchto` repository retains its existing private Git history and
 refs. Working-file improvements remain available there for review.
 
-- All **1,325 original reachable commits** are preserved, plus two publication
-  preparation/evidence commits. No squashed initial snapshot was substituted.
+- All **1,325 original reachable commits** are preserved, followed by publication
+  preparation/evidence commits and the dependency security follow-up. No squashed
+  initial snapshot was substituted.
 - Author and committer identities and timestamps, encoding fields, and mapped
   parent relationships match for every original commit: **zero mismatches**.
 - Three branches (`main`, `feat/mobile-prototype`, `feature/go-up-network-mode`)
@@ -25,7 +28,7 @@ refs. Working-file improvements remain available there for review.
   address. Generic deployment-account paths, loopback, Android emulator, proxy,
   private-network test values, and Terraform CIDRs retain their functional roles.
 - The sanitized preparation commit is `a7049e854b5f4d0ea3b91ef4425e367bea7dbabd`. The following evidence commit
-  records this report and completes the publication candidate.
+  records the initial verification; the security follow-up extends that candidate.
 
 The private old/new commit map remains under `.git/filter-repo/`; it is not a
 tracked publication file. The candidate has no configured remote, no original
@@ -55,12 +58,12 @@ remain private and separate from repository visibility.
 | Original commit retention and metadata/topology comparison | 1,325 retained; zero mismatches |
 | Git object/ref integrity and original repository preservation | Passed |
 | Gitleaks 8.30.1, default rules, all candidate refs, fully redacted | Zero findings |
-| Gitleaks working-file export | Zero findings across 1,810 candidate files |
+| Gitleaks working-file export | Zero findings; repeated after the security follow-up |
 | Known personal path/address and captured-example identity scan | Zero matches in reachable text blobs |
 | Non-example environment files and archived raw-feed path in history | None |
 | Fresh candidate frontend fast tests | Passed |
 | Fresh candidate frontend typecheck | Passed |
-| Fresh candidate frontend lint | Passed; 17 existing warnings, zero errors |
+| Fresh candidate frontend lint | Passed; 18 warnings, zero errors with updated Next.js ESLint rules |
 | Fresh candidate backend tests | 1,219 passed; zero failures/errors/skips |
 | README images, source dates, Mermaid diagrams, and local links | Reviewed; no broken image or local link targets |
 
@@ -69,18 +72,18 @@ and tag advertised by the private GitHub remote was represented locally when
 checked. No pull-request refs were advertised. Git LFS objects, GitHub-retained
 unadvertised PR/cache objects, and deployed accounts are outside the scan. Public
 screenshots were manually reviewed; no automated OCR certification is claimed.
-No full browser release suite was rerun for this fixture/copy/publication work.
+The initial fixture/copy preparation did not rerun the browser release tiers.
+The subsequent security follow-up verifies the relevant release tiers across
+Chromium, Firefox, and container-hosted WebKit; see its verification table.
 
-## Existing dependency maintenance
+## Dependency security follow-up
 
-A fresh `npm audit` reports **9 existing advisories: 1 moderate, 6 high, and 2
-critical**. Critical entries concern `next` and `maplibre-gl`; the scanner proposes
-Next.js 16.3.8 and a MapLibre GL JS 6.11.2 major upgrade. Other entries concern
-build/tooling dependencies. Their applicability has not been re-certified by this
-publication task, and the older P4 disposition is historical. Review these with
-the appropriate rendering/build/browser checks before a dependency release.
-Publishing this candidate does not deploy dependency upgrades or certify the
-running service as free of vulnerabilities.
+The initial npm audit reported **9 vulnerable packages**, including critical
+entries for Next.js and MapLibre. The follow-up updates the frontend lockfile and
+backend dependencies: current npm and resolved Maven/OSV checks report **zero
+findings**. See the [security review](dependency-security-review-2026-09-30.md)
+for versions, scan scope, validation, and remaining platform/deployment work.
+Publishing source changes does not deploy those fixes to the running service.
 
 ## GitHub publication procedure
 
@@ -88,6 +91,10 @@ Publish the sanitized copy, rather than changing visibility on the old remote
 while its original history is still present. Keep the original checkout as the
 private backup; after the transition, use a fresh clone of the sanitized history
 for ongoing development so old commits are not merged back into the public repo.
+The existing GitHub repository becomes the public development home; a second
+private GitHub repository is not required. Keep the old local clone or an offline
+backup as the private archive. Develop features, fixes, and dependency updates on
+branches in the sanitized repository and use its existing pull-request/CI flow.
 
 For the existing private GitHub repository `calebhabesh/linewatchto`, the reviewed
 remote refs can be replaced atomically with explicit leases:
@@ -117,6 +124,12 @@ and clone the still-private remote afresh to repeat the history scan. Check GitH
 pull-request/cached views for obsolete original references before changing
 visibility. In repository **Settings → General → Danger Zone**, change visibility
 to public once that remote verification is complete.
+
+Once public, enable
+[private vulnerability reporting](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository)
+in **Settings → Advanced Security** and verify the **Report a vulnerability**
+button described in `SECURITY.md`. This is a GitHub setting in addition to the
+tracked policy file; its availability was not confirmed while the repo is private.
 
 A `main` push triggers the existing CI verification/image-publication workflow.
 Production deployment uses a separate manual workflow. Existing production

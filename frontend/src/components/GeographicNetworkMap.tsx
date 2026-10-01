@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import maplibregl, { type Map as MapLibreMap } from "maplibre-gl";
+import { Map as MapLibreMap, getVersion, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { AlertCircle, RefreshCw, Layers, Locate, ZoomIn, ZoomOut } from "lucide-react";
 import type { GeographicCatalog } from "../app/geographic-catalog";
@@ -172,7 +172,7 @@ function geographicMobileSelectionPadding(container: HTMLElement) {
 
   return {
     top: Math.max(104, Math.ceil(topPillBottom + 16)),
-    bottom: Math.max(96, Math.ceil(container.clientHeight - inspectorTop + 16)),
+    bottom: Math.max(96, Math.ceil(container.clientHeight - inspectorTop + 24)),
     left: 72,
     right: 72,
   };
@@ -312,13 +312,12 @@ function uniqueMapImpacts(impacts: MapImpact[]): MapImpact[] {
   });
 }
 
-function isWebGLSupported(): boolean {
+function isWebGL2Supported(): boolean {
   if (typeof window === "undefined") return false;
   try {
     const canvas = document.createElement("canvas");
     return Boolean(
-      window.WebGLRenderingContext &&
-        (canvas.getContext("webgl") || canvas.getContext("experimental-webgl")),
+      window.WebGL2RenderingContext && canvas.getContext("webgl2"),
     );
   } catch {
     return false;
@@ -979,12 +978,12 @@ export function GeographicNetworkMap({
         setLoadStatus("loading");
         recordGeographicMapLifecycle("loading", "init");
 
-        // WebGL capability check
-        if (!isWebGLSupported()) {
+        // MapLibre 6 requires WebGL2; keep the diagram fallback available.
+        if (!isWebGL2Supported()) {
           if (!cancelled && currentGeneration === initGenerationRef.current) {
             setLoadStatus("error");
             recordGeographicMapLifecycle("error", "webgl-unsupported");
-            setErrorMessage("WebGL is not supported on this device or browser.");
+            setErrorMessage("WebGL2 is not available on this device or browser. Use Diagram to view the network.");
           }
           return;
         }
@@ -1018,8 +1017,11 @@ export function GeographicNetworkMap({
         const initialStyleUrl = isDarkRef.current ? OPENFREEMAP_STYLES.dark : OPENFREEMAP_STYLES.light;
         appliedStyleUrlRef.current = initialStyleUrl;
 
+        // Next.js does not emit MapLibre's worker and its shared module together.
+        // predev/prebuild copies the installed pair to this versioned path.
+        setWorkerUrl(`/assets/maplibre/${getVersion()}/maplibre-gl-worker.mjs`);
         recordGeographicMapLifecycle("constructor", `network:${network}`);
-        const map = new maplibregl.Map({
+        const map = new MapLibreMap({
           container: containerRef.current,
           style: initialStyleUrl,
           center: initialCenter,

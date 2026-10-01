@@ -2,7 +2,7 @@
 
 This document records the publication readiness evidence, dependency audit, verification results, and owner decisions for the **LineWatchTO** release candidate in accordance with **Stage 10 (Chunk P4)** of [docs/refactor-plan/06-publication.md](06-publication.md).
 
-**Historical candidate evidence (2026-09-25).** Versions, advisory dispositions, test counts, and passing results below describe that candidate and must not be treated as verification of later checkouts. See the [September 30 repository audit](../publication-audit-2026-09-30.md) for current credential-scan scope, privacy findings, and publication decisions.
+**Historical candidate evidence (2026-09-25).** Versions, advisory dispositions, test counts, and passing results below describe that candidate and must not be treated as verification of later checkouts. See the [September 30 repository audit](../publication-audit-2026-09-30.md) for current credential-scan scope, privacy findings, and publication decisions, and the [dependency security review](../dependency-security-review-2026-09-30.md) for the subsequent fixes.
 
 ---
 
@@ -59,11 +59,11 @@ A complete audit of client, server, build, CSS/plugins, and scripts was performe
 
 An `npm audit` assessment was executed at implementation time:
 - Total audited packages: 394 (reduced by 41 packages after pruning GSAP and Recharts).
-- 9 advisories detected in transitive tool chains (1 moderate, 6 high, 2 critical):
-  - `next`: Advisories in Server Actions / edge runtime handlers (not used in LineWatch's static export / API proxy mode).
+- 9 vulnerable package entries detected (1 moderate, 6 high, 2 critical), including runtime dependencies:
+  - `next`: Multiple conditional server/image-handler advisories. LineWatch uses a standalone Next.js server; the original review's description of a static export was incorrect.
   - `maplibre-gl`: DOM sanitize XSS bypass on live NamedNodeMap removal.
-  - `brace-expansion`, `browserslist`, `nanoid`, `js-yaml`, `sharp`, `postcss`: Transitive developer tooling packages.
-- **Disposition**: Breaking major version bumps (`next@16.3.6`, `maplibre-gl@6.11.2`) are deferred to post-release maintenance to prevent API breakage in stable map rendering and Next.js App Router static page generation.
+  - `brace-expansion`, `browserslist`, `nanoid`, `js-yaml`, `sharp`, `postcss`: Other tooling and image-processing dependencies; `sharp` is also used at runtime by Next.js.
+- **Historical disposition, superseded**: Upgrades were deferred. The September 30 security follow-up upgrades Next.js within version 16 and migrates MapLibre to version 6 with browser verification; see the linked review. This earlier deferral is not a current release recommendation.
 
 ---
 

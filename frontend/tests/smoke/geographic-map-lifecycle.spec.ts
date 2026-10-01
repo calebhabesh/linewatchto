@@ -10,6 +10,23 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     });
   });
 
+  test("devices without WebGL2 can recover to the diagram without constructing a geographic map", async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(window, "WebGL2RenderingContext", { value: undefined });
+    });
+    await page.goto("/");
+
+    const geoMap = page.locator(".geographic-network-map");
+    await expect(geoMap).toHaveAttribute("data-status", "error");
+    const errorOverlay = page.locator(".geographic-map-error-overlay");
+    await expect(errorOverlay).toContainText("WebGL2 is not available");
+    expect(await page.evaluate(() => window.__linewatchGeographicMapLifecycle?.constructors ?? 0)).toBe(0);
+
+    await errorOverlay.getByRole("button", { name: "Use Diagram" }).click();
+    await expect(page.locator(".ttc-map-stage")).toBeVisible();
+    await expect(geoMap).toHaveCount(0);
+  });
+
   test("map instance survives sidebar collapse/expand, poll ticks, and data refreshes without recreation or flashing", async ({ page, isMobile }) => {
     test.skip(isMobile, "Desktop sidebar lifecycle regression applies to desktop viewports");
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -282,28 +299,32 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
       ) ?? null,
     )).not.toBeNull();
 
-    const framing = await page.evaluate(() => {
-      const map = document.querySelector<HTMLElement>(".geographic-network-map");
-      const mapRect = map?.getBoundingClientRect();
-      const inspectorRect = document.querySelector<HTMLElement>("[data-mobile-impact-inspector]")
-        ?.getBoundingClientRect();
-      const topChromeBottom = Array.from(document.querySelectorAll<HTMLElement>(
-        ".mobile-app-topbar, .map-utility-cluster",
-      )).reduce((bottom, element) => Math.max(bottom, element.getBoundingClientRect().bottom), 0);
-      return {
-        bounds: window.__linewatchGeographicMapLifecycle?.getProjectedSelectionBounds(
-          "delay:stub-delay-line-4",
-        ) ?? null,
-        width: map?.clientWidth ?? 0,
-        visibleBottom: (inspectorRect?.top ?? mapRect?.bottom ?? 0) - (mapRect?.top ?? 0),
-        safeTop: Math.max(104, Math.ceil(topChromeBottom - (mapRect?.top ?? 0) + 16)),
-      };
-    });
-    expect(framing.bounds).not.toBeNull();
-    expect(framing.bounds!.left).toBeGreaterThanOrEqual(72);
-    expect(framing.bounds!.right).toBeLessThanOrEqual(framing.width - 72);
-    expect(framing.bounds!.top).toBeGreaterThanOrEqual(framing.safeTop - 1);
-    expect(framing.bounds!.bottom).toBeLessThanOrEqual(framing.visibleBottom - 24);
+    // The inspector and camera settle together; retain the exact framing limits
+    // while waiting for that visible state instead of sampling during animation.
+    await expect(async () => {
+      const framing = await page.evaluate(() => {
+        const map = document.querySelector<HTMLElement>(".geographic-network-map");
+        const mapRect = map?.getBoundingClientRect();
+        const inspectorRect = document.querySelector<HTMLElement>("[data-mobile-impact-inspector]")
+          ?.getBoundingClientRect();
+        const topChromeBottom = Array.from(document.querySelectorAll<HTMLElement>(
+          ".mobile-app-topbar, .map-utility-cluster",
+        )).reduce((bottom, element) => Math.max(bottom, element.getBoundingClientRect().bottom), 0);
+        return {
+          bounds: window.__linewatchGeographicMapLifecycle?.getProjectedSelectionBounds(
+            "delay:stub-delay-line-4",
+          ) ?? null,
+          width: map?.clientWidth ?? 0,
+          visibleBottom: (inspectorRect?.top ?? mapRect?.bottom ?? 0) - (mapRect?.top ?? 0),
+          safeTop: Math.max(104, Math.ceil(topChromeBottom - (mapRect?.top ?? 0) + 16)),
+        };
+      });
+      expect(framing.bounds).not.toBeNull();
+      expect(framing.bounds!.left).toBeGreaterThanOrEqual(72);
+      expect(framing.bounds!.right).toBeLessThanOrEqual(framing.width - 72);
+      expect(framing.bounds!.top).toBeGreaterThanOrEqual(framing.safeTop - 1);
+      expect(framing.bounds!.bottom).toBeLessThanOrEqual(framing.visibleBottom - 24);
+    }).toPass({ timeout: 5_000 });
   });
 
   test("clicking a geographic corridor with multiple alerts opens one complete chooser", async ({ page, isMobile }) => {
@@ -380,6 +401,10 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
       const inspector = page.locator("[data-mobile-impact-inspector]");
       await inspector.getByRole("button", { name: "Unfocus impact" }).click();
       await expect(inspector).toHaveCount(0);
+      // Unfocus restores the originating Delays panel. Close it before testing
+      // pointer interaction with the underlying map.
+      await expect(page.getByRole("heading", { name: "Delays", exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "Close", exact: true }).click();
       await expect(page.locator(".mobile-status-peek")).toBeVisible();
     }
 

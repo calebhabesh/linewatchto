@@ -34,7 +34,7 @@ To help triage and resolve the issue quickly, please provide:
 
 - **Acknowledgment:** Reports will be acknowledged upon initial review.
 - **Triage:** The report will be assessed for real-world impact against the project's security invariants (e.g., server-side credential isolation, rate limiting, and session integrity).
-- **Remediation:** Fixes will be prepared and tested in a private fork or branch.
+- **Remediation:** Fixes will be prepared and tested in the advisory's temporary private fork. Ordinary branches in the public repository are public.
 - **Disclosure:** Once the fix is published on `main` and deployed to production, a public advisory will be issued thanking the reporter if desired.
 
 ### Sensitive Data and Credentials
