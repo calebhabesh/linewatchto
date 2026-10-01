@@ -67,6 +67,8 @@ fi
 LINEWATCH_PUSH_ENABLED=true
 : "${LINEWATCH_PUSH_VAPID_SUBJECT:=mailto:linewatch-dev@example.invalid}"
 : "${LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS:=true}"
+# Recovery dev links require loopback-only origins; preserve explicit overrides.
+: "${LINEWATCH_AUTH_ALLOWED_ORIGINS:=http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002,http://localhost:3003,http://127.0.0.1:3003,http://127.0.0.1:4173,http://127.0.0.1:4175}"
 : "${SERVER_ADDRESS:=127.0.0.1}"
 
 export LINEWATCH_PUSH_ENABLED
@@ -74,6 +76,7 @@ export LINEWATCH_PUSH_VAPID_PUBLIC_KEY
 export LINEWATCH_PUSH_VAPID_PRIVATE_KEY
 export LINEWATCH_PUSH_VAPID_SUBJECT
 export LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS
+export LINEWATCH_AUTH_ALLOWED_ORIGINS
 export SERVER_ADDRESS
 
 echo "Web Push test mode enabled."
