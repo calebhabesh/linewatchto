@@ -1,10 +1,10 @@
 package com.calebhabesh.linewatch.regional;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -28,7 +28,7 @@ class MetrolinxArrivalClientTest {
         properties.setApiKey(KEY);
         client = new MetrolinxArrivalClient(
             builder.build(),
-            new ObjectMapper().findAndRegisterModules(),
+            JsonMapper.builder().findAndAddModules().build(),
             properties,
             new MetrolinxUpTripUpdateParser()
         );

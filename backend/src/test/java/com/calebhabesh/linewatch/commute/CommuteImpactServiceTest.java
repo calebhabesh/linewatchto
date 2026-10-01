@@ -1,12 +1,12 @@
 package com.calebhabesh.linewatch.commute;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.calebhabesh.linewatch.alert.AlertDashboardService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -278,7 +278,7 @@ class CommuteImpactServiceTest {
             assertThat(estimate.extraLowSeconds()).isZero();
             assertThat(estimate.extraHighSeconds()).isZero();
         });
-        String json = new ObjectMapper().findAndRegisterModules()
+        String json = JsonMapper.builder().findAndAddModules().build()
             .writeValueAsString(impact.matchedImpacts().getFirst());
         assertThat(json).doesNotContain(
             "notificationTitle",

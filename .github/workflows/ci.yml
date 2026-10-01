@@ -10,6 +10,20 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_DB: linewatch_test
+          POSTGRES_USER: linewatch
+          POSTGRES_PASSWORD: linewatch_dev_password
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U linewatch -d linewatch_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     steps:
       - name: Checkout
         uses: actions/checkout@v5

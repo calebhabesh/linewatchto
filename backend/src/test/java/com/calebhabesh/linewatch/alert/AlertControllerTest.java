@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.alert;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -9,7 +10,6 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
 import com.calebhabesh.linewatch.cache.DashboardCacheService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -125,7 +125,7 @@ class AlertControllerTest {
             "Concise notification title"
         );
 
-        String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(closure);
+        String json = JsonMapper.builder().findAndAddModules().build().writeValueAsString(closure);
 
         assertThat(json).contains("Expanded display title");
         assertThat(json).doesNotContain("notificationTitle", "Concise notification title");

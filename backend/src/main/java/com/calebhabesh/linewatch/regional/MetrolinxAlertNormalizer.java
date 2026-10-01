@@ -1,7 +1,8 @@
 package com.calebhabesh.linewatch.regional;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -77,7 +78,7 @@ public class MetrolinxAlertNormalizer {
     private final Clock clock;
 
     public MetrolinxAlertNormalizer(Clock clock) {
-        this(new ObjectMapper(), clock);
+        this(JsonMapper.builder().findAndAddModules().build(), clock);
     }
 
     @Autowired

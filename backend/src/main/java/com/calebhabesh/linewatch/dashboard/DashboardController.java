@@ -10,7 +10,7 @@ import com.calebhabesh.linewatch.performance.PerformanceController;
 import com.calebhabesh.linewatch.status.StatusController;
 import com.calebhabesh.linewatch.regional.RegionalDashboardService;
 import com.calebhabesh.linewatch.regional.RegionalNetworkCatalog;
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import java.time.Duration;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;

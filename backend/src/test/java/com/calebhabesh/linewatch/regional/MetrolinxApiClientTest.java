@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.regional;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -7,7 +8,6 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withNoContent;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +29,7 @@ class MetrolinxApiClientTest {
         properties.setApiKey(KEY);
         client = new MetrolinxApiClient(
             builder.build(),
-            new ObjectMapper().findAndRegisterModules(),
+            JsonMapper.builder().findAndAddModules().build(),
             properties
         );
     }

@@ -1,11 +1,11 @@
 package com.calebhabesh.linewatch.regional;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -20,7 +20,7 @@ class RegionalTrainCancellationHistoryStoreTest {
         NamedParameterJdbcTemplate jdbc = mock(NamedParameterJdbcTemplate.class);
         RegionalTrainCancellationHistoryStore store = new RegionalTrainCancellationHistoryStore(
             jdbc,
-            new ObjectMapper().findAndRegisterModules()
+            JsonMapper.builder().findAndAddModules().build()
         );
         OffsetDateTime observedAt = OffsetDateTime.parse("2026-07-31T16:00:00Z");
         RegionalTripChangeResponses.TripChange cancellation =

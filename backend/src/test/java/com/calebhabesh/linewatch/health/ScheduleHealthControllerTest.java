@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.health;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -15,7 +16,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 class ScheduleHealthControllerTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-06-15T14:00:00Z"), ZoneOffset.UTC);
@@ -112,7 +112,7 @@ class ScheduleHealthControllerTest {
         assertThat(response.refreshCompletedAt())
             .isEqualTo(OffsetDateTime.parse("2026-06-20T19:05:15Z"));
         assertThat(response.message()).isEqualTo("No TTC GTFS schedule import is active; the latest refresh failed.");
-        String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(response);
+        String json = JsonMapper.builder().findAndAddModules().build().writeValueAsString(response);
         assertThat(json).contains("refreshErrorMessage", "Java heap space");
     }
 

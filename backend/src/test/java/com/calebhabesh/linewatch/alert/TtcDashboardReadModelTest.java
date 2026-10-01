@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.alert;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -29,8 +30,7 @@ import com.calebhabesh.linewatch.station.TransitLineEntity;
 import com.calebhabesh.linewatch.station.TransitLineRepository;
 import com.calebhabesh.linewatch.status.StatusController;
 import com.calebhabesh.linewatch.status.StatusDashboardService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -64,7 +64,7 @@ class TtcDashboardReadModelTest {
     @SuppressWarnings("unchecked")
     private final ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
 
-    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
     private final DashboardCacheProperties cacheProperties = new DashboardCacheProperties();
 
     private IngestionFreshness ingestionFreshness;

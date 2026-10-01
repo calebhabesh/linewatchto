@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.regional;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -7,8 +8,8 @@ import static org.mockito.Mockito.when;
 
 import com.calebhabesh.linewatch.dashboard.DashboardResponses;
 import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -30,7 +31,7 @@ class RegionalAlertScenarioCatalogTest {
         Instant.parse("2026-07-29T18:00:00Z"),
         ZoneOffset.UTC
     );
-    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+    private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
     private final MetrolinxAlertNormalizer alertNormalizer = new MetrolinxAlertNormalizer(objectMapper, CLOCK);
     private final RegionalAccessibilityOutageNormalizer outageNormalizer =
         new RegionalAccessibilityOutageNormalizer(objectMapper);
@@ -178,7 +179,7 @@ class RegionalAlertScenarioCatalogTest {
     }
 
     private Iterable<JsonNode> iterable(JsonNode array) {
-        return array::elements;
+        return array;
     }
 
     private record Scenario(

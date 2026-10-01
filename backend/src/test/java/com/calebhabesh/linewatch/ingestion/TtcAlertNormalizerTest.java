@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.ingestion;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
@@ -9,7 +10,6 @@ import static org.mockito.Mockito.when;
 
 import com.calebhabesh.linewatch.surface.GtfsRtServiceAlertTextParser;
 import com.calebhabesh.linewatch.station.StationRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -69,7 +69,7 @@ class TtcAlertNormalizerTest {
         );
         feed = new TtcAlertClient(
             RestClient.create(),
-            new ObjectMapper().findAndRegisterModules(),
+            JsonMapper.builder().findAndAddModules().build(),
             new AlertIngestionProperties(),
             new GtfsRtServiceAlertTextParser()
         ).parse(body);
@@ -343,7 +343,7 @@ class TtcAlertNormalizerTest {
 
     @Test
     void keepsLiveEndedEarlyClosureIdentityForItsLinkedParent() throws Exception {
-        TtcAlertRecord record = new ObjectMapper().findAndRegisterModules().readValue("""
+        TtcAlertRecord record = JsonMapper.builder().findAndAddModules().build().readValue("""
             {
               "id": "completed-child", "alertType": "Planned", "route": "1", "routeType": "Subway",
               "title": "Line 1 – ENDED EARLY - Full weekend closure",
@@ -372,7 +372,7 @@ class TtcAlertNormalizerTest {
         );
         TtcAlertRecord record = new TtcAlertClient(
             RestClient.create(),
-            new ObjectMapper().findAndRegisterModules(),
+            JsonMapper.builder().findAndAddModules().build(),
             new AlertIngestionProperties(),
             new GtfsRtServiceAlertTextParser()
         ).parse(body).routes().getFirst().record();

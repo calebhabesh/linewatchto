@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
 import com.calebhabesh.linewatch.cache.DashboardCacheService;
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;

@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.cache;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -8,8 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -28,7 +28,7 @@ class DashboardCacheServiceTest {
     private final StringRedisTemplate redis = mock(StringRedisTemplate.class);
     private final ValueOperations<String, String> values = mock(ValueOperations.class);
     private final DashboardCacheProperties properties = new DashboardCacheProperties();
-    private final DashboardCacheService cache = new DashboardCacheService(redis, new ObjectMapper().findAndRegisterModules(), properties);
+    private final DashboardCacheService cache = new DashboardCacheService(redis, JsonMapper.builder().findAndAddModules().build(), properties);
 
     @Test
     void returnsCachedValueOnHit() {
@@ -135,7 +135,7 @@ class DashboardCacheServiceTest {
         when(values.get("linewatch:dashboard:v1:test")).thenReturn(null);
 
         CountDownLatch secondCallerJoined = new CountDownLatch(1);
-        DashboardCacheService synchronizedCache = new DashboardCacheService(redis, new ObjectMapper().findAndRegisterModules(), properties) {
+        DashboardCacheService synchronizedCache = new DashboardCacheService(redis, JsonMapper.builder().findAndAddModules().build(), properties) {
             @Override
             void onInFlightJoined(String redisKey) {
                 secondCallerJoined.countDown();

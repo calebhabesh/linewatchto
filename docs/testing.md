@@ -98,6 +98,15 @@ Backend verification remains separate from frontend verification:
 mvn -f backend/pom.xml test
 ```
 
+Database integration tests use a local PostgreSQL/PostGIS test database at
+`127.0.0.1:5434/linewatch_test` by default; datasource system properties or
+`SPRING_DATASOURCE_*` variables can override its connection settings. The backend
+CI job supplies PostgreSQL 17/PostGIS so these checks run there. Without a reachable
+test database, database-dependent cases skip. `BootRuntimeIntegrationTest` starts
+the complete application in a temporary schema, verifies migrations and Hibernate
+validation, API JSON compatibility, account sessions, and management-port
+isolation, then drops that schema. Never point test datasource settings at production.
+
 The native `mobile/` workspace has no app or checks yet. Add platform-specific
 checks when an Android or iOS project is created.
 

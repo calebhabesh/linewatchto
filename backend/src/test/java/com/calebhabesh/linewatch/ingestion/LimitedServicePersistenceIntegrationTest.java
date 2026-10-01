@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.ingestion;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -12,7 +13,7 @@ import com.calebhabesh.linewatch.station.LineSegmentEntity;
 import com.calebhabesh.linewatch.station.StationRepository;
 import com.calebhabesh.linewatch.station.TransitLineEntity;
 import com.calebhabesh.linewatch.surface.GtfsRtServiceAlertTextParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -45,7 +46,7 @@ class LimitedServicePersistenceIntegrationTest {
         Flyway.configure().dataSource(ds).load().migrate();
         var jdbc = new NamedParameterJdbcTemplate(ds);
         var store = new TtcAlertStore(jdbc);
-        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+        ObjectMapper mapper = JsonMapper.builder().findAndAddModules().build();
         StationRepository stations = mock(StationRepository.class);
         when(stations.existsById(anyString())).thenReturn(true);
         var normalizer = new TtcAlertNormalizer(new StationAliasResolver(stations), new AlertDirectionParser(),

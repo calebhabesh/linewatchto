@@ -1,19 +1,18 @@
 package com.calebhabesh.linewatch.ingestion;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import java.io.IOException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.ValueDeserializer;
 import java.time.OffsetDateTime;
 
-public class TtcOffsetDateTimeDeserializer extends JsonDeserializer<OffsetDateTime> {
+public class TtcOffsetDateTimeDeserializer extends ValueDeserializer<OffsetDateTime> {
     @Override
-    public OffsetDateTime deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+    public OffsetDateTime deserialize(JsonParser p, DeserializationContext ctxt) {
         String text = p.getText();
         try {
             return TtcAlertTimes.parse(text);
         } catch (Exception e) {
-            throw new IOException("Failed to parse OffsetDateTime: " + text, e);
+            throw ctxt.weirdStringException(text, OffsetDateTime.class, "Failed to parse OffsetDateTime: " + text);
         }
     }
 }

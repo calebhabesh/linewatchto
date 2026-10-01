@@ -9,7 +9,7 @@ import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
 import com.calebhabesh.linewatch.station.LineSegmentEntity;
 import com.calebhabesh.linewatch.station.LineSegmentRepository;
 import com.calebhabesh.linewatch.station.StationRepository;
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;

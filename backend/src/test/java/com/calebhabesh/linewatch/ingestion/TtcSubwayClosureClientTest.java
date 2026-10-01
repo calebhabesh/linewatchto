@@ -1,11 +1,11 @@
 package com.calebhabesh.linewatch.ingestion;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ class TtcSubwayClosureClientTest {
         properties = new AlertIngestionProperties();
         client = new TtcSubwayClosureClient(
             builder.build(),
-            new ObjectMapper(),
+            JsonMapper.builder().findAndAddModules().build(),
             properties,
             new TtcSubwayClosureParser()
         );

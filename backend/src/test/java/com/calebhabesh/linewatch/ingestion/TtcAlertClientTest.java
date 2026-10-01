@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.ingestion;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -7,7 +8,6 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.calebhabesh.linewatch.surface.GtfsRtServiceAlertTextParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +29,7 @@ class TtcAlertClientTest {
         properties.setSurfaceGtfsRtEnabled(false);
         client = new TtcAlertClient(
             builder.build(),
-            new ObjectMapper().findAndRegisterModules(),
+            JsonMapper.builder().findAndAddModules().build(),
             properties,
             new GtfsRtServiceAlertTextParser()
         );
@@ -73,7 +73,7 @@ class TtcAlertClientTest {
         properties.setSurfaceGtfsRtUrl(URI.create("https://gtfsrt.ttc.ca/alerts/all?format=text"));
         TtcAlertClient defaultClient = new TtcAlertClient(
             builder.build(),
-            new ObjectMapper().findAndRegisterModules(),
+            JsonMapper.builder().findAndAddModules().build(),
             properties,
             new GtfsRtServiceAlertTextParser()
         );
@@ -102,7 +102,7 @@ class TtcAlertClientTest {
         properties.setSurfaceGtfsRtEnabled(true);
         TtcAlertClient gtfsClient = new TtcAlertClient(
             builder.build(),
-            new ObjectMapper().findAndRegisterModules(),
+            JsonMapper.builder().findAndAddModules().build(),
             properties,
             new GtfsRtServiceAlertTextParser()
         );
@@ -162,7 +162,7 @@ class TtcAlertClientTest {
         properties.setSurfaceGtfsRtUrl(URI.create("https://gtfsrt.ttc.ca/alerts/all?format=text"));
         TtcAlertClient gtfsClient = new TtcAlertClient(
             builder.build(),
-            new ObjectMapper().findAndRegisterModules(),
+            JsonMapper.builder().findAndAddModules().build(),
             properties,
             new GtfsRtServiceAlertTextParser()
         );
@@ -206,7 +206,7 @@ class TtcAlertClientTest {
         properties.setSurfaceGtfsRtUrl(URI.create("https://gtfsrt.ttc.ca/alerts/all?format=text"));
         TtcAlertClient gtfsClient = new TtcAlertClient(
             builder.build(),
-            new ObjectMapper().findAndRegisterModules(),
+            JsonMapper.builder().findAndAddModules().build(),
             properties,
             new GtfsRtServiceAlertTextParser()
         );

@@ -5,8 +5,8 @@ import com.calebhabesh.linewatch.regional.RegionalAlertStore.StoredClassificatio
 import com.calebhabesh.linewatch.regional.RegionalTripChangeOperationalRepository.OperationalRecord;
 import com.calebhabesh.linewatch.regional.RegionalTripChangeResponses.AffectedStop;
 import com.calebhabesh.linewatch.regional.RegionalTripChangeResponses.TripChange;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.calebhabesh.linewatch.station.StationResponses;
 import java.time.Clock;
 import java.time.Duration;

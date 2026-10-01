@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.ingestion;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -7,8 +8,7 @@ import static org.mockito.Mockito.when;
 
 import com.calebhabesh.linewatch.surface.GtfsRtServiceAlertTextParser;
 import com.calebhabesh.linewatch.station.StationRepository;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -35,7 +35,7 @@ class TtcAlertScenarioCatalogTest {
         );
         client = new TtcAlertClient(
             RestClient.create(),
-            new ObjectMapper().findAndRegisterModules(),
+            JsonMapper.builder().findAndAddModules().build(),
             new AlertIngestionProperties(),
             new GtfsRtServiceAlertTextParser()
         );
@@ -328,7 +328,7 @@ class TtcAlertScenarioCatalogTest {
             getClass().getResourceAsStream("/fixtures/ttc-alert-scenarios/scenario-index.json").readAllBytes(),
             StandardCharsets.UTF_8
         );
-        return new ObjectMapper().readTree(body);
+        return JsonMapper.builder().findAndAddModules().build().readTree(body);
     }
 
     private JsonNode scenarioIndexEntry(JsonNode root, String name) {
@@ -348,7 +348,7 @@ class TtcAlertScenarioCatalogTest {
 
     private List<String> fieldNames(JsonNode object) {
         List<String> values = new ArrayList<>();
-        object.fieldNames().forEachRemaining(values::add);
+        values.addAll(object.propertyNames());
         return values;
     }
 

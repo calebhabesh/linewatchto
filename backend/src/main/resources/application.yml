@@ -1,6 +1,8 @@
 spring:
   application:
     name: linewatch-backend
+  jackson:
+    use-jackson2-defaults: true
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5434/linewatch}
     username: ${SPRING_DATASOURCE_USERNAME:linewatch}

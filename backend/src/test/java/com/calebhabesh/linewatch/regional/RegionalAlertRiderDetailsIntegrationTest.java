@@ -1,8 +1,8 @@
 package com.calebhabesh.linewatch.regional;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.time.Clock;
@@ -37,7 +37,7 @@ class RegionalAlertRiderDetailsIntegrationTest {
         );
         Flyway.configure().dataSource(ds).load().migrate();
         var jdbc = new NamedParameterJdbcTemplate(ds);
-        var store = new RegionalAlertStore(jdbc, new ObjectMapper(),
+        var store = new RegionalAlertStore(jdbc, JsonMapper.builder().findAndAddModules().build(),
             Clock.fixed(Instant.parse("2026-07-28T18:15:00Z"), ZoneOffset.UTC), new MetrolinxProperties());
         new TransactionTemplate(new DataSourceTransactionManager(ds)).executeWithoutResult(transaction -> {
             transaction.setRollbackOnly();

@@ -11,7 +11,7 @@ import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
 import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
 import com.calebhabesh.linewatch.station.TransitLineEntity;
 import com.calebhabesh.linewatch.station.TransitLineRepository;
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;

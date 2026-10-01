@@ -1,8 +1,9 @@
 package com.calebhabesh.linewatch.surface;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.calebhabesh.linewatch.ingestion.TtcAlertActivePeriod;
 import com.calebhabesh.linewatch.ingestion.TtcAlertRecord;
 import com.calebhabesh.linewatch.ingestion.TtcFetchedRecord;
@@ -13,7 +14,7 @@ import org.junit.jupiter.api.Test;
 
 class SurfaceServiceNoticeNormalizerTest {
     private final SurfaceServiceNoticeNormalizer normalizer = new SurfaceServiceNoticeNormalizer();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
 
     private TtcFetchedRecord fetched(TtcAlertRecord record) {
         return new TtcFetchedRecord(record, "{}");

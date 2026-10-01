@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.health;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -13,7 +14,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 class RegionalIngestionHealthControllerTest {
     @Test
@@ -84,7 +84,7 @@ class RegionalIngestionHealthControllerTest {
         when(runStore.findLatest()).thenReturn(Optional.of(run));
         when(runStore.findSourceStatuses(42)).thenReturn(List.of());
 
-        String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(
+        String json = JsonMapper.builder().findAndAddModules().build().writeValueAsString(
             new RegionalIngestionHealthController(properties, runStore, freshness, availabilityService).health()
         );
 

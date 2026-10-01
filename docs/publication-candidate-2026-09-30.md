@@ -7,9 +7,13 @@ production deployment remain separate owner transitions.
 
 ## Candidate and preserved history
 
-The isolated publication copy is the sibling checkout `../linewatchto-publication`.
-The original `linewatchto` repository retains its existing private Git history and
-refs. Working-file improvements remain available there for review.
+The sanitized development checkout is now `linewatchto` (previously
+`linewatchto-publication`). The original clone is the sibling
+`../linewatchto-archive`; it retains its private history, refs, local settings,
+and uncommitted working files. Its origin push URL is disabled locally to prevent
+accidentally republishing the original history. The sanitized checkout has the
+existing GitHub repository configured as origin; that remote still contains the
+original private history until the publication push below.
 
 - All **1,325 original reachable commits** are preserved, followed by publication
   preparation/evidence commits and the dependency security follow-up. No squashed
@@ -31,8 +35,9 @@ refs. Working-file improvements remain available there for review.
   records the initial verification; the security follow-up extends that candidate.
 
 The private old/new commit map remains under `.git/filter-repo/`; it is not a
-tracked publication file. The candidate has no configured remote, no original
-backup refs, and no unreachable objects reported by Git's integrity check.
+tracked publication file. The candidate initially had no configured remote.
+It has no original backup refs; the initial integrity check reported no
+unreachable objects.
 
 ## Source samples and authored assets
 
@@ -83,14 +88,19 @@ entries for Next.js and MapLibre. The follow-up updates the frontend lockfile an
 backend dependencies: current npm and resolved Maven/OSV checks report **zero
 findings**. See the [security review](dependency-security-review-2026-09-30.md)
 for versions, scan scope, validation, and remaining platform/deployment work.
-Publishing source changes does not deploy those fixes to the running service.
+The [Spring Boot 4.1 migration](spring-boot-4-migration-2026-09-30.md) completes
+the backend support follow-up with 1,220 passing tests and zero OSV findings in
+167 resolved dependencies. Publishing source changes does not deploy those fixes
+to the running service.
 
 ## GitHub publication procedure
 
 Publish the sanitized copy, rather than changing visibility on the old remote
 while its original history is still present. Keep the original checkout as the
-private backup; after the transition, use a fresh clone of the sanitized history
-for ongoing development so old commits are not merged back into the public repo.
+private backup; use the sanitized `linewatchto` checkout for ongoing development.
+A fresh clone of the still-private remote is also required for remote history
+verification after the push. Do not merge original archive commits into the
+sanitized repository.
 The existing GitHub repository becomes the public development home; a second
 private GitHub repository is not required. Keep the old local clone or an offline
 backup as the private archive. Develop features, fixes, and dependency updates on
@@ -100,9 +110,9 @@ For the existing private GitHub repository `calebhabesh/linewatchto`, the review
 remote refs can be replaced atomically with explicit leases:
 
 ```bash
-cd ../linewatchto-publication
-git remote add origin git@github.com:calebhabesh/linewatchto.git
-git push --atomic \
+cd ../linewatchto
+git remote get-url origin # Must be git@github.com:calebhabesh/linewatchto.git
+git push --atomic --set-upstream \
   --force-with-lease=refs/heads/main:941f0c51af50075940831c0d584d78df3b6618da \
   --force-with-lease=refs/heads/feat/mobile-prototype:7fac03d8a689469fcfafcce7b2f27b475dc3b1a4 \
   --force-with-lease=refs/heads/feature/go-up-network-mode:6f6c544f603652c773e16258cdf55b583cd61b54 \

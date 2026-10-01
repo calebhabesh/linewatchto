@@ -1,8 +1,8 @@
 package com.calebhabesh.linewatch.regional;
 
 import com.calebhabesh.linewatch.regional.RegionalTripChangeResponses.TripChange;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -79,7 +79,7 @@ public class RegionalTrainCancellationHistoryStore {
     private String json(Object value) {
         try {
             return objectMapper.writeValueAsString(value);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to persist regional cancellation history", exception);
         }
     }

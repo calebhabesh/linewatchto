@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.regional;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
@@ -176,7 +177,7 @@ class RegionalSurfaceServiceNoticeServiceTest {
         var classifications = normalizer.classify(feed);
         assertThat(normalizer.normalize(feed, classifications)).singleElement()
             .satisfies(alert -> assertThat(alert.impactKind()).isEqualTo("planned-closure"));
-        var mapper = new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules();
+        var mapper = JsonMapper.builder().findAndAddModules().build();
         when(freshness.isFresh()).thenReturn(true);
         when(properties.getMaxDashboardAge()).thenReturn(java.time.Duration.ofMinutes(10));
         when(repository.findActiveRecords(any())).thenReturn(List.of(
@@ -188,7 +189,7 @@ class RegionalSurfaceServiceNoticeServiceTest {
 
     private RegionalSurfaceServiceNoticeService service() {
         return new RegionalSurfaceServiceNoticeService(repository, freshness,
-            new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules(), CLOCK, properties);
+            JsonMapper.builder().findAndAddModules().build(), CLOCK, properties);
     }
 
     @Test
@@ -218,7 +219,7 @@ class RegionalSurfaceServiceNoticeServiceTest {
                 """)
         ));
         var service = new RegionalSurfaceServiceNoticeService(repository, freshness,
-            new com.fasterxml.jackson.databind.ObjectMapper(), CLOCK, properties);
+            JsonMapper.builder().findAndAddModules().build(), CLOCK, properties);
         var response = service.getSurfaceNotices(null, null, null);
         assertThat(response.notices()).hasSize(2).allSatisfy(notice -> {
             assertThat(notice.category()).isEqualTo("service-change");
@@ -241,7 +242,7 @@ class RegionalSurfaceServiceNoticeServiceTest {
                 """)
         ));
         var service = new RegionalSurfaceServiceNoticeService(repository, freshness,
-            new com.fasterxml.jackson.databind.ObjectMapper(), CLOCK, properties);
+            JsonMapper.builder().findAndAddModules().build(), CLOCK, properties);
         assertThat(service.getSurfaceNotices("service-change", "ST", null).notices())
             .singleElement().satisfies(notice -> {
                 assertThat(notice.routeIds()).containsExactly("ST");
@@ -262,7 +263,7 @@ class RegionalSurfaceServiceNoticeServiceTest {
                 """)
         ));
         var service = new RegionalSurfaceServiceNoticeService(repository, freshness,
-            new com.fasterxml.jackson.databind.ObjectMapper(), CLOCK, properties);
+            JsonMapper.builder().findAndAddModules().build(), CLOCK, properties);
         assertThat(service.getSurfaceNotices(null, null, null).notices()).singleElement().satisfies(notice -> {
             assertThat(notice.routeType()).isEqualTo("GO Bus");
             assertThat(notice.routeIds()).containsExactly("31");
@@ -311,7 +312,7 @@ class RegionalSurfaceServiceNoticeServiceTest {
             MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528001", payload);
         var classification = new MetrolinxAlertNormalizer(CLOCK).classify(new MetrolinxFeed(
             OffsetDateTime.parse("2026-09-18T14:00:00Z"), List.of(record), java.util.Map.of())).getFirst();
-        String json = new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules()
+        String json = JsonMapper.builder().findAndAddModules().build()
             .writeValueAsString(classification);
         when(freshness.isFresh()).thenReturn(true);
         when(properties.getMaxDashboardAge()).thenReturn(java.time.Duration.ofMinutes(10));

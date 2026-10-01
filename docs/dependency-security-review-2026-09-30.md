@@ -4,6 +4,11 @@ This review covers the sanitized publication candidate. Repository publication
 and production deployment are separate transitions: the running service receives
 these fixes only when the resulting release is deployed.
 
+This report records the original dependency patch at `89c16467`. The subsequent
+[Spring Boot 4.1 migration](spring-boot-4-migration-2026-09-30.md) supersedes its
+backend version/count results: 1,220 tests pass and the new 167-dependency Maven
+graph has zero OSV findings. Frontend dependencies and their validation are unchanged.
+
 ## Findings and fixes
 
 The initial frontend `npm audit` reported nine vulnerable package entries:
@@ -104,10 +109,12 @@ CI run, or container-image vulnerability scan is claimed by these local results.
   [testing](testing.md#local-browser-support).
 - Publish and deploy the validated security release through the existing release
   workflow so users receive the fixes; source publication alone does not do that.
-- Plan the move to a supported Spring Boot major. Spring states that
+- Completed locally: move to Spring Boot 4.1.1 with Jackson 3.1.7 and Tomcat
+  11.0.26; see the [migration verification](spring-boot-4-migration-2026-09-30.md).
+  Spring states that
   [3.5.16 is the final community-supported 3.5 release](https://spring.io/blog/2026/06/25/spring-boot-3-5-16-available-now/).
-  The current overrides address known findings while preserving the existing
-  major; they do not extend upstream support. Reassess them during migration.
+  The original Boot 3.5 overrides are replaced by two patches newer than the
+  Boot 4.1.1 BOM. Reassess those when updating the parent.
 
 The [publication procedure](publication-candidate-2026-09-30.md#github-publication-procedure)
 keeps the existing GitHub repository as the development home after sanitization

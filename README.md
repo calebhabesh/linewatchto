@@ -98,7 +98,7 @@ Provider credentials and retained raw source records stay on the server. Public 
 | Layer | Technologies |
 | --- | --- |
 | Web | Next.js App Router, React, TypeScript, Tailwind CSS, MapLibre GL JS |
-| API | Java 21, Spring Boot, Spring Data JPA / Hibernate Spatial, Flyway |
+| API | Java 21, Spring Boot 4.1, Spring Data JPA / Hibernate Spatial, Flyway |
 | Storage | PostgreSQL with PostGIS, Redis |
 | Delivery | Docker Compose, ARM64 container images, Caddy |
 | Verification | Node test runner, Playwright, Maven, GitHub Actions |

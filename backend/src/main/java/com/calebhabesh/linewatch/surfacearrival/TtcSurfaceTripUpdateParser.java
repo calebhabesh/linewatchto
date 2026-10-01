@@ -1,7 +1,8 @@
 package com.calebhabesh.linewatch.surfacearrival;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -13,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class TtcSurfaceTripUpdateParser {
-    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final ObjectMapper JSON = JsonMapper.builder().findAndAddModules().build();
     private static final Pattern HEADER_TIMESTAMP = Pattern.compile("\\btimestamp:\\s*(\\d+)");
     private static final Pattern TRIP_ID = Pattern.compile("\\btrip_id:\\s*\"((?:\\\\.|[^\"])*)\"");
     private static final Pattern ROUTE_ID = Pattern.compile("\\broute_id:\\s*\"((?:\\\\.|[^\"])*)\"");
@@ -75,7 +76,7 @@ public class TtcSurfaceTripUpdateParser {
                 if (!stops.isEmpty()) trips.add(new TripUpdate(tripId, routeId, List.copyOf(stops)));
             }
             return new Feed(epoch(Long.parseLong(root.path("header").path("timestamp").asText())), List.copyOf(trips));
-        } catch (java.io.IOException exception) {
+        } catch (tools.jackson.core.JacksonException exception) {
             throw new IllegalArgumentException("Invalid TTC surface TripUpdates JSON feed", exception);
         }
     }

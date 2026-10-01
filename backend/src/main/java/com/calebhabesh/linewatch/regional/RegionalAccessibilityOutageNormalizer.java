@@ -1,7 +1,8 @@
 package com.calebhabesh.linewatch.regional;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -26,7 +27,7 @@ public class RegionalAccessibilityOutageNormalizer {
     private final ObjectMapper objectMapper;
 
     public RegionalAccessibilityOutageNormalizer() {
-        this(new ObjectMapper());
+        this(JsonMapper.builder().findAndAddModules().build());
     }
 
     @Autowired

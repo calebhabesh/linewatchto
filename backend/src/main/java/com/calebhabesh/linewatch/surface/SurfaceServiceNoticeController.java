@@ -3,7 +3,7 @@ package com.calebhabesh.linewatch.surface;
 import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
 import com.calebhabesh.linewatch.cache.DashboardCacheService;
 import com.calebhabesh.linewatch.regional.RegionalSurfaceServiceNoticeService;
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

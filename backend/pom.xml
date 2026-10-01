@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.16</version>
+        <version>4.1.1</version>
         <relativePath/>
     </parent>
 
@@ -19,13 +19,9 @@
 
     <properties>
         <java.version>21</java.version>
-        <!-- Security patches newer than the final Boot 3.5 OSS BOM.
-             Reassess these overrides when moving to a supported Boot release. -->
-        <jackson-bom.version>2.21.7</jackson-bom.version>
-        <log4j2.version>2.25.5</log4j2.version>
-        <netty.version>4.1.137.Final</netty.version>
-        <postgresql.version>42.7.13</postgresql.version>
-        <tomcat.version>10.1.60</tomcat.version>
+        <!-- Security patches newer than the Boot 4.1.1 BOM; reassess on parent updates. -->
+        <jackson-bom.version>3.1.7</jackson-bom.version>
+        <tomcat.version>11.0.26</tomcat.version>
     </properties>
 
     <dependencies>
@@ -43,7 +39,11 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-restclient</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -58,8 +58,8 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
@@ -82,7 +82,7 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -1,7 +1,7 @@
 package com.calebhabesh.linewatch.arrival;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;

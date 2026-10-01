@@ -147,7 +147,7 @@ class AccountControllerTest {
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getHeaders()).doesNotContainKey(HttpHeaders.SET_COOKIE);
+        assertThat(response.getHeaders().containsHeader(HttpHeaders.SET_COOKIE)).isFalse();
         assertThat(response.getBody().accepted()).isTrue();
         assertThat(response.getBody().devVerificationToken()).isNull();
         assertThat(response.getBody().expiresAt()).isNull();

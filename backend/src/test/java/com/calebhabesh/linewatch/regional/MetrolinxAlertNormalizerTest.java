@@ -1,8 +1,9 @@
 package com.calebhabesh.linewatch.regional;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -15,7 +16,7 @@ class MetrolinxAlertNormalizerTest {
         Instant.parse("2026-07-28T18:15:00Z"),
         ZoneOffset.UTC
     );
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
     private final MetrolinxAlertNormalizer normalizer = new MetrolinxAlertNormalizer(CLOCK);
 
     @Test

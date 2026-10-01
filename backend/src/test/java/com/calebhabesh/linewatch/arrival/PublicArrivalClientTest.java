@@ -1,12 +1,12 @@
 package com.calebhabesh.linewatch.arrival;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -28,7 +28,7 @@ class PublicArrivalClientTest {
         properties.setUrl(URI.create("https://bustime.ttc.ca/gtfsrt"));
         client = new PublicArrivalClient(
             builder.build(),
-            new ObjectMapper().findAndRegisterModules(),
+            JsonMapper.builder().findAndAddModules().build(),
             properties
         );
     }
@@ -73,7 +73,7 @@ class PublicArrivalClientTest {
         assertThatThrownBy(() -> client.fetchArrivals("SPA_PLAT_L1_N"))
             .isInstanceOf(RuntimeException.class)
             .hasMessageContaining("Failed to fetch")
-            .hasRootCauseInstanceOf(com.fasterxml.jackson.databind.exc.MismatchedInputException.class);
+            .hasRootCauseInstanceOf(tools.jackson.databind.exc.MismatchedInputException.class);
     }
 
     @Test

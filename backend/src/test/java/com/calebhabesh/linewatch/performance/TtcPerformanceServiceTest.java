@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.performance;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -14,7 +15,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -26,11 +27,10 @@ class TtcPerformanceServiceTest {
     private final StringRedisTemplate redis = mock(StringRedisTemplate.class);
     @SuppressWarnings("unchecked")
     private final ValueOperations<String, String> valueOps = mock(ValueOperations.class);
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
     private final TtcPerformanceService service;
 
     public TtcPerformanceServiceTest() {
-        objectMapper.findAndRegisterModules();
         when(redis.opsForValue()).thenReturn(valueOps);
         service = new TtcPerformanceService(client, properties, clock, redis, objectMapper);
     }

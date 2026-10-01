@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.health;
 
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -19,7 +20,6 @@ import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
 import com.calebhabesh.linewatch.cache.DashboardCacheService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 class IngestionHealthControllerTest {
     private static final Clock CLOCK = Clock.fixed(
@@ -130,7 +130,7 @@ class IngestionHealthControllerTest {
             0, 0, 0, 0, null, "jdbc:postgresql://internal-host/linewatch failed"
         )));
 
-        String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(controller.ingestion());
+        String json = JsonMapper.builder().findAndAddModules().build().writeValueAsString(controller.ingestion());
 
         assertThat(json).doesNotContain("errorMessage", "internal-host");
     }
