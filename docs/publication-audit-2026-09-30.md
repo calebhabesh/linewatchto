@@ -39,7 +39,7 @@ The project's code and original documentation now have a root [MIT license](../L
 
 The content audit covers the local working-file publication candidate and local reachable refs. It does not certify remote-only refs, Git LFS contents, unreachable Git objects, deployed secrets, provider accounts, or screenshot text through automated OCR. Screenshots were manually inspected. Pattern-based scans cannot prove the absence of every possible secret.
 
-For these documentation/ignore-rule changes, verification consists of diff and local-link review, image inspection, Mermaid rendering, ignore-rule checks, and a final working-file credential scan. After replacing parser/scenario fixtures, the frontend fast suite and all 1,219 backend tests passed. The earlier [P4 release results](refactor-plan/p4-publication-evidence.md) remain historical evidence for their original candidate; no new deployment or complete browser release suite was performed.
+For these documentation/ignore-rule changes, verification consists of diff and local-link review, image inspection, Mermaid rendering, ignore-rule checks, and a final working-file credential scan. After replacing parser/scenario fixtures, the fresh publication copy passed frontend fast tests, typecheck, lint (17 existing warnings), and all 1,219 backend tests. The earlier [P4 release results](refactor-plan/p4-publication-evidence.md) remain historical evidence for their original candidate; no new deployment or complete browser release suite was performed.
 
 ## Repeating the credential checks
 
