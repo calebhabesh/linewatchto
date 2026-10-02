@@ -16,6 +16,7 @@ import { useRetainedHover } from "../hooks/useRetainedHover";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import { NetworkSelector } from "./NetworkSelector";
+import { SharedMapControlRail } from "./SharedMapControlRail";
 import { MapViewSelector } from "./MapViewSelector";
 import type { NetworkId } from "../app/regional-data";
 import type { MapViewPreference } from "../app/visual-preferences";
@@ -1045,8 +1046,14 @@ function InteractiveRegionalMapComponent({
     ) return;
 
     let secondPaintFrame: number | null = null;
+    const fallbackTimer = window.setTimeout(() => {
+      if (readyNotifiedRef.current) return;
+      readyNotifiedRef.current = true;
+      onReady?.();
+    }, 250);
     const firstPaintFrame = window.requestAnimationFrame(() => {
       secondPaintFrame = window.requestAnimationFrame(() => {
+        window.clearTimeout(fallbackTimer);
         if (readyNotifiedRef.current) return;
         readyNotifiedRef.current = true;
         onReady?.();
@@ -1054,6 +1061,7 @@ function InteractiveRegionalMapComponent({
     });
 
     return () => {
+      window.clearTimeout(fallbackTimer);
       window.cancelAnimationFrame(firstPaintFrame);
       if (secondPaintFrame !== null) window.cancelAnimationFrame(secondPaintFrame);
     };
@@ -2173,7 +2181,7 @@ function InteractiveRegionalMapComponent({
         </div>
       ) : null}
       {/* Top center regional map controls matching TTC */}
-      <div ref={mapControlRailRef} className="map-control-rail desktop-map-control-rail regional-map-control-rail absolute top-14 sm:top-5 left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto" data-map-chooser-keepout>
+      <SharedMapControlRail network="regional" ref={mapControlRailRef} className="map-control-rail desktop-map-control-rail regional-map-control-rail absolute top-14 sm:top-5 left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto" data-map-chooser-keepout>
         <div className="map-control-recenter-container">
           <button
             type="button"
@@ -2241,7 +2249,7 @@ function InteractiveRegionalMapComponent({
             <MapViewSelector view={mapView ?? "diagram"} onChange={onMapViewChange} />
           </div>
         )}
-      </div>
+      </SharedMapControlRail>
     </section>
   );
 }

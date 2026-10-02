@@ -205,7 +205,7 @@ describe("regional map geometry", () => {
       assert.equal(REGIONAL_MAP_VIEWBOX.width, 17036.959);
       assert.equal(REGIONAL_MAP_VIEWBOX.height, 9031.6719);
       assert.equal(REGIONAL_IMPACT_OVERLAY_WIDTH, 196);
-      assert.equal(REGIONAL_OVERLAP_INDICATOR_SCALE, 2.5);
+      assert.equal(REGIONAL_OVERLAP_INDICATOR_SCALE, 2);
       assert.equal(REGIONAL_OVERLAP_INDICATOR_EDGE_GAP, 88);
       assert.equal(REGIONAL_STATION_IMPACT_EFFECT_RADIUS_RATIO, 0.9);
       assert.equal(REGIONAL_STATION_IMPACT_BADGE_RADIUS_RATIO, 0.72);

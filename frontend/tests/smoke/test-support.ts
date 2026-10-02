@@ -57,5 +57,6 @@ export function reportBrowserErrors(page: Page) {
 
 export async function waitForNetworkTransition(page: Page, network: "ttc" | "regional") {
   await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", network);
-  await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
+  await expect(page.locator(".network-map-transition-surface")).not.toHaveAttribute("data-map-surface-transition");
+  await expect(page.locator(".linewatch-shell")).not.toHaveAttribute("data-network-switch-target");
 }

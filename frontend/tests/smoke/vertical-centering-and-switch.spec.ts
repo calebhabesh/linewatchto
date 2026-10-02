@@ -62,7 +62,7 @@ test.describe("vertical centering and mode switch stability", () => {
     }
   });
 
-  test("mobile waits for a slow regional map before starting its entrance", async ({ page, isMobile }) => {
+  test("mobile keeps TTC visible while a slow regional map is prepared", async ({ page, isMobile }) => {
     test.skip(!isMobile, "mobile project only");
     let releaseAsset!: () => void;
     const assetGate = new Promise<void>((resolve) => { releaseAsset = resolve; });
@@ -78,7 +78,9 @@ test.describe("vertical centering and mode switch stability", () => {
       await expect(surface).toHaveAttribute("data-map-surface-transition", "loading");
       await expect(page.getByRole("button", { name: "Rotate Map", exact: true })).toBeVisible();
       await expect(page.locator(".mobile-bottom-nav")).toBeVisible();
-      expect(await surface.evaluate((node) => getComputedStyle(node).opacity)).toBe("0");
+      expect(await surface.evaluate((node) => getComputedStyle(node).opacity)).toBe("1");
+      await expect(page.locator('.ttc-map-stage[data-raster-map-ready="true"]')).toBeVisible();
+      await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", "ttc");
       releaseAsset();
       await expect.poll(() => surface.getAttribute("data-map-surface-transition"), { intervals: [16] }).toBe("entering");
       await expect(page.locator('.regional-map-stage[data-raster-map-ready="true"]')).toBeVisible({ timeout: 10_000 });
@@ -100,7 +102,7 @@ test.describe("vertical centering and mode switch stability", () => {
     // -------------------------------------------------------------
     const ttcStage = page.locator(".ttc-map-stage");
     await expect(ttcStage).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator(".map-control-rail")).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator(".map-control-rail:visible")).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(1000);
 
     const ttcInitialTransform = await ttcStage.evaluate((el) => el.style.transform);

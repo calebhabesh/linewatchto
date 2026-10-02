@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { createContext, startTransition, useContext, useState } from "react";
+import { flushSync } from "react-dom";
 import type { NetworkId } from "../app/regional-data";
 
-const NETWORK_SELECTOR_ANIMATION_MS = 480;
+export const NetworkSwitchContext = createContext<NetworkId | null>(null);
 
 export function NetworkSelector({
   network,
@@ -20,84 +21,30 @@ export function NetworkSelector({
   className?: string;
   ariaLabel?: string;
 }) {
-  const [pendingNetwork, setPendingNetwork] = useState<NetworkId | null>(null);
-  const [lastPropNetwork, setLastPropNetwork] = useState<NetworkId>(network);
-  const pendingTargetRef = useRef<NetworkId | null>(null);
-  const transitionTimerRef = useRef<number | null>(null);
-  const transitionFrameRef = useRef<number | null>(null);
-
-  if (lastPropNetwork !== network) {
-    setLastPropNetwork(network);
-    setPendingNetwork(null);
+  const requestedNetwork = useContext(NetworkSwitchContext);
+  const externalNetwork = requestedNetwork ?? network;
+  const [choice, setChoice] = useState({ externalNetwork, displayedNetwork: externalNetwork });
+  if (choice.externalNetwork !== externalNetwork) {
+    setChoice({ externalNetwork, displayedNetwork: externalNetwork });
   }
-
-  useEffect(() => {
-    pendingTargetRef.current = null;
-    if (transitionTimerRef.current !== null) {
-      window.clearTimeout(transitionTimerRef.current);
-      transitionTimerRef.current = null;
-    }
-    if (transitionFrameRef.current !== null) {
-      window.cancelAnimationFrame(transitionFrameRef.current);
-      transitionFrameRef.current = null;
-    }
-  }, [network]);
-
-  const isTransitioning = pendingNetwork !== null && pendingNetwork !== network;
-  const displayedNetwork = isTransitioning ? pendingNetwork : network;
-
-  const requestNetworkChange = (nextNetwork: NetworkId) => {
-    if (nextNetwork === displayedNetwork || isTransitioning) return;
-
-    pendingTargetRef.current = nextNetwork;
-    setPendingNetwork(nextNetwork);
-
-    // WebKit may throttle animation frames while the map is rendering. Hand off
-    // immediately so the selected network cannot remain pending indefinitely.
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || navigator.vendor === "Apple Computer, Inc.") {
-      onChange(nextNetwork);
-      return;
-    }
-
-    // Keep the switch outside the document View Transition capture window.
-    // Paint its landed state before handing off to the map swap.
-    transitionTimerRef.current = window.setTimeout(() => {
-      transitionTimerRef.current = null;
-      transitionFrameRef.current = window.requestAnimationFrame(() => {
-        transitionFrameRef.current = window.requestAnimationFrame(() => {
-          transitionFrameRef.current = null;
-          if (pendingTargetRef.current === nextNetwork) {
-            onChange(nextNetwork);
-          }
-        });
-      });
-    }, NETWORK_SELECTOR_ANIMATION_MS);
+  const displayedNetwork = choice.externalNetwork === externalNetwork ? choice.displayedNetwork : externalNetwork;
+  const chooseNetwork = (next: NetworkId) => {
+    // Paint the small control independently of the map's React work.
+    flushSync(() => setChoice({ externalNetwork, displayedNetwork: next }));
+    startTransition(() => onChange(next));
   };
-
-  useEffect(() => () => {
-    if (transitionTimerRef.current !== null) {
-      window.clearTimeout(transitionTimerRef.current);
-    }
-    if (transitionFrameRef.current !== null) {
-      window.cancelAnimationFrame(transitionFrameRef.current);
-    }
-  }, []);
-
   return (
     <div
       className={`network-selector panel${compactVertical ? " network-selector--compact-vertical" : ""}${stretched ? " network-selector--stretched" : ""}${className ? ` ${className}` : ""}`}
       role="group"
       aria-label={ariaLabel}
-      aria-busy={isTransitioning}
       data-network={displayedNetwork}
-      data-transitioning={isTransitioning ? "true" : undefined}
     >
       <div className="network-selector-glider" aria-hidden="true" />
       <button
         type="button"
         aria-pressed={displayedNetwork === "ttc"}
-        disabled={isTransitioning}
-        onClick={() => requestNetworkChange("ttc")}
+        onClick={() => chooseNetwork("ttc")}
         className="network-selector-btn network-btn-ttc"
       >
         <span className="network-indicator-dot network-dot-ttc" aria-hidden="true" />
@@ -107,8 +54,7 @@ export function NetworkSelector({
       <button
         type="button"
         aria-pressed={displayedNetwork === "regional"}
-        disabled={isTransitioning}
-        onClick={() => requestNetworkChange("regional")}
+        onClick={() => chooseNetwork("regional")}
         className="network-selector-btn network-btn-regional"
       >
         <span className="network-indicator-dot network-dot-regional" aria-hidden="true" />

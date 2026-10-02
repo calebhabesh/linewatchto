@@ -147,6 +147,7 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
         await page.locator(`[data-impact-card-id="${impactId}"]`)
           .locator(".impact-card-map-btn")
           .click();
+        await expect.poll(() => page.evaluate(() => window.__linewatchGeographicMapLifecycle?.isMoving())).toBe(false);
       }
       const canvasBox = await geoMap.locator("canvas").boundingBox();
       expect(canvasBox).not.toBeNull();
@@ -180,7 +181,9 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
       .click();
     await waitForNetworkTransition(page, "regional");
     await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
-    await hoverProjectedSegment("segment-le-pickering-ajax");
+    // Network switching preserves the TTC camera; focus the GO/UP alert before checking its hover.
+    await page.getByRole("button", { name: /^Delays/ }).click();
+    await hoverProjectedSegment("segment-le-ajax-whitby", "regional-demo-delay");
   });
 
   test("camera center/zoom and active selection survive sidebar toggles, data refreshes, and filter changes", async ({ page, isMobile }) => {

@@ -153,6 +153,7 @@ test("switches to GO/UP when WebKit animation frames stall", async ({ page, requ
   const mapNetworkSwitcher = page.getByRole("group", { name: "Map network switcher" });
   const regionalButton = mapNetworkSwitcher.getByRole("button", { name: "GO/UP" });
   await expect(regionalButton).toBeVisible();
+  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await page.evaluate(() => {
     window.requestAnimationFrame = () => 1;
   });

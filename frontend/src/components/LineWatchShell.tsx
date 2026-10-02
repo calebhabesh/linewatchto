@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
+import { startTransition, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
 import type { CSSProperties, KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
 import dynamic from "next/dynamic";
@@ -8,12 +8,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
 import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
-import { preloadTtcMapMarkup } from "../app/map-preload";
-import { preloadRegionalMapMarkup } from "../app/regional-map-asset";
-import { preloadRasterMapSource, rasterMapSource } from "./RasterMapPlane";
-import { startMapSurfaceTransition } from "../app/map-surface-transition";
-import { NetworkMap } from "./NetworkMap";
-import { NetworkSelector } from "./NetworkSelector";
+import { startMapSurfaceTransition, type MapFadeController } from "../app/map-surface-transition";
+import { NetworkMap, prepareNetworkMap } from "./NetworkMap";
+import { NetworkSelector, NetworkSwitchContext } from "./NetworkSelector";
 import { DefaultMapModeControl } from "./DefaultMapModeControl";
 import SquishSwitch from "./SquishSwitch";
 const RegionalStationDetailPanel = dynamic(() => import("./RegionalStationDetailPanel").then((mod) => mod.RegionalStationDetailPanel), { ssr: false });
@@ -235,22 +232,26 @@ export function LineWatchShell({
   });
 
   const networkTransitionTargetRef = useRef<NetworkId | null>(null);
-  const networkFadeAnimationRef = useRef<Animation | null>(null);
-  const mobileNetworkTransitionRef = useRef<ReturnType<typeof startMapSurfaceTransition> | null>(null);
+  const networkMapTransitionRef = useRef<ReturnType<typeof startMapSurfaceTransition> | null>(null);
   const networkMapSurfaceRef = useRef<HTMLElement | null>(null);
-  const networkViewTransitionRef = useRef<{
-    finished: Promise<void>;
-    skipTransition: () => void;
-  } | null>(null);
+  const geographicFadeRef = useRef<MapFadeController | null>(null);
+  const preparedMapReadyRef = useRef<{ network: NetworkId; resolve: () => void } | null>(null);
+  const [warmingNetwork, setWarmingNetwork] = useState<NetworkId | null>(null);
+  const [preparingNetwork, setPreparingNetwork] = useState<NetworkId | null>(null);
+  const [networkSwitchTarget, setNetworkSwitchTarget] = useState<NetworkId | null>(null);
+  const [networkSwitchError, setNetworkSwitchError] = useState<NetworkId | null>(null);
+
+  const cancelNetworkTransition = useCallback(() => {
+    networkMapTransitionRef.current?.cancel();
+    networkMapTransitionRef.current = null;
+    networkTransitionTargetRef.current = null;
+    preparedMapReadyRef.current = null;
+    setPreparingNetwork(null);
+    setNetworkSwitchTarget(null);
+  }, []);
 
   useEffect(() => () => {
-    networkTransitionTargetRef.current = null;
-    mobileNetworkTransitionRef.current?.cancel();
-    networkFadeAnimationRef.current?.cancel();
-    networkViewTransitionRef.current?.skipTransition();
-    networkViewTransitionRef.current = null;
-    delete document.documentElement.dataset.networkTransitionPhase;
-    delete document.documentElement.dataset.networkTransitionDirection;
+    networkMapTransitionRef.current?.cancel();
   }, []);
 
   const {
@@ -309,24 +310,38 @@ export function LineWatchShell({
   const [mapViewPreference, setMapViewPreference] = useState<MapViewPreference>(initialVisualPreferences.mapView ?? "diagram");
   const [visualPreferencesReady, setVisualPreferencesReady] = useState(false);
   const mobilePerformanceMode = useMobilePerformanceMode();
+  const isFirstMountRef = useRef(true);
+  useEffect(() => {
+    if (isFirstMountRef.current) {
+      isFirstMountRef.current = false;
+      return;
+    }
+    cancelNetworkTransition();
+  }, [mapViewPreference, isDark, highContrast, reducedMotion, cancelNetworkTransition]);
   const lastSavedViewRef = useRef<"my-stations" | "commutes">("my-stations");
 
   const [initialMapReady, setInitialMapReady] = useState(false);
   useEffect(() => {
     if (!initialMapReady) return;
-    // Warm only the other network's current visual variant after the entrance.
-    const timer = window.setTimeout(() => {
+    let cancelled = false;
+    // Prepare the other network once the current map is usable and the browser is idle.
+    const warmOtherNetwork = () => {
       const network = selectedNetwork === "ttc" ? "regional" : "ttc";
       const theme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
       const density = window.matchMedia("(max-width: 767px), (pointer: coarse)").matches ? "mobile" : "balanced";
-      void Promise.allSettled([
-        network === "regional" ? preloadRegionalMapMarkup() : preloadTtcMapMarkup("/assets/linewatch/ttc-subway-map-custom.svg"),
-        ...(["background", "foreground", "labels"] as const).map((plane) =>
-          preloadRasterMapSource(rasterMapSource(network, plane, theme, density))),
-      ]);
-    }, 600);
-    return () => window.clearTimeout(timer);
-  }, [initialMapReady, selectedNetwork, highContrast, isDark]);
+      void prepareNetworkMap(network, mapViewPreference, theme, density).then(() => {
+        if (!cancelled && mapViewPreference === "diagram") startTransition(() => setWarmingNetwork(network));
+      }, () => undefined);
+    };
+    const idleCallback = typeof window.requestIdleCallback === "function"
+      ? window.requestIdleCallback(warmOtherNetwork, { timeout: 300 }) : null;
+    const timer = idleCallback === null ? window.setTimeout(warmOtherNetwork, 100) : null;
+    return () => {
+      cancelled = true;
+      if (idleCallback !== null) window.cancelIdleCallback(idleCallback);
+      if (timer !== null) window.clearTimeout(timer);
+    };
+  }, [initialMapReady, selectedNetwork, highContrast, isDark, mapViewPreference]);
 
   const [menuPinned, setMenuPinned] = useState(false);
   const [menuPinPreferenceReady, setMenuPinPreferenceReady] = useState(false);
@@ -1590,15 +1605,7 @@ export function LineWatchShell({
     setCommutesFocusedCommuteId(commute.id);
     const commuteNetwork = commute.networkId ?? "ttc";
     if (commuteNetwork !== selectedNetwork) {
-      mobileNetworkTransitionRef.current?.cancel();
-      mobileNetworkTransitionRef.current = null;
-      networkTransitionTargetRef.current = null;
-      networkFadeAnimationRef.current?.cancel();
-      networkFadeAnimationRef.current = null;
-      networkViewTransitionRef.current?.skipTransition();
-      networkViewTransitionRef.current = null;
-      delete document.documentElement.dataset.networkTransitionPhase;
-      delete document.documentElement.dataset.networkTransitionDirection;
+      cancelNetworkTransition();
       setClosedScreenAcknowledged(true);
       setClosedMapPeek(true);
       setSelectedNetwork(commuteNetwork);
@@ -1632,15 +1639,7 @@ export function LineWatchShell({
     const commuteNetwork = commute.networkId ?? "ttc";
     const commuteDashboard = commuteNetwork === "regional" ? regionalData : ttcData;
     if (commuteNetwork !== selectedNetwork) {
-      mobileNetworkTransitionRef.current?.cancel();
-      mobileNetworkTransitionRef.current = null;
-      networkTransitionTargetRef.current = null;
-      networkFadeAnimationRef.current?.cancel();
-      networkFadeAnimationRef.current = null;
-      networkViewTransitionRef.current?.skipTransition();
-      networkViewTransitionRef.current = null;
-      delete document.documentElement.dataset.networkTransitionPhase;
-      delete document.documentElement.dataset.networkTransitionDirection;
+      cancelNetworkTransition();
       setClosedScreenAcknowledged(true);
       setClosedMapPeek(true);
       setSelectedNetwork(commuteNetwork);
@@ -1977,9 +1976,13 @@ export function LineWatchShell({
   const [stationSearchQuery, setStationSearchQuery] = useState("");
 
   const handleNetworkChange = (network: NetworkId) => {
-    if (network === selectedNetwork || networkTransitionTargetRef.current !== null) return;
-
+    if (network === networkTransitionTargetRef.current) return;
+    cancelNetworkTransition();
+    setNetworkSwitchError(null);
+    if (network === selectedNetwork) return;
+    const previousNetwork = selectedNetwork;
     networkTransitionTargetRef.current = network;
+    setNetworkSwitchTarget(network);
 
     const applyNetworkChange = () => {
       const pendingStationSelection = crossNetworkStationSelectionRef.current?.networkId === network
@@ -1990,6 +1993,7 @@ export function LineWatchShell({
       setClosedMapPeek(true);
       setIsClosedScreenExiting(false);
       setSelectedNetwork(network);
+      setPreparingNetwork(null);
       setSelection(null);
       setCommutePathPreview(null);
       setSelectedStationId(pendingStationSelection?.stationId ?? null);
@@ -2017,101 +2021,68 @@ export function LineWatchShell({
       setMapPresentationMode("standard");
       setMobileInspectorDetent(pendingStationSelection ? "details-focus" : "map-focus");
     };
-    if (mobilePerformanceMode && !reducedMotion && networkMapSurfaceRef.current) {
-      const transition = startMapSurfaceTransition(
-        networkMapSurfaceRef.current,
-        network === "regional" ? "forward" : "back",
-        () => flushSync(applyNetworkChange),
-      );
-      mobileNetworkTransitionRef.current = transition;
-      const finish = () => {
-        if (mobileNetworkTransitionRef.current !== transition) return;
-        mobileNetworkTransitionRef.current = null;
-        networkTransitionTargetRef.current = null;
-      };
-      void transition.finished.then(finish, finish);
-      return;
-    }
-
-    const transitionDocument = document as Document & {
-      startViewTransition?: (update: () => void) => {
-        finished: Promise<void>;
-        skipTransition: () => void;
-      };
-    };
-
-    // WebKit can leave the map switch waiting for the view-transition snapshot.
-    // Use the immediate path so the selected network is never stuck pending.
-    if (reducedMotion || navigator.vendor === "Apple Computer, Inc." || !transitionDocument.startViewTransition) {
+    const surface = networkMapSurfaceRef.current;
+    if (!surface) {
       applyNetworkChange();
       networkTransitionTargetRef.current = null;
+      setNetworkSwitchTarget(null);
       return;
     }
-
-    networkViewTransitionRef.current?.skipTransition();
-    document.documentElement.dataset.networkTransitionPhase = "fade-out";
-
-    const startNetworkSlide = () => {
-      if (networkTransitionTargetRef.current !== network) return;
-      document.documentElement.dataset.networkTransitionDirection =
-        network === "regional" ? "forward" : "back";
-      let applied = false;
-      const commitNetwork = () => {
-        if (applied || networkTransitionTargetRef.current !== network) return;
-        applied = true;
-        networkFadeAnimationRef.current?.cancel();
-        networkFadeAnimationRef.current = null;
-        delete document.documentElement.dataset.networkTransitionPhase;
-        flushSync(applyNetworkChange);
-        networkTransitionTargetRef.current = null;
-      };
-      const transition = transitionDocument.startViewTransition?.(commitNetwork);
-
-      if (!transition) {
-        networkFadeAnimationRef.current?.cancel();
-        networkFadeAnimationRef.current = null;
-        delete document.documentElement.dataset.networkTransitionPhase;
-        delete document.documentElement.dataset.networkTransitionDirection;
-        commitNetwork();
-        return;
-      }
-
-      networkViewTransitionRef.current = transition;
-      const finishNetworkTransition = () => {
-        if (networkViewTransitionRef.current !== transition) return;
-        commitNetwork();
-        networkViewTransitionRef.current = null;
-        delete document.documentElement.dataset.networkTransitionPhase;
-        delete document.documentElement.dataset.networkTransitionDirection;
-      };
-      const fallbackTimer = window.setTimeout(() => {
-        if (applied || networkViewTransitionRef.current !== transition) return;
-        transition.skipTransition();
-        finishNetworkTransition();
-      }, 1_200);
-      void transition.finished.then(() => {
-        window.clearTimeout(fallbackTimer);
-        finishNetworkTransition();
-      }, () => {
-        window.clearTimeout(fallbackTimer);
-        finishNetworkTransition();
-      });
-    };
-
-    const fadeAnimation = networkMapSurfaceRef.current?.animate(
-      [{ opacity: 1 }, { opacity: 0 }],
-      {
-        duration: 80,
-        easing: "cubic-bezier(0.3, 0, 0.7, 1)",
-        fill: "forwards",
+    let applied = false;
+    const geographic = mapViewPreference === "geographic";
+    const transition = startMapSurfaceTransition(surface, {
+      reducedMotion,
+      waitForReady: geographic,
+      fade: geographic ? {
+        fade: (...args) => geographicFadeRef.current?.fade(...args) ?? Promise.resolve(),
+        reset: () => geographicFadeRef.current?.reset(),
+      } : undefined,
+      prepare: async signal => {
+        const theme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
+        const density = mobileMapPerformanceMode ? "mobile" : "balanced";
+        if (!geographic && surface.querySelector(
+          `.network-diagram-layer[data-network-map-layer="${network}"][data-map-ready="true"][data-map-variant="${theme}:${density}"] :is(.ttc-map-stage, .regional-map-stage)[data-raster-map-ready="true"]`,
+        )) return;
+        await prepareNetworkMap(network, mapViewPreference, theme, density);
+        if (signal.aborted) throw signal.reason;
+        if (!geographic) {
+          await new Promise<void>((resolve, reject) => {
+            const fallbackTimer = window.setTimeout(() => {
+              signal.removeEventListener("abort", abort);
+              resolve();
+            }, 400);
+            const abort = () => {
+              window.clearTimeout(fallbackTimer);
+              signal.removeEventListener("abort", abort);
+              reject(signal.reason);
+            };
+            signal.addEventListener("abort", abort, { once: true });
+            preparedMapReadyRef.current = { network, resolve: () => {
+              window.clearTimeout(fallbackTimer);
+              signal.removeEventListener("abort", abort);
+              resolve();
+            } };
+            setPreparingNetwork(network);
+          });
+        }
       },
-    );
-    networkFadeAnimationRef.current = fadeAnimation ?? null;
-    if (!fadeAnimation) {
-      startNetworkSlide();
-      return;
-    }
-    void fadeAnimation.finished.then(startNetworkSlide, startNetworkSlide);
+      update: () => {
+        applied = true;
+        flushSync(applyNetworkChange);
+      },
+    });
+    networkMapTransitionRef.current = transition;
+    const finish = (failed: boolean) => {
+      if (networkMapTransitionRef.current !== transition) return;
+      if (failed && applied) setSelectedNetwork(previousNetwork);
+      networkMapTransitionRef.current = null;
+      networkTransitionTargetRef.current = null;
+      preparedMapReadyRef.current = null;
+      setPreparingNetwork(null);
+      setNetworkSwitchTarget(null);
+      if (failed) setNetworkSwitchError(network);
+    };
+    void transition.finished.then(() => finish(false), () => finish(true));
   };
 
   const handleDefaultNetworkChange = (network: NetworkId) => {
@@ -2385,6 +2356,7 @@ export function LineWatchShell({
     nextSelection: NonNullable<ImpactSelection>,
     networkId: NetworkId,
   ) => {
+    cancelNetworkTransition();
     const targetDashboard = networkId === "regional" ? regionalData : ttcData;
     if (networkId !== selectedNetwork) {
       setClosedScreenAcknowledged(true);
@@ -2409,13 +2381,14 @@ export function LineWatchShell({
       return;
     }
     navigateForward(targetView);
-  }, [isMobile, navigateForward, navigateToMapDrilldown, pushBrowserNavigationEntry, regionalData, selectedNetwork, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, ttcData, viewForImpactKind]);
+  }, [cancelNetworkTransition, isMobile, navigateForward, navigateToMapDrilldown, pushBrowserNavigationEntry, regionalData, selectedNetwork, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, ttcData, viewForImpactKind]);
 
   const handleMyStationsSelectAccessibilityOutageDetails = useCallback((
     assetType: AccessibilityOutageTarget["assetType"],
     stationId: string,
     networkId: NetworkId,
   ) => {
+    cancelNetworkTransition();
     if (networkId !== selectedNetwork) {
       setClosedScreenAcknowledged(true);
       setClosedMapPeek(true);
@@ -2426,7 +2399,7 @@ export function LineWatchShell({
     setCommutePathPreview(null);
     setAccessibilityOutageTarget({ assetType, stationId });
     navigateForward("accessibility-outages");
-  }, [navigateForward, selectedNetwork, setCommutePathPreview, setSelectedStationId, setSelection]);
+  }, [cancelNetworkTransition, navigateForward, selectedNetwork, setCommutePathPreview, setSelectedStationId, setSelection]);
 
   const handleMyStationsDisruptionExpandedChange = useCallback((stationId: string, expanded: boolean) => {
     setExpandedMyStationDisruptionIds((current) => {
@@ -3659,7 +3632,7 @@ export function LineWatchShell({
   const handleMapReady = useCallback(() => {
     setInitialMapReady(true);
     if (networkTransitionTargetRef.current === selectedNetwork) {
-      mobileNetworkTransitionRef.current?.mapReady();
+      networkMapTransitionRef.current?.mapReady();
     }
   }, [selectedNetwork]);
   const shellViewportStyle = {
@@ -3682,14 +3655,22 @@ export function LineWatchShell({
   return (
     <DataProvider data={displayData}>
       <DecorativeMotionPausedContext.Provider value={reducedMotion || highContrast}>
+      <NetworkSwitchContext.Provider value={networkSwitchTarget ?? selectedNetwork}>
       <div
         style={shellViewportStyle}
         data-active-view={activeView}
         data-network={selectedNetwork}
+        data-network-switch-target={networkSwitchTarget ?? undefined}
         data-menu-pinned={menuPinned ? "true" : undefined}
         className={`linewatch-shell relative w-full overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? (highContrast ? "dark bg-[#000000] text-slate-100" : "dark bg-[#0e1622] text-slate-100") : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""} ${mobileMapPerformanceMode ? "mobile-performance-mode" : ""} ${shellInspectorClasses}`}
       >
         <ScrollOverflowAffordances />
+        {networkSwitchError && (
+          <div className="network-switch-notice panel" role="status" aria-live="polite">
+            <span>{`Couldn’t load the ${networkSwitchError === "regional" ? "GO/UP" : "TTC"} map. Your current map is still available.`}</span>
+            <button type="button" onClick={() => handleNetworkChange(networkSwitchError)}>Retry</button>
+          </div>
+        )}
         <h1 className="sr-only">
           {selectedNetwork === "ttc" ? "LineWatchTO TTC subway and LRT reliability dashboard" : "LineWatchTO GO and UP regional rail reliability dashboard"}
         </h1>
@@ -4946,6 +4927,12 @@ export function LineWatchShell({
             >
               <NetworkMap
                 network={selectedNetwork}
+                preparingNetwork={preparingNetwork}
+                diagramData={{ ttc: ttcData, regional: regionalData }}
+                diagramStations={stationCatalogs}
+                warmingNetwork={warmingNetwork}
+                onPreparedMapReady={() => preparedMapReadyRef.current?.resolve()}
+                geographicFadeRef={geographicFadeRef}
                 isMapActive={!showClosedScreen}
                 animateInitialEntrance={false}
                 deferInitialEntrance={disclaimerVisible
@@ -5001,6 +4988,12 @@ export function LineWatchShell({
         >
           <NetworkMap
             network={selectedNetwork}
+            preparingNetwork={preparingNetwork}
+            diagramData={{ ttc: ttcData, regional: regionalData }}
+            diagramStations={stationCatalogs}
+            warmingNetwork={warmingNetwork}
+            onPreparedMapReady={() => preparedMapReadyRef.current?.resolve()}
+            geographicFadeRef={geographicFadeRef}
             isMapActive={activeView === "map" && !isClosingSearch}
             animateInitialEntrance={false}
             deferInitialEntrance={disclaimerVisible
@@ -5430,6 +5423,7 @@ export function LineWatchShell({
         {desktopLiveAnnouncement}
       </div>
     </div>
+      </NetworkSwitchContext.Provider>
       </DecorativeMotionPausedContext.Provider>
     </DataProvider>
   );
