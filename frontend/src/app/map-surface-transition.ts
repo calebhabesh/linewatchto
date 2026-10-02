@@ -46,7 +46,10 @@ export function startMapSurfaceTransition(
         duration, easing: 'ease-out', fill: 'both',
       });
       previous?.cancel();
-      await abortable(animation.current.finished);
+      await abortable(Promise.race([
+        animation.current.finished,
+        new Promise<void>(resolve => setTimeout(resolve, duration + 50)),
+      ]));
     }
   };
 

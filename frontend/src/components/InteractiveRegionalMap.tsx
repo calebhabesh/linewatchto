@@ -1046,8 +1046,14 @@ function InteractiveRegionalMapComponent({
     ) return;
 
     let secondPaintFrame: number | null = null;
+    const fallbackTimer = window.setTimeout(() => {
+      if (readyNotifiedRef.current) return;
+      readyNotifiedRef.current = true;
+      onReady?.();
+    }, 250);
     const firstPaintFrame = window.requestAnimationFrame(() => {
       secondPaintFrame = window.requestAnimationFrame(() => {
+        window.clearTimeout(fallbackTimer);
         if (readyNotifiedRef.current) return;
         readyNotifiedRef.current = true;
         onReady?.();
@@ -1055,6 +1061,7 @@ function InteractiveRegionalMapComponent({
     });
 
     return () => {
+      window.clearTimeout(fallbackTimer);
       window.cancelAnimationFrame(firstPaintFrame);
       if (secondPaintFrame !== null) window.cancelAnimationFrame(secondPaintFrame);
     };
