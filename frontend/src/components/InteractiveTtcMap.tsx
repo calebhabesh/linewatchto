@@ -39,6 +39,7 @@ import {
 import { ZoomIn, ZoomOut, Locate, Sun, Moon, X } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import { NetworkSelector } from "./NetworkSelector";
+import { SharedMapControlRail } from "./SharedMapControlRail";
 import { MapViewSelector } from "./MapViewSelector";
 import type { NetworkId } from "../app/regional-data";
 import type { MapViewPreference } from "../app/visual-preferences";
@@ -2046,7 +2047,7 @@ function InteractiveTtcMapComponent({
 
       {/* Top center map controls */}
       {/* Note: ml-2 sm:ml-3 is added to visually center the mass of the controls, since the left side has 2 buttons and is visually heavier than the right side */}
-      <div ref={mapControlRailRef} className="map-control-rail desktop-map-control-rail absolute top-14 sm:top-5 left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto" data-map-chooser-keepout>
+      <SharedMapControlRail network="ttc" ref={mapControlRailRef} className="map-control-rail desktop-map-control-rail absolute top-14 sm:top-5 left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto" data-map-chooser-keepout>
         <div className="map-control-recenter-container">
           <button
             onClick={recenterWithFeedback}
@@ -2111,7 +2112,7 @@ function InteractiveTtcMapComponent({
             <MapViewSelector view={mapView ?? "diagram"} onChange={onMapViewChange} />
           </div>
         )}
-      </div>
+      </SharedMapControlRail>
 
       {/* Map Viewport */}
       <div

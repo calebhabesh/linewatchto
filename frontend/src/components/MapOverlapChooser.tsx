@@ -19,6 +19,11 @@ import { getSelectedImpactDetails } from "./MobileImpactInspector";
 import type { MapViewportOrientation } from "../hooks/panZoomMath";
 import { useRotatedListDragScroll } from "../hooks/useRotatedListDragScroll";
 import { getImpactPriority } from "../app/map-alert-selector";
+import {
+  REGIONAL_ROUTE_CARDINAL_DIRECTIONS,
+  REGIONAL_ROUTE_DEFINITIONS,
+} from "../app/regional-data";
+import { transitLineName } from "./TransitLineBadge";
 
 export type MapOverlapChooserLayout = {
   left: number;
@@ -45,15 +50,32 @@ function formatLocation(
   fallbackLocation: string,
 ): string {
   if (!details) return fallbackLocation;
+  if (details.lineId.startsWith("regional-")) {
+    const lineName = transitLineName(details.lineId) ?? details.lineNumber;
+    const lineLabel = details.lineId === "regional-up" ? lineName : `${lineName} Line`;
+    return `${lineLabel}: ${details.location || fallbackLocation}`;
+  }
   const linePrefix = details.lineNumber ? `Line ${details.lineNumber}: ` : "";
   return `${linePrefix}${details.location || fallbackLocation}`;
+}
+
+function formatDirection(
+  details: ReturnType<typeof getSelectedImpactDetails>,
+): string | null {
+  const explicitDirection = details?.displayDirection?.trim();
+  if (explicitDirection) return explicitDirection;
+  if (!details?.lineId.startsWith("regional-")) return null;
+
+  const route = REGIONAL_ROUTE_DEFINITIONS.find(({ id }) => id === details.lineId);
+  const direction = route ? REGIONAL_ROUTE_CARDINAL_DIRECTIONS[route.number] : null;
+  return direction?.replace(/\s*\/\s*/g, " & ") ?? null;
 }
 
 function typeLabel(
   kind: MapImpactKind,
   details: ReturnType<typeof getSelectedImpactDetails>,
 ): string {
-  if (kind === "suspension") return details?.categoryLabel ?? "Suspension";
+  if (kind === "suspension" || kind === "delay") return details?.categoryLabel ?? impactKindLabel(kind);
   if (kind !== "planned-closure") return impactKindLabel(kind);
   if (details?.categoryLabel === "Upcoming Closure") return "Planned Advisory";
   return details?.categoryLabel ?? "Planned Advisory";
@@ -200,6 +222,9 @@ export function MapOverlapChooser({
         <div className="overlap-chooser-list" {...scrollContainerProps}>
           {orderedImpacts.map((impact, index) => {
             const details = getSelectedImpactDetails({ kind: impact.kind, id: impact.cardId }, data);
+            const isRegional = details?.lineId.startsWith("regional-");
+            const dateLabel = details?.closureDateLabel || (isRegional ? details?.window?.trim() : undefined);
+            const directionLabel = formatDirection(details);
             return (
               <button
                 key={`${impact.kind}-${impact.cardId}`}
@@ -235,10 +260,10 @@ export function MapOverlapChooser({
                   <strong>{typeLabel(impact.kind, details)}{impact.kind === "planned-closure" && details?.serviceEffect ? (
                     <span className="overlap-chooser-choice-effect"><span aria-hidden="true"> · </span>{details.serviceEffect === "limited-service" ? "Limited Service" : details.serviceEffect === "suspension" ? "Closure" : "Delay"}</span>
                   ) : null}</strong>
-                  {impact.kind === "planned-closure" && details?.closureDateLabel ? (
-                    <span className="overlap-chooser-choice-date">{details.closureDateLabel}</span>
+                  {impact.kind === "planned-closure" && dateLabel ? (
+                    <span className="overlap-chooser-choice-date">{dateLabel}</span>
                   ) : null}
-                  <span className="overlap-chooser-choice-location"><IncidentStationSpan location={formatLocation(details, label)} />{details?.displayDirection?.trim() ? <span className="overlap-chooser-choice-direction"> ({details.displayDirection.trim()})</span> : null}</span>
+                  <span className="overlap-chooser-choice-location"><IncidentStationSpan location={formatLocation(details, label)} />{directionLabel ? <span className="overlap-chooser-choice-direction"> ({directionLabel})</span> : null}</span>
                 </span>
               </button>
             );

@@ -1,56 +1,79 @@
-/** Animate only the map on phones; document snapshots can disturb shared chrome. */
+export interface MapFadeController {
+  fade: (opacity: 0 | 1, duration: number, signal: AbortSignal) => Promise<void>;
+  reset: () => void;
+}
+
+const owners = new WeakMap<HTMLElement, object>();
+
+/** Prepare a replacement while the current map is usable, then animate opacity only. */
 export function startMapSurfaceTransition(
   surface: HTMLElement,
-  direction: "forward" | "back",
-  update: () => void,
+  options: {
+    prepare: (signal: AbortSignal) => Promise<unknown>;
+    update: () => void;
+    reducedMotion?: boolean;
+    waitForReady?: boolean;
+    fade?: MapFadeController;
+  },
 ) {
+  const owner = {};
+  owners.set(surface, owner);
+  const controller = new AbortController();
+  const { signal } = controller;
   let cancelled = false;
-  let animation: Animation | null = null;
+  const animation: { current: Animation | null } = { current: null };
   let releaseReady: (() => void) | null = null;
-  let readyTimeout: ReturnType<typeof setTimeout> | undefined;
+  const timeout = setTimeout(() => controller.abort(new Error('Map switching timed out. Please retry.')), 12000);
+
+  const abortable = <T>(work: Promise<T>) => new Promise<T>((resolve, reject) => {
+    const abort = () => reject(signal.reason);
+    if (signal.aborted) { abort(); return; }
+    signal.addEventListener('abort', abort, { once: true });
+    work.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort));
+  });
+
+  const fade = async (opacity: 0 | 1, duration: number) => {
+    if (options.reducedMotion) return;
+    if (options.fade) {
+      await abortable(options.fade.fade(opacity, duration, signal));
+    } else {
+      const previous = animation.current;
+      const artwork = surface.querySelector<HTMLElement>(
+        '.network-diagram-layer:not([data-preparing]) :is(.ttc-map-stage, .regional-map-stage)',
+      );
+      if (!artwork) return;
+      animation.current = artwork.animate([{ opacity: 1 - opacity }, { opacity }], {
+        duration, easing: 'ease-out', fill: 'both',
+      });
+      previous?.cancel();
+      await abortable(animation.current.finished);
+    }
+  };
 
   const finished = (async () => {
     try {
-      surface.dataset.mapSurfaceTransition = "leaving";
-      animation = surface.animate([{ opacity: 1 }, { opacity: 0 }], {
-        duration: 80,
-        easing: "cubic-bezier(0.3, 0, 0.7, 1)",
-        fill: "forwards",
-      });
-      await animation.finished;
-      if (cancelled) return;
-
-      surface.dataset.mapSurfaceTransition = "loading";
-      const ready = new Promise<void>((resolve) => {
-        releaseReady = resolve;
-        // A failed asset must eventually expose the map's error state.
-        readyTimeout = setTimeout(resolve, 4000);
-      });
-      update();
-      await ready;
-      clearTimeout(readyTimeout);
+      surface.dataset.mapSurfaceTransition = 'loading';
+      await abortable(options.prepare(signal));
+      surface.dataset.mapSurfaceTransition = 'leaving';
+      await fade(0, 100);
+      if (signal.aborted) throw signal.reason;
+      const ready = options.waitForReady ? new Promise<void>(resolve => { releaseReady = resolve; }) : Promise.resolve();
+      options.update();
+      await abortable(ready);
       releaseReady = null;
-      if (cancelled) return;
-
-      surface.dataset.mapSurfaceTransition = "entering";
-      const leaving = animation;
-      animation = surface.animate([
-        { transform: `translate3d(${direction === "forward" ? "100%" : "-100%"}, 0, 0)`, opacity: 1 },
-        { transform: "translate3d(0, 0, 0)", opacity: 1 },
-      ], {
-        duration: 420,
-        easing: "cubic-bezier(0.4, 0, 0.2, 1)",
-        fill: "both",
-      });
-      leaving.cancel();
-      await animation.finished;
+      surface.dataset.mapSurfaceTransition = 'entering';
+      await fade(1, 150);
     } catch (error) {
       if (!cancelled) throw error;
     } finally {
-      animation?.cancel();
-      clearTimeout(readyTimeout);
+      clearTimeout(timeout);
       releaseReady = null;
-      delete surface.dataset.mapSurfaceTransition;
+      animation.current?.cancel();
+      if (owners.get(surface) === owner) {
+        options.fade?.reset();
+        delete surface.dataset.mapSurfaceTransition;
+        owners.delete(surface);
+      }
     }
   })();
 
@@ -59,8 +82,9 @@ export function startMapSurfaceTransition(
     mapReady: () => releaseReady?.(),
     cancel: () => {
       cancelled = true;
-      animation?.cancel();
-      releaseReady?.();
+      controller.abort();
+      animation.current?.cancel();
+      if (owners.get(surface) === owner) options.fade?.reset();
     },
   };
 }

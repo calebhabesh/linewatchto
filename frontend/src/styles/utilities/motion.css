@@ -3,154 +3,45 @@
    View transitions, signal animations, view content wrappers, and navigation motion.
    ========================================================================== */
 
-/* --- 1. Network Map View Transitions --- */
-.network-map-transition-surface[data-map-surface-transition] {
-  pointer-events: none;
-}
-
-/* Keep shared chrome live instead of replacing it with a root snapshot. */
-html[data-network-transition-direction] {
-  view-transition-name: none;
-}
-
-html[data-network-transition-direction] .network-map-transition-surface {
-  view-transition-name: network-map;
-}
-
-/* Fade the live surface to a stable compositor frame before capturing the
-   outgoing map. Keep the selector visible and block only follow-up input. */
-html[data-network-transition-phase="fade-out"] .network-map-transition-surface {
-  pointer-events: none;
-  will-change: opacity;
-}
-
-html[data-network-transition-phase="fade-out"] .linewatch-shell::after {
-  background: transparent;
-  content: "";
+/* --- 1. Network Map Fades --- */
+.network-diagram-layer {
+  position: absolute;
   inset: 0;
-  pointer-events: auto;
-  position: fixed;
-  z-index: 2147483647;
 }
 
-html[data-network-transition-direction]::view-transition-old(root) {
-  display: none;
+.network-diagram-layer[data-preparing] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
-html[data-network-transition-direction]::view-transition-new(root) {
-  animation: none;
-}
-
-html[data-network-transition-direction]::view-transition-group(network-map),
-html[data-network-transition-direction]::view-transition-old(network-map),
-html[data-network-transition-direction]::view-transition-new(network-map) {
-  animation-duration: 420ms;
-  animation-fill-mode: both;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* View-transition snapshots live above the document stacking order. Promote
-   the opaque desktop chrome into that layer so the sliding map remains behind
-   it, even though the live map workspace extends beneath the sidebar. */
-html[data-network-transition-direction] .desktop-sidebar-container:not(.desktop-sidebar-container--collapsed) {
-  view-transition-name: desktop-sidebar;
-}
-
-html[data-network-transition-direction] .desktop-nav-rail {
-  view-transition-name: desktop-nav-rail;
-}
-
-html[data-network-transition-direction] .desktop-sidebar-accent-strip {
-  view-transition-name: desktop-sidebar-accent;
-}
-
-html[data-network-transition-direction]::view-transition-group(desktop-sidebar),
-html[data-network-transition-direction]::view-transition-group(desktop-nav-rail),
-html[data-network-transition-direction]::view-transition-group(desktop-sidebar-accent) {
-  animation: none;
-  z-index: 2;
-}
-
-html[data-network-transition-direction]::view-transition-old(desktop-sidebar),
-html[data-network-transition-direction]::view-transition-old(desktop-nav-rail),
-html[data-network-transition-direction]::view-transition-old(desktop-sidebar-accent) {
-  display: none;
-}
-
-html[data-network-transition-direction]::view-transition-new(desktop-sidebar),
-html[data-network-transition-direction]::view-transition-new(desktop-nav-rail),
-html[data-network-transition-direction]::view-transition-new(desktop-sidebar-accent) {
-  animation: none;
-}
-
-html[data-network-transition-direction]::view-transition-old(network-map),
-html[data-network-transition-direction]::view-transition-new(network-map) {
-  backface-visibility: hidden;
-  isolation: isolate;
-  mix-blend-mode: normal;
-  will-change: transform;
-}
-
-/* The View Transition moves stable snapshots. Pause CSS-driven map effects in
-   the live trees so they do not compete with the compositor during the slide. */
-html[data-network-transition-direction] :is(.ttc-map-stage, .regional-map-stage) * {
+.network-diagram-layer[data-preparing] * {
+  visibility: hidden !important;
   animation-play-state: paused !important;
 }
 
-html[data-network-transition-direction="forward"]::view-transition-old(network-map) {
-  animation-name: network-map-slide-out-to-left;
+.network-map-transition-surface[data-map-surface-transition="leaving"] :is(.ttc-map-stage, .regional-map-stage, .geographic-network-map > [role="region"]) {
+  pointer-events: none;
 }
 
-html[data-network-transition-direction="forward"]::view-transition-new(network-map) {
-  animation-name: network-map-slide-in-from-right;
+.network-switch-notice {
+  position: fixed;
+  left: 50%;
+  bottom: 100px;
+  transform: translateX(-50%);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
 }
 
-html[data-network-transition-direction="back"]::view-transition-old(network-map) {
-  animation-name: network-map-slide-out-to-right;
-}
-
-html[data-network-transition-direction="back"]::view-transition-new(network-map) {
-  animation-name: network-map-slide-in-from-left;
-}
-
-@keyframes network-map-slide-in-from-right {
-  from {
-    transform: translate3d(100%, 0, 0);
-  }
-
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes network-map-slide-out-to-left {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    transform: translate3d(-100%, 0, 0);
-  }
-}
-
-@keyframes network-map-slide-in-from-left {
-  from {
-    transform: translate3d(-100%, 0, 0);
-  }
-
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes network-map-slide-out-to-right {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    transform: translate3d(100%, 0, 0);
-  }
+.network-switch-notice button {
+  text-decoration: underline;
+  font-weight: 600;
 }
 
 /* --- 2. Live Signal Propagating Wave Animation --- */
@@ -573,14 +464,14 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
    Explicit transition-property prevents the "all" default from picking up
    non-compositable properties (scrollbar-color, visibility, stroke-width)
    that would force a paint on every frame during drag/scroll. */
-.linewatch-shell button:not(:disabled),
+.linewatch-shell button:not(:disabled):not(.network-selector-btn),
 .linewatch-shell [role="button"]:not([aria-disabled="true"]) {
   transition-property: transform, background-color, color, box-shadow, border-color, opacity;
   transition-duration: 160ms;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.linewatch-shell button:not(:disabled):active,
+.linewatch-shell button:not(:disabled):not(.network-selector-btn):active,
 .linewatch-shell [role="button"]:not([aria-disabled="true"]):active {
   transform: scale(0.98);
 }

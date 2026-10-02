@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { createExpression } from "@maplibre/maplibre-gl-style-spec";
 
 import {
   EMPTY_GEOJSON_FEATURE_COLLECTION,
@@ -15,6 +16,15 @@ import {
   installTransitLayers,
 } from "../src/components/geographic-map-operations.ts";
 import { getGeographicMapLifecycle } from "../src/app/geographic-lifecycle.ts";
+
+function evaluateOpacity(expression, properties = {}, networkOpacity = 1) {
+  const compiled = createExpression(expression, "paint.opacity");
+  assert.equal(compiled.result, "success", JSON.stringify(compiled.value));
+  return compiled.value.evaluateWithoutErrorHandling(
+    { zoom: 13, globalState: { "linewatch-network-opacity": networkOpacity } },
+    { properties },
+  );
+}
 
 describe("Geographic map operations", () => {
   // Polyfill window for node environment
@@ -184,13 +194,17 @@ describe("Geographic map operations", () => {
         assert.ok(updatedLayers.has(id), `Layer ${id} should be updated on line filter`);
       }
 
-      // Check routes opacity expression contains line filter
+      // The network fade must preserve line filtering throughout the animation.
       const routesCall = paintCalls.find((c) => c.layerId === "transit-routes" && c.prop === "line-opacity");
-      assert.deepEqual(routesCall?.value, ["case", ["==", ["get", "lineId"], "line-1"], 1.0, 0.2]);
+      assert.equal(evaluateOpacity(routesCall?.value, { lineId: "line-1" }), 1);
+      assert.equal(evaluateOpacity(routesCall?.value, { lineId: "line-2" }), 0.2);
+      assert.equal(evaluateOpacity(routesCall?.value, { lineId: "line-2" }, 0.5), 0.1);
+      assert.equal(evaluateOpacity(routesCall?.value, { lineId: "line-1" }, 0), 0);
 
-      // Check stations outer circle opacity contains line filter
       const stationsCall = paintCalls.find((c) => c.layerId === "transit-stations-outer" && c.prop === "circle-opacity");
-      assert.deepEqual(stationsCall?.value, ["case", ["in", "line-1", ["get", "lineIds"]], 1.0, 0.25]);
+      assert.equal(evaluateOpacity(stationsCall?.value, { lineIds: ["line-1"] }), 1);
+      assert.equal(evaluateOpacity(stationsCall?.value, { lineIds: ["line-2"] }), 0.25);
+      assert.equal(evaluateOpacity(stationsCall?.value, { lineIds: ["line-2"] }, 0.5), 0.125);
 
       // Check line badges icon opacity uses expression
       const badgeCall = paintCalls.find((c) => c.layerId === "transit-line-badges" && c.prop === "icon-opacity");
@@ -222,13 +236,14 @@ describe("Geographic map operations", () => {
       updateGeographicLineFilter(mockMap, null);
 
       const routesCall = paintCalls.find((c) => c.layerId === "transit-routes" && c.prop === "line-opacity");
-      assert.equal(routesCall?.value, 1.0);
+      assert.equal(evaluateOpacity(routesCall?.value), 1);
+      assert.equal(evaluateOpacity(routesCall?.value, {}, 0.5), 0.5);
 
       const stationsOuterCall = paintCalls.find((c) => c.layerId === "transit-stations-outer" && c.prop === "circle-opacity");
-      assert.equal(stationsOuterCall?.value, 1.0);
+      assert.equal(evaluateOpacity(stationsOuterCall?.value), 1);
 
       const casingCall = paintCalls.find((c) => c.layerId === "transit-impact-arrows-casing" && c.prop === "icon-opacity");
-      assert.equal(casingCall?.value, 0.98);
+      assert.equal(evaluateOpacity(casingCall?.value), 0.98);
     });
   });
 

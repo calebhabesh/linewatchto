@@ -83,7 +83,7 @@ test("Geographic map component invariants: lifecycle separation and stability", 
     assert.ok(initEffectMatch, "Main map lifecycle useEffect must be documented and found");
     const deps = initEffectMatch[1];
 
-    assert.ok(deps.includes("network"), "deps should include network");
+    assert.ok(!deps.split(",").map(value => value.trim()).includes("network"), "network changes must preserve the map instance");
     assert.ok(deps.includes("retryCount"), "deps should include retryCount");
     assert.ok(!deps.includes("isDark"), "deps must NOT include isDark (theme handled separately)");
     assert.ok(!deps.includes("activeFilteredLine"), "deps must NOT include activeFilteredLine");

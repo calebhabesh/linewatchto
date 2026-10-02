@@ -101,7 +101,8 @@
   font-weight: 800;
   letter-spacing: 0.04em;
   line-height: 1;
-  transition: color 140ms ease-out, background-color 140ms ease-out, transform 100ms ease-out;
+  /* Hover feedback is immediate; the selection glider keeps its smooth motion. */
+  transition: transform 100ms ease-out;
   cursor: pointer;
   background: transparent;
   box-shadow: none;

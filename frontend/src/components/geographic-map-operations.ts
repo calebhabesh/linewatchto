@@ -18,6 +18,7 @@ import { ALL_LINE_COLORS } from "../app/geographic-config.ts";
 import { REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data.ts";
 import type { PlannedClosure } from "../app/linewatch-data.ts";
 import { recordGeographicMapLifecycle } from "../app/geographic-lifecycle.ts";
+import { installTransitOpacity, setTransitPaintProperty } from "./geographic-network-transition.ts";
 
 export const EMPTY_GEOJSON_FEATURE_COLLECTION: GeoJSON.FeatureCollection = {
   type: "FeatureCollection",
@@ -265,7 +266,7 @@ export function updateGeographicLineFilter(
   activeFilteredLine: string | null,
 ): void {
   if (map.getLayer("transit-routes")) {
-    map.setPaintProperty(
+    setTransitPaintProperty(map,
       "transit-routes",
       "line-opacity",
       activeFilteredLine
@@ -275,7 +276,7 @@ export function updateGeographicLineFilter(
   }
 
   if (map.getLayer("transit-line-badges")) {
-    map.setPaintProperty(
+    setTransitPaintProperty(map,
       "transit-line-badges",
       "icon-opacity",
       lineBadgeOpacityExpression(activeFilteredLine),
@@ -283,14 +284,14 @@ export function updateGeographicLineFilter(
   }
 
   if (map.getLayer("transit-stations-outer")) {
-    map.setPaintProperty(
+    setTransitPaintProperty(map,
       "transit-stations-outer",
       "circle-opacity",
       activeFilteredLine
         ? ["case", ["in", activeFilteredLine, ["get", "lineIds"]], 1.0, 0.25]
         : 1.0,
     );
-    map.setPaintProperty(
+    setTransitPaintProperty(map,
       "transit-stations-outer",
       "circle-stroke-opacity",
       activeFilteredLine
@@ -300,7 +301,7 @@ export function updateGeographicLineFilter(
   }
 
   if (map.getLayer("transit-stations-inner")) {
-    map.setPaintProperty(
+    setTransitPaintProperty(map,
       "transit-stations-inner",
       "circle-opacity",
       activeFilteredLine
@@ -310,7 +311,7 @@ export function updateGeographicLineFilter(
   }
 
   if (map.getLayer("transit-impact-arrows")) {
-    map.setPaintProperty(
+    setTransitPaintProperty(map,
       "transit-impact-arrows",
       "icon-opacity",
       activeFilteredLine
@@ -325,7 +326,7 @@ export function updateGeographicLineFilter(
   }
 
   if (map.getLayer("transit-impact-arrows-casing")) {
-    map.setPaintProperty(
+    setTransitPaintProperty(map,
       "transit-impact-arrows-casing",
       "icon-opacity",
       activeFilteredLine
@@ -335,12 +336,12 @@ export function updateGeographicLineFilter(
   }
 
   if (map.getLayer("transit-train-markers-halo")) {
-    map.setPaintProperty(
+    setTransitPaintProperty(map,
       "transit-train-markers-halo",
       "circle-opacity",
       activeFilteredLine ? ["case", ["==", ["get", "lineId"], activeFilteredLine], 1.0, 0.2] : 1.0,
     );
-    map.setPaintProperty(
+    setTransitPaintProperty(map,
       "transit-train-markers-halo",
       "circle-stroke-opacity",
       activeFilteredLine ? ["case", ["==", ["get", "lineId"], activeFilteredLine], 1.0, 0.2] : 1.0,
@@ -348,7 +349,7 @@ export function updateGeographicLineFilter(
   }
 
   if (map.getLayer("transit-train-markers-body")) {
-    map.setPaintProperty(
+    setTransitPaintProperty(map,
       "transit-train-markers-body",
       "circle-opacity",
       activeFilteredLine ? ["case", ["==", ["get", "lineId"], activeFilteredLine], 1.0, 0.2] : 1.0,
@@ -356,7 +357,7 @@ export function updateGeographicLineFilter(
   }
 
   if (map.getLayer("transit-train-markers-symbol")) {
-    map.setPaintProperty(
+    setTransitPaintProperty(map,
       "transit-train-markers-symbol",
       "icon-opacity",
       activeFilteredLine ? ["case", ["==", ["get", "lineId"], activeFilteredLine], 1.0, 0.2] : 1.0,
@@ -364,7 +365,7 @@ export function updateGeographicLineFilter(
   }
 
   if (map.getLayer("transit-train-markers-label")) {
-    map.setPaintProperty(
+    setTransitPaintProperty(map,
       "transit-train-markers-label",
       "text-opacity",
       activeFilteredLine ? ["case", ["==", ["get", "lineId"], activeFilteredLine], 1.0, 0.2] : 1.0,
@@ -402,7 +403,7 @@ export function updateGeographicImpactSelection(
         ? ["in", ["get", "stationId"], ["literal", plannedStationIds]]
         : ["==", ["get", "stationId"], ""],
     );
-    map.setPaintProperty(
+    setTransitPaintProperty(map,
       "transit-planned-station-selection",
       "circle-stroke-color",
       selectedPlannedClosure?.activeNow ? "#ef4444" : "#3b82f6",
@@ -1255,4 +1256,5 @@ export function installTransitLayers(
       plannedClosures: initialData.plannedClosures,
     });
   }
+  installTransitOpacity(map);
 }

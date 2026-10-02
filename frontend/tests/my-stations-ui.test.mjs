@@ -178,9 +178,8 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.saved-station-arrival-groups/);
     assert.match(panel, /station-arrival-line-divider saved-station-section-divider/);
     assert.match(styles, /\.station-arrival-line-divider\s*\{[^}]*linear-gradient/s);
-    assert.match(styles, /\.saved-station-section-divider[\s\S]*?margin:\s*6px 0;/s);
-    assert.match(styles, /\.saved-station-surface-divider[\s\S]*?margin:\s*8px 0 6px;/s);
-    assert.match(styles, /\.saved-station-disruption-summary[\s\S]*?padding:\s*0 0 8px;/s);
+    assert.match(styles, /\.station-arrival-line-divider\.saved-station-line-divider\s*\{[^}]*margin:\s*var\(--saved-station-section-space\) 0;/s);
+    assert.match(styles, /\.saved-commute-impact-summary\.saved-station-disruption-summary\s*\{[^}]*padding:\s*0;/s);
     assert.match(styles, /\.saved-station-arrival-source::after\s*\{[^}]*height:\s*18px/s);
     assert.match(styles, /\.saved-station-arrival-times strong\.is-due/);
     assert.match(styles, /\.saved-station-arrival-times strong\.is-soon/);
@@ -189,10 +188,10 @@ describe("My Stations UI", () => {
     assert.match(styles, /@media \(min-width:\s*768px\)[\s\S]*?\.saved-station-arrival-group\s*\{[^}]*gap:\s*0;[^}]*min-height:\s*52px;[^}]*padding:\s*8px 10px 5px;/s);
     assert.match(styles, /@media \(min-width:\s*768px\)[\s\S]*?\.saved-station-arrival-line-badge\s*\{[^}]*height:\s*24px !important;[^}]*width:\s*24px !important;/s);
     assert.match(styles, /\.saved-commute-impact-disclosure\.saved-station-disruption-disclosure\s*\{[^}]*border:\s*0;[^}]*margin-top:\s*0;/s);
-    assert.match(styles, /\.saved-station-rich-content\s*\{[^}]*padding:\s*10px 12px;/s);
+    assert.match(styles, /\.saved-station-rich-content\s*\{[^}]*padding:\s*var\(--saved-station-section-space\) 12px;/s);
     assert.match(panel, /<div className="station-arrival-line-divider saved-station-section-divider saved-station-surface-divider" aria-hidden="true" \/>\s*<SurfaceConnectionsSection variant="saved-station" networkId="regional"/);
     assert.match(panel, /<div className="station-arrival-line-divider saved-station-section-divider saved-station-surface-divider" aria-hidden="true" \/>\s*<SurfaceConnectionsSection variant="saved-station" networkId="ttc"/);
-    assert.match(styles, /\.saved-station-disruption-list[\s\S]*?margin-top:\s*0;\s*padding:\s*8px 0 4px;/s);
+    assert.match(styles, /\.saved-station-disruption-list\s*\{[^}]*margin-top:\s*0;\s*padding:\s*var\(--saved-station-content-gap\) 0 0;/s);
     assert.doesNotMatch(styles, /\.saved-station-disruption-list\s*\{[^}]*border-top:/s);
   });
 

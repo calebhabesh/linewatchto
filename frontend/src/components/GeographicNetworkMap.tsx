@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { Map as MapLibreMap, getVersion, setWorkerUrl } from "maplibre-gl";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo, type RefObject } from "react";
+import { Map as MapLibreMap, AttributionControl, getVersion, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { AlertCircle, RefreshCw, Layers, Locate, ZoomIn, ZoomOut } from "lucide-react";
+import { cachedGeographicCatalog, loadGeographicCatalog } from "../app/geographic-catalog-loader";
+import type { MapFadeController } from "../app/map-surface-transition";
+import { createGeographicMapFade, setTransitPaintProperty } from "./geographic-network-transition";
 import type { GeographicCatalog } from "../app/geographic-catalog";
 import type { NetworkId } from "../app/regional-data";
 import type { MapViewPreference } from "../app/visual-preferences";
@@ -38,7 +41,6 @@ import {
   OPENFREEMAP_STYLES,
   GEOGRAPHIC_LOAD_TIMEOUT_MS,
   STATION_FOCUS_ZOOM,
-  getCatalogUrl,
   getGeographicBounds,
   getGeographicCenter,
   getGeographicDefaultZoom,
@@ -102,6 +104,7 @@ const GEOGRAPHIC_IMPACT_BADGE_MIN_HIT_DIAMETER_PX = 44;
 
 export type GeographicNetworkMapProps = {
   network: NetworkId;
+  networkFadeRef?: RefObject<MapFadeController | null>;
   isDark: boolean;
   highContrast: boolean;
   selectedStationId?: string | null;
@@ -326,6 +329,7 @@ function isWebGL2Supported(): boolean {
 
 export function GeographicNetworkMap({
   network,
+  networkFadeRef,
   isDark,
   highContrast,
   selectedStationId,
@@ -359,7 +363,12 @@ export function GeographicNetworkMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sliderRef = useRef<HTMLInputElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
-  const [catalog, setCatalog] = useState<GeographicCatalog | null>(null);
+  const attributionRef = useRef<AttributionControl | null>(null);
+  const [loadedCatalog, setCatalog] = useState<GeographicCatalog | null>(null);
+  const catalog = cachedGeographicCatalog(network) ?? (loadedCatalog?.network === network ? loadedCatalog : null);
+  const networkRef = useRef(network);
+  const appliedCatalogRef = useRef<GeographicCatalog | null>(null);
+  useLayoutEffect(() => { networkRef.current = network; }, [network]);
   const catalogRef = useRef<GeographicCatalog | null>(null);
   const [loadStatus, setLoadStatus] = useState<"loading" | "ready" | "error">("loading");
   const loadStatusRef = useRef(loadStatus);
@@ -381,8 +390,8 @@ export function GeographicNetworkMap({
     if (!map || loadStatusRef.current !== "ready") return;
 
     if (map.getLayer("transit-impacts-selection")) {
-      map.setPaintProperty("transit-impacts-selection", "line-opacity", frame.opacity);
-      map.setPaintProperty("transit-impacts-selection", "line-width", [
+      setTransitPaintProperty(map, "transit-impacts-selection", "line-opacity", frame.opacity);
+      setTransitPaintProperty(map, "transit-impacts-selection", "line-width", [
         "interpolate",
         ["linear"],
         ["zoom"],
@@ -396,9 +405,9 @@ export function GeographicNetworkMap({
     }
 
     if (map.getLayer("transit-station-impacts-selection")) {
-      map.setPaintProperty("transit-station-impacts-selection", "circle-stroke-opacity", frame.opacity);
-      map.setPaintProperty("transit-station-impacts-selection", "circle-stroke-width", 4 * frame.widthMultiplier);
-      map.setPaintProperty("transit-station-impacts-selection", "circle-radius", [
+      setTransitPaintProperty(map, "transit-station-impacts-selection", "circle-stroke-opacity", frame.opacity);
+      setTransitPaintProperty(map, "transit-station-impacts-selection", "circle-stroke-width", 4 * frame.widthMultiplier);
+      setTransitPaintProperty(map, "transit-station-impacts-selection", "circle-radius", [
         "interpolate",
         ["linear"],
         ["zoom"],
@@ -630,7 +639,7 @@ export function GeographicNetworkMap({
     stopAttentionLoop,
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     loadStatusRef.current = loadStatus;
     overlayDataRef.current = overlayData;
     selectedStationIdRef.current = selectedStationId;
@@ -956,9 +965,10 @@ export function GeographicNetworkMap({
     });
   }, [activateImpactTarget]);
 
-  // Main Map lifecycle: owns creation, catalog acquisition, listeners, and cleanup.
-  // Must NOT depend on theme, selections, data, or filters.
+  // Main Map lifecycle: owns creation, initial catalog acquisition, listeners, and cleanup.
+  // Network switches update transit layers without recreating the base map or camera.
   useEffect(() => {
+    const network = networkRef.current;
     let cancelled = false;
     let timeoutId: number | null = null;
     const currentGeneration = ++initGenerationRef.current;
@@ -988,19 +998,10 @@ export function GeographicNetworkMap({
           return;
         }
 
-        // Fetch geographic catalog for current network if needed
-        let loadedCatalog = catalogRef.current;
-        if (!loadedCatalog || loadedCatalog.network !== network) {
-          const catalogUrl = getCatalogUrl(network);
-          const res = await fetch(catalogUrl);
-          if (!res.ok) {
-            throw new Error(`Failed to load geographic catalog: HTTP ${res.status}`);
-          }
-          loadedCatalog = await res.json();
-          if (cancelled || currentGeneration !== initGenerationRef.current) return;
-          catalogRef.current = loadedCatalog;
-          setCatalog(loadedCatalog);
-        }
+        const loadedCatalog = await loadGeographicCatalog(network);
+        if (cancelled || currentGeneration !== initGenerationRef.current) return;
+        catalogRef.current = loadedCatalog;
+        setCatalog(loadedCatalog);
 
         // Restore saved camera or fallback to network bounds
         const mobile = window.matchMedia("(max-width: 767px)").matches;
@@ -1032,15 +1033,15 @@ export function GeographicNetworkMap({
           maxPitch: 0,
           dragRotate: false,
           touchPitch: false,
-          attributionControl: {
-            compact: false,
-            customAttribution: getGeographicAttribution(network),
-          },
+          attributionControl: false,
         });
 
         // Disable pitch and rotation interactions
         map.touchZoomRotate.disableRotation();
         mapRef.current = map;
+        attributionRef.current = new AttributionControl({ compact: false, customAttribution: getGeographicAttribution(network) });
+        map.addControl(attributionRef.current, "bottom-right");
+        if (networkFadeRef) networkFadeRef.current = createGeographicMapFade(map);
 
         map.on("load", () => {
           if (cancelled || currentGeneration !== initGenerationRef.current) return;
@@ -1061,11 +1062,12 @@ export function GeographicNetworkMap({
             plannedClosures: resolvedPlannedClosuresRef.current,
           });
 
+          appliedCatalogRef.current = loadedCatalog;
           attachMapListeners(map);
 
           setLoadStatus("ready");
           recordGeographicMapLifecycle("ready", "map loaded");
-          callbacksRef.current.onReady?.();
+          if (networkRef.current === network) callbacksRef.current.onReady?.();
         });
 
         map.on("error", (e) => {
@@ -1109,9 +1111,80 @@ export function GeographicNetworkMap({
         mapRef.current.remove();
         mapRef.current = null;
         appliedStyleUrlRef.current = null;
+        appliedCatalogRef.current = null;
+        attributionRef.current = null;
+        if (networkFadeRef) networkFadeRef.current = null;
       }
     };
-  }, [network, retryCount, attachMapListeners]);
+  }, [retryCount, attachMapListeners, networkFadeRef]);
+
+  // Catalog fetching is independent of the WebGL instance's lifetime.
+  useEffect(() => {
+    if (catalog) return;
+    let cancelled = false;
+    void loadGeographicCatalog(network).then(next => {
+      if (!cancelled) setCatalog(next);
+    }, () => {
+      if (!cancelled && loadStatusRef.current !== "ready") {
+        setLoadStatus("error");
+        setErrorMessage("Unable to load map routes. Please retry or use Diagram.");
+      }
+    });
+    return () => { cancelled = true; };
+  }, [catalog, network]);
+
+  // Install only destination transit layers; base style, canvas, and camera survive.
+  useLayoutEffect(() => {
+    const map = mapRef.current;
+    if (!map || loadStatus !== "ready" || isStyleLoadingRef.current || !catalog || appliedCatalogRef.current === catalog) return;
+    stopAttentionLoop();
+    selectionAttentionRef.current = new GeographicSelectionAttention();
+    cameraAdjustedByUserRef.current = false;
+    setOverlapChooser(null);
+    setHoveredOverlapImpact(null);
+    setHoveredMapTarget(null);
+    for (const layer of map.getStyle().layers) {
+      if (layer.id.startsWith("transit-")) map.removeLayer(layer.id);
+    }
+    catalogRef.current = catalog;
+    installTransitLayers(map, catalog, network, isDarkRef.current, highContrastRef.current, {
+      overlayData: overlayDataRef.current, activeFilteredLine: activeFilteredLineRef.current,
+      selectedStationId: selectedStationIdRef.current ?? null,
+      selection: selectionRef.current ?? null, plannedClosures: resolvedPlannedClosuresRef.current,
+    });
+    appliedCatalogRef.current = catalog;
+    if (attributionRef.current) map.removeControl(attributionRef.current);
+    attributionRef.current = new AttributionControl({ compact: false, customAttribution: getGeographicAttribution(network) });
+    map.addControl(attributionRef.current, "bottom-right");
+
+    // Source workers must finish before the new overlays begin their fade.
+    let cancelled = false;
+    let awaitingRender = false;
+    const sourceIds = map.getStyle().layers.filter(layer => layer.id.startsWith("transit-") && "source" in layer)
+      .map(layer => (layer as { source: string }).source);
+    const rendered = () => {
+      if (cancelled || mapRef.current !== map || networkRef.current !== network) return;
+      if (sourceIds.every(id => map.isSourceLoaded(id))) callbacksRef.current.onReady?.();
+      else {
+        awaitingRender = false;
+        map.on("sourcedata", ready);
+      }
+    };
+    const ready = () => {
+      if (awaitingRender || !sourceIds.every(id => map.isSourceLoaded(id))) return;
+      awaitingRender = true;
+      map.off("sourcedata", ready);
+      map.once("render", rendered);
+      map.triggerRepaint();
+    };
+    map.on("sourcedata", ready);
+    ready();
+    return () => {
+      cancelled = true;
+      map.off("sourcedata", ready);
+      map.off("render", rendered);
+    };
+  }, [catalog, network, loadStatus, styleRevision, stopAttentionLoop]);
 
   // Update dynamic overlay sources in-place whenever live data or commute changes
   useEffect(() => {
@@ -1190,7 +1263,7 @@ export function GeographicNetworkMap({
         installTransitLayers(
           map,
           catalogRef.current,
-          network,
+          catalogRef.current.network,
           isDark,
           highContrastRef.current,
         );
@@ -1201,6 +1274,7 @@ export function GeographicNetworkMap({
           selection: selectionRef.current ?? null,
           plannedClosures: resolvedPlannedClosuresRef.current,
         });
+        appliedCatalogRef.current = catalogRef.current;
         setStyleRevision((current) => current + 1);
       }
     });
@@ -1215,17 +1289,17 @@ export function GeographicNetworkMap({
     if (!map || loadStatus !== "ready") return;
 
     if (map.getLayer("transit-routes-casing")) {
-      map.setPaintProperty("transit-routes-casing", "line-opacity", highContrast ? 1.0 : 0.85);
+      setTransitPaintProperty(map, "transit-routes-casing", "line-opacity", highContrast ? 1.0 : 0.85);
     }
     if (map.getLayer("transit-impact-arrows-casing")) {
-      map.setPaintProperty(
+      setTransitPaintProperty(map,
         "transit-impact-arrows-casing",
         "icon-color",
         highContrast ? "#0f172a" : ["coalesce", ["get", "casingColor"], "#0f172a"],
       );
     }
     if (map.getLayer("transit-impact-arrows")) {
-      map.setPaintProperty(
+      setTransitPaintProperty(map,
         "transit-impact-arrows",
         "icon-color",
         highContrast ? "#ffffff" : ["coalesce", ["get", "coreColor"], "#ffffff"],

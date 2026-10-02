@@ -1026,9 +1026,8 @@ describe("stylesheet-graph helper", () => {
     const files = getAppStylesheetGraphFiles();
     assert.ok(files.some(f => f.endsWith("motion.css")), "motion.css must be in graph files");
     const content = readStylesheet(new URL("../src/styles/utilities/motion.css", import.meta.url));
-    assert.match(content, /html\[data-network-transition-direction\]/);
-    assert.match(content, /@keyframes network-map-slide-in-from-right/);
-    assert.match(content, /@keyframes network-map-slide-out-to-left/);
+    assert.match(content, /\.network-diagram-layer\[data-preparing\]/);
+    assert.match(content, /data-map-surface-transition="leaving"/);
     assert.match(content, /\.live-signal-icon/);
     assert.match(content, /@keyframes live-signal-wave-inner/);
     assert.match(content, /\.desktop-view-content-wrapper/);
@@ -1293,8 +1292,8 @@ describe("stylesheet-graph helper", () => {
     const analysis = analyzeStylesheetGraph();
     assert.equal(analysis.files.length, 53);
     assert.equal(analysis.vendorImports.length, 1);
-    assert.equal(analysis.ast.rules, 5635);
-    assert.equal(analysis.ast.importants, 518);
+    assert.equal(analysis.ast.rules, 5611);
+    assert.equal(analysis.ast.importants, 519);
     assert.equal(analysis.ast.classSubstrings, 18);
   });
 });

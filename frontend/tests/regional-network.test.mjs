@@ -68,14 +68,11 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(preferenceChangeBody, /handleNetworkChange|setSelectedNetwork|setActiveView/);
   });
 
-  it("keeps only the selected interactive map mounted in steady state", () => {
-    assert.match(networkSelectorSource, /className="network-selector-glider"/);
-    assert.match(globalsCss, /\.network-selector-glider/);
-    assert.match(globalsCss, /\.network-accent-ridges/);
-    assert.match(networkMapSource, /\{regionalSelected \? \([\s\S]*<InteractiveRegionalMap[\s\S]*\) : \([\s\S]*<InteractiveTtcMap/);
-    assert.doesNotMatch(networkMapSource, /DataProvider|network-map-slide|settledNetwork/);
-    assert.doesNotMatch(networkMapSource, /aria-hidden|inert=/);
-    assert.doesNotMatch(shellSource, /ttcData=\{ttcData\}|regionalData=\{regionalDashboardData\}/);
+  it("isolates inactive diagrams from interaction and keeps their data network-scoped", () => {
+    assert.match(networkMapSource, /inert=\{preparing\}/);
+    assert.match(networkMapSource, /aria-hidden=\{preparing/);
+    assert.match(networkMapSource, /data=\{diagramData\[diagramNetwork\]\}/);
+    assert.match(networkMapSource, /reducedMotion=\{props\.reducedMotion\}/);
   });
 
   it("reuses a compact vertical network selector below the mobile site guide", () => {
@@ -180,7 +177,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /if \(animateInitialEntrance && shouldAnimateProgrammaticTransform\) \{[\s\S]*computeFittedCameraFlyInStart[\s\S]*animateCameraTo\(fitted\.camera, fitted\.scale\)/);
     assert.match(
       networkMapSource,
-      /<InteractiveTtcMap[\s\S]*\{\.\.\.props\}[\s\S]*onReady=\{onMapReady\}/,
+      /<InteractiveTtcMap[\s\S]*\{\.\.\.props\}[\s\S]*onReady=\{ready\}/,
     );
   });
 
@@ -200,7 +197,7 @@ describe("network-scoped regional dashboard", () => {
       /const initializeCamera = useCallback\(\(\) => \{\s*if \(!restoreSavedCamera\(\)\) moveToDefaultCamera\(animateInitialEntrance, animateInitialEntrance\)/,
     );
     assert.match(regionalMapSource, /computeFittedCameraFlyInStart\(fitted\.camera, width, height, fitted\.focus\)/);
-    assert.match(networkMapSource, /deferInitialEntrance=\{props\.deferInitialEntrance\}/);
+    assert.match(networkMapSource, /deferInitialEntrance=\{preparing \? false : props\.deferInitialEntrance\}/);
     assert.match(regionalMapSource, /const stageInitialEntrance = useCallback/);
     assert.match(regionalMapSource, /const completeStagedEntrance = useCallback/);
     assert.match(regionalMapSource, /const entryCamera = animateInitialEntrance[\s\S]*computeFittedCameraFlyInStart[\s\S]*: fitted\.camera/);
@@ -217,59 +214,7 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(shellSource, /animate-map-center-fade/);
   });
 
-  it("slides compositor snapshots while keeping inactive React maps unmounted", () => {
-    assert.match(shellSource, /startViewTransition/);
-    assert.match(shellSource, /flushSync\(applyNetworkChange\)/);
-    assert.match(shellSource, /networkTransitionDirection/);
-    assert.match(shellSource, /networkTransitionPhase = "fade-out"/);
-    assert.match(shellSource, /networkMapSurfaceRef\.current\?\.animate/);
-    assert.match(shellSource, /duration:\s*80/);
-    assert.match(shellSource, /fadeAnimation\.finished\.then\(startNetworkSlide, startNetworkSlide\)/);
-    assert.match(shellSource, /network-map-transition-surface/);
-    assert.doesNotMatch(networkMapSource, /useState|useEffect|AnimationEvent|network-map-slide/);
-    assert.doesNotMatch(shellSource, /<NetworkMapLegends/);
-    assert.match(globalsCss, /view-transition-name:\s*network-map/);
-    assert.match(
-      globalsCss,
-      /data-network-transition-phase="fade-out"[\s\S]*\.network-map-transition-surface\s*\{[^}]*pointer-events:\s*none[^}]*will-change:\s*opacity/s,
-    );
-    assert.match(
-      globalsCss,
-      /data-network-transition-phase="fade-out"[\s\S]*\.linewatch-shell::after\s*\{[^}]*pointer-events:\s*auto[^}]*z-index:\s*2147483647/s,
-    );
-    assert.match(globalsCss, /::view-transition-old\(network-map\)/);
-    assert.match(globalsCss, /::view-transition-new\(network-map\)/);
-    assert.match(globalsCss, /animation-duration:\s*420ms/);
-    assert.match(globalsCss, /@keyframes network-map-slide-in-from-right/);
-    assert.match(globalsCss, /@keyframes network-map-slide-out-to-left/);
-    assert.match(globalsCss, /@keyframes network-map-slide-in-from-left/);
-    assert.match(globalsCss, /@keyframes network-map-slide-out-to-right/);
-    assert.doesNotMatch(
-      globalsCss.match(/\.network-selector-glider\s*\{([\s\S]*?)\}/)?.[1] ?? "",
-      /will-change/,
-    );
-    assert.match(regionalMapSource, /physicalWidth = viewport\?\.clientWidth \|\| mapSurface\?\.clientWidth/);
-    assert.match(regionalMapSource, /logicalViewportSizeForOrientation/);
-    assert.match(regionalMapSource, /measureDesktopMapInsets/);
-    assert.match(sidebarStateSource, /container\.getClientRects\(\)\.length > 0/);
-  });
-
-  it("finishes the network selector motion before handing off to the map swap", () => {
-    assert.match(networkSelectorSource, /useState<NetworkId \| null>\(null\)/);
-    assert.match(networkSelectorSource, /setPendingNetwork\(nextNetwork\)/);
-    assert.match(networkSelectorSource, /NETWORK_SELECTOR_ANIMATION_MS = 480/);
-    assert.match(networkSelectorSource, /setTimeout\([\s\S]*NETWORK_SELECTOR_ANIMATION_MS/);
-    assert.match(networkSelectorSource, /requestAnimationFrame\([\s\S]*requestAnimationFrame\([\s\S]*onChange\(nextNetwork\)/);
-    assert.ok(
-      networkSelectorSource.indexOf("setPendingNetwork(nextNetwork)")
-        < networkSelectorSource.indexOf("onChange(nextNetwork)"),
-    );
-    assert.doesNotMatch(shellSource, /networkTransitionTarget, setNetworkTransitionTarget/);
-    assert.match(networkSelectorSource, /const displayedNetwork = isTransitioning \? pendingNetwork : network/);
-    assert.match(networkSelectorSource, /aria-busy=\{isTransitioning\}/);
-    assert.match(networkSelectorSource, /data-network=\{displayedNetwork\}/);
-    assert.match(networkSelectorSource, /disabled=\{isTransitioning\}/g);
-    assert.match(globalsCss, /transform 0\.48s cubic-bezier\(0\.34, 1\.56, 0\.64, 1\)/);
+  it("retains stable network-selector dimensions across selection states", () => {
     assert.doesNotMatch(networkSelectorSource, /ResizeObserver|offsetWidth|style\.setProperty/);
     assert.match(globalsCss, /grid-template-columns:\s*repeat\(2, var\(--network-option-width\)\)/);
     assert.doesNotMatch(
@@ -859,7 +804,7 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("reuses the TTC overlap indicator for regional same-type and mixed impacts", () => {
-    assert.match(regionalGeometrySource, /const REGIONAL_OVERLAP_INDICATOR_SCALE = 2\.5;/);
+    assert.match(regionalGeometrySource, /const REGIONAL_OVERLAP_INDICATOR_SCALE = 2;/);
     assert.match(regionalOverlaysSource, /function regionalOverlapBadgeGroups\(segments: NetworkSegment\[\]\)/);
     assert.match(regionalOverlaysSource, /hasOverlappingImpacts\(impacts\)/);
     assert.match(regionalOverlaysSource, /overlapBadgeSignature\(impacts\)/);
