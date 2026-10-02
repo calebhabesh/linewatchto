@@ -330,7 +330,8 @@
   justify-content: center;
   outline: none;
   padding: 0 8px;
-  min-width: 80px;
+  width: 94px;
+  min-width: 94px;
   background: transparent;
   border: none;
   color: inherit;
@@ -363,6 +364,79 @@
 
 .map-control-rail .map-view-toggle-btn:hover .map-view-toggle-icon {
   transform: scale(1.08);
+}
+
+.map-view-toggle-btn {
+  --map-view-ocean: #2189dc;
+  --map-view-ocean-edge: #1263a7;
+  --map-view-land: #79b957;
+  --map-view-coast: #806044;
+  --map-view-paper: #f2f5ed;
+  --map-view-fold: #64748b;
+  --map-view-route-yellow: #d99a09;
+  --map-view-route-green: #21834b;
+  --map-view-route-purple: #8951c3;
+}
+
+.dark .map-view-toggle-btn {
+  --map-view-ocean: #329de8;
+  --map-view-ocean-edge: #8bcfff;
+  --map-view-land: #93cb6b;
+  --map-view-coast: #876447;
+  --map-view-fold: #a4b6c8;
+}
+
+.map-view-earth-ocean {
+  fill: var(--map-view-ocean);
+  stroke: var(--map-view-ocean-edge);
+  stroke-width: 1.1;
+}
+
+.map-view-earth-land {
+  fill: var(--map-view-land);
+  stroke: var(--map-view-coast);
+  stroke-width: 0.65;
+}
+
+.map-view-earth-shade {
+  fill: #123b65;
+  opacity: 0.22;
+}
+
+.map-view-earth-highlight {
+  fill: none;
+  stroke: #ffffff;
+  stroke-linecap: round;
+  stroke-width: 1.1;
+  opacity: 0.6;
+}
+
+.map-view-toggle-icon--system > path:nth-child(-n + 3) {
+  stroke: var(--map-view-fold);
+  stroke-width: 1.3;
+}
+
+.map-view-toggle-icon--system > path:first-child {
+  fill: var(--map-view-paper);
+}
+
+.map-view-system-route {
+  fill: none;
+  stroke-width: 2;
+}
+
+.map-view-system-route--yellow { stroke: var(--map-view-route-yellow); }
+.map-view-system-route--green { stroke: var(--map-view-route-green); }
+.map-view-system-route--purple { stroke: var(--map-view-route-purple); }
+
+.map-view-system-station {
+  fill: var(--map-view-paper);
+  stroke: #334155;
+}
+
+.high-contrast .map-view-toggle-btn {
+  --map-view-ocean-edge: #ffffff;
+  --map-view-fold: #ffffff;
 }
 
 /* ============================================================
