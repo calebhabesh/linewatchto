@@ -156,7 +156,7 @@ for (const network of ["ttc", "regional"] as const) {
     await expect(shell).not.toHaveClass(/mobile-map-rotated/);
     await expect(page.getByRole("button", { name: "Rotate Map", exact: true })).toBeHidden();
     await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toBeVisible();
-    await expect(page.locator("[data-map-viewport-orientation]")).toHaveAttribute("data-map-viewport-orientation", "standard");
+    await expect(page.locator(".network-diagram-layer:not([data-preparing]) [data-map-viewport-orientation]")).toHaveAttribute("data-map-viewport-orientation", "standard");
     await page.setViewportSize({ width: 393, height: 556 });
     await page.getByRole("button", { name: "Rotate Map", exact: true }).click();
     await page.getByRole("button", { name: "Exit rotated map", exact: true }).click();
