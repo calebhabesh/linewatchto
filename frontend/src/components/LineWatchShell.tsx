@@ -310,8 +310,14 @@ export function LineWatchShell({
   const [mapViewPreference, setMapViewPreference] = useState<MapViewPreference>(initialVisualPreferences.mapView ?? "diagram");
   const [visualPreferencesReady, setVisualPreferencesReady] = useState(false);
   const mobilePerformanceMode = useMobilePerformanceMode();
-  useEffect(() => cancelNetworkTransition,
-    [mapViewPreference, isDark, highContrast, reducedMotion, cancelNetworkTransition]);
+  const isFirstMountRef = useRef(true);
+  useEffect(() => {
+    if (isFirstMountRef.current) {
+      isFirstMountRef.current = false;
+      return;
+    }
+    cancelNetworkTransition();
+  }, [mapViewPreference, isDark, highContrast, reducedMotion, cancelNetworkTransition]);
   const lastSavedViewRef = useRef<"my-stations" | "commutes">("my-stations");
 
   const [initialMapReady, setInitialMapReady] = useState(false);
