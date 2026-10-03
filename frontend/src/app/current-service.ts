@@ -1,4 +1,5 @@
 import { serviceEffectLabel } from "./alert-categories.ts";
+import { suppliedAlertCause } from "./alert-cause.ts";
 import type { ActiveAlert, DelayAlert, IncidentRiderDetails, ImpactKind, LineStatus, PlannedClosure, ReducedSpeedZone } from "./linewatch-data.ts";
 import { countReducedSpeedZones } from "./reduced-speed-zone-count.ts";
 import { compareSurfaceNotices } from "./surface-notice-groups.ts";
@@ -83,7 +84,7 @@ function incidentRiderDetails(incident: IncidentRiderDetails & { cause?: string 
 
 /** Optional, source-reported facts only; generic classifier fallbacks add no rider information. */
 export function regionalIncidentFacts(row: CurrentServiceRow) {
-  const cause = row.cause?.trim();
+  const cause = suppliedAlertCause(row.cause);
   const delay = row.maximumDelayMinutes;
   return {
     cause: cause && !/^(unknown|other(?: cause)?|metrolinx service update|modified trip|no service|delay(?:s)?)$/i.test(cause) ? cause : undefined,

@@ -113,7 +113,8 @@ public class RegionalLineSubscriptionPushPlanner {
     }
 
     private String cancellationLocation(RegionalTripChangeResponses.TripChange change) {
-        if (change.affectedStops().isEmpty()) return change.lineName() + " corridor";
+        if (change.affectedStops().isEmpty()) return RegionalNetworkCatalog.route(change.lineId())
+            .map(RegionalNetworkCatalog.Route::displayName).orElse(change.lineName());
         String first = change.affectedStops().getFirst().stationName();
         String last = change.affectedStops().getLast().stationName();
         return first.equals(last) ? first : first + " → " + last;
@@ -183,7 +184,7 @@ public class RegionalLineSubscriptionPushPlanner {
 
     private String location(RegionalNormalizedAlert alert, RegionalNetworkCatalog.Route route) {
         if (alert.stationIds() == null || alert.stationIds().isEmpty()) {
-            return route == null ? "Full corridor" : route.name() + " corridor";
+            return route == null ? "Regional line" : route.displayName();
         }
         List<String> orderedIds = route == null
             ? alert.stationIds()
@@ -192,7 +193,7 @@ public class RegionalLineSubscriptionPushPlanner {
             .map(id -> RegionalNetworkCatalog.station(id).map(station -> station.name()).orElse(id))
             .toList();
         if (names.isEmpty()) {
-            return "Matched corridor segment";
+            return "Matched route segment";
         }
         return names.size() == 1 ? names.getFirst() : names.getFirst() + " ↔ " + names.getLast();
     }

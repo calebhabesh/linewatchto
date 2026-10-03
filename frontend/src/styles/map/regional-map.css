@@ -407,6 +407,42 @@
   filter: drop-shadow(0 0 12px rgb(var(--station-selection-accent-rgb) / 95%));
 }
 
+.regional-station-impact-beacon-group .regional-station-impact-beacon-glow,
+.regional-station-impact-beacon-group .regional-station-impact-beacon-ping {
+  fill: var(--regional-impact-color);
+  filter: drop-shadow(0 0 6px var(--regional-impact-color));
+}
+
+.regional-station-impact-beacon-group .regional-station-impact-beacon-ping {
+  stroke: var(--regional-impact-color);
+}
+
+.regional-station-impact-fill {
+  fill: var(--regional-impact-color);
+  fill-opacity: 1;
+  animation: regional-station-impact-fill-pulse 3.2s ease-in-out infinite;
+}
+
+@keyframes regional-station-impact-fill-pulse {
+  0%, 100% {
+    fill-opacity: 0.65;
+  }
+  50% {
+    fill-opacity: 1;
+  }
+}
+
+[data-map-station-impact-motion-paused="true"] .regional-station-impact-fill,
+[data-map-overlay-motion-paused="true"] .regional-station-impact-fill {
+  animation: none;
+}
+
+[data-regional-map-camera-moving="true"] .regional-station-impact-fill,
+[data-map-gesture-active="true"] .regional-station-impact-fill,
+[data-map-zoom-active="true"] .regional-station-impact-fill {
+  animation-play-state: paused;
+}
+
 .regional-station-impact-direction-glyph .station-impact-direction-badge {
   fill: #ffffff;
   stroke: rgba(127, 29, 29, 0.9);
@@ -448,6 +484,7 @@
 .motion-paused .regional-station-top-selection,
 .motion-paused .regional-station-hover-indicator,
 .motion-paused .regional-station-impact-ring,
+.motion-paused .regional-station-impact-fill,
 .motion-paused .regional-station-impact-beacon-group,
 .motion-paused .regional-station-impact-beacon-group .station-impact-dot-red-glow,
 .motion-paused .regional-station-impact-beacon-group .station-impact-dot-red-ping,
@@ -470,6 +507,7 @@
   .regional-station-selected-indicator,
   .regional-station-top-selection,
   .regional-station-impact-beacon-group,
+  .regional-station-impact-fill,
   .regional-station-impact-beacon-group .station-impact-dot-red-glow,
   .regional-station-impact-beacon-group .station-impact-dot-red-ping,
   .regional-impact-hover-foreground,

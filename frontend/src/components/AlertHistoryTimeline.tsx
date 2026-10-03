@@ -665,7 +665,7 @@ const HistoryIncident = memo(function HistoryIncident({
                     <dl>
                       <dt>{affectedStationLabel(event.location)}</dt><dd>{event.location || "Not supplied"}</dd>
                       <dt>Direction</dt><dd>{event.displayDirection || "Not supplied"}</dd>
-                      <dt>Cause</dt><dd>{historyCause(event.cause) ? formatCause(event.cause!) : "Not supplied"}</dd>
+                      {historyCause(event.cause) ? <><dt>Cause</dt><dd>{formatCause(event.cause)}</dd></> : null}
                       <dt>Source</dt><dd>{normalizeDashboardSourceLabel(event.source)}</dd>
                     </dl>
                   </details>

@@ -10,6 +10,7 @@ import {
   REGIONAL_DYNAMIC_HOVER_LAYER_ID,
   REGIONAL_DYNAMIC_EFFECTS_LAYER_ID,
   REGIONAL_TOP_HOVER_LAYER_ID,
+  REGIONAL_TOP_STATION_IMPACT_LAYER_ID,
   regionalImpactPriority,
   regionalOverlayRuns,
   regionalOverlapChooserLayout,
@@ -352,6 +353,7 @@ describe("regional map overlays lifecycle and utilities", () => {
         const hoverLayer = createMockElement("g", REGIONAL_DYNAMIC_HOVER_LAYER_ID);
         const effectsLayer = createMockElement("g", REGIONAL_DYNAMIC_EFFECTS_LAYER_ID);
         const topHoverLayer = createMockElement("g", REGIONAL_TOP_HOVER_LAYER_ID);
+        const topStationImpactLayer = createMockElement("g", REGIONAL_TOP_STATION_IMPACT_LAYER_ID);
 
         svg.append(
           segmentLayer,
@@ -362,7 +364,7 @@ describe("regional map overlays lifecycle and utilities", () => {
           hoverLayer,
           effectsLayer,
         );
-        viewport.append(svg, topHoverLayer);
+        viewport.append(svg, topHoverLayer, topStationImpactLayer);
 
         let hoveredStation = null;
         let hoveredImpact = null;

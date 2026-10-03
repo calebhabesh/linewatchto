@@ -6,7 +6,8 @@ import { ChevronDown, MapPin } from "lucide-react";
 import { PanelHeader } from "./PanelHeader";
 import { AccessibilityOutageResponse } from "../app/accessibility-outage-data";
 import { formatImpactTimestamp } from "../app/impact-time";
-import type { NetworkId } from "../app/regional-data";
+import { suppliedAlertCause } from "../app/alert-cause";
+import { regionalLineLabel, type NetworkId } from "../app/regional-data";
 
 interface Props {
   accessibilityOutageResult: AccessibilityOutageResponse | null;
@@ -306,7 +307,7 @@ export function AccessibilityOutagesPanel({
                     style={{ borderLeftColor: group.color }}
                   >
                     {lineBadge(group)}
-                    <span>{group.lineName}{regional ? " corridor" : " Line"}</span>
+                    <span>{regional ? regionalLineLabel(group.lineId) : `${group.lineName} Line`}</span>
                   </div>
 
                   {/* Stations Accordeon */}
@@ -359,12 +360,12 @@ export function AccessibilityOutagesPanel({
                                       </p>
                                     )}
                                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                                      {outage.cause && (
+                                      {suppliedAlertCause(outage.cause) && (
                                         <div>
                                           <span className="font-bold text-slate-400 dark:text-slate-500 uppercase mr-1">
                                             Cause:
                                           </span>
-                                          {outage.cause}
+                                          {suppliedAlertCause(outage.cause)}
                                         </div>
                                       )}
                                       <div>

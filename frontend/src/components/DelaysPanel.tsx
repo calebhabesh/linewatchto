@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { serviceEffectLabel } from "../app/alert-categories";
+import { suppliedAlertCause } from "../app/alert-cause";
 import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/commute-data";
@@ -116,6 +117,7 @@ export function DelaysPanel({
           </div>
         ) : (
           visibleDelays.map((delay) => {
+            const cause = suppliedAlertCause(delay.cause);
             const isActive = selection?.kind === "delay" && selection.id === delay.id;
             const overlappingImpacts = getOverlappingImpactRefs(
               { kind: "delay", id: delay.id, segmentIds: delay.affectedSegmentIds ?? [] },
@@ -134,7 +136,7 @@ export function DelaysPanel({
                   location={delay.location}
                   direction={delay.displayDirection}
                   facts={[
-                    { column: 1, label: "Cause", value: delay.cause || "Service delay" },
+                    ...(cause ? [{ column: 1 as const, label: "Cause", value: cause }] : []),
                     { column: 2, label: "Started", value: <CompactImpactTimeValue timestamp={delay.startedAt} /> },
                     { column: 3, label: "Updated", value: <CompactImpactTimeValue timestamp={delay.updatedAt} /> },
                   ]}

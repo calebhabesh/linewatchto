@@ -27,6 +27,14 @@ export const REGIONAL_ROUTE_DEFINITIONS = [
 
 export type RegionalRouteCode = typeof REGIONAL_ROUTE_DEFINITIONS[number]["number"];
 
+export function regionalLineLabel(identity: string): string {
+  const key = identity.trim().toLowerCase();
+  const route = REGIONAL_ROUTE_DEFINITIONS.find(route =>
+    [route.id, route.number, route.name].some(value => value.toLowerCase() === key));
+  if (!route) return identity;
+  return route.number === "UP" ? route.name : `${route.name} Line`;
+}
+
 export const REGIONAL_ROUTE_CARDINAL_DIRECTIONS: Record<RegionalRouteCode, string> = {
   BR: "Northbound / Southbound",
   KI: "Eastbound / Westbound",
@@ -547,7 +555,7 @@ const regionalLineStatuses: LineStatus[] = REGIONAL_ROUTE_DEFINITIONS.map((route
   id: route.id,
   number: route.number,
   name: route.name,
-  route: `${route.name} corridor`,
+  route: regionalLineLabel(route.id),
   color: route.color,
   status: "ready",
   statusLabel: "Demo data",
@@ -786,7 +794,7 @@ export function regionalDashboardDataForScenario(
     lineId: "regional-lw",
     lineNumber: "LW",
     title: "Synthetic delay across Lakeshore West",
-    location: "Entire Lakeshore West corridor",
+    location: "Entire Lakeshore West Line",
     description: "Synthetic regional scenario data for full branched-corridor overlay verification.",
     affectedSegmentIds: lwCorridorSegmentIds,
     source: "Synthetic regional fixture",
@@ -796,7 +804,7 @@ export function regionalDashboardDataForScenario(
     lineId: "regional-lw",
     lineNumber: "LW",
     title: "Synthetic overlapping delay across Lakeshore West",
-    location: "Entire Lakeshore West corridor",
+    location: "Entire Lakeshore West Line",
     description: "Synthetic regional scenario data for same-type overlap badge verification.",
     affectedSegmentIds: lwCorridorSegmentIds,
     source: "Synthetic regional fixture",

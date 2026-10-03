@@ -9,6 +9,7 @@ import Image from "next/image";
 import { StationSubmenuNavButtons, type StationSubmenuNavItem } from "./StationSubmenuNavButtons";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatImpactTimestamp } from "../app/impact-time";
+import { suppliedAlertCause } from "../app/alert-cause";
 import {
   ArrivalSourceBadge,
   ArrivalTerminatingBadge,
@@ -1438,10 +1439,10 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                               <dt>UPDATED</dt>
                               <dd>{formatImpactTimestamp(outage.updatedAt)}</dd>
                             </div>
-                            {outage.cause && (
+                            {suppliedAlertCause(outage.cause) && (
                               <div className="col-span-2">
                                 <dt>CAUSE</dt>
-                                <dd>{outage.cause}</dd>
+                                <dd>{suppliedAlertCause(outage.cause)}</dd>
                               </div>
                             )}
                           </dl>

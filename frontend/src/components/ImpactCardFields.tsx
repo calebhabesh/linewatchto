@@ -2,11 +2,14 @@ import type { ReactNode } from "react";
 import { ArrowLeft, MapPinned } from "lucide-react";
 import type { AccountCommutePathPreview } from "../app/commute-data";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
+import { suppliedAlertCause } from "../app/alert-cause";
+import { formatImpactLocation } from "../app/impact-location";
 import { ImpactTimestamp } from "./ImpactTimestamp";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 
 export function formatCause(cause: string | null | undefined): string {
+  cause = suppliedAlertCause(cause);
   if (!cause) return "";
   const commonWords = new Set(["CLOSURE", "DELAY", "SUSPENSION", "EMERGENCY", "ALARM", "SIGNAL", "PROBLEM", "TRACK", "WORK", "PLANNED", "ROUTE", "SERVICE", "ADVISORY"]);
   const minorWords = new Set(["AND", "OR", "FOR", "THE", "BUT", "NOR", "YET", "SO", "A", "AN", "OF", "IN", "ON", "AT", "TO", "BY", "WITH", "FROM"]);
@@ -104,6 +107,7 @@ function LongArrowLeftRight() {
 }
 
 function splitLocation(location: string): { from: string; to: string; twoWay: boolean } | null {
+  location = formatImpactLocation(location);
   if (!location) return null;
   if (location.includes(" ↔ ")) {
     const [from, to] = location.split(" ↔ ", 2);
@@ -140,7 +144,7 @@ function isBidirectionalRouteDirection(direction?: string | null): boolean {
 
 export function formatCompactLocation(location: string): string {
   const bounds = splitLocation(location);
-  if (!bounds) return location || "Affected segment unavailable";
+  if (!bounds) return formatImpactLocation(location) || "Affected segment unavailable";
   return `${bounds.from} ${bounds.twoWay ? "↔" : "→"} ${bounds.to}`;
 }
 
@@ -149,7 +153,7 @@ export function CompactImpactLocation({ location }: { location: string }) {
   if (!bounds) {
     return (
       <span className="compact-impact-location">
-        <span className="compact-impact-location__station">{location || "Affected segment unavailable"}</span>
+        <span className="compact-impact-location__station">{formatImpactLocation(location) || "Affected segment unavailable"}</span>
       </span>
     );
   }
@@ -201,7 +205,7 @@ export function ImpactRouteHeader({
         </div>
       ) : (
         <div className="impact-route__bounds">
-          <span>{location || "Affected segment unavailable"}</span>
+          <span>{formatImpactLocation(location) || "Affected segment unavailable"}</span>
         </div>
       )}
       {direction && <div className="impact-route__direction">{direction}</div>}

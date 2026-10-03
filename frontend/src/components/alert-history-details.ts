@@ -1,4 +1,5 @@
 import type { AlertHistoryEvent, AlertHistoryIncident } from "../app/alert-history-data";
+import { suppliedAlertCause } from "../app/alert-cause.ts";
 
 function comparable(value: string | null | undefined) {
   return (value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
@@ -10,8 +11,7 @@ export function historyDescription(event: Pick<AlertHistoryEvent, "title" | "des
 }
 
 export function historyCause(cause: string | null | undefined) {
-  const key = comparable(cause).replace(/_/g, " ");
-  return !key || ["unknown", "unknown cause"].includes(key) ? null : cause!.trim();
+  return suppliedAlertCause(cause);
 }
 
 export function affectedStationLabel(location: string) {

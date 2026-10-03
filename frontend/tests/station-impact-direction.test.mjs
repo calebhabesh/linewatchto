@@ -41,23 +41,40 @@ describe("station impact map direction arrows", () => {
     }
   });
 
-  it("uses a source-honest bidirectional fallback for regional station impacts", () => {
-    const details = stationImpactDirectionForImpact(
-      { stationId: "bloor", kind: "delay", cardId: "regional-bloor-delay" },
-      {
-        activeAlerts: [],
-        delays: [{
-          id: "regional-bloor-delay",
-          lineId: "regional-up",
-          displayDirection: null,
-        }],
-        reducedSpeedZones: [],
-        plannedClosures: [],
-      },
-    );
+  it("omits regional station arrows when the source does not specify a direction", () => {
+    for (const displayDirection of [undefined, null, "", " ", "Unknown", "Direction not specified"]) {
+      const details = stationImpactDirectionForImpact(
+        { stationId: "bloor", kind: "delay", cardId: "regional-bloor-delay" },
+        {
+          activeAlerts: [],
+          delays: [{
+            id: "regional-bloor-delay",
+            lineId: "regional-up",
+            displayDirection,
+          }],
+          reducedSpeedZones: [],
+          plannedClosures: [],
+        },
+      );
 
-    assert.equal(details?.displayDirection, "Both directions");
-    assert.equal(details?.arrow.direction, "horizontal-bidirectional");
+      assert.equal(details, null, `Unexpected arrow for ${displayDirection}`);
+    }
+  });
+
+  it("keeps explicit regional directions from the linked source card", () => {
+    for (const [displayDirection, expected] of [["Westbound", "left"], ["Both directions", "horizontal-bidirectional"]]) {
+      const details = stationImpactDirectionForImpact(
+        { stationId: "bloor", kind: "delay", cardId: "regional-bloor-delay" },
+        {
+          activeAlerts: [],
+          delays: [{ id: "regional-bloor-delay", lineId: "regional-up", displayDirection }],
+          reducedSpeedZones: [],
+          plannedClosures: [],
+        },
+      );
+      assert.equal(details?.displayDirection, displayDirection);
+      assert.equal(details?.arrow.direction, expected);
+    }
   });
 
   it("uses the linked alert card direction for station-node impacts", () => {
