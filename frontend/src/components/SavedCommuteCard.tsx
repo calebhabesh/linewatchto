@@ -1,5 +1,6 @@
 "use client";
 import { IncidentStationSpan } from "./IncidentStationSpan";
+import { regionalLineLabel } from "../app/regional-data";
 
 import type { CSSProperties, ReactNode } from "react";
 import {
@@ -306,7 +307,7 @@ export function summarizeMatchedImpacts(impacts: AccountMatchedImpact[]) {
 
 export function impactLineLabel(impact: AccountMatchedImpact) {
   if (!impact.lineNumber) return "Station";
-  return impact.lineId?.startsWith("regional-") ? `${impact.lineNumber} corridor` : `Line ${impact.lineNumber}`;
+  return impact.lineId?.startsWith("regional-") ? regionalLineLabel(impact.lineId) : `Line ${impact.lineNumber}`;
 }
 
 export type TravelTimeSeverity = "good" | "decent" | "moderate" | "poor" | "severe";

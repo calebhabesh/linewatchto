@@ -35,6 +35,30 @@ class RegionalDashboardServiceTest {
     }
 
     @Test
+    void generalLocationsUseFullLineNamesWithoutInventingStationBounds() {
+        when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
+        when(alertStore.findActiveAlerts()).thenReturn(RegionalNetworkCatalog.routes().stream()
+            .map(route -> new RegionalNormalizedAlert(
+                "general-" + route.number(), MetrolinxSourceSystem.GO_SERVICE_ALERTS, route.number(),
+                route.id(), "suspension", "Service suspended", "Source rail alert", "Construction",
+                OffsetDateTime.parse("2026-07-28T17:00:00Z"), null,
+                OffsetDateTime.parse("2026-07-28T18:12:00Z"), List.of(), List.of(), ""
+            )).toList());
+
+        var dashboard = service.dashboard();
+        assertThat(dashboard.activeAlerts()).hasSize(8).allSatisfy(alert -> {
+            var route = RegionalNetworkCatalog.route(alert.lineId()).orElseThrow();
+            String expected = "UP".equals(route.number()) ? "UP Express" : route.name() + " Line";
+            assertThat(alert.location()).isEqualTo(expected);
+            assertThat(alert.affectedSegmentIds()).isEmpty();
+        });
+        assertThat(dashboard.status().lines()).allSatisfy(line -> {
+            String expected = "UP".equals(line.number()) ? "UP Express" : line.name() + " Line";
+            assertThat(line.route()).isEqualTo(expected);
+        });
+    }
+
+    @Test
     void exposesPublishedRiderDetailsWithoutInventingRecoveryTimes() {
         when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
         OffsetDateTime end = OffsetDateTime.parse("2026-07-28T20:00:00Z");
@@ -48,6 +72,7 @@ class RegionalDashboardServiceTest {
         assertThat(dashboard.incidentDetails().get("rider-details"))
             .isEqualTo(new DashboardResponses.IncidentDetails("go-bus", 20, OffsetDateTime.parse("2026-07-27T15:00:00Z")));
         assertThat(dashboard.delays().getFirst().cause()).isEqualTo("Signal Problems");
+        assertThat(dashboard.delays().getFirst().location()).isEqualTo("Bloor");
         assertThat(dashboard.delays().getFirst().updatedAt()).isEqualTo(OffsetDateTime.parse("2026-07-28T18:12:00Z"));
         when(freshness.remainingFreshness(any())).thenReturn(Optional.empty());
         assertThat(service.dashboard().incidentDetails()).isEmpty();

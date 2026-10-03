@@ -78,8 +78,7 @@ export function stationImpactDirectionForImpact(
 ): StationImpactDirectionDetails | null {
   const source = stationImpactDirectionSource(impact, data);
   if (!source) return null;
-  const displayDirection = source.displayDirection
-    ?? (source.lineId.startsWith("regional-") ? "Both directions" : null);
+  const displayDirection = source.displayDirection;
   if (!displayDirection) return null;
 
   if (isUnionLineOneStationImpact(impact, source.lineId)) {

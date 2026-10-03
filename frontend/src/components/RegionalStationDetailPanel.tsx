@@ -41,6 +41,7 @@ import type { StationSummary } from "../app/station-data";
 import type { AccessibilityOutageDetail } from "../app/accessibility-outage-data";
 import { plannedClosuresForStation, stationImpactSelection } from "../app/station-impact-types";
 import { formatImpactTimestamp } from "../app/impact-time";
+import { suppliedAlertCause } from "../app/alert-cause";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
 import {
@@ -1507,8 +1508,8 @@ export function RegionalStationDetailPanel({
                               {notice.updatedAt ? (
                                 <span>Updated {formatImpactTimestamp(notice.updatedAt)}</span>
                               ) : null}
-                              {notice.cause ? (
-                                <span>Cause: {notice.cause}</span>
+                              {suppliedAlertCause(notice.cause) ? (
+                                <span>Cause: {suppliedAlertCause(notice.cause)}</span>
                               ) : null}
                             </div>
 

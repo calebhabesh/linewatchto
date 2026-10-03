@@ -46,6 +46,7 @@ class RegionalCommuteImpactServiceTest {
         assertThat(impact.matchedImpacts()).extracting(match -> match.id())
             .containsExactly("corridor-delay", "segment-delay");
         assertThat(impact.matchedImpacts().get(1).matchedSegmentIds()).containsExactly(segment);
+        assertThat(impact.matchedImpacts().getFirst().location()).isEqualTo("Kitchener Line");
         assertThat(impact.travelTimeEstimate().status()).isEqualTo("estimated");
     }
 

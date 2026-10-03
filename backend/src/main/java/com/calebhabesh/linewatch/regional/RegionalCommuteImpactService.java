@@ -96,7 +96,8 @@ public class RegionalCommuteImpactService {
     }
 
     private String location(RegionalNormalizedAlert alert, boolean routeWide) {
-        if (routeWide) return "Full corridor";
+        if (routeWide) return RegionalNetworkCatalog.route(alert.lineId())
+            .map(RegionalNetworkCatalog.Route::displayName).orElse("Regional line");
         List<String> names = alert.stationIds().stream()
             .map(id -> RegionalNetworkCatalog.station(id).map(station -> station.name()).orElse(id))
             .toList();

@@ -21,6 +21,9 @@ public final class RegionalNetworkCatalog {
         int inboundDirectionId,
         List<String> stationIds
     ) {
+        public String displayName() {
+            return "UP".equals(number) ? name : name + " Line";
+        }
     }
 
     public record Segment(

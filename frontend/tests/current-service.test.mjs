@@ -622,7 +622,7 @@ test("regional rider facts survive summary projection, deduplication and saved s
 
 test("regional rider facts omit unknown, invalid and generic values", () => {
   const row = currentServiceSummary(data({ activeAlerts: [impact("a", "1")] })).rows[0];
-  for (const cause of [undefined, " ", "Metrolinx service update", "Unknown", "Modified Trip"]) {
+  for (const cause of [undefined, null, " ", "Metrolinx service update", "Unknown", "Unknown Cause", "UNKNOWN_CAUSE", "Unknown   Cause", "Modified Trip"]) {
     assert.deepEqual(regionalIncidentFacts({ ...row, cause, maximumDelayMinutes: -1, replacementService: "unknown", updatedAt: "bad", publishedAt: "bad" }), {
       cause: undefined, service: "", publishedAt: undefined,
     });

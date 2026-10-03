@@ -39,6 +39,7 @@ import {
 } from "./regional-map-geometry.ts";
 import {
   stationImpactDirectionForImpact,
+  stationImpactDirectionSource,
   stationImpactDirectionPath,
 } from "../components/station-impact-direction.ts";
 import {
@@ -81,6 +82,7 @@ export const REGIONAL_DYNAMIC_COMMUTE_LAYER_ID = "regional-dynamic-commute-layer
 export const REGIONAL_DYNAMIC_HOVER_LAYER_ID = "regional-dynamic-hover-layer";
 export const REGIONAL_DYNAMIC_EFFECTS_LAYER_ID = "regional-dynamic-effects-layer";
 export const REGIONAL_TOP_HOVER_LAYER_ID = "regional-top-hover-layer";
+export const REGIONAL_TOP_STATION_IMPACT_LAYER_ID = "regional-top-station-impact-layer";
 export const REGIONAL_TRAIN_MARKER_LAYER_ID = "regional-train-marker-layer";
 
 export const SELECTION_INTRO_DURATION_MS = 2400;
@@ -164,7 +166,7 @@ export function regionalImpactColor(kind: ImpactKind) {
       return "#d97706";
     case "delay":
     default:
-      return "#0ea5e9";
+      return "#f97316";
   }
 }
 
@@ -1635,6 +1637,7 @@ export function installRegionalOverlaySession(
   const hoverLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_HOVER_LAYER_ID}`);
   const effectsLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_EFFECTS_LAYER_ID}`);
   const topHoverLayer = viewport.querySelector<SVGGElement>(`#${REGIONAL_TOP_HOVER_LAYER_ID}`);
+  const topStationImpactLayer = viewport.querySelector<SVGGElement>(`#${REGIONAL_TOP_STATION_IMPACT_LAYER_ID}`);
 
   if (
     !segmentLayer
@@ -1644,6 +1647,7 @@ export function installRegionalOverlaySession(
     || !hoverLayer
     || !effectsLayer
     || !topHoverLayer
+    || !topStationImpactLayer
   ) {
     return null;
   }
@@ -1798,10 +1802,14 @@ export function installRegionalOverlaySession(
     commuteLayer.replaceChildren();
     hoverLayer.replaceChildren();
     topHoverLayer.replaceChildren();
+    topStationImpactLayer.replaceChildren();
+    topStationImpactLayer.dataset.mapOverlayMotionPaused = data.reducedMotion ? "true" : "false";
     effectsLayer.replaceChildren();
 
     const stationImpactBeaconLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
     stationImpactBeaconLayer.classList.add("regional-station-impact-beacon-layer");
+    const stationImpactFillLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
+    stationImpactFillLayer.classList.add("regional-station-impact-fill-layer");
     const stationImpactDirectionLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
     stationImpactDirectionLayer.classList.add("regional-station-impact-direction-layer");
 
@@ -1897,9 +1905,13 @@ export function installRegionalOverlaySession(
       const stationVisual = svg.querySelector<SVGElement>(`#station-${CSS.escape(impact.stationId)}`);
       if (!stationVisual) continue;
       const impactDirection = stationImpactDirectionForImpact(impact, directionData);
-      const impactAnchors = regionalStationImpactAnchors(stationVisual, impactDirection?.lineId);
-      const routeCode = impactDirection?.lineId.startsWith("regional-")
-        ? impactDirection.lineId.slice("regional-".length)
+      const lineId = stationImpactDirectionSource(impact, directionData)?.lineId;
+      const impactAnchors = regionalStationImpactAnchors(stationVisual, lineId);
+      const foregroundAnchors = new Map(
+        regionalStationImpactAnchors(stationVisual, lineId, "root").map(anchor => [anchor.id, anchor]),
+      );
+      const routeCode = lineId?.startsWith("regional-")
+        ? lineId.slice("regional-".length)
         : null;
 
       const ring = stationVisual.cloneNode(true) as SVGElement;
@@ -1937,12 +1949,13 @@ export function installRegionalOverlaySession(
 
       for (const { id: anchorId, point: anchorPoint, radius: stationDotRadius } of impactAnchors) {
         const effectRadius = stationDotRadius * REGIONAL_STATION_IMPACT_EFFECT_RADIUS_RATIO;
-        const badgeRadius = stationDotRadius * REGIONAL_STATION_IMPACT_BADGE_RADIUS_RATIO;
         const beaconGroup = documentNode.createElementNS(SVG_NAMESPACE, "g");
         beaconGroup.classList.add("regional-station-impact-beacon-group");
         beaconGroup.dataset.regionalStationImpactKind = impact.kind;
         beaconGroup.dataset.regionalStationImpactId = impact.cardId;
         beaconGroup.dataset.regionalStationImpactAnchorId = anchorId;
+        beaconGroup.style.setProperty("--regional-impact-color", regionalImpactColor(impact.kind));
+        beaconGroup.style.setProperty("--station-impact-glow", regionalImpactColor(impact.kind));
         beaconGroup.setAttribute("pointer-events", "none");
 
         const glowCircle = documentNode.createElementNS(SVG_NAMESPACE, "circle");
@@ -1955,13 +1968,42 @@ export function installRegionalOverlaySession(
         pingCircle.setAttribute("cx", String(anchorPoint.x));
         pingCircle.setAttribute("cy", String(anchorPoint.y));
         pingCircle.setAttribute("r", String(effectRadius));
-        const beaconCircle = documentNode.createElementNS(SVG_NAMESPACE, "circle");
-        beaconCircle.classList.add("station-impact-dot-red-beacon", "regional-station-impact-beacon-core");
-        beaconCircle.setAttribute("cx", String(anchorPoint.x));
-        beaconCircle.setAttribute("cy", String(anchorPoint.y));
-        beaconCircle.setAttribute("r", String(effectRadius));
-        beaconGroup.append(glowCircle, pingCircle, beaconCircle);
+        beaconGroup.append(glowCircle, pingCircle);
         stationImpactBeaconLayer.append(beaconGroup);
+
+        const foregroundAnchor = foregroundAnchors.get(anchorId);
+        if (!foregroundAnchor) continue;
+        const foregroundPoint = foregroundAnchor.point;
+        const foregroundBadgeRadius = foregroundAnchor.radius * REGIONAL_STATION_IMPACT_BADGE_RADIUS_RATIO;
+
+        // Paint the authored shape above its raster copy, retaining its exact
+        // outline and covering the full interior, including elongated hubs.
+        const sourceShape = svg.querySelector<SVGElement>(`#${CSS.escape(anchorId)}`);
+        if (!sourceShape) continue;
+        const fillShape = sourceShape.cloneNode(true) as SVGElement;
+        removeDescendantIds(fillShape);
+        fillShape.setAttribute("class", "regional-station-impact-fill");
+        fillShape.removeAttribute("role");
+        fillShape.removeAttribute("tabindex");
+        fillShape.dataset.regionalStationImpactKind = impact.kind;
+        fillShape.dataset.regionalStationImpactId = impact.cardId;
+        fillShape.dataset.regionalStationImpactAnchorId = anchorId;
+        fillShape.style.setProperty("--regional-impact-color", regionalImpactColor(impact.kind));
+        fillShape.style.setProperty("fill", "var(--regional-impact-color)");
+        fillShape.style.removeProperty("fill-opacity");
+        const sourceStyle = window.getComputedStyle(sourceShape);
+        fillShape.style.setProperty("stroke", sourceStyle.stroke);
+        fillShape.style.setProperty("stroke-width", sourceStyle.strokeWidth);
+        const origin = pointInSvgRootCoordinates(sourceShape, { x: 0, y: 0 });
+        const xBasis = pointInSvgRootCoordinates(sourceShape, { x: 1, y: 0 });
+        const yBasis = pointInSvgRootCoordinates(sourceShape, { x: 0, y: 1 });
+        fillShape.setAttribute("transform", `matrix(${[
+          xBasis.x - origin.x, xBasis.y - origin.y,
+          yBasis.x - origin.x, yBasis.y - origin.y,
+          origin.x, origin.y,
+        ].join(" ")})`);
+        fillShape.setAttribute("pointer-events", "none");
+        stationImpactFillLayer.append(fillShape);
 
         if (impactDirection?.arrow) {
           const glyphGroup = documentNode.createElementNS(SVG_NAMESPACE, "g");
@@ -1970,13 +2012,13 @@ export function installRegionalOverlaySession(
           glyphGroup.dataset.regionalStationImpactId = impact.cardId;
           glyphGroup.dataset.regionalStationImpactAnchorId = anchorId;
           glyphGroup.setAttribute("pointer-events", "none");
-          glyphGroup.setAttribute("transform", `translate(${anchorPoint.x} ${anchorPoint.y})`);
+          glyphGroup.setAttribute("transform", `translate(${foregroundPoint.x} ${foregroundPoint.y})`);
           const badgeCircle = documentNode.createElementNS(SVG_NAMESPACE, "circle");
           badgeCircle.classList.add("station-impact-direction-badge");
-          badgeCircle.setAttribute("r", String(badgeRadius));
+          badgeCircle.setAttribute("r", String(foregroundBadgeRadius));
           const arrowPath = documentNode.createElementNS(SVG_NAMESPACE, "path");
           arrowPath.classList.add("station-impact-direction-arrow");
-          arrowPath.setAttribute("d", stationImpactDirectionPath(impactDirection.arrow.direction, badgeRadius));
+          arrowPath.setAttribute("d", stationImpactDirectionPath(impactDirection.arrow.direction, foregroundBadgeRadius));
           glyphGroup.append(badgeCircle, arrowPath);
           stationImpactDirectionLayer.append(glyphGroup);
         }
@@ -2008,7 +2050,8 @@ export function installRegionalOverlaySession(
         plannedStationLayer.append(marker);
       }
     }
-    effectsLayer.append(stationImpactBeaconLayer, stationImpactDirectionLayer);
+    effectsLayer.append(stationImpactBeaconLayer);
+    topStationImpactLayer.append(stationImpactFillLayer, stationImpactDirectionLayer);
 
     if (data.commutePathPreview) {
       const previewLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");

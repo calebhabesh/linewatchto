@@ -58,6 +58,7 @@ import {
   regionalReferencedAlertCollisionBoxes,
   regionalOverlapChooserLayout,
   REGIONAL_TOP_HOVER_LAYER_ID,
+  REGIONAL_TOP_STATION_IMPACT_LAYER_ID,
   REGIONAL_TRAIN_MARKER_LAYER_ID,
   SELECTION_INTRO_DURATION_MS,
   type RegionalOverlapBadge,
@@ -2068,6 +2069,11 @@ function InteractiveRegionalMapComponent({
                 href={`#regional-station-selection-source-${selectedStationId}`}
               />
             ) : null}
+            <g
+              id={REGIONAL_TOP_STATION_IMPACT_LAYER_ID}
+              aria-hidden="true"
+              pointerEvents="none"
+            />
             {hoveredStationLabel ? (
               <g
                 aria-hidden="true"

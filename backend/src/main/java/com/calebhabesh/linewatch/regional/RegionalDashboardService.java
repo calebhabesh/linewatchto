@@ -205,27 +205,27 @@ public class RegionalDashboardService {
             .toList();
         if (!fresh) {
             return new StatusController.LineStatusDto(
-                route.id(), route.number(), route.name(), route.name() + " corridor", route.color(),
+                route.id(), route.number(), route.name(), route.displayName(), route.color(),
                 "ready", "Data unavailable", "Metrolinx realtime data is disabled, unavailable, or stale.", "Not live"
             );
         }
         if (lineAlerts.isEmpty()) {
             if (alertCoverageIncomplete) {
                 return new StatusController.LineStatusDto(
-                    route.id(), route.number(), route.name(), route.name() + " corridor", route.color(),
+                    route.id(), route.number(), route.name(), route.displayName(), route.color(),
                     "ready", "Alert coverage incomplete",
                     "No confirmed current rail impact; a supplemental Metrolinx alert collection did not refresh.",
                     "Latest poll"
                 );
             }
             return new StatusController.LineStatusDto(
-                route.id(), route.number(), route.name(), route.name() + " corridor", route.color(),
+                route.id(), route.number(), route.name(), route.displayName(), route.color(),
                 "normal", "Normal", "No current rail service impacts in the latest Metrolinx alert dataset.", "Latest poll"
             );
         }
         if (lineAlerts.stream().allMatch(alert -> "advisory".equals(alert.impactKind()))) {
             return new StatusController.LineStatusDto(
-                route.id(), route.number(), route.name(), route.name() + " corridor", route.color(),
+                route.id(), route.number(), route.name(), route.displayName(), route.color(),
                 "ready", "Advisory — timing or scope unverified",
                 lineAlerts.getFirst().title() + " — service impact not verified; see Service Notices.",
                 "Latest poll"
@@ -245,7 +245,7 @@ public class RegionalDashboardService {
         };
         String summary = lineAlerts.size() == 1 ? primary.title() : lineAlerts.size() + " Metrolinx service updates";
         return new StatusController.LineStatusDto(
-            route.id(), route.number(), route.name(), route.name() + " corridor", route.color(),
+            route.id(), route.number(), route.name(), route.displayName(), route.color(),
             state, label, summary, "Latest poll"
         );
     }
@@ -279,9 +279,10 @@ public class RegionalDashboardService {
 
     private String location(RegionalNormalizedAlert alert) {
         RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(alert.lineId()).orElse(null);
-        if (route == null || alert.stationIds().isEmpty()) return lineNumber(alert) + " corridor";
+        if (route == null) return "Regional line";
+        if (alert.stationIds().isEmpty()) return route.displayName();
         List<String> ordered = route.stationIds().stream().filter(alert.stationIds()::contains).toList();
-        if (ordered.isEmpty()) return route.name() + " corridor";
+        if (ordered.isEmpty()) return route.displayName();
         String first = RegionalNetworkCatalog.station(ordered.getFirst()).map(station -> station.name()).orElse(ordered.getFirst());
         if (ordered.size() == 1) return first;
         String last = RegionalNetworkCatalog.station(ordered.getLast()).map(station -> station.name()).orElse(ordered.getLast());
