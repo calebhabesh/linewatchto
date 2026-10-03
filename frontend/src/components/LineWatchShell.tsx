@@ -2108,14 +2108,18 @@ export function LineWatchShell({
         if (signal.aborted) throw signal.reason;
         if (!geographic) {
           await new Promise<void>((resolve, reject) => {
-            // Only reveal a fitted, rendered map. The transition's overall
-            // timeout retains the current map if preparation never completes.
+            const fallbackTimer = window.setTimeout(() => {
+              signal.removeEventListener("abort", abort);
+              resolve();
+            }, 400);
             const abort = () => {
+              window.clearTimeout(fallbackTimer);
               signal.removeEventListener("abort", abort);
               reject(signal.reason);
             };
             signal.addEventListener("abort", abort, { once: true });
             preparedMapReadyRef.current = { network, resolve: () => {
+              window.clearTimeout(fallbackTimer);
               signal.removeEventListener("abort", abort);
               resolve();
             } };
