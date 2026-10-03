@@ -274,7 +274,8 @@ export function ElectricBorder({
     };
 
     const handleResize = () => { updateSize(); synchronize(); };
-    updateSize();
+    // The observer supplies the initial size before paint. Measuring every
+    // newly mounted card here forces repeated layout during a map switch.
     const resizeObserver = new ResizeObserver(handleResize);
     resizeObserver.observe(container);
     const intersectionObserver = new IntersectionObserver(([entry]) => {

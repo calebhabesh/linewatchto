@@ -44,6 +44,7 @@ import {
 export { preloadRegionalMapMarkup } from "../app/regional-map-asset";
 
 import {
+  primeRegionalRouteSamples,
   regionalTrainMarkerFrame,
   regionalStationLabelHover,
   REGIONAL_OVERLAP_INDICATOR_SCALE,
@@ -476,6 +477,7 @@ function InteractiveRegionalMapComponent({
   const selectionIntroTimerRef = useRef<number | null>(null);
   const readyNotifiedRef = useRef(false);
   const sessionRef = useRef<RegionalOverlaySession | null>(null);
+  const lastOverlayInputsRef = useRef<unknown[] | null>(null);
   // Dispose the previous SVG session before layout effects install its replacement.
   // Passive cleanup runs too late and can dispose the newly installed session.
   useLayoutEffect(() => {
@@ -906,10 +908,50 @@ function InteractiveRegionalMapComponent({
     return () => { cancelled = true; };
   }, []);
 
-  useLayoutEffect(() => {
-    if (!svgMarkup) return;
+  useEffect(() => {
+    if (!svgMarkup || isMapActive || !useMobileRendering
+      || typeof window.requestIdleCallback !== "function") return;
     const viewport = viewportRef.current;
     if (!viewport) return;
+    const samples = primeRegionalRouteSamples(viewport);
+    let idleCallback: number | null = null;
+    let completed = false;
+    const run = (deadline: IdleDeadline) => {
+      idleCallback = null;
+      if (document.querySelector('[data-map-gesture-active="true"]')) return;
+      // Keep each batch short enough for new native touch input to interrupt.
+      const started = performance.now();
+      while (deadline.timeRemaining() > 4 && performance.now() - started < 4) {
+        if (samples.next().done) { completed = true; return; }
+      }
+      schedule();
+    };
+    const schedule = () => {
+      if (completed || idleCallback !== null
+        || document.querySelector('[data-map-gesture-active="true"]')) return;
+      idleCallback = window.requestIdleCallback(run);
+    };
+    const observer = new MutationObserver(schedule);
+    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ["data-map-gesture-active"] });
+    schedule();
+    return () => {
+      completed = true;
+      observer.disconnect();
+      if (idleCallback !== null) window.cancelIdleCallback(idleCallback);
+      samples.return(undefined);
+    };
+  }, [isMapActive, svgMarkup, useMobileRendering]);
+
+  useLayoutEffect(() => {
+    // Build live overlays once when this diagram becomes active. Preparing an
+    // inactive diagram otherwise builds them again during the network swap.
+    if (!svgMarkup || !isMapActive) return;
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const inputs = [activeAlerts, delays, reducedSpeedZones, plannedClosures,
+      networkSegments, stationNodeImpacts, stations, commutePathPreview,
+      mapEffectMotionPaused, useMobileRendering, mapLabelFontReady, svgMarkup];
+    if (sessionRef.current && lastOverlayInputsRef.current?.every((value, index) => value === inputs[index])) return;
 
     if (!sessionRef.current) {
       sessionRef.current = installRegionalOverlaySession(viewport, {
@@ -934,19 +976,21 @@ function InteractiveRegionalMapComponent({
       stationNodeImpacts,
       stations,
       commutePathPreview,
-      reducedMotion: mapEffectMotionPaused,
+      reducedMotion: mapEffectMotionPaused || useMobileRendering,
       selectedStationId: selectedStationIdRef.current,
       selection: selectionRef.current,
       selectionIntroCompleted: selectionIntroCompletedRef.current,
     });
 
     if (result) {
+      lastOverlayInputsRef.current = inputs;
       setOverlapBadges(result.overlapBadges);
     }
   }, [
     activeAlerts,
     commutePathPreview,
     delays,
+    isMapActive,
     mapLabelFontReady,
     networkSegments,
     plannedClosures,
@@ -955,6 +999,7 @@ function InteractiveRegionalMapComponent({
     stationNodeImpacts,
     stations,
     svgMarkup,
+    useMobileRendering,
   ]);
 
   useLayoutEffect(() => {
@@ -2118,6 +2163,7 @@ function InteractiveRegionalMapComponent({
                   isOpen={expandedOverlapBadgeId === badge.markerId}
                   visualScale={REGIONAL_OVERLAP_INDICATOR_SCALE}
                   isolatePointerDown
+                  shouldSuppressMapClick={() => dragMovedRef.current}
                   onActivate={() => {
                     if (expandedOverlapBadgeId === badge.markerId) {
                       closeRegionalOverlapChooser();

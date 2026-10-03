@@ -101,7 +101,7 @@ import {
   type EstimatedTrainSnapshot,
 } from "../app/train-markers";
 import { useTorontoClock } from "../hooks/useTorontoClock";
-import { MOBILE_VIEWPORT_QUERY, useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
+import { MOBILE_PERFORMANCE_QUERY, MOBILE_VIEWPORT_QUERY, useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
 import { Accessibility, Activity, Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, MapPin, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen, ChevronRight, CircleCheck, Clock3 } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
@@ -221,10 +221,14 @@ export function LineWatchShell({
     regionalData,
     dashboards: effectiveDashboards,
     dashboardRequestState,
+    dashboardRequestStates,
     dashboardAvailabilityNotice,
     snapshotClock,
     connectionOffline,
     snapshotReason,
+    verifiedAt,
+    sessionVerified,
+    fetchDashboard,
   } = useDashboardSession({
     initialData,
     selectedNetwork,
@@ -323,14 +327,41 @@ export function LineWatchShell({
   const [initialMapReady, setInitialMapReady] = useState(false);
   useEffect(() => {
     if (!initialMapReady) return;
+    // Cache resources first. On phones, prepare only the static diagram and
+    // wait for a gap in gestures before mounting it; live overlays stay deferred.
+    const mobile = window.matchMedia(MOBILE_PERFORMANCE_QUERY).matches;
     let cancelled = false;
+    let resourcesReady = false;
+    let mounted = false;
+    let mountCallback: number | null = null;
+    const network = selectedNetwork === "ttc" ? "regional" : "ttc";
+    const surface = networkMapSurfaceRef.current;
+    const mountOtherNetwork = () => {
+      mountCallback = null;
+      if (cancelled || mounted || surface?.querySelector('[data-map-gesture-active="true"]')) return;
+      mounted = true;
+      startTransition(() => setWarmingNetwork(network));
+    };
+    const scheduleMount = () => {
+      if (cancelled || mounted || !resourcesReady || mountCallback !== null
+        || surface?.querySelector('[data-map-gesture-active="true"]')) return;
+      mountCallback = typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback(mountOtherNetwork)
+        : window.setTimeout(mountOtherNetwork, 100);
+    };
+    const gestureObserver = mobile ? new MutationObserver(scheduleMount) : null;
+    if (gestureObserver && surface) gestureObserver.observe(surface, {
+      subtree: true, attributes: true, attributeFilter: ["data-map-gesture-active"],
+    });
     // Prepare the other network once the current map is usable and the browser is idle.
     const warmOtherNetwork = () => {
-      const network = selectedNetwork === "ttc" ? "regional" : "ttc";
       const theme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
       const density = window.matchMedia("(max-width: 767px), (pointer: coarse)").matches ? "mobile" : "balanced";
       void prepareNetworkMap(network, mapViewPreference, theme, density).then(() => {
-        if (!cancelled && mapViewPreference === "diagram") startTransition(() => setWarmingNetwork(network));
+        if (cancelled || mapViewPreference !== "diagram") return;
+        resourcesReady = true;
+        if (mobile) scheduleMount();
+        else mountOtherNetwork();
       }, () => undefined);
     };
     const idleCallback = typeof window.requestIdleCallback === "function"
@@ -338,10 +369,15 @@ export function LineWatchShell({
     const timer = idleCallback === null ? window.setTimeout(warmOtherNetwork, 100) : null;
     return () => {
       cancelled = true;
+      gestureObserver?.disconnect();
+      if (mountCallback !== null) {
+        if (typeof window.requestIdleCallback === "function") window.cancelIdleCallback(mountCallback);
+        else window.clearTimeout(mountCallback);
+      }
       if (idleCallback !== null) window.cancelIdleCallback(idleCallback);
       if (timer !== null) window.clearTimeout(timer);
     };
-  }, [initialMapReady, selectedNetwork, highContrast, isDark, mapViewPreference]);
+  }, [initialMapReady, selectedNetwork, highContrast, isDark, mapViewPreference, mobilePerformanceMode]);
 
   const [menuPinned, setMenuPinned] = useState(false);
   const [menuPinPreferenceReady, setMenuPinPreferenceReady] = useState(false);
@@ -2038,33 +2074,55 @@ export function LineWatchShell({
         reset: () => geographicFadeRef.current?.reset(),
       } : undefined,
       prepare: async signal => {
+        // Verify the destination while its map is being prepared. A slow or
+        // unavailable source still switches with honest unknown-status ribs.
+        const statusReady = new Promise<void>(resolve => {
+          // A known unavailable source remains explicitly unknown while its
+          // retry runs; it should not hold up every return to a prepared map.
+          if (dashboardRequestStates[network] === "reconnecting") {
+            void fetchDashboard(network);
+            resolve();
+            return;
+          }
+          const checkedAt = verifiedAt[network];
+          if (sessionVerified[network] && checkedAt !== null
+            && Date.now() - checkedAt < dashboardRefreshIntervalMs()) {
+            resolve();
+            return;
+          }
+          const timer = window.setTimeout(resolve, 400);
+          void fetchDashboard(network).finally(() => {
+            window.clearTimeout(timer);
+            resolve();
+          });
+        });
         const theme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
         const density = mobileMapPerformanceMode ? "mobile" : "balanced";
         if (!geographic && surface.querySelector(
           `.network-diagram-layer[data-network-map-layer="${network}"][data-map-ready="true"][data-map-variant="${theme}:${density}"] :is(.ttc-map-stage, .regional-map-stage)[data-raster-map-ready="true"]`,
-        )) return;
+        )) {
+          await statusReady;
+          return;
+        }
         await prepareNetworkMap(network, mapViewPreference, theme, density);
         if (signal.aborted) throw signal.reason;
         if (!geographic) {
           await new Promise<void>((resolve, reject) => {
-            const fallbackTimer = window.setTimeout(() => {
-              signal.removeEventListener("abort", abort);
-              resolve();
-            }, 400);
+            // Only reveal a fitted, rendered map. The transition's overall
+            // timeout retains the current map if preparation never completes.
             const abort = () => {
-              window.clearTimeout(fallbackTimer);
               signal.removeEventListener("abort", abort);
               reject(signal.reason);
             };
             signal.addEventListener("abort", abort, { once: true });
             preparedMapReadyRef.current = { network, resolve: () => {
-              window.clearTimeout(fallbackTimer);
               signal.removeEventListener("abort", abort);
               resolve();
             } };
             setPreparingNetwork(network);
           });
         }
+        await statusReady;
       },
       update: () => {
         applied = true;

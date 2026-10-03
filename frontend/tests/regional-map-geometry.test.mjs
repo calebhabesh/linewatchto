@@ -412,6 +412,11 @@ describe("regional map geometry", () => {
   });
 
   describe("route path mapping and corridor paths", () => {
+    it("compacts oversampled straight rails while preserving endpoints and bends", () => {
+      assert.equal(pathDataForPoints([{ x: 0, y: 0 }, { x: 25, y: 0 }, { x: 50, y: 0 }, { x: 100, y: 0 }]), "M 0,0 L 100,0");
+      assert.equal(pathDataForPoints([{ x: 0, y: 0 }, { x: 50, y: 0.05 }, { x: 100, y: 0 }]), "M 0,0 L 50,0.05 L 100,0");
+      assert.equal(pathDataForPoints([{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 50, y: 0 }]), "M 0,0 L 100,0 L 50,0");
+    });
     it("maps line codes to their authored SVG path identifiers", () => {
       assert.deepEqual(regionalRoutePathIds("LW"), [
         "regional-route-lw-main-path",
@@ -466,6 +471,57 @@ describe("regional map geometry", () => {
       assert.ok(sampled.length >= 2);
       assert.ok(Math.abs(sampled[0].x - 10) < 1);
       assert.ok(Math.abs(sampled.at(-1).x - 90) < 1);
+    });
+
+    it("samples a transformed route without reparsing its ancestors for every point", () => {
+      const svg = createMockSvgNode({ nodeName: "svg" });
+      const stations = createMockSvgNode({ id: "regional-stations-layer", parent: svg, transform: "translate(30,40) scale(2)" });
+      const tracks = createMockSvgNode({ parent: svg, transform: "translate(100,200) rotate(25)" });
+      const path = createMockPath({ parent: tracks, transform: "matrix(1,0.2,0.1,1,10,20)", points: [{ x: 0, y: 0 }, { x: 1000, y: 0 }] });
+      let transformReads = 0;
+      for (const node of [path, tracks, stations]) {
+        const read = node.getAttribute.bind(node);
+        node.getAttribute = name => {
+          if (name === "transform") transformReads++;
+          return read(name);
+        };
+      }
+      const metric = regionalRouteMetric(path, stations);
+      const rootMetric = regionalRouteMetricInRoot(path);
+      for (const distance of [0, 50, 400, 1000]) {
+        const local = path.getPointAtLength(distance);
+        const expected = pointInRegionalStationsCoordinates(local, path, stations);
+        const expectedRoot = pointInSvgRootCoordinates(path, local);
+        assert.ok(Math.abs(metric.pointAt(distance).x - expected.x) < 1e-7);
+        assert.ok(Math.abs(metric.pointAt(distance).y - expected.y) < 1e-7);
+        assert.ok(Math.abs(rootMetric.pointAt(distance).x - expectedRoot.x) < 1e-7);
+        assert.ok(Math.abs(rootMetric.pointAt(distance).y - expectedRoot.y) < 1e-7);
+      }
+      transformReads = 0;
+      closestRouteDistance(metric, { x: 200, y: 100 });
+      routePointsBetween(rootMetric, 0, 1000);
+      assert.equal(transformReads, 0, "route scans must reuse their coordinate transform");
+      // A new metric must pick up an authored transform change.
+      tracks.setAttribute("transform", "translate(500,600)");
+      assert.deepEqual(regionalRouteMetricInRoot(path).pointAt(0), { x: 510, y: 620 });
+    });
+
+    it("reuses route samples across overlay callers and invalidates them when the authored path changes", () => {
+      const svg = createMockSvgNode({ nodeName: "svg" });
+      const path = createMockPath({ parent: svg, points: [{ x: 0, y: 0 }, { x: 1000, y: 0 }] });
+      let nativeSamples = 0;
+      const sample = path.getPointAtLength;
+      path.getPointAtLength = distance => { nativeSamples++; return sample(distance); };
+      const target = { x: 300, y: 2 };
+      const first = closestRouteDistance(regionalRouteMetricInRoot(path), target);
+      nativeSamples = 0;
+      assert.deepEqual(closestRouteDistance(regionalRouteMetricInRoot(path), target), first);
+      assert.equal(nativeSamples, 0, "the same route scan from another overlay must reuse samples");
+      path.setAttribute("d", "M 0,0 L 0,500");
+      const changed = regionalRouteMetricInRoot(path);
+      assert.equal(changed.length, 500);
+      assert.deepEqual(changed.pointAt(300), { x: 0, y: 300 });
+      assert.equal(nativeSamples, 1);
     });
 
     it("resolves corridor segment paths in both layer and root spaces", () => {

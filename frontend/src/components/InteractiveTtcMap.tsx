@@ -2742,7 +2742,6 @@ function InteractiveTtcMapComponent({
                             fill="none"
                             onPointerDown={(event) => {
                               if (exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
-                              event.stopPropagation();
                               try {
                                 event.currentTarget.setPointerCapture(event.pointerId);
                               } catch {
@@ -2751,7 +2750,6 @@ function InteractiveTtcMapComponent({
                             }}
                             onPointerUp={(event) => {
                               if (exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
-                              event.stopPropagation();
                               if (shouldSuppressMapClick()) return;
                               suppressNextMapClick();
                               onSelectImpact({ kind: impact.kind, id: impact.cardId });
