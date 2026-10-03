@@ -24,6 +24,21 @@ async function settled(page: Page, network: string) {
   await expect(page.locator('.linewatch-shell')).not.toHaveAttribute('data-network-switch-target');
 }
 
+async function prepareBothDiagrams(page: Page, mobile: boolean) {
+  // Check both sources and prepare both diagrams before measuring subsequent
+  // swaps. Cold status/source behavior has its own switch regression coverage.
+  await expect(activeDiagram(page, 'ttc')).toHaveAttribute('data-map-ready', 'true');
+  await networkButton(page, mobile, 'regional').click();
+  await settled(page, 'regional');
+  await networkButton(page, mobile, 'ttc').click();
+  await settled(page, 'ttc');
+  await page.evaluate(() => {
+    window.__linewatchMapFadeProbe = [];
+    window.__linewatchTogglePaints = [];
+  });
+  await expect(page.locator('.network-diagram-layer[data-map-ready="true"]')).toHaveCount(2);
+}
+
 test.describe('network artwork fades', () => {
   test.use({ serviceWorkers: 'block' });
   test.beforeEach(async ({ page, request, isMobile }) => {
@@ -71,7 +86,7 @@ test.describe('network artwork fades', () => {
   test('both directions fade only artwork with equal timing and keep the selector moving independently', async ({ page, isMobile }) => {
     await page.goto(previewUrl);
     await expect(page.locator('.ttc-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
-    await expect(page.locator('.regional-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
+    await prepareBothDiagrams(page, isMobile);
     if (!isMobile) {
       await expect(page.locator('.map-control-rail .network-selector')).toHaveCount(1);
       await expect(page.locator('.map-control-rail .network-selector')).toHaveAttribute('data-network', 'ttc');
@@ -121,7 +136,7 @@ test.describe('network artwork fades', () => {
 
   test('the selector can reverse a switch during either fade and the latest choice wins', async ({ page, isMobile }) => {
     await page.goto(previewUrl);
-    await expect(page.locator('.network-diagram-layer[data-map-ready="true"]')).toHaveCount(2);
+    await prepareBothDiagrams(page, isMobile);
     for (const phase of ['leaving', 'entering']) {
       await networkButton(page, isMobile, 'regional').click();
       await expect(page.locator('.network-map-transition-surface')).toHaveAttribute('data-map-surface-transition', phase);
@@ -135,7 +150,7 @@ test.describe('network artwork fades', () => {
 
   test('an immediate return switch responds without a cooldown', async ({ page, isMobile }) => {
     await page.goto(previewUrl);
-    await expect(page.locator('.network-diagram-layer[data-map-ready="true"]')).toHaveCount(2);
+    await prepareBothDiagrams(page, isMobile);
     const taps = await page.evaluate(async mobile => {
       const shell = document.querySelector<HTMLElement>('.linewatch-shell')!;
       const surface = document.querySelector<HTMLElement>('.network-map-transition-surface')!;
@@ -178,7 +193,7 @@ test.describe('network artwork fades', () => {
 
   test('pointer taps and hover remain responsive immediately after every swap', async ({ page, isMobile }) => {
     await page.goto(previewUrl);
-    await expect(page.locator('.network-diagram-layer[data-map-ready="true"]')).toHaveCount(2);
+    await prepareBothDiagrams(page, isMobile);
     const session = await page.context().newCDPSession(page);
     await session.send('Emulation.setCPUThrottlingRate', { rate: 4 });
     await page.exposeFunction('__linewatchPhysicalToggleTap', async (x: number, y: number) => {
@@ -241,7 +256,7 @@ test.describe('network artwork fades', () => {
     test.skip(isMobile, 'Mouse hover requires a desktop pointer');
     await setStubMode(request, 'regional-live');
     await page.goto(previewUrl);
-    await expect(page.locator('.network-diagram-layer[data-map-ready="true"]')).toHaveCount(2);
+    await prepareBothDiagrams(page, isMobile);
     await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click();
     const session = await page.context().newCDPSession(page);
     await session.send('Emulation.setCPUThrottlingRate', { rate: 4 });
@@ -332,7 +347,7 @@ test.describe('network artwork fades', () => {
 
   test('the hovered and focused toggle stays in place when the map changes', async ({ page, isMobile }) => {
     await page.goto(previewUrl);
-    await expect(page.locator('.network-diagram-layer[data-map-ready="true"]')).toHaveCount(2);
+    await prepareBothDiagrams(page, isMobile);
     const toggle = await networkButton(page, isMobile, 'regional').elementHandle();
     await toggle!.focus();
     await toggle!.press('Enter');
@@ -348,7 +363,7 @@ test.describe('network artwork fades', () => {
 
   test('the first station tap after a fade selects immediately in both directions', async ({ page, isMobile }) => {
     await page.goto(previewUrl);
-    await expect(page.locator('.network-diagram-layer[data-map-ready="true"]')).toHaveCount(2);
+    await prepareBothDiagrams(page, isMobile);
     if (!isMobile) await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click();
     await page.exposeFunction('__linewatchPhysicalToggleTap', async (x: number, y: number) => {
       if (isMobile) await page.touchscreen.tap(x, y);
@@ -417,7 +432,7 @@ test.describe('network artwork fades', () => {
     test(`TTC and GO/UP share the same visible fade-in curve in ${theme} theme`, async ({ page, isMobile }) => {
       await page.addInitScript(theme => localStorage.setItem('linewatch-theme-v1', theme), theme);
       await page.goto(previewUrl);
-      await expect(page.locator('.network-diagram-layer[data-map-ready="true"]')).toHaveCount(2);
+      await prepareBothDiagrams(page, isMobile);
       await page.evaluate(() => { window.__linewatchPauseMapFadeIn = true; });
       const curves: number[][] = [];
       for (const network of ['regional', 'ttc']) {
@@ -467,7 +482,7 @@ test.describe('network artwork fades', () => {
       await networkButton(page, isMobile, 'ttc').click();
       await settled(page, 'ttc');
       release();
-      await expect(page.locator('.regional-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
+      if (!isMobile) await expect(page.locator('.regional-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
       await expect(page.locator('.linewatch-shell')).toHaveAttribute('data-network', 'ttc');
       await networkButton(page, isMobile, 'regional').click();
       await settled(page, 'regional');

@@ -276,38 +276,73 @@ export function regionalRouteMetric(
   path: SVGPathElement,
   stationsLayer: SVGGraphicsElement,
 ): RegionalRouteMetric | null {
-  try {
-    const length = path.getTotalLength();
-    if (length <= 0) return null;
-    return {
-      path,
-      length,
-      pointAt: (distance) => {
-        const localPoint = path.getPointAtLength(Math.max(0, Math.min(length, distance)));
-        return pointInRegionalStationsCoordinates(
-          { x: localPoint.x, y: localPoint.y },
-          path,
-          stationsLayer,
-        ) ?? { x: localPoint.x, y: localPoint.y };
-      },
-    };
-  } catch {
-    return null;
-  }
+  return createRegionalRouteMetric(path, point => pointInRegionalStationsCoordinates(point, path, stationsLayer) ?? point);
 }
 
 export function regionalRouteMetricInRoot(
   path: SVGPathElement,
 ): RegionalRouteMetric | null {
+  return createRegionalRouteMetric(path, point => pointInSvgRootCoordinates(path, point));
+}
+
+const routeSamples = new WeakMap<SVGPathElement, {
+  pathData: string | null;
+  length: number;
+  points: Map<number, MapPoint>;
+}>();
+
+/** Prime immutable route samples in small batches while the diagram is idle. */
+export function* primeRegionalRouteSamples(root: ParentNode): Generator<void> {
+  for (const path of root.querySelectorAll<SVGPathElement>('#regional-lines-layer path[id^="regional-route-"]')) {
+    const metric = regionalRouteMetricInRoot(path);
+    if (!metric) continue;
+    const count = Math.max(2, Math.ceil(metric.length / 24));
+    for (let index = 0; index <= count; index++) {
+      metric.pointAt(metric.length * index / count);
+      if (index % 20 === 0) yield;
+    }
+  }
+}
+
+function createRegionalRouteMetric(
+  path: SVGPathElement,
+  project: (point: MapPoint) => MapPoint,
+): RegionalRouteMetric | null {
   try {
-    const length = path.getTotalLength();
+    const pathData = path.getAttribute("d");
+    let samples = routeSamples.get(path);
+    if (!samples || samples.pathData !== pathData) {
+      samples = { pathData, length: path.getTotalLength(), points: new Map() };
+      routeSamples.set(path, samples);
+    }
+    const { length, points } = samples;
     if (length <= 0) return null;
+    // Route scans sample hundreds of points for each station/segment. Resolve
+    // the authored affine transform once instead of reparsing its ancestors
+    // (and inverting the station transform) for every sample.
+    const origin = project({ x: 0, y: 0 });
+    const xBasis = project({ x: 1, y: 0 });
+    const yBasis = project({ x: 0, y: 1 });
+    const a = xBasis.x - origin.x;
+    const b = xBasis.y - origin.y;
+    const c = yBasis.x - origin.x;
+    const d = yBasis.y - origin.y;
     return {
       path,
       length,
       pointAt: (distance) => {
-        const localPoint = path.getPointAtLength(Math.max(0, Math.min(length, distance)));
-        return pointInSvgRootCoordinates(path, { x: localPoint.x, y: localPoint.y });
+        const clamped = Math.max(0, Math.min(length, distance));
+        let localPoint = points.get(clamped);
+        if (!localPoint) {
+          const point = path.getPointAtLength(clamped);
+          localPoint = { x: point.x, y: point.y };
+          // Moving train markers also sample routes; keep their changing
+          // distances from growing the retained diagram's cache indefinitely.
+          if (points.size >= 4096) points.delete(points.keys().next().value!);
+          points.set(clamped, localPoint);
+        }
+        return { x: origin.x + a * localPoint.x + c * localPoint.y,
+          y: origin.y + b * localPoint.x + d * localPoint.y };
       },
     };
   } catch {
@@ -358,9 +393,39 @@ export function routePointsBetween(
 }
 
 export function pathDataForPoints(points: MapPoint[]): string | null {
-  return points.length >= 2
-    ? points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x},${point.y}`).join(" ")
-    : null;
+  if (points.length < 2) return null;
+  // Route sampling otherwise turns each straight authored rail into hundreds
+  // of SVG vertices, multiplied across its hit targets, masks and highlights.
+  // Preserve endpoints/bends within 0.01 SVG units (below a screen pixel even
+  // at maximum zoom), while letting the browser paint compact straight rails.
+  const keep = new Set([0, points.length - 1]);
+  const ranges = [[0, points.length - 1]];
+  while (ranges.length) {
+    const [start, end] = ranges.pop()!;
+    const from = points[start];
+    const to = points[end];
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const lengthSquared = dx * dx + dy * dy;
+    let farthest = -1;
+    let maxDistanceSquared = 0.01 ** 2;
+    for (let index = start + 1; index < end; index++) {
+      const point = points[index];
+      const progress = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1,
+        ((point.x - from.x) * dx + (point.y - from.y) * dy) / lengthSquared));
+      const distanceSquared = squaredPointDistance(point, { x: from.x + progress * dx, y: from.y + progress * dy });
+      if (distanceSquared > maxDistanceSquared) {
+        maxDistanceSquared = distanceSquared;
+        farthest = index;
+      }
+    }
+    if (farthest >= 0) {
+      keep.add(farthest);
+      ranges.push([start, farthest], [farthest, end]);
+    }
+  }
+  return [...keep].sort((a, b) => a - b)
+    .map((index, position) => `${position === 0 ? "M" : "L"} ${points[index].x},${points[index].y}`).join(" ");
 }
 
 export function fallbackSegmentPath(

@@ -128,7 +128,9 @@ export function MobileLegend({
     };
   });
   const affectedLineCount = lineSummaries.filter((line) => line.totalCount > 0).length;
-  const legendLabel = affectedLineCount === 0
+  const legendLabel = snapshot
+    ? "Transit line legend, current status unknown"
+    : affectedLineCount === 0
     ? "Transit line legend, all lines have regular service"
     : `Transit line legend, ${affectedLineCount} ${affectedLineCount === 1 ? "line has" : "lines have"} service impacts`;
   const modifierClasses = `${
@@ -140,11 +142,10 @@ export function MobileLegend({
     const shell = legend?.closest<HTMLElement>(".linewatch-shell");
     if (!legend || !shell) return;
 
-    const publishHeight = () => {
-      shell.style.setProperty("--mobile-map-legend-height", `${Math.ceil(legend.getBoundingClientRect().height)}px`);
-    };
-    publishHeight();
-    const observer = new ResizeObserver(publishHeight);
+    const observer = new ResizeObserver(([entry]) => {
+      const height = entry.borderBoxSize[0]?.blockSize ?? legend.getBoundingClientRect().height;
+      shell.style.setProperty("--mobile-map-legend-height", `${Math.ceil(height)}px`);
+    });
     observer.observe(legend);
 
     return () => {

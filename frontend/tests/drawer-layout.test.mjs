@@ -84,7 +84,7 @@ describe("floating menu layout", () => {
     assert.match(mobileLegendSource, /Service impacts by transit line/);
     assert.match(mobileLegendSource, /View all service impacts for \$\{line\.name\}/);
     assert.match(mobileLegendSource, /onLineClick\?\.\(line\.dataLineId\)/);
-    assert.match(mobileLegendSource, /ResizeObserver\(publishHeight\)/);
+    assert.match(mobileLegendSource, /new ResizeObserver/);
     assert.match(mobileLegendSource, /--mobile-map-legend-height/);
     assert.match(shellSource, /setLegendExpanded\(false\);[\s\S]*openLineImpacts\(lineId\)/);
     assert.match(globalCss, /\.mobile-legend-line-list\s*\{[^}]*position:\s*absolute/s);

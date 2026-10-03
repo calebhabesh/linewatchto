@@ -175,10 +175,13 @@ export function MobileStatusPeek({
     if (!el) return;
 
     const notice = el.querySelector<HTMLElement>(".mobile-service-sheet-notice-row");
+    const minimum = el.querySelector<HTMLElement>(".mobile-service-sheet-minimum");
     const updateHeight = () => {
+      const noticeHeight = notice?.getBoundingClientRect().height ?? 0;
       // Reserve the notice's natural height, including wrapped saved timestamps.
-      el.style.setProperty("--service-sheet-notice-height", `${notice?.getBoundingClientRect().height ?? 0}px`);
-      const height = el.querySelector<HTMLElement>(".mobile-service-sheet-minimum")?.getBoundingClientRect().height ?? 0;
+      el.style.setProperty("--service-sheet-notice-height", `${noticeHeight}px`);
+      // This height depends on the notice variable; read after publishing it.
+      const height = minimum?.getBoundingClientRect().height ?? 0;
       if (height > 0) {
         document.documentElement.style.setProperty(
           "--mobile-status-peek-actual-height",
@@ -187,7 +190,6 @@ export function MobileStatusPeek({
       }
     };
 
-    updateHeight();
     el.addEventListener("transitionend", updateHeight);
     window.addEventListener("resize", updateHeight);
 
@@ -198,7 +200,8 @@ export function MobileStatusPeek({
       });
       resizeObserver.observe(el);
       if (notice) resizeObserver.observe(notice);
-    }
+      if (minimum) resizeObserver.observe(minimum);
+    } else updateHeight();
 
     return () => {
       resizeObserver?.disconnect();

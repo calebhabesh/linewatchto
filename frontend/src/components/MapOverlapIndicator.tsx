@@ -1,6 +1,6 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+import { useRef, type KeyboardEvent } from "react";
 import type {
   ImpactSelection,
   MapImpact,
@@ -225,6 +225,7 @@ export function MapOverlapIndicator({
   onHoverChange?: (hovered: boolean) => void;
   shouldSuppressMapClick?: () => boolean;
 }) {
+  const pointerStartedMapGesture = useRef(!isolatePointerDown);
   const open = Boolean(isOpen);
   const kindCounts = overlapBadgeKindCounts(impacts);
   const visibleKindCounts = kindCounts.slice(0, 3);
@@ -253,14 +254,16 @@ export function MapOverlapIndicator({
       className={`overlap-indicator-group ${isOpen ? "open" : ""}`}
       data-overlap-segment-id={markerId}
       data-overlap-collision-avoided={collisionAvoided ? "true" : "false"}
-      onPointerDown={isolatePointerDown ? (event) => event.stopPropagation() : undefined}
+      onPointerDown={(event) => {
+        const isolated = isolatePointerDown && event.pointerType === "mouse";
+        pointerStartedMapGesture.current = !isolated;
+        if (isolated) event.stopPropagation();
+      }}
       onClick={(event) => {
         event.stopPropagation();
-        // An isolated pointer-down never starts the map's pan gesture, so a
-        // suppression flag left behind by an earlier drag must not veto this
-        // new badge activation. Non-isolated consumers still share the map's
-        // drag-versus-click guard.
-        if (!isolatePointerDown && shouldSuppressMapClick()) return;
+        // Touch and pen can pan through the badge. Mouse activation remains
+        // isolated, so an earlier map drag cannot suppress a fresh click.
+        if (event.detail !== 0 && pointerStartedMapGesture.current && shouldSuppressMapClick()) return;
         activate();
       }}
       transform={`translate(${position.x} ${position.y}) scale(${visualScale})`}

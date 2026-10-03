@@ -410,8 +410,13 @@ export function useDashboardSession({
       void fetchDashboard(selectedNetwork);
     };
 
-    refresh();
-    const interval = window.setInterval(refresh, dashboardRefreshIntervalMs());
+    const intervalMs = dashboardRefreshIntervalMs();
+    const refreshedAt = verifiedAtRef.current[selectedNetwork];
+    // Map preparation may have just verified this network. Reuse that read
+    // instead of replacing its overlays again immediately after the switch.
+    if (!sessionVerifiedRef.current[selectedNetwork] || refreshedAt === null
+      || Date.now() - refreshedAt >= intervalMs) refresh();
+    const interval = window.setInterval(refresh, intervalMs);
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") refresh();
     };

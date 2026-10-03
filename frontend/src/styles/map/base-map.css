@@ -1,3 +1,9 @@
+.network-map-transition-surface {
+  /* Include sibling legends and controls in the map's gesture boundary.
+     A pinch starting on map chrome must not zoom the browser viewport. */
+  touch-action: none;
+}
+
 .regional-map,
 .regional-map-viewport {
   position: absolute;

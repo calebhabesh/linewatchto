@@ -2083,13 +2083,17 @@ export function installRegionalOverlaySession(
       markCompletedSelectionIntro(svg);
     }
 
-    synchronizeRegionalOverlayPulses(svg);
     if (pulseFrame !== null) window.cancelAnimationFrame(pulseFrame);
     if (settledPulseFrame !== null) window.cancelAnimationFrame(settledPulseFrame);
-    pulseFrame = window.requestAnimationFrame(() => {
+    pulseFrame = null;
+    settledPulseFrame = null;
+    if (!data.reducedMotion) {
       synchronizeRegionalOverlayPulses(svg);
-      settledPulseFrame = window.requestAnimationFrame(() => synchronizeRegionalOverlayPulses(svg));
-    });
+      pulseFrame = window.requestAnimationFrame(() => {
+        synchronizeRegionalOverlayPulses(svg);
+        settledPulseFrame = window.requestAnimationFrame(() => synchronizeRegionalOverlayPulses(svg));
+      });
+    }
 
     const badges = regionalOverlapBadges(documentNode, data.networkSegments).map((badge) => {
       const stablePosition = overlapBadgePositions.get(badge.markerId);
