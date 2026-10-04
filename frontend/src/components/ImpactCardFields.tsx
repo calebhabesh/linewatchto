@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ArrowLeft, MapPinned } from "lucide-react";
+import { ArrowLeft, createLucideIcon } from "lucide-react";
 import type { AccountCommutePathPreview } from "../app/commute-data";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { suppliedAlertCause } from "../app/alert-cause";
@@ -7,6 +7,13 @@ import { formatImpactLocation } from "../app/impact-location";
 import { ImpactTimestamp } from "./ImpactTimestamp";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
+
+// Preserve the Lucide geometry, painting the folded map before the pin.
+const MapPinned = createLucideIcon("MapPinned", [
+  ["path", { d: "M8.714 14h-3.71a1 1 0 0 0-.948.683l-2.004 6A1 1 0 0 0 3 22h18a1 1 0 0 0 .948-1.316l-2-6a1 1 0 0 0-.949-.684h-3.712", className: "map-pinned-base", key: "map" }],
+  ["path", { d: "M18 8c0 3.613-3.869 7.429-5.393 8.795a1 1 0 0 1-1.214 0C9.87 15.429 6 11.613 6 8a6 6 0 0 1 12 0", className: "map-pinned-pin", key: "pin" }],
+  ["circle", { cx: "12", cy: "8", r: "2", className: "map-pinned-pin", key: "hole" }],
+]);
 
 export function formatCause(cause: string | null | undefined): string {
   cause = suppliedAlertCause(cause);
@@ -372,7 +379,7 @@ export function ImpactCardMapButton({
   className = "",
   disabled = false,
 }: ImpactCardMapButtonProps) {
-  const labelText = actionLabel ?? "Map";
+  const labelText = actionLabel ?? "View";
   const isBack = labelText.toLowerCase().includes("back") || labelText.toLowerCase().includes("unfocus");
   const ariaText = disabled
     ? `${title}: location unavailable on map`

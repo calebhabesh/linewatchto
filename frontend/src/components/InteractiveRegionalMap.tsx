@@ -1,4 +1,5 @@
 "use client";
+import { CommuteRouteLabel } from "./CommuteRouteLabel";
 import { CardinalNorthIcon } from "./CardinalNorthIcon";
 
 import { useMapViewportPersistence } from "../hooks/useMapViewportPersistence";
@@ -6,6 +7,7 @@ import {
   observeMobileMapFrame,
   readMapStationCenterX,
   readMobileMapFrameInsets,
+  readCommutePreviewInset,
   readMobileImpactInspectorInset,
   readMobileImpactInspectorTop,
   readMobilePillBottom,
@@ -1352,6 +1354,7 @@ function InteractiveRegionalMapComponent({
     const isMobile = typeof window !== "undefined" && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches;
     const currentFitted = fittedCamera();
     const effectiveFitScale = currentFitted?.scale ?? fitScale ?? 0.35;
+    const commutePreviewComfort = commutePathPreview && !selection && !selectedStationId ? 0.82 : 1;
     const preferredTargetScale = clampPanZoomScale(effectiveFitScale * (isMobile ? 3.8 : 1.8), effectiveFitScale);
     const focusPadding = isMobile ? 24 : 40;
     const topPillBottom = isMobile ? readMobilePillBottom(viewport) : 0;
@@ -1374,6 +1377,10 @@ function InteractiveRegionalMapComponent({
             : Math.max(focusPadding, logicalHeight - mobileImpactTop))
         : Math.max(desktopMapBottomInset, focusPadding, readMobileImpactInspectorInset(viewport) + focusPadding),
     };
+
+    if (commutePathPreview && !selection && !selectedStationId) {
+      focusInsets.bottom = Math.max(focusInsets.bottom, readCommutePreviewInset(viewport));
+    }
 
     if (!isMobile) {
       const leftOcclusion = readDesktopLeftOcclusion(viewport, desktopMenuPinned, 16);
@@ -1415,7 +1422,7 @@ function InteractiveRegionalMapComponent({
     const targetScale = Math.min(
       clampPanZoomScale(preferredTargetScale, effectiveFitScale),
       selectionFit.scale * REGIONAL_SELECTION_FIT_COMFORT_RATIO,
-    );
+    ) * commutePreviewComfort;
     const { focusX: baseFocusX, focusY: baseFocusY } = computeInsetViewportFocus(
       logicalWidth,
       logicalHeight,
@@ -1435,6 +1442,7 @@ function InteractiveRegionalMapComponent({
     return true;
   }, [
     animateCameraTo,
+    commutePathPreview,
     desktopMapBottomInset,
     desktopMapTopInset,
     desktopMenuPinned,
@@ -2218,7 +2226,7 @@ function InteractiveRegionalMapComponent({
       {commutePathPreview && !selection ? (
         <div className="commute-path-preview-chip" role="status" aria-live="polite" data-map-chooser-keepout>
           <span>
-            Viewing <strong>{commutePathPreview.routeLabel}</strong>
+            Viewing <strong><CommuteRouteLabel label={commutePathPreview.routeLabel} /></strong>
           </span>
           <button
             type="button"

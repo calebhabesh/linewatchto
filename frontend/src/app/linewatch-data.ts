@@ -485,7 +485,7 @@ export const commuteImpacts: CommuteSummary[] = [
   {
     id: "commute-finch-union",
     name: "Morning commute",
-    route: "Finch -> Union",
+    route: "Finch → Union",
     impact: "clear",
     statusLabel: "Clear",
     detail: "No active route disruptions are loaded in fixture mode.",
@@ -493,7 +493,7 @@ export const commuteImpacts: CommuteSummary[] = [
   {
     id: "commute-kipling-kennedy",
     name: "Crosstown backup",
-    route: "Kipling -> Kennedy",
+    route: "Kipling → Kennedy",
     impact: "clear",
     statusLabel: "Clear",
     detail: "No active route disruptions are loaded in fixture mode.",
@@ -501,7 +501,7 @@ export const commuteImpacts: CommuteSummary[] = [
   {
     id: "commute-sheppard",
     name: "North York hop",
-    route: "Sheppard-Yonge -> Don Mills",
+    route: "Sheppard-Yonge → Don Mills",
     impact: "clear",
     statusLabel: "Clear",
     detail: "No active or planned impacts on this saved segment.",

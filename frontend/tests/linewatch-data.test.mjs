@@ -70,7 +70,7 @@ describe("LineWatch dashboard fixture data", () => {
   });
 
   it("includes commute impact and reliability metrics for portfolio storytelling", () => {
-    assert.ok(commuteImpacts.every((commute) => commute.route.includes("->")));
+    assert.ok(commuteImpacts.every((commute) => commute.route.includes("→")));
     assert.ok(lineStatuses.every((line) => line.statusLabel.length > 0));
     assert.ok(reliabilitySummaries.every((summary) => summary.score >= 0 && summary.score <= 100));
   });

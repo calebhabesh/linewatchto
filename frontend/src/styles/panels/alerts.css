@@ -83,25 +83,23 @@
 }
 
 /* Lucide MapPinned: red pin, blue folded-map base */
-.impact-card-map-btn .map-pinned-icon path:first-of-type,
-.impact-card-map-btn .map-pinned-icon circle {
+.impact-card-map-btn .map-pinned-icon .map-pinned-pin {
   stroke: #ef4444;
 }
 
-.dark .impact-card-map-btn .map-pinned-icon path:first-of-type,
-.dark .impact-card-map-btn .map-pinned-icon circle {
+.dark .impact-card-map-btn .map-pinned-icon .map-pinned-pin {
   stroke: #f87171;
 }
 
-.impact-card-map-btn .map-pinned-icon path:last-of-type {
+.impact-card-map-btn .map-pinned-icon .map-pinned-base {
   stroke: #2563eb;
 }
 
-.dark .impact-card-map-btn .map-pinned-icon path:last-of-type {
+.dark .impact-card-map-btn .map-pinned-icon .map-pinned-base {
   stroke: #60a5fa;
 }
 
-/* Comparison variant: icon + "Map" in the same position */
+/* Labeled variant: icon + "View" in the same position */
 .impact-card-map-btn--labeled {
   flex: 0 0 auto;
   flex-direction: row;

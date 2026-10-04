@@ -281,7 +281,7 @@ export function commutePathPreviewFromCommute(commute: AccountSavedCommute, legI
     commuteId: commute.id,
     legId: leg.id,
     label: commute.label,
-    routeLabel: leg.routeLabel,
+    routeLabel: leg.routeLabel.replace(/\s*-\s*>\s*/g, " → "),
     stationIds: leg.path.stationIds,
     segmentIds: leg.path.segmentIds,
   };

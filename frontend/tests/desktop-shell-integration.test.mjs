@@ -150,7 +150,7 @@ describe("desktop shell layout & geometry integration (Session 1)", () => {
       assert.match(shellSource, /<DesktopStatusOverview[\s\S]*?notice=\{/);
       assert.match(
         shellSource,
-        /<div className="desktop-map-workspace">[\s\S]*?desktopSidebarCollapsed && desktopNotice \?\s*\(\s*<div className="desktop-collapsed-map-notice-anchor">/,
+        /<div\s+className="desktop-map-workspace"[^>]*>[\s\S]*?desktopSidebarCollapsed && desktopNotice \?\s*\(\s*<div className="desktop-collapsed-map-notice-anchor">/,
       );
       assert.match(
         globalCss,

@@ -83,3 +83,61 @@ test("mobile rotated speed zone selection keeps its affected track in view", asy
     await expectTrackFocused(page, corridor.id);
   }
 });
+
+test("saved commute preview leaves room around its route", async ({ page, isMobile }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "Demo Account", exact: true }).click();
+  const card = page.locator('[data-commute-card-id="commute_demo_finch_union"]');
+  await expect(card).toBeVisible();
+  await card.locator(".commute-route-map-button").click();
+  const route = page.locator(".commute-path-preview-path");
+  await expect(route).toBeVisible();
+  await expect(page.locator("[data-map-pan-zoom-viewport]")).toHaveAttribute("data-map-camera-moving", "false");
+  await expect.poll(async () => {
+    const bounds = await route.boundingBox();
+    const viewport = await page.locator("[data-map-pan-zoom-viewport]").boundingBox();
+    if (!bounds || !viewport) return Infinity;
+    return Math.max(bounds.width / viewport.width, bounds.height / viewport.height);
+  }, { message: "The route should leave visible context around its longest dimension" }).toBeLessThan(0.8);
+  await expect(page.locator(".commute-path-preview-chip strong")).toContainText(" → ");
+  const arrow = page.locator(".commute-path-preview-chip .commute-route-direction-arrow");
+  await expect(arrow).toHaveAttribute("stroke-width", "3");
+  if (!isMobile) {
+    const banner = page.locator(".commute-path-preview-chip");
+    await expect.poll(async () => {
+      const bannerBox = (await banner.boundingBox())!;
+      const sidebar = (await page.locator("#desktop-sidebar-container").boundingBox())!;
+      const viewport = (await page.locator("[data-map-pan-zoom-viewport]").boundingBox())!;
+      return Math.abs(bannerBox.x + bannerBox.width / 2 - (sidebar.x + sidebar.width + viewport.x + viewport.width) / 2);
+    }).toBeLessThan(2);
+    await page.getByRole("button", { name: "Collapse sidebar", exact: true }).click();
+    await expect.poll(async () => {
+      const bannerBox = (await banner.boundingBox())!;
+      const viewport = (await page.locator("[data-map-pan-zoom-viewport]").boundingBox())!;
+      return Math.abs(bannerBox.x + bannerBox.width / 2 - viewport.x - viewport.width / 2);
+    }).toBeLessThan(2);
+    await page.getByRole("button", { name: "Expand sidebar", exact: true }).click();
+  }
+  const routeBounds = (await route.boundingBox())!;
+  const bannerBounds = (await page.locator(".commute-path-preview-chip").boundingBox())!;
+  expect(routeBounds.y + routeBounds.height).toBeLessThan(bannerBounds.y - 8);
+  await page.screenshot({ path: `/tmp/linewatch-commute-preview-${isMobile ? "mobile" : "desktop"}.png` });
+});
+
+test("card map icon paints the red pin over the blue map", async ({ page, isMobile }) => {
+  await page.goto("/?panel=closures");
+  const button = page.locator(".impact-card-map-btn--labeled").first();
+  await expect(button).toBeVisible();
+  await expect(button.locator(".impact-card-map-btn__label")).toHaveText("View");
+  const icon = button.locator(".map-pinned-icon");
+  expect(await icon.evaluate((svg) => {
+    const base = svg.querySelector(".map-pinned-base")!;
+    const pin = svg.querySelector(".map-pinned-pin")!;
+    return Boolean(base.compareDocumentPosition(pin) & Node.DOCUMENT_POSITION_FOLLOWING)
+      && getComputedStyle(base).stroke !== getComputedStyle(pin).stroke;
+  })).toBe(true);
+  await button.screenshot({ path: `/tmp/linewatch-view-button-${isMobile ? "mobile" : "desktop"}.png` });
+});

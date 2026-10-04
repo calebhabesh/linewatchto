@@ -4982,7 +4982,10 @@ export function LineWatchShell({
               {renderDesktopSidebarContent()}
             </div>
           </aside>
-          <div className="desktop-map-workspace">
+          <div
+            className="desktop-map-workspace"
+            style={{ "--commute-preview-left-inset": `${desktopSidebarCollapsed ? 0 : desktopMetrics.sidebarWidth}px` } as React.CSSProperties}
+          >
             <main
               ref={networkMapSurfaceRef}
               className={`network-map-transition-surface absolute inset-0 z-auto md:z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}

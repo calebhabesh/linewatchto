@@ -1,5 +1,6 @@
 "use client";
 
+import { CommuteRouteLabel } from "./CommuteRouteLabel";
 import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo, type RefObject } from "react";
 import { Map as MapLibreMap, AttributionControl, getVersion, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -77,6 +78,7 @@ import {
   visibleMapChooserKeepouts,
 } from "./map-chooser-keepouts";
 import {
+  readCommutePreviewInset,
   readMobileImpactInspectorTop,
   readMobilePillBottom,
   readMobileStationSubmenuTop,
@@ -1700,7 +1702,11 @@ export function GeographicNetworkMap({
         }
         map.fitBounds(
           [[minLng, minLat], [maxLng, maxLat]],
-          { padding: { top: 90, bottom: 90, left: 60, right: 60 }, animate: !reducedMotion },
+          {
+            padding: { top: 110, bottom: Math.max(110, readCommutePreviewInset(containerRef.current)), left: 80, right: 80 },
+            maxZoom: 13,
+            animate: !reducedMotion,
+          },
         );
       }
     }
@@ -1936,11 +1942,11 @@ export function GeographicNetworkMap({
         <div
           role="status"
           aria-live="polite"
-          className="absolute bottom-16 sm:bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 px-4 py-2 rounded-xl bg-slate-900/90 dark:bg-slate-800/90 text-white text-xs font-semibold shadow-xl backdrop-blur-xs border border-cyan-500/30"
+          className="geographic-commute-preview-banner absolute bottom-16 sm:bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 px-4 py-2 rounded-xl bg-slate-900/90 dark:bg-slate-800/90 text-white text-xs font-semibold shadow-xl backdrop-blur-xs border border-cyan-500/30"
         >
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-            <span>Viewing <strong>{commutePathPreview.routeLabel}</strong></span>
+            <span>Viewing <strong><CommuteRouteLabel label={commutePathPreview.routeLabel} /></strong></span>
           </span>
           {onClearCommutePathPreview && (
             <button
