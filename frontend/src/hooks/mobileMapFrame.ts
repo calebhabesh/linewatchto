@@ -216,3 +216,12 @@ export function readMobileImpactInspectorTop(
   }
   return fallbackViewportHeight;
 }
+
+/** Reserve the route-preview banner so the destination stays above it. */
+export function readCommutePreviewInset(viewport: HTMLElement | null): number {
+  if (!viewport || typeof window === "undefined") return 0;
+  const shell = viewport.closest(".linewatch-shell");
+  const banner = shell?.querySelector<HTMLElement>(".commute-path-preview-chip:not(.commute-path-preview-embedded), .geographic-commute-preview-banner");
+  if (!banner || banner.getClientRects().length === 0) return 0;
+  return Math.max(0, viewport.getBoundingClientRect().bottom - banner.getBoundingClientRect().top + 16);
+}

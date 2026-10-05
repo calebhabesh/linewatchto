@@ -1,4 +1,5 @@
 "use client";
+import { CommuteRouteLabel } from "./CommuteRouteLabel";
 import { useAlertChooserDismissal } from "../hooks/useAlertChooserDismissal";
 import { IncidentStationSpan } from "./IncidentStationSpan";
 import { CardinalNorthIcon } from "./CardinalNorthIcon";
@@ -84,6 +85,7 @@ import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
 import {
   observeMobileMapFrame,
+  readCommutePreviewInset,
   readMobileImpactInspectorInset,
   readMobileImpactInspectorTop,
   readMobilePillBottom,
@@ -1073,6 +1075,7 @@ function InteractiveTtcMapComponent({
 
     const current = currentRenderedTransform() ?? { x: 0, y: 0, scale: effectiveFitScale };
     const isMobile = typeof window !== "undefined" && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches;
+    const commutePreviewComfort = commutePathPreview && !selection && !selectedStationId ? 0.82 : 1;
     const preferredTargetScale = clampPanZoomScale(effectiveFitScale * (isMobile ? 3.8 : 1.8), effectiveFitScale);
     const focusPadding = isMobile ? 24 : 40;
     const topPillBottom = isMobile ? readMobilePillBottom(viewport) : 0;
@@ -1095,6 +1098,10 @@ function InteractiveTtcMapComponent({
             : Math.max(focusPadding, logicalHeight - mobileImpactTop))
         : Math.max(focusPadding, readMobileImpactInspectorInset(viewport) + focusPadding),
     };
+
+    if (commutePathPreview && !selection && !selectedStationId) {
+      selectionFocusInsets.bottom = Math.max(selectionFocusInsets.bottom, readCommutePreviewInset(viewport));
+    }
 
     if (!isMobile && typeof window !== "undefined") {
       const leftOcclusion = readDesktopLeftOcclusion(viewport, desktopMenuPinned, 24);
@@ -1153,7 +1160,7 @@ function InteractiveTtcMapComponent({
       const targetScale = Math.min(
         clampPanZoomScale(preferredTargetScale, effectiveFitScale),
         selectionFit.scale * 0.92,
-      );
+      ) * commutePreviewComfort;
       const { focusX: baseFocusX, focusY: baseFocusY } = computeInsetViewportFocus(
         logicalWidth,
         logicalHeight,
@@ -1245,12 +1252,12 @@ function InteractiveTtcMapComponent({
         commutePathPreview.segmentIds.flatMap((segmentId) => focusBoxesBySegmentId.get(segmentId) ?? []),
       );
       if (svgBounds) {
-        const targetScale = isMobile ? 3.8 : 1.8;
+        const targetScale = (isMobile ? 3.8 : 1.8) * commutePreviewComfort;
         zoomToBounds({
-          x: svgBounds.x * SVG_TO_RENDERED_MAP_SCALE,
-          y: svgBounds.y * SVG_TO_RENDERED_MAP_SCALE,
-          width: svgBounds.width * SVG_TO_RENDERED_MAP_SCALE,
-          height: svgBounds.height * SVG_TO_RENDERED_MAP_SCALE,
+          x: (svgBounds.x - svgBounds.width * (1 / commutePreviewComfort - 1) / 2) * SVG_TO_RENDERED_MAP_SCALE,
+          y: (svgBounds.y - svgBounds.height * (1 / commutePreviewComfort - 1) / 2) * SVG_TO_RENDERED_MAP_SCALE,
+          width: svgBounds.width * SVG_TO_RENDERED_MAP_SCALE / commutePreviewComfort,
+          height: svgBounds.height * SVG_TO_RENDERED_MAP_SCALE / commutePreviewComfort,
         }, targetScale, focusViewportOptions);
         return true;
       }
@@ -3045,7 +3052,7 @@ function InteractiveTtcMapComponent({
       {commutePathPreview && !selection ? (
         <div className="commute-path-preview-chip" role="status" aria-live="polite" data-map-chooser-keepout>
           <span>
-            Viewing <strong>{commutePathPreview.routeLabel}</strong>
+            Viewing <strong><CommuteRouteLabel label={commutePathPreview.routeLabel} /></strong>
           </span>
           <button
             type="button"

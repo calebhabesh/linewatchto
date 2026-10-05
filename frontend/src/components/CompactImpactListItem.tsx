@@ -67,7 +67,7 @@ export function CompactImpactListItem({
   const renderedFacts: CompactImpactFact[] = direction
     ? [{ label: "Direction", value: direction }, ...facts]
     : facts;
-  const effectiveMapActionLabel = mapUnavailable ? "No map location" : mapActionLabel ?? "Map";
+  const effectiveMapActionLabel = mapUnavailable ? "No map location" : mapActionLabel ?? "View";
   const mapActionIsBack = effectiveMapActionLabel === "Back";
 
   const content = (

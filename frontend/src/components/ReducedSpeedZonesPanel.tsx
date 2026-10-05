@@ -171,7 +171,7 @@ export function ReducedSpeedZonesPanel({
                     updatedValue={showUpdatedBreakdown ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="updatedAt" /> : undefined}
                     extraRows={[{label: "Est. Resolution", value: showResolutionBreakdown ? <ReducedSpeedZoneResolutionBreakdown zone={zone} /> : reducedSpeedZoneResolutionText(zone)}]}
                   />}
-                  mapActionLabel={isActive && onReturnToMap ? "Back" : "Map"}
+                  mapActionLabel={isActive && onReturnToMap ? "Back" : "View"}
                   active={isActive}
                   toneClassName="rsz-card-border"
                   onShowOnMap={isActive && onReturnToMap ? onReturnToMap : () => handleReducedSpeedZoneClick(zone.id)}

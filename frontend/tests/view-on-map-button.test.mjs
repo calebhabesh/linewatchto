@@ -47,8 +47,8 @@ describe("44px View on Map button", () => {
     assert.match(globalCss, /\.impact-card-map-btn:focus-visible\s*\{[^}]*outline:/s);
 
     // Lucide MapPinned dual-tone icon: red pin, blue folded-map base
-    assert.match(globalCss, /\.impact-card-map-btn \.map-pinned-icon path:first-of-type[\s\S]*?stroke:\s*#ef4444/);
-    assert.match(globalCss, /\.impact-card-map-btn \.map-pinned-icon path:last-of-type[\s\S]*?stroke:\s*#2563eb/);
+    assert.match(globalCss, /\.impact-card-map-btn \.map-pinned-icon \.map-pinned-pin[\s\S]*?stroke:\s*#ef4444/);
+    assert.match(globalCss, /\.impact-card-map-btn \.map-pinned-icon \.map-pinned-base[\s\S]*?stroke:\s*#2563eb/);
 
     // JumpToLocationIcon dual-tone icon preserved for other consumers
     assert.match(globalCss, /\.jump-to-corners path[\s\S]*?stroke:\s*#ffffff\s*!important/);
@@ -57,7 +57,7 @@ describe("44px View on Map button", () => {
     assert.doesNotMatch(globalCss, /\.impact-card-map-btn\.is-active/);
   });
 
-  it("keeps Map and Back navigation actions at stable dimensions", () => {
+  it("keeps View and Back navigation actions at stable dimensions", () => {
     assert.match(impactCardFieldsSource, /Back/);
     assert.match(impactCardFieldsSource, /Map/);
     assert.match(impactCardFieldsSource, /isBack \? \([\s\S]*?<ArrowLeft[\s\S]*?: \([\s\S]*?<MapPinned/);

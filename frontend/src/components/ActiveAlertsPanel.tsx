@@ -154,7 +154,7 @@ export function ActiveAlertsPanel({
                     ...(alert.resolution ? [{ column: 4 as const, label: "Est. Resolution", value: alert.resolution }] : []),
                   ]}
                   status={alert.shuttle ? <><Bus size={11} /> Shuttle</> : null}
-                  mapActionLabel={isActive && onReturnToMap ? "Back" : "Map"}
+                  mapActionLabel={isActive && onReturnToMap ? "Back" : "View"}
                   active={isActive}
                   toneClassName="suspension-card-border"
                   details={closureId ? (

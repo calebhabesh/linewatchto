@@ -140,7 +140,7 @@ export function DelaysPanel({
                     { column: 2, label: "Started", value: <CompactImpactTimeValue timestamp={delay.startedAt} /> },
                     { column: 3, label: "Updated", value: <CompactImpactTimeValue timestamp={delay.updatedAt} /> },
                   ]}
-                  mapActionLabel={isActive && onReturnToMap ? "Back" : "Map"}
+                  mapActionLabel={isActive && onReturnToMap ? "Back" : "View"}
                   active={isActive}
                   toneClassName="delay-card-border"
                   onShowOnMap={isActive && onReturnToMap ? onReturnToMap : () => handleDelayClick(delay.id)}

@@ -189,7 +189,7 @@ export function PlannedClosuresPanel({
                   toneClassName="planned-closure-card-border"
                   onShowOnMap={isActive && onReturnToMap ? onReturnToMap : () => handleClosureClick(closure.id)}
                   mapUnavailable={!hasMapTarget}
-                  mapActionLabel={isActive && onReturnToMap ? "Back" : "Map"}
+                  mapActionLabel={isActive && onReturnToMap ? "Back" : "View"}
                 />
               );
             }
@@ -211,7 +211,7 @@ export function PlannedClosuresPanel({
                   isMapActive={isActive}
                   onReturnToMap={onReturnToMap}
                   onMapAction={() => handleClosureClick(closure.id)}
-                  mapActionLabel={isActive && onReturnToMap ? "Back" : "Map"}
+                  mapActionLabel={isActive && onReturnToMap ? "Back" : "View"}
                   mapUnavailable={!hasMapTarget}
                   onFocusMap={onFocusMap}
                   mapActionVariant={mapActionVariant}
