@@ -66,6 +66,7 @@ type Props = {
   onChangeDetent: (detent: MobileInspectorDetent) => void;
   onUnfocus: () => void;
   onBack?: () => void;
+  backLabel?: string;
   unfocusLabel?: string;
   onViewFullDetails: () => void;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -424,6 +425,7 @@ export function MobileImpactInspector({
   onChangeDetent,
   onUnfocus,
   onBack,
+  backLabel = "Back to previous impact",
   unfocusLabel = "Unfocus impact",
   onViewFullDetails,
   onSelectImpact,
@@ -527,7 +529,7 @@ export function MobileImpactInspector({
         </div>
         <div className="mobile-impact-inspector-header-actions" role="group" aria-label="Impact navigation">
           {onBack ? (
-            <button type="button" onClick={onBack} className="mobile-impact-inspector-icon-button" aria-label="Back to previous impact">
+            <button type="button" onClick={onBack} className="mobile-impact-inspector-icon-button" aria-label={backLabel}>
               <ArrowLeft size={20} aria-hidden="true" />
             </button>
           ) : null}
@@ -582,6 +584,9 @@ export function MobileImpactInspector({
       </div>
 
       <div className="mobile-impact-inspector-actions">
+        <span className="mobile-impact-inspector-scroll-hint" aria-hidden="true">
+          <ChevronDown size={12} strokeWidth={1.5} />
+        </span>
         <button
           type="button"
           onClick={() => onChangeDetent(expanded ? "map-focus" : "details-focus")}

@@ -2336,11 +2336,7 @@ export function LineWatchShell({
     && desktopMapFocus.selection.id === selection?.id;
   const handleReturnImpactToMap = desktopImpactIsMapFocused
     ? () => handleMapSelectImpact(null)
-    : isMobile
-      && impactBackContext?.origin.activeView === "map"
-      && impactBackContext.origin.selection?.kind === selection?.kind
-      && impactBackContext.origin.selection?.id === selection?.id
-      ? handleSubmenuBack : undefined;
+    : impactBackContext ? handleSubmenuBack : undefined;
 
   const handleSearchSelectStation = (stationId: string, networkId: NetworkId) => {
     if (searchClosingTimeoutRef.current) {
@@ -5339,7 +5335,8 @@ export function LineWatchShell({
           detent={mobileInspectorDetent}
           onChangeDetent={setMobileInspectorDetent}
           onUnfocus={handleClearMobileImpactSelection}
-          onBack={impactBackContext?.origin.selection ? handleSubmenuBack : undefined}
+          onBack={impactBackContext ? handleSubmenuBack : undefined}
+          backLabel={impactBackContext?.origin.selection ? "Back to previous impact" : impactBackContext?.origin.activeView === "map" ? "Back to map" : "Back"}
           unfocusLabel={mobileImpactReturnView === "my-stations" ? "Back to My Stations" : undefined}
           onViewFullDetails={() => navigateForward(viewForImpactSelection(selection))}
           onSelectImpact={handleMapSelectImpact}
@@ -5407,7 +5404,7 @@ export function LineWatchShell({
               data={displayData}
               notices={!displayData.snapshot && currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
               onNotice={handleSearchOpenSurfaceNotice}
-              onImpact={handleSearchSelectImpact}
+              onImpact={handleMapSelectImpact}
               onStatus={() => navigateForward("status")}
               onCategory={(view, lineId) => openImpactCategory(view, lineId)}
               onNotices={openServiceNotices}
