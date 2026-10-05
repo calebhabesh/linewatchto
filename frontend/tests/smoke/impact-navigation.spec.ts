@@ -36,7 +36,8 @@ for (const back of ["card", "browser", "header"] as const) {
   });
 }
 
-test("Current Service detail keeps Map neutral and Back returns to its origin", async ({ page, isMobile }) => {
+test("Current Service selection shows Back on its card and returns to its origin", async ({ page, isMobile }) => {
+  test.skip(isMobile, "Mobile service selections open the split inspector");
   if (!isMobile) await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   if (isMobile) await page.getByRole("button", { name: "Expand service sheet" }).click();
@@ -47,17 +48,47 @@ test("Current Service detail keeps Map neutral and Back returns to its origin", 
   const card = page.locator(".alert-card.is-active").first();
   await expect(card).toBeVisible();
   const map = card.locator(".impact-card-map-btn");
-  await expect(map).toHaveText("Map");
+  await expect(map).toHaveText("Back");
   await expect(map).not.toHaveClass(/is-active/);
   await expect(map).not.toHaveAttribute("aria-pressed");
   const background = await map.evaluate(el => getComputedStyle(el).backgroundColor);
   expect(background).not.toBe("rgb(29, 78, 216)");
   expect(background).not.toBe("rgb(37, 99, 235)");
   await page.screenshot({ path: `/tmp/linewatch-impact-map-button-${isMobile ? "mobile" : "desktop"}.png` });
-  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await map.click();
   await expect(service).toBeVisible();
   await expect(page.locator("[data-mobile-impact-inspector]")).toHaveCount(0);
 });
+
+for (const back of ["back", "close", "browser"] as const) {
+  test(`mobile service selection opens the split map and ${back} restores the sheet`, async ({ page, isMobile }) => {
+    test.skip(!isMobile, "Mobile service sheet");
+    await page.setViewportSize({ width: 360, height: 780 });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Expand service sheet" }).click();
+    const sheetSnap = await page.locator(".mobile-service-sheet").getAttribute("data-snap");
+    const service = page.getByRole("region", { name: "Current Service", exact: true });
+    await service.locator('[data-impact-kind="delay"]').first().click();
+    const inspector = page.locator("[data-mobile-impact-inspector]");
+    await expect(inspector).toBeVisible();
+    await expect(inspector.getByRole("button", { name: "Show more map" })).toBeVisible();
+    await expect(page.locator('[data-map-highlight-id]').first()).toBeAttached();
+    const controls = inspector.getByRole("group", { name: "Impact navigation" });
+    await expect(controls.getByRole("button", { name: "Back to map", exact: true })).toBeVisible();
+    await expect(controls.getByRole("button", { name: "Unfocus impact" })).toBeVisible();
+    const mapBox = await page.locator('[data-map-pan-zoom-viewport]').first().boundingBox();
+    const inspectorBox = await inspector.boundingBox();
+    expect(mapBox && inspectorBox && inspectorBox.y > mapBox.y + 100).toBeTruthy();
+    if (back === "back") await page.screenshot({ path: "/tmp/linewatch-mobile-service-split.png" });
+    if (back === "browser") await page.goBack();
+    else await controls.getByRole("button", { name: back === "back" ? "Back to map" : "Unfocus impact", exact: true }).click();
+    await expect(inspector).toHaveCount(0);
+    await expect(service).toBeVisible();
+    await expect(page.locator(".mobile-service-sheet")).toHaveAttribute("data-snap", sheetSnap!);
+    await expect(page.locator('[data-map-highlight-id]')).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  });
+}
 
 test("mobile overlapping map details group Back and Close and restore the prior alert", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile inspector header");
@@ -87,6 +118,27 @@ test("mobile overlapping map details group Back and Close and restore the prior 
   await expect(controls.getByRole("button", { name: "Back to previous impact" })).toHaveCount(0);
 });
 
+test("mobile split description hints only while more content remains below", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "Mobile split inspector");
+  await page.setViewportSize({ width: 360, height: 640 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills", exact: true }).dispatchEvent("click");
+  const inspector = page.locator("[data-mobile-impact-inspector]");
+  const scroll = inspector.locator(".mobile-impact-inspector-scroll");
+  const hint = inspector.locator(".mobile-impact-inspector-scroll-hint");
+  for (const theme of ["dark", "light"]) {
+    await expect(hint).toBeVisible();
+    await expect(hint).toHaveAttribute("aria-hidden", "true");
+    await expect(hint).toHaveCSS("pointer-events", "none");
+    await page.screenshot({ path: `/tmp/linewatch-mobile-scroll-hint-${theme}.png` });
+    await scroll.evaluate(element => { element.scrollTop = element.scrollHeight; });
+    await expect(hint).toBeHidden();
+    await scroll.evaluate(element => { element.scrollTop = 0; });
+    await expect(hint).toBeVisible();
+    if (theme === "dark") await page.getByRole("button", { name: "Switch to light theme" }).click();
+  }
+});
+
 test("overlapping detail Back restores the previous alert", async ({ page, request, isMobile }) => {
   await setStubMode(request, "map-authoritative-overlap");
   if (!isMobile) await page.setViewportSize({ width: 1440, height: 900 });
@@ -96,17 +148,26 @@ test("overlapping detail Back restores the previous alert", async ({ page, reque
     ? page.getByRole("region", { name: "Current Service", exact: true })
     : page.locator(".desktop-status-overview");
   await service.locator('[data-impact-kind="delay"]').filter({ hasText: "Stub Station" }).first().click();
+  if (isMobile) {
+    const inspector = page.locator("[data-mobile-impact-inspector]");
+    await expect(inspector.getByRole("heading", { name: "Delay", exact: true })).toBeVisible();
+    await inspector.locator(".overlap-impact-ref").first().click();
+    await inspector.getByRole("button", { name: "Back to previous impact" }).click();
+    await expect(inspector.getByRole("heading", { name: "Delay", exact: true })).toBeVisible();
+    await expect(page.locator('[data-map-highlight-id="stub-delay-line-1-overlap"]')).toBeAttached();
+    return;
+  }
   const original = page.locator(".alert-card.is-active").first();
   const originalId = await original.getAttribute("data-impact-card-id");
   await original.locator(".overlap-impact-ref").first().click();
   await expect(page.locator("[data-impact-card-id].is-active").first()).not.toHaveAttribute("data-impact-card-id", originalId!);
   await page.getByRole("button", { name: "Back", exact: true }).click();
   await expect(page.locator(`[data-impact-card-id="${originalId}"]`)).toHaveClass(/is-active/);
-  await expect(page.locator(`[data-impact-card-id="${originalId}"] .impact-card-map-btn`)).toHaveText("Map");
+  await expect(page.locator(`[data-impact-card-id="${originalId}"] .impact-card-map-btn`)).toHaveText("Back");
 });
 
 for (const view of ["cards", "list"] as const) {
-  test(`desktop ${view} Map action becomes Back and clears impact focus`, async ({ page, isMobile }) => {
+  test(`desktop ${view} View action becomes Back and clears impact focus`, async ({ page, isMobile }) => {
     test.skip(isMobile, "Desktop card focus behavior");
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.addInitScript(view => localStorage.setItem("linewatch-impact-list-view-v1", view), view);
@@ -114,7 +175,7 @@ for (const view of ["cards", "list"] as const) {
     const id = "stub-upcoming-closure-line-1";
     const card = page.locator(`[data-impact-card-id="${id}"]`);
     const mapAction = view === "cards" ? card.locator(".impact-card-map-btn") : card;
-    await expect(mapAction).toContainText("Map");
+    await expect(mapAction).toContainText("View");
     await mapAction.click();
     await expect(mapAction).toContainText("Back");
     await expect(page.locator(`[data-map-highlight-id="${id}"]`).first()).toBeAttached();
@@ -123,7 +184,7 @@ for (const view of ["cards", "list"] as const) {
     await expect(page.locator("[data-map-pan-zoom-viewport]")).toHaveAttribute("data-map-camera-moving", "false");
     const focusedCamera = await camera.getAttribute("style");
     await mapAction.click();
-    await expect(mapAction).toContainText("Map");
+    await expect(mapAction).toContainText("View");
     await expect(card).not.toHaveClass(/is-active/);
     await expect(page.locator('[data-map-highlight-id]')).toHaveCount(0);
     await expect(page.locator('[data-selected-impact-emphasis]')).toHaveCount(0);
