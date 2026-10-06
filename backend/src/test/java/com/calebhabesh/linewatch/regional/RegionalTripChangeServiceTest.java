@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +14,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +39,17 @@ class RegionalTripChangeServiceTest {
         cancellationHistoryStore = mock(RegionalTrainCancellationHistoryStore.class);
         when(freshness.isFresh()).thenReturn(true);
         when(alertStore.findActiveClassifications(eq("trip-cancellation"), any())).thenReturn(List.of());
+        when(scheduleRepository.findActiveTrips(any(), any())).thenAnswer(invocation -> {
+            Collection<String> identities = invocation.getArgument(0);
+            LocalDate serviceDate = invocation.getArgument(1);
+            Map<String, List<RegionalGtfsScheduleRepository.MatchedDeparture>> result = new LinkedHashMap<>();
+            for (String identity : identities) {
+                List<RegionalGtfsScheduleRepository.MatchedDeparture> rows =
+                    scheduleRepository.findActiveTrip(identity, serviceDate);
+                if (rows != null && !rows.isEmpty()) result.put(identity, rows);
+            }
+            return result;
+        });
         service = new RegionalTripChangeService(
             operationalRepository,
             alertStore,
@@ -46,6 +60,61 @@ class RegionalTripChangeServiceTest {
             CLOCK,
             new MetrolinxProperties()
         );
+    }
+
+    @Test
+    void resolvesAllScheduleIdentitiesInOneBatchedLookupAndSharesResultAcrossCalls() {
+        OffsetDateTime observedAt = OffsetDateTime.parse("2026-07-31T15:58:00Z");
+        when(operationalRepository.findActiveRecords(any())).thenReturn(List.of(
+            record(MetrolinxSourceSystem.GO_TRAIN_EXCEPTIONS, "681", observedAt, """
+                {"TripNumber":"681","ServiceDate":"2026-07-31","IsCancelled":true}
+                """),
+            record(MetrolinxSourceSystem.GO_GTFS_TRIP_UPDATES, "MI100", observedAt, """
+                {"id":"MI100","trip_update":{"trip":{"trip_id":"MI100","start_date":"20260731","schedule_relationship":"CANCELED"}}}
+                """)
+        ));
+        when(scheduleRepository.findActiveTrip(eq("681"), eq(LocalDate.parse("2026-07-31"))))
+            .thenReturn(schedule("MI100", "681"));
+        when(scheduleRepository.findActiveTrip(eq("MI100"), eq(LocalDate.parse("2026-07-31"))))
+            .thenReturn(schedule("MI100", "681"));
+
+        RegionalTripChangeResponses.Response first = service.get(null, null, 250);
+        RegionalTripChangeResponses.Response second = service.get(null, null, 250);
+
+        assertThat(second.changes()).isEqualTo(first.changes()).hasSize(1);
+        verify(operationalRepository, times(1)).findActiveRecords(any());
+        verify(scheduleRepository, times(1)).findActiveTrips(
+            eq(new java.util.LinkedHashSet<>(List.of("681", "MI100"))), eq(LocalDate.parse("2026-07-31"))
+        );
+    }
+
+    @Test
+    void recomputesTripChangesAfterCacheWindowExpires() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-07-31T16:00:00Z"));
+        RegionalTripChangeService timedService = new RegionalTripChangeService(
+            operationalRepository, alertStore, scheduleRepository, freshness, cancellationHistoryStore,
+            JsonMapper.builder().findAndAddModules().build(), clock, new MetrolinxProperties()
+        );
+        when(operationalRepository.findActiveRecords(any())).thenReturn(List.of());
+
+        timedService.get(null, null, null);
+        clock.advance(java.time.Duration.ofSeconds(29));
+        timedService.get(null, null, null);
+        verify(operationalRepository, times(1)).findActiveRecords(any());
+
+        clock.advance(java.time.Duration.ofSeconds(2));
+        timedService.get(null, null, null);
+        verify(operationalRepository, times(2)).findActiveRecords(any());
+    }
+
+    @Test
+    void ingestionRecomputeRefreshesCachedTripChanges() {
+        when(operationalRepository.findActiveRecords(any())).thenReturn(List.of());
+        service.get(null, null, null);
+        service.recordCurrentCancellations();
+        service.get(null, null, null);
+
+        verify(operationalRepository, times(2)).findActiveRecords(any());
     }
 
     @Test
@@ -283,5 +352,32 @@ class RegionalTripChangeServiceTest {
             Map.of(),
             "{}"
         );
+    }
+
+    private static final class MutableClock extends Clock {
+        private Instant instant;
+
+        MutableClock(Instant instant) {
+            this.instant = instant;
+        }
+
+        void advance(java.time.Duration duration) {
+            instant = instant.plus(duration);
+        }
+
+        @Override
+        public java.time.ZoneId getZone() {
+            return ZoneOffset.UTC;
+        }
+
+        @Override
+        public Clock withZone(java.time.ZoneId zone) {
+            return this;
+        }
+
+        @Override
+        public Instant instant() {
+            return instant;
+        }
     }
 }
