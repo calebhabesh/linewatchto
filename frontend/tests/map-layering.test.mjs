@@ -733,8 +733,6 @@ describe("asset-backed map layering", () => {
     assert.match(ttcChooserPlacementSource, /const OVERLAP_CHOOSER_GAP_DEVIATION_WEIGHT = 4;/);
     assert.match(ttcChooserPlacementSource, /OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
     assert.match(ttcChooserPlacementSource, /OVERLAP_CHOOSER_MOBILE_WIDTH/);
-    assert.match(ttcChooserPlacementSource, /const isMobile = viewportWidth <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
-    assert.match(ttcChooserPlacementSource, /Math\.min\(440, 68 \+ impactCount \* 88\)/);
     assert.match(globalCss, /@media \(max-width: 640px\)[\s\S]*?\.overlap-chooser-list\s*\{[^}]*grid-auto-rows:\s*max-content;/);
     assert.match(globalCss, /@media \(max-width: 640px\)[\s\S]*?\.overlap-chooser-choice\s*\{[^}]*min-height:\s*82px;/);
     assert.match(interactiveMapSource, /protectedBoxesForImpacts\([\s\S]*?group\.impacts,[\s\S]*?collisionBoxesByImpact/);

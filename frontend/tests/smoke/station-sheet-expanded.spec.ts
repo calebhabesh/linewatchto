@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { installDismissedTransientUi, setStubMode } from "./test-support";
+import { installDismissedTransientUi, setStubMode, waitForNetworkTransition } from "./test-support";
 
 for (const network of ["ttc", "regional"] as const) {
   test(`${network} station title can drag sheet above search and close still works`, async ({ page, request, isMobile }) => {
@@ -10,6 +10,8 @@ for (const network of ["ttc", "regional"] as const) {
     await page.goto("/");
     if (network === "regional") {
       await page.locator(".mobile-map-network-switch").getByRole("button", { name: "GO/UP", exact: true }).click();
+      await waitForNetworkTransition(page, "regional");
+      await expect(page.locator('[data-network-map-layer="regional"]')).toHaveAttribute("data-map-ready", "true");
       await page.locator('.regional-map [role="button"][aria-label$="station details"]').first().dispatchEvent("click");
     } else {
       await page.getByRole("button", { name: "Stub Station station details", exact: true }).dispatchEvent("click");

@@ -2155,6 +2155,14 @@ function InteractiveTtcMapComponent({
           if (!isMapWheelScrollRegionTarget(event.target)) clearMapHover();
           handleWheel(event);
         }}
+        onClickCapture={(event) => {
+          // Android may retarget the synthesized click to a different label
+          // after pointerup activates a dot/overlay and focuses the camera.
+          // Consume it before any child can replace that completed selection.
+          if (event.detail === 0 || (!suppressNextMapClickRef.current && !shouldSuppressMapClick())) return;
+          suppressNextMapClickRef.current = false;
+          event.stopPropagation();
+        }}
         onClick={(event) => {
           if (shouldSuppressMapClick()) return;
           if (suppressNextMapClickRef.current) {

@@ -860,7 +860,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(overlapChooserSource, /data-overlap-choice-id=\{impact\.cardId\}/);
     assert.match(overlapChooserSource, /details\?\.closureDateLabel/);
     assert.match(overlapChooserSource, /overlap-chooser-choice-date/);
-    assert.match(regionalMapSource, /Math\.min\(440, 68 \+ badge\.impacts\.length \* 88\)/);
+    assert.match(regionalMapSource, /mapOverlapChooserSize\(badge\.impacts\.length, logicalViewportSize\.width\)/);
     assert.match(regionalMapSource, /visibleMapChooserKeepouts\(\)/);
     assert.match(regionalMapSource, /observeMapChooserKeepouts/);
     assert.match(regionalMapSource, /uiKeepoutBoxes/);
