@@ -2,9 +2,14 @@ package com.calebhabesh.linewatch.regional;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -222,7 +227,21 @@ public class RegionalGtfsScheduleRepository {
 
     public List<MatchedDeparture> findActiveTrip(String identity, LocalDate serviceDate) {
         if (identity == null || identity.isBlank() || serviceDate == null) return List.of();
-        return jdbc.query("""
+        return findActiveTrips(List.of(identity), serviceDate).getOrDefault(identity, List.of());
+    }
+
+    /**
+     * Matches each identity against trip_id, trip_short_name, or the trip number after the final
+     * '-' or '_' of trip_id, in one indexed query. Rows are grouped by every identity they match.
+     */
+    public Map<String, List<MatchedDeparture>> findActiveTrips(Collection<String> identities, LocalDate serviceDate) {
+        List<String> wanted = identities == null ? List.of() : identities.stream()
+            .filter(identity -> identity != null && !identity.isBlank()).distinct().toList();
+        if (wanted.isEmpty() || serviceDate == null) return Map.of();
+        String[] values = wanted.toArray(String[]::new);
+        Set<String> wantedSet = Set.copyOf(wanted);
+        Map<String, List<MatchedDeparture>> result = new LinkedHashMap<>();
+        jdbc.query("""
             with active_services as (
                 select service.import_id, service.service_id
                 from regional_gtfs_services service
@@ -247,28 +266,35 @@ public class RegionalGtfsScheduleRepository {
                   and service_exception.exception_type = 1
             )
             select departure.line_id, departure.direction, departure.trip_id,
-                   departure.trip_short_name, departure.station_id, departure.stop_sequence,
-                   departure.departure_seconds, departure.platform
+                   departure.trip_short_name, departure.trip_number, departure.station_id,
+                   departure.stop_sequence, departure.departure_seconds, departure.platform
             from regional_gtfs_departures departure
             join regional_gtfs_schedule_imports import
               on import.id = departure.import_id and import.active = true and import.source_system = 'go'
-            where (departure.trip_id = :identity
-                   or departure.trip_short_name = :identity
-                   or departure.trip_id like '%-' || :identity
-                   or departure.trip_id like '%_' || :identity)
+            where (departure.trip_id = any(:identities)
+                   or departure.trip_short_name = any(:identities)
+                   or departure.trip_number = any(:identities))
               and exists (
                   select 1 from active_services active_service
                   where active_service.import_id = departure.import_id
                     and active_service.service_id = departure.service_id
               )
             order by departure.trip_id, departure.stop_sequence nulls last, departure.departure_seconds
-            """, new MapSqlParameterSource("identity", identity).addValue("serviceDate", serviceDate),
-            (rs, row) -> new MatchedDeparture(
-                rs.getString("line_id"), rs.getString("direction"), rs.getString("trip_id"),
-                rs.getString("trip_short_name"), rs.getString("station_id"),
-                rs.getObject("stop_sequence", Integer.class), rs.getInt("departure_seconds"),
-                rs.getString("platform"), serviceDate
-            ));
+            """, new MapSqlParameterSource("identities", values).addValue("serviceDate", serviceDate),
+            rs -> {
+                MatchedDeparture departure = new MatchedDeparture(
+                    rs.getString("line_id"), rs.getString("direction"), rs.getString("trip_id"),
+                    rs.getString("trip_short_name"), rs.getString("station_id"),
+                    rs.getObject("stop_sequence", Integer.class), rs.getInt("departure_seconds"),
+                    rs.getString("platform"), serviceDate
+                );
+                String tripNumber = rs.getString("trip_number");
+                new LinkedHashSet<>(List.of(
+                    departure.tripId(), departure.tripShortName(), tripNumber == null ? "" : tripNumber
+                )).stream().filter(wantedSet::contains)
+                    .forEach(identity -> result.computeIfAbsent(identity, ignored -> new ArrayList<>()).add(departure));
+            });
+        return result;
     }
 
     public Optional<ActiveImport> activeImport(String sourceSystem) {

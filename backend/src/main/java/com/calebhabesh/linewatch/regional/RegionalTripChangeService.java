@@ -34,6 +34,8 @@ public class RegionalTripChangeService {
     private static final ZoneId TORONTO = ZoneId.of("America/Toronto");
     private static final Duration PAST_TOLERANCE = Duration.ofHours(1);
     private static final Duration FUTURE_HORIZON = Duration.ofHours(48);
+    // Push planners call get() per account and commute leg; share one computation across a job run.
+    private static final Duration CURRENT_CHANGES_TTL = Duration.ofSeconds(30);
 
     private final RegionalTripChangeOperationalRepository operationalRepository;
     private final RegionalAlertStore alertStore;
@@ -43,6 +45,7 @@ public class RegionalTripChangeService {
     private final ObjectMapper objectMapper;
     private final Clock clock;
     private final MetrolinxProperties properties;
+    private CachedChanges cachedChanges;
 
     public RegionalTripChangeService(
         RegionalTripChangeOperationalRepository operationalRepository,
@@ -70,7 +73,7 @@ public class RegionalTripChangeService {
             return new RegionalTripChangeResponses.Response(now, false, SOURCE, null, 0, List.of());
         }
 
-        CurrentChanges current = currentChanges(now);
+        CurrentChanges current = cachedCurrentChanges(now);
         Map<String, Accumulator> changes = current.changes();
         List<OperationalRecord> records = current.records();
         List<StoredClassification> cancellationNotices = current.cancellationNotices();
@@ -108,23 +111,57 @@ public class RegionalTripChangeService {
         cancellationHistoryStore.record(cancellations, now);
     }
 
+    private synchronized CurrentChanges cachedCurrentChanges(OffsetDateTime now) {
+        CachedChanges cached = cachedChanges;
+        if (cached != null && !now.isBefore(cached.computedAt())
+            && now.isBefore(cached.computedAt().plus(CURRENT_CHANGES_TTL))) {
+            return cached.changes();
+        }
+        return currentChanges(now);
+    }
+
     private CurrentChanges currentChanges(OffsetDateTime now) {
         List<OperationalRecord> records = operationalRepository.findActiveRecords(now.minus(properties.getMaxDashboardAge()));
         List<StoredClassification> cancellationNotices = alertStore.findActiveClassifications(
             "trip-cancellation", now.minus(properties.getMaxDashboardAge())
         );
+        // First pass records every schedule identity, so the schedule is fetched in one query per service date.
+        ScheduleLookup requests = new ScheduleLookup();
+        collectCandidates(records, cancellationNotices, now, requests);
+        ScheduleLookup schedules = requests.resolve(scheduleRepository);
         Map<String, Accumulator> changes = new LinkedHashMap<>();
-        for (OperationalRecord record : records) {
-            parse(record, now).forEach(candidate -> merge(changes, candidate));
-        }
-        for (StoredClassification notice : cancellationNotices) {
-            parseCancellationNotice(notice, now).forEach(candidate -> merge(changes, candidate));
-        }
+        collectCandidates(records, cancellationNotices, now, schedules)
+            .forEach(candidate -> merge(changes, candidate));
         suppressChangesDuplicatedByCancellation(changes);
-        return new CurrentChanges(changes, records, cancellationNotices);
+        CurrentChanges current = new CurrentChanges(changes, records, cancellationNotices);
+        // Ingestion recomputes here after new feed data lands, which also refreshes what get() serves.
+        synchronized (this) {
+            cachedChanges = new CachedChanges(now, current);
+        }
+        return current;
     }
 
-    private List<Candidate> parseCancellationNotice(StoredClassification stored, OffsetDateTime now) {
+    private List<Candidate> collectCandidates(
+        List<OperationalRecord> records,
+        List<StoredClassification> cancellationNotices,
+        OffsetDateTime now,
+        ScheduleLookup schedules
+    ) {
+        List<Candidate> candidates = new ArrayList<>();
+        for (OperationalRecord record : records) {
+            candidates.addAll(parse(record, now, schedules));
+        }
+        for (StoredClassification notice : cancellationNotices) {
+            candidates.addAll(parseCancellationNotice(notice, now, schedules));
+        }
+        return candidates;
+    }
+
+    private List<Candidate> parseCancellationNotice(
+        StoredClassification stored,
+        OffsetDateTime now,
+        ScheduleLookup schedules
+    ) {
         RegionalAlertClassification classification = stored.classification();
         LocalDate serviceDate = serviceDate(classification, now);
         List<String> identities = classification.tripNumbers().isEmpty()
@@ -132,7 +169,7 @@ public class RegionalTripChangeService {
             : classification.tripNumbers();
         List<Candidate> candidates = new ArrayList<>();
         for (String identity : identities) {
-            List<MatchedDeparture> schedule = confidentSchedule(identity, serviceDate);
+            List<MatchedDeparture> schedule = schedules.confidentSchedule(identity, serviceDate);
             if (!schedule.isEmpty() && classification.lineIds().contains(schedule.getFirst().lineId())) {
                 MatchedDeparture first = schedule.getFirst();
                 MatchedDeparture last = schedule.getLast();
@@ -164,14 +201,14 @@ public class RegionalTripChangeService {
         return List.copyOf(candidates);
     }
 
-    private List<Candidate> parse(OperationalRecord record, OffsetDateTime now) {
+    private List<Candidate> parse(OperationalRecord record, OffsetDateTime now, ScheduleLookup schedules) {
         try {
             JsonNode payload = objectMapper.readTree(record.rawPayload());
             if (MetrolinxSourceSystem.GO_GTFS_TRIP_UPDATES.equals(record.sourceSystem())) {
-                return parseTripUpdate(record, payload, now);
+                return parseTripUpdate(record, payload, now, schedules);
             }
             if (MetrolinxSourceSystem.GO_TRAIN_EXCEPTIONS.equals(record.sourceSystem())) {
-                return parseTrainException(record, payload, now);
+                return parseTrainException(record, payload, now, schedules);
             }
         } catch (Exception ignored) {
             // Operational rows that cannot be interpreted remain available for backend audit only.
@@ -179,12 +216,17 @@ public class RegionalTripChangeService {
         return List.of();
     }
 
-    private List<Candidate> parseTripUpdate(OperationalRecord record, JsonNode entity, OffsetDateTime now) {
+    private List<Candidate> parseTripUpdate(
+        OperationalRecord record,
+        JsonNode entity,
+        OffsetDateTime now,
+        ScheduleLookup schedules
+    ) {
         JsonNode update = entity.path("trip_update");
         JsonNode trip = update.path("trip");
         String tripId = text(trip, "trip_id");
         LocalDate serviceDate = serviceDate(text(trip, "start_date"), now);
-        List<MatchedDeparture> schedule = confidentSchedule(tripId, serviceDate);
+        List<MatchedDeparture> schedule = schedules.confidentSchedule(tripId, serviceDate);
         if (schedule.isEmpty()) return List.of();
 
         List<Candidate> result = new ArrayList<>();
@@ -210,12 +252,17 @@ public class RegionalTripChangeService {
         return result;
     }
 
-    private List<Candidate> parseTrainException(OperationalRecord record, JsonNode trip, OffsetDateTime now) {
+    private List<Candidate> parseTrainException(
+        OperationalRecord record,
+        JsonNode trip,
+        OffsetDateTime now,
+        ScheduleLookup schedules
+    ) {
         String tripNumber = firstNonBlank(text(trip, "TripNumber"), record.sourceId());
         LocalDate serviceDate = serviceDate(firstNonBlank(
             text(trip, "ServiceDate"), firstNonBlank(text(trip, "TripDate"), text(trip, "StartDate"))
         ), now);
-        List<MatchedDeparture> schedule = confidentSchedule(tripNumber, serviceDate);
+        List<MatchedDeparture> schedule = schedules.confidentSchedule(tripNumber, serviceDate);
         if (schedule.isEmpty()) return List.of();
         List<Candidate> result = new ArrayList<>();
         if (bool(trip, "IsCancelled") || bool(trip, "TripCancelled")) {
@@ -244,10 +291,6 @@ public class RegionalTripChangeService {
         return result;
     }
 
-    private List<MatchedDeparture> confidentSchedule(String identity, LocalDate serviceDate) {
-        List<MatchedDeparture> rows = scheduleRepository.findActiveTrip(identity, serviceDate);
-        return rows.stream().map(MatchedDeparture::tripId).distinct().count() == 1 ? rows : List.of();
-    }
 
     private Candidate candidate(
         String kind,
@@ -465,6 +508,38 @@ public class RegionalTripChangeService {
         List<String> sourceSystems,
         List<AffectedStop> affectedStops
     ) {}
+
+    private record CachedChanges(OffsetDateTime computedAt, CurrentChanges changes) {}
+
+    /** Records requested identities while unresolved; answers from one batched query per date once resolved. */
+    private static final class ScheduleLookup {
+        private final Map<LocalDate, Set<String>> requested = new LinkedHashMap<>();
+        private final Map<LocalDate, Map<String, List<MatchedDeparture>>> resolved;
+
+        ScheduleLookup() {
+            this.resolved = null;
+        }
+
+        private ScheduleLookup(Map<LocalDate, Map<String, List<MatchedDeparture>>> resolved) {
+            this.resolved = resolved;
+        }
+
+        List<MatchedDeparture> confidentSchedule(String identity, LocalDate serviceDate) {
+            if (identity == null || identity.isBlank() || serviceDate == null) return List.of();
+            if (resolved == null) {
+                requested.computeIfAbsent(serviceDate, ignored -> new LinkedHashSet<>()).add(identity);
+                return List.of();
+            }
+            List<MatchedDeparture> rows = resolved.getOrDefault(serviceDate, Map.of()).getOrDefault(identity, List.of());
+            return rows.stream().map(MatchedDeparture::tripId).distinct().count() == 1 ? rows : List.of();
+        }
+
+        ScheduleLookup resolve(RegionalGtfsScheduleRepository repository) {
+            Map<LocalDate, Map<String, List<MatchedDeparture>>> result = new LinkedHashMap<>();
+            requested.forEach((date, identities) -> result.put(date, repository.findActiveTrips(identities, date)));
+            return new ScheduleLookup(result);
+        }
+    }
 
     private record CurrentChanges(
         Map<String, Accumulator> changes,
