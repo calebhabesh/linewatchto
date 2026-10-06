@@ -67,6 +67,49 @@ class RegionalGtfsScheduleImportIntegrationTest {
     }
 
     @Test
+    void findActiveTripsMatchesTripIdShortNameAndTripNumberInOneQuery() {
+        LocalDate serviceDate = LocalDate.parse("2026-10-06");
+        RegionalGtfsScheduleImport.Departure first = new RegionalGtfsScheduleImport.Departure(
+            "union", "regional-milton", "S1", "20261006-MI-2723", "", "Milton", 60_000, "4", 1
+        );
+        RegionalGtfsScheduleImport.Departure second = new RegionalGtfsScheduleImport.Departure(
+            "union", "regional-lakeshore-east", "S1", "20261006-LE-9120", "E1006", "Oshawa", 61_000, "5", 1
+        );
+        RegionalGtfsScheduleImport.Departure otherDay = new RegionalGtfsScheduleImport.Departure(
+            "union", "regional-milton", "S2", "20261007-MI-2723", "", "Milton", 60_000, "4", 1
+        );
+        RegionalGtfsScheduleImport.Departure lookalike = new RegionalGtfsScheduleImport.Departure(
+            "union", "regional-milton", "S1", "20261006-MI-X2723", "", "Milton", 62_000, "4", 1
+        );
+        repository.replace(new RegionalGtfsScheduleImport(
+            "go", "https://example.test/go.zip", serviceDate, serviceDate.plusDays(1),
+            List.of(),
+            List.of(
+                new RegionalGtfsScheduleImport.ServiceException("S1", serviceDate, 1),
+                new RegionalGtfsScheduleImport.ServiceException("S2", serviceDate.plusDays(1), 1)
+            ),
+            List.of(first, second, otherDay, lookalike)
+        ), java.time.OffsetDateTime.parse("2026-10-06T12:00:00Z"));
+
+        Map<String, List<RegionalGtfsScheduleRepository.MatchedDeparture>> matches = repository.findActiveTrips(
+            List.of("2723", "E1006", "20261006-LE-9120", "missing"), serviceDate
+        );
+
+        assertThat(matches.keySet()).containsExactlyInAnyOrder("2723", "E1006", "20261006-LE-9120");
+        assertThat(matches.get("2723")).extracting(RegionalGtfsScheduleRepository.MatchedDeparture::tripId)
+            .containsExactly("20261006-MI-2723");
+        assertThat(matches.get("E1006")).extracting(RegionalGtfsScheduleRepository.MatchedDeparture::tripId)
+            .containsExactly("20261006-LE-9120");
+        assertThat(repository.findActiveTrip("20261006-LE-9120", serviceDate))
+            .extracting(RegionalGtfsScheduleRepository.MatchedDeparture::tripId)
+            .containsExactly("20261006-LE-9120");
+        assertThat(jdbc.queryForObject("""
+            select count(*) from pg_indexes
+            where tablename = 'regional_gtfs_departures' and indexname = 'idx_regional_gtfs_trip_number'
+            """, Map.of(), Integer.class)).isEqualTo(1);
+    }
+
+    @Test
     void successfulImportStreamsDeparturesInBatchesAndActivatesAtomically() throws Exception {
         // Step 1: establish initial active import for "go" with 2 departures
         Path initialZip = tempDir.resolve("go_initial.zip");
