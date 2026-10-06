@@ -105,6 +105,7 @@ import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMa
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
 import { useMapLabelFontReady } from "../hooks/useMapLabelFontReady";
 import { usePageVisibility } from "../hooks/usePageVisibility";
+import { overlapChooserSize as mapOverlapChooserSize } from "./map-chooser-layout";
 import { observeMapChooserKeepouts, visibleMapChooserKeepouts } from "./map-chooser-keepouts";
 
 const MAP_WIDTH = 4739.2821;
@@ -1858,14 +1859,7 @@ function InteractiveRegionalMapComponent({
       viewportOrientation,
     );
     if (!logicalMarkerRect) return false;
-    const compact = logicalViewportSize.width <= 640;
-    const width = Math.max(
-      240,
-      Math.min(compact ? 376 : 420, logicalViewportSize.width - (compact ? 24 : 32)),
-    );
-    const height = compact
-      ? Math.min(380, 56 + badge.impacts.length * 64)
-      : Math.min(440, 68 + badge.impacts.length * 88);
+    const { width, height } = mapOverlapChooserSize(badge.impacts.length, logicalViewportSize.width);
     const markerCenter = {
       x: logicalMarkerRect.x + logicalMarkerRect.width / 2,
       y: logicalMarkerRect.y + logicalMarkerRect.height / 2,

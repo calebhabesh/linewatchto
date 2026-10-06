@@ -75,7 +75,7 @@ describe("TTC Chooser Placement - Sizing and Priority", () => {
   it("clamps chooser width when viewport is narrower than standard margin", () => {
     const narrowWidth = 260;
     const size = overlapChooserSize(1, narrowWidth);
-    assert.equal(size.width, 240);
+    assert.ok(size.width <= narrowWidth - 32);
   });
 });
 
@@ -292,5 +292,30 @@ describe("TTC Chooser Placement - Full Screen Layout Decision", () => {
     assert.ok(layout.height <= 380);
     assert.ok(layout.top >= 16);
     assert.ok(layout.top + layout.height <= viewport.height - 16);
+  });
+});
+
+describe("compact mobile chooser keepouts", () => {
+  it("keeps inset margins even on viewports narrower than the minimum card width", () => {
+    const viewportWidth = 250;
+    assert.ok(overlapChooserSize(2, viewportWidth).width <= viewportWidth - 32);
+  });
+
+  it("narrows the chooser to fit between side controls before overlapping them", () => {
+    const viewport = { width: 360, height: 600 };
+    const keepouts = [
+      { x: 0, y: 0, width: 360, height: 120 },
+      { x: 0, y: 500, width: 360, height: 100 },
+      { x: 0, y: 120, width: 52, height: 380 },
+      { x: 308, y: 120, width: 52, height: 380 },
+    ];
+    const layout = overlapChooserScreenLayout({
+      position: { x: 180, y: 280 }, chooserPosition: { x: 180, y: 350 },
+      size: { width: 30, height: 30 }, chooserSize: overlapChooserSize(3, viewport.width),
+      protectedBoxes: [],
+    }, { x: 0, y: 0, scale: 1 / MAP_SVG_TO_CSS_SCALE }, viewport, keepouts);
+    const bounds = { x: layout.left, y: layout.top, width: layout.width, height: layout.height };
+    assert.equal(layout.width, 240);
+    assert.ok(keepouts.every(box => !boxesIntersect(bounds, expandBox(box, OVERLAP_CHOOSER_UI_GAP))));
   });
 });

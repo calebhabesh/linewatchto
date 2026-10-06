@@ -1,3 +1,4 @@
+import { chooserKeepoutGridCandidates, chooserWidthCandidates } from "../components/map-chooser-layout.ts";
 import type {
   ActiveAlert,
   DelayAlert,
@@ -1443,6 +1444,7 @@ export function regionalOverlapChooserLayout({
   uiKeepoutBoxes: RegionalCollisionBox[];
 }): { layout: MapOverlapChooserLayout; size: { width: number; height: number } } {
   const padding = 16;
+  const paddedUiKeepouts = uiKeepoutBoxes.map(box => expandedRegionalCollisionBox(box, 8));
   const markerCollisionBox: RegionalCollisionBox = {
     x: markerCenter.x - markerSize.width / 2,
     y: markerCenter.y - markerSize.height / 2,
@@ -1510,7 +1512,7 @@ export function regionalOverlapChooserLayout({
     const candidateKeys = new Set<string>();
     const candidates = candidateDirections.flatMap((direction) =>
       distanceScales.map((distanceScale) => centerForDirection(direction, size, distanceScale)),
-    ).filter((candidate) => {
+    ).concat(chooserKeepoutGridCandidates(preferredCenter, size, viewportSize, paddedUiKeepouts, padding)).filter((candidate) => {
       const key = `${Math.round(candidate.x)}:${Math.round(candidate.y)}`;
       if (candidateKeys.has(key)) return false;
       candidateKeys.add(key);
@@ -1528,7 +1530,7 @@ export function regionalOverlapChooserLayout({
         0,
       );
       const markerOverlapArea = regionalCollisionIntersectionArea(chooserBox, markerCollisionBox);
-      const uiOverlapArea = uiKeepoutBoxes.reduce(
+      const uiOverlapArea = paddedUiKeepouts.reduce(
         (total, box) => total + regionalCollisionIntersectionArea(chooserBox, box),
         0,
       );
@@ -1561,12 +1563,14 @@ export function regionalOverlapChooserLayout({
 
   let chosenSize = chooserSize;
   let chosenAttempt = scoreSize(chooserSize);
-  for (const height of heightCandidates) {
-    const size = { width: chooserSize.width, height };
-    const attempt = scoreSize(size);
-    chosenSize = size;
-    chosenAttempt = attempt;
-    if (attempt.clearsUiKeepouts) break;
+  sizes: for (const width of chooserWidthCandidates(chooserSize.width, viewportSize.width)) {
+    for (const height of heightCandidates) {
+      const size = { width, height };
+      const attempt = scoreSize(size);
+      chosenSize = size;
+      chosenAttempt = attempt;
+      if (attempt.clearsUiKeepouts) break sizes;
+    }
   }
   const center = chosenAttempt.center;
   const left = center.x - chosenSize.width / 2;

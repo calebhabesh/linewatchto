@@ -3,7 +3,7 @@
  *
  * Pure screen layout and placement decisions for the TTC map overlap chooser.
  * Calculates optimal chooser coordinates, margin clamping, collision avoidance
- * against station labels/corridors and UI keepouts, and height compaction.
+ * against station labels/corridors and UI keepouts, and width/height compaction.
  *
  * No DOM queries or React dependencies. Actual DOM measurements remain
  * with the DOM owner.
@@ -11,15 +11,20 @@
 
 import type { MapBounds, MapPoint } from "../app/map-geometry.ts";
 import type { MapOverlapIndicatorSize } from "./map-overlap-badges.ts";
+import { chooserKeepoutGridCandidates, chooserWidthCandidates } from "./map-chooser-layout.ts";
 
 export type SvgBounds = MapBounds;
 export type OverlapBadgeSize = MapOverlapIndicatorSize;
 
 export const MAP_VIEWBOX_BOUNDS: SvgBounds = { x: 0, y: 0, width: 8250, height: 4000 };
 export const MAP_SVG_TO_CSS_SCALE = 4500 / MAP_VIEWBOX_BOUNDS.width;
-export const OVERLAP_CHOOSER_WIDTH = 420;
-export const OVERLAP_CHOOSER_MOBILE_BREAKPOINT = 640;
-export const OVERLAP_CHOOSER_MOBILE_WIDTH = 376;
+export {
+  overlapChooserSize,
+  chooserKeepoutGridCandidates,
+  OVERLAP_CHOOSER_WIDTH,
+  OVERLAP_CHOOSER_MOBILE_BREAKPOINT,
+  OVERLAP_CHOOSER_MOBILE_WIDTH,
+} from "./map-chooser-layout.ts";
 export const OVERLAP_CHOOSER_TARGET_GAP = 16;
 export const OVERLAP_CHOOSER_GAP_DEVIATION_WEIGHT = 4;
 export const OVERLAP_CHOOSER_UI_GAP = 8;
@@ -119,21 +124,6 @@ export function nearestProtectedBoxesToPoint(boxes: SvgBounds[], point: MapPoint
     .slice(0, limit);
 }
 
-export function overlapChooserSize(
-  impactCount: number,
-  viewportWidth = OVERLAP_CHOOSER_WIDTH + 32,
-): OverlapBadgeSize {
-  const isMobile = viewportWidth <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT;
-  const maximumWidth = isMobile ? OVERLAP_CHOOSER_MOBILE_WIDTH : OVERLAP_CHOOSER_WIDTH;
-  const horizontalMargin = isMobile ? 24 : 32;
-  return {
-    width: Math.max(240, Math.min(maximumWidth, viewportWidth - horizontalMargin)),
-    height: isMobile
-      ? Math.min(380, 56 + impactCount * 64)
-      : Math.min(440, 68 + impactCount * 88),
-  };
-}
-
 export function clampChooserScreenCoordinate(
   coordinate: number,
   chooserLength: number,
@@ -204,35 +194,6 @@ export function chooserKeepoutEdgeCandidates(
     Math.hypot(a.x - proposed.x, a.y - proposed.y)
       - Math.hypot(b.x - proposed.x, b.y - proposed.y),
   );
-}
-
-export function chooserKeepoutGridCandidates(
-  proposed: MapPoint,
-  chooserSize: OverlapBadgeSize,
-  viewportSize: { width: number; height: number },
-  keepoutBoxes: SvgBounds[],
-  margin: number,
-): MapPoint[] {
-  const minimumX = margin + chooserSize.width / 2;
-  const maximumX = viewportSize.width - margin - chooserSize.width / 2;
-  const minimumY = margin + chooserSize.height / 2;
-  const maximumY = viewportSize.height - margin - chooserSize.height / 2;
-  if (maximumX < minimumX || maximumY < minimumY) return [];
-
-  const xCoordinates = new Set([minimumX, maximumX, Math.min(maximumX, Math.max(minimumX, proposed.x))]);
-  const yCoordinates = new Set([minimumY, maximumY, Math.min(maximumY, Math.max(minimumY, proposed.y))]);
-  keepoutBoxes.forEach((box) => {
-    xCoordinates.add(box.x - chooserSize.width / 2);
-    xCoordinates.add(box.x + box.width + chooserSize.width / 2);
-    yCoordinates.add(box.y - chooserSize.height / 2);
-    yCoordinates.add(box.y + box.height + chooserSize.height / 2);
-  });
-
-  return [...xCoordinates]
-    .filter((x) => x >= minimumX && x <= maximumX)
-    .flatMap((x) => [...yCoordinates]
-      .filter((y) => y >= minimumY && y <= maximumY)
-      .map((y) => ({ x, y })));
 }
 
 export function boundedChooserViewportCandidates(
@@ -470,12 +431,14 @@ export function overlapChooserScreenLayout(
 
   let chosenSize = requestedSize;
   let chosenAttempt = attemptLayout(requestedSize);
-  for (const height of heightCandidates) {
-    const size = { width: requestedSize.width, height };
-    const attempt = attemptLayout(size);
-    chosenSize = size;
-    chosenAttempt = attempt;
-    if (attempt.clearsUiKeepouts) break;
+  sizes: for (const width of chooserWidthCandidates(requestedSize.width, viewportSize.width)) {
+    for (const height of heightCandidates) {
+      const size = { width, height };
+      const attempt = attemptLayout(size);
+      chosenSize = size;
+      chosenAttempt = attempt;
+      if (attempt.clearsUiKeepouts) break sizes;
+    }
   }
   const center = chosenAttempt.center;
 
