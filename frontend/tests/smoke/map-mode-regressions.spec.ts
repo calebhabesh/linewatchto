@@ -29,8 +29,9 @@ async function openMap(page: Page, request: APIRequestContext, network: NetworkI
     await expect(page.locator(`.${network}-map-stage`)).toHaveAttribute("data-raster-map-ready", "true");
   }
   if (mode === "rotated diagram") {
-    await page.getByRole("button", { name: /^Rotate map$/i }).tap();
+    await page.getByRole("button", { name: /^Rotate map$/i }).click();
     await expect(page.locator(".linewatch-shell")).toHaveClass(/mobile-map-rotated/);
+    await page.waitForTimeout(450);
   }
   await centerMap(page, mode);
 }

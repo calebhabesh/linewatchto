@@ -1002,9 +1002,11 @@ function InteractiveTtcMapComponent({
     lastHandledLayoutResetSignalRef.current = layoutResetSignal;
     if (focusTargetKey) return;
 
-    const resetTimer = window.setTimeout(() => recenter(), 320);
+    const resetTimer = window.setTimeout(() => {
+      if (!isGestureActive()) recenter();
+    }, 320);
     return () => window.clearTimeout(resetTimer);
-  }, [layoutResetSignal, loadState, recenter, focusTargetKey]);
+  }, [layoutResetSignal, loadState, recenter, focusTargetKey, isGestureActive]);
 
   const selectedMapElements = useCallback(() => {
     const root = containerRef.current;

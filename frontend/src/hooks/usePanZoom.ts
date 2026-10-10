@@ -667,6 +667,7 @@ export function usePanZoom({
     suppressMapClickRef.current = true;
     setUserGestureMotion(false);
     setPointerDragging(false);
+    restoreIdleMapTransition();
     // Commit the last painted camera, discarding any queued pointer movement.
     setTransform({ ...transformRef.current });
     for (const pointerId of pointerIds) {
@@ -678,7 +679,7 @@ export function usePanZoom({
         // The browser may already have released capture while suspending.
       }
     }
-  }, [setPointerDragging, setUserGestureMotion]);
+  }, [restoreIdleMapTransition, setPointerDragging, setUserGestureMotion]);
 
   useMapGestureInterruption(interruptPointerInteraction);
 
