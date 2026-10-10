@@ -95,6 +95,11 @@ jobs:
         env:
           LINEWATCH_PLAYWRIGHT_REUSE_BUILD: "true"
 
+      - name: Map chooser and background camera regressions
+        run: npm --prefix frontend run test:map-interactions
+        env:
+          LINEWATCH_PLAYWRIGHT_REUSE_BUILD: "true"
+
       - name: Offline dashboard snapshot gate
         run: npm --prefix frontend run test:offline
         env:

@@ -61,6 +61,7 @@ import {
   setGeographicProjectedSelectionBoundsResolver,
 } from "../app/geographic-lifecycle";
 import { MapOverlapChooser, type MapOverlapChooserLayout } from "./MapOverlapChooser";
+import { useMapGestureInterruption } from "../hooks/useMapGestureInterruption";
 import {
   generateOverlapBadgeSvg,
   getOverlapBadgeKey,
@@ -365,6 +366,12 @@ export function GeographicNetworkMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sliderRef = useRef<HTMLInputElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const interruptCameraMotion = useCallback(() => {
+    // stop() also resets native gestures and discards queued movement/inertia.
+    // A drag released outside the tab must not continue when the user returns.
+    mapRef.current?.stop();
+  }, []);
+  useMapGestureInterruption(interruptCameraMotion);
   const attributionRef = useRef<AttributionControl | null>(null);
   const [loadedCatalog, setCatalog] = useState<GeographicCatalog | null>(null);
   const catalog = cachedGeographicCatalog(network) ?? (loadedCatalog?.network === network ? loadedCatalog : null);
@@ -726,6 +733,23 @@ export function GeographicNetworkMap({
   );
 
   const attachMapListeners = useCallback((map: MapLibreMap) => {
+    const impactBadgeAtPoint = (point: ReturnType<MapLibreMap["project"]>) => {
+      const exactBadge = map.getLayer("transit-impact-badges")
+        ? map.queryRenderedFeatures(point, { layers: ["transit-impact-badges"] })[0]
+        : undefined;
+      if (exactBadge?.properties?.targetType && exactBadge.properties.targetId) return exactBadge;
+
+      const hitRadius = GEOGRAPHIC_IMPACT_BADGE_MIN_HIT_DIAMETER_PX / 2;
+      return overlayDataRef.current.impactBadges.features
+        .filter((feature) => (feature.properties.kindCounts?.length ?? 0) === 1)
+        .map((feature) => ({
+          feature,
+          distance: map.project(feature.geometry.coordinates).dist(point),
+        }))
+        .filter(({ distance }) => distance <= hitRadius)
+        .sort((a, b) => a.distance - b.distance)[0]?.feature;
+    };
+
     // Hover on Disruption Badges
     map.on("mousemove", "transit-impact-badges", (e) => {
       if (!e.features || e.features.length === 0) return;
@@ -795,6 +819,7 @@ export function GeographicNetworkMap({
 
     // Click on Station Impacts
     map.on("click", "transit-station-impacts", (e) => {
+      if (impactBadgeAtPoint(e.point)) return;
       if (!e.features || e.features.length === 0) return;
       const props = e.features[0].properties;
       if (props?.stationId) {
@@ -804,6 +829,7 @@ export function GeographicNetworkMap({
 
     // Click on Impacted Segments
     map.on("click", "transit-impacts-line", (e) => {
+      if (impactBadgeAtPoint(e.point)) return;
       if (!e.features || e.features.length === 0) return;
       const props = e.features[0].properties;
       if (props?.segmentId) {
@@ -813,6 +839,7 @@ export function GeographicNetworkMap({
 
     // Click on Impact Direction Arrows
     map.on("click", "transit-impact-arrows", (e) => {
+      if (impactBadgeAtPoint(e.point)) return;
       if (!e.features || e.features.length === 0) return;
       const props = e.features[0].properties;
       if (props && callbacksRef.current.onSelectImpact) {
@@ -825,6 +852,9 @@ export function GeographicNetworkMap({
 
     // Station click handler
     map.on("click", "transit-stations-outer", (e) => {
+      // Several MapLibre layer listeners can receive the same click. A badge
+      // owns its hit area so a station underneath cannot cover its chooser.
+      if (impactBadgeAtPoint(e.point)) return;
       if (!e.features || e.features.length === 0) return;
       if (map.getLayer("transit-planned-station-selection")
         && map.queryRenderedFeatures(e.point, { layers: ["transit-planned-station-selection"] }).length > 0) return;
@@ -844,35 +874,12 @@ export function GeographicNetworkMap({
     // also receive a 44px minimum target so their interaction area does not
     // shrink below the visible marker at low zoom or high pixel density.
     map.on("click", (e) => {
-      const exactBadge = map.getLayer("transit-impact-badges")
-        ? map.queryRenderedFeatures(e.point, { layers: ["transit-impact-badges"] })[0]
-        : undefined;
-      if (exactBadge?.properties?.targetType && exactBadge.properties.targetId) {
+      const badge = impactBadgeAtPoint(e.point);
+      if (badge) {
         activateImpactTarget(
-          exactBadge.properties.targetType,
-          exactBadge.properties.targetId,
-          (exactBadge.geometry as GeoJSON.Point).coordinates as [number, number],
-        );
-        return;
-      }
-
-      const hitRadius = GEOGRAPHIC_IMPACT_BADGE_MIN_HIT_DIAMETER_PX / 2;
-      const nearbySingleBadge = overlayDataRef.current.impactBadges.features
-        .filter((feature) => (feature.properties.kindCounts?.length ?? 0) === 1)
-        .map((feature) => {
-          const point = map.project(feature.geometry.coordinates);
-          return {
-            feature,
-            distance: Math.hypot(point.x - e.point.x, point.y - e.point.y),
-          };
-        })
-        .filter(({ distance }) => distance <= hitRadius)
-        .sort((a, b) => a.distance - b.distance)[0]?.feature;
-      if (nearbySingleBadge) {
-        activateImpactTarget(
-          nearbySingleBadge.properties.targetType,
-          nearbySingleBadge.properties.targetId,
-          nearbySingleBadge.geometry.coordinates,
+          badge.properties.targetType,
+          badge.properties.targetId,
+          (badge.geometry as GeoJSON.Point).coordinates as [number, number],
         );
         return;
       }

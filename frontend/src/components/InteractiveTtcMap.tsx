@@ -639,6 +639,7 @@ function InteractiveTtcMapComponent({
     handlePointerUp,
     handlePointerLeave,
     handlePointerCancel,
+    handleLostPointerCapture,
     handleWheel,
     initializeCamera,
     stageInitialEntrance,
@@ -1001,9 +1002,11 @@ function InteractiveTtcMapComponent({
     lastHandledLayoutResetSignalRef.current = layoutResetSignal;
     if (focusTargetKey) return;
 
-    const resetTimer = window.setTimeout(() => recenter(), 320);
+    const resetTimer = window.setTimeout(() => {
+      if (!isGestureActive()) recenter();
+    }, 320);
     return () => window.clearTimeout(resetTimer);
-  }, [layoutResetSignal, loadState, recenter, focusTargetKey]);
+  }, [layoutResetSignal, loadState, recenter, focusTargetKey, isGestureActive]);
 
   const selectedMapElements = useCallback(() => {
     const root = containerRef.current;
@@ -2151,11 +2154,15 @@ function InteractiveTtcMapComponent({
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerLeave}
         onPointerCancel={handlePointerCancel}
+        onLostPointerCapture={handleLostPointerCapture}
         onWheel={(event) => {
           if (!isMapWheelScrollRegionTarget(event.target)) clearMapHover();
           handleWheel(event);
         }}
         onClickCapture={(event) => {
+          // Chooser controls stop pointerdown from starting a map gesture, so
+          // they must also bypass the trailing-click guard left by a map drag.
+          if (event.target instanceof Element && event.target.closest("[data-overlap-chooser]")) return;
           // Android may retarget the synthesized click to a different label
           // after pointerup activates a dot/overlay and focuses the camera.
           // Consume it before any child can replace that completed selection.
