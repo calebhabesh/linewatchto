@@ -3,6 +3,7 @@ import { CommuteRouteLabel } from "./CommuteRouteLabel";
 import { CardinalNorthIcon } from "./CardinalNorthIcon";
 
 import { useMapViewportPersistence } from "../hooks/useMapViewportPersistence";
+import { useMapGestureInterruption } from "../hooks/useMapGestureInterruption";
 import {
   observeMobileMapFrame,
   readMapStationCenterX,
@@ -1664,6 +1665,43 @@ function InteractiveRegionalMapComponent({
     writeMapTransform(nextCamera);
   }, [fitScale, writeMapTransform]);
 
+  const interruptPointerInteraction = useCallback(() => {
+    if (!isGestureActiveRef.current) return;
+    if (dragAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(dragAnimationFrameRef.current);
+      dragAnimationFrameRef.current = null;
+    }
+    const pointerIds = [...activePointersRef.current.keys()];
+    activePointersRef.current.clear();
+    pinchGestureRef.current = null;
+    pendingDragPointRef.current = null;
+    dragRef.current = null;
+    activeContainerRectRef.current = null;
+    pointerActivationRef.current = null;
+    dragMovedRef.current = true;
+    setUserGestureMotion(false);
+    setCamera({ ...cameraRef.current });
+    endCameraMotion();
+    for (const pointerId of pointerIds) {
+      try {
+        if (viewportRef.current?.hasPointerCapture(pointerId)) {
+          viewportRef.current.releasePointerCapture(pointerId);
+        }
+      } catch {
+        // The browser may already have released capture while suspending.
+      }
+    }
+  }, [endCameraMotion, setUserGestureMotion]);
+
+  useMapGestureInterruption(interruptPointerInteraction);
+
+  const onLostPointerCapture = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    // Ignore the child's implicit touch capture transferring to this viewport.
+    if (activePointersRef.current.has(event.pointerId) && !event.currentTarget.hasPointerCapture(event.pointerId)) {
+      interruptPointerInteraction();
+    }
+  }, [interruptPointerInteraction]);
+
   const onPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     cancelCameraAnimation();
@@ -1726,6 +1764,10 @@ function InteractiveRegionalMapComponent({
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (!activePointersRef.current.has(event.pointerId)) return;
+    if (event.pointerType === "mouse" && (event.buttons & 1) === 0) {
+      interruptPointerInteraction();
+      return;
+    }
     const rect = activeContainerRectRef.current ?? event.currentTarget.getBoundingClientRect();
     const point = clientPointToLogicalViewportPoint(
       { x: event.clientX, y: event.clientY },
@@ -1746,7 +1788,7 @@ function InteractiveRegionalMapComponent({
       dragAnimationFrameRef.current = null;
       applyActiveGesture();
     });
-  }, [applyActiveGesture, viewportOrientation]);
+  }, [applyActiveGesture, interruptPointerInteraction, viewportOrientation]);
 
   const onPointerUp = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (!activePointersRef.current.has(event.pointerId)) return;
@@ -1998,6 +2040,7 @@ function InteractiveRegionalMapComponent({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onLostPointerCapture={onLostPointerCapture}
         onClick={(event) => {
           if (suppressNextClickRef.current) {
             suppressNextClickRef.current = false;
