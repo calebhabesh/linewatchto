@@ -4,6 +4,37 @@ import { installDismissedTransientUi, setStubMode } from "./test-support";
 const stubUrl = process.env.LINEWATCH_SMOKE_STUB_URL ?? "http://127.0.0.1:4174";
 const openMapPreviewUrl = "/?previewTime=2026-08-14T16:00:00.000Z";
 
+for (const network of ["ttc", "regional"] as const) {
+  test(`${network} chooser close remains usable after panning the open map`, async ({ page, request, isMobile }) => {
+    await setStubMode(request, "regional-live");
+    await installDismissedTransientUi(page);
+    await page.addInitScript(value => localStorage.setItem("linewatch-default-network-v1", value), network);
+    await page.setViewportSize(isMobile ? { width: 360, height: 800 } : { width: 1440, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+    const stage = page.locator(`.${network}-map-stage`);
+    await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
+    const marker = network === "ttc"
+      ? page.locator('[data-overlap-segment-id="stub-line-1-segment"]')
+      : page.getByRole("button", { name: /Overlapping alerts: Delay x2 on Union to Niagara Falls/ });
+    await marker.dispatchEvent("click");
+    const chooser = page.locator("[data-overlap-chooser]");
+    await expect(chooser).toBeVisible();
+    const viewport = stage.locator("..");
+    const before = await stage.evaluate(element => element.style.transform);
+    const pointer = { pointerId: 81, pointerType: isMobile ? "touch" : "mouse", isPrimary: true, button: 0, buttons: 1 };
+    await viewport.dispatchEvent("pointerdown", { ...pointer, clientX: 200, clientY: 250 });
+    await viewport.dispatchEvent("pointermove", { ...pointer, clientX: 250, clientY: 280 });
+    await viewport.dispatchEvent("pointerup", { ...pointer, buttons: 0, clientX: 250, clientY: 280 });
+    await expect.poll(() => stage.evaluate(element => element.style.transform)).not.toBe(before);
+    await expect(chooser).toBeVisible();
+    const close = chooser.getByRole("button", { name: "Close alert chooser" });
+    if (isMobile) await close.tap();
+    else await close.click();
+    await expect(chooser).toHaveCount(0);
+  });
+}
+
 test("default map hierarchy preserves effect priority without extra outlines", async ({ page, request, isMobile }) => {
   await setStubMode(request, "map-authoritative-overlap");
   await installDismissedTransientUi(page);

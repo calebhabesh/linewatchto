@@ -165,6 +165,9 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
           canvasBox!.x + projected!.x + offsetX,
           canvasBox!.y + projected!.y + offsetY,
         );
+        // Hover updates React state and MapLibre paint on the next frame.
+        // Read the committed result before probing a different point.
+        await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
         if (await hoverSurface.getAttribute("data-hovered-impact-segment") === segmentId) break;
       }
       await expect(hoverSurface).toHaveAttribute("data-hovered-impact-segment", segmentId);

@@ -21,7 +21,8 @@ flows, not repeat every data-shape or styling assertion from the fast suite.
 | Visual | `npm --prefix frontend run test:visual` | Deliberate screenshot baselines only (`visual-baselines.spec.ts`, `desktop-visual-acceptance.spec.ts`, `opaque-surfaces.spec.ts`). |
 | Browser compatibility | `npm --prefix frontend run test:browser-compat` | SVG/map geometry in Chrome, Firefox, and WebKit; animation and canvas budgets in Chrome, Firefox, and mobile Chromium. |
 | Mobile map fit | `npm --prefix frontend run test:map-fit` | Both rotated maps in mobile Chromium/WebKit: compact and changing viewports, safe areas, deferred gesture resizing, browser page zoom, and physical rotation. Also included in E2E and CI. |
-| Full release gate | `npm --prefix frontend run test:release` | Consolidated release candidate verification: runs fast tests, all script tools, typecheck, lint, build, smoke, browser-compat, map-fit, offline, and lifecycle gates. |
+| Map interactions | `npm --prefix frontend run test:map-interactions` | TTC and GO/UP in Diagram, mobile rotated Diagram, and Geographic views: chooser dismissal, native drags, view switching, and camera stability across background refreshes and interrupted gestures. Also included in E2E and CI. |
+| Full release gate | `npm --prefix frontend run test:release` | Consolidated release candidate verification: runs fast tests, all script tools, typecheck, lint, build, smoke, browser-compat, map-fit, map-interactions, offline, and lifecycle gates. |
 
 `test:fixtures` remains as a backwards-compatible alias for `test:fast`, and
 `test:regression` aliases `test:e2e`.
@@ -38,7 +39,7 @@ default; use the build-reuse procedure below only when the build matches the
 code being tested.
 
 CI runs fast frontend tests, operational script tool tests (`test:scripts:all`), smoke gate, browser compatibility,
-mobile map fit, and the offline snapshot gate. After backend and frontend jobs pass on a `main` push,
+mobile map fit, map interactions, and the offline snapshot gate. After backend and frontend jobs pass on a `main` push,
 CI builds and publishes native ARM64 production images and checks the published frontend `/healthz` endpoint.
 
 The smoke suite stays intentionally small. Add a scenario only when its failure means
