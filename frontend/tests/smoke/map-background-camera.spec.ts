@@ -166,3 +166,39 @@ for (const network of ['ttc', 'regional'] as const) {
     });
   }
 }
+
+for (const network of ['ttc', 'regional'] as const) {
+  for (const explored of [false, true]) {
+    test(`${network} ${explored ? 'explored' : 'fitted'} camera survives a narrow window round trip`, async ({ page, request, isMobile }) => {
+      test.skip(isMobile, 'Covers desktop windows that a tiling or minimizing window manager resizes.');
+      await page.setViewportSize({ width: 2048, height: 1164 });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await setStubMode(request, 'seeded');
+      await installDismissedTransientUi(page);
+      await page.addInitScript(value => localStorage.setItem('linewatch-default-network-v1', value), network);
+      await page.goto('/');
+      const stage = page.locator(`.${network}-map-stage`);
+      await expect(stage).toHaveAttribute('data-raster-map-ready', 'true');
+      await page.evaluate(() => document.fonts.ready.then(() => undefined));
+      await page.getByRole('button', { name: 'Center map view', exact: true }).click();
+      if (explored) {
+        await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+        await page.mouse.move(1100, 310);
+        await page.mouse.down();
+        await page.mouse.move(1150, 350, { steps: 8 });
+        await page.mouse.up();
+      }
+      await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+      const before = await stage.evaluate(el => el.style.transform);
+      // Desktop keeps activeView "status" beside the visible map, so its resizes
+      // must still be reconciled. Crossing into the mobile layout remounts the
+      // map, which only a fitted camera survives.
+      const widths = explored ? [1600, 1100, 820, 1100, 1600, 2048] : [1600, 1100, 820, 600, 400, 600, 820, 1100, 1600, 2048];
+      for (const width of widths) {
+        await page.setViewportSize({ width, height: 1164 });
+        await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+      }
+      await expect.poll(() => stage.evaluate(el => el.style.transform)).toBe(before);
+    });
+  }
+}

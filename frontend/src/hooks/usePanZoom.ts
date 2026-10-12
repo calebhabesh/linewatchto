@@ -31,6 +31,7 @@ import {
   type ViewportInsets,
 } from "./panZoomMath";
 import { isMapWheelScrollRegionTarget } from "../components/map-wheel-events";
+import { MOBILE_VIEWPORT_QUERY } from "./useMobilePerformanceMode";
 
 type UsePanZoomOptions = {
   persistenceKey?: string;
@@ -81,6 +82,9 @@ export function usePanZoom({
     if (!isMapActiveRef.current) return false;
     const shell = containerRef.current?.closest(".linewatch-shell");
     if (!shell) return true;
+    // Desktop keeps the map visible beside every sidebar view (activeView is
+    // "status" there), so only the mobile layout hides it behind other views.
+    if (!window.matchMedia(MOBILE_VIEWPORT_QUERY).matches) return true;
     if (shell.getAttribute("data-active-view") !== "map") return false;
     if (shell.querySelector(".mobile-app-topbar[data-searching='true']")) return false;
     return true;
@@ -913,6 +917,9 @@ export function usePanZoom({
     if (width <= 0 || height <= 0) return;
     const next = defaultTransformForViewport(width, height);
     const { scale } = next;
+    // This fit already targets the current viewport; record it so the resize
+    // observer does not re-center the fitted camera from the stale size.
+    lastDimensions.current = { width, height };
     const isInitialCamera = !cameraInitializedRef.current;
     cameraInitializedRef.current = true;
 
