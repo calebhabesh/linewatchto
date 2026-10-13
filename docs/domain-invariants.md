@@ -8,6 +8,7 @@ and test evidence. Background inventory: [feature reference](feature-reference.m
 
 - TTC and regional alert ingestion, arrivals, surface connections, train markers, schedules, and supplemental collections have independent enablement/freshness gates. Fresh alerts do not establish live arrivals or train markers.
 - Preserve complete fixture fallback and source labels. Source timing must distinguish Started (`activePeriod.start`) from Updated (TTC `lastUpdated`) where published.
+- Current-service cards show "Posted" only for unplanned incidents without a service window, never as a planned start. GO/UP uses its publication time; its `activePeriod.start` is a service-day boundary. TTC unplanned alerts start when published (observed within a poll interval), so their start is the posting time. Saved snapshots show the time without an elapsed age.
 - Failed supplemental regional collections do not fail the entire poll or deactivate last-good rows; stale retained records still cannot drive fresh service claims.
 - Offline public TTC and regional snapshots are separate, last-successful, and limited to seven days. Preserve timestamps and saved notices, mark current status unknown, suppress arrivals/markers/current account impact checks, and refresh on reconnect. The service worker never caches account pages or API responses.
 - Public source use and website monitoring must meet [source launch gates](source-licensing-launch-gates.md). Station-page detection stages review candidates; it never automatically publishes or deactivates rider notices.

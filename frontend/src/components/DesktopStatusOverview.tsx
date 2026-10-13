@@ -1,7 +1,7 @@
 "use client";
 
 import { IncidentStationSpan } from "./IncidentStationSpan";
-import { RegionalIncidentDetails } from "./RegionalIncidentDetails";
+import { IncidentFacts, IncidentPostedTime } from "./IncidentDetails";
 import { IncidentTiming } from "./IncidentTiming";
 
 import { useEffect, useState } from "react";
@@ -285,12 +285,13 @@ export function DesktopStatusOverview({
                             {row.direction && (
                               <div className="desktop-status-incident-direction">{row.direction}</div>
                             )}
+                            <IncidentFacts row={row} className="desktop-status-incident-timing" />
                             {(incident.timing || row.shuttle) && (
                               <div className="desktop-status-incident-timing">
                                 <IncidentTiming timing={incident.timing} target={row.timingTarget} now={now} shuttle={row.shuttle} />
                               </div>
                             )}
-                            {regional && <RegionalIncidentDetails row={row} className="desktop-status-incident-timing" />}
+                            <IncidentPostedTime row={row} className="desktop-status-incident-timing" now={now} saved={Boolean(snapshot)} />
                           </button>
                         </IncidentElectricBorder>
                       );

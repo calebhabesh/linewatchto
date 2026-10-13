@@ -117,14 +117,35 @@ export function formatImpactTimestamp(
   return `${anchor} (${formatCompactAge(date, now)})`;
 }
 
-/** Provider publication time with a compact elapsed age, never a poll timestamp. */
-export function formatPublicationTimestamp(timestamp: string, now = new Date()): string {
+/** Two-unit span shared by window countdowns and elapsed incident ages. */
+export function formatCompactDuration(milliseconds: number): string {
+  const minutes = Math.floor(milliseconds / MINUTE_MS);
+  if (minutes < 1) return "<1m";
+  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 24 * 60) {
+    const remainder = minutes % 60;
+    return `${Math.floor(minutes / 60)}h${remainder ? ` ${remainder}m` : ""}`;
+  }
+  const hours = Math.floor((minutes % (24 * 60)) / 60);
+  return `${Math.floor(minutes / (24 * 60))}d${hours ? ` ${hours}h` : ""}`;
+}
+
+/**
+ * Provider publication time with a compact elapsed age, never a poll timestamp.
+ * Saved reports pass `elapsed: false`: an age measured from an old snapshot
+ * would keep counting toward a present the reader cannot see.
+ */
+export function formatPublicationTimestamp(
+  timestamp: string,
+  now = new Date(),
+  { elapsed = true }: { elapsed?: boolean } = {},
+): string {
   const date = parseImpactDate(timestamp);
   if (!date) return timestamp;
   const anchor = formatOperationalDateTime(timestamp, { now });
-  if (date.getTime() > now.getTime()) return anchor;
-  const age = formatCompactAge(date, now).replace(/ ago$/, "").replace("Just Now", "<1m");
-  return `${anchor} (${age})`;
+  if (!elapsed || date.getTime() > now.getTime()) return anchor;
+  const ageMs = now.getTime() - date.getTime();
+  return `${anchor} (${ageMs < MINUTE_MS ? "just now" : formatCompactDuration(ageMs)})`;
 }
 
 export function formatOperationalDateTime(

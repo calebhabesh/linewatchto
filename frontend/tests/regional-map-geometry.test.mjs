@@ -38,6 +38,7 @@ import {
   regionalCollisionIntersectionArea,
   clampRegionalOverlapBadgePosition,
   regionalOverlapBadgePositionCandidates,
+  regionalSvgScope,
 } from "../src/app/regional-map-geometry.ts";
 
 function createMockSvgNode({
@@ -724,6 +725,30 @@ describe("regional map geometry", () => {
       assert.equal(candidates.length, 144);
       assert.ok(Math.abs(candidates[0].x - 540) < 1e-6);
       assert.ok(Math.abs(candidates[0].y - 500) < 1e-6);
+    });
+  });
+
+  describe("regional SVG scope", () => {
+    it("resolves shared station IDs inside the regional diagram, not the retained TTC one", () => {
+      const originalCss = globalThis.CSS;
+      globalThis.CSS ??= { escape: (value) => value };
+      try {
+        const ttcUnion = createMockSvgNode({ nodeName: "circle", id: "station-union" });
+        const regionalUnion = createMockSvgNode({ nodeName: "rect", id: "station-union" });
+        const documentNode = createMockDocument({ "station-union": ttcUnion });
+        const svg = {
+          ownerDocument: documentNode,
+          querySelector: (selector) => (selector === "#station-union" ? regionalUnion : null),
+        };
+
+        const scope = regionalSvgScope(svg);
+        assert.equal(documentNode.getElementById("station-union"), ttcUnion);
+        assert.equal(scope.getElementById("station-union"), regionalUnion);
+        assert.equal(scope.getElementById("station-missing"), null);
+        assert.equal(scope.getElementById(""), null);
+      } finally {
+        globalThis.CSS = originalCss;
+      }
     });
   });
 });

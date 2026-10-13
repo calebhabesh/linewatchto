@@ -2160,9 +2160,13 @@ function InteractiveTtcMapComponent({
           handleWheel(event);
         }}
         onClickCapture={(event) => {
-          // Chooser controls stop pointerdown from starting a map gesture, so
-          // they must also bypass the trailing-click guard left by a map drag.
-          if (event.target instanceof Element && event.target.closest("[data-overlap-chooser]")) return;
+          // Chooser controls and overlap badges stop mouse pointerdown from
+          // starting a map gesture, so that pointerdown never clears the
+          // trailing-click guard left by an earlier drag. They must bypass it,
+          // or every badge stays inert until the bare map is pressed. Badges
+          // apply their own drag guard to touch and pen clicks.
+          if (event.target instanceof Element
+            && event.target.closest("[data-overlap-chooser], .overlap-indicator-group")) return;
           // Android may retarget the synthesized click to a different label
           // after pointerup activates a dot/overlay and focuses the camera.
           // Consume it before any child can replace that completed selection.

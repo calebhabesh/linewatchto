@@ -36,7 +36,9 @@ import {
   regionalCollisionIntersectionArea,
   clampRegionalOverlapBadgePosition,
   regionalOverlapBadgePositionCandidates,
+  regionalSvgScope,
   type RegionalCollisionBox,
+  type RegionalSvgScope,
 } from "./regional-map-geometry.ts";
 import {
   stationImpactDirectionForImpact,
@@ -206,7 +208,7 @@ export function regionalImpactPriority(kind: ImpactKind) {
 }
 
 export function appendRegionalDelayGlyph(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   parent: SVGGElement,
   kind: "hourglass" | "arrow",
 ) {
@@ -250,7 +252,7 @@ export function appendRegionalDelayGlyph(
 }
 
 export function regionalDelayGlyphLane(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   sourcePath: SVGPathElement,
   travelDirection: TravelDirection,
   reducedMotion: boolean,
@@ -316,7 +318,7 @@ export function regionalDelayGlyphLane(
 }
 
 export function appendRegionalSuspensionGlyph(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   parent: SVGGElement,
   kind: "no-entry" | "bar",
 ) {
@@ -362,7 +364,7 @@ export function appendRegionalSuspensionGlyph(
 }
 
 export function regionalSuspensionGlyphLane(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   sourcePath: SVGPathElement,
   travelDirection: TravelDirection,
   reducedMotion: boolean,
@@ -424,7 +426,7 @@ export function regionalSuspensionGlyphLane(
   return lane;
 }
 
-export function appendRegionalChevronGlyph(documentNode: Document, parent: SVGGElement) {
+export function appendRegionalChevronGlyph(documentNode: RegionalSvgScope, parent: SVGGElement) {
   const glyph = documentNode.createElementNS(SVG_NAMESPACE, "g");
   glyph.classList.add("regional-chevron-glyph");
 
@@ -442,7 +444,7 @@ export function appendRegionalChevronGlyph(documentNode: Document, parent: SVGGE
 }
 
 export function regionalChevronGlyphLane(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   sourcePath: SVGPathElement,
   travelDirection: TravelDirection,
   reducedMotion: boolean,
@@ -497,7 +499,7 @@ export function regionalChevronGlyphLane(
 }
 
 export function appendRegionalPlannedClosureGlyph(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   parent: SVGGElement,
   kind: "icon" | "chevron",
 ) {
@@ -544,7 +546,7 @@ export function appendRegionalPlannedClosureGlyph(
 }
 
 export function regionalPlannedClosureIconLane(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   sourcePath: SVGPathElement,
   travelDirection: TravelDirection,
   reducedMotion: boolean,
@@ -605,7 +607,7 @@ export function regionalPlannedClosureIconLane(
 }
 
 export function regionalImpactGroup(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   sourcePath: SVGPathElement,
   {
     impactId,
@@ -944,7 +946,7 @@ export function regionalTopHoverForeground(
   source: SVGPathElement,
   cloneIndex: number,
 ) {
-  const documentNode = source.ownerDocument;
+  const documentNode = source.ownerSVGElement ? regionalSvgScope(source.ownerSVGElement) : source.ownerDocument;
   const impact = source.closest<SVGGElement>(".regional-overlay-segment-group");
   const topForeground = documentNode.createElementNS(SVG_NAMESPACE, "g");
   topForeground.classList.add("regional-impact-top-hover-foreground");
@@ -1209,7 +1211,7 @@ export function regionalOverlapBadgeGroups(segments: NetworkSegment[]) {
 }
 
 export function regionalOverlapBadges(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   segments: NetworkSegment[],
 ): RegionalOverlapBadge[] {
   const stationsLayer = documentNode.getElementById("regional-stations-layer") as SVGElement | null;
@@ -1798,7 +1800,7 @@ export function installRegionalOverlaySession(
   };
 
   const update = (data: RegionalOverlayData): { overlapBadges: RegionalOverlapBadge[] } => {
-    const documentNode = svg.ownerDocument;
+    const documentNode = regionalSvgScope(svg);
     segmentLayer.replaceChildren();
     if (selectedSegmentLayer) selectedSegmentLayer.replaceChildren();
     stationRingLayer.replaceChildren();

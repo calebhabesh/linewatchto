@@ -1,5 +1,6 @@
 import { serviceEffectLabel } from "./alert-categories.ts";
 import { suppliedAlertCause } from "./alert-cause.ts";
+import { formatCompactDuration } from "./impact-time.ts";
 import type { ActiveAlert, DelayAlert, IncidentRiderDetails, ImpactKind, LineStatus, PlannedClosure, ReducedSpeedZone } from "./linewatch-data.ts";
 import { countReducedSpeedZones } from "./reduced-speed-zone-count.ts";
 import { compareSurfaceNotices } from "./surface-notice-groups.ts";
@@ -27,6 +28,8 @@ export type CurrentServiceRow = IncidentRiderDetails & {
   timingTarget?: string | null;
   cause?: string | null;
   updatedAt?: string | null;
+  /** Card footer anchor; set only for unplanned rows without a service window. */
+  postedAt?: string | null;
   direction?: string | null;
   shuttle: boolean;
   priority: number;
@@ -47,15 +50,7 @@ export function windowTime(value: string | null | undefined, now: number, ending
 
 function remainingWindowTime(time: number, now: number): string | undefined {
   if (!Number.isFinite(now) || now <= 0 || time <= now) return undefined;
-  const minutes = Math.floor((time - now) / 60_000);
-  if (minutes < 1) return "<1m";
-  if (minutes < 60) return `${minutes}m`;
-  if (minutes < 24 * 60) {
-    const remainder = minutes % 60;
-    return `${Math.floor(minutes / 60)}h${remainder ? ` ${remainder}m` : ""}`;
-  }
-  const hours = Math.floor((minutes % (24 * 60)) / 60);
-  return `${Math.floor(minutes / (24 * 60))}d${hours ? ` ${hours}h` : ""}`;
+  return formatCompactDuration(time - now);
 }
 
 export function windowCountdownStage(value: string | null | undefined, now: number) {
@@ -82,18 +77,33 @@ function incidentRiderDetails(incident: IncidentRiderDetails & { cause?: string 
   };
 }
 
+/**
+ * When an unplanned incident was posted. Planned notices are posted long before
+ * they start, so they keep their window timing instead. GO/UP supplies a
+ * publication time (its active-period start is a service-day boundary). TTC
+ * sets an unplanned alert's active-period start to its posting time.
+ */
+function unplannedPostedAt(
+  incident: IncidentRiderDetails & { startedAt?: string | null },
+  networkId: CurrentServiceData["networkId"],
+) {
+  return incident.publishedAt ?? (networkId === "regional" ? undefined : incident.startedAt);
+}
+
 /** Optional, source-reported facts only; generic classifier fallbacks add no rider information. */
-export function regionalIncidentFacts(row: CurrentServiceRow) {
+export function incidentFacts(row: CurrentServiceRow, now = 0) {
   const cause = suppliedAlertCause(row.cause);
   const delay = row.maximumDelayMinutes;
+  const posted = Date.parse(row.postedAt || "");
   return {
-    cause: cause && !/^(unknown|other(?: cause)?|metrolinx service update|modified trip|no service|delay(?:s)?)$/i.test(cause) ? cause : undefined,
+    cause: cause && !/^(unknown|other(?: cause)?|metrolinx service update|modified trip|no service|delay(?:s)?)$/i.test(cause.replace(/_/g, " ").trim()) ? cause : undefined,
     service: [
       Number.isInteger(delay) && delay! > 0 ? `Reported Delay: ${delay} min` : undefined,
       row.replacementService === "go-bus" ? "GO Buses Replace Trains"
         : row.replacementService === "bus" ? "Buses Replace Trains" : undefined,
     ].filter(Boolean).join(" · "),
-    publishedAt: row.publishedAt && Number.isFinite(Date.parse(row.publishedAt)) ? row.publishedAt : undefined,
+    // A future anchor is not yet posted; never render it as an elapsed age.
+    postedAt: Number.isFinite(posted) && (now <= 0 || posted <= now) ? row.postedAt! : undefined,
   };
 }
 
@@ -116,18 +126,22 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
     location: alert.location || alert.title,
     direction: alert.displayDirection, shuttle: alert.shuttle,
     ...incidentRiderDetails(alert),
+    postedAt: planned ? undefined : unplannedPostedAt(alert, data.networkId),
     priority: alert.severity === "delay" ? 1 : 0,
   });
   });
   for (const delay of data.delays) {
     if (rows.some((row) => row.id === delay.id && row.lineId === delay.lineId)) continue;
     const closure = data.plannedClosures.find(item => item.id === delay.relatedPlannedClosureId);
+    const timing = windowTime(delay.activeWindowEnd ?? closure?.activeWindowEnd, now, true);
     rows.push({ id: delay.id, kind: "delay", lineId: delay.lineId, lineNumber: delay.lineNumber,
       condition: delay.serviceEffect === "limited-service" ? "Limited service" : "Delays",
-      timing: windowTime(delay.activeWindowEnd ?? closure?.activeWindowEnd, now, true),
+      timing,
       timingTarget: delay.activeWindowEnd ?? closure?.activeWindowEnd,
       location: delay.location || delay.title, direction: delay.displayDirection, shuttle: !!delay.shuttle,
-      priority: 1, ...incidentRiderDetails(delay) });
+      priority: 1, ...incidentRiderDetails(delay),
+      // One time anchor per card: a scheduled end outranks the posting time.
+      postedAt: timing || delay.relatedPlannedClosureId ? undefined : unplannedPostedAt(delay, data.networkId) });
   }
   // Published windows starting within 24 hours (or active now) qualify as current service entries.
   const qualifyingClosures = data.plannedClosures.filter((closure) => {

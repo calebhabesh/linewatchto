@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-import { formatPublicationTimestamp, formatImpactTimestamp, formatOperationalDateTime, formatRelativeImpactTime } from "../src/app/impact-time.ts";
+import { formatCompactDuration, formatPublicationTimestamp, formatImpactTimestamp, formatOperationalDateTime, formatRelativeImpactTime } from "../src/app/impact-time.ts";
 
 describe("impact timestamp formatting", () => {
   it("formats card timestamp fields with an absolute anchor and compact age", () => {
@@ -119,8 +119,24 @@ describe("impact timestamp formatting", () => {
 
 it("publication timestamps include compact elapsed age without suggesting a fresh update", () => {
   const now = new Date("2026-09-26T16:00:00Z");
-  assert.equal(formatPublicationTimestamp("2026-09-24T14:18:00Z", now), "Sep 24, 10:18 AM (2d)");
+  assert.equal(formatPublicationTimestamp("2026-09-24T14:18:00Z", now), "Sep 24, 10:18 AM (2d 1h)");
+  assert.equal(formatPublicationTimestamp("2026-09-26T13:50:00Z", now), "Sep 26, 9:50 AM (2h 10m)");
+  assert.equal(formatPublicationTimestamp("2026-09-26T14:00:00Z", now), "Sep 26, 10:00 AM (2h)");
   assert.equal(formatPublicationTimestamp("2026-09-26T15:30:00Z", now), "Sep 26, 11:30 AM (30m)");
-  assert.equal(formatPublicationTimestamp("2026-09-26T16:00:00Z", now), "Sep 26, 12:00 PM (<1m)");
+  assert.equal(formatPublicationTimestamp("2026-09-26T16:00:00Z", now), "Sep 26, 12:00 PM (just now)");
   assert.equal(formatPublicationTimestamp("2026-09-27T16:00:00Z", now), "Sep 27, 12:00 PM");
+});
+
+it("saved publication timestamps keep the anchor without a counting age", () => {
+  const now = new Date("2026-09-26T16:00:00Z");
+  assert.equal(formatPublicationTimestamp("2026-09-26T13:50:00Z", now, { elapsed: false }), "Sep 26, 9:50 AM");
+});
+
+it("compact durations show at most two units", () => {
+  const minute = 60_000;
+  assert.equal(formatCompactDuration(59_999), "<1m");
+  assert.equal(formatCompactDuration(14 * minute), "14m");
+  assert.equal(formatCompactDuration(130 * minute), "2h 10m");
+  assert.equal(formatCompactDuration(27 * 60 * minute + 59 * minute), "1d 3h");
+  assert.equal(formatCompactDuration(48 * 60 * minute), "2d");
 });

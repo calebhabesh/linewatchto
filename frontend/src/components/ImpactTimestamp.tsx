@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { formatFullImpactTimestamp, formatImpactTimestamp, formatPublicationTimestamp } from "../app/impact-time";
 
-export function ImpactTimestamp({ timestamp, format }: { timestamp?: string | null; format?: "publication" }) {
+export function ImpactTimestamp({ timestamp, format, elapsed = true }: {
+  timestamp?: string | null;
+  format?: "publication";
+  /** Publication format only: false omits the age, e.g. for saved reports. */
+  elapsed?: boolean;
+}) {
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -20,7 +25,7 @@ export function ImpactTimestamp({ timestamp, format }: { timestamp?: string | nu
       title={formatFullImpactTimestamp(timestamp)}
       suppressHydrationWarning
     >
-      {format === "publication" ? formatPublicationTimestamp(timestamp) : formatImpactTimestamp(timestamp)}
+      {format === "publication" ? formatPublicationTimestamp(timestamp, new Date(), { elapsed }) : formatImpactTimestamp(timestamp)}
     </time>
   );
 }

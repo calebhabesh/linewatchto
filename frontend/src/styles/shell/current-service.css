@@ -2246,8 +2246,8 @@
 }
 
 /* Provider publication time is secondary to the rider impact and station span. */
-.current-service .current-service-impact-timing.regional-incident-update,
-.desktop-status-incident-row .desktop-status-incident-timing.regional-incident-update {
+.current-service .current-service-impact-timing.incident-posted-time,
+.desktop-status-incident-row .desktop-status-incident-timing.incident-posted-time {
   color: var(--muted);
   font-size: 12px;
   font-weight: 400;

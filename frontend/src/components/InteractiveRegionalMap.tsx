@@ -50,8 +50,10 @@ import {
   primeRegionalRouteSamples,
   regionalTrainMarkerFrame,
   regionalStationLabelHover,
+  regionalSvgScope,
   REGIONAL_OVERLAP_INDICATOR_SCALE,
   type RegionalCollisionBox,
+  type RegionalSvgScope,
   type RegionalTrainMarkerFrame,
 } from "../app/regional-map-geometry";
 import {
@@ -148,7 +150,7 @@ function animateRegionalTrainMarker(
   group: SVGGElement,
   marker: EstimatedTrainMarker,
   segments: NetworkSegment[],
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   runtimes: Map<string, RegionalTrainMarkerMotionRuntime>,
   animate: boolean,
 ) {
@@ -230,7 +232,7 @@ function animateRegionalTrainMarker(
 function regionalTrainMarkerMotionFrame(
   sample: ReturnType<typeof sampleEstimatedTrainMarkerMotion>,
   segmentById: Map<string, NetworkSegment>,
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
 ): { marker: EstimatedTrainMarker; frame: RegionalTrainMarkerFrame } | null {
   if (sample.from.segmentId === sample.to.segmentId
     && sample.from.fromStationId === sample.to.fromStationId
@@ -270,7 +272,7 @@ function cancelRegionalTrainMarkerMotion(runtime: RegionalTrainMarkerMotionRunti
   if (runtime) runtime.cancelAnimation = null;
 }
 
-function appendRegionalTrainMarkerGlyph(documentNode: Document, group: SVGGElement) {
+function appendRegionalTrainMarkerGlyph(documentNode: RegionalSvgScope, group: SVGGElement) {
   for (const className of ["estimated-train-marker-outline", "estimated-train-marker-core"]) {
     const body = documentNode.createElementNS(SVG_NAMESPACE, "path");
     body.setAttribute("d", TRAIN_MARKER_BODY_PATH);
@@ -1025,7 +1027,9 @@ function InteractiveRegionalMapComponent({
       return;
     }
 
-    const documentNode = markerLayer.ownerDocument;
+    const documentNode = markerLayer.ownerSVGElement
+      ? regionalSvgScope(markerLayer.ownerSVGElement)
+      : markerLayer.ownerDocument;
     for (const marker of estimatedTrainMarkers) {
       const segment = networkSegments.find((item) => item.id === marker.segmentId);
       if (!segment) continue;

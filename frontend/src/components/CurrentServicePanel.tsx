@@ -1,7 +1,7 @@
 "use client";
 
 import { IncidentStationSpan } from "./IncidentStationSpan";
-import { RegionalIncidentDetails } from "./RegionalIncidentDetails";
+import { IncidentFacts, IncidentPostedTime } from "./IncidentDetails";
 import { IncidentTiming } from "./IncidentTiming";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
@@ -406,12 +406,13 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                           </span>
                           <span className="current-service-impact-location"><IncidentStationSpan location={row.location} /></span>
                           {row.direction && <span className="current-service-impact-direction">{row.direction}</span>}
+                          <IncidentFacts row={row} className="current-service-impact-timing" />
                           {(incident.timing || row.shuttle) && (
                             <span className="current-service-impact-timing">
                               <IncidentTiming timing={incident.timing} target={row.timingTarget} now={now} shuttle={row.shuttle} />
                             </span>
                           )}
-                            {data.networkId === "regional" && <RegionalIncidentDetails row={row} className="current-service-impact-timing" />}
+                          <IncidentPostedTime row={row} className="current-service-impact-timing" now={now} saved={Boolean(data.snapshot)} />
                         </button>
                       </IncidentElectricBorder>
                     );

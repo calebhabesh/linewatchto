@@ -16,6 +16,23 @@ import {
 
 export type RegionalCoordinateSpace = "station-layer" | "root";
 
+/**
+ * Element lookup bound to the regional diagram. The retained TTC diagram lives
+ * in the same document and reuses station IDs such as `station-union` and
+ * `station-downsview-park`, so `document.getElementById` can resolve a TTC
+ * anchor and project regional overlays onto the wrong part of a corridor.
+ */
+export type RegionalSvgScope = Pick<Document, "getElementById" | "createElementNS">;
+
+export function regionalSvgScope(svg: SVGSVGElement): RegionalSvgScope {
+  const documentNode = svg.ownerDocument;
+  return {
+    getElementById: (elementId: string) =>
+      elementId ? svg.querySelector<HTMLElement>(`#${CSS.escape(elementId)}`) : null,
+    createElementNS: documentNode.createElementNS.bind(documentNode) as Document["createElementNS"],
+  };
+}
+
 export type RegionalStationVisualAnchor = {
   id: string;
   point: MapPoint;
@@ -149,7 +166,7 @@ export function pointInRegionalStationsCoordinates(
 }
 
 export function readRegionalStationAnchorPoint(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   anchorId: string | undefined,
   space: RegionalCoordinateSpace = "station-layer",
 ): MapPoint | null {
@@ -177,14 +194,14 @@ export function readRegionalStationAnchorPoint(
 }
 
 export function svgAnchorPoint(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   anchorId: string | undefined,
 ): MapPoint | null {
   return readRegionalStationAnchorPoint(documentNode, anchorId, "station-layer");
 }
 
 export function svgAnchorPointInRootCoordinates(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   anchorId: string | undefined,
 ): MapPoint | null {
   return readRegionalStationAnchorPoint(documentNode, anchorId, "root");
@@ -429,7 +446,7 @@ export function pathDataForPoints(points: MapPoint[]): string | null {
 }
 
 export function fallbackSegmentPath(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   stationAAnchorId: string | undefined,
   stationBAnchorId: string | undefined,
   space: RegionalCoordinateSpace = "station-layer",
@@ -440,7 +457,7 @@ export function fallbackSegmentPath(
 }
 
 export function corridorSegmentPath(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   segment: NetworkSegment,
   space: RegionalCoordinateSpace = "station-layer",
 ): string | null {
@@ -517,14 +534,14 @@ export function corridorSegmentPath(
 }
 
 export function corridorSegmentPathInRootCoordinates(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   segment: NetworkSegment,
 ): string | null {
   return corridorSegmentPath(documentNode, segment, "root");
 }
 
 export function authoredRegionalCorridorPathData(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   lineId: string,
   space: RegionalCoordinateSpace = "station-layer",
 ): string | null {
@@ -542,7 +559,7 @@ export function authoredRegionalCorridorPathData(
 }
 
 export function resolvedRegionalSegmentPath(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   segment: NetworkSegment,
   space: RegionalCoordinateSpace = "station-layer",
 ): string | null {
@@ -553,7 +570,7 @@ export function resolvedRegionalSegmentPath(
 }
 
 export function continuousRegionalOverlayRunPath(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   run: { segments: NetworkSegment[]; pathD: string },
 ): string | null {
   if (run.segments.length === 1) return run.pathD;
@@ -598,7 +615,7 @@ export function continuousRegionalOverlayRunPath(
 }
 
 export function regionalTrainMarkerFrame(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   segment: NetworkSegment,
   marker: EstimatedTrainMarker,
 ): RegionalTrainMarkerFrame | null {
@@ -785,7 +802,7 @@ export function regionalStationLabelHover(
 }
 
 export function regionalOverlapBadgeAnchor(
-  documentNode: Document,
+  documentNode: RegionalSvgScope,
   segment: NetworkSegment,
   size: RegionalBadgeSize,
 ): RegionalOverlapBadgePlacement | null {

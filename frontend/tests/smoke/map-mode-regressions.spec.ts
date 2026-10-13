@@ -189,6 +189,38 @@ for (const network of ["ttc", "regional"] as const) {
       }
     });
 
+    test(`${network} ${mode} overlap badges open with a real click after native panning`, async ({ page, request, isMobile }) => {
+      test.skip(mode !== "diagram", "Diagram badges own the trailing-click guard.");
+      await openMap(page, request, network, mode, isMobile);
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const drag = await beginDrag(page, mapViewport(page, network, mode), isMobile);
+        await drag.move(-15, 10);
+        await drag.move(-35, 25);
+        await drag.end();
+        await settleCamera(page, mode);
+        // Badges isolate mouse pointerdown from the map, so a dispatched
+        // click (detail 0) would skip the drag guard this test covers.
+        const center = await page.evaluate(() => {
+          for (const marker of document.querySelectorAll(".overlap-indicator-group .overlap-indicator")) {
+            const rect = marker.getBoundingClientRect();
+            const point = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+            const hit = document.elementFromPoint(point.x, point.y);
+            if (hit && marker.contains(hit)) return point;
+          }
+          return null;
+        });
+        expect(center, "an unobscured overlap badge").not.toBeNull();
+        if (isMobile) await page.touchscreen.tap(center!.x, center!.y);
+        else await page.mouse.click(center!.x, center!.y);
+        const chooser = page.locator("[data-overlap-chooser]");
+        await expect(chooser, `attempt ${attempt + 1}`).toBeVisible();
+        await chooser.getByRole("button", { name: "Close alert chooser" }).focus();
+        await page.keyboard.press("Escape");
+        await expect(chooser).toHaveCount(0);
+        await centerMap(page, mode);
+      }
+    });
+
     test(`${network} ${mode} fitted and panned cameras survive background refresh`, async ({ page, request, isMobile }) => {
       test.skip(!isMobile && mode === "rotated diagram", "Rotation is a mobile Diagram feature.");
       await openMap(page, request, network, mode, isMobile);

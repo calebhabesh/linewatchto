@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
   currentServiceSummary,
-  regionalIncidentFacts,
+  incidentFacts,
   currentServiceIncidentPresentation,
   currentSurfaceNotices,
   getCanonicalAlertTitle,
@@ -610,9 +610,9 @@ test("regional rider facts survive summary projection, deduplication and saved s
   const rows = currentServiceSummary(input).rows;
   assert.equal(rows.length, 2);
   for (const row of rows) {
-    assert.deepEqual(regionalIncidentFacts(row), {
+    assert.deepEqual(incidentFacts(row), {
       cause: "Signal Problems", service: "Reported Delay: 20 min · GO Buses Replace Trains",
-      publishedAt: details.publishedAt,
+      postedAt: details.publishedAt,
     });
   }
   const saved = currentServiceSummary({ ...input, snapshot: { savedAt: Date.parse(details.updatedAt) }, generatedAt: { live: false } });
@@ -622,9 +622,9 @@ test("regional rider facts survive summary projection, deduplication and saved s
 
 test("regional rider facts omit unknown, invalid and generic values", () => {
   const row = currentServiceSummary(data({ activeAlerts: [impact("a", "1")] })).rows[0];
-  for (const cause of [undefined, null, " ", "Metrolinx service update", "Unknown", "Unknown Cause", "UNKNOWN_CAUSE", "Unknown   Cause", "Modified Trip"]) {
-    assert.deepEqual(regionalIncidentFacts({ ...row, cause, maximumDelayMinutes: -1, replacementService: "unknown", updatedAt: "bad", publishedAt: "bad" }), {
-      cause: undefined, service: "", publishedAt: undefined,
+  for (const cause of [undefined, null, " ", "Metrolinx service update", "Unknown", "Unknown Cause", "UNKNOWN_CAUSE", "Unknown   Cause", "Modified Trip", "OTHER_CAUSE", "Other cause"]) {
+    assert.deepEqual(incidentFacts({ ...row, cause, maximumDelayMinutes: -1, replacementService: "unknown", updatedAt: "bad", postedAt: "bad" }), {
+      cause: undefined, service: "", postedAt: undefined,
     });
   }
 });
@@ -632,14 +632,69 @@ test("regional rider facts omit unknown, invalid and generic values", () => {
 
 test("regional incident publication time never falls back to a fresh poll timestamp", () => {
   const input = data({ activeAlerts: [impact("a", "1", { updatedAt: "2026-09-26T14:00:00Z" })] });
-  assert.equal(regionalIncidentFacts(currentServiceSummary(input).rows[0]).publishedAt, undefined);
+  input.networkId = "regional";
+  assert.equal(incidentFacts(currentServiceSummary(input).rows[0]).postedAt, undefined);
   input.activeAlerts[0].publishedAt = "2026-09-24T12:00:00Z";
   input.activeAlerts[0].updatedAt = "2026-09-26T15:00:00Z";
-  assert.equal(regionalIncidentFacts(currentServiceSummary(input).rows[0]).publishedAt, "2026-09-24T12:00:00Z");
+  assert.equal(incidentFacts(currentServiceSummary(input).rows[0]).postedAt, "2026-09-24T12:00:00Z");
 });
 
 
 test("regional incident facts never present a feed validity boundary as a scheduled service end", () => {
   const row = currentServiceSummary(data({ activeAlerts: [impact("a", "1")] })).rows[0];
-  assert.equal(Object.hasOwn(regionalIncidentFacts({ ...row, scheduledEndAt: "2026-09-27T04:12:00Z" }), "scheduledEndAt"), false);
+  assert.equal(Object.hasOwn(incidentFacts({ ...row, scheduledEndAt: "2026-09-27T04:12:00Z" }), "scheduledEndAt"), false);
+});
+
+
+test("ttc unplanned incidents are posted at their source start with a specific cause", () => {
+  const startedAt = "2026-09-26T14:12:00Z";
+  const input = data({
+    activeAlerts: [impact("stop", "2", { startedAt, cause: "Security incident" })],
+    delays: [impact("slow", "1", { severity: "delay", startedAt, cause: "MEDICAL_EMERGENCY" })],
+  });
+  const rows = currentServiceSummary(input).rows;
+  for (const row of rows) assert.equal(incidentFacts(row, Date.parse("2026-09-26T16:00:00Z")).postedAt, startedAt);
+  assert.equal(incidentFacts(rows.find((row) => row.id === "stop")).cause, "Security incident");
+  assert.equal(incidentFacts(rows.find((row) => row.id === "slow")).cause, "MEDICAL_EMERGENCY");
+});
+
+test("GO/UP never presents a service-day active-period start as its posting time", () => {
+  const input = data({ networkId: "regional", delays: [impact("slow", "1", { severity: "delay", startedAt: "2026-09-26T04:01:00Z" })] });
+  assert.equal(currentServiceSummary(input).rows[0].postedAt, undefined);
+  input.delays[0].publishedAt = "2026-09-26T08:52:00Z";
+  assert.equal(currentServiceSummary(input).rows[0].postedAt, "2026-09-26T08:52:00Z");
+});
+
+test("posted time is reserved for unplanned cards without a service window", () => {
+  const now = Date.parse("2026-09-28T16:00:00Z");
+  const posted = { startedAt: "2026-09-28T14:00:00Z", publishedAt: "2026-09-28T14:00:00Z" };
+  for (const networkId of ["ttc", "regional"]) {
+    const closure = impact("parent", "2", { ...posted, activeNow: true, activeWindowEnd: "2026-09-28T20:00:00Z", nextWindowStart: "2026-09-28T15:00:00Z", nextWindowEnd: "2026-09-28T20:00:00Z" });
+    const upcoming = impact("soon", "4", { ...posted, nextWindowStart: "2026-09-28T23:00:00Z", nextWindowEnd: "2026-09-29T04:00:00Z" });
+    const rows = currentServiceSummary(data({
+      networkId,
+      activeAlerts: [
+        impact("child", "2", { ...posted, relatedPlannedClosureId: "parent" }),
+        impact("planned", "1", { ...posted, severity: "planned" }),
+      ],
+      delays: [
+        impact("windowed", "1", { ...posted, severity: "delay", activeWindowEnd: "2026-09-28T18:00:00Z" }),
+        impact("linked", "4", { ...posted, severity: "delay", relatedPlannedClosureId: "soon" }),
+      ],
+      plannedClosures: [closure, upcoming],
+    }), now).rows;
+    assert.deepEqual(rows.map((row) => row.id).sort(), ["child", "linked", "planned", "soon", "windowed"], networkId);
+    for (const row of rows) assert.equal(incidentFacts(row, now).postedAt, undefined, `${networkId} ${row.id}`);
+  }
+});
+
+test("posted time hides future anchors and survives saved snapshots without a window", () => {
+  const now = Date.parse("2026-09-28T16:00:00Z");
+  const input = data({ activeAlerts: [impact("stop", "2", { startedAt: "2026-09-28T16:05:00Z" })] });
+  const [row] = currentServiceSummary(input, now).rows;
+  assert.equal(incidentFacts(row, now).postedAt, undefined);
+  assert.equal(incidentFacts(row, Date.parse("2026-09-28T16:06:00Z")).postedAt, "2026-09-28T16:05:00Z");
+  const saved = currentServiceSummary({ ...input, snapshot: { savedAt: now + 600_000 }, generatedAt: { live: false } });
+  assert.match(saved.rows[0].condition, /^Last reported:/);
+  assert.equal(saved.rows[0].postedAt, "2026-09-28T16:05:00Z");
 });
