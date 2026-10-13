@@ -7,7 +7,7 @@ function worker(fetcher, entries=new Map(), build="local") {
  const listeners=new Map(), writes=[];
  const cache={match:async key=>entries.get(typeof key==='string'?key:key.url)?.clone(),addAll:async()=>{},put:async(key,response)=>{writes.push(key);entries.set(key,response)}};
  const context={URL,Response,Request,AbortSignal,Promise,fetch:fetcher,caches:{match:cache.match,open:async()=>cache},self:{location:new URL(`https://linewatch.test/sw.js?build=${build}`),addEventListener:(name,fn)=>listeners.set(name,fn)}};
- const methods=runInNewContext(source+';({networkFirstNavigation,networkFirstStatic,cacheOfflineDashboard,APP_SHELL_CACHE,STATIC_CACHE})',context);
+ const methods=runInNewContext(source+';({networkFirstNavigation,networkFirstStatic,cacheOfflineDashboard,cachedLaunchNavigation,APP_SHELL_CACHE,STATIC_CACHE,LAUNCH_SHELL_KEY})',context);
  return {...methods,listeners,entries,writes,cache};
 }
 test('offline and 503 dashboard navigations use only the public bootstrap',async()=>{
@@ -49,4 +49,50 @@ test('release builds install into separate cache namespaces', () => {
 test('HTTP failures on static assets can use the installed icon fallback',async()=>{
  const w=worker(async()=>new Response('',{status:503}),new Map([['/assets/linewatch/line-4-legend.svg',new Response('icon')]]));
  assert.equal(await(await w.networkFirstStatic(new Request('https://linewatch.test/assets/linewatch/line-4-legend.svg?v=3'))).text(),'icon');
+});
+
+const html=(body,init={})=>new Response(body,{...init,headers:{'content-type':'text/html',...init.headers}});
+function launchEvent(path='/'){ const pending=[]; return {event:{request:new Request('https://linewatch.test'+path),waitUntil:p=>pending.push(p)},pending}; }
+test('installed-app launches paint the cached start page and refresh it in the background',async()=>{
+ let release; const network=new Promise(r=>{release=r});
+ const w=worker(()=>network,new Map([['/__linewatch/launch-shell',html('cached start')]]));
+ const {event,pending}=launchEvent();
+ assert.equal(await(await w.cachedLaunchNavigation(event)).text(),'cached start');
+ release(html('fresh start')); await Promise.all(pending);
+ assert.deepEqual(w.writes,[w.LAUNCH_SHELL_KEY]);
+ assert.equal(await w.entries.get(w.LAUNCH_SHELL_KEY).text(),'fresh start');
+});
+test('the first launch uses the network and keeps only cacheable start pages',async()=>{
+ const w=worker(async()=>html('network start'));
+ const {event,pending}=launchEvent();
+ assert.equal(await(await w.cachedLaunchNavigation(event)).text(),'network start'); await Promise.all(pending);
+ assert.deepEqual(w.writes,[w.LAUNCH_SHELL_KEY]);
+ const redirected=html('login'); Object.defineProperty(redirected,'redirected',{value:true});
+ for(const response of [html('',{status:500}),new Response('{}',{headers:{'content-type':'application/json'}}),redirected]){
+  const rejected=worker(async()=>response,new Map([['/offline',new Response('public shell')]]));
+  const launch=launchEvent(); await rejected.cachedLaunchNavigation(launch.event); await Promise.all(launch.pending);
+  assert.equal(rejected.writes.length,0);
+ }
+});
+test('offline launches prefer the cached start page over the generic bootstrap',async()=>{
+ const w=worker(async()=>{throw Error('offline')},new Map([['/__linewatch/launch-shell',html('cached start')],['/offline',new Response('public shell')]]));
+ assert.equal(await(await w.networkFirstNavigation(new Request('https://linewatch.test/'))).text(),'cached start');
+ const empty=worker(async()=>{throw Error('offline')},new Map([['/offline',new Response('public shell')]]));
+ const {event,pending}=launchEvent();
+ assert.equal(await(await empty.cachedLaunchNavigation(event)).text(),'public shell'); await Promise.allSettled(pending);
+});
+test('deep links and other pages never use or replace the cached start page',async()=>{
+ for(const path of ['/?impact=line-1','/?token=secret','/account']){
+  const w=worker(async()=>html('network '+path),new Map([['/__linewatch/launch-shell',html('cached start')]]));
+  const listeners=w.listeners; const original=listeners.get('fetch');
+  let result; original({request:{url:'https://linewatch.test'+path,method:'GET',mode:'navigate'},respondWith:p=>{result=p},waitUntil:()=>{}});
+  assert.equal(await(await result).text(),'network '+path); assert.equal(w.writes.length,0);
+ }
+});
+test('preference changes refresh the cached start page with current cookies',async()=>{
+ const requests=[]; const w=worker(async(url,init)=>{requests.push([url,init]);return html('new prefs')});
+ const pending=[]; w.listeners.get('message')({data:{type:'linewatch-refresh-launch-shell'},waitUntil:p=>pending.push(p)});
+ await Promise.all(pending);
+ assert.equal(requests[0][0],'/'); assert.equal(requests[0][1].credentials,'same-origin');
+ assert.deepEqual(w.writes,[w.LAUNCH_SHELL_KEY]);
 });

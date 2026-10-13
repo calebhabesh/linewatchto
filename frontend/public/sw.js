@@ -5,6 +5,8 @@ const APP_SHELL_CACHE = `${CACHE_PREFIX}-${CACHE_VERSION}-${CACHE_BUILD}-shell`;
 const STATIC_CACHE = `${CACHE_PREFIX}-${CACHE_VERSION}-static`;
 const OFFLINE_URL = "/offline.html";
 const OFFLINE_DASHBOARD_URL = "/offline";
+// Synthetic key for the last successful start-page document of this build.
+const LAUNCH_SHELL_KEY = "/__linewatch/launch-shell";
 const NOTIFICATION_BADGE_URL = "/assets/linewatch/pwa/notification-badge-96.png";
 const NOTIFICATION_ICON_URL = "/assets/linewatch/pwa/app-icon-192.png";
 const LINEWATCH_PUSH_CATEGORIES = new Set([
@@ -104,7 +106,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (event.request.mode === "navigate") {
-    event.respondWith(networkFirstNavigation(request));
+    event.respondWith(isLaunchNavigation(url) ? cachedLaunchNavigation(event) : networkFirstNavigation(request));
     return;
   }
 
@@ -140,6 +142,14 @@ self.addEventListener("message", (event) => {
       return networkFirstStatic(new Request(url.href));
     }));
     event.waitUntil(warm);
+    return;
+  }
+  if (event.data?.type === "linewatch-refresh-launch-shell" && !isDev) {
+    // Preferences change the server-rendered start page; refresh it for the next launch.
+    const refresh = refreshLaunchShell(fetch("/", { credentials: "same-origin", cache: "no-store" })).catch(() => undefined);
+    if (typeof event.waitUntil === "function") {
+      event.waitUntil(refresh);
+    }
     return;
   }
   if (event.data?.type === "linewatch-skip-waiting") {
@@ -188,17 +198,60 @@ async function networkFirstNavigation(request) {
     if (response.status < 500) return response;
     throw new Error("Navigation unavailable");
   } catch {
-    // Only public dashboard navigations may reopen into the app. Never cache or
-    // replay account pages, OAuth callbacks, verification/reset links, or RSC reads.
-    const url = new URL(request.url);
-    if ((url.pathname === "/" || url.pathname === OFFLINE_DASHBOARD_URL)
-      && ![...url.searchParams.keys()].some((key) => /token|code|password|email/i.test(key))) {
-      const dashboard = await caches.match(OFFLINE_DASHBOARD_URL);
-      if (dashboard) return dashboard;
-    }
-    const offlineResponse = await caches.match(OFFLINE_URL);
-    return offlineResponse || Response.error();
+    return offlineNavigationFallback(request);
   }
+}
+
+async function offlineNavigationFallback(request) {
+  // Only public dashboard navigations may reopen into the app. Never cache or
+  // replay account pages, OAuth callbacks, verification/reset links, or RSC reads.
+  const url = new URL(request.url);
+  if ((url.pathname === "/" || url.pathname === OFFLINE_DASHBOARD_URL)
+    && ![...url.searchParams.keys()].some((key) => /token|code|password|email/i.test(key))) {
+    const dashboard = await caches.match(LAUNCH_SHELL_KEY, { cacheName: APP_SHELL_CACHE })
+      || await caches.match(OFFLINE_DASHBOARD_URL);
+    if (dashboard) return dashboard;
+  }
+  const offlineResponse = await caches.match(OFFLINE_URL);
+  return offlineResponse || Response.error();
+}
+
+// The bare start URL is what an installed app opens. Its document carries only
+// public fixture data and visual-preference cookies (live data loads client-side),
+// so it can paint from cache while the network copy refreshes the next launch.
+function isLaunchNavigation(url) {
+  return url.pathname === "/" && url.search === "";
+}
+
+async function cachedLaunchNavigation(event) {
+  const refreshed = refreshLaunchShell(fetch(event.request, { signal: AbortSignal.timeout(8_000) }));
+  event.waitUntil(refreshed.catch(() => undefined));
+  const cached = await caches.match(LAUNCH_SHELL_KEY, { cacheName: APP_SHELL_CACHE }).catch(() => undefined);
+  if (cached) return cached;
+  try {
+    const response = await refreshed;
+    if (response.status < 500) return response;
+  } catch { /* Fall through to the installed public bootstrap. */ }
+  return offlineNavigationFallback(event.request);
+}
+
+async function refreshLaunchShell(responsePromise) {
+  const response = await responsePromise;
+  if (isCacheableLaunchShell(response)) {
+    try {
+      const cache = await caches.open(APP_SHELL_CACHE);
+      await cache.put(LAUNCH_SHELL_KEY, response.clone());
+    } catch { /* Quota/private mode must not discard a successful response. */ }
+  }
+  return response;
+}
+
+function isCacheableLaunchShell(response) {
+  if (response.status !== 200 || response.redirected) return false;
+  if (!response.headers.get("content-type")?.includes("text/html")) return false;
+  if (!response.url) return true;
+  const url = new URL(response.url);
+  return url.origin === self.location.origin && url.pathname === "/" && url.search === "";
 }
 
 async function cacheOfflineDashboard(cache) {

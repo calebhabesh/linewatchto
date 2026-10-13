@@ -190,3 +190,22 @@ export function buildVisualPreferencesCookie(preferences: VisualPreferencesToPer
     "SameSite=Lax",
   ].join("; ") + secureAttribute;
 }
+
+type CookieDocument = Pick<Document, "cookie">;
+type LaunchShellWorker = { controller: Pick<ServiceWorker, "postMessage"> | null } | undefined;
+
+// The installed app opens a cached copy of the server-rendered start page, which
+// is rendered from this cookie. Refresh that copy only when the cookie changes.
+export function persistVisualPreferencesCookie(
+  preferences: VisualPreferencesToPersist,
+  protocol: string,
+  cookieDocument: CookieDocument = document,
+  serviceWorker: LaunchShellWorker = typeof navigator !== "undefined" ? navigator.serviceWorker : undefined,
+) {
+  const cookie = buildVisualPreferencesCookie(preferences, protocol);
+  const changed = !cookieDocument.cookie.split(/;\s*/).includes(cookie.split("; ")[0]);
+  cookieDocument.cookie = cookie;
+  if (changed) {
+    serviceWorker?.controller?.postMessage({ type: "linewatch-refresh-launch-shell" });
+  }
+}

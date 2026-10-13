@@ -541,7 +541,7 @@ export function OpeningDisclaimer({
                     >
                       <article className="opening-welcome-slide" aria-labelledby="opening-desktop-slide-1">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--wide">
-                          <Image src={onboardingDesktopMapGuide} alt="LineWatchTO map with a suspension, delay, Reduced Speed Zone, and station impact" fill sizes="520px" priority draggable={false} />
+                          <Image src={onboardingDesktopMapGuide} alt="LineWatchTO map with a suspension, delay, Reduced Speed Zone, and station impact" fill sizes="520px" draggable={false} />
                         </div>
                         <div className="opening-welcome-slide-heading">
                           <h2 id="opening-desktop-slide-1">Read the Live Map</h2>
@@ -631,7 +631,7 @@ export function OpeningDisclaimer({
                     >
                       <article className="opening-welcome-slide" aria-labelledby="opening-mobile-slide-1">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--mobile">
-                          <Image src={onboardingMobileMapGuide} alt="Mobile map showing a delay, Reduced Speed Zone, and station impact" fill sizes="340px" priority draggable={false} />
+                          <Image src={onboardingMobileMapGuide} alt="Mobile map showing a delay, Reduced Speed Zone, and station impact" fill sizes="340px" draggable={false} />
                         </div>
                         <div className="opening-welcome-slide-heading">
                           <h2 id="opening-mobile-slide-1">Read the Live Map</h2>

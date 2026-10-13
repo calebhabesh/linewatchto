@@ -99,3 +99,26 @@ test('offline shell without a snapshot shows an unknown state and usable map', a
    await waitForNetworkTransition(page,'ttc');
    await expect(page.locator('.ttc-map-stage')).toHaveAttribute('data-raster-map-ready','true');
  });
+
+test('installed launches open the cached start page rendered with current preferences', async ({ page, context }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.addInitScript(() => localStorage.setItem('linewatch-theme-v1', 'light'));
+  await page.goto('/');
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  // The first controlled launch stores the start page rendered with the light preference cookie.
+  await page.reload();
+  await expect.poll(() => page.evaluate(async () => (await (await caches.match('/__linewatch/launch-shell'))?.text())?.includes('-light-mobile.png') ?? false)).toBe(true);
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.locator('link[rel="preload"][href*="-light-mobile.png"]').first()).toBeAttached();
+  await context.setOffline(false);
+  await page.reload();
+  await expect(page.locator('.linewatch-shell')).toBeVisible();
+  await expect(page.locator('.ttc-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
+  await expect(page.locator('.dashboard-availability-notice')).toHaveCount(0);
+  expect(await page.evaluate(() => performance.getEntriesByType('navigation')[0] instanceof PerformanceNavigationTiming
+    && (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming).workerStart > 0)).toBe(true);
+  expect(errors).toEqual([]);
+});

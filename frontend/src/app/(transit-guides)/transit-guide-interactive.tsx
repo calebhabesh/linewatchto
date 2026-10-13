@@ -5,7 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
-  buildVisualPreferencesCookie,
+  persistVisualPreferencesCookie,
   defaultVisualPreferences,
   readVisualPreferencesFromStorage,
   visualPreferenceStorageKeys,
@@ -48,7 +48,7 @@ export function GuideNav() {
     const nextTheme = currentTheme === "dark" ? "light" : "dark";
     window.localStorage.setItem(visualPreferenceStorageKeys.theme, nextTheme);
     const stored = readVisualPreferencesFromStorage(window.localStorage);
-    document.cookie = buildVisualPreferencesCookie({
+    persistVisualPreferencesCookie({
       theme: nextTheme,
       highContrast: stored.highContrast ?? defaultVisualPreferences.highContrast,
       reducedMotion: stored.reducedMotion,

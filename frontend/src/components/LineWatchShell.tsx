@@ -154,7 +154,7 @@ import { lineWatchAppVersionLabel } from "../app/app-build";
 import { clearServiceStatusLabel } from "../app/network-presentation";
 import { resolveCommuteImpactMapSelection } from "./map-impact-normalization";
 import {
-  buildVisualPreferencesCookie,
+  persistVisualPreferencesCookie,
   defaultVisualPreferences,
   readVisualPreferencesFromStorage,
   resolveReducedMotionPreference,
@@ -760,7 +760,7 @@ export function LineWatchShell({
     };
 
     writeVisualPreferencesToStorage(window.localStorage, preferences);
-    document.cookie = buildVisualPreferencesCookie(preferences, window.location.protocol);
+    persistVisualPreferencesCookie(preferences, window.location.protocol);
   }, [defaultNetworkPreference, dotBackgroundEnabled, estimatedTrainsEnabled, highContrast, isDark, mapViewPreference, reducedMotion, reducedMotionOverride, visualPreferencesReady]);
 
   useEffect(() => {

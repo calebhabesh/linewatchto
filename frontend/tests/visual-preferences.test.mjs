@@ -6,6 +6,7 @@ import {
   buildVisualPreferencesCookie,
   defaultVisualPreferences,
   initialVisualPreferencesFromCookie,
+  persistVisualPreferencesCookie,
   readVisualPreferencesFromStorage,
   resolveReducedMotionPreference,
   writeVisualPreferencesToStorage,
@@ -118,5 +119,28 @@ describe("visual preference persistence", () => {
   it("uses dark dashboard defaults when no usable cookie exists", () => {
     assert.deepEqual(initialVisualPreferencesFromCookie(undefined), defaultVisualPreferences);
     assert.deepEqual(initialVisualPreferencesFromCookie("%7Bbroken"), defaultVisualPreferences);
+  });
+});
+
+describe("persistVisualPreferencesCookie", () => {
+  it("refreshes the cached launch page only when the preference cookie changes", () => {
+    const messages = [];
+    const worker = { controller: { postMessage: (message) => messages.push(message) } };
+    const cookieDocument = {
+      jar: "other=1",
+      get cookie() { return this.jar; },
+      set cookie(value) { this.jar = `other=1; ${value.split("; ")[0]}`; },
+    };
+    const light = { ...defaultVisualPreferences, theme: "light", reducedMotion: null };
+
+    persistVisualPreferencesCookie(light, "https:", cookieDocument, worker);
+    persistVisualPreferencesCookie(light, "https:", cookieDocument, worker);
+    persistVisualPreferencesCookie({ ...light, theme: "dark" }, "https:", cookieDocument, worker);
+
+    assert.deepEqual(messages, [
+      { type: "linewatch-refresh-launch-shell" },
+      { type: "linewatch-refresh-launch-shell" },
+    ]);
+    assert.match(cookieDocument.jar, new RegExp(`${VISUAL_PREFERENCES_COOKIE_NAME}=`));
   });
 });
