@@ -38,21 +38,6 @@ describe("accessibility outages panel and routing source verification", () => {
     assert.match(panelSource, /aria-controls=\{`outages-list-\${expandedKey}`\}/);
   });
 
-  it("keeps the View Station action aligned with default button typography", () => {
-    const viewStationButton = panelSource.match(
-      /<button\s+[^>]*onClick=\{\(\) => onSelectStation\(station\.stationId\)\}[\s\S]*?className="(?<className>[^"]+)"[\s\S]*?>[\s\S]*?View Station[\s\S]*?<\/button>/,
-    );
-
-    assert.ok(viewStationButton?.groups?.className);
-    assert.match(panelSource, /<span className="text-sm font-bold leading-none">\s*View Station\s*<\/span>/);
-    assert.doesNotMatch(viewStationButton.groups.className, /text-xs/);
-    assert.doesNotMatch(viewStationButton.groups.className, /text-\[10px\]/);
-    assert.doesNotMatch(viewStationButton.groups.className, /font-bold/);
-    assert.doesNotMatch(viewStationButton.groups.className, /font-black/);
-    assert.doesNotMatch(viewStationButton.groups.className, /tracking-/);
-    assert.doesNotMatch(panelSource, /fontFamily: "var\(--font-sans\)"/);
-  });
-
   it("verifies Accessibility Outages appears in MobileStatusSheet, not MobileMoreSheet", () => {
     assert.match(statusSheetSource, /"accessibility-outages"/);
     assert.match(statusSheetSource, /mobile-status-btn-accessibility/);

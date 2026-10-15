@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import React, { useState } from "react";
-import { ChevronDown, MapPin } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { PanelHeader } from "./PanelHeader";
+import { ImpactCardMapButton } from "./ImpactCardFields";
 import { AccessibilityOutageResponse } from "../app/accessibility-outage-data";
 import { formatImpactTimestamp } from "../app/impact-time";
 import { suppliedAlertCause } from "../app/alert-cause";
@@ -380,13 +381,11 @@ export function AccessibilityOutagesPanel({
 
                                 {/* Station Action Button */}
                                 <div className="flex justify-end pt-1">
-                                  <button
+                                  <ImpactCardMapButton
                                     onClick={() => onSelectStation(station.stationId)}
-                                    className="inline-flex min-h-[34px] items-center gap-2 rounded-lg bg-blue-600 px-3 text-white transition-colors hover:bg-blue-700 cursor-pointer"
-                                  >
-                                    <MapPin size={15} />
-                                    <span className="text-sm font-bold leading-none">View Station</span>
-                                  </button>
+                                    title={`Station ${station.stationName}`}
+                                    actionLabel="View Station"
+                                  />
                                 </div>
                               </div>
                             </div>

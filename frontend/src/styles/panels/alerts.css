@@ -111,6 +111,10 @@
   width: 78px;
 }
 
+.accessibility-outages-scroll .impact-card-map-btn--labeled {
+  width: auto;
+}
+
 .impact-card-map-btn__label {
   color: #334155;
   font-size: 13px;
