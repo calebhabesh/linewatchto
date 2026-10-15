@@ -12,6 +12,41 @@ class GtfsRtSubwayTripUpdateTextParserTest {
     private final GtfsRtSubwayTripUpdateTextParser parser = new GtfsRtSubwayTripUpdateTextParser();
 
     @Test
+    void parsesLongQuotedIdentifiersWithoutOverflowingTheStack() {
+        String identifier = "synthetic-identifier".repeat(2_000);
+        var feed = parser.parse("""
+            entity { id: "%s|East" trip_update {
+              trip { trip_id: "%s" route_id: "2" }
+              stop_time_update { stop_id: "%s" arrival { time: 1782988036 } }
+              vehicle { id: "%s" }
+            } }
+            """.formatted(identifier, identifier, identifier, identifier));
+
+        assertThat(feed.trips()).singleElement().satisfies(trip -> {
+            assertThat(trip.entityId()).isEqualTo(identifier + "|East");
+            assertThat(trip.tripId()).isEqualTo(identifier);
+            assertThat(trip.vehicleId()).isEqualTo(identifier);
+            assertThat(trip.direction()).isEqualTo("Eastbound");
+            assertThat(trip.stopUpdates()).singleElement().satisfies(stop ->
+                assertThat(stop.stopId()).isEqualTo(identifier)
+            );
+        });
+    }
+
+    @Test
+    void ignoresUnsupportedLongRoutesWithoutOverflowingTheStack() {
+        String routeId = "synthetic-route".repeat(2_000);
+        var feed = parser.parse("""
+            entity { id: "test|East" trip_update {
+              trip { trip_id: "test-trip" route_id: "%s" }
+              stop_time_update { stop_id: "test-stop" arrival { time: 1782988036 } }
+            } }
+            """.formatted(routeId));
+
+        assertThat(feed.trips()).isEmpty();
+    }
+
+    @Test
     void parsesSupportedSubwayTripUpdatesWithStationArrivalTimes() {
         String body = """
             header {

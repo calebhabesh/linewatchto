@@ -9,6 +9,25 @@ class TtcSurfaceTripUpdateParserTest {
     private final TtcSurfaceTripUpdateParser parser = new TtcSurfaceTripUpdateParser();
 
     @Test
+    void parsesLongQuotedIdentifiersWithoutOverflowingTheStack() {
+        String identifier = "synthetic-identifier".repeat(2_000);
+        var feed = parser.parse("""
+            entity { trip_update {
+              trip { trip_id: "%s" route_id: "%s" }
+              stop_time_update { stop_id: "%s" arrival { time: 1786712700 } }
+            } }
+            """.formatted(identifier, identifier, identifier));
+
+        assertThat(feed.trips()).singleElement().satisfies(trip -> {
+            assertThat(trip.tripId()).isEqualTo(identifier);
+            assertThat(trip.routeId()).isEqualTo(identifier);
+            assertThat(trip.stops()).singleElement().satisfies(stop ->
+                assertThat(stop.stopId()).isEqualTo(identifier)
+            );
+        });
+    }
+
+    @Test
     void parsesJsonReturnedByTheTextEndpoint() {
         var feed = parser.parse("""
             {"header":{"timestamp":"1786712400"},"entity":[

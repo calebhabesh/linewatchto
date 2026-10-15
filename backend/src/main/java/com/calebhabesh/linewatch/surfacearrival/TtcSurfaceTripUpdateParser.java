@@ -15,10 +15,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class TtcSurfaceTripUpdateParser {
     private static final ObjectMapper JSON = JsonMapper.builder().findAndAddModules().build();
+    private static final String QUOTED_STRING = "\"((?:\\\\.|[^\"\\\\])*+)\"";
     private static final Pattern HEADER_TIMESTAMP = Pattern.compile("\\btimestamp:\\s*(\\d+)");
-    private static final Pattern TRIP_ID = Pattern.compile("\\btrip_id:\\s*\"((?:\\\\.|[^\"])*)\"");
-    private static final Pattern ROUTE_ID = Pattern.compile("\\broute_id:\\s*\"((?:\\\\.|[^\"])*)\"");
-    private static final Pattern STOP_ID = Pattern.compile("\\bstop_id:\\s*\"((?:\\\\.|[^\"])*)\"");
+    private static final Pattern TRIP_ID = Pattern.compile("\\btrip_id:\\s*" + QUOTED_STRING);
+    private static final Pattern ROUTE_ID = Pattern.compile("\\broute_id:\\s*" + QUOTED_STRING);
+    private static final Pattern STOP_ID = Pattern.compile("\\bstop_id:\\s*" + QUOTED_STRING);
     private static final Pattern TIME = Pattern.compile("\\btime:\\s*(\\d+)");
     private static final Pattern DELAY = Pattern.compile("\\bdelay:\\s*(-?\\d+)");
     private static final Pattern RELATIONSHIP = Pattern.compile("\\bschedule_relationship:\\s*([A-Z_]+)");

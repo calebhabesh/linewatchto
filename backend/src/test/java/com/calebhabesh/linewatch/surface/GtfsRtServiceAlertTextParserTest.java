@@ -6,10 +6,66 @@ import com.calebhabesh.linewatch.ingestion.TtcFetchedRecord;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class GtfsRtServiceAlertTextParserTest {
 
     private final GtfsRtServiceAlertTextParser parser = new GtfsRtServiceAlertTextParser();
+
+    @ParameterizedTest
+    @ValueSource(strings = {"id", "route_id", "stop_id", "header_text", "description_text", "url"})
+    void parsesLongQuotedFieldsWithoutOverflowingTheStack(String field) {
+        String longValue = "synthetic-advisory".repeat(2_000);
+        String id = field.equals("id") ? longValue : "long-advisory";
+        String routeId = field.equals("route_id") ? "501" + longValue : "501";
+        String stopId = field.equals("stop_id") ? longValue : "test-stop";
+        String title = field.equals("header_text") ? longValue : "Service advisory";
+        String description = field.equals("description_text") ? longValue : "Advisory description";
+        String url = field.equals("url") ? "https://example.test/" + longValue : "https://example.test/advisory";
+        String text = """
+            entity {
+              id: "%s"
+              alert {
+                informed_entity { route_id: "%s" stop_id: "%s" }
+                header_text { translation { text: "%s" language: "en" } }
+                description_text { translation { text: "%s" language: "en" } }
+                url { translation { text: "%s" language: "en" } }
+              }
+            }
+            """.formatted(id, routeId, stopId, title, description, url);
+
+        List<TtcFetchedRecord> records = parser.parse(text);
+
+        assertThat(records).hasSize(1);
+        var record = records.getFirst().record();
+        assertThat(record.id()).isEqualTo("gtfsrt-" + id);
+        assertThat(record.route()).isEqualTo(routeId);
+        assertThat(record.stopIDList()).containsExactly(stopId);
+        assertThat(record.headerText()).isEqualTo(title);
+        assertThat(record.description()).isEqualTo(description);
+        assertThat(record.url()).isEqualTo(url);
+    }
+
+    @Test
+    void preservesEscapedQuotesAndNewlinesInLongAdvisories() {
+        String escapedDescription = "Proceed to the \\\"temporary stop\\\".\\n".repeat(2_000);
+        String text = """
+            entity {
+              id: "escaped-advisory"
+              alert {
+                informed_entity { route_id: "501" }
+                description_text { translation { text: "%s" language: "en" } }
+                url { translation { text: "https://example.test/advisory" language: "en" } }
+              }
+            }
+            """.formatted(escapedDescription);
+
+        var record = parser.parse(text).getFirst().record();
+
+        assertThat(record.description()).isEqualTo("Proceed to the \"temporary stop\".\n".repeat(2_000));
+        assertThat(record.url()).isEqualTo("https://example.test/advisory");
+    }
 
     @Test
     void parsesSupportedRapidTransitEntityWithoutTreatingLineTwoAsBus() {

@@ -18,13 +18,15 @@ import org.springframework.stereotype.Component;
 public class GtfsRtServiceAlertTextParser {
     private static final Set<String> SUBWAY_ROUTE_IDS = Set.of("1", "2", "4");
     private static final Set<String> LRT_ROUTE_IDS = Set.of("5", "6");
+    private static final String QUOTED_STRING = "\"((?:\\\\.|[^\"\\\\])*+)\"";
     private static final Pattern HEADER_TIMESTAMP = Pattern.compile("\\btimestamp:\\s*(\\d+)");
-    private static final Pattern QUOTED_ID = Pattern.compile("\\bid:\\s*\"((?:\\\\.|[^\"])*)\"");
+    private static final Pattern QUOTED_ID = Pattern.compile("\\bid:\\s*" + QUOTED_STRING);
     private static final Pattern ACTIVE_PERIOD = Pattern.compile("active_period\\s*\\{([^{}]*)}");
     private static final Pattern START = Pattern.compile("\\bstart:\\s*(\\d+)");
     private static final Pattern END = Pattern.compile("\\bend:\\s*(\\d+)");
-    private static final Pattern ROUTE_ID = Pattern.compile("\\broute_id:\\s*\"((?:\\\\.|[^\"])*)\"");
-    private static final Pattern STOP_ID = Pattern.compile("\\bstop_id:\\s*\"((?:\\\\.|[^\"])*)\"");
+    private static final Pattern ROUTE_ID = Pattern.compile("\\broute_id:\\s*" + QUOTED_STRING);
+    private static final Pattern STOP_ID = Pattern.compile("\\bstop_id:\\s*" + QUOTED_STRING);
+    private static final Pattern TEXT = Pattern.compile("\\btext:\\s*" + QUOTED_STRING);
     private static final Pattern EFFECT = Pattern.compile("\\beffect:\\s*([A-Z_]+)");
     private static final Pattern CAUSE = Pattern.compile("\\bcause:\\s*([A-Z_]+)");
 
@@ -194,7 +196,7 @@ public class GtfsRtServiceAlertTextParser {
         if (block == null) {
             return null;
         }
-        Matcher matcher = Pattern.compile("\\btext:\\s*\"((?:\\\\.|[^\"])*)\"").matcher(block);
+        Matcher matcher = TEXT.matcher(block);
         return matcher.find() ? unescape(matcher.group(1)) : null;
     }
 
