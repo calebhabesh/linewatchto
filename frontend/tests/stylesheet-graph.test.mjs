@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -1289,11 +1289,26 @@ describe("stylesheet-graph helper", () => {
   });
 
   it("resolves and analyzes graph in one step via analyzeStylesheetGraph()", () => {
-    const analysis = analyzeStylesheetGraph();
-    assert.equal(analysis.files.length, 53);
-    assert.equal(analysis.vendorImports.length, 1);
-    assert.equal(analysis.ast.rules, 5626);
-    assert.equal(analysis.ast.importants, 519);
-    assert.equal(analysis.ast.classSubstrings, 18);
+    const tempDir = mkdtempSync(join(tmpdir(), "linewatch-css-analysis-test-"));
+
+    try {
+      writeFileSync(
+        join(tempDir, "panel.css"),
+        '.panel { color: red !important; }\n.panel[class*="icon-"] { margin: 0; }\n',
+      );
+      writeFileSync(
+        join(tempDir, "entry.css"),
+        '@import "tailwindcss";\n@import "./panel.css";\n:root { --accent: red; }\n',
+      );
+
+      const analysis = analyzeStylesheetGraph(join(tempDir, "entry.css"));
+      assert.equal(analysis.files.length, 2);
+      assert.equal(analysis.vendorImports.length, 1);
+      assert.equal(analysis.ast.rules, 3);
+      assert.equal(analysis.ast.importants, 1);
+      assert.equal(analysis.ast.classSubstrings, 1);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 });
