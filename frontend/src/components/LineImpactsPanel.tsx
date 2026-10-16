@@ -143,8 +143,8 @@ export function LineImpactsPanel({ lineId, selection, onSelectImpact, onSelectRe
           <FilterSearchRow active={Boolean(query || category !== "all")} onReset={() => { setQuery(""); setCategory("all"); }}>
           <label className="impact-list-search">
             <Search size={14} aria-hidden="true" />
-            <span className="sr-only">Filter {lineName} impacts</span>
-            <input type="search" className="submenu-search-input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={dashboard.networkId === "regional" ? "Search impacts and notices..." : "Filter Impacts..."} aria-label={`Filter ${lineName} impacts`} />
+            <span className="sr-only">Search {lineName} impacts</span>
+            <input type="search" className="submenu-search-input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={dashboard.networkId === "regional" ? "Search impacts and notices..." : "Search impacts..."} aria-label={`Search ${lineName} impacts`} />
           </label>
           </FilterSearchRow>
           <div className="impact-list-selects">

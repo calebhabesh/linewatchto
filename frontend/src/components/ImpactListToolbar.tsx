@@ -216,14 +216,14 @@ export function ImpactListToolbar({
       <FilterSearchRow active={filtering} onReset={() => { onLineIdChange("all"); onQueryChange(""); }}>
       <label className="impact-list-search">
         <Search size={14} aria-hidden="true" />
-        <span className="sr-only">Filter {noun}</span>
+        <span className="sr-only">Search {noun}</span>
         <input
           type="search"
           className="submenu-search-input"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder={`Filter ${noun}...`}
-          aria-label={`Filter ${noun}`}
+          placeholder={`Search ${noun}...`}
+          aria-label={`Search ${noun}`}
         />
       </label>
       </FilterSearchRow>

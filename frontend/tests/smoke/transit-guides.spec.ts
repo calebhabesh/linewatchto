@@ -66,7 +66,7 @@ test("filters the crawlable station directory and keeps section navigation keybo
 
   const directory = page.locator("#station-directory-list");
   await expect(directory.locator('a[href^="/ttc/stations/"]')).toHaveCount(109);
-  const filter = page.getByRole("searchbox", { name: "Filter stations" });
+  const filter = page.getByRole("searchbox", { name: "Search stations" });
   await filter.focus();
   await expect(filter).toBeFocused();
   await filter.fill("Finch");

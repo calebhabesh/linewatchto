@@ -4533,12 +4533,12 @@ test("alert category panels filter by line and sort without changing dashboard d
   await sortOptions.getByRole("option", { name: "Line", exact: true }).click();
   await expect(sortTrigger).toContainText("Line");
   await expect(page.locator('[data-impact-card-id="stub-delay-line-4"]')).toBeVisible();
-  await page.getByRole("searchbox", { name: "Filter delays" }).fill("Sheppard");
+  await page.getByRole("searchbox", { name: "Search delays" }).fill("Sheppard");
   await lineFilterTrigger.click();
   await expect(page.getByRole("listbox").getByRole("option", { name: "Line 1 Yonge-University" })).toHaveCount(0);
   await expect(page.getByRole("listbox").getByRole("option", { name: "Line 4 Sheppard" })).toBeVisible();
   await page.keyboard.press("Escape");
-  await page.getByRole("searchbox", { name: "Filter delays" }).fill("no matching incident");
+  await page.getByRole("searchbox", { name: "Search delays" }).fill("no matching incident");
   await lineFilterTrigger.click();
   await expect(page.getByRole("listbox").getByRole("option", { name: "Line 4 Sheppard" })).toBeVisible();
   await page.keyboard.press("Escape");
@@ -5285,7 +5285,7 @@ test("My Stations shows regional disruptions, accessibility outages, and arrival
   await expect(pickeringRow.getByText(/Delay/).first()).toBeVisible();
 
   await panel.getByRole("button", { name: "Add Station", exact: true }).click();
-  await panel.getByPlaceholder("Search All Stations...").fill("Eglinton");
+  await panel.getByPlaceholder("Search all stations...").fill("Eglinton");
   await panel.getByRole("button", { name: "Save Eglinton to My Stations" }).click();
   await panel.getByRole("button", { name: "Done adding stations" }).click();
   const eglintonRow = panel.locator(".saved-station-rich-row", { hasText: "Eglinton" });
@@ -5843,7 +5843,7 @@ test("reset stays beside search without moving filter selectors", async ({ page,
   await setStubMode(request, "seeded");
   await page.goto("/?panel=delays");
 
-  const searchInput = page.getByRole("searchbox", { name: "Filter delays" });
+  const searchInput = page.getByRole("searchbox", { name: "Search delays" });
   const lineFilterTrigger = page.getByRole("button", { name: "Filter delays by line" });
   const sortTrigger = page.getByRole("button", { name: "Sort delays" });
 

@@ -460,7 +460,7 @@ function InteractiveRegionalMapComponent({
     && readyRasterPlanes.has(`${rasterVariantKey}:foreground`)
     && readyRasterPlanes.has(`${rasterVariantKey}:labels`);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     automaticResizeRefitBlockedRef.current = Boolean(selection || selectedStationId || commutePathPreview);
   }, [commutePathPreview, selection, selectedStationId]);
   const animTimeoutRef = useRef<number | null>(null);
@@ -1163,7 +1163,9 @@ function InteractiveRegionalMapComponent({
 
     if (diffW < 1 && diffH < 1) return;
 
-    const isUntouched = !cameraAdjustedByUserRef.current;
+    // A focused selection owns the camera; refitting the whole network here
+    // would cancel its zoom/pan (e.g. the first click after a network swap).
+    const isUntouched = !cameraAdjustedByUserRef.current && !automaticResizeRefitBlockedRef.current;
 
     if (prev.width <= 0 || prev.height <= 0) {
       lastRegionalDimensionsRef.current = { width, height };

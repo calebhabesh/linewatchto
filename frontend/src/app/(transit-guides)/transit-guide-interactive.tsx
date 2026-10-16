@@ -104,12 +104,12 @@ export function StationDirectoryFilter({ stations }: { stations: DirectoryStatio
       <div className={styles.directoryToolbar}>
         <label className={styles.directorySearch}>
           <Search size={17} aria-hidden="true" />
-          <span className="sr-only">Filter stations</span>
+          <span className="sr-only">Search stations</span>
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Filter stations"
+            placeholder="Search stations"
             aria-controls="station-directory-list"
           />
           {query ? (

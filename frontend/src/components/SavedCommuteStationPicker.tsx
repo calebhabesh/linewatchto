@@ -327,7 +327,7 @@ export function SavedCommuteStationPicker({
                       clearSearchOrClose();
                     }
                   }}
-                  placeholder="Station Search..."
+                  placeholder="Search stations..."
                   className="submenu-search-input"
                   aria-label={`Search ${label.toLowerCase()} stations`}
                 />

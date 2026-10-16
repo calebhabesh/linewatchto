@@ -49,7 +49,7 @@ describe("My Stations UI", () => {
     assert.match(panel, /filterAndSortSavedStations\(savedStationsWithRouteImpacts, query, lineId, "attention"\)/);
     assert.match(panel, /No Saved Stations/);
     assert.match(panel, /No Saved Stations Match/);
-    assert.match(panel, /Search All Stations\.\.\./);
+    assert.match(panel, /Search all stations\.\.\./);
     assert.match(panel, /title="My Stations"/);
     assert.doesNotMatch(panel, /mode === "add" \? "Add Station" : "My Stations"/);
     assert.match(panel, /my-stations-picker-section/);

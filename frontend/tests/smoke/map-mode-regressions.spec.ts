@@ -322,3 +322,27 @@ for (const network of ["ttc", "regional"] as const) {
     }
   });
 }
+
+test("the first GO/UP overlay click after a network swap keeps its focus", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "Desktop viewport reconciliation regression");
+  await setStubMode(request, "regional-live");
+  await installDismissedTransientUi(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true }).click();
+  const stage = page.locator(".regional-map-stage");
+  await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
+  const scale = () => stage.evaluate(el => new DOMMatrixReadOnly(getComputedStyle(el).transform).a);
+  await expect.poll(scale).toBeGreaterThan(0);
+  await page.waitForTimeout(1_000);
+  const fitted = await scale();
+
+  const overlay = page.locator(
+    '.regional-overlay-segment-group[data-regional-impact-kind="delay"][data-regional-impact-id="regional-demo-delay"]',
+  );
+  await overlay.locator(".regional-impact-hit-target").dispatchEvent("click");
+  await expect.poll(scale, { timeout: 3_000 }).toBeGreaterThan(fitted * 1.2);
+  await page.waitForTimeout(1_000);
+  expect(await scale()).toBeGreaterThan(fitted * 1.2);
+});

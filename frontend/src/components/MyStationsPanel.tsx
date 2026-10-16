@@ -1416,7 +1416,7 @@ export function MyStationsPanel({
                     className="submenu-search-input"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder={mode === "add" ? "Search All Stations..." : "Search saved stations..."}
+                    placeholder={mode === "add" ? "Search all stations..." : "Search saved stations..."}
                   />
                 </label>
                 </FilterSearchRow>
