@@ -33,7 +33,7 @@ jobs:
       postgres_image: ${{ steps.images.outputs.postgres_image }}
     steps:
       - name: Checkout main
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -112,7 +112,7 @@ jobs:
       VPS_DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH || '/home/ubuntu/apps/linewatchto' }}
     steps:
       - name: Checkout deployment script
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up Node for public smoke check
         uses: actions/setup-node@v5
