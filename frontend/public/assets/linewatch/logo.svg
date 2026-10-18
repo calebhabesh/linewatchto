@@ -103,25 +103,14 @@
        style="opacity:1;fill:#f8c302;fill-opacity:1;stroke-width:0.03125;stroke-linecap:round"
        d="M 3.0437012,1.5200195 V 11.0672 H 8.2230835 V 1.5200195 Z" />
   </g>
-  <text
-     xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6px;font-family:'iMWritingQuat Nerd Font Propo';-inkscape-font-specification:'iMWritingQuat Nerd Font Propo, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;opacity:1;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.03125;stroke-linecap:round;stroke-dasharray:none"
-     x="7.2335052"
-     y="13.478494"
-     id="text70"><tspan
-       sodipodi:role="line"
-       id="tspan70"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6px;font-family:'iMWritingQuat Nerd Font Propo';-inkscape-font-specification:'iMWritingQuat Nerd Font Propo, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke-width:0.03125"
-       x="7.2335052"
-       y="13.478494">L</tspan></text>
-  <text
-     xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6px;font-family:'iMWritingQuat Nerd Font Propo';-inkscape-font-specification:'iMWritingQuat Nerd Font Propo, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.03125;stroke-linecap:round;stroke-dasharray:none"
-     x="20.163477"
-     y="13.515272"
-     id="text70-8"><tspan
-       sodipodi:role="line"
-       id="tspan72"
-       x="20.163477"
-       y="13.515272">W</tspan></text>
+  <path
+     d="M 7.7855052,13.478494 V 9.2904937 h 0.906 v 3.4500003 h 1.7999998 v 0.738 z"
+     id="text70"
+     style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.03125;stroke-linecap:round"
+     aria-label="L" />
+  <path
+     d="m 20.115477,9.3272721 h 0.906 l 0.396,2.0099999 0.222,1.164 h 0.018 l 0.264,-1.164 0.462,-2.0099999 h 0.996 l 0.468,2.0099999 0.258,1.164 h 0.018 l 0.222,-1.164 0.402,-2.0099999 h 0.864 l -0.972,4.1879999 h -1.038 l -0.528,-2.268 -0.204,-0.918 h -0.018 l -0.21,0.918 -0.528,2.268 h -1.044 z"
+     id="text70-8"
+     style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.03125;stroke-linecap:round"
+     aria-label="W" />
 </svg>

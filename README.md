@@ -1,4 +1,4 @@
-# LineWatchTO
+# <img src="frontend/public/assets/linewatch/logo.svg" width="34" height="34" align="absmiddle" alt="" /> LineWatchTO
 
 **Is my route affected now, later today, or this weekend?**
 
