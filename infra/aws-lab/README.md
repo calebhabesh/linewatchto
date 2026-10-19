@@ -138,3 +138,7 @@ In the AWS Console, verify:
 ## Cost Notes
 
 This profile is low-cost and teardown-first, not guaranteed free. AWS pricing changes. Public IPv4, EC2, EBS, S3, Lambda, CloudWatch, and data transfer can all have billable dimensions. The configured 1 USD budget alert is useful, but budget alerts are not an instant hard cap.
+
+## Run Evidence
+
+- [2026-10-19 lab run](evidence/2026-10-19-lab-run.md): apply, smoke test, destroy and cleanup check.
