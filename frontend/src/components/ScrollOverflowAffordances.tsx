@@ -39,6 +39,7 @@ const SCROLL_LIST_SELECTOR = [
   ".impact-list-select-options",
   ".opening-disclaimer-panel",
   ".mobile-legend-line-list",
+  ".mobile-legend-pill",
   ".logs-dropdown-scroll",
   ".feedback-content",
   ".subway-closed-content",

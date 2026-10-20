@@ -1385,7 +1385,8 @@
     inset-inline: 0;
     max-width: none;
     --service-sheet-expanded-height: calc(100dvh - var(--mobile-safe-top) - var(--mobile-bottom-nav-occupied-height));
-    --service-sheet-overview-height: min(var(--service-sheet-expanded-height), 180px);
+    --service-sheet-overview-base: 180px;
+    --service-sheet-overview-height: min(var(--service-sheet-expanded-height), var(--service-sheet-overview-base));
     --service-sheet-middle-height: clamp(var(--service-sheet-overview-height), 65dvh, var(--service-sheet-expanded-height));
     --service-sheet-visible-height: var(--service-sheet-overview-height);
     height: var(--service-sheet-expanded-height);
@@ -1406,7 +1407,7 @@
     align-items: stretch;
   }
   .linewatch-shell .mobile-service-sheet[data-has-notice="true"] {
-    --service-sheet-overview-height: min(var(--service-sheet-expanded-height), calc(180px + var(--service-sheet-notice-height, 44px) + var(--service-sheet-notice-margin, 15px)));
+    --service-sheet-overview-height: min(var(--service-sheet-expanded-height), calc(var(--service-sheet-overview-base) + var(--service-sheet-notice-height, 44px) + var(--service-sheet-notice-margin, 15px)));
   }
   .linewatch-shell .mobile-service-sheet[data-snap="halfway"] { --service-sheet-visible-height: var(--service-sheet-middle-height); }
   .linewatch-shell .mobile-service-sheet[data-snap="expanded"] { --service-sheet-visible-height: var(--service-sheet-expanded-height); }
@@ -1757,6 +1758,46 @@
     border-radius: 9999px;
   }
 }
+
+/* Short portrait phones (an iPhone SE is about 375x548 in Safari and 375x647 as
+   an installed app): fold the 2x2 category cards into one row of stacked chips
+   so the map keeps room for the legend and side controls. */
+@media (max-width: 767px) and (max-height: 680px) and (orientation: portrait) {
+  .linewatch-shell .mobile-service-sheet { --service-sheet-overview-base: 120px; }
+  .mobile-service-sheet .mobile-service-sheet-heading { margin-bottom: 8px; }
+  .mobile-service-sheet .mobile-status-peek-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: 56px;
+    flex: 0 0 56px;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .linewatch-shell .mobile-service-sheet .mobile-status-peek-count-badge {
+    min-height: 56px;
+    height: 56px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: center;
+    gap: 3px 4px;
+    padding: 4px 3px;
+    border-radius: 8px;
+  }
+  .mobile-service-sheet .mobile-status-peek-count-circle {
+    width: auto;
+    min-width: 20px;
+    height: 20px;
+    flex: 0 0 auto;
+    font-size: 11.5px;
+  }
+  .mobile-service-sheet .mobile-status-peek-badge-label {
+    flex: 0 0 100%;
+    font-size: clamp(8.5px, 2.6vw, 9.5px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    text-align: center;
+    overflow-wrap: normal;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .linewatch-shell .mobile-service-sheet { transition: none; }
 }
@@ -2027,6 +2068,25 @@
   .mobile-saved-sections button:focus-visible { outline: 2px solid var(--text); outline-offset: -3px; }
 
   .linewatch-shell .mobile-legend-pill { top: calc(var(--mobile-safe-top) + var(--mobile-map-controls-top-offset, 106px)) !important; }
+  /* The collapsed badge rail stops above the View Trains / map-view column and
+     scrolls when a network has more lines than the space allows. */
+  .linewatch-shell .mobile-legend-pill:not(.mobile-legend-pill--expanded) {
+    max-height: calc(
+      100dvh - var(--mobile-safe-top) - var(--mobile-map-controls-top-offset, 106px)
+      - var(--mobile-bottom-nav-occupied-height) - var(--mobile-status-peek-actual-height, 108px)
+      - var(--mobile-map-control-edge-inset, 12px) - var(--mobile-train-toggle-height, 54px) * 2
+      - var(--mobile-map-controls-gap, 8px) * 2
+    );
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+  .linewatch-shell .mobile-legend-pill:not(.mobile-legend-pill--expanded)::-webkit-scrollbar { display: none; }
+  .linewatch-shell .mobile-legend-pill--expanded[data-scroll-more-below] {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
   /* Fixed cluster container: anchored bottom-left, grows upward.
      Height = train-toggle-height (always) + gap + map-view-height (when present).
      Children use position:absolute so they anchor to this container, not the viewport,

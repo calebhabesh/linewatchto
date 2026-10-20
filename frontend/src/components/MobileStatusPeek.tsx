@@ -222,7 +222,8 @@ export function MobileStatusPeek({
     ? `${impactCount} Impact${impactCount === 1 ? "" : "s"}`
     : "No Impacts";
 
-  // Symmetrical 4-item grid: 2x2 layout matching desktop status chips
+  // Symmetrical 4-item grid: 2x2 layout matching desktop status chips, or one
+  // row of compact chips on short phone screens (see current-service.css).
   const gridItems: Array<{
     key: CategoryView;
     count: number;
