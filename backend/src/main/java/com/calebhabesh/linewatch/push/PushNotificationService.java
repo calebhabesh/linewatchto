@@ -547,6 +547,8 @@ public class PushNotificationService {
         );
         if (recentlyDisplayedClearedKeys != null) {
             for (String notificationKey : recentlyDisplayedClearedKeys) {
+                // An incident that returned is active again; its earlier "cleared" card would contradict it.
+                if (activeNotificationKeys.contains(notificationKey)) continue;
                 retainedTags.addAll(PushNotificationDisplayTags.retainedTagsForClearedLifecycleKey(notificationKey));
             }
         }

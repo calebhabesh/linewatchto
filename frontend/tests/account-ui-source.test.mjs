@@ -7,6 +7,7 @@ import { toTitleCase } from "../src/app/text-format.ts";
 const devBootstrapUrl = new URL("../src/components/LineWatchDevBootstrap.tsx", import.meta.url);
 const devBootstrapSource = existsSync(devBootstrapUrl) ? readFileSync(devBootstrapUrl, "utf8") : "";
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const deepLinkSource = readFileSync(new URL("../src/app/navigation-transitions.ts", import.meta.url), "utf8");
 const homePageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
 const resetPasswordPageSource = readFileSync(new URL("../src/app/reset-password/page.tsx", import.meta.url), "utf8");
 const verifyEmailPageSource = readFileSync(new URL("../src/app/verify-email/page.tsx", import.meta.url), "utf8");
@@ -104,18 +105,17 @@ describe("account UI source", () => {
   });
 
   it("surfaces Google OAuth callback errors through the account dialog", () => {
-    assert.match(shellSource, /accountOAuthErrorState/);
-    assert.match(shellSource, /params\.get\("account_error"\)/);
-    assert.match(shellSource, /openAccountDialog\(\{[\s\S]*mode:\s*oauthErrorState\.dialogMode[\s\S]*entryIntent:\s*oauthErrorState\.entryIntent[\s\S]*error:\s*oauthErrorState\.message/);
-    assert.match(shellSource, /nextParams\.delete\("account_error"\)/);
+    assert.match(deepLinkSource, /accountOAuthErrorState/);
+    assert.match(deepLinkSource, /params\.get\("account_error"\)/);
+    assert.match(deepLinkSource, /nextParams\.delete\("account_error"\)/);
+    assert.match(shellSource, /openAccountDialog\(\{[\s\S]*mode:\s*deepLink\.accountError\.dialogMode[\s\S]*entryIntent:\s*deepLink\.accountError\.entryIntent[\s\S]*error:\s*deepLink\.accountError\.message/);
   });
 
   it("uses a clean success return path for Google account linking", () => {
-    assert.match(shellSource, /GOOGLE_LINK_SUCCESS_PARAM/);
-    assert.match(shellSource, /GOOGLE_LINK_SUCCESS_VALUE/);
-    assert.match(shellSource, /params\.get\(GOOGLE_LINK_SUCCESS_PARAM\)/);
+    assert.match(deepLinkSource, /GOOGLE_LINK_SUCCESS_VALUE/);
+    assert.match(deepLinkSource, /params\.get\(GOOGLE_LINK_SUCCESS_PARAM\)/);
+    assert.match(deepLinkSource, /nextParams\.delete\(GOOGLE_LINK_SUCCESS_PARAM\)/);
     assert.match(shellSource, /openAccountDialog\(\{[\s\S]*mode:\s*"link-google"[\s\S]*successMessage:\s*GOOGLE_LINK_SUCCESS_MESSAGE/);
-    assert.match(shellSource, /nextParams\.delete\("account_error"\)/);
     assert.match(accountDialogSource, /returnTo=\{googleLinkSuccessReturnTo\(\)\}/);
   });
 

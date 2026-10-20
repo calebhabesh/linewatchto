@@ -52,7 +52,7 @@ class RegionalLineSubscriptionPushPlannerTest {
             assertThat(candidate.title()).isEqualTo("⚠️ GO LW Lakeshore West Delay");
             assertThat(candidate.category()).isEqualTo("line-current");
             assertThat(candidate.url()).isEqualTo(
-                "/?network=regional&panel=delays&impactKind=delay&impactId=regional-alert-lw"
+                "/?network=regional&panel=delays&impactKind=delay&impactId=regional-alert-lw&targetLine=regional-lw"
             );
         });
         assertThat(planner.candidatesFor(
@@ -134,7 +134,10 @@ class RegionalLineSubscriptionPushPlannerTest {
             assertThat(candidate.eventType()).isEqualTo("trip-cancellation");
             assertThat(candidate.category()).isEqualTo("line-trip-change");
             assertThat(candidate.title()).isEqualTo("⚠️ GO ST Stouffville Train Cancellation");
-            assertThat(candidate.url()).isEqualTo("/?network=regional&panel=trip-changes");
+            assertThat(candidate.url()).isEqualTo(
+                "/?network=regional&panel=trip-changes"
+                    + "&tripChangeId=regional-trip-change-2026-07-29-ST7824-cancellation&targetLine=regional-st"
+            );
         });
     }
 

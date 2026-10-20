@@ -152,7 +152,7 @@ class LineSubscriptionPushPlannerTest {
             assertThat(c.notificationSubject()).isEqualTo("Line 1 Yonge-University Suspension");
             assertThat(c.eventLocation()).isEqualTo("St George to Sheppard West");
             assertThat(c.sourceEventAt()).isEqualTo(Instant.parse("2026-06-05T10:00:00Z"));
-            assertThat(c.url()).isEqualTo("/?panel=alerts&impactKind=suspension&impactId=alert-1");
+            assertThat(c.url()).isEqualTo("/?panel=alerts&impactKind=suspension&impactId=alert-1&targetLine=line-1");
         });
 
         assertThat(candidates).filteredOn(c -> "delay".equals(c.eventType())).singleElement().satisfies(c -> {
@@ -164,7 +164,7 @@ class LineSubscriptionPushPlannerTest {
             assertThat(c.body()).isEqualTo("""
                 Delays eastbound at Don Valley station due to a medical emergency.
                 🕗 Jun 24, 11:16 PM""");
-            assertThat(c.url()).isEqualTo("/?panel=delays&impactKind=delay&impactId=alert-2");
+            assertThat(c.url()).isEqualTo("/?panel=delays&impactKind=delay&impactId=alert-2&targetLine=line-5");
         });
 
         assertThat(candidates).filteredOn(c -> "reduced-speed-zone".equals(c.eventType())).singleElement().satisfies(c -> {
@@ -174,7 +174,7 @@ class LineSubscriptionPushPlannerTest {
             assertThat(c.notificationKey()).isEqualTo("line-current|line-1|reduced-speed-zone|zone-1");
             assertThat(c.title()).isEqualTo("⚠️ Line 1 Yonge-University Reduced Speed Zone");
             assertThat(c.body()).contains("Reduced speeds between Eglinton and Davisville stations.");
-            assertThat(c.url()).isEqualTo("/?panel=reduced-speed-zones&impactKind=reduced-speed-zone&impactId=zone-1");
+            assertThat(c.url()).isEqualTo("/?panel=reduced-speed-zones&impactKind=reduced-speed-zone&impactId=zone-1&targetLine=line-1");
         });
 
         List<PushNotificationCandidate> closureCandidates = candidates.stream()
@@ -186,7 +186,7 @@ class LineSubscriptionPushPlannerTest {
         for (PushNotificationCandidate candidate : closureCandidates) {
             assertThat(candidate.title()).isEqualTo("⚠️ Line 1 Yonge-University Planned Advisory");
             assertThat(candidate.sourceEventAt()).isEqualTo(eventStart.toInstant());
-            assertThat(candidate.url()).isEqualTo("/?panel=closures&impactKind=planned-closure&impactId=closure-1");
+            assertThat(candidate.url()).isEqualTo("/?panel=closures&impactKind=planned-closure&impactId=closure-1&targetLine=line-1");
             if ("closure-24h".equals(candidate.reminderBucket())) {
                 assertThat(candidate.body()).contains("Starts within 24 hours.");
             }
@@ -352,7 +352,7 @@ class LineSubscriptionPushPlannerTest {
             assertThat(candidate.body()).doesNotContain("Each nightly closure runs");
             assertThat(candidate.sourceEventAt()).isEqualTo(windowStart.toInstant());
             assertThat(candidate.url())
-                .isEqualTo("/?panel=closures&impactKind=planned-closure&impactId=closure-parent-1");
+                .isEqualTo("/?panel=closures&impactKind=planned-closure&impactId=closure-parent-1&targetLine=line-2");
         });
     }
 

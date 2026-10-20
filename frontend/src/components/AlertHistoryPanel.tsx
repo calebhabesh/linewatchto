@@ -2,16 +2,17 @@
 
 import { History } from "lucide-react";
 import { PanelHeader } from "./PanelHeader";
-import { AlertHistoryTimeline } from "./AlertHistoryTimeline";
+import { AlertHistoryTimeline, type AlertHistoryFocus } from "./AlertHistoryTimeline";
 import type { NetworkId } from "../app/regional-data";
 
 type Props = {
   onBack: () => void;
   onClose: () => void;
   network: NetworkId;
+  destination?: AlertHistoryFocus | null;
 };
 
-export function AlertHistoryPanel({ onBack, onClose, network }: Props) {
+export function AlertHistoryPanel({ onBack, onClose, network, destination = null }: Props) {
   return (
     <section className="alert-history-panel panel min-w-0 border border-transparent rounded-2xl" aria-label="Alert history panel">
       <PanelHeader
@@ -21,7 +22,7 @@ export function AlertHistoryPanel({ onBack, onClose, network }: Props) {
         onClose={onClose}
       />
 
-      <AlertHistoryTimeline network={network} />
+      <AlertHistoryTimeline network={network} destination={destination} />
     </section>
   );
 }

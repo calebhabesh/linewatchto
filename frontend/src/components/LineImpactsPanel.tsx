@@ -20,6 +20,8 @@ import { ActiveAlertsPanel } from "./ActiveAlertsPanel";
 import { DelaysPanel } from "./DelaysPanel";
 import { ReducedSpeedZonesPanel } from "./ReducedSpeedZonesPanel";
 import { PlannedClosuresPanel } from "./PlannedClosuresPanel";
+import { NotificationTapNotice } from "./NotificationTapNotice";
+import type { NotificationTapNotice as TapNoticeValue } from "../app/notification-target";
 
 type LineImpactCategory = "all" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "notices";
 type LineImpactSort = "updated" | "type" | "location";
@@ -33,6 +35,8 @@ type Props = {
   onBack?: () => void;
   onClose?: () => void;
   onFocusMap?: () => void;
+  /** Explains a notification tap that landed here because its advisory is no longer listed. */
+  tapNotice?: TapNoticeValue | null;
 };
 
 const CATEGORY_LABELS: Record<Exclude<LineImpactCategory, "all">, string> = {
@@ -52,8 +56,9 @@ function matchesQuery(item: { title: string; location: string; description?: str
     .includes(query);
 }
 
-export function LineImpactsPanel({ lineId, selection, onSelectImpact, onSelectRelatedImpact, onReturnToMap, onBack, onClose, onFocusMap }: Props) {
+export function LineImpactsPanel({ lineId, selection, onSelectImpact, onSelectRelatedImpact, onReturnToMap, onBack, onClose, onFocusMap, tapNotice = null }: Props) {
   const dashboard = useDashboardData();
+  const [tapNoticeDismissed, setTapNoticeDismissed] = useState(false);
   const { viewMode, setViewMode } = useImpactListView();
   const line = dashboard.lineStatuses.find((candidate) => candidate.id === lineId);
   const [noticesResponse, setNoticesResponse] = useState<SurfaceNoticeResponse | null>(null);
@@ -125,6 +130,10 @@ export function LineImpactsPanel({ lineId, selection, onSelectImpact, onSelectRe
           </span>
         }
       />
+
+      {tapNotice && !tapNoticeDismissed ? (
+        <NotificationTapNotice notice={tapNotice} onDismiss={() => setTapNoticeDismissed(true)} />
+      ) : null}
 
       <div className="line-impact-category-filters" role="group" aria-label={`Filter ${lineName} impacts by alert type`}>
         <button type="button" data-category="all" aria-pressed={category === "all"} onClick={() => setCategory("all")}>

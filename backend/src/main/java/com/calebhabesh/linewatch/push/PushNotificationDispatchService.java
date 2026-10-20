@@ -41,6 +41,7 @@ public class PushNotificationDispatchService {
         "saved-commute-impact",
         "line-current"
     );
+    private static final String OCCURRENCE_SEPARATOR = "|after|";
     
     private final SavedCommuteRepository savedCommuteRepository;
     private final PushCandidateResolver candidateResolver;
@@ -406,8 +407,9 @@ public class PushNotificationDispatchService {
             // A regional alert window ending is not evidence that service was restored.
             if (regionalLine(activeEvent.getLineId())) continue;
             String clearedDedupeKey = activeEvent.getDedupeKey() + "|cleared";
-            if (eventRepository.existsByDedupeKey(clearedDedupeKey)
-                || eventRepository.existsByNotificationKeyAndNotificationState(activeEvent.getNotificationKey(), CLEARED_STATE)) {
+            // Every earlier active event of an incident stays ACTIVE; a clear at or after this one
+            // already ended its occurrence (including updates sent within it).
+            if (eventRepository.existsByDedupeKey(clearedDedupeKey) || clearedSince(activeEvent)) {
                 continue;
             }
 
@@ -531,6 +533,17 @@ public class PushNotificationDispatchService {
                 now,
                 formatter
             );
+            Optional<PushNotificationEventEntity> previousClear = latestEvent(
+                accountId, observation.getNotificationKey(), CLEARED_STATE
+            );
+            if (previousClear.isPresent()) {
+                // A reopened incident is cleared again only if its return was announced.
+                if (!announcedAfter(accountId, observation.getNotificationKey(), previousClear.orElseThrow())) {
+                    lineEventObservationService.markCleared(observation, now);
+                    continue;
+                }
+                candidateClearedEvent.scopeDedupeKeyToOccurrenceAfter(previousClear.orElseThrow().getId());
+            }
             if (eventRepository.existsByDedupeKey(candidateClearedEvent.getDedupeKey())) {
                 lineEventObservationService.markCleared(observation, now);
                 continue;
@@ -785,7 +798,8 @@ public class PushNotificationDispatchService {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
     }
 
-    private void sendIfNew(PushNotificationCandidate candidate) {
+    private void sendIfNew(PushNotificationCandidate observedCandidate) {
+        PushNotificationCandidate candidate = forCurrentOccurrence(observedCandidate);
         if (eventRepository.existsByDedupeKey(candidate.dedupeKey())) {
             eventRepository.findByDedupeKey(candidate.dedupeKey())
                 .ifPresent(event -> retryEventToIncompleteSubscriptions(event, clock.instant()));
@@ -812,6 +826,51 @@ public class PushNotificationDispatchService {
             now
         ));
         sendEventToSubscriptions(event, subscriptions, now);
+    }
+
+    /**
+     * Source IDs survive an incident ending and returning, so the return can match the first
+     * occurrence's dedupe key and be skipped. Key it to the clear that ended the last occurrence.
+     */
+    private PushNotificationCandidate forCurrentOccurrence(PushNotificationCandidate candidate) {
+        if (!CLEARED_RETRY_CATEGORIES.contains(candidate.category())) {
+            return candidate;
+        }
+        Optional<PushNotificationEventEntity> previousClear = latestEvent(
+            candidate.accountId(), candidate.notificationKey(), CLEARED_STATE
+        );
+        if (previousClear.isEmpty()) {
+            return candidate;
+        }
+        PushNotificationEventEntity clear = previousClear.orElseThrow();
+        boolean collidesWithEarlierOccurrence = eventRepository.findByDedupeKey(candidate.dedupeKey())
+            .map(existing -> !existing.getCreatedAt().isAfter(clear.getCreatedAt()))
+            .orElse(false);
+        return collidesWithEarlierOccurrence
+            ? candidate.withDedupeKey(occurrenceDedupeKey(candidate.dedupeKey(), clear.getId()))
+            : candidate;
+    }
+
+    static String occurrenceDedupeKey(String dedupeKey, String clearedEventId) {
+        return dedupeKey + OCCURRENCE_SEPARATOR + clearedEventId;
+    }
+
+    private Optional<PushNotificationEventEntity> latestEvent(String accountId, String notificationKey, String state) {
+        return eventRepository.findFirstByAccountIdAndNotificationKeyAndNotificationStateOrderByCreatedAtDesc(
+            accountId, notificationKey, state
+        );
+    }
+
+    private boolean clearedSince(PushNotificationEventEntity activeEvent) {
+        return latestEvent(activeEvent.getAccountId(), activeEvent.getNotificationKey(), CLEARED_STATE)
+            .map(clear -> !clear.getCreatedAt().isBefore(activeEvent.getCreatedAt()))
+            .orElse(false);
+    }
+
+    private boolean announcedAfter(String accountId, String notificationKey, PushNotificationEventEntity clear) {
+        return latestEvent(accountId, notificationKey, ACTIVE_STATE)
+            .map(active -> active.getCreatedAt().isAfter(clear.getCreatedAt()))
+            .orElse(false);
     }
 
     private Optional<PushNotificationEventEntity> previousPlannedEvent(PushNotificationCandidate candidate) {

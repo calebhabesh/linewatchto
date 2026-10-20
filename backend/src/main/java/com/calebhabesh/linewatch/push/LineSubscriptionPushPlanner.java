@@ -81,8 +81,8 @@ public class LineSubscriptionPushPlanner {
                     alert.startedAt() == null ? null : alert.startedAt().toInstant(),
                     alert.updatedAt(),
                     activePlannedClosure
-                        ? impactUrl("closures", eventType, impactId)
-                        : impactUrl("alerts", eventType, impactId)
+                        ? impactUrl("closures", eventType, impactId, alert.lineId())
+                        : impactUrl("alerts", eventType, impactId, alert.lineId())
                 ));
             }
         }
@@ -109,7 +109,7 @@ public class LineSubscriptionPushPlanner {
                     delay.shuttle(),
                     delay.startedAt() == null ? null : delay.startedAt().toInstant(),
                     delay.updatedAt(),
-                    impactUrl("delays", "delay", delay.id())
+                    impactUrl("delays", "delay", delay.id(), delay.lineId())
                 ));
             }
         }
@@ -132,7 +132,7 @@ public class LineSubscriptionPushPlanner {
                     false,
                     zone.startedAt() == null ? null : zone.startedAt().toInstant(),
                     zone.updatedAt(),
-                    impactUrl("reduced-speed-zones", "reduced-speed-zone", zone.id())
+                    impactUrl("reduced-speed-zones", "reduced-speed-zone", zone.id(), zone.lineId())
                 ));
             }
         }
@@ -141,7 +141,7 @@ public class LineSubscriptionPushPlanner {
             if (subscribedLineIds.contains(closure.lineId())) {
                 String eventType = "planned-closure";
                 String category = "line-planned";
-                String url = impactUrl("closures", eventType, closure.id());
+                String url = impactUrl("closures", eventType, closure.id(), closure.lineId());
 
                 OffsetDateTime eventStartAt = closure.nextWindowStart() != null
                     ? closure.nextWindowStart()
@@ -332,13 +332,13 @@ public class LineSubscriptionPushPlanner {
         );
     }
 
-    private String impactUrl(String panel, String impactKind, String impactId) {
+    private String impactUrl(String panel, String impactKind, String impactId, String lineId) {
         if (impactId == null || impactId.isBlank()) {
-            return "/?panel=" + encode(panel);
+            return PushNotificationTargetUrls.withTargetLine("/?panel=" + encode(panel), lineId);
         }
-        return "/?panel=" + encode(panel)
+        return PushNotificationTargetUrls.withTargetLine("/?panel=" + encode(panel)
             + "&impactKind=" + encode(impactKind)
-            + "&impactId=" + encode(impactId);
+            + "&impactId=" + encode(impactId), lineId);
     }
 
     private String notificationTitle(String notificationTitle, String displayTitle) {

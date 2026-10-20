@@ -1461,10 +1461,11 @@ describe("LineWatch PWA configuration", () => {
     assert.match(shellSource, /panel=delays/);
     assert.match(shellSource, /panel=reduced-speed-zones/);
     assert.match(shellSource, /panel=closures/);
-    assert.match(shellSource, /impactKind/);
-    assert.match(shellSource, /impactId/);
-    assert.match(shellSource, /const impactSelection = impactKind && impactId/);
-    assert.match(shellSource, /setSelection\(impactSelection\)/);
+    // Concrete impact targets resolve in notification-target.ts (tested there) before focusing the map.
+    assert.match(shellSource, /parseNavigationDeepLinks\(params/);
+    assert.match(shellSource, /parseNotificationTarget\(params\)/);
+    assert.match(shellSource, /resolveNotificationTarget\(target/);
+    assert.match(shellSource, /setSelection\(destination\.selection\)/);
     assert.match(shellSource, /setMobileInspectorDetent\("details-focus"\)/);
     assert.match(shellSource, /setActiveView\("map"\)/);
   });

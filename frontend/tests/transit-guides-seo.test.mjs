@@ -81,8 +81,10 @@ describe("crawlable transit guides", () => {
     const mobileMore = source("../src/components/MobileMoreSheet.tsx");
 
     assert.match(guideComponents, /station:\s*station\.id/);
-    assert.match(shell, /params\.get\("station"\)/);
-    assert.match(shell, /requestedStationId/);
+    const deepLinks = source("../src/app/navigation-transitions.ts");
+    assert.match(deepLinks, /params\.get\("station"\)/);
+    assert.match(deepLinks, /requestedStationId/);
+    assert.match(shell, /deepLink\.stationDeepLink\.stationId/);
     assert.match(shell, /href="\/explore"/);
     assert.match(mobileMore, /href="\/explore"/);
   });

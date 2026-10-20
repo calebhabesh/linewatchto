@@ -6,7 +6,7 @@ import { availableFilterOptions } from "../app/filter-options";
 
 import { FilterOptionCount } from "./FilterOptionCount";
 
-import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -31,6 +31,9 @@ import {
   type AlertHistoryPeriod,
 } from "../app/alert-history-data";
 import { formatAlertHistoryDuration } from "../app/alert-history-time";
+import type { ImpactKind } from "../app/linewatch-data";
+import { findNotifiedHistoryIncident, type NotificationTapNotice as TapNoticeValue } from "../app/notification-target";
+import { NotificationTapNotice } from "./NotificationTapNotice";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatFullImpactTimestamp, formatImpactTimestamp } from "../app/impact-time";
 import type { NetworkId } from "../app/regional-data";
@@ -156,12 +159,28 @@ function renderSortOptionIcon(value: string) {
   return <AlertTriangle size={13} className="text-slate-400 shrink-0" aria-hidden="true" />;
 }
 
-export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
+export type AlertHistoryFocus = {
+  alertId: string;
+  lineId: string | null;
+  impactKind: ImpactKind;
+  notice: TapNoticeValue;
+};
+
+export function AlertHistoryTimeline({
+  network,
+  destination = null,
+}: {
+  network: NetworkId;
+  /** Set when a notification tap landed here because its alert is no longer current. */
+  destination?: AlertHistoryFocus | null;
+}) {
   const [period, setPeriod] = useState<AlertHistoryPeriod>("today");
   const [filter, setFilter] = useState<AlertHistoryStatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLineId, setSelectedLineId] = useState(ALL_LINES_VALUE);
+  const [selectedLineId, setSelectedLineId] = useState(destination?.lineId ?? ALL_LINES_VALUE);
   const [selectedTypeId, setSelectedTypeId] = useState(ALL_TYPES_VALUE);
+  const [tapNoticeDismissed, setTapNoticeDismissed] = useState(false);
+  const [focusSearch, setFocusSearch] = useState<"searching" | "widened" | "settled">(destination ? "searching" : "settled");
   const [selectedSortBy, setSelectedSortBy] = useState(MOST_RECENT_SORT_VALUE);
   const [isLineDropdownOpen, setIsLineDropdownOpen] = useState(false);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
@@ -203,11 +222,40 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
   const sortGroups = useMemo(() => buildAlertHistorySortGroups(), []);
   const sortOptions = useMemo(() => buildAlertHistorySortOptions(history), [history]);
 
-  if (selectedLineId !== ALL_LINES_VALUE && !lineOptions.some((option) => option.value === selectedLineId)) {
+  const focusIncident = useMemo(
+    () => (destination && !loading ? findNotifiedHistoryIncident(history, destination.alertId) : null),
+    [history, destination, loading],
+  );
+  const focusTypeId = destination ? normalizeEventTypeKey(destination.impactKind) : ALL_TYPES_VALUE;
+  if (destination && !loading && focusSearch !== "settled" && !focusIncident) {
+    // Ended alerts usually started today; widen once before falling back to the line and type.
+    if (focusSearch === "searching" && period === "today") {
+      setFocusSearch("widened");
+      setPeriod("7d");
+    } else {
+      setFocusSearch("settled");
+      if (typeOptions.some((option) => option.value === focusTypeId)) setSelectedTypeId(focusTypeId);
+    }
+  } else if (focusSearch !== "settled" && focusIncident) {
+    setFocusSearch("settled");
+  }
+  const focusLineLabel = destination?.lineId
+    ? lineOptions.find((option) => option.value === destination.lineId)?.label ?? null
+    : null;
+  const focusDetail = !destination || loading || focusSearch !== "settled"
+    ? null
+    : focusIncident
+      ? "Its record is highlighted below."
+      : focusLineLabel
+        ? `Showing recent ${focusLineLabel} history.`
+        : "Its record isn't in recent history yet.";
+
+  // Options are empty while loading; resetting then would discard a notification's line filter.
+  if (!loading && selectedLineId !== ALL_LINES_VALUE && !lineOptions.some((option) => option.value === selectedLineId)) {
     setSelectedLineId(ALL_LINES_VALUE);
   }
 
-  if (selectedTypeId !== ALL_TYPES_VALUE && !typeOptions.some((option) => option.value === selectedTypeId)) {
+  if (!loading && selectedTypeId !== ALL_TYPES_VALUE && !typeOptions.some((option) => option.value === selectedTypeId)) {
     setSelectedTypeId(ALL_TYPES_VALUE);
   }
 
@@ -249,9 +297,17 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
     ? pagination.visibleCount
     : HISTORY_PAGE_SIZE;
 
+  const focusIncidentKey = focusIncident ? historyIncidentKey(focusIncident) : null;
+  const focusIndex = focusIncidentKey
+    ? visibleItems.findIndex((item) => historyIncidentKey(item.incident) === focusIncidentKey)
+    : -1;
+  // Page far enough to include the notified incident rather than hiding it behind "Show more".
+  const effectiveVisibleCount = focusIndex >= visibleCount
+    ? Math.ceil((focusIndex + 1) / HISTORY_PAGE_SIZE) * HISTORY_PAGE_SIZE
+    : visibleCount;
   const displayedItems = useMemo(
-    () => visibleItems.slice(0, visibleCount),
-    [visibleCount, visibleItems],
+    () => visibleItems.slice(0, effectiveVisibleCount),
+    [effectiveVisibleCount, visibleItems],
   );
 
   const selectedLineOption = useMemo(() => {
@@ -272,8 +328,27 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
     }
   }, [resultSetKey]);
 
+  const scrolledFocusKeyRef = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (!focusIncidentKey || focusIndex < 0 || scrolledFocusKeyRef.current === focusIncidentKey) return;
+    const row = scrollContainerRef.current?.querySelector<HTMLElement>(
+      `[data-history-key="${CSS.escape(focusIncidentKey)}"]`,
+    );
+    if (!row) return;
+    scrolledFocusKeyRef.current = focusIncidentKey;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    row.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
+  }, [displayedItems, focusIncidentKey, focusIndex]);
+
   return (
     <section className="alert-history-timeline" aria-label="Alert history timeline">
+      {destination && !tapNoticeDismissed ? (
+        <NotificationTapNotice
+          notice={destination.notice}
+          detail={focusDetail}
+          onDismiss={() => setTapNoticeDismissed(true)}
+        />
+      ) : null}
       <div className="alert-history-controls" aria-label="Alert history filters">
         <div className="alert-history-chip-group" aria-label="History period">
           {PERIODS.map((option) => (
@@ -515,6 +590,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
                   incident={item.incident}
                   latestEvent={item.latestEvent}
                   cleared={item.cleared}
+                  highlighted={historyIncidentKey(item.incident) === focusIncidentKey}
                 />
               ))}
             </ol>
@@ -542,7 +618,8 @@ const HistoryIncident = memo(function HistoryIncident({
   incident,
   latestEvent,
   cleared,
-}: AlertHistoryViewItem) {
+  highlighted = false,
+}: AlertHistoryViewItem & { highlighted?: boolean }) {
   const [lifecycleExpanded, setLifecycleExpanded] = useState(
     incident.events.length <= COLLAPSED_LIFECYCLE_THRESHOLD,
   );
@@ -567,7 +644,9 @@ const HistoryIncident = memo(function HistoryIncident({
         cleared
           ? "alert-history-event-cleared"
           : `alert-history-event-suspension-history-tone-${historyAlertTypeTone(incident.eventType)}`
-      } transition-all`}
+      } transition-all${highlighted ? " notification-target-highlight" : ""}`}
+      data-history-key={historyIncidentKey(incident)}
+      aria-current={highlighted ? "true" : undefined}
     >
       <div className="alert-history-content">
         <div className="alert-history-card-heading">

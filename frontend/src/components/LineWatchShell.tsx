@@ -133,8 +133,6 @@ import {
   type AccountDialogMode,
   type AccountEntryIntent,
   type AccountDialogIntentOptions,
-  GOOGLE_LINK_SUCCESS_PARAM,
-  GOOGLE_LINK_SUCCESS_VALUE,
   GOOGLE_LINK_SUCCESS_MESSAGE,
 } from "./AccountDialog";
 import {
@@ -154,7 +152,6 @@ import {
   type AccountSavedStation,
 } from "../app/saved-station-data";
 import { summarizeSavedStationStatuses } from "../app/saved-stations";
-import { accountOAuthErrorState } from "../app/account-oauth-error";
 import { getCurrentPushSubscription } from "../app/push-browser-state";
 import { hasReleaseNotes } from "../app/release-notes";
 import { lineWatchAppVersionLabel } from "../app/app-build";
@@ -176,9 +173,20 @@ import {
 } from "../app/regional-data";
 import {
   type ImpactCategoryView,
+  parseNavigationDeepLinks,
   replaceBrowserSearchParams,
-  resolveLineDeepLink,
 } from "../app/navigation-transitions";
+import {
+  NOTIFICATION_OPEN_MESSAGE,
+  NOTIFICATION_TARGET_PARAMS,
+  NOTIFICATION_TARGET_WAIT_MS,
+  parseNotificationTarget,
+  resolveNotificationTarget,
+  type NotificationDestination,
+  type NotificationTapNotice as NotificationTapNoticeValue,
+  type NotificationTarget,
+} from "../app/notification-target";
+import type { AlertHistoryFocus } from "./AlertHistoryTimeline";
 
 export type ActiveView = "map" | "menu" | "search" | "status" | "line-impacts" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "announcements" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes" | "source-status";
 import {
@@ -431,7 +439,6 @@ export function LineWatchShell({
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState<boolean>(false);
   const [windowWidth, setWindowWidth] = useState<number>(1200);
   const [mobileInspectorDetent, setMobileInspectorDetent] = useState<MobileInspectorDetent>("details-focus");
-  const handledImpactDeepLinkRef = useRef<string | null>(null);
   const [mapLayoutSignal, setMapLayoutSignal] = useState(0);
   const [mapPresentationMode, setMapPresentationMode] = useState<MapPresentationMode>("standard");
   const [rotatedMapViewportFrame, setRotatedMapViewportFrame] = useState<{
@@ -1301,127 +1308,198 @@ export function LineWatchShell({
     [savedStations, stationCatalogs, stationImpactSelections],
   );
 
+  const [pendingNotificationTarget, setPendingNotificationTarget] = useState<{
+    target: NotificationTarget;
+    receivedAt: number;
+  } | null>(null);
+  const [notificationTargetWaitTick, setNotificationTargetWaitTick] = useState(0);
+  const notificationDestinationRequestRef = useRef(0);
+  const [alertHistoryFocus, setAlertHistoryFocus] = useState<(AlertHistoryFocus & { requestId: number }) | null>(null);
+  const [lineImpactTapNotice, setLineImpactTapNotice] = useState<{ lineId: string; notice: NotificationTapNoticeValue } | null>(null);
+  const [focusTripChangeId, setFocusTripChangeId] = useState<string | null>(null);
+
+  const selectedNetworkRef = useRef(selectedNetwork);
   useEffect(() => {
-    // supports panel=notifications, panel=commutes, panel=alerts, panel=delays, panel=reduced-speed-zones, panel=closures, panel=release-notes
-    const params = new URLSearchParams(window.location.search);
-    const nextParams = new URLSearchParams(params);
-    let shouldReplaceUrl = false;
-    const requestedNetwork = params.get("network");
-    if (requestedNetwork === "ttc" || requestedNetwork === "regional") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedNetwork(requestedNetwork);
+    selectedNetworkRef.current = selectedNetwork;
+  }, [selectedNetwork]);
+
+  const switchNetworkForDeepLink = useCallback((network: NetworkId) => {
+    if (network === selectedNetworkRef.current) return;
+    cancelNetworkTransition();
+    setClosedScreenAcknowledged(true);
+    setClosedMapPeek(true);
+    setSelectedNetwork(network);
+  }, [cancelNetworkTransition]);
+
+  // Handles launch URLs and notification taps delivered to an already-open app.
+  // supports panel=notifications, panel=commutes, panel=alerts, panel=delays, panel=reduced-speed-zones, panel=closures, panel=release-notes
+  const applyDeepLinkParams = useCallback((params: URLSearchParams) => {
+    const deepLink = parseNavigationDeepLinks(params, { hasReleaseNotes });
+    const nextParams = deepLink.cleanedParams;
+    let shouldReplaceUrl = deepLink.shouldReplaceUrl;
+    if (deepLink.requestedNetwork) {
+      switchNetworkForDeepLink(deepLink.requestedNetwork);
     }
 
-    const accountLinkedValue = params.get(GOOGLE_LINK_SUCCESS_PARAM);
-    if (accountLinkedValue === GOOGLE_LINK_SUCCESS_VALUE) {
+    if (deepLink.accountLinked) {
       openAccountDialog({
         mode: "link-google",
         successMessage: GOOGLE_LINK_SUCCESS_MESSAGE,
       });
-      nextParams.delete("account_error");
-      nextParams.delete(GOOGLE_LINK_SUCCESS_PARAM);
+    } else if (deepLink.accountError) {
+      openAccountDialog({
+        mode: deepLink.accountError.dialogMode,
+        entryIntent: deepLink.accountError.entryIntent,
+        error: deepLink.accountError.message,
+      });
+    }
+
+    if (deepLink.surfaceNoticeInitialContent) {
+      setSurfaceNoticeInitialContent(deepLink.surfaceNoticeInitialContent);
+    }
+
+    const notificationTarget = parseNotificationTarget(params);
+    if (notificationTarget) {
+      // The destination is decided once the target network's data can answer for it.
+      if (notificationTarget.network) switchNetworkForDeepLink(notificationTarget.network);
+      setPendingNotificationTarget({ target: notificationTarget, receivedAt: Date.now() });
+      for (const key of NOTIFICATION_TARGET_PARAMS) nextParams.delete(key);
+      nextParams.delete("panel");
       shouldReplaceUrl = true;
-    } else {
-      const accountErrorCode = params.get("account_error");
-      if (accountErrorCode !== null) {
-        const oauthErrorState = accountOAuthErrorState(accountErrorCode);
-        if (oauthErrorState) {
-          openAccountDialog({
-            mode: oauthErrorState.dialogMode,
-            entryIntent: oauthErrorState.entryIntent,
-            error: oauthErrorState.message,
-          });
-        }
-        nextParams.delete("account_error");
-        shouldReplaceUrl = true;
-      }
-    }
-
-    const panel = params.get("panel");
-    const panelToView: Record<string, ActiveView> = {
-      status: "status",
-      alerts: "alerts",
-      delays: "delays",
-      "reduced-speed-zones": "reduced-speed-zones",
-      closures: "closures",
-      commutes: "commutes",
-      notifications: "notifications",
-      analytics: "analytics",
-      "trip-changes": "surface-notices",
-    };
-    if (panel === "trip-changes") {
-      setSurfaceNoticeInitialContent("trip-changes");
-    }
-    if (hasReleaseNotes) {
-      panelToView["release-notes"] = "release-notes";
-    }
-    const impactKind = params.get("impactKind") as ImpactKind;
-    const impactId = params.get("impactId");
-    const impactSelection = impactKind && impactId
-      ? { kind: impactKind, id: impactId } as const
-      : null;
-    const requestedStationId = params.get("station");
-    const validStationDeepLink =
-      (requestedNetwork === "ttc" || requestedNetwork === "regional")
-      && requestedStationId !== null
-      && /^[a-z0-9_-]{1,80}$/.test(requestedStationId);
-
-    const requestedLineParam = params.get("line") || params.get("lineId");
-    const resolvedLineDeepLink = resolveLineDeepLink(requestedLineParam);
-
-    if (impactSelection) {
-      // Notification URLs include their category panel as a fallback. A concrete
-      // impact should instead take the same focused map path as View on Map, where
-      // mobile reserves a real viewport above the selected impact details.
-      const deepLinkKey = `${requestedNetwork}:${impactKind}:${impactId}`;
-      if (handledImpactDeepLinkRef.current !== deepLinkKey) {
-        handledImpactDeepLinkRef.current = deepLinkKey;
-        pushBrowserNavigationEntry();
-        selectionBackBehaviorRef.current = "clear";
-        selectionRef.current = impactSelection;
-        setSelection(impactSelection);
-        setMobileInspectorDetent("details-focus");
-        setActiveView("map");
-      }
-      if (panel) {
-        nextParams.delete("panel");
-        shouldReplaceUrl = true;
-      }
-    } else if (validStationDeepLink) {
-      selectedStationIdRef.current = requestedStationId;
-      setSelectedStationId(requestedStationId);
+    } else if (deepLink.stationDeepLink) {
+      selectedStationIdRef.current = deepLink.stationDeepLink.stationId;
+      setSelectedStationId(deepLink.stationDeepLink.stationId);
       setStationPanelActivationKey((current) => current + 1);
       setMobileInspectorDetent("details-focus");
       if (!isMobile) {
         setDesktopSidebarCollapsed(false);
       }
       setActiveView("map");
-    } else if (resolvedLineDeepLink) {
-      if (resolvedLineDeepLink.network !== requestedNetwork) {
-        setSelectedNetwork(resolvedLineDeepLink.network);
-      }
+    } else if (deepLink.lineDeepLink) {
+      switchNetworkForDeepLink(deepLink.lineDeepLink.network);
       if (!isMobile) {
         setDesktopSidebarCollapsed(false);
       }
-      openLineImpacts(resolvedLineDeepLink.lineId);
-      nextParams.delete("line");
-      nextParams.delete("lineId");
-      if (panel) nextParams.delete("panel");
-      shouldReplaceUrl = true;
-    } else if (panel && panelToView[panel]) {
-      const targetView = panelToView[panel];
+      openLineImpacts(deepLink.lineDeepLink.lineId);
+    } else if (deepLink.panelView) {
       if (!isMobile) {
         setDesktopSidebarCollapsed(false);
       }
-      navigateForward(targetView);
-      nextParams.delete("panel");
-      shouldReplaceUrl = true;
+      navigateForward(deepLink.panelView);
     }
 
     if (shouldReplaceUrl) {
       replaceBrowserSearchParams(nextParams);
     }
-  }, [isMobile, navigateForward, openAccountDialog, openLineImpacts, pushBrowserNavigationEntry]);
+  }, [isMobile, navigateForward, openAccountDialog, openLineImpacts, setActiveView, setSelectedStationId, setStationPanelActivationKey, setSurfaceNoticeInitialContent, selectedStationIdRef, switchNetworkForDeepLink]);
+
+  const launchDeepLinkHandledRef = useRef(false);
+  useEffect(() => {
+    if (launchDeepLinkHandledRef.current) return;
+    launchDeepLinkHandledRef.current = true;
+    applyDeepLinkParams(new URLSearchParams(window.location.search));
+  }, [applyDeepLinkParams]);
+
+  const applyDeepLinkParamsRef = useRef(applyDeepLinkParams);
+  useEffect(() => {
+    applyDeepLinkParamsRef.current = applyDeepLinkParams;
+  }, [applyDeepLinkParams]);
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type !== NOTIFICATION_OPEN_MESSAGE || typeof event.data.url !== "string") return;
+      const target = new URL(event.data.url, window.location.origin);
+      if (target.origin !== window.location.origin) return;
+      // Acknowledge first so the worker does not also navigate this window.
+      event.ports[0]?.postMessage({ type: `${NOTIFICATION_OPEN_MESSAGE}-ack` });
+      applyDeepLinkParamsRef.current(target.searchParams);
+    };
+    navigator.serviceWorker.addEventListener("message", handleMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", handleMessage);
+  }, []);
+
+  const applyNotificationDestination = useCallback((destination: Exclude<NotificationDestination, { type: "wait" }>) => {
+    setClosedScreenAcknowledged(true);
+    setClosedMapPeek(true);
+    const requestId = ++notificationDestinationRequestRef.current;
+    if (destination.type === "impact") {
+      pushBrowserNavigationEntry();
+      setSelectedStationId(null);
+      setCommutePathPreview(null);
+      selectionBackBehaviorRef.current = "clear";
+      selectionRef.current = destination.selection;
+      setSelection(destination.selection);
+      setMobileInspectorDetent("details-focus");
+      setActiveView("map");
+      return;
+    }
+    if (!isMobile) {
+      setDesktopSidebarCollapsed(false);
+    }
+    switch (destination.type) {
+      case "alert-history":
+        setAlertHistoryFocus({
+          requestId,
+          alertId: destination.alertId,
+          lineId: destination.lineId,
+          impactKind: destination.impactKind,
+          notice: destination.notice,
+        });
+        navigateForward("alert-history");
+        return;
+      case "line-impacts":
+        setLineImpactTapNotice({ lineId: destination.lineId, notice: destination.notice });
+        openLineImpacts(destination.lineId);
+        return;
+      case "trip-changes":
+        setSurfaceNoticeInitialContent("trip-changes");
+        setFocusTripChangeId(destination.tripChangeId);
+        navigateForward("surface-notices");
+        return;
+      case "commutes":
+        setCommutesFocusedCommuteId(destination.commuteId);
+        navigateForward("commutes");
+        return;
+    }
+  }, [isMobile, navigateForward, openLineImpacts, pushBrowserNavigationEntry, selectionBackBehaviorRef, selectionRef, setActiveView, setCommutePathPreview, setCommutesFocusedCommuteId, setMobileInspectorDetent, setSelectedStationId, setSelection, setSurfaceNoticeInitialContent]);
+
+  useEffect(() => {
+    if (!pendingNotificationTarget) return;
+    const { target, receivedAt } = pendingNotificationTarget;
+    // Resolve against the network the destination will render, never a neighbour's data.
+    // Re-assert it too: restoring the stored default network can land after the launch link.
+    if (target.network && target.network !== selectedNetwork) {
+      switchNetworkForDeepLink(target.network);
+      return;
+    }
+    const network = target.network ?? selectedNetwork;
+    const elapsed = Date.now() - receivedAt;
+    const destination = resolveNotificationTarget(target, {
+      dashboard: effectiveDashboards[network],
+      verified: sessionVerified[network],
+      waitExpired: connectionOffline || elapsed >= NOTIFICATION_TARGET_WAIT_MS,
+    });
+    if (destination.type === "wait") {
+      const timer = window.setTimeout(
+        () => setNotificationTargetWaitTick((tick) => tick + 1),
+        NOTIFICATION_TARGET_WAIT_MS - elapsed,
+      );
+      return () => window.clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPendingNotificationTarget(null);
+    applyNotificationDestination(destination);
+  }, [applyNotificationDestination, connectionOffline, effectiveDashboards, notificationTargetWaitTick, pendingNotificationTarget, selectedNetwork, sessionVerified, switchNetworkForDeepLink]);
+
+  // Destination context belongs to the view it explained; leaving that view retires it.
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (activeView !== "alert-history") setAlertHistoryFocus(null);
+    if (activeView !== "line-impacts") setLineImpactTapNotice(null);
+    if (activeView !== "surface-notices") setFocusTripChangeId(null);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [activeView]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2790,6 +2868,7 @@ export function LineWatchShell({
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             onFocusMap={handleFocusMapFromPanel}
+            tapNotice={lineImpactTapNotice?.lineId === lineImpactLaunch.lineId ? lineImpactTapNotice.notice : null}
           />
         ) : null;
       case "alerts":
@@ -2957,9 +3036,11 @@ export function LineWatchShell({
       case "surface-notices":
         return (
           <SurfaceNoticesPanel
+            key={focusTripChangeId ? `trip-change-${focusTripChangeId}` : "surface-notices"}
             initialQuery={surfaceNoticeInitialQuery}
             initialNoticeId={surfaceNoticeInitialId}
             initialRegionalContent={surfaceNoticeInitialContent}
+            focusTripChangeId={focusTripChangeId}
             networkId={selectedNetwork}
             onBack={handleSubmenuBack}
             /* setActiveView(isMobile ? "status" : "menu") */
@@ -3052,9 +3133,11 @@ export function LineWatchShell({
       case "alert-history":
         return (
           <AlertHistoryPanel
+            key={alertHistoryFocus ? `alert-history-focus-${alertHistoryFocus.requestId}` : "alert-history"}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             network={selectedNetwork}
+            destination={alertHistoryFocus}
           />
         );
       case "source-status":

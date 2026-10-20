@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import { CalendarClock, CircleAlert, MapPin, TrainFront } from "lucide-react";
 import { formatImpactTimestamp, formatOperationalDateTime } from "../app/impact-time";
 import {
@@ -13,6 +14,8 @@ type Props = {
   loading?: boolean;
   compact?: boolean;
   emptyLabel?: string;
+  /** Trip change to scroll to and highlight, e.g. from a notification tap. */
+  focusId?: string | null;
 };
 
 function changeTone(kind: string) {
@@ -28,7 +31,16 @@ export function RegionalTripChangesList({
   loading = false,
   compact = false,
   emptyLabel = "No upcoming GO train changes.",
+  focusId = null,
 }: Props) {
+  const focusedRef = useRef<HTMLElement | null>(null);
+  const focusPresent = Boolean(focusId && data?.changes.some((change) => change.id === focusId));
+  useLayoutEffect(() => {
+    if (!focusPresent || !focusedRef.current) return;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    focusedRef.current.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
+  }, [focusPresent]);
+
   if (loading) {
     return <p className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">Checking GO train changes...</p>;
   }
@@ -51,8 +63,10 @@ export function RegionalTripChangesList({
         return (
           <article
             key={change.id}
-            className="rounded-xl border border-transparent bg-white/80 p-3 shadow-sm dark:border-transparent dark:bg-[#12151c]/80"
+            ref={change.id === focusId ? focusedRef : undefined}
+            className={`regional-trip-change-card p-3${change.id === focusId ? " notification-target-highlight" : ""}`}
             data-trip-change-kind={change.kind}
+            aria-current={change.id === focusId ? "true" : undefined}
           >
             <div className="flex items-start gap-2.5">
               <TransitLineBadge

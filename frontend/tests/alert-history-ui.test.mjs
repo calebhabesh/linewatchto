@@ -238,7 +238,7 @@ describe("alert history timeline UI", () => {
     assert.match(timelineSource, /useDeferredValue\(searchQuery\)/);
     assert.match(timelineSource, /buildAlertHistorySearchIndex\(history\)/);
     assert.match(timelineSource, /const HISTORY_PAGE_SIZE = 50/);
-    assert.match(timelineSource, /visibleItems\.slice\(0, visibleCount\)/);
+    assert.match(timelineSource, /visibleItems\.slice\(0, effectiveVisibleCount\)/);
     assert.match(timelineSource, /Show \{Math\.min\(HISTORY_PAGE_SIZE/);
     assert.match(timelineSource, /const HistoryIncident = memo/);
     assert.match(timelineSource, /events\.map\(\(event, index\) =>/);

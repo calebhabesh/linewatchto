@@ -172,7 +172,7 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   event.waitUntil((async () => {
     await recordDisplayedNotificationClientEvent(event.notification, "notification_click");
-    await openNotificationUrl(event.notification.data?.url || "/");
+    await openNotificationUrl(notificationTargetUrl(event.notification));
   })());
 });
 
@@ -830,18 +830,65 @@ function isLineWatchPushNotification(tag) {
   return LINEWATCH_PUSH_CATEGORIES.has(category);
 }
 
+const NOTIFICATION_OPEN_MESSAGE = "linewatch-notification-open";
+const NOTIFICATION_OPEN_ACK_TIMEOUT_MS = 1500;
+
+function notificationTargetUrl(notification) {
+  const target = new URL(notification?.data?.url || "/", self.location.origin);
+  if (target.origin !== self.location.origin) return "/";
+  // Cleared payloads queued before targets carried state keep their meaning on tap.
+  if (notification?.data?.state === "CLEARED" && target.search && !target.searchParams.has("state")) {
+    target.searchParams.set("state", "cleared");
+  }
+  return `${target.pathname}${target.search}`;
+}
+
+// A tap steers the running app instead of stacking a second window. The dashboard
+// resolves the target itself; pages that never acknowledge are navigated instead.
 async function openNotificationUrl(url) {
-  const targetUrl = new URL(url, self.location.origin).href;
-  const windowClients = await clients.matchAll({
+  const targetUrl = new URL(url, self.location.origin);
+  const windowClients = await self.clients.matchAll({
     type: "window",
     includeUncontrolled: true,
   });
+  const appClients = windowClients.filter((client) => new URL(client.url).origin === self.location.origin);
+  const client = appClients.find((candidate) => candidate.focused)
+    || appClients.find((candidate) => candidate.visibilityState === "visible")
+    || appClients[0];
 
-  for (const client of windowClients) {
-    if (client.url === targetUrl && "focus" in client) {
-      return client.focus();
-    }
+  if (!client) {
+    return self.clients.openWindow(targetUrl.href);
   }
 
-  return clients.openWindow(targetUrl);
+  const focusedClient = "focus" in client ? await client.focus().catch(() => client) : client;
+  const dashboardClient = new URL(client.url).pathname === "/";
+  if (dashboardClient && await postNotificationTarget(focusedClient || client, `${targetUrl.pathname}${targetUrl.search}`)) {
+    return focusedClient;
+  }
+  if ("navigate" in client) {
+    const navigated = await client.navigate(targetUrl.href).catch(() => null);
+    if (navigated) return navigated;
+  }
+  return self.clients.openWindow(targetUrl.href);
+}
+
+function postNotificationTarget(client, url) {
+  if (typeof MessageChannel !== "function" || typeof client?.postMessage !== "function") {
+    return Promise.resolve(false);
+  }
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    const settle = (acknowledged) => {
+      clearTimeout(timeout);
+      channel.port1.close();
+      resolve(acknowledged);
+    };
+    const timeout = setTimeout(() => settle(false), NOTIFICATION_OPEN_ACK_TIMEOUT_MS);
+    channel.port1.onmessage = (event) => settle(event.data?.type === `${NOTIFICATION_OPEN_MESSAGE}-ack`);
+    try {
+      client.postMessage({ type: NOTIFICATION_OPEN_MESSAGE, url }, [channel.port2]);
+    } catch {
+      settle(false);
+    }
+  });
 }

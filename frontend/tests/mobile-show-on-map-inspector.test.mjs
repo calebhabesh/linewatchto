@@ -163,17 +163,17 @@ describe("mobile Show on Map inspector", () => {
   });
 
   it("routes an impact deep link through the details-first mobile map inspector", () => {
-    const deepLinkHandling = shellSource.slice(
-      shellSource.indexOf("const impactKind = params.get"),
-      shellSource.indexOf("if (shouldReplaceUrl)"),
+    const destinationHandling = shellSource.slice(
+      shellSource.indexOf("const applyNotificationDestination"),
+      shellSource.indexOf("switch (destination.type)"),
     );
 
-    assert.match(deepLinkHandling, /const impactSelection = impactKind && impactId/);
-    assert.match(deepLinkHandling, /if \(impactSelection\) \{/);
-    assert.match(deepLinkHandling, /setSelection\(impactSelection\)/);
-    assert.match(deepLinkHandling, /setMobileInspectorDetent\("details-focus"\)/);
-    assert.match(deepLinkHandling, /setActiveView\("map"\)/);
-    assert.match(deepLinkHandling, /else if \(panel && panelToView\[panel\]\)/);
+    assert.match(shellSource, /parseNotificationTarget\(params\)/);
+    assert.match(destinationHandling, /if \(destination\.type === "impact"\) \{/);
+    assert.match(destinationHandling, /setSelection\(destination\.selection\)/);
+    assert.match(destinationHandling, /setMobileInspectorDetent\("details-focus"\)/);
+    assert.match(destinationHandling, /setActiveView\("map"\)/);
+    assert.match(shellSource, /else if \(deepLink\.panelView\)/);
   });
 
   it("opens selected map impacts with details shown and lets the user request more map", () => {

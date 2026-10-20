@@ -176,4 +176,12 @@ public record PushNotificationCandidate(
     public Instant sourceEventAt() {
         return notification.sourceEventAt();
     }
+
+    PushNotificationCandidate withDedupeKey(String occurrenceDedupeKey) {
+        return new PushNotificationCandidate(
+            accountId, commuteId, legId, lineId, lineNumber, category, eventType, reminderBucket,
+            sourceIncidentKey, notificationKey, occurrenceDedupeKey, notification, url, updateFingerprint,
+            deliveryAllowed, sourceUpdatedAt
+        );
+    }
 }

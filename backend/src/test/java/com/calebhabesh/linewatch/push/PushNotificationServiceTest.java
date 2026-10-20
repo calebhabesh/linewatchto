@@ -299,6 +299,40 @@ class PushNotificationServiceTest {
     }
 
     @Test
+    void activeNotificationsDropsAnEarlierClearedCardWhenTheIncidentIsActiveAgain() {
+        String endpoint = "https://fcm.googleapis.com/fcm/send/subscription";
+        String endpointHash = PushNotificationService.hashEndpoint(endpoint);
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1", account, endpoint, endpointHash,
+            "p256dh-key", "auth-secret", "Chrome Android", Instant.parse("2026-06-05T14:45:00Z")
+        );
+        String notificationKey = "line-current|line-1|delay|alert-1";
+        PushNotificationCandidate returned = candidate(
+            null, null, "line-1", "1", "line-current", "delay", "on-change",
+            notificationKey, "user_1|line|line-1|delay|on-change|alert-1",
+            "Finch to Union", null, Instant.parse("2026-06-05T14:40:00Z"), "/?panel=delays"
+        );
+        when(subscriptionRepository.findByAccountIdAndEndpointHash("user_1", endpointHash))
+            .thenReturn(Optional.of(subscription));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of());
+        PushNotificationPreferenceEntity preferences = mock(PushNotificationPreferenceEntity.class);
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.allows(any(), any())).thenReturn(true);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
+        when(lineSubscriptionPushPlanner.candidatesFor(eq("user_1"), anyList())).thenReturn(List.of(returned));
+        when(deliveryRepository.findRecentlyDisplayedClearedNotificationKeys(
+            eq("user_1"), eq(endpointHash), anyList(), any(Instant.class)
+        )).thenReturn(List.of(notificationKey));
+
+        PushResponses.ActivePushNotificationsResponse response = service.activeNotifications(
+            account,
+            new PushRequests.SubscriptionEndpointRequest(endpoint)
+        );
+
+        assertThat(response.retainedTags()).containsExactly(notificationKey + "|active", notificationKey);
+    }
+
+    @Test
     void activeNotificationsDoesNotRetainClearedNotificationsWhenRetentionIsDisabled() {
         properties.setClearedNotificationRetention(Duration.ZERO);
         String endpoint = "https://fcm.googleapis.com/fcm/send/subscription";

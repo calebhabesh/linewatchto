@@ -1037,10 +1037,6 @@ class PushNotificationDispatchServiceTest {
             anyList(),
             eq("ACTIVE")
         )).thenReturn(List.of(previousEvent));
-        when(eventRepository.existsByNotificationKeyAndNotificationState(
-            "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
-            "CLEARED"
-        )).thenReturn(false);
         when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
         when(webPushClient.send(
@@ -1062,7 +1058,7 @@ class PushNotificationDispatchServiceTest {
             Service between Finch and Union stations has resumed.
             No longer affects Morning commute (Outbound).
             🕗 Jun 5, 11:00 AM""");
-        assertThat(clearedEvent.getUrl()).isEqualTo("/");
+        assertThat(clearedEvent.getUrl()).isEqualTo("/?panel=commutes&commute=commute_1&state=cleared");
         assertThat(clearedEvent.getSourceEventAt())
             .isEqualTo(Instant.parse("2026-06-05T15:00:00Z"));
         verify(webPushClient).send(
@@ -1508,7 +1504,7 @@ class PushNotificationDispatchServiceTest {
         assertThat(clearedEvent.getBody()).isEqualTo("""
             Service between Finch and Union stations has resumed.
             🕗 Jun 5, 11:00 AM""");
-        assertThat(clearedEvent.getUrl()).isEqualTo("/");
+        assertThat(clearedEvent.getUrl()).isEqualTo("/?panel=delays&state=cleared");
         verify(lineEventObservationService).markCleared(observation, clock.instant());
     }
 
@@ -2796,6 +2792,213 @@ class PushNotificationDispatchServiceTest {
 
         verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
         verify(deliveryRepository, never()).save(any(PushNotificationDeliveryEntity.class));
+    }
+
+    @Test
+    void announcesAReturningIncidentWhoseSourceIdentityIsUnchanged() {
+        PushNotificationCandidate candidate = reopenedSavedCommuteCandidate();
+        PushNotificationEventEntity firstOccurrence = PushNotificationEventEntity.create(
+            "push_event_first", candidate, Instant.parse("2026-06-05T14:00:00Z")
+        );
+        PushNotificationEventEntity clear = PushNotificationEventEntity.cleared(
+            "push_event_clear", firstOccurrence, Instant.parse("2026-06-05T14:30:00Z"), formatter
+        );
+        PushSubscriptionEntity subscription = stubReopenedSavedCommuteAccount(candidate);
+        when(eventRepository.existsByDedupeKey("dedupe-1")).thenReturn(true);
+        when(eventRepository.findByDedupeKey("dedupe-1")).thenReturn(Optional.of(firstOccurrence));
+        when(eventRepository.findFirstByAccountIdAndNotificationKeyAndNotificationStateOrderByCreatedAtDesc(
+            "user_1", candidate.notificationKey(), "CLEARED"
+        )).thenReturn(Optional.of(clear));
+        when(webPushClient.send(eq(subscription), anyString(), any(WebPushPayload.class)))
+            .thenReturn(PushDeliveryResult.accepted(202));
+
+        service.evaluateSavedCommuteNotifications();
+
+        ArgumentCaptor<PushNotificationEventEntity> eventCaptor = ArgumentCaptor.forClass(PushNotificationEventEntity.class);
+        verify(eventRepository).save(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().getNotificationState()).isEqualTo("ACTIVE");
+        assertThat(eventCaptor.getValue().getDedupeKey()).isEqualTo("dedupe-1|after|push_event_clear");
+        verify(webPushClient).send(eq(subscription), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
+    void keepsDedupingTheCurrentOccurrenceAfterItsReturnWasAnnounced() {
+        PushNotificationCandidate candidate = reopenedSavedCommuteCandidate();
+        PushNotificationEventEntity firstOccurrence = PushNotificationEventEntity.create(
+            "push_event_first", candidate, Instant.parse("2026-06-05T14:00:00Z")
+        );
+        PushNotificationEventEntity clear = PushNotificationEventEntity.cleared(
+            "push_event_clear", firstOccurrence, Instant.parse("2026-06-05T14:30:00Z"), formatter
+        );
+        PushNotificationEventEntity returned = PushNotificationEventEntity.create(
+            "push_event_returned",
+            candidate.withDedupeKey("dedupe-1|after|push_event_clear"),
+            Instant.parse("2026-06-05T14:45:00Z")
+        );
+        stubReopenedSavedCommuteAccount(candidate);
+        when(eventRepository.findByDedupeKey("dedupe-1")).thenReturn(Optional.of(firstOccurrence));
+        when(eventRepository.findFirstByAccountIdAndNotificationKeyAndNotificationStateOrderByCreatedAtDesc(
+            "user_1", candidate.notificationKey(), "CLEARED"
+        )).thenReturn(Optional.of(clear));
+        when(eventRepository.existsByDedupeKey("dedupe-1|after|push_event_clear")).thenReturn(true);
+        when(eventRepository.findByDedupeKey("dedupe-1|after|push_event_clear")).thenReturn(Optional.of(returned));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+    }
+
+    @Test
+    void clearsEachAnnouncedOccurrenceOfASavedCommuteIncidentOnce() {
+        PushNotificationCandidate candidate = reopenedSavedCommuteCandidate();
+        PushNotificationEventEntity firstOccurrence = PushNotificationEventEntity.create(
+            "push_event_first", candidate, Instant.parse("2026-06-05T14:00:00Z")
+        );
+        PushNotificationEventEntity firstClear = PushNotificationEventEntity.cleared(
+            "push_event_clear", firstOccurrence, Instant.parse("2026-06-05T14:30:00Z"), formatter
+        );
+        PushNotificationEventEntity returned = PushNotificationEventEntity.create(
+            "push_event_returned",
+            candidate.withDedupeKey("dedupe-1|after|push_event_clear"),
+            Instant.parse("2026-06-05T14:45:00Z")
+        );
+        PushSubscriptionEntity subscription = stubReopenedSavedCommuteAccount(null);
+        when(eventRepository.findByAccountIdAndCategoryInAndNotificationState(eq("user_1"), anyList(), eq("ACTIVE")))
+            .thenReturn(List.of(firstOccurrence, returned));
+        when(eventRepository.findFirstByAccountIdAndNotificationKeyAndNotificationStateOrderByCreatedAtDesc(
+            "user_1", candidate.notificationKey(), "CLEARED"
+        )).thenReturn(Optional.of(firstClear));
+        when(webPushClient.send(eq(subscription), anyString(), any(WebPushPayload.class)))
+            .thenReturn(PushDeliveryResult.accepted(202));
+
+        service.evaluateSavedCommuteNotifications();
+
+        ArgumentCaptor<PushNotificationEventEntity> eventCaptor = ArgumentCaptor.forClass(PushNotificationEventEntity.class);
+        verify(eventRepository).save(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().getNotificationState()).isEqualTo("CLEARED");
+        assertThat(eventCaptor.getValue().getDedupeKey()).isEqualTo("dedupe-1|after|push_event_clear|cleared");
+    }
+
+    @Test
+    void clearsAReturnedLineIncidentAgainOnlyWhenItsReturnWasAnnounced() {
+        PushSubscriptionEntity subscription = stubLineRestoredAccount();
+        PushNotificationCandidate previousCandidate = candidate(
+            null, null, "line-1", "1", "line-current", "delay", "on-change",
+            "line-current|line-1|delay|alert-1", "user_1|line|line-1|delay|on-change|alert-1",
+            "Finch to Union", null, Instant.parse("2026-06-05T14:20:00Z"), "/?panel=delays"
+        );
+        PushNotificationEventEntity firstOccurrence = PushNotificationEventEntity.create(
+            "push_event_first", previousCandidate, Instant.parse("2026-06-05T14:00:00Z")
+        );
+        PushNotificationEventEntity firstClear = PushNotificationEventEntity.cleared(
+            "push_event_clear", firstOccurrence, Instant.parse("2026-06-05T14:30:00Z"), formatter
+        );
+        PushNotificationEventEntity returned = PushNotificationEventEntity.create(
+            "push_event_returned", previousCandidate, Instant.parse("2026-06-05T14:45:00Z")
+        );
+        PushLineEventObservationEntity observation =
+            PushLineEventObservationEntity.create("line_obs_1", previousCandidate, clock.instant());
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
+        when(eventRepository.findFirstByAccountIdAndNotificationKeyAndNotificationStateOrderByCreatedAtDesc(
+            "user_1", "line-current|line-1|delay|alert-1", "CLEARED"
+        )).thenReturn(Optional.of(firstClear));
+        when(eventRepository.findFirstByAccountIdAndNotificationKeyAndNotificationStateOrderByCreatedAtDesc(
+            "user_1", "line-current|line-1|delay|alert-1", "ACTIVE"
+        )).thenReturn(Optional.of(returned));
+        when(webPushClient.send(eq(subscription), anyString(), any(WebPushPayload.class)))
+            .thenReturn(PushDeliveryResult.accepted(202));
+
+        service.evaluateSavedCommuteNotifications();
+
+        ArgumentCaptor<PushNotificationEventEntity> eventCaptor = ArgumentCaptor.forClass(PushNotificationEventEntity.class);
+        verify(eventRepository).save(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().getNotificationState()).isEqualTo("CLEARED");
+        assertThat(eventCaptor.getValue().getDedupeKey())
+            .isEqualTo("user_1|line|line-1|delay|on-change|line-current|line-1|delay|alert-1|cleared|after|push_event_clear");
+        verify(lineEventObservationService).markCleared(observation, clock.instant());
+    }
+
+    @Test
+    void doesNotClearAReturnedLineIncidentThatWasNeverReannounced() {
+        stubLineRestoredAccount();
+        PushNotificationCandidate previousCandidate = candidate(
+            null, null, "line-1", "1", "line-current", "delay", "on-change",
+            "line-current|line-1|delay|alert-1", "user_1|line|line-1|delay|on-change|alert-1",
+            "Finch to Union", null, Instant.parse("2026-06-05T14:20:00Z"), "/?panel=delays"
+        );
+        PushNotificationEventEntity firstOccurrence = PushNotificationEventEntity.create(
+            "push_event_first", previousCandidate, Instant.parse("2026-06-05T14:00:00Z")
+        );
+        PushNotificationEventEntity firstClear = PushNotificationEventEntity.cleared(
+            "push_event_clear", firstOccurrence, Instant.parse("2026-06-05T14:30:00Z"), formatter
+        );
+        PushLineEventObservationEntity observation =
+            PushLineEventObservationEntity.create("line_obs_1", previousCandidate, clock.instant());
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
+        when(eventRepository.findFirstByAccountIdAndNotificationKeyAndNotificationStateOrderByCreatedAtDesc(
+            "user_1", "line-current|line-1|delay|alert-1", "CLEARED"
+        )).thenReturn(Optional.of(firstClear));
+        when(eventRepository.findFirstByAccountIdAndNotificationKeyAndNotificationStateOrderByCreatedAtDesc(
+            "user_1", "line-current|line-1|delay|alert-1", "ACTIVE"
+        )).thenReturn(Optional.of(firstOccurrence));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+        verify(lineEventObservationService).markCleared(observation, clock.instant());
+    }
+
+    private PushNotificationCandidate reopenedSavedCommuteCandidate() {
+        return candidate(
+            "commute_1", "outbound", "line-1", "1", "saved-commute-impact", "delay", "on-change",
+            "saved-commute-impact|commute_1|outbound|delay|delay-line-1", "dedupe-1",
+            "Finch to Union", "Morning commute", Instant.parse("2026-06-05T14:20:00Z"),
+            "/?panel=commutes&commute=commute_1"
+        );
+    }
+
+    /** Account with one restored-enabled commute; the candidate, when given, is currently matched. */
+    private PushSubscriptionEntity stubReopenedSavedCommuteAccount(PushNotificationCandidate currentCandidate) {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1", account, "Morning commute", "finch", "union", true, Instant.parse("2026-06-05T13:30:00Z")
+        );
+        commute.updateNotificationRule(
+            true, 127, null, null, true, true,
+            true, true, true, true, true, Instant.parse("2026-06-05T13:31:00Z")
+        );
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1", account, "https://fcm.googleapis.com/fcm/send/subscription",
+            "endpoint-hash", "p256dh-key", "auth-secret", "Chrome Android", Instant.parse("2026-06-05T13:30:00Z")
+        );
+        PushNotificationPreferenceEntity preferences =
+            PushNotificationPreferenceEntity.create(account, Instant.parse("2026-06-05T13:00:00Z"));
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.allows(any(), any())).thenReturn(true);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
+        when(planner.candidatesFor(commute))
+            .thenReturn(currentCandidate == null ? List.of() : List.of(currentCandidate));
+        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
+        return subscription;
+    }
+
+    private PushSubscriptionEntity stubLineRestoredAccount() {
+        PushNotificationPreferenceEntity preferences = spy(PushNotificationPreferenceEntity.create(account, clock.instant()));
+        when(preferences.isLineRestoredEnabled()).thenReturn(true);
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1", account, "https://fcm.googleapis.com/fcm/send/subscription",
+            "endpoint-hash", "p256dh-key", "auth-secret", "Chrome Android", clock.instant()
+        );
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        return subscription;
     }
 
     private PushNotificationCandidate candidate(

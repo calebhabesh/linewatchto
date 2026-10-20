@@ -91,7 +91,7 @@ public class RegionalLineSubscriptionPushPlanner {
         String location = cancellationLocation(change);
         String eventType = "trip-cancellation";
         String category = "line-trip-change";
-        String url = "/?network=regional&panel=trip-changes";
+        String url = tripChangeUrl(change);
         FormattedPushNotification notification = formatter.formatActive(new PushNotificationFacts(
             change.lineId(), change.lineNumber(), eventType, "on-change", location, null, false,
             null, null,
@@ -132,8 +132,8 @@ public class RegionalLineSubscriptionPushPlanner {
         Instant sourceEventAt = alert.activePeriodStart() == null || alert.hasDateOnlyServiceWindow()
             ? null : alert.activePeriodStart().toInstant();
         String eventType = alert.impactKind();
-        String url = "/?network=regional&panel=" + panel(eventType)
-            + "&impactKind=" + eventType + "&impactId=" + alert.id();
+        String url = PushNotificationTargetUrls.withTargetLine("/?network=regional&panel=" + panel(eventType)
+            + "&impactKind=" + eventType + "&impactId=" + alert.id(), alert.lineId());
         FormattedPushNotification notification = formatter.formatActive(new PushNotificationFacts(
             alert.lineId(),
             lineNumber,
@@ -196,6 +196,15 @@ public class RegionalLineSubscriptionPushPlanner {
             return "Matched route segment";
         }
         return names.size() == 1 ? names.getFirst() : names.getFirst() + " ↔ " + names.getLast();
+    }
+
+    static String tripChangeUrl(RegionalTripChangeResponses.TripChange change) {
+        return PushNotificationTargetUrls.withTargetLine(
+            PushNotificationTargetUrls.withParam(
+                "/?network=regional&panel=trip-changes", PushNotificationTargetUrls.TRIP_CHANGE_PARAM, change.id()
+            ),
+            change.lineId()
+        );
     }
 
     private String panel(String eventType) {

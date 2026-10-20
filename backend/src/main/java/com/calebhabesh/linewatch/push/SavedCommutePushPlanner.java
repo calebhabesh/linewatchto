@@ -226,7 +226,7 @@ public class SavedCommutePushPlanner {
         String eventType = "trip-cancellation";
         String category = "saved-commute-trip-change";
         String location = overlap.stops().getFirst().stationName() + " → " + overlap.stops().getLast().stationName();
-        String url = "/?network=regional&panel=trip-changes";
+        String url = RegionalLineSubscriptionPushPlanner.tripChangeUrl(change);
         FormattedPushNotification notification = formatter.formatActive(new PushNotificationFacts(
             change.lineId(), change.lineNumber(), eventType, "on-change", location, null, false,
             commute.getLabel(), legId, overlap.relevantTime().toInstant(), change.cause(),

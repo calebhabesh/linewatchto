@@ -23,6 +23,7 @@ import type { NetworkId } from "../app/regional-data";
 import { REGIONAL_STATION_SEARCH_LINES } from "../app/station-search";
 import { getRegionalTripChanges, type RegionalTripChangeResponse } from "../app/regional-trip-changes";
 import { RegionalTripChangesList } from "./RegionalTripChangesList";
+import { NotificationTapNotice } from "./NotificationTapNotice";
 import { DropdownMenuPortal } from "./DropdownMenuPortal";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 
@@ -114,7 +115,15 @@ interface Props {
   savedAt?: number;
   initialRegionalContent?: "notices" | "trip-changes";
   networkId?: NetworkId;
+  /** Trip change named by a notification tap; highlighted, or explained when no longer listed. */
+  focusTripChangeId?: string | null;
 }
+
+const TRIP_NO_LONGER_LISTED_NOTICE = {
+  tone: "unlisted",
+  title: "This trip is no longer listed",
+  message: "It may have already run or been reinstated. Check GO Transit before travelling.",
+} as const;
 
 export function SurfaceNoticesPanel({
   onBack,
@@ -128,6 +137,7 @@ export function SurfaceNoticesPanel({
   savedAt,
   initialRegionalContent = "notices",
   networkId = "ttc",
+  focusTripChangeId = null,
 }: Props) {
   const regional = networkId === "regional";
   const [category, setCategory] = useState<SurfaceNoticeCategory | "all">("all");
@@ -149,6 +159,13 @@ export function SurfaceNoticesPanel({
     && regionalContent === "trip-changes"
     && tripChangesState?.query !== debouncedQuery;
   const selectedNoticeRef = useRef<HTMLElement | null>(null);
+  const [tripTapNoticeDismissed, setTripTapNoticeDismissed] = useState(false);
+  // Only an unfiltered, fresh feed can say a trip is gone; a stale feed explains itself below.
+  const tripNoLongerListed = Boolean(focusTripChangeId)
+    && !tripChangesLoading
+    && debouncedQuery === ""
+    && tripChanges?.fresh === true
+    && !tripChanges.changes.some((change) => change.id === focusTripChangeId);
 
   useEffect(() => {
     if (!initialNoticeId || !selectedNoticeRef.current) return;
@@ -535,7 +552,15 @@ export function SurfaceNoticesPanel({
         {/* Notices Content */}
         <div className="flex-1 overflow-y-auto min-w-0 px-3 pb-3 sm:px-4 sm:pb-4 pt-0 surface-notices-scroll">
           {regional && regionalContent === "trip-changes" ? (
-            <RegionalTripChangesList data={tripChanges} loading={tripChangesLoading} />
+            <>
+              {tripNoLongerListed && !tripTapNoticeDismissed ? (
+                <NotificationTapNotice
+                  notice={TRIP_NO_LONGER_LISTED_NOTICE}
+                  onDismiss={() => setTripTapNoticeDismissed(true)}
+                />
+              ) : null}
+              <RegionalTripChangesList data={tripChanges} loading={tripChangesLoading} focusId={focusTripChangeId} />
+            </>
           ) : loading ? (
             <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
               <span className="text-sm">Loading notices...</span>

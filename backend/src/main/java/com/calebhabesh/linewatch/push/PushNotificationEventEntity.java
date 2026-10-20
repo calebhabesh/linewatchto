@@ -178,7 +178,7 @@ public class PushNotificationEventEntity {
         event.displayDirection = notification.displayDirection();
         event.scopeLabel = notification.scopeLabel();
         event.sourceEventAt = notification.sourceEventAt();
-        event.url = "/";
+        event.url = PushNotificationTargetUrls.cleared(activeEvent.url);
         event.createdAt = now;
         event.triggeredAt = activeEvent.deliveryEligibilityAt();
         event.deliveryAllowed = deliveryAllowed;
@@ -239,7 +239,7 @@ public class PushNotificationEventEntity {
         event.displayDirection = notification.displayDirection();
         event.scopeLabel = notification.scopeLabel();
         event.sourceEventAt = notification.sourceEventAt();
-        event.url = "/";
+        event.url = PushNotificationTargetUrls.cleared(observation.getUrl());
         event.createdAt = now;
         event.triggeredAt = observation.getObservedAt() == null ? now : observation.getObservedAt();
         event.deliveryAllowed = true;
@@ -278,6 +278,11 @@ public class PushNotificationEventEntity {
         event.triggeredAt = now;
         event.deliveryAllowed = true;
         return event;
+    }
+
+    /** Keeps a later occurrence of the same source incident from deduping against an earlier one. */
+    void scopeDedupeKeyToOccurrenceAfter(String clearedEventId) {
+        this.dedupeKey = PushNotificationDispatchService.occurrenceDedupeKey(dedupeKey, clearedEventId);
     }
 
     public void markReclassified() {

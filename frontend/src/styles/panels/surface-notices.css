@@ -107,6 +107,30 @@
 .surface-notice-route-group[data-emphasis="detour"] { --notice-edge: #a855f7; }
 .surface-notice-route-group[data-emphasis="bypass"] { --notice-edge: #f59e0b; }
 
+/* GO train trip changes share the notice cards' thin edge light, toned by change kind. */
+.regional-trip-change-card {
+  --notice-edge: #3b82f6;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--notice-edge) 7%, transparent), color-mix(in srgb, var(--notice-edge) 2%, transparent) 12px, transparent 24px), #f8fafc;
+  border-left: 1.5px solid color-mix(in srgb, var(--notice-edge) 85%, transparent);
+  border-radius: 8px;
+  box-shadow: inset 2px 0 6px -1px color-mix(in srgb, var(--notice-edge) 20%, transparent);
+}
+.regional-trip-change-card[data-trip-change-kind="cancellation"] { --notice-edge: #ef4444; }
+.regional-trip-change-card[data-trip-change-kind="skipped-stop"] { --notice-edge: #f59e0b; }
+.dark .regional-trip-change-card {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--notice-edge) 12%, transparent), color-mix(in srgb, var(--notice-edge) 4%, transparent) 14px, transparent 30px), #12151c;
+}
+.high-contrast .regional-trip-change-card {
+  background: #000000;
+  border: 1px solid #ffffff;
+  border-left: 3px solid var(--notice-edge);
+  box-shadow: none;
+}
+.regional-trip-change-card.notification-target-highlight {
+  --highlight-color: var(--notice-edge);
+  --highlight-glow: color-mix(in srgb, var(--notice-edge) 45%, transparent);
+}
+
 .surface-notice-selection-glow {
   --highlight-color: var(--notice-edge);
   --highlight-glow: color-mix(in srgb, var(--notice-edge) 45%, transparent);

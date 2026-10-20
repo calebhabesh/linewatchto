@@ -674,7 +674,10 @@ class SavedCommutePushPlannerTest {
             assertThat(candidate.category()).isEqualTo("saved-commute-trip-change");
             assertThat(candidate.deliveryAllowed()).isTrue();
             assertThat(candidate.legId()).isEqualTo("outbound");
-            assertThat(candidate.url()).isEqualTo("/?network=regional&panel=trip-changes");
+            assertThat(candidate.url()).isEqualTo(
+                "/?network=regional&panel=trip-changes"
+                    + "&tripChangeId=regional-trip-change-2026-06-05-ST7824-cancellation&targetLine=regional-st"
+            );
         });
     }
 

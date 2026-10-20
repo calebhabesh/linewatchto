@@ -38,7 +38,7 @@ final class PushNotificationUpdateFingerprint {
             normalize(notification == null ? null : notification.body()),
             normalize(notification == null ? null : notification.eventLocation()),
             normalize(notification == null ? null : notification.displayDirection()),
-            normalize(url)
+            normalize(PushNotificationTargetUrls.withoutTargetParams(url))
         );
     }
 
@@ -53,7 +53,7 @@ final class PushNotificationUpdateFingerprint {
             normalize(notification == null ? null : notification.body()),
             normalize(notification == null ? null : notification.eventLocation()),
             normalize(notification == null ? null : notification.displayDirection()),
-            normalize(url)
+            normalize(PushNotificationTargetUrls.withoutTargetParams(url))
         );
     }
 
