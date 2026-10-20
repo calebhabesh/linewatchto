@@ -57,6 +57,11 @@ import {
   fetchSavedRegionalStationDetails,
   applySavedStationDetailUpdates,
   applySavedRegionalArrivalUpdates,
+  recentTtcStationDetails,
+  recentRegionalArrivals,
+  recentRegionalAccessibility,
+  rememberTtcStationDetail,
+  rememberRegionalArrivals,
 } from "../app/station-request-lifecycle";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
@@ -1073,9 +1078,9 @@ export function MyStationsPanel({
   }, [listModeEpoch]);
   const [networkFilter, setNetworkFilter] = useState<AccountNetworkFilter>("all");
   const [lastRemoved, setLastRemoved] = useState<{ saved: AccountSavedStation; index: number } | null>(null);
-  const [stationDetails, setStationDetails] = useState<Record<string, StationDataResult<StationDetail | null>>>({});
-  const [regionalArrivalDetails, setRegionalArrivalDetails] = useState<Record<string, RegionalArrivalDataResult>>({});
-  const [regionalAccessibility, setRegionalAccessibility] = useState<AccessibilityOutageResponse | null>(null);
+  const [stationDetails, setStationDetails] = useState<Record<string, StationDataResult<StationDetail | null>>>(() => recentTtcStationDetails.entries());
+  const [regionalArrivalDetails, setRegionalArrivalDetails] = useState<Record<string, RegionalArrivalDataResult>>(() => recentRegionalArrivals.entries());
+  const [regionalAccessibility, setRegionalAccessibility] = useState<AccessibilityOutageResponse | null>(() => recentRegionalAccessibility.get("regional") ?? null);
   const [arrivalTick, setArrivalTick] = useState(() => Date.now());
   const modeButtonRef = useRef<HTMLButtonElement>(null);
   const savedIds = useMemo(
@@ -1210,10 +1215,14 @@ export function MyStationsPanel({
     const refresh = async () => {
       const { requestId, signal } = ttcSession.start();
       try {
-        const results = await fetchSavedTtcStationDetails(stationIds, { signal });
-        if (ttcSession.isCurrent(requestId)) {
-          setStationDetails((current) => applySavedStationDetailUpdates(current, results));
-        }
+        // Apply each station as it resolves so one slow response cannot hold every card back.
+        await Promise.all(stationIds.map(async (stationId) => {
+          const results = await fetchSavedTtcStationDetails([stationId], { signal });
+          if (ttcSession.isCurrent(requestId)) {
+            for (const [key, result] of results) rememberTtcStationDetail(key, result);
+            setStationDetails((current) => applySavedStationDetailUpdates(current, results));
+          }
+        }));
       } finally {
         ttcSession.finish(requestId);
       }
@@ -1244,8 +1253,10 @@ export function MyStationsPanel({
       try {
         const { arrivals, accessibility } = await fetchSavedRegionalStationDetails(stationIds, { signal });
         if (regionalSession.isCurrent(requestId)) {
+          for (const [stationId, result] of arrivals) rememberRegionalArrivals(stationId, result);
           setRegionalArrivalDetails((current) => applySavedRegionalArrivalUpdates(current, arrivals));
           if (accessibility) {
+            recentRegionalAccessibility.remember("regional", accessibility);
             setRegionalAccessibility(accessibility);
           }
         }

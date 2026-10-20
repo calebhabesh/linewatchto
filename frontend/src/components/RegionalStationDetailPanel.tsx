@@ -37,6 +37,7 @@ import {
   shouldUseDetailedRegionalArrivalCountdown,
   type RegionalArrivalDataResult,
 } from "../app/regional-arrivals";
+import { recentRegionalArrivals, rememberRegionalArrivals } from "../app/station-request-lifecycle";
 import type { StationSummary } from "../app/station-data";
 import type { AccessibilityOutageDetail } from "../app/accessibility-outage-data";
 import { plannedClosuresForStation, stationImpactSelection } from "../app/station-impact-types";
@@ -291,7 +292,7 @@ export function RegionalStationDetailPanel({
   const [isClosing, setIsClosing] = useState(false);
   const { sheetRef, isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
   const [arrivalTick, setArrivalTick] = useState(() => Date.now());
-  const [arrivalState, setArrivalState] = useState<RegionalArrivalDataResult | null>(null);
+  const [arrivalState, setArrivalState] = useState<RegionalArrivalDataResult | null>(() => recentRegionalArrivals.get(station.id) ?? null);
 
   useEffect(() => {
     const timer = window.setInterval(() => setArrivalTick(Date.now()), REGIONAL_ARRIVAL_COUNTDOWN_TICK_MS);
@@ -413,6 +414,7 @@ export function RegionalStationDetailPanel({
       controller = new AbortController();
       const activeRequestId = ++requestId;
       void getRegionalStationArrivals(station.id, { signal: controller.signal }).then((result) => {
+        rememberRegionalArrivals(station.id, result);
         if (active && activeRequestId === requestId) {
           setArrivalState((current) => preserveRegionalArrivalsOnRefresh(current, result));
         }

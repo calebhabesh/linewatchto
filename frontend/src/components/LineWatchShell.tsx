@@ -90,6 +90,12 @@ import {
   type StationDetail,
   type StationSummary,
 } from "../app/station-data";
+import {
+  recentTtcStationDetails,
+  rememberTtcStationDetail,
+  ttcStationDetailKey,
+  warmSavedStationCaches,
+} from "../app/station-request-lifecycle";
 const StationDetailPanel = dynamic(() => import("./StationDetailPanel").then((mod) => mod.StationDetailPanel), { ssr: false });
 import {
   EMPTY_ESTIMATED_TRAIN_SNAPSHOT,
@@ -185,6 +191,8 @@ type SavedStationNotice = {
 };
 
 const STATION_DETAIL_REFRESH_MS = 15_000;
+// Under the 60s recent-result reuse window, so warmed saved-station results never expire before use.
+const SAVED_STATION_WARM_INTERVAL_MS = 45_000;
 
 function viewForSavedCommuteImpact(
   impact: AccountMatchedImpact,
@@ -1428,6 +1436,37 @@ export function LineWatchShell({
     void refreshSavedStations();
   }, [accountState.user?.id, refreshSavedStations]);
 
+  const savedStationWarmKey = useMemo(
+    () => savedStations.map((saved) => `${saved.networkId}:${saved.station.id}`).sort().join(","),
+    [savedStations],
+  );
+
+  // Keep saved-station details warm in the shared recent-result caches so My Stations and
+  // saved station panels open without a fetch wait. The open My Stations panel refreshes itself.
+  useEffect(() => {
+    if (!accountState.authenticated || !savedStationWarmKey) return;
+    const stations = savedStationWarmKey.split(",").map((entry) => {
+      const [networkId, stationId] = entry.split(":") as [NetworkId, string];
+      return { networkId, stationId };
+    });
+    let controller: AbortController | null = null;
+    const warm = () => {
+      if (document.visibilityState !== "visible" || activeViewRef.current === "my-stations") return;
+      controller?.abort();
+      controller = new AbortController();
+      void warmSavedStationCaches(stations, { signal: controller.signal }).catch(() => undefined);
+    };
+
+    warm();
+    const interval = window.setInterval(warm, SAVED_STATION_WARM_INTERVAL_MS);
+    document.addEventListener("visibilitychange", warm);
+    return () => {
+      controller?.abort();
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", warm);
+    };
+  }, [accountState.authenticated, savedStationWarmKey, activeViewRef]);
+
   useEffect(() => () => {
     if (savedStationNoticeTimerRef.current !== null) {
       window.clearTimeout(savedStationNoticeTimerRef.current);
@@ -1949,6 +1988,7 @@ export function LineWatchShell({
       }
       getStationDetail(selectedStationId, { signal: controller.signal })
         .then((result) => {
+          rememberTtcStationDetail(ttcStationDetailKey(selectedStationId), result);
           if (!cancelled && activeRequestId === requestId) {
             setVisibleStationResult((current) => preserveStationDetailOnRefresh(current, result));
           }
@@ -1968,7 +2008,12 @@ export function LineWatchShell({
         });
     };
 
-    fetchStationDetail(true);
+    // A recent result from My Stations or the saved-station warm-up paints first; the fetch still refreshes it.
+    const recent = recentTtcStationDetails.get(ttcStationDetailKey(selectedStationId));
+    if (recent) {
+      setVisibleStationResult(recent);
+    }
+    fetchStationDetail(!recent);
 
     const interval = window.setInterval(() => {
       if (document.visibilityState !== "visible") {

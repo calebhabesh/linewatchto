@@ -12,6 +12,11 @@ import {
   type RegionalArrivalFetchOptions,
 } from "./regional-arrivals.ts";
 import {
+  getSurfaceArrivals,
+  type SurfaceArrivalSnapshot,
+} from "./surface-arrivals.ts";
+import type { NetworkId } from "./regional-data.ts";
+import {
   getAccessibilityOutages,
   type AccessibilityOutageFetchOptions,
   type AccessibilityOutageResponse,
@@ -173,4 +178,100 @@ export function applySavedRegionalArrivalUpdates(
     next[stationId] = preserveRegionalArrivalsOnRefresh(current[stationId], result, now);
   }
   return next;
+}
+
+/** How long a saved-station result stays reusable as the first paint when a view remounts. */
+export const RECENT_RESULT_REUSE_MS = 60_000;
+
+export type RecentResultCache<T> = {
+  remember: (key: string, value: T, receivedAt?: number) => void;
+  get: (key: string, now?: number) => T | undefined;
+  entries: (now?: number) => Record<string, T>;
+};
+
+/**
+ * Keeps the last result per key across component mounts so reopening a view can
+ * paint last-known data immediately while its normal refresh runs. Entries older
+ * than maxAgeMs are never served; callers still refresh on mount, so freshness
+ * and source labels come from the reused payload exactly as first rendered.
+ */
+export function createRecentResultCache<T>(maxAgeMs = RECENT_RESULT_REUSE_MS): RecentResultCache<T> {
+  const store = new Map<string, { value: T; receivedAt: number }>();
+  const isRecent = (receivedAt: number, now: number) => now - receivedAt <= maxAgeMs;
+
+  return {
+    remember(key, value, receivedAt = Date.now()) {
+      store.set(key, { value, receivedAt });
+    },
+    get(key, now = Date.now()) {
+      const entry = store.get(key);
+      return entry && isRecent(entry.receivedAt, now) ? entry.value : undefined;
+    },
+    entries(now = Date.now()) {
+      const recent: Record<string, T> = {};
+      for (const [key, entry] of store) {
+        if (isRecent(entry.receivedAt, now)) recent[key] = entry.value;
+      }
+      return recent;
+    },
+  };
+}
+
+// Shared across My Stations and station detail views so whichever opens second
+// paints immediately from the other's (or the background warm-up's) recent result.
+export const recentTtcStationDetails = createRecentResultCache<StationDataResult<StationDetail | null>>();
+export const recentRegionalArrivals = createRecentResultCache<RegionalArrivalDataResult>();
+export const recentRegionalAccessibility = createRecentResultCache<AccessibilityOutageResponse>();
+export const recentSurfaceSnapshots = createRecentResultCache<SurfaceArrivalSnapshot>();
+
+export const ttcStationDetailKey = (stationId: string) => `ttc:${stationId}`;
+export const surfaceSnapshotKey = (networkId: NetworkId, stationId: string) => `${networkId}:${stationId}`;
+
+/** Caches a TTC detail result, keeping a recent backend result over a fallback within the refresh grace window. */
+export function rememberTtcStationDetail(key: string, result: StationDataResult<StationDetail | null>, now = Date.now()) {
+  const kept = preserveStationDetailOnRefresh(recentTtcStationDetails.get(key, now), result, now);
+  recentTtcStationDetails.remember(key, kept, kept.receivedAt);
+}
+
+/** Caches a regional arrival result, keeping a recent backend result over a fallback within the refresh grace window. */
+export function rememberRegionalArrivals(stationId: string, result: RegionalArrivalDataResult, now = Date.now()) {
+  const kept = preserveRegionalArrivalsOnRefresh(recentRegionalArrivals.get(stationId, now), result, now);
+  recentRegionalArrivals.remember(stationId, kept, kept.receivedAt);
+}
+
+/** Caches a surface snapshot only when it came from the backend, never the local unavailable placeholder. */
+export function rememberSurfaceSnapshot(networkId: NetworkId, stationId: string, snapshot: SurfaceArrivalSnapshot) {
+  if (snapshot.generatedAt !== null) recentSurfaceSnapshots.remember(surfaceSnapshotKey(networkId, stationId), snapshot);
+}
+
+/**
+ * Fetches everything a saved station card shows into the shared recent-result
+ * caches, so opening My Stations (or a saved station) paints without waiting.
+ */
+export async function warmSavedStationCaches(
+  stations: ReadonlyArray<{ networkId: NetworkId; stationId: string }>,
+  options: { signal?: AbortSignal; fetcher?: typeof fetch } = {},
+) {
+  const ttcIds = stations.filter((saved) => saved.networkId === "ttc").map((saved) => saved.stationId);
+  const regionalIds = stations.filter((saved) => saved.networkId === "regional").map((saved) => saved.stationId);
+  const ignoreAbort = (error: unknown) => {
+    if (!isAbortError(error)) throw error;
+  };
+
+  await Promise.all([
+    ...ttcIds.map(async (stationId) => {
+      for (const [key, result] of await fetchSavedTtcStationDetails([stationId], options)) {
+        rememberTtcStationDetail(key, result);
+      }
+    }),
+    regionalIds.length > 0
+      ? fetchSavedRegionalStationDetails(regionalIds, options).then(({ arrivals, accessibility }) => {
+          for (const [stationId, result] of arrivals) rememberRegionalArrivals(stationId, result);
+          if (accessibility) recentRegionalAccessibility.remember("regional", accessibility);
+        })
+      : null,
+    ...stations.map(({ networkId, stationId }) => getSurfaceArrivals(networkId, stationId, options)
+      .then((snapshot) => rememberSurfaceSnapshot(networkId, stationId, snapshot))
+      .catch(ignoreAbort)),
+  ]);
 }

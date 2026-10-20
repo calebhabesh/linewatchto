@@ -30,7 +30,8 @@ describe("dashboard server data binding", () => {
   it("keeps selected station detail fresh while the submenu remains open", () => {
     assert.match(shellSource, /STATION_DETAIL_REFRESH_MS\s*=\s*15_000/);
     assert.match(shellSource, /fetchStationDetail/);
-    assert.match(shellSource, /fetchStationDetail\(true\)/);
+    assert.match(shellSource, /fetchStationDetail\(!recent\)/);
+    assert.match(shellSource, /recentTtcStationDetails\.get\(ttcStationDetailKey\(selectedStationId\)\)/);
     assert.match(shellSource, /fetchStationDetail\(false\)/);
     assert.match(shellSource, /if \(showLoading\) \{/);
     assert.match(shellSource, /window\.setInterval\(\(\) => \{[\s\S]*fetchStationDetail\(false\);[\s\S]*\}, STATION_DETAIL_REFRESH_MS\)/);

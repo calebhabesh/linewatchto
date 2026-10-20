@@ -29,6 +29,7 @@ import { LiveSignalIcon } from "./LiveSignalIcon";
 import { ArrivalTileSourceIndicator } from "./ArrivalTileSourceIndicator";
 import { ArrivalSourceBadge } from "./ArrivalSourceBadge";
 import { ArrivalDelayBadge } from "./ArrivalDelayBadge";
+import { recentSurfaceSnapshots, rememberSurfaceSnapshot, surfaceSnapshotKey } from "../app/station-request-lifecycle";
 
 const REFRESH_MS = 15_000;
 
@@ -383,9 +384,9 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
 
 
   const [snapshot, setSnapshot] = useState<SurfaceArrivalSnapshot>(() =>
-    emptySurfaceArrivalSnapshot(networkId, stationId),
+    recentSurfaceSnapshots.get(surfaceSnapshotKey(networkId, stationId)) ?? emptySurfaceArrivalSnapshot(networkId, stationId),
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !recentSurfaceSnapshots.get(surfaceSnapshotKey(networkId, stationId)));
   const [tick, setTick] = useState(() => Date.now());
 
   useEffect(() => {
@@ -395,6 +396,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
       try {
         const result = await getSurfaceArrivals(networkId, stationId);
         if (mounted) {
+          rememberSurfaceSnapshot(networkId, stationId, result);
           setSnapshot(result);
           setLoading(false);
         }

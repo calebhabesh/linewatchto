@@ -7,6 +7,12 @@ import {
   applySavedStationDetailUpdates,
   fetchSavedRegionalStationDetails,
   applySavedRegionalArrivalUpdates,
+  createRecentResultCache,
+  recentRegionalArrivals,
+  recentSurfaceSnapshots,
+  recentTtcStationDetails,
+  rememberTtcStationDetail,
+  warmSavedStationCaches,
 } from "../src/app/station-request-lifecycle.ts";
 import {
   getStationDetail,
@@ -326,5 +332,46 @@ describe("unified arrival badge presentation", () => {
       formatRegionalGroupSourceBadgeLabel([]),
       "Scheduled",
     );
+  });
+
+  it("reuses recent results for an instant reopen but never serves entries past their age limit", () => {
+    const cache = createRecentResultCache(60_000);
+    cache.remember("ttc:union", { source: "backend", receivedAt: 1_000 }, 1_000);
+    cache.remember("ttc:finch", { source: "backend", receivedAt: 50_000 }, 50_000);
+
+    assert.deepEqual(Object.keys(cache.entries(61_000)), ["ttc:union", "ttc:finch"]);
+    assert.equal(cache.get("ttc:union", 61_001), undefined);
+    assert.deepEqual(Object.keys(cache.entries(61_001)), ["ttc:finch"]);
+
+    cache.remember("ttc:union", { source: "backend", receivedAt: 61_500 }, 61_500);
+    assert.equal(cache.get("ttc:union", 62_000)?.receivedAt, 61_500);
+  });
+
+  it("warms the shared caches every saved station card reads, skipping placeholder surface snapshots", async () => {
+    const fetcher = async (url) => {
+      const path = new URL(String(url), "http://test").pathname;
+      if (path === "/api/stations/warm-ttc") return Response.json({ id: "warm-ttc", name: "Warm", lines: [], arrivals: [] });
+      if (path === "/api/regional/stations/warm-go/arrivals") return Response.json({ stationId: "warm-go", arrivals: [] });
+      if (path === "/api/stations/warm-ttc/surface-connections") return Response.json({ stationId: "warm-ttc", generatedAt: "2026-10-20T12:00:00Z", arrivals: [] });
+      return new Response("unavailable", { status: 503 });
+    };
+
+    await warmSavedStationCaches([
+      { networkId: "ttc", stationId: "warm-ttc" },
+      { networkId: "regional", stationId: "warm-go" },
+    ], { fetcher });
+
+    assert.equal(recentTtcStationDetails.get("ttc:warm-ttc")?.source, "backend");
+    assert.equal(recentRegionalArrivals.get("warm-go")?.source, "backend");
+    assert.equal(recentSurfaceSnapshots.get("ttc:warm-ttc")?.generatedAt, "2026-10-20T12:00:00Z");
+    assert.equal(recentSurfaceSnapshots.get("regional:warm-go"), undefined);
+  });
+
+  it("keeps a recent backend station detail when a refresh falls back", () => {
+    const now = Date.now();
+    const backend = { source: "backend", data: { id: "grace-ttc", name: "Grace" }, receivedAt: now - 1_000 };
+    rememberTtcStationDetail("ttc:grace-ttc", backend, now - 1_000);
+    rememberTtcStationDetail("ttc:grace-ttc", { source: "fallback", data: { id: "grace-ttc", name: "Fixture" }, receivedAt: now }, now);
+    assert.equal(recentTtcStationDetails.get("ttc:grace-ttc", now)?.source, "backend");
   });
 });
