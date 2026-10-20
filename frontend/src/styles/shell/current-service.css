@@ -1223,8 +1223,11 @@
   box-shadow: none;
 }
 
+/* Slow, eased turn: glides through each rotation instead of ticking. */
 .mobile-service-sheet-badge-icon--spin {
-  animation: notice-spinner-rotate 1.1s linear infinite;
+  transform-origin: 50% 50%;
+  will-change: transform;
+  animation: notice-spinner-rotate 1.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
 }
 
 .motion-paused .mobile-service-sheet-badge-icon--spin,
