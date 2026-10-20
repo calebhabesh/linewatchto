@@ -3,6 +3,7 @@
 import { IncidentStationSpan } from "./IncidentStationSpan";
 import { IncidentFacts, IncidentPostedTime } from "./IncidentDetails";
 import { IncidentTiming } from "./IncidentTiming";
+import { ServiceFreshnessBadge } from "./ServiceFreshnessBadge";
 
 import { useEffect, useState } from "react";
 import {
@@ -12,7 +13,6 @@ import {
   Bus,
   BusFront,
   ChevronRight,
-  Clock,
   Construction,
   Info,
   Megaphone,
@@ -59,7 +59,9 @@ type StatusCategory =
 type Props = {
   dataSource?: "backend" | "fallback";
   networkId?: NetworkId;
-  snapshot?: { savedAt: number | null } | null;
+  snapshot?: { savedAt: number | null; reason?: string } | null;
+  /** The tab just resumed and is refreshing; shown as a neutral SYNC pill. */
+  syncing?: boolean;
   accessibilityOutageCount?: number;
   surfaceNoticeCount?: number;
   tripChangeCount?: number;
@@ -89,6 +91,7 @@ export function DesktopStatusOverview({
   dataSource = "backend",
   networkId = "ttc",
   snapshot,
+  syncing = false,
   accessibilityOutageCount = 0,
   surfaceNoticeCount = 0,
   tripChangeCount = 0,
@@ -128,7 +131,9 @@ export function DesktopStatusOverview({
     availability !== "unavailable" &&
     generatedAt?.live !== false;
 
-  const cachedLabel = snapshot?.savedAt ? "Cached" : "Unknown";
+  const badgeState = syncing || snapshot?.reason === "refreshing" ? "sync"
+    : isLive ? "live"
+    : snapshot?.savedAt ? "cached" : "unknown";
 
   const summary = currentServiceSummary(dashboardData, now);
   const activeCount = summary.rows.length;
@@ -181,24 +186,7 @@ export function DesktopStatusOverview({
       {/* Header Row: Current Service + Live pill */}
       <div className="desktop-status-header-row">
         <h2 className="desktop-status-title">Current Service</h2>
-        {isLive ? (
-          <div className="mobile-service-sheet-recessed-badge" aria-label="Live">
-            <span className="mobile-service-sheet-led-jewel" aria-hidden="true" />
-            <span className="mobile-service-sheet-recessed-text" aria-hidden="true">
-              LIVE
-            </span>
-          </div>
-        ) : (
-          <div
-            className="mobile-service-sheet-recessed-badge mobile-service-sheet-recessed-badge--cached"
-            aria-label={cachedLabel}
-          >
-            <Clock size={11} strokeWidth={2.5} className="mobile-service-sheet-badge-icon" aria-hidden="true" />
-            <span className="mobile-service-sheet-recessed-text" aria-hidden="true">
-              {cachedLabel.toUpperCase()}
-            </span>
-          </div>
-        )}
+        <ServiceFreshnessBadge state={badgeState} />
       </div>
 
       {/* Rail Incidents Overview (imminent within 24h) */}

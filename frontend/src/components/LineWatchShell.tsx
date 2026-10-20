@@ -226,6 +226,7 @@ export function LineWatchShell({
     snapshotClock,
     connectionOffline,
     snapshotReason,
+    syncing,
     verifiedAt,
     sessionVerified,
     fetchDashboard,
@@ -3379,6 +3380,7 @@ export function LineWatchShell({
             dataSource={displayData.dataSource}
             networkId={selectedNetwork}
             snapshot={displayData.snapshot}
+            syncing={syncing}
             accessibilityOutageCount={
               accessibilityOutageResult?.assetTypes.reduce((acc, curr) => acc + curr.count, 0) ?? 0
             }
@@ -5373,6 +5375,7 @@ export function LineWatchShell({
       {isMobile && showMobileStatusPeek ? (
         <MobileStatusPeek
           fresh={isLive}
+          syncing={syncing}
           isConnectionIssue={isConnectionIssue}
           snapshot={displayData.snapshot}
           isReturningToMap={hasLeftMap}

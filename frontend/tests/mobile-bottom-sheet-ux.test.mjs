@@ -8,6 +8,7 @@ const navSource = readFileSync(new URL("../src/hooks/useNavigationTransitions.ts
 const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const bottomNavSource = readFileSync(new URL("../src/components/MobileBottomNav.tsx", import.meta.url), "utf8");
 const statusPeekSource = readFileSync(new URL("../src/components/MobileStatusPeek.tsx", import.meta.url), "utf8");
+const freshnessBadgeSource = readFileSync(new URL("../src/components/ServiceFreshnessBadge.tsx", import.meta.url), "utf8");
 const statusSheetSource = readFileSync(new URL("../src/components/MobileStatusSheet.tsx", import.meta.url), "utf8");
 const networkPresentationSource = readFileSync(new URL("../src/app/network-presentation.ts", import.meta.url), "utf8");
 const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
@@ -46,11 +47,12 @@ describe("mobile bottom sheet UX", () => {
     assert.match(statusPeekSource, /onOpenStatus/);
     assert.match(statusPeekSource, /onRecenter/);
     assert.match(statusPeekSource, /aria-label="Open current service status"/);
-    assert.match(statusPeekSource, /mobile-service-sheet-recessed-badge/);
-    assert.match(statusPeekSource, /mobile-service-sheet-recessed-badge--cached/);
-    assert.match(statusPeekSource, /mobile-service-sheet-led-jewel/);
+    assert.match(statusPeekSource, /<ServiceFreshnessBadge state=\{badgeState\}/);
+    assert.match(freshnessBadgeSource, /mobile-service-sheet-recessed-badge--cached/);
+    assert.match(freshnessBadgeSource, /mobile-service-sheet-recessed-badge--sync/);
+    assert.match(freshnessBadgeSource, /mobile-service-sheet-led-jewel/);
     assert.match(statusPeekSource, /isConnectionIssue/);
-    assert.match(statusPeekSource, /cachedLabel\.toUpperCase\(\)/);
+    assert.match(shellSource, /syncing=\{syncing\}/);
     assert.match(shellSource, /isConnectionIssue=\{isConnectionIssue\}/);
     assert.match(globalCss, /\.mobile-status-peek/);
     assert.match(globalCss, /--mobile-bottom-nav-height/);
@@ -62,6 +64,9 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.mobile-status-peek-count-badge\s*\{[^}]*display:\s*flex/s);
     assert.match(globalCss, /\.mobile-service-sheet-recessed-badge/);
     assert.match(globalCss, /\.mobile-service-sheet-recessed-badge--cached/);
+    assert.match(globalCss, /\.mobile-service-sheet-recessed-badge--sync/);
+    // LIVE, SYNC and CACHED share one width so swaps never shift the heading.
+    assert.match(globalCss, /\.mobile-service-sheet-recessed-badge\s*\{[^}]*min-width:/s);
     assert.match(globalCss, /\.mobile-service-sheet-badge-icon/);
     assert.match(globalCss, /\.mobile-service-sheet-led-jewel/);
     assert.match(globalCss, /recessed-led-glow/);

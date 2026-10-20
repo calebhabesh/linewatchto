@@ -37,6 +37,10 @@ export function dashboardRefreshIntervalMs(): number {
 
 export type DashboardRequestState = "ready" | "reconnecting";
 
+// Polling pauses while the tab is hidden, so returning to it always finds an
+// old snapshot. Give the resume refresh this long before calling it stale.
+export const RESUME_SYNC_GRACE_MS = 10_000;
+
 const SUPPORTED_REGIONAL_SCENARIOS: readonly RegionalScenarioId[] = [
   "none",
   "all-impact-types",
@@ -93,6 +97,20 @@ export function computeSnapshotReason({
   }
   if (offlineShell && lastVerified === null) return "reconnecting";
   return null;
+}
+
+/**
+ * A stale reason caused only by background polling pauses is shown as a
+ * neutral sync until the resume refresh succeeds, fails, or exceeds its grace.
+ * Offline and failed requests still surface immediately.
+ */
+export function applyResumeSync(
+  reason: NonNullable<DashboardData["snapshot"]>["reason"] | null,
+  resumeSyncPending: boolean,
+): { reason: NonNullable<DashboardData["snapshot"]>["reason"] | null; syncing: boolean } {
+  return resumeSyncPending && reason === "stale"
+    ? { reason: null, syncing: true }
+    : { reason, syncing: false };
 }
 
 export function computeDashboardAvailabilityNotice(
@@ -224,6 +242,8 @@ export type DashboardSession = {
   verifiedAt: Record<NetworkId, number | null>;
   lastVerified: number | null;
   snapshotReason: NonNullable<DashboardData["snapshot"]>["reason"] | null;
+  /** The tab just returned to the foreground and is refreshing old data. */
+  syncing: boolean;
   sessionVerified: Record<NetworkId, boolean>;
   fetchDashboard: (networkId: NetworkId) => Promise<void>;
 };
@@ -257,6 +277,8 @@ export function useDashboardSession({
   const [snapshotClock, setSnapshotClock] = useState(() => Date.now());
   const [verifiedAt, setVerifiedAt] = useState<Record<NetworkId, number | null>>({ ttc: null, regional: null });
   const verifiedAtRef = useRef(verifiedAt);
+  // Set when the tab is hidden; cleared by the next refresh outcome or grace timeout.
+  const [resumeSyncPending, setResumeSyncPending] = useState(false);
 
   // Connectivity tracking and snapshot clock tick.
   useEffect(() => {
@@ -374,6 +396,7 @@ export function useDashboardSession({
         if (networkId === "regional") setRegionalData(next);
         else setTtcData(next);
         setDashboardRequestStates((current) => ({ ...current, [networkId]: "ready" }));
+        setResumeSyncPending(false);
 
         if (isInitial) {
           void getReliabilitySnapshot(networkId).then((deferredReliability) => {
@@ -389,6 +412,7 @@ export function useDashboardSession({
       } else if (verifiedAtRef.current[networkId] !== null) {
         // A valid unavailable response must not overwrite the last real observation.
         setDashboardRequestStates((current) => ({ ...current, [networkId]: "reconnecting" }));
+        setResumeSyncPending(false);
       } else {
         setSessionVerified((current) => ({ ...current, [networkId]: true }));
         if (networkId === "regional") setRegionalData(next);
@@ -397,6 +421,7 @@ export function useDashboardSession({
       }
     } catch {
       setDashboardRequestStates((current) => ({ ...current, [networkId]: "reconnecting" }));
+      setResumeSyncPending(false);
     } finally {
       dashboardRefreshInFlightRef.current[networkId] = false;
     }
@@ -417,8 +442,16 @@ export function useDashboardSession({
     if (!sessionVerifiedRef.current[selectedNetwork] || refreshedAt === null
       || Date.now() - refreshedAt >= intervalMs) refresh();
     const interval = window.setInterval(refresh, intervalMs);
+    let graceTimer: number | undefined;
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") refresh();
+      window.clearTimeout(graceTimer);
+      if (document.visibilityState !== "visible") {
+        // Mark before returning so the first visible frame is not a stale flash.
+        setResumeSyncPending(true);
+        return;
+      }
+      graceTimer = window.setTimeout(() => setResumeSyncPending(false), RESUME_SYNC_GRACE_MS);
+      refresh();
     };
 
     window.addEventListener("online", refresh);
@@ -426,6 +459,7 @@ export function useDashboardSession({
     return () => {
       window.removeEventListener("online", refresh);
       window.clearInterval(interval);
+      window.clearTimeout(graceTimer);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [fetchDashboard, selectedNetwork]);
@@ -433,7 +467,7 @@ export function useDashboardSession({
   const rawDisplayData = selectedNetwork === "regional" ? regionalData : ttcData;
   const storedVerifiedAt = verifiedAt[selectedNetwork];
   const lastVerified = computeLastVerified(storedVerifiedAt, snapshotClock);
-  const snapshotReason = computeSnapshotReason({
+  const { reason: snapshotReason, syncing } = applyResumeSync(computeSnapshotReason({
     connectionOffline,
     requestState: dashboardRequestStates[selectedNetwork],
     sessionVerified: sessionVerified[selectedNetwork],
@@ -441,7 +475,7 @@ export function useDashboardSession({
     snapshotClock,
     offlineShell,
     lastVerified,
-  });
+  }), resumeSyncPending);
 
   const displayData = useMemo(() => snapshotReason
     ? snapshotDashboard(rawDisplayData, lastVerified, snapshotReason)
@@ -477,6 +511,7 @@ export function useDashboardSession({
     verifiedAt,
     lastVerified,
     snapshotReason,
+    syncing,
     sessionVerified,
     fetchDashboard,
   };

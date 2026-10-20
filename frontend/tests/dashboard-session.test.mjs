@@ -7,6 +7,7 @@ import {
   getRequestedRegionalScenario,
   computeLastVerified,
   computeSnapshotReason,
+  applyResumeSync,
   computeDashboardAvailabilityNotice,
   computeEffectiveDashboards,
   restoreDashboardSnapshots,
@@ -133,6 +134,25 @@ describe("useDashboardSession unit tests", () => {
 
     it("returns null when stored timestamp is null", () => {
       assert.equal(computeLastVerified(null, 1_000_000_000), null);
+    });
+  });
+
+  describe("applyResumeSync", () => {
+    it("shows a neutral sync instead of a stale warning while the resume refresh is pending", () => {
+      assert.deepEqual(applyResumeSync("stale", true), { reason: null, syncing: true });
+    });
+
+    it("escalates to stale once the resume refresh fails or its grace expires", () => {
+      assert.deepEqual(applyResumeSync("stale", false), { reason: "stale", syncing: false });
+    });
+
+    it("never hides a confirmed offline or failed connection behind a sync", () => {
+      assert.deepEqual(applyResumeSync("offline", true), { reason: "offline", syncing: false });
+      assert.deepEqual(applyResumeSync("reconnecting", true), { reason: "reconnecting", syncing: false });
+    });
+
+    it("does not show a sync when the data is still fresh on resume", () => {
+      assert.deepEqual(applyResumeSync(null, true), { reason: null, syncing: false });
     });
   });
 

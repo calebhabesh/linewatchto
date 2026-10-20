@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { AlertTriangle, Construction, Locate, ArrowRight, TrainFront, Plus, Minus, Clock, ChevronRight, Clock3, Moon, Loader2 } from "lucide-react";
+import { ServiceFreshnessBadge } from "./ServiceFreshnessBadge";
+import { AlertTriangle, Construction, Locate, ArrowRight, TrainFront, Plus, Minus, ChevronRight, Clock3, Moon, Loader2 } from "lucide-react";
 import { reserveSheetMotionBudget } from "./sheet-motion-budget";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { DelayIcon } from "./DelayIcon";
@@ -58,6 +59,8 @@ function readStoredMobileSnap(): "overview" | "halfway" | "expanded" {
 type Props = {
   children?: ReactNode;
   fresh?: boolean;
+  /** The tab just resumed and is refreshing; shown as a neutral SYNC pill. */
+  syncing?: boolean;
   isConnectionIssue?: boolean;
   snapshot?: DashboardData["snapshot"];
   lineStatuses: LineStatus[];
@@ -82,6 +85,7 @@ type Props = {
 export function MobileStatusPeek({
   children,
   fresh = false,
+  syncing = false,
   isConnectionIssue = false,
   snapshot,
   isReturningToMap = false,
@@ -168,7 +172,10 @@ export function MobileStatusPeek({
     ? snapshot.savedAt !== null ? "Cached" : "Unknown"
     : connectionNotice?.hasSavedSnapshot === false ? "Unknown" : "Cached";
   const showCachedBadge = Boolean(snapshot) || isConnectionIssue || (dataSource === "backend" && !fresh);
-  const sourceLabel = isLive ? "Live" : showCachedBadge ? cachedLabel : rawSourceLabel;
+  const badgeState = syncing || snapshot?.reason === "refreshing" ? "sync"
+    : isLive ? "live"
+    : showCachedBadge ? cachedLabel === "Cached" ? "cached" : "unknown"
+    : "source";
 
   useEffect(() => {
     const el = containerRef.current;
@@ -420,22 +427,7 @@ export function MobileStatusPeek({
             <span className="station-sheet-drag-ridges"><span /><span /><span /></span>
           </span>
         </button>
-        {isLive ? (
-          <div className="mobile-service-sheet-recessed-badge" aria-label="Live">
-            <span className="mobile-service-sheet-led-jewel" aria-hidden="true" />
-            <span className="mobile-service-sheet-recessed-text" aria-hidden="true">LIVE</span>
-          </div>
-        ) : showCachedBadge ? (
-          <div className="mobile-service-sheet-recessed-badge mobile-service-sheet-recessed-badge--cached" aria-label={cachedLabel}>
-            <Clock size={11} strokeWidth={2.5} className="mobile-service-sheet-badge-icon" aria-hidden="true" />
-            <span className="mobile-service-sheet-recessed-text" aria-hidden="true">{cachedLabel.toUpperCase()}</span>
-          </div>
-        ) : (
-          <div className="mobile-service-sheet-recessed-badge mobile-service-sheet-recessed-badge--source" aria-label={`Source: ${sourceLabel}`}>
-            <span className="mobile-service-sheet-led-jewel mobile-service-sheet-led-jewel--muted" aria-hidden="true" />
-            <span className="mobile-service-sheet-recessed-text" aria-hidden="true">{sourceLabel}</span>
-          </div>
-        )}
+        <ServiceFreshnessBadge state={badgeState} sourceLabel={rawSourceLabel} />
         <div className="mobile-service-sheet-heading">
           <strong>Current Service</strong>
           <button

@@ -12,7 +12,7 @@ describe("desktop content and navigation migration (Session 2)", () => {
   describe("desktop status overview", () => {
     it("renders network service summary with header and live pill", () => {
       assert.match(statusOverviewSource, /desktop-status-header-row/);
-      assert.match(statusOverviewSource, /mobile-service-sheet-recessed-badge/);
+      assert.match(statusOverviewSource, /<ServiceFreshnessBadge state=\{badgeState\}/);
     });
 
     it("presents imminent rail disruptions within 24h before surface preview", () => {
