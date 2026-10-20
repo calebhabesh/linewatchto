@@ -143,7 +143,7 @@ linewatch:
     gtfs-refresh-enabled: ${LINEWATCH_ARRIVALS_GTFS_REFRESH_ENABLED:false}
     gtfs-refresh-package-url: ${LINEWATCH_ARRIVALS_GTFS_REFRESH_PACKAGE_URL:https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action/package_show?id=merged-gtfs-ttc-routes-and-schedules}
     gtfs-refresh-initial-delay: ${LINEWATCH_ARRIVALS_GTFS_REFRESH_INITIAL_DELAY:PT30S}
-    gtfs-refresh-fixed-delay: ${LINEWATCH_ARRIVALS_GTFS_REFRESH_FIXED_DELAY:PT24H}
+    gtfs-refresh-fixed-delay: ${LINEWATCH_ARRIVALS_GTFS_REFRESH_FIXED_DELAY:PT1H}
     gtfs-refresh-min-service-days-remaining: ${LINEWATCH_ARRIVALS_GTFS_REFRESH_MIN_SERVICE_DAYS_REMAINING:14}
     gtfs-promotion-initial-delay: ${LINEWATCH_ARRIVALS_GTFS_PROMOTION_INITIAL_DELAY:PT30S}
     gtfs-promotion-fixed-delay: ${LINEWATCH_ARRIVALS_GTFS_PROMOTION_FIXED_DELAY:PT5M}

@@ -33,6 +33,13 @@ class GtfsScheduleSchemaMigrationTest {
         assertThat(sql).contains("full_stop_catalog_available boolean not null default false");
     }
 
+    @Test
+    void v87RecordsWhichPublishedPackageEachImportCameFrom() throws IOException {
+        String sql = migrationSql("/db/migration/V87__gtfs_import_source_version.sql");
+
+        assertThat(sql).contains("alter table gtfs_schedule_imports add column source_version text");
+    }
+
     private String migrationSql(String path) throws IOException {
         try (var input = getClass().getResourceAsStream(path)) {
             assertThat(input).isNotNull();

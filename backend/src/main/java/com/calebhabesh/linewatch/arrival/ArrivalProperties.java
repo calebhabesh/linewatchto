@@ -37,7 +37,7 @@ public class ArrivalProperties {
     private boolean gtfsRefreshEnabled = false;
     private URI gtfsRefreshPackageUrl = URI.create("https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action/package_show?id=merged-gtfs-ttc-routes-and-schedules");
     private Duration gtfsRefreshInitialDelay = Duration.ofSeconds(30);
-    private Duration gtfsRefreshFixedDelay = Duration.ofHours(24);
+    private Duration gtfsRefreshFixedDelay = Duration.ofHours(1);
     private int gtfsRefreshMinServiceDaysRemaining = 14;
     private Duration gtfsPromotionInitialDelay = Duration.ofSeconds(30);
     private Duration gtfsPromotionFixedDelay = Duration.ofMinutes(5);

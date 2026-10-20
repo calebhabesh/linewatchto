@@ -40,6 +40,11 @@ class GtfsScheduleRefreshJobTest {
         CLOCK
     );
 
+    private static final GtfsScheduleDownloadClient.GtfsRelease RELEASE = new GtfsScheduleDownloadClient.GtfsRelease(
+        java.net.URI.create("https://example.test/gtfs.zip"),
+        "https://example.test/gtfs.zip@2026-09-30T14:17:52"
+    );
+
     private final GtfsScheduleImportService.ImportSummary summary =
         new GtfsScheduleImportService.ImportSummary(11L, 5, 76, 12, 4, 3000, 90000, 154);
 
@@ -54,7 +59,7 @@ class GtfsScheduleRefreshJobTest {
 
         job.refresh();
 
-        verify(downloadClient, never()).downloadCurrentZip();
+        verify(downloadClient, never()).currentRelease();
         verify(runService, never()).start();
     }
 
@@ -68,7 +73,7 @@ class GtfsScheduleRefreshJobTest {
         job.refresh();
 
         verify(importRepository).activateLatestImportCoveringDate(LocalDate.parse("2026-06-15"));
-        verify(downloadClient, never()).downloadCurrentZip();
+        verify(downloadClient, never()).currentRelease();
         verify(runService, never()).start();
     }
 
@@ -77,7 +82,8 @@ class GtfsScheduleRefreshJobTest {
         properties.setGtfsRefreshEnabled(true);
         when(readRepository.findActiveImport()).thenReturn(Optional.empty());
         when(readRepository.findLatestImport()).thenReturn(Optional.empty());
-        when(downloadClient.downloadCurrentZip()).thenReturn(downloaded("/tmp/ttc-gtfs.zip"));
+        when(downloadClient.currentRelease()).thenReturn(RELEASE);
+        when(downloadClient.download(RELEASE)).thenReturn(downloaded("/tmp/ttc-gtfs.zip"));
         when(importService.importZip(Path.of("/tmp/ttc-gtfs.zip"), "https://example.test/gtfs.zip"))
             .thenReturn(summary);
         when(runService.start()).thenReturn(17L);
@@ -98,7 +104,7 @@ class GtfsScheduleRefreshJobTest {
 
         job.refresh();
 
-        verify(downloadClient, never()).downloadCurrentZip();
+        verify(downloadClient, never()).currentRelease();
         verify(runService, never()).start();
     }
 
@@ -109,7 +115,8 @@ class GtfsScheduleRefreshJobTest {
         when(readRepository.findActiveImport()).thenReturn(Optional.of(activeImport(LocalDate.parse("2026-07-20"))));
         when(readRepository.findLatestImport()).thenReturn(Optional.empty());
         when(readRepository.hasSurfaceCatalog(7L)).thenReturn(false);
-        when(downloadClient.downloadCurrentZip()).thenReturn(downloaded("/tmp/ttc-gtfs.zip"));
+        when(downloadClient.currentRelease()).thenReturn(RELEASE);
+        when(downloadClient.download(RELEASE)).thenReturn(downloaded("/tmp/ttc-gtfs.zip"));
         when(importService.importZip(Path.of("/tmp/ttc-gtfs.zip"), "https://example.test/gtfs.zip"))
             .thenReturn(summary);
         when(runService.start()).thenReturn(17L);
@@ -132,7 +139,7 @@ class GtfsScheduleRefreshJobTest {
 
         job.refresh();
 
-        verify(downloadClient, never()).downloadCurrentZip();
+        verify(downloadClient, never()).currentRelease();
         verify(runService, never()).start();
     }
 
@@ -147,7 +154,7 @@ class GtfsScheduleRefreshJobTest {
 
         job.refresh();
 
-        verify(downloadClient, never()).downloadCurrentZip();
+        verify(downloadClient, never()).currentRelease();
         verify(runService, never()).start();
     }
 
@@ -157,7 +164,7 @@ class GtfsScheduleRefreshJobTest {
         properties.setGtfsRefreshMinServiceDaysRemaining(14);
         when(readRepository.findActiveImport()).thenReturn(Optional.of(activeImport(LocalDate.parse("2026-06-28"))));
         when(readRepository.findLatestImport()).thenReturn(Optional.empty());
-        when(downloadClient.downloadCurrentZip()).thenThrow(new IOException("CKAN unavailable"));
+        when(downloadClient.currentRelease()).thenThrow(new IOException("CKAN unavailable"));
         when(runService.start()).thenReturn(17L);
 
         job.refresh();
@@ -167,12 +174,66 @@ class GtfsScheduleRefreshJobTest {
     }
 
     @Test
+    void skipsDownloadWhenPublishedPackageIsAlreadyImported() throws Exception {
+        properties.setGtfsRefreshEnabled(true);
+        properties.setGtfsRefreshMinServiceDaysRemaining(14);
+        when(readRepository.findActiveImport()).thenReturn(Optional.of(activeImport(LocalDate.parse("2026-06-28"))));
+        when(readRepository.findLatestImport()).thenReturn(Optional.empty());
+        when(downloadClient.currentRelease()).thenReturn(RELEASE);
+        when(importRepository.hasCompleteImportOfSourceVersion(RELEASE.version())).thenReturn(true);
+
+        job.refresh();
+
+        verify(downloadClient, never()).download(any());
+        verify(runService, never()).start();
+    }
+
+    @Test
+    void importsNewlyPublishedPackageNearExpiryAndRecordsItsVersion() throws Exception {
+        properties.setGtfsRefreshEnabled(true);
+        properties.setGtfsRefreshMinServiceDaysRemaining(14);
+        when(readRepository.findActiveImport()).thenReturn(Optional.of(activeImport(LocalDate.parse("2026-06-28"))));
+        when(readRepository.findLatestImport()).thenReturn(Optional.empty());
+        when(downloadClient.currentRelease()).thenReturn(RELEASE);
+        when(importRepository.hasCompleteImportOfSourceVersion(RELEASE.version())).thenReturn(false);
+        when(downloadClient.download(RELEASE)).thenReturn(downloaded("/tmp/ttc-gtfs.zip"));
+        when(importService.importZip(Path.of("/tmp/ttc-gtfs.zip"), "https://example.test/gtfs.zip"))
+            .thenReturn(summary);
+        when(runService.start()).thenReturn(17L);
+
+        job.refresh();
+
+        verify(importRepository).recordSourceVersion(11L, RELEASE.version());
+        verify(runService).succeed(17L, summary);
+    }
+
+    @Test
+    void importsWhenPublishedPackageHasNoVersion() throws Exception {
+        properties.setGtfsRefreshEnabled(true);
+        when(readRepository.findActiveImport()).thenReturn(Optional.empty());
+        when(readRepository.findLatestImport()).thenReturn(Optional.empty());
+        var unversioned = new GtfsScheduleDownloadClient.GtfsRelease(RELEASE.zipUri(), null);
+        when(downloadClient.currentRelease()).thenReturn(unversioned);
+        when(downloadClient.download(unversioned)).thenReturn(downloaded("/tmp/ttc-gtfs.zip"));
+        when(importService.importZip(Path.of("/tmp/ttc-gtfs.zip"), "https://example.test/gtfs.zip"))
+            .thenReturn(summary);
+        when(runService.start()).thenReturn(17L);
+
+        job.refresh();
+
+        verify(importRepository, never()).hasCompleteImportOfSourceVersion(any());
+        verify(importRepository, never()).recordSourceVersion(anyLong(), any());
+        verify(runService).succeed(17L, summary);
+    }
+
+    @Test
     void errorDuringRefreshRecordsFailureAndRethrows() throws Exception {
         properties.setGtfsRefreshEnabled(true);
         when(readRepository.findActiveImport()).thenReturn(Optional.empty());
         when(readRepository.findLatestImport()).thenReturn(Optional.empty());
         OutOfMemoryError failure = new OutOfMemoryError("simulated");
-        when(downloadClient.downloadCurrentZip()).thenThrow(failure);
+        when(downloadClient.currentRelease()).thenReturn(RELEASE);
+        when(downloadClient.download(RELEASE)).thenThrow(failure);
         when(runService.start()).thenReturn(17L);
 
         assertThatThrownBy(job::refresh).isSameAs(failure);

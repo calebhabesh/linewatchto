@@ -27,12 +27,17 @@ public class GtfsScheduleDownloadClient {
         this.objectMapper = objectMapper;
     }
 
-    public DownloadedGtfs downloadCurrentZip() throws IOException {
+    /** Reads only CKAN package metadata, so it is cheap enough to poll frequently. */
+    public GtfsRelease currentRelease() throws IOException {
         String packageBody = restClient.get()
             .uri(properties.getGtfsRefreshPackageUrl())
             .retrieve()
             .body(String.class);
-        URI zipUri = findZipUri(packageBody == null ? "" : packageBody);
+        return findRelease(packageBody == null ? "" : packageBody);
+    }
+
+    public DownloadedGtfs download(GtfsRelease release) throws IOException {
+        URI zipUri = release.zipUri();
         byte[] zipBytes = restClient.get()
             .uri(zipUri)
             .retrieve()
@@ -45,7 +50,7 @@ public class GtfsScheduleDownloadClient {
         return new DownloadedGtfs(tempFile, zipUri.toString());
     }
 
-    private URI findZipUri(String packageBody) throws IOException {
+    private GtfsRelease findRelease(String packageBody) throws IOException {
         JsonNode resources = objectMapper.readTree(packageBody).path("result").path("resources");
         if (!resources.isArray()) {
             throw new IOException("TTC GTFS CKAN response did not contain resources");
@@ -54,11 +59,15 @@ public class GtfsScheduleDownloadClient {
             String url = resource.path("url").asText("");
             String format = resource.path("format").asText("").toLowerCase(java.util.Locale.ROOT);
             if (!url.isBlank() && (url.toLowerCase(java.util.Locale.ROOT).endsWith(".zip") || format.contains("zip"))) {
-                return URI.create(url);
+                // CKAN bumps last_modified when the file is replaced; without it, always import.
+                String lastModified = resource.path("last_modified").asText("");
+                return new GtfsRelease(URI.create(url), lastModified.isBlank() ? null : url + "@" + lastModified);
             }
         }
         throw new IOException("TTC GTFS CKAN response did not include a zip resource");
     }
+
+    public record GtfsRelease(URI zipUri, String version) {}
 
     public record DownloadedGtfs(Path zipPath, String sourceUrl) {}
 }

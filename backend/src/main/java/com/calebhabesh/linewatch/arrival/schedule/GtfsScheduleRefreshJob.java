@@ -51,7 +51,7 @@ public class GtfsScheduleRefreshJob {
 
     @Scheduled(
         initialDelayString = "${linewatch.arrivals.gtfs-refresh-initial-delay:PT30S}",
-        fixedDelayString = "${linewatch.arrivals.gtfs-refresh-fixed-delay:PT24H}"
+        fixedDelayString = "${linewatch.arrivals.gtfs-refresh-fixed-delay:PT1H}"
     )
     public void refresh() {
         if (!properties.isGtfsRefreshEnabled()) {
@@ -64,14 +64,32 @@ public class GtfsScheduleRefreshJob {
             return;
         }
 
+        GtfsScheduleDownloadClient.GtfsRelease release;
+        try {
+            release = downloadClient.currentRelease();
+        } catch (Exception exception) {
+            runService.fail(runService.start(), exception);
+            log.error("TTC GTFS schedule package lookup failed", exception);
+            return;
+        }
+        // TTC tends to publish the next schedule right at expiry, so this job polls often
+        // near expiry; re-importing an unchanged package each time would be wasted work.
+        if (release.version() != null && importRepository.hasCompleteImportOfSourceVersion(release.version())) {
+            log.debug("TTC GTFS package {} is already imported; waiting for a newer release", release.version());
+            return;
+        }
+
         long runId = runService.start();
         GtfsScheduleDownloadClient.DownloadedGtfs download = null;
         try {
-            download = downloadClient.downloadCurrentZip();
+            download = downloadClient.download(release);
             GtfsScheduleImportService.ImportSummary summary = importService.importZip(
                 download.zipPath(),
                 download.sourceUrl()
             );
+            if (release.version() != null) {
+                importRepository.recordSourceVersion(summary.importId(), release.version());
+            }
             runService.succeed(runId, summary);
             log.info(
                 "Imported TTC GTFS schedule importId={} routes={} trips={} stopTimes={} stationStops={}",

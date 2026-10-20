@@ -195,6 +195,23 @@ public class GtfsScheduleImportRepository {
             java.util.Map.of("id", importId));
     }
 
+    public void recordSourceVersion(long importId, String sourceVersion) {
+        jdbc.update("update gtfs_schedule_imports set source_version = :version where id = :id",
+            java.util.Map.of("id", importId, "version", sourceVersion));
+    }
+
+    public boolean hasCompleteImportOfSourceVersion(String sourceVersion) {
+        Boolean exists = jdbc.queryForObject("""
+            select exists (
+                select 1 from gtfs_schedule_imports
+                where source_version = :version
+                  and surface_schedule_available = true
+                  and full_stop_catalog_available = true
+            )
+            """, java.util.Map.of("version", sourceVersion), Boolean.class);
+        return Boolean.TRUE.equals(exists);
+    }
+
     public void markFullStopCatalogAvailable(long importId) {
         jdbc.update("update gtfs_schedule_imports set full_stop_catalog_available = true where id = :id",
             java.util.Map.of("id", importId));
