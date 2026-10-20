@@ -74,6 +74,11 @@ public class LinewatchHealthMetrics implements MeterBinder {
                 .description("Number of records unmatched in the latest ingestion run")
                 .register(registry);
 
+        Gauge.builder("linewatch_ingestion_processing_failures_since_success", this,
+                        LinewatchHealthMetrics::getIngestionProcessingFailuresSinceSuccess)
+                .description("Failed ingestion runs since the last success where the TTC source fetch succeeded")
+                .register(registry);
+
         for (String status : List.of("success", "failed", "running", "not-run")) {
             Gauge.builder("linewatch_ingestion_latest_status", () -> getIngestionStatusGauge(status))
                     .tag("status", status)
@@ -139,6 +144,10 @@ public class LinewatchHealthMetrics implements MeterBinder {
         return ingestionRunStore.findLatest()
                 .map(run -> (double) run.recordsUnmatched())
                 .orElse(Double.NaN);
+    }
+
+    private double getIngestionProcessingFailuresSinceSuccess() {
+        return ingestionRunStore.countProcessingFailuresSinceLastSuccess();
     }
 
     private double getIngestionStatusGauge(String targetStatus) {

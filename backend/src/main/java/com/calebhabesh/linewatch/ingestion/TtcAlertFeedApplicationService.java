@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -93,7 +94,7 @@ public class TtcAlertFeedApplicationService {
             Optional<SurfaceServiceNotice> noticeOpt = surfaceNormalizer.normalize(fetched);
             if (noticeOpt.isPresent()) {
                 SurfaceServiceNotice notice = noticeOpt.get();
-                surfaceStore.upsertNotice(notice, now);
+                persist("surface notice", notice.sourceId(), () -> surfaceStore.upsertNotice(notice, now));
                 seenNoticeSourceIds.add(notice.sourceId());
             }
         }
@@ -110,7 +111,7 @@ public class TtcAlertFeedApplicationService {
                     live -> duplicateMatcher.isGtfsRtDuplicateOfLive(alert, live)
                 );
             if (!duplicateGtfsRt) {
-                store.upsertRouteAlert(alert, now);
+                persist("route alert", alert.sourceId(), () -> store.upsertRouteAlert(alert, now));
                 seenAlertSourceIds.add(alert.sourceId());
                 persistedFeedAlerts.add(alert);
                 normalized++;
@@ -134,7 +135,7 @@ public class TtcAlertFeedApplicationService {
                 boolean coveredByFeed = persistedFeedAlerts.stream()
                     .anyMatch(feedAlert -> sameAdvisory(feedAlert, websiteAlert, now));
                 if (!coveredByFeed) {
-                    store.upsertRouteAlert(websiteAlert, now);
+                    persist("route alert", websiteAlert.sourceId(), () -> store.upsertRouteAlert(websiteAlert, now));
                     seenWebsiteAlertSourceIds.add(websiteAlert.sourceId());
                     normalized++;
                 }
@@ -152,7 +153,7 @@ public class TtcAlertFeedApplicationService {
                 normalizer.normalizeAccessibility(fetched);
             if (result.shouldPersist()) {
                 NormalizedAccessibilityOutage outage = result.projection().orElseThrow();
-                store.upsertAccessibilityOutage(outage, now);
+                persist("accessibility outage", outage.sourceId(), () -> store.upsertAccessibilityOutage(outage, now));
                 seenOutageSourceIds.add(outage.sourceId());
                 normalized++;
             }
@@ -190,6 +191,19 @@ public class TtcAlertFeedApplicationService {
             normalized,
             unmatched
         );
+    }
+
+    // Name the offending provider record so a failed run is diagnosable from ingestion_runs alone.
+    private static void persist(String kind, String sourceId, Runnable write) {
+        try {
+            write.run();
+        } catch (DataAccessException exception) {
+            throw new IllegalStateException(
+                "Unable to persist TTC " + kind + " " + sourceId + ": "
+                    + exception.getMostSpecificCause().getMessage(),
+                exception
+            );
+        }
     }
 
     static boolean sameAdvisory(
@@ -292,7 +306,7 @@ public class TtcAlertFeedApplicationService {
             Optional<TtcAnnouncement> result = announcementNormalizer.normalize(fetched, scope);
             if (result.isPresent()) {
                 TtcAnnouncement announcement = result.orElseThrow();
-                announcementStore.upsert(announcement, now);
+                persist("announcement", announcement.sourceId(), () -> announcementStore.upsert(announcement, now));
                 seenAnnouncementSourceIds.add(announcement.sourceId());
                 normalized++;
             }

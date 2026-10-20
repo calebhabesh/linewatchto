@@ -54,19 +54,19 @@ public class AlertEntity {
     @Column(name = "impact_kind", nullable = false, length = 32)
     private String impactKind;
 
-    @Column(name = "rsz_length", length = 80)
+    @Column(name = "rsz_length")
     private String rszLength;
 
-    @Column(name = "station_distance", length = 80)
+    @Column(name = "station_distance")
     private String stationDistance;
 
-    @Column(name = "track_percent", length = 80)
+    @Column(name = "track_percent")
     private String trackPercent;
 
-    @Column(name = "reduced_speed", length = 80)
+    @Column(name = "reduced_speed")
     private String reducedSpeed;
 
-    @Column(name = "average_speed", length = 80)
+    @Column(name = "average_speed")
     private String averageSpeed;
 
     @Column(name = "start_station_id")

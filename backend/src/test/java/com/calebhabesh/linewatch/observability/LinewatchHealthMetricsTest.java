@@ -76,6 +76,14 @@ class LinewatchHealthMetricsTest {
     }
 
     @Test
+    void reportsProcessingFailuresSinceLastSuccess() {
+        when(ingestionRunStore.countProcessingFailuresSinceLastSuccess()).thenReturn(3);
+
+        assertThat(registry.get("linewatch_ingestion_processing_failures_since_success").gauge().value())
+            .isEqualTo(3.0);
+    }
+
+    @Test
     void reportsSuccessfulFreshIngestion() {
         IngestionRunSnapshot run = new IngestionRunSnapshot(
             42L,

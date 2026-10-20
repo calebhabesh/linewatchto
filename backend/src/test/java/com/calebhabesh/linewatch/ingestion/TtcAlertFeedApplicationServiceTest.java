@@ -4,9 +4,11 @@ import com.calebhabesh.linewatch.announcement.TtcAnnouncementNormalizer;
 import com.calebhabesh.linewatch.announcement.TtcAnnouncementStore;
 import com.calebhabesh.linewatch.announcement.TtcAnnouncement;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -104,6 +106,20 @@ class TtcAlertFeedApplicationServiceTest {
 
         verify(store).upsertRouteAlert(normalizedAlert, NOW);
         assertThat(counts).isEqualTo(new FeedApplicationCounts(1, 1, 1, 0));
+    }
+
+    @Test
+    void persistenceFailureNamesTheOffendingSourceRecord() {
+        when(normalizer.normalizeRoute(route))
+            .thenReturn(NormalizationResult.matched(normalizedAlert));
+        doThrow(new org.springframework.dao.DataIntegrityViolationException("insert into alerts",
+            new java.sql.SQLException("ERROR: value too long for type character varying(500)")))
+            .when(store).upsertRouteAlert(normalizedAlert, NOW);
+
+        assertThatThrownBy(() -> service.apply(routeOnlyFeed))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessage("Unable to persist TTC route alert route-source: "
+                + "ERROR: value too long for type character varying(500)");
     }
 
     @Test

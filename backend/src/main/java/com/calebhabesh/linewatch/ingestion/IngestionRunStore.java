@@ -158,6 +158,23 @@ public class IngestionRunStore {
             """);
     }
 
+    /** Failed runs since the last success whose TTC fetch succeeded, so the failure was ours. */
+    public int countProcessingFailuresSinceLastSuccess() {
+        Integer count = jdbc.getJdbcTemplate().queryForObject("""
+            select count(*)
+            from ingestion_runs
+            where run_type = 'alerts'
+              and status = 'failed'
+              and source_fetch_status = 'success'
+              and started_at > coalesce((
+                  select max(started_at)
+                  from ingestion_runs
+                  where run_type = 'alerts' and status = 'success'
+              ), '-infinity'::timestamptz)
+            """, Integer.class);
+        return count == null ? 0 : count;
+    }
+
     public Optional<IngestionRunSnapshot> findLatestSuccessful() {
         return findOne("""
             select id, status, started_at, completed_at, records_fetched, records_staged,
