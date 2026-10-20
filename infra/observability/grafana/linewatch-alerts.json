@@ -1,0 +1,77 @@
+{
+  "folder": { "uid": "linewatchto", "title": "LineWatchTO" },
+  "ruleGroup": { "name": "linewatch", "interval": "1m" },
+  "datasourceUid": "grafanacloud-prom",
+  "contactPoint": {
+    "uid": "linewatchto-email",
+    "name": "LineWatchTO email",
+    "addresses": "calebhabesh@gmail.com"
+  },
+  "route": {
+    "matchLabel": ["project", "linewatch"],
+    "groupBy": ["alertname"],
+    "repeatInterval": "4h"
+  },
+  "rules": [
+    {
+      "uid": "linewatch-ttc-ingestion-stale",
+      "title": "TTC ingestion stale",
+      "expr": "max(linewatch_ingestion_dashboard_live{environment=\"production\"})",
+      "op": "lt",
+      "threshold": 1,
+      "for": "5m",
+      "noData": "Alerting",
+      "severity": "critical",
+      "summary": "TTC dashboard data has not been refreshed successfully for 5 minutes.",
+      "description": "The site is serving stale TTC data. Check ingestion_runs.error_message and backend logs for TtcAlertPollingJob. Single-minute dips during an in-flight poll are normal; this fires only when staleness persists."
+    },
+    {
+      "uid": "linewatch-ttc-processing-failing",
+      "title": "TTC ingestion processing failing",
+      "expr": "max(linewatch_ingestion_processing_failures_since_success{environment=\"production\"})",
+      "op": "gt",
+      "threshold": 2,
+      "for": "2m",
+      "noData": "OK",
+      "severity": "critical",
+      "summary": "TTC served its feed normally, but LineWatch failed to process it 3+ times in a row.",
+      "description": "This is a LineWatch bug or data problem, not a TTC outage. ingestion_runs.error_message names the offending source record."
+    },
+    {
+      "uid": "linewatch-backend-scrape-missing",
+      "title": "Backend metrics missing",
+      "expr": "max(up{job=\"prometheus.scrape.backend\", environment=\"production\"})",
+      "op": "lt",
+      "threshold": 1,
+      "for": "3m",
+      "noData": "Alerting",
+      "severity": "critical",
+      "summary": "Grafana is not receiving production backend metrics.",
+      "description": "The backend is down or unreachable on port 9090, or the Alloy collector stopped shipping metrics. Other LineWatch alerts cannot fire while this is firing."
+    },
+    {
+      "uid": "linewatch-gtfs-schedule-inactive",
+      "title": "GTFS schedule inactive",
+      "expr": "max(linewatch_schedule_active{environment=\"production\"})",
+      "op": "lt",
+      "threshold": 1,
+      "for": "15m",
+      "noData": "OK",
+      "severity": "critical",
+      "summary": "No active, unexpired TTC GTFS schedule is loaded.",
+      "description": "Scheduled arrivals are unavailable. Check the GTFS refresh job or import a schedule with scripts/import-ttc-gtfs-schedule.sh."
+    },
+    {
+      "uid": "linewatch-gtfs-schedule-expiring",
+      "title": "GTFS schedule expiring soon",
+      "expr": "min(linewatch_schedule_service_days_remaining{environment=\"production\"})",
+      "op": "lt",
+      "threshold": 7,
+      "for": "30m",
+      "noData": "OK",
+      "severity": "warning",
+      "summary": "The active TTC GTFS schedule ends in under 7 days.",
+      "description": "The automatic refresh should replace it before 14 days remain. If this fires, the refresh is not running or not finding a newer package."
+    }
+  ]
+}

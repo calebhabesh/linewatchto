@@ -118,21 +118,39 @@ Create a folder named **LineWatchTO** in Grafana Cloud with the following dashbo
 
 ## Alerts
 
-Configure Grafana Alerting rules on Grafana Cloud:
+LineWatch alert rules are code. `infra/observability/grafana/linewatch-alerts.json` defines
+the rules, the `LineWatchTO email` contact point, and a notification route matching
+`project=linewatch`; `node scripts/grafana-apply-alerts.mjs` applies them (add
+`--test-notification` to send a test email, `--dry-run` to print payloads). It needs a
+Grafana service-account token with alert provisioning permission in
+`~/.config/linewatch/grafana-sa-token` (or `GRAFANA_SA_TOKEN_FILE`). Change the JSON and
+re-apply rather than editing these rules in the UI; the next apply overwrites UI edits.
 
-### Critical Alerts
-1. **Public Site Down**: Uptime synthetic check fails for `https://linewatchto.ca/` for 2 consecutive runs.
-2. **API Health Down**: Uptime synthetic check fails for `https://api.linewatchto.ca/api/health`.
-3. **Backend Scrape Missing**: `up{job="linewatch-backend"} == 0` for 2 minutes.
-4. **Dashboard Ingestion Stale**: `linewatch_ingestion_dashboard_live == 0` for 5 minutes.
-5. **TTC Ingestion Processing Failing**: `linewatch_ingestion_processing_failures_since_success >= 3` for 2 minutes. On Oct 19-20, 2026, a single over-long TTC alert title failed every poll for 4.5 hours unnoticed.
-6. **GTFS Refresh Failed**: `linewatch_schedule_refresh_status{status="failed"} == 1` for 5 minutes.
+Query constraints in this stack:
+- Alloy labels the backend scrape `job="prometheus.scrape.backend"`, not `linewatch-backend`.
+- Grafana Cloud Adaptive Metrics aggregates away the `status` label of
+  `linewatch_ingestion_latest_status` and `linewatch_schedule_refresh_status`, so rules
+  cannot filter on it. Use the unlabelled gauges below.
+- `linewatch_ingestion_dashboard_live` dips to 0 for single scrapes during in-flight polls;
+  keep a pending period of several minutes on rules that use it.
 
-### Warning Alerts
-1. **JVM Heap High**: Heap memory usage `> 80%` for 10 minutes.
-2. **Disk Low**: Free disk space `< 20%` for 10 minutes.
-3. **HTTP 5xx Elevated**: HTTP 5xx rate `> 5%` of total requests over 5 minutes.
-4. **Schedule Expiring Soon**: `linewatch_schedule_service_days_remaining < 7` for 30 minutes.
+### Provisioned rules
+| Rule | Query | Fires when | Severity |
+| --- | --- | --- | --- |
+| TTC ingestion stale | `max(linewatch_ingestion_dashboard_live)` | `< 1` for 5m, or no data | critical |
+| TTC ingestion processing failing | `max(linewatch_ingestion_processing_failures_since_success)` | `>= 3` for 2m | critical |
+| Backend metrics missing | `max(up{job="prometheus.scrape.backend"})` | `< 1` for 3m, or no data | critical |
+| GTFS schedule inactive | `max(linewatch_schedule_active)` | `< 1` for 15m | critical |
+| GTFS schedule expiring soon | `min(linewatch_schedule_service_days_remaining)` | `< 7` for 30m | warning |
+
+All queries filter `environment="production"`. On Oct 19-20, 2026, a single over-long TTC
+alert title failed every poll for 4.5 hours with no rules provisioned; the first two rules
+would each have fired within minutes.
+
+### Not yet provisioned
+- Uptime synthetic checks for `https://linewatchto.ca/` and `https://api.linewatchto.ca/api/health`
+  (Synthetic Monitoring needs its own access token).
+- JVM heap > 80%, disk free < 20%, and HTTP 5xx > 5% warnings.
 
 ## Visitor Analytics (Cloudflare)
 
