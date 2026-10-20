@@ -1,9 +1,9 @@
 "use client";
 
 import { startTransition, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
-import type { CSSProperties, KeyboardEvent } from "react";
+import type { ComponentProps, CSSProperties, KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
-import dynamic from "next/dynamic";
+import { preloadablePanel } from "./preloadable-panel";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
@@ -13,14 +13,14 @@ import { NetworkMap, prepareNetworkMap } from "./NetworkMap";
 import { NetworkSelector, NetworkSwitchContext } from "./NetworkSelector";
 import { DefaultMapModeControl } from "./DefaultMapModeControl";
 import SquishSwitch from "./SquishSwitch";
-const RegionalStationDetailPanel = dynamic(() => import("./RegionalStationDetailPanel").then((mod) => mod.RegionalStationDetailPanel), { ssr: false });
+const RegionalStationDetailPanel = preloadablePanel(() => import("./RegionalStationDetailPanel").then((mod) => mod.RegionalStationDetailPanel));
 import { DelayIcon } from "./DelayIcon";
-const ActiveAlertsPanel = dynamic(() => import("./ActiveAlertsPanel").then((mod) => mod.ActiveAlertsPanel), { ssr: false });
-const DelaysPanel = dynamic(() => import("./DelaysPanel").then((mod) => mod.DelaysPanel), { ssr: false });
-const ReducedSpeedZonesPanel = dynamic(() => import("./ReducedSpeedZonesPanel").then((mod) => mod.ReducedSpeedZonesPanel), { ssr: false });
-const PlannedClosuresPanel = dynamic(() => import("./PlannedClosuresPanel").then((mod) => mod.PlannedClosuresPanel), { ssr: false });
-const LineImpactsPanel = dynamic(() => import("./LineImpactsPanel").then((mod) => mod.LineImpactsPanel), { ssr: false });
-const SavedCommutesPanel = dynamic(() => import("./SavedCommutesPanel").then((mod) => mod.SavedCommutesPanel), { ssr: false });
+const ActiveAlertsPanel = preloadablePanel(() => import("./ActiveAlertsPanel").then((mod) => mod.ActiveAlertsPanel));
+const DelaysPanel = preloadablePanel(() => import("./DelaysPanel").then((mod) => mod.DelaysPanel));
+const ReducedSpeedZonesPanel = preloadablePanel(() => import("./ReducedSpeedZonesPanel").then((mod) => mod.ReducedSpeedZonesPanel));
+const PlannedClosuresPanel = preloadablePanel(() => import("./PlannedClosuresPanel").then((mod) => mod.PlannedClosuresPanel));
+const LineImpactsPanel = preloadablePanel(() => import("./LineImpactsPanel").then((mod) => mod.LineImpactsPanel));
+const SavedCommutesPanel = preloadablePanel(() => import("./SavedCommutesPanel").then((mod) => mod.SavedCommutesPanel));
 import {
   persistedExpandedImpactDisclosures,
   persistedCommuteDraftStore,
@@ -28,13 +28,13 @@ import {
   type SavedCommuteDraft,
 } from "../app/commute-draft-state";
 import type { AccountNetworkFilter } from "./SavedCommutesPanel";
-const MyStationsPanel = dynamic(() => import("./MyStationsPanel").then((mod) => mod.MyStationsPanel), { ssr: false });
-const NotificationSettingsPanel = dynamic(() => import("./NotificationSettingsPanel").then((mod) => mod.NotificationSettingsPanel), { ssr: false });
-const ReliabilityPanel = dynamic(() => import("./ReliabilityPanel").then((mod) => mod.ReliabilityPanel), { ssr: false });
-const AlertHistoryPanel = dynamic(() => import("./AlertHistoryPanel").then((mod) => mod.AlertHistoryPanel), { ssr: false });
-const FeedbackPanel = dynamic(() => import("./FeedbackPanel").then((mod) => mod.FeedbackPanel), { ssr: false });
-const PrivacyAcknowledgementsPanel = dynamic(() => import("./PrivacyAcknowledgementsPanel").then((mod) => mod.PrivacyAcknowledgementsPanel), { ssr: false });
-const ReleaseNotesPanel = dynamic(() => import("./ReleaseNotesPanel").then((mod) => mod.ReleaseNotesPanel), { ssr: false });
+const MyStationsPanel = preloadablePanel(() => import("./MyStationsPanel").then((mod) => mod.MyStationsPanel));
+const NotificationSettingsPanel = preloadablePanel(() => import("./NotificationSettingsPanel").then((mod) => mod.NotificationSettingsPanel));
+const ReliabilityPanel = preloadablePanel<NonNullable<ComponentProps<typeof import("./ReliabilityPanel").ReliabilityPanel>>>(() => import("./ReliabilityPanel").then((mod) => mod.ReliabilityPanel));
+const AlertHistoryPanel = preloadablePanel(() => import("./AlertHistoryPanel").then((mod) => mod.AlertHistoryPanel));
+const FeedbackPanel = preloadablePanel(() => import("./FeedbackPanel").then((mod) => mod.FeedbackPanel));
+const PrivacyAcknowledgementsPanel = preloadablePanel(() => import("./PrivacyAcknowledgementsPanel").then((mod) => mod.PrivacyAcknowledgementsPanel));
+const ReleaseNotesPanel = preloadablePanel(() => import("./ReleaseNotesPanel").then((mod) => mod.ReleaseNotesPanel));
 import { FloatingPanelShell } from "./FloatingPanelShell";
 import { MobileBottomNav, type MobileNavKey } from "./MobileBottomNav";
 import { OverlappingCountBadge } from "./OverlappingCountBadge";
@@ -75,12 +75,12 @@ import {
   getAccessibilityOutages,
 } from "../app/accessibility-outage-data";
 import type { AccessibilityOutageTarget } from "./AccessibilityOutagesPanel";
-const AccessibilityOutagesPanel = dynamic(() => import("./AccessibilityOutagesPanel").then((mod) => mod.AccessibilityOutagesPanel), { ssr: false });
+const AccessibilityOutagesPanel = preloadablePanel(() => import("./AccessibilityOutagesPanel").then((mod) => mod.AccessibilityOutagesPanel));
 import { getSurfaceNotices, type SurfaceNoticeResponse, type SurfaceNoticeDetail } from "../app/surface-notice-data";
-const SurfaceNoticesPanel = dynamic(() => import("./SurfaceNoticesPanel").then((mod) => mod.SurfaceNoticesPanel), { ssr: false });
+const SurfaceNoticesPanel = preloadablePanel(() => import("./SurfaceNoticesPanel").then((mod) => mod.SurfaceNoticesPanel));
 import { getRegionalTripChanges } from "../app/regional-trip-changes";
 import { getTtcAnnouncements } from "../app/announcement-data";
-const TtcAnnouncementsPanel = dynamic(() => import("./TtcAnnouncementsPanel").then((mod) => mod.TtcAnnouncementsPanel), { ssr: false });
+const TtcAnnouncementsPanel = preloadablePanel(() => import("./TtcAnnouncementsPanel").then((mod) => mod.TtcAnnouncementsPanel));
 import {
   fallbackStationSummaries,
   getStationDetail,
@@ -96,7 +96,8 @@ import {
   ttcStationDetailKey,
   warmSavedStationCaches,
 } from "../app/station-request-lifecycle";
-const StationDetailPanel = dynamic(() => import("./StationDetailPanel").then((mod) => mod.StationDetailPanel), { ssr: false });
+const StationDetailPanel = preloadablePanel(() => import("./StationDetailPanel").then((mod) => mod.StationDetailPanel));
+
 import {
   EMPTY_ESTIMATED_TRAIN_SNAPSHOT,
   EMPTY_REGIONAL_TRAIN_SNAPSHOT,
@@ -189,6 +190,31 @@ type SavedStationNotice = {
   message: string;
   linksToMyStations?: boolean;
 };
+
+// Panels are code-split. Load them once the map is usable and the browser is idle, so a
+// panel's first open renders at once instead of an empty, collapsed sheet.
+function preloadPanelModules() {
+  void Promise.allSettled([
+    RegionalStationDetailPanel.preload(),
+    ActiveAlertsPanel.preload(),
+    DelaysPanel.preload(),
+    ReducedSpeedZonesPanel.preload(),
+    PlannedClosuresPanel.preload(),
+    LineImpactsPanel.preload(),
+    SavedCommutesPanel.preload(),
+    MyStationsPanel.preload(),
+    NotificationSettingsPanel.preload(),
+    ReliabilityPanel.preload(),
+    AlertHistoryPanel.preload(),
+    FeedbackPanel.preload(),
+    PrivacyAcknowledgementsPanel.preload(),
+    ReleaseNotesPanel.preload(),
+    AccessibilityOutagesPanel.preload(),
+    SurfaceNoticesPanel.preload(),
+    TtcAnnouncementsPanel.preload(),
+    StationDetailPanel.preload(),
+  ]);
+}
 
 const STATION_DETAIL_REFRESH_MS = 15_000;
 // Under the 60s recent-result reuse window, so warmed saved-station results never expire before use.
@@ -387,6 +413,17 @@ export function LineWatchShell({
       if (timer !== null) window.clearTimeout(timer);
     };
   }, [initialMapReady, selectedNetwork, highContrast, isDark, mapViewPreference, mobilePerformanceMode]);
+
+  useEffect(() => {
+    if (!initialMapReady) return;
+    const idleCallback = typeof window.requestIdleCallback === "function"
+      ? window.requestIdleCallback(preloadPanelModules, { timeout: 2_000 }) : null;
+    const timer = idleCallback === null ? window.setTimeout(preloadPanelModules, 500) : null;
+    return () => {
+      if (idleCallback !== null) window.cancelIdleCallback(idleCallback);
+      if (timer !== null) window.clearTimeout(timer);
+    };
+  }, [initialMapReady]);
 
   const [menuPinned, setMenuPinned] = useState(false);
   const [menuPinPreferenceReady, setMenuPinPreferenceReady] = useState(false);

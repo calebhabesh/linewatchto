@@ -27,6 +27,15 @@ describe("dashboard server data binding", () => {
     assert.match(dashboardSessionSource, /visibilitychange/);
   });
 
+  it("preloads every code-split shell panel so first opens never render an empty sheet", () => {
+    assert.doesNotMatch(shellSource, /\bdynamic\(/, "shell panels should use preloadablePanel, not bare next/dynamic");
+    const panels = [...shellSource.matchAll(/^const (\w+) = preloadablePanel\b/gm)].map((match) => match[1]);
+    assert.ok(panels.length > 10);
+    const preload = shellSource.match(/function preloadPanelModules\(\) \{[\s\S]*?\n\}/)?.[0] ?? "";
+    for (const panel of panels) assert.match(preload, new RegExp(`\\b${panel}\\.preload\\(\\)`), `${panel} is not preloaded`);
+    assert.match(shellSource, /requestIdleCallback\(preloadPanelModules/);
+  });
+
   it("keeps selected station detail fresh while the submenu remains open", () => {
     assert.match(shellSource, /STATION_DETAIL_REFRESH_MS\s*=\s*15_000/);
     assert.match(shellSource, /fetchStationDetail/);
