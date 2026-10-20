@@ -61,6 +61,31 @@ public class MetrolinxAlertNormalizer {
     private static final List<String> PLANNED_PHRASES = List.of(
         "planned", "scheduled service change", "this weekend", "due to construction"
     );
+    // Metrolinx closes an incident with a new notice titled "Final", "Final update", or
+    // "... Resolved". Like TTC's ENDED EARLY, only that explicit title status can complete it,
+    // and only when the body reports the resolution and no continuing impact.
+    private static final Pattern RESOLUTION_TITLE = Pattern.compile(
+        "^\\s*final(?:\\s+update)?\\b|\\bresolved\\b|\\bregular service resumes\\b",
+        Pattern.CASE_INSENSITIVE
+    );
+    private static final List<String> RESOLUTION_PHRASES = List.of(
+        "has been resolved", "have been resolved", "has now been resolved", "has cleared", "have cleared",
+        "has reopened", "have reopened", "have been reopened", "has been repaired",
+        "have been repaired", "has been completed", "is complete", "has been restored",
+        "have been restored", "service has resumed", "have resumed", "trains are now running as scheduled",
+        "running as scheduled", "back on schedule", "returning to regular speeds", "no further delays"
+    );
+    private static final List<String> RESIDUAL_PHRASES = List.of(
+        "residual delay", "may be delays", "may be some delays", "minor delays",
+        "return to regular service", "return to full service", "returning to full service",
+        "cancellations are possible", "modifications are possible", "starting with the"
+    );
+    private static final List<String> CONTINUING_IMPACT_PHRASES = List.of(
+        "is ongoing", "remains ongoing", "are ongoing", "continue to", "continues to", "bypass",
+        "shuttle", "cancelled", "canceled", "not stopping", "will not stop", "no train service",
+        "no service", "single track", "reduced speed", "ended its trip", "will depart", "delays of up to",
+        "until further notice", "remain closed", "remains closed", "expect delays"
+    );
     private static final Pattern REST_NUMERIC_ID = Pattern.compile("(?i)^M0*(\\d+)$");
     private static final Pattern NUMERIC_ID = Pattern.compile("^0*(\\d+)$");
     private static final Pattern MAXIMUM_DELAY = Pattern.compile(
@@ -259,6 +284,10 @@ public class MetrolinxAlertNormalizer {
             && RegionalScheduleAnnouncement.matches(title, description);
         String serviceEffect = scheduleAnnouncement ? "service-adjustment"
             : serviceEffect(searchable, effects, structuredTripCancellation);
+        if (!scheduleAnnouncement && !"trip-cancellation".equals(serviceEffect)) {
+            String resolution = resolutionEffect(title, description);
+            if (resolution != null) serviceEffect = resolution;
+        }
         String operatingChange = "trip-cancellation".equals(serviceEffect)
             ? "cancelled-trip"
             : searchable.contains("reduced speed") ? "reduced-speed" : null;
@@ -345,6 +374,17 @@ public class MetrolinxAlertNormalizer {
             return "service-adjustment";
         }
         return "unknown";
+    }
+
+    /**
+     * A resolution notice reports that an incident ended; it is not itself a disruption.
+     * Returns service-resumed, service-recovering when residual effects are possible, or null.
+     */
+    private String resolutionEffect(String title, String description) {
+        if (!RESOLUTION_TITLE.matcher(title).find()) return null;
+        String body = description.toLowerCase(Locale.CANADA);
+        if (!containsAny(body, RESOLUTION_PHRASES) || containsAny(body, CONTINUING_IMPACT_PHRASES)) return null;
+        return containsAny(body, RESIDUAL_PHRASES) ? "service-recovering" : "service-resumed";
     }
 
     private String scope(
@@ -531,7 +571,8 @@ public class MetrolinxAlertNormalizer {
             primary.sourceSystem(), primary.sourceId(), route.id(), impactKind,
             EnglishClockTextFormatter.toTwelveHourClock(classification.title().trim()),
             "advisory".equals(impactKind)
-                ? firstNonBlank(impact.uncertainty(), "Service timing or scope unverified")
+                ? firstNonBlank(impact.uncertainty(), "service-recovering".equals(impact.serviceEffect())
+                    ? "Residual delays possible" : "Service timing or scope unverified")
                     + ". " + EnglishClockTextFormatter.toTwelveHourClock(classification.description().trim())
                 : EnglishClockTextFormatter.toTwelveHourClock(classification.description().trim()),
             firstNonBlank(humanize(classification.cause()), "Metrolinx service update"),
@@ -587,7 +628,10 @@ public class MetrolinxAlertNormalizer {
 
     private String dashboardImpactKind(RegionalAlertClassification.Impact impact) {
         if ("service-adjustment".equals(impact.serviceEffect())
-            || "trip-cancellation".equals(impact.serviceEffect())) return null;
+            || "trip-cancellation".equals(impact.serviceEffect())
+            || "service-resumed".equals(impact.serviceEffect())) return null;
+        // Residual effects are possible but unverified: caution without an overlay, commute impact, or push.
+        if ("service-recovering".equals(impact.serviceEffect())) return "advisory";
         if (impact.uncertainty() != null || "unknown".equals(impact.scope())) return "advisory";
         if ("no-service".equals(impact.serviceEffect())) return "planned-closure";
         if ("delay".equals(impact.serviceEffect())) return "delay";

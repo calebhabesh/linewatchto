@@ -708,6 +708,77 @@ class MetrolinxAlertNormalizerTest {
         assertThat(normalizer.normalize(feed(ambiguous))).isEmpty();
     }
 
+    @Test
+    void finalNoticeReportingResolvedServiceIsNotACurrentImpact() throws Exception {
+        var resolved = incidentNotice("LW-RESOLVED", "Final - Lakeshore West - Signal issue",
+            "The signal issue between Oakville GO and Bronte GO has been resolved and trains have resumed regular service.");
+
+        assertThat(normalizer.normalize(feed(resolved))).isEmpty();
+        assertThat(normalizer.classify(feed(resolved))).singleElement()
+            .satisfies(event -> assertThat(event.serviceEffect()).isEqualTo("service-resumed"));
+    }
+
+    @Test
+    void resolvedTitleStatusesCompleteTheIncident() throws Exception {
+        for (String title : List.of(
+            "Final update - Lakeshore West - Signal issue",
+            "Lakeshore West - Signal Issue Resolved",
+            "Final update - Lakeshore West - Regular service resumes"
+        )) {
+            var resolved = incidentNotice("LW-" + title.length(), title,
+                "The signal issue between Oakville GO and Bronte GO has been repaired. No further delays are expected.");
+            assertThat(normalizer.normalize(feed(resolved))).as(title).isEmpty();
+        }
+    }
+
+    @Test
+    void finalNoticeWithResidualDelaysBecomesAnAdvisoryWithoutAnOverlay() throws Exception {
+        var recovering = incidentNotice("LW-RECOVERING", "Final - Lakeshore West - Signal issue",
+            "The signal issue between Oakville GO and Bronte GO has been repaired. "
+                + "There may be residual delays as we return to full service.");
+
+        assertThat(normalizer.normalize(feed(recovering))).singleElement().satisfies(alert -> {
+            assertThat(alert.impactKind()).isEqualTo("advisory");
+            assertThat(alert.description()).startsWith("Residual delays possible. The signal issue");
+            assertThat(alert.affectedSegmentIds()).isEmpty();
+        });
+    }
+
+    @Test
+    void finalNoticeThatStillDescribesAnImpactKeepsItsClassification() throws Exception {
+        String ongoing = "The signal issue between Oakville GO and Bronte GO has been resolved. "
+            + "Trains will continue to operate at reduced speeds with delays of up to 15 minutes.";
+        var finalNotice = incidentNotice("LW-FINAL", "Final - Lakeshore West - Signal issue", ongoing);
+        var updateNotice = incidentNotice("LW-UPDATE", "Update 2 - Lakeshore West - Signal issue", ongoing);
+
+        assertThat(normalizer.normalize(feed(finalNotice))).extracting(RegionalNormalizedAlert::impactKind)
+            .isNotEmpty()
+            .isEqualTo(normalizer.normalize(feed(updateNotice)).stream().map(RegionalNormalizedAlert::impactKind).toList());
+    }
+
+    @Test
+    void resolutionWordingWithoutAnExplicitTitleStatusIsNotACompletion() throws Exception {
+        var update = incidentNotice("LW-PARTIAL", "Update 1 - Lakeshore West - Signal issue",
+            "The signal issue at Oakville GO has been resolved; trains west of Bronte GO are delayed up to 20 minutes.");
+
+        assertThat(normalizer.classify(feed(update))).singleElement()
+            .satisfies(event -> assertThat(event.serviceEffect()).isNotIn("service-resumed", "service-recovering"));
+    }
+
+    private MetrolinxFetchedRecord incidentNotice(String code, String title, String body) throws Exception {
+        return serviceAlert(objectMapper.writeValueAsString(java.util.Map.of(
+            "Code", code,
+            "Status", "UPD",
+            "PostedDateTime", "2026-07-28 13:50:00",
+            "SubjectEnglish", title,
+            "BodyEnglish", body,
+            "Category", "Service Disruption",
+            "SubCategory", "Delay",
+            "Lines", List.of(java.util.Map.of("Code", "LW")),
+            "Stops", List.of()
+        )));
+    }
+
     private MetrolinxFeed feed(MetrolinxFetchedRecord... records) {
         return new MetrolinxFeed(
             OffsetDateTime.parse("2026-07-28T18:12:32Z"),
