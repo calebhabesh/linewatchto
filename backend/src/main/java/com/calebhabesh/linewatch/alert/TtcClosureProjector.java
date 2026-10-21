@@ -5,6 +5,7 @@ import com.calebhabesh.linewatch.alert.AlertDashboardService.ActiveAlertDto;
 import com.calebhabesh.linewatch.alert.AlertDashboardService.PlannedClosureDto;
 import com.calebhabesh.linewatch.alert.AlertDashboardService.SegmentImpact;
 import com.calebhabesh.linewatch.ingestion.TtcServiceState;
+import com.calebhabesh.linewatch.ingestion.TtcSubwayClosureParser;
 import com.calebhabesh.linewatch.station.LineSegmentEntity;
 import com.calebhabesh.linewatch.station.TransitLineEntity;
 import java.time.Duration;
@@ -61,6 +62,11 @@ public class TtcClosureProjector {
         DateTimeFormatter.ofPattern("EEE, MMM d, uuuu", Locale.ENGLISH);
     private static final Duration MAX_SINGLE_CLOSURE_WINDOW = Duration.ofHours(18);
     private static final Duration MAX_PUBLICATION_START_SKEW = Duration.ofMinutes(5);
+    // A window ending by this time belongs to the previous service day (overnight
+    // closures resume around 6 a.m.; whole-day closures end at midnight).
+    private static final java.time.LocalTime LATEST_OVERNIGHT_END = java.time.LocalTime.of(8, 0);
+    private static final String ALL_DAY = "All Day";
+    private static final DateTimeFormatter RESUME_FORMATTER = DateTimeFormatter.ofPattern("EEE h:mm a", Locale.ENGLISH);
     private static final Pattern TRUNCATED_CLOSURE_START = Pattern.compile(
         "(?i)[,\\s]+starting(?:\\s+at)?\\s+\\d{1,2}\\s*$"
     );
@@ -276,11 +282,11 @@ public class TtcClosureProjector {
         if (periods == null || periods.isEmpty()) {
             return false;
         }
-        String alertText = String.join(" ",
+        String alertText = TtcSubwayClosureParser.withoutMaintenanceBoilerplate(String.join(" ",
             AlertDashboardService.nullToEmpty(alert.getTitle()),
             AlertDashboardService.nullToEmpty(alert.getDescription()),
             AlertDashboardService.nullToEmpty(alert.getEffectDescription())
-        ).toLowerCase(Locale.ROOT);
+        )).toLowerCase(Locale.ROOT);
         if (alertText.contains("late opening")
             || alertText.matches(
                 "(?s).*\\b(?:service|trains?)\\s+(?:(?:will\\s+)?start|starts?)"
@@ -293,17 +299,8 @@ public class TtcClosureProjector {
             || alertText.contains("every night")) {
             return true;
         }
-        if (periods.size() > 1) {
-            return true;
-        }
-        AlertPeriod period = periods.getFirst();
-        if (isParentPeriod(period) || period.startsAt() == null || period.endsAt() == null) {
-            return false;
-        }
-        LocalDate startsOn = period.startsAt().atZoneSameInstant(TORONTO_ZONE).toLocalDate();
-        LocalDate endsOn = period.endsAt().atZoneSameInstant(TORONTO_ZONE).toLocalDate();
-        return endsOn.isAfter(startsOn)
-            && Duration.between(period.startsAt(), period.endsAt()).compareTo(Duration.ofHours(12)) <= 0;
+        // One overnight window is a one-off closure; it is labelled with its own dates and hours.
+        return periods.size() > 1;
     }
 
     private WindowState windowState(
@@ -351,7 +348,7 @@ public class TtcClosureProjector {
             AlertPeriod period = active.orElseThrow();
             return new WindowState(true, "active-now", nightly,
                 period.startsAt(), period.endsAt(), window(period.startsAt(), period.endsAt(), now),
-                null, null, null, windowHours, windowDates, period.sourcePeriodId());
+                null, null, null, windowHours, windowDates, period.sourcePeriodId(), reliablePeriods.size());
         }
 
         Optional<AlertPeriod> next = reliablePeriods.stream()
@@ -366,11 +363,11 @@ public class TtcClosureProjector {
             return new WindowState(false, "upcoming", nightly,
                 null, null, null,
                 period.startsAt(), period.endsAt(), window(period.startsAt(), period.endsAt(), now),
-                windowHours, windowDates, null);
+                windowHours, windowDates, null, reliablePeriods.size());
         }
 
         return new WindowState(false, "unknown", nightly,
-            null, null, null, null, null, null, windowHours, windowDates, null);
+            null, null, null, null, null, null, windowHours, windowDates, null, reliablePeriods.size());
     }
 
     private boolean isReliableClosureWindow(
@@ -409,6 +406,13 @@ public class TtcClosureProjector {
         LinkedHashSet<String> ranges = new LinkedHashSet<>();
         for (AlertPeriod period : periods) {
             if (period.startsAt() == null || period.endsAt() == null) {
+                continue;
+            }
+            if (isWholeServiceDays(period.startsAt(), period.endsAt())) {
+                ranges.add(wholeDayHours(period.endsAt()));
+                continue;
+            }
+            if (Duration.between(period.startsAt(), period.endsAt()).compareTo(MAX_SINGLE_CLOSURE_WINDOW) > 0) {
                 continue;
             }
             ranges.add(
@@ -452,13 +456,39 @@ public class TtcClosureProjector {
         LocalDate lastDate = periods.stream()
             .map(AlertPeriod::endsAt)
             .filter(Objects::nonNull)
-            .map(value -> value.atZoneSameInstant(TORONTO_ZONE).toLocalDate())
+            .map(TtcClosureProjector::lastServiceDate)
             .max(Comparator.naturalOrder())
+            .filter(date -> !date.isBefore(firstDate))
             .orElse(firstDate);
         if (firstDate.equals(lastDate)) {
             return formattedClosureDate(firstDate, now);
         }
         return formattedClosureDate(firstDate, now) + " – " + formattedClosureDate(lastDate, now);
+    }
+
+    private static LocalDate lastServiceDate(OffsetDateTime endsAt) {
+        ZonedDateTime end = endsAt.atZoneSameInstant(TORONTO_ZONE);
+        return end.toLocalTime().isAfter(LATEST_OVERNIGHT_END) ? end.toLocalDate() : end.toLocalDate().minusDays(1);
+    }
+
+    // Whole service days start at midnight and end at midnight or at a published
+    // next-morning resumption.
+    private static boolean isWholeServiceDays(OffsetDateTime startsAt, OffsetDateTime endsAt) {
+        if (startsAt == null || endsAt == null || !endsAt.isAfter(startsAt)
+            || !startsAt.atZoneSameInstant(TORONTO_ZONE).toLocalTime().equals(java.time.LocalTime.MIDNIGHT)) {
+            return false;
+        }
+        java.time.LocalTime endTime = endsAt.atZoneSameInstant(TORONTO_ZONE).toLocalTime();
+        return endTime.equals(java.time.LocalTime.MIDNIGHT)
+            || (!endTime.isAfter(LATEST_OVERNIGHT_END) && Duration.between(startsAt, endsAt).compareTo(Duration.ofHours(24)) >= 0);
+    }
+
+    private static String wholeDayHours(OffsetDateTime endsAt) {
+        ZonedDateTime end = endsAt.atZoneSameInstant(TORONTO_ZONE);
+        if (end.toLocalTime().equals(java.time.LocalTime.MIDNIGHT)) {
+            return ALL_DAY;
+        }
+        return ALL_DAY + " · Resumes " + RESUME_FORMATTER.format(end);
     }
 
     // Published date copy supplies display context only. It never creates an
@@ -540,11 +570,16 @@ public class TtcClosureProjector {
             AlertDashboardService.nullToEmpty(alert.getEffectDescription()),
             AlertDashboardService.nullToEmpty(alert.getCause()),
             AlertDashboardService.nullToEmpty(alert.getCauseDescription()),
-            AlertDashboardService.nullToEmpty(alert.getRawPayload())
+            structuredRawPayload(alert.getRawPayload())
         ).toLowerCase(Locale.ROOT);
         return text.contains("nightly")
             || text.contains("closure windows")
             || text.contains("early access");
+    }
+
+    private static String structuredRawPayload(String rawPayload) {
+        String payload = AlertDashboardService.nullToEmpty(rawPayload).strip();
+        return payload.startsWith("<") ? "" : payload;
     }
 
     private AlertEntity currentClosureSourceAlert(AlertEntity alert) {
@@ -802,7 +837,8 @@ public class TtcClosureProjector {
     }
 
     private static String naturalClosureHours(String windowHours) {
-        if (AlertDashboardService.isBlank(windowHours) || "Varies by advisory date".equalsIgnoreCase(windowHours)
+        if (AlertDashboardService.isBlank(windowHours) || windowHours.startsWith(ALL_DAY)
+            || "Varies by advisory date".equalsIgnoreCase(windowHours)
             || "Varies by closure date".equalsIgnoreCase(windowHours)) {
             return null;
         }
@@ -849,6 +885,13 @@ public class TtcClosureProjector {
         if ("unknown".equals(ws.timingStatus())) {
             return "Closure timing unavailable";
         }
+        if (ws.occurrenceCount() == 1) {
+            OffsetDateTime start = ws.activeWindowStart() == null ? ws.nextWindowStart() : ws.activeWindowStart();
+            OffsetDateTime end = ws.activeWindowEnd() == null ? ws.nextWindowEnd() : ws.activeWindowEnd();
+            if (start != null && end != null) {
+                return window(start, end, evaluationTime);
+            }
+        }
         return window(alert.getActivePeriodStart(), alert.getActivePeriodEnd(), evaluationTime);
     }
 
@@ -876,6 +919,30 @@ public class TtcClosureProjector {
         ZonedDateTime endZdt = endsAt.atZoneSameInstant(TORONTO_ZONE);
         LocalDate startDate = startZdt.toLocalDate();
         LocalDate endDate = endZdt.toLocalDate();
+
+        if (isWholeServiceDays(startsAt, endsAt)) {
+            LocalDate lastDay = lastServiceDate(endsAt);
+            DateTimeFormatter firstDayFormatter = startDate.getYear() == currentTorontoYear
+                ? WINDOW_DATE_FORMATTER
+                : WINDOW_DATE_WITH_YEAR_FORMATTER;
+            DateTimeFormatter lastDayFormatter = lastDay.getYear() == currentTorontoYear
+                ? WINDOW_DATE_FORMATTER
+                : WINDOW_DATE_WITH_YEAR_FORMATTER;
+            return (lastDay.equals(startDate) ? "" : firstDayFormatter.format(startDate) + " – ")
+                + lastDayFormatter.format(lastDay) + " · " + wholeDayHours(endsAt);
+        }
+        if (endsAt.isAfter(startsAt) && endZdt.toLocalTime().equals(java.time.LocalTime.MIDNIGHT)) {
+            LocalDate lastDay = endDate.minusDays(1);
+            DateTimeFormatter lastDayFormatter = lastDay.getYear() == currentTorontoYear
+                ? WINDOW_DATE_FORMATTER
+                : WINDOW_DATE_WITH_YEAR_FORMATTER;
+            if (lastDay.isAfter(startDate)) {
+                DateTimeFormatter startFormatter = startZdt.getYear() == currentTorontoYear
+                    ? WINDOW_DATE_TIME_FORMATTER
+                    : WINDOW_DATE_TIME_WITH_YEAR_FORMATTER;
+                return startFormatter.format(startZdt) + " – " + lastDayFormatter.format(lastDay) + " · End of Day";
+            }
+        }
 
         DateTimeFormatter startFormatter = startZdt.getYear() == currentTorontoYear
             ? WINDOW_DATE_TIME_FORMATTER
@@ -969,7 +1036,8 @@ public class TtcClosureProjector {
         String nextWindowLabel,
         String windowHours,
         String windowDates,
-        String activeSourcePeriodId
+        String activeSourcePeriodId,
+        int occurrenceCount
     ) {}
 
     /**

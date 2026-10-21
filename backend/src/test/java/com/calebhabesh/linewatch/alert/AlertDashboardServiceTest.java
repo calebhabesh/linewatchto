@@ -679,7 +679,7 @@ class AlertDashboardServiceTest {
             assertThat(dto.lineId()).isEqualTo("line-2");
             assertThat(dto.lineNumber()).isEqualTo("2");
             assertThat(dto.location()).isEqualTo("Jane to Ossington");
-            assertThat(dto.window()).isEqualTo("Sat, Jun 6 · 12:00 AM – Mon, Jun 8 · 5:00 AM");
+            assertThat(dto.window()).isEqualTo("Sat, Jun 6 – Sun, Jun 7 · All Day · Resumes Mon 5:00 AM");
             assertThat(dto.startedAt()).isEqualTo(OffsetDateTime.parse("2026-06-06T04:00:00Z"));
             assertThat(dto.updatedAt()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:45:00Z"));
             assertThat(dto.previewSegmentIds()).containsExactly("line-2-jane-ossington");

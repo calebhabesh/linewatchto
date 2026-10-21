@@ -261,7 +261,7 @@ export function MapOverlapChooser({
                     <span className="overlap-chooser-choice-effect"><span aria-hidden="true"> · </span>{details.serviceEffect === "limited-service" ? "Limited Service" : details.serviceEffect === "suspension" ? "Closure" : "Delay"}</span>
                   ) : null}</strong>
                   {impact.kind === "planned-closure" && dateLabel ? (
-                    <span className="overlap-chooser-choice-date">{dateLabel}</span>
+                    <span className="overlap-chooser-choice-date">{dateLabel}{details?.closureTimeLabel ? <><span className="sr-only">, </span><span className="overlap-chooser-choice-time">{details.closureTimeLabel}</span></> : null}</span>
                   ) : null}
                   <span className="overlap-chooser-choice-location"><IncidentStationSpan location={formatLocation(details, label)} />{directionLabel ? <span className="overlap-chooser-choice-direction"> ({directionLabel})</span> : null}</span>
                 </span>

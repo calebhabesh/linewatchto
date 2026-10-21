@@ -124,6 +124,85 @@ class TtcSubwayClosureParserTest {
         assertThat(record.title()).contains("UPDATED - St George to Broadview");
     }
 
+    private static final String TTC_MAINTENANCE_BOILERPLATE =
+        " While the TTC does most subway maintenance at the end of service each night, it continues to require"
+            + " early nightly and weekend closures to complete state-of-good-repair work.";
+
+    @Test
+    void singleDayClosureRunsUntilThePublishedResumptionDespiteMaintenanceBoilerplate() {
+        TtcAlertRecord record = parser.parse("single-day", URI.create("https://www.ttc.ca/service-advisories/subway-service/example"),
+            page("Line 2 (Bloor-Danforth)", "Kipling to Keele stations – Single-day closure – Sunday, October 25, 2026",
+                "October 25, 2026", "October 25, 2026",
+                "Subway service on Line 2 between Kipling and Keele stations will be replaced by shuttle buses on Sunday, October 25 for planned infrastructure work."
+                    + " Regular subway service will resume on Monday, October 26 at approximately 6 a.m." + TTC_MAINTENANCE_BOILERPLATE)
+        ).record();
+
+        assertThat(record.childAlerts()).singleElement().satisfies(period -> {
+            assertThat(period.startTime()).isEqualTo(OffsetDateTime.parse("2026-10-25T00:00:00-04:00"));
+            assertThat(period.endTime()).isEqualTo(OffsetDateTime.parse("2026-10-26T06:00:00-04:00"));
+        });
+    }
+
+    @Test
+    void maintenanceBoilerplateDoesNotHideAPublishedLateOpening() {
+        TtcAlertRecord record = parser.parse("late-opening-boilerplate", URI.create("https://www.ttc.ca/service-advisories/subway-service/example"),
+            page("Line 2 (Bloor-Danforth)", "Jane to Ossington stations – Late opening at 12 p.m. on Sunday, November 1, 2026",
+                "November 1, 2026", "November 1, 2026",
+                "Subway service on Line 2 between Jane and Ossington stations will be replaced by shuttle buses until 12 p.m. on Sunday, November 1 due to planned track work."
+                    + " Regular subway service will resume between Jane and Ossington stations at approximately 12 p.m." + TTC_MAINTENANCE_BOILERPLATE)
+        ).record();
+
+        assertThat(record.childAlerts()).singleElement().satisfies(period -> {
+            assertThat(period.startTime()).isEqualTo(OffsetDateTime.parse("2026-11-01T08:00:00-05:00"));
+            assertThat(period.endTime()).isEqualTo(OffsetDateTime.parse("2026-11-01T12:00:00-05:00"));
+        });
+    }
+
+    @Test
+    void singleNightEarlyClosureRunsFromItsStartTimeUntilTheDatedResumption() {
+        TtcAlertRecord record = parser.parse("single-night", URI.create("https://www.ttc.ca/service-advisories/subway-service/example"),
+            page("Line 2 (Bloor-Danforth)", "St George to Broadview stations – Single-night early closure starting at 10 p.m. – Friday, October 30",
+                "October 30, 2026", "October 30, 2026",
+                "Subway service on Line 2 between St George and Broadview stations will end early at 10 p.m. on Friday, October 30 for planned maintenance work."
+                    + " Regular subway service will resume on Saturday, October 31 at approximately 6 a.m." + TTC_MAINTENANCE_BOILERPLATE)
+        ).record();
+
+        assertThat(record.childAlerts()).singleElement().satisfies(period -> {
+            assertThat(period.startTime()).isEqualTo(OffsetDateTime.parse("2026-10-30T22:00:00-04:00"));
+            assertThat(period.endTime()).isEqualTo(OffsetDateTime.parse("2026-10-31T06:00:00-04:00"));
+        });
+    }
+
+    @Test
+    void fullWeekendClosureCoversBothServiceDaysUntilThePublishedResumption() {
+        TtcAlertRecord record = parser.parse("weekend", URI.create("https://www.ttc.ca/service-advisories/subway-service/example"),
+            page("Line 2 (Bloor-Danforth)", "Kipling to Jane stations – Full weekend closure – Saturday, October 10 and Sunday, October 11, 2026",
+                "October 10, 2026", "October 11, 2026",
+                "There will be no subway service between Kipling and Jane stations on Saturday, October 10 and Sunday, October 11 for planned track work."
+                    + " Regular subway service will resume on Monday, October 12 at approximately 6 a.m." + TTC_MAINTENANCE_BOILERPLATE)
+        ).record();
+
+        assertThat(record.childAlerts()).singleElement().satisfies(period -> {
+            assertThat(period.startTime()).isEqualTo(OffsetDateTime.parse("2026-10-10T00:00:00-04:00"));
+            assertThat(period.endTime()).isEqualTo(OffsetDateTime.parse("2026-10-12T06:00:00-04:00"));
+        });
+    }
+
+    @Test
+    void weekendClosureKeepsItsPublishedFridayNightStart() {
+        TtcAlertRecord record = parser.parse("friday-start", URI.create("https://www.ttc.ca/service-advisories/subway-service/example"),
+            page("Line 1 (Yonge-University)", "Finch to Sheppard-Yonge stations – Full weekend closure – starting on Friday, September 25 at 11:59 p.m. to end of service on Sunday, September 27, 2026",
+                "September 25, 2026", "September 27, 2026",
+                "Subway service on Line 1 between Finch and Sheppard-Yonge stations will be replaced by shuttle buses starting Friday, September 25 at 11:59 p.m."
+                    + " until the end of service on Sunday, September 27 for planned signal work. Regular subway service will resume on Monday, September 28.")
+        ).record();
+
+        assertThat(record.childAlerts()).singleElement().satisfies(period -> {
+            assertThat(period.startTime()).isEqualTo(OffsetDateTime.parse("2026-09-25T23:59:00-04:00"));
+            assertThat(period.endTime()).isEqualTo(OffsetDateTime.parse("2026-09-28T00:00:00-04:00"));
+        });
+    }
+
     @Test
     void parsesLateOpeningAsAServiceDayMorningClosure() {
         TtcAlertRecord record = parser.parse(

@@ -76,7 +76,7 @@ test("nightly advisory status uses Toronto dates and keeps incomplete schedules 
   const nightly = { nightly: true, timingStatus: "upcoming", nextWindowStart: "2026-09-30T03:00:00Z" };
   assert.equal(plannedAdvisoryStatus(nightly, Date.parse("2026-09-29T16:00:00Z")), "Next Tonight");
   assert.equal(plannedAdvisoryStatus(nightly, Date.parse("2026-09-29T03:30:00Z")), "Next: Tue, Sep 29");
-  assert.equal(plannedAdvisoryStatus({ ...nightly, nightly: false }, Date.parse("2026-09-29T16:00:00Z")), "Next: Tue, Sep 29");
+  assert.equal(plannedAdvisoryStatus({ ...nightly, nightly: false }, Date.parse("2026-09-29T16:00:00Z")), "Next Tonight");
   assert.equal(plannedAdvisoryStatus({ timingStatus: "unknown" }, null), "Schedule incomplete");
   assert.equal(plannedAdvisoryStatus({ nextWindowStart: "invalid" }, null), "Schedule incomplete");
 });

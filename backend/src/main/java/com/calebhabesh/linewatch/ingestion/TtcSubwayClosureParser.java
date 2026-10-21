@@ -48,6 +48,20 @@ public class TtcSubwayClosureParser {
     private static final Pattern TITLE_END_DATE = Pattern.compile(
         "(?i)\\bto\\s+(?:(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\\s+)?(" + EFFECTIVE_DATE.pattern() + ")"
     );
+    // Standard closing copy on every TTC closure page; it says nothing about this advisory's schedule.
+    private static final Pattern MAINTENANCE_BOILERPLATE = Pattern.compile(
+        "(?i)\\bWhile the TTC does most (?:subway )?maintenance\\b[^.]*\\."
+    );
+    private static final String WEEKDAY = "(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)";
+    private static final String MONTH_DAY =
+        "(?:January|February|March|April|May|June|July|August|September|October|November|December)\\s+\\d{1,2}";
+    // "starting Friday, September 25 at 11:59 p.m." names the day before the clock time.
+    private static final String OPTIONAL_DATE = "(?:\\s+(?:on\\s+)?" + WEEKDAY + ",?\\s+" + MONTH_DAY + "(?:,\\s*\\d{4})?)?";
+    private static final Pattern DATED_RESUME = Pattern.compile(
+        "(?i)\\bresumes?\\s+on\\s+" + WEEKDAY + ",?\\s+(" + MONTH_DAY + ")(?:,\\s*\\d{4})?"
+            + "\\s+at\\s+(?:approximately\\s+)?" + "(1[0-2]|0?[1-9])(?::([0-5][0-9]))?\\s*([ap])\\.?m\\.?"
+    );
+    private static final DateTimeFormatter MONTH_DAY_YEAR = DateTimeFormatter.ofPattern("MMMM d uuuu", Locale.ENGLISH);
     private static final Pattern SINGLE_TRACK_SERVICE = Pattern.compile(
         "(?i)\\b(?:subway|lrt|train)\\s+service\\b[^.!]{0,180}\\b(?:will operate|operates|is operating)\\s+on\\s+a\\s+single\\s+track\\b"
     );
@@ -241,8 +255,8 @@ public class TtcSubwayClosureParser {
         LocalDate endDate,
         String text
     ) {
-        String normalized = text.toLowerCase(Locale.ROOT);
-        LocalTime closureTime = timeAfter(text, "(?:starting|starts?|end(?:s|ed)? early)(?:\\s+at)?");
+        String normalized = withoutMaintenanceBoilerplate(text).toLowerCase(Locale.ROOT);
+        LocalTime closureTime = timeAfter(text, "(?:starting|starts?|end(?:s|ed)? early)" + OPTIONAL_DATE + "(?:\\s+at)?");
         LocalTime resumeTime = timeAfter(text, "resume(?:s)?(?: (?:each|every) morning)?\\s+at");
         boolean nightly = normalized.contains("nightly") || normalized.contains("each morning");
         if (nightly && closureTime != null && resumeTime != null) {
@@ -281,11 +295,47 @@ public class TtcSubwayClosureParser {
             return List.copyOf(periods);
         }
 
-        return List.of(new TtcAlertChildPeriod(
-            sourceId + "-window-0",
-            at(startDate, LocalTime.MIDNIGHT),
-            at(endDate.plusDays(1), LocalTime.MIDNIGHT)
-        ));
+        // One-off early closures and closures with a published start time keep that
+        // time. Without one, the advisory covers whole service days.
+        LocalTime oneOffStart = timeAfter(text, "(?:starting|end(?:s|ed)?\\s+early)" + OPTIONAL_DATE + "(?:\\s+at)?");
+        OffsetDateTime start = at(startDate, oneOffStart == null ? LocalTime.MIDNIGHT : oneOffStart);
+        OffsetDateTime end = at(endDate.plusDays(1), LocalTime.MIDNIGHT);
+        OffsetDateTime resume = datedResume(text, startDate);
+        if (oneOffStart != null && resume != null && resume.isAfter(start) && !resume.isAfter(end.plusDays(1))) {
+            end = resume;
+        } else if (oneOffStart == null && resume != null
+            && resume.atZoneSameInstant(TORONTO).toLocalDate().equals(endDate.plusDays(1))
+            && !resume.atZoneSameInstant(TORONTO).toLocalTime().isAfter(LocalTime.NOON)) {
+            // Whole-day closures last until the published morning resumption.
+            end = resume;
+        }
+        if (!end.isAfter(start)) {
+            start = at(startDate, LocalTime.MIDNIGHT);
+        }
+        return List.of(new TtcAlertChildPeriod(sourceId + "-window-0", start, end));
+    }
+
+    /** Removes the standard maintenance paragraph that every TTC closure page repeats. */
+    public static String withoutMaintenanceBoilerplate(String text) {
+        return text == null ? "" : MAINTENANCE_BOILERPLATE.matcher(text).replaceAll(" ");
+    }
+
+    private OffsetDateTime datedResume(String text, LocalDate startDate) {
+        Matcher matcher = DATED_RESUME.matcher(text);
+        if (!matcher.find()) {
+            return null;
+        }
+        try {
+            LocalDate date = LocalDate.parse(matcher.group(1).replaceAll("\\s+", " ") + " " + startDate.getYear(), MONTH_DAY_YEAR);
+            if (date.isBefore(startDate)) {
+                date = date.plusYears(1);
+            }
+            int hour = Integer.parseInt(matcher.group(2)) % 12 + (matcher.group(4).equalsIgnoreCase("p") ? 12 : 0);
+            int minute = matcher.group(3) == null ? 0 : Integer.parseInt(matcher.group(3));
+            return at(date, LocalTime.of(hour, minute));
+        } catch (DateTimeParseException exception) {
+            return null;
+        }
     }
 
     private LocalTime defaultServiceStart(LocalDate serviceDate) {

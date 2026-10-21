@@ -21,6 +21,7 @@ import { ReducedSpeedZoneResolutionBreakdown } from "./ReducedSpeedZoneResolutio
 import { reducedSpeedZoneTimingEntries } from "../app/reduced-speed-zone-timing";
 import { ReducedSpeedZoneTimingBreakdown } from "./ReducedSpeedZoneTimingBreakdown";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
+import { plannedClosureTiming } from "../app/planned-closure-timing";
 
 export type MobileInspectorDetent = "map-focus" | "details-focus";
 
@@ -43,6 +44,7 @@ type SelectedImpactDetails = {
   statusAction?: ReactNode;
   window?: string;
   closureDateLabel?: string;
+  closureTimeLabel?: string;
   serviceEffect?: "suspension" | "delay" | "limited-service" | null;
   startedAt?: string | null;
   updatedAt?: string | null;
@@ -96,6 +98,15 @@ function formatClosureScheduleValue(value: string) {
         .replace(/(\d{1,2}:\d{2})\s+([AP]M)/g, "$1\u00A0$2")
     )
     .join(" – ");
+}
+
+function closureTimingLabels(closure: Parameters<typeof plannedClosureTiming>[0] | undefined) {
+  if (!closure) return {};
+  const timing = plannedClosureTiming(closure);
+  return {
+    closureDateLabel: timing.dates ? formatClosureScheduleValue(timing.dates) : undefined,
+    closureTimeLabel: timing.time ? formatClosureScheduleValue(timing.time) : undefined,
+  };
 }
 
 function fallbackLineNumber(lineId: string) {
@@ -279,9 +290,7 @@ export function getSelectedImpactDetails(
       activeNow: true,
       window: closure?.window,
       serviceEffect: activeClosure.serviceEffect ?? closure?.serviceEffect,
-      closureDateLabel: closure?.windowDates
-        ? formatClosureScheduleValue(closure.windowDates)
-        : undefined,
+      ...closureTimingLabels(closure),
       startedAt: activeClosure.startedAt,
       updatedAt: activeClosure.updatedAt,
       updatedAgo: activeClosure.updatedAgo,
@@ -358,9 +367,7 @@ export function getSelectedImpactDetails(
     activeNow: closure.activeNow,
     window: closure.window,
     serviceEffect: closure.serviceEffect,
-    closureDateLabel: closure.windowDates
-      ? formatClosureScheduleValue(closure.windowDates)
-      : undefined,
+    ...closureTimingLabels(closure),
     startedAt: closure.startedAt,
     updatedAt: closure.updatedAt,
     updatedAgo: closure.updatedAgo,

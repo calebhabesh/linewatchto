@@ -871,6 +871,99 @@ class TtcClosureProjectorTest {
             .isEqualTo(fromOffset.getFirst().activeNow());
     }
 
+    private static final OffsetDateTime OCT_21_NOON = OffsetDateTime.parse("2026-10-21T12:00:00-04:00");
+
+    private PlannedClosureDto websiteClosure(String title, OffsetDateTime start, OffsetDateTime end) {
+        AlertEntity alert = alert("website-closure", "planned-closure", "planned", title,
+            "Subway service will be replaced by shuttle buses.", "kipling", "keele", null, "Will Operate");
+        ReflectionTestUtils.setField(alert, "activePeriodStart", start);
+        ReflectionTestUtils.setField(alert, "activePeriodEnd", end);
+        ReflectionTestUtils.setField(alert, "rawPayload",
+            "<html><p>While the TTC does most subway maintenance at the end of service each night, it continues to"
+                + " require early nightly and weekend closures to complete state-of-good-repair work.</p></html>");
+        Map<String, List<AlertPeriod>> periods = Map.of(alert.getId(),
+            List.of(new AlertPeriod(alert.getId(), "website-closure-window-0", start, end, 0)));
+        return projector.project(List.of(alert), periods, List.of(), OCT_21_NOON).getFirst().canonicalClosure();
+    }
+
+    @Test
+    void singleDayClosureShowsItsServiceDayAsAllDay() {
+        PlannedClosureDto dto = websiteClosure("Line 2 – Kipling to Keele stations – Single-day closure – Sunday, October 25, 2026",
+            OffsetDateTime.parse("2026-10-25T00:00:00-04:00"), OffsetDateTime.parse("2026-10-26T00:00:00-04:00"));
+
+        assertThat(dto.nightly()).isFalse();
+        assertThat(dto.timingStatus()).isEqualTo("upcoming");
+        assertThat(dto.windowDates()).isEqualTo("Sun, Oct 25");
+        assertThat(dto.windowHours()).isEqualTo("All Day");
+        assertThat(dto.window()).isEqualTo("Sun, Oct 25 · All Day");
+        assertThat(dto.nextWindowLabel()).isEqualTo("Sun, Oct 25 · All Day");
+    }
+
+    @Test
+    void wholeDayClosureNamesThePublishedResumptionTime() {
+        PlannedClosureDto dto = websiteClosure("Line 2 – Kipling to Keele stations – Single-day closure – Sunday, October 25, 2026",
+            OffsetDateTime.parse("2026-10-25T00:00:00-04:00"), OffsetDateTime.parse("2026-10-26T06:00:00-04:00"));
+
+        assertThat(dto.windowDates()).isEqualTo("Sun, Oct 25");
+        assertThat(dto.windowHours()).isEqualTo("All Day · Resumes Mon 6:00 AM");
+        assertThat(dto.window()).isEqualTo("Sun, Oct 25 · All Day · Resumes Mon 6:00 AM");
+    }
+
+    @Test
+    void weekendClosureNamesThePublishedResumptionTime() {
+        PlannedClosureDto dto = websiteClosure("Line 2 – Kipling to Jane stations – Full weekend closure",
+            OffsetDateTime.parse("2026-10-24T00:00:00-04:00"), OffsetDateTime.parse("2026-10-26T06:00:00-04:00"));
+
+        assertThat(dto.windowDates()).isEqualTo("Sat, Oct 24 – Sun, Oct 25");
+        assertThat(dto.window()).isEqualTo("Sat, Oct 24 – Sun, Oct 25 · All Day · Resumes Mon 6:00 AM");
+    }
+
+    @Test
+    void fullWeekendClosureEndsOnItsLastServiceDay() {
+        PlannedClosureDto dto = websiteClosure("Line 2 – Kipling to Jane stations – Full weekend closure",
+            OffsetDateTime.parse("2026-10-24T00:00:00-04:00"), OffsetDateTime.parse("2026-10-26T00:00:00-04:00"));
+
+        assertThat(dto.windowDates()).isEqualTo("Sat, Oct 24 – Sun, Oct 25");
+        assertThat(dto.windowHours()).isEqualTo("All Day");
+        assertThat(dto.window()).isEqualTo("Sat, Oct 24 – Sun, Oct 25 · All Day");
+    }
+
+    @Test
+    void singleNightEarlyClosureIsAOneOffWithItsOwnHours() {
+        PlannedClosureDto dto = websiteClosure("Line 2 – St George to Broadview stations – Single-night early closure starting at 10 p.m.",
+            OffsetDateTime.parse("2026-10-30T22:00:00-04:00"), OffsetDateTime.parse("2026-10-31T06:00:00-04:00"));
+
+        assertThat(dto.nightly()).isFalse();
+        assertThat(dto.windowDates()).isEqualTo("Fri, Oct 30");
+        assertThat(dto.windowHours()).isEqualTo("10:00 PM – 6:00 AM");
+        assertThat(dto.window()).isEqualTo("Fri, Oct 30 · 10:00 PM – Sat, Oct 31 6:00 AM");
+    }
+
+    @Test
+    void multiDayClosureWithAPublishedStartHasNoDailyHours() {
+        PlannedClosureDto dto = websiteClosure("Line 1 – Finch to Sheppard-Yonge stations – Full weekend closure",
+            OffsetDateTime.parse("2026-10-23T23:59:00-04:00"), OffsetDateTime.parse("2026-10-26T00:00:00-04:00"));
+
+        assertThat(dto.windowDates()).isEqualTo("Fri, Oct 23 – Sun, Oct 25");
+        assertThat(dto.windowHours()).isNull();
+        assertThat(dto.window()).isEqualTo("Fri, Oct 23 · 11:59 PM – Sun, Oct 25 · End of Day");
+    }
+
+    @Test
+    void sitewideMaintenanceCopyInRawHtmlDoesNotMakeAParentOnlyClosureNightly() {
+        OffsetDateTime start = OffsetDateTime.parse("2026-10-25T00:00:00-04:00");
+        AlertEntity alert = alert("parent-only", "planned-closure", "planned",
+            "Line 2 – Kipling to Keele stations – Single-day closure", "Shuttle buses will operate.", "kipling", "keele", null, null);
+        ReflectionTestUtils.setField(alert, "activePeriodStart", start);
+        ReflectionTestUtils.setField(alert, "activePeriodEnd", start.plusDays(1));
+        ReflectionTestUtils.setField(alert, "rawPayload", "<html><p>It continues to require early nightly and weekend closures.</p></html>");
+
+        PlannedClosureDto dto = projector.project(List.of(alert), Map.of(), List.of(), OCT_21_NOON).getFirst().canonicalClosure();
+
+        assertThat(dto.nightly()).isFalse();
+        assertThat(dto.window()).isNotEqualTo("Nightly closure windows");
+    }
+
     // Helper methods for constructing test fixtures
 
     private AlertEntity alert(

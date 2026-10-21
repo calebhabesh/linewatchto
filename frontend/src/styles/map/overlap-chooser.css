@@ -453,6 +453,11 @@
   overflow-wrap: anywhere;
 }
 
+/* Times sit on their own line under the dates so neither range splits. */
+.overlap-chooser-choice-time {
+  display: block;
+}
+
 .dark .overlap-chooser-choice-date {
   color: #93c5fd;
 }
