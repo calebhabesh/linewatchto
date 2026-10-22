@@ -636,7 +636,8 @@ public class TtcClosureProjector {
             closureNotificationTitle(alert.getTitle()),
             plannedClosureTravelDirection(alert, previewSegmentIds, segments)
         ).withServiceEffect("limited-service".equals(alert.getImpactKind()) ? "limited-service" : "suspension")
-            .withPreviewStationIds(previewSegmentIds.isEmpty() ? alert.getStationIds() : List.of());
+            .withPreviewStationIds(previewSegmentIds.isEmpty() ? alert.getStationIds() : List.of())
+            .withDisplayLocation(AlertDashboardService.displayLocation(segmentMatcher, alert, segments));
     }
 
     private PlannedClosureDto activeClosurePresentation(
@@ -694,7 +695,8 @@ public class TtcClosureProjector {
             plannedClosureTravelDirection(currentSourceAlert, previewSegmentIds, segments)
         ).withServiceEffect("limited-service".equals(currentSourceAlert.getImpactKind()) ? "limited-service"
             : "delay".equals(currentSourceAlert.getImpactKind()) ? "delay" : "suspension")
-            .withPreviewStationIds(previewSegmentIds.isEmpty() ? currentSourceAlert.getStationIds() : List.of());
+            .withPreviewStationIds(previewSegmentIds.isEmpty() ? currentSourceAlert.getStationIds() : List.of())
+            .withDisplayLocation(AlertDashboardService.displayLocation(segmentMatcher, currentSourceAlert, segments));
     }
 
     private ActiveAlertDto toActiveClosureAlert(
@@ -719,7 +721,8 @@ public class TtcClosureProjector {
             closure.cause(),
             closure.resolution(),
             currentSourceAlert == null ? null : canonicalClosureId,
-            closure.notificationTitle()
+            closure.notificationTitle(),
+            closure.displayLocation()
         );
     }
 

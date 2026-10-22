@@ -37,6 +37,8 @@ export type DirectionalDetail = {
   sourceAlertId: string;
   displayDirection: string;
   location: string;
+  /** Direction-aware rider span (→ one way, ⇄ both ways, "to" unspecified); `location` keeps source text. */
+  displayLocation?: string | null;
   description: string;
   resolution?: string | null;
   startedAt?: string | null;
@@ -49,6 +51,8 @@ export type ReducedSpeedZone = {
   lineNumber: string;
   title: string;
   location: string;
+  /** Direction-aware rider span (→ one way, ⇄ both ways, "to" unspecified); `location` keeps source text. */
+  displayLocation?: string | null;
   displayDirection: string;
   description: string;
   startedAt?: string | null;
@@ -127,6 +131,8 @@ export type ActiveAlert = IncidentRiderDetails & {
   title: string;
   severity: AlertSeverity;
   location: string;
+  /** Direction-aware rider span (→ one way, ⇄ both ways, "to" unspecified); `location` keeps source text. */
+  displayLocation?: string | null;
   displayDirection?: string | null;
   description: string;
   startedAt?: string | null;
@@ -149,6 +155,8 @@ export type DelayAlert = IncidentRiderDetails & {
   lineNumber: string;
   title: string;
   location: string;
+  /** Direction-aware rider span (→ one way, ⇄ both ways, "to" unspecified); `location` keeps source text. */
+  displayLocation?: string | null;
   displayDirection?: string | null;
   description: string;
   affectedSegmentIds: string[];
@@ -168,6 +176,8 @@ export type PlannedClosure = IncidentRiderDetails & {
   title: string;
   window: string;
   location: string;
+  /** Direction-aware rider span (→ one way, ⇄ both ways, "to" unspecified); `location` keeps source text. */
+  displayLocation?: string | null;
   displayDirection?: string | null;
   travelDirection?: TravelDirection | null;
   description: string;

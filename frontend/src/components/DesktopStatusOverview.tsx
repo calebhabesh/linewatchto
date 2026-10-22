@@ -268,7 +268,7 @@ export function DesktopStatusOverview({
                               </strong>
                             </div>
                             <div className="desktop-status-incident-location">
-                              <IncidentStationSpan location={row.location} />
+                              <IncidentStationSpan location={row.location} direction={row.direction} />
                             </div>
                             {row.direction && (
                               <div className="desktop-status-incident-direction">{row.direction}</div>

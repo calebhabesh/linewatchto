@@ -15,7 +15,7 @@ export function historyCause(cause: string | null | undefined) {
 }
 
 export function affectedStationLabel(location: string) {
-  return /\s(?:to|↔|→|<->)\s/i.test(location) ? "Affected stations" : "Affected station";
+  return /\s(?:to|↔|⇄|→|<->)\s/i.test(location) ? "Affected stations" : "Affected station";
 }
 
 // This is a source title category, never a replacement structured cause.

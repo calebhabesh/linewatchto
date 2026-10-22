@@ -677,7 +677,7 @@ const HistoryIncident = memo(function HistoryIncident({
           {incident.location ? (
             <span className="alert-history-fact alert-history-fact-location">
               <span>{affectedStationLabel(incident.location)}</span>
-              <strong><CompactImpactLocation location={incident.location} /></strong>
+              <strong><CompactImpactLocation location={incident.location} direction={incident.displayDirection} /></strong>
             </span>
           ) : null}
           {facts.map((fact) => (

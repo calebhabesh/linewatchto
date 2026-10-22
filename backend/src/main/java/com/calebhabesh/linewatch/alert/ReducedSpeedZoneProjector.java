@@ -55,7 +55,10 @@ public class ReducedSpeedZoneProjector {
                 AlertDirection dir = effectiveDirection(alert);
                 String detailDir = dir == AlertDirection.UNKNOWN ? "Unknown" : formatDirection(dir);
                 String location = stationLabel(alert.getStartStationId()) + " to " + stationLabel(alert.getEndStationId());
-                directionalDetails.add(new DirectionalDetail(alert.getId(), detailDir, location, alert.getDescription()));
+                String displayLocation = StationSpanFormatter.ttc(matcher, lineSegments, group.lineId,
+                    alert.getStartStationId(), alert.getEndStationId(), dir, this::stationLabel);
+                directionalDetails.add(new DirectionalDetail(
+                    alert.getId(), detailDir, location, alert.getDescription(), displayLocation));
 
                 for (String segmentId : source.segmentIds()) {
                     LineSegmentEntity segment = lineSegments.stream().filter(s -> s.getId().equals(segmentId)).findFirst().orElseThrow();
@@ -66,13 +69,43 @@ public class ReducedSpeedZoneProjector {
                         .mergeTravelDirection(travelDir);
                 }
             }
-            zones.add(new ReducedSpeedZone(zoneId, group.lineId, new ArrayList<>(group.segmentIds), sourceAlertIds, displayDirection, directionalDetails, groupAlerts));
+            zones.add(new ReducedSpeedZone(zoneId, group.lineId, new ArrayList<>(group.segmentIds), sourceAlertIds,
+                displayDirection, directionalDetails, groupAlerts, zoneDisplayLocation(group.sources, directionalDetails)));
         }
 
         Map<String, SegmentImpact> segmentImpacts = impactBuilders.values().stream()
             .collect(Collectors.toMap(SegmentImpactBuilder::segmentId, SegmentImpactBuilder::build));
 
         return new Projection(zones, segmentImpacts);
+    }
+
+    /**
+     * A zone repeating one section, or one section and its reverse, reads as a single span.
+     * Mixed sections keep the source "Multiple affected sections" wording.
+     */
+    private String zoneDisplayLocation(List<ProjectedSource> sources, List<DirectionalDetail> details) {
+        List<String> locations = details.stream().map(DirectionalDetail::location).distinct().toList();
+        String first = locations.getFirst();
+        String[] bounds = first.split(" to ", 2);
+        boolean singleSection = locations.size() == 1
+            || (locations.size() == 2 && bounds.length == 2
+                && locations.get(1).equals(bounds[1] + " to " + bounds[0]));
+        if (!singleSection || bounds.length != 2) {
+            return locations.size() == 1 ? details.getFirst().displayLocation() : "Multiple affected sections";
+        }
+        if (bounds[0].equals(bounds[1])) {
+            return bounds[0];
+        }
+        Set<AlertDirection> directions = sources.stream()
+            .map(source -> effectiveDirection(source.alert()))
+            .collect(Collectors.toSet());
+        if (directions.contains(AlertDirection.UNKNOWN)) {
+            return StationSpanFormatter.unspecified(bounds[0], bounds[1]);
+        }
+        if (directions.size() > 1 || directions.contains(AlertDirection.BIDIRECTIONAL)) {
+            return StationSpanFormatter.bothWays(bounds[0], bounds[1]);
+        }
+        return details.getFirst().displayLocation();
     }
 
     private TravelDirection travelDirection(AlertEntity alert, LineSegmentEntity segment) {
@@ -245,7 +278,8 @@ public class ReducedSpeedZoneProjector {
         String sourceAlertId,
         String displayDirection,
         String location,
-        String description
+        String description,
+        String displayLocation
     ) {}
 
     public record ReducedSpeedZone(
@@ -255,7 +289,8 @@ public class ReducedSpeedZoneProjector {
         List<String> sourceAlertIds,
         String displayDirection,
         List<DirectionalDetail> directionalDetails,
-        List<AlertEntity> sourceAlerts
+        List<AlertEntity> sourceAlerts,
+        String displayLocation
     ) {}
 
     public record SegmentImpact(

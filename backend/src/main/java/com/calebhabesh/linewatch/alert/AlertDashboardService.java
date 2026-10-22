@@ -398,7 +398,8 @@ public class AlertDashboardService {
             result.add(new DelayAlertDto(alert.id(), alert.lineId(), alert.lineNumber(), alert.title(),
                 alert.location(), alert.displayDirection(), alert.description(), alert.affectedSegmentIds(),
                 alert.startedAt(), alert.updatedAt(), alert.source(), alert.cause(), projection.activePresentation().serviceEffect(),
-                projection.id(), projection.activePresentation().activeWindowEnd(), alert.shuttle(), alert.notificationTitle()));
+                projection.id(), projection.activePresentation().activeWindowEnd(), alert.shuttle(), alert.notificationTitle(),
+                alert.displayLocation()));
         }
         if (activeRouteAlerts != null) {
             activeRouteAlerts.stream()
@@ -592,7 +593,9 @@ public class AlertDashboardService {
             sourceLabel(alert, "TTC Live Alerts"),
             cause(alert),
             resolution(alert),
-            null
+            null,
+            alert.getTitle(),
+            displayLocation(segmentMatcher, alert, segments)
         );
     }
 
@@ -613,7 +616,8 @@ public class AlertDashboardService {
             sourceLabel(alert, "TTC Live Alerts"),
             cause(alert),
             "limited-service".equals(alert.getImpactKind()) ? "limited-service" : "delay",
-            null, null, !isBlank(alert.getShuttleType()), alert.getTitle()
+            null, null, !isBlank(alert.getShuttleType()), alert.getTitle(),
+            displayLocation(segmentMatcher, alert, segments)
         );
     }
 
@@ -643,6 +647,24 @@ public class AlertDashboardService {
             return stationLabel(alert.getStartStationId());
         }
         return stationLabel(alert.getStartStationId()) + " to " + stationLabel(alert.getEndStationId());
+    }
+
+    /** Rider-facing span with a travel connector; see {@link StationSpanFormatter}. */
+    static String displayLocation(
+        AlertSegmentMatcher matcher,
+        AlertEntity alert,
+        List<LineSegmentEntity> segments
+    ) {
+        TransitLineEntity line = alert.getLine();
+        return StationSpanFormatter.ttc(
+            matcher,
+            segments,
+            line == null ? null : line.getId(),
+            alert.getStartStationId(),
+            alert.getEndStationId(),
+            AlertDirection.fromWireValue(alert.getDirection()),
+            AlertDashboardService::stationLabel
+        );
     }
 
     static String displayDirection(AlertEntity alert) {
@@ -775,7 +797,8 @@ public class AlertDashboardService {
             firstNonBlank(zone.sourceAlerts(), AlertEntity::getStationDistance),
             firstNonBlank(zone.sourceAlerts(), AlertEntity::getTrackPercent),
             firstNonBlank(zone.sourceAlerts(), AlertEntity::getReducedSpeed),
-            firstNonBlank(zone.sourceAlerts(), AlertEntity::getAverageSpeed)
+            firstNonBlank(zone.sourceAlerts(), AlertEntity::getAverageSpeed),
+            zone.displayLocation()
         );
     }
 
@@ -794,7 +817,8 @@ public class AlertDashboardService {
             detail.description(),
             sourceAlert == null ? null : resolution(sourceAlert),
             sourceAlert == null ? null : sourceAlert.getActivePeriodStart(),
-            sourceAlert == null ? null : sourceAlert.getSourceUpdatedAt()
+            sourceAlert == null ? null : sourceAlert.getSourceUpdatedAt(),
+            detail.displayLocation()
         );
     }
 
@@ -1050,8 +1074,33 @@ public class AlertDashboardService {
         String cause,
         String resolution,
         String relatedPlannedClosureId,
-        @com.fasterxml.jackson.annotation.JsonIgnore String notificationTitle
+        @com.fasterxml.jackson.annotation.JsonIgnore String notificationTitle,
+        String displayLocation
     ) {
+        public ActiveAlertDto(
+            String id,
+            String lineId,
+            String lineNumber,
+            String title,
+            String severity,
+            String location,
+            String displayDirection,
+            String description,
+            OffsetDateTime startedAt,
+            OffsetDateTime updatedAt,
+            List<String> affectedSegmentIds,
+            boolean shuttle,
+            String source,
+            String cause,
+            String resolution,
+            String relatedPlannedClosureId,
+            String notificationTitle
+        ) {
+            this(id, lineId, lineNumber, title, severity, location, displayDirection,
+                description, startedAt, updatedAt, affectedSegmentIds, shuttle, source,
+                cause, resolution, relatedPlannedClosureId, notificationTitle, null);
+        }
+
         public ActiveAlertDto(
             String id,
             String lineId,
@@ -1115,8 +1164,25 @@ public class AlertDashboardService {
         String relatedPlannedClosureId,
         OffsetDateTime activeWindowEnd,
         boolean shuttle,
-        @com.fasterxml.jackson.annotation.JsonIgnore String notificationTitle
+        @com.fasterxml.jackson.annotation.JsonIgnore String notificationTitle,
+        String displayLocation
     ) {
+        public DelayAlertDto(String id, String lineId, String lineNumber, String title, String location,
+            String displayDirection, String description, List<String> affectedSegmentIds,
+            OffsetDateTime startedAt, OffsetDateTime updatedAt, String source, String cause,
+            String serviceEffect, String relatedPlannedClosureId, OffsetDateTime activeWindowEnd,
+            boolean shuttle, String notificationTitle) {
+            this(id, lineId, lineNumber, title, location, displayDirection, description, affectedSegmentIds,
+                startedAt, updatedAt, source, cause, serviceEffect, relatedPlannedClosureId, activeWindowEnd,
+                shuttle, notificationTitle, null);
+        }
+
+        public DelayAlertDto withDisplayLocation(String value) {
+            return new DelayAlertDto(id, lineId, lineNumber, title, location, displayDirection, description,
+                affectedSegmentIds, startedAt, updatedAt, source, cause, serviceEffect, relatedPlannedClosureId,
+                activeWindowEnd, shuttle, notificationTitle, value);
+        }
+
         public DelayAlertDto(String id, String lineId, String lineNumber, String title, String location,
             String displayDirection, String description, List<String> affectedSegmentIds,
             OffsetDateTime startedAt, OffsetDateTime updatedAt, String source, String cause) {
@@ -1155,8 +1221,25 @@ public class AlertDashboardService {
         @com.fasterxml.jackson.annotation.JsonIgnore String notificationTitle,
         String travelDirection,
         List<String> previewStationIds,
-        String serviceEffect
+        String serviceEffect,
+        String displayLocation
     ) {
+        public PlannedClosureDto(
+            String id, String lineId, String lineNumber, String title, String window, String location,
+            String displayDirection, String description, OffsetDateTime startedAt, OffsetDateTime updatedAt,
+            List<String> previewSegmentIds, boolean shuttle, String source, String cause, String resolution,
+            boolean activeNow, String timingStatus, boolean nightly, OffsetDateTime activeWindowStart,
+            OffsetDateTime activeWindowEnd, String activeWindowLabel, OffsetDateTime nextWindowStart,
+            OffsetDateTime nextWindowEnd, String nextWindowLabel, String windowHours, String windowDates,
+            String notificationTitle, String travelDirection, List<String> previewStationIds, String serviceEffect
+        ) {
+            this(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt,
+                updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly,
+                activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd,
+                nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, previewStationIds,
+                serviceEffect, null);
+        }
+
         public PlannedClosureDto(
             String id,
             String lineId,
@@ -1192,11 +1275,15 @@ public class AlertDashboardService {
         }
 
         public PlannedClosureDto withServiceEffect(String effect) {
-            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, previewStationIds, effect);
+            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, previewStationIds, effect, displayLocation);
         }
 
         public PlannedClosureDto withPreviewStationIds(List<String> stationIds) {
-            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, stationIds, serviceEffect);
+            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, stationIds, serviceEffect, displayLocation);
+        }
+
+        public PlannedClosureDto withDisplayLocation(String value) {
+            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, previewStationIds, serviceEffect, value);
         }
 
         public PlannedClosureDto(
@@ -1331,8 +1418,21 @@ public class AlertDashboardService {
         String description,
         String resolution,
         OffsetDateTime startedAt,
-        OffsetDateTime updatedAt
+        OffsetDateTime updatedAt,
+        String displayLocation
     ) {
+        public DirectionalDetailDto(
+            String sourceAlertId,
+            String displayDirection,
+            String location,
+            String description,
+            String resolution,
+            OffsetDateTime startedAt,
+            OffsetDateTime updatedAt
+        ) {
+            this(sourceAlertId, displayDirection, location, description, resolution, startedAt, updatedAt, null);
+        }
+
         public DirectionalDetailDto(
             String sourceAlertId,
             String displayDirection,
@@ -1340,7 +1440,7 @@ public class AlertDashboardService {
             String description,
             String resolution
         ) {
-            this(sourceAlertId, displayDirection, location, description, resolution, null, null);
+            this(sourceAlertId, displayDirection, location, description, resolution, null, null, null);
         }
     }
 
@@ -1364,8 +1464,21 @@ public class AlertDashboardService {
         String stationDistance,
         String trackPercent,
         String reducedSpeed,
-        String averageSpeed
-    ) {}
+        String averageSpeed,
+        String displayLocation
+    ) {
+        public ReducedSpeedZoneDto(
+            String id, String lineId, String lineNumber, String title, String location, String displayDirection,
+            String description, OffsetDateTime startedAt, OffsetDateTime updatedAt, List<String> affectedSegmentIds,
+            List<String> sourceAlertIds, List<DirectionalDetailDto> directionalDetails, String source, String cause,
+            String resolution, String rszLength, String stationDistance, String trackPercent, String reducedSpeed,
+            String averageSpeed
+        ) {
+            this(id, lineId, lineNumber, title, location, displayDirection, description, startedAt, updatedAt,
+                affectedSegmentIds, sourceAlertIds, directionalDetails, source, cause, resolution, rszLength,
+                stationDistance, trackPercent, reducedSpeed, averageSpeed, null);
+        }
+    }
 
     public record SegmentImpact(
         String kind,

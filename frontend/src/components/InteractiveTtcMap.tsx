@@ -4418,7 +4418,7 @@ function OverlapChooser({
                   {impact.kind === "planned-closure" && details?.closureDateLabel ? (
                     <span className="overlap-chooser-choice-date">{details.closureDateLabel}{details?.closureTimeLabel ? <><span className="sr-only">, </span><span className="overlap-chooser-choice-time">{details.closureTimeLabel}</span></> : null}</span>
                   ) : null}
-                  <span className="overlap-chooser-choice-location"><IncidentStationSpan location={formatOverlapChooserLocation(details, badge.label)} />{details?.displayDirection?.trim() ? <span className="overlap-chooser-choice-direction"> ({details.displayDirection.trim()})</span> : null}</span>
+                  <span className="overlap-chooser-choice-location"><IncidentStationSpan location={formatOverlapChooserLocation(details, badge.label)} direction={details?.displayDirection} />{details?.displayDirection?.trim() ? <span className="overlap-chooser-choice-direction"> ({details.displayDirection.trim()})</span> : null}</span>
                 </span>
               </button>
             );

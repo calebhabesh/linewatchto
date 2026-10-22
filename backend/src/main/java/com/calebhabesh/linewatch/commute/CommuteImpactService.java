@@ -61,7 +61,7 @@ public class CommuteImpactService {
                 alert.id(), kind, "current", severity, alert.title(), alert.lineId(), alert.lineNumber(),
                 alert.location(), alert.displayDirection(), alert.description(), alert.source(), matchedSegmentIds, List.of(),
                 alert.startedAt(), alert.updatedAt(), null, "active-now", alert.startedAt()
-            ));
+            ).withDisplayLocation(alert.displayLocation()));
         }
 
         List<AlertDashboardService.DelayAlertDto> delayAlerts = dashboardService.delays();
@@ -81,7 +81,8 @@ public class CommuteImpactService {
                 alert.location(), alert.displayDirection(), alert.description(), alert.source(), matchedSegmentIds, List.of(),
                 alert.startedAt(), alert.updatedAt(), null, "active-now", alert.startedAt(),
                 null, null, false, alert.notificationTitle(), alert.cause(), alert.shuttle()
-            ).withServiceEffect(alert.serviceEffect(), alert.relatedPlannedClosureId()));
+            ).withServiceEffect(alert.serviceEffect(), alert.relatedPlannedClosureId())
+                .withDisplayLocation(alert.displayLocation()));
         }
 
         for (AlertDashboardService.ReducedSpeedZoneDto zone : dashboardService.reducedSpeedZones()) {
@@ -99,7 +100,7 @@ public class CommuteImpactService {
                 zone.id(), "reduced-speed-zone", "current", "minor", zone.title(), zone.lineId(), zone.lineNumber(),
                 zone.location(), zone.displayDirection(), zone.description(), zone.source(), matchedSegmentIds, List.of(),
                 zone.startedAt(), zone.updatedAt(), null, "active-now", zone.startedAt()
-            ));
+            ).withDisplayLocation(zone.displayLocation()));
         }
 
         for (AlertDashboardService.StationNodeImpact impact : dashboardService.activeStationNodeImpacts()) {
@@ -146,7 +147,8 @@ public class CommuteImpactService {
                 closure.startedAt(), closure.updatedAt(), closure.window(), closure.timingStatus(), eventStartAt,
                 closure.windowHours(), closure.windowDates(), false,
                 closure.notificationTitle(), closure.cause(), closure.shuttle()
-            ).withServiceEffect(closure.serviceEffect(), closure.id()));
+            ).withServiceEffect(closure.serviceEffect(), closure.id())
+                .withDisplayLocation(closure.displayLocation()));
         }
 
         List<CommuteResponses.MatchedImpactResponse> matches = matchesByIdentity.values().stream()

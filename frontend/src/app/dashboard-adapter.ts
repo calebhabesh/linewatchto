@@ -9,6 +9,7 @@ import {
 } from "./linewatch-data.ts";
 import type { ReliabilitySnapshot } from "./linewatch-data.ts";
 import type { DashboardApiResponse } from "./dashboard-contract.ts";
+import { withDisplayLocations } from "./station-span.ts";
 
 export function dashboardDataFromApi(
   payload: DashboardApiResponse,
@@ -28,10 +29,7 @@ export function dashboardDataFromApi(
     stations: payload.map.stations,
     lineStatuses: payload.status.lines,
     generatedAt: payload.status.generatedAt,
-    activeAlerts: payload.activeAlerts,
-    delays: payload.delays,
-    reducedSpeedZones: payload.reducedSpeedZones,
-    plannedClosures: payload.plannedClosures,
+    ...withDisplayLocations(payload),
     stationNodeImpacts: payload.map.stationNodeImpacts,
     commuteImpacts,
     reliabilitySummaries,

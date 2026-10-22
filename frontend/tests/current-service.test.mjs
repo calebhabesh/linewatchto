@@ -466,7 +466,7 @@ test("CurrentServicePanel desktop content animates on entrance and suppresses du
 test("pull-up impact rows name the condition and put direction below the location", () => {
   const panel = readFileSync(new URL("../src/components/CurrentServicePanel.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
-  assert.ok(panel.includes('className="current-service-impact-location"><IncidentStationSpan location={row.location} /></span>'));
+  assert.ok(panel.includes('className="current-service-impact-location"><IncidentStationSpan location={row.location} direction={row.direction} /></span>'));
   assert.ok(panel.includes('className="current-service-impact-direction">{row.direction}</span>'));
   assert.match(styles, /\.current-service-impact-direction\s*\{[^}]*display:\s*block;/);
 });

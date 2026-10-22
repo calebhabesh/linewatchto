@@ -50,6 +50,10 @@ class ReducedSpeedZoneProjectorTest {
         assertThat(projection.zones()).hasSize(1);
         assertThat(projection.zones().getFirst().displayDirection())
             .isEqualTo("Northbound & Southbound");
+        assertThat(projection.zones().getFirst().displayLocation()).isEqualTo("Yorkdale ⇄ Wilson");
+        assertThat(projection.zones().getFirst().directionalDetails())
+            .extracting(ReducedSpeedZoneProjector.DirectionalDetail::displayLocation)
+            .containsExactly("Yorkdale → Wilson", "Wilson → Yorkdale");
         assertThat(projection.segmentImpacts().get("line-1-wilson-yorkdale"))
             .satisfies(impact -> {
                 assertThat(impact.travelDirection()).isEqualTo(TravelDirection.BIDIRECTIONAL);
@@ -69,6 +73,19 @@ class ReducedSpeedZoneProjectorTest {
 
         assertThat(projection.zones().getFirst().displayDirection())
             .isEqualTo("Eastbound & Westbound");
+        assertThat(projection.zones().getFirst().displayLocation()).isEqualTo("Jane ⇄ Runnymede");
+    }
+
+    @Test
+    void drawsOneWayZonesInTravelOrder() {
+        Projection projection = projector.project(
+            List.of(alert("ttc-route-west", "line-2", "jane", "runnymede", "westbound")),
+            List.of(segment(
+                "line-2-jane-runnymede", "line-2", "jane", "runnymede", "eastbound"
+            ))
+        );
+
+        assertThat(projection.zones().getFirst().displayLocation()).isEqualTo("Runnymede → Jane");
     }
 
     @Test
@@ -99,6 +116,7 @@ class ReducedSpeedZoneProjectorTest {
             .isEqualTo(TravelDirection.BIDIRECTIONAL);
         assertThat(projection.zones().getFirst().displayDirection())
             .isEqualTo("Direction not specified");
+        assertThat(projection.zones().getFirst().displayLocation()).isEqualTo("Jane to Runnymede");
     }
 
     @Test

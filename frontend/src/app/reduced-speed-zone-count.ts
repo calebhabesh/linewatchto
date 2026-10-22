@@ -1,4 +1,5 @@
 import type { ReducedSpeedZone } from "./linewatch-data";
+import { parseStationSpan } from "./station-span.ts";
 
 export type ReducedSpeedZoneDirection =
   | "northbound"
@@ -70,7 +71,8 @@ export function countReducedSpeedZonesByDirection(
     if (!sourceAlertId) continue;
     const direction = normalizeReducedSpeedZoneDirection(detail.displayDirection);
     const existing = sourceDirections.get(sourceAlertId);
-    const destination = detail.location.split(/\s+to\s+/i, 2)[1]?.trim() || null;
+    // Direction-aware spans list stations in travel order, so the far end is the destination.
+    const destination = parseStationSpan(detail.location)?.to || null;
     sourceDirections.set(
       sourceAlertId,
       existing && existing.direction !== direction

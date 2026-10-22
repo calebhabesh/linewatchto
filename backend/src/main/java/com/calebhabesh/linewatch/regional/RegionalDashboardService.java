@@ -252,29 +252,39 @@ public class RegionalDashboardService {
 
     private List<AlertDashboardService.ActiveAlertDto> activeAlerts(List<RegionalNormalizedAlert> alerts) {
         return alerts.stream().filter(alert -> "suspension".equals(alert.impactKind()))
-            .map(alert -> new AlertDashboardService.ActiveAlertDto(
-                alert.id(), alert.lineId(), lineNumber(alert), alert.title(), "suspension", location(alert), null,
-                alert.description(), alert.activePeriodStart(), alert.sourceUpdatedAt(), alert.affectedSegmentIds(),
-                false, sourceLabel(alert), alert.cause(), null
-            )).toList();
+            .map(alert -> {
+                RegionalStationSpan.Span span = RegionalStationSpan.describe(alert);
+                return new AlertDashboardService.ActiveAlertDto(
+                    alert.id(), alert.lineId(), lineNumber(alert), alert.title(), "suspension", location(alert),
+                    span.displayDirection(), alert.description(), alert.activePeriodStart(), alert.sourceUpdatedAt(),
+                    alert.affectedSegmentIds(), false, sourceLabel(alert), alert.cause(), null, null, alert.title(),
+                    span.displayLocation()
+                );
+            }).toList();
     }
 
     private List<AlertDashboardService.DelayAlertDto> delays(List<RegionalNormalizedAlert> alerts) {
         return alerts.stream().filter(alert -> "delay".equals(alert.impactKind()))
-            .map(alert -> new AlertDashboardService.DelayAlertDto(
-                alert.id(), alert.lineId(), lineNumber(alert), alert.title(), location(alert), null,
-                alert.description(), alert.affectedSegmentIds(), alert.activePeriodStart(), alert.sourceUpdatedAt(),
-                sourceLabel(alert), alert.cause()
-            )).toList();
+            .map(alert -> {
+                RegionalStationSpan.Span span = RegionalStationSpan.describe(alert);
+                return new AlertDashboardService.DelayAlertDto(
+                    alert.id(), alert.lineId(), lineNumber(alert), alert.title(), location(alert),
+                    span.displayDirection(), alert.description(), alert.affectedSegmentIds(),
+                    alert.activePeriodStart(), alert.sourceUpdatedAt(), sourceLabel(alert), alert.cause()
+                ).withDisplayLocation(span.displayLocation());
+            }).toList();
     }
 
     private List<AlertDashboardService.PlannedClosureDto> plannedClosures(List<RegionalNormalizedAlert> alerts) {
         return alerts.stream().filter(alert -> "planned-closure".equals(alert.impactKind()))
-            .map(alert -> new AlertDashboardService.PlannedClosureDto(
-                alert.id(), alert.lineId(), lineNumber(alert), alert.title(), window(alert), location(alert), null,
-                alert.description(), alert.activePeriodStart(), alert.sourceUpdatedAt(), alert.affectedSegmentIds(),
-                false, sourceLabel(alert), alert.cause(), null, alert.stationIds()
-            )).toList();
+            .map(alert -> {
+                RegionalStationSpan.Span span = RegionalStationSpan.describe(alert);
+                return new AlertDashboardService.PlannedClosureDto(
+                    alert.id(), alert.lineId(), lineNumber(alert), alert.title(), window(alert), location(alert),
+                    span.displayDirection(), alert.description(), alert.activePeriodStart(), alert.sourceUpdatedAt(),
+                    alert.affectedSegmentIds(), false, sourceLabel(alert), alert.cause(), null, alert.stationIds()
+                ).withDisplayLocation(span.displayLocation());
+            }).toList();
     }
 
     private String location(RegionalNormalizedAlert alert) {
@@ -286,9 +296,8 @@ public class RegionalDashboardService {
         String first = RegionalNetworkCatalog.station(ordered.getFirst()).map(station -> station.name()).orElse(ordered.getFirst());
         if (ordered.size() == 1) return first;
         String last = RegionalNetworkCatalog.station(ordered.getLast()).map(station -> station.name()).orElse(ordered.getLast());
-        // Regional alert normalization does not yet retain a trustworthy travel
-        // direction. Keep the station span bidirectional instead of letting the
-        // frontend infer a one-way impact from the word "to".
+        // Source span text for push identity and matching. Riders see the direction-aware
+        // displayLocation from RegionalStationSpan instead.
         return first + " ↔ " + last;
     }
 

@@ -81,7 +81,7 @@ describe("alert history timeline UI", () => {
     assert.match(timelineSource, /TransitLineBadge/);
     assert.match(timelineSource, /CompactImpactLocation/);
     assert.match(timelineSource, /<CompactImpactLocation location=\{incident\.location\}/);
-    assert.match(cssSource, /\.compact-impact-location__arrow\s*\{[^}]*display:\s*block;[^}]*height:\s*0\.75rem;[^}]*width:\s*1\.25rem;/s);
+    assert.match(cssSource, /\.compact-impact-location__arrow\s*\{[^}]*display:\s*block;[^}]*height:\s*0\.95rem;[^}]*width:\s*0\.95rem;/s);
     assert.match(timelineSource, /className="alert-history-line-badge"/);
     assert.match(timelineSource, /alert-history-line-name min-w-0 truncate/);
     assert.match(timelineSource, /alert-history-fact-grid/);

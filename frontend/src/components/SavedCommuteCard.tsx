@@ -538,7 +538,7 @@ export function SavedCommuteCard({
             </div>
             <span className="text-slate-600 dark:text-slate-400">
               {toTitleCase(impactLineLabel(impact))}
-              {impact.location ? <>: <IncidentStationSpan location={toTitleCase(impact.location)} /></> : null}
+              {impact.displayLocation || impact.location ? <>: <IncidentStationSpan location={toTitleCase(impact.displayLocation || impact.location || "")} direction={impact.displayDirection} /></> : null}
               {impact.displayDirection ? ` (${toTitleCase(impact.displayDirection)})` : ""}
             </span>
           </div>

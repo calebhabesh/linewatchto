@@ -9,6 +9,7 @@ import type {
   StationNodeImpact,
 } from "./linewatch-data";
 import type { StationListResponse } from "./station-data";
+import { withDisplayLocations } from "./station-span.ts";
 
 export type { NetworkId };
 
@@ -715,10 +716,12 @@ export function regionalDashboardDataFromApi(
     stations: payload.map.stations,
     lineStatuses: payload.status.lines,
     generatedAt: payload.status.generatedAt,
-    activeAlerts: payload.activeAlerts.map(alert => ({ ...alert, ...payload.incidentDetails?.[alert.id] })),
-    delays: payload.delays.map(alert => ({ ...alert, ...payload.incidentDetails?.[alert.id] })),
-    reducedSpeedZones: payload.reducedSpeedZones,
-    plannedClosures: payload.plannedClosures.map(closure => ({ ...closure, ...payload.incidentDetails?.[closure.id] })),
+    ...withDisplayLocations({
+      activeAlerts: payload.activeAlerts.map(alert => ({ ...alert, ...payload.incidentDetails?.[alert.id] })),
+      delays: payload.delays.map(alert => ({ ...alert, ...payload.incidentDetails?.[alert.id] })),
+      reducedSpeedZones: payload.reducedSpeedZones,
+      plannedClosures: payload.plannedClosures.map(closure => ({ ...closure, ...payload.incidentDetails?.[closure.id] })),
+    }),
     stationNodeImpacts: payload.map.stationNodeImpacts,
     reliability,
     ttcPerformance: payload.performance,

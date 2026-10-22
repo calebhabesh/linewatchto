@@ -39,6 +39,8 @@ export type AccountMatchedImpact = {
   lineId: string | null;
   lineNumber: string | null;
   location: string | null;
+  /** Direction-aware rider span; `location` keeps source text. */
+  displayLocation?: string | null;
   displayDirection: string | null;
   description?: string | null;
   source: string;

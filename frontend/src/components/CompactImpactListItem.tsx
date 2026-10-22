@@ -85,11 +85,11 @@ export function CompactImpactListItem({
       <LineBadge lineId={lineId} lineNumber={lineNumber} />
       <span className="compact-impact-list-item__body">
         <span className="compact-impact-list-item__heading">
-          <strong>{routeFirst ? <CompactImpactLocation location={location} /> : title}</strong>
+          <strong>{routeFirst ? <CompactImpactLocation location={location} direction={direction} /> : title}</strong>
           {status ? <span className="compact-impact-list-item__status">{status}</span> : null}
         </span>
         {!omitTitle ? <span className="compact-impact-list-item__location">
-          {routeFirst ? title : <CompactImpactLocation location={location} />}
+          {routeFirst ? title : <CompactImpactLocation location={location} direction={direction} />}
         </span> : null}
       </span>
       <span className="compact-impact-list-item__map-action" aria-hidden="true">

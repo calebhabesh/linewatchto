@@ -241,7 +241,7 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /\.alert-card\s*>\s*\.impact-route,\s*\.closure-card\s*>\s*\.impact-route\s*\{[^}]*margin:\s*24px 0 0/s);
     assert.match(globalCss, /\.impact-route__bounds\s*\{[^}]*font-size:\s*1\.08rem;[^}]*gap:\s*11px;/s);
     assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[^}]*\.impact-route__bounds\s*\{[^}]*font-size:\s*1\.55rem;[^}]*gap:\s*17px;/s);
-    assert.match(globalCss, /\.impact-route__arrow\s*\{[^}]*height:\s*20px;[^}]*width:\s*40px;/s);
+    assert.match(globalCss, /\.impact-route__arrow\s*\{[^}]*height:\s*22px;[^}]*width:\s*22px;/s);
     assert.match(globalCss, /\.impact-route__bounds--segment\s*\{[^}]*display:\s*flex;[^}]*flex-wrap:\s*wrap;/s);
     assert.match(globalCss, /\.impact-route__target\s*\{[^}]*display:\s*inline-flex;/s);
     assert.match(globalCss, /\.impact-route__target\s*\{[^}]*align-items:\s*center;/s);
@@ -408,13 +408,11 @@ describe("floating menu layout", () => {
     assert.match(plannedClosuresSource, /direction=\{closure\.displayDirection\}/);
   });
 
-  it("uses displayDirection to force bidirectional route arrows on cards", () => {
-    assert.match(impactCardFieldsSource, /function isBidirectionalRouteDirection/);
-    assert.match(impactCardFieldsSource, /both way/);
-    assert.match(impactCardFieldsSource, /northbound & southbound/);
-    assert.match(impactCardFieldsSource, /eastbound & westbound/);
-    assert.match(impactCardFieldsSource, /bounds\.twoWay \|\| isBidirectionalRouteDirection\(direction\)/);
-    assert.match(impactCardFieldsSource, /showTwoWay \? <LongArrowLeftRight \/> : <LongArrowRight \/>/);
+  it("draws route headers with the shared direction-aware station span", () => {
+    // Connector semantics are covered by tests/station-span.test.mjs.
+    assert.match(impactCardFieldsSource, /const span = parseStationSpan\(location, direction\);/);
+    assert.match(impactCardFieldsSource, /<StationSpanConnector travel=\{span\.travel\} size=\{20\} className="impact-route__arrow" \/>/);
+    assert.doesNotMatch(impactCardFieldsSource, /LongArrowLeftRight|LongArrowRight/);
   });
 
   it("formats cause values into title case", () => {
@@ -437,7 +435,7 @@ describe("floating menu layout", () => {
     assert.match(plannedClosuresSource, /OverlappingImpactRefs/);
     assert.match(plannedClosuresSource, /previewSegmentIds/);
     assert.match(impactCardFieldsSource, /export function formatCompactLocation/);
-    assert.match(impactCardFieldsSource, /bounds\.twoWay \? "↔" : "→"/);
+    assert.match(impactCardFieldsSource, /return formatStationSpanText\(span\);/);
     assert.match(impactOverlapRefsSource, /ImpactTypeIcon/);
     assert.match(impactTypeIconSource, /impact-type-icon/);
     assert.match(impactOverlapRefsSource, /overlap-impact-ref/);

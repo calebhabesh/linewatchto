@@ -379,9 +379,9 @@
 
 .impact-route__arrow {
   flex: 0 0 auto;
-  height: 20px;
+  height: 22px;
   margin-inline: 2px;
-  width: 40px;
+  width: 22px;
 }
 
 .impact-route__direction {
@@ -404,8 +404,8 @@
   }
 
   .impact-route__arrow {
-    height: 25px;
-    width: 52px;
+    height: 26px;
+    width: 26px;
   }
 
   .impact-route__direction {
@@ -1759,8 +1759,8 @@
   color: rgb(71, 85, 105);
   display: block;
   flex: 0 0 auto;
-  height: 0.75rem;
-  width: 1.25rem;
+  height: 0.95rem;
+  width: 0.95rem;
 }
 
 .dark .compact-impact-location__arrow,

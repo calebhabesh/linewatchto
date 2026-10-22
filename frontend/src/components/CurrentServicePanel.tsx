@@ -404,7 +404,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                               {incident.title}
                             </strong>
                           </span>
-                          <span className="current-service-impact-location"><IncidentStationSpan location={row.location} /></span>
+                          <span className="current-service-impact-location"><IncidentStationSpan location={row.location} direction={row.direction} /></span>
                           {row.direction && <span className="current-service-impact-direction">{row.direction}</span>}
                           <IncidentFacts row={row} className="current-service-impact-timing" />
                           {(incident.timing || row.shuttle) && (

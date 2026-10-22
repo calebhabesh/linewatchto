@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowRightLeft, ArrowUp, ArrowUpDown } from "lucide-react";
 import type { ReducedSpeedZone } from "../app/linewatch-data";
 import {
   countReducedSpeedZonesByDirection,
@@ -37,7 +37,7 @@ function DirectionCountArrow({
   if (direction === "eastbound") return <ArrowRight {...props} />;
   if (direction === "westbound") return <ArrowLeft {...props} />;
   if (direction === "bidirectional") {
-    return verticalLine ? <ArrowUpDown {...props} /> : <ArrowLeftRight {...props} />;
+    return verticalLine ? <ArrowUpDown {...props} /> : <ArrowRightLeft {...props} />;
   }
   return <span aria-hidden="true">?</span>;
 }
@@ -76,7 +76,7 @@ export function ReducedSpeedZoneDirectionTextArrow({
     : direction === "southbound" ? "↓"
       : direction === "eastbound" ? "→"
         : direction === "westbound" ? "←"
-          : direction === "bidirectional" ? (verticalLine ? "↕" : "↔")
+          : direction === "bidirectional" ? (verticalLine ? "⇅" : "⇄")
             : "?";
 
   return (

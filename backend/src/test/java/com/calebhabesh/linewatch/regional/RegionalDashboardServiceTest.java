@@ -98,6 +98,7 @@ class RegionalDashboardServiceTest {
         assertThat(dashboard.delays()).singleElement().satisfies(delay -> {
             assertThat(delay.lineNumber()).isEqualTo("KI");
             assertThat(delay.location()).isEqualTo("Bloor ↔ Weston");
+            assertThat(delay.displayLocation()).isEqualTo("Bloor ⇄ Weston");
             assertThat(delay.source()).isEqualTo("Metrolinx Open API");
         });
         assertThat(dashboard.status().lines()).filteredOn(line -> line.number().equals("KI"))

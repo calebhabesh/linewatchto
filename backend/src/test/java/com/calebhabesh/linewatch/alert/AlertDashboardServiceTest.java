@@ -2036,6 +2036,35 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void oneWayDelayKeepsSourceLocationButDisplaysStationsInTravelOrder() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity delay = withLine(alert(
+            "delay-westbound",
+            "active-alert",
+            "delay",
+            "Delay",
+            "Westbound delays between Jane and Runnymede.",
+            "jane",
+            "runnymede",
+            OffsetDateTime.parse("2026-06-01T11:50:00Z"),
+            null
+        ), "line-2", "2");
+        ReflectionTestUtils.setField(delay, "impactKind", "delay");
+        ReflectionTestUtils.setField(delay, "direction", "westbound");
+        when(alertRepository.findByActiveTrueAndType("active-alert")).thenReturn(List.of(delay));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-jane-runnymede", "line-2", "jane", "runnymede", 10, "eastbound")
+        ));
+
+        assertThat(service.delays()).singleElement().satisfies(dto -> {
+            // Push identity and history compare the unchanged source text.
+            assertThat(dto.location()).isEqualTo("Jane to Runnymede");
+            assertThat(dto.displayDirection()).isEqualTo("Westbound");
+            assertThat(dto.displayLocation()).isEqualTo("Runnymede → Jane");
+        });
+    }
+
+    @Test
     void bothWayDirectionReturnsBidirectionalCardsAndMapImpacts() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         AlertEntity delay = withLine(alert(
@@ -2087,10 +2116,12 @@ class AlertDashboardServiceTest {
         assertThat(service.delays()).singleElement().satisfies(dto -> {
             assertThat(dto.displayDirection()).isEqualTo("Eastbound & Westbound");
             assertThat(dto.location()).isEqualTo("Jane to Runnymede");
+            assertThat(dto.displayLocation()).isEqualTo("Jane ⇄ Runnymede");
         });
         assertThat(service.plannedClosures()).singleElement().satisfies(dto -> {
             assertThat(dto.displayDirection()).isEqualTo("Northbound & Southbound");
             assertThat(dto.location()).isEqualTo("St George to Spadina");
+            assertThat(dto.displayLocation()).isEqualTo("St George ⇄ Spadina");
             assertThat(dto.travelDirection()).isEqualTo("bidirectional");
         });
         assertThat(service.activeSegmentImpacts().get("line-2-jane-runnymede"))

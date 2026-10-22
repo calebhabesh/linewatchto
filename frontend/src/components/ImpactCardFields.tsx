@@ -4,6 +4,8 @@ import type { AccountCommutePathPreview } from "../app/commute-data";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { suppliedAlertCause } from "../app/alert-cause";
 import { formatImpactLocation } from "../app/impact-location";
+import { formatStationSpanText, parseStationSpan, stationSpanAccessibleText } from "../app/station-span";
+import { StationSpanConnector } from "./IncidentStationSpan";
 import { ImpactTimestamp } from "./ImpactTimestamp";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
@@ -97,67 +99,15 @@ function formatElapsed(timeStr: string) {
   }
 }
 
-function LongArrowRight() {
-  return (
-    <svg width="32" height="16" viewBox="0 0 32 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="impact-route__arrow text-slate-800 dark:text-white" aria-hidden="true">
-      <path d="M0 8h30M23 1l7 7-7 7"/>
-    </svg>
-  );
+export function formatCompactLocation(location: string, direction?: string | null): string {
+  const span = parseStationSpan(location, direction);
+  if (!span) return formatImpactLocation(location) || "Affected segment unavailable";
+  return formatStationSpanText(span);
 }
 
-function LongArrowLeftRight() {
-  return (
-    <svg width="32" height="16" viewBox="0 0 32 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="impact-route__arrow text-slate-800 dark:text-white" aria-hidden="true">
-      <path d="M2 8h28M9 1L2 8l7 7M23 1l7 7-7 7"/>
-    </svg>
-  );
-}
-
-function splitLocation(location: string): { from: string; to: string; twoWay: boolean } | null {
-  location = formatImpactLocation(location);
-  if (!location) return null;
-  if (location.includes(" ↔ ")) {
-    const [from, to] = location.split(" ↔ ", 2);
-    return { from, to, twoWay: true };
-  }
-  if (location.includes(" → ")) {
-    const [from, to] = location.split(" → ", 2);
-    return { from, to, twoWay: false };
-  }
-  if (location.includes(" <-> ")) {
-    const [from, to] = location.split(" <-> ", 2);
-    return { from, to, twoWay: true };
-  }
-  if (location.includes(" to ")) {
-    const [from, to] = location.split(" to ", 2);
-    return { from, to, twoWay: false };
-  }
-  return null;
-}
-
-function isBidirectionalRouteDirection(direction?: string | null): boolean {
-  if (!direction) return false;
-  const normalized = direction.trim().toLowerCase().replace(/\s+/g, " ");
-  return normalized === "bidirectional"
-    || normalized === "both way"
-    || normalized === "both ways"
-    || normalized === "both directions"
-    || normalized === "in both directions"
-    || normalized === "northbound & southbound"
-    || normalized === "southbound & northbound"
-    || normalized === "eastbound & westbound"
-    || normalized === "westbound & eastbound";
-}
-
-export function formatCompactLocation(location: string): string {
-  const bounds = splitLocation(location);
-  if (!bounds) return formatImpactLocation(location) || "Affected segment unavailable";
-  return `${bounds.from} ${bounds.twoWay ? "↔" : "→"} ${bounds.to}`;
-}
-
-export function CompactImpactLocation({ location }: { location: string }) {
-  const bounds = splitLocation(location);
-  if (!bounds) {
+export function CompactImpactLocation({ location, direction }: { location: string; direction?: string | null }) {
+  const span = parseStationSpan(location, direction);
+  if (!span) {
     return (
       <span className="compact-impact-location">
         <span className="compact-impact-location__station">{formatImpactLocation(location) || "Affected segment unavailable"}</span>
@@ -165,28 +115,11 @@ export function CompactImpactLocation({ location }: { location: string }) {
     );
   }
 
-  const formattedLocation = formatCompactLocation(location);
   return (
-    <span className="compact-impact-location" aria-label={formattedLocation}>
-      <span className="compact-impact-location__station">{bounds.from}</span>
-      <svg
-        className="compact-impact-location__arrow"
-        viewBox="0 0 20 12"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-        focusable="false"
-      >
-        {bounds.twoWay ? (
-          <path d="M2 6h16M6 2 2 6l4 4m8-8 4 4-4 4" />
-        ) : (
-          <path d="M1 6h17m-5-4 5 4-5 4" />
-        )}
-      </svg>
-      <span className="compact-impact-location__station">{bounds.to}</span>
+    <span className="compact-impact-location" aria-label={stationSpanAccessibleText(span)}>
+      <span className="compact-impact-location__station">{span.from}</span>
+      <StationSpanConnector travel={span.travel} size={14} className="compact-impact-location__arrow" />
+      <span className="compact-impact-location__station">{span.to}</span>
     </span>
   );
 }
@@ -198,16 +131,15 @@ export function ImpactRouteHeader({
   location: string;
   direction?: string | null;
 }) {
-  const bounds = splitLocation(location);
-  const showTwoWay = bounds ? bounds.twoWay || isBidirectionalRouteDirection(direction) : false;
+  const span = parseStationSpan(location, direction);
   return (
     <div className="impact-route">
-      {bounds ? (
-        <div className="impact-route__bounds impact-route__bounds--segment">
-          <span className="impact-route__station">{bounds.from}</span>
+      {span ? (
+        <div className="impact-route__bounds impact-route__bounds--segment" aria-label={stationSpanAccessibleText(span)}>
+          <span className="impact-route__station">{span.from}</span>
           <span className="impact-route__target">
-            {showTwoWay ? <LongArrowLeftRight /> : <LongArrowRight />}
-            <span className="impact-route__station">{bounds.to}</span>
+            <StationSpanConnector travel={span.travel} size={20} className="impact-route__arrow" />
+            <span className="impact-route__station">{span.to}</span>
           </span>
         </div>
       ) : (
