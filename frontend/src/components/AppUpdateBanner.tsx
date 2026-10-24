@@ -1,19 +1,22 @@
 "use client";
 
 import { RefreshCcw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { lineWatchAppVersion, lineWatchBuildLabel } from "../app/app-build";
 import {
   appUpdateReleaseNote,
   appUpdateNewVersion,
   appUpdateReleaseKey,
+  isQuietUpdateMoment,
+  shouldApplyBackgroundUpdate,
   shouldShowAppUpdate,
   type AppUpdateVersion,
 } from "../app/app-update-version";
-import { reloadLineWatchAppForUpdate } from "../app/local-app-reset";
+import { reloadLineWatchAppForUpdate, reloadLineWatchAppInBackground } from "../app/local-app-reset";
 
 const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
 const DISMISSED_UPDATE_RELEASE_STORAGE_KEY = "linewatch-dismissed-update-release";
+const BACKGROUND_UPDATE_TARGET_STORAGE_KEY = "linewatch-background-update-target";
 
 const installedVersion = {
   appVersion: lineWatchAppVersion,
@@ -45,6 +48,28 @@ export function AppUpdateBanner() {
     }
   });
   const [isUpdating, setIsUpdating] = useState(false);
+  const foregroundStartedAtRef = useRef(0);
+  const lastInteractionAtRef = useRef(Number.NEGATIVE_INFINITY);
+
+  const maybeApplyBackgroundUpdate = useCallback((latest: AppUpdateVersion) => {
+    if (!shouldApplyBackgroundUpdate(latest, installedVersion)) return;
+    if (document.visibilityState !== "visible") return;
+    if (!isQuietUpdateMoment({
+      now: Date.now(),
+      foregroundStartedAt: foregroundStartedAtRef.current,
+      lastInteractionAt: lastInteractionAtRef.current,
+    })) return;
+
+    // Try each deployed build once per session so a stale shell cannot loop reloads.
+    const targetBuild = latest.buildLabel?.trim() ?? "";
+    try {
+      if (window.sessionStorage.getItem(BACKGROUND_UPDATE_TARGET_STORAGE_KEY) === targetBuild) return;
+      window.sessionStorage.setItem(BACKGROUND_UPDATE_TARGET_STORAGE_KEY, targetBuild);
+    } catch {
+      return;
+    }
+    void reloadLineWatchAppInBackground();
+  }, []);
 
   const checkForUpdate = useCallback(async () => {
     try {
@@ -64,6 +89,7 @@ export function AppUpdateBanner() {
 
       setLatestVersion(null);
       setDismissedReleaseKey(null);
+      maybeApplyBackgroundUpdate(body);
       try {
         window.sessionStorage.removeItem(DISMISSED_UPDATE_RELEASE_STORAGE_KEY);
       } catch {
@@ -72,9 +98,10 @@ export function AppUpdateBanner() {
     } catch {
       // Update checks are best-effort and should never interrupt the dashboard.
     }
-  }, []);
+  }, [maybeApplyBackgroundUpdate]);
 
   useEffect(() => {
+    foregroundStartedAtRef.current = Date.now();
     const initialCheck = window.setTimeout(() => {
       void checkForUpdate();
     }, 0);
@@ -84,21 +111,32 @@ export function AppUpdateBanner() {
     }, UPDATE_CHECK_INTERVAL_MS);
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
+        foregroundStartedAtRef.current = Date.now();
         void checkForUpdate();
       }
     };
     const handleFocus = () => {
       void checkForUpdate();
     };
+    const handleInteraction = () => {
+      lastInteractionAtRef.current = Date.now();
+    };
+    const interactionEvents = ["pointerdown", "keydown", "wheel", "touchstart"] as const;
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("focus", handleFocus);
+    for (const type of interactionEvents) {
+      window.addEventListener(type, handleInteraction, { capture: true, passive: true });
+    }
 
     return () => {
       window.clearTimeout(initialCheck);
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", handleFocus);
+      for (const type of interactionEvents) {
+        window.removeEventListener(type, handleInteraction, { capture: true });
+      }
     };
   }, [checkForUpdate]);
 

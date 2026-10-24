@@ -5,6 +5,9 @@ import {
   appUpdateReleaseNote,
   appUpdateNewVersion,
   appUpdateReleaseKey,
+  isQuietUpdateMoment,
+  QUIET_UPDATE_WINDOW_MS,
+  shouldApplyBackgroundUpdate,
   shouldShowAppUpdate,
 } from "../src/app/app-update-version.ts";
 
@@ -55,5 +58,47 @@ describe("app update release identity", () => {
     assert.equal(appUpdateReleaseNote({ appVersion: "1.1.1", releaseNote }, installed), null);
     assert.equal(appUpdateNewVersion({ appVersion: "1.1.1" }, installed), "1.1.1");
     assert.equal(appUpdateReleaseNote({ appVersion: "1.2.0", releaseNote: { ...releaseNote, version: "1.2.0" } }, installed)?.version, "1.2.0");
+  });
+});
+
+describe("background build updates", () => {
+  it("applies a new deploy of the same app version silently", () => {
+    assert.equal(
+      shouldApplyBackgroundUpdate(
+        { appVersion: "1.1.0", buildLabel: "prod-abcdef123456" },
+        { appVersion: "1.1.0", buildLabel: "prod-111111111111" },
+      ),
+      true,
+    );
+  });
+
+  it("leaves app version changes to the update banner", () => {
+    assert.equal(
+      shouldApplyBackgroundUpdate(
+        { appVersion: "1.2.0", buildLabel: "prod-abcdef123456" },
+        { appVersion: "1.1.0", buildLabel: "prod-111111111111" },
+      ),
+      false,
+    );
+  });
+
+  it("ignores matching, missing, and unversioned local build labels", () => {
+    const installed = { appVersion: "1.1.0", buildLabel: "prod-111111111111" };
+    assert.equal(shouldApplyBackgroundUpdate({ appVersion: "1.1.0", buildLabel: "prod-111111111111" }, installed), false);
+    assert.equal(shouldApplyBackgroundUpdate({ appVersion: "1.1.0" }, installed), false);
+    assert.equal(shouldApplyBackgroundUpdate({ buildLabel: "prod-abcdef123456" }, installed), false);
+    assert.equal(shouldApplyBackgroundUpdate({ appVersion: "1.1.0", buildLabel: "local" }, installed), false);
+    assert.equal(shouldApplyBackgroundUpdate({ appVersion: "1.1.0", buildLabel: "prod-abcdef123456" }, { appVersion: "1.1.0", buildLabel: "dev" }), false);
+  });
+
+  it("reloads only shortly after launch or resume and before any interaction", () => {
+    const foregroundStartedAt = 10_000;
+    assert.equal(isQuietUpdateMoment({ now: 10_400, foregroundStartedAt, lastInteractionAt: Number.NEGATIVE_INFINITY }), true);
+    assert.equal(isQuietUpdateMoment({ now: 10_400, foregroundStartedAt, lastInteractionAt: 4_000 }), true);
+    assert.equal(isQuietUpdateMoment({ now: 10_400, foregroundStartedAt, lastInteractionAt: 10_200 }), false);
+    assert.equal(
+      isQuietUpdateMoment({ now: foregroundStartedAt + QUIET_UPDATE_WINDOW_MS + 1, foregroundStartedAt, lastInteractionAt: 0 }),
+      false,
+    );
   });
 });

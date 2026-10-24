@@ -28,6 +28,43 @@ export function shouldShowAppUpdate(latest: AppUpdateVersion, installed: AppUpda
   return latestAppVersion !== installedAppVersion;
 }
 
+// Unversioned local builds share labels across code changes, so they never imply a deploy.
+const UNVERSIONED_BUILD_LABELS = new Set(["local", "dev"]);
+
+export const QUIET_UPDATE_WINDOW_MS = 5_000;
+
+// A deploy inside the same app version updates silently instead of prompting.
+export function shouldApplyBackgroundUpdate(latest: AppUpdateVersion, installed: AppUpdateVersion) {
+  const latestAppVersion = cleanVersionPart(latest.appVersion);
+  const latestBuildLabel = cleanVersionPart(latest.buildLabel);
+  const installedBuildLabel = cleanVersionPart(installed.buildLabel);
+
+  if (!latestAppVersion || latestAppVersion !== cleanVersionPart(installed.appVersion)) {
+    return false;
+  }
+  if (!latestBuildLabel || !installedBuildLabel) {
+    return false;
+  }
+  if (UNVERSIONED_BUILD_LABELS.has(latestBuildLabel) || UNVERSIONED_BUILD_LABELS.has(installedBuildLabel)) {
+    return false;
+  }
+
+  return latestBuildLabel !== installedBuildLabel;
+}
+
+// Reload only right after a launch or resume, before the person has touched the app.
+export function isQuietUpdateMoment({
+  now,
+  foregroundStartedAt,
+  lastInteractionAt,
+}: {
+  now: number;
+  foregroundStartedAt: number;
+  lastInteractionAt: number;
+}) {
+  return now - foregroundStartedAt <= QUIET_UPDATE_WINDOW_MS && lastInteractionAt < foregroundStartedAt;
+}
+
 export function appUpdateReleaseNote(latest: AppUpdateVersion, installed: AppUpdateVersion): ReleaseNotePreview | null {
   const latestVersion = appUpdateNewVersion(latest, installed);
   const note = latest.releaseNote;

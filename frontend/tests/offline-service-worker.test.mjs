@@ -96,3 +96,10 @@ test('preference changes refresh the cached start page with current cookies',asy
  assert.equal(requests[0][0],'/'); assert.equal(requests[0][1].credentials,'same-origin');
  assert.deepEqual(w.writes,[w.LAUNCH_SHELL_KEY]);
 });
+test('launch shell refreshes acknowledge the requesting page after storing the start page',async()=>{
+ const w=worker(async()=>html('new build'));
+ const acks=[]; const pending=[];
+ w.listeners.get('message')({data:{type:'linewatch-refresh-launch-shell'},ports:[{postMessage:message=>acks.push(JSON.stringify([message,w.writes]))}],waitUntil:p=>pending.push(p)});
+ await Promise.all(pending);
+ assert.deepEqual(acks,[JSON.stringify([{type:'linewatch-refresh-launch-shell-ack'},[w.LAUNCH_SHELL_KEY]])]);
+});

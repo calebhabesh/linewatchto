@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Noto_Sans_Ethiopic } from "next/font/google";
 import Script from "next/script";
 import { AppUpdateBanner } from "../components/AppUpdateBanner";
+import { ChunkLoadRecovery } from "../components/ChunkLoadRecovery";
 import { PwaServiceWorkerRegistration } from "../components/PwaServiceWorkerRegistration";
 import { lineWatchAppTitle } from "./app-title.ts";
 import {
@@ -127,6 +128,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} ${notoSansEthiopic.variable}`}>
       <body suppressHydrationWarning>
         <PwaServiceWorkerRegistration />
+        <ChunkLoadRecovery />
         <AppUpdateBanner />
         {children}
         {cfAnalyticsToken && (

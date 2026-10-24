@@ -146,7 +146,10 @@ self.addEventListener("message", (event) => {
   }
   if (event.data?.type === "linewatch-refresh-launch-shell" && !isDev) {
     // Preferences change the server-rendered start page; refresh it for the next launch.
-    const refresh = refreshLaunchShell(fetch("/", { credentials: "same-origin", cache: "no-store" })).catch(() => undefined);
+    const refresh = refreshLaunchShell(fetch("/", { credentials: "same-origin", cache: "no-store" }))
+      .catch(() => undefined)
+      // Background updates reload only after the next launch document is stored.
+      .then(() => event.ports?.[0]?.postMessage({ type: "linewatch-refresh-launch-shell-ack" }));
     if (typeof event.waitUntil === "function") {
       event.waitUntil(refresh);
     }

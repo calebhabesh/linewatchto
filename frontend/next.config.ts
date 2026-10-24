@@ -34,7 +34,17 @@ const allowedDevOrigins = Array.from(
 const staticGuideCacheControl = "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800";
 const staticGuideSources = ["/explore", "/ttc", "/ttc/:path*", "/go-up", "/go-up/:path*"];
 
+const buildLabel =
+  process.env.NEXT_PUBLIC_LINEWATCH_BUILD_LABEL ||
+  shortSha(process.env.VERCEL_GIT_COMMIT_SHA) ||
+  shortSha(process.env.CF_PAGES_COMMIT_SHA) ||
+  shortSha(process.env.GITHUB_SHA) ||
+  (process.env.NODE_ENV === "production" ? "local" : "dev");
+
 const nextConfig: NextConfig = {
+  // Lets a page from an older deploy hard-navigate instead of mixing builds.
+  // Unlabelled local builds share one label, so they opt out.
+  deploymentId: buildLabel === "local" || buildLabel === "dev" ? undefined : buildLabel,
   // Keep the development badge from covering mobile search/account controls.
   devIndicators: false,
   distDir: process.env.NEXT_DIST_DIR || ".next",
@@ -43,12 +53,7 @@ const nextConfig: NextConfig = {
       process.env.NEXT_PUBLIC_LINEWATCH_APP_VERSION ||
       packageJson.version ||
       "1.1.0",
-    NEXT_PUBLIC_LINEWATCH_BUILD_LABEL:
-      process.env.NEXT_PUBLIC_LINEWATCH_BUILD_LABEL ||
-      shortSha(process.env.VERCEL_GIT_COMMIT_SHA) ||
-      shortSha(process.env.CF_PAGES_COMMIT_SHA) ||
-      shortSha(process.env.GITHUB_SHA) ||
-      (process.env.NODE_ENV === "production" ? "local" : "dev"),
+    NEXT_PUBLIC_LINEWATCH_BUILD_LABEL: buildLabel,
     NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL: environmentLabel(),
   },
   output: "standalone",
