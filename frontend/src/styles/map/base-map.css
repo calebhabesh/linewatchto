@@ -190,21 +190,17 @@
   visibility: hidden;
 }
 
-/* Opacity keeps authored regional labels non-painting while leaving their
-   child glyphs usable as cross-SVG <use> alpha-mask sources. Applying
-   visibility directly would make Chromium resolve an empty hover mask. */
-.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg .regional-station-label-source {
-  opacity: 0;
-}
-
 /* Regional station names follow the TTC map's single-paint-source rule: once
    the decoded label texture is available, no authored text in this layer may
-   paint beneath it. Opacity preserves the invisible label hit targets while
-   preventing newly authored or temporarily unmatched text from flashing when
-   Chromium recomposites the scaled map. Hover glyphs use the independent
-   mask-source clones in the root defs. */
-.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg #regional-station-labels-layer {
-  opacity: 0;
+   paint beneath it. Hide it the TTC way, with visibility on each child (the
+   wrappers, so referenced text stays usable by <use>, plus any unmatched
+   text). Never put opacity: 0 on the layer itself: Chromium then gives the
+   hidden labels about 55 GPU layers, and repainting them after a pan made
+   GO/UP tear. Hit targets keep their own opacity: 0 so clicks and keyboard
+   focus still work. Hover glyphs use the separate mask-source clones in the
+   root defs. */
+.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg #regional-station-labels-layer > :not(.regional-station-label-hit-target) {
+  visibility: hidden;
 }
 
 .regional-live-svg .regional-station-hover-indicator.active,

@@ -1,5 +1,4 @@
 /** Screen-space sizing and candidate geometry shared by authored map alert pickers. */
-import type { MapBounds, MapPoint } from "../app/map-geometry.ts";
 export const OVERLAP_CHOOSER_WIDTH = 420;
 export const OVERLAP_CHOOSER_MOBILE_BREAKPOINT = 640;
 export const OVERLAP_CHOOSER_MOBILE_WIDTH = 320;
@@ -25,33 +24,3 @@ export function chooserWidthCandidates(requestedWidth: number, viewportWidth: nu
   }
   return [...new Set(widths)];
 }
-
-export function chooserKeepoutGridCandidates(
-  proposed: MapPoint,
-  chooserSize: { width: number; height: number },
-  viewportSize: { width: number; height: number },
-  keepoutBoxes: MapBounds[],
-  margin: number,
-): MapPoint[] {
-  const minimumX = margin + chooserSize.width / 2;
-  const maximumX = viewportSize.width - margin - chooserSize.width / 2;
-  const minimumY = margin + chooserSize.height / 2;
-  const maximumY = viewportSize.height - margin - chooserSize.height / 2;
-  if (maximumX < minimumX || maximumY < minimumY) return [];
-
-  const xCoordinates = new Set([minimumX, maximumX, Math.min(maximumX, Math.max(minimumX, proposed.x))]);
-  const yCoordinates = new Set([minimumY, maximumY, Math.min(maximumY, Math.max(minimumY, proposed.y))]);
-  keepoutBoxes.forEach((box) => {
-    xCoordinates.add(box.x - chooserSize.width / 2);
-    xCoordinates.add(box.x + box.width + chooserSize.width / 2);
-    yCoordinates.add(box.y - chooserSize.height / 2);
-    yCoordinates.add(box.y + box.height + chooserSize.height / 2);
-  });
-
-  return [...xCoordinates]
-    .filter((x) => x >= minimumX && x <= maximumX)
-    .flatMap((x) => [...yCoordinates]
-      .filter((y) => y >= minimumY && y <= maximumY)
-      .map((y) => ({ x, y })));
-}
-

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { countBadgeInkOffset } from "../src/components/overlapping-count-ink.ts";
 
 const css = readAppStylesheet();
 const badge = readFileSync(new URL("../src/components/OverlappingCountBadge.tsx", import.meta.url), "utf8");
@@ -16,7 +17,7 @@ const stationDetail = readFileSync(new URL("../src/components/StationDetailPanel
 describe("overlapping count badge sizing", () => {
   it("renders the count in an SVG coordinate system instead of live HTML text", () => {
     assert.match(badge, /<svg[\s\S]*viewBox=/);
-    assert.match(badge, /<text[\s\S]*dominantBaseline="central"[\s\S]*textAnchor="middle"/);
+    assert.match(badge, /<text[\s\S]*y="8"[\s\S]*dominantBaseline="alphabetic"[\s\S]*textAnchor="middle"/);
     assert.match(badge, /const viewBoxWidth = Math\.max\(9, label\.length \* 7 \+ 2\)/);
   });
 
@@ -27,6 +28,32 @@ describe("overlapping count badge sizing", () => {
     );
     assert.match(css, /\.overlapping-count-badge__svg\s*\{(?=[^}]*height:\s*100%;)(?=[^}]*overflow:\s*hidden;)(?=[^}]*width:\s*auto;)[^}]*\}/s);
     assert.match(css, /\.overlapping-count-badge__text\s*\{(?=[^}]*font-size:\s*var\(--overlapping-count-font-size\);)(?=[^}]*font-weight:\s*900;)[^}]*\}/s);
+  });
+
+  it("centers the visible digits rather than their tabular advance box", () => {
+    // "1" carries a wide left gap, so counts that start with it shift left to compensate.
+    assert.ok(countBadgeInkOffset("18").dx < -0.03);
+    assert.ok(countBadgeInkOffset("11").dx < countBadgeInkOffset("44").dx);
+    assert.equal(countBadgeInkOffset("7").dx, -0.001);
+    // Baseline drops by half the tallest digit's ink so the glyphs straddle the anchor.
+    assert.equal(countBadgeInkOffset("8").dy, 0.32);
+    assert.equal(countBadgeInkOffset("47").dy, 0.3285);
+    assert.deepEqual(countBadgeInkOffset(""), { dx: 0, dy: 0 });
+    assert.match(badge, /"--overlapping-count-ink-dx": ink\.dx/);
+    assert.match(
+      css,
+      /\.overlapping-count-badge__text\s*\{[^}]*transform:\s*translate\([^}]*var\(--overlapping-count-ink-dx[^}]*var\(--overlapping-count-ink-dy[^}]*\}/s,
+    );
+  });
+
+  it("keeps badge rings and SVG digits on the same pixel grid", () => {
+    // Chromium snaps the badge ring to whole pixels but not the SVG digits inside it.
+    assert.match(css, /\.overlapping-count-badge\s*\{[^}]*will-change:\s*transform;/s);
+    // Odd inner heights lift the SVG onto a whole pixel and nudge the text the last half pixel.
+    assert.match(css, /\.desktop-rail-badge,\s*\.mobile-bottom-nav-badge\s*\{\s*--overlapping-count-nudge-y:\s*0\.5px;/);
+    assert.match(css, /\.mobile-bottom-nav-badge \.overlapping-count-badge__svg\s*\{\s*margin-top:\s*-1px;/);
+    // Even-width rail icon slots keep the anchored badges off x.5 positions.
+    assert.match(css, /\.desktop-rail-icon-slot\s*\{[^}]*min-width:\s*22px;/s);
   });
 
   it("hardens the mobile nav, desktop menu, and icon-overlap counters", () => {

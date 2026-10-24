@@ -25,6 +25,7 @@ export function ElectricBorder({
   style,
 }: ElectricBorderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stillRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pageVisible = usePageVisibility();
 
@@ -167,10 +168,43 @@ export function ElectricBorder({
     if (!canvas || !container) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const still = stillRef.current;
+
+    // A live 2D canvas is a separate GPU texture and compositor layer. Several
+    // of them in the sidebar, overlapping the map, pushed Chrome past its tile
+    // memory budget during map repaints, and the whole page tore. So a border
+    // keeps its canvas in the render tree only while it animates (hover or
+    // focus). At rest it shows the same drawing as a still image.
+    const showCanvas = () => {
+      canvas.style.display = "block";
+      if (still) still.style.display = "none";
+    };
+    // Redraw the still only when its size or animation frame changed, so
+    // repeated sheet and visibility events do not re-encode it.
+    const showStill = () => {
+      if (!still || canvas.width <= 1 || canvas.height <= 1) return;
+      const stillKey = `${canvas.width}x${canvas.height}:${time}`;
+      if (still.dataset.stillKey !== stillKey) {
+        draw();
+        still.src = canvas.toDataURL();
+        still.dataset.stillKey = stillKey;
+      }
+      still.style.width = canvas.style.width;
+      still.style.height = canvas.style.height;
+      still.style.display = "block";
+      canvas.style.display = "none";
+    };
+    const hideAll = () => {
+      canvas.style.display = "none";
+      if (still) still.style.display = "none";
+    };
 
     // CSS glow layers keep the incident border visible when motion is disabled.
     if (reducedMotion || !pageVisible) {
-      if (reducedMotion) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (reducedMotion) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hideAll();
+      }
       return;
     }
 
@@ -213,8 +247,10 @@ export function ElectricBorder({
       }));
     };
 
-    const canDraw = () => visible && !sheetMotionPaused && !motionQuery.matches;
-    const canAnimate = () => canDraw() && (hovered || focused);
+    // A still border shows whenever the card is visible, including while the
+    // sheet is dragged; only the animation waits for the sheet to settle.
+    const canDraw = () => visible && !motionQuery.matches;
+    const canAnimate = () => canDraw() && !sheetMotionPaused && (hovered || focused);
     const draw = () => {
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -255,11 +291,17 @@ export function ElectricBorder({
       stop();
       if (motionQuery.matches) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hideAll();
         return;
       }
       if (!canDraw()) return;
-      draw();
-      if (canAnimate()) schedule();
+      if (canAnimate()) {
+        draw();
+        showCanvas();
+        schedule();
+      } else {
+        showStill();
+      }
     };
     const handlePointerEnter = () => { hovered = true; synchronize(); };
     const handlePointerLeave = () => { hovered = false; synchronize(); };
@@ -317,7 +359,9 @@ export function ElectricBorder({
       style={{ ...vars, ...style }}
     >
       <div className="eb-canvas-container" aria-hidden="true">
-        <canvas ref={canvasRef} className="eb-canvas" />
+        <canvas ref={canvasRef} className="eb-canvas" style={{ display: "none" }} />
+        {/* eslint-disable-next-line @next/next/no-img-element -- a local data-URL snapshot of the canvas, not a remote asset */}
+        <img ref={stillRef} className="eb-canvas" alt="" style={{ display: "none", maxWidth: "none" }} />
       </div>
       <div className="eb-layers" aria-hidden="true">
         <div className="eb-glow-1" />

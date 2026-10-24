@@ -71,7 +71,8 @@ describe("stable raster map renderer", () => {
     assert.match(regional, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
     assert.match(ttc, /reducedMotion=\{mapEffectMotionPaused\}/);
     assert.match(ttc, /animate=\{!mapEffectMotionPaused\}/);
-    assert.match(regional, /reducedMotion: mapEffectMotionPaused/);
+    assert.match(regional, /overlayMotionPaused = mapEffectMotionPaused \|\| useMobileRendering/);
+    assert.match(regional, /setMotionPaused\(overlayMotionPaused\)/);
     assert.match(regional, /!mapEffectMotionPaused/);
     assert.match(ttc, /readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:labels`\)/);
     assert.match(regional, /readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:labels`\)/);
@@ -171,8 +172,12 @@ describe("stable raster map renderer", () => {
       /cutoutMarkup=\{hoveredStationLabel\?\.cutoutMarkup \?\? null\}/,
     );
     assert.doesNotMatch(regional, /regional-raster-label-halo/);
-    assert.match(css, /data-raster-map-ready="true"[^}]*\.regional-station-label-source[^}]*opacity:\s*0/s);
-    assert.match(css, /data-raster-map-ready="true"[^}]*#regional-station-labels-layer[^}]*opacity:\s*0/s);
+    // Hide authored labels the TTC way (visibility on each child, hit targets
+    // excepted). opacity: 0 on the layer gives Chromium ~55 GPU layers for
+    // invisible text, which tore the GO/UP map after a pan.
+    assert.match(css, /data-raster-map-ready="true"[^{]*#regional-station-labels-layer > :not\(\.regional-station-label-hit-target\)\s*\{[^}]*visibility:\s*hidden/s);
+    assert.doesNotMatch(css, /data-raster-map-ready="true"\][^{,]*#regional-station-labels-layer\s*\{[^}]*opacity:\s*0/s);
+    assert.doesNotMatch(css, /data-raster-map-ready="true"\][^{,]*\.regional-station-label-source\s*\{[^}]*opacity:\s*0/s);
     assert.doesNotMatch(css, /\.regional-raster-station-label-live-copy/);
     assert.doesNotMatch(
       css,

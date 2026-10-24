@@ -310,6 +310,10 @@ export function composeNetworkSegmentPath(
   };
 }
 
+export function pathPolylinePoints(pathD: string): MapPoint[] {
+  return pathToPolylinePoints(pathD);
+}
+
 function pathToPolylinePoints(pathD: string): MapPoint[] {
   if (!pathD) {
     return [];

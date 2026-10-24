@@ -897,30 +897,37 @@ export function regionalPointInSvgRoot(
   return transformPoint(point, relativeMatrix);
 }
 
-export function regionalPathCorridorCollisionBoxes(
+/** Points along a rendered path in root SVG coordinates, roughly `spacing` apart. */
+export function regionalPathRootPoints(
   svg: SVGSVGElement,
   path: SVGPathElement,
-  radius: number,
-): RegionalCollisionBox[] {
+  spacing: number,
+): MapPoint[] {
   try {
     const length = path.getTotalLength();
     if (length <= 0) return [];
     const relativeMatrix = svgElementMatrixToRootCoordinates(path, svg);
     if (!relativeMatrix) return [];
-    const sampleCount = Math.max(2, Math.ceil(length / Math.max(32, radius * 0.65)));
-    return Array.from({ length: sampleCount + 1 }, (_unused, index) => {
-      const localPoint = path.getPointAtLength(length * index / sampleCount);
-      const point = transformPoint(localPoint, relativeMatrix);
-      return {
-        x: point.x - radius,
-        y: point.y - radius,
-        width: radius * 2,
-        height: radius * 2,
-      };
-    });
+    const sampleCount = Math.max(2, Math.ceil(length / spacing));
+    return Array.from({ length: sampleCount + 1 }, (_unused, index) => (
+      transformPoint(path.getPointAtLength(length * index / sampleCount), relativeMatrix)
+    ));
   } catch {
     return [];
   }
+}
+
+export function regionalPathCorridorCollisionBoxes(
+  svg: SVGSVGElement,
+  path: SVGPathElement,
+  radius: number,
+): RegionalCollisionBox[] {
+  return regionalPathRootPoints(svg, path, Math.max(32, radius * 0.65)).map((point) => ({
+    x: point.x - radius,
+    y: point.y - radius,
+    width: radius * 2,
+    height: radius * 2,
+  }));
 }
 
 export function expandedRegionalCollisionBox(
@@ -939,20 +946,6 @@ export function expandedRegionalCollisionBox(
   };
 }
 
-export function regionalBadgeCollisionBox(
-  position: MapPoint,
-  size: RegionalBadgeSize,
-): RegionalCollisionBox {
-  const width = size.width * REGIONAL_OVERLAP_INDICATOR_SCALE;
-  const height = size.height * REGIONAL_OVERLAP_INDICATOR_SCALE;
-  return {
-    x: position.x - width / 2,
-    y: position.y - height / 2,
-    width,
-    height,
-  };
-}
-
 export function regionalCollisionIntersectionArea(
   left: RegionalCollisionBox,
   right: RegionalCollisionBox,
@@ -966,38 +959,4 @@ export function regionalCollisionIntersectionArea(
     Math.min(left.y + left.height, right.y + right.height) - Math.max(left.y, right.y),
   );
   return width * height;
-}
-
-export function clampRegionalOverlapBadgePosition(
-  position: MapPoint,
-  size: RegionalBadgeSize,
-): MapPoint {
-  const halfWidth = size.width * REGIONAL_OVERLAP_INDICATOR_SCALE / 2;
-  const halfHeight = size.height * REGIONAL_OVERLAP_INDICATOR_SCALE / 2;
-  return {
-    x: Math.min(
-      REGIONAL_MAP_VIEWBOX.x + REGIONAL_MAP_VIEWBOX.width - halfWidth,
-      Math.max(REGIONAL_MAP_VIEWBOX.x + halfWidth, position.x),
-    ),
-    y: Math.min(
-      REGIONAL_MAP_VIEWBOX.y + REGIONAL_MAP_VIEWBOX.height - halfHeight,
-      Math.max(REGIONAL_MAP_VIEWBOX.y + halfHeight, position.y),
-    ),
-  };
-}
-
-export function regionalOverlapBadgePositionCandidates(
-  badge: { anchor: MapPoint; preferredVector: MapPoint },
-): MapPoint[] {
-  const preferredDistance = Math.hypot(badge.preferredVector.x, badge.preferredVector.y) || 1;
-  const preferredAngle = Math.atan2(badge.preferredVector.y, badge.preferredVector.x);
-  const angleOffsets = Array.from({ length: 24 }, (_unused, index) => {
-    const step = Math.ceil(index / 2) * Math.PI / 12;
-    return index === 0 ? 0 : index % 2 === 1 ? step : -step;
-  });
-  const distanceScales = [1, 1.2, 1.45, 1.75, 2.1, 2.5];
-  return distanceScales.flatMap((distanceScale) => angleOffsets.map((angleOffset) => ({
-    x: badge.anchor.x + Math.cos(preferredAngle + angleOffset) * preferredDistance * distanceScale,
-    y: badge.anchor.y + Math.sin(preferredAngle + angleOffset) * preferredDistance * distanceScale,
-  })));
 }

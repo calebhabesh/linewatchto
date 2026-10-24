@@ -58,8 +58,10 @@ import {
 } from "../app/regional-map-geometry";
 import {
   installRegionalOverlaySession,
+  regionalOverlayContentSignature,
   nextRegionalPointerImpactSelection,
   regionalOverlapMarker,
+  regionalOverlapMarkerRestingRect,
   regionalReferencedAlertCollisionBoxes,
   regionalOverlapChooserLayout,
   REGIONAL_TOP_HOVER_LAYER_ID,
@@ -949,15 +951,25 @@ function InteractiveRegionalMapComponent({
     };
   }, [isMapActive, svgMarkup, useMobileRendering]);
 
+  const overlayMotionPaused = mapEffectMotionPaused || useMobileRendering;
+  const overlayMotionPausedRef = useRef(overlayMotionPaused);
+  useLayoutEffect(() => {
+    overlayMotionPausedRef.current = overlayMotionPaused;
+  }, [overlayMotionPaused]);
   useLayoutEffect(() => {
     // Build live overlays once when this diagram becomes active. Preparing an
     // inactive diagram otherwise builds them again during the network swap.
     if (!svgMarkup || !isMapActive) return;
     const viewport = viewportRef.current;
     if (!viewport) return;
-    const inputs = [activeAlerts, delays, reducedSpeedZones, plannedClosures,
+    const contentSignature = regionalOverlayContentSignature({
+      activeAlerts, delays, reducedSpeedZones, plannedClosures,
       networkSegments, stationNodeImpacts, stations, commutePathPreview,
-      mapEffectMotionPaused, useMobileRendering, mapLabelFontReady, svgMarkup];
+    });
+    // Motion is applied in place by the effect below. Keeping it out of these
+    // inputs means a reduced-motion toggle or a brief page-visibility flip
+    // never deletes and rebuilds the overlays (TTC parity).
+    const inputs = [contentSignature, mapLabelFontReady, svgMarkup];
     if (sessionRef.current && lastOverlayInputsRef.current?.every((value, index) => value === inputs[index])) return;
 
     if (!sessionRef.current) {
@@ -983,7 +995,7 @@ function InteractiveRegionalMapComponent({
       stationNodeImpacts,
       stations,
       commutePathPreview,
-      reducedMotion: mapEffectMotionPaused || useMobileRendering,
+      reducedMotion: overlayMotionPausedRef.current,
       selectedStationId: selectedStationIdRef.current,
       selection: selectionRef.current,
       selectionIntroCompleted: selectionIntroCompletedRef.current,
@@ -1001,13 +1013,15 @@ function InteractiveRegionalMapComponent({
     mapLabelFontReady,
     networkSegments,
     plannedClosures,
-    mapEffectMotionPaused,
     reducedSpeedZones,
     stationNodeImpacts,
     stations,
     svgMarkup,
-    useMobileRendering,
   ]);
+
+  useLayoutEffect(() => {
+    sessionRef.current?.setMotionPaused(overlayMotionPaused);
+  }, [overlayMotionPaused, svgMarkup, isMapActive]);
 
   useLayoutEffect(() => {
     const markerLayer = viewportRef.current?.querySelector<SVGGElement>(
@@ -1599,12 +1613,16 @@ function InteractiveRegionalMapComponent({
     if (!viewport) return;
     cameraAdjustedByUserRef.current = true;
 
-    clearProgrammaticAnimation();
-    endCameraMotion();
-    setUserZoomMotion(true);
-    // Interpolate coarse mouse-wheel notches while keeping the direct DOM write
-    // path used by high-frequency wheels and trackpads.
-    setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
+    // Enter zoom mode once per wheel gesture, as TTC does. Re-entering it on
+    // every tick drops it between coarse wheel notches, which blinks the
+    // glows and auras that zoom mode hides. The short easing still lets
+    // coarse notches interpolate.
+    if (wheelCommitTimeoutRef.current === null) {
+      clearProgrammaticAnimation();
+      endCameraMotion();
+      setUserZoomMotion(true);
+      setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
+    }
 
     const pointer = clientPointToLogicalViewportPoint(
       { x: event.clientX, y: event.clientY },
@@ -1633,7 +1651,7 @@ function InteractiveRegionalMapComponent({
       wheelCommitTimeoutRef.current = null;
       setCamera({ ...cameraRef.current });
       setUserZoomMotion(false);
-    }, 80);
+    }, 100);
   }, [clearProgrammaticAnimation, endCameraMotion, fitScale, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, viewportOrientation, writeMapTransform]);
 
   const applyActiveGesture = useCallback(() => {
@@ -1711,6 +1729,10 @@ function InteractiveRegionalMapComponent({
   const onPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     cancelCameraAnimation();
+    // A direct drag follows the pointer with no transform easing. Easing each
+    // move kept the stage in a transform transition, and Chrome's redraw when
+    // it settled after release tore the map, overlays and sidebar.
+    setMapTransition("none");
     // Direct manipulation uses the shared gesture-active paint contract. Do
     // not apply the stronger programmatic-flight simplification, which removes
     // alert glows while a rider is simply dragging the map.
@@ -1766,7 +1788,7 @@ function InteractiveRegionalMapComponent({
       dragMovedRef.current = true;
     }
     setUserGestureMotion(true);
-  }, [cancelCameraAnimation, endCameraMotion, selection, setUserGestureMotion, viewportOrientation]);
+  }, [cancelCameraAnimation, endCameraMotion, selection, setMapTransition, setUserGestureMotion, viewportOrientation]);
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (!activePointersRef.current.has(event.pointerId)) return;
@@ -1895,7 +1917,7 @@ function InteractiveRegionalMapComponent({
     const marker = viewport ? regionalOverlapMarker(viewport, badge.markerId) : null;
     if (!viewport || !marker) return false;
     const viewportRect = viewport.getBoundingClientRect();
-    const markerRect = marker.getBoundingClientRect();
+    const markerRect = regionalOverlapMarkerRestingRect(marker);
     const logicalViewportSize = logicalViewportSizeForOrientation(
       viewportRect.width,
       viewportRect.height,
@@ -1912,16 +1934,6 @@ function InteractiveRegionalMapComponent({
       x: logicalMarkerRect.x + logicalMarkerRect.width / 2,
       y: logicalMarkerRect.y + logicalMarkerRect.height / 2,
     };
-    const svg = marker.ownerSVGElement;
-    const screenMatrix = svg?.getScreenCTM();
-    const anchorPoint = svg?.createSVGPoint();
-    if (anchorPoint) {
-      anchorPoint.x = badge.anchor.x;
-      anchorPoint.y = badge.anchor.y;
-    }
-    const screenAnchor = anchorPoint && screenMatrix
-      ? anchorPoint.matrixTransform(screenMatrix)
-      : null;
     const uiKeepoutBoxes = visibleMapChooserKeepouts()
       .map((element) => clientRectToLogicalViewportBounds(
         element.getBoundingClientRect(),
@@ -1946,9 +1958,6 @@ function InteractiveRegionalMapComponent({
     const placement = regionalOverlapChooserLayout({
       markerCenter,
       markerSize: logicalMarkerRect,
-      alertAnchor: screenAnchor
-        ? clientPointToLogicalViewportPoint(screenAnchor, viewportRect, viewportOrientation)
-        : markerCenter,
       chooserSize: { width, height },
       viewportSize: logicalViewportSize,
       alertCollisionBoxes,
@@ -2218,6 +2227,7 @@ function InteractiveRegionalMapComponent({
                   size={badge.size}
                   selection={selection}
                   isOpen={expandedOverlapBadgeId === badge.markerId}
+                  connector={badge.connector}
                   visualScale={REGIONAL_OVERLAP_INDICATOR_SCALE}
                   isolatePointerDown
                   shouldSuppressMapClick={() => dragMovedRef.current}

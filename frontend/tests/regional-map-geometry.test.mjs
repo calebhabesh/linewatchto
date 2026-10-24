@@ -33,11 +33,8 @@ import {
   continuousRegionalOverlayRunPath,
   regionalTrainMarkerFrame,
   regionalHoverMaskBounds,
-  regionalBadgeCollisionBox,
   expandedRegionalCollisionBox,
   regionalCollisionIntersectionArea,
-  clampRegionalOverlapBadgePosition,
-  regionalOverlapBadgePositionCandidates,
   regionalSvgScope,
 } from "../src/app/regional-map-geometry.ts";
 
@@ -693,38 +690,11 @@ describe("regional map geometry", () => {
       const padded = expandedRegionalCollisionBox(box, 10);
       assert.deepEqual(padded, { x: 90, y: 90, width: 70, height: 70 });
 
-      const badgeBox = regionalBadgeCollisionBox({ x: 100, y: 100 }, { width: 40, height: 20 });
-      assert.equal(badgeBox.width, 40 * REGIONAL_OVERLAP_INDICATOR_SCALE);
-      assert.equal(badgeBox.height, 20 * REGIONAL_OVERLAP_INDICATOR_SCALE);
-
       const disjointBox = { x: 200, y: 200, width: 50, height: 50 };
       assert.equal(regionalCollisionIntersectionArea(box, disjointBox), 0);
 
       const overlappingBox = { x: 120, y: 120, width: 50, height: 50 };
       assert.equal(regionalCollisionIntersectionArea(box, overlappingBox), 900);
-    });
-
-    it("clamps badge position within viewBox bounds including margin", () => {
-      const size = { width: 60, height: 40 };
-      const outOfBoundsLeft = { x: -300, y: 500 };
-      const clamped = clampRegionalOverlapBadgePosition(outOfBoundsLeft, size);
-      assert.ok(clamped.x >= REGIONAL_MAP_VIEWBOX.x);
-
-      const outOfBoundsBottom = { x: 500, y: 15000 };
-      const clampedBottom = clampRegionalOverlapBadgePosition(outOfBoundsBottom, size);
-      assert.ok(clampedBottom.y <= REGIONAL_MAP_VIEWBOX.y + REGIONAL_MAP_VIEWBOX.height);
-    });
-
-    it("generates candidates along distance scales and angular offsets", () => {
-      const badge = {
-        anchor: { x: 500, y: 500 },
-        preferredVector: { x: 40, y: 0 },
-      };
-
-      const candidates = regionalOverlapBadgePositionCandidates(badge);
-      assert.equal(candidates.length, 144);
-      assert.ok(Math.abs(candidates[0].x - 540) < 1e-6);
-      assert.ok(Math.abs(candidates[0].y - 500) < 1e-6);
     });
   });
 

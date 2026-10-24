@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import { countBadgeInkOffset } from "./overlapping-count-ink";
+
 type OverlappingCountBadgeProps = {
   className: string;
   count: number;
@@ -9,6 +11,7 @@ export function OverlappingCountBadge({ className, count }: OverlappingCountBadg
   const label = String(count);
   const viewBoxWidth = Math.max(9, label.length * 7 + 2);
   const isSingleDigit = label.length <= 1;
+  const ink = countBadgeInkOffset(label);
 
   return (
     <span
@@ -33,9 +36,15 @@ export function OverlappingCountBadge({ className, count }: OverlappingCountBadg
         <text
           className="overlapping-count-badge__text"
           x={viewBoxWidth / 2}
-          y="7.35"
-          dominantBaseline="central"
+          y="8"
+          dominantBaseline="alphabetic"
           textAnchor="middle"
+          style={
+            {
+              "--overlapping-count-ink-dx": ink.dx.toFixed(4),
+              "--overlapping-count-ink-dy": ink.dy.toFixed(4),
+            } as CSSProperties
+          }
         >
           {label}
         </text>
@@ -43,4 +52,3 @@ export function OverlappingCountBadge({ className, count }: OverlappingCountBadg
     </span>
   );
 }
-

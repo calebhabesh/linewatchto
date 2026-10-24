@@ -364,7 +364,8 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
     {!summary.fresh && <p key={`avail-${data.networkId}`} className="current-service-availability">{data.availability === "fixture" ? "Demo data · Current status unavailable" : "Current status unavailable"}</p>}
     <div key={data.networkId} className="current-service-columns">
       <section aria-label="Rail service status">
-        <h3>
+        <h3 className="current-service-section-heading">
+          <span className="current-service-section-bar" aria-hidden="true" />
           <TrainFront size={13} aria-hidden="true" />
           {data.networkId === "ttc" ? "Subway & Light Rail" : "GO & UP Rail"}
           {summary.fresh && (
@@ -537,7 +538,8 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
         </ServiceList>
       </section>
       <section aria-label="Surface service notices">
-        <h3>
+        <h3 className="current-service-section-heading">
+          <span className="current-service-section-bar" aria-hidden="true" />
           <BusFront size={13} aria-hidden="true" />
           {data.networkId === "ttc" ? "Streetcar / Bus Alerts" : "Service Notices"}
           {notices?.fresh && now > 0 && (

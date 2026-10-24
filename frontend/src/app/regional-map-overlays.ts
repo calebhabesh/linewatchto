@@ -1,4 +1,3 @@
-import { chooserKeepoutGridCandidates, chooserWidthCandidates } from "../components/map-chooser-layout.ts";
 import type {
   ActiveAlert,
   DelayAlert,
@@ -13,7 +12,12 @@ import type {
   TravelDirection,
 } from "./linewatch-data.ts";
 import type { AccountCommutePathPreview } from "./commute-data.ts";
-import type { MapPoint } from "./map-geometry.ts";
+import {
+  pathCorridorCollisionBoxes,
+  svgElementMatrixToRootCoordinates,
+  transformBoundsToRootPolygon,
+  type MapPoint,
+} from "./map-geometry.ts";
 import { removeDescendantIds } from "./regional-map-asset.ts";
 import {
   REGIONAL_IMPACT_OVERLAY_WIDTH,
@@ -30,12 +34,9 @@ import {
   regionalHoverMaskBounds,
   regionalOverlapBadgeAnchor,
   regionalCollisionBoxForElement,
-  regionalPathCorridorCollisionBoxes,
   expandedRegionalCollisionBox,
-  regionalBadgeCollisionBox,
-  regionalCollisionIntersectionArea,
-  clampRegionalOverlapBadgePosition,
-  regionalOverlapBadgePositionCandidates,
+  regionalPathRootPoints,
+  REGIONAL_MAP_VIEWBOX,
   regionalSvgScope,
   type RegionalCollisionBox,
   type RegionalSvgScope,
@@ -46,14 +47,28 @@ import {
   stationImpactDirectionPath,
 } from "../components/station-impact-direction.ts";
 import {
-  alignedOverlapBadgePositionCandidates,
+  buildStationOverlapBadgeGroups,
+  coveredSegmentOverlapBadgeSignatures,
   hasOverlappingImpacts,
   mapOverlapIndicatorSize,
+  type StationOverlapBadgeGroup,
   overlapBadgeSignature,
   type MapOverlapChooserLayout,
   type MapOverlapIndicatorSize,
-  type PlacedOverlapBadge,
 } from "../components/map-overlap-badges.ts";
+import {
+  BADGE_FEATURE_GAPS,
+  badgeObstacleReach,
+  placeOverlapBadges,
+  type PlacementObstacle,
+} from "../components/overlap-badge-placement.ts";
+import { placeOverlapChooser } from "../components/overlap-chooser-placement.ts";
+import {
+  OVERLAP_BADGE_CONNECTOR_DOT_RADIUS,
+  overlapBadgeConnector,
+  type ConnectorOutline,
+  type OverlapBadgeConnector,
+} from "../components/overlap-badge-connector.ts";
 
 export const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 export const MAP_OVERLAY_PULSE_SCALE = 114 / 102;
@@ -105,9 +120,14 @@ export type RegionalOverlapBadge = {
   impacts: MapImpact[];
   anchor: MapPoint;
   position: MapPoint;
-  preferredVector: MapPoint;
+  /** Points along the overlapping corridor, in root SVG coordinates. */
+  placementTargets: MapPoint[];
+  /** Set for station-boundary badges: where the alerts meet, in root coordinates. */
+  stationPoint?: MapPoint;
+  /** Line to the overlay this badge explains, in root coordinates. */
+  connector?: OverlapBadgeConnector | null;
   size: MapOverlapIndicatorSize;
-  hasStablePosition?: boolean;
+  collisionAvoided?: boolean;
 };
 
 export type RegionalOverlayPiece = {
@@ -251,6 +271,78 @@ export function appendRegionalDelayGlyph(
   return glyph;
 }
 
+// Glyph motion is presentation state, not overlay content. Every lane glyph
+// records its resting placement and, when it may move, its motion spec, so
+// pausing or resuming motion swaps animateMotion in place. Rebuilding the
+// lane to change motion would restart every overlay, unlike TTC, where React
+// keeps the glyph and only toggles its animateMotion child.
+type RegionalGlyphPlacement = {
+  sourcePath: SVGPathElement;
+  length: number;
+  progress: number;
+  travelDirection: TravelDirection;
+  rotateAtRest: boolean;
+  motion: { pathD: string; durationSeconds: number; rotate: string } | null;
+};
+
+function placeRegionalLaneGlyph(
+  documentNode: RegionalSvgScope,
+  lane: SVGGElement,
+  glyph: SVGGElement,
+  placement: RegionalGlyphPlacement,
+  reducedMotion: boolean,
+) {
+  const { sourcePath, length, progress, travelDirection, rotateAtRest, motion } = placement;
+  const distance = travelDirection === "reverse" ? length * (1 - progress) : length * progress;
+  const point = sourcePath.getPointAtLength(distance);
+  let transform = `translate(${point.x} ${point.y})`;
+  if (rotateAtRest) {
+    const before = sourcePath.getPointAtLength(Math.max(0, distance - 2));
+    const after = sourcePath.getPointAtLength(Math.min(length, distance + 2));
+    const angle = Math.atan2(after.y - before.y, after.x - before.x) * 180 / Math.PI
+      + (travelDirection === "reverse" ? 180 : 0);
+    transform += ` rotate(${angle})`;
+  }
+  glyph.dataset.restingTransform = transform;
+  if (motion) {
+    lane.dataset.motionPath = motion.pathD;
+    glyph.dataset.motionDur = `${motion.durationSeconds}s`;
+    glyph.dataset.motionBegin = `${-(motion.durationSeconds * progress)}s`;
+    glyph.dataset.motionKeyPoints = travelDirection === "reverse" ? "1;0" : "0;1";
+    glyph.dataset.motionRotate = motion.rotate;
+  }
+  setRegionalLaneGlyphMotion(documentNode, glyph, !reducedMotion);
+}
+
+function setRegionalLaneGlyphMotion(documentNode: RegionalSvgScope, glyph: SVGElement, moving: boolean) {
+  const existing = [...glyph.children].find((child) => child.tagName.toLowerCase() === "animatemotion");
+  const pathD = glyph.parentElement?.dataset.motionPath;
+  if (!moving || !glyph.dataset.motionDur || !pathD) {
+    existing?.remove();
+    if (glyph.dataset.restingTransform) glyph.setAttribute("transform", glyph.dataset.restingTransform);
+    return;
+  }
+  if (existing) return;
+  glyph.removeAttribute("transform");
+  const motion = documentNode.createElementNS(SVG_NAMESPACE, "animateMotion");
+  motion.setAttribute("path", pathD);
+  motion.setAttribute("dur", glyph.dataset.motionDur);
+  motion.setAttribute("begin", glyph.dataset.motionBegin ?? "0s");
+  motion.setAttribute("repeatCount", "indefinite");
+  motion.setAttribute("calcMode", "linear");
+  motion.setAttribute("keyTimes", "0;1");
+  motion.setAttribute("keyPoints", glyph.dataset.motionKeyPoints ?? "0;1");
+  motion.setAttribute("rotate", glyph.dataset.motionRotate ?? "0");
+  glyph.append(motion);
+}
+
+/** Pause or resume every regional glyph lane under `root` without rebuilding it. */
+export function setRegionalGlyphLaneMotion(documentNode: RegionalSvgScope, root: ParentNode, moving: boolean) {
+  root.querySelectorAll<SVGElement>("[data-resting-transform]").forEach((glyph) => {
+    setRegionalLaneGlyphMotion(documentNode, glyph, moving);
+  });
+}
+
 export function regionalDelayGlyphLane(
   documentNode: RegionalSvgScope,
   sourcePath: SVGPathElement,
@@ -289,29 +381,12 @@ export function regionalDelayGlyphLane(
 
     // TTC displays a directionless/bidirectional delay as a static hourglass
     // lane. Only a trustworthy one-way direction produces moving arrows.
-    if (reducedMotion || travelDirection === "bidirectional" || !pathD) {
-      const distance = travelDirection === "reverse"
-        ? length * (1 - progress)
-        : length * progress;
-      const point = sourcePath.getPointAtLength(distance);
-      const before = sourcePath.getPointAtLength(Math.max(0, distance - 2));
-      const after = sourcePath.getPointAtLength(Math.min(length, distance + 2));
-      const angle = Math.atan2(after.y - before.y, after.x - before.x) * 180 / Math.PI
-        + (travelDirection === "reverse" ? 180 : 0);
-      glyph.setAttribute("transform", `translate(${point.x} ${point.y}) rotate(${angle})`);
-      continue;
-    }
-
-    const motion = documentNode.createElementNS(SVG_NAMESPACE, "animateMotion");
-    motion.setAttribute("path", pathD);
-    motion.setAttribute("dur", `${durationSeconds}s`);
-    motion.setAttribute("begin", `${-(durationSeconds * progress)}s`);
-    motion.setAttribute("repeatCount", "indefinite");
-    motion.setAttribute("calcMode", "linear");
-    motion.setAttribute("keyTimes", "0;1");
-    motion.setAttribute("keyPoints", travelDirection === "reverse" ? "1;0" : "0;1");
-    motion.setAttribute("rotate", travelDirection === "reverse" ? "auto-reverse" : "auto");
-    glyph.append(motion);
+    placeRegionalLaneGlyph(documentNode, lane, glyph, {
+      sourcePath, length, progress, travelDirection, rotateAtRest: true,
+      motion: travelDirection !== "bidirectional" && pathD
+        ? { pathD, durationSeconds, rotate: travelDirection === "reverse" ? "auto-reverse" : "auto" }
+        : null,
+    }, reducedMotion);
   }
 
   return lane;
@@ -395,32 +470,12 @@ export function regionalSuspensionGlyphLane(
     const glyph = appendRegionalSuspensionGlyph(documentNode, lane, glyphKind);
     const progress = (index + 0.5) / count;
 
-    if (reducedMotion || travelDirection === "bidirectional" || !pathD) {
-      const distance = travelDirection === "reverse"
-        ? length * (1 - progress)
-        : length * progress;
-      const point = sourcePath.getPointAtLength(distance);
-      const before = sourcePath.getPointAtLength(Math.max(0, distance - 2));
-      const after = sourcePath.getPointAtLength(Math.min(length, distance + 2));
-      const angle = Math.atan2(after.y - before.y, after.x - before.x) * 180 / Math.PI
-        + (travelDirection === "reverse" ? 180 : 0);
-      const transform = glyphKind === "no-entry"
-        ? `translate(${point.x} ${point.y})`
-        : `translate(${point.x} ${point.y}) rotate(${angle})`;
-      glyph.setAttribute("transform", transform);
-      continue;
-    }
-
-    const motion = documentNode.createElementNS(SVG_NAMESPACE, "animateMotion");
-    motion.setAttribute("path", pathD);
-    motion.setAttribute("dur", `${durationSeconds}s`);
-    motion.setAttribute("begin", `${-(durationSeconds * progress)}s`);
-    motion.setAttribute("repeatCount", "indefinite");
-    motion.setAttribute("calcMode", "linear");
-    motion.setAttribute("keyTimes", "0;1");
-    motion.setAttribute("keyPoints", travelDirection === "reverse" ? "1;0" : "0;1");
-    motion.setAttribute("rotate", glyphKind === "no-entry" ? "0" : (travelDirection === "reverse" ? "auto-reverse" : "auto"));
-    glyph.append(motion);
+    placeRegionalLaneGlyph(documentNode, lane, glyph, {
+      sourcePath, length, progress, travelDirection, rotateAtRest: glyphKind !== "no-entry",
+      motion: travelDirection !== "bidirectional" && pathD
+        ? { pathD, durationSeconds, rotate: glyphKind === "no-entry" ? "0" : (travelDirection === "reverse" ? "auto-reverse" : "auto") }
+        : null,
+    }, reducedMotion);
   }
 
   return lane;
@@ -470,29 +525,12 @@ export function regionalChevronGlyphLane(
     const glyph = appendRegionalChevronGlyph(documentNode, lane);
     const progress = (index + 0.5) / count;
 
-    if (reducedMotion || !pathD) {
-      const distance = travelDirection === "reverse"
-        ? length * (1 - progress)
-        : length * progress;
-      const point = sourcePath.getPointAtLength(distance);
-      const before = sourcePath.getPointAtLength(Math.max(0, distance - 2));
-      const after = sourcePath.getPointAtLength(Math.min(length, distance + 2));
-      const angle = Math.atan2(after.y - before.y, after.x - before.x) * 180 / Math.PI
-        + (travelDirection === "reverse" ? 180 : 0);
-      glyph.setAttribute("transform", `translate(${point.x} ${point.y}) rotate(${angle})`);
-      continue;
-    }
-
-    const motion = documentNode.createElementNS(SVG_NAMESPACE, "animateMotion");
-    motion.setAttribute("path", pathD);
-    motion.setAttribute("dur", `${durationSeconds}s`);
-    motion.setAttribute("begin", `${-(durationSeconds * progress)}s`);
-    motion.setAttribute("repeatCount", "indefinite");
-    motion.setAttribute("calcMode", "linear");
-    motion.setAttribute("keyTimes", "0;1");
-    motion.setAttribute("keyPoints", travelDirection === "reverse" ? "1;0" : "0;1");
-    motion.setAttribute("rotate", travelDirection === "reverse" ? "auto-reverse" : "auto");
-    glyph.append(motion);
+    placeRegionalLaneGlyph(documentNode, lane, glyph, {
+      sourcePath, length, progress, travelDirection, rotateAtRest: true,
+      motion: pathD
+        ? { pathD, durationSeconds, rotate: travelDirection === "reverse" ? "auto-reverse" : "auto" }
+        : null,
+    }, reducedMotion);
   }
 
   return lane;
@@ -575,32 +613,12 @@ export function regionalPlannedClosureIconLane(
     const glyph = appendRegionalPlannedClosureGlyph(documentNode, lane, glyphKind);
     const progress = (index + 0.5) / count;
 
-    if (reducedMotion || travelDirection === "bidirectional" || !pathD) {
-      const distance = travelDirection === "reverse"
-        ? length * (1 - progress)
-        : length * progress;
-      const point = sourcePath.getPointAtLength(distance);
-      const before = sourcePath.getPointAtLength(Math.max(0, distance - 2));
-      const after = sourcePath.getPointAtLength(Math.min(length, distance + 2));
-      const angle = Math.atan2(after.y - before.y, after.x - before.x) * 180 / Math.PI
-        + (travelDirection === "reverse" ? 180 : 0);
-      const transform = glyphKind === "icon"
-        ? `translate(${point.x} ${point.y})`
-        : `translate(${point.x} ${point.y}) rotate(${angle})`;
-      glyph.setAttribute("transform", transform);
-      continue;
-    }
-
-    const motion = documentNode.createElementNS(SVG_NAMESPACE, "animateMotion");
-    motion.setAttribute("path", pathD);
-    motion.setAttribute("dur", `${durationSeconds}s`);
-    motion.setAttribute("begin", `${-(durationSeconds * progress)}s`);
-    motion.setAttribute("repeatCount", "indefinite");
-    motion.setAttribute("calcMode", "linear");
-    motion.setAttribute("keyTimes", "0;1");
-    motion.setAttribute("keyPoints", travelDirection === "reverse" ? "1;0" : "0;1");
-    motion.setAttribute("rotate", glyphKind === "icon" ? "0" : (travelDirection === "reverse" ? "auto-reverse" : "auto"));
-    glyph.append(motion);
+    placeRegionalLaneGlyph(documentNode, lane, glyph, {
+      sourcePath, length, progress, travelDirection, rotateAtRest: glyphKind !== "icon",
+      motion: travelDirection !== "bidirectional" && pathD
+        ? { pathD, durationSeconds, rotate: glyphKind === "icon" ? "0" : (travelDirection === "reverse" ? "auto-reverse" : "auto") }
+        : null,
+    }, reducedMotion);
   }
 
   return lane;
@@ -1213,9 +1231,29 @@ export function regionalOverlapBadgeGroups(segments: NetworkSegment[]) {
 export function regionalOverlapBadges(
   documentNode: RegionalSvgScope,
   segments: NetworkSegment[],
+  stationContext?: {
+    svg: SVGSVGElement;
+    stationNodeImpacts: StationNodeImpact[];
+    stations: Pick<Station, "id" | "name">[];
+  },
 ): RegionalOverlapBadge[] {
   const stationsLayer = documentNode.getElementById("regional-stations-layer") as SVGElement | null;
-  return regionalOverlapBadgeGroups(segments).flatMap((group) => {
+  const segmentGroups = regionalOverlapBadgeGroups(segments);
+  // Same rules as the TTC map: alerts that only meet at a station get a station
+  // badge, and a segment badge fully explained by a station badge is dropped.
+  const stationGroups = stationContext
+    ? buildStationOverlapBadgeGroups({
+        segments,
+        plannedClosures: [],
+        stationNodeImpacts: stationContext.stationNodeImpacts,
+        suppressedSignatures: new Set(segmentGroups.map((group) => group.signature)),
+      })
+    : [];
+  const coveredSignatures = coveredSegmentOverlapBadgeSignatures(segmentGroups, stationGroups);
+  const stationBadges = stationContext
+    ? regionalStationOverlapBadges(stationContext.svg, stationGroups, stationContext.stations)
+    : [];
+  const segmentBadges = segmentGroups.filter((group) => !coveredSignatures.has(group.signature)).flatMap((group) => {
     const size = mapOverlapIndicatorSize(group.impacts);
     const anchorSegment = group.segments[Math.floor(group.segments.length / 2)];
     const placement = anchorSegment
@@ -1224,6 +1262,17 @@ export function regionalOverlapBadges(
     if (!placement || !stationsLayer) return [];
     const rootAnchor = pointInSvgRootCoordinates(stationsLayer, placement.anchor);
     const rootPosition = pointInSvgRootCoordinates(stationsLayer, placement.position);
+    // Sample each segment on its own so disjoint segments don't add targets
+    // across the gaps between them.
+    const placementTargets = group.segments.flatMap((segment) => {
+      const pathD = resolvedRegionalSegmentPath(documentNode, segment, "root");
+      return pathD
+        ? pathCorridorCollisionBoxes(pathD, REGIONAL_BADGE_TARGET_SPACING).map((box) => ({
+            x: box.x + box.width / 2,
+            y: box.y + box.height / 2,
+          }))
+        : [];
+    });
     const firstSegment = group.segments[0];
     const lastSegment = group.segments.at(-1) ?? firstSegment;
     const startLabel = firstSegment.label.split(" to ")[0];
@@ -1234,145 +1283,299 @@ export function regionalOverlapBadges(
       impacts: group.impacts,
       anchor: rootAnchor,
       position: rootPosition,
-      preferredVector: {
-        x: rootPosition.x - rootAnchor.x,
-        y: rootPosition.y - rootAnchor.y,
-      },
+      placementTargets: placementTargets.length > 0 ? placementTargets : [rootAnchor],
       size,
+    }];
+  });
+  return [...segmentBadges, ...stationBadges];
+}
+
+function regionalStationOverlapBadges(
+  svg: SVGSVGElement,
+  groups: StationOverlapBadgeGroup[],
+  stations: Pick<Station, "id" | "name">[],
+): RegionalOverlapBadge[] {
+  const stationNames = new Map(stations.map((station) => [station.id, station.name]));
+  return groups.flatMap((group) => {
+    const stationVisual = svg.querySelector<SVGElement>(`#station-${CSS.escape(group.stationId)}`);
+    const anchors = stationVisual ? regionalStationVisualAnchors(stationVisual, "root") : [];
+    if (anchors.length === 0) return [];
+    const point = {
+      x: anchors.reduce((sum, anchor) => sum + anchor.point.x, 0) / anchors.length,
+      y: anchors.reduce((sum, anchor) => sum + anchor.point.y, 0) / anchors.length,
+    };
+    return [{
+      markerId: `regional-overlap-station-${group.stationId}-${group.signature}`,
+      label: stationNames.get(group.stationId) ?? group.stationId,
+      impacts: group.impacts,
+      anchor: point,
+      position: point,
+      placementTargets: [point],
+      stationPoint: point,
+      size: mapOverlapIndicatorSize(group.impacts),
     }];
   });
 }
 
-export function regionalCollisionAdjustedOverlapBadges(
+// The regional schematic is drawn at about twice the TTC map's scale.
+const REGIONAL_BADGE_UNIT_SCALE = 2;
+const REGIONAL_BADGE_SIBLING_GAP = 36 * REGIONAL_BADGE_UNIT_SCALE;
+const REGIONAL_BADGE_TARGET_SPACING = 32;
+// Regional route strokes are 175 units wide.
+const REGIONAL_TRANSIT_LINE_HALF_WIDTH = 87.5;
+// While a badge is hovered its alerts get a 248-unit hover boundary; the
+// connector touches that outer edge.
+const REGIONAL_HOVER_BOUNDARY_HALF_WIDTH = 124;
+// Shared spacing (see BADGE_FEATURE_GAPS) so GO/UP badges sit as far from
+// labels, lines, and alerts as TTC badges do, relative to badge size.
+const REGIONAL_LABEL_PADDING = badgeObstacleReach(0, BADGE_FEATURE_GAPS.label, REGIONAL_BADGE_UNIT_SCALE);
+const REGIONAL_ARTWORK_PADDING = badgeObstacleReach(0, BADGE_FEATURE_GAPS.artwork, REGIONAL_BADGE_UNIT_SCALE);
+// Station markers (including the Union hub) and route badges/logos.
+const REGIONAL_ARTWORK_SELECTOR = [
+  "#regional-stations-layer rect",
+  "#regional-stations-layer circle",
+  "#regional-stations-layer ellipse",
+  "#regional-route-labels-layer rect",
+  "#regional-route-labels-layer path",
+  "#regional-route-labels-layer image",
+  "#regional-route-labels-layer use",
+].join(", ");
+// App-injected pieces that live inside those layers but are not artwork:
+// alert overlays and their hover masks, glyph lanes, hit targets, hover and
+// selection indicators. Alert overlays are handled as their own obstacles.
+const REGIONAL_INJECTED_ARTWORK_SELECTOR = [
+  "defs",
+  "mask",
+  "clipPath",
+  ".overlay-segment-group",
+  ".regional-overlay-segment-group",
+  "[class*='-glyph']",
+  ".regional-station-hit-target",
+  ".station-hover-indicator",
+  ".map-selection-attention",
+  ".regional-station-impact-ring",
+  ".regional-station-impact-beacon-group",
+].join(", ");
+const REGIONAL_IMPACT_CORRIDOR_RADIUS = badgeObstacleReach(
+  REGIONAL_HOVER_BOUNDARY_HALF_WIDTH,
+  BADGE_FEATURE_GAPS.alertOverlay,
+  REGIONAL_BADGE_UNIT_SCALE,
+);
+const REGIONAL_TRANSIT_LINE_RADIUS = badgeObstacleReach(
+  REGIONAL_TRANSIT_LINE_HALF_WIDTH,
+  BADGE_FEATURE_GAPS.transitLine,
+  REGIONAL_BADGE_UNIT_SCALE,
+);
+const REGIONAL_STATION_ALERT_PADDING = 24;
+const REGIONAL_CORRIDOR_SAMPLE_SPACING = 48;
+const REGIONAL_STATION_BADGE_TARGET_RADIUS = 320 * REGIONAL_BADGE_UNIT_SCALE;
+const REGIONAL_CONNECTOR_MIN_LENGTH = 24 * REGIONAL_BADGE_UNIT_SCALE;
+// Station impact rings are stroked at least 65 units wide, plus 20 per extra alert.
+const REGIONAL_STATION_RING_STROKE_HALF_WIDTH = 45;
+// Station shapes plus the impact ring drawn around them.
+const REGIONAL_CONNECTOR_STATION_CLEARANCE = 60;
+
+type RegionalAlertCorridor = { impactKey: string; polyline: MapPoint[] };
+
+/**
+ * Map artwork as placement obstacles in root coordinates. Labels keep their
+ * rotation and lines become corridors, matching the TTC map.
+ */
+const artworkObstacleCache = new WeakMap<SVGSVGElement, { fontKey: string; obstacles: PlacementObstacle[] }>();
+
+/**
+ * Artwork only changes when the map asset or its web fonts change, so reuse
+ * one measurement per SVG and font state. Returning the same array also lets
+ * the placement engine reuse its rasterization.
+ */
+function cachedRegionalArtworkObstacles(svg: SVGSVGElement): PlacementObstacle[] {
+  const fonts = typeof document !== "undefined" ? document.fonts : undefined;
+  const fontKey = fonts ? `${fonts.status}:${fonts.size}` : "";
+  const cached = artworkObstacleCache.get(svg);
+  if (cached && cached.fontKey === fontKey) return cached.obstacles;
+  const obstacles = regionalArtworkObstacles(svg);
+  artworkObstacleCache.set(svg, { fontKey, obstacles });
+  return obstacles;
+}
+
+function regionalArtworkObstacles(svg: SVGSVGElement): PlacementObstacle[] {
+  const labels = [...svg.querySelectorAll<SVGGraphicsElement>("text")].flatMap((element) => {
+    try {
+      const box = element.getBBox();
+      const polygon = transformBoundsToRootPolygon(
+        { x: box.x, y: box.y, width: box.width, height: box.height },
+        svgElementMatrixToRootCoordinates(element, svg),
+      );
+      return polygon && box.width > 0 && box.height > 0
+        ? [{ polygon, padding: REGIONAL_LABEL_PADDING }]
+        : [];
+    } catch {
+      return [];
+    }
+  });
+  const connectionLabels = [...svg.querySelectorAll<SVGGraphicsElement>(".map-connection-label")].flatMap((element) => {
+    try {
+      const box = regionalCollisionBoxForElement(svg, element);
+      return box ? [expandedRegionalCollisionBox(box, REGIONAL_LABEL_PADDING)] : [];
+    } catch {
+      return [];
+    }
+  });
+  const transitLines = [...svg.querySelectorAll<SVGPathElement>('#regional-lines-layer path[id^="regional-route-"]')]
+    .map((path) => ({
+      polyline: regionalPathRootPoints(svg, path, REGIONAL_CORRIDOR_SAMPLE_SPACING),
+      radius: REGIONAL_TRANSIT_LINE_RADIUS,
+    }))
+    .filter((line) => line.polyline.length > 0);
+  const artwork = [...svg.querySelectorAll<SVGGraphicsElement>(REGIONAL_ARTWORK_SELECTOR)].flatMap((element) => {
+    if (element.closest(REGIONAL_INJECTED_ARTWORK_SELECTOR)) return [];
+    try {
+      const box = regionalCollisionBoxForElement(svg, element);
+      return box && box.width > 0 && box.height > 0
+        ? [expandedRegionalCollisionBox(box, REGIONAL_ARTWORK_PADDING)]
+        : [];
+    } catch {
+      return [];
+    }
+  });
+  return [...labels, ...connectionLabels, ...transitLines, ...artwork];
+}
+
+function regionalAlertCorridors(svg: SVGSVGElement): RegionalAlertCorridor[] {
+  return [...svg.querySelectorAll<SVGPathElement>(
+    ".regional-overlay-segment-group[data-regional-impact-id] .regional-impact-path",
+  )].flatMap((path) => {
+    const group = path.closest<SVGElement>(".regional-overlay-segment-group");
+    const polyline = regionalPathRootPoints(svg, path, REGIONAL_CORRIDOR_SAMPLE_SPACING);
+    return polyline.length > 0
+      ? [{ impactKey: `${group?.dataset.regionalImpactKind}:${group?.dataset.regionalImpactId}`, polyline }]
+      : [];
+  });
+}
+
+function regionalStationAlertObstacles(svg: SVGSVGElement): PlacementObstacle[] {
+  return [...svg.querySelectorAll<SVGGraphicsElement>(
+    ".regional-station-impact-beacon-group, .regional-station-impact-direction-glyph",
+  )].flatMap((element) => {
+    try {
+      const box = regionalCollisionBoxForElement(svg, element);
+      return box ? [expandedRegionalCollisionBox(box, REGIONAL_STATION_ALERT_PADDING)] : [];
+    } catch {
+      return [];
+    }
+  });
+}
+
+/**
+ * Places regional overlap badges with the same engine as the TTC map: as close
+ * as possible to their own corridor, clear of artwork and alert overlays, and
+ * aligned with neighbouring badges.
+ */
+export function regionalPlacedOverlapBadges(
   svg: SVGSVGElement,
   badges: RegionalOverlapBadge[],
 ): RegionalOverlapBadge[] {
-  const labelElements = [
-    ...svg.querySelectorAll<SVGGraphicsElement>("text"),
-    ...svg.querySelectorAll<SVGGraphicsElement>(".map-connection-label"),
+  if (badges.length === 0) return badges;
+  const corridors = regionalAlertCorridors(svg);
+  const alertObstacles: PlacementObstacle[] = [
+    ...corridors.map(({ polyline }) => ({ polyline, radius: REGIONAL_IMPACT_CORRIDOR_RADIUS })),
+    ...regionalStationAlertObstacles(svg),
   ];
-  const labelBoxes = labelElements.flatMap((element) => {
-    try {
-      const box = regionalCollisionBoxForElement(svg, element);
-      return box ? [expandedRegionalCollisionBox(box, 36)] : [];
-    } catch {
-      return [];
-    }
-  });
-  const alertOverlayBoxes = Array.from(
-    svg.querySelectorAll<SVGPathElement>(
-      ".regional-overlay-segment-group[data-regional-impact-id] .regional-impact-path",
-    ),
-  ).flatMap((path) => regionalPathCorridorCollisionBoxes(
-    svg,
-    path,
-    REGIONAL_IMPACT_OVERLAY_WIDTH / 2 + 28,
-  ));
-  const stationAlertBoxes = Array.from(
-    svg.querySelectorAll<SVGGraphicsElement>(
-      ".regional-station-impact-beacon-group, .regional-station-impact-direction-glyph",
-    ),
-  ).flatMap((element) => {
-    try {
-      const box = regionalCollisionBoxForElement(svg, element);
-      return box ? [expandedRegionalCollisionBox(box, 24)] : [];
-    } catch {
-      return [];
-    }
-  });
-  const transitLineBoxes = Array.from(
-    svg.querySelectorAll<SVGPathElement>(
-      '#regional-lines-layer path[id^="regional-route-"]',
-    ),
-  ).flatMap((path) => regionalPathCorridorCollisionBoxes(svg, path, 112));
-  const occupiedBoxes = [...labelBoxes];
-  const placedBadges: PlacedOverlapBadge[] = [];
+  const placements = new Map(placeOverlapBadges({
+    badges: badges.map((badge) => {
+      const ownImpactKeys = new Set(badge.impacts.map((impact) => `${impact.kind}:${impact.cardId}`));
+      const { stationPoint } = badge;
+      // A station badge aims for the station and its own overlays right beside it.
+      const nearbyOverlayTargets = stationPoint
+        ? corridors
+          .filter((corridor) => ownImpactKeys.has(corridor.impactKey))
+          .flatMap((corridor) => corridor.polyline)
+          .filter((point) => Math.hypot(point.x - stationPoint.x, point.y - stationPoint.y) <= REGIONAL_STATION_BADGE_TARGET_RADIUS)
+        : [];
+      return {
+        id: badge.markerId,
+        size: {
+          width: badge.size.width * REGIONAL_OVERLAP_INDICATOR_SCALE,
+          height: badge.size.height * REGIONAL_OVERLAP_INDICATOR_SCALE,
+        },
+        targets: [...badge.placementTargets, ...nearbyOverlayTargets],
+        anchor: stationPoint,
+        foreignTargets: corridors
+          .filter((corridor) => !ownImpactKeys.has(corridor.impactKey))
+          .flatMap((corridor) => corridor.polyline),
+      };
+    }),
+    obstacleLayers: [cachedRegionalArtworkObstacles(svg), alertObstacles],
+    mapBounds: REGIONAL_MAP_VIEWBOX,
+    siblingGap: REGIONAL_BADGE_SIBLING_GAP,
+    unitScale: REGIONAL_BADGE_UNIT_SCALE,
+  }).map((placement) => [placement.id, placement]));
 
+  const outlines = regionalConnectorOutlines(svg, corridors);
+  const stationDots = regionalStationDotKeepouts(svg);
   return badges.map((badge) => {
-    const preferredPosition = {
-      x: badge.anchor.x + badge.preferredVector.x,
-      y: badge.anchor.y + badge.preferredVector.y,
+    const placement = placements.get(badge.markerId);
+    const position = placement?.position ?? badge.position;
+    return {
+      ...badge,
+      position,
+      collisionAvoided: placement?.collisionAvoided ?? badge.collisionAvoided,
+      connector: overlapBadgeConnector({
+        position,
+        size: {
+          width: badge.size.width * REGIONAL_OVERLAP_INDICATOR_SCALE,
+          height: badge.size.height * REGIONAL_OVERLAP_INDICATOR_SCALE,
+        },
+        outlines: badge.impacts.flatMap((impact) => outlines.get(`${impact.kind}:${impact.cardId}`) ?? []),
+        minimumLength: REGIONAL_CONNECTOR_MIN_LENGTH,
+        within: badge.stationPoint
+          ? { center: badge.stationPoint, radius: REGIONAL_STATION_BADGE_TARGET_RADIUS }
+          : undefined,
+        avoid: stationDots,
+        endRadius: OVERLAP_BADGE_CONNECTOR_DOT_RADIUS * REGIONAL_OVERLAP_INDICATOR_SCALE,
+      }),
     };
-    const renderedSize = {
-      width: badge.size.width * REGIONAL_OVERLAP_INDICATOR_SCALE,
-      height: badge.size.height * REGIONAL_OVERLAP_INDICATOR_SCALE,
-    };
-    const alignedCandidates = alignedOverlapBadgePositionCandidates({
-      anchor: badge.anchor,
-      size: renderedSize,
-      placedBadges,
-      gap: 32,
-      maxAnchorDistance: 900,
-      centerSpacing: 290 * REGIONAL_OVERLAP_INDICATOR_SCALE,
-    });
-    const candidateKeys = new Set<string>();
-    const candidates = [
-      ...(badge.hasStablePosition ? [{ candidate: badge.position, stable: true, aligned: false }] : []),
-      ...alignedCandidates.map((candidate) => ({ candidate, stable: false, aligned: true })),
-      ...regionalOverlapBadgePositionCandidates(badge)
-        .map((candidate) => ({ candidate, stable: false, aligned: false })),
-    ].filter(({ candidate }) => {
-      const key = `${Math.round(candidate.x)}:${Math.round(candidate.y)}`;
-      if (candidateKeys.has(key)) return false;
-      candidateKeys.add(key);
-      return true;
-    });
-    const scoredPositions = candidates
-      .map(({ candidate, stable, aligned }) => ({
-        candidate: clampRegionalOverlapBadgePosition(candidate, badge.size),
-        stable,
-        aligned,
-      }))
-      .map(({ candidate, stable, aligned }) => {
-        const box = expandedRegionalCollisionBox(
-          regionalBadgeCollisionBox(candidate, badge.size),
-          18,
-        );
-        const hardCollisionBoxes = [
-          ...occupiedBoxes,
-          ...alertOverlayBoxes,
-          ...stationAlertBoxes,
-          // Reused and aligned positions must also clear unalerted routes.
-          ...transitLineBoxes,
-        ];
-        const hardOverlapArea = hardCollisionBoxes.reduce(
-          (total, occupied) => total + regionalCollisionIntersectionArea(box, occupied),
-          0,
-        );
-        const preferredDeviation = Math.hypot(
-          candidate.x - preferredPosition.x,
-          candidate.y - preferredPosition.y,
-        );
-        const anchorDistance = Math.hypot(
-          candidate.x - badge.anchor.x,
-          candidate.y - badge.anchor.y,
-        );
-        return {
-          candidate,
-          box,
-          hardOverlapArea,
-          stable,
-          aligned,
-          score: hardOverlapArea * 1_000_000
-            + anchorDistance
-            + preferredDeviation * 0.05,
-        };
-      });
-    const position = scoredPositions.find((candidate) => (
-      candidate.stable && candidate.hardOverlapArea === 0
-    )) ?? scoredPositions.find((candidate) => (
-      candidate.aligned && candidate.hardOverlapArea === 0
-    ))
-      ?? scoredPositions.sort((left, right) => left.score - right.score)[0];
-    if (!position) return badge;
-    occupiedBoxes.push(position.box);
-    placedBadges.push({
-      anchor: badge.anchor,
-      position: position.candidate,
-      size: renderedSize,
-    });
-    return { ...badge, position: position.candidate };
   });
+}
+
+/** Station dots a connector should not end on, with room for impact rings. */
+function regionalStationDotKeepouts(svg: SVGSVGElement): { center: MapPoint; radius: number }[] {
+  const stationsLayer = svg.querySelector<SVGElement>("#regional-stations-layer");
+  if (!stationsLayer) return [];
+  return [...stationsLayer.querySelectorAll<SVGElement>(':scope > [id^="station-"]')].flatMap((station) => (
+    regionalStationVisualAnchors(station, "root").map((anchor) => ({
+      center: anchor.point,
+      radius: anchor.radius + REGIONAL_CONNECTOR_STATION_CLEARANCE,
+    }))
+  ));
+}
+
+/** The visible edge of each alert's overlay, keyed by impact, for badge connectors. */
+function regionalConnectorOutlines(
+  svg: SVGSVGElement,
+  corridors: RegionalAlertCorridor[],
+): Map<string, ConnectorOutline[]> {
+  const outlines = new Map<string, ConnectorOutline[]>();
+  const add = (key: string, outline: ConnectorOutline) => {
+    outlines.set(key, [...(outlines.get(key) ?? []), outline]);
+  };
+  for (const corridor of corridors) {
+    add(corridor.impactKey, { polyline: corridor.polyline, halfWidth: REGIONAL_HOVER_BOUNDARY_HALF_WIDTH });
+  }
+  for (const ring of svg.querySelectorAll<SVGGraphicsElement>(".regional-station-impact-ring")) {
+    try {
+      const box = regionalCollisionBoxForElement(svg, ring);
+      if (!box) continue;
+      add(`${ring.dataset.regionalImpactKind}:${ring.dataset.regionalImpactId}`, {
+        center: { x: box.x + box.width / 2, y: box.y + box.height / 2 },
+        // getBBox excludes the ring's wide stroke.
+        radius: Math.max(box.width, box.height) / 2 + REGIONAL_STATION_RING_STROKE_HALF_WIDTH,
+      });
+    } catch {
+      // Unmeasurable rings simply get no connector.
+    }
+  }
+  return outlines;
 }
 
 export function regionalOverlapMarker(
@@ -1383,6 +1586,35 @@ export function regionalOverlapMarker(
     root.querySelectorAll<SVGGElement>("[data-overlap-segment-id]"),
   ).find((candidate) => candidate.dataset.overlapSegmentId === markerId);
   return markerGroup?.querySelector<SVGGElement>(".overlap-indicator") ?? null;
+}
+
+/**
+ * The marker's screen box at rest. Opening the chooser shrinks the marker with
+ * a CSS scale transition, so its live client rect changes for 120 ms; placing
+ * the chooser from it made the chooser jump between frames. The marker's own
+ * box mapped through its positioned parent ignores that scale.
+ */
+export function regionalOverlapMarkerRestingRect(
+  marker: SVGGElement,
+): { left: number; top: number; right: number; bottom: number; width: number; height: number } {
+  const parent = marker.parentElement as SVGGraphicsElement | null;
+  const matrix = typeof parent?.getScreenCTM === "function" ? parent.getScreenCTM() : null;
+  if (!matrix) return marker.getBoundingClientRect();
+  const box = marker.getBBox();
+  const corners = [
+    [box.x, box.y],
+    [box.x + box.width, box.y],
+    [box.x, box.y + box.height],
+    [box.x + box.width, box.y + box.height],
+  ].map(([x, y]) => ({
+    x: matrix.a * x + matrix.c * y + matrix.e,
+    y: matrix.b * x + matrix.d * y + matrix.f,
+  }));
+  const left = Math.min(...corners.map((point) => point.x));
+  const right = Math.max(...corners.map((point) => point.x));
+  const top = Math.min(...corners.map((point) => point.y));
+  const bottom = Math.max(...corners.map((point) => point.y));
+  return { left, top, right, bottom, width: right - left, height: bottom - top };
 }
 
 export function regionalReferencedAlertCollisionBoxes(
@@ -1428,10 +1660,14 @@ export function regionalReferencedAlertCollisionBoxes(
   });
 }
 
+/**
+ * GO/UP chooser placement, using the shared placer so both maps behave the
+ * same. Inputs are in logical viewport pixels; the referenced alert's corridor
+ * samples become circles the card avoids covering.
+ */
 export function regionalOverlapChooserLayout({
   markerCenter,
   markerSize,
-  alertAnchor,
   chooserSize,
   viewportSize,
   alertCollisionBoxes,
@@ -1439,152 +1675,34 @@ export function regionalOverlapChooserLayout({
 }: {
   markerCenter: { x: number; y: number };
   markerSize: { width: number; height: number };
-  alertAnchor: { x: number; y: number };
   chooserSize: { width: number; height: number };
   viewportSize: { width: number; height: number };
   alertCollisionBoxes: RegionalCollisionBox[];
   uiKeepoutBoxes: RegionalCollisionBox[];
 }): { layout: MapOverlapChooserLayout; size: { width: number; height: number } } {
-  const padding = 16;
-  const paddedUiKeepouts = uiKeepoutBoxes.map(box => expandedRegionalCollisionBox(box, 8));
-  const markerCollisionBox: RegionalCollisionBox = {
-    x: markerCenter.x - markerSize.width / 2,
-    y: markerCenter.y - markerSize.height / 2,
-    width: markerSize.width,
-    height: markerSize.height,
-  };
-  const outwardVector = {
-    x: markerCenter.x - alertAnchor.x,
-    y: markerCenter.y - alertAnchor.y,
-  };
-  const outwardDistance = Math.hypot(outwardVector.x, outwardVector.y);
-  const normalizedOutward = outwardDistance > 0.001
-    ? { x: outwardVector.x / outwardDistance, y: outwardVector.y / outwardDistance }
-    : { x: 0, y: -1 };
-
-  const heightCandidates = Array.from(new Set([
-    chooserSize.height,
-    Math.min(chooserSize.height, Math.max(160, viewportSize.height - padding * 2)),
-    Math.min(chooserSize.height, Math.max(160, Math.floor(viewportSize.height * 0.72))),
-    Math.min(chooserSize.height, Math.max(160, Math.floor(viewportSize.height * 0.56))),
-  ])).sort((left, right) => right - left);
-
-  const clampCenter = (center: { x: number; y: number }, size: { width: number; height: number }) => ({
-    x: Math.min(
-      Math.max(padding + size.width / 2, center.x),
-      viewportSize.width - padding - size.width / 2,
-    ),
-    y: Math.min(
-      Math.max(padding + size.height / 2, center.y),
-      viewportSize.height - padding - size.height / 2,
-    ),
+  const placement = placeOverlapChooser({
+    viewportSize,
+    badgeBox: {
+      x: markerCenter.x - markerSize.width / 2,
+      y: markerCenter.y - markerSize.height / 2,
+      width: markerSize.width,
+      height: markerSize.height,
+    },
+    affectedArea: alertCollisionBoxes.map((box) => ({
+      polyline: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }],
+      radius: Math.min(box.width, box.height) / 2,
+    })),
+    keepouts: uiKeepoutBoxes,
+    requestedSize: chooserSize,
   });
-
-  const centerForDirection = (
-    direction: { x: number; y: number },
-    size: { width: number; height: number },
-    distanceScale = 1,
-  ) => {
-    const clearance = {
-      x: markerSize.width / 2 + size.width / 2 + REGIONAL_OVERLAP_CHOOSER_GAP * distanceScale,
-      y: markerSize.height / 2 + size.height / 2 + REGIONAL_OVERLAP_CHOOSER_GAP * distanceScale,
-    };
-    return clampCenter({
-      x: markerCenter.x + direction.x * clearance.x,
-      y: markerCenter.y + direction.y * clearance.y,
-    }, size);
-  };
-
-  const scoreSize = (size: { width: number; height: number }) => {
-    const preferredCenter = centerForDirection(normalizedOutward, size);
-    const angleOffsets = Array.from({ length: 24 }, (_unused, index) => {
-      const step = Math.floor((index + 1) / 2);
-      const sign = index % 2 === 0 ? 1 : -1;
-      return (step * 15 * Math.PI / 180) * sign;
-    });
-    const distanceScales = [1, 1.25, 1.55, 1.9, 2.3];
-    const candidateDirections = [
-      normalizedOutward,
-      ...angleOffsets.map((offset) => {
-        const baseAngle = Math.atan2(normalizedOutward.y, normalizedOutward.x);
-        const angle = baseAngle + offset;
-        return { x: Math.cos(angle), y: Math.sin(angle) };
-      }),
-    ];
-    const candidateKeys = new Set<string>();
-    const candidates = candidateDirections.flatMap((direction) =>
-      distanceScales.map((distanceScale) => centerForDirection(direction, size, distanceScale)),
-    ).concat(chooserKeepoutGridCandidates(preferredCenter, size, viewportSize, paddedUiKeepouts, padding)).filter((candidate) => {
-      const key = `${Math.round(candidate.x)}:${Math.round(candidate.y)}`;
-      if (candidateKeys.has(key)) return false;
-      candidateKeys.add(key);
-      return true;
-    });
-    const scoredCandidates = candidates.map((candidate) => {
-      const chooserBox: RegionalCollisionBox = {
-        x: candidate.x - size.width / 2,
-        y: candidate.y - size.height / 2,
-        width: size.width,
-        height: size.height,
-      };
-      const alertOverlapArea = alertCollisionBoxes.reduce(
-        (total, box) => total + regionalCollisionIntersectionArea(chooserBox, box),
-        0,
-      );
-      const markerOverlapArea = regionalCollisionIntersectionArea(chooserBox, markerCollisionBox);
-      const uiOverlapArea = paddedUiKeepouts.reduce(
-        (total, box) => total + regionalCollisionIntersectionArea(chooserBox, box),
-        0,
-      );
-      const preferredDeviation = Math.hypot(
-        candidate.x - preferredCenter.x,
-        candidate.y - preferredCenter.y,
-      );
-      return {
-        candidate,
-        score: alertOverlapArea * 1_000_000
-          + markerOverlapArea * 1_000_000
-          + uiOverlapArea * 1_000_000_000
-          + preferredDeviation,
-        uiOverlapArea,
-        markerOverlapArea,
-      };
-    });
-    const clearCandidates = scoredCandidates.filter((entry) =>
-      entry.uiOverlapArea === 0 && entry.markerOverlapArea === 0
-    ).sort((left, right) => left.score - right.score);
-    const uiSafeCandidates = scoredCandidates.filter((entry) =>
-      entry.uiOverlapArea === 0
-    ).sort((left, right) => left.score - right.score);
-    const center = (clearCandidates[0]
-      ?? uiSafeCandidates[0]
-      ?? scoredCandidates.sort((left, right) => left.score - right.score)[0]
-    )?.candidate ?? clampCenter(preferredCenter, size);
-    return { center, clearsUiKeepouts: uiSafeCandidates.length > 0 };
-  };
-
-  let chosenSize = chooserSize;
-  let chosenAttempt = scoreSize(chooserSize);
-  sizes: for (const width of chooserWidthCandidates(chooserSize.width, viewportSize.width)) {
-    for (const height of heightCandidates) {
-      const size = { width, height };
-      const attempt = scoreSize(size);
-      chosenSize = size;
-      chosenAttempt = attempt;
-      if (attempt.clearsUiKeepouts) break sizes;
-    }
-  }
-  const center = chosenAttempt.center;
-  const left = center.x - chosenSize.width / 2;
-  const top = center.y - chosenSize.height / 2;
   return {
     layout: {
-      left,
-      top,
-      anchorOffsetX: markerCenter.x - center.x,
-      anchorOffsetY: markerCenter.y - center.y,
+      left: placement.left,
+      top: placement.top,
+      anchorOffsetX: placement.anchorOffsetX,
+      anchorOffsetY: placement.anchorOffsetY,
     },
-    size: chosenSize,
+    size: { width: placement.width, height: placement.height },
   };
 }
 
@@ -1603,6 +1721,26 @@ export type RegionalOverlayData = {
   selectionIntroCompleted?: boolean;
 };
 
+// Each poll parses fresh arrays even when the feed is unchanged, and every
+// ingestion run restamps `updatedAt`. Rebuilding the overlay layers restarts
+// their animations, so compare what the overlays draw rather than identity.
+// TTC gets the same stability from React keeping unchanged nodes mounted.
+export function regionalOverlayContentSignature(
+  data: Pick<RegionalOverlayData, "activeAlerts" | "delays" | "reducedSpeedZones" | "plannedClosures"
+    | "networkSegments" | "stationNodeImpacts" | "stations" | "commutePathPreview">,
+): string {
+  return JSON.stringify([
+    data.activeAlerts,
+    data.delays,
+    data.reducedSpeedZones,
+    data.plannedClosures,
+    data.networkSegments,
+    data.stationNodeImpacts,
+    data.stations,
+    data.commutePathPreview ?? null,
+  ], (key, value) => (key === "updatedAt" ? undefined : value));
+}
+
 export type RegionalOverlaySelection = {
   selection?: ImpactSelection;
   selectedStationId?: string | null;
@@ -1618,6 +1756,8 @@ export type RegionalOverlaySessionOptions = {
 
 export interface RegionalOverlaySession {
   update(data: RegionalOverlayData): { overlapBadges: RegionalOverlapBadge[] };
+  /** Pause or resume overlay motion in place; never rebuilds overlays. */
+  setMotionPaused(paused: boolean): void;
   updateSelection(selection: RegionalOverlaySelection): void;
   updateStationSelection(selectedStationId: string | null, selectionIntroCompleted?: boolean): void;
   setImpactHover(impact: RegionalImpactIdentity | null, hovered: boolean): void;
@@ -1658,11 +1798,24 @@ export function installRegionalOverlaySession(
     return null;
   }
 
-  let overlapBadgePositions = new Map<string, MapPoint>();
   const externallyHoveredImpactKeys = new Set<string>();
   let hoveredMapImpact: RegionalImpactIdentity | null = null;
   let pulseFrame: number | null = null;
   let settledPulseFrame: number | null = null;
+  let motionPaused = false;
+
+  const synchronizePulses = () => {
+    if (pulseFrame !== null) window.cancelAnimationFrame(pulseFrame);
+    if (settledPulseFrame !== null) window.cancelAnimationFrame(settledPulseFrame);
+    pulseFrame = null;
+    settledPulseFrame = null;
+    if (motionPaused) return;
+    synchronizeRegionalOverlayPulses(svg);
+    pulseFrame = window.requestAnimationFrame(() => {
+      synchronizeRegionalOverlayPulses(svg);
+      settledPulseFrame = window.requestAnimationFrame(() => synchronizeRegionalOverlayPulses(svg));
+    });
+  };
 
   const setLinkedImpactHover = (impact: RegionalImpactIdentity | null, hovered: boolean) => {
     if (!impact) return;
@@ -1801,6 +1954,7 @@ export function installRegionalOverlaySession(
 
   const update = (data: RegionalOverlayData): { overlapBadges: RegionalOverlapBadge[] } => {
     const documentNode = regionalSvgScope(svg);
+    motionPaused = Boolean(data.reducedMotion);
     segmentLayer.replaceChildren();
     if (selectedSegmentLayer) selectedSegmentLayer.replaceChildren();
     stationRingLayer.replaceChildren();
@@ -2132,32 +2286,26 @@ export function installRegionalOverlaySession(
       markCompletedSelectionIntro(svg);
     }
 
-    if (pulseFrame !== null) window.cancelAnimationFrame(pulseFrame);
-    if (settledPulseFrame !== null) window.cancelAnimationFrame(settledPulseFrame);
-    pulseFrame = null;
-    settledPulseFrame = null;
-    if (!data.reducedMotion) {
-      synchronizeRegionalOverlayPulses(svg);
-      pulseFrame = window.requestAnimationFrame(() => {
-        synchronizeRegionalOverlayPulses(svg);
-        settledPulseFrame = window.requestAnimationFrame(() => synchronizeRegionalOverlayPulses(svg));
-      });
-    }
+    synchronizePulses();
 
-    const badges = regionalOverlapBadges(documentNode, data.networkSegments).map((badge) => {
-      const stablePosition = overlapBadgePositions.get(badge.markerId);
-      return {
-        ...badge,
-        position: stablePosition ?? badge.position,
-        hasStablePosition: Boolean(stablePosition),
-      };
-    });
-    const adjusted = regionalCollisionAdjustedOverlapBadges(svg, badges);
-    overlapBadgePositions = new Map(
-      adjusted.map((badge) => [badge.markerId, badge.position]),
+    const overlapBadges = regionalPlacedOverlapBadges(
+      svg,
+      regionalOverlapBadges(documentNode, data.networkSegments, {
+        svg,
+        stationNodeImpacts: data.stationNodeImpacts,
+        stations: data.stations,
+      }),
     );
 
-    return { overlapBadges: adjusted };
+    return { overlapBadges };
+  };
+
+  const setMotionPaused = (paused: boolean) => {
+    if (paused === motionPaused) return;
+    motionPaused = paused;
+    setRegionalGlyphLaneMotion(regionalSvgScope(svg), viewport, !paused);
+    topStationImpactLayer.dataset.mapOverlayMotionPaused = paused ? "true" : "false";
+    synchronizePulses();
   };
 
   const updateSelection = (selectionOptions: RegionalOverlaySelection) => {
@@ -2220,11 +2368,11 @@ export function installRegionalOverlaySession(
     }
     hoveredMapImpact = null;
     externallyHoveredImpactKeys.clear();
-    overlapBadgePositions.clear();
   };
 
   return {
     update,
+    setMotionPaused,
     updateSelection,
     updateStationSelection,
     setImpactHover,

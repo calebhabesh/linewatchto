@@ -118,8 +118,15 @@
 }
 
 .station-access-outage-count[data-single-digit="true"] {
+  /* The 9px digit SVG would center on a half pixel in this 16px circle; see the
+     nudge note in badges.css. */
+  --overlapping-count-nudge-x: 0.5px;
   padding: 0;
   width: 16px;
+}
+
+.station-access-outage-count[data-single-digit="true"] .overlapping-count-badge__svg {
+  margin-left: -1px;
 }
 
 .dark .station-access-outage-count {

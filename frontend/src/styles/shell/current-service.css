@@ -30,6 +30,18 @@
 }
 .current-service h3 { display: flex; align-items: center; gap: 5px; margin: 0 0 6px; font-size: 11px; line-height: 1.25; font-weight: 700; }
 .current-service h3 svg { flex-shrink: 0; }
+/* Glowing accent bar, matching the desktop section headers; only the phone sheet shows it. */
+.current-service-section-bar { display: none; }
+.mobile-service-sheet .current-service-section-bar {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 4px;
+  height: 16px;
+  margin-right: 3px;
+  border-radius: 9999px;
+  background: var(--logo-blue, var(--color-logo-blue, #81c9ff));
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.65);
+}
 .current-service-list { max-height: 112px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
 .current-service-line { --service-line-badge-width: 55px; --service-line-gap: 7px; --service-line-padding: 3px; display: flex; align-items: flex-start; gap: var(--service-line-gap); padding: 3px 0; position: relative; }
 .current-service-line-badge-wrap { width: 55px; min-width: 55px; flex: 0 0 55px; display: flex; justify-content: center; align-items: center; }
@@ -604,6 +616,60 @@
 .linewatch-shell.high-contrast .current-service-active-count {
   border: 1px solid #ffffff;
   box-shadow: none;
+  text-shadow: none;
+}
+
+/* Section header counts (desktop overview and mobile sheet) use the mobile
+   category circle style, pinned to the right edge of the header. */
+.desktop-status-section-header .current-service-active-count,
+.mobile-service-sheet .current-service h3 .current-service-active-count {
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  box-shadow: none;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 900;
+  height: 25px;
+  margin-left: auto;
+  min-width: 25px;
+  padding: 0 6px;
+  text-shadow: none;
+}
+
+.desktop-status-section-header .current-service-active-count[data-single-digit="true"],
+.mobile-service-sheet .current-service h3 .current-service-active-count[data-single-digit="true"] {
+  padding: 0;
+  width: 25px;
+}
+
+.dark .desktop-status-section-header .current-service-active-count,
+.dark .mobile-service-sheet .current-service h3 .current-service-active-count {
+  background: rgba(239, 68, 68, 0.38);
+  border-color: rgba(239, 68, 68, 0.9);
+  color: #ffffff;
+  text-shadow: 0 0 4px rgba(239, 68, 68, 0.7);
+}
+
+.desktop-status-section-header .current-service-active-count[data-count="zero"],
+.mobile-service-sheet .current-service h3 .current-service-active-count[data-count="zero"] {
+  background: rgba(100, 116, 139, 0.14);
+  border-color: rgba(100, 116, 139, 0.3);
+  color: #334155;
+  text-shadow: none;
+}
+
+.dark .desktop-status-section-header .current-service-active-count[data-count="zero"],
+.dark .mobile-service-sheet .current-service h3 .current-service-active-count[data-count="zero"] {
+  background: rgba(148, 163, 184, 0.2);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #cbd5e1;
+}
+
+.high-contrast .desktop-status-section-header .current-service-active-count,
+.high-contrast .mobile-service-sheet .current-service h3 .current-service-active-count {
+  background: #000000;
+  border-color: #ffffff;
+  color: #ffffff;
   text-shadow: none;
 }
 @media (min-width: 768px) {
@@ -1338,21 +1404,39 @@
     box-shadow: none;
   }
   .linewatch-shell .mobile-bottom-nav-icon > svg { width: 26px; height: 26px; }
+  /* Matches the desktop rail counts: tinted circle over a solid base. */
   .linewatch-shell .mobile-bottom-nav-badge {
-    left: auto;
-    right: -7px;
-    top: -4px;
-    height: 15px;
-    min-width: 15px;
+    --overlapping-count-font-size: 11px;
+    left: 11px;
+    right: auto;
+    top: -7px;
+    height: 19px;
+    min-width: 19px;
     border-radius: 9999px;
-    padding: 0 3.5px;
-    font-size: 10px;
-    --overlapping-count-font-size: 10px;
-    font-weight: 800;
+    padding: 0 3px;
+    font-size: 11px;
+    font-weight: 900;
+    background: linear-gradient(rgba(239, 68, 68, 0.16), rgba(239, 68, 68, 0.16)), #ffffff;
+    border: 1px solid rgba(239, 68, 68, 0.55);
+    color: #b91c1c;
   }
+  .linewatch-shell.dark .mobile-bottom-nav-badge {
+    background: linear-gradient(rgba(239, 68, 68, 0.38), rgba(239, 68, 68, 0.38)), #1c2026;
+    border-color: rgba(239, 68, 68, 0.9);
+    color: #ffffff;
+  }
+  .linewatch-shell.dark .mobile-bottom-nav-badge .overlapping-count-badge__svg {
+    filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.7));
+  }
+  .linewatch-shell.high-contrast .mobile-bottom-nav-badge {
+    background: #000000;
+    border-color: #ffffff;
+    color: #ffffff;
+  }
+  .linewatch-shell.high-contrast .mobile-bottom-nav-badge .overlapping-count-badge__svg { filter: none; }
   .linewatch-shell .mobile-bottom-nav-badge[data-single-digit="true"] {
-    width: 15px;
-    height: 15px;
+    width: 19px;
+    height: 19px;
     padding: 0;
     aspect-ratio: 1 / 1;
   }
@@ -1621,7 +1705,9 @@
     height: 1px;
     background: linear-gradient(to right, transparent, color-mix(in srgb, var(--muted) 28%, transparent) 25%, color-mix(in srgb, var(--muted) 28%, transparent) 75%, transparent);
   }
-  .mobile-service-sheet .current-service h3 { font-size: 16px; line-height: 1.25; align-items: center; margin-bottom: 8px; }
+  /* Section headers sit above incident types (18px) and stations (16px). */
+  .mobile-service-sheet .current-service h3 { font-size: 20px; line-height: 1.25; align-items: center; margin-bottom: 8px; }
+  .mobile-service-sheet .current-service h3 > svg { width: 18px; height: 18px; }
   .mobile-service-sheet .current-service-list { max-height: none; overflow: visible; display: flex; flex-direction: column; mask-image: none; }
   .mobile-service-sheet .current-service-line { --service-line-badge-width: 28px; --service-line-gap: 10px; --service-line-padding: 6px; gap: var(--service-line-gap); padding: 6px 0; border-bottom: 0; }
   .mobile-service-sheet .current-service-line-badge-wrap {
@@ -1690,8 +1776,8 @@
     border-color: var(--text);
     box-shadow: none;
   }
-  .mobile-service-sheet .current-service-impact-heading strong { font-size: 14px; font-weight: 700; gap: 5px; line-height: 20px; }
-  .mobile-service-sheet .current-service-impact-location { margin-top: 4px; background: var(--panel-soft); border-left: 2px solid currentColor; padding: 4px 6px; font-size: 15px; font-weight: 650; line-height: 20px; color: var(--text); }
+  .mobile-service-sheet .current-service-impact-heading strong { font-size: 18px; font-weight: 700; gap: 5px; line-height: 20px; }
+  .mobile-service-sheet .current-service-impact-location { margin-top: 4px; background: var(--panel-soft); border-left: 2px solid currentColor; padding: 3px 6px; font-size: 16px; font-weight: 650; line-height: 22px; color: var(--text); }
   .mobile-service-sheet .current-service-impact-direction { margin-top: 4px; font-size: 13px; font-weight: 600; line-height: 16px; color: var(--incident-direction-text); }
   .mobile-service-sheet .current-service-impact-timing { font-size: 13px; font-weight: 600; line-height: 16px; color: var(--text); }
   .mobile-service-sheet .current-service-normal-label strong { font-size: 14px; font-weight: 700; }

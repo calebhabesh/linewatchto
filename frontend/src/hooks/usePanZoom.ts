@@ -637,10 +637,13 @@ export function usePanZoom({
 
   const startGestureInteraction = useCallback((pointerType: string) => {
     setUserGestureMotion(true);
-    // Preserve the idle desktop ease during a drag, matching the regional map.
-    // Reduced-motion and mobile modes already set the idle transition to none.
+    // A direct drag follows the pointer with no transform easing, matching the
+    // regional map. Easing every move keeps the stage in a transform
+    // transition, and Chrome's redraw when it settles after release tore
+    // GO/UP's heavier stage. The idle ease returns when the gesture ends.
+    setMapTransition("none");
     dragPointerTypeRef.current = pointerType;
-  }, [setUserGestureMotion]);
+  }, [setMapTransition, setUserGestureMotion]);
 
   const captureActivePointers = useCallback((element: HTMLDivElement) => {
     for (const pointerId of activePointersRef.current.keys()) {

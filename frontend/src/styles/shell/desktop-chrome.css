@@ -1411,6 +1411,9 @@
   align-items: center;
   display: flex;
   justify-content: center;
+  /* Even width keeps the slot, and the count badge anchored to it, on whole
+     pixels inside the even-width rail item; odd icons would land on x.5. */
+  min-width: 22px;
   position: relative;
 }
 
@@ -1421,47 +1424,62 @@
   line-height: 1;
 }
 
+/* Sidebar counts mirror the mobile category circles: tinted fill and ring in the
+   category color over a solid base, so the icon underneath never shows through. */
 .desktop-rail-badge {
-  --overlapping-count-font-size: 10px;
+  --overlapping-count-font-size: 12px;
+  --rail-badge-rgb: 239, 68, 68;
+  --rail-badge-ink: #b91c1c;
+  --rail-badge-base: #f8fafc;
   align-items: center;
-  background: #ef4444;
-  border: 1.5px solid #f8fafc;
+  background: linear-gradient(rgba(var(--rail-badge-rgb), 0.16), rgba(var(--rail-badge-rgb), 0.16)), #ffffff;
+  border: 1px solid rgba(var(--rail-badge-rgb), 0.55);
   border-radius: 9999px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 0 1.5px var(--rail-badge-base), 0 1px 3px rgba(0, 0, 0, 0.2);
   box-sizing: border-box;
-  color: #ffffff;
+  color: var(--rail-badge-ink);
   display: inline-flex;
-  font-size: 10px;
-  font-weight: 800;
-  height: 16px;
+  font-size: 12px;
+  font-weight: 900;
+  height: 21px;
   justify-content: center;
   line-height: 1;
-  min-width: 16px;
+  min-width: 21px;
   padding: 0 4px;
+  /* Anchored from the left so two-digit counts grow away from the icon. */
+  left: 13px;
   position: absolute;
-  right: -13px;
-  top: -8px;
+  top: -10px;
   z-index: 5;
 }
 
 .dark .desktop-rail-badge {
-  background: #ef4444;
-  border-color: #090d14;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  --rail-badge-base: #090d14;
+  background: linear-gradient(rgba(var(--rail-badge-rgb), 0.38), rgba(var(--rail-badge-rgb), 0.38)), #090d14;
+  border-color: rgba(var(--rail-badge-rgb), 0.9);
+  box-shadow: 0 0 0 1.5px var(--rail-badge-base), 0 1px 4px rgba(0, 0, 0, 0.5);
   color: #ffffff;
 }
 
+.dark .desktop-rail-badge .overlapping-count-badge__svg {
+  filter: drop-shadow(0 0 2px rgba(var(--rail-badge-rgb), 0.7));
+}
+
 .high-contrast .desktop-rail-badge {
-  background: #ef4444;
+  background: #000000;
   border-color: #ffffff;
   color: #ffffff;
 }
 
+.high-contrast .desktop-rail-badge .overlapping-count-badge__svg {
+  filter: none;
+}
+
 .desktop-rail-badge[data-single-digit="true"] {
   aspect-ratio: 1 / 1;
-  height: 16px;
+  height: 21px;
   padding: 0;
-  width: 16px;
+  width: 21px;
 }
 
 .desktop-rail-network-slot {
@@ -1657,7 +1675,8 @@
 }
 
 .desktop-rail-notice-shortcut[data-dest="accessibility-outages"] .desktop-rail-notice-badge {
-  background: #2563eb;
+  --rail-badge-rgb: 59, 130, 246;
+  --rail-badge-ink: #1d4ed8;
 }
 
 .dark .desktop-rail-notice-shortcut[data-dest="accessibility-outages"]:not([data-count="0"]) .desktop-rail-icon-slot {
@@ -1697,20 +1716,24 @@
 }
 
 .desktop-rail-alert-shortcut[data-alert-kind="alerts"] .desktop-rail-alert-badge {
-  background: #dc2626;
+  --rail-badge-rgb: 239, 68, 68;
+  --rail-badge-ink: #b91c1c;
 }
 
 .desktop-rail-alert-shortcut[data-alert-kind="delays"] .desktop-rail-alert-badge {
-  background: #ca8a04;
+  --rail-badge-rgb: 234, 179, 8;
+  --rail-badge-ink: #854d0e;
 }
 
 .desktop-rail-alert-shortcut[data-alert-kind="reduced-speed-zones"] .desktop-rail-alert-badge,
 .desktop-rail-alert-shortcut[data-alert-kind="trip-changes"] .desktop-rail-alert-badge {
-  background: #ea580c;
+  --rail-badge-rgb: 245, 158, 11;
+  --rail-badge-ink: var(--impact-rsz-ink);
 }
 
 .desktop-rail-alert-shortcut[data-alert-kind="closures"] .desktop-rail-alert-badge {
-  background: #2563eb;
+  --rail-badge-rgb: 59, 130, 246;
+  --rail-badge-ink: #1d4ed8;
 }
 
 .dark .desktop-rail-alert-shortcut[data-alert-kind="alerts"]:not([data-count="0"]) .desktop-rail-icon-slot {
@@ -2364,8 +2387,15 @@
   text-transform: none;
 }
 
+/* Text ladder: Current Service 22px > section 20px > incident type 18px > stations 16px. */
+.desktop-status-section-title {
+  font-size: 20px;
+}
+
 .desktop-status-section-title svg {
   flex-shrink: 0;
+  height: 18px;
+  width: 18px;
 }
 
 .dark .desktop-status-section-title,
@@ -2929,7 +2959,7 @@
   align-items: center;
   color: var(--text, #0f172a);
   display: inline-flex;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
   gap: 6px;
 }
@@ -2972,12 +3002,12 @@
   margin-top: 4px;
   background: var(--panel-soft);
   border-left: 2px solid currentColor;
-  padding: 4px 8px;
+  padding: 3px 8px;
   width: 100%;
   color: var(--text, #0f172a);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 650;
-  line-height: 20px;
+  line-height: 22px;
 }
 
 .dark .desktop-status-incident-location {

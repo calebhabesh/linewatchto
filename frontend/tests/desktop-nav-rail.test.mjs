@@ -126,7 +126,7 @@ describe("desktop navigation destinations", () => {
     assert.match(desktopChromeCss, /\.desktop-rail-item\[data-active="true"\]::before\s*\{[^}]*scaleY\(1\)/s);
     assert.match(desktopChromeCss, /\.desktop-rail-item\[data-active="true"\]::after\s*\{[^}]*opacity:\s*1/s);
     assert.match(desktopChromeCss, /\.desktop-rail-items\s*\{[^}]*overflow-y:\s*auto;/s);
-    assert.match(desktopChromeCss, /\.desktop-rail-alert-shortcut\[data-alert-kind="closures"\] \.desktop-rail-alert-badge\s*\{[^}]*background:\s*#2563eb;/s);
+    assert.match(desktopChromeCss, /\.desktop-rail-alert-shortcut\[data-alert-kind="closures"\] \.desktop-rail-alert-badge\s*\{[^}]*--rail-badge-rgb:\s*59, 130, 246;/s);
   });
 
   it("mutes alert and notice shortcut icons when active incidents count is zero", () => {

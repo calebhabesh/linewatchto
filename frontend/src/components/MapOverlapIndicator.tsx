@@ -1,5 +1,6 @@
 "use client";
 
+import { OVERLAP_BADGE_CONNECTOR_DOT_RADIUS, type OverlapBadgeConnector } from "./overlap-badge-connector";
 import { useRef, type KeyboardEvent } from "react";
 import type {
   ImpactSelection,
@@ -207,6 +208,7 @@ export function MapOverlapIndicator({
   visualScale = 1,
   collisionAvoided = true,
   isolatePointerDown = false,
+  connector = null,
   onActivate,
   onHoverChange,
   shouldSuppressMapClick = () => false,
@@ -221,6 +223,8 @@ export function MapOverlapIndicator({
   visualScale?: number;
   collisionAvoided?: boolean;
   isolatePointerDown?: boolean;
+  /** Line to the overlay this badge explains, shown on hover, focus, or while open. */
+  connector?: OverlapBadgeConnector | null;
   onActivate: () => void;
   onHoverChange?: (hovered: boolean) => void;
   shouldSuppressMapClick?: () => boolean;
@@ -268,6 +272,9 @@ export function MapOverlapIndicator({
       }}
       transform={`translate(${position.x} ${position.y}) scale(${visualScale})`}
     >
+      {connector ? (
+        <OverlapBadgeConnectorLine connector={connector} position={position} visualScale={visualScale} />
+      ) : null}
       <g
         aria-expanded={isOpen}
         aria-label={open ? `Close alert chooser for ${label}` : accessibleLabel}
@@ -335,6 +342,30 @@ export function MapOverlapIndicator({
           })}
         </g>
       </g>
+    </g>
+  );
+}
+
+/** Drawn in the badge's own coordinates so it inherits the badge's hover state. */
+function OverlapBadgeConnectorLine({
+  connector,
+  position,
+  visualScale,
+}: {
+  connector: OverlapBadgeConnector;
+  position: { x: number; y: number };
+  visualScale: number;
+}) {
+  const local = (point: { x: number; y: number }) => ({
+    x: (point.x - position.x) / visualScale,
+    y: (point.y - position.y) / visualScale,
+  });
+  const from = local(connector.from);
+  const to = local(connector.to);
+  return (
+    <g className="overlap-badge-connector" aria-hidden="true" pointerEvents="none">
+      <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} />
+      <circle cx={to.x} cy={to.y} r={OVERLAP_BADGE_CONNECTOR_DOT_RADIUS} />
     </g>
   );
 }

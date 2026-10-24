@@ -90,12 +90,12 @@ for (const theme of ["light", "dark"] as const) {
       ? "UP Express: Weston to Pearson Airport"
       : "Lakeshore East Line: Pickering to Ajax");
     await expect(planned.locator(".overlap-chooser-choice-direction"))
-      .toHaveText("(Eastbound & Westbound)");
+      .toHaveText("Eastbound & Westbound");
     await expect(planned.locator(".overlap-chooser-choice-summary")).toHaveCount(0);
     await expect(delay.locator(".overlap-chooser-choice-summary")).toHaveCount(0);
     await expect(delay).toContainText("Both directions");
     await expect(chooser.locator('[data-overlap-choice-id="regional-demo-suspension"] .overlap-chooser-choice-direction'))
-      .toHaveText("(Eastbound & Westbound)");
+      .toHaveText("Eastbound & Westbound");
     expect(await chooser.evaluate((element) => {
       const list = element.querySelector(".overlap-chooser-list")!;
       return list.scrollWidth <= list.clientWidth;

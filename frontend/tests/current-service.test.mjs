@@ -503,15 +503,15 @@ test("sub-badges and surface routes use flex alignment with safe wrapping", () =
   assert.match(desktopChromeStyles, /\.desktop-status-incident-title\[data-kind="planned-closure"\]\s*\{[^}]*color:\s*#2563eb;/s);
   assert.match(desktopChromeStyles, /\.dark \.desktop-status-incident-title\[data-kind="planned-closure"\]\s*\{[^}]*color:\s*#60a5fa;/s);
 
-  // Title and section header font sizes (title 22px > section header 15.5px)
+  // Text ladder: Current Service 22px > section 20px > incident type 18px > stations 16px
   assert.match(desktopChromeStyles, /\.desktop-status-title\s*\{[^}]*font-size:\s*22px;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-section-title[^{]*\{[^}]*font-size:\s*15\.5px;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-rail-kicker\s*\{[^}]*font-size:\s*11px;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-rail-kicker\s*\{[^}]*opacity:\s*0\.75;/s);
 
   // Location leads; supporting direction and timing remain readable
-  assert.match(desktopChromeStyles, /\.desktop-status-incident-title\s*\{[^}]*font-size:\s*14px;/s);
-  assert.match(desktopChromeStyles, /\.desktop-status-incident-location\s*\{[^}]*font-size:\s*15px;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-incident-title\s*\{[^}]*font-size:\s*18px;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-incident-location\s*\{[^}]*font-size:\s*16px;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-incident-direction\s*\{[^}]*font-size:\s*13px;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-incident-timing\s*\{[^}]*font-size:\s*13px;/s);
 
@@ -533,6 +533,17 @@ test("sub-badges and surface routes use flex alignment with safe wrapping", () =
   assert.match(desktopStatusSource, /<IncidentElectricBorder[\s\S]*?<button[^>]*className="desktop-status-incident-row"/);
   const surfaceSection = desktopStatusSource.slice(desktopStatusSource.indexOf('className="desktop-status-surface-list"'));
   assert.doesNotMatch(surfaceSection, /<IncidentElectricBorder/);
+
+});
+
+test("incident electric borders keep no live canvas at rest and show their still while the sheet moves", () => {
+  // A resting border is a still image, not a live canvas (its own GPU layer).
+  // The still must not wait for a sheet drag to end, or the border pops in late.
+  const electricBorderSource = readFileSync(new URL("../src/components/ui/ElectricBorder.tsx", import.meta.url), "utf8");
+  assert.match(electricBorderSource, /<canvas ref=\{canvasRef\} className="eb-canvas" style=\{\{ display: "none" \}\} \/>/);
+  assert.match(electricBorderSource, /if \(canAnimate\(\)\) \{\s*draw\(\);\s*showCanvas\(\);\s*schedule\(\);\s*\} else \{\s*showStill\(\);/);
+  assert.match(electricBorderSource, /const canDraw = \(\) => visible && !motionQuery\.matches;/);
+  assert.match(electricBorderSource, /const canAnimate = \(\) => canDraw\(\) && !sheetMotionPaused && \(hovered \|\| focused\);/);
 });
 
 test("shared incident copy retains countdowns for active and upcoming closures", () => {

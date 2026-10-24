@@ -571,7 +571,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalOverlaysSource, /REGIONAL_DELAY_GLYPH_SPACING = 96/);
     assert.match(regionalOverlaysSource, /travelDirection === "bidirectional"[\s\S]*REGIONAL_DELAY_GLYPH_SPACING \* 1\.3[\s\S]*Math\.floor\(length \/ glyphSpacing\)/);
     assert.match(regionalOverlaysSource, /REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND = \(160 \/ 12\) \* \(175 \/ 102\)/);
-    assert.match(regionalOverlaysSource, /travelDirection === "bidirectional" \|\| !pathD/);
+    assert.match(regionalOverlaysSource, /travelDirection !== "bidirectional" && pathD/);
     assert.match(regionalOverlaysSource, /createElementNS\(SVG_NAMESPACE, "animateMotion"\)/);
     assert.match(regionalOverlaysSource, /impact\.travelDirection/);
     assert.match(globalsCss, /data-regional-impact-kind="delay"[\s\S]*stroke:\s*#0ea5e9[\s\S]*stroke-width:\s*var\(--regional-impact-width\)/);
@@ -579,7 +579,11 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(globalsCss, /data-regional-impact-kind="reduced-speed-zone"[^}]*regional-impact-path\s*\{[^}]*map-overlay-rail-pulse/s);
     assert.match(globalsCss, /\.regional-impact-aura\s*\{[^}]*animation:\s*aura-pulse var\(--map-overlay-pulse-half-cycle\) infinite alternate var\(--map-overlay-pulse-easing\);[^}]*animation-delay:\s*var\(--map-pulse-offset\)/s);
     assert.match(globalsCss, /regional-overlay-segment-group:not\(\[data-regional-impact-selected="true"\]\)[^}]*regional-impact-interactive-glow\s*\{[^}]*animation:\s*none\s*!important/s);
-    assert.match(globalsCss, /regional-overlay-segment-group:not\(\[data-regional-impact-selected="true"\]\)[^}]*regional-impact-interactive-glow\s*\{[^}]*opacity:\s*0\s*!important/s);
+    assert.match(globalsCss, /regional-overlay-segment-group:not\(\[data-regional-impact-selected="true"\]\)[^}]*regional-impact-interactive-glow\s*\{[^}]*display:\s*none\s*!important/s);
+    // Pan release restores glow blur. Animating filter or stroke-width back
+    // repaints the whole map layer each frame (GO/UP-only flicker); TTC
+    // applies these instantly.
+    assert.doesNotMatch(globalsCss, /regional-impact-(?:interactive-)?glow\s*\{[^}]*transition:[^};]*(?:filter|stroke-width|\ball\b)/s);
     assert.doesNotMatch(globalsCss, /data-regional-impact-kind="suspension"[^}]*regional-impact-path\s*\{[^}]*map-overlay-rail-pulse/s);
     assert.match(regionalOverlaysSource, /--map-overlay-rail-pulse-width/);
     assert.match(globalsCss, /regional-impact-hit-target:active[\s\S]*regional-impact-glow/);
@@ -817,17 +821,12 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /openRegionalOverlapChooser\(badge\)/);
     assert.match(regionalOverlaysSource, /candidate\.dataset\.overlapSegmentId === markerId/);
     assert.match(regionalOverlaysSource, /function regionalOverlapChooserLayout\(/);
+    assert.match(regionalOverlaysSource, /placeOverlapChooser\(\{/);
     assert.match(regionalOverlaysSource, /const REGIONAL_OVERLAP_CHOOSER_GAP = 24/);
-    assert.match(regionalOverlaysSource, /markerCenter\.x - alertAnchor\.x/);
     assert.match(regionalOverlaysSource, /function regionalReferencedAlertCollisionBoxes\(/);
     assert.match(regionalOverlaysSource, /identityKeys\.has\(`\$\{kind\}:\$\{id\}`\)/);
     assert.match(regionalMapSource, /const alertCollisionBoxes = regionalReferencedAlertCollisionBoxes\(/);
     assert.match(regionalMapSource, /alertCollisionBoxes,\s*uiKeepoutBoxes,/);
-    assert.match(regionalOverlaysSource, /const preferredCenter = centerForDirection\((?:normalizedOutward|outward), size\)/);
-    assert.match(regionalOverlaysSource, /const angleOffsets = Array\.from\(\{ length: 24 \}/);
-    assert.match(regionalOverlaysSource, /const distanceScales = \[1, 1\.25, 1\.55, 1\.9, 2\.3\]/);
-    assert.match(regionalOverlaysSource, /alertOverlapArea \* 1_000_000[\s\S]*markerOverlapArea \* 1_000_000/);
-    assert.match(regionalMapSource, /anchorPoint\.matrixTransform\(screenMatrix\)/);
     assert.match(regionalMapSource, /setRegionalOverlapImpactsHovered\(badge\.impacts, hovered\)/);
     assert.match(regionalMapSource, /<MapOverlapChooser/);
     assert.match(regionalMapSource, /onHoverImpact=\{hoverRegionalChooserImpact\}/);
@@ -835,7 +834,6 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalOverlaysSource, /const rootPosition = pointInSvgRootCoordinates\(stationsLayer, placement\.position\)/);
     assert.match(regionalOverlaysSource, /anchor: rootAnchor/);
     assert.match(regionalOverlaysSource, /position: rootPosition/);
-    assert.match(regionalOverlaysSource, /preferredVector:\s*\{[\s\S]*rootPosition\.x - rootAnchor\.x/);
     assert.doesNotMatch(regionalOverlaysSource, /overlapLayerTransform/);
     assert.doesNotMatch(regionalOverlaysSource, /clampedRootPosition/);
     assert.match(regionalGeometrySource, /const candidates = \[1, -1\]\.map/);
@@ -843,16 +841,14 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalGeometrySource, /const REGIONAL_OVERLAP_INDICATOR_EDGE_GAP = 88/);
     assert.match(regionalGeometrySource, /const renderedBadgeHalfExtent = \(/);
     assert.match(regionalGeometrySource, /REGIONAL_IMPACT_OVERLAY_WIDTH \/ 2[\s\S]*renderedBadgeHalfExtent[\s\S]*REGIONAL_OVERLAP_INDICATOR_EDGE_GAP/);
-    assert.match(regionalOverlaysSource, /function regionalCollisionAdjustedOverlapBadges\(/);
     assert.match(regionalOverlaysSource, /querySelectorAll<SVGGraphicsElement>\("text"\)/);
     assert.match(regionalOverlaysSource, /\.regional-overlay-segment-group\[data-regional-impact-id\] \.regional-impact-path/);
     assert.match(regionalOverlaysSource, /#regional-lines-layer path\[id\^="regional-route-"\]/);
     assert.match(regionalGeometrySource, /function regionalPathCorridorCollisionBoxes\(/);
-    assert.match(regionalOverlaysSource, /regionalOverlapBadgePositionCandidates\(badge\)/);
-    // Collision priorities are exercised behaviorally in regional-overlap-placement.test.mjs.
-    assert.match(regionalOverlaysSource, /regionalCollisionAdjustedOverlapBadges\(svg, badges\)/);
-    assert.match(regionalOverlaysSource, /const stablePosition = overlapBadgePositions\.get\(badge\.markerId\)/);
-    assert.match(regionalOverlaysSource, /hasStablePosition: Boolean\(stablePosition\)/);
+    // Placement shares the TTC engine; behaviour is covered in regional-overlap-placement.test.mjs.
+    assert.match(regionalOverlaysSource, /function regionalPlacedOverlapBadges\(/);
+    assert.match(regionalOverlaysSource, /placeOverlapBadges\(\{/);
+    assert.doesNotMatch(regionalOverlaysSource, /overlapBadgePositions/);
     assert.match(regionalMapSource, /const animationFrame = window\.requestAnimationFrame\(\(\) => \{[\s\S]*positionRegionalOverlapChooser/);
     assert.doesNotMatch(regionalMapSource, /badge\.position\.x \+ deltaX \* authoredUnitsPerPixel/);
     assert.match(overlapIndicatorSource, /<OverlapKindCountBadge count=\{count\}/);
@@ -864,8 +860,6 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /visibleMapChooserKeepouts\(\)/);
     assert.match(regionalMapSource, /observeMapChooserKeepouts/);
     assert.match(regionalMapSource, /uiKeepoutBoxes/);
-    assert.match(regionalOverlaysSource, /entry\.uiOverlapArea === 0/);
-    assert.match(regionalOverlaysSource, /if \(attempt\.clearsUiKeepouts\) break/);
     assert.match(regionalMapSource, /positionRegionalOverlapChooser\(expandedOverlapBadge\)/);
   });
 

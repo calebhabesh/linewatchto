@@ -841,4 +841,10 @@ describe("pan zoom behavior guardrails", () => {
     assert.doesNotMatch(hookSource, /observer\.observe\(sidebar\)/);
     assert.doesNotMatch(hookSource, /diffOverlay/);
   });
+  it("direct drags follow the pointer without transform easing in both maps", () => {
+    // Easing each drag move kept the stage in a transform transition, and the
+    // redraw when it settled after release tore the GO/UP map and sidebar.
+    assert.match(hookSource, /const startGestureInteraction = useCallback\([\s\S]*?setMapTransition\("none"\);[\s\S]*?\}, \[/);
+    assert.match(regionalMapSource, /const onPointerDown = useCallback\([\s\S]*?cancelCameraAnimation\(\);[\s\S]*?setMapTransition\("none"\);/);
+  });
 });

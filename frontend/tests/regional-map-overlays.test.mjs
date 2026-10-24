@@ -15,6 +15,7 @@ import {
   regionalOverlayRuns,
   regionalOverlapChooserLayout,
   installRegionalOverlaySession,
+  regionalOverlayContentSignature,
 } from "../src/app/regional-map-overlays.ts";
 
 function createMockElement(tagName, id = "", classes = []) {
@@ -406,5 +407,32 @@ describe("regional map overlays lifecycle and utilities", () => {
         globalThis.CSS = originalCSS;
       }
     });
+  });
+});
+
+describe("regionalOverlayContentSignature", () => {
+  const snapshot = (updatedAt, closureTitle = "Weekend service adjustments") => ({
+    activeAlerts: [{ id: "alert-1", severity: "delay", lineId: "regional-lw", affectedSegmentIds: [], updatedAt }],
+    delays: [],
+    reducedSpeedZones: [],
+    plannedClosures: [{ id: "closure-1", lineId: "regional-lw", title: closureTitle, previewSegmentIds: [], previewStationIds: ["oakville"], updatedAt }],
+    networkSegments: [{ id: "segment-lw-a-b", lineId: "regional-lw", impacts: [] }],
+    stationNodeImpacts: [],
+    stations: [{ id: "oakville", name: "Oakville" }],
+    commutePathPreview: null,
+  });
+
+  it("keeps overlays in place when a poll only returns fresh copies with new run timestamps", () => {
+    assert.equal(
+      regionalOverlayContentSignature(snapshot("2026-10-23T21:03:36Z")),
+      regionalOverlayContentSignature(snapshot("2026-10-23T21:07:37Z")),
+    );
+  });
+
+  it("rebuilds overlays when drawn content changes", () => {
+    assert.notEqual(
+      regionalOverlayContentSignature(snapshot("2026-10-23T21:03:36Z")),
+      regionalOverlayContentSignature(snapshot("2026-10-23T21:03:36Z", "Line closed")),
+    );
   });
 });

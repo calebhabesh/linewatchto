@@ -6,6 +6,7 @@
 .station-connections-title,
 .mobile-status-section-heading,
 .desktop-status-section-header,
+.mobile-service-sheet .current-service-section-heading,
 .desktop-more-section-header {
   position: relative;
   isolation: isolate;
@@ -17,6 +18,7 @@
 .station-connections-title > .bg-logo-blue,
 .mobile-status-section-heading > .bg-logo-blue,
 .desktop-status-section-header > .desktop-status-section-bar,
+.mobile-service-sheet .current-service-section-heading > .current-service-section-bar,
 .desktop-more-section-header > .desktop-status-section-bar,
 [data-station-section] .station-subsection-header > .bg-logo-blue,
 [data-station-section] .station-connections-title > .bg-logo-blue {
@@ -34,6 +36,7 @@
 .station-connections-title::before,
 .mobile-status-section-heading::before,
 .desktop-status-section-header::before,
+.mobile-service-sheet .current-service-section-heading::before,
 .desktop-more-section-header::before {
   content: "";
   position: absolute;
@@ -64,6 +67,7 @@
 .station-connections-title > *:not(.bg-logo-blue),
 .mobile-status-section-heading > *:not(.bg-logo-blue),
 .desktop-status-section-header > *:not(.desktop-status-section-bar),
+.mobile-service-sheet .current-service-section-heading > *:not(.current-service-section-bar),
 .desktop-more-section-header > *:not(.desktop-status-section-bar) {
   position: relative;
   z-index: 2;
@@ -74,6 +78,7 @@
 :root:not(.dark) .station-connections-title::before,
 :root:not(.dark) .mobile-status-section-heading::before,
 :root:not(.dark) .desktop-status-section-header::before,
+:root:not(.dark) .mobile-service-sheet .current-service-section-heading::before,
 :root:not(.dark) .desktop-more-section-header::before {
   opacity: 0.75;
   filter: blur(4px);
@@ -89,6 +94,7 @@
 :root:not(.dark) .station-connections-title > .bg-logo-blue,
 :root:not(.dark) .mobile-status-section-heading > .bg-logo-blue,
 :root:not(.dark) .desktop-status-section-header > .desktop-status-section-bar,
+:root:not(.dark) .mobile-service-sheet .current-service-section-heading > .current-service-section-bar,
 :root:not(.dark) .desktop-more-section-header > .desktop-status-section-bar {
   box-shadow:
     0 0 4px rgba(0, 102, 184, 0.50),
@@ -125,6 +131,7 @@
 .high-contrast .station-connections-title::before,
 .high-contrast .mobile-status-section-heading::before,
 .high-contrast .desktop-status-section-header::before,
+.high-contrast .mobile-service-sheet .current-service-section-heading::before,
 .high-contrast .desktop-more-section-header::before {
   opacity: 0.4;
 }

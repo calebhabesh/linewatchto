@@ -393,8 +393,8 @@ test("nav badges are visibly centered for single and multi-digit counts (1, 2, 9
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
       text.setAttribute("class", "overlapping-count-badge__text");
       text.setAttribute("x", String(viewBoxWidth / 2));
-      text.setAttribute("y", "7.35");
-      text.setAttribute("dominant-baseline", "central");
+      text.setAttribute("y", "8");
+      text.setAttribute("dominant-baseline", "alphabetic");
       text.setAttribute("text-anchor", "middle");
       text.textContent = label;
 

@@ -28,6 +28,10 @@
   overflow: hidden;
   text-size-adjust: none;
   white-space: nowrap;
+  /* Badges often land on fractional y positions. Chromium snaps the ring to whole
+     pixels but not the SVG number, so the number drifted up to 1px off center
+     depending on where the badge sat. Its own layer makes both snap together. */
+  will-change: transform;
 }
 
 .overlapping-count-badge[data-single-digit="true"] {
@@ -47,15 +51,44 @@
 }
 
 .overlapping-count-badge__text {
-  dominant-baseline: central;
-  alignment-baseline: central;
+  /* Baseline at the anchor, then shifted by the label's ink offsets (in em) so
+     the visible digits, not their advance box, sit in the middle. */
+  dominant-baseline: alphabetic;
   text-anchor: middle;
+  transform: translate(
+    calc(var(--overlapping-count-ink-dx, 0) * 1em + var(--overlapping-count-nudge-x, 0px)),
+    calc(var(--overlapping-count-ink-dy, 0.33) * 1em + var(--overlapping-count-nudge-y, 0px))
+  );
   fill: currentColor;
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   font-size: var(--overlapping-count-font-size);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
   font-weight: 900;
+}
+
+/* Navigation counts keep a constant numeral size: one viewBox unit renders as
+   one CSS pixel, so extra digits widen the badge instead of shrinking the text. */
+.desktop-rail-badge .overlapping-count-badge__svg,
+.mobile-bottom-nav-badge .overlapping-count-badge__svg {
+  height: 16px;
+  max-width: none;
+  overflow: visible;
+  width: calc(var(--overlapping-count-viewbox-width, 9) * 1px);
+}
+
+/* These badges have an odd inner height (19px / 17px) around the 16px SVG, which
+   would center the SVG on a half pixel. Chromium snaps the SVG box to whole
+   pixels, pushing the number 0.5px low. Lift the box onto a whole pixel and move
+   the text down the remaining half pixel inside the SVG, where nothing snaps. */
+.desktop-rail-badge,
+.mobile-bottom-nav-badge {
+  --overlapping-count-nudge-y: 0.5px;
+}
+
+.desktop-rail-badge .overlapping-count-badge__svg,
+.mobile-bottom-nav-badge .overlapping-count-badge__svg {
+  margin-top: -1px;
 }
 
 .desktop-menu-count-badge {

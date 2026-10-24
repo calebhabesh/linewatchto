@@ -114,21 +114,29 @@
   pointer-events: none;
 }
 
+/* Every overlay has a hover copy. TTC renders its hover copy only while an
+   impact is hovered. Keep idle GO/UP copies out of rendering the same way:
+   `opacity: 0` or `visibility: hidden` would still paint all of their glyphs
+   on every pan frame and after release. */
 .regional-impact-hover-foreground,
 .regional-impact-top-hover-foreground {
+  display: none;
   opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 70ms ease-out,
-    visibility 0s linear 70ms;
+  transition: opacity 70ms ease-out;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .regional-impact-hover-foreground[data-regional-impact-hovered="true"],
   .regional-impact-top-hover-foreground[data-regional-impact-hovered="true"] {
+    display: inline;
     opacity: 1;
-    visibility: visible;
-    transition-delay: 0s;
+  }
+
+  @starting-style {
+    .regional-impact-hover-foreground[data-regional-impact-hovered="true"],
+    .regional-impact-top-hover-foreground[data-regional-impact-hovered="true"] {
+      opacity: 0;
+    }
   }
 }
 
@@ -170,10 +178,11 @@
   stroke: var(--regional-impact-color);
   stroke-width: calc(var(--regional-impact-width) + 102px);
   filter: blur(16px);
-  transition:
-    filter 300ms ease-out,
-    opacity 240ms ease-out,
-    stroke-width 300ms ease-out;
+  /* Never transition filter or stroke-width here. A gesture removes the blur
+     and restores it on release; animating that back repaints the whole map
+     layer for every frame of the transition, which flickers on GO/UP only.
+     TTC's glows change these instantly. */
+  transition: opacity 240ms ease-out;
 }
 
 .regional-impact-aura {
@@ -185,9 +194,15 @@
   opacity: 0;
 }
 
+.regional-overlay-segment-group .regional-impact-interactive-glow {
+  transition: none;
+}
+
+/* An unselected interactive glow is never visible. Keep it out of rendering,
+   as TTC does with its unselected glows, so gestures do not repaint its blur. */
 .regional-overlay-segment-group:not([data-regional-impact-selected="true"]) .regional-impact-interactive-glow {
   animation: none !important;
-  opacity: 0 !important;
+  display: none !important;
 }
 
 .regional-overlay-segment-group[data-regional-impact-kind="planned-closure"] .regional-impact-aura {

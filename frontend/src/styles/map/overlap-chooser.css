@@ -577,6 +577,33 @@
   fill: rgba(15, 23, 42, 0.98);
 }
 
+/* Points from a badge to the edge of the overlay it explains. Hidden until the
+   badge is hovered or focused so it never adds permanent clutter, and hidden
+   whenever a chooser is open so it never competes with the card. */
+.overlap-badge-connector {
+  opacity: 0;
+  transition: opacity 140ms ease-out;
+}
+
+.overlap-badge-connector line {
+  stroke: #60a5fa;
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+.overlap-badge-connector circle {
+  fill: #60a5fa;
+}
+
+:root:not(:has([data-overlap-chooser])) .overlap-indicator-group:hover .overlap-badge-connector,
+:root:not(:has([data-overlap-chooser])) .overlap-indicator-group:focus-within .overlap-badge-connector {
+  opacity: 0.9;
+}
+
+.motion-paused .overlap-badge-connector {
+  transition: none;
+}
+
 .overlap-indicator-badge {
   fill: rgba(15, 23, 42, 0.92);
   stroke-width: 3.5;

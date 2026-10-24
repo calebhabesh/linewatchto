@@ -1,9 +1,9 @@
 /**
  * TTC Overlap Chooser Placement
  *
- * Pure screen layout and placement decisions for the TTC map overlap chooser.
- * Calculates optimal chooser coordinates, margin clamping, collision avoidance
- * against station labels/corridors and UI keepouts, and width/height compaction.
+ * Converts a TTC overlap badge and the overlays of its alerts from map
+ * coordinates to viewport pixels, then places the chooser with the shared
+ * screen-space placer (also used by the GO/UP map).
  *
  * No DOM queries or React dependencies. Actual DOM measurements remain
  * with the DOM owner.
@@ -11,7 +11,9 @@
 
 import type { MapBounds, MapPoint } from "../app/map-geometry.ts";
 import type { MapOverlapIndicatorSize } from "./map-overlap-badges.ts";
-import { chooserKeepoutGridCandidates, chooserWidthCandidates } from "./map-chooser-layout.ts";
+import type { ConnectorOutline } from "./overlap-badge-connector.ts";
+import { placeOverlapChooser } from "./overlap-chooser-placement.ts";
+import type { PlacementObstacle } from "./overlap-badge-placement.ts";
 
 export type SvgBounds = MapBounds;
 export type OverlapBadgeSize = MapOverlapIndicatorSize;
@@ -20,24 +22,17 @@ export const MAP_VIEWBOX_BOUNDS: SvgBounds = { x: 0, y: 0, width: 8250, height: 
 export const MAP_SVG_TO_CSS_SCALE = 4500 / MAP_VIEWBOX_BOUNDS.width;
 export {
   overlapChooserSize,
-  chooserKeepoutGridCandidates,
   OVERLAP_CHOOSER_WIDTH,
   OVERLAP_CHOOSER_MOBILE_BREAKPOINT,
   OVERLAP_CHOOSER_MOBILE_WIDTH,
 } from "./map-chooser-layout.ts";
-export const OVERLAP_CHOOSER_TARGET_GAP = 16;
-export const OVERLAP_CHOOSER_GAP_DEVIATION_WEIGHT = 4;
-export const OVERLAP_CHOOSER_UI_GAP = 8;
-export const MAX_SOFT_OVERLAY_DISTANCE_PENALTY = 48;
-export const OVERLAP_CHOOSER_MIN_COMPACT_HEIGHT = 142;
-export const OVERLAP_CHOOSER_HEIGHT_STEP = 4;
 
 export type OverlapChooserScreenBadgeTarget = {
   position: MapPoint;
-  chooserPosition: MapPoint;
   size: OverlapBadgeSize;
   chooserSize: OverlapBadgeSize;
-  protectedBoxes: SvgBounds[];
+  /** The visible overlays of the alerts in the chooser, in map coordinates. */
+  affectedOutlines: ConnectorOutline[];
 };
 
 export type OverlapChooserScreenLayout = {
@@ -47,6 +42,8 @@ export type OverlapChooserScreenLayout = {
   height: number;
   anchorOffsetX: number;
   anchorOffsetY: number;
+  /** True when the card had to cover part of the highlighted overlays. */
+  coversAffectedArea: boolean;
 };
 
 export function boundsForBadgePosition(position: MapPoint, size: OverlapBadgeSize): SvgBounds {
@@ -65,21 +62,6 @@ export function expandBox(box: SvgBounds, padding: number): SvgBounds {
     width: box.width + padding * 2,
     height: box.height + padding * 2,
   };
-}
-
-export function boxesIntersect(a: SvgBounds, b: SvgBounds): boolean {
-  return (
-    a.x < b.x + b.width &&
-    a.x + a.width > b.x &&
-    a.y < b.y + b.height &&
-    a.y + a.height > b.y
-  );
-}
-
-export function boxIntersectionArea(a: SvgBounds, b: SvgBounds): number {
-  const width = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
-  const height = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
-  return width * height;
 }
 
 export function boundsListsMatch(left: SvgBounds[], right: SvgBounds[]): boolean {
@@ -102,352 +84,42 @@ export function boundsContainingBoxes(boxes: SvgBounds[]): SvgBounds | null {
   return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
-export function minimumBoundsGap(a: SvgBounds, b: SvgBounds): number {
-  const horizontalGap = Math.max(a.x - (b.x + b.width), b.x - (a.x + a.width), 0);
-  const verticalGap = Math.max(a.y - (b.y + b.height), b.y - (a.y + a.height), 0);
-  return Math.hypot(horizontalGap, verticalGap);
-}
-
-export function minimumGapToBounds(bounds: SvgBounds, boxes: SvgBounds[]): number {
-  let minimumGap = Number.POSITIVE_INFINITY;
-  for (const box of boxes) {
-    minimumGap = Math.min(minimumGap, minimumBoundsGap(bounds, box));
-    if (minimumGap === 0) return 0;
-  }
-  return minimumGap;
-}
-
-export function nearestProtectedBoxesToPoint(boxes: SvgBounds[], point: MapPoint, limit: number): SvgBounds[] {
-  const pointBounds = { x: point.x, y: point.y, width: 0, height: 0 };
-  return [...boxes]
-    .sort((a, b) => minimumBoundsGap(a, pointBounds) - minimumBoundsGap(b, pointBounds))
-    .slice(0, limit);
-}
-
-export function clampChooserScreenCoordinate(
-  coordinate: number,
-  chooserLength: number,
-  viewportLength: number,
-  margin: number,
-): number {
-  const minimum = margin + chooserLength / 2;
-  const maximum = Math.max(minimum, viewportLength - margin - chooserLength / 2);
-  return Math.min(maximum, Math.max(minimum, coordinate));
-}
-
-export function chooserCenterAvoidsProtectedBoxes(
-  center: MapPoint,
-  chooserSize: OverlapBadgeSize,
-  protectedBoxes: SvgBounds[],
-): boolean {
-  const chooserBox = {
-    x: center.x - chooserSize.width / 2,
-    y: center.y - chooserSize.height / 2,
-    width: chooserSize.width,
-    height: chooserSize.height,
-  };
-  return protectedBoxes.every((box) => !boxesIntersect(chooserBox, box));
-}
-
-export function chooserCenterFitsViewport(
-  center: MapPoint,
-  chooserSize: OverlapBadgeSize,
-  viewportSize: { width: number; height: number },
-  margin: number,
-): boolean {
-  return center.x - chooserSize.width / 2 >= margin
-    && center.x + chooserSize.width / 2 <= viewportSize.width - margin
-    && center.y - chooserSize.height / 2 >= margin
-    && center.y + chooserSize.height / 2 <= viewportSize.height - margin;
-}
-
-export function chooserKeepoutEdgeCandidates(
-  proposed: MapPoint,
-  chooserSize: OverlapBadgeSize,
-  viewportSize: { width: number; height: number },
-  keepoutBoxes: SvgBounds[],
-  margin: number,
-  edgeGap: number = OVERLAP_CHOOSER_UI_GAP,
-): MapPoint[] {
-  const clampedX = clampChooserScreenCoordinate(proposed.x, chooserSize.width, viewportSize.width, margin);
-  const clampedY = clampChooserScreenCoordinate(proposed.y, chooserSize.height, viewportSize.height, margin);
-  const candidates = keepoutBoxes.flatMap((box) => [
-    {
-      x: clampedX,
-      y: box.y - chooserSize.height / 2 - edgeGap,
-    },
-    {
-      x: clampedX,
-      y: box.y + box.height + chooserSize.height / 2 + edgeGap,
-    },
-    {
-      x: box.x - chooserSize.width / 2 - edgeGap,
-      y: clampedY,
-    },
-    {
-      x: box.x + box.width + chooserSize.width / 2 + edgeGap,
-      y: clampedY,
-    },
-  ]);
-
-  return candidates.sort((a, b) =>
-    Math.hypot(a.x - proposed.x, a.y - proposed.y)
-      - Math.hypot(b.x - proposed.x, b.y - proposed.y),
-  );
-}
-
-export function boundedChooserViewportCandidates(
-  anchor: MapPoint,
-  chooserSize: OverlapBadgeSize,
-  viewportSize: { width: number; height: number },
-  margin: number,
-): MapPoint[] {
-  const minimumX = margin + chooserSize.width / 2;
-  const maximumX = viewportSize.width - margin - chooserSize.width / 2;
-  const minimumY = margin + chooserSize.height / 2;
-  const maximumY = viewportSize.height - margin - chooserSize.height / 2;
-  if (maximumX < minimumX || maximumY < minimumY) return [];
-
-  const nearHorizontalOffset = chooserSize.width / 2 + OVERLAP_CHOOSER_UI_GAP;
-  const nearVerticalOffset = chooserSize.height / 2 + OVERLAP_CHOOSER_UI_GAP;
-  const xCoordinates = [
-    minimumX,
-    clampChooserScreenCoordinate(anchor.x - nearHorizontalOffset, chooserSize.width, viewportSize.width, margin),
-    clampChooserScreenCoordinate(anchor.x, chooserSize.width, viewportSize.width, margin),
-    clampChooserScreenCoordinate(anchor.x + nearHorizontalOffset, chooserSize.width, viewportSize.width, margin),
-    maximumX,
-  ];
-  const yCoordinates = [
-    minimumY,
-    clampChooserScreenCoordinate(anchor.y - nearVerticalOffset, chooserSize.height, viewportSize.height, margin),
-    clampChooserScreenCoordinate(anchor.y, chooserSize.height, viewportSize.height, margin),
-    clampChooserScreenCoordinate(anchor.y + nearVerticalOffset, chooserSize.height, viewportSize.height, margin),
-    maximumY,
-  ];
-  const seen = new Set<string>();
-  return xCoordinates.flatMap((x) => yCoordinates.flatMap((y) => {
-    const key = `${Math.round(x)}:${Math.round(y)}`;
-    if (seen.has(key)) return [];
-    seen.add(key);
-    return [{ x, y }];
-  }));
-}
-
-export function scoreChooserScreenCandidate(
-  center: MapPoint,
-  anchor: MapPoint,
-  chooserSize: OverlapBadgeSize,
-  referencedAlertBoxes: SvgBounds[],
-  softCollisionBoxes: SvgBounds[],
-): number {
-  const chooserBox = boundsForBadgePosition(center, chooserSize);
-  const nearestX = Math.max(chooserBox.x, Math.min(anchor.x, chooserBox.x + chooserBox.width));
-  const nearestY = Math.max(chooserBox.y, Math.min(anchor.y, chooserBox.y + chooserBox.height));
-  const proximity = Math.hypot(anchor.x - nearestX, anchor.y - nearestY);
-  const referencedAlertGap = referencedAlertBoxes.length > 0
-    ? minimumGapToBounds(chooserBox, referencedAlertBoxes)
-    : OVERLAP_CHOOSER_TARGET_GAP;
-  const gapDeviation = Math.abs(referencedAlertGap - OVERLAP_CHOOSER_TARGET_GAP);
-  const overlapArea = softCollisionBoxes.reduce(
-    (total, box) => total + boxIntersectionArea(chooserBox, box),
-    0,
-  );
-  const overlapRatio = Math.min(1, overlapArea / Math.max(1, chooserBox.width * chooserBox.height));
-  return proximity
-    + gapDeviation * OVERLAP_CHOOSER_GAP_DEVIATION_WEIGHT
-    + overlapRatio * MAX_SOFT_OVERLAY_DISTANCE_PENALTY;
-}
-
 export function overlapChooserScreenLayout(
   badge: OverlapChooserScreenBadgeTarget,
   mapTransform: { x: number; y: number; scale: number },
   viewportSize: { width: number; height: number },
   screenKeepoutBoxes: SvgBounds[] = [],
-  mapAlertOverlayBoxes: SvgBounds[] = [],
 ): OverlapChooserScreenLayout {
-  const mapContentScale = mapTransform.scale * MAP_SVG_TO_CSS_SCALE;
-  const anchor = {
-    x: mapTransform.x + badge.position.x * mapContentScale,
-    y: mapTransform.y + badge.position.y * mapContentScale,
-  };
-  const proposed = {
-    x: mapTransform.x + badge.chooserPosition.x * mapContentScale,
-    y: mapTransform.y + badge.chooserPosition.y * mapContentScale,
-  };
-  const toScreenBox = (box: SvgBounds): SvgBounds => ({
-    x: mapTransform.x + box.x * mapContentScale,
-    y: mapTransform.y + box.y * mapContentScale,
-    width: box.width * mapContentScale,
-    height: box.height * mapContentScale,
+  const scale = mapTransform.scale * MAP_SVG_TO_CSS_SCALE;
+  const toScreen = (point: MapPoint): MapPoint => ({
+    x: mapTransform.x + point.x * scale,
+    y: mapTransform.y + point.y * scale,
   });
-  const representedProtectedBoxes = badge.protectedBoxes.map(toScreenBox);
-  const alertOverlayProtectedBoxes = mapAlertOverlayBoxes.map(toScreenBox);
-  const badgeScreenBox = expandBox({
-    x: anchor.x - badge.size.width * mapContentScale / 2,
-    y: anchor.y - badge.size.height * mapContentScale / 2,
-    width: badge.size.width * mapContentScale,
-    height: badge.size.height * mapContentScale,
-  }, OVERLAP_CHOOSER_UI_GAP);
-  const protectedArea = boundsContainingBoxes(representedProtectedBoxes) ?? {
-    x: anchor.x,
-    y: anchor.y,
-    width: 0,
-    height: 0,
-  };
-  const margin = 16;
-  const direction = {
-    x: proposed.x - anchor.x,
-    y: proposed.y - anchor.y,
-  };
-  const preferredAxis = Math.abs(direction.x) > Math.abs(direction.y) ? "horizontal" : "vertical";
-  const preferredHorizontalSign = direction.x < 0 ? -1 : 1;
-  const preferredVerticalSign = direction.y < 0 ? -1 : 1;
-  const paddedScreenKeepoutBoxes = screenKeepoutBoxes.map((box) => expandBox(box, OVERLAP_CHOOSER_UI_GAP));
-  const requestedSize = badge.chooserSize;
-  const minimumHeight = Math.min(
-    requestedSize.height,
-    Math.max(80, Math.min(OVERLAP_CHOOSER_MIN_COMPACT_HEIGHT, viewportSize.height - margin * 2)),
-  );
-  const heightCandidates: number[] = [];
-  for (let height = requestedSize.height; height > minimumHeight; height -= OVERLAP_CHOOSER_HEIGHT_STEP) {
-    heightCandidates.push(height);
-  }
-  heightCandidates.push(minimumHeight);
-
-  const attemptLayout = (chooserSize: OverlapBadgeSize) => {
-    const horizontalCenter = (sign: number, gap: number) => ({
-      x: sign < 0
-        ? protectedArea.x - chooserSize.width / 2 - gap
-        : protectedArea.x + protectedArea.width + chooserSize.width / 2 + gap,
-      y: clampChooserScreenCoordinate(proposed.y, chooserSize.height, viewportSize.height, margin),
-    });
-    const verticalCenter = (sign: number, gap: number) => ({
-      x: clampChooserScreenCoordinate(proposed.x, chooserSize.width, viewportSize.width, margin),
-      y: sign < 0
-        ? protectedArea.y - chooserSize.height / 2 - gap
-        : protectedArea.y + protectedArea.height + chooserSize.height / 2 + gap,
-    });
-    const candidatesForGap = (gap: number) => preferredAxis === "horizontal"
-      ? [
-          horizontalCenter(preferredHorizontalSign, gap),
-          horizontalCenter(-preferredHorizontalSign, gap),
-          verticalCenter(preferredVerticalSign, gap),
-          verticalCenter(-preferredVerticalSign, gap),
-        ]
-      : [
-          verticalCenter(preferredVerticalSign, gap),
-          verticalCenter(-preferredVerticalSign, gap),
-          horizontalCenter(preferredHorizontalSign, gap),
-          horizontalCenter(-preferredHorizontalSign, gap),
-        ];
-    const preferredCandidates = candidatesForGap(OVERLAP_CHOOSER_TARGET_GAP);
-    const edgeCandidates = candidatesForGap(0);
-    const hardKeepoutBoxes = [badgeScreenBox, ...paddedScreenKeepoutBoxes];
-    const uiKeepoutBoxes = paddedScreenKeepoutBoxes;
-    const localProtectedBoxes = nearestProtectedBoxesToPoint(representedProtectedBoxes, anchor, 6);
-    const alertEdgeCandidates = chooserKeepoutEdgeCandidates(
-      proposed,
-      chooserSize,
-      viewportSize,
-      [protectedArea, ...localProtectedBoxes],
-      margin,
-      OVERLAP_CHOOSER_TARGET_GAP,
-    );
-    const uiEdgeCandidates = chooserKeepoutEdgeCandidates(
-      proposed,
-      chooserSize,
-      viewportSize,
-      hardKeepoutBoxes,
-      margin,
-    );
-    const hardBlockedBoxes = [...representedProtectedBoxes, ...hardKeepoutBoxes];
-    const viewportCandidates = boundedChooserViewportCandidates(
-      anchor,
-      chooserSize,
-      viewportSize,
-      margin,
-    );
-    const exhaustiveUiCandidates = chooserKeepoutGridCandidates(
-      proposed,
-      chooserSize,
-      viewportSize,
-      hardKeepoutBoxes,
-      margin,
-    );
-    const allCandidates = [
-      ...preferredCandidates,
-      ...edgeCandidates,
-      ...alertEdgeCandidates,
-      ...uiEdgeCandidates,
-      ...viewportCandidates,
-      ...exhaustiveUiCandidates,
-    ];
-    const validCandidates = allCandidates
-      .filter((candidate) =>
-        chooserCenterFitsViewport(candidate, chooserSize, viewportSize, 0)
-          && chooserCenterAvoidsProtectedBoxes(candidate, chooserSize, hardBlockedBoxes),
-      );
-    const uiSafeCandidates = validCandidates.length > 0 ? [] : [
-      ...allCandidates,
-    ].filter((candidate) =>
-      chooserCenterFitsViewport(candidate, chooserSize, viewportSize, 0)
-        && chooserCenterAvoidsProtectedBoxes(candidate, chooserSize, uiKeepoutBoxes),
-    );
-    const badgeOnlyCandidates = validCandidates.length > 0 || uiSafeCandidates.length > 0
-      ? []
-      : [
-          ...preferredCandidates,
-          ...edgeCandidates,
-          ...viewportCandidates,
-          ...exhaustiveUiCandidates,
-        ].filter((candidate) =>
-          chooserCenterFitsViewport(candidate, chooserSize, viewportSize, 0)
-            && chooserCenterAvoidsProtectedBoxes(candidate, chooserSize, [badgeScreenBox]),
-        );
-    const centerCandidates = validCandidates.length > 0
-      ? validCandidates
-      : uiSafeCandidates.length > 0
-        ? uiSafeCandidates
-        : badgeOnlyCandidates;
-    const center = centerCandidates.reduce<{ position: MapPoint; score: number } | null>((best, position) => {
-      const score = scoreChooserScreenCandidate(
-        position,
-        anchor,
-        chooserSize,
-        representedProtectedBoxes,
-        alertOverlayProtectedBoxes,
-      );
-      return !best || score < best.score ? { position, score } : best;
-    }, null)?.position ?? {
-      x: clampChooserScreenCoordinate(proposed.x, chooserSize.width, viewportSize.width, margin),
-      y: clampChooserScreenCoordinate(proposed.y, chooserSize.height, viewportSize.height, margin),
-    };
-
-    return {
-      center,
-      clearsUiKeepouts: validCandidates.length > 0 || uiSafeCandidates.length > 0,
-    };
-  };
-
-  let chosenSize = requestedSize;
-  let chosenAttempt = attemptLayout(requestedSize);
-  sizes: for (const width of chooserWidthCandidates(requestedSize.width, viewportSize.width)) {
-    for (const height of heightCandidates) {
-      const size = { width, height };
-      const attempt = attemptLayout(size);
-      chosenSize = size;
-      chosenAttempt = attempt;
-      if (attempt.clearsUiKeepouts) break sizes;
-    }
-  }
-  const center = chosenAttempt.center;
-
+  const badgeCenter = toScreen(badge.position);
+  const affectedArea: PlacementObstacle[] = badge.affectedOutlines.map((outline) => (
+    "center" in outline
+      ? { polyline: [toScreen(outline.center)], radius: outline.radius * scale }
+      : { polyline: outline.polyline.map(toScreen), radius: outline.halfWidth * scale }
+  ));
+  const placement = placeOverlapChooser({
+    viewportSize,
+    badgeBox: {
+      x: badgeCenter.x - (badge.size.width * scale) / 2,
+      y: badgeCenter.y - (badge.size.height * scale) / 2,
+      width: badge.size.width * scale,
+      height: badge.size.height * scale,
+    },
+    affectedArea,
+    keepouts: screenKeepoutBoxes,
+    requestedSize: badge.chooserSize,
+  });
   return {
-    left: center.x - chosenSize.width / 2,
-    top: center.y - chosenSize.height / 2,
-    width: chosenSize.width,
-    height: chosenSize.height,
-    anchorOffsetX: anchor.x - center.x,
-    anchorOffsetY: anchor.y - center.y,
+    left: placement.left,
+    top: placement.top,
+    width: placement.width,
+    height: placement.height,
+    anchorOffsetX: placement.anchorOffsetX,
+    anchorOffsetY: placement.anchorOffsetY,
+    coversAffectedArea: placement.coversAffectedArea,
   };
 }

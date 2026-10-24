@@ -127,6 +127,8 @@
   border-radius: inherit;
   content: "";
   inset: 0;
+  /* Hidden at rest so reduced motion leaves only the red ring, not a solid fill. */
+  opacity: 0;
   pointer-events: none;
   position: absolute;
   z-index: 1;
@@ -442,6 +444,7 @@
     border-radius: inherit;
     content: "";
     inset: 0;
+    opacity: 0;
     pointer-events: none;
     position: absolute;
     z-index: 1;

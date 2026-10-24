@@ -604,16 +604,14 @@ describe("asset-backed map layering", () => {
     assert.match(overlapIndicatorSource, /OVERLAP_BADGE_CIRCLE_RADIUS \* 2 \+ OVERLAP_BADGE_ITEM_GAP/);
     assert.match(interactiveMapSource, /getUniqueImpactKinds/);
     assert.doesNotMatch(interactiveMapSource, /if \(impactKinds\.length <= 1\) continue;/);
-    assert.match(interactiveMapSource, /chooseNonIntersectingBadgePosition/);
-    assert.match(interactiveMapSource, /alignedOverlapBadgePositionCandidates/);
     assert.match(interactiveMapSource, /const measuredGeometrySignatureRef = useRef<string \| null>\(null\)/);
+    assert.match(interactiveMapSource, /placeOverlapBadges\(/);
+    assert.match(interactiveMapSource, /siblingGap: OVERLAP_BADGE_SIBLING_CLEARANCE/);
+    assert.match(interactiveMapSource, /obstacleLayers: \[mapPlacementObstacles, overlayPlacementObstacles\]/);
+    assert.match(interactiveMapSource, /collectMapPlacementObstacles/);
+    assert.match(interactiveMapSource, /collectBaseRouteObstacles/);
     assert.match(interactiveMapSource, /measuredGeometrySignatureRef\.current === measurementSignature/);
     assert.match(interactiveMapSource, /font-ready:\$\{mapLabelFontReady\}/);
-    assert.match(interactiveMapSource, /lockedOverlapBadgeLayoutsRef\.current = new Map\(\)/);
-    assert.match(interactiveMapSource, /const OVERLAP_BADGE_ALIGNMENT_MAX_ANCHOR_DISTANCE = 260;/);
-    assert.match(interactiveMapSource, /organizeOverlapBadgeClusters/);
-    assert.match(interactiveMapSource, /gap: OVERLAP_BADGE_SIBLING_CLEARANCE/);
-    assert.match(interactiveMapSource, /collectMapCollisionBoxes/);
     assert.match(interactiveMapSource, /element\.closest\("\.ttc-authored-svg-source"\)/);
     assert.match(interactiveMapSource, /!authoredGeometrySource && \(style\.visibility === "hidden" \|\| style\.opacity === "0"\)/);
     assert.match(interactiveMapSource, /#non-linear-guides-layer \{[\s\S]*?display: inline !important;[\s\S]*?visibility: hidden;/);
@@ -621,43 +619,32 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /pathCorridorCollisionBoxes/);
     assert.match(interactiveMapSource, /pathMidpointFrame/);
     assert.match(interactiveMapSource, /const frame = pathMidpointFrame\(segment\.pathD\)/);
-    assert.match(
-      interactiveMapSource,
-      /chooseNonIntersectingBadgePosition\(frame\.point, size, occupiedBoxes, frame, placedBadges\)/,
-    );
     assert.match(interactiveMapSource, /OVERLAY_CORRIDOR_COLLISION_RADIUS/);
     assert.match(interactiveMapSource, /const OVERLAY_CORRIDOR_COLLISION_RADIUS = 54;/);
-    assert.match(interactiveMapSource, /const OVERLAP_BADGE_EDGE_GAP = 8;/);
     assert.match(overlapIndicatorSource, /const OVERLAP_INDICATOR_SCALE = 1\.5;/);
     assert.match(overlapIndicatorSource, /width: OVERLAP_BADGE_PILL_THICKNESS \* OVERLAP_INDICATOR_SCALE,/);
     assert.match(overlapIndicatorSource, /\(totalItems - 1\) \* OVERLAP_BADGE_ITEM_SPACING \+ OVERLAP_BADGE_PILL_THICKNESS/);
     assert.match(overlapIndicatorSource, /height: OVERLAP_BADGE_PILL_THICKNESS \* OVERLAP_INDICATOR_SCALE/);
     assert.match(overlapIndicatorSource, /<g transform=\{`scale\(\$\{OVERLAP_INDICATOR_SCALE\}\)`\}>/);
-    assert.match(interactiveMapSource, /overlayCollisionBoxes/);
+    assert.match(interactiveMapSource, /overlayPlacementObstacles/);
     assert.match(
       interactiveMapSource,
       /const collisionBoxesByImpact = useMemo[\s\S]*?stationOverlapProtectedBox\(anchor\.point\)/,
     );
-    assert.match(interactiveMapSource, /function overlapBadgePositionCandidates\(size: OverlapBadgeSize, frame\?: PathFrame \| null\)/);
-    assert.match(interactiveMapSource, /radialBadgePositionCandidates/);
-    assert.match(interactiveMapSource, /normalOffsetForBadge\(frame\.normal, size\)/);
     assert.match(interactiveMapSource, /transformedSvgBounds/);
     assert.match(interactiveMapSource, /svgElementMatrixToRootCoordinates/);
     assert.match(interactiveMapSource, /transformBoundsToRootCoordinates/);
     assert.match(interactiveMapSource, /"path"/);
     assert.match(interactiveMapSource, /isInjectedMapOverlayElement/);
     assert.match(interactiveMapSource, /mapCollisionBoxesForElementBounds/);
-    assert.match(interactiveMapSource, /collectBaseRouteCollisionBoxes/);
     assert.match(interactiveMapSource, /BASE_ROUTE_COLLISION_RADIUS/);
     assert.match(interactiveMapSource, /isLargeMapComponentBounds/);
     assert.match(interactiveMapSource, /splitLargeMapComponentBounds/);
     assert.match(interactiveMapSource, /LARGE_MAP_COMPONENT_MAX_THICKNESS/);
     assert.doesNotMatch(interactiveMapSource, /if \(box\.width > 1200 \|\| box\.height > 1200\) return null;/);
-    assert.match(interactiveMapSource, /scoreBadgeCandidate/);
     assert.match(interactiveMapSource, /"text"/);
     assert.match(interactiveMapSource, /"tspan"/);
     assert.doesNotMatch(interactiveMapSource, /const OVERLAP_BADGE_POSITION_CANDIDATES/);
-    assert.match(interactiveMapSource, /boxesIntersect/);
     assert.match(globalCss, /\.overlap-indicator-pill/);
     assert.match(globalCss, /\.overlap-indicator-badge\.suspension/);
     assert.match(globalCss, /\.overlap-indicator-badge\.planned-closure/);
@@ -691,14 +678,14 @@ describe("asset-backed map layering", () => {
     assert.match(overlapIndicatorSource, /aria-expanded=\{isOpen\}/);
     assert.match(interactiveMapSource, /Choose Alert/);
     assert.match(interactiveMapSource, /getSelectedImpactDetails/);
-    assert.match(interactiveMapSource, /chooseOverlapChooserPosition/);
-    assert.match(interactiveMapSource, /chooserPosition/);
     assert.match(ttcChooserPlacementSource, /MAP_SVG_TO_CSS_SCALE/);
+    // Placement behaviour is covered in overlap-chooser-placement.test.mjs.
+    assert.match(ttcChooserPlacementSource, /placeOverlapChooser\(/);
     assert.match(interactiveMapSource, /import\s*\{[^}]*overlapChooserScreenLayout[^}]*\}\s*from\s*"\.\/ttc-chooser-placement"/);
     assert.match(interactiveMapSource, /overlapChooserScreenLayout/);
     assert.match(
       interactiveMapSource,
-      /overlapChooserScreenLayout\([\s\S]*?chooserKeepoutBoxes,[\s\S]*?overlayCollisionBoxes/,
+      /overlapChooserScreenLayout\([\s\S]*?chooserKeepoutBoxes,/,
     );
     assert.match(interactiveMapSource, /visibleMapChooserKeepouts/);
     assert.match(interactiveMapSource, /chooserKeepoutBoxes/);
@@ -717,41 +704,17 @@ describe("asset-backed map layering", () => {
     assert.match(chooserKeepoutsSource, /\.mobile-legend-pill/);
     assert.match(chooserKeepoutsSource, /\.mobile-my-stations-shortcut/);
     assert.doesNotMatch(interactiveMapSource, /mapViewportSize\.width > OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
-    assert.match(ttcChooserPlacementSource, /chooserKeepoutEdgeCandidates/);
-    assert.match(ttcChooserPlacementSource, /chooserKeepoutGridCandidates/);
-    assert.match(ttcChooserPlacementSource, /OVERLAP_CHOOSER_MIN_COMPACT_HEIGHT/);
-    assert.match(ttcChooserPlacementSource, /if \(attempt\.clearsUiKeepouts\) break/);
     assert.match(interactiveMapSource, /width:\s*layout\.width,[\s\S]*?height:\s*layout\.height/);
-    assert.match(ttcChooserPlacementSource, /boundedChooserViewportCandidates/);
     assert.doesNotMatch(ttcChooserPlacementSource, /for \(let y = minimumY; y <= maximumY; y \+= step\)/);
     assert.match(interactiveMapSource, /onHoverImpact/);
     assert.match(interactiveMapSource, /foreground\.dataset\.hoverPriorityImpact = activationKey/);
     assert.match(interactiveMapSource, /onPointerEnter=\{\(event\) => \{/);
     assert.match(interactiveMapSource, /setExternalImpactsHovered/);
     assert.match(interactiveMapSource, /activationPrefix: "badge" \| "chooser"/);
-    assert.match(ttcChooserPlacementSource, /const OVERLAP_CHOOSER_TARGET_GAP = 16;/);
-    assert.match(ttcChooserPlacementSource, /const OVERLAP_CHOOSER_GAP_DEVIATION_WEIGHT = 4;/);
     assert.match(ttcChooserPlacementSource, /OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
     assert.match(ttcChooserPlacementSource, /OVERLAP_CHOOSER_MOBILE_WIDTH/);
     assert.match(globalCss, /@media \(max-width: 640px\)[\s\S]*?\.overlap-chooser-list\s*\{[^}]*grid-auto-rows:\s*max-content;/);
     assert.match(globalCss, /@media \(max-width: 640px\)[\s\S]*?\.overlap-chooser-choice\s*\{[^}]*min-height:\s*82px;/);
-    assert.match(interactiveMapSource, /protectedBoxesForImpacts\([\s\S]*?group\.impacts,[\s\S]*?collisionBoxesByImpact/);
-    assert.match(ttcChooserPlacementSource, /boundsContainingBoxes/);
-    assert.match(ttcChooserPlacementSource, /const representedProtectedBoxes = badge\.protectedBoxes\.map/);
-    assert.match(ttcChooserPlacementSource, /const alertOverlayProtectedBoxes = mapAlertOverlayBoxes\.map/);
-    assert.match(ttcChooserPlacementSource, /const hardBlockedBoxes = \[\.\.\.representedProtectedBoxes, \.\.\.hardKeepoutBoxes\]/);
-    assert.match(
-      ttcChooserPlacementSource,
-      /scoreChooserScreenCandidate\([\s\S]*?representedProtectedBoxes,[\s\S]*?alertOverlayProtectedBoxes/,
-    );
-    assert.match(ttcChooserPlacementSource, /nearestProtectedBoxesToPoint/);
-    assert.match(ttcChooserPlacementSource, /minimumBoundsGap/);
-    assert.match(ttcChooserPlacementSource, /MAX_SOFT_OVERLAY_DISTANCE_PENALTY/);
-    assert.match(ttcChooserPlacementSource, /const viewportCandidates = boundedChooserViewportCandidates/);
-    assert.match(ttcChooserPlacementSource, /reduce<\{ position: MapPoint; score: number \} \| null>/);
-    assert.match(ttcChooserPlacementSource, /chooserCenterAvoidsProtectedBoxes/);
-    assert.match(ttcChooserPlacementSource, /chooserCenterFitsViewport/);
-    assert.match(ttcChooserPlacementSource, /candidatesForGap/);
     assert.match(interactiveMapSource, /overlap-chooser-portal/);
     assert.match(interactiveMapSource, /formatOverlapChooserLocation/);
     assert.match(interactiveMapSource, /overlap-chooser-header-count/);
