@@ -271,6 +271,12 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /\.planned-closure-status-button/);
     assert.match(globalCss, /\.planned-closure-status-button\s*\{[^}]*background:\s*#dc2626;[^}]*color:\s*#ffffff/s);
     assert.match(globalCss, /\.planned-closure-status-button\.is-delay\s*\{[^}]*background:\s*#facc15;[^}]*color:\s*#422006/s);
+    // Type icons take the filled button's text color; the delay "!" cut-out takes the fill.
+    assert.match(globalCss, /\.planned-closure-status-button svg\.impact-type-icon,\s*\.planned-closure-status-button\.is-delay svg\.impact-type-icon\s*\{[^}]*color:\s*currentColor/s);
+    assert.match(globalCss, /\.planned-closure-status-button\.is-delay svg \.delay-badge-exclamation\s*\{[^}]*stroke:\s*#facc15/s);
+    // Delay cards and list rows show the same Shuttle badge as suspensions.
+    assert.match(delaysPanelSource, /\{delay\.shuttle \? \(\s*<span className="impact-card-service-badge shuttle">/);
+    assert.match(delaysPanelSource, /status=\{delay\.shuttle \? <><Bus size=\{11\} \/> Shuttle<\/> : null\}/);
     assert.match(globalCss, /\.planned-closure-status-inactive/);
   });
 
