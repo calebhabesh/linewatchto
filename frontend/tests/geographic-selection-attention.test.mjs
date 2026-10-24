@@ -172,6 +172,33 @@ test("Geographic Selection Attention Controller", async (t) => {
     assert.equal(frameLater.opacity, ATTENTION_STATIC_OPACITY);
   });
 
+  await t.test("linked planned/current hop keeps breathing instead of replaying the intro", () => {
+    const attention = new GeographicSelectionAttention();
+    const t0 = 1000;
+    attention.requestAttention({ id: "parent", kind: "planned-closure", generation: 1 }, false, t0);
+    assert.equal(attention.computeFrame(t0 + ATTENTION_INTRO_DURATION_MS + 100).state, "breathe");
+
+    const hopAt = t0 + ATTENTION_INTRO_DURATION_MS + 500;
+    const hop = attention.requestAttention(
+      { id: "child", kind: "suspension", generation: 2, continueAttention: true },
+      false,
+      hopAt,
+    );
+    assert.equal(hop.state, "breathe");
+    assert.equal(attention.getSelectionId(), "child");
+
+    attention.requestAttention(
+      { id: "parent", kind: "planned-closure", generation: 3, hasCameraFlight: true, continueAttention: true },
+      false,
+      hopAt + 100,
+    );
+    assert.equal(attention.getState(), "camera-flight");
+    assert.equal(attention.onCameraFlightEnd(3, hopAt + 900).state, "breathe");
+
+    const unrelated = attention.requestAttention({ id: "other", kind: "suspension", generation: 4 }, false, hopAt + 1000);
+    assert.equal(unrelated.state, "intro");
+  });
+
   await t.test("reset clears selection and restores idle state", () => {
     const attention = new GeographicSelectionAttention();
     attention.requestAttention(

@@ -347,6 +347,7 @@ function InteractiveRegionalMapComponent({
   mapView,
   onMapViewChange,
   selectionAttentionGeneration = 0,
+  selectionIntroKey: linkedSelectionIntroKey = null,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -376,6 +377,8 @@ function InteractiveRegionalMapComponent({
   mapView?: MapViewPreference;
   onMapViewChange?: (view: MapViewPreference) => void;
   selectionAttentionGeneration?: number;
+  /** Shared intro key; linked planned/current hops keep it so the map keeps breathing. */
+  selectionIntroKey?: string | null;
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts, stations } = useDashboardData();
   const regionalMapRef = useRef<HTMLElement>(null);
@@ -1270,9 +1273,11 @@ function InteractiveRegionalMapComponent({
   }, [commutePathPreview, selection, svgMarkup]);
 
   useLayoutEffect(() => {
-    const nextKey = focusTargetKey
-      ? `${focusTargetKey}:${selectionAttentionGeneration}`
-      : null;
+    const nextKey = selection && linkedSelectionIntroKey
+      ? linkedSelectionIntroKey
+      : focusTargetKey
+        ? `${focusTargetKey}:${selectionAttentionGeneration}`
+        : null;
     if (selectionAttentionKeyRef.current === nextKey) return;
 
     selectionAttentionKeyRef.current = nextKey;
@@ -1293,7 +1298,7 @@ function InteractiveRegionalMapComponent({
       selectionIntroCompletedRef.current = true;
       sessionRef.current?.markSelectionIntroComplete();
     }, SELECTION_INTRO_DURATION_MS);
-  }, [focusTargetKey, selectionAttentionGeneration]);
+  }, [focusTargetKey, linkedSelectionIntroKey, selection, selectionAttentionGeneration]);
 
   useEffect(() => () => {
     if (selectionIntroTimerRef.current !== null) {

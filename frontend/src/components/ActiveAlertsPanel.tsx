@@ -7,7 +7,7 @@ import { PanelHeader } from "./PanelHeader";
 import type { ActiveAlert, ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/commute-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { MetadataGrid, CardSource, RelatedPlannedClosureButton, CommutePathPreviewCardBanner, ImpactCardShell } from "./ImpactCardFields";
+import { MetadataGrid, CardSource, RelatedPlannedClosureButton, CommutePathPreviewCardBanner, ImpactCardShell, plannedAdvisoryWindowRows } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -158,9 +158,7 @@ export function ActiveAlertsPanel({
                   active={isActive}
                   toneClassName="suspension-card-border"
                   details={closureId ? (
-                    <RelatedPlannedClosureButton
-                      onClick={() => onSelectRelatedImpact({ kind: "planned-closure", id: closureId })}
-                    />
+                    <RelatedPlannedClosureButton closureId={closureId} onSelectImpact={onSelectRelatedImpact} />
                   ) : undefined}
                   onShowOnMap={isActive && onReturnToMap ? onReturnToMap : () => handleAlertClick(alert)}
                 />
@@ -190,9 +188,7 @@ export function ActiveAlertsPanel({
                   badges={closureId || showImpactTypeIndicator || alert.shuttle ? (
                     <>
                       {closureId ? (
-                        <RelatedPlannedClosureButton
-                          onClick={() => onSelectRelatedImpact({ kind: "planned-closure", id: closureId })}
-                        />
+                        <RelatedPlannedClosureButton closureId={closureId} onSelectImpact={onSelectRelatedImpact} />
                       ) : null}
                       {showImpactTypeIndicator ? (
                         <span className={`impact-card-type-badge ${impactKindForAlert(alert)}`}>
@@ -227,6 +223,7 @@ export function ActiveAlertsPanel({
                     startedAt={alert.startedAt}
                     updatedAt={alert.updatedAt}
                     updatedAgo={alert.updatedAgo}
+                    leadingRows={plannedAdvisoryWindowRows(closureId, plannedClosures)}
                   />
                 </div>
                 

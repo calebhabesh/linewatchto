@@ -48,6 +48,7 @@ type NetworkMapProps = TtcMapProps & {
   onMapReady?: () => void;
   legendProps: Omit<NetworkMapLegendProps, "mode" | "closingSoon">;
   selectionAttentionGeneration?: number;
+  selectionIntroKey?: string | null;
   preparingNetwork?: NetworkId | null;
   diagramData: Record<NetworkId, DashboardData>;
   diagramStations: Record<NetworkId, TtcMapProps["stations"]>;
@@ -99,6 +100,7 @@ export function NetworkMap({
           estimatedTrainsEnabled={props.estimatedTrainsEnabled}
           estimatedTrainMarkers={props.estimatedTrainMarkers}
           selectionAttentionGeneration={props.selectionAttentionGeneration}
+          selectionIntroKey={props.selectionIntroKey}
           mobilePerformanceMode={props.mobilePerformanceMode}
           layoutResetSignal={props.layoutResetSignal}
         />
@@ -184,6 +186,7 @@ function DiagramNetworkMaps({ network, preparingNetwork, warmingNetwork, diagram
           mapView={props.mapView}
           onMapViewChange={props.onMapViewChange ? changeView : undefined}
           selectionAttentionGeneration={props.selectionAttentionGeneration}
+          selectionIntroKey={props.selectionIntroKey}
         />
       ) : (
         <InteractiveTtcMap

@@ -28,6 +28,8 @@ export interface SelectionAttentionRequest {
   kind?: string;
   generation: number;
   hasCameraFlight?: boolean;
+  /** Linked planned/current hop: keep the running cadence instead of replaying the intro. */
+  continueAttention?: boolean;
 }
 
 export const ATTENTION_INTRO_DURATION_MS = 2400;
@@ -52,6 +54,7 @@ export class GeographicSelectionAttention {
   private startTime = 0;
   private pauseTime = 0;
   private breatheBaseTime = 0;
+  private flightResumesBreathe = false;
 
   public getState(): SelectionAttentionState {
     return this.state;
@@ -95,8 +98,20 @@ export class GeographicSelectionAttention {
       return this.computeFrame(now);
     }
 
+    if (request.continueAttention && !staticFallback
+      && (this.state === "intro" || this.state === "breathe" || this.state === "gesture-pause")) {
+      this.currentSelectionId = request.id;
+      this.currentGeneration = request.generation;
+      if (request.hasCameraFlight) {
+        this.state = "camera-flight";
+        this.flightResumesBreathe = true;
+      }
+      return this.computeFrame(now);
+    }
+
     this.currentSelectionId = request.id;
     this.currentGeneration = request.generation;
+    this.flightResumesBreathe = false;
 
     if (staticFallback) {
       this.state = "static-fallback";
@@ -122,8 +137,14 @@ export class GeographicSelectionAttention {
     now: number = typeof performance !== "undefined" ? performance.now() : 0,
   ): SelectionAttentionFrame {
     if (this.state === "camera-flight" && flightGeneration === this.currentGeneration) {
-      this.state = "intro";
-      this.startTime = now;
+      if (this.flightResumesBreathe) {
+        this.state = "breathe";
+        this.breatheBaseTime = now;
+      } else {
+        this.state = "intro";
+        this.startTime = now;
+      }
+      this.flightResumesBreathe = false;
     }
     return this.computeFrame(now);
   }
@@ -236,5 +257,6 @@ export class GeographicSelectionAttention {
     this.startTime = 0;
     this.pauseTime = 0;
     this.breatheBaseTime = 0;
+    this.flightResumesBreathe = false;
   }
 }

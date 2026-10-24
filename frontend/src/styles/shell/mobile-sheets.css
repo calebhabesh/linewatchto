@@ -1853,34 +1853,33 @@
     font-size: 9px;
   }
 
+  /* Centered under the centered route header, matching desktop card badges. */
   .mobile-impact-inspector-badges {
     align-items: center;
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    justify-content: center;
   }
 
-  .mobile-impact-inspector-badge {
-    border-radius: 5px;
-    font-size: 10px;
-    font-weight: 950;
-    padding: 4px 6px;
-    text-transform: uppercase;
+  /* Provenance reads as a quiet citation above the overlaps, not a status badge. */
+  .mobile-impact-inspector-source {
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
   }
 
-  .mobile-impact-inspector-badge.nightly {
-    background: rgba(148, 163, 184, 0.14);
-    color: #94a3b8;
+  .mobile-impact-inspector-source .card-source {
+    max-width: 100%;
   }
 
-  .mobile-impact-inspector-badge.shuttle {
-    background: rgba(59, 130, 246, 0.12);
-    color: #60a5fa;
+  /* Sit just above the overlaps, clear of the badges. */
+  .mobile-impact-inspector-source:has(+ .impact-overlap-refs) {
+    margin-top: 8px;
   }
 
-  .mobile-impact-inspector-badge.active-now {
-    background: rgba(239, 68, 68, 0.14);
-    color: #f87171;
+  .mobile-impact-inspector-source + .impact-overlap-refs {
+    margin-top: -4px;
   }
 
   .mobile-impact-inspector .impact-route {

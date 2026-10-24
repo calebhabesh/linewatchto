@@ -568,40 +568,30 @@
   letter-spacing: -0.012em;
 }
 
+/* In-card navigation actions are filled; passive badges (Shuttle, Nightly,
+   type, status) stay tinted so the two never read as the same control. */
 .related-planned-closure-button {
   align-items: center;
-  background: #1e293b;
-  border: 1px solid rgba(59, 130, 246, 0.35);
+  background: #2563eb;
+  border: 1px solid #2563eb;
   border-radius: 6px;
   color: #ffffff;
   cursor: pointer;
   display: inline-flex;
-  font-size: 0.7rem;
-  font-weight: 850;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 750;
   gap: 5px;
-  min-height: 28px;
+  line-height: 1;
+  min-height: 24px;
   padding: 4px 8px;
   transition: transform 100ms ease, background-color 150ms ease, border-color 150ms ease;
-}
-
-.related-planned-closure-button svg {
-  color: #60a5fa;
-}
-
-.dark .related-planned-closure-button {
-  background: #1e293b;
-  border-color: rgba(96, 165, 250, 0.4);
-  color: #ffffff;
+  white-space: nowrap;
 }
 
 .related-planned-closure-button:hover {
-  background: #334155;
-  border-color: rgba(59, 130, 246, 0.58);
-}
-
-.dark .related-planned-closure-button:hover {
-  background: #334155;
-  border-color: rgba(96, 165, 250, 0.65);
+  background: #1d4ed8;
+  border-color: #1d4ed8;
 }
 
 .related-planned-closure-button:focus-visible {
@@ -683,48 +673,52 @@
 
 .planned-closure-status-button {
   align-items: center;
+  border-radius: 6px;
   display: inline-flex;
   flex: 0 0 auto;
   font-size: 11px;
   font-weight: 750;
   gap: 5px;
   line-height: 1;
-  min-height: 25px;
+  min-height: 24px;
   padding: 4px 8px;
   white-space: nowrap;
-  background: rgba(220, 38, 38, 0.08);
-  border: 1px solid rgba(220, 38, 38, 0.18);
-  color: #dc2626;
+  background: #dc2626;
+  border: 1px solid #dc2626;
+  color: #ffffff;
   cursor: pointer;
   transition: transform 100ms ease, background-color 150ms ease, border-color 150ms ease;
 }
 
-.dark .planned-closure-status-button {
-  background: rgba(239, 68, 68, 0.16);
-  border-color: rgba(239, 68, 68, 0.25);
-  color: #f87171;
-}
-
 .planned-closure-status-button:hover {
-  background: rgba(220, 38, 38, 0.12);
-  border-color: rgba(220, 38, 38, 0.3);
+  background: #b91c1c;
+  border-color: #b91c1c;
 }
 
-.dark .planned-closure-status-button:hover {
-  background: rgba(239, 68, 68, 0.22);
-  border-color: rgba(239, 68, 68, 0.4);
+.planned-closure-status-button.is-delay {
+  background: #facc15;
+  border-color: #facc15;
+  color: #422006;
 }
 
-.planned-closure-status-button.is-delay,
-.dark .planned-closure-status-button.is-delay {
-  background: var(--badge-pill-bg-delays);
-  border-color: rgba(234, 179, 8, 0.35);
-  color: var(--badge-pill-text-delays);
+/* Type icons carry their own impact color, which vanishes on the matching
+   fill; inside these buttons they follow the button text instead. */
+.planned-closure-status-button svg.impact-type-icon,
+.planned-closure-status-button.is-delay svg.impact-type-icon {
+  color: currentColor;
 }
 
-.planned-closure-status-button.is-delay:hover,
-.dark .planned-closure-status-button.is-delay:hover {
-  border-color: rgba(234, 179, 8, 0.6);
+.planned-closure-status-button.is-delay svg .delay-badge-exclamation {
+  stroke: #facc15;
+}
+
+.planned-closure-status-button.is-delay svg .delay-badge-exclamation-dot {
+  fill: #facc15;
+}
+
+.planned-closure-status-button.is-delay:hover {
+  background: #eab308;
+  border-color: #eab308;
 }
 
 .related-planned-closure-button:active,

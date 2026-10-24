@@ -391,6 +391,7 @@ function InteractiveTtcMapComponent({
   mapView,
   onMapViewChange,
   selectionAttentionGeneration = 0,
+  selectionIntroKey: linkedSelectionIntroKey = null,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -423,6 +424,8 @@ function InteractiveTtcMapComponent({
   mapView?: MapViewPreference;
   onMapViewChange?: (view: MapViewPreference) => void;
   selectionAttentionGeneration?: number;
+  /** Shared intro key; linked planned/current hops keep it so the map keeps breathing. */
+  selectionIntroKey?: string | null;
 }) {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts: activeStationNodeImpacts, stations: mapStations, mapAsset } = useDashboardData();
   const stationNodeImpacts = useMemo(() => [
@@ -446,7 +449,7 @@ function InteractiveTtcMapComponent({
   const useMobileRendering = mobilePerformanceMode || mobilePerformanceModeMatches();
   const mapEffectMotionPaused = reducedMotion || !pageVisible;
   const selectionIntroKey = selection
-    ? `${selection.kind}:${selection.id}:${selectionAttentionGeneration}`
+    ? linkedSelectionIntroKey ?? `${selection.kind}:${selection.id}:${selectionAttentionGeneration}`
     : selectedStationId
       ? `station:${selectedStationId}:${selectionAttentionGeneration}`
       : null;

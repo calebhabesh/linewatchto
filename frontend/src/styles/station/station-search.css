@@ -636,7 +636,7 @@
 }
 
 .global-search-impact-badges span {
-  border-radius: 4px;
+  border-radius: 6px;
   background: rgba(100, 116, 139, 0.1);
   padding: 2px 5px;
   color: rgb(71, 85, 105);

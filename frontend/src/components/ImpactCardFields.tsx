@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
-import { ArrowLeft, createLucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, createLucideIcon } from "lucide-react";
 import type { AccountCommutePathPreview } from "../app/commute-data";
+import type { ImpactSelection, PlannedClosure } from "../app/linewatch-data";
+import { skipNextImpactCardGlow } from "../hooks/useScrollSelectedImpactCard";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { suppliedAlertCause } from "../app/alert-cause";
 import { formatImpactLocation } from "../app/impact-location";
@@ -59,16 +61,64 @@ export function LineBadge({ lineId, lineNumber, size = 28 }: { lineId: string; l
   return <TransitLineBadge lineId={lineId} lineNumber={lineNumber} size={size} className="impact-card-line-badge shrink-0" />;
 }
 
-export function RelatedPlannedClosureButton({ onClick }: { onClick: () => void }) {
+export function formatClosureScheduleValue(value: string) {
+  const normalized = value
+    .replace(/\s*[–—]\s*/g, " – ")
+    .replace(/\s+-\s+/g, " – ");
+
+  return normalized
+    .split(" – ")
+    .map((part) =>
+      part
+        .replace(/([A-Za-z]{3},?)\s+([A-Za-z]{3})\s+(\d{1,2})/g, "$1\u00A0$2\u00A0$3")
+        .replace(/([A-Za-z]{3})\s+(\d{1,2})/g, "$1\u00A0$2")
+        .replace(/\s+·/g, "\u00A0·")
+        .replace(/·\s+/g, "·\u00A0")
+        .replace(/([A-Za-z]{3})\s+(\d{1,2}:\d{2})/g, "$1\u00A0$2")
+        .replace(/(\d{1,2}:\d{2})\s+([AP]M)/g, "$1\u00A0$2")
+    )
+    .join(" – ");
+}
+
+/**
+ * Leading metadata row for a suspension or delay that a planned advisory spawned,
+ * so the card shows the advisory window it belongs to.
+ */
+export function plannedAdvisoryWindowRows(
+  closureId: string | null | undefined,
+  closures: Pick<PlannedClosure, "id" | "activeNow" | "activeWindowLabel" | "nextWindowLabel" | "window">[],
+) {
+  const closure = closureId ? closures.find((item) => item.id === closureId) : undefined;
+  if (!closure) return undefined;
+  const windowLabel = (closure.activeNow ? closure.activeWindowLabel : closure.nextWindowLabel) ?? closure.window;
+  return windowLabel
+    ? [{ label: PLANNED_WINDOW_LABEL, value: formatClosureScheduleValue(windowLabel) }]
+    : undefined;
+}
+
+const PLANNED_WINDOW_LABEL = "Planned window";
+
+export function RelatedPlannedClosureButton({
+  closureId,
+  onSelectImpact,
+}: {
+  closureId: string;
+  onSelectImpact: (selection: ImpactSelection) => void;
+}) {
   return (
     <button
       type="button"
       className="related-planned-closure-button"
-      onClick={onClick}
+      onClick={() => {
+        const selection = { kind: "planned-closure", id: closureId } as const;
+        skipNextImpactCardGlow(selection);
+        onSelectImpact(selection);
+      }}
       aria-label="View related planned advisory details"
     >
-      <PlannedClosureIcon size={14} aria-hidden="true" />
-      <span>View Planned Advisory</span>
+      <PlannedClosureIcon size={13} aria-hidden="true" />
+      <span>From Planned Advisory</span>
+      <ArrowRight size={13} aria-hidden="true" />
     </button>
   );
 }
@@ -276,7 +326,7 @@ export function MetadataGrid({
             className={[
               index < renderedLeadingRows.length ? "is-emphasized" + (isWindowField ? " is-window-row" : "") : "",
               isClosureSchedule && !isWindowField ? "is-closure-schedule-row" : "",
-              label === "Planned Advisory" ? "is-planned-closure-row" : "",
+              label === "Planned Advisory" || label === PLANNED_WINDOW_LABEL ? "is-planned-closure-row" : "",
               label === "Status" ? "is-status-row" : "",
               (label === "Started" && startedValue) || (label === "Updated" && updatedValue)
                 ? "has-directional-timing"

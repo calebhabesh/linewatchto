@@ -578,8 +578,10 @@
 }
 
 /* Points from a badge to the edge of the overlay it explains. Hidden until the
-   badge is hovered or focused so it never adds permanent clutter, and hidden
-   whenever a chooser is open so it never competes with the card. */
+   badge is hovered or keyboard-focused so it never adds permanent clutter, and
+   hidden whenever a chooser is open so it never competes with the card. Touch
+   taps open the chooser directly; their sticky :hover and restored focus would
+   otherwise leave the connector showing after the chooser closes. */
 .overlap-badge-connector {
   opacity: 0;
   transition: opacity 140ms ease-out;
@@ -595,8 +597,13 @@
   fill: #60a5fa;
 }
 
-:root:not(:has([data-overlap-chooser])) .overlap-indicator-group:hover .overlap-badge-connector,
-:root:not(:has([data-overlap-chooser])) .overlap-indicator-group:focus-within .overlap-badge-connector {
+@media (hover: hover) and (pointer: fine) {
+  :root:not(:has([data-overlap-chooser])) .overlap-indicator-group:hover .overlap-badge-connector {
+    opacity: 0.9;
+  }
+}
+
+:root:not(:has([data-overlap-chooser])) .overlap-indicator-group:has(:focus-visible) .overlap-badge-connector {
   opacity: 0.9;
 }
 

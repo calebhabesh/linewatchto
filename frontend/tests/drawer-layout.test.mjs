@@ -123,6 +123,7 @@ describe("floating menu layout", () => {
     assert.match(selectedImpactScrollSource, /addEventListener\("animationend", handleWrapperAnimationEnd\)/);
     assert.match(selectedImpactScrollSource, /wrapperAnimationNames\.has\(event\.animationName\)/);
     assert.match(selectedImpactScrollSource, /highlightCard\(\);[\s\S]*const wrapper = /);
+    assert.match(selectedImpactScrollSource, /lastSelectionGlow\?\.selection !== selection[\s\S]*pendingSkipGlow\?\.kind === selection\.kind[\s\S]*if \(!lastSelectionGlow\.skipGlow\) highlightCard\(\);/);
     assert.match(selectedImpactScrollSource, /closest<HTMLElement>\("\.alert-stack, \.closure-stack"\)/);
     assert.match(selectedImpactScrollSource, /getComputedStyle\(card\)\.scrollMarginTop/);
     assert.match(selectedImpactScrollSource, /const alignmentOffset = isMobile/);
@@ -251,11 +252,14 @@ describe("floating menu layout", () => {
   it("links TTC active closure children back to their canonical planned closure", () => {
     assert.match(linewatchDataSource, /relatedPlannedClosureId\?: string \| null/);
     assert.match(activeAlertsSource, /RelatedPlannedClosureButton/);
-    assert.match(activeAlertsSource, /kind: "planned-closure", id: closureId/);
+    assert.match(activeAlertsSource, /<RelatedPlannedClosureButton closureId=\{closureId\} onSelectImpact=\{onSelectRelatedImpact\} \/>/);
+    assert.match(impactCardFieldsSource, /skipNextImpactCardGlow\(selection\);\s*onSelectImpact\(selection\);/);
     assert.match(mobileImpactInspectorSource, /relatedPlannedClosureId/);
-    assert.match(impactCardFieldsSource, /View Planned Advisory/);
-    assert.match(globalCss, /\.related-planned-closure-button\s*\{[^}]*background:\s*#1e293b;[^}]*border:\s*1px solid rgba\(59, 130, 246, 0\.35\);[^}]*color:\s*#ffffff;[^}]*min-height:\s*28px/s);
-    assert.match(globalCss, /\.dark \.related-planned-closure-button\s*\{[^}]*background:\s*#1e293b;[^}]*color:\s*#ffffff/s);
+    assert.match(impactCardFieldsSource, /From Planned Advisory/);
+    assert.match(activeAlertsSource, /leadingRows=\{plannedAdvisoryWindowRows\(closureId, plannedClosures\)\}/);
+    assert.match(impactCardFieldsSource, /label === PLANNED_WINDOW_LABEL \? "is-planned-closure-row"/);
+    assert.match(globalCss, /\.related-planned-closure-button\s*\{[^}]*background:\s*#2563eb;[^}]*border-radius:\s*6px;[^}]*color:\s*#ffffff;[^}]*font-size:\s*11px;[^}]*min-height:\s*24px/s);
+    assert.match(globalCss, /\.planned-closure-status-button\s*\{[^}]*border-radius:\s*6px;[^}]*font-size:\s*11px;[^}]*min-height:\s*24px/s);
     assert.match(interactiveMapSource, /kind === "suspension"/);
     assert.match(interactiveMapSource, /details\?\.categoryLabel \?\? "Suspension"/);
     assert.match(plannedClosuresSource, /alert\.relatedPlannedClosureId === closure\.id/);
@@ -265,8 +269,8 @@ describe("floating menu layout", () => {
     assert.match(plannedClosuresSource, /<span>Active Now<\/span>/);
     assert.match(plannedClosuresSource, /<PlannedAdvisoryStatus closure=\{closure\}/);
     assert.match(globalCss, /\.planned-closure-status-button/);
-    assert.match(globalCss, /\.planned-closure-status-button\s*\{[^}]*background:\s*rgba\(220, 38, 38, 0\.08\);[^}]*border:\s*1px solid rgba\(220, 38, 38, 0\.18\);[^}]*color:\s*#dc2626/s);
-    assert.match(globalCss, /\.dark \.planned-closure-status-button\s*\{[^}]*background:\s*rgba\(239, 68, 68, 0\.16\);[^}]*color:\s*#f87171/s);
+    assert.match(globalCss, /\.planned-closure-status-button\s*\{[^}]*background:\s*#dc2626;[^}]*color:\s*#ffffff/s);
+    assert.match(globalCss, /\.planned-closure-status-button\.is-delay\s*\{[^}]*background:\s*#facc15;[^}]*color:\s*#422006/s);
     assert.match(globalCss, /\.planned-closure-status-inactive/);
   });
 
@@ -278,8 +282,8 @@ describe("floating menu layout", () => {
     assert.doesNotMatch(plannedClosuresSource, /closure\.nightly \? "Closure nights"/);
     assert.match(plannedClosuresSource, /Current window/);
     assert.match(plannedClosuresSource, /Next window/);
-    assert.match(plannedClosuresSource, /function formatClosureScheduleValue/);
-    assert.match(plannedClosuresSource, /replace\(\/\\s\*\[–—\]\\s\*\/g, " – "\)/);
+    assert.match(impactCardFieldsSource, /export function formatClosureScheduleValue/);
+    assert.match(impactCardFieldsSource, /replace\(\/\\s\*\[–—\]\\s\*\/g, " – "\)/);
     assert.match(plannedClosuresSource, /formatClosureScheduleValue\(specificWindowLabel\)/);
     assert.match(plannedClosuresSource, /<MetadataGrid[\s\S]*?leadingRows=\{\[/s);
     assert.match(plannedClosuresSource, /label:\s*"Advisory hours"/);

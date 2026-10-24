@@ -42,6 +42,19 @@ describe("mobile Show on Map inspector", () => {
     assert.match(inspectorSource, /ImpactRouteHeader/);
   });
 
+  it("shows a planned advisory as an advisory even when a projected alert shares its ID", () => {
+    assert.match(inspectorSource, /const closure = data\.plannedClosures\.find\(\(item\) => item\.id === selection\.id\);\s*if \(!closure\) \{[\s\S]*?getSelectedImpactDetails\(\{ kind: alert\.severity === "delay" \? "delay" : "suspension", id: alert\.id \}/);
+    assert.match(inspectorSource, /categoryLabel: "Planned Advisory",/);
+    assert.doesNotMatch(inspectorSource, /Active Advisory Window|categoryLabel: "Active Closure"/);
+  });
+
+  it("matches desktop cards: title narrative, limited-service badge, and shuttle badge", () => {
+    assert.match(inspectorSource, /<strong className="impact-card-title">\{details\.title\}<\/strong>/);
+    assert.match(inspectorSource, /details\.description && details\.description !== details\.title/);
+    assert.match(inspectorSource, /details\.serviceEffect === "limited-service" && selection\.kind === "planned-closure"/);
+    assert.match(inspectorSource, /className="impact-card-service-badge shuttle"/);
+  });
+
   it("shows one white icon-and-type heading for every selected impact", () => {
     assert.match(inspectorSource, /<h2 className="mobile-impact-inspector-title">/);
     assert.match(inspectorSource, /\{details\.icon\}/);

@@ -7,8 +7,8 @@ import { serviceEffectLabel } from "../app/alert-categories";
 import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/commute-data";
-import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { MetadataGrid, CardSource, CommutePathPreviewCardBanner, ImpactCardShell } from "./ImpactCardFields";
+import { skipNextImpactCardGlow, useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
+import { MetadataGrid, CardSource, CommutePathPreviewCardBanner, ImpactCardShell, formatClosureScheduleValue } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -37,24 +37,6 @@ interface Props {
   mapActionVariant?: "icon-only" | "labeled";
 }
 
-function formatClosureScheduleValue(value: string) {
-  const normalized = value
-    .replace(/\s*[–—]\s*/g, " – ")
-    .replace(/\s+-\s+/g, " – ");
-
-  return normalized
-    .split(" – ")
-    .map((part) =>
-      part
-        .replace(/([A-Za-z]{3},?)\s+([A-Za-z]{3})\s+(\d{1,2})/g, "$1\u00A0$2\u00A0$3")
-        .replace(/([A-Za-z]{3})\s+(\d{1,2})/g, "$1\u00A0$2")
-        .replace(/\s+·/g, "\u00A0·")
-        .replace(/·\s+/g, "·\u00A0")
-        .replace(/([A-Za-z]{3})\s+(\d{1,2}:\d{2})/g, "$1\u00A0$2")
-        .replace(/(\d{1,2}:\d{2})\s+([AP]M)/g, "$1\u00A0$2")
-    )
-    .join(" – ");
-}
 
 export function PlannedClosuresPanel({
   selection,
@@ -221,7 +203,11 @@ export function PlannedClosuresPanel({
                         <button
                           type="button"
                           className={`planned-closure-status-button ${currentKind === "delay" ? "is-delay" : ""}`}
-                          onClick={() => onSelectImpact({ kind: currentKind, id: currentImpact.id })}
+                          onClick={() => {
+                            const currentSelection = { kind: currentKind, id: currentImpact.id } as const;
+                            skipNextImpactCardGlow(currentSelection);
+                            onSelectImpact(currentSelection);
+                          }}
                           aria-label="View current impact"
                         >
                           <ImpactTypeIcon kind={currentKind} size={13} />

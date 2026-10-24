@@ -141,6 +141,8 @@ export type GeographicNetworkMapProps = {
   estimatedTrainsEnabled?: boolean;
   estimatedTrainMarkers?: EstimatedTrainMarker[];
   selectionAttentionGeneration?: number;
+  /** Shared intro key; linked planned/current hops keep it so the map keeps breathing. */
+  selectionIntroKey?: string | null;
   mobilePerformanceMode?: boolean;
   layoutResetSignal?: number;
 };
@@ -226,6 +228,7 @@ export function GeographicNetworkMap({
   estimatedTrainsEnabled = false,
   estimatedTrainMarkers = EMPTY_TRAIN_MARKERS,
   selectionAttentionGeneration = 0,
+  selectionIntroKey = null,
   mobilePerformanceMode = false,
   layoutResetSignal = 0,
 }: GeographicNetworkMapProps) {
@@ -252,6 +255,7 @@ export function GeographicNetworkMap({
   const selectionAttentionRef = useRef<GeographicSelectionAttention>(new GeographicSelectionAttention());
   const rafIdRef = useRef<number | null>(null);
   const pendingCameraFlightGenRef = useRef<number | null>(null);
+  const lastSelectionIntroKeyRef = useRef<string | null>(null);
 
   const stopAttentionLoop = useCallback(() => {
     if (rafIdRef.current !== null) {
@@ -1223,6 +1227,7 @@ export function GeographicNetworkMap({
 
     if (!selection) {
       lastSelectionRef.current = null;
+      lastSelectionIntroKeyRef.current = null;
       pendingCameraFlightGenRef.current = null;
       stopAttentionLoop();
       selectionAttentionRef.current.reset();
@@ -1274,12 +1279,15 @@ export function GeographicNetworkMap({
     const isDocHidden = typeof document !== "undefined" && document.visibilityState === "hidden";
     const staticFallback = Boolean(reducedMotion || mobilePerformanceMode || isDocHidden);
 
+    const continueAttention = Boolean(selectionIntroKey && selectionIntroKey === lastSelectionIntroKeyRef.current);
+    lastSelectionIntroKeyRef.current = selectionIntroKey;
     const frame = selectionAttentionRef.current.requestAttention(
       {
         id: selection.id,
         kind: selection.kind,
         generation: selectionAttentionGeneration,
         hasCameraFlight,
+        continueAttention,
       },
       staticFallback,
     );
@@ -1292,6 +1300,7 @@ export function GeographicNetworkMap({
   }, [
     selection,
     selectionAttentionGeneration,
+    selectionIntroKey,
     loadStatus,
     overlayData.impactedLinks,
     overlayData.impactedStations,

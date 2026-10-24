@@ -4,12 +4,27 @@ import { useEffect } from "react";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { MOBILE_VIEWPORT_QUERY } from "./useMobilePerformanceMode";
 
+// Shared across panels: the badge that swaps between a planned advisory and its
+// current impact moves the selection to another panel, and the outgoing and
+// incoming panels can both be mounted during the view transition. Every panel
+// reuses the decision made for the same selection object.
+let pendingSkipGlow: NonNullable<ImpactSelection> | null = null;
+let lastSelectionGlow: { selection: NonNullable<ImpactSelection>; skipGlow: boolean } | null = null;
+
+/** Call before selecting from an in-card badge: the card swaps in place, so it should not glow. */
+export function skipNextImpactCardGlow(selection: NonNullable<ImpactSelection>) {
+  pendingSkipGlow = selection;
+}
+
 export function useScrollSelectedImpactCard(
   selection: ImpactSelection,
   kind: ImpactKind,
 ) {
   useEffect(() => {
-    if (!selection) return;
+    if (!selection) {
+      lastSelectionGlow = null;
+      return;
+    }
     const isMatch = selection.kind === kind ||
       (kind === "suspension" && selection.kind === "planned-closure");
     if (!isMatch) return;
@@ -56,7 +71,12 @@ export function useScrollSelectedImpactCard(
       });
     };
 
-    highlightCard();
+    if (lastSelectionGlow?.selection !== selection) {
+      const skipGlow = pendingSkipGlow?.kind === selection.kind && pendingSkipGlow.id === selection.id;
+      pendingSkipGlow = null;
+      lastSelectionGlow = { selection, skipGlow };
+    }
+    if (!lastSelectionGlow.skipGlow) highlightCard();
 
     const wrapper = document.querySelector<HTMLElement>(
       ".desktop-view-content-wrapper, .mobile-view-content-wrapper",

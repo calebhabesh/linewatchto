@@ -24,6 +24,7 @@ import type { ImpactSelection } from "../app/linewatch-data";
 import type { NetworkId } from "../app/regional-data";
 import type { AccountCommutePathPreview } from "../app/commute-data";
 import { currentBrowserLocalPath } from "../components/account-dialog-state";
+import { skipNextImpactCardGlow } from "./useScrollSelectedImpactCard";
 
 const BROWSER_NAVIGATION_STATE_KEY = "linewatchNavigation";
 
@@ -88,6 +89,9 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
   const [searchReturnContext, setSearchReturnContext] = useState<SearchReturnContext | null>(null);
   const [stationPanelActivationKey, setStationPanelActivationKey] = useState(0);
   const [selectionAttentionGeneration, setSelectionAttentionGeneration] = useState(0);
+  // Back returns to an impact the rider already saw; the restored selection
+  // object keeps the map breathing and the card unflashed.
+  const [restoredSelection, setRestoredSelection] = useState<ImpactSelection>(null);
   const [mobileImpactReturnView, setMobileImpactReturnView] = useState<"my-stations" | null>(null);
   const [impactHistory, setImpactHistory] = useState<readonly ImpactNavigationContext[]>([]);
   const impactHistoryRef = useRef<readonly ImpactNavigationContext[]>([]);
@@ -251,6 +255,8 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     setActiveView(nextState.activeView);
     setViewHistory(nextState.viewHistory);
     setSelection(nextState.selection);
+    setRestoredSelection(nextState.selection);
+    if (nextState.selection) skipNextImpactCardGlow(nextState.selection);
     setSelectionBackBehavior(nextState.selectionBackBehavior);
     setMobileImpactReturnView(nextState.mobileImpactReturnView);
     setNavDirection("back");
@@ -1024,6 +1030,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     searchReturnLabel,
     stationPanelActivationKey,
     selectionAttentionGeneration,
+    restoredSelection,
     mobileImpactReturnView,
     impactBackContext: impactReturnContext({ activeView, selection, impactHistory }),
 

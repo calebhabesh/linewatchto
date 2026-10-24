@@ -10,6 +10,7 @@ import { DynamicBackground } from "./DynamicBackground";
 import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
 import { startMapSurfaceTransition, type MapFadeController } from "../app/map-surface-transition";
 import { NetworkMap, prepareNetworkMap } from "./NetworkMap";
+import { resolveSelectionAttentionAnchor, type SelectionAttentionAnchor } from "../app/selection-attention-key";
 import { NetworkSelector, NetworkSwitchContext } from "./NetworkSelector";
 import { DefaultMapModeControl } from "./DefaultMapModeControl";
 import SquishSwitch from "./SquishSwitch";
@@ -596,6 +597,7 @@ export function LineWatchShell({
     searchReturnLabel,
     stationPanelActivationKey,
     selectionAttentionGeneration,
+    restoredSelection,
     mobileImpactReturnView,
     impactBackContext,
     handleSelectImpactDetails,
@@ -2480,6 +2482,19 @@ export function LineWatchShell({
     stationSearchInputRef.current?.blur();
     handleSelectImpactDetails(nextSelection);
   }, [handleSelectImpactDetails, searchClosingTimeoutRef, setIsClosingSearch]);
+
+  const [selectionAttentionAnchor, setSelectionAttentionAnchor] = useState<SelectionAttentionAnchor | null>(null);
+  const resolvedSelectionAttentionAnchor = resolveSelectionAttentionAnchor(
+    selectionAttentionAnchor,
+    selection,
+    selectionAttentionGeneration,
+    displayData,
+    Boolean(selection) && selection === restoredSelection,
+  );
+  if (resolvedSelectionAttentionAnchor !== selectionAttentionAnchor) {
+    setSelectionAttentionAnchor(resolvedSelectionAttentionAnchor);
+  }
+  const selectionIntroKey = resolvedSelectionAttentionAnchor?.key ?? null;
 
   const handleRelatedImpact = useCallback((nextSelection: ImpactSelection) => {
     if (!nextSelection) return;
@@ -5199,6 +5214,7 @@ export function LineWatchShell({
                 mapView={mapViewPreference}
                 onMapViewChange={setMapViewPreference}
                 selectionAttentionGeneration={selectionAttentionGeneration}
+                selectionIntroKey={selectionIntroKey}
               />
             </main>
             {/* Desktop Collapsed Map Notice (Bottom Center) */}
@@ -5259,6 +5275,7 @@ export function LineWatchShell({
             mapView={mapViewPreference}
             onMapViewChange={setMapViewPreference}
             selectionAttentionGeneration={selectionAttentionGeneration}
+            selectionIntroKey={selectionIntroKey}
           />
 
           {selectedNetwork === "ttc" && (!initialMapReady || mobileMapPerformanceMode) ? (

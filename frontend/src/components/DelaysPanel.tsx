@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Bus } from "lucide-react";
 import { serviceEffectLabel } from "../app/alert-categories";
 import { suppliedAlertCause } from "../app/alert-cause";
 import { PanelHeader } from "./PanelHeader";
@@ -9,7 +10,7 @@ import type { AccountCommutePathPreview } from "../app/commute-data";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { MetadataGrid, CardSource, RelatedPlannedClosureButton, CommutePathPreviewCardBanner, ImpactCardShell } from "./ImpactCardFields";
+import { MetadataGrid, CardSource, RelatedPlannedClosureButton, CommutePathPreviewCardBanner, ImpactCardShell, plannedAdvisoryWindowRows } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -132,7 +133,7 @@ export function DelaysPanel({
                   lineId={delay.lineId}
                   lineNumber={delay.lineNumber}
                   title={serviceEffectLabel(delay)}
-                  details={<><p>{delay.title}</p>{delay.relatedPlannedClosureId ? <RelatedPlannedClosureButton onClick={() => onSelectRelatedImpact({ kind: "planned-closure", id: delay.relatedPlannedClosureId! })} /> : null}</>}
+                  details={<><p>{delay.title}</p>{delay.relatedPlannedClosureId ? <RelatedPlannedClosureButton closureId={delay.relatedPlannedClosureId} onSelectImpact={onSelectRelatedImpact} /> : null}</>}
                   location={delay.location}
                   direction={delay.displayDirection}
                   facts={[
@@ -140,6 +141,7 @@ export function DelaysPanel({
                     { column: 2, label: "Started", value: <CompactImpactTimeValue timestamp={delay.startedAt} /> },
                     { column: 3, label: "Updated", value: <CompactImpactTimeValue timestamp={delay.updatedAt} /> },
                   ]}
+                  status={delay.shuttle ? <><Bus size={11} /> Shuttle</> : null}
                   mapActionLabel={isActive && onReturnToMap ? "Back" : "View"}
                   active={isActive}
                   toneClassName="delay-card-border"
@@ -170,12 +172,18 @@ export function DelaysPanel({
                   badges={(
                     <>
                       {delay.relatedPlannedClosureId ? (
-                        <RelatedPlannedClosureButton onClick={() => onSelectRelatedImpact({ kind: "planned-closure", id: delay.relatedPlannedClosureId! })} />
+                        <RelatedPlannedClosureButton closureId={delay.relatedPlannedClosureId} onSelectImpact={onSelectRelatedImpact} />
                       ) : null}
                       {showImpactTypeIndicator ? (
                         <span className="impact-card-type-badge delay">
                           <ImpactTypeIcon kind="delay" size={13} />
                           {serviceEffectLabel(delay)}
+                        </span>
+                      ) : null}
+                      {delay.shuttle ? (
+                        <span className="impact-card-service-badge shuttle">
+                          <Bus size={11} />
+                          Shuttle
                         </span>
                       ) : null}
                     </>
@@ -195,6 +203,7 @@ export function DelaysPanel({
                     cause={delay.cause}
                     startedAt={delay.startedAt}
                     updatedAt={delay.updatedAt}
+                    leadingRows={plannedAdvisoryWindowRows(delay.relatedPlannedClosureId, plannedClosures)}
                   />
                 </div>
 
