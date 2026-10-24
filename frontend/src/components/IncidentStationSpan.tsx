@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowRightLeft } from "lucide-react";
+import { ArrowRight, ArrowRightLeft, Minus } from "lucide-react";
 import { formatImpactLocation } from "../app/impact-location";
 import { parseStationSpan, type StationSpanTravel } from "../app/station-span";
 
@@ -6,7 +6,7 @@ const ICON_STYLE = { display: "inline-block", verticalAlign: "-3px", marginInlin
 
 /**
  * Station span whose connector states the affected travel directions:
- * → one way (stations in travel order), ⇄ both ways, muted "to" when unspecified.
+ * → one way (stations in travel order), ⇄ both ways, a neutral dash when unspecified.
  */
 export function IncidentStationSpan({ location, direction }: { location: string; direction?: string | null }) {
   const span = parseStationSpan(location, direction);
@@ -29,10 +29,8 @@ export function StationSpanConnector({
   size: number;
   className?: string;
 }) {
-  if (travel === "unspecified") {
-    return <> <span className="station-span-connector" style={{ fontWeight: 400, color: "var(--muted)" }}>to</span> </>;
-  }
-  const Icon = travel === "one-way" ? ArrowRight : ArrowRightLeft;
+  // The dash claims no direction; it matches the arrows' size and weight.
+  const Icon = travel === "one-way" ? ArrowRight : travel === "both-ways" ? ArrowRightLeft : Minus;
   return <>
     <Icon size={size} strokeWidth={2.25} aria-hidden="true" focusable="false" className={className} style={className ? undefined : ICON_STYLE} />
     <span className="sr-only"> to </span>

@@ -4,7 +4,7 @@ import { formatImpactLocation } from "./impact-location.ts";
  * Which travel directions a station span affects.
  * - one-way: stations are in travel order (rendered with →)
  * - both-ways: every train through the span (rendered with ⇄)
- * - unspecified: the source does not establish a direction (rendered with a muted "to")
+ * - unspecified: the source does not establish a direction (rendered with a neutral –)
  */
 export type StationSpanTravel = "one-way" | "both-ways" | "unspecified";
 
@@ -43,7 +43,7 @@ export function parseStationSpan(location: string | null | undefined, direction?
 
 /** Plain-text span for labels, search results, and other text-only surfaces. */
 export function formatStationSpanText(span: StationSpan): string {
-  const connector = span.travel === "one-way" ? "→" : span.travel === "both-ways" ? "⇄" : "to";
+  const connector = span.travel === "one-way" ? "→" : span.travel === "both-ways" ? "⇄" : "–";
   return `${span.from} ${connector} ${span.to}`;
 }
 

@@ -12,7 +12,8 @@ import java.util.regex.Pattern;
  * <p>Metrolinx alerts carry no direction field, but their wording implies one. A notice about
  * a named trip ("Stratford GO 6:16 AM - Union Station 8:47 AM") affects that trip's direction.
  * A notice about the track or area ("signal issue between X and Y", closures, speed
- * reductions) affects every train through it. Anything else stays unspecified.
+ * reductions) affects every train through it, as does a notice of no service between two
+ * stations. Anything else stays unspecified.
  */
 final class RegionalStationSpan {
     record Span(String displayLocation, String displayDirection) {}
@@ -34,6 +35,10 @@ final class RegionalStationSpan {
     );
     private static final Pattern EXPLICIT_DIRECTION = Pattern.compile(
         "\\b(?:north|south|east|west)bound\\b|\\b\\p{L}+-bound\\b",
+        Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+    );
+    private static final Pattern NO_SERVICE_BETWEEN = Pattern.compile(
+        "\\bno\\s+(?:(?:GO|UP|Express|train|rail)\\s+){0,3}service\\s+between\\b",
         Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
     );
     private static final Pattern BOTH_DIRECTIONS = Pattern.compile(
@@ -68,6 +73,11 @@ final class RegionalStationSpan {
                     : StationSpanFormatter.oneWay(first, last),
                 displayDirection
             );
+        }
+        // "No train service between X and Y" closes the span to every train, even when the
+        // notice also lists individual cancelled trips or a westbound bus replacement.
+        if (NO_SERVICE_BETWEEN.matcher(text).find()) {
+            return new Span(StationSpanFormatter.bothWays(first, last), null);
         }
         if (!trips.isEmpty() || mayDescribeOneTrip(alert, text) || namesOneDirection(text)) {
             return new Span(StationSpanFormatter.unspecified(first, last), null);

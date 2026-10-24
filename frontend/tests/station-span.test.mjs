@@ -42,7 +42,7 @@ describe("direction-aware station spans", () => {
   it("formats plain text and screen-reader wording", () => {
     assert.equal(formatStationSpanText(parseStationSpan("Jane → Kipling")), "Jane → Kipling");
     assert.equal(formatStationSpanText(parseStationSpan("Eglinton ↔ Lawrence")), "Eglinton ⇄ Lawrence");
-    assert.equal(formatStationSpanText(parseStationSpan("Kipling to Jane")), "Kipling to Jane");
+    assert.equal(formatStationSpanText(parseStationSpan("Kipling to Jane")), "Kipling – Jane");
     assert.equal(stationSpanAccessibleText(parseStationSpan("Jane → Kipling")), "Jane to Kipling");
     assert.equal(stationSpanAccessibleText(parseStationSpan("Eglinton ⇄ Lawrence")), "Eglinton to Lawrence, both directions");
   });
@@ -91,9 +91,10 @@ describe("display location adapters", () => {
     assert.equal(count.destination, "Jane");
   });
 
-  it("uses the two-stacked-arrow icon for both-way connectors", () => {
+  it("uses the two-stacked-arrow icon for both-way connectors and a dash, never \"to\", otherwise", () => {
     const span = readFileSync(new URL("../src/components/IncidentStationSpan.tsx", import.meta.url), "utf8");
-    assert.match(span, /travel === "one-way" \? ArrowRight : ArrowRightLeft/);
+    assert.match(span, /travel === "one-way" \? ArrowRight : travel === "both-ways" \? ArrowRightLeft : Minus/);
     assert.doesNotMatch(span, /MoveHorizontal/);
+    assert.doesNotMatch(span, />to</);
   });
 });

@@ -111,6 +111,29 @@ class RegionalStationSpanTest {
         assertThat(span.displayDirection()).isNull();
     }
 
+    @Test
+    void noServiceBetweenStationsAffectsBothDirectionsDespiteListedTrips() {
+        var span = RegionalStationSpan.describe(alert("regional-lw", "suspension",
+            "Starting Tonight, Service Will Be Adjusted On Lakeshore West Due To Planned Construction",
+            "The 11:24 PM train departing West Harbour GO to Union Station will not run. If you're travelling "
+                + "westbound from Union Station to Port Credit GO, there will be GO bus service. There will be "
+                + "no GO train service between Aldershot GO and Union Station.",
+            List.of("union", "aldershot")));
+
+        assertThat(span.displayLocation()).isEqualTo("Union ⇄ Aldershot");
+        assertThat(span.displayDirection()).isNull();
+    }
+
+    @Test
+    void cancelledTripsWithoutAServiceGapStayUnspecified() {
+        var span = RegionalStationSpan.describe(alert("regional-lw", "suspension",
+            "Lakeshore West trips cancelled",
+            "The 11:24 PM train departing West Harbour GO to Union Station will not run.",
+            List.of("union", "west-harbour")));
+
+        assertThat(span.displayLocation()).endsWith(" to West Harbour");
+    }
+
     private static RegionalNormalizedAlert alert(
         String lineId, String impactKind, String title, String description, List<String> stationIds
     ) {
