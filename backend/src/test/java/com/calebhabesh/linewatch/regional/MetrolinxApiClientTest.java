@@ -9,6 +9,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import java.net.URI;
+import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -19,14 +20,16 @@ class MetrolinxApiClientTest {
     private static final String KEY = "test-secret-key";
     private MockRestServiceServer server;
     private MetrolinxApiClient client;
+    private MetrolinxProperties properties;
 
     @BeforeEach
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
-        MetrolinxProperties properties = new MetrolinxProperties();
+        properties = new MetrolinxProperties();
         properties.setBaseUrl(URI.create("https://api.example.test/OpenDataAPI/"));
         properties.setApiKey(KEY);
+        properties.setFetchRetryDelay(Duration.ZERO);
         client = new MetrolinxApiClient(
             builder.build(),
             JsonMapper.builder().findAndAddModules().build(),
@@ -108,6 +111,7 @@ class MetrolinxApiClientTest {
 
     @Test
     void sanitizesUpstreamFailuresSoTheApiKeyIsNotLeaked() {
+        properties.setFetchAttempts(1);
         server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/ServiceUpdate/ServiceAlert/All?key=" + KEY))
             .andRespond(withServerError());
         server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/ServiceUpdate/InformationAlert/All?key=" + KEY))
@@ -137,7 +141,75 @@ class MetrolinxApiClientTest {
     }
 
     @Test
+    void retriesARequestMetrolinxRejectsBeforeFailingTheRun() {
+        String base = "https://api.example.test/OpenDataAPI/api/V1/";
+        server.expect(requestTo(base + "ServiceUpdate/ServiceAlert/All?key=" + KEY))
+            .andRespond(withSuccess("""
+                {"Metadata":{"TimeStamp":"2026-07-28 14:12:32","ErrorCode":"403","ErrorMessage":"Forbidden"}}
+                """, MediaType.APPLICATION_JSON));
+        server.expect(requestTo(base + "ServiceUpdate/ServiceAlert/All?key=" + KEY))
+            .andRespond(withSuccess(restAlerts("M1"), MediaType.APPLICATION_JSON));
+        server.expect(requestTo(base + "ServiceUpdate/InformationAlert/All?key=" + KEY))
+            .andRespond(withServerError());
+        server.expect(requestTo(base + "ServiceUpdate/InformationAlert/All?key=" + KEY))
+            .andRespond(withSuccess(restAlerts("I1"), MediaType.APPLICATION_JSON));
+        server.expect(requestTo(base + "ServiceUpdate/MarketingAlert/All?key=" + KEY))
+            .andRespond(withNoContent());
+        server.expect(requestTo(base + "Gtfs/Feed/Alerts?key=" + KEY))
+            .andRespond(withSuccess(gtfsAlerts("GO-GTFS-1"), MediaType.APPLICATION_JSON));
+        server.expect(requestTo(base + "ServiceUpdate/Exceptions/Train?key=" + KEY))
+            .andRespond(withNoContent());
+        server.expect(requestTo(base + "Gtfs/Feed/TripUpdates?key=" + KEY))
+            .andRespond(withSuccess(gtfsTripUpdates("GO-TRIP-1"), MediaType.APPLICATION_JSON));
+        server.expect(requestTo(base + "UP/Gtfs/Feed/Alerts?key=" + KEY))
+            .andRespond(withSuccess("Forbidden", MediaType.TEXT_PLAIN));
+        server.expect(requestTo(base + "UP/Gtfs/Feed/Alerts?key=" + KEY))
+            .andRespond(withSuccess("Forbidden", MediaType.TEXT_PLAIN));
+        server.expect(requestTo(base + "UP/Gtfs/Feed/Alerts?key=" + KEY))
+            .andRespond(withSuccess(gtfsAlerts("UP1"), MediaType.APPLICATION_JSON));
+
+        MetrolinxFeed feed = client.fetchAlerts();
+
+        assertThat(feed.records()).extracting(MetrolinxFetchedRecord::sourceId)
+            .containsExactly("M1", "I1", "GO-GTFS-1", "GO-TRIP-1", "UP1");
+        assertThat(feed.completeSources())
+            .containsEntry(MetrolinxSourceSystem.GO_SERVICE_ALERTS, true)
+            .containsEntry(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, true)
+            .containsEntry(MetrolinxSourceSystem.UP_GTFS_ALERTS, true);
+        server.verify();
+    }
+
+    @Test
+    void failsTheRunWhenEveryAttemptIsRejected() {
+        String base = "https://api.example.test/OpenDataAPI/api/V1/";
+        for (int attempt = 0; attempt < 3; attempt++) {
+            server.expect(requestTo(base + "ServiceUpdate/ServiceAlert/All?key=" + KEY))
+                .andRespond(withSuccess("""
+                    {"Metadata":{"TimeStamp":"2026-07-28 14:12:32","ErrorCode":"403","ErrorMessage":"Forbidden"}}
+                    """, MediaType.APPLICATION_JSON));
+        }
+        server.expect(requestTo(base + "ServiceUpdate/InformationAlert/All?key=" + KEY))
+            .andRespond(withSuccess(restAlerts("I1"), MediaType.APPLICATION_JSON));
+        server.expect(requestTo(base + "ServiceUpdate/MarketingAlert/All?key=" + KEY))
+            .andRespond(withNoContent());
+        server.expect(requestTo(base + "Gtfs/Feed/Alerts?key=" + KEY))
+            .andRespond(withSuccess(gtfsAlerts("GO-GTFS-1"), MediaType.APPLICATION_JSON));
+        server.expect(requestTo(base + "ServiceUpdate/Exceptions/Train?key=" + KEY))
+            .andRespond(withNoContent());
+        server.expect(requestTo(base + "Gtfs/Feed/TripUpdates?key=" + KEY))
+            .andRespond(withSuccess(gtfsTripUpdates("GO-TRIP-1"), MediaType.APPLICATION_JSON));
+        server.expect(requestTo(base + "UP/Gtfs/Feed/Alerts?key=" + KEY))
+            .andRespond(withSuccess(gtfsAlerts("UP1"), MediaType.APPLICATION_JSON));
+
+        assertThatThrownBy(client::fetchAlerts)
+            .isInstanceOf(MetrolinxClientException.class)
+            .hasMessage("Metrolinx GO service-alert response was not a successful full dataset");
+        server.verify();
+    }
+
+    @Test
     void continuesWhenASupplementalAlertCollectionIsUnavailable() {
+        properties.setFetchAttempts(1);
         server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/ServiceUpdate/ServiceAlert/All?key=" + KEY))
             .andRespond(withSuccess(restAlerts("M1"), MediaType.APPLICATION_JSON));
         server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/ServiceUpdate/InformationAlert/All?key=" + KEY))

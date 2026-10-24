@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -58,7 +59,7 @@ public class MetrolinxApiClient {
         MetrolinxClientException requiredFailure = null;
         JsonNode goService = null;
         try {
-            goService = fetch(GO_SERVICE_ALERTS_PATH, "GO service alerts");
+            goService = fetchWithRetry(GO_SERVICE_ALERTS_PATH, "GO service alerts", false, this::isSuccessfulRestAlerts);
             if (!isSuccessfulRestAlerts(goService)) {
                 throw new MetrolinxClientException(
                     "Metrolinx GO service-alert response was not a successful full dataset"
@@ -70,11 +71,11 @@ public class MetrolinxApiClient {
             requiredFailure = exception;
         }
 
-        JsonNode goInformation = fetchOptionalRest(GO_INFORMATION_ALERTS_PATH, "GO information alerts");
-        JsonNode goMarketing = fetchOptionalRest(GO_MARKETING_ALERTS_PATH, "GO marketing alerts");
-        JsonNode goGtfs = fetchOptional(GO_GTFS_ALERTS_PATH, "GO GTFS-RT alerts");
-        JsonNode goTrainExceptions = fetchOptionalRest(GO_TRAIN_EXCEPTIONS_PATH, "GO train exceptions");
-        JsonNode goTripUpdates = fetchOptional(GO_GTFS_TRIP_UPDATES_PATH, "GO GTFS-RT trip updates");
+        JsonNode goInformation = fetchOptional(GO_INFORMATION_ALERTS_PATH, "GO information alerts", true, this::isSuccessfulRestAlerts);
+        JsonNode goMarketing = fetchOptional(GO_MARKETING_ALERTS_PATH, "GO marketing alerts", true, this::isSuccessfulRestAlerts);
+        JsonNode goGtfs = fetchOptional(GO_GTFS_ALERTS_PATH, "GO GTFS-RT alerts", false, this::isFullGtfsFeed);
+        JsonNode goTrainExceptions = fetchOptional(GO_TRAIN_EXCEPTIONS_PATH, "GO train exceptions", true, this::isSuccessfulTrainExceptions);
+        JsonNode goTripUpdates = fetchOptional(GO_GTFS_TRIP_UPDATES_PATH, "GO GTFS-RT trip updates", false, this::isFullGtfsFeed);
         boolean informationComplete = isSuccessfulRestAlerts(goInformation);
         boolean marketingComplete = isSuccessfulRestAlerts(goMarketing);
         boolean goGtfsComplete = isFullGtfsFeed(goGtfs);
@@ -93,7 +94,7 @@ public class MetrolinxApiClient {
 
         JsonNode up = null;
         try {
-            up = fetch(UP_ALERTS_PATH, "UP Express alerts");
+            up = fetchWithRetry(UP_ALERTS_PATH, "UP Express alerts", false, this::isFullGtfsFeed);
             if (!isFullGtfsFeed(up)) {
                 throw new MetrolinxClientException(
                     "Metrolinx UP GTFS-RT alert response was not a full dataset"
@@ -185,8 +186,40 @@ public class MetrolinxApiClient {
         }
     }
 
-    private JsonNode fetch(String path, String label) {
-        return fetch(path, label, false);
+    /**
+     * Metrolinx intermittently rejects individual requests (a 200 response
+     * carrying ErrorCode 403, or a non-JSON body) while the next request
+     * succeeds. Retry briefly inside the run so one rejected request does not
+     * fail the run; repeated failures still expire freshness as before.
+     */
+    private JsonNode fetchWithRetry(
+        String path,
+        String label,
+        boolean acceptNoContent,
+        Predicate<JsonNode> complete
+    ) {
+        int attempts = properties.getFetchAttempts();
+        for (int attempt = 1; ; attempt++) {
+            try {
+                JsonNode root = fetch(path, label, acceptNoContent);
+                if (attempt >= attempts || complete.test(root)) return root;
+            } catch (MetrolinxClientException exception) {
+                if (attempt >= attempts) throw exception;
+            }
+            if (!pauseBeforeRetry()) throw new MetrolinxClientException("Unable to fetch Metrolinx " + label);
+        }
+    }
+
+    private boolean pauseBeforeRetry() {
+        long delayMs = properties.getFetchRetryDelay().toMillis();
+        if (delayMs <= 0) return true;
+        try {
+            Thread.sleep(delayMs);
+            return true;
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
     }
 
     private JsonNode fetch(String path, String label, boolean acceptNoContent) {
@@ -215,18 +248,14 @@ public class MetrolinxApiClient {
         }
     }
 
-    private JsonNode fetchOptional(String path, String label) {
+    private JsonNode fetchOptional(
+        String path,
+        String label,
+        boolean acceptNoContent,
+        Predicate<JsonNode> complete
+    ) {
         try {
-            return fetch(path, label);
-        } catch (MetrolinxClientException exception) {
-            log.warn("Metrolinx supplemental collection is unavailable: {}", label);
-            return null;
-        }
-    }
-
-    private JsonNode fetchOptionalRest(String path, String label) {
-        try {
-            return fetch(path, label, true);
+            return fetchWithRetry(path, label, acceptNoContent, complete);
         } catch (MetrolinxClientException exception) {
             log.warn("Metrolinx supplemental collection is unavailable: {}", label);
             return null;

@@ -14,6 +14,8 @@ public class MetrolinxProperties {
     private Duration maxDashboardAge = Duration.ofMinutes(10);
     private Duration connectTimeout = Duration.ofSeconds(3);
     private Duration readTimeout = Duration.ofSeconds(10);
+    private int fetchAttempts = 3;
+    private Duration fetchRetryDelay = Duration.ofMillis(300);
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
@@ -32,4 +34,8 @@ public class MetrolinxProperties {
     public void setConnectTimeout(Duration connectTimeout) { this.connectTimeout = connectTimeout; }
     public Duration getReadTimeout() { return readTimeout; }
     public void setReadTimeout(Duration readTimeout) { this.readTimeout = readTimeout; }
+    public int getFetchAttempts() { return Math.max(1, fetchAttempts); }
+    public void setFetchAttempts(int fetchAttempts) { this.fetchAttempts = fetchAttempts; }
+    public Duration getFetchRetryDelay() { return fetchRetryDelay == null ? Duration.ZERO : fetchRetryDelay; }
+    public void setFetchRetryDelay(Duration fetchRetryDelay) { this.fetchRetryDelay = fetchRetryDelay; }
 }
