@@ -7,6 +7,7 @@ import {
   transitionClosePanel,
   transitionSelectImpact,
   transitionSelectImpactDetails,
+  transitionImpactRevisit,
   transitionNavigateRoot,
   transitionSubmenuBack,
   transitionSelectStation,
@@ -64,6 +65,26 @@ it("overlapping map details restore the previous alert on browser Back", () => {
   assert.equal(back.activeView, "map");
   assert.deepEqual(back.selection, a.selection);
   assert.deepEqual(back.impactHistory, a.impactHistory);
+});
+
+it("hopping back to an impact already in the trail returns to it instead of stacking", () => {
+  const alert = { kind: "suspension", id: "alert" };
+  const advisory = { kind: "planned-closure", id: "advisory" };
+  const list = transitionNavigateForward(INITIAL_NAVIGATION_STATE, "closures").nextState;
+  const a = transitionSelectImpactDetails(list, alert, "alerts").nextState;
+  const b = transitionSelectImpactDetails(a, advisory, "closures").nextState;
+  assert.equal(transitionImpactRevisit(a, advisory), null);
+
+  const revisit = transitionImpactRevisit(b, alert);
+  assert.equal(revisit.count, 1);
+  assert.deepEqual(revisit.nextState.selection, alert);
+  assert.equal(revisit.nextState.activeView, "alerts");
+  assert.deepEqual(revisit.nextState.impactHistory, a.impactHistory);
+
+  const backToList = transitionSubmenuBack(revisit.nextState, { isMobile: false }).nextState;
+  assert.equal(backToList.activeView, "closures");
+  assert.equal(backToList.selection, null);
+  assert.equal(backToList.impactHistory.length, 0);
 });
 
 it("root navigation discards alert drilldown history", () => {

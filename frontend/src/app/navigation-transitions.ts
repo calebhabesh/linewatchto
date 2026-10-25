@@ -109,6 +109,26 @@ export function transitionImpactBack(state: NavigationState): NavigationState | 
   return { ...state, ...context.origin, impactHistory: state.impactHistory.slice(0, -1), navDirection: "back" };
 }
 
+/**
+ * Selecting an impact already in the impact trail returns to it instead of
+ * stacking another entry, so hopping advisory ⇄ current impact never needs
+ * more than one Back per distinct step.
+ */
+export function transitionImpactRevisit(
+  state: NavigationState,
+  selection: NonNullable<ImpactSelection>,
+): { nextState: NavigationState; count: number; context: ImpactNavigationContext } | null {
+  if (!impactReturnContext(state) || state.stationDrilldownOrigin || state.commutePathPreview) return null;
+  const index = state.impactHistory.findIndex((context) => sameImpact(context.origin.selection, selection));
+  if (index < 0) return null;
+  const context = state.impactHistory[index];
+  return {
+    nextState: { ...state, ...context.origin, impactHistory: state.impactHistory.slice(0, index), navDirection: "back" },
+    count: state.impactHistory.length - index,
+    context,
+  };
+}
+
 export const INITIAL_NAVIGATION_STATE: NavigationState = {
   activeView: "map",
   viewHistory: [],

@@ -12,6 +12,7 @@ import {
   transitionSubmenuBack,
   transitionSelectImpact,
   transitionSelectImpactDetails,
+  transitionImpactRevisit,
   impactReturnContext,
   type ImpactNavigationContext,
   transitionBrowserBack,
@@ -245,8 +246,10 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     if (element) viewScrollPositionsRef.current[activeViewRef.current] = element.scrollTop;
   }, []);
 
-  const applyImpactBack = useCallback((nextState: NavigationState) => {
-    const context = impactHistoryRef.current.at(-1);
+  const applyImpactBack = useCallback((
+    nextState: NavigationState,
+    context: ImpactNavigationContext | undefined = impactHistoryRef.current.at(-1),
+  ) => {
     syncImpactHistory(nextState);
     activeViewRef.current = nextState.activeView;
     viewHistoryRef.current = nextState.viewHistory;
@@ -279,6 +282,14 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     const origin = state.impactHistory[0].origin;
     consumeBrowserNavigationEntries(state.impactHistory.length);
     applyImpactBack({ ...state, ...origin, selection: null, selectionBackBehavior: "clear", impactHistory: [], navDirection: "back" });
+    return true;
+  }, [applyImpactBack, consumeBrowserNavigationEntries, getCurrentNavigationState]);
+
+  const revisitImpact = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
+    const revisit = transitionImpactRevisit(getCurrentNavigationState(), nextSelection);
+    if (!revisit) return false;
+    consumeBrowserNavigationEntries(revisit.count);
+    applyImpactBack(revisit.nextState, revisit.context);
     return true;
   }, [applyImpactBack, consumeBrowserNavigationEntries, getCurrentNavigationState]);
 
@@ -532,6 +543,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
       return;
     }
 
+    if (revisitImpact(nextSelection)) return;
     setSelectionAttentionGeneration((current) => current + 1);
     saveCurrentViewScroll();
 
@@ -566,9 +578,10 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     onDesktopSidebarEnsureOpen?.();
     activeViewRef.current = targetView;
     setActiveView(targetView);
-  }, [consumeBrowserNavigationEntries, getCurrentNavigationState, isMobile, onDesktopSidebarEnsureOpen, onRecordPwaEngagement, onSetMobileInspectorDetent, pushBrowserNavigationEntry, saveCurrentViewScroll, syncImpactHistory, viewForImpactSelection]);
+  }, [consumeBrowserNavigationEntries, getCurrentNavigationState, isMobile, onDesktopSidebarEnsureOpen, onRecordPwaEngagement, onSetMobileInspectorDetent, pushBrowserNavigationEntry, revisitImpact, saveCurrentViewScroll, syncImpactHistory, viewForImpactSelection]);
 
   const handleSelectImpactDetails = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
+    if (revisitImpact(nextSelection)) return;
     saveCurrentViewScroll();
     const result = transitionSelectImpactDetails(getCurrentNavigationState(), nextSelection, viewForImpactSelection(nextSelection));
     if (result.historyEffect.type === "push") pushBrowserNavigationEntry();
@@ -588,7 +601,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     setNavDirection("forward");
     setSelectionAttentionGeneration((current) => current + 1);
     onDesktopSidebarEnsureOpen?.();
-  }, [getCurrentNavigationState, onDesktopSidebarEnsureOpen, pushBrowserNavigationEntry, saveCurrentViewScroll, syncImpactHistory, viewForImpactSelection]);
+  }, [getCurrentNavigationState, onDesktopSidebarEnsureOpen, pushBrowserNavigationEntry, revisitImpact, saveCurrentViewScroll, syncImpactHistory, viewForImpactSelection]);
 
   // Station Select Impact
   const handleStationSelectImpact = useCallback((nextSelection: ImpactSelection) => {

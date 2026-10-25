@@ -31,6 +31,16 @@ export function isLinkedPlannedImpactHop(
   ));
 }
 
+/** Ids of the current alerts or delays a selected planned advisory spawned, so map markers that show them stay selected. */
+export function linkedCurrentImpactIds(selection: ImpactSelection, data: LinkedImpactData): string[] {
+  if (selection?.kind !== "planned-closure") return [];
+  const closure = data.plannedClosures.find((item) => item.id === selection.id);
+  if (!closure) return [];
+  return [...data.activeAlerts, ...data.delays]
+    .filter((impact) => impact.relatedPlannedClosureId === closure.id || (closure.activeNow && impact.id === closure.id))
+    .map((impact) => impact.id);
+}
+
 /**
  * Key that restarts the map's fast selection intro when it changes. Hopping
  * between a planned advisory and its linked current impact highlights the same

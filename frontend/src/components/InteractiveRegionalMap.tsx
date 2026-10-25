@@ -110,6 +110,7 @@ import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMa
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
 import { useMapLabelFontReady } from "../hooks/useMapLabelFontReady";
 import { usePageVisibility } from "../hooks/usePageVisibility";
+import { linkedCurrentImpactIds } from "../app/selection-attention-key";
 import { overlapChooserSize as mapOverlapChooserSize } from "./map-chooser-layout";
 import { observeMapChooserKeepouts, visibleMapChooserKeepouts } from "./map-chooser-keepouts";
 
@@ -405,6 +406,10 @@ function InteractiveRegionalMapComponent({
   const [svgMarkup, setSvgMarkup] = useState(() => getRegionalMapMarkup());
   const [readyRasterPlanes, setReadyRasterPlanes] = useState(() => new Set<string>());
   const [overlapBadges, setOverlapBadges] = useState<RegionalOverlapBadge[]>([]);
+  const linkedSelectionIds = useMemo(
+    () => linkedCurrentImpactIds(selection, { activeAlerts, delays, plannedClosures }),
+    [activeAlerts, delays, plannedClosures, selection],
+  );
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
   const [overlapChooserLayout, setOverlapChooserLayout] = useState<MapOverlapChooserLayout | null>(null);
   const [overlapChooserSize, setOverlapChooserSize] = useState<{ width: number; height: number } | null>(null);
@@ -2231,6 +2236,7 @@ function InteractiveRegionalMapComponent({
                   position={badge.position}
                   size={badge.size}
                   selection={selection}
+                  linkedSelectionIds={linkedSelectionIds}
                   isOpen={expandedOverlapBadgeId === badge.markerId}
                   connector={badge.connector}
                   visualScale={REGIONAL_OVERLAP_INDICATOR_SCALE}

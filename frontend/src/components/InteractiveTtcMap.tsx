@@ -139,6 +139,7 @@ import {
 } from "./map-chooser-keepouts";
 import { isMapWheelScrollRegionTarget } from "./map-wheel-events";
 import { getImpactPriority, plannedAdvisoryStationImpacts } from "../app/map-alert-selector";
+import { linkedCurrentImpactIds } from "../app/selection-attention-key";
 import {
   OVERLAP_CHOOSER_MOBILE_BREAKPOINT,
   expandBox,
@@ -1368,6 +1369,10 @@ function InteractiveTtcMapComponent({
       .map((alert) => alert.relatedPlannedClosureId)
       .filter((id): id is string => Boolean(id)),
   ), [activeAlerts, delays]);
+  const linkedSelectionIds = useMemo(
+    () => linkedCurrentImpactIds(selection, { activeAlerts, delays, plannedClosures }),
+    [activeAlerts, delays, plannedClosures, selection],
+  );
   const currentPlannedClosureIds = useMemo(() => new Set([
     ...linkedPlannedClosureIds,
     ...plannedClosures
@@ -3019,6 +3024,7 @@ function InteractiveTtcMapComponent({
                       key={badge.segmentId}
                       badge={badge}
                       selection={selection}
+                      linkedSelectionIds={linkedSelectionIds}
                       isOpen={false}
                       onToggle={() => {
                         clearMapHover();
@@ -3040,6 +3046,7 @@ function InteractiveTtcMapComponent({
                       key={badge.segmentId}
                       badge={badge}
                       selection={selection}
+                      linkedSelectionIds={linkedSelectionIds}
                       isOpen
                       onToggle={() => {
                         clearMapHover();
@@ -4328,6 +4335,7 @@ function OverlapChooser({
 function OverlapIndicatorMarker({
   badge,
   selection,
+  linkedSelectionIds,
   isOpen,
   onToggle,
   onHoverChange,
@@ -4335,6 +4343,7 @@ function OverlapIndicatorMarker({
 }: {
   badge: OverlapBadgeWithChooser;
   selection: ImpactSelection;
+  linkedSelectionIds: readonly string[];
   isOpen: boolean;
   onToggle: () => void;
   onHoverChange?: (hovered: boolean) => void;
@@ -4348,6 +4357,7 @@ function OverlapIndicatorMarker({
       position={badge.position}
       size={badge.size}
       selection={selection}
+      linkedSelectionIds={linkedSelectionIds}
       isOpen={isOpen}
       collisionAvoided={badge.position.collisionAvoided}
       isolatePointerDown

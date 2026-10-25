@@ -1764,7 +1764,7 @@
     min-height: 44px;
     padding: 10px;
     gap: 3px;
-    border: 1px solid color-mix(in srgb, var(--mobile-incident-color) 25%, transparent);
+    border: 1px solid transparent;
     border-radius: 8px;
     background: color-mix(in srgb, var(--mobile-incident-color) 8%, var(--panel-opaque));
     box-shadow: none;

@@ -204,6 +204,7 @@ export function MapOverlapIndicator({
   position,
   size,
   selection,
+  linkedSelectionIds,
   isOpen,
   visualScale = 1,
   collisionAvoided = true,
@@ -219,6 +220,8 @@ export function MapOverlapIndicator({
   position: { x: number; y: number };
   size: MapOverlapIndicatorSize;
   selection: ImpactSelection;
+  /** Current impacts the selected planned advisory spawned; a badge showing one counts as selected. */
+  linkedSelectionIds?: readonly string[];
   isOpen?: boolean;
   visualScale?: number;
   collisionAvoided?: boolean;
@@ -237,7 +240,8 @@ export function MapOverlapIndicator({
   const totalItems = visibleKindCounts.length + (hiddenKindCount > 0 ? 1 : 0);
   const isSingleVisualItem = totalItems === 1;
   const isSelected = selection
-    ? impacts.some((impact) => impact.kind === selection.kind && impact.cardId === selection.id)
+    ? impacts.some((impact) => (impact.kind === selection.kind && impact.cardId === selection.id)
+      || (impact.kind !== "planned-closure" && linkedSelectionIds?.includes(impact.cardId)))
     : false;
   const accessibleLabel = `Overlapping alerts: ${kindCounts
     .map(({ kind, count }) => `${labelForImpactKind(kind)}${count > 1 ? ` x${count}` : ""}`)

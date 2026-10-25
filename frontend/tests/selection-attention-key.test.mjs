@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { isLinkedPlannedImpactHop, resolveSelectionAttentionAnchor } from "../src/app/selection-attention-key.ts";
+import { isLinkedPlannedImpactHop, linkedCurrentImpactIds, resolveSelectionAttentionAnchor } from "../src/app/selection-attention-key.ts";
 
 const data = {
   activeAlerts: [
@@ -57,5 +57,18 @@ describe("selection attention anchor", () => {
     assert.equal(resolveSelectionAttentionAnchor(first, null, 1, data), null);
     assert.equal(resolveSelectionAttentionAnchor(first, planned("parent"), 2, data).key, "planned-closure:parent:2");
     assert.equal(resolveSelectionAttentionAnchor(first, planned("parent"), 1, data), first);
+  });
+});
+
+describe("linked current impact ids", () => {
+  it("lists the current impacts a selected planned advisory spawned", () => {
+    assert.deepEqual(linkedCurrentImpactIds(planned("parent"), data), ["child-alert", "child-delay"]);
+    assert.deepEqual(linkedCurrentImpactIds(planned("projected"), data), ["projected"]);
+  });
+
+  it("is empty for other selections and advisories without a current impact", () => {
+    assert.deepEqual(linkedCurrentImpactIds(planned("upcoming"), data), []);
+    assert.deepEqual(linkedCurrentImpactIds(suspension("child-alert"), data), []);
+    assert.deepEqual(linkedCurrentImpactIds(null, data), []);
   });
 });
