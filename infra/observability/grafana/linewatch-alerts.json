@@ -71,7 +71,7 @@
       "noData": "OK",
       "severity": "warning",
       "summary": "The active TTC GTFS schedule ends in under 7 days.",
-      "description": "The automatic refresh should replace it before 14 days remain. If this fires, the refresh is not running or not finding a newer package."
+      "description": "The hourly refresh imports TTC's next package as soon as it is published, and TTC often publishes right at expiry. Check /api/health/schedule: refreshStatus success with refreshRecordsProcessed 0 and a recent refreshCompletedAt means TTC has not published yet; failed or an old refreshCompletedAt means the refresh job needs attention."
     }
   ]
 }

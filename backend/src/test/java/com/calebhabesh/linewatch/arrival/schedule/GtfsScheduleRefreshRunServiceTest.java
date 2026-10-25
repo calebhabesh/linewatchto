@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -39,6 +40,16 @@ class GtfsScheduleRefreshRunServiceTest {
     }
 
     @Test
+    void recordsUpToDateCheckAsCompletedRunWithNoRecords() {
+        OffsetDateTime now = Instant.parse("2026-06-20T19:00:00Z").atOffset(ZoneOffset.UTC);
+        when(store.createRunning(now)).thenReturn(18L);
+
+        service.recordUpToDate();
+
+        verify(store).markSuccess(18L, now, 0);
+    }
+
+    @Test
     void truncatesPersistedFailureMessagesToOneThousandCharacters() {
         service.fail(17L, new IllegalStateException("x".repeat(1200)));
 
@@ -56,6 +67,7 @@ class GtfsScheduleRefreshRunServiceTest {
         assertRequiresNew("start");
         assertRequiresNew("succeed", long.class, GtfsScheduleImportService.ImportSummary.class);
         assertRequiresNew("fail", long.class, Throwable.class);
+        assertRequiresNew("recordUpToDate");
     }
 
     private void assertRequiresNew(String methodName, Class<?>... parameterTypes) throws Exception {

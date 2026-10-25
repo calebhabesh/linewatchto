@@ -28,6 +28,12 @@ public class GtfsScheduleRefreshRunService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordUpToDate() {
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        store.markSuccess(store.createRunning(now), now, 0);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void fail(long id, Throwable failure) {
         String message = failure.getMessage();
         if (message == null) {

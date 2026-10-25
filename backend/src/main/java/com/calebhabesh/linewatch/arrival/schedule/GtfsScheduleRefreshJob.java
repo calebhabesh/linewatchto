@@ -76,6 +76,8 @@ public class GtfsScheduleRefreshJob {
         // near expiry; re-importing an unchanged package each time would be wasted work.
         if (release.version() != null && importRepository.hasCompleteImportOfSourceVersion(release.version())) {
             log.debug("TTC GTFS package {} is already imported; waiting for a newer release", release.version());
+            // Record the clean check so health shows the lookup working rather than an older failure.
+            runService.recordUpToDate();
             return;
         }
 

@@ -186,6 +186,7 @@ class GtfsScheduleRefreshJobTest {
 
         verify(downloadClient, never()).download(any());
         verify(runService, never()).start();
+        verify(runService).recordUpToDate();
     }
 
     @Test
