@@ -167,6 +167,71 @@
   background: linear-gradient(180deg, #402429 0%, #2c191d 100%);
 }
 
+/* Shared heading for the Schedule May Be Disrupted and Access Outages banners */
+.station-banner-heading {
+  align-items: center;
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 800;
+  gap: 7px;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.station-banner-heading-icon {
+  display: block;
+  flex-shrink: 0;
+}
+
+.station-disruption-heading {
+  color: #78350f;
+}
+
+.station-disruption-heading .station-banner-heading-icon {
+  color: #d97706;
+}
+
+.station-access-outage-heading {
+  color: #7f1d1d;
+}
+
+.dark .station-banner-heading {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
+.station-banner-details {
+  align-items: center;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  gap: 0.25rem;
+  line-height: 1rem;
+}
+
+.station-disruption-details {
+  color: #b45309;
+}
+
+.dark .station-disruption-details {
+  color: #fcd34d;
+}
+
+.station-access-outage-details {
+  color: #b91c1c;
+}
+
+.dark .station-access-outage-details {
+  color: #fca5a5;
+}
+
+.dark .station-disruption-heading .station-banner-heading-icon {
+  color: #fb923c;
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.45));
+}
+
 /* ==========================================================================
    Station Notices & Accessibility Card Styling
    ========================================================================== */

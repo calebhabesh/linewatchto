@@ -7,6 +7,8 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { AlertCircle, AlertTriangle, ArrowRight, BadgeInfo, Bus, ChevronDown, ConciergeBell, Construction, ExternalLink, FileText, GitMerge, Train } from "lucide-react";
 import Image from "next/image";
 import { StationSubmenuNavButtons, type StationSubmenuNavItem } from "./StationSubmenuNavButtons";
+import { StationDisruptionSummary, groupStationDisruptions } from "./StationDisruptionSummary";
+import { jumpToStationImpactsSection } from "./station-impacts-jump";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatImpactTimestamp } from "../app/impact-time";
 import { suppliedAlertCause } from "../app/alert-cause";
@@ -183,6 +185,13 @@ function StationImpactDetailsIcon({
   return <AlertTriangle size={size} className="shrink-0 text-red-500" />;
 }
 
+/** Identifies which icon StationImpactDetailsIcon draws, so matching badges can merge. */
+function stationImpactIconKey(kind: ImpactKind, tone: StationImpactDetailsTarget["tone"]) {
+  if (kind === "delay" || kind === "reduced-speed-zone") return kind;
+  if (kind === "planned-closure" && tone !== "active") return "planned-closure";
+  return "alert";
+}
+
 type StationAccessOutageAssetType = "elevator" | "escalator";
 
 const STATION_ACCESS_OUTAGE_ICON_SRC: Record<StationAccessOutageAssetType, string> = {
@@ -317,6 +326,21 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
       { activeAlerts, delays, reducedSpeedZones, plannedClosures },
     )
     : [];
+  const disruptionGroups = groupStationDisruptions(
+    distinctImpacts.map((impact) => {
+      const target = getStationImpactDetailsTarget(impact, activeAlerts, delays, reducedSpeedZones, plannedClosures);
+      const tone = target?.tone ?? fallbackStationImpactTone(impact);
+      const kind = target?.selection.kind ?? stationImpactKind(impact);
+      return {
+        impact,
+        tone,
+        kind,
+        key: stationImpactIconKey(kind, tone),
+        label: target?.label ?? fallbackStationImpactLabel(impact),
+      };
+    }),
+    (entry) => entry,
+  );
   const stationNotices = station?.notices ?? [];
   const hasArrivalCountdownTicker = station?.arrivals.some(
     (arrival) => arrival.status !== "unavailable" && arrival.predictedAt
@@ -490,39 +514,6 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
     });
   }
 
-  const handleJumpToStationImpact = (impactId: string, e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-    }
-    const impactElement = document.getElementById(`station-impact-${impactId}`);
-    if (impactElement) {
-      const section = impactElement.closest("details");
-      if (section) section.open = true;
-      const scroller = impactElement.closest<HTMLElement>(".station-detail-scroll");
-      if (scroller) {
-        // Scroll only the panel body, leaving its header and section controls
-        // fixed. Align the beginning of long cards rather than their midpoint.
-        const top = scroller.scrollTop
-          + impactElement.getBoundingClientRect().top
-          - scroller.getBoundingClientRect().top
-          - scroller.clientTop
-          - 8;
-        scroller.scrollTo({
-          top: Math.max(0, top),
-          behavior: reducedMotion ? "instant" : "smooth",
-        });
-      }
-
-      impactElement.classList.remove("station-impact-card-highlight");
-      void impactElement.offsetWidth;
-      impactElement.classList.add("station-impact-card-highlight");
-
-      window.setTimeout(() => {
-        impactElement.classList.remove("station-impact-card-highlight");
-      }, 2200);
-    }
-  };
-
   const handleSummaryClick = (e: React.MouseEvent<HTMLElement>) => {
     const detailsElement = accessibilityDetailsRef.current;
     if (!detailsElement) return;
@@ -642,47 +633,15 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 
           <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto md:mt-3.5 mt-2 pb-3 station-detail-scroll station-detail-section-stack">
             {station && (station.arrivalContext?.scheduleMayBeDisrupted || stationPlannedClosures.length > 0) && (
-              <div
-                className="station-detail-disruption-card flex w-full flex-wrap items-center justify-start gap-2.5 shrink-0 rounded-md p-2.5 text-xs font-semibold"
-                data-station-disruption-warning
-              >
-                <div className="station-disruption-heading flex items-center gap-2 font-extrabold text-amber-900 dark:text-white">
-                  <AlertCircle size={19} className="animate-terminating-blink shrink-0 text-amber-600 dark:text-orange-400" />
-                  <span className="station-disruption-heading-text">Schedule May Be Disrupted:</span>
-                </div>
-                {distinctImpacts.length > 0 && (
-                  <div className="station-impact-jump-actions">
-                    {distinctImpacts.map((impact) => {
-                      const target = getStationImpactDetailsTarget(
-                        impact,
-                        activeAlerts,
-                        delays,
-                        reducedSpeedZones,
-                        plannedClosures
-                      );
-                      const targetLabel = target?.label ?? "Station Impact";
-
-                      return (
-                        <a
-                          key={impact.id}
-                          href={`#station-impact-${impact.id}`}
-                          onClick={(e) => handleJumpToStationImpact(impact.id, e)}
-                          aria-label={`Jump to station impact: ${targetLabel} - ${impact.title}`}
-                          title={`Jump to ${targetLabel}: ${impact.title}`}
-                          className="station-impact-jump-button"
-                        >
-                          <StationImpactDetailsIcon
-                            kind={target?.selection.kind ?? stationImpactKind(impact)}
-                            tone={target?.tone}
-                            size={17}
-                          />
-                          <span className="station-impact-jump-button-label">Press</span>
-                        </a>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+              <StationDisruptionSummary
+                badges={disruptionGroups.map((group) => ({
+                  key: group.key,
+                  label: group.label,
+                  count: group.items.length,
+                  icon: <StationImpactDetailsIcon kind={group.items[0].kind} tone={group.tone} size={17} />,
+                }))}
+                onJump={(origin) => jumpToStationImpactsSection(origin, reducedMotion)}
+              />
             )}
 
             {station && hasAccessibilityOutages && (
@@ -694,8 +653,16 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 aria-label="Active accessibility outages. Press for details."
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-red-700 dark:text-red-200">
-                    Access Outages
+                  <span className="station-banner-heading station-access-outage-heading">
+                    <Image
+                      src="/assets/linewatch/accessibility-alert.svg"
+                      alt=""
+                      width={19}
+                      height={19}
+                      aria-hidden="true"
+                      className="station-banner-heading-icon"
+                    />
+                    <span>Access Outages</span>
                   </span>
                   <div className="h-4 w-[1px] bg-red-500/20" aria-hidden="true" />
                   <span className="flex items-center gap-2">
@@ -715,7 +682,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                     )}
                   </span>
                 </div>
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700 dark:text-red-300">Details <ArrowRight size={13} strokeWidth={1.5} aria-hidden="true" /></span>
+                <span className="station-banner-details station-access-outage-details">Details <ArrowRight size={13} strokeWidth={1.5} aria-hidden="true" /></span>
               </button>
             )}
 

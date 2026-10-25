@@ -25,12 +25,13 @@ test("TTC station disruption warning includes a planned closure from preview geo
   await page.getByRole("button", { name: "Stub Station station details", exact: true }).dispatchEvent("click");
   const panel = page.locator(".station-detail-panel");
   await expect(panel).toBeVisible();
-  await expect(panel.getByText("Schedule May Be Disrupted:", { exact: true })).toBeVisible();
-  await expect(panel.locator("[data-station-disruption-warning] .station-impact-jump-button")).toHaveCount(3);
-  await expect(panel.getByRole("link", { name: /Jump to station impact: Active Closure/ })).toBeVisible();
+  const summary = panel.locator("[data-station-disruption-warning]");
+  await expect(summary).toContainText("Schedule May Be Disrupted");
+  await expect(summary).toHaveAttribute("aria-label", /Active Closure/);
+  await expect(summary.locator(".station-disruption-badge").first()).toBeVisible();
 });
 
-test("regional station disruption warning jumps to the matching planned closure card", async ({ page, request, isMobile }) => {
+test("regional station disruption warning jumps to and outlines every station impact", async ({ page, request, isMobile }) => {
   await installDismissedTransientUi(page);
   await setStubMode(request, "regional-live");
   if (isMobile) await page.setViewportSize({ width: 360, height: 800 });
@@ -46,14 +47,19 @@ test("regional station disruption warning jumps to the matching planned closure 
 
   const panel = page.locator(".regional-station-detail");
   await expect(panel).toBeVisible();
-  await expect(panel.getByText("Schedule May Be Disrupted:", { exact: true })).toBeVisible();
-  await expect(panel.locator("[data-station-disruption-warning] .station-impact-jump-button")).toHaveCount(3);
-  const closureAction = panel.getByRole("button", { name: /Jump to station impact: Planned Closure - Pickering station construction/ });
+  const closureAction = panel.locator("[data-station-disruption-warning]");
+  await expect(closureAction).toContainText("Schedule May Be Disrupted");
+  await expect(closureAction).toHaveAttribute("aria-label", /Planned Advisory \(2\)/);
+  const impactCards = panel.locator('[data-station-section="station-impacts"] .station-impact-card');
   const closureCard = panel.locator("#station-impact-planned-closure-regional-station-only-planned");
   await expect(closureAction).toBeVisible();
   await closureAction.click();
   await expect(panel).toBeVisible();
-  await expect(closureCard).toBeInViewport();
-  await expect(closureCard).toHaveClass(/station-impact-card-highlight/);
+  await expect(closureCard).toBeAttached();
+  await expect(panel.locator('[data-station-section="station-impacts"]')).toBeInViewport();
+  const cardCount = await impactCards.count();
+  expect(cardCount).toBeGreaterThan(1);
+  await expect(panel.locator(".station-impact-card-highlight-soft")).toHaveCount(cardCount);
+  await expect(panel.locator(".station-impact-card-highlight")).toHaveCount(0);
   await expect.poll(() => panel.locator(".station-detail-scroll").evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
 });

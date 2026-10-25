@@ -70,6 +70,8 @@ import { StationConnectionBadges } from "./StationConnectionBadges";
 import { SurfaceConnectionsSection } from "./SurfaceConnectionsSection";
 import { OverlappingCountBadge } from "./OverlappingCountBadge";
 import { StationSubmenuNavButtons, type StationSubmenuNavItem } from "./StationSubmenuNavButtons";
+import { StationDisruptionSummary, groupStationDisruptions } from "./StationDisruptionSummary";
+import { jumpToStationImpactsSection } from "./station-impacts-jump";
 import { StationLineDirectionIndicator } from "./StationLineDirectionIndicator";
 import { RegionalArrivalDelayBadge } from "./RegionalArrivalDelayBadge";
 
@@ -130,6 +132,13 @@ function RegionalStationImpactIcon({ impact, size = 26 }: { impact: RegionalStat
     return <PlannedClosureIcon size={size} className="shrink-0 text-blue-500" />;
   }
   return <AlertTriangle size={size} className="shrink-0 text-red-500" />;
+}
+
+/** Identifies which icon RegionalStationImpactIcon draws, so matching badges can merge. */
+function regionalStationImpactIconKey(impact: RegionalStationImpact) {
+  if (impact.kind === "delay" || impact.kind === "reduced-speed-zone") return impact.kind;
+  if (impact.kind === "planned-closure" && impact.tone !== "active") return "planned-closure";
+  return "alert";
 }
 
 type StationAccessOutageAssetType = "elevator" | "escalator";
@@ -374,6 +383,11 @@ export function RegionalStationDetailPanel({
     }
     return [...related.values()];
   }, [dashboard, station.id]);
+  const disruptionGroups = groupStationDisruptions(impacts, (impact) => ({
+    key: regionalStationImpactIconKey(impact),
+    label: impact.classification,
+    tone: impact.tone,
+  }));
   const arrivalGroups = sortArrivalGroupsByPinnedLine(
     groupRegionalStationArrivals(arrivalSnapshot.arrivals, station.id),
     pinnedLineIds,
@@ -537,33 +551,6 @@ export function RegionalStationDetailPanel({
       behavior: "smooth",
       block: "start",
     });
-  };
-
-  const handleJumpToStationImpact = (impact: RegionalStationImpact) => {
-    const impactElement = document.getElementById(`station-impact-${impact.kind}-${impact.id}`);
-    if (!impactElement) return;
-
-    const section = impactElement.closest("details");
-    if (section) section.open = true;
-    const scroller = impactElement.closest<HTMLElement>(".station-detail-scroll");
-    if (scroller) {
-      const top = scroller.scrollTop
-        + impactElement.getBoundingClientRect().top
-        - scroller.getBoundingClientRect().top
-        - scroller.clientTop
-        - 8;
-      scroller.scrollTo({
-        top: Math.max(0, top),
-        behavior: reducedMotion ? "instant" : "smooth",
-      });
-    }
-
-    impactElement.classList.remove("station-impact-card-highlight");
-    void impactElement.offsetWidth;
-    impactElement.classList.add("station-impact-card-highlight");
-    window.setTimeout(() => {
-      impactElement.classList.remove("station-impact-card-highlight");
-    }, 2200);
   };
 
   const isGoRailStation = station.lineIds.some((id) => id !== "regional-up");
@@ -749,30 +736,15 @@ export function RegionalStationDetailPanel({
 
           <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto md:mt-3.5 mt-2 pb-3 station-detail-scroll station-detail-section-stack">
             {impacts.length > 0 && (
-              <div
-                className="station-detail-disruption-card flex w-full flex-wrap items-center justify-start gap-2.5 shrink-0 rounded-md p-2.5 text-xs font-semibold"
-                data-station-disruption-warning
-              >
-                <div className="station-disruption-heading flex items-center gap-2 font-extrabold text-amber-900 dark:text-white">
-                  <AlertCircle size={19} className="animate-terminating-blink shrink-0 text-amber-600 dark:text-orange-400" />
-                  <span className="station-disruption-heading-text">Schedule May Be Disrupted:</span>
-                </div>
-                <div className="station-impact-jump-actions">
-                  {impacts.map((impact) => (
-                    <button
-                      key={`${impact.kind}:${impact.id}`}
-                      type="button"
-                      onClick={() => handleJumpToStationImpact(impact)}
-                      aria-label={`Jump to station impact: ${impact.classification} - ${impact.title}`}
-                      title={`Jump to ${impact.classification}: ${impact.title}`}
-                      className="station-impact-jump-button"
-                    >
-                      <RegionalStationImpactIcon impact={impact} size={17} />
-                      <span className="station-impact-jump-button-label">Press</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <StationDisruptionSummary
+                badges={disruptionGroups.map((group) => ({
+                  key: group.key,
+                  label: group.label,
+                  count: group.items.length,
+                  icon: <RegionalStationImpactIcon impact={group.items[0]} size={17} />,
+                }))}
+                onJump={(origin) => jumpToStationImpactsSection(origin, reducedMotion)}
+              />
             )}
 
             {hasAccessibilityOutages && (
@@ -784,8 +756,16 @@ export function RegionalStationDetailPanel({
                 aria-label="Active accessibility outages. Press for details."
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-red-700 dark:text-red-200">
-                    Access Outages
+                  <span className="station-banner-heading station-access-outage-heading">
+                    <Image
+                      src="/assets/linewatch/accessibility-alert.svg"
+                      alt=""
+                      width={19}
+                      height={19}
+                      aria-hidden="true"
+                      className="station-banner-heading-icon"
+                    />
+                    <span>Access Outages</span>
                   </span>
                   <div className="h-4 w-[1px] bg-red-500/20" aria-hidden="true" />
                   <span className="flex items-center gap-2">
@@ -805,7 +785,7 @@ export function RegionalStationDetailPanel({
                     )}
                   </span>
                 </div>
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700 dark:text-red-300">Details <ArrowRight size={13} strokeWidth={1.5} aria-hidden="true" /></span>
+                <span className="station-banner-details station-access-outage-details">Details <ArrowRight size={13} strokeWidth={1.5} aria-hidden="true" /></span>
               </button>
             )}
 

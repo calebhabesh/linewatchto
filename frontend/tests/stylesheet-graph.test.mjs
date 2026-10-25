@@ -874,8 +874,6 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.impact-list-select-control/);
     assert.match(content, /\.compact-impact-list-item/);
     assert.match(content, /\.compact-impact-location__arrow/);
-    assert.match(content, /\.station-impact-jump-actions/);
-    assert.match(content, /\.station-impact-jump-button/);
     assert.match(content, /\.station-impact-card-highlight/);
     assert.match(content, /\.rsz-tone/);
     assert.match(content, /\.rsz-count-badge/);

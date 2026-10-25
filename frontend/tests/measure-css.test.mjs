@@ -235,7 +235,7 @@ describe("CSS measurement tool (Chunk C1)", () => {
     assert.equal(metrics.graph.fileCount, 53, "resolved graph must contain 53 modular files");
     assert.ok(metrics.graph.rules > 5000, "resolved graph must report over 5000 parsed rules");
     assert.ok(metrics.graph.decls > 15000, "resolved graph must report over 15000 declarations");
-    assert.equal(metrics.graph.importants, 519, "resolved graph !important must match baseline ceiling (519)");
+    assert.equal(metrics.graph.importants, 515, "resolved graph !important must match baseline ceiling (515)");
     assert.equal(metrics.graph.classSubstrings, 18, "resolved graph class-substrings must match ceiling (18)");
     assert.equal(metrics.graph.keyframes, 99, "resolved graph keyframes must match unique definitions (99)");
     assert.equal(metrics.graph.duplicateKeyframes.length, 0, "resolved graph must have zero duplicate keyframe names");

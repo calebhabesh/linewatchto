@@ -3127,15 +3127,14 @@ test("station detail shows accessibility facilities and active outage warning", 
   await expect(page.getByText("Schedule May Be Disrupted")).toBeVisible();
   const arrivalsSection = page.locator('[data-arrivals-disrupted="true"]');
   await expect(arrivalsSection).toBeVisible();
-  await expect(stationPanel.getByRole("link", { name: /Jump to station impact:/ }).first()).toBeVisible();
-  const jumpLink = stationPanel.getByRole("link", { name: /Jump to station impact:/ }).first();
-  const targetId = (await jumpLink.getAttribute("href"))!.slice(1);
-  const impactCard = stationPanel.locator(`[id="${targetId}"]`);
+  const jumpLink = stationPanel.getByRole("button", { name: /^Schedule may be disrupted:/ });
+  await expect(jumpLink).toBeVisible();
   const impactsSection = stationPanel.locator('[data-station-section="station-impacts"]');
   await impactsSection.evaluate((element: HTMLDetailsElement) => { element.open = false; });
   await jumpLink.click();
   await expect(impactsSection).toHaveAttribute("open", "");
-  await expect.poll(async () => impactCard.evaluate((card) => {
+  await expect(impactsSection.locator(".station-impact-card-highlight-soft").first()).toBeAttached();
+  await expect.poll(async () => impactsSection.evaluate((card) => {
     const scroller = card.closest<HTMLElement>(".station-detail-scroll")!;
     const offset = card.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
     const atEnd = scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop < 2;

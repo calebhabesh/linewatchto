@@ -641,8 +641,7 @@
 .station-detail-panel .station-impacts-details,
 .station-detail-panel .surface-connections-details,
 .station-detail-panel .station-accessibility-details,
-.station-detail-panel .station-detail-loading,
-.station-detail-disruption-card {
+.station-detail-panel .station-detail-loading {
   border: none !important;
   border-radius: 8px;
   box-shadow:
@@ -664,17 +663,19 @@
   background: var(--card-bg-elevated-solid) !important;
 }
 
-/* Schedule May Be Disrupted banner container (styled matching bottom-left alert type badges) */
+/* Schedule May Be Disrupted banner: amber sibling of the Access Outages banner */
 .station-detail-disruption-card {
-  align-items: center !important;
-  border: none !important;
+  align-items: center;
+  border: none;
   background: #fef3c7;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.90),
     0 2px 8px rgba(15, 23, 42, 0.08);
   display: flex;
-  justify-content: flex-start;
-  padding: 8px 10px;
+  gap: 0.75rem;
+  justify-content: space-between;
+  text-align: left;
+  width: 100%;
 }
 
 .dark .station-detail-disruption-card {
@@ -684,61 +685,70 @@
     0 3px 10px rgba(0, 0, 0, 0.38);
 }
 
-.station-detail-disruption-card .station-disruption-heading {
-  color: #78350f;
-  display: inline-flex;
+button.station-detail-disruption-card {
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+button.station-detail-disruption-card:hover {
+  background: #fde68a;
+}
+
+.dark button.station-detail-disruption-card:hover {
+  background: linear-gradient(180deg, #6b3914 0%, #52280b 100%);
+}
+
+button.station-detail-disruption-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.45);
+}
+
+.station-disruption-summary-main {
   align-items: center;
-  gap: 7px;
-  line-height: 1;
+  display: flex;
+  gap: 0.625rem;
+  min-width: 0;
 }
 
-.dark .station-detail-disruption-card .station-disruption-heading {
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
-}
-
-.station-detail-disruption-card .station-disruption-heading svg {
-  color: #d97706;
-  display: block;
+.station-disruption-divider {
+  align-self: center;
+  background: rgba(217, 119, 6, 0.3);
   flex-shrink: 0;
-  transform: translateY(-1px);
+  height: 1rem;
+  width: 1px;
 }
 
-.dark .station-detail-disruption-card .station-disruption-heading svg {
-  color: #fb923c;
-  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.45));
-}
-
-.station-detail-disruption-card .station-disruption-heading-text {
-  display: inline-flex;
+.station-disruption-badges {
   align-items: center;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  line-height: 1;
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.5rem;
 }
 
-.station-detail-disruption-card .station-impact-jump-actions {
-  display: inline-flex;
+.station-disruption-badge {
   align-items: center;
-  margin: 0;
-  padding: 0;
-}
-
-/* Station Impact Jump Buttons */
-.station-impact-jump-button {
-  border: none !important;
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 6px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
     0 1px 2px rgba(0, 0, 0, 0.08);
-  background: rgba(255, 255, 255, 0.95);
+  display: inline-flex;
+  flex: 0 0 30px;
+  height: 30px;
+  justify-content: center;
+  position: relative;
+  width: 30px;
 }
 
-.dark .station-impact-jump-button {
+.dark .station-disruption-badge {
+  background: #161a23;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 1px 2px rgba(0, 0, 0, 0.3);
-  background: #161a23 !important;
+}
+
+.station-access-outage-count.station-disruption-count {
+  background: #ea580c;
 }
 
 
@@ -761,7 +771,6 @@
 .high-contrast .station-submenu-nav-btn,
 .high-contrast .station-detail-panel [data-station-submenu-nav] button,
 .high-contrast .station-connection-row,
-.high-contrast .station-impact-jump-button,
 .high-contrast [data-station-access-outage-summary],
 .high-contrast .station-detail-disruption-card,
 .high-contrast .station-detail-panel [data-arrival-group] .station-arrival-tile,
@@ -777,7 +786,6 @@
 .linewatch-shell.high-contrast .station-submenu-nav-btn,
 .linewatch-shell.high-contrast .station-detail-panel [data-station-submenu-nav] button,
 .linewatch-shell.high-contrast .station-connection-row,
-.linewatch-shell.high-contrast .station-impact-jump-button,
 .linewatch-shell.high-contrast [data-station-access-outage-summary],
 .linewatch-shell.high-contrast .station-detail-disruption-card,
 .linewatch-shell.high-contrast .station-detail-panel [data-arrival-group] .station-arrival-tile,

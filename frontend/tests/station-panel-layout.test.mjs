@@ -9,6 +9,7 @@ const myStationsPanelSource = readFileSync(new URL("../src/components/MyStations
 const surfaceConnectionsSource = readFileSync(new URL("../src/components/SurfaceConnectionsSection.tsx", import.meta.url), "utf8");
 const stationConnectionsSource = readFileSync(new URL("../src/components/StationConnectionBadges.tsx", import.meta.url), "utf8");
 const arrivalPinSource = readFileSync(new URL("../src/components/ArrivalLinePinButton.tsx", import.meta.url), "utf8");
+const disruptionSummarySource = readFileSync(new URL("../src/components/StationDisruptionSummary.tsx", import.meta.url), "utf8");
 const navButtonsSource = readFileSync(new URL("../src/components/StationSubmenuNavButtons.tsx", import.meta.url), "utf8");
 const stationHeaderSource = readFileSync(new URL("../src/components/StationDetailHeader.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
@@ -66,28 +67,27 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /<Train size=\{20\}/);
     assert.doesNotMatch(panelSource, /<Clock3 size=\{20\}/);
     assert.match(panelSource, /data-arrivals-subway-closed=\{subwayClosed \? "true" : undefined\}/);
-    assert.match(panelSource, /<AlertCircle[^>]*size=\{19\}[^>]*animate-terminating-blink[^>]*\/>[\s\S]*Schedule May Be Disrupted/);
-    assert.match(panelSource, /station-detail-disruption-card flex w-full flex-wrap items-center justify-start/);
+    assert.match(panelSource, /<StationDisruptionSummary[\s\S]*?badges=\{disruptionGroups\.map/);
+    assert.match(disruptionSummarySource, /Schedule May Be Disrupted/);
+    assert.match(disruptionSummarySource, /<AlertCircle size=\{19\} className="station-banner-heading-icon animate-terminating-blink"/);
+    assert.match(disruptionSummarySource, /badge\.count > 1 &&[\s\S]*?<OverlappingCountBadge/);
+    assert.match(panelSource, /station-banner-heading station-access-outage-heading/);
+    assert.match(regionalPanelSource, /station-banner-heading station-access-outage-heading/);
     assert.match(globalCss, /\.animate-terminating-blink\s*\{[^}]*animation:\s*terminating-blink 1\.8s/);
     assert.match(globalCss, /\.station-access-outage-count\s*\{[^}]*--overlapping-count-font-size:\s*11px;/);
     assert.match(globalCss, /\.station-search-outage-count\s*\{[^}]*--overlapping-count-font-size:\s*10px;/);
     assert.match(panelSource, /data-arrivals-disrupted/);
     assert.match(panelSource, /arrivalContext\.scheduleMayBeDisrupted/);
-    assert.match(panelSource, /href=\{`#station-impact-\$\{impact\.id\}`\}/);
-    assert.match(panelSource, /handleJumpToStationImpact/);
-    assert.match(panelSource, /onClick=\{\(e\) => handleJumpToStationImpact\(impact\.id, e\)\}/);
+    assert.match(panelSource, /onJump=\{\(origin\) => jumpToStationImpactsSection\(origin, reducedMotion\)\}/);
+    assert.match(disruptionSummarySource, /<OverlappingCountBadge className="station-access-outage-count station-disruption-count"/);
     assert.match(panelSource, /data-station-impact-tone=\{impactTone\}/);
     assert.match(globalCss, /--highlight-color:\s*rgba\(239,\s*68,\s*68/);
     assert.match(globalCss, /--highlight-color:\s*rgba\(59,\s*130,\s*246/);
     assert.match(globalCss, /--highlight-color:\s*rgba\(245,\s*158,\s*11/);
     assert.match(globalCss, /--highlight-color:\s*rgba\(254,\s*236,\s*65/);
-    assert.match(panelSource, /station-impact-jump-actions/);
     assert.doesNotMatch(panelSource, /View impacts/);
-    assert.match(panelSource, /station-impact-jump-button/);
-    assert.match(panelSource, /station-impact-jump-button-label/);
-    assert.match(panelSource, />Press</);
-    assert.match(globalCss, /\.station-impact-jump-button/);
-    assert.match(globalCss, /\.station-impact-jump-button-label/);
+    assert.doesNotMatch(panelSource, />Press</);
+    assert.doesNotMatch(globalCss, /\.station-impact-jump-button/);
     assert.match(panelSource, /groupStationArrivals/);
     assert.match(panelSource, /stationId:\s*station\.id/);
     assert.match(panelSource, /data-arrival-group/);
@@ -156,7 +156,7 @@ describe("station detail panel layout", () => {
   });
 
   it("surfaces accessibility outage counts near the top of the station panel", () => {
-    const disruptionIndex = panelSource.indexOf('data-station-disruption-warning');
+    const disruptionIndex = panelSource.indexOf('<StationDisruptionSummary');
     const outageSummaryIndex = panelSource.indexOf('data-station-access-outage-summary');
     const headerDetailsIndex = panelSource.indexOf('data-station-header-line-details');
     const arrivalsIndex = panelSource.indexOf('data-station-section="arrivals"');
@@ -195,12 +195,10 @@ describe("station detail panel layout", () => {
     assert.match(globalCss, /\.dark \.station-detail-panel \[data-station-section\][\s\S]*?background:\s*var\(--card-bg-elevated-solid\)\s*!important;/);
 
     // Schedule May Be Disrupted card
-    assert.match(globalCss, /\.station-detail-disruption-card\s*\{[\s\S]*?border:\s*none\s*!important;/);
-    assert.match(globalCss, /\.station-detail-disruption-card\s*\{[\s\S]*?align-items:\s*center\s*!important;/);
-    assert.match(globalCss, /\.station-detail-disruption-card \.station-disruption-heading svg\s*\{[\s\S]*?transform:\s*translateY\(-1px\);/);
-    assert.match(globalCss, /\.station-impact-jump-button\s*\{[\s\S]*?padding:\s*4px 7px;/);
-    assert.match(globalCss, /\.station-impact-jump-button\s*\{[\s\S]*?border:\s*none\s*!important;/);
-    assert.match(globalCss, /\.dark \.station-impact-jump-button\s*\{[\s\S]*?background:\s*#161a23\s*!important;/);
+    assert.match(globalCss, /\.station-detail-disruption-card\s*\{[^}]*border:\s*none;[^}]*background:\s*#fef3c7;/);
+    assert.match(globalCss, /\.dark \.station-detail-disruption-card\s*\{[^}]*background:\s*linear-gradient\(180deg, #592e10 0%, #442109 100%\);/);
+    assert.match(globalCss, /\.station-disruption-badge\s*\{[^}]*height:\s*30px;[^}]*width:\s*30px;/);
+    assert.doesNotMatch(globalCss, /--disruption-accent/);
 
     // Connected Network rows
     assert.match(globalCss, /\.station-connection-row\s*\{[\s\S]*?border:\s*none\s*!important;/);
@@ -208,7 +206,7 @@ describe("station detail panel layout", () => {
   });
 
   it("surfaces accessibility outage counts near the top of the regional station panel", () => {
-    const disruptionIndex = regionalPanelSource.indexOf('data-station-disruption-warning');
+    const disruptionIndex = regionalPanelSource.indexOf('<StationDisruptionSummary');
     const outageSummaryIndex = regionalPanelSource.indexOf('data-station-access-outage-summary');
     const headerDetailsIndex = regionalPanelSource.indexOf('data-station-header-line-details');
     const arrivalsIndex = regionalPanelSource.indexOf('data-station-section="arrivals"');
@@ -226,10 +224,10 @@ describe("station detail panel layout", () => {
     assert.match(regionalPanelSource, /ref=\{accessibilityDetailsRef\}/);
   });
 
-  it("jumps from regional station warnings to planned closure cards", () => {
+  it("jumps from regional station warnings to the station impacts section", () => {
     assert.match(regionalPanelSource, /plannedClosuresForStation\(station\.id, dashboard\.plannedClosures, dashboard\.networkSegments\)/);
-    assert.match(regionalPanelSource, /impacts\.length > 0 &&[\s\S]*?data-station-disruption-warning/);
-    assert.match(regionalPanelSource, /impacts\.map\(\(impact\) =>[\s\S]*?onClick=\{\(\) => handleJumpToStationImpact\(impact\)\}/);
+    assert.match(regionalPanelSource, /\{impacts\.length > 0 && \([\s\S]*?<StationDisruptionSummary/);
+    assert.match(regionalPanelSource, /onJump=\{\(origin\) => jumpToStationImpactsSection\(origin, reducedMotion\)\}/);
     assert.match(regionalPanelSource, /id=\{`station-impact-\$\{impact\.kind\}-\$\{impact\.id\}`\}/);
     assert.match(panelSource, /plannedClosuresForStation\(station\.id, plannedClosures, networkSegments\)/);
     assert.match(panelSource, /stationPlannedClosures\.length > 0/);
@@ -370,7 +368,8 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /detailsTarget && onSelectImpact/);
     assert.match(panelSource, /onSelectImpact\(detailsTarget\.selection\)/);
     assert.match(panelSource, /Open \$\{detailsTarget\.label\} details/);
-    assert.match(panelSource, /<StationImpactDetailsIcon[\s\S]*kind=\{target\?\.selection\.kind \?\? stationImpactKind\(impact\)\}[\s\S]*tone=\{target\?\.tone\}/);
+    assert.match(panelSource, /const kind = target\?\.selection\.kind \?\? stationImpactKind\(impact\)/);
+    assert.match(panelSource, /<StationImpactDetailsIcon kind=\{group\.items\[0\]\.kind\} tone=\{group\.tone\}/);
     assert.match(panelSource, /<BadgeInfo[\s\S]*View Details/);
     assert.match(panelSource, /ml-auto/);
     assert.doesNotMatch(panelSource, /self-end/);
