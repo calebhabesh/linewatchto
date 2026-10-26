@@ -25,11 +25,11 @@ public record UpTripUpdateFeed(
         return aliases.size() == 1 ? Optional.of(aliases.getFirst()) : Optional.empty();
     }
 
-    private static String normalizedTripId(String value) {
+    static String normalizedTripId(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.CANADA);
     }
 
-    private static String serviceTripId(String value) {
+    static String serviceTripId(String value) {
         return value.replaceFirst("^\\d{8}[-_]", "");
     }
 
@@ -50,9 +50,24 @@ public record UpTripUpdateFeed(
         }
     }
 
+    /**
+     * One stop of a trip. {@code predictedAt} is the rider-facing time (the
+     * departure when the feed has one); {@code arrivalAt} is the predicted
+     * arrival, or null when the feed only gives a departure.
+     */
     public record StopTime(
         String stopCode,
         OffsetDateTime scheduledAt,
-        OffsetDateTime predictedAt
-    ) {}
+        OffsetDateTime predictedAt,
+        OffsetDateTime arrivalAt
+    ) {
+        public StopTime(String stopCode, OffsetDateTime scheduledAt, OffsetDateTime predictedAt) {
+            this(stopCode, scheduledAt, predictedAt, null);
+        }
+
+        /** When the train reaches the stop: its arrival, else its departure. */
+        public OffsetDateTime reachedAt() {
+            return arrivalAt != null ? arrivalAt : predictedAt;
+        }
+    }
 }

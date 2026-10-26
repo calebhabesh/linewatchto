@@ -26,11 +26,12 @@ class MetrolinxArrivalClientTest {
         MetrolinxProperties properties = new MetrolinxProperties();
         properties.setBaseUrl(URI.create("https://api.example.test/OpenDataAPI/"));
         properties.setApiKey(KEY);
+        RestClient restClient = builder.build();
+        var mapper = JsonMapper.builder().findAndAddModules().build();
+        var fetcher = new MetrolinxFeedFetcher(restClient, mapper, properties, java.time.Clock.systemUTC());
         client = new MetrolinxArrivalClient(
-            builder.build(),
-            JsonMapper.builder().findAndAddModules().build(),
-            properties,
-            new MetrolinxUpTripUpdateParser()
+            fetcher,
+            new MetrolinxTripUpdateSnapshots(fetcher, new MetrolinxUpTripUpdateParser(), java.time.Clock.systemUTC())
         );
     }
 

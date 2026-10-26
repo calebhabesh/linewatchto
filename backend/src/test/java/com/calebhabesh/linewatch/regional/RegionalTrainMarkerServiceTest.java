@@ -99,7 +99,7 @@ class RegionalTrainMarkerServiceTest {
             .thenReturn(new RegionalTrainMarkerFeed(updatedAt.plusSeconds(2), "GO source", List.of(
                 new RegionalTrainMarkerRecord("go-2", "regional-ki", "Outbound", "forward",
                     "segment-ki-mount-dennis-weston", "mount-dennis", "weston", "weston", 0.4,
-                    420, updatedAt.plusSeconds(170), true, "cab-1", "trip-2", updatedAt.plusSeconds(2), "GO source")
+                    420, updatedAt.plusSeconds(170), true, false, "cab-1", "trip-2", updatedAt.plusSeconds(2), "GO source")
             )));
         when(client.fetchUp()).thenThrow(new MetrolinxClientException("unavailable"));
         MutableClock clock = new MutableClock(CLOCK.instant(), CLOCK.getZone());
@@ -118,7 +118,7 @@ class RegionalTrainMarkerServiceTest {
     private RegionalTrainMarkerRecord marker(OffsetDateTime updatedAt) {
         return new RegionalTrainMarkerRecord("go-1", "regional-ki", "Outbound", "forward",
             "segment-ki-mount-dennis-weston", "mount-dennis", "weston", "weston", 0.5,
-            420, updatedAt.plusSeconds(210), true, "cab-1", "trip-1", updatedAt, "GO source");
+            420, updatedAt.plusSeconds(210), true, false, "cab-1", "trip-1", updatedAt, "GO source");
     }
 
     private static final class MutableClock extends Clock {

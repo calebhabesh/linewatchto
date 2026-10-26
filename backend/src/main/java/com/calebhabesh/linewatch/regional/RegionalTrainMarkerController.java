@@ -25,12 +25,13 @@ public class RegionalTrainMarkerController {
                            OffsetDateTime feedCreatedAt, OffsetDateTime generatedAt, List<Marker> markers) {}
     public record Marker(String id, String lineId, String direction, String travelDirection, String segmentId,
                          String fromStationId, String toStationId, String nextStationId, double progress,
-                         int segmentTravelSeconds, OffsetDateTime predictedAt, String vehicleId, String tripId,
-                         OffsetDateTime feedCreatedAt, OffsetDateTime updatedAt) {
+                         int segmentTravelSeconds, OffsetDateTime predictedAt, boolean moving, boolean timed,
+                         String vehicleId, String tripId, OffsetDateTime feedCreatedAt, OffsetDateTime updatedAt) {
         static Marker from(RegionalTrainMarkerRecord marker) {
             return new Marker(marker.id(), marker.lineId(), marker.direction(), marker.travelDirection(), marker.segmentId(),
                 marker.fromStationId(), marker.toStationId(), marker.nextStationId(), marker.progress(),
-                marker.segmentTravelSeconds(), marker.predictedAt(), marker.vehicleId(), marker.tripId(),
+                marker.segmentTravelSeconds(), marker.predictedAt(), marker.moving(), marker.timed(),
+                marker.vehicleId(), marker.tripId(),
                 marker.updatedAt(), marker.updatedAt());
         }
     }

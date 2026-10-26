@@ -18,7 +18,7 @@ class RegionalTrainMarkerControllerTest {
             "Fresh schematic regional train markers.", RegionalTrainMarkerService.DISCLAIMER,
             timestamp.minusSeconds(20), timestamp, List.of(new RegionalTrainMarkerRecord(
                 "go-3775", "regional-ki", "Outbound", "forward", "segment-ki-mount-dennis-weston",
-                "mount-dennis", "weston", "weston", 0.55, 420, timestamp.plusMinutes(3), true,
+                "mount-dennis", "weston", "weston", 0.55, 420, timestamp.plusMinutes(3), true, false,
                 "cab-3775", "3775", timestamp.minusSeconds(20),
                 MetrolinxVehiclePositionClient.GO_SOURCE
             ))

@@ -1,10 +1,8 @@
 package com.calebhabesh.linewatch.regional;
 
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import com.calebhabesh.linewatch.surfacearrival.RegionalSurfaceArrivalFeed;
 import com.calebhabesh.linewatch.surfacearrival.SurfaceArrivalRecord;
-import java.net.URI;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -16,8 +14,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
 public class MetrolinxArrivalClient {
@@ -40,21 +36,12 @@ public class MetrolinxArrivalClient {
         "ST", "regional-st"
     );
 
-    private final RestClient restClient;
-    private final ObjectMapper objectMapper;
-    private final MetrolinxProperties properties;
-    private final MetrolinxUpTripUpdateParser upTripUpdateParser;
+    private final MetrolinxFeedFetcher fetcher;
+    private final MetrolinxTripUpdateSnapshots tripUpdates;
 
-    public MetrolinxArrivalClient(
-        RestClient metrolinxRestClient,
-        ObjectMapper objectMapper,
-        MetrolinxProperties properties,
-        MetrolinxUpTripUpdateParser upTripUpdateParser
-    ) {
-        this.restClient = metrolinxRestClient;
-        this.objectMapper = objectMapper;
-        this.properties = properties;
-        this.upTripUpdateParser = upTripUpdateParser;
+    public MetrolinxArrivalClient(MetrolinxFeedFetcher fetcher, MetrolinxTripUpdateSnapshots tripUpdates) {
+        this.fetcher = fetcher;
+        this.tripUpdates = tripUpdates;
     }
 
     public RegionalArrivalFeed fetchGoNextService(String stopCode) {
@@ -218,33 +205,14 @@ public class MetrolinxArrivalClient {
         return new RegionalArrivalFeed(feed.sourceUpdatedAt(), List.copyOf(arrivals));
     }
 
+    /** The shared snapshot train markers also use, so tiles and markers agree. */
     public UpTripUpdateFeed fetchUpTripUpdateFeed() {
-        return upTripUpdateParser.parse(fetch(UP_TRIP_UPDATES_PATH, "UP Express trip updates"));
+        return tripUpdates.up();
     }
 
+    /** Retried and safely logged like the live train-marker feeds. */
     private JsonNode fetch(String path, String label) {
-        if (!properties.isConfigured()) {
-            throw new MetrolinxClientException("Metrolinx API key is not configured");
-        }
-        try {
-            String body = restClient.get().uri(uri(path)).retrieve().body(String.class);
-            JsonNode root = objectMapper.readTree(body);
-            if (root == null || !root.isObject()) {
-                throw new IllegalArgumentException("payload is not an object");
-            }
-            return root;
-        } catch (MetrolinxClientException exception) {
-            throw exception;
-        } catch (Exception ignored) {
-            throw new MetrolinxClientException("Unable to fetch Metrolinx " + label);
-        }
-    }
-
-    private URI uri(String path) {
-        return UriComponentsBuilder.fromUri(properties.getBaseUrl())
-            .path(path)
-            .queryParam("key", properties.getApiKey())
-            .build().encode().toUri();
+        return fetcher.fetch(path, "Metrolinx " + label);
     }
 
     private List<JsonNode> array(JsonNode node) {

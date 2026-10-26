@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("linewatch.regional.train-markers")
 public class RegionalTrainMarkerProperties {
     private boolean enabled;
-    private Duration cacheTtl = Duration.ofSeconds(15);
+    private Duration cacheTtl = Duration.ofSeconds(10);
     private Duration maxSourceAge = Duration.ofMinutes(2);
     private Duration retentionTtl = Duration.ofSeconds(90);
     private int maxMarkers = 80;

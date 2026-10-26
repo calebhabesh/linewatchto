@@ -3,12 +3,21 @@ package com.calebhabesh.linewatch.regional;
 import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.client.ExpectedCount.once;
+import static org.springframework.test.web.client.ExpectedCount.times;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import java.net.URI;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
@@ -16,17 +25,23 @@ import org.springframework.web.client.RestClient;
 class MetrolinxVehiclePositionClientTest {
     private MockRestServiceServer server;
     private MetrolinxVehiclePositionClient client;
+    private MetrolinxTripUpdateSnapshots snapshots;
+    private MetrolinxFeedFetcher fetcher;
 
     @BeforeEach
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
-        server = MockRestServiceServer.bindTo(builder).build();
+        // GO lookups also read the GO trip-update snapshot; order between the
+        // two feeds is not part of the contract.
+        server = MockRestServiceServer.bindTo(builder).ignoreExpectOrder(true).build();
         MetrolinxProperties properties = new MetrolinxProperties();
         properties.setBaseUrl(URI.create("https://api.example.test/OpenDataAPI/"));
         properties.setApiKey("secret");
-        client = new MetrolinxVehiclePositionClient(
-            builder.build(), JsonMapper.builder().findAndAddModules().build(), properties, new MetrolinxUpTripUpdateParser()
-        );
+        properties.setFetchRetryDelay(Duration.ZERO);
+        Clock clock = Clock.fixed(Instant.ofEpochSecond(1785268043), ZoneOffset.UTC);
+        fetcher = new MetrolinxFeedFetcher(builder.build(), JsonMapper.builder().findAndAddModules().build(), properties, clock);
+        snapshots = new MetrolinxTripUpdateSnapshots(fetcher, new MetrolinxUpTripUpdateParser(), clock);
+        client = new MetrolinxVehiclePositionClient(fetcher, snapshots);
     }
 
     @Test
@@ -42,6 +57,7 @@ class MetrolinxVehiclePositionClientTest {
                  ]}
                 """, MediaType.APPLICATION_JSON));
 
+        expectGoTripUpdates(EMPTY_TRIP_UPDATES);
         RegionalTrainMarkerFeed feed = client.fetchGo();
 
         assertThat(feed.sourceUpdatedAt()).isEqualTo(OffsetDateTime.parse("2026-07-28T19:47:23Z"));
@@ -69,6 +85,7 @@ class MetrolinxVehiclePositionClientTest {
                  ]}
                 """, MediaType.APPLICATION_JSON));
 
+        expectGoTripUpdates(EMPTY_TRIP_UPDATES);
         RegionalTrainMarkerFeed feed = client.fetchGo();
 
         assertThat(feed.markers()).singleElement().satisfies(marker -> {
@@ -93,6 +110,7 @@ class MetrolinxVehiclePositionClientTest {
                  ]}
                 """, MediaType.APPLICATION_JSON));
 
+        expectGoTripUpdates(EMPTY_TRIP_UPDATES);
         RegionalTrainMarkerFeed feed = client.fetchGo();
 
         assertThat(feed.markers()).singleElement().satisfies(marker -> {
@@ -117,6 +135,7 @@ class MetrolinxVehiclePositionClientTest {
                  ]}
                 """, MediaType.APPLICATION_JSON));
 
+        expectGoTripUpdates(EMPTY_TRIP_UPDATES);
         RegionalTrainMarkerFeed feed = client.fetchGo();
 
         assertThat(feed.markers()).singleElement().satisfies(marker -> {
@@ -274,6 +293,228 @@ class MetrolinxVehiclePositionClientTest {
 
         assertThat(client.fetchUp().markers()).isEmpty();
         server.verify();
+    }
+
+    private static final String GO_VP_TO_WESTON = """
+        {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+         "entity":[{"id":"go-3775","vehicle":{"trip":{"trip_id":"3775","route_id":"KI","direction_id":0},
+           "vehicle":{"id":"cab-3775"},"current_status":"IN_TRANSIT_TO","stop_id":"WE","timestamp":1785268040}}]}
+        """;
+
+    @Test
+    void timesGoMarkerFromItsPredictedArrivalAtTheNextStation() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess(GO_VP_TO_WESTON, MediaType.APPLICATION_JSON));
+        // Left Etobicoke North 140 s ago, reaches Weston in 60 s (it departs later).
+        expectGoTripUpdates("""
+            {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+             "entity":[{"id":"t-3775","trip_update":{"trip":{"trip_id":"3775","route_id":"KI"},
+               "stop_time_update":[
+                 {"stop_id":"ET","departure":{"time":1785267900}},
+                 {"stop_id":"WE","arrival":{"time":1785268100},"departure":{"time":1785268160}}
+               ]}}]}
+            """);
+
+        assertThat(client.fetchGo().markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.segmentId()).isEqualTo("segment-ki-weston-etobicoke-north");
+            assertThat(marker.timed()).isTrue();
+            assertThat(marker.moving()).isTrue();
+            assertThat(marker.segmentTravelSeconds()).isEqualTo(200);
+            assertThat(marker.predictedAt()).isEqualTo(OffsetDateTime.parse("2026-07-28T19:48:20Z"));
+            assertThat(marker.progress()).isEqualTo(0.7);
+        });
+        server.verify();
+    }
+
+    @Test
+    void holdsATrainThatHasNotLeftAtTheStationItIsLeaving() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess(GO_VP_TO_WESTON, MediaType.APPLICATION_JSON));
+        expectGoTripUpdates("""
+            {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+             "entity":[{"id":"t-3775","trip_update":{"trip":{"trip_id":"3775","route_id":"KI"},
+               "stop_time_update":[
+                 {"stop_id":"ET","departure":{"time":1785268300}},
+                 {"stop_id":"WE","arrival":{"time":1785268500}}
+               ]}}]}
+            """);
+
+        assertThat(client.fetchGo().markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.timed()).isTrue();
+            assertThat(marker.progress()).isZero();
+        });
+        server.verify();
+    }
+
+    @Test
+    void keepsAGoMarkerAtItsStatusPlacementWhenTripUpdatesAreUnavailable() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess(GO_VP_TO_WESTON, MediaType.APPLICATION_JSON));
+        server.expect(times(3), requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/TripUpdates?key=secret"))
+            .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+
+        assertThat(client.fetchGo().markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.timed()).isFalse();
+            assertThat(marker.progress()).isEqualTo(0.5);
+        });
+        server.verify();
+    }
+
+    @Test
+    void keepsAnUpTrainStoppedAtAStationWhoseStopHasLeftTheTripUpdate() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess("""
+                {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+                 "entity":[{"id":"up-4322","vehicle":{"trip":{"trip_id":"4322","route_id":"UP"},
+                   "vehicle":{"id":"cab-4322"},"current_status":"STOPPED_AT","stop_id":"WE","timestamp":1785268040}}]}
+                """, MediaType.APPLICATION_JSON));
+        expectUpTripUpdates("""
+            {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+             "entity":[{"id":"20260728-4322","trip_update":{
+               "trip":{"trip_id":"20260728-4322","route_id":"UP"},
+               "vehicle":{"id":"cab-4322","label":"UP - Union Station"},
+               "stop_time_update":[
+                 {"stop_id":"MD","arrival":{"time":1785268300}},
+                 {"stop_id":"UN","arrival":{"time":1785268900}}
+               ]}}]}
+            """);
+
+        assertThat(client.fetchUp().markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.nextStationId()).isEqualTo("weston");
+            assertThat(marker.moving()).isFalse();
+            assertThat(marker.progress()).isEqualTo(0.98);
+        });
+        server.verify();
+    }
+
+    @Test
+    void showsAnUpTrainWaitingAtUnionAtThePlatformInsteadOfDropping() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess("""
+                {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+                 "entity":[{"id":"up-4401","vehicle":{"trip":{"trip_id":"4401","route_id":"UP"},
+                   "vehicle":{"id":"cab-4401"},"current_status":"STOPPED_AT","stop_id":"UN","timestamp":1785268040}}]}
+                """, MediaType.APPLICATION_JSON));
+        expectUpTripUpdates("""
+            {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+             "entity":[{"id":"20260728-4401","trip_update":{
+               "trip":{"trip_id":"20260728-4401","route_id":"UP"},
+               "vehicle":{"id":"cab-4401","label":"UP - Pearson Airport"},
+               "stop_time_update":[
+                 {"stop_id":"UN","departure":{"time":1785268200}},
+                 {"stop_id":"BL","arrival":{"time":1785268500}}
+               ]}}]}
+            """);
+
+        assertThat(client.fetchUp().markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.segmentId()).isEqualTo("segment-up-union-bloor");
+            assertThat(marker.fromStationId()).isEqualTo("union");
+            assertThat(marker.nextStationId()).isEqualTo("bloor");
+            assertThat(marker.direction()).isEqualTo("Westbound");
+            assertThat(marker.moving()).isFalse();
+            assertThat(marker.progress()).isZero();
+        });
+        server.verify();
+    }
+
+    @Test
+    void stationArrivalsAndMarkersShareOneUpTripUpdateSnapshot() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess("""
+                {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+                 "entity":[{"id":"up-4322","vehicle":{"trip":{"trip_id":"4322","route_id":"UP"},
+                   "vehicle":{"id":"cab-4322"},"current_status":"IN_TRANSIT_TO","stop_id":"WE","timestamp":1785268040}}]}
+                """, MediaType.APPLICATION_JSON));
+        server.expect(once(), requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/TripUpdates?key=secret"))
+            .andRespond(withSuccess("""
+                {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+                 "entity":[{"id":"20260728-4322","trip_update":{
+                   "trip":{"trip_id":"20260728-4322","route_id":"UP"},
+                   "vehicle":{"id":"cab-4322","label":"UP - Union Station"},
+                   "stop_time_update":[
+                     {"stop_id":"PA","departure":{"time":1785267800}},
+                     {"stop_id":"WE","arrival":{"time":1785268090},"departure":{"time":1785268100}}
+                   ]}}]}
+                """, MediaType.APPLICATION_JSON));
+        MetrolinxArrivalClient arrivals = new MetrolinxArrivalClient(fetcher, snapshots);
+
+        RegionalTrainMarkerRecord marker = client.fetchUp().markers().getFirst();
+        RegionalArrivalFeed westonArrivals = arrivals.fetchUpTripUpdates("WE");
+
+        // The marker heads for the station's arrival; the tile shows its departure.
+        assertThat(marker.predictedAt()).isEqualTo(OffsetDateTime.parse("2026-07-28T19:48:10Z"));
+        assertThat(westonArrivals.arrivals()).singleElement()
+            .satisfies(arrival -> assertThat(arrival.predictedAt()).isEqualTo(OffsetDateTime.parse("2026-07-28T19:48:20Z")));
+        server.verify();
+    }
+
+    @Test
+    void retriesAFailedFeedRequestAndReportsOnlyASafeReason() {
+        server.expect(times(3), requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withStatus(HttpStatus.BAD_GATEWAY));
+
+        assertThatThrownBy(() -> client.fetchUp())
+            .isInstanceOf(MetrolinxClientException.class)
+            .hasMessageContaining("HTTP 502")
+            .hasMessageNotContaining("secret")
+            .hasMessageNotContaining("api.example.test");
+        server.verify();
+    }
+
+    @Test
+    void retriesTheGatewaysIntermittentUnauthorizedResponse() {
+        // Metrolinx rejects about one request in three with a fast 401 for a
+        // valid key; the next attempt goes through.
+        server.expect(once(), requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
+        server.expect(once(), requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess(GO_VP_TO_WESTON, MediaType.APPLICATION_JSON));
+        expectGoTripUpdates(EMPTY_TRIP_UPDATES);
+
+        assertThat(client.fetchGo().markers()).hasSize(1);
+        server.verify();
+    }
+
+    @Test
+    void servesTheLastGoodTripUpdateSnapshotThroughABriefFailure() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer local = MockRestServiceServer.bindTo(builder).build();
+        MetrolinxProperties properties = new MetrolinxProperties();
+        properties.setBaseUrl(URI.create("https://api.example.test/OpenDataAPI/"));
+        properties.setApiKey("secret");
+        properties.setFetchRetryDelay(Duration.ZERO);
+        Instant[] now = { Instant.ofEpochSecond(1785268043) };
+        Clock clock = new Clock() {
+            @Override public ZoneOffset getZone() { return ZoneOffset.UTC; }
+            @Override public Clock withZone(java.time.ZoneId zone) { return this; }
+            @Override public Instant instant() { return now[0]; }
+        };
+        var fetcher = new MetrolinxFeedFetcher(builder.build(), JsonMapper.builder().findAndAddModules().build(), properties, clock);
+        var shared = new MetrolinxTripUpdateSnapshots(fetcher, new MetrolinxUpTripUpdateParser(), clock);
+        String url = "https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/TripUpdates?key=secret";
+        local.expect(once(), requestTo(url)).andRespond(withSuccess("""
+            {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},"entity":[]}
+            """, MediaType.APPLICATION_JSON));
+        // Two failed refreshes (three attempts each).
+        local.expect(times(6), requestTo(url)).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+
+        UpTripUpdateFeed first = shared.up();
+        now[0] = now[0].plusSeconds(5);
+        assertThat(shared.up()).isSameAs(first);   // still cached, no request
+        now[0] = now[0].plusSeconds(10);
+        assertThat(shared.up()).isSameAs(first);   // fetch failed: last good, 15 s old
+        now[0] = now[0].plusSeconds(150);
+        assertThatThrownBy(shared::up).isInstanceOf(MetrolinxClientException.class); // too old to serve
+        local.verify();
+    }
+
+    private static final String EMPTY_TRIP_UPDATES = """
+        {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},"entity":[]}
+        """;
+
+    private void expectGoTripUpdates(String body) {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/TripUpdates?key=secret"))
+            .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
     }
 
     private void expectUpTripUpdates(String body) {

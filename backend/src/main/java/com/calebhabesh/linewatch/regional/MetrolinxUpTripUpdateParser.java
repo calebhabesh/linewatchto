@@ -51,6 +51,28 @@ public class MetrolinxUpTripUpdateParser {
         return new UpTripUpdateFeed(epoch(root.path("header").get("timestamp")), List.copyOf(trips));
     }
 
+    /**
+     * GO TripUpdates: each running trip's predicted stop times, for timing
+     * train markers. Cancelled trips are left out.
+     */
+    public GoTripUpdateFeed parseGo(JsonNode root) {
+        if (!"FULL_DATASET".equalsIgnoreCase(root.path("header").path("incrementality").asText(""))
+            || !root.path("entity").isArray()) {
+            throw new MetrolinxClientException("Metrolinx GO trip-update response was not a full dataset");
+        }
+        List<GoTripUpdateFeed.Trip> trips = new ArrayList<>();
+        for (JsonNode entity : root.path("entity")) {
+            JsonNode tripUpdate = entity.path("trip_update");
+            JsonNode tripNode = tripUpdate.path("trip");
+            if ("CANCELED".equalsIgnoreCase(tripNode.path("schedule_relationship").asText(""))) continue;
+            String tripId = preferred(tripNode.path("trip_id").asText(""), entity.path("id").asText(""));
+            if (tripId.isBlank()) continue;
+            List<UpTripUpdateFeed.StopTime> stopTimes = parseStopTimes(tripUpdate.path("stop_time_update"));
+            if (!stopTimes.isEmpty()) trips.add(new GoTripUpdateFeed.Trip(tripId, stopTimes));
+        }
+        return new GoTripUpdateFeed(epoch(root.path("header").get("timestamp")), List.copyOf(trips));
+    }
+
     private List<UpTripUpdateFeed.StopTime> parseStopTimes(JsonNode updates) {
         if (!updates.isArray()) return List.of();
         List<UpTripUpdateFeed.StopTime> stopTimes = new ArrayList<>();
@@ -62,10 +84,12 @@ public class MetrolinxUpTripUpdateParser {
             OffsetDateTime predictedAt = epoch(event.get("time"));
             if (predictedAt == null) continue;
             long delay = Math.max(0, event.path("delay").asLong(0));
+            OffsetDateTime arrivalAt = epoch(update.path("arrival").get("time"));
             stopTimes.add(new UpTripUpdateFeed.StopTime(
                 stopCode,
                 predictedAt.minusSeconds(delay),
-                predictedAt
+                predictedAt,
+                arrivalAt
             ));
         }
         return List.copyOf(stopTimes);

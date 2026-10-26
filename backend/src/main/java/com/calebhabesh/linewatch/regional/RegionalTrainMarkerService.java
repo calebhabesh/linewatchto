@@ -10,11 +10,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class RegionalTrainMarkerService {
+    private static final Logger log = LoggerFactory.getLogger(RegionalTrainMarkerService.class);
+    private static final Duration FAILURE_LOG_INTERVAL = Duration.ofMinutes(1);
     public static final String DISCLAIMER = "Estimated regional train markers are schematic placements derived from Metrolinx GTFS-RT vehicle positions and LineWatchTO topology. UP Express direction and station timing are reconciled with the matching TripUpdates trip. Markers are not exact physical train locations.";
 
     private record Cached(OffsetDateTime expiresAt, Snapshot snapshot) {}
@@ -28,6 +34,8 @@ public class RegionalTrainMarkerService {
     private final Clock clock;
     private volatile Cached cache;
     private volatile Map<String, RetainedMarker> retainedMarkers = Map.of();
+    private final ReentrantLock refreshLock = new ReentrantLock();
+    private final Map<String, OffsetDateTime> lastFailureLog = new ConcurrentHashMap<>();
 
     public RegionalTrainMarkerService(MetrolinxVehiclePositionClient client, RegionalTrainMarkerProperties properties, Clock clock) {
         this.client = client;
@@ -43,16 +51,27 @@ public class RegionalTrainMarkerService {
         }
         Cached current = cache;
         if (current != null && current.expiresAt().isAfter(now)) return current.snapshot();
-        Snapshot refreshed = refresh(now);
-        cache = new Cached(now.plus(properties.getCacheTtl()), refreshed);
-        return refreshed;
+        // One request refreshes; others keep the last snapshot meanwhile
+        // instead of queueing behind a slow Metrolinx call.
+        if (current != null && !refreshLock.tryLock()) return current.snapshot();
+        if (current == null) refreshLock.lock();
+        try {
+            Cached latest = cache;
+            OffsetDateTime checkedAt = OffsetDateTime.now(clock);
+            if (latest != null && latest.expiresAt().isAfter(checkedAt)) return latest.snapshot();
+            Snapshot refreshed = refresh(checkedAt);
+            cache = new Cached(checkedAt.plus(properties.getCacheTtl()), refreshed);
+            return refreshed;
+        } finally {
+            refreshLock.unlock();
+        }
     }
 
-    private synchronized Snapshot refresh(OffsetDateTime now) {
+    private Snapshot refresh(OffsetDateTime now) {
         List<RegionalTrainMarkerFeed> feeds = new ArrayList<>();
         int failed = 0;
-        try { feeds.add(client.fetchGo()); } catch (MetrolinxClientException ignored) { failed++; }
-        try { feeds.add(client.fetchUp()); } catch (MetrolinxClientException ignored) { failed++; }
+        try { feeds.add(client.fetchGo()); } catch (MetrolinxClientException failure) { failed++; logFailure("GO", failure, now); }
+        try { feeds.add(client.fetchUp()); } catch (MetrolinxClientException failure) { failed++; logFailure("UP", failure, now); }
         List<RegionalTrainMarkerFeed> freshFeeds = feeds.stream().filter(feed -> fresh(feed, now)).toList();
         if (freshFeeds.isEmpty()) {
             List<RegionalTrainMarkerRecord> heldMarkers = retainRecentMarkers(List.of(), now);
@@ -109,6 +128,14 @@ public class RegionalTrainMarkerService {
         return next.values().stream().map(RetainedMarker::marker).toList();
     }
 
+    /** Feed-level failures, once a minute per feed. Messages never include request URLs. */
+    private void logFailure(String feed, MetrolinxClientException failure, OffsetDateTime now) {
+        OffsetDateTime previous = lastFailureLog.get(feed);
+        if (previous != null && Duration.between(previous, now).compareTo(FAILURE_LOG_INTERVAL) < 0) return;
+        lastFailureLog.put(feed, now);
+        log.warn("Regional {} train markers unavailable this refresh: {}", feed, failure.getMessage());
+    }
+
     private String markerContinuityKey(RegionalTrainMarkerRecord marker) {
         String vehicleId = normalize(marker.vehicleId());
         String tripId = normalize(marker.tripId());
@@ -132,7 +159,7 @@ public class RegionalTrainMarkerService {
         return new RegionalTrainMarkerRecord(
             current.id(), current.lineId(), current.direction(), current.travelDirection(), current.segmentId(),
             current.fromStationId(), current.toStationId(), current.nextStationId(), previous.marker().progress(),
-            current.segmentTravelSeconds(), current.predictedAt(), current.moving(), current.vehicleId(),
+            current.segmentTravelSeconds(), current.predictedAt(), current.moving(), current.timed(), current.vehicleId(),
             current.tripId(), current.updatedAt(), current.source()
         );
     }
