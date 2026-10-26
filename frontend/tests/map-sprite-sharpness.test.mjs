@@ -22,10 +22,6 @@ describe("geographic map sprite sharpness", () => {
       source,
       /map\.addImage\("direction-arrow-bidirectional", createSdfImageData\(imgData\), \{ sdf: true, pixelRatio: 2 \}\)/,
     );
-    assert.match(
-      source,
-      /map\.addImage\("train-arrow", createSdfImageData\(imgData\), \{ sdf: true, pixelRatio: 3 \}\)/,
-    );
   });
 
   it("encodes a smooth signed-distance gradient instead of a binary alpha mask", () => {

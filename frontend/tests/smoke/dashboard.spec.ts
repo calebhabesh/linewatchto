@@ -1808,6 +1808,46 @@ test("renders regional accessibility outages in the global and station views", a
   await expect(accessibilityOutages.getByText("Elevator out of service", { exact: true })).toBeVisible();
 });
 
+test("advances a timed regional marker toward its next station between polls", async ({ page, request }) => {
+  // The shared setup freezes Date; markers advance by the clock, so restore it
+  // (the frozen Date subclasses the real one).
+  await page.addInitScript(() => {
+    const RealDate = Object.getPrototypeOf(Date);
+    if (typeof RealDate === "function" && RealDate.prototype instanceof Object && "now" in RealDate) {
+      window.Date = RealDate;
+    }
+  });
+  await setStubMode(request, "regional-timed-trains");
+  await page.goto("/");
+  const networkSelector = page.getByRole("group", { name: "Select transit network" });
+  await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
+  await page.getByRole("switch", { name: /Toggle estimated train markers/ }).click();
+  const marker = page.locator('[data-marker-key="regional-ki:vehicle:cab-3775"]');
+  await expect(marker).toBeAttached();
+
+  const position = async () => {
+    const transform = await marker.getAttribute("transform") ?? "";
+    const [, x, y] = /translate\((-?[\d.]+)\s+(-?[\d.]+)\)/.exec(transform) ?? [];
+    // Screen distance to Weston, the station it is heading for.
+    const toWeston = await marker.evaluate((node) => {
+      const station = document.querySelector(".regional-live-svg #station-weston");
+      if (!station) return Number.NaN;
+      const a = node.getBoundingClientRect();
+      const b = station.getBoundingClientRect();
+      return Math.hypot(a.x + a.width / 2 - (b.x + b.width / 2), a.y + a.height / 2 - (b.y + b.height / 2));
+    });
+    return { x: Number(x), y: Number(y), toWeston };
+  };
+  await page.waitForTimeout(1_500);
+  const before = await position();
+  // Inside one 10 s poll: the marker moves by the clock alone.
+  await page.waitForTimeout(4_000);
+  const after = await position();
+  expect(Math.hypot(after.x - before.x, after.y - before.y)).toBeGreaterThan(1);
+  expect(after.toWeston).toBeLessThan(before.toWeston);
+});
+
 test("renders regional estimated train markers from the network-scoped endpoint", async ({ page, request }) => {
   await setStubMode(request, "regional-live");
   await page.goto("/");

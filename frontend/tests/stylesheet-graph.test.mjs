@@ -311,7 +311,6 @@ describe("stylesheet-graph helper", () => {
     assert.ok(files.some(f => f.endsWith("train-markers.css")), "train-markers.css must be in graph files");
     const trainMarkersContent = readStylesheet(new URL("../src/styles/map/train-markers.css", import.meta.url));
     assert.match(trainMarkersContent, /\.estimated-train-marker-layer/);
-    assert.match(trainMarkersContent, /\.estimated-train-marker-layer\[data-muted="true"\]/);
     assert.match(trainMarkersContent, /\.estimated-train-marker/);
     assert.match(trainMarkersContent, /\.estimated-train-marker-outline/);
     assert.match(trainMarkersContent, /\.estimated-train-marker-core/);

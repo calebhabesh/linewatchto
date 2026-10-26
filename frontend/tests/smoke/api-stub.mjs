@@ -23,6 +23,10 @@ import {
 
 const port = Number(process.env.LINEWATCH_STUB_PORT ?? "4174");
 let mode = "seeded";
+/** "regional-timed-trains" is regional-live with one clock-timed train marker. */
+const isRegionalLiveMode = () => mode === "regional-live" || mode === "regional-timed-trains";
+/** The timed-trains mode's fixed predicted arrival, so repeated polls agree. */
+let timedTrainArrivesAt = null;
 let sessionUser = null;
 let demoSavedStations = [];
 let estimatedTrainMotionAdvanced = false;
@@ -336,11 +340,12 @@ const server = createServer(async (request, response) => {
 
   if (request.method === "POST" && url.pathname === "/__test/mode") {
     const body = await readJson(request);
-    if (!["seeded", "diagnostics-disabled", "unavailable", "map-authoritative-overlap", "regional-live"].includes(body.mode)) {
+    if (!["seeded", "diagnostics-disabled", "unavailable", "map-authoritative-overlap", "regional-live", "regional-timed-trains"].includes(body.mode)) {
       sendJson(request, response, 400, { error: "Unsupported smoke stub mode" });
       return;
     }
     mode = body.mode;
+    timedTrainArrivesAt = null;
     sessionUser = null;
     demoSavedStations = [];
     estimatedTrainMotionAdvanced = false;
@@ -404,7 +409,7 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "GET" && url.pathname === "/api/dashboard" && url.searchParams.get("network") === "regional") {
-    if (mode !== "regional-live") {
+    if (!isRegionalLiveMode()) {
       sendJson(request, response, 503, { error: "Regional smoke source unavailable" });
       return;
     }
@@ -921,7 +926,7 @@ const server = createServer(async (request, response) => {
 
   if (request.method === "GET" && url.pathname === "/api/accessibility-outages") {
     const regional = url.searchParams.get("network") === "regional";
-    const hasRegionalOutage = regional && mode === "regional-live";
+    const hasRegionalOutage = regional && isRegionalLiveMode();
     sendJson(request, response, 200, {
       generatedAt: "2026-07-28T19:48:00Z",
       fresh: hasRegionalOutage,
@@ -969,7 +974,7 @@ const server = createServer(async (request, response) => {
 
   if (request.method === "GET" && url.pathname === "/api/surface-notices") {
     const regional = url.searchParams.get("network") === "regional";
-    const fresh = regional ? mode === "regional-live" : mode !== "unavailable";
+    const fresh = regional ? isRegionalLiveMode() : mode !== "unavailable";
     const notices = fresh && regional ? [{
       id: "regional-notice-smoke",
       category: "service-change",
@@ -1022,7 +1027,7 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "GET" && url.pathname === "/api/regional/trip-changes") {
-    const fresh = mode === "regional-live";
+    const fresh = isRegionalLiveMode();
     const stationId = url.searchParams.get("stationId");
     const query = (url.searchParams.get("query") ?? "").toLowerCase();
     const change = {
@@ -1069,6 +1074,29 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "GET" && url.pathname === "/api/regional/trains") {
+    if (mode === "regional-timed-trains") {
+      // One moving KI train, timed from its predicted arrival at Weston 30 s
+      // after the first request, on a 60 s link: clients advance it by the clock.
+      const now = Date.now();
+      const iso = (time) => new Date(time).toISOString().replace(/\.\d{3}Z$/, "Z");
+      const [marker] = regionalEstimatedTrainsResponse.markers;
+      sendJson(request, response, 200, {
+        ...regionalEstimatedTrainsResponse,
+        feedCreatedAt: iso(now - 2_000),
+        generatedAt: iso(now),
+        markers: [{
+          ...marker,
+          progress: 0.5,
+          segmentTravelSeconds: 60,
+          predictedAt: iso(timedTrainArrivesAt ??= now + 30_000),
+          moving: true,
+          timed: true,
+          feedCreatedAt: iso(now - 2_000),
+          updatedAt: iso(now - 2_000),
+        }],
+      });
+      return;
+    }
     sendJson(request, response, 200, regionalEstimatedTrainsResponse);
     return;
   }
@@ -1076,7 +1104,7 @@ const server = createServer(async (request, response) => {
   const regionalArrivalMatch = url.pathname.match(/^\/api\/regional\/stations\/([^/]+)\/arrivals$/);
   if (request.method === "GET" && regionalArrivalMatch) {
     const stationId = decodeURIComponent(regionalArrivalMatch[1]);
-    if (mode !== "regional-live") {
+    if (!isRegionalLiveMode()) {
       sendJson(request, response, 200, {
         stationId,
         stationName: stationId,

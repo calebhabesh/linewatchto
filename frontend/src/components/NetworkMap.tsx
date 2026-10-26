@@ -10,6 +10,7 @@ import type { NetworkId } from "../app/regional-data";
 import { InteractiveTtcMap } from "./InteractiveTtcMap";
 import { NetworkMapLegend, type NetworkMapLegendProps } from "./NetworkMapLegends";
 import { SharedMapControlRailProvider } from "./SharedMapControlRail";
+import { useAdvancedTrainMarkers } from "../hooks/useAdvancedTrainMarkers";
 
 const EMPTY_MARKERS: NonNullable<ComponentProps<typeof InteractiveTtcMap>["estimatedTrainMarkers"]> = [];
 
@@ -68,8 +69,16 @@ export function NetworkMap({
   warmingNetwork,
   onPreparedMapReady,
   geographicFadeRef,
-  ...props
+  ...shellProps
 }: NetworkMapProps) {
+  // Timed GO/UP markers keep moving toward their next station between polls.
+  const estimatedTrainMarkers = useAdvancedTrainMarkers(
+    shellProps.estimatedTrainMarkers ?? EMPTY_MARKERS,
+    Boolean(shellProps.estimatedTrainsEnabled),
+  );
+  const props = estimatedTrainMarkers === shellProps.estimatedTrainMarkers
+    ? shellProps
+    : { ...shellProps, estimatedTrainMarkers };
   const isMapActive = props.isMapActive ?? (props.mapChromeVisible);
   const isGeographic = props.mapView === "geographic";
 

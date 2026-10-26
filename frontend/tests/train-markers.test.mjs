@@ -153,8 +153,9 @@ describe("estimated train marker data adapter", () => {
     assert.equal(estimatedTrainMarkerRefreshMs("ttc", "500"), 1000);
     assert.equal(estimatedTrainMarkerRefreshMs("ttc", "bad"), 1000);
     assert.equal(estimatedTrainMarkerRefreshMs("regional", "30000"), 30000);
-    assert.equal(estimatedTrainMarkerRefreshMs("regional", "5000"), 15000);
-    assert.equal(estimatedTrainMarkerRefreshMs("regional", "bad"), 15000);
+    // Matches the backend's 10 s snapshot; markers advance by the clock in between.
+    assert.equal(estimatedTrainMarkerRefreshMs("regional", "5000"), 10000);
+    assert.equal(estimatedTrainMarkerRefreshMs("regional", "bad"), 10000);
   });
 
   it("uses stable render keys while the same train advances to the next station", () => {
@@ -492,3 +493,44 @@ function markerFixture() {
     updatedAt: "2026-07-02T10:00:00Z",
   };
 }
+
+describe("advancing timed regional markers between snapshots", async () => {
+  const { advanceEstimatedTrainMarkers, MAX_ADVANCED_TRAIN_PROGRESS } = await import("../src/app/train-markers.ts");
+  const arrivesAt = Date.parse("2026-10-26T21:40:00Z");
+  const timed = {
+    id: "up-1", lineId: "regional-up", direction: "Eastbound", travelDirection: "reverse",
+    segmentId: "segment-up-bloor-mount-dennis", fromStationId: "mount-dennis", toStationId: "bloor",
+    nextStationId: "bloor", progress: 0.2, segmentTravelSeconds: 200,
+    predictedAt: new Date(arrivesAt).toISOString(), moving: true, timed: true,
+  };
+
+  it("reaches the station when its predicted arrival says so, from the same clock as the arrival tile", () => {
+    // 60 s before arrival on a 200 s link: 70% of the way.
+    const [halfway] = advanceEstimatedTrainMarkers([timed], arrivesAt - 60_000);
+    assert.equal(halfway.progress, 0.7);
+    // Stops just short of the station until the feed reports the train there.
+    const [due] = advanceEstimatedTrainMarkers([timed], arrivesAt + 30_000);
+    assert.equal(due.progress, MAX_ADVANCED_TRAIN_PROGRESS);
+  });
+
+  it("never moves a marker backward (a later prediction holds it in place)", () => {
+    const ahead = { ...timed, progress: 0.8 };
+    const [held] = advanceEstimatedTrainMarkers([ahead], arrivesAt - 150_000);
+    assert.equal(held, ahead);
+  });
+
+  it("leaves stopped, untimed, and TTC markers (and the array) untouched", () => {
+    const stopped = { ...timed, moving: false };
+    const untimed = { ...timed, timed: false, progress: 0.5 };
+    const ttc = { ...timed, lineId: "line-1", timed: undefined, moving: undefined };
+    const markers = [stopped, untimed, ttc];
+    assert.equal(advanceEstimatedTrainMarkers(markers, arrivesAt - 10_000), markers);
+  });
+
+  it("ignores a marker without a usable prediction", () => {
+    const broken = { ...timed, predictedAt: "not a time" };
+    const zeroLength = { ...timed, segmentTravelSeconds: 0 };
+    const markers = [broken, zeroLength];
+    assert.equal(advanceEstimatedTrainMarkers(markers, arrivesAt), markers);
+  });
+});

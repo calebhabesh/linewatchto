@@ -614,6 +614,39 @@ export function continuousRegionalOverlayRunPath(
   });
 }
 
+type TrainMarkerSegmentPath = { path: SVGPathElement; length: number } | null;
+
+/**
+ * Measured corridor paths per diagram SVG (keyed by its stations layer) and
+ * segment. Markers move every frame, and rebuilding a corridor path means
+ * projecting both anchors onto the whole route; the authored geometry never
+ * changes for a given SVG.
+ */
+const trainMarkerSegmentPaths = new WeakMap<Element, Map<string, TrainMarkerSegmentPath>>();
+
+function trainMarkerSegmentPath(documentNode: RegionalSvgScope, segment: NetworkSegment): TrainMarkerSegmentPath {
+  const owner = documentNode.getElementById("regional-stations-layer");
+  const key = [segment.id, segment.lineId, segment.stationAAnchorId, segment.stationBAnchorId, segment.guidePathId ?? ""].join("|");
+  const cache = owner ? trainMarkerSegmentPaths.get(owner) ?? new Map<string, TrainMarkerSegmentPath>() : null;
+  if (owner && cache && !trainMarkerSegmentPaths.has(owner)) trainMarkerSegmentPaths.set(owner, cache);
+  if (cache?.has(key)) return cache.get(key) ?? null;
+  const pathD = corridorSegmentPathInRootCoordinates(documentNode, segment);
+  let measured: TrainMarkerSegmentPath = null;
+  if (pathD) {
+    const path = documentNode.createElementNS(SVG_NAMESPACE, "path");
+    path.setAttribute("d", pathD);
+    try {
+      const length = path.getTotalLength();
+      if (Number.isFinite(length) && length > 0) measured = { path, length };
+    } catch {
+      measured = null;
+    }
+  }
+  // Only cache once anchors resolve; a diagram still loading may resolve later.
+  if (cache && measured) cache.set(key, measured);
+  return measured;
+}
+
 export function regionalTrainMarkerFrame(
   documentNode: RegionalSvgScope,
   segment: NetworkSegment,
@@ -621,17 +654,14 @@ export function regionalTrainMarkerFrame(
 ): RegionalTrainMarkerFrame | null {
   // Train markers must use authored corridor geometry. A straight anchor-to-anchor
   // fallback can visibly leave a bent track, so omit an unresolvable marker instead.
-  const pathD = corridorSegmentPathInRootCoordinates(documentNode, segment);
+  const measured = trainMarkerSegmentPath(documentNode, segment);
   const direction = resolveEstimatedTrainMarkerSegmentDirection(marker, segment);
   if (!direction) return null;
   const from = svgAnchorPointInRootCoordinates(documentNode, direction.fromAnchorId);
-  if (!pathD || !from) return null;
+  if (!measured || !from) return null;
 
-  const markerPath = documentNode.createElementNS(SVG_NAMESPACE, "path");
-  markerPath.setAttribute("d", pathD);
+  const { path: markerPath, length } = measured;
   try {
-    const length = markerPath.getTotalLength();
-    if (!Number.isFinite(length) || length <= 0) return null;
     const pathStart = markerPath.getPointAtLength(0);
     const pathEnd = markerPath.getPointAtLength(length);
     const pathStartsAtFrom = squaredPointDistance(pathStart, from)

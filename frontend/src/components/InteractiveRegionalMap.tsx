@@ -23,21 +23,21 @@ import { SharedMapControlRail } from "./SharedMapControlRail";
 import { MapViewSelector } from "./MapViewSelector";
 import type { NetworkId } from "../app/regional-data";
 import type { MapViewPreference } from "../app/visual-preferences";
-import type { ImpactSelection, MapImpact, NetworkSegment } from "../app/linewatch-data";
+import type { ImpactSelection, MapImpact } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/commute-data";
 import {
-  createEstimatedTrainMarkerTransition,
-  estimatedTrainMarkerMotionWaypoints,
-  estimatedTrainMarkerObservationKey,
   estimatedTrainMarkerRenderKey,
-  sampleEstimatedTrainMarkerMotion,
-  scheduleEstimatedTrainMarkerAnimation,
   TRAIN_MARKER_ARROW_PATH,
   TRAIN_MARKER_BODY_PATH,
   TRAIN_MARKER_WINDOWS,
   type EstimatedTrainMarker,
 } from "../app/train-markers";
 import { useDashboardData } from "../app/DataContext";
+import {
+  animateRegionalTrainMarker,
+  cancelRegionalTrainMarkerMotion,
+  type RegionalTrainMarkerMotionRuntime,
+} from "../app/regional-train-marker-motion";
 import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
 import {
   getRegionalMapMarkup,
@@ -149,121 +149,6 @@ const DEFAULT_CAMERA_MOTION_DURATION_MS = 800;
 const REGIONAL_CHOOSER_SETTLE_FRAME_LIMIT = 30;
 const DEFAULT_CAMERA_MOTION_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
 
-type RegionalTrainMarkerMotionRuntime = {
-  marker: EstimatedTrainMarker;
-  frame: RegionalTrainMarkerFrame;
-  targetObservationKey: string;
-  cancelAnimation: (() => void) | null;
-};
-
-
-function animateRegionalTrainMarker(
-  group: SVGGElement,
-  marker: EstimatedTrainMarker,
-  segments: NetworkSegment[],
-  documentNode: RegionalSvgScope,
-  runtimes: Map<string, RegionalTrainMarkerMotionRuntime>,
-  animate: boolean,
-) {
-  const markerKey = estimatedTrainMarkerRenderKey(marker);
-  const segmentById = new Map(segments.map((segment) => [segment.id, segment]));
-  const targetSegment = segmentById.get(marker.segmentId);
-  const targetFrame = targetSegment
-    ? regionalTrainMarkerFrame(documentNode, targetSegment, marker)
-    : null;
-  if (!targetFrame) return;
-
-  const current = runtimes.get(markerKey);
-  const targetObservationKey = estimatedTrainMarkerObservationKey(marker);
-  if (current?.targetObservationKey === targetObservationKey && animate) return;
-  cancelRegionalTrainMarkerMotion(current);
-  if (!current || !animate) {
-    group.style.opacity = "1";
-    setRegionalTrainMarkerTransform(group, targetFrame);
-    runtimes.set(markerKey, {
-      marker,
-      frame: targetFrame,
-      targetObservationKey,
-      cancelAnimation: null,
-    });
-    return;
-  }
-
-  const waypoints = estimatedTrainMarkerMotionWaypoints(current.marker, marker, segments);
-  const settledMarker = waypoints.at(-1) ?? current.marker;
-  const settledSegment = segmentById.get(settledMarker.segmentId);
-  const settledFrame = settledSegment
-    ? regionalTrainMarkerFrame(documentNode, settledSegment, settledMarker) ?? current.frame
-    : current.frame;
-  const transition = createEstimatedTrainMarkerTransition(waypoints);
-  const runtime: RegionalTrainMarkerMotionRuntime = {
-    ...current,
-    targetObservationKey,
-    cancelAnimation: null,
-  };
-  runtimes.set(markerKey, runtime);
-
-  let previousSample: ReturnType<typeof sampleEstimatedTrainMarkerMotion> | null = null;
-  let previousMotion: ReturnType<typeof regionalTrainMarkerMotionFrame> = null;
-
-  const update = (now: number) => {
-    const { sample, opacity, done } = transition(now);
-    group.style.opacity = String(opacity);
-    const motion = sample === previousSample ? previousMotion : regionalTrainMarkerMotionFrame(sample, segmentById, documentNode);
-    previousSample = sample;
-    previousMotion = motion;
-    if (!motion) {
-      group.style.opacity = "1";
-      setRegionalTrainMarkerTransform(group, settledFrame);
-      setRegionalTrainMarkerMetadata(group, settledMarker);
-      runtime.marker = settledMarker;
-      runtime.frame = settledFrame;
-      runtime.cancelAnimation = null;
-      return false;
-    }
-    setRegionalTrainMarkerTransform(group, motion.frame);
-    setRegionalTrainMarkerMetadata(group, motion.marker);
-    runtime.marker = motion.marker;
-    runtime.frame = motion.frame;
-    if (done) {
-      runtime.marker = settledMarker;
-      runtime.frame = settledFrame;
-      runtime.cancelAnimation = null;
-      setRegionalTrainMarkerTransform(group, settledFrame);
-      setRegionalTrainMarkerMetadata(group, settledMarker);
-      return false;
-    }
-    return true;
-  };
-  if (update(performance.now())) {
-    runtime.cancelAnimation = scheduleEstimatedTrainMarkerAnimation(update);
-  }
-}
-
-function regionalTrainMarkerMotionFrame(
-  sample: ReturnType<typeof sampleEstimatedTrainMarkerMotion>,
-  segmentById: Map<string, NetworkSegment>,
-  documentNode: RegionalSvgScope,
-): { marker: EstimatedTrainMarker; frame: RegionalTrainMarkerFrame } | null {
-  if (sample.from.segmentId === sample.to.segmentId
-    && sample.from.fromStationId === sample.to.fromStationId
-    && sample.from.toStationId === sample.to.toStationId) {
-    const marker = {
-      ...sample.to,
-      progress: sample.from.progress + (sample.to.progress - sample.from.progress) * sample.progress,
-    };
-    const segment = segmentById.get(marker.segmentId);
-    const frame = segment ? regionalTrainMarkerFrame(documentNode, segment, marker) : null;
-    return frame ? { marker, frame } : null;
-  }
-  // Never interpolate coordinates between paths: that draws a chord through
-  // empty map space. Invalid samples hold an authored-path endpoint instead.
-  const marker = sample.progress < 1 ? sample.from : sample.to;
-  const segment = segmentById.get(marker.segmentId);
-  const frame = segment ? regionalTrainMarkerFrame(documentNode, segment, marker) : null;
-  return frame ? { marker, frame } : null;
-}
-
 function setRegionalTrainMarkerTransform(group: SVGGElement, frame: RegionalTrainMarkerFrame) {
   group.setAttribute(
     "transform",
@@ -276,11 +161,6 @@ function setRegionalTrainMarkerMetadata(group: SVGGElement, marker: EstimatedTra
   group.dataset.trainMarkerDirection = marker.direction;
   group.dataset.trainMarkerSegmentId = marker.segmentId;
   group.dataset.trainMarkerTravelDirection = marker.travelDirection;
-}
-
-function cancelRegionalTrainMarkerMotion(runtime: RegionalTrainMarkerMotionRuntime | undefined) {
-  runtime?.cancelAnimation?.();
-  if (runtime) runtime.cancelAnimation = null;
 }
 
 function appendRegionalTrainMarkerGlyph(documentNode: RegionalSvgScope, group: SVGGElement) {
@@ -1094,9 +974,11 @@ function InteractiveRegionalMapComponent({
       return;
     }
 
-    const documentNode = markerLayer.ownerSVGElement
-      ? regionalSvgScope(markerLayer.ownerSVGElement)
-      : markerLayer.ownerDocument;
+    // The marker layer sits in the top plane; the corridor paths and station
+    // anchors it follows are in the live diagram SVG.
+    const liveSvg = viewportRef.current?.querySelector<SVGSVGElement>(".regional-live-svg svg");
+    if (!liveSvg) return;
+    const documentNode = regionalSvgScope(liveSvg);
     for (const marker of estimatedTrainMarkers) {
       const segment = networkSegments.find((item) => item.id === marker.segmentId);
       if (!segment) continue;
@@ -1121,7 +1003,11 @@ function InteractiveRegionalMapComponent({
       }
       markerLayer.append(group);
       animateRegionalTrainMarker(
-        group,
+        (frame, opacity, shown) => {
+          group.style.opacity = String(opacity);
+          setRegionalTrainMarkerTransform(group, frame);
+          setRegionalTrainMarkerMetadata(group, shown);
+        },
         marker,
         networkSegments,
         documentNode,
@@ -2311,7 +2197,6 @@ function InteractiveRegionalMapComponent({
               className="estimated-train-marker-layer regional-estimated-train-marker-layer"
               aria-label="Estimated regional train markers"
               pointerEvents="none"
-              data-muted={Boolean(selection || selectedStationId || commutePathPreview) ? "true" : "false"}
             />
             <g aria-label="Cardinal North Compass" transform="translate(14800, 5100)">
               <CardinalNorthIcon width={1000} height={1000} dark={isDark} />

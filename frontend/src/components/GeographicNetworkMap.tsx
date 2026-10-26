@@ -99,11 +99,13 @@ import {
 import {
   installTransitLayers,
   applyGeographicDynamicState,
+  registerTrainMarkerImages,
   updateGeographicDynamicSources,
   updateGeographicLineFilter,
   updateGeographicStationSelection,
   updateGeographicImpactSelection,
 } from "./geographic-map-operations.ts";
+import { getLinkFeatures } from "../app/geographic-catalog";
 
 export {
   installTransitLayers,
@@ -158,6 +160,12 @@ const EMPTY_STATION_IMPACTS: StationNodeImpact[] = [];
 const EMPTY_ALERTS: ActiveAlert[] = [];
 const EMPTY_PLANNED_CLOSURES: PlannedClosure[] = [];
 const EMPTY_TRAIN_MARKERS: EstimatedTrainMarker[] = [];
+
+declare global {
+  interface Window {
+    __geographicMapDebug?: { map: MapLibreMap };
+  }
+}
 
 type GeographicOverlapChooserState = {
   markerId: string;
@@ -931,6 +939,8 @@ export function GeographicNetworkMap({
         // Disable pitch and rotation interactions
         map.touchZoomRotate.disableRotation();
         mapRef.current = map;
+        // Dev-only handle for scripted checks (never return the map itself from page.evaluate).
+        if (process.env.NODE_ENV !== "production") window.__geographicMapDebug = { map };
         attributionRef.current = new AttributionControl({ compact: false, customAttribution: getGeographicAttribution(network) });
         map.addControl(attributionRef.current, "bottom-right");
         if (networkFadeRef) networkFadeRef.current = createGeographicMapFade(map);
@@ -1198,6 +1208,15 @@ export function GeographicNetworkMap({
       );
     }
   }, [highContrast, loadStatus]);
+
+  // High contrast and mobile performance mode restyle the train glyph
+  // (train-markers.css) without a style reload; redraw its images.
+  useEffect(() => {
+    const map = mapRef.current;
+    const activeCatalog = catalogRef.current;
+    if (!map || loadStatus !== "ready" || !activeCatalog || isStyleLoadingRef.current) return;
+    registerTrainMarkerImages(map, [...new Set(getLinkFeatures(activeCatalog).map((link) => link.properties.lineId))]);
+  }, [highContrast, loadStatus, mobilePerformanceMode]);
 
   // React to station selection changes
   useEffect(() => {

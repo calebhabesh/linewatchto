@@ -1352,6 +1352,18 @@ export function getTrainMarkerLabel(marker: EstimatedTrainMarker): string {
 }
 
 /**
+ * Heading on screen (degrees clockwise from north) from `from` to `to`, in
+ * Web Mercator: a degree of longitude spans cos(latitude) of a degree of
+ * latitude, so raw degree differences would skew a diagonal heading.
+ */
+function trainScreenBearing(from: GeographicCoordinate, to: GeographicCoordinate): number {
+  const latitude = ((from[1] + to[1]) / 2) * (Math.PI / 180);
+  const dx = (to[0] - from[0]) * Math.cos(latitude);
+  const dy = to[1] - from[1];
+  return (Math.atan2(dx, dy) * (180 / Math.PI) + 360) % 360;
+}
+
+/**
  * Pure link projection and progress distance interpolation for estimated train markers.
  * Validates estimates against catalog links, rejects malformed/out-of-range estimates,
  * and caches cumulative polyline distance tables.
@@ -1514,15 +1526,11 @@ export function projectEstimatedTrainMarkers(
       bearing = 0;
     } else if (marker.progress === 0) {
       position = orientedCoords[0];
-      const dx = orientedCoords[1][0] - orientedCoords[0][0];
-      const dy = orientedCoords[1][1] - orientedCoords[0][1];
-      bearing = (Math.atan2(dx, dy) * (180 / Math.PI) + 360) % 360;
+      bearing = trainScreenBearing(orientedCoords[0], orientedCoords[1]);
     } else if (marker.progress === 1) {
       const lastIdx = orientedCoords.length - 1;
       position = orientedCoords[lastIdx];
-      const dx = orientedCoords[lastIdx][0] - orientedCoords[lastIdx - 1][0];
-      const dy = orientedCoords[lastIdx][1] - orientedCoords[lastIdx - 1][1];
-      bearing = (Math.atan2(dx, dy) * (180 / Math.PI) + 360) % 360;
+      bearing = trainScreenBearing(orientedCoords[lastIdx - 1], orientedCoords[lastIdx]);
     } else {
       const targetDist = table.totalDistance * marker.progress;
       let placed = false;
@@ -1539,9 +1547,7 @@ export function projectEstimatedTrainMarkers(
           const [x2, y2] = orientedCoords[i + 1];
           position = [x1 + (x2 - x1) * ratio, y1 + (y2 - y1) * ratio];
 
-          const dx = x2 - x1;
-          const dy = y2 - y1;
-          bearing = (Math.atan2(dx, dy) * (180 / Math.PI) + 360) % 360;
+          bearing = trainScreenBearing(orientedCoords[i], orientedCoords[i + 1]);
           placed = true;
           break;
         }

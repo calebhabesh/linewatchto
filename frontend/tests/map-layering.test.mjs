@@ -1020,7 +1020,9 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.estimated-train-marker-core/);
     assert.match(globalCss, /\.estimated-train-marker-arrow/);
     assert.match(globalCss, /\.estimated-train-marker\s*\{[^}]*will-change:\s*transform;/s);
-    assert.match(globalCss, /\.estimated-train-marker-layer\[data-muted="true"\]/);
+    // Markers stay at full strength while a station, alert, or commute is shown.
+    assert.doesNotMatch(globalCss, /\.estimated-train-marker-layer\[data-muted/);
+    assert.doesNotMatch(interactiveMapSource, /EstimatedTrainMarkerLayer[^>]*muted=/);
     assert.match(globalCss, /\.estimated-train-marker-layer\s*\{[^}]*pointer-events:\s*none\s*!important;/s);
     assert.match(globalCss, /\.estimated-train-marker-layer \*,[\s\S]*?\.estimated-train-marker\s*\{[^}]*pointer-events:\s*none\s*!important;/s);
     assert.match(interactiveMapSource, /data-train-marker-travel-direction=\{visualDirection\}[\s\S]*?pointerEvents="none"/);

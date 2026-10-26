@@ -9,10 +9,6 @@
   pointer-events: none !important;
 }
 
-.estimated-train-marker-layer[data-muted="true"] {
-  opacity: 0.24;
-}
-
 .estimated-train-marker {
   color: #111827;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));

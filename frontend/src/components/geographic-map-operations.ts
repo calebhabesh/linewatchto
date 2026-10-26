@@ -1,5 +1,6 @@
 import type { Map as MapLibreMap, GeoJSONSource, ExpressionSpecification } from "maplibre-gl";
 import { createSdfImageData } from "./map-sprite-sdf.ts";
+import { drawTrainMarkerImage, readTrainMarkerPaint } from "./train-marker-art.ts";
 import {
   createSvgImage,
   generateOverlapBadgeSvg,
@@ -140,30 +141,6 @@ export function registerMapImages(map: MapLibreMap): void {
     }
   }
 
-  if (map.hasImage && !map.hasImage("train-arrow")) {
-    try {
-      const size = 72;
-      const canvas = document.createElement("canvas");
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.scale(3, 3);
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.moveTo(12, 4);
-        ctx.lineTo(19, 18);
-        ctx.lineTo(12, 14);
-        ctx.lineTo(5, 18);
-        ctx.closePath();
-        ctx.fill();
-        const imgData = ctx.getImageData(0, 0, size, size);
-        map.addImage("train-arrow", createSdfImageData(imgData), { sdf: true, pixelRatio: 3 });
-      }
-    } catch {
-      // Ignored if unsupported
-    }
-  }
 
   const lineBadgeSprites = [
     { number: "1", background: "#F8C300", foreground: "#000000" },
@@ -348,14 +325,6 @@ export function updateGeographicLineFilter(
     );
   }
 
-  if (map.getLayer("transit-train-markers-body")) {
-    setTransitPaintProperty(map,
-      "transit-train-markers-body",
-      "circle-opacity",
-      activeFilteredLine ? ["case", ["==", ["get", "lineId"], activeFilteredLine], 1.0, 0.2] : 1.0,
-    );
-  }
-
   if (map.getLayer("transit-train-markers-symbol")) {
     setTransitPaintProperty(map,
       "transit-train-markers-symbol",
@@ -466,6 +435,93 @@ export function applyDynamicDataAndFilters(
     selection: selectionId ? { kind: "selection", id: selectionId } : null,
     plannedClosures,
   });
+}
+
+/**
+ * Where Map View shows estimated train markers, and the glyph's body length
+ * (CSS px) by zoom.
+ */
+export function estimatedTrainMarkerZoomRange(network: "ttc" | "regional"): {
+  minZoom: number;
+  lengths: Array<[number, number]>;
+} {
+  return network === "regional"
+    ? { minZoom: 8, lengths: [[8, 22], [10.5, 26], [13, 34], [16, 42]] }
+    : { minZoom: 10.5, lengths: [[10.5, 22], [12, 26], [14, 34], [17, 42]] };
+}
+
+/**
+ * Body lengths (CSS px) the glyph is drawn at. Each is used from the zoom
+ * where the marker reaches it, so an image is never shrunk below ~75% of its
+ * drawn size (MapLibre does not mipmap icons; shrinking much more looks grainy).
+ */
+export const TRAIN_MARKER_IMAGE_LENGTHS = [26, 34, 42] as const;
+const trainImagePrefix = "train-marker:";
+
+/** The zoom where the marker's body reaches `length` px. */
+function zoomForTrainLength(lengths: Array<[number, number]>, length: number): number {
+  for (let index = 1; index < lengths.length; index += 1) {
+    const [z0, l0] = lengths[index - 1];
+    const [z1, l1] = lengths[index];
+    if (length <= l1) return z0 + ((length - l0) / (l1 - l0)) * (z1 - z0);
+  }
+  return lengths[lengths.length - 1][0];
+}
+
+export function trainMarkerImageExpression(lengths: Array<[number, number]>): ExpressionSpecification {
+  const image = (length: number) => ["concat", trainImagePrefix, ["get", "lineId"], `@${length}`];
+  const [first, ...rest] = TRAIN_MARKER_IMAGE_LENGTHS;
+  const stops = rest.flatMap((length, index) => [
+    zoomForTrainLength(lengths, TRAIN_MARKER_IMAGE_LENGTHS[index]), image(length),
+  ]);
+  return ["step", ["zoom"], image(first), ...stops] as ExpressionSpecification;
+}
+
+/** Scales each image from the marker's length at that zoom (1 at its own length). */
+export function trainMarkerIconSizeExpression(lengths: Array<[number, number]>): ExpressionSpecification {
+  const length = (zoom: number) => {
+    if (zoom <= lengths[0][0]) return lengths[0][1];
+    for (let index = 1; index < lengths.length; index += 1) {
+      const [z0, l0] = lengths[index - 1];
+      const [z1, l1] = lengths[index];
+      if (zoom <= z1) return l0 + ((zoom - z0) / (z1 - z0)) * (l1 - l0);
+    }
+    return lengths[lengths.length - 1][1];
+  };
+  const imageAt = (zoom: number) => TRAIN_MARKER_IMAGE_LENGTHS.find((size, index) => (
+    index === TRAIN_MARKER_IMAGE_LENGTHS.length - 1
+    || zoom < zoomForTrainLength(lengths, size)
+  ))!;
+  const switches = TRAIN_MARKER_IMAGE_LENGTHS.slice(0, -1).map((size) => zoomForTrainLength(lengths, size));
+  const zooms = [...new Set([...lengths.map(([zoom]) => zoom), ...switches])].sort((a, b) => a - b);
+  const stops: number[] = [];
+  for (const zoom of zooms) {
+    // Just before an image switch, the smaller image is at full size.
+    if (switches.includes(zoom)) stops.push(zoom - 0.001, length(zoom) / imageAt(zoom - 0.001));
+    stops.push(zoom, length(zoom) / imageAt(zoom));
+  }
+  return ["interpolate", ["linear"], ["zoom"], ...stops] as ExpressionSpecification;
+}
+
+/**
+ * Adds (or redraws, after a theme change) the train glyph for each line, in
+ * the train-markers.css paint. Skipped without a DOM (unit tests).
+ */
+export function registerTrainMarkerImages(map: MapLibreMap, lineIds: string[]) {
+  const host = typeof map.getContainer === "function" ? map.getContainer() : null;
+  if (!host || typeof window === "undefined") return;
+  const art = readTrainMarkerPaint(host, lineIds, ALL_LINE_COLORS);
+  if (!art) return;
+  const pixelRatio = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
+  for (const [lineId, color] of art.colors) {
+    for (const length of TRAIN_MARKER_IMAGE_LENGTHS) {
+      const data = drawTrainMarkerImage(color, art.paint, length, pixelRatio);
+      if (!data) return;
+      const id = `${trainImagePrefix}${lineId}@${length}`;
+      if (map.hasImage(id)) map.updateImage(id, data);
+      else map.addImage(id, data, { pixelRatio });
+    }
+  }
 }
 
 export function installTransitLayers(
@@ -1048,31 +1104,29 @@ export function installTransitLayers(
     });
   }
 
-  // --- LAYER 11b: Estimated Train Markers Halo ---
+  // The System Map's train glyph, drawn at a few sizes and turned to the
+  // heading. GO/UP opens near zoom 9 (the whole region), so its trains show
+  // from there; TTC's appear once the city is zoomed in.
+  const trainZoom = estimatedTrainMarkerZoomRange(network);
+  registerTrainMarkerImages(map, [...new Set(links.features.map((link) => link.properties.lineId))]);
+
+  // --- LAYER 11b: Selected train ring ---
   if (!map.getLayer("transit-train-markers-halo")) {
     map.addLayer({
       id: "transit-train-markers-halo",
       type: "circle",
       source: "transit-train-markers",
-      minzoom: 10.5,
+      minzoom: trainZoom.minZoom,
+      filter: ["==", ["get", "isSelected"], true],
       paint: {
         "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          10.5,
-          4.8,
-          14,
-          8.8,
-          17,
-          12.8,
+          "interpolate", ["linear"], ["zoom"],
+          ...trainZoom.lengths.flatMap(([zoom, length]) => [zoom, length * 0.62]),
         ],
-        "circle-color": dark ? "#0f172a" : "#ffffff",
-        "circle-stroke-width": ["case", ["get", "isSelected"], 3, 1.5],
-        "circle-stroke-color": ["case", ["get", "isSelected"], "#38bdf8", dark ? "#334155" : "#94a3b8"],
-        "circle-opacity": initialData?.activeFilteredLine
-          ? ["case", ["==", ["get", "lineId"], initialData.activeFilteredLine], 1.0, 0.2]
-          : 1.0,
+        "circle-color": "rgba(0, 0, 0, 0)",
+        "circle-stroke-width": 3,
+        "circle-stroke-color": "#38bdf8",
+        "circle-opacity": 1.0,
         "circle-stroke-opacity": initialData?.activeFilteredLine
           ? ["case", ["==", ["get", "lineId"], initialData.activeFilteredLine], 1.0, 0.2]
           : 1.0,
@@ -1080,54 +1134,18 @@ export function installTransitLayers(
     });
   }
 
-  // --- LAYER 11c: Estimated Train Markers Body ---
-  if (!map.getLayer("transit-train-markers-body")) {
-    map.addLayer({
-      id: "transit-train-markers-body",
-      type: "circle",
-      source: "transit-train-markers",
-      minzoom: 10.5,
-      paint: {
-        "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          10.5,
-          3.6,
-          14,
-          7.1,
-          17,
-          10.6,
-        ],
-        "circle-color": ["get", "lineColor"],
-        "circle-opacity": initialData?.activeFilteredLine
-          ? ["case", ["==", ["get", "lineId"], initialData.activeFilteredLine], 1.0, 0.2]
-          : 1.0,
-      },
-    });
-  }
-
-  // --- LAYER 11d: Estimated Train Markers Heading Arrow ---
+  // --- LAYER 11d: Estimated Train Markers ---
   if (!map.getLayer("transit-train-markers-symbol")) {
     map.addLayer({
       id: "transit-train-markers-symbol",
       type: "symbol",
       source: "transit-train-markers",
-      minzoom: 11.0,
+      minzoom: trainZoom.minZoom,
       layout: {
-        "icon-image": "train-arrow",
-        "icon-size": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          11,
-          0.53,
-          14,
-          0.82,
-          17,
-          1.1,
-        ],
-        "icon-rotate": ["get", "bearing"],
+        "icon-image": trainMarkerImageExpression(trainZoom.lengths),
+        "icon-size": trainMarkerIconSizeExpression(trainZoom.lengths),
+        // The glyph points east; bearing is clockwise from north.
+        "icon-rotate": ["-", ["get", "bearing"], 90],
         "icon-rotation-alignment": "map",
         "icon-pitch-alignment": "map",
         "icon-keep-upright": false,
@@ -1135,7 +1153,6 @@ export function installTransitLayers(
         "icon-ignore-placement": true,
       },
       paint: {
-        "icon-color": "#ffffff",
         "icon-opacity": initialData?.activeFilteredLine
           ? ["case", ["==", ["get", "lineId"], initialData.activeFilteredLine], 1.0, 0.2]
           : 1.0,
@@ -1207,7 +1224,9 @@ export function installTransitLayers(
         "text-halo-color": dark ? "rgba(15, 23, 42, 0.9)" : "rgba(255, 255, 255, 0.9)",
         "text-halo-width": 2,
       },
-    });
+    // Under the train markers (as on the System Map), so a train at a
+    // station is never hidden behind its name.
+    }, map.getLayer("transit-train-markers-halo") ? "transit-train-markers-halo" : undefined);
   }
 
   // Decorative route identifiers

@@ -11,7 +11,12 @@ export type EstimatedTrainMarker = {
   nextStationId: string;
   progress: number;
   segmentTravelSeconds: number;
+  /** Predicted arrival at the next station (for timed markers). */
   predictedAt: string;
+  /** False while the train is stopped at a station. */
+  moving?: boolean;
+  /** Progress comes from `predictedAt`, so it can be advanced between snapshots. */
+  timed?: boolean;
   vehicleId?: string | null;
   tripId?: string | null;
   feedCreatedAt?: string | null;
@@ -106,7 +111,9 @@ export const EMPTY_REGIONAL_TRAIN_SNAPSHOT: EstimatedTrainSnapshot = {
 };
 
 const TTC_TRAIN_MARKER_REFRESH_MS = 1_000;
-const REGIONAL_TRAIN_MARKER_REFRESH_MS = 15_000;
+// The Metrolinx feeds change every 10-20 s; markers advance between polls
+// (advanceEstimatedTrainMarkers).
+const REGIONAL_TRAIN_MARKER_REFRESH_MS = 10_000;
 const TTC_TRAIN_MARKER_RETENTION_MS = 30_000;
 const REGIONAL_TRAIN_MARKER_RETENTION_MS = 90_000;
 const MAX_TRAIN_MARKER_SKIPPED_SEGMENTS = 4;
@@ -173,6 +180,42 @@ export function estimatedTrainMarkerRefreshMs(
     return minimum;
   }
   return Math.max(minimum, parsed);
+}
+
+/** How often timed markers are advanced toward their next station. */
+export const ESTIMATED_TRAIN_ADVANCE_MS = 1_000;
+/** A timed marker stops short of the station until the feed reports it there. */
+export const MAX_ADVANCED_TRAIN_PROGRESS = 0.95;
+
+/**
+ * Moves each timed, moving marker along its link by the clock: it reaches
+ * its next station when the prediction (the same one the station's arrival
+ * tile shows) says it arrives. It never moves backward and stops short of
+ * the station until a snapshot reports the train there. Others are returned
+ * unchanged (same object, so animations are not restarted).
+ */
+export function advanceEstimatedTrainMarkers(
+  markers: EstimatedTrainMarker[],
+  now = Date.now(),
+): EstimatedTrainMarker[] {
+  let changed = false;
+  const advanced = markers.map((marker) => {
+    const next = advancedTrainProgress(marker, now);
+    if (next === null || next <= marker.progress) return marker;
+    changed = true;
+    return { ...marker, progress: next };
+  });
+  return changed ? advanced : markers;
+}
+
+function advancedTrainProgress(marker: EstimatedTrainMarker, now: number): number | null {
+  if (marker.timed !== true || marker.moving === false) return null;
+  const arrivesAt = Date.parse(marker.predictedAt);
+  const travelMs = marker.segmentTravelSeconds * 1000;
+  if (!Number.isFinite(arrivesAt) || !(travelMs > 0)) return null;
+  const progress = 1 - (arrivesAt - now) / travelMs;
+  // Three decimals: sub-pixel steps would restart motion for nothing.
+  return Math.round(Math.min(MAX_ADVANCED_TRAIN_PROGRESS, Math.max(0, progress)) * 1000) / 1000;
 }
 
 export function estimatedTrainMarkerRenderKey(marker: EstimatedTrainMarker) {

@@ -2654,7 +2654,6 @@ function InteractiveTtcMapComponent({
                   enabled={estimatedTrainsEnabled}
                   markers={estimatedTrainMarkers}
                   segments={renderedNetworkSegments}
-                  muted={Boolean(selection || selectedStationId || commutePathPreview)}
                   animate={!mapEffectMotionPaused}
                 />
               </g>
@@ -5151,13 +5150,11 @@ function EstimatedTrainMarkerLayer({
   enabled,
   markers,
   segments,
-  muted,
   animate,
 }: {
   enabled: boolean;
   markers: EstimatedTrainMarker[];
   segments: RenderedNetworkSegment[];
-  muted: boolean;
   animate: boolean;
 }) {
   const segmentById = useMemo(() => new Map(segments.map((segment) => [segment.id, segment])), [segments]);
@@ -5176,7 +5173,7 @@ function EstimatedTrainMarkerLayer({
   if (markerNodes.length === 0) return null;
 
   return (
-    <g className="estimated-train-marker-layer" data-muted={muted ? "true" : "false"} pointerEvents="none">
+    <g className="estimated-train-marker-layer" pointerEvents="none">
       {markerNodes}
     </g>
   );

@@ -10,7 +10,8 @@ export type StubMode =
   | "diagnostics-disabled"
   | "unavailable"
   | "map-authoritative-overlap"
-  | "regional-live";
+  | "regional-live"
+  | "regional-timed-trains";
 
 export async function setStubMode(request: APIRequestContext, mode: StubMode) {
   const response = await request.post(`${stubUrl}/__test/mode`, {

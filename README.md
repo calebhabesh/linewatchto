@@ -121,7 +121,7 @@ flowchart TD
     snapshot -->|No| fallback["Labeled fixtures /<br/>unavailable state"]
 ```
 
-Fresh alerts do not establish live arrivals or train positions. Estimated train markers are conservative schematic placements, not physical GPS tracking, and are omitted from geographic mode. Surface notices and accessibility outages do not become rail disruption overlays or commute impacts. See the [domain invariants](docs/domain-invariants.md) for the exact boundaries.
+Fresh alerts do not establish live arrivals or train positions. Estimated train markers are conservative schematic placements, not physical GPS tracking, in both the System Map and Map View. Surface notices and accessibility outages do not become rail disruption overlays or commute impacts. See the [domain invariants](docs/domain-invariants.md) for the exact boundaries.
 
 ## Run locally
 

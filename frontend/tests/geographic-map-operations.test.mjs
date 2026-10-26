@@ -174,7 +174,6 @@ describe("Geographic map operations", () => {
         "transit-impact-arrows",
         "transit-impact-arrows-casing",
         "transit-train-markers-halo",
-        "transit-train-markers-body",
         "transit-train-markers-symbol",
         "transit-train-markers-label",
       ];
@@ -188,7 +187,7 @@ describe("Geographic map operations", () => {
 
       updateGeographicLineFilter(mockMap, "line-1");
 
-      // Verify all 10 layers were updated
+      // Verify every listed layer was updated
       const updatedLayers = new Set(paintCalls.map((c) => c.layerId));
       for (const id of layerIds) {
         assert.ok(updatedLayers.has(id), `Layer ${id} should be updated on line filter`);
@@ -221,7 +220,6 @@ describe("Geographic map operations", () => {
         "transit-impact-arrows",
         "transit-impact-arrows-casing",
         "transit-train-markers-halo",
-        "transit-train-markers-body",
         "transit-train-markers-symbol",
         "transit-train-markers-label",
       ];
@@ -511,7 +509,7 @@ describe("Geographic map operations", () => {
       assert.ok(addedLayers.find((l) => l.id === "transit-train-markers-halo"));
 
       const layerCount = addedLayers.length;
-      assert.equal(layerCount, 25, "Should install exactly 25 transit layers");
+      assert.equal(layerCount, 24, "Should install exactly 24 transit layers");
 
       // Verify idempotency on second call
       installTransitLayers(mockMap, mockCatalog, "ttc", false, false);
