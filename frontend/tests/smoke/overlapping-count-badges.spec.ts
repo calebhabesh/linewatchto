@@ -81,8 +81,9 @@ for (const network of ["TTC", "GO/UP"] as const) {
         : page.getByRole("button", { name: /Overlapping alerts: Delay x2 on Union to Niagara Falls/ });
       await marker.dispatchEvent("click");
       const chooser = page.locator("[data-overlap-chooser]");
+      // A hovered row raises its alert like a map hover does.
       const previews = page.locator(network === "TTC"
-        ? '[data-ttc-impact-hovered="true"]'
+        ? '.ttc-impact-hover-foreground[data-ttc-impact-hovered="true"]'
         : '.regional-impact-hover-foreground[data-regional-impact-hovered="true"]');
       await expect(chooser.locator(".overlap-chooser-choice").first()).toBeFocused();
       await chooser.locator(".overlap-chooser-choice").nth(1).hover();
@@ -95,10 +96,11 @@ for (const network of ["TTC", "GO/UP"] as const) {
       await expect(chooser).toHaveCount(0);
       await expect(marker).toBeFocused();
       await expect(previews).toHaveCount(0);
-      // A subsequent user focus should still preview the group normally.
+      await expect(page.locator(".ttc-impact-preview-outline, .regional-impact-preview-outline")).toHaveCount(0);
+      // A subsequent user focus should still preview the group as one outline.
       await marker.evaluate((element) => (element as SVGGElement).blur());
       await marker.focus();
-      await expect(previews.first()).toBeAttached();
+      await expect(page.locator(network === "TTC" ? ".ttc-impact-preview-outline" : ".regional-impact-preview-outline")).toBeAttached();
     });
   }
 
@@ -123,8 +125,15 @@ for (const network of ["TTC", "GO/UP"] as const) {
     const identities = await choices.evaluateAll((elements) => elements.map((element) =>
       `${element.getAttribute("data-overlap-choice-kind")}:${element.getAttribute("data-overlap-choice-id")}`,
     ).sort());
-    const previewedIdentities = () => page.locator(network === "TTC"
-      ? '[data-ttc-impact-hovered="true"]'
+    // The group preview draws one outline listing the chooser's alerts and
+    // raises none of them; a hovered row raises just its alert, as on the map.
+    const previewedIdentities = () => page.evaluate((network) => {
+      const outline = document.querySelector(network === "TTC" ? ".ttc-impact-preview-outline" : ".regional-impact-preview-outline");
+      const keys = outline?.getAttribute(network === "TTC" ? "data-ttc-preview-impacts" : "data-regional-preview-impacts");
+      return keys ? keys.split(" ").sort() : [];
+    }, network);
+    const raisedIdentities = () => page.locator(network === "TTC"
+      ? '.ttc-impact-hover-foreground[data-ttc-impact-hovered="true"]'
       : '.regional-impact-hover-foreground[data-regional-impact-hovered="true"]',
     ).evaluateAll((elements, network) => [...new Set(elements.map((element) =>
       network === "TTC"
@@ -132,6 +141,7 @@ for (const network of ["TTC", "GO/UP"] as const) {
         : `${element.getAttribute("data-regional-hover-impact-kind")}:${element.getAttribute("data-regional-hover-impact-id")}`,
     ))].sort(), network);
     await expect.poll(previewedIdentities).toEqual(identities);
+    expect(await raisedIdentities()).toEqual([]);
     if (isMobile) {
       await choices.nth(1).click();
       await expect(chooser).toHaveCount(0);
@@ -141,12 +151,14 @@ for (const network of ["TTC", "GO/UP"] as const) {
     const secondIdentity = await choices.nth(1).evaluate((element) =>
       `${element.getAttribute("data-overlap-choice-kind")}:${element.getAttribute("data-overlap-choice-id")}`,
     );
-    await expect.poll(previewedIdentities).toEqual([secondIdentity]);
+    await expect.poll(raisedIdentities).toEqual([secondIdentity]);
+    expect(await previewedIdentities()).toEqual([]);
     await chooser.getByRole("button", { name: "Close alert chooser" }).hover();
     await expect.poll(previewedIdentities).toEqual(identities);
+    await expect.poll(raisedIdentities).toEqual([]);
     await page.keyboard.press("Tab");
     await expect(choices.nth(1)).toBeFocused();
-    await expect.poll(previewedIdentities).toEqual([secondIdentity]);
+    await expect.poll(raisedIdentities).toEqual([secondIdentity]);
     await page.keyboard.press("Enter");
     await expect(chooser).toHaveCount(0);
   });

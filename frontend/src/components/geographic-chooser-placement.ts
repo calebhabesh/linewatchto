@@ -72,6 +72,8 @@ function candidateOffsets(
  * Place the chooser near its alert while treating visible app controls as hard
  * keep-outs. Like the authored system maps, compact viewports narrow the
  * chooser before shortening it, so it can fit between the side control columns.
+ * An open card passes its spot relative to the badge as `preferred`; it is kept
+ * while it still fits on screen clear of controls and the badge.
  */
 export function chooseGeographicChooserLayout({
   anchor,
@@ -79,12 +81,15 @@ export function chooseGeographicChooserLayout({
   requestedSize,
   keepouts,
   margin = 12,
+  preferred = null,
 }: {
   anchor: { x: number; y: number };
   viewportSize: { width: number; height: number };
   requestedSize: { width: number; height: number };
   keepouts: GeographicChooserKeepout[];
   margin?: number;
+  /** The open card's box, as its top-left offset from the badge. */
+  preferred?: { offsetX: number; offsetY: number; width: number; height: number } | null;
 }): GeographicOverlapChooserLayout {
   const anchorBox = {
     left: anchor.x - ANCHOR_CLEARANCE,
@@ -103,6 +108,20 @@ export function chooseGeographicChooserLayout({
     layout: { left, top, anchorOffsetX: anchor.x - left, anchorOffsetY: anchor.y - top },
     viewportSize,
   });
+
+  if (preferred) {
+    const left = anchor.x + preferred.offsetX;
+    const top = anchor.y + preferred.offsetY;
+    const { width, height } = preferred;
+    const sizeAllowed = width <= widths[0] + 0.5 && width >= widths[widths.length - 1] - 0.5
+      && height <= heights[0] + 0.5 && height >= heights[heights.length - 1] - 0.5;
+    const onScreen = left >= margin - 0.5 && top >= margin - 0.5
+      && left + width <= viewportSize.width - margin + 0.5
+      && top + height <= viewportSize.height - margin + 0.5;
+    if (sizeAllowed && onScreen && blocked.every((box) => overlapArea(left, top, width, height, box) === 0)) {
+      return result(width, height, left, top);
+    }
+  }
 
   for (const height of heights) {
     for (const width of widths) {
@@ -131,4 +150,22 @@ export function chooseGeographicChooserLayout({
     }))
     .sort((a, b) => a.covered - b.covered || a.distance - b.distance)[0];
   return result(width, height, fallback.left, fallback.top);
+}
+
+/** True when two solves would draw the card in the same place for the same badge position. */
+export function geographicChooserLayoutsMatch(
+  current: GeographicOverlapChooserLayout & { followAnchor: { badge: { x: number; y: number } } },
+  next: GeographicOverlapChooserLayout & { followAnchor: { badge: { x: number; y: number } } },
+): boolean {
+  const near = (first: number, second: number) => Math.abs(first - second) < 0.5;
+  return near(current.layout.left, next.layout.left)
+    && near(current.layout.top, next.layout.top)
+    && near(current.layout.anchorOffsetX, next.layout.anchorOffsetX)
+    && near(current.layout.anchorOffsetY, next.layout.anchorOffsetY)
+    && current.chooserSize.width === next.chooserSize.width
+    && current.chooserSize.height === next.chooserSize.height
+    && current.viewportSize.width === next.viewportSize.width
+    && current.viewportSize.height === next.viewportSize.height
+    && Math.abs(current.followAnchor.badge.x - next.followAnchor.badge.x) < 0.5
+    && Math.abs(current.followAnchor.badge.y - next.followAnchor.badge.y) < 0.5;
 }

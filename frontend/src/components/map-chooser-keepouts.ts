@@ -50,18 +50,51 @@ export function visibleMapChooserKeepouts(root: ParentNode = document): HTMLElem
     .filter(isVisibleMapChooserKeepout);
 }
 
-function nodeContainsMapChooserKeepout(node: Node): boolean {
-  return node instanceof Element && (
-    node.matches(MAP_CHOOSER_KEEPOUT_SELECTOR)
-    || Boolean(node.querySelector(MAP_CHOOSER_KEEPOUT_SELECTOR))
-  );
+// Map content that changes on every camera frame and never holds a keep-out.
+// Checking these on each mutation or transition event is pure per-frame cost
+// while a map moves with the chooser open.
+const MAP_CHOOSER_KEEPOUT_IGNORED_SUBTREES = [
+  ".ttc-map-stage",
+  ".regional-map-stage",
+  ".maplibregl-canvas-container",
+  ".overlap-chooser-portal",
+].join(",");
+
+// Camera state flags; no keep-out changes size or visibility with them.
+const MAP_CAMERA_FLAG_ATTRIBUTES = new Set([
+  "data-map-gesture-active",
+  "data-map-zoom-active",
+  "data-map-camera-moving",
+  "data-map-pointer-dragging",
+  "data-regional-map-camera-moving",
+]);
+
+function nodeContainsMapChooserKeepout(node: Node | EventTarget | null): boolean {
+  if (!(node instanceof Element)) return false;
+  if (typeof SVGElement !== "undefined" && node instanceof SVGElement) return false;
+  if (node.closest(MAP_CHOOSER_KEEPOUT_IGNORED_SUBTREES)) return false;
+  return node.matches(MAP_CHOOSER_KEEPOUT_SELECTOR)
+    || Boolean(node.querySelector(MAP_CHOOSER_KEEPOUT_SELECTOR));
 }
 
 export function mutationChangesMapChooserKeepouts(records: MutationRecord[]): boolean {
   return records.some((record) =>
-    (record.type === "attributes" && nodeContainsMapChooserKeepout(record.target))
+    (
+      record.type === "attributes"
+      && !MAP_CAMERA_FLAG_ATTRIBUTES.has(record.attributeName ?? "")
+      && nodeContainsMapChooserKeepout(record.target)
+    )
     || [...record.addedNodes, ...record.removedNodes].some(nodeContainsMapChooserKeepout)
   );
+}
+
+/**
+ * A transition or animation can move a keep-out only when it runs on the
+ * keep-out itself or on an element containing one. Size changes inside a
+ * keep-out reach the resize observer instead.
+ */
+export function motionEventMovesMapChooserKeepouts(event: Event): boolean {
+  return nodeContainsMapChooserKeepout(event.target);
 }
 
 /**
@@ -88,6 +121,15 @@ export function observeMapChooserKeepouts(onChange: () => void): () => void {
     });
   };
   const resizeObserver = new ResizeObserver(scheduleChange);
+  const scheduleMotionChange = (event: Event) => {
+    if (active && motionEventMovesMapChooserKeepouts(event)) scheduleChange();
+  };
+  // Scrolling inside a panel or the chooser list leaves every keep-out where
+  // it is; only a scroll of the page or of a keep-out's container moves them.
+  const scheduleScrollChange = (event: Event) => {
+    if (!active) return;
+    if (event.target === document || motionEventMovesMapChooserKeepouts(event)) scheduleChange();
+  };
   const scan = () => {
     if (!active) return;
     visibleMapChooserKeepouts().forEach((element) => {
@@ -128,11 +170,11 @@ export function observeMapChooserKeepouts(onChange: () => void): () => void {
   mutationObserver.observe(document.body, { childList: true, subtree: true });
   syncChooser();
   window.addEventListener("resize", scheduleChange);
-  window.addEventListener("scroll", scheduleChange, true);
-  document.addEventListener("transitionrun", scheduleChange, true);
-  document.addEventListener("transitionend", scheduleChange, true);
-  document.addEventListener("animationstart", scheduleChange, true);
-  document.addEventListener("animationend", scheduleChange, true);
+  window.addEventListener("scroll", scheduleScrollChange, true);
+  document.addEventListener("transitionrun", scheduleMotionChange, true);
+  document.addEventListener("transitionend", scheduleMotionChange, true);
+  document.addEventListener("animationstart", scheduleMotionChange, true);
+  document.addEventListener("animationend", scheduleMotionChange, true);
   window.visualViewport?.addEventListener("resize", scheduleChange);
   window.visualViewport?.addEventListener("scroll", scheduleChange);
 
@@ -142,11 +184,11 @@ export function observeMapChooserKeepouts(onChange: () => void): () => void {
     attributeObserver.disconnect();
     resizeObserver.disconnect();
     window.removeEventListener("resize", scheduleChange);
-    window.removeEventListener("scroll", scheduleChange, true);
-    document.removeEventListener("transitionrun", scheduleChange, true);
-    document.removeEventListener("transitionend", scheduleChange, true);
-    document.removeEventListener("animationstart", scheduleChange, true);
-    document.removeEventListener("animationend", scheduleChange, true);
+    window.removeEventListener("scroll", scheduleScrollChange, true);
+    document.removeEventListener("transitionrun", scheduleMotionChange, true);
+    document.removeEventListener("transitionend", scheduleMotionChange, true);
+    document.removeEventListener("animationstart", scheduleMotionChange, true);
+    document.removeEventListener("animationend", scheduleMotionChange, true);
     window.visualViewport?.removeEventListener("resize", scheduleChange);
     window.visualViewport?.removeEventListener("scroll", scheduleChange);
   };

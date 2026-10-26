@@ -112,6 +112,12 @@ import { useMapLabelFontReady } from "../hooks/useMapLabelFontReady";
 import { usePageVisibility } from "../hooks/usePageVisibility";
 import { linkedCurrentImpactIds } from "../app/selection-attention-key";
 import { overlapChooserSize as mapOverlapChooserSize } from "./map-chooser-layout";
+import {
+  MapChooserFollower,
+  chooserBadgeInView,
+  projectPointToCamera,
+  type ChooserFollowAnchor,
+} from "./map-chooser-follow";
 import { observeMapChooserKeepouts, visibleMapChooserKeepouts } from "./map-chooser-keepouts";
 
 const MAP_WIDTH = 4739.2821;
@@ -139,6 +145,8 @@ const REGIONAL_MAP_DESKTOP_FRAME_SCALE = 1;
 const REGIONAL_SELECTION_FIT_COMFORT_RATIO = 0.82;
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const DEFAULT_CAMERA_MOTION_DURATION_MS = 800;
+// Frames to wait for a stage ease to land before solving the chooser anyway.
+const REGIONAL_CHOOSER_SETTLE_FRAME_LIMIT = 30;
 const DEFAULT_CAMERA_MOTION_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
 
 type RegionalTrainMarkerMotionRuntime = {
@@ -304,6 +312,38 @@ function appendRegionalTrainMarkerGlyph(documentNode: RegionalSvgScope, group: S
 
 
 type Camera = { x: number; y: number; scale: number };
+
+type RegionalOverlapChooserPlacement = {
+  markerId: string;
+  layout: MapOverlapChooserLayout;
+  size: { width: number; height: number };
+  viewportSize: { width: number; height: number };
+  followAnchor: ChooserFollowAnchor;
+  coversAffectedArea: boolean;
+};
+
+function regionalChooserPlacementsMatch(
+  current: RegionalOverlapChooserPlacement,
+  next: RegionalOverlapChooserPlacement,
+): boolean {
+  const near = (first: number, second: number) => Math.abs(first - second) < 0.5;
+  const currentCamera = current.followAnchor.camera;
+  const nextCamera = next.followAnchor.camera;
+  return near(current.layout.left, next.layout.left)
+    && near(current.layout.top, next.layout.top)
+    && near(current.layout.anchorOffsetX, next.layout.anchorOffsetX)
+    && near(current.layout.anchorOffsetY, next.layout.anchorOffsetY)
+    && current.size.width === next.size.width
+    && current.size.height === next.size.height
+    && current.viewportSize.width === next.viewportSize.width
+    && current.viewportSize.height === next.viewportSize.height
+    && current.coversAffectedArea === next.coversAffectedArea
+    && near(current.followAnchor.badge.x, next.followAnchor.badge.x)
+    && near(current.followAnchor.badge.y, next.followAnchor.badge.y)
+    && near(currentCamera?.x ?? 0, nextCamera?.x ?? 0)
+    && near(currentCamera?.y ?? 0, nextCamera?.y ?? 0)
+    && Math.abs((currentCamera?.scale ?? 0) - (nextCamera?.scale ?? 0)) < 0.0001;
+}
 type CameraMotionOptions = {
   durationMs?: number;
   easing?: string;
@@ -411,9 +451,12 @@ function InteractiveRegionalMapComponent({
     [activeAlerts, delays, plannedClosures, selection],
   );
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
-  const [overlapChooserLayout, setOverlapChooserLayout] = useState<MapOverlapChooserLayout | null>(null);
-  const [overlapChooserSize, setOverlapChooserSize] = useState<{ width: number; height: number } | null>(null);
-  const [overlapChooserViewportSize, setOverlapChooserViewportSize] = useState<{ width: number; height: number } | null>(null);
+  const [overlapChooserPlacement, setOverlapChooserPlacement] = useState<RegionalOverlapChooserPlacement | null>(null);
+  const [overlapChooserFollower] = useState(() => new MapChooserFollower());
+  const overlapChooserPlacementRef = useRef<RegionalOverlapChooserPlacement | null>(null);
+  useLayoutEffect(() => {
+    overlapChooserPlacementRef.current = overlapChooserPlacement;
+  }, [overlapChooserPlacement]);
   const [chooserKeepoutRevision, setChooserKeepoutRevision] = useState(0);
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
   const [recenterFeedbackKey, setRecenterFeedbackKey] = useState(0);
@@ -533,13 +576,15 @@ function InteractiveRegionalMapComponent({
         viewportRef.current?.clientWidth ?? 0,
       );
     }
-  }, [viewportOrientation]);
+    overlapChooserFollower.writeCamera(nextCamera);
+  }, [overlapChooserFollower, viewportOrientation]);
 
   const setMapTransition = useCallback((transition: string) => {
     if (mapStageRef.current) {
       mapStageRef.current.style.transition = transition;
     }
-  }, []);
+    overlapChooserFollower.setCameraTransition(transition);
+  }, [overlapChooserFollower]);
 
   const setCameraMotionActive = useCallback((active: boolean) => {
     const root = regionalMapRef.current;
@@ -1917,15 +1962,33 @@ function InteractiveRegionalMapComponent({
     const badge = overlapBadges.find((candidate) => candidate.markerId === expandedOverlapBadgeId);
     if (badge) setRegionalOverlapImpactsHovered(badge.impacts, false);
     setExpandedOverlapBadgeId(null);
-    setOverlapChooserLayout(null);
-    setOverlapChooserSize(null);
-    setOverlapChooserViewportSize(null);
+    setOverlapChooserPlacement(null);
   }, [expandedOverlapBadgeId, overlapBadges, setRegionalOverlapImpactsHovered]);
 
-  const positionRegionalOverlapChooser = useCallback((badge: RegionalOverlapBadge) => {
+  // Solve the chooser only while the camera is at rest. During a drag or a
+  // camera flight the follower keeps the card on its badge; the solve that
+  // runs when the camera commits glides it to its new spot.
+  const positionRegionalOverlapChooser = useCallback((
+    badge: RegionalOverlapBadge,
+    opening = false,
+  ) => {
+    if (!opening && (
+      isGestureActiveRef.current
+      || animTimeoutRef.current !== null
+      || programmaticAnimationFrameRef.current !== null
+    )) return false;
     const viewport = viewportRef.current;
     const marker = viewport ? regionalOverlapMarker(viewport, badge.markerId) : null;
     if (!viewport || !marker) return false;
+    // DOM boxes are measured at the camera the stage is showing, which may
+    // still be easing; project them to the camera it is easing to.
+    const targetCamera = cameraRef.current;
+    const renderedCamera = currentRenderedCamera() ?? targetCamera;
+    const toTargetCamera = (box: RegionalCollisionBox): RegionalCollisionBox => {
+      const corner = projectPointToCamera(box, renderedCamera, targetCamera);
+      const ratio = renderedCamera.scale > 0 ? targetCamera.scale / renderedCamera.scale : 1;
+      return { x: corner.x, y: corner.y, width: box.width * ratio, height: box.height * ratio };
+    };
     const viewportRect = viewport.getBoundingClientRect();
     const markerRect = regionalOverlapMarkerRestingRect(marker);
     const logicalViewportSize = logicalViewportSizeForOrientation(
@@ -1933,17 +1996,19 @@ function InteractiveRegionalMapComponent({
       viewportRect.height,
       viewportOrientation,
     );
-    const logicalMarkerRect = clientRectToLogicalViewportBounds(
+    const measuredMarkerRect = clientRectToLogicalViewportBounds(
       markerRect,
       viewportRect,
       viewportOrientation,
     );
-    if (!logicalMarkerRect) return false;
+    if (!measuredMarkerRect) return false;
+    const logicalMarkerRect = toTargetCamera(measuredMarkerRect);
     const { width, height } = mapOverlapChooserSize(badge.impacts.length, logicalViewportSize.width);
     const markerCenter = {
       x: logicalMarkerRect.x + logicalMarkerRect.width / 2,
       y: logicalMarkerRect.y + logicalMarkerRect.height / 2,
     };
+    const badgeInView = chooserBadgeInView(markerCenter, logicalViewportSize);
     const uiKeepoutBoxes = visibleMapChooserKeepouts()
       .map((element) => clientRectToLogicalViewportBounds(
         element.getBoundingClientRect(),
@@ -1964,7 +2029,8 @@ function InteractiveRegionalMapComponent({
       height: box.height,
     }, viewportRect, viewportOrientation)).filter(
       (box): box is RegionalCollisionBox => Boolean(box),
-    );
+    ).map(toTargetCamera);
+    const current = overlapChooserPlacementRef.current;
     const placement = regionalOverlapChooserLayout({
       markerCenter,
       markerSize: logicalMarkerRect,
@@ -1972,35 +2038,36 @@ function InteractiveRegionalMapComponent({
       viewportSize: logicalViewportSize,
       alertCollisionBoxes,
       uiKeepoutBoxes,
+      // Keep the open card's spot beside its badge while that spot is valid.
+      preferred: !opening && current?.markerId === badge.markerId
+        ? {
+            offsetX: current.layout.left - current.followAnchor.badge.x,
+            offsetY: current.layout.top - current.followAnchor.badge.y,
+            width: current.size.width,
+            height: current.size.height,
+            coversAffectedArea: current.coversAffectedArea,
+          }
+        : null,
     });
-    setOverlapChooserLayout((current) =>
-      current
-      && current.left === placement.layout.left
-      && current.top === placement.layout.top
-      && current.anchorOffsetX === placement.layout.anchorOffsetX
-      && current.anchorOffsetY === placement.layout.anchorOffsetY
-        ? current
-        : placement.layout
-    );
-    setOverlapChooserSize((current) =>
-      current
-      && current.width === placement.size.width
-      && current.height === placement.size.height
-        ? current
-        : placement.size
-    );
-    setOverlapChooserViewportSize((current) =>
-      current
-      && current.width === logicalViewportSize.width
-      && current.height === logicalViewportSize.height
-        ? current
-        : logicalViewportSize
-    );
+    const next: RegionalOverlapChooserPlacement = {
+      markerId: badge.markerId,
+      layout: placement.layout,
+      size: placement.size,
+      viewportSize: logicalViewportSize,
+      followAnchor: { badge: markerCenter, camera: { ...targetCamera } },
+      coversAffectedArea: placement.coversAffectedArea,
+    };
+    setOverlapChooserPlacement((current) => {
+      if (!current || current.markerId !== next.markerId) return next;
+      // A badge panned off screen keeps its card attached to it.
+      if (!badgeInView) return current;
+      return regionalChooserPlacementsMatch(current, next) ? current : next;
+    });
     return true;
-  }, [viewportOrientation]);
+  }, [currentRenderedCamera, viewportOrientation]);
 
   const openRegionalOverlapChooser = useCallback((badge: RegionalOverlapBadge) => {
-    if (!positionRegionalOverlapChooser(badge)) return;
+    if (!positionRegionalOverlapChooser(badge, true)) return;
     setExpandedOverlapBadgeId(badge.markerId);
     setRegionalOverlapImpactsHovered(badge.impacts, true);
   }, [positionRegionalOverlapChooser, setRegionalOverlapImpactsHovered]);
@@ -2017,26 +2084,49 @@ function InteractiveRegionalMapComponent({
   ) ?? null;
   useLayoutEffect(() => {
     if (!expandedOverlapBadge) return;
-    const animationFrame = window.requestAnimationFrame(() => {
+    // Solve once the stage has finished easing to the committed camera. On a
+    // busy main thread the short zoom ease can still be running here, and a
+    // card placed early would jump ahead of its badge.
+    let animationFrame = 0;
+    let framesWaited = 0;
+    const solveWhenStill = () => {
+      const target = cameraRef.current;
+      const rendered = currentRenderedCamera() ?? target;
+      const easing = Math.abs(rendered.x - target.x) > 0.5
+        || Math.abs(rendered.y - target.y) > 0.5
+        || Math.abs(rendered.scale - target.scale) > 0.0001;
+      if (easing && framesWaited < REGIONAL_CHOOSER_SETTLE_FRAME_LIMIT) {
+        framesWaited += 1;
+        animationFrame = window.requestAnimationFrame(solveWhenStill);
+        return;
+      }
       positionRegionalOverlapChooser(expandedOverlapBadge);
-    });
+    };
+    animationFrame = window.requestAnimationFrame(solveWhenStill);
     return () => window.cancelAnimationFrame(animationFrame);
   }, [
     camera,
     chooserKeepoutRevision,
+    currentRenderedCamera,
     expandedOverlapBadge,
     positionRegionalOverlapChooser,
     viewportOrientation,
   ]);
+  // A hovered chooser row behaves like hovering that alert on the map; with no
+  // row hovered, the chooser previews its whole group as one outline.
   const hoverRegionalChooserImpact = useCallback((impact: MapImpact | null) => {
     if (!expandedOverlapBadge) return;
     setRegionalOverlapImpactsHovered(expandedOverlapBadge.impacts, false);
-    setRegionalOverlapImpactsHovered(impact ? [impact] : expandedOverlapBadge.impacts, true);
+    sessionRef.current?.setChooserImpactHover(impact);
+    if (!impact) setRegionalOverlapImpactsHovered(expandedOverlapBadge.impacts, true);
   }, [expandedOverlapBadge, setRegionalOverlapImpactsHovered]);
   useLayoutEffect(() => {
     if (!expandedOverlapBadge) return;
     hoverRegionalChooserImpact(null);
-    return () => setRegionalOverlapImpactsHovered(expandedOverlapBadge.impacts, false);
+    return () => {
+      sessionRef.current?.setChooserImpactHover(null);
+      setRegionalOverlapImpactsHovered(expandedOverlapBadge.impacts, false);
+    };
   }, [expandedOverlapBadge, hoverRegionalChooserImpact, setRegionalOverlapImpactsHovered]);
   const closeRegionalChooserWithFocus = useCallback((restoreFocus: boolean) => {
     const markerId = expandedOverlapBadge?.markerId;
@@ -2268,23 +2358,25 @@ function InteractiveRegionalMapComponent({
           />
         ) : null}
       </div>
-      {expandedOverlapBadge && overlapChooserLayout && overlapChooserSize && overlapChooserViewportSize ? (
+      {expandedOverlapBadge && overlapChooserPlacement?.markerId === expandedOverlapBadge.markerId ? (
         <MapOverlapChooser
           key={expandedOverlapBadge.markerId}
           selectionKey={focusTargetKey}
           markerId={expandedOverlapBadge.markerId}
           label={expandedOverlapBadge.label}
           impacts={expandedOverlapBadge.impacts}
-          chooserSize={overlapChooserSize}
+          chooserSize={overlapChooserPlacement.size}
           collisionAvoided
-          layout={overlapChooserLayout}
+          layout={overlapChooserPlacement.layout}
+          follower={overlapChooserFollower}
+          followAnchor={overlapChooserPlacement.followAnchor}
           onSelectImpact={onSelectImpact}
           onHoverImpact={hoverRegionalChooserImpact}
           onClose={closeRegionalChooserWithFocus}
           reducedMotion={reducedMotion}
-          compactMotion={overlapChooserSize.width <= 280}
+          compactMotion={overlapChooserPlacement.size.width <= 280}
           viewportOrientation={viewportOrientation}
-          viewportSize={overlapChooserViewportSize}
+          viewportSize={overlapChooserPlacement.viewportSize}
         />
       ) : null}
       {commutePathPreview && !selection ? (

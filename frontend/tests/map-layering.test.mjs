@@ -272,15 +272,13 @@ describe("asset-backed map layering", () => {
       interactiveMapSource,
       /className="ttc-impact-hover-foreground-layer"[\s\S]*?<TtcImpactHoverForeground[\s\S]*?aria-label="Disruption overlay interaction targets"/,
     );
+    // One keyline helper draws every hover outline: masks of 118 (outer),
+    // 96 (core cutout), and 108 (edge divider) units over the given paths.
     assert.match(
       interactiveMapSource,
-      /className="ttc-impact-hover-outline-mask-outer"[\s\S]*?className="ttc-impact-hover-outline-mask-cutout"[\s\S]*?className="ttc-impact-hover-outline-mask-divider"[\s\S]*?ttc-impact-hover-outline-core[\s\S]*?mask=\{`url\(#\$\{hoverOutlineMaskId\}\)`\}[\s\S]*?ttc-impact-hover-outline-edge[\s\S]*?mask=\{`url\(#\$\{hoverOuterOutlineMaskId\}\)`\}/,
+      /maskStrokes\("ttc-impact-hover-outline-mask-outer", "white", 118\)[\s\S]*?maskStrokes\("ttc-impact-hover-outline-mask-cutout", "black", 96\)[\s\S]*?maskStrokes\("ttc-impact-hover-outline-mask-divider", "black", 108\)[\s\S]*?outlineStrokes\("ttc-impact-hover-outline-core", maskId[\s\S]*?outlineStrokes\("ttc-impact-hover-outline-edge", outerMaskId/,
     );
-    assert.match(
-      interactiveMapSource,
-      /className="ttc-impact-hover-outline-mask-outer"[\s\S]*?stroke="white"[\s\S]*?strokeWidth=\{118\}[\s\S]*?className="ttc-impact-hover-outline-mask-cutout"[\s\S]*?stroke="black"[\s\S]*?strokeWidth=\{96\}/,
-    );
-    assert.match(interactiveMapSource, /strokeWidth=\{118\}[\s\S]*?style=\{\{ strokeWidth:\s*118 \}\}[\s\S]*?strokeWidth=\{96\}[\s\S]*?style=\{\{ strokeWidth:\s*96 \}\}/);
+    assert.match(interactiveMapSource, /strokeWidth=\{width\}\s*style=\{\{ strokeWidth: width \}\}/);
     assert.doesNotMatch(interactiveMapSource, /hover-priority-boundary-ring-mask/);
     assert.match(interactiveMapSource, /event\.pointerType !== "mouse" \|\| exiting/);
     assert.match(
@@ -704,13 +702,16 @@ describe("asset-backed map layering", () => {
     assert.match(chooserKeepoutsSource, /\.mobile-legend-pill/);
     assert.match(chooserKeepoutsSource, /\.mobile-my-stations-shortcut/);
     assert.doesNotMatch(interactiveMapSource, /mapViewportSize\.width > OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
-    assert.match(interactiveMapSource, /width:\s*layout\.width,[\s\S]*?height:\s*layout\.height/);
+    assert.match(interactiveMapSource, /useFollowedChooserPortal\(\{[\s\S]*?size:\s*layout,/);
+    assert.match(overlapChooserSource, /width:\s*size\.width,[\s\S]*?height:\s*size\.height/);
     assert.doesNotMatch(ttcChooserPlacementSource, /for \(let y = minimumY; y <= maximumY; y \+= step\)/);
     assert.match(interactiveMapSource, /onHoverImpact/);
     assert.match(interactiveMapSource, /foreground\.dataset\.hoverPriorityImpact = activationKey/);
     assert.match(interactiveMapSource, /onPointerEnter=\{\(event\) => \{/);
     assert.match(interactiveMapSource, /setExternalImpactsHovered/);
-    assert.match(interactiveMapSource, /activationPrefix: "badge" \| "chooser"/);
+    // Chooser and badge previews only outline; they never raise artwork.
+    assert.match(interactiveMapSource, /renderTtcPreviewOutline\(/);
+    assert.match(interactiveMapSource, /"station-rings"/);
     assert.match(ttcChooserPlacementSource, /OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
     assert.match(ttcChooserPlacementSource, /OVERLAP_CHOOSER_MOBILE_WIDTH/);
     assert.match(globalCss, /@media \(max-width: 640px\)[\s\S]*?\.overlap-chooser-list\s*\{[^}]*grid-auto-rows:\s*max-content;/);

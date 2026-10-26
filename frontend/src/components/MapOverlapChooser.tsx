@@ -3,6 +3,7 @@
 import {
   useLayoutEffect,
   useRef,
+  type CSSProperties,
   type PointerEvent,
 } from "react";
 import { useAlertChooserDismissal } from "../hooks/useAlertChooserDismissal";
@@ -24,6 +25,7 @@ import {
   REGIONAL_ROUTE_DEFINITIONS,
 } from "../app/regional-data";
 import { transitLineName } from "./TransitLineBadge";
+import type { ChooserFollowAnchor, MapChooserFollower } from "./map-chooser-follow";
 
 export type MapOverlapChooserLayout = {
   left: number;
@@ -31,6 +33,50 @@ export type MapOverlapChooserLayout = {
   anchorOffsetX: number;
   anchorOffsetY: number;
 };
+
+/**
+ * Positions a chooser portal at its solved layout and hands it to the map's
+ * follower, which owns the portal's `transform`: it keeps the card on its
+ * badge while the camera moves and glides it when a new layout lands.
+ */
+export function useFollowedChooserPortal({
+  follower,
+  followAnchor,
+  layout,
+  size,
+  viewportOrientation,
+  viewportSize,
+  reducedMotion,
+}: {
+  follower: MapChooserFollower;
+  followAnchor: ChooserFollowAnchor;
+  layout: { left: number; top: number };
+  size: { width: number; height: number };
+  viewportOrientation: MapViewportOrientation;
+  viewportSize?: { width: number; height: number };
+  reducedMotion: boolean;
+}): { attachPortal: (element: HTMLDivElement | null) => void; portalStyle: CSSProperties } {
+  const rotated = viewportOrientation === "rotated-landscape" && Boolean(viewportSize);
+  const left = rotated && viewportSize ? viewportSize.height - layout.top : layout.left;
+  const top = rotated ? layout.left : layout.top;
+  const effectiveOrientation: MapViewportOrientation = rotated ? "rotated-landscape" : "standard";
+
+  useLayoutEffect(() => {
+    follower.place({ x: left, y: top }, followAnchor, effectiveOrientation, reducedMotion);
+  }, [effectiveOrientation, followAnchor, follower, left, reducedMotion, top]);
+
+  return {
+    attachPortal: follower.attach,
+    portalStyle: {
+      left,
+      top,
+      width: size.width,
+      height: size.height,
+      maxHeight: size.height,
+      ...(rotated ? { transformOrigin: "top left" } : null),
+    },
+  };
+}
 
 function impactKindLabel(kind: MapImpactKind): string {
   switch (kind) {
@@ -96,6 +142,8 @@ export function MapOverlapChooser({
   compactMotion,
   viewportOrientation = "standard",
   viewportSize,
+  follower,
+  followAnchor,
 }: {
   markerId: string;
   selectionKey?: string | null;
@@ -111,6 +159,8 @@ export function MapOverlapChooser({
   compactMotion: boolean;
   viewportOrientation?: MapViewportOrientation;
   viewportSize?: { width: number; height: number };
+  follower: MapChooserFollower;
+  followAnchor: ChooserFollowAnchor;
 }) {
   const data = useDashboardData();
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -128,23 +178,15 @@ export function MapOverlapChooser({
   const stopChooserPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     event.stopPropagation();
   };
-  const portalStyle = viewportOrientation === "rotated-landscape" && viewportSize
-    ? {
-        left: viewportSize.height - layout.top,
-        top: layout.left,
-        width: chooserSize.width,
-        height: chooserSize.height,
-        maxHeight: chooserSize.height,
-        transform: "rotate(90deg)",
-        transformOrigin: "top left",
-      }
-    : {
-        left: layout.left,
-        top: layout.top,
-        width: chooserSize.width,
-        height: chooserSize.height,
-        maxHeight: chooserSize.height,
-      };
+  const { attachPortal, portalStyle } = useFollowedChooserPortal({
+    follower,
+    followAnchor,
+    layout,
+    size: chooserSize,
+    viewportOrientation,
+    viewportSize,
+    reducedMotion,
+  });
 
   useLayoutEffect(() => {
     const focusFrame = window.requestAnimationFrame(() => {
@@ -188,6 +230,7 @@ export function MapOverlapChooser({
   return (
     <div
       id={chooserId}
+      ref={attachPortal}
       className="overlap-chooser-portal overlap-chooser-object open"
       style={portalStyle}
       data-overlap-chooser-collision-avoided={collisionAvoided ? "true" : "false"}

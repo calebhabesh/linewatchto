@@ -28,6 +28,12 @@ import {
   type MapPolygon,
 } from "../app/map-geometry";
 import { usePanZoom } from "../hooks/usePanZoom";
+import { useFollowedChooserPortal } from "./MapOverlapChooser";
+import {
+  MapChooserFollower,
+  chooserBadgeInView,
+  type ChooserFollowAnchor,
+} from "./map-chooser-follow";
 import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
 import { readDesktopLeftOcclusion, measureDesktopMapInsets } from "../app/desktop-sidebar-state";
 import {
@@ -146,7 +152,9 @@ import {
   boundsListsMatch,
   boundsContainingBoxes,
   overlapChooserSize,
+  overlapChooserPreferredBox,
   overlapChooserScreenLayout,
+  overlapChooserScreenLayoutsMatch,
   type OverlapChooserScreenLayout,
 } from "./ttc-chooser-placement";
 
@@ -181,9 +189,12 @@ function setTtcImpactHovered(
   root: HTMLElement,
   identity: TtcImpactHoverIdentity,
   hovered: boolean,
+  scope: "all" | "station-rings" = "all",
 ) {
   root.querySelectorAll<SVGElement>(
-    "[data-ttc-hover-impact-kind][data-ttc-hover-impact-id]",
+    scope === "station-rings"
+      ? ".station-impact-hover-priority[data-ttc-hover-impact-kind][data-ttc-hover-impact-id]"
+      : "[data-ttc-hover-impact-kind][data-ttc-hover-impact-id]",
   ).forEach((foreground) => {
     if (
       foreground.dataset.ttcHoverImpactKind !== identity.kind
@@ -499,6 +510,9 @@ function InteractiveTtcMapComponent({
   }, [expandedOverlapBadgeId]);
   const hoveredMapImpactRef = useRef<TtcImpactHoverIdentity | null>(null);
   const externallyHoveredImpactKeysRef = useRef(new Set<string>());
+  const previewOutlineLayerRef = useRef<SVGGElement>(null);
+  const chooserRaisedImpactRef = useRef<TtcImpactHoverIdentity | null>(null);
+  const previewOutlinePathsRef = useRef(new Map<string, string[]>());
   const mapControlRailRef = useRef<HTMLDivElement>(null);
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(() => {
     if (typeof window === "undefined" || window.innerWidth < 768) return 0;
@@ -632,10 +646,12 @@ function InteractiveTtcMapComponent({
     minHorizontalInset: desktopMapTopInset > 0 ? 32 : 12,
   }), [desktopMapBottomInset, desktopMapTopInset]);
 
+  const [overlapChooserFollower] = useState(() => new MapChooserFollower());
   const {
     transform,
     relativeScale,
     isGestureActive,
+    isCameraInteracting,
     recenterFeedbackKey,
     containerRef,
     mapRef,
@@ -672,6 +688,7 @@ function InteractiveTtcMapComponent({
     disableProgrammaticMotion: mobilePerformanceMode,
     defaultFrame: defaultMapFrame,
     animateInitialEntrance,
+    cameraFollower: overlapChooserFollower,
   });
   const [mapViewportSize, setMapViewportSize] = useState({ width: 392, height: 720 });
   const [chooserKeepoutBoxes, setChooserKeepoutBoxes] = useState<SvgBounds[]>([]);
@@ -1520,6 +1537,19 @@ function InteractiveTtcMapComponent({
     useCallback(({ segment, impact }) => `${segment.id}:${impact.kind}:${impact.cardId}:${impact.travelDirection}`, []),
   );
 
+  // Segment paths per alert, for the chooser and badge preview outline.
+  const previewOutlinePathsByImpact = useMemo(() => {
+    const paths = new Map<string, string[]>();
+    const add = (key: string, pathD: string) => {
+      const list = paths.get(key);
+      if (!list) paths.set(key, [pathD]);
+      else if (!list.includes(pathD)) list.push(pathD);
+    };
+    for (const { segment, closure } of plannedPreviewLayers) add(`planned-closure:${closure.id}`, segment.pathD);
+    for (const { segment, impact } of renderedImpactLayers) add(`${impact.kind}:${impact.cardId}`, segment.pathD);
+    return paths;
+  }, [plannedPreviewLayers, renderedImpactLayers]);
+
   const overlayPulseMotionPaused = mapEffectMotionPaused
     || !selection
     || renderedImpactLayers.length + plannedPreviewLayers.length
@@ -1973,21 +2003,80 @@ function InteractiveTtcMapComponent({
     stationOverlapBadges,
   ]);
   const expandedOverlapBadge = overlapBadges.find((badge) => badge.segmentId === expandedOverlapBadgeId) ?? null;
-  const expandedOverlapChooserLayout = expandedOverlapBadge
-    ? overlapChooserScreenLayout(
+  // Solve the chooser only at a committed camera. During a drag or a camera
+  // flight the follower keeps the shown card on its badge. When the camera
+  // settles, the card keeps its spot beside the badge while that spot is still
+  // valid, and otherwise glides to a fresh one. A badge panned off screen
+  // keeps its card attached rather than pinning it to an edge.
+  const [shownOverlapChooser, setShownOverlapChooser] = useState<{
+    badgeId: string;
+    layout: OverlapChooserScreenLayout;
+    followAnchor: ChooserFollowAnchor;
+    badgeInView: boolean;
+  } | null>(null);
+  const shownOverlapChooserBadgeId = shownOverlapChooser?.badgeId;
+  const preferredOverlapChooserBox = useMemo(
+    () => shownOverlapChooser ? overlapChooserPreferredBox(shownOverlapChooser.layout) : null,
+    [shownOverlapChooser],
+  );
+  const solvedOverlapChooser = useMemo(() => {
+    if (!expandedOverlapBadge) return null;
+    const layout = overlapChooserScreenLayout(
       expandedOverlapBadge,
       transform,
       mapViewportSize,
       chooserKeepoutBoxes,
-    )
-    : null;
+      shownOverlapChooserBadgeId === expandedOverlapBadge.segmentId ? preferredOverlapChooserBox : null,
+    );
+    return {
+      badgeId: expandedOverlapBadge.segmentId,
+      layout,
+      followAnchor: { badge: layout.badgeCenter, camera: transform },
+      badgeInView: chooserBadgeInView(layout.badgeCenter, mapViewportSize),
+    };
+  }, [
+    chooserKeepoutBoxes,
+    expandedOverlapBadge,
+    mapViewportSize,
+    preferredOverlapChooserBox,
+    shownOverlapChooserBadgeId,
+    transform,
+  ]);
+  let expandedOverlapChooser = shownOverlapChooser;
+  const overlapChooserChanged = solvedOverlapChooser?.badgeId !== shownOverlapChooser?.badgeId
+    || (
+      solvedOverlapChooser !== null
+      && shownOverlapChooser !== null
+      && !overlapChooserScreenLayoutsMatch(solvedOverlapChooser.layout, shownOverlapChooser.layout)
+      && !isCameraInteracting()
+      && solvedOverlapChooser.badgeInView
+    );
+  if (overlapChooserChanged) {
+    expandedOverlapChooser = solvedOverlapChooser;
+    setShownOverlapChooser(solvedOverlapChooser);
+  }
 
+  // Hovering one alert, on the map or as a chooser row, repaints it above the
+  // others with its outline. Group previews (the open chooser with no row
+  // hovered, or a hovered badge) only outline every alert they cover, since
+  // several alerts cannot all be on top (setExternalImpactsHovered). Owners
+  // share elements, so an alert stays raised while any owner still holds it.
   const setLinkedImpactHover = useCallback((
     identity: TtcImpactHoverIdentity,
     hovered: boolean,
   ) => {
-    if (!mapRootRef.current) return;
-    setTtcImpactHovered(mapRootRef.current, identity, hovered);
+    const root = mapRootRef.current;
+    if (!root) return;
+    setTtcImpactHovered(root, identity, hovered);
+    if (hovered) return;
+    const keeper = [hoveredMapImpactRef.current, chooserRaisedImpactRef.current].find((owner) => (
+      owner && owner !== identity && owner.kind === identity.kind && owner.id === identity.id
+    ));
+    if (keeper) {
+      setTtcImpactHovered(root, keeper, true);
+    } else if (externallyHoveredImpactKeysRef.current.has(`${identity.kind}:${identity.id}`)) {
+      setTtcImpactHovered(root, { kind: identity.kind, id: identity.id }, true, "station-rings");
+    }
   }, []);
 
   const setMapImpactHover = useCallback((nextImpact: TtcImpactHoverIdentity | null) => {
@@ -1998,63 +2087,85 @@ function InteractiveTtcMapComponent({
       && previousImpact?.segmentId === nextImpact?.segmentId
     ) return;
 
-    if (
-      previousImpact
-      && !externallyHoveredImpactKeysRef.current.has(`${previousImpact.kind}:${previousImpact.id}`)
-    ) {
-      setLinkedImpactHover(previousImpact, false);
-    }
+    if (previousImpact) setLinkedImpactHover(previousImpact, false);
     hoveredMapImpactRef.current = nextImpact;
     if (nextImpact) setLinkedImpactHover(nextImpact, true);
   }, [setLinkedImpactHover]);
 
+  const showPreviewOutline = useCallback(() => {
+    const layer = previewOutlineLayerRef.current;
+    if (!layer) return;
+    renderTtcPreviewOutline(
+      layer,
+      [...externallyHoveredImpactKeysRef.current].sort(),
+      previewOutlinePathsRef.current,
+    );
+  }, []);
+
+  useLayoutEffect(() => {
+    previewOutlinePathsRef.current = previewOutlinePathsByImpact;
+    showPreviewOutline();
+  }, [previewOutlinePathsByImpact, showPreviewOutline]);
+
   const setExternalImpactsHovered = useCallback((
     impacts: MapImpact[],
     hovered: boolean,
-    activationPrefix: "badge" | "chooser",
-    badgeId?: string,
   ) => {
+    const root = mapRootRef.current;
     for (const impact of impacts) {
       const impactKey = `${impact.kind}:${impact.cardId}`;
-      if (hovered) {
-        externallyHoveredImpactKeysRef.current.add(impactKey);
-        setLinkedImpactHover({
-          kind: impact.kind,
-          id: impact.cardId,
-          activationKey: `${activationPrefix}:${badgeId ? `${badgeId}:` : ""}${impactKey}`,
-        }, true);
-        continue;
-      }
-
-      externallyHoveredImpactKeysRef.current.delete(impactKey);
-      setLinkedImpactHover({ kind: impact.kind, id: impact.cardId }, false);
+      if (hovered) externallyHoveredImpactKeysRef.current.add(impactKey);
+      else externallyHoveredImpactKeysRef.current.delete(impactKey);
+      if (!root) continue;
       const mapImpact = hoveredMapImpactRef.current;
-      if (mapImpact?.kind === impact.kind && mapImpact.id === impact.cardId) {
-        setLinkedImpactHover(mapImpact, true);
-      }
+      const directlyHovered = mapImpact?.kind === impact.kind && mapImpact.id === impact.cardId;
+      setTtcImpactHovered(root, { kind: impact.kind, id: impact.cardId }, hovered || directlyHovered, "station-rings");
     }
-  }, [setLinkedImpactHover]);
+    showPreviewOutline();
+  }, [showPreviewOutline]);
 
   const clearMapHover = useCallback((preserveStationLabel = false) => {
     clearTtcTransientHover(mapRootRef.current);
     hoveredMapImpactRef.current = null;
+    chooserRaisedImpactRef.current = null;
     externallyHoveredImpactKeysRef.current.clear();
+    showPreviewOutline();
     if (!preserveStationLabel) setHoveredStationLabelId(null);
-  }, []);
+  }, [showPreviewOutline]);
 
+  const releaseChooserRaisedImpact = useCallback(() => {
+    const previous = chooserRaisedImpactRef.current;
+    chooserRaisedImpactRef.current = null;
+    if (previous) setLinkedImpactHover(previous, false);
+  }, [setLinkedImpactHover]);
+
+  // A hovered chooser row behaves like hovering that alert on the map; with no
+  // row hovered, the chooser previews its whole group as one outline.
   const highlightOverlapChooserImpact = useCallback((impact: MapImpact | null) => {
     if (!expandedOverlapBadge) return;
-    setExternalImpactsHovered(expandedOverlapBadge.impacts, false, "chooser");
-    setExternalImpactsHovered(impact ? [impact] : expandedOverlapBadge.impacts, true, "chooser");
-  }, [expandedOverlapBadge, setExternalImpactsHovered]);
+    releaseChooserRaisedImpact();
+    setExternalImpactsHovered(expandedOverlapBadge.impacts, false);
+    if (impact) {
+      const raised = {
+        kind: impact.kind,
+        id: impact.cardId,
+        activationKey: `chooser:${impact.kind}:${impact.cardId}`,
+      };
+      chooserRaisedImpactRef.current = raised;
+      setLinkedImpactHover(raised, true);
+    } else {
+      setExternalImpactsHovered(expandedOverlapBadge.impacts, true);
+    }
+  }, [expandedOverlapBadge, releaseChooserRaisedImpact, setExternalImpactsHovered, setLinkedImpactHover]);
 
   useLayoutEffect(() => {
     if (!expandedOverlapBadge) return;
     highlightOverlapChooserImpact(null);
     return () => {
-      setExternalImpactsHovered(expandedOverlapBadge.impacts, false, "chooser");
+      releaseChooserRaisedImpact();
+      setExternalImpactsHovered(expandedOverlapBadge.impacts, false);
     };
-  }, [expandedOverlapBadge, highlightOverlapChooserImpact, setExternalImpactsHovered]);
+  }, [expandedOverlapBadge, highlightOverlapChooserImpact, releaseChooserRaisedImpact, setExternalImpactsHovered]);
 
   return (
     <div
@@ -2585,6 +2696,7 @@ function InteractiveTtcMapComponent({
                     />
                   )
                 ))}
+                <g ref={previewOutlineLayerRef} className="ttc-impact-preview-outline-layer" />
               </g>
               <g aria-label="Disruption overlay interaction targets">
                 {[
@@ -3030,12 +3142,7 @@ function InteractiveTtcMapComponent({
                         clearMapHover();
                         setExpandedOverlapBadgeId(badge.segmentId);
                       }}
-                      onHoverChange={(hovered) => setExternalImpactsHovered(
-                        badge.impacts,
-                        hovered,
-                        "badge",
-                        badge.segmentId,
-                      )}
+                      onHoverChange={(hovered) => setExternalImpactsHovered(badge.impacts, hovered)}
                       shouldSuppressMapClick={shouldSuppressMapClick}
                     />
                   ))}
@@ -3067,12 +3174,14 @@ function InteractiveTtcMapComponent({
             data-map-center-feedback="ttc"
           />
         ) : null}
-        {expandedOverlapBadge && expandedOverlapChooserLayout ? (
+        {expandedOverlapBadge && expandedOverlapChooser ? (
           <OverlapChooser
             key={expandedOverlapBadge.segmentId}
             badge={expandedOverlapBadge}
             selectionKey={focusTargetKey ? `${focusTargetKey}:${selectionAttentionGeneration}` : null}
-            layout={expandedOverlapChooserLayout}
+            layout={expandedOverlapChooser.layout}
+            follower={overlapChooserFollower}
+            followAnchor={expandedOverlapChooser.followAnchor}
             onSelectImpact={onSelectImpact}
             onHoverImpact={highlightOverlapChooserImpact}
             onClose={(restoreFocus) => {
@@ -4161,6 +4270,8 @@ function OverlapChooser({
   compactMotion,
   viewportOrientation,
   viewportSize,
+  follower,
+  followAnchor,
 }: {
   badge: OverlapBadgeWithChooser;
   selectionKey: string | null;
@@ -4172,6 +4283,8 @@ function OverlapChooser({
   compactMotion: boolean;
   viewportOrientation: MapViewportOrientation;
   viewportSize: { width: number; height: number };
+  follower: MapChooserFollower;
+  followAnchor: ChooserFollowAnchor;
 }) {
   const data = useDashboardData();
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -4189,23 +4302,15 @@ function OverlapChooser({
   const stopChooserPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     event.stopPropagation();
   };
-  const portalStyle = viewportOrientation === "rotated-landscape"
-    ? {
-        left: viewportSize.height - layout.top,
-        top: layout.left,
-        width: layout.width,
-        height: layout.height,
-        maxHeight: layout.height,
-        transform: "rotate(90deg)",
-        transformOrigin: "top left",
-      }
-    : {
-        left: layout.left,
-        top: layout.top,
-        width: layout.width,
-        height: layout.height,
-        maxHeight: layout.height,
-      };
+  const { attachPortal, portalStyle } = useFollowedChooserPortal({
+    follower,
+    followAnchor,
+    layout,
+    size: layout,
+    viewportOrientation,
+    viewportSize,
+    reducedMotion,
+  });
 
   useLayoutEffect(() => {
     const focusFrame = window.requestAnimationFrame(() => {
@@ -4249,6 +4354,7 @@ function OverlapChooser({
   return (
     <div
       id={chooserId}
+      ref={attachPortal}
       className="overlap-chooser-portal overlap-chooser-object open"
       style={portalStyle}
       data-overlap-chooser-covers-affected-area={layout.coversAffectedArea ? "true" : "false"}
@@ -4425,6 +4531,79 @@ function ttcOverlayVisualId(kind: MapImpactKind, impactId: string, segmentId: st
   return `ttc-overlay-visual-${kind}-${impactId}-${segmentId}`;
 }
 
+/**
+ * The hover keyline: a dark ring with a light edge around the given paths.
+ * Masking every path together outlines their union, so several alerts with
+ * different extents read as one shape instead of crossing capsules.
+ */
+function TtcHoverOutline({
+  maskId,
+  paths,
+  visualState = "",
+}: {
+  maskId: string;
+  paths: string[];
+  visualState?: string;
+}) {
+  const outerMaskId = `${maskId}-outer`;
+  const maskStrokes = (className: string, stroke: string, width: number) => paths.map((d, index) => (
+    <path
+      key={`${className}:${index}`}
+      className={className}
+      d={d}
+      fill="none"
+      stroke={stroke}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={width}
+      style={{ strokeWidth: width }}
+    />
+  ));
+  const outlineStrokes = (className: string, mask: string, style: CSSProperties) => (
+    <g mask={`url(#${mask})`}>
+      {paths.map((d, index) => (
+        <path key={index} className={`ttc-impact-hover-outline ${className} ${visualState}`} d={d} style={style} />
+      ))}
+    </g>
+  );
+  return (
+    <>
+      <defs>
+        <mask
+          id={maskId}
+          maskUnits="userSpaceOnUse"
+          x={MAP_VIEWBOX_BOUNDS.x}
+          y={MAP_VIEWBOX_BOUNDS.y}
+          width={MAP_VIEWBOX_BOUNDS.width}
+          height={MAP_VIEWBOX_BOUNDS.height}
+        >
+          {maskStrokes("ttc-impact-hover-outline-mask-outer", "white", 118)}
+          {maskStrokes("ttc-impact-hover-outline-mask-cutout", "black", 96)}
+        </mask>
+        <mask
+          id={outerMaskId}
+          maskUnits="userSpaceOnUse"
+          x={MAP_VIEWBOX_BOUNDS.x}
+          y={MAP_VIEWBOX_BOUNDS.y}
+          width={MAP_VIEWBOX_BOUNDS.width}
+          height={MAP_VIEWBOX_BOUNDS.height}
+        >
+          {maskStrokes("ttc-impact-hover-outline-mask-outer", "white", 118)}
+          {maskStrokes("ttc-impact-hover-outline-mask-divider", "black", 108)}
+        </mask>
+      </defs>
+      {outlineStrokes("ttc-impact-hover-outline-core", maskId, {
+        stroke: "rgba(15, 23, 42, 0.98)",
+        strokeWidth: 118,
+      })}
+      {outlineStrokes("ttc-impact-hover-outline-edge", outerMaskId, {
+        stroke: "rgba(248, 250, 252, 0.98)",
+        strokeWidth: 118,
+      })}
+    </>
+  );
+}
+
 function TtcImpactHoverForeground({
   segment,
   kind,
@@ -4438,7 +4617,6 @@ function TtcImpactHoverForeground({
 }) {
   const hoverOutlineMaskId = `ttc-impact-hover-outline-${kind}-${impactId}-${segment.id}`
     .replace(/[^a-zA-Z0-9_-]/g, "-");
-  const hoverOuterOutlineMaskId = `${hoverOutlineMaskId}-outer`;
 
   return (
     <g
@@ -4447,87 +4625,76 @@ function TtcImpactHoverForeground({
       data-ttc-hover-impact-id={impactId}
       data-ttc-hover-segment-id={segment.id}
     >
-      <defs>
-        <mask
-          id={hoverOutlineMaskId}
-          maskUnits="userSpaceOnUse"
-          x={MAP_VIEWBOX_BOUNDS.x}
-          y={MAP_VIEWBOX_BOUNDS.y}
-          width={MAP_VIEWBOX_BOUNDS.width}
-          height={MAP_VIEWBOX_BOUNDS.height}
-        >
-          <path
-            className="ttc-impact-hover-outline-mask-outer"
-            d={segment.pathD}
-            fill="none"
-            stroke="white"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={118}
-            style={{ strokeWidth: 118 }}
-          />
-          <path
-            className="ttc-impact-hover-outline-mask-cutout"
-            d={segment.pathD}
-            fill="none"
-            stroke="black"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={96}
-            style={{ strokeWidth: 96 }}
-          />
-        </mask>
-        <mask
-          id={hoverOuterOutlineMaskId}
-          maskUnits="userSpaceOnUse"
-          x={MAP_VIEWBOX_BOUNDS.x}
-          y={MAP_VIEWBOX_BOUNDS.y}
-          width={MAP_VIEWBOX_BOUNDS.width}
-          height={MAP_VIEWBOX_BOUNDS.height}
-        >
-          <path
-            className="ttc-impact-hover-outline-mask-outer"
-            d={segment.pathD}
-            fill="none"
-            stroke="white"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={118}
-            style={{ strokeWidth: 118 }}
-          />
-          <path
-            className="ttc-impact-hover-outline-mask-divider"
-            d={segment.pathD}
-            fill="none"
-            stroke="black"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={108}
-            style={{ strokeWidth: 108 }}
-          />
-        </mask>
-      </defs>
-      <path
-        className={`ttc-impact-hover-outline ttc-impact-hover-outline-core ${visualState}`}
-        d={segment.pathD}
-        mask={`url(#${hoverOutlineMaskId})`}
-        style={{
-          stroke: "rgba(15, 23, 42, 0.98)",
-          strokeWidth: 118,
-        }}
-      />
-      <path
-        className={`ttc-impact-hover-outline ttc-impact-hover-outline-edge ${visualState}`}
-        d={segment.pathD}
-        mask={`url(#${hoverOuterOutlineMaskId})`}
-        style={{
-          filter: "drop-shadow(0 0 4px rgba(191, 219, 254, 0.62))",
-          stroke: "rgba(248, 250, 252, 0.98)",
-          strokeWidth: 118,
-        }}
-      />
+      <TtcHoverOutline maskId={hoverOutlineMaskId} paths={[segment.pathD]} visualState={visualState} />
     </g>
   );
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/**
+ * Chooser and badge previews: one outline around every previewed alert,
+ * matching TtcHoverOutline. It is written straight into its layer so a hover
+ * shows before the next paint without rendering the map, and it never
+ * repaints alert artwork, so the map keeps its resting paint order.
+ */
+function renderTtcPreviewOutline(layer: SVGGElement, keys: string[], pathsByImpact: Map<string, string[]>) {
+  layer.replaceChildren();
+  const paths = keys.flatMap((key) => pathsByImpact.get(key) ?? []);
+  if (paths.length === 0) return;
+  const documentNode = layer.ownerDocument;
+  const element = <K extends keyof SVGElementTagNameMap>(tag: K, attributes: Record<string, string | number>) => {
+    const node = documentNode.createElementNS(SVG_NS, tag);
+    for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, String(value));
+    return node;
+  };
+  const maskId = `ttc-impact-preview-outline-${keys.join("-")}`.replace(/[^a-zA-Z0-9_-]/g, "-");
+  const mask = (id: string, cutoutClass: string, cutoutWidth: number) => {
+    const node = element("mask", {
+      id,
+      maskUnits: "userSpaceOnUse",
+      x: MAP_VIEWBOX_BOUNDS.x,
+      y: MAP_VIEWBOX_BOUNDS.y,
+      width: MAP_VIEWBOX_BOUNDS.width,
+      height: MAP_VIEWBOX_BOUNDS.height,
+    });
+    const stroke = (className: string, color: string, width: number) => paths.map((d) => element("path", {
+      class: className,
+      d,
+      fill: "none",
+      stroke: color,
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+      "stroke-width": width,
+      style: `stroke-width: ${width}`,
+    }));
+    node.append(
+      ...stroke("ttc-impact-hover-outline-mask-outer", "white", 118),
+      ...stroke(cutoutClass, "black", cutoutWidth),
+    );
+    return node;
+  };
+  const defs = element("defs", {});
+  defs.append(
+    mask(maskId, "ttc-impact-hover-outline-mask-cutout", 96),
+    mask(`${maskId}-outer`, "ttc-impact-hover-outline-mask-divider", 108),
+  );
+  const strokes = (className: string, id: string, color: string) => {
+    const group = element("g", { mask: `url(#${id})` });
+    group.append(...paths.map((d) => element("path", {
+      class: `ttc-impact-hover-outline ${className}`,
+      d,
+      style: `stroke: ${color}; stroke-width: 118`,
+    })));
+    return group;
+  };
+  const outline = element("g", { class: "ttc-impact-preview-outline", "data-ttc-preview-impacts": keys.join(" ") });
+  outline.append(
+    defs,
+    strokes("ttc-impact-hover-outline-core", maskId, "rgba(15, 23, 42, 0.98)"),
+    strokes("ttc-impact-hover-outline-edge", `${maskId}-outer`, "rgba(248, 250, 252, 0.98)"),
+  );
+  layer.append(outline);
 }
 
 function OverlayInteractionTarget({

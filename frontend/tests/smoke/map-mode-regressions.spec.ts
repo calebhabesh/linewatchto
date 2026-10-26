@@ -159,8 +159,79 @@ async function openChooser(page: Page, network: NetworkId, mode: MapMode, isMobi
   }
 }
 
+async function chooserAndBadgeCenters(page: Page, network: NetworkId, mode: MapMode, segmentId: string | null) {
+  return page.evaluate(({ network, mode, key }) => {
+    const center = (element: Element | null | undefined) => {
+      if (!element) return null;
+      const rect = element.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    };
+    const card = center(document.querySelector(".overlap-chooser-portal"));
+    let badge: { x: number; y: number } | null = null;
+    if (mode === "geographic") {
+      const anchor = window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor(key);
+      const canvas = document.querySelector(".geographic-network-map canvas")?.getBoundingClientRect();
+      badge = anchor && canvas ? { x: canvas.left + anchor.x, y: canvas.top + anchor.y } : null;
+    } else {
+      badge = center(network === "ttc"
+        ? document.querySelector('[data-overlap-segment-id="stub-line-1-segment"]')
+        : document.querySelector(".regional-map-stage .overlap-indicator.open"));
+    }
+    return { card, badge };
+  }, { network, mode, key: `segment:${segmentId}` });
+}
+
 for (const network of ["ttc", "regional"] as const) {
   for (const mode of ["diagram", "rotated diagram", "geographic"] as const) {
+    test(`${network} ${mode} chooser rides with its badge while panning and keeps its spot after`, async ({ page, request, isMobile }) => {
+      test.skip(!isMobile && mode === "rotated diagram", "Rotation is a mobile Diagram feature.");
+      const segmentId = mode === "geographic" ? await installGeographicOverlap(page, network) : null;
+      await openMap(page, request, network, mode, isMobile);
+      await openChooser(page, network, mode, isMobile, segmentId);
+      const start = await chooserAndBadgeCenters(page, network, mode, segmentId);
+      expect(start.card).not.toBeNull();
+      expect(start.badge).not.toBeNull();
+      const offsetFromBadge = (sample: typeof start) => ({
+        x: sample.card!.x - sample.badge!.x,
+        y: sample.card!.y - sample.badge!.y,
+      });
+      const startOffset = offsetFromBadge(start);
+      const expectAttached = (sample: typeof start, label: string) => {
+        const offset = offsetFromBadge(sample);
+        expect(Math.abs(offset.x - startOffset.x), `${label}: horizontal drift`).toBeLessThanOrEqual(1.5);
+        expect(Math.abs(offset.y - startOffset.y), `${label}: vertical drift`).toBeLessThanOrEqual(1.5);
+      };
+
+      const drag = await beginDrag(page, mapViewport(page, network, mode), isMobile);
+      for (const [dx, dy] of [[-8, 6], [-20, 14], [-32, 22]]) {
+        await drag.move(dx, dy);
+        if (mode === "geographic") await flushFrames(page);
+        expectAttached(await chooserAndBadgeCenters(page, network, mode, segmentId), `mid-drag ${dx},${dy}`);
+      }
+      const moved = await chooserAndBadgeCenters(page, network, mode, segmentId);
+      expect(Math.hypot(moved.badge!.x - start.badge!.x, moved.badge!.y - start.badge!.y)).toBeGreaterThan(20);
+      await drag.end();
+      await settleCamera(page, mode);
+      await flushFrames(page);
+      if (!isMobile) {
+        // A spot that is still valid is kept. Reduced motion is emulated, so
+        // it shows without a glide.
+        expectAttached(await chooserAndBadgeCenters(page, network, mode, segmentId), "after release");
+      } else {
+        // A phone-width card cannot keep its spot once panned toward an edge;
+        // it is placed back on screen when the drag ends.
+        const card = await page.locator(".overlap-chooser-portal").evaluate((element) => {
+          const rect = element.getBoundingClientRect();
+          return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+        });
+        const viewport = page.viewportSize()!;
+        expect(card.left).toBeGreaterThanOrEqual(0);
+        expect(card.top).toBeGreaterThanOrEqual(0);
+        expect(card.right).toBeLessThanOrEqual(viewport.width);
+        expect(card.bottom).toBeLessThanOrEqual(viewport.height);
+      }
+    });
+
     test(`${network} ${mode} chooser closes after native panning with button and Escape`, async ({ page, request, isMobile }) => {
       test.skip(!isMobile && mode === "rotated diagram", "Rotation is a mobile Diagram feature.");
       const segmentId = mode === "geographic" ? await installGeographicOverlap(page, network) : null;

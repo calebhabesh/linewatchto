@@ -16,7 +16,11 @@ describe("desktop overlap badge hover", () => {
     assert.match(mapSource, /const setExternalImpactsHovered = useCallback/);
     assert.match(mapSource, /for \(const impact of impacts\)/);
     assert.match(mapSource, /externallyHoveredImpactKeysRef\.current\.add\(impactKey\)/);
-    assert.match(mapSource, /setLinkedImpactHover\(\{[\s\S]*?kind: impact\.kind,[\s\S]*?id: impact\.cardId/);
+    // Previews outline the alerts and light their station rings; they never
+    // raise alert artwork the way a direct overlay hover does.
+    assert.match(mapSource, /setTtcImpactHovered\(root, \{ kind: impact\.kind, id: impact\.cardId \}, hovered \|\| directlyHovered, "station-rings"\)/);
+    assert.match(mapSource, /showPreviewOutline\(\);/);
+    assert.match(mapSource, /renderTtcPreviewOutline\(/);
     assert.match(mapSource, /className="ttc-impact-hover-foreground-layer"/);
     assert.match(mapSource, /className="station-impact-hover-priority"/);
     assert.doesNotMatch(mapSource, /activeHoverForegrounds\.map|activeHoverHighlights\.map/);

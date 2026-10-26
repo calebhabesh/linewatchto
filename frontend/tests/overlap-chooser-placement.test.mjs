@@ -142,3 +142,73 @@ describe("overlap chooser placement", () => {
     assert.equal(placement.anchorOffsetY, 450 - cardCenter.y);
   });
 });
+
+describe("overlap chooser placement after the camera settles", () => {
+  const badgeBox = { x: 700, y: 430, width: 40, height: 40 };
+  const input = { viewportSize: DESKTOP, badgeBox, affectedArea: [], keepouts: [], requestedSize: CARD };
+  const preferredFrom = (placement, box = badgeBox) => ({
+    offsetX: placement.left - (box.x + box.width / 2),
+    offsetY: placement.top - (box.y + box.height / 2),
+    width: placement.width,
+    height: placement.height,
+  });
+
+  it("keeps an open card beside its badge when the badge moves and the spot is still clear", () => {
+    const opened = placeOverlapChooser(input);
+    const moved = { ...badgeBox, x: badgeBox.x - 90, y: badgeBox.y + 40 };
+    const settled = placeOverlapChooser({ ...input, badgeBox: moved, preferred: preferredFrom(opened) });
+    assert.equal(settled.left, opened.left - 90);
+    assert.equal(settled.top, opened.top + 40);
+    assert.equal(settled.anchorOffsetX, opened.anchorOffsetX);
+    assert.equal(settled.anchorOffsetY, opened.anchorOffsetY);
+  });
+
+  it("moves the card once its spot runs off screen, under a control, or over the overlays", () => {
+    const opened = placeOverlapChooser(input);
+    const preferred = preferredFrom(opened);
+    const kept = cardBox(placeOverlapChooser({ ...input, preferred }));
+
+    const offScreenBadge = { ...badgeBox, x: DESKTOP.width - 60 - (kept.x + kept.width - badgeBox.x) + 200 };
+    const offScreen = placeOverlapChooser({ ...input, badgeBox: offScreenBadge, preferred });
+    assert.ok(offScreen.left + offScreen.width <= DESKTOP.width - 16);
+
+    const control = { x: kept.x + 20, y: kept.y + 20, width: 60, height: 60 };
+    const underControl = placeOverlapChooser({ ...input, keepouts: [control], preferred });
+    assert.equal(intersects(cardBox(underControl), control), false);
+
+    const corridor = { polyline: [{ x: kept.x - 50, y: kept.y + 40 }, { x: kept.x + kept.width + 50, y: kept.y + 40 }], radius: 12 };
+    const overOverlay = placeOverlapChooser({ ...input, affectedArea: [corridor], preferred });
+    assert.equal(coversCorridor(cardBox(overOverlay), corridor), false);
+  });
+
+  it("keeps a card that must cover the overlays where it is until a clear spot exists", () => {
+    const keepouts = [
+      { x: 0, y: 0, width: 390, height: 120 },
+      { x: 0, y: 640, width: 390, height: 204 },
+    ];
+    const corridors = (shift) => [260, 420, 540].map((y) => ({
+      polyline: [{ x: 0, y: y + shift }, { x: 390, y: y + shift }],
+      radius: 10,
+    }));
+    const phone = { viewportSize: PHONE, keepouts, requestedSize: PHONE_CARD };
+    const badgeAt = (shift) => ({ x: 180, y: 330 + shift, width: 30, height: 30 });
+    const opened = placeOverlapChooser({ ...phone, badgeBox: badgeAt(0), affectedArea: corridors(0) });
+    assert.equal(opened.coversAffectedArea, true);
+    const preferred = { ...preferredFrom(opened, badgeAt(0)), coversAffectedArea: true };
+
+    // A small pan: every spot still covers the overlays, so the card stays put.
+    const panned = placeOverlapChooser({ ...phone, badgeBox: badgeAt(6), affectedArea: corridors(6), preferred });
+    assert.equal(panned.top, opened.top + 6);
+    assert.equal(panned.left, opened.left);
+
+    // With the overlays gone from around the badge, a clear spot wins.
+    const cleared = placeOverlapChooser({ ...phone, badgeBox: badgeAt(0), affectedArea: [], preferred });
+    assert.equal(cleared.coversAffectedArea, false);
+  });
+
+  it("does not keep a spot that would cover the badge", () => {
+    const preferred = { offsetX: -100, offsetY: -100, width: CARD.width, height: CARD.height };
+    const placement = placeOverlapChooser({ ...input, preferred });
+    assert.ok(gap(cardBox(placement), badgeBox) >= 12);
+  });
+});

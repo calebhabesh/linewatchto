@@ -12,7 +12,10 @@
 import type { MapBounds, MapPoint } from "../app/map-geometry.ts";
 import type { MapOverlapIndicatorSize } from "./map-overlap-badges.ts";
 import type { ConnectorOutline } from "./overlap-badge-connector.ts";
-import { placeOverlapChooser } from "./overlap-chooser-placement.ts";
+import {
+  placeOverlapChooser,
+  type OverlapChooserPreferredBox,
+} from "./overlap-chooser-placement.ts";
 import type { PlacementObstacle } from "./overlap-badge-placement.ts";
 
 export type SvgBounds = MapBounds;
@@ -44,6 +47,8 @@ export type OverlapChooserScreenLayout = {
   anchorOffsetY: number;
   /** True when the card had to cover part of the highlighted overlays. */
   coversAffectedArea: boolean;
+  /** The badge centre the card was placed for, in viewport pixels. */
+  badgeCenter: MapPoint;
 };
 
 export function boundsForBadgePosition(position: MapPoint, size: OverlapBadgeSize): SvgBounds {
@@ -89,6 +94,7 @@ export function overlapChooserScreenLayout(
   mapTransform: { x: number; y: number; scale: number },
   viewportSize: { width: number; height: number },
   screenKeepoutBoxes: SvgBounds[] = [],
+  preferred: OverlapChooserPreferredBox | null = null,
 ): OverlapChooserScreenLayout {
   const scale = mapTransform.scale * MAP_SVG_TO_CSS_SCALE;
   const toScreen = (point: MapPoint): MapPoint => ({
@@ -112,6 +118,7 @@ export function overlapChooserScreenLayout(
     affectedArea,
     keepouts: screenKeepoutBoxes,
     requestedSize: badge.chooserSize,
+    preferred,
   });
   return {
     left: placement.left,
@@ -121,5 +128,32 @@ export function overlapChooserScreenLayout(
     anchorOffsetX: placement.anchorOffsetX,
     anchorOffsetY: placement.anchorOffsetY,
     coversAffectedArea: placement.coversAffectedArea,
+    badgeCenter,
   };
+}
+
+/** The card's box relative to its badge, to keep it in place across a settled camera move. */
+export function overlapChooserPreferredBox(layout: OverlapChooserScreenLayout): OverlapChooserPreferredBox {
+  return {
+    offsetX: layout.left - layout.badgeCenter.x,
+    offsetY: layout.top - layout.badgeCenter.y,
+    width: layout.width,
+    height: layout.height,
+    coversAffectedArea: layout.coversAffectedArea,
+  };
+}
+
+/** True when two layouts draw the card in the same place for the same badge. */
+export function overlapChooserScreenLayoutsMatch(
+  first: OverlapChooserScreenLayout,
+  second: OverlapChooserScreenLayout,
+): boolean {
+  const near = (a: number, b: number) => Math.abs(a - b) < 0.5;
+  return near(first.left, second.left)
+    && near(first.top, second.top)
+    && near(first.width, second.width)
+    && near(first.height, second.height)
+    && near(first.badgeCenter.x, second.badgeCenter.x)
+    && near(first.badgeCenter.y, second.badgeCenter.y)
+    && first.coversAffectedArea === second.coversAffectedArea;
 }

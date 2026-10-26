@@ -29,6 +29,29 @@
   }
 }
 
+/* Chooser and badge previews outline the previewed alerts as one shape and
+   leave their artwork in its resting order. It stays put while the map moves,
+   with its glow dropped during gestures, so panning with the chooser open does
+   not blink it. */
+.ttc-impact-preview-outline {
+  display: none;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ttc-impact-preview-outline {
+    display: inline;
+  }
+}
+
+:is(
+  [data-map-gesture-active="true"],
+  [data-map-zoom-active="true"],
+  [data-map-camera-moving="true"]
+) .ttc-impact-preview-outline .ttc-impact-hover-outline-edge {
+  filter: none;
+}
+
 .ttc-impact-hover-outline,
 .ttc-impact-hover-outline-mask-outer,
 .ttc-impact-hover-outline-mask-cutout,

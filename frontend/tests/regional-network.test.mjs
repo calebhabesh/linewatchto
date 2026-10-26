@@ -849,7 +849,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalOverlaysSource, /function regionalPlacedOverlapBadges\(/);
     assert.match(regionalOverlaysSource, /placeOverlapBadges\(\{/);
     assert.doesNotMatch(regionalOverlaysSource, /overlapBadgePositions/);
-    assert.match(regionalMapSource, /const animationFrame = window\.requestAnimationFrame\(\(\) => \{[\s\S]*positionRegionalOverlapChooser/);
+    assert.match(regionalMapSource, /const solveWhenStill = \(\) => \{[\s\S]*positionRegionalOverlapChooser\(expandedOverlapBadge\)/);
     assert.doesNotMatch(regionalMapSource, /badge\.position\.x \+ deltaX \* authoredUnitsPerPixel/);
     assert.match(overlapIndicatorSource, /<OverlapKindCountBadge count=\{count\}/);
     assert.match(overlapChooserSource, /<strong>Choose Alert<\/strong>/);

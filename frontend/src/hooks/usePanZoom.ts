@@ -50,6 +50,13 @@ type UsePanZoomOptions = {
   };
   animateInitialEntrance?: boolean;
   isMapActive?: boolean;
+  /** Mirrors every stage transform and transition, e.g. to keep an open chooser on its badge. */
+  cameraFollower?: MapCameraFollower;
+};
+
+export type MapCameraFollower = {
+  writeCamera: (camera: PanZoomTransform) => void;
+  setCameraTransition: (transition: string) => void;
 };
 
 type ZoomToPointOptions = {
@@ -71,6 +78,7 @@ export function usePanZoom({
   defaultFrame,
   animateInitialEntrance = true,
   isMapActive = true,
+  cameraFollower,
 }: UsePanZoomOptions = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isMapActiveRef = useRef(isMapActive);
@@ -193,13 +201,15 @@ export function usePanZoom({
       );
       mapRef.current.style.visibility = "visible";
     }
-  }, [viewportOrientation]);
+    cameraFollower?.writeCamera(next);
+  }, [cameraFollower, viewportOrientation]);
 
   const setMapTransition = useCallback((transition: string) => {
     if (mapRef.current) {
       mapRef.current.style.transition = transition;
     }
-  }, []);
+    cameraFollower?.setCameraTransition(transition);
+  }, [cameraFollower]);
 
   const isProgrammaticCameraMotionRef = useRef(false);
   const setProgrammaticCameraMotion = useCallback((active: boolean) => {
@@ -229,6 +239,12 @@ export function usePanZoom({
   }, []);
 
   const isGestureActive = useCallback(() => isGestureActiveRef.current, []);
+  // A drag, pinch, or camera flight is under way. Each ends by committing the
+  // camera to state, so work deferred while this is true reruns then.
+  const isCameraInteracting = useCallback(
+    () => isGestureActiveRef.current || isProgrammaticCameraMotionRef.current,
+    [],
+  );
 
   const restoreIdleMapTransition = useCallback(() => {
     setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
@@ -1195,6 +1211,7 @@ export function usePanZoom({
     transform,
     relativeScale,
     isGestureActive,
+    isCameraInteracting,
     recenterFeedbackKey,
     containerRef,
     mapRef,

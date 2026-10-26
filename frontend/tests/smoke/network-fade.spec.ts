@@ -305,8 +305,7 @@ test.describe('network artwork fades', () => {
         if (!marker) throw new Error(`No reachable ${network} badge immediately after fade`);
         const bounds = marker.getBoundingClientRect();
         hoveredLayer = layer;
-        hoverSelector = network === 'ttc' ? '[data-ttc-impact-hovered="true"]'
-          : '.regional-impact-hover-foreground[data-regional-impact-hovered="true"]';
+        hoverSelector = network === 'ttc' ? '.ttc-impact-preview-outline' : '.regional-impact-preview-outline';
         handlerMs = null;
         hoverApplied = false;
         await window.__linewatchMapPointerMove!(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
@@ -334,7 +333,10 @@ test.describe('network artwork fades', () => {
         if (!overlayPoint) throw new Error(`No reachable ${network} overlay after fade`);
         await window.__linewatchMapPointerMove!(overlayPoint.x, overlayPoint.y);
         await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-        const overlayPreview = layer.querySelector(hoverSelector);
+        // A direct overlay hover raises the alert's own hover copy.
+        const overlayPreview = layer.querySelector(network === 'ttc'
+          ? '[data-ttc-impact-hovered="true"]'
+          : '.regional-impact-hover-foreground[data-regional-impact-hovered="true"]');
         if (!overlayPreview || getComputedStyle(overlayPreview).visibility !== 'visible') {
           throw new Error(`${network} ignored the first overlay hover after fade`);
         }

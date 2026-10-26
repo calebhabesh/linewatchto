@@ -140,6 +140,33 @@
   }
 }
 
+/* Chooser and badge previews outline the previewed alerts as one shape and
+   leave their artwork in its resting order. It stays put while the map moves,
+   with its glow dropped during gestures, so panning with the chooser open does
+   not blink it. */
+.regional-impact-preview-outline {
+  display: none;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .regional-impact-preview-outline {
+    display: inline;
+  }
+}
+
+.regional-impact-preview-outline-edge {
+  filter: drop-shadow(0 0 7px rgba(191, 219, 254, 0.62));
+}
+
+:is(
+  [data-map-gesture-active="true"],
+  [data-map-zoom-active="true"],
+  [data-regional-map-camera-moving="true"]
+) .regional-impact-preview-outline-edge {
+  filter: none;
+}
+
 .regional-station-impact-hover-foreground {
   opacity: 0;
   visibility: hidden;

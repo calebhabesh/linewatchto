@@ -62,7 +62,10 @@ import {
   placeOverlapBadges,
   type PlacementObstacle,
 } from "../components/overlap-badge-placement.ts";
-import { placeOverlapChooser } from "../components/overlap-chooser-placement.ts";
+import {
+  placeOverlapChooser,
+  type OverlapChooserPreferredBox,
+} from "../components/overlap-chooser-placement.ts";
 import {
   OVERLAP_BADGE_CONNECTOR_DOT_RADIUS,
   overlapBadgeConnector,
@@ -1072,6 +1075,116 @@ export function regionalTopHoverForeground(
   return topForeground;
 }
 
+/**
+ * One outline around several alerts, for the chooser and badge previews. Each
+ * alert's outline drawn separately would cross through the others wherever
+ * their extents differ; masking all of them together outlines their union.
+ * Only the outline is drawn: preview hovers never repaint or reorder artwork.
+ */
+export function regionalPreviewOutline(sources: SVGPathElement[], idBase: string): SVGGElement | null {
+  const first = sources[0];
+  if (!first) return null;
+  const documentNode = first.ownerSVGElement ? regionalSvgScope(first.ownerSVGElement) : first.ownerDocument;
+  const matrixFor = (element: SVGElement) => {
+    const origin = pointInSvgRootCoordinates(element, { x: 0, y: 0 });
+    const xBasis = pointInSvgRootCoordinates(element, { x: 1, y: 0 });
+    const yBasis = pointInSvgRootCoordinates(element, { x: 0, y: 1 });
+    return `matrix(${[
+      xBasis.x - origin.x,
+      xBasis.y - origin.y,
+      yBasis.x - origin.x,
+      yBasis.y - origin.y,
+      origin.x,
+      origin.y,
+    ].join(" ")})`;
+  };
+  const transforms = sources.map(matrixFor);
+  const pathClones = (stroke: string, width: number) => sources.map((source, index) => {
+    const path = source.cloneNode(false) as SVGPathElement;
+    path.removeAttribute("id");
+    path.removeAttribute("class");
+    path.removeAttribute("style");
+    path.removeAttribute("mask");
+    path.setAttribute("transform", transforms[index]);
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", stroke);
+    path.setAttribute("stroke-width", String(width));
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+    return path;
+  });
+  const unionCutout = () => {
+    const union = documentNode.getElementById("station-union") as SVGRectElement | null;
+    if (!union || union.tagName.toLowerCase() !== "rect") return null;
+    const cutout = union.cloneNode(false) as SVGRectElement;
+    cutout.removeAttribute("id");
+    cutout.removeAttribute("class");
+    cutout.removeAttribute("style");
+    cutout.setAttribute("transform", transforms[0]);
+    cutout.setAttribute("fill", "black");
+    cutout.setAttribute("stroke", "black");
+    cutout.setAttribute("stroke-width", String(REGIONAL_UNION_TOP_HOVER_CUTOUT_STROKE_WIDTH));
+    return cutout;
+  };
+  const bounds = {
+    x: REGIONAL_MAP_VIEWBOX.x - REGIONAL_MAP_VIEWBOX.width,
+    y: REGIONAL_MAP_VIEWBOX.y - REGIONAL_MAP_VIEWBOX.height,
+    width: REGIONAL_MAP_VIEWBOX.width * 3,
+    height: REGIONAL_MAP_VIEWBOX.height * 3,
+  };
+  const mask = (id: string, cutoutWidth: number) => {
+    const element = documentNode.createElementNS(SVG_NAMESPACE, "mask");
+    element.id = id;
+    element.setAttribute("maskUnits", "userSpaceOnUse");
+    element.setAttribute("x", String(bounds.x));
+    element.setAttribute("y", String(bounds.y));
+    element.setAttribute("width", String(bounds.width));
+    element.setAttribute("height", String(bounds.height));
+    const background = documentNode.createElementNS(SVG_NAMESPACE, "rect");
+    background.setAttribute("x", String(bounds.x));
+    background.setAttribute("y", String(bounds.y));
+    background.setAttribute("width", String(bounds.width));
+    background.setAttribute("height", String(bounds.height));
+    background.setAttribute("fill", "black");
+    // Every alert's outer stroke first, then every cutout, so the ring
+    // follows the union instead of each alert's own capsule.
+    element.append(
+      background,
+      ...pathClones("white", REGIONAL_HIGHLIGHT_OUTLINE_WIDTH),
+      ...pathClones("black", cutoutWidth),
+    );
+    const hubCutout = unionCutout();
+    if (hubCutout) element.append(hubCutout);
+    return element;
+  };
+  const coreMaskId = `${idBase}-core`;
+  const edgeMaskId = `${idBase}-edge`;
+  const definitions = documentNode.createElementNS(SVG_NAMESPACE, "defs");
+  definitions.append(
+    mask(coreMaskId, REGIONAL_HIGHLIGHT_INNER_WIDTH),
+    mask(edgeMaskId, REGIONAL_HIGHLIGHT_DIVIDER_WIDTH),
+  );
+  // Masks sit on untransformed wrappers so each path keeps its own transform
+  // without it being applied to the mask content a second time.
+  const layer = (maskId: string, className: string, stroke: string) => {
+    const group = documentNode.createElementNS(SVG_NAMESPACE, "g");
+    group.classList.add("regional-impact-preview-outline-stroke", className);
+    group.setAttribute("mask", `url(#${maskId})`);
+    group.append(...pathClones(stroke, REGIONAL_HIGHLIGHT_OUTLINE_WIDTH));
+    return group;
+  };
+  const outline = documentNode.createElementNS(SVG_NAMESPACE, "g");
+  outline.classList.add("regional-impact-preview-outline");
+  outline.setAttribute("aria-hidden", "true");
+  outline.setAttribute("pointer-events", "none");
+  outline.append(
+    definitions,
+    layer(coreMaskId, "regional-impact-preview-outline-core", "rgba(15, 23, 42, 0.98)"),
+    layer(edgeMaskId, "regional-impact-preview-outline-edge", "rgba(248, 250, 252, 0.98)"),
+  );
+  return outline;
+}
+
 export function addRegionalSegmentFocusTargets(group: SVGGElement, segments: RegionalHoverSegment[]) {
   const hitTarget = group.querySelector<SVGPathElement>(".regional-impact-hit-target");
   if (!hitTarget || segments.length === 0) return;
@@ -1672,6 +1785,7 @@ export function regionalOverlapChooserLayout({
   viewportSize,
   alertCollisionBoxes,
   uiKeepoutBoxes,
+  preferred = null,
 }: {
   markerCenter: { x: number; y: number };
   markerSize: { width: number; height: number };
@@ -1679,7 +1793,8 @@ export function regionalOverlapChooserLayout({
   viewportSize: { width: number; height: number };
   alertCollisionBoxes: RegionalCollisionBox[];
   uiKeepoutBoxes: RegionalCollisionBox[];
-}): { layout: MapOverlapChooserLayout; size: { width: number; height: number } } {
+  preferred?: OverlapChooserPreferredBox | null;
+}): { layout: MapOverlapChooserLayout; size: { width: number; height: number }; coversAffectedArea: boolean } {
   const placement = placeOverlapChooser({
     viewportSize,
     badgeBox: {
@@ -1694,8 +1809,10 @@ export function regionalOverlapChooserLayout({
     })),
     keepouts: uiKeepoutBoxes,
     requestedSize: chooserSize,
+    preferred,
   });
   return {
+    coversAffectedArea: placement.coversAffectedArea,
     layout: {
       left: placement.left,
       top: placement.top,
@@ -1762,6 +1879,7 @@ export interface RegionalOverlaySession {
   updateStationSelection(selectedStationId: string | null, selectionIntroCompleted?: boolean): void;
   setImpactHover(impact: RegionalImpactIdentity | null, hovered: boolean): void;
   setExternalImpactsHover(impacts: MapImpact[], hovered: boolean): void;
+  setChooserImpactHover(impact: MapImpact | null): void;
   markSelectionIntroComplete(): void;
   dispose(): void;
 }
@@ -1817,10 +1935,50 @@ export function installRegionalOverlaySession(
     });
   };
 
+  // Hovering one alert, on the map or as a chooser row, repaints it above the
+  // others with its outline. Group previews (the open chooser with no row
+  // hovered, or a hovered badge) only outline every alert they cover, since
+  // several alerts cannot all be on top (see setExternalImpactsHover). Owners
+  // share elements, so an alert stays raised while any owner still holds it.
+  let chooserRaisedImpact: RegionalImpactIdentity | null = null;
   const setLinkedImpactHover = (impact: RegionalImpactIdentity | null, hovered: boolean) => {
     if (!impact) return;
-    setRegionalImpactHoverForeground(viewport, impact.kind, impact.id, hovered);
-    setRegionalStationImpactHover(viewport, impact.kind, impact.id, hovered);
+    const raised = hovered || [hoveredMapImpact, chooserRaisedImpact].some((owner) => (
+      owner && owner !== impact && owner.kind === impact.kind && owner.id === impact.id
+    ));
+    setRegionalImpactHoverForeground(viewport, impact.kind, impact.id, raised);
+    setRegionalStationImpactHover(
+      viewport,
+      impact.kind,
+      impact.id,
+      raised || externallyHoveredImpactKeys.has(`${impact.kind}:${impact.id}`),
+    );
+  };
+
+  const setChooserImpactHover = (impact: MapImpact | null) => {
+    const previous = chooserRaisedImpact;
+    chooserRaisedImpact = null;
+    if (previous) setLinkedImpactHover(previous, false);
+    if (!impact) return;
+    chooserRaisedImpact = { kind: impact.kind, id: impact.cardId };
+    setLinkedImpactHover(chooserRaisedImpact, true);
+  };
+
+  let previewOutlineGeneration = 0;
+  const renderPreviewOutline = () => {
+    topHoverLayer.querySelectorAll(".regional-impact-preview-outline").forEach((outline) => outline.remove());
+    if (externallyHoveredImpactKeys.size === 0) return;
+    const sources = [...segmentLayer.querySelectorAll<SVGElement>(".regional-overlay-segment-group")]
+      .filter((group) => externallyHoveredImpactKeys.has(
+        `${group.dataset.regionalImpactKind}:${group.dataset.regionalImpactId}`,
+      ))
+      .map((group) => group.querySelector<SVGPathElement>(".regional-impact-hover-boundary"))
+      .filter((boundary): boundary is SVGPathElement => Boolean(boundary));
+    previewOutlineGeneration += 1;
+    const outline = regionalPreviewOutline(sources, `regional-preview-outline-${previewOutlineGeneration}`);
+    if (!outline) return;
+    outline.dataset.regionalPreviewImpacts = [...externallyHoveredImpactKeys].sort().join(" ");
+    topHoverLayer.append(outline);
   };
 
   const handlePointerMove = (event: globalThis.PointerEvent) => {
@@ -1829,9 +1987,7 @@ export function installRegionalOverlaySession(
     const target = event.target instanceof Element ? event.target : null;
     if (!target || !viewport.contains(target) || target.closest(".overlap-indicator")) {
       if (hoveredMapImpact) {
-        if (!externallyHoveredImpactKeys.has(`${hoveredMapImpact.kind}:${hoveredMapImpact.id}`)) {
-          setLinkedImpactHover(hoveredMapImpact, false);
-        }
+        setLinkedImpactHover(hoveredMapImpact, false);
         hoveredMapImpact = null;
         options?.onHoverImpact?.(null);
       }
@@ -1850,16 +2006,9 @@ export function installRegionalOverlaySession(
       || hoveredMapImpact?.id !== nextImpact?.id
       || hoveredMapImpact?.segmentId !== nextImpact?.segmentId
     ) {
-      if (
-        hoveredMapImpact
-        && !externallyHoveredImpactKeys.has(`${hoveredMapImpact.kind}:${hoveredMapImpact.id}`)
-      ) {
-        setLinkedImpactHover(hoveredMapImpact, false);
-      }
+      if (hoveredMapImpact) setLinkedImpactHover(hoveredMapImpact, false);
       hoveredMapImpact = nextImpact;
-      if (nextImpact && !externallyHoveredImpactKeys.has(`${nextImpact.kind}:${nextImpact.id}`)) {
-        setLinkedImpactHover(nextImpact, true);
-      }
+      if (nextImpact) setLinkedImpactHover(nextImpact, true);
       options?.onHoverImpact?.(nextImpact);
     }
   };
@@ -1896,9 +2045,7 @@ export function installRegionalOverlaySession(
       && currentImpact?.id === nextImpact?.id
       && currentImpact?.segmentId === nextImpact?.segmentId
     ) return;
-    if (currentImpact && !externallyHoveredImpactKeys.has(`${currentImpact.kind}:${currentImpact.id}`)) {
-      setLinkedImpactHover(currentImpact, false);
-    }
+    if (currentImpact) setLinkedImpactHover(currentImpact, false);
     if (nextImpact) {
       options?.onHoverImpact?.(nextImpact);
     }
@@ -2275,6 +2422,15 @@ export function installRegionalOverlaySession(
         topHoverLayer.append(regionalTopHoverForeground(sourceBoundary, index));
       }
     });
+    // A rebuild replaces the hover elements; restore what is hovered now.
+    renderPreviewOutline();
+    for (const key of externallyHoveredImpactKeys) {
+      const separator = key.indexOf(":");
+      setRegionalStationImpactHover(viewport, key.slice(0, separator) as ImpactKind, key.slice(separator + 1), true);
+    }
+    for (const owner of [hoveredMapImpact, chooserRaisedImpact]) {
+      if (owner) setLinkedImpactHover(owner, true);
+    }
 
     if (data.selectedStationId) {
       applyStationSelection(data.selectedStationId, data.selectionIntroCompleted);
@@ -2330,6 +2486,8 @@ export function installRegionalOverlaySession(
     setLinkedImpactHover(impact, hovered);
   };
 
+  // Chooser and badge previews: one outline around the previewed alerts, and
+  // their station rings. Artwork keeps its resting order, as on the map.
   const setExternalImpactsHover = (impacts: MapImpact[], hovered: boolean) => {
     for (const impact of impacts) {
       const key = `${impact.kind}:${impact.cardId}`;
@@ -2338,16 +2496,11 @@ export function installRegionalOverlaySession(
       } else {
         externallyHoveredImpactKeys.delete(key);
       }
-      setRegionalImpactHoverForeground(viewport, impact.kind, impact.cardId, false);
-      if (hovered) {
-        setRegionalImpactHoverForeground(viewport, impact.kind, impact.cardId, true);
-      } else if (hoveredMapImpact?.kind === impact.kind && hoveredMapImpact.id === impact.cardId) {
-        setRegionalImpactHoverForeground(viewport, impact.kind, impact.cardId, true);
-      }
       setRegionalStationImpactHover(viewport, impact.kind, impact.cardId, hovered || (
         hoveredMapImpact?.kind === impact.kind && hoveredMapImpact.id === impact.cardId
       ));
     }
+    renderPreviewOutline();
   };
 
   const markSelectionIntroComplete = () => {
@@ -2367,7 +2520,9 @@ export function installRegionalOverlaySession(
       settledPulseFrame = null;
     }
     hoveredMapImpact = null;
+    chooserRaisedImpact = null;
     externallyHoveredImpactKeys.clear();
+    renderPreviewOutline();
   };
 
   return {
@@ -2377,6 +2532,7 @@ export function installRegionalOverlaySession(
     updateStationSelection,
     setImpactHover,
     setExternalImpactsHover,
+    setChooserImpactHover,
     markSelectionIntroComplete,
     dispose,
   };

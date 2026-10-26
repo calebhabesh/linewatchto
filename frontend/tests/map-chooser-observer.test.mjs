@@ -10,6 +10,7 @@ test('closed chooser ignores pan attributes; opening measures, closing cancels a
   class Node {
     matches() { return true; }
     querySelector() { return null; }
+    closest() { return null; }
   }
   class Observer {
     constructor(callback) { this.callback = callback; observers.push(this); }

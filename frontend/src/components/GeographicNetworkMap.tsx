@@ -62,7 +62,13 @@ import {
 } from "../app/geographic-lifecycle";
 import { MapOverlapChooser } from "./MapOverlapChooser";
 import {
+  MapChooserFollower,
+  chooserBadgeInView,
+  type ChooserFollowAnchor,
+} from "./map-chooser-follow";
+import {
   chooseGeographicChooserLayout,
+  geographicChooserLayoutsMatch,
   GEOGRAPHIC_CHOOSER_KEEPOUT_GAP,
   type GeographicOverlapChooserLayout,
 } from "./geographic-chooser-placement";
@@ -337,7 +343,14 @@ export function GeographicNetworkMap({
   const [retryCount, setRetryCount] = useState(0);
   const [currentZoom, setCurrentZoom] = useState<number>(() => getGeographicDefaultZoom(network));
   const [overlapChooser, setOverlapChooser] = useState<GeographicOverlapChooserState | null>(null);
-  const [overlapChooserLayout, setOverlapChooserLayout] = useState<GeographicOverlapChooserLayout | null>(null);
+  const [overlapChooserLayout, setOverlapChooserLayout] = useState<
+    (GeographicOverlapChooserLayout & { followAnchor: ChooserFollowAnchor }) | null
+  >(null);
+  const [overlapChooserFollower] = useState(() => new MapChooserFollower());
+  const overlapChooserLayoutRef = useRef(overlapChooserLayout);
+  useLayoutEffect(() => {
+    overlapChooserLayoutRef.current = overlapChooserLayout;
+  }, [overlapChooserLayout]);
   const [hoveredOverlapImpact, setHoveredOverlapImpact] = useState<MapImpact | null>(null);
   const [hoveredMapTarget, setHoveredMapTarget] = useState<{
     type: "segment" | "station";
@@ -1468,14 +1481,24 @@ export function GeographicNetworkMap({
       return;
     }
 
+    // Solve the chooser only while the map is at rest. While it moves, the
+    // follower keeps the card on its badge from MapLibre's move events, and
+    // the solve after `moveend` glides it to its new spot.
     let frameId: number | null = null;
+    let opening = true;
+    const followBadge = () => {
+      const point = map.project(overlapChooser.coordinate);
+      overlapChooserFollower.followPoint({ x: point.x, y: point.y });
+    };
     const updateLayout = () => {
       if (frameId !== null) return;
       frameId = window.requestAnimationFrame(() => {
         frameId = null;
+        if (!opening && map.isMoving()) return;
         const width = container.clientWidth;
         const height = container.clientHeight;
         const point = map.project(overlapChooser.coordinate);
+        const badgeInView = chooserBadgeInView(point, { width, height });
         const compact = width <= 640;
         const requestedChooserSize = overlapChooserSize(overlapChooser.impacts.length, width);
         const containerRect = container.getBoundingClientRect();
@@ -1508,30 +1531,53 @@ export function GeographicNetworkMap({
             bottom: Math.min(height, topChromeBottom - containerRect.top + GEOGRAPHIC_CHOOSER_KEEPOUT_GAP),
           });
         }
-        setOverlapChooserLayout(chooseGeographicChooserLayout({
-          anchor: point,
-          viewportSize: { width, height },
-          requestedSize: requestedChooserSize,
-          keepouts,
-          margin: compact ? 12 : 16,
-        }));
+        const current = opening ? null : overlapChooserLayoutRef.current;
+        const next = {
+          ...chooseGeographicChooserLayout({
+            anchor: point,
+            viewportSize: { width, height },
+            requestedSize: requestedChooserSize,
+            keepouts,
+            margin: compact ? 12 : 16,
+            // Keep the open card's spot beside its badge while that spot is valid.
+            preferred: current
+              ? {
+                  offsetX: current.layout.left - current.followAnchor.badge.x,
+                  offsetY: current.layout.top - current.followAnchor.badge.y,
+                  width: current.chooserSize.width,
+                  height: current.chooserSize.height,
+                }
+              : null,
+          }),
+          followAnchor: { badge: { x: point.x, y: point.y } },
+        };
+        const wasOpening = opening;
+        opening = false;
+        setOverlapChooserLayout((current) => {
+          if (!current || wasOpening) return next;
+          // A badge panned off screen keeps its card attached to it.
+          if (!badgeInView) return current;
+          return geographicChooserLayoutsMatch(current, next) ? current : next;
+        });
       });
     };
 
     updateLayout();
-    map.on("move", updateLayout);
+    map.on("move", followBadge);
+    map.on("moveend", updateLayout);
     map.on("resize", updateLayout);
     const resizeObserver = new ResizeObserver(updateLayout);
     resizeObserver.observe(container);
     const stopObservingKeepouts = observeMapChooserKeepouts(updateLayout);
     return () => {
-      map.off("move", updateLayout);
+      map.off("move", followBadge);
+      map.off("moveend", updateLayout);
       map.off("resize", updateLayout);
       stopObservingKeepouts();
       resizeObserver.disconnect();
       if (frameId !== null) window.cancelAnimationFrame(frameId);
     };
-  }, [loadStatus, overlapChooser]);
+  }, [loadStatus, overlapChooser, overlapChooserFollower]);
 
   // React to commute preview changes (focus camera on commute route)
   useEffect(() => {
@@ -1678,6 +1724,8 @@ export function GeographicNetworkMap({
           chooserSize={overlapChooserLayout.chooserSize}
           collisionAvoided
           layout={overlapChooserLayout.layout}
+          follower={overlapChooserFollower}
+          followAnchor={overlapChooserLayout.followAnchor}
           onSelectImpact={(nextSelection) => onSelectImpact?.(nextSelection)}
           onHoverImpact={setHoveredOverlapImpact}
           onClose={(restoreFocus) => {
