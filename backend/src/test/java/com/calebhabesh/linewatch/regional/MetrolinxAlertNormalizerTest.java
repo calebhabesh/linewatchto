@@ -765,6 +765,225 @@ class MetrolinxAlertNormalizerTest {
             .satisfies(event -> assertThat(event.serviceEffect()).isNotIn("service-resumed", "service-recovering"));
     }
 
+    @Test
+    void mergesLineAdvisoryWithItsStationInformationRepost() throws Exception {
+        // Reposts can also differ in letter case ("Service adjustments" / "service adjustments").
+        var stationRepost = weekendAdvisory(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000530060",
+            STOUFFVILLE_TITLE.replace("Service", "service"), "AG", "KE", "MK");
+        var lineNotice = weekendAdvisory(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000530377",
+            STOUFFVILLE_TITLE);
+
+        for (MetrolinxFeed feed : List.of(feed(stationRepost, lineNotice), feed(lineNotice, stationRepost))) {
+            assertThat(normalizer.classify(feed)).singleElement().satisfies(event -> {
+                // The line notice leads by source priority even though the repost has the lower ID.
+                assertThat(event.canonicalEventId()).isEqualTo("go-530377");
+                assertThat(event.sources()).extracting(RegionalAlertClassification.SourceReference::sourceId)
+                    .containsExactly("M0000530377", "M0000530060");
+            });
+            assertThat(normalizer.normalize(feed))
+                .filteredOn(alert -> "planned-closure".equals(alert.impactKind()))
+                .extracting(RegionalNormalizedAlert::id)
+                .containsExactly("regional-go-530377-st");
+        }
+    }
+
+    @Test
+    void mergesIdenticalNoticesFromOneSourceUnderTheLowestNoticeId() throws Exception {
+        var later = weekendAdvisory(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000529157", STOUFFVILLE_TITLE);
+        var earlier = weekendAdvisory(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000529156", STOUFFVILLE_TITLE);
+
+        assertThat(normalizer.classify(feed(later, earlier))).singleElement()
+            .satisfies(event -> assertThat(event.canonicalEventId()).isEqualTo("go-529156"));
+    }
+
+    @Test
+    void keepsFollowUpNoticesOtherLinesAndOtherStationsSeparate() throws Exception {
+        var original = weekendAdvisory(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000530377", STOUFFVILLE_TITLE);
+        var update = weekendAdvisory(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000530380",
+            "Update: " + STOUFFVILLE_TITLE);
+        var otherLine = lineAdvisory(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000530381", "LE",
+            STOUFFVILLE_TITLE);
+        var agincourtRepost = weekendAdvisory(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000530390",
+            STOUFFVILLE_TITLE, "AG");
+        var kennedyRepost = weekendAdvisory(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000530391",
+            STOUFFVILLE_TITLE, "KE");
+
+        assertThat(normalizer.classify(feed(update, otherLine, agincourtRepost, kennedyRepost)))
+            .extracting(RegionalAlertClassification::canonicalEventId)
+            .containsExactly("go-530380", "go-530381", "go-530390", "go-530391");
+        assertThat(normalizer.classify(feed(original, update)))
+            .extracting(RegionalAlertClassification::canonicalEventId)
+            .containsExactly("go-530377", "go-530380");
+    }
+
+    @Test
+    void mergesRepostThatRepeatsTheTitleAndDropsTheFinalStop() throws Exception {
+        var lineNotice = goNotice(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000528122", LAKESHORE_TITLE,
+            LAKESHORE_BODY + ".", "Information");
+        var repost = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000531107", LAKESHORE_TITLE,
+            LAKESHORE_TITLE + " " + LAKESHORE_BODY, "Information");
+
+        assertThat(normalizer.classify(feed(lineNotice, repost))).singleElement().satisfies(event -> {
+            assertThat(event.canonicalEventId()).isEqualTo("go-531107");
+            assertThat(event.description()).isEqualTo(LAKESHORE_BODY);
+        });
+    }
+
+    @Test
+    void foldsStationClosureListsIntoTheLineNoticeThatCoversThem() throws Exception {
+        var lineNotice = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528122", LAKESHORE_TITLE,
+            LAKESHORE_BODY, "Information");
+        var stationList = goNotice(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000528100",
+            LAKESHORE_TITLE.replace("service", "Service"),
+            "There is no GO train service at this station due to planned construction.", "E-Ticket",
+            "CL", "OA", "BU");
+        var outsideSpan = goNotice(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000528102", LAKESHORE_TITLE,
+            "There is no GO train service at this station due to planned construction.", "E-Ticket", "WR");
+        var otherTitle = goNotice(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000528103",
+            "Aug. 8-9: Station parking changes",
+            "There is no GO train service at this station due to planned construction.", "E-Ticket", "OA");
+
+        var events = normalizer.classify(feed(lineNotice, stationList, outsideSpan, otherTitle));
+
+        assertThat(events).extracting(RegionalAlertClassification::canonicalEventId)
+            .containsExactly("go-528122", "go-528102", "go-528103");
+        assertThat(events.getFirst().sources()).extracting(RegionalAlertClassification.SourceReference::sourceId)
+            .containsExactly("M0000528122", "M0000528100");
+        assertThat(events.getFirst().description()).isEqualTo(LAKESHORE_BODY);
+    }
+
+    @Test
+    void foldsATopRedBannerIntoTheNoticeItRestates() throws Exception {
+        var lineNotice = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528122", LAKESHORE_TITLE,
+            LAKESHORE_BODY, "Information");
+        var banner = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528641",
+            "This weekend, service will be adjusted on Lakeshore West due to planned construction.",
+            "On Saturday, Aug. 8 and Sunday, Aug. 9, there will be no GO train service between Aldershot GO "
+                + "and Union Station. Please plan ahead.", "Top Red Banner");
+        var otherSpanBanner = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528642",
+            "This weekend, service will be adjusted on Lakeshore West due to planned construction.",
+            "On Saturday, Aug. 8 and Sunday, Aug. 9, there will be no GO train service between Burlington GO "
+                + "and Hamilton GO. Please plan ahead.", "Top Red Banner");
+
+        // Banners take their window from the paired GTFS record, which starts when the banner is posted.
+        var bannerWindow = bannerPeriod("528641");
+        var otherBannerWindow = bannerPeriod("528642");
+
+        assertThat(normalizer.classify(feed(banner, bannerWindow, lineNotice, otherSpanBanner, otherBannerWindow)))
+            .extracting(RegionalAlertClassification::canonicalEventId)
+            .containsExactly("go-528122", "go-528642");
+        assertThat(normalizer.classify(feed(banner, lineNotice)))
+            .as("a banner without a known window is not folded")
+            .hasSize(2);
+
+        var extraStationBanner = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528643",
+            "This weekend, service will be adjusted on Lakeshore West due to planned construction.",
+            "On Saturday, Aug. 8 and Sunday, Aug. 9, there will be no GO train service between Aldershot GO "
+                + "and Union Station. There will be no GO Transit service at Exhibition GO.", "Top Red Banner");
+        var replacementBanner = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528644",
+            "This weekend, service will be adjusted on Lakeshore West due to planned construction.",
+            "On Saturday, Aug. 8 and Sunday, Aug. 9, there will be no GO train service between Aldershot GO "
+                + "and Union Station. GO buses will replace train service.", "Top Red Banner");
+        assertThat(normalizer.classify(feed(lineNotice, extraStationBanner, bannerPeriod("528643"))))
+            .as("a banner naming a station its notice does not is not folded")
+            .hasSize(2);
+        assertThat(normalizer.classify(feed(lineNotice, replacementBanner, bannerPeriod("528644"))))
+            .as("a banner stating a replacement service its notice does not is not folded")
+            .hasSize(2);
+    }
+
+    @Test
+    void stationClosureListsMarkStationsWithoutClosingTheTrackBetweenThem() throws Exception {
+        var stationList = goNotice(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000528100",
+            "Aug. 8-9: Station closures",
+            "There is no GO train service at this station due to planned construction.", "E-Ticket",
+            "CL", "OA", "BU");
+        var betweenTwoStops = goNotice(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000528110",
+            "Aug. 8-9: Lakeshore West disruption",
+            "There is no GO train service between these stations due to planned construction.", "E-Ticket",
+            "CL", "BU");
+
+        assertThat(normalizer.normalize(feed(stationList, betweenTwoStops)))
+            .filteredOn(alert -> "planned-closure".equals(alert.impactKind()))
+            .satisfiesExactly(
+                closures -> {
+                    assertThat(closures.stationIds()).containsExactly("clarkson", "oakville", "burlington");
+                    assertThat(closures.affectedSegmentIds()).isEmpty();
+                },
+                span -> {
+                    assertThat(span.stationIds()).containsExactly("clarkson", "burlington");
+                    assertThat(span.affectedSegmentIds()).isNotEmpty();
+                });
+    }
+
+    @Test
+    void noTrainServiceOnANamedRouteClosesTheWholeRoute() throws Exception {
+        var notice = lineAdvisory(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000530068", "LE",
+            "Aug. 8-9: Service adjustments", "DA", "SC");
+        var record = new MetrolinxFetchedRecord(notice.sourceSystem(), notice.sourceId(), notice.rawPayload()
+            .replaceAll("\"BodyEnglish\":\"[^\"]*\"", "\"BodyEnglish\":\"On Saturday, Aug. 8 and Sunday, Aug. 9, "
+                + "there will be no GO train service on Lakeshore East. GO buses will replace train service. There "
+                + "will be no GO Transit service at Scarborough or Danforth GO.\""));
+
+        assertThat(normalizer.classify(feed(record))).singleElement()
+            .satisfies(event -> assertThat(event.scope()).isEqualTo("corridor"));
+    }
+
+    private MetrolinxFetchedRecord bannerPeriod(String id) {
+        return new MetrolinxFetchedRecord(MetrolinxSourceSystem.GO_GTFS_ALERTS, id, """
+            {"id":"%s","alert":{"active_period":[{"start":1786183200}],
+             "informed_entity":[{"route_id":"09261126-LW","agency_id":"GO"}]}}
+            """.formatted(id));
+    }
+
+    private static final String LAKESHORE_TITLE = "Aug. 8-9: Lakeshore West service adjustments";
+    private static final String LAKESHORE_BODY = "On Saturday, Aug. 8 and Sunday, Aug. 9, GO trains will run between "
+        + "Niagara Falls and Aldershot GO. There will be no GO train service between Aldershot GO and Union Station. "
+        + "GO buses will run between West Harbour GO and Union Station Bus Terminal";
+
+    private MetrolinxFetchedRecord goNotice(
+        String sourceSystem, String code, String title, String body, String subcategory, String... stops
+    ) throws Exception {
+        String json = objectMapper.writeValueAsString(java.util.Map.of(
+            "Code", code,
+            "Status", "INIT",
+            "PostedDateTime", "2026-07-28 09:00:00",
+            "SubjectEnglish", title,
+            "BodyEnglish", body,
+            "Category", "General Information",
+            "SubCategory", subcategory,
+            "Lines", List.of(java.util.Map.of("Code", "LW")),
+            "Stops", java.util.Arrays.stream(stops).map(stop -> java.util.Map.of("Code", stop)).toList()
+        ));
+        return new MetrolinxFetchedRecord(sourceSystem, code, json);
+    }
+
+    private static final String STOUFFVILLE_TITLE = "Aug. 8-9: Service adjustments";
+
+    private MetrolinxFetchedRecord weekendAdvisory(String sourceSystem, String code, String title, String... stops)
+        throws Exception {
+        return lineAdvisory(sourceSystem, code, "ST", title, stops);
+    }
+
+    private MetrolinxFetchedRecord lineAdvisory(
+        String sourceSystem, String code, String line, String title, String... stops
+    ) throws Exception {
+        String json = objectMapper.writeValueAsString(java.util.Map.of(
+            "Code", code,
+            "Status", "INIT",
+            "PostedDateTime", "2026-07-28 09:00:00",
+            "SubjectEnglish", title,
+            "BodyEnglish", "On Saturday, Aug. 8 and Sunday, Aug. 9, planned construction is taking place on the "
+                + "Stouffville line. There will be no GO train service on the Stouffville line. GO buses will "
+                + "replace trains. There will be no GO Transit service at Milliken, Agincourt, and Kennedy GO.",
+            "Category", "Service Disruption",
+            "SubCategory", "Information",
+            "Lines", List.of(java.util.Map.of("Code", line)),
+            "Stops", java.util.Arrays.stream(stops).map(stop -> java.util.Map.of("Code", stop)).toList()
+        ));
+        return new MetrolinxFetchedRecord(sourceSystem, code, json);
+    }
+
     private MetrolinxFetchedRecord incidentNotice(String code, String title, String body) throws Exception {
         return serviceAlert(objectMapper.writeValueAsString(java.util.Map.of(
             "Code", code,

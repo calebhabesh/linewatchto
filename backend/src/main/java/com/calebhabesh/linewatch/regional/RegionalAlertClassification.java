@@ -61,6 +61,17 @@ public record RegionalAlertClassification(
             spanStationIds, stationRoles, fieldSources, primaryRawPayload, List.of());
     }
 
+    /** Returns this event unchanged except that it also references the given source records. */
+    public RegionalAlertClassification withAdditionalSources(List<SourceReference> additional) {
+        List<SourceReference> combined = new java.util.ArrayList<>(sources);
+        additional.stream().filter(source -> !combined.contains(source)).forEach(combined::add);
+        return new RegionalAlertClassification(canonicalEventId, List.copyOf(combined), lineIds, tripNumbers,
+            timing, serviceEffect, operatingChange, scope, cause, replacementService, maximumDelayMinutes,
+            title, description, activePeriodStart, activePeriodEnd, activePeriodBasis,
+            sourceActivePeriodStart, sourceActivePeriodEnd, publishedAt, stationIds, spanStationIds,
+            stationRoles, fieldSources, primaryRawPayload, impacts);
+    }
+
     public record Impact(
         String id, String serviceEffect, String scope, List<String> stationIds,
         OffsetDateTime start, OffsetDateTime endExclusive, String basis,

@@ -124,10 +124,10 @@ public class RegionalDashboardService {
         List<MapController.StationNodeImpactDto> stationImpacts = alerts.stream()
             .filter(alert -> !"advisory".equals(alert.impactKind())
                 && !"planned-closure".equals(alert.impactKind()))
-            .filter(alert -> alert.stationIds().size() == 1 && alert.affectedSegmentIds().isEmpty())
-            .map(alert -> new MapController.StationNodeImpactDto(
-                alert.stationIds().getFirst(), alert.impactKind(), alert.id(), alert.title()
-            ))
+            .filter(alert -> !alert.stationIds().isEmpty() && alert.affectedSegmentIds().isEmpty())
+            .flatMap(alert -> alert.stationIds().stream().map(stationId -> new MapController.StationNodeImpactDto(
+                stationId, alert.impactKind(), alert.id(), alert.title()
+            )))
             .toList();
         return new MapController.MapResponse(stations, segments, stationImpacts);
     }

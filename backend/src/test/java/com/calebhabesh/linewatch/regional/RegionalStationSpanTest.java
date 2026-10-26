@@ -140,7 +140,9 @@ class RegionalStationSpanTest {
         return new RegionalNormalizedAlert(
             "alert-" + lineId, MetrolinxSourceSystem.GO_SERVICE_ALERTS, "source", lineId, impactKind,
             title, description, "Operational issue", OffsetDateTime.parse("2026-10-22T10:00:00Z"), null,
-            OffsetDateTime.parse("2026-10-22T10:05:00Z"), stationIds, List.of(), ""
+            // Span alerts carry the track between their stations, as the normalizer produces them.
+            OffsetDateTime.parse("2026-10-22T10:05:00Z"), stationIds,
+            "advisory".equals(impactKind) ? List.of() : RegionalNetworkCatalog.segmentIds(lineId, stationIds), ""
         );
     }
 }

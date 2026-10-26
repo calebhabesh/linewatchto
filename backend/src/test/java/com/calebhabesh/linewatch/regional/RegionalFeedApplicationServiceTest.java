@@ -92,4 +92,36 @@ class RegionalFeedApplicationServiceTest {
         verify(alertStore, never()).deactivateMissingAlerts(
             MetrolinxSourceSystem.GO_GTFS_ALERTS, Set.of(), NOW);
     }
+
+    @Test
+    void republishedAdvisoryKeepsOneActiveAlertAndRetiresThePreviouslyStoredCopy() {
+        RegionalAlertStore alertStore = mock(RegionalAlertStore.class);
+        RegionalFeedApplicationService service = new RegionalFeedApplicationService(
+            alertStore, mock(RegionalOperationalSourceStore.class), CLOCK);
+        String body = """
+            {"Code":"%s","Status":"INIT","PostedDateTime":"2026-07-30 09:00:00",
+             "SubjectEnglish":"Aug. 8-9: Kitchener line service adjustments",
+             "BodyEnglish":"On Saturday, Aug. 8 and Sunday, Aug. 9, there will be no GO train service between Bloor GO and Kitchener GO due to construction.",
+             "Category":"Planned Service Change","SubCategory":"Construction",
+             "Lines":[{"Code":"GT"}],"Stops":[]}
+            """;
+        MetrolinxFetchedRecord first = new MetrolinxFetchedRecord(
+            MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000529156", body.formatted("M0000529156"));
+        MetrolinxFetchedRecord republished = new MetrolinxFetchedRecord(
+            MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000529157", body.formatted("M0000529157"));
+        MetrolinxFeed feed = new MetrolinxFeed(NOW, List.of(republished, first), Map.of(
+            MetrolinxSourceSystem.GO_SERVICE_ALERTS, true));
+        MetrolinxAlertNormalizer normalizer = new MetrolinxAlertNormalizer(CLOCK);
+        List<RegionalAlertClassification> classifications = normalizer.classify(feed);
+        List<RegionalNormalizedAlert> alerts = normalizer.normalize(feed, classifications);
+
+        service.apply(feed, alerts, classifications);
+
+        assertThat(alerts).extracting(RegionalNormalizedAlert::id).containsOnly("regional-go-529156-ki");
+        verify(alertStore).updateSourceClassification(
+            new RegionalAlertClassification.SourceReference(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000529157"),
+            classifications.getFirst());
+        verify(alertStore).deactivateMissingAlerts(
+            MetrolinxSourceSystem.GO_SERVICE_ALERTS, Set.of("regional-go-529156-ki"), NOW);
+    }
 }

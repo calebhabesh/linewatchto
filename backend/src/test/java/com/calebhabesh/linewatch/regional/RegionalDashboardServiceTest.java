@@ -35,6 +35,28 @@ class RegionalDashboardServiceTest {
     }
 
     @Test
+    void stationClosuresRingEachListedStationWithoutClosingTheTrackBetween() {
+        when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
+        when(alertStore.findActiveAlerts()).thenReturn(List.of(new RegionalNormalizedAlert(
+            "regional-go-stations-lw", MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M1", "regional-lw",
+            "suspension", "Station closures", "There is no GO train service at this station.", "Construction",
+            OffsetDateTime.parse("2026-07-28T17:00:00Z"), null, OffsetDateTime.parse("2026-07-28T18:12:00Z"),
+            List.of("clarkson", "oakville", "burlington"), List.of(), ""
+        )));
+
+        var dashboard = service.dashboard();
+
+        assertThat(dashboard.activeAlerts()).singleElement().satisfies(alert -> {
+            assertThat(alert.displayLocation()).isEqualTo("Clarkson, Oakville & Burlington");
+            assertThat(alert.affectedSegmentIds()).isEmpty();
+        });
+        assertThat(dashboard.map().stationNodeImpacts())
+            .extracting(com.calebhabesh.linewatch.map.MapController.StationNodeImpactDto::stationId)
+            .containsExactly("clarkson", "oakville", "burlington");
+        assertThat(dashboard.map().segments()).allSatisfy(segment -> assertThat(segment.impacts()).isEmpty());
+    }
+
+    @Test
     void generalLocationsUseFullLineNamesWithoutInventingStationBounds() {
         when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
         when(alertStore.findActiveAlerts()).thenReturn(RegionalNetworkCatalog.routes().stream()
