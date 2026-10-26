@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -89,7 +91,6 @@ public class MetrolinxAlertNormalizer {
     private static final Pattern REST_NUMERIC_ID = Pattern.compile("(?i)^M0*(\\d+)$");
     private static final Pattern NUMERIC_ID = Pattern.compile("^0*(\\d+)$");
     private static final Pattern BETWEEN_STATIONS = Pattern.compile("\\bbetween\\b");
-    private static final Pattern TRAILING_DIGITS = Pattern.compile("(\\d+)$");
     private static final Pattern MAXIMUM_DELAY = Pattern.compile(
         "(?:delays? (?:of )?(?:up to|approximately|about)|up to)\\s+(\\d{1,3})\\s+minutes?",
         Pattern.CASE_INSENSITIVE
@@ -101,8 +102,12 @@ public class MetrolinxAlertNormalizer {
         Pattern.CASE_INSENSITIVE
     );
 
+    private static final Logger log = LoggerFactory.getLogger(MetrolinxAlertNormalizer.class);
+
     private final ObjectMapper objectMapper;
     private final Clock clock;
+    private final Set<MetrolinxNoticeConsolidator.NearDuplicate> warnedNearDuplicates =
+        java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public MetrolinxAlertNormalizer(Clock clock) {
         this(JsonMapper.builder().findAndAddModules().build(), clock);
@@ -148,184 +153,55 @@ public class MetrolinxAlertNormalizer {
 
     /** Returns all deterministically bucketed rail events, including conservative non-dashboard buckets. */
     public List<RegionalAlertClassification> classify(MetrolinxFeed feed) {
+        MetrolinxNoticeConsolidator.Result result = consolidate(feed);
+        for (MetrolinxNoticeConsolidator.Merge merge : result.merges()) {
+            log.debug("Metrolinx event {} consolidated into {} ({})",
+                merge.absorbedEventId(), merge.leadEventId(), merge.reason());
+        }
+        warnNearDuplicates(result);
+        return result.events();
+    }
+
+    /** Classifies each notice and consolidates notices describing the same rider event. */
+    MetrolinxNoticeConsolidator.Result consolidate(MetrolinxFeed feed) {
         Map<String, List<Evidence>> grouped = new LinkedHashMap<>();
         for (MetrolinxFetchedRecord record : feed.records()) {
             Evidence evidence = evidence(record);
             if (evidence == null) continue;
             grouped.computeIfAbsent(evidence.canonicalEventId(), ignored -> new ArrayList<>()).add(evidence);
         }
-        List<RegionalAlertClassification> events = mergeRepublishedEvents(grouped.values().stream()
-            .map(this::classifyEvent)
-            .filter(classification -> !classification.lineIds().isEmpty())
-            .toList(), grouped);
         Set<String> bannerEventIds = grouped.entrySet().stream()
             .filter(entry -> entry.getValue().stream().anyMatch(MetrolinxAlertNormalizer::bannerEvidence))
             .map(Map.Entry::getKey)
             .collect(java.util.stream.Collectors.toSet());
-        events = foldInto(events, MetrolinxAlertNormalizer::stationListFoldsInto);
-        return foldInto(events, (detail, lead) -> bannerEventIds.contains(detail.canonicalEventId())
-            && !bannerEventIds.contains(lead.canonicalEventId())
-            && bannerFoldsInto(detail, lead)
-            && bannerAddsNoFacts(detail, lead));
+        return MetrolinxNoticeConsolidator.consolidate(
+            grouped.values().stream()
+                .map(this::classifyEvent)
+                .filter(classification -> !classification.lineIds().isEmpty())
+                .toList(),
+            bannerEventIds,
+            eventIds -> classifyEvent(eventIds.stream().flatMap(eventId -> grouped.get(eventId).stream()).toList())
+        );
     }
 
-    /**
-     * Metrolinx sometimes publishes the same rider notice under several notice IDs, for example a
-     * line notice reposted as station information that lists one stop. Events whose rider-facing
-     * content is identical are classified once from their combined evidence, so each consumer sees
-     * one event that still references every source record. Structured stops may differ only when one
-     * notice lists none. Resolution and update notices change the title or body, so they never match
-     * the notice they follow.
-     */
-    private List<RegionalAlertClassification> mergeRepublishedEvents(
-        List<RegionalAlertClassification> classifications,
-        Map<String, List<Evidence>> evidenceByEvent
-    ) {
-        Map<RepublicationKey, List<List<RegionalAlertClassification>>> matches = new LinkedHashMap<>();
-        for (RegionalAlertClassification classification : classifications) {
-            List<List<RegionalAlertClassification>> clusters =
-                matches.computeIfAbsent(RepublicationKey.of(classification), ignored -> new ArrayList<>());
-            clusters.stream()
-                .filter(cluster -> cluster.stream().allMatch(event -> compatibleStops(event, classification)))
-                .findFirst()
-                .ifPresentOrElse(cluster -> cluster.add(classification),
-                    () -> clusters.add(new ArrayList<>(List.of(classification))));
+    /** Warns once per pair while it stays in the feed, so a new republication shape gets noticed. */
+    private void warnNearDuplicates(MetrolinxNoticeConsolidator.Result result) {
+        Map<String, RegionalAlertClassification> events = new LinkedHashMap<>();
+        result.events().forEach(event -> events.put(event.canonicalEventId(), event));
+        warnedNearDuplicates.retainAll(result.nearDuplicates());
+        for (MetrolinxNoticeConsolidator.NearDuplicate pair : result.nearDuplicates()) {
+            if (!warnedNearDuplicates.add(pair)) continue;
+            RegionalAlertClassification first = events.get(pair.firstEventId());
+            RegionalAlertClassification second = events.get(pair.secondEventId());
+            log.warn("Metrolinx events {} and {} look like one rider event but stay separate "
+                    + "(lines {} and {}, effect {}): \"{}\" / \"{}\"",
+                pair.firstEventId(), pair.secondEventId(), first.lineIds(), second.lineIds(),
+                first.serviceEffect(), first.title(), second.title());
         }
-        return matches.values().stream().flatMap(List::stream).map(events -> {
-            if (events.size() == 1) return events.getFirst();
-            // Ordering by notice ID before source priority makes the surviving event ID independent of
-            // feed order: the highest-priority source leads, then the lowest notice ID.
-            List<Evidence> combined = events.stream()
-                .map(RegionalAlertClassification::canonicalEventId)
-                .sorted(Comparator.comparing(MetrolinxAlertNormalizer::noticeNumber)
-                    .thenComparing(Comparator.naturalOrder()))
-                .flatMap(eventId -> evidenceByEvent.get(eventId).stream())
-                .toList();
-            return classifyEvent(combined);
-        }).toList();
-    }
-
-    /**
-     * Folds supplementary notices into the one event they describe. The lead keeps its own content
-     * and gains the detail's source references; a detail matching several leads stays separate.
-     */
-    private static List<RegionalAlertClassification> foldInto(
-        List<RegionalAlertClassification> events,
-        java.util.function.BiPredicate<RegionalAlertClassification, RegionalAlertClassification> foldsInto
-    ) {
-        Map<String, String> leadByDetail = new LinkedHashMap<>();
-        for (RegionalAlertClassification detail : events) {
-            List<RegionalAlertClassification> leads = events.stream()
-                .filter(lead -> lead != detail && foldsInto.test(detail, lead))
-                .toList();
-            if (leads.size() == 1) leadByDetail.put(detail.canonicalEventId(), leads.getFirst().canonicalEventId());
-        }
-        // A lead that is itself folded elsewhere would chain events together; keep both separate.
-        leadByDetail.values().removeIf(leadByDetail::containsKey);
-        Map<String, List<RegionalAlertClassification.SourceReference>> absorbed = new LinkedHashMap<>();
-        for (RegionalAlertClassification event : events) {
-            String lead = leadByDetail.get(event.canonicalEventId());
-            if (lead != null) absorbed.computeIfAbsent(lead, ignored -> new ArrayList<>()).addAll(event.sources());
-        }
-        return events.stream()
-            .filter(event -> !leadByDetail.containsKey(event.canonicalEventId()))
-            .map(event -> absorbed.containsKey(event.canonicalEventId())
-                ? event.withAdditionalSources(absorbed.get(event.canonicalEventId()))
-                : event)
-            .toList();
-    }
-
-    /**
-     * A station-information notice listing the stops a line notice closes ("No GO Transit service at
-     * this station") is detail of that line notice, not a separate closure.
-     */
-    private static boolean stationListFoldsInto(RegionalAlertClassification detail, RegionalAlertClassification lead) {
-        return "listed-stations".equals(detail.scope())
-            && !detail.stationIds().isEmpty()
-            && ("segment-span".equals(lead.scope()) || "corridor".equals(lead.scope()))
-            && detail.lineIds().equals(lead.lineIds())
-            && java.util.Objects.equals(detail.serviceEffect(), lead.serviceEffect())
-            && RepublicationKey.comparableText(detail.title()).equalsIgnoreCase(RepublicationKey.comparableText(lead.title()))
-            && detail.activePeriodStart() != null
-            && detail.activePeriodStart().isEqual(nullSafe(lead.activePeriodStart()))
-            && java.util.Objects.equals(instant(detail.activePeriodEnd()), instant(lead.activePeriodEnd()))
-            && lead.lineIds().stream().allMatch(lineId -> stationsWithin(lineId, detail.stationIds(), lead));
-    }
-
-    /** A "Top Red Banner" restates a current notice in its own words over the same span and dates. */
-    private static boolean bannerFoldsInto(RegionalAlertClassification detail, RegionalAlertClassification lead) {
-        return detail.lineIds().equals(lead.lineIds())
-            && java.util.Objects.equals(detail.serviceEffect(), lead.serviceEffect())
-            && java.util.Objects.equals(detail.scope(), lead.scope())
-            && ("corridor".equals(lead.scope())
-                || !lead.spanStationIds().isEmpty()
-                    && Set.copyOf(detail.spanStationIds()).equals(Set.copyOf(lead.spanStationIds())))
-            && windowsOverlap(detail, lead);
-    }
-
-    /**
-     * A banner may leave out what its notice states, but it must not name other trips, stations, a
-     * replacement service, or a delay the notice does not, since that would describe another event.
-     */
-    private boolean bannerAddsNoFacts(RegionalAlertClassification banner, RegionalAlertClassification lead) {
-        String bannerText = banner.title() + " " + banner.description();
-        String leadText = lead.title() + " " + lead.description();
-        return banner.tripNumbers().equals(lead.tripNumbers())
-            && (banner.replacementService() == null
-                || banner.replacementService().equals(lead.replacementService()))
-            && (banner.maximumDelayMinutes() == null
-                || banner.maximumDelayMinutes().equals(lead.maximumDelayMinutes()))
-            && Set.copyOf(mentionedStations(leadText, lead.lineIds()))
-                .containsAll(mentionedStations(bannerText, banner.lineIds()));
     }
 
     private static boolean bannerEvidence(Evidence evidence) {
         return "top red banner".equals(evidence.subcategory().strip().toLowerCase(Locale.CANADA));
-    }
-
-    private static boolean stationsWithin(String lineId, List<String> stationIds, RegionalAlertClassification lead) {
-        RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(lineId).orElse(null);
-        if (route == null) return false;
-        List<String> stops = route.stationIds();
-        if ("corridor".equals(lead.scope())) return stops.containsAll(stationIds);
-        if (lead.spanStationIds().size() != 2) return false;
-        int first = stops.indexOf(lead.spanStationIds().getFirst());
-        int second = stops.indexOf(lead.spanStationIds().getLast());
-        if (first < 0 || second < 0) return false;
-        int low = Math.min(first, second);
-        int high = Math.max(first, second);
-        return stationIds.stream().map(stops::indexOf).allMatch(index -> index >= low && index <= high);
-    }
-
-    private static boolean windowsOverlap(RegionalAlertClassification left, RegionalAlertClassification right) {
-        if (left.activePeriodStart() == null || right.activePeriodStart() == null) return false;
-        boolean leftStartsBeforeRightEnds = right.activePeriodEnd() == null
-            || left.activePeriodStart().isBefore(right.activePeriodEnd());
-        boolean rightStartsBeforeLeftEnds = left.activePeriodEnd() == null
-            || right.activePeriodStart().isBefore(left.activePeriodEnd());
-        return leftStartsBeforeRightEnds && rightStartsBeforeLeftEnds;
-    }
-
-    private static OffsetDateTime nullSafe(OffsetDateTime value) {
-        return value == null ? OffsetDateTime.MIN : value;
-    }
-
-    private static Instant instant(OffsetDateTime value) {
-        return value == null ? null : value.toInstant();
-    }
-
-    private static boolean compatibleStops(RegionalAlertClassification left, RegionalAlertClassification right) {
-        if (!compatibleStops(left.stationIds(), right.stationIds())) return false;
-        for (int index = 0; index < left.impacts().size(); index++) {
-            if (!compatibleStops(left.impacts().get(index).stationIds(), right.impacts().get(index).stationIds())) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static boolean compatibleStops(List<String> left, List<String> right) {
-        return left.isEmpty() || right.isEmpty() || Set.copyOf(left).equals(Set.copyOf(right));
     }
 
     private String riderDescription(String title, Evidence evidence) {
@@ -341,51 +217,6 @@ public class MetrolinxAlertNormalizer {
         }
         String body = description.strip().substring(heading.length()).replaceFirst("^[\\s:.\\-–—]+", "");
         return body.isBlank() ? description : body;
-    }
-
-    private static long noticeNumber(String canonicalEventId) {
-        Matcher digits = TRAILING_DIGITS.matcher(canonicalEventId);
-        return digits.find() ? Long.parseLong(digits.group(1)) : Long.MAX_VALUE;
-    }
-
-    /** Rider-facing event content; structured stop lists are compared separately by compatibleStops. */
-    private record RepublicationKey(
-        List<String> lineIds, List<String> tripNumbers, String serviceEffect, String scope,
-        String title, String description, OffsetDateTime activePeriodStart, OffsetDateTime activePeriodEnd,
-        List<String> spanStationIds, List<RegionalAlertClassification.Impact> impacts
-    ) {
-        static RepublicationKey of(RegionalAlertClassification classification) {
-            return new RepublicationKey(
-                classification.lineIds(), classification.tripNumbers(), classification.serviceEffect(),
-                classification.scope(), comparableText(classification.title()).toLowerCase(Locale.CANADA),
-                comparableBody(classification.title(), classification.description()).toLowerCase(Locale.CANADA),
-                classification.activePeriodStart(),
-                classification.activePeriodEnd(), classification.spanStationIds(),
-                classification.impacts().stream().map(impact -> new RegionalAlertClassification.Impact(
-                    impact.id(), impact.serviceEffect(), impact.scope(), List.of(), impact.start(),
-                    impact.endExclusive(), impact.basis(), impact.evidence(), impact.uncertainty()
-                )).toList()
-            );
-        }
-
-        static String comparableText(String value) {
-            if (value == null) return "";
-            // Reposts differ in spacing after sentence breaks, in a final full stop, and in letter case.
-            return value.replaceAll("([.!?:;,])(?=\\S)", "$1 ")
-                .replaceAll("\\s+", " ")
-                .strip()
-                .replaceAll("[.!?\\s]+$", "");
-        }
-
-        /** Some reposts repeat the title as the opening words of the body. */
-        static String comparableBody(String title, String description) {
-            String body = comparableText(description);
-            String heading = comparableText(title);
-            if (!heading.isEmpty() && body.regionMatches(true, 0, heading, 0, heading.length())) {
-                body = body.substring(heading.length()).replaceFirst("^[\\s:.\\-–—]+", "");
-            }
-            return body;
-        }
     }
 
     private Evidence evidence(MetrolinxFetchedRecord record) {
@@ -689,7 +520,7 @@ public class MetrolinxAlertNormalizer {
         return List.of();
     }
 
-    private List<String> mentionedStations(String clause, List<String> lineIds) {
+    static List<String> mentionedStations(String clause, List<String> lineIds) {
         List<String> mentioned = new ArrayList<>();
         for (String lineId : lineIds) {
             RegionalNetworkCatalog.route(lineId).ifPresent(route -> route.stationIds().stream()
@@ -775,13 +606,13 @@ public class MetrolinxAlertNormalizer {
         return List.copyOf(result);
     }
 
-    private boolean stationMentioned(String searchable, String stationId) {
+    private static boolean stationMentioned(String searchable, String stationId) {
         String name = RegionalNetworkCatalog.station(stationId).map(station -> station.name()).orElse(stationId);
         return stationPhraseIndex(searchable, name) >= 0
             || stationPhraseIndex(searchable, stationId.replace('-', ' ')) >= 0;
     }
 
-    private int stationMentionIndex(String searchable, String stationId) {
+    private static int stationMentionIndex(String searchable, String stationId) {
         String name = RegionalNetworkCatalog.station(stationId).map(station -> station.name()).orElse(stationId);
         int nameIndex = stationPhraseIndex(searchable, name);
         int idIndex = stationPhraseIndex(searchable, stationId.replace('-', ' '));
@@ -789,7 +620,7 @@ public class MetrolinxAlertNormalizer {
         return idIndex < 0 ? nameIndex : Math.min(nameIndex, idIndex);
     }
 
-    private int stationPhraseIndex(String searchable, String phrase) {
+    private static int stationPhraseIndex(String searchable, String phrase) {
         if (searchable == null || phrase == null || phrase.isBlank()) return -1;
         Matcher matcher = Pattern.compile(
             "(?<![\\p{L}\\p{N}])" + Pattern.quote(phrase.trim()) + "(?![\\p{L}\\p{N}])",

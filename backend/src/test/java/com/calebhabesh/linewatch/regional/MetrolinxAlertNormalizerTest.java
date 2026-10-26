@@ -893,6 +893,54 @@ class MetrolinxAlertNormalizerTest {
     }
 
     @Test
+    void recordsWhyEachNoticeWasConsolidated() throws Exception {
+        var lineNotice = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528122", LAKESHORE_TITLE,
+            LAKESHORE_BODY, "Information");
+        var repost = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000531107", LAKESHORE_TITLE,
+            LAKESHORE_TITLE + " " + LAKESHORE_BODY, "Information");
+        var stationList = goNotice(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000528100", LAKESHORE_TITLE,
+            "There is no GO train service at this station due to planned construction.", "E-Ticket",
+            "CL", "OA", "BU");
+        var banner = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528641",
+            "This weekend, service will be adjusted on Lakeshore West due to planned construction.",
+            "On Saturday, Aug. 8 and Sunday, Aug. 9, there will be no GO train service between Aldershot GO "
+                + "and Union Station. Please plan ahead.", "Top Red Banner");
+
+        var result = normalizer.consolidate(feed(lineNotice, repost, stationList, banner, bannerPeriod("528641")));
+
+        assertThat(result.events()).extracting(RegionalAlertClassification::canonicalEventId)
+            .containsExactly("go-528122");
+        assertThat(result.merges()).containsExactly(
+            new MetrolinxNoticeConsolidator.Merge("go-528122", "go-531107",
+                MetrolinxNoticeConsolidator.MergeReason.REPUBLISHED),
+            new MetrolinxNoticeConsolidator.Merge("go-528122", "go-528100",
+                MetrolinxNoticeConsolidator.MergeReason.STATION_LIST),
+            new MetrolinxNoticeConsolidator.Merge("go-528122", "go-528641",
+                MetrolinxNoticeConsolidator.MergeReason.BANNER));
+        assertThat(result.nearDuplicates()).isEmpty();
+    }
+
+    @Test
+    void reportsDifferentlyWordedNoticesForOneEventWithoutMergingThem() throws Exception {
+        var lineNotice = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528122", LAKESHORE_TITLE,
+            LAKESHORE_BODY, "Information");
+        var reworded = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528130",
+            "Aug. 8-9: Weekend construction on Lakeshore West",
+            "On Saturday, Aug. 8 and Sunday, Aug. 9, there will be no GO train service between Oakville GO "
+                + "and Union Station.", "Information");
+        var elsewhere = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528131",
+            "Aug. 8-9: Weekend construction near Niagara",
+            "On Saturday, Aug. 8 and Sunday, Aug. 9, there will be no GO train service between "
+                + "St. Catharines GO and Niagara Falls GO.", "Information");
+
+        var result = normalizer.consolidate(feed(lineNotice, reworded, elsewhere));
+
+        assertThat(result.events()).hasSize(3);
+        assertThat(result.nearDuplicates()).containsExactly(
+            new MetrolinxNoticeConsolidator.NearDuplicate("go-528122", "go-528130"));
+    }
+
+    @Test
     void stationClosureListsMarkStationsWithoutClosingTheTrackBetweenThem() throws Exception {
         var stationList = goNotice(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000528100",
             "Aug. 8-9: Station closures",
