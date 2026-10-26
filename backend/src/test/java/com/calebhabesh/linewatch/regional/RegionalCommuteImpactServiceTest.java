@@ -51,6 +51,18 @@ class RegionalCommuteImpactServiceTest {
     }
 
     @Test
+    void namesListedStationClosuresAsAStationList() {
+        when(freshness.isFresh()).thenReturn(true);
+        when(alertStore.findActiveAlerts()).thenReturn(List.of(
+            alert("station-closures", "planned-closure", List.of("kitchener", "guelph-central"), List.of())
+        ));
+
+        assertThat(service.impactFor(pathService.path("bloor", "stratford")).matchedImpacts())
+            .singleElement()
+            .satisfies(match -> assertThat(match.location()).isEqualTo("Guelph Central & Kitchener"));
+    }
+
+    @Test
     void suppressesRegionalImpactsWhenLatestSuccessfulPollIsNotFresh() {
         when(freshness.isFresh()).thenReturn(false);
 

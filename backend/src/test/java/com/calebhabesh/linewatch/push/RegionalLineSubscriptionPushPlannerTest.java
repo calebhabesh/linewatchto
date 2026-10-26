@@ -116,6 +116,32 @@ class RegionalLineSubscriptionPushPlannerTest {
     }
 
     @Test
+    void namesEachListedStationClosureInsteadOfImplyingTheTrackBetweenIsClosed() {
+        RegionalNormalizedAlert stationClosures = new RegionalNormalizedAlert(
+            "regional-go-528100-lw", "metrolinx-go-information-alerts", "M0000528100", "regional-lw",
+            "planned-closure", "Aug. 8-9: Lakeshore West service adjustments",
+            "There is no GO train service at this station due to planned construction.", "construction",
+            OffsetDateTime.parse("2026-07-29T00:00:00-04:00"), OffsetDateTime.parse("2026-07-31T00:00:00-04:00"),
+            OffsetDateTime.parse("2026-07-29T07:00:00-04:00"), List.of("burlington", "clarkson", "oakville"),
+            List.of(), "{}"
+        );
+        RegionalNormalizedAlert spanClosure = new RegionalNormalizedAlert(
+            "regional-go-528122-lw", "metrolinx-go-service-alerts", "M0000528122", "regional-lw",
+            "planned-closure", "Aug. 8-9: Lakeshore West service adjustments",
+            "There will be no GO train service between Aldershot GO and Union Station.", "construction",
+            OffsetDateTime.parse("2026-07-29T00:00:00-04:00"), OffsetDateTime.parse("2026-07-31T00:00:00-04:00"),
+            OffsetDateTime.parse("2026-07-29T07:00:00-04:00"), List.of("aldershot", "union"),
+            List.of("segment-lw-union-exhibition"), "{}"
+        );
+        when(freshness.isFresh()).thenReturn(true);
+        when(alertStore.findActiveAlerts()).thenReturn(List.of(stationClosures, spanClosure));
+
+        assertThat(planner.candidatesFor("user_1", List.of("regional-lw"), PlannedClosureFollowUpPolicy.SMART))
+            .extracting(PushNotificationCandidate::eventLocation)
+            .containsExactly("Clarkson, Oakville & Burlington", "Union ↔ Aldershot");
+    }
+
+    @Test
     void plansATrainCancellationForTheSubscribedCorridorWithoutCallingItADelay() {
         RegionalTripChangeService tripChangeService = mock(RegionalTripChangeService.class);
         RegionalLineSubscriptionPushPlanner cancellationPlanner = new RegionalLineSubscriptionPushPlanner(

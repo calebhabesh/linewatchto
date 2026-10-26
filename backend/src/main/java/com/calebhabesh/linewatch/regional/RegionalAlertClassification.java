@@ -72,6 +72,15 @@ public record RegionalAlertClassification(
             stationRoles, fieldSources, primaryRawPayload, impacts);
     }
 
+    /** Returns this event unchanged except for its canonical event ID. */
+    public RegionalAlertClassification withCanonicalEventId(String eventId) {
+        return new RegionalAlertClassification(eventId, sources, lineIds, tripNumbers,
+            timing, serviceEffect, operatingChange, scope, cause, replacementService, maximumDelayMinutes,
+            title, description, activePeriodStart, activePeriodEnd, activePeriodBasis,
+            sourceActivePeriodStart, sourceActivePeriodEnd, publishedAt, stationIds, spanStationIds,
+            stationRoles, fieldSources, primaryRawPayload, impacts);
+    }
+
     public record Impact(
         String id, String serviceEffect, String scope, List<String> stationIds,
         OffsetDateTime start, OffsetDateTime endExclusive, String basis,

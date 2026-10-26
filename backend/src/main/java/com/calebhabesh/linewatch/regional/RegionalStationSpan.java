@@ -64,9 +64,9 @@ final class RegionalStationSpan {
         String first = stationName(ordered.getFirst());
         if (ordered.size() == 1) return new Span(first, displayDirection);
         String last = stationName(ordered.getLast());
-        if (stationClosures(alert)) {
+        if (alert.listsStationClosures()) {
             // Closures at listed stops name each stop; a span would imply the track between is closed.
-            return new Span(stationList(ordered), null);
+            return new Span(alert.stationListLabel(), null);
         }
 
         if (tripDirectionKnown) {
@@ -87,17 +87,6 @@ final class RegionalStationSpan {
             return new Span(StationSpanFormatter.unspecified(first, last), null);
         }
         return new Span(StationSpanFormatter.bothWays(first, last), null);
-    }
-
-    private static boolean stationClosures(RegionalNormalizedAlert alert) {
-        return !"advisory".equals(alert.impactKind())
-            && (alert.affectedSegmentIds() == null || alert.affectedSegmentIds().isEmpty());
-    }
-
-    private static String stationList(List<String> stationIds) {
-        List<String> names = stationIds.stream().map(RegionalStationSpan::stationName).toList();
-        if (names.size() == 2) return names.getFirst() + " & " + names.getLast();
-        return String.join(", ", names.subList(0, names.size() - 1)) + " & " + names.getLast();
     }
 
     /** An unplanned notice quoting a clock time may concern a trip we could not resolve. */

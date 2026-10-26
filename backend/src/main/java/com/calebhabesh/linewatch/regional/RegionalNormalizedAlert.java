@@ -74,4 +74,24 @@ public record RegionalNormalizedAlert(
             && activePeriodStart != null
             && activePeriodEnd != null;
     }
+
+    /** Closures at several listed stops that close no track between them. */
+    public boolean listsStationClosures() {
+        return !"advisory".equals(impactKind)
+            && stationIds != null && stationIds.size() > 1
+            && (affectedSegmentIds == null || affectedSegmentIds.isEmpty());
+    }
+
+    /** Names each listed stop in route order ("Clarkson, Oakville & Burlington"), never as a span. */
+    public String stationListLabel() {
+        List<String> ordered = RegionalNetworkCatalog.route(lineId)
+            .map(route -> route.stationIds().stream().filter(stationIds::contains).toList())
+            .filter(ids -> !ids.isEmpty())
+            .orElse(stationIds);
+        List<String> names = ordered.stream()
+            .map(id -> RegionalNetworkCatalog.station(id).map(station -> station.name()).orElse(id))
+            .toList();
+        if (names.size() < 2) return String.join("", names);
+        return String.join(", ", names.subList(0, names.size() - 1)) + " & " + names.getLast();
+    }
 }

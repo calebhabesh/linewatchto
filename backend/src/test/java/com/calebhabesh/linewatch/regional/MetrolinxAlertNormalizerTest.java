@@ -775,15 +775,17 @@ class MetrolinxAlertNormalizerTest {
 
         for (MetrolinxFeed feed : List.of(feed(stationRepost, lineNotice), feed(lineNotice, stationRepost))) {
             assertThat(normalizer.classify(feed)).singleElement().satisfies(event -> {
-                // The line notice leads by source priority even though the repost has the lower ID.
-                assertThat(event.canonicalEventId()).isEqualTo("go-530377");
+                // The line notice supplies the content by source priority, while the event keeps the
+                // earlier repost's lower ID so a later higher-priority copy is not a new event.
+                assertThat(event.canonicalEventId()).isEqualTo("go-530060");
+                assertThat(event.title()).isEqualTo(STOUFFVILLE_TITLE);
                 assertThat(event.sources()).extracting(RegionalAlertClassification.SourceReference::sourceId)
                     .containsExactly("M0000530377", "M0000530060");
             });
             assertThat(normalizer.normalize(feed))
                 .filteredOn(alert -> "planned-closure".equals(alert.impactKind()))
                 .extracting(RegionalNormalizedAlert::id)
-                .containsExactly("regional-go-530377-st");
+                .containsExactly("regional-go-530060-st");
         }
     }
 
@@ -824,7 +826,7 @@ class MetrolinxAlertNormalizerTest {
             LAKESHORE_TITLE + " " + LAKESHORE_BODY, "Information");
 
         assertThat(normalizer.classify(feed(lineNotice, repost))).singleElement().satisfies(event -> {
-            assertThat(event.canonicalEventId()).isEqualTo("go-531107");
+            assertThat(event.canonicalEventId()).isEqualTo("go-528122");
             assertThat(event.description()).isEqualTo(LAKESHORE_BODY);
         });
     }

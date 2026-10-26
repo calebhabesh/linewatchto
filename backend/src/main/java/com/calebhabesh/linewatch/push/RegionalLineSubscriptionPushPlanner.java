@@ -186,6 +186,9 @@ public class RegionalLineSubscriptionPushPlanner {
         if (alert.stationIds() == null || alert.stationIds().isEmpty()) {
             return route == null ? "Regional line" : route.displayName();
         }
+        if (alert.listsStationClosures()) {
+            return alert.stationListLabel();
+        }
         List<String> orderedIds = route == null
             ? alert.stationIds()
             : route.stationIds().stream().filter(alert.stationIds()::contains).toList();

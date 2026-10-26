@@ -102,14 +102,15 @@ final class MetrolinxNoticeConsolidator {
         }
         return matches.values().stream().flatMap(List::stream).map(events -> {
             if (events.size() == 1) return events.getFirst();
-            // Ordering by notice ID before source priority makes the surviving event ID independent of
-            // feed order: the highest-priority source leads, then the lowest notice ID.
+            // The highest-priority source supplies the content, then the lowest notice ID. The event
+            // keeps the lowest (earliest published) notice ID, so a later copy from a higher-priority
+            // source does not turn it into a new event for push notifications and history.
             List<String> eventIds = events.stream()
                 .map(RegionalAlertClassification::canonicalEventId)
                 .sorted(Comparator.comparing(MetrolinxNoticeConsolidator::noticeNumber)
                     .thenComparing(Comparator.naturalOrder()))
                 .toList();
-            RegionalAlertClassification merged = reclassify.apply(eventIds);
+            RegionalAlertClassification merged = reclassify.apply(eventIds).withCanonicalEventId(eventIds.getFirst());
             eventIds.stream()
                 .filter(eventId -> !eventId.equals(merged.canonicalEventId()))
                 .forEach(eventId -> merges.add(new Merge(merged.canonicalEventId(), eventId, MergeReason.REPUBLISHED)));
