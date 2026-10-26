@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import {
@@ -146,7 +146,9 @@ export function SavedCommuteStationPicker({
     };
   }, [open, setOpen]);
 
-  useEffect(() => {
+  // Size before paint: expanding must never show the station column inside the
+  // collapsed popover width, which squeezes the line list for a frame.
+  useLayoutEffect(() => {
     if (!open || !rootRef.current) {
       setCoords(null);
       return;
@@ -368,10 +370,19 @@ export function SavedCommuteStationPicker({
                             aria-expanded={expanded}
                           >
                             <span>
-                              <StationLineBadge line={group.line} />
-                              {group.line.id.startsWith("regional-")
-                                ? `${group.line.number} ${group.line.name}`
-                                : `Line ${group.line.number} ${group.line.name}`}
+                              <TransitLineBadge
+                                lineId={group.line.id}
+                                lineNumber={group.line.number}
+                                lineName={group.line.name}
+                                size={24}
+                                decorative
+                              />
+                              <span className="commute-station-line-copy">
+                                <span className="commute-station-line-title">
+                                  {group.line.id.startsWith("regional-") ? group.line.number : `Line ${group.line.number}`}
+                                </span>
+                                <span className="commute-station-line-name">{group.line.name}</span>
+                              </span>
                             </span>
                             <ChevronRight size={15} aria-hidden="true" className="commute-station-line-chevron" />
                           </button>

@@ -137,17 +137,37 @@
 
 .commute-station-popover.site-dropdown-menu {
   padding: 4px 0;
+  row-gap: 10px;
 }
 
 /* ============================================================
    Section 3: Popover Options, Lines & Station Option Cards
    ============================================================ */
 
-.commute-station-popover .commute-station-lines-list {
-  gap: 0;
-  padding-right: 0;
+/* The line list owns its scroll so long networks (GO/UP) stay reachable. */
+.commute-station-popover .commute-station-lines-column {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
+/* Both lists scroll by wheel, touch, and keyboard without a gutter, so their
+   cards share the same 8px edge inset and the clipped last card signals more. */
+.commute-station-popover .commute-station-lines-column,
+.commute-station-popover .commute-station-stations-scroll {
+  scrollbar-width: none;
+}
+
+.commute-station-popover .commute-station-lines-column::-webkit-scrollbar,
+.commute-station-popover .commute-station-stations-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.commute-station-popover .commute-station-lines-list {
+  gap: 6px;
+  padding: 0 8px 4px;
+}
 .commute-station-popover .commute-station-options {
   gap: 6px;
   padding: 0 0 4px;
@@ -159,6 +179,94 @@
   padding: 0.5rem 0.75rem;
 }
 
+/* Expanding widens the popover by 340px (commute-station-popover.ts); the station
+   column takes exactly that, so the line list keeps the trigger's width. */
+@media (min-width: 768px) {
+  .commute-station-popover[data-expanded="true"] .commute-station-lines-column {
+    flex: 0 0 calc(100% - 340px);
+  }
+
+  /* Fill the same height as the line list so both lists end, and fade, at the popover edge. */
+  .commute-station-popover[data-expanded="true"] .commute-station-stations-column {
+    flex: 1 1 0;
+    max-height: none;
+    min-width: 0;
+    width: auto;
+  }
+}
+
+/* Discrete line cards, a compact version of the main station search line list. */
+.commute-station-popover .commute-station-line-trigger {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 7px;
+  color: rgb(30, 41, 59);
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.4rem 0.55rem 0.4rem 0.45rem;
+}
+
+.commute-station-popover .commute-station-line-trigger > span {
+  gap: 0.5rem;
+}
+
+.commute-station-popover .commute-station-line-trigger:hover,
+.commute-station-popover .commute-station-line-trigger:focus-visible,
+.commute-station-popover .commute-station-line-trigger[aria-expanded="true"] {
+  background: rgba(239, 246, 255, 0.95);
+  color: rgb(15, 23, 42);
+}
+
+.dark .commute-station-popover .commute-station-line-trigger {
+  background: #161a23;
+  color: rgb(226, 232, 240);
+}
+
+.dark .commute-station-popover .commute-station-line-trigger:hover,
+.dark .commute-station-popover .commute-station-line-trigger:focus-visible,
+.dark .commute-station-popover .commute-station-line-trigger[aria-expanded="true"] {
+  background: rgba(30, 58, 138, 0.3);
+  color: rgb(248, 250, 252);
+}
+
+.high-contrast .commute-station-popover .commute-station-line-trigger {
+  background: #000000;
+  color: #ffffff;
+}
+
+.high-contrast .commute-station-popover .commute-station-line-trigger:hover,
+.high-contrast .commute-station-popover .commute-station-line-trigger:focus-visible,
+.high-contrast .commute-station-popover .commute-station-line-trigger[aria-expanded="true"] {
+  background: #ffffff;
+  color: #000000;
+}
+
+.commute-station-line-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.commute-station-line-title {
+  color: rgb(100, 116, 139);
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.commute-station-line-name {
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.high-contrast .commute-station-line-trigger:is(:hover, :focus-visible, [aria-expanded="true"]) .commute-station-line-title {
+  color: inherit;
+}
+
 .commute-station-popover .commute-station-option {
   border: 1px solid rgba(15, 23, 42, 0.055);
   border-radius: 7px;
@@ -167,10 +275,11 @@
   width: calc(100% - 16px);
 }
 
-/* Align the whole click-through card with the line badge without widening it. */
+/* Align the card with the line badge and run it to the list's 8px edge inset. */
 .commute-station-stations-scroll-content .commute-station-option {
   margin-left: 2px;
-  margin-right: 14px;
+  margin-right: 0;
+  width: calc(100% - 2px);
 }
 
 .dark .commute-station-popover .commute-station-option {
@@ -482,10 +591,6 @@
     margin-left: 0.5rem;
     margin-right: 0.5rem;
     width: calc(100% - 1rem);
-  }
-
-  .commute-station-stations-scroll {
-    scrollbar-gutter: stable;
   }
 
   .commute-station-stations-scroll-content {
