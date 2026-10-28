@@ -200,7 +200,7 @@ describe("asset-backed map layering", () => {
     );
     assert.match(
       globalCss,
-      /\.asset-alert-path-hover-boundary\s*\{[^}]*stroke-width:\s*120;[\s\S]*?\.overlay-segment-group:has\(\.map-segment-hit-target:hover\) \.asset-alert-path-hover-boundary,[\s\S]*?opacity:\s*0\.94;/,
+      /\.asset-alert-path-hover-boundary\s*\{[^}]*stroke-width:\s*106\.5;[\s\S]*?\.overlay-segment-group:has\(\.map-segment-hit-target:hover\) \.asset-alert-path-hover-boundary,[\s\S]*?opacity:\s*0\.94;/,
     );
     assert.match(
       globalCss,
@@ -232,7 +232,7 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /--planned-preview-ink:\s*#087fff;/);
     assert.match(
       globalCss,
-      /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*1;[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-width:\s*var\(--map-overlay-rail-width\);/s,
+      /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*1;[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-width:\s*var\(--ttc-alert-rail-width\);/s,
     );
     assert.match(
       globalCss,
@@ -272,11 +272,11 @@ describe("asset-backed map layering", () => {
       interactiveMapSource,
       /className="ttc-impact-hover-foreground-layer"[\s\S]*?<TtcImpactHoverForeground[\s\S]*?aria-label="Disruption overlay interaction targets"/,
     );
-    // One keyline helper draws every hover outline: masks of 118 (outer),
-    // 96 (core cutout), and 108 (edge divider) units over the given paths.
+    // One keyline helper draws every hover outline: masks of the outer edge,
+    // the core cutout (the rail's edge), and the edge divider over the given paths.
     assert.match(
       interactiveMapSource,
-      /maskStrokes\("ttc-impact-hover-outline-mask-outer", "white", 118\)[\s\S]*?maskStrokes\("ttc-impact-hover-outline-mask-cutout", "black", 96\)[\s\S]*?maskStrokes\("ttc-impact-hover-outline-mask-divider", "black", 108\)[\s\S]*?outlineStrokes\("ttc-impact-hover-outline-core", maskId[\s\S]*?outlineStrokes\("ttc-impact-hover-outline-edge", outerMaskId/,
+      /maskStrokes\("ttc-impact-hover-outline-mask-outer", "white", TTC_HOVER_OUTLINE_WIDTHS\.outer\)[\s\S]*?maskStrokes\("ttc-impact-hover-outline-mask-cutout", "black", TTC_HOVER_OUTLINE_WIDTHS\.inner\)[\s\S]*?maskStrokes\("ttc-impact-hover-outline-mask-divider", "black", TTC_HOVER_OUTLINE_WIDTHS\.divider\)[\s\S]*?outlineStrokes\("ttc-impact-hover-outline-core", maskId[\s\S]*?outlineStrokes\("ttc-impact-hover-outline-edge", outerMaskId/,
     );
     assert.match(interactiveMapSource, /strokeWidth=\{width\}\s*style=\{\{ strokeWidth: width \}\}/);
     assert.doesNotMatch(interactiveMapSource, /hover-priority-boundary-ring-mask/);
@@ -286,9 +286,9 @@ describe("asset-backed map layering", () => {
       /\.ttc-impact-hover-foreground\[data-ttc-impact-hovered="true"\]\s*\{[^}]*opacity:\s*1;[^}]*visibility:\s*visible;/s,
     );
     assert.match(globalCss, /\.ttc-impact-hover-outline-core\s*\{[^}]*stroke:\s*rgba\(15,\s*23,\s*42,\s*0\.98\);/s);
-    assert.match(globalCss, /\.ttc-impact-hover-outline-edge\s*\{[^}]*stroke:\s*rgba\(248,\s*250,\s*252,\s*0\.98\);[^}]*filter:\s*drop-shadow\(0 0 4px/s);
-    assert.match(globalCss, /\.ttc-impact-hover-outline-mask-divider\s*\{[^}]*stroke:\s*black;[^}]*stroke-width:\s*108px;/s);
-    assert.match(globalCss, /\.ttc-impact-hover-outline-mask-cutout\s*\{[^}]*stroke:\s*black;[^}]*stroke-width:\s*96px;/s);
+    assert.match(globalCss, /\.ttc-impact-hover-outline-edge\s*\{[^}]*stroke:\s*rgba\(248,\s*250,\s*252,\s*0\.98\);[^}]*filter:\s*drop-shadow\(0 0 2\.9px/s);
+    assert.match(globalCss, /\.ttc-impact-hover-outline-mask-divider\s*\{[^}]*stroke:\s*black;[^}]*stroke-width:\s*92\.2px;/s);
+    assert.match(globalCss, /\.ttc-impact-hover-outline-mask-cutout\s*\{[^}]*stroke:\s*black;[^}]*stroke-width:\s*80px;/s);
     assert.doesNotMatch(interactiveMapSource, /ttc-impact-hover-rail/);
   });
 
@@ -422,7 +422,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /requestAnimationFrame\(synchronizePulseAnimations\)/);
     assert.match(interactiveMapSource, /\}, \[loadState, overlayPulseMotionPaused, pulseSyncSignature\]\);/);
     assert.doesNotMatch(globalCss, /\.asset-alert-path\.(?:delay-candy|suspension-candy|delay-static-base)\s*\{[^}]*map-overlay-rail-pulse/s);
-    assert.match(globalCss, /\.delay-hourglass-mask-path,\s*\.suspension-mask-path\s*\{[^}]*stroke-width:\s*var\(--map-overlay-rail-width\);/s);
+    assert.match(globalCss, /\.delay-hourglass-mask-path,\s*\.suspension-mask-path\s*\{[^}]*stroke-width:\s*var\(--ttc-alert-rail-width\);/s);
     assert.doesNotMatch(globalCss, /@keyframes mask-size-pulse/);
     assert.match(globalCss, /\.station-impact-ring\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
     assert.match(globalCss, /\.station-impact-dot-red-glow\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
@@ -564,7 +564,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /plannedPreviewSegmentIds/);
     assert.match(interactiveMapSource, /shouldRenderPlannedPreviewLayer\(segment, closure\)/);
     assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*(?:0\.\d+|1(?:\.0)?);/s);
-    assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-dasharray:\s*none;[^}]*stroke-width:\s*var\(--map-overlay-rail-width\);/s);
+    assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-dasharray:\s*none;[^}]*stroke-width:\s*var\(--ttc-alert-rail-width\);/s);
     assert.doesNotMatch(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*animation:/s);
     assert.match(globalCss, /\.motion-paused \.asset-alert-path\.planned-preview/);
     assert.doesNotMatch(globalCss, /\.asset-alert-path\.planned-preview\.selected\s*\{[^}]*stroke-width:\s*118;/s);

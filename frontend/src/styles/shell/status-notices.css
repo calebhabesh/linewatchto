@@ -248,6 +248,12 @@
   z-index: 90;
 }
 
+/* Phones: placed above the pull-up service sheet (AppUpdateBanner.tsx). */
+.app-update-banner[data-placement] {
+  bottom: auto;
+  top: var(--app-update-banner-top);
+}
+
 .high-contrast .app-update-banner,
 .linewatch-shell.high-contrast .app-update-banner {
   border: 1px solid var(--notice-banner-border, #ffffff);

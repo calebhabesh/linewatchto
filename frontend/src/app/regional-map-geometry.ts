@@ -264,6 +264,25 @@ export function regionalStationVisualAnchors(
   });
 }
 
+/**
+ * The stations-layer bounds of a rectangular (pill) station marker such as
+ * Union, or null for round markers.
+ */
+export function regionalStationPillBounds(stationVisual: SVGElement): { center: MapPoint; width: number; height: number } | null {
+  if (!stationVisual.matches("rect")) return null;
+  const x = Number(stationVisual.getAttribute("x") ?? 0);
+  const y = Number(stationVisual.getAttribute("y") ?? 0);
+  const a = pointInRegionalStationsLayer(stationVisual, { x, y });
+  const b = pointInRegionalStationsLayer(stationVisual, {
+    x: x + Number(stationVisual.getAttribute("width") ?? 0),
+    y: y + Number(stationVisual.getAttribute("height") ?? 0),
+  });
+  const width = Math.abs(b.x - a.x);
+  const height = Math.abs(b.y - a.y);
+  if (!(width > 0 && height > 0)) return null;
+  return { center: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, width, height };
+}
+
 export function regionalStationImpactAnchors(
   stationVisual: SVGElement,
   lineId: string | null | undefined,

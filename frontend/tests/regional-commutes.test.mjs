@@ -56,8 +56,9 @@ describe("regional My Commutes UI boundary", () => {
     assert.match(regionalOverlaysSource, /station-commute-green-flash/);
     assert.match(globalCss, /@keyframes regional-commute-path-pulse/);
     assert.match(globalCss, /\.regional-map \.regional-commute-path-preview-layer \.commute-path-preview-path\s*\{[^}]*animation-name:\s*regional-commute-path-pulse;[^}]*stroke-width:\s*245px !important;/s);
-    assert.match(globalCss, /\.regional-map \.regional-commute-path-preview-layer \.commute-path-preview-glow\s*\{[^}]*stroke-linecap:\s*butt;/s);
-    assert.match(globalCss, /\.regional-map \.regional-commute-path-preview-layer \.commute-path-preview-path\s*\{[^}]*stroke-linecap:\s*butt;/s);
+    // Round ends like the TTC preview (from .commute-path-preview-glow/-path).
+    assert.doesNotMatch(globalCss, /\.regional-commute-path-preview-layer \.commute-path-preview-(glow|path)\s*\{[^}]*stroke-linecap:\s*butt;/s);
+    assert.match(globalCss, /\.commute-path-preview-glow,\s*\.commute-path-preview-path\s*\{[^}]*stroke-linecap:\s*round;/s);
     assert.match(cardSource, /Route Notifications:/);
     assert.doesNotMatch(panelSource, /Regional Notifications: Not available yet/);
     assert.doesNotMatch(cardSource, /Regional Notifications: Not available yet/);

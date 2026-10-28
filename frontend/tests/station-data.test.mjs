@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
@@ -145,6 +146,22 @@ describe("station data adapter", () => {
       preserveStationDetailOnRefresh(failedRefresh, current, 16_000),
       current,
       "a recovered backend response should replace an initial fallback",
+    );
+  });
+
+  it("lists fallback stations in the backend's order, so the map does not rebuild when /api/stations arrives", () => {
+    // The API returns stations by sort_order from the seed migration. The
+    // map's overlay scene (and its tab order) follows the list order, so a
+    // different fallback order rebuilds every overlay once the API answers.
+    const seed = readFileSync(new URL("../../backend/src/main/resources/db/migration/V1__station_detail_seed.sql", import.meta.url), "utf8");
+    const rows = seed.split(/insert into stations/i)[1].split(";")[0];
+    const seedOrder = [...rows.matchAll(/\('([^']+)',\s*'(?:[^']|'')*',\s*\d+,\s*\d+,\s*(?:true|false),\s*(\d+)\)/g)]
+      .map((match) => ({ id: match[1], sortOrder: Number(match[2]) }))
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+
+    assert.deepEqual(
+      fallbackStationSummaries.stations.map((station) => station.id),
+      seedOrder.map((station) => station.id),
     );
   });
 

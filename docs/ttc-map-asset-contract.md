@@ -21,6 +21,8 @@ The Inkscape source now includes the corrected Humber College, Jane, Line 6, and
 
 LineWatchTO's current internal station ids intentionally remain `station-greenwoood` and `station-o_connor`; those spellings match persisted application data. Do not silently change only the SVG ids.
 
+Alert rails are 80 units wide, the same as the authored lines, so lines drawn edge to edge never overlap each other's alerts. A segment without a guide follows its line's path in the `tracks` layer between its two station anchors (`resolveNetworkSegmentPath`), so each `tracks` path must stay labelled with its line id (`line-1`, `line-2`, `line-4`, `line-5`, `line-6`). A straight chord between station centres cut the track's corners by up to 15 units, which the rail's former 102-unit width hid. An anchor more than 60 units from its track keeps the chord.
+
 The preparation step still converts the four curved/nonlinear guides to stable root-coordinate paths aligned to St Andrew–Union, Union–King, St George–Spadina, and Humber College–Westmore. It also normalizes the standalone UP Express connection icon to UP blue so a bulk asset import cannot overwrite the application version with the black source variant.
 
 The preparation script is deliberately strict. A renamed, missing, or duplicate station stops the import instead of allowing clicks, overlays, station rings, commute previews, or estimated train markers to drift silently.

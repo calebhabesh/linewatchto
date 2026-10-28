@@ -63,13 +63,6 @@
   stroke-width: 162;
 }
 
-.linewatch-shell.mobile-performance-mode .asset-alert-path.delay-candy,
-.linewatch-shell.mobile-performance-mode .asset-alert-path.suspension-candy,
-.linewatch-shell.mobile-performance-mode .asset-alert-path.delay-static-base,
-.linewatch-shell.mobile-performance-mode .asset-alert-path.planned-preview {
-  stroke-width: 112;
-}
-
 /* Regional corridors use a wider authored rail stroke than the TTC map. Keep
    mobile paint simplification from narrowing the alert below its corridor. */
 .linewatch-shell.mobile-performance-mode[data-network="regional"] .regional-impact-path {
@@ -220,7 +213,7 @@
 }
 
 .asset-alert-path.suspension-candy {
-  stroke-width: var(--map-overlay-rail-width);
+  stroke-width: var(--ttc-alert-rail-width);
   transition: none;
 }
 
@@ -259,7 +252,7 @@
 }
 
 .asset-alert-path.delay-candy {
-  stroke-width: var(--map-overlay-rail-width);
+  stroke-width: var(--ttc-alert-rail-width);
   transition: none;
 }
 
@@ -344,7 +337,8 @@
   stroke: rgba(248, 250, 252, 0.96);
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 120;
+  /* GO/UP's rail + 65 (regional-map.css), scaled to TTC's 80-unit rail. */
+  stroke-width: 106.5;
 }
 
 .linewatch-shell:not(.dark) .asset-alert-path-hover-boundary {
@@ -414,7 +408,7 @@
 
 .asset-alert-path.delay-static-base {
   stroke: rgba(14, 165, 233, 0.88); /* Frozen blue base */
-  stroke-width: var(--map-overlay-rail-width);
+  stroke-width: var(--ttc-alert-rail-width);
   transition: none;
 }
 
@@ -439,7 +433,7 @@
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: var(--map-overlay-rail-width);
+  stroke-width: var(--ttc-alert-rail-width);
 }
 
 .motion-paused .delay-hourglass-mask-path,
@@ -460,7 +454,7 @@
   opacity: 1;
   stroke: var(--planned-preview-rail);
   stroke-dasharray: none;
-  stroke-width: var(--map-overlay-rail-width);
+  stroke-width: var(--ttc-alert-rail-width);
   transition: none;
 }
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type RefObject } from "react";
 import { DataProvider, type DashboardData } from "../app/DataContext";
+import { isRepeatMapSelection } from "../app/map-repeat-selection";
 import type { MapFadeController } from "../app/map-surface-transition";
 import { loadGeographicCatalog } from "../app/geographic-catalog-loader";
 import { preloadTtcMapMarkup } from "../app/map-preload";
@@ -93,7 +94,9 @@ export function NetworkMap({
           selectedStationId={props.selectedStationId}
           onSelectStationId={props.onSelectStationId}
           selection={props.selection}
-          onSelectImpact={props.onSelectImpact}
+          onSelectImpact={(next) => {
+            if (!isRepeatMapSelection(props, next)) props.onSelectImpact(next);
+          }}
           commutePathPreview={props.commutePathPreview}
           onClearCommutePathPreview={props.onClearCommutePathPreview}
           recenterSignal={props.recenterSignal}
@@ -151,7 +154,9 @@ function DiagramNetworkMaps({ network, preparingNetwork, warmingNetwork, diagram
   // motion in CSS; changing reducedMotion here would rebuild the SVG overlays.
   const callbacks = useRef(props);
   useLayoutEffect(() => { callbacks.current = props; });
-  const selectImpact = useCallback<TtcMapProps["onSelectImpact"]>(selection => callbacks.current.onSelectImpact(selection), []);
+  const selectImpact = useCallback<TtcMapProps["onSelectImpact"]>((selection) => {
+    if (!isRepeatMapSelection(callbacks.current, selection)) callbacks.current.onSelectImpact(selection);
+  }, []);
   const selectStation = useCallback<TtcMapProps["onSelectStationId"]>(station => callbacks.current.onSelectStationId(station), []);
   const changeNetwork = useCallback((next: NetworkId) => callbacks.current.onNetworkChange?.(next), []);
   const changeView = useCallback<NonNullable<TtcMapProps["onMapViewChange"]>>(view => callbacks.current.onMapViewChange?.(view), []);

@@ -59,7 +59,7 @@ import {
 import {
   installRegionalOverlaySession,
   regionalOverlayContentSignature,
-  nextRegionalPointerImpactSelection,
+  regionalPointerImpactSelection,
   regionalOverlapMarker,
   regionalOverlapMarkerRestingRect,
   regionalReferencedAlertCollisionBoxes,
@@ -106,6 +106,14 @@ import {
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
 import { readDesktopLeftOcclusion, measureDesktopMapInsets } from "../app/desktop-sidebar-state";
+import {
+  FOCUS_REVEAL_DURATION_MS,
+  focusRevealSafeArea,
+  focusRevealTranslation,
+  logicalBoxFromClientRect,
+  shouldRevealFocusedMapTarget,
+  type MapEdgeInsets,
+} from "../app/map-focus-reveal";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
 import { useMapLabelFontReady } from "../hooks/useMapLabelFontReady";
@@ -1272,6 +1280,47 @@ function InteractiveRegionalMapComponent({
     return [];
   }, [commutePathPreview, selectedStationId, selection]);
 
+  /**
+   * Logical-viewport edges covered by the pill, sheets, rail, sidebar, or a
+   * commute preview. Selection framing and keyboard focus keep clear of them.
+   */
+  const readOccludedInsets = useCallback((viewport: HTMLElement, logicalHeight: number, isMobile: boolean) => {
+    const focusPadding = isMobile ? 24 : 40;
+    const topPillBottom = isMobile ? readMobilePillBottom(viewport) : 0;
+    const mobileStationTop = isMobile && selectedStationId
+      ? readMobileStationSubmenuTop(viewport, logicalHeight)
+      : logicalHeight;
+    const mobileImpactTop = isMobile && selection
+      ? readMobileImpactInspectorTop(viewport, logicalHeight)
+      : logicalHeight;
+
+    const insets: MapEdgeInsets = {
+      left: focusPadding,
+      right: focusPadding,
+      top: isMobile
+        ? Math.max(focusPadding, topPillBottom)
+        : Math.max(desktopMapTopInset, focusPadding),
+      bottom: isMobile
+        ? (selectedStationId
+            ? Math.max(focusPadding, logicalHeight - mobileStationTop)
+            : Math.max(focusPadding, logicalHeight - mobileImpactTop))
+        : Math.max(desktopMapBottomInset, focusPadding, readMobileImpactInspectorInset(viewport) + focusPadding),
+    };
+
+    if (commutePathPreview && !selection && !selectedStationId) {
+      insets.bottom = Math.max(insets.bottom, readCommutePreviewInset(viewport));
+    }
+
+    if (!isMobile) {
+      const leftOcclusion = readDesktopLeftOcclusion(viewport, desktopMenuPinned, 16);
+      if (leftOcclusion > 0) {
+        insets.left = Math.max(insets.left, leftOcclusion);
+      }
+    }
+
+    return { insets, topPillBottom, mobileStationTop };
+  }, [commutePathPreview, desktopMapBottomInset, desktopMapTopInset, desktopMenuPinned, selectedStationId, selection]);
+
   const focusSelectedMapElements = useCallback(() => {
     const viewport = viewportRef.current;
     const elements = selectedMapElements();
@@ -1319,38 +1368,7 @@ function InteractiveRegionalMapComponent({
     const effectiveFitScale = currentFitted?.scale ?? fitScale ?? 0.35;
     const commutePreviewComfort = commutePathPreview && !selection && !selectedStationId ? 0.82 : 1;
     const preferredTargetScale = clampPanZoomScale(effectiveFitScale * (isMobile ? 3.8 : 1.8), effectiveFitScale);
-    const focusPadding = isMobile ? 24 : 40;
-    const topPillBottom = isMobile ? readMobilePillBottom(viewport) : 0;
-    const mobileStationTop = isMobile && selectedStationId
-      ? readMobileStationSubmenuTop(viewport, logicalHeight)
-      : logicalHeight;
-    const mobileImpactTop = isMobile && selection
-      ? readMobileImpactInspectorTop(viewport, logicalHeight)
-      : logicalHeight;
-
-    const focusInsets = {
-      left: focusPadding,
-      right: focusPadding,
-      top: isMobile
-        ? Math.max(focusPadding, topPillBottom)
-        : Math.max(desktopMapTopInset, focusPadding),
-      bottom: isMobile
-        ? (selectedStationId
-            ? Math.max(focusPadding, logicalHeight - mobileStationTop)
-            : Math.max(focusPadding, logicalHeight - mobileImpactTop))
-        : Math.max(desktopMapBottomInset, focusPadding, readMobileImpactInspectorInset(viewport) + focusPadding),
-    };
-
-    if (commutePathPreview && !selection && !selectedStationId) {
-      focusInsets.bottom = Math.max(focusInsets.bottom, readCommutePreviewInset(viewport));
-    }
-
-    if (!isMobile) {
-      const leftOcclusion = readDesktopLeftOcclusion(viewport, desktopMenuPinned, 16);
-      if (leftOcclusion > 0) {
-        focusInsets.left = Math.max(focusInsets.left, leftOcclusion);
-      }
-    }
+    const { insets: focusInsets, topPillBottom, mobileStationTop } = readOccludedInsets(viewport, logicalHeight, isMobile);
 
     if (selectedStationId) {
       const targetScale = preferredTargetScale;
@@ -1406,17 +1424,36 @@ function InteractiveRegionalMapComponent({
   }, [
     animateCameraTo,
     commutePathPreview,
-    desktopMapBottomInset,
-    desktopMapTopInset,
-    desktopMenuPinned,
     fitScale,
     fittedCamera,
     logicalViewportSize,
+    readOccludedInsets,
     selectedMapElements,
     selectedStationId,
     selection,
     viewportOrientation,
   ]);
+
+  /** Pans a keyboard-focused target out from under the panels and controls. */
+  const revealFocusedMapTarget = useCallback((target: EventTarget | null) => {
+    const viewport = viewportRef.current;
+    if (!viewport || !cameraReady || !shouldRevealFocusedMapTarget(target, mapStageRef.current)) return;
+    const { width, height } = logicalViewportSize();
+    if (width <= 0 || height <= 0) return;
+    const rect = target.getBoundingClientRect();
+    if (rect.width <= 0 && rect.height <= 0) return;
+    const isMobile = window.matchMedia(MOBILE_VIEWPORT_QUERY).matches;
+    const box = logicalBoxFromClientRect(rect, viewport.getBoundingClientRect(), viewportOrientation);
+    const { insets } = readOccludedInsets(viewport, height, isMobile);
+    const offset = focusRevealTranslation(box, focusRevealSafeArea(width, height, insets));
+    if (!offset) return;
+    const current = currentRenderedCamera() ?? cameraRef.current;
+    animateCameraTo(snapCameraToDevicePixels({
+      x: current.x + offset.dx,
+      y: current.y + offset.dy,
+      scale: current.scale,
+    }), undefined, { durationMs: FOCUS_REVEAL_DURATION_MS });
+  }, [animateCameraTo, cameraReady, currentRenderedCamera, logicalViewportSize, readOccludedInsets, viewportOrientation]);
 
   useEffect(() => {
     if (!cameraInitializedRef.current || !svgMarkup) return;
@@ -1693,11 +1730,7 @@ function InteractiveRegionalMapComponent({
       pointerActivationRef.current = impact?.dataset.regionalImpactKind && impact.dataset.regionalImpactId
         ? {
             type: "impact",
-            selection: nextRegionalPointerImpactSelection(
-              event.currentTarget,
-              impact,
-              selection,
-            ),
+            selection: regionalPointerImpactSelection(event.currentTarget, impact, event.clientX, event.clientY),
           }
         : station?.dataset.regionalStationId
           ? { type: "station", id: station.dataset.regionalStationId }
@@ -1729,7 +1762,7 @@ function InteractiveRegionalMapComponent({
       dragMovedRef.current = true;
     }
     setUserGestureMotion(true);
-  }, [cancelCameraAnimation, endCameraMotion, selection, setMapTransition, setUserGestureMotion, viewportOrientation]);
+  }, [cancelCameraAnimation, endCameraMotion, setMapTransition, setUserGestureMotion, viewportOrientation]);
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (!activePointersRef.current.has(event.pointerId)) return;
@@ -2042,6 +2075,7 @@ function InteractiveRegionalMapComponent({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         onLostPointerCapture={onLostPointerCapture}
+        onFocus={(event) => revealFocusedMapTarget(event.target)}
         onClick={(event) => {
           if (suppressNextClickRef.current) {
             suppressNextClickRef.current = false;

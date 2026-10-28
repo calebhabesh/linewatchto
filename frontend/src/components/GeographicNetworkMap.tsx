@@ -2,7 +2,8 @@
 
 import { CommuteRouteLabel } from "./CommuteRouteLabel";
 import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo, type RefObject } from "react";
-import { Map as MapLibreMap, AttributionControl, getVersion, setWorkerUrl } from "maplibre-gl";
+import { Map as MapLibreMap, AttributionControl, getVersion, setWorkerUrl, type VectorTileSource } from "maplibre-gl";
+import { installTilePrefetch, type PrefetchSource } from "./map-tile-prefetch";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { AlertCircle, RefreshCw, Layers, Locate, ZoomIn, ZoomOut } from "lucide-react";
 import { cachedGeographicCatalog, loadGeographicCatalog } from "../app/geographic-catalog-loader";
@@ -210,6 +211,32 @@ function isWebGL2Supported(): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * The OpenFreeMap vector tiles around the view, into the browser's HTTP
+ * cache (their URLs are versioned and cached for years), so a pan draws them
+ * without waiting on the network. The raster relief source stops at z6 and
+ * is left to MapLibre.
+ */
+function openMapTilesPrefetchSources(map: MapLibreMap): PrefetchSource[] {
+  const source = map.getSource("openmaptiles") as VectorTileSource | undefined;
+  const template = source?.tiles?.[0];
+  if (!source || !template) return [];
+  return [{
+    key: template,
+    tileSize: source.tileSize,
+    minzoom: source.minzoom,
+    maxzoom: source.maxzoom,
+    roundZoom: false,
+    // Vector tiles run to ~100 KB, ten times a diagram tile: a phone's view
+    // and its ring is about this many, so a settle costs at most ~1 MB.
+    maxTiles: 12,
+    load: async (z, x, y) => {
+      const response = await fetch(template.replace("{z}", String(z)).replace("{x}", String(x)).replace("{y}", String(y)));
+      await response.arrayBuffer();
+    },
+  }];
 }
 
 export function GeographicNetworkMap({
@@ -871,6 +898,7 @@ export function GeographicNetworkMap({
     const network = networkRef.current;
     let cancelled = false;
     let timeoutId: number | null = null;
+    let stopPrefetch: (() => void) | null = null;
     const currentGeneration = ++initGenerationRef.current;
 
     // Bounded loading timeout (12s engineering default)
@@ -944,6 +972,7 @@ export function GeographicNetworkMap({
         attributionRef.current = new AttributionControl({ compact: false, customAttribution: getGeographicAttribution(network) });
         map.addControl(attributionRef.current, "bottom-right");
         if (networkFadeRef) networkFadeRef.current = createGeographicMapFade(map);
+        stopPrefetch = installTilePrefetch(map, () => openMapTilesPrefetchSources(map));
 
         map.on("load", () => {
           if (cancelled || currentGeneration !== initGenerationRef.current) return;
@@ -1008,6 +1037,7 @@ export function GeographicNetworkMap({
     return () => {
       cancelled = true;
       if (timeoutId !== null) window.clearTimeout(timeoutId);
+      stopPrefetch?.();
       if (mapRef.current) {
         recordGeographicMapLifecycle("removal", "cleanup");
         mapRef.current.remove();

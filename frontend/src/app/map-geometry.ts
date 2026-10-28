@@ -680,7 +680,9 @@ export function resolveNetworkSegmentPath(
     (stationB ? { x: stationB.x, y: stationB.y } : undefined);
 
   if (pointA && pointB) {
-    return `M ${pointA.x} ${pointA.y} L ${pointB.x} ${pointB.y}`;
+    const track = guidePaths.get(trackGuideKey(segment.lineId));
+    const along = track ? trackPathBetween(trackPoints(track), pointA, pointB) : "";
+    return along || `M ${pointA.x} ${pointA.y} L ${pointB.x} ${pointB.y}`;
   }
   return segment.pathD;
 }
@@ -725,7 +727,129 @@ export function readSvgGeometry(
     const pathD = pathDataInRootCoordinates(path, root);
     if (label && pathD) guidePaths.set(label, pathD);
   }
+  // The authored tracks, one path per line, labelled with the line id.
+  const trackLayer = Array.from(root.querySelectorAll<SVGGElement>("g")).find(
+    (element) => element.getAttribute("inkscape:label") === "tracks",
+  );
+  for (const path of trackLayer?.querySelectorAll<SVGPathElement>("path") ?? []) {
+    const lineId = path.getAttribute("inkscape:label");
+    const points = lineId ? sampledPathInRootCoordinates(path, root, TRACK_SAMPLE_SPACING) : [];
+    if (lineId && points.length > 1) guidePaths.set(trackGuideKey(lineId), pointsToPath(dropCollinearPoints(points)));
+  }
   return { anchorPoints, guidePaths };
+}
+
+/** Where a line's authored track (a root-coordinate polyline) is kept in `guidePaths`. */
+export function trackGuideKey(lineId: string): string {
+  return `track:${lineId}`;
+}
+
+/** Farther than this from the track, a station anchor keeps the straight chord. */
+const TRACK_SNAP_DISTANCE = 60;
+const TRACK_SAMPLE_SPACING = 8;
+
+function sampledPathInRootCoordinates(path: SVGPathElement, root: SVGSVGElement, spacing: number): MapPoint[] {
+  try {
+    const length = path.getTotalLength();
+    const toRoot = svgElementMatrixToRootCoordinates(path, root);
+    if (length <= 0 || !toRoot) return [];
+    // Straight-edged tracks keep their exact corners; curves are sampled.
+    const authoredPathD = path.getAttribute("d") ?? "";
+    if (isLinearPathData(authoredPathD)) {
+      return dedupePoints(parsedPathPoints(authoredPathD).map((point) => transformPoint(point, toRoot)));
+    }
+    const count = Math.max(1, Math.ceil(length / spacing));
+    return dedupePoints(Array.from({ length: count + 1 }, (_unused, index) => {
+      const point = path.getPointAtLength((length * index) / count);
+      return transformPoint({ x: point.x, y: point.y }, toRoot);
+    }));
+  } catch {
+    return [];
+  }
+}
+
+const trackPointCache = new Map<string, MapPoint[]>();
+function trackPoints(pathD: string): MapPoint[] {
+  let points = trackPointCache.get(pathD);
+  if (!points) {
+    points = parsedPathPoints(pathD);
+    trackPointCache.set(pathD, points);
+  }
+  return points;
+}
+
+/** The nearest point of a polyline: its distance along the line and how far off it is. */
+function projectOntoPolyline(points: MapPoint[], target: MapPoint) {
+  let best = { along: 0, gap: Infinity };
+  let travelled = 0;
+  for (let index = 1; index < points.length; index++) {
+    const from = points[index - 1];
+    const to = points[index];
+    const length = pointDistance(from, to);
+    const t = length === 0 ? 0 : Math.max(0, Math.min(1,
+      ((target.x - from.x) * (to.x - from.x) + (target.y - from.y) * (to.y - from.y)) / (length * length)));
+    const gap = pointDistance({ x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t }, target);
+    if (gap < best.gap) best = { along: travelled + length * t, gap };
+    travelled += length;
+  }
+  return best;
+}
+
+/** The point a given distance along a polyline. */
+function pointAlongPolyline(points: MapPoint[], along: number): MapPoint {
+  let travelled = 0;
+  for (let index = 1; index < points.length; index++) {
+    const from = points[index - 1];
+    const to = points[index];
+    const length = pointDistance(from, to);
+    if (travelled + length >= along) {
+      const t = length === 0 ? 0 : (along - travelled) / length;
+      return { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t };
+    }
+    travelled += length;
+  }
+  return points[points.length - 1];
+}
+
+/**
+ * The stretch of a line's authored track between two station anchors, from a
+ * to b. A straight chord between station centres cuts the track's corners,
+ * and an alert rail as wide as the line then shows the line beside it;
+ * following the track keeps the rail on the line.
+ */
+export function trackPathBetween(track: MapPoint[], a: MapPoint, b: MapPoint): string {
+  if (track.length < 2) return "";
+  const start = projectOntoPolyline(track, a);
+  const end = projectOntoPolyline(track, b);
+  if (start.gap > TRACK_SNAP_DISTANCE || end.gap > TRACK_SNAP_DISTANCE) return "";
+  if (Math.abs(end.along - start.along) < 1) return "";
+  const forward = start.along < end.along;
+  const [low, high] = forward ? [start.along, end.along] : [end.along, start.along];
+  const inner: MapPoint[] = [];
+  let travelled = 0;
+  for (let index = 1; index < track.length; index++) {
+    travelled += pointDistance(track[index - 1], track[index]);
+    if (index < track.length - 1 && travelled > low && travelled < high) inner.push(track[index]);
+  }
+  const points = [pointAlongPolyline(track, low), ...inner, pointAlongPolyline(track, high)];
+  return pointsToPath(forward ? points : points.reverse());
+}
+
+/** Removes points that sit on the straight line through their neighbours. */
+function dropCollinearPoints(points: MapPoint[], tolerance = 0.05): MapPoint[] {
+  if (points.length <= 2) return points;
+  const kept = [points[0]];
+  for (let index = 1; index < points.length - 1; index++) {
+    const previous = kept[kept.length - 1];
+    const next = points[index + 1];
+    const point = points[index];
+    const chord = pointDistance(previous, next);
+    const offset = chord === 0 ? pointDistance(previous, point)
+      : Math.abs((next.x - previous.x) * (previous.y - point.y) - (previous.x - point.x) * (next.y - previous.y)) / chord;
+    if (offset > tolerance) kept.push(point);
+  }
+  kept.push(points[points.length - 1]);
+  return kept;
 }
 
 function pathDataInRootCoordinates(path: SVGPathElement, root: SVGSVGElement): string {

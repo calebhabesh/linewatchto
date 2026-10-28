@@ -181,14 +181,36 @@ export function readMobileStationSubmenuTop(
   const shell = viewport.closest?.(".linewatch-shell") ?? document.querySelector(".linewatch-shell");
   const panel = shell?.querySelector<HTMLElement>(".station-detail-panel");
   if (panel) {
+    const viewportRect = viewport.getBoundingClientRect();
+    const restingTop = restingStationSheetTop(panel);
+    if (restingTop !== null && restingTop > 0) return Math.max(0, restingTop - viewportRect.top);
     const panelRect = panel.getBoundingClientRect?.();
     if (panelRect && panelRect.top > 0) {
-      const viewportRect = viewport.getBoundingClientRect();
       return Math.max(0, panelRect.top - viewportRect.top);
     }
   }
   const storedRatio = readStoredSheetHeightRatio(window.localStorage);
   return fallbackViewportHeight * (1 - storedRatio);
+}
+
+/**
+ * Where the station sheet comes to rest, in client coordinates. Its rect is
+ * mid-slide for 220 ms after a selection (station-detail-enter-mobile), so a
+ * renderer framing one frame later than another framed against a different
+ * edge; the resting edge is its untransformed top plus the sheet's translate.
+ */
+function restingStationSheetTop(panel: HTMLElement): number | null {
+  if (typeof panel.append !== "function" || panel.style.transform) return null;
+  // Resolves the translate exactly as station-detail.css does; layout height ignores transforms.
+  const probe = panel.ownerDocument.createElement("div");
+  probe.style.cssText = "position:absolute;top:0;left:0;width:0;visibility:hidden;pointer-events:none;"
+    + "height:var(--mobile-station-sheet-translate-y, calc(var(--visual-viewport-height, 100dvh) * 0.50))";
+  panel.append(probe);
+  const translate = probe.offsetHeight;
+  probe.remove();
+  const parent = panel.offsetParent;
+  const parentTop = parent ? parent.getBoundingClientRect().top : 0;
+  return parentTop + panel.offsetTop + translate;
 }
 
 /**

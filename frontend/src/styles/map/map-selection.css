@@ -52,6 +52,16 @@
   filter: none;
 }
 
+/* Masked outlines hide while the map changes scale, matching GO/UP, where
+   re-rastering corridor-length masks at every zoom step overflowed tile
+   memory. They return once the zoom settles; panning keeps them. */
+:is([data-map-zoom-active="true"], [data-map-camera-moving="true"]) :is(
+  .ttc-impact-preview-outline,
+  .ttc-impact-hover-foreground g[mask]
+) {
+  display: none;
+}
+
 .ttc-impact-hover-outline,
 .ttc-impact-hover-outline-mask-outer,
 .ttc-impact-hover-outline-mask-cutout,
@@ -63,7 +73,8 @@
 }
 
 .ttc-impact-hover-outline {
-  stroke-width: 118px;
+  /* TTC_HOVER_OUTLINE_WIDTHS: GO/UP's keyline scaled to TTC's 80-unit rail. */
+  stroke-width: 101.2px;
 }
 
 .ttc-impact-hover-outline-core {
@@ -72,22 +83,23 @@
 
 .ttc-impact-hover-outline-edge {
   stroke: rgba(248, 250, 252, 0.98);
-  filter: drop-shadow(0 0 4px rgba(191, 219, 254, 0.62));
+  /* GO/UP's 7px glow, scaled like the widths. */
+  filter: drop-shadow(0 0 2.9px rgba(191, 219, 254, 0.62));
 }
 
 .ttc-impact-hover-outline-mask-outer {
   stroke: white;
-  stroke-width: 118px;
+  stroke-width: 101.2px;
 }
 
 .ttc-impact-hover-outline-mask-cutout {
   stroke: black;
-  stroke-width: 96px;
+  stroke-width: 80px;
 }
 
 .ttc-impact-hover-outline-mask-divider {
   stroke: black;
-  stroke-width: 108px;
+  stroke-width: 92.2px;
 }
 
 .map-selection-attention {

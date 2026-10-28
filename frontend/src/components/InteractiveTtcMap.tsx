@@ -37,6 +37,13 @@ import {
 import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
 import { readDesktopLeftOcclusion, measureDesktopMapInsets } from "../app/desktop-sidebar-state";
 import {
+  focusRevealSafeArea,
+  focusRevealTranslation,
+  logicalBoxFromClientRect,
+  shouldRevealFocusedMapTarget,
+  type MapEdgeInsets,
+} from "../app/map-focus-reveal";
+import {
   clampPanZoomScale,
   clientRectToLogicalViewportBounds,
   computeBoundedMapFrame,
@@ -1058,6 +1065,47 @@ function InteractiveTtcMapComponent({
     return [];
   }, [commutePathPreview, containerRef, selectedStationId, selection]);
 
+  /**
+   * Logical-viewport edges covered by the pill, sheets, rail, sidebar, or a
+   * commute preview. Selection framing and keyboard focus keep clear of them.
+   */
+  const readOccludedInsets = useCallback((viewport: HTMLElement, logicalHeight: number, isMobile: boolean) => {
+    const focusPadding = isMobile ? 24 : 40;
+    const topPillBottom = isMobile ? readMobilePillBottom(viewport) : 0;
+    const mobileStationTop = isMobile && selectedStationId
+      ? readMobileStationSubmenuTop(viewport, logicalHeight)
+      : logicalHeight;
+    const mobileImpactTop = isMobile && selection
+      ? readMobileImpactInspectorTop(viewport, logicalHeight)
+      : logicalHeight;
+
+    const insets: MapEdgeInsets = {
+      left: focusPadding,
+      right: focusPadding,
+      top: isMobile
+        ? Math.max(focusPadding, topPillBottom)
+        : Math.max(desktopMapTopInset + 16, focusPadding),
+      bottom: isMobile
+        ? (selectedStationId
+            ? Math.max(focusPadding, logicalHeight - mobileStationTop)
+            : Math.max(focusPadding, logicalHeight - mobileImpactTop))
+        : Math.max(focusPadding, readMobileImpactInspectorInset(viewport) + focusPadding),
+    };
+
+    if (commutePathPreview && !selection && !selectedStationId) {
+      insets.bottom = Math.max(insets.bottom, readCommutePreviewInset(viewport));
+    }
+
+    if (!isMobile && typeof window !== "undefined") {
+      const leftOcclusion = readDesktopLeftOcclusion(viewport, desktopMenuPinned, 24);
+      if (leftOcclusion > 0) {
+        insets.left = Math.max(insets.left, leftOcclusion);
+      }
+    }
+
+    return { insets, topPillBottom, mobileStationTop };
+  }, [commutePathPreview, desktopMapTopInset, desktopMenuPinned, selectedStationId, selection]);
+
   const focusSelectedMapElements = useCallback(() => {
     if (loadState !== "ready") return false;
     const viewport = containerRef.current;
@@ -1102,38 +1150,11 @@ function InteractiveTtcMapComponent({
     const isMobile = typeof window !== "undefined" && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches;
     const commutePreviewComfort = commutePathPreview && !selection && !selectedStationId ? 0.82 : 1;
     const preferredTargetScale = clampPanZoomScale(effectiveFitScale * (isMobile ? 3.8 : 1.8), effectiveFitScale);
-    const focusPadding = isMobile ? 24 : 40;
-    const topPillBottom = isMobile ? readMobilePillBottom(viewport) : 0;
-    const mobileStationTop = isMobile && selectedStationId
-      ? readMobileStationSubmenuTop(viewport, logicalHeight)
-      : logicalHeight;
-    const mobileImpactTop = isMobile && selection
-      ? readMobileImpactInspectorTop(viewport, logicalHeight)
-      : logicalHeight;
-
-    const selectionFocusInsets = {
-      left: focusPadding,
-      right: focusPadding,
-      top: isMobile
-        ? Math.max(focusPadding, topPillBottom)
-        : Math.max(desktopMapTopInset + 16, focusPadding),
-      bottom: isMobile
-        ? (selectedStationId
-            ? Math.max(focusPadding, logicalHeight - mobileStationTop)
-            : Math.max(focusPadding, logicalHeight - mobileImpactTop))
-        : Math.max(focusPadding, readMobileImpactInspectorInset(viewport) + focusPadding),
-    };
-
-    if (commutePathPreview && !selection && !selectedStationId) {
-      selectionFocusInsets.bottom = Math.max(selectionFocusInsets.bottom, readCommutePreviewInset(viewport));
-    }
-
-    if (!isMobile && typeof window !== "undefined") {
-      const leftOcclusion = readDesktopLeftOcclusion(viewport, desktopMenuPinned, 24);
-      if (leftOcclusion > 0) {
-        selectionFocusInsets.left = Math.max(selectionFocusInsets.left, leftOcclusion);
-      }
-    }
+    const {
+      insets: selectionFocusInsets,
+      topPillBottom,
+      mobileStationTop,
+    } = readOccludedInsets(viewport, logicalHeight, isMobile);
 
     if (selectedStationId) {
       const station = stations.find((s) => s.id === selectedStationId);
@@ -1294,12 +1315,11 @@ function InteractiveTtcMapComponent({
     containerRef,
     currentRenderedTransform,
     defaultTransformForViewport,
-    desktopMapTopInset,
-    desktopMenuPinned,
     fitScale,
     focusBoxesBySegmentId,
     loadState,
     logicalViewportSize,
+    readOccludedInsets,
     selectedMapElements,
     selectedSegmentIds,
     selectedStationId,
@@ -1310,6 +1330,23 @@ function InteractiveTtcMapComponent({
     viewportOrientation,
     zoomToBounds,
   ]);
+
+  /** Pans a keyboard-focused target out from under the panels and controls. */
+  const revealFocusedMapTarget = useCallback((target: EventTarget | null) => {
+    const viewport = containerRef.current;
+    if (loadState !== "ready" || !viewport || !shouldRevealFocusedMapTarget(target, mapRef.current)) return;
+    const { width, height } = logicalViewportSize();
+    if (width <= 0 || height <= 0) return;
+    const rect = target.getBoundingClientRect();
+    if (rect.width <= 0 && rect.height <= 0) return;
+    const isMobile = window.matchMedia(MOBILE_VIEWPORT_QUERY).matches;
+    const box = logicalBoxFromClientRect(rect, viewport.getBoundingClientRect(), viewportOrientation);
+    const { insets } = readOccludedInsets(viewport, height, isMobile);
+    const offset = focusRevealTranslation(box, focusRevealSafeArea(width, height, insets));
+    if (!offset) return;
+    const current = currentRenderedTransform() ?? transform;
+    animateTransformTo({ x: current.x + offset.dx, y: current.y + offset.dy, scale: current.scale });
+  }, [animateTransformTo, containerRef, currentRenderedTransform, loadState, logicalViewportSize, mapRef, readOccludedInsets, transform, viewportOrientation]);
 
   useEffect(() => {
     if (loadState !== "ready") return;
@@ -2283,6 +2320,7 @@ function InteractiveTtcMapComponent({
         onPointerLeave={handlePointerLeave}
         onPointerCancel={handlePointerCancel}
         onLostPointerCapture={handleLostPointerCapture}
+        onFocus={(event) => revealFocusedMapTarget(event.target)}
         onWheel={(event) => {
           if (!isMapWheelScrollRegionTarget(event.target)) clearMapHover();
           handleWheel(event);
@@ -3314,9 +3352,18 @@ function impactCollisionKey(kind: MapImpactKind, cardId: string): string {
 
 const OVERLAP_BADGE_TARGET_SPACING = 16;
 const STATION_BADGE_TARGET_RADIUS = 320;
+// Alert rails cover the authored line exactly (--ttc-alert-rail-width).
+const TTC_ALERT_RAIL_WIDTH = 80;
+// The hover keyline uses GO/UP's proportions (rail + 52 outer, + 30 divider
+// on a 196-unit rail), scaled to TTC's rail. map-selection.css matches these.
+const TTC_HOVER_OUTLINE_WIDTHS = {
+  outer: 101.2,
+  divider: 92.2,
+  inner: TTC_ALERT_RAIL_WIDTH,
+} as const;
 // The connector only shows while the badge is hovered, when its alerts are
-// drawn with a 118-unit hover outline; the connector touches that outer edge.
-const OVERLAY_HOVER_OUTLINE_HALF_WIDTH = 59;
+// drawn with the hover outline; the connector touches that outer edge.
+const OVERLAY_HOVER_OUTLINE_HALF_WIDTH = TTC_HOVER_OUTLINE_WIDTHS.outer / 2;
 const OVERLAY_BADGE_OBSTACLE_RADIUS = badgeObstacleReach(OVERLAY_HOVER_OUTLINE_HALF_WIDTH, BADGE_FEATURE_GAPS.alertOverlay);
 // Station-only alert rings are stroked up to 8 units wide when highlighted.
 const STATION_IMPACT_RING_STROKE_HALF_WIDTH = 4;
@@ -4576,8 +4623,8 @@ function TtcHoverOutline({
           width={MAP_VIEWBOX_BOUNDS.width}
           height={MAP_VIEWBOX_BOUNDS.height}
         >
-          {maskStrokes("ttc-impact-hover-outline-mask-outer", "white", 118)}
-          {maskStrokes("ttc-impact-hover-outline-mask-cutout", "black", 96)}
+          {maskStrokes("ttc-impact-hover-outline-mask-outer", "white", TTC_HOVER_OUTLINE_WIDTHS.outer)}
+          {maskStrokes("ttc-impact-hover-outline-mask-cutout", "black", TTC_HOVER_OUTLINE_WIDTHS.inner)}
         </mask>
         <mask
           id={outerMaskId}
@@ -4587,17 +4634,17 @@ function TtcHoverOutline({
           width={MAP_VIEWBOX_BOUNDS.width}
           height={MAP_VIEWBOX_BOUNDS.height}
         >
-          {maskStrokes("ttc-impact-hover-outline-mask-outer", "white", 118)}
-          {maskStrokes("ttc-impact-hover-outline-mask-divider", "black", 108)}
+          {maskStrokes("ttc-impact-hover-outline-mask-outer", "white", TTC_HOVER_OUTLINE_WIDTHS.outer)}
+          {maskStrokes("ttc-impact-hover-outline-mask-divider", "black", TTC_HOVER_OUTLINE_WIDTHS.divider)}
         </mask>
       </defs>
       {outlineStrokes("ttc-impact-hover-outline-core", maskId, {
         stroke: "rgba(15, 23, 42, 0.98)",
-        strokeWidth: 118,
+        strokeWidth: TTC_HOVER_OUTLINE_WIDTHS.outer,
       })}
       {outlineStrokes("ttc-impact-hover-outline-edge", outerMaskId, {
         stroke: "rgba(248, 250, 252, 0.98)",
-        strokeWidth: 118,
+        strokeWidth: TTC_HOVER_OUTLINE_WIDTHS.outer,
       })}
     </>
   );
@@ -4668,22 +4715,22 @@ function renderTtcPreviewOutline(layer: SVGGElement, keys: string[], pathsByImpa
       style: `stroke-width: ${width}`,
     }));
     node.append(
-      ...stroke("ttc-impact-hover-outline-mask-outer", "white", 118),
+      ...stroke("ttc-impact-hover-outline-mask-outer", "white", TTC_HOVER_OUTLINE_WIDTHS.outer),
       ...stroke(cutoutClass, "black", cutoutWidth),
     );
     return node;
   };
   const defs = element("defs", {});
   defs.append(
-    mask(maskId, "ttc-impact-hover-outline-mask-cutout", 96),
-    mask(`${maskId}-outer`, "ttc-impact-hover-outline-mask-divider", 108),
+    mask(maskId, "ttc-impact-hover-outline-mask-cutout", TTC_HOVER_OUTLINE_WIDTHS.inner),
+    mask(`${maskId}-outer`, "ttc-impact-hover-outline-mask-divider", TTC_HOVER_OUTLINE_WIDTHS.divider),
   );
   const strokes = (className: string, id: string, color: string) => {
     const group = element("g", { mask: `url(#${id})` });
     group.append(...paths.map((d) => element("path", {
       class: `ttc-impact-hover-outline ${className}`,
       d,
-      style: `stroke: ${color}; stroke-width: 118`,
+      style: `stroke: ${color}; stroke-width: ${TTC_HOVER_OUTLINE_WIDTHS.outer}`,
     })));
     return group;
   };

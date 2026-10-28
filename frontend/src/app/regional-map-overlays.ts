@@ -27,6 +27,7 @@ import {
   pointInSvgRootCoordinates,
   svgAnchorPoint,
   regionalStationVisualAnchors,
+  regionalStationPillBounds,
   regionalStationImpactAnchors,
   authoredRegionalCorridorPathData,
   resolvedRegionalSegmentPath,
@@ -1232,6 +1233,10 @@ export function regionalSegmentImpactAtClientPoint(
     ".regional-overlay-segment-group .regional-impact-hit-target",
   )];
   // Match SVG paint order: the last matching target is the visible/top lane.
+  // The selected alert is drawn above the others; where it covers another
+  // alert, that one is offered instead, so it can still be hovered and
+  // picked. The selected alert answers only where nothing else is.
+  let selectedHit: RegionalImpactIdentity | null = null;
   for (const hitTarget of hitTargets.reverse()) {
     const screenMatrix = hitTarget.getScreenCTM();
     const svg = hitTarget.ownerSVGElement;
@@ -1249,9 +1254,11 @@ export function regionalSegmentImpactAtClientPoint(
       if (!matrix) return false;
       return target.isPointInStroke(point.matrixTransform(matrix.inverse()));
     });
-    return { ...identity, segmentId: segment?.dataset.regionalHoverSegmentId ?? identity.segmentId };
+    const hit = { ...identity, segmentId: segment?.dataset.regionalHoverSegmentId ?? identity.segmentId };
+    if (group.dataset.regionalImpactSelected !== "true") return hit;
+    selectedHit ??= hit;
   }
-  return null;
+  return selectedHit;
 }
 
 export function regionalStationImpactAtClientPoint(
@@ -1262,6 +1269,8 @@ export function regionalStationImpactAtClientPoint(
   const hitShapes = [...root.querySelectorAll<SVGGeometryElement>(
     ".regional-station-impact-ring :is(circle, rect, ellipse), .regional-station-impact-ring:is(circle, rect, ellipse)",
   )];
+  // As for segments: another alert's ring is offered before the selected one.
+  let selectedHit: RegionalImpactIdentity | null = null;
   for (const hitShape of hitShapes.reverse()) {
     const screenMatrix = hitShape.getScreenCTM();
     const svg = hitShape.ownerSVGElement;
@@ -1270,51 +1279,99 @@ export function regionalStationImpactAtClientPoint(
     point.x = clientX;
     point.y = clientY;
     if (!hitShape.isPointInStroke(point.matrixTransform(screenMatrix.inverse()))) continue;
-    return regionalImpactIdentity(hitShape);
+    const hit = regionalImpactIdentity(hitShape);
+    const ring = hitShape.closest<SVGElement>(".regional-station-impact-ring");
+    if (!hit || ring?.dataset.regionalImpactSelected !== "true") return hit;
+    selectedHit ??= hit;
   }
-  return null;
+  return selectedHit;
 }
 
-export function nextRegionalPointerImpactSelection(
-  root: ParentNode,
+/**
+ * Commute endpoint blip offsets (SVG units) from the station marker's outer
+ * edge (outline included): it starts hidden under the marker and swells a
+ * little past it. The same distances for every station, so a small dot and
+ * the Union pill get the same rim.
+ */
+const COMMUTE_BLIP_FROM = -50;
+const COMMUTE_BLIP_TO = 30;
+
+/** Half the station marker's outline width, from its inline style. */
+function regionalStationOutlineHalfWidth(stationVisual: SVGElement): number {
+  const width = Number.parseFloat(stationVisual.style?.strokeWidth || stationVisual.getAttribute("stroke-width") || "0");
+  return Number.isFinite(width) ? width / 2 : 0;
+}
+
+/**
+ * A commute endpoint blip in the station marker's shape (a circle, or a pill
+ * for Union): a faint green swell around the station
+ * (regional-commute-endpoint-blip-anim).
+ */
+export function regionalCommuteEndpointBlip(
+  documentNode: Pick<Document, "createElementNS">,
+  marker: { center: MapPoint; width: number; height: number },
+  outlineHalfWidth: number,
+  role: "origin" | "destination",
+): SVGRectElement {
+  const box = (offset: number) => {
+    const margin = outlineHalfWidth + offset;
+    const width = Math.max(0, marker.width + 2 * margin);
+    const height = Math.max(0, marker.height + 2 * margin);
+    return {
+      x: marker.center.x - width / 2,
+      y: marker.center.y - height / 2,
+      width,
+      height,
+      r: Math.min(width, height) / 2,
+    };
+  };
+  const rect = documentNode.createElementNS(SVG_NAMESPACE, "rect");
+  rect.classList.add(
+    "station-commute-green-flash",
+    "regional-commute-path-preview-endpoint",
+    "regional-commute-endpoint-blip",
+  );
+  rect.dataset.commutePathEndpoint = role;
+  // Without motion the blip rests at its fullest size. The pulse's offsets
+  // from that resting outline are kept on the element.
+  rect.dataset.commuteBlipFrom = String(COMMUTE_BLIP_FROM - COMMUTE_BLIP_TO);
+  rect.dataset.commuteBlipTo = "0";
+  const rest = box(COMMUTE_BLIP_TO);
+  rect.setAttribute("x", String(rest.x));
+  rect.setAttribute("y", String(rest.y));
+  rect.setAttribute("width", String(rest.width));
+  rect.setAttribute("height", String(rest.height));
+  rect.setAttribute("rx", String(rest.r));
+  rect.setAttribute("ry", String(rest.r));
+  for (const [name, frame] of [["from", box(COMMUTE_BLIP_FROM)], ["to", rest]] as const) {
+    rect.style.setProperty(`--blip-${name}-x`, `${frame.x}px`);
+    rect.style.setProperty(`--blip-${name}-y`, `${frame.y}px`);
+    rect.style.setProperty(`--blip-${name}-width`, `${frame.width}px`);
+    rect.style.setProperty(`--blip-${name}-height`, `${frame.height}px`);
+    rect.style.setProperty(`--blip-${name}-r`, `${frame.r}px`);
+  }
+  return rect;
+}
+
+/**
+ * The alert a pointer press selects: the one the hover outline shows (the
+ * topmost alert under the pointer, preferring any alert other than the
+ * selected one, which is drawn on top). Pressing where only the selected
+ * alert is changes nothing (NetworkMap ignores the repeat).
+ */
+export function regionalPointerImpactSelection(
+  root: HTMLElement,
   impact: SVGElement,
-  currentSelection: ImpactSelection,
+  clientX: number,
+  clientY: number,
 ): NonNullable<ImpactSelection> {
-  const clicked = {
+  const hit = regionalStationImpactAtClientPoint(root, clientX, clientY)
+    ?? regionalSegmentImpactAtClientPoint(root, clientX, clientY);
+  if (hit) return { kind: hit.kind, id: hit.id };
+  return {
     kind: impact.dataset.regionalImpactKind as ImpactKind,
     id: impact.dataset.regionalImpactId!,
   };
-  const stationId = impact.dataset.regionalStationImpactStationId;
-  const segmentIds = new Set(
-    (impact.dataset.regionalImpactSegmentIds ?? "").split(",").filter(Boolean),
-  );
-  const candidates = stationId
-    ? [...root.querySelectorAll<SVGElement>(
-        `.regional-station-impact-ring[data-regional-station-impact-station-id="${CSS.escape(stationId)}"]`,
-      )]
-    : segmentIds.size > 0
-      ? [...root.querySelectorAll<SVGElement>(".regional-overlay-segment-group")]
-          .filter((candidate) =>
-            (candidate.dataset.regionalImpactSegmentIds ?? "")
-              .split(",")
-              .some((segmentId) => segmentIds.has(segmentId))
-          )
-      : [impact];
-  const selections = [...new Map(candidates.flatMap((candidate) => {
-    const kind = candidate.dataset.regionalImpactKind as ImpactKind | undefined;
-    const id = candidate.dataset.regionalImpactId;
-    return kind && id ? [[`${kind}:${id}`, { kind, id } as NonNullable<ImpactSelection>]] : [];
-  })).values()].sort((left, right) =>
-    regionalImpactPriority(left.kind) - regionalImpactPriority(right.kind)
-      || left.id.localeCompare(right.id)
-  );
-  if (selections.length < 2) return clicked;
-  const currentIndex = currentSelection
-    ? selections.findIndex(
-        (candidate) => candidate.kind === currentSelection.kind && candidate.id === currentSelection.id,
-      )
-    : -1;
-  return selections[(currentIndex + 1) % selections.length] ?? clicked;
 }
 
 export function regionalOverlapBadgeGroups(segments: NetworkSegment[]) {
@@ -2222,6 +2279,9 @@ export function installRegionalOverlaySession(
         : null;
 
       const ring = stationVisual.cloneNode(true) as SVGElement;
+      // The clone is a target, not station artwork: the artwork class would
+      // hide it once tiles load (base-map.css) and drop its pointer events.
+      ring.classList.remove("regional-station-visual");
       ring.dataset.regionalImpactKind = impact.kind;
       ring.dataset.regionalImpactId = impact.cardId;
       ring.dataset.regionalStationImpactStationId = impact.stationId;
@@ -2395,18 +2455,19 @@ export function installRegionalOverlaySession(
         const anchor = anchorElement
           ? regionalStationVisualAnchors(anchorElement)[0]
           : null;
+        // The blip takes the station marker's shape: a pill for Union, a
+        // circle for a dot.
+        const pill = anchorElement ? regionalStationPillBounds(anchorElement) : null;
         const point = anchor?.point ?? svgAnchorPoint(documentNode, anchorId);
-        if (!point) continue;
-        const endpoint = documentNode.createElementNS(SVG_NAMESPACE, "circle");
-        endpoint.classList.add(
-          "station-commute-green-flash",
-          "regional-commute-path-preview-endpoint",
-        );
-        endpoint.dataset.commutePathEndpoint = index === 0 ? "origin" : "destination";
-        endpoint.setAttribute("cx", String(point.x));
-        endpoint.setAttribute("cy", String(point.y));
-        endpoint.setAttribute("r", String(Math.max(72, Math.min(110, (anchor?.radius ?? 52) * 1.15))));
-        previewLayer.append(endpoint);
+        const radius = anchor?.radius ?? 52;
+        const marker = pill ?? (point ? { center: point, width: 2 * radius, height: 2 * radius } : null);
+        if (!marker) continue;
+        previewLayer.append(regionalCommuteEndpointBlip(
+          documentNode,
+          marker,
+          anchorElement ? regionalStationOutlineHalfWidth(anchorElement) : 0,
+          index === 0 ? "origin" : "destination",
+        ));
       }
       commuteLayer.append(previewLayer);
     }

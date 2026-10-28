@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readMobileImpactInspectorTop, readMobileMapFrameInsets } from '../src/hooks/mobileMapFrame.ts';
+import { readMobileImpactInspectorTop, readMobileMapFrameInsets, readMobileStationSubmenuTop } from '../src/hooks/mobileMapFrame.ts';
 
 test('mobile default frame uses shortcuts and overview height independently of sheet translation', () => {
   const previous = globalThis.window;
@@ -37,6 +37,33 @@ test('impact camera reserves the settled inspector height throughout its slide-i
     globalThis.window = { innerWidth: 360, innerHeight: 780 };
     for (animatedTop of [780, 620, 390]) {
       assert.equal(readMobileImpactInspectorTop(viewport, 780), 390);
+    }
+  } finally {
+    if (previous === undefined) delete globalThis.window;
+    else globalThis.window = previous;
+  }
+});
+
+test('station camera frames against the resting station sheet throughout its slide-in animation', () => {
+  const previous = globalThis.window;
+  let animatedTop = 440;
+  // The probe resolves --mobile-station-sheet-translate-y: the sheet rests 422px down.
+  const panel = {
+    style: {},
+    offsetTop: 0,
+    offsetParent: null,
+    ownerDocument: { createElement: () => ({ style: {}, offsetHeight: 422, remove() {} }) },
+    append() {},
+    getBoundingClientRect: () => ({ top: animatedTop }),
+  };
+  const viewport = {
+    closest: () => ({ querySelector: () => panel }),
+    getBoundingClientRect: () => ({ top: 0, bottom: 844 }),
+  };
+  try {
+    globalThis.window = { innerWidth: 390, innerHeight: 844 };
+    for (animatedTop of [440, 431, 422]) {
+      assert.equal(readMobileStationSubmenuTop(viewport, 844), 422);
     }
   } finally {
     if (previous === undefined) delete globalThis.window;

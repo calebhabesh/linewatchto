@@ -15,6 +15,9 @@
   --map-overlay-pulse-easing: cubic-bezier(0.37, 0, 0.63, 1);
   --map-overlay-rail-width: 102px;
   --map-overlay-rail-pulse-width: 114px;
+  /* TTC alert rails cover exactly the authored line (80 units), so lines
+     drawn edge to edge never overlap their neighbours' alerts. */
+  --ttc-alert-rail-width: 80px;
   --color-logo-blue: #81c9ff;
   --logo-blue: var(--color-logo-blue, #81c9ff);
   --station-selection-accent: var(--color-logo-blue);

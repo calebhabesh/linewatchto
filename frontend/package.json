@@ -24,6 +24,7 @@
     "test:browser-compat": "playwright test browser-compat.spec.ts animation-budget.spec.ts --project=desktop-chrome --project=desktop-firefox --project=desktop-webkit --project=mobile-chromium",
     "test:map-fit": "playwright test mobile-map-fit.spec.ts --project=mobile-chromium --project=mobile-webkit",
     "test:map-interactions": "playwright test map-mode-regressions.spec.ts map-background-camera.spec.ts --project=desktop-chrome --project=mobile-chromium",
+    "test:map-zoom-memory": "playwright test map-zoom-tile-memory.spec.ts --project=desktop-chrome",
     "test:offline": "playwright test offline-dashboard.spec.ts --project=mobile-chromium",
     "test:lifecycle": "playwright test account-view-transitions.spec.ts geographic-map-lifecycle.spec.ts --project=desktop-chrome",
     "test:shell:desktop": "playwright test desktop-profiles-and-collapse.spec.ts desktop-more-navigation.spec.ts desktop-search-entry.spec.ts --project=desktop-chrome --max-failures=3",

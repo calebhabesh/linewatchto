@@ -22,6 +22,7 @@ flows, not repeat every data-shape or styling assertion from the fast suite.
 | Browser compatibility | `npm --prefix frontend run test:browser-compat` | SVG/map geometry in Chrome, Firefox, and WebKit; animation and canvas budgets in Chrome, Firefox, and mobile Chromium. |
 | Mobile map fit | `npm --prefix frontend run test:map-fit` | Both rotated maps in mobile Chromium/WebKit: compact and changing viewports, safe areas, deferred gesture resizing, browser page zoom, and physical rotation. Also included in E2E and CI. |
 | Map interactions | `npm --prefix frontend run test:map-interactions` | TTC and GO/UP in Diagram, mobile rotated Diagram, and Geographic views: chooser dismissal, native drags, view switching, and camera stability across background refreshes and interrupted gestures. Also included in E2E and CI. |
+| Map zoom memory | `npm --prefix frontend run test:map-zoom-memory` | Manual, local only (real Chrome on a display and GPU; skipped in CI). Fast-zooms TTC and GO/UP at 2560 × 1309 with the alert chooser open and fails if Chrome logs too many `tile memory limits exceeded` warnings, the cause of page-wide flicker. Run after changing map layers, overlay effects, or zoom handling. |
 | Full release gate | `npm --prefix frontend run test:release` | Consolidated release candidate verification: runs fast tests, all script tools, typecheck, lint, build, smoke, browser-compat, map-fit, map-interactions, offline, and lifecycle gates. |
 
 `test:fixtures` remains as a backwards-compatible alias for `test:fast`, and

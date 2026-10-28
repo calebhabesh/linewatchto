@@ -226,7 +226,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(sidebarStateSource, /\.floating-panel-shell/);
     assert.match(
       mapSource,
-      /selectionFocusInsets\.left = Math\.max\(selectionFocusInsets\.left, leftOcclusion\)/,
+      /insets\.left = Math\.max\(insets\.left, leftOcclusion\)/,
     );
     assert.match(mapSource, /viewportInsets: selectionFocusInsets/);
     assert.match(shellSource, /desktopMenuPinned=\{menuPinned\}/);

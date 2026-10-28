@@ -117,26 +117,26 @@
 /* Every overlay has a hover copy. TTC renders its hover copy only while an
    impact is hovered. Keep idle GO/UP copies out of rendering the same way:
    `opacity: 0` or `visibility: hidden` would still paint all of their glyphs
-   on every pan frame and after release. */
+   on every pan frame and after release.
+   Copies appear and disappear without a fade, as TTC's freshly mounted copy
+   does. Chromium gives each fading SVG element its own GPU layer, sized in
+   GO/UP's large SVG units (about 17000 x 9000), so a fade costs ~150 Mpx of
+   tiles. A chooser row passing under the cursor during a zoom fades copies
+   in and out repeatedly, which overflows tile memory and flickers the page. */
 .regional-impact-hover-foreground,
 .regional-impact-top-hover-foreground {
   display: none;
-  opacity: 0;
-  transition: opacity 70ms ease-out;
+}
+
+.regional-impact-hover-foreground .regional-impact-hover-boundary,
+.regional-impact-top-hover-foreground .regional-impact-hover-boundary {
+  transition: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .regional-impact-hover-foreground[data-regional-impact-hovered="true"],
   .regional-impact-top-hover-foreground[data-regional-impact-hovered="true"] {
     display: inline;
-    opacity: 1;
-  }
-
-  @starting-style {
-    .regional-impact-hover-foreground[data-regional-impact-hovered="true"],
-    .regional-impact-top-hover-foreground[data-regional-impact-hovered="true"] {
-      opacity: 0;
-    }
   }
 }
 
@@ -165,6 +165,18 @@
   [data-regional-map-camera-moving="true"]
 ) .regional-impact-preview-outline-edge {
   filter: none;
+}
+
+/* Masked outlines hide while the map changes scale and return when the zoom
+   settles. Chromium re-rasters a masked shape at every new scale, and GO/UP
+   outlines often span whole corridors. Zooming with the chooser open
+   overflowed tile memory and flickered the whole page. Panning keeps them;
+   it does not change scale. */
+:is([data-map-zoom-active="true"], [data-regional-map-camera-moving="true"]) :is(
+  .regional-impact-preview-outline,
+  .regional-impact-top-hover-foreground
+) {
+  display: none;
 }
 
 .regional-station-impact-hover-foreground {
@@ -599,3 +611,4 @@
   stroke: #ef4444;
   stroke-dasharray: none;
 }
+

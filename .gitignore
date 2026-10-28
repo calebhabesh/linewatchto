@@ -24,6 +24,8 @@ frontend/.vercel/
 frontend/tsconfig.tsbuildinfo
 frontend/next-env.d.ts
 frontend/public/assets/maplibre/
+# cf CLI local cache (account details)
+.cloudflare/
 
 # Native mobile build output and signing files
 mobile/android/.gradle/

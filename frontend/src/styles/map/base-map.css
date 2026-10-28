@@ -490,6 +490,20 @@
   transition: none !important;
 }
 
+/* While the scale changes, Chromium scales the stage's existing raster
+   instead of re-rastering every map plane at each zoom step, then re-rasters
+   once when the zoom settles. Re-rastering per step overflowed tile memory
+   at large window sizes, which flickered the whole page. Drags keep the
+   default; they do not change scale. Mobile performance mode keeps the
+   stage flat (see above). */
+.linewatch-shell:not(.mobile-performance-mode) :is(
+  [data-map-zoom-active="true"],
+  [data-map-camera-moving="true"],
+  [data-regional-map-camera-moving="true"]
+) :is(.ttc-map-stage, .regional-map-stage) {
+  will-change: transform;
+}
+
 /* Programmatic camera flights freeze pulse motion while preserving selection
    emphasis. Unlike direct input, these short flights do not compete with a
    stream of pointer frames. */

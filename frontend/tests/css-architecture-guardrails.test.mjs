@@ -338,7 +338,7 @@ describe("CSS architecture guardrails", () => {
         [],
         `Duplicate @keyframes names detected across the stylesheet graph: ${duplicates.join(", ")}`,
       );
-      assert.equal(keyframeNames.length, 99, "Expected exactly 99 unique @keyframes definitions across graph");
+      assert.equal(keyframeNames.length, 100, "Expected exactly 100 unique @keyframes definitions across graph");
     });
   });
 

@@ -76,13 +76,11 @@
 
 .regional-map .regional-commute-path-preview-layer .commute-path-preview-glow {
   filter: blur(26px);
-  stroke-linecap: butt;
   stroke-width: 360px;
 }
 
 .regional-map .regional-commute-path-preview-layer .commute-path-preview-path {
   animation-name: regional-commute-path-pulse;
-  stroke-linecap: butt;
   stroke-width: 245px !important;
 }
 
@@ -346,5 +344,46 @@
   .mobile-impact-inspector .mobile-impact-inspector-commute-preview {
     flex: 0 0 auto;
     margin-top: 0;
+  }
+}
+
+/* GO/UP commute endpoints: a faint blip in the station marker's shape (a
+   circle, or a pill for Union) that swells the same distance past every
+   station, so small dots and the Union pill match. Geometry comes from
+   inline custom properties. */
+.regional-map .regional-commute-endpoint-blip {
+  animation-name: regional-commute-endpoint-blip-anim;
+}
+
+@keyframes regional-commute-endpoint-blip-anim {
+  0% {
+    x: var(--blip-from-x);
+    y: var(--blip-from-y);
+    width: var(--blip-from-width);
+    height: var(--blip-from-height);
+    rx: var(--blip-from-r);
+    ry: var(--blip-from-r);
+    opacity: 0;
+    filter: drop-shadow(0 0 0px transparent);
+  }
+  100% {
+    x: var(--blip-to-x);
+    y: var(--blip-to-y);
+    width: var(--blip-to-width);
+    height: var(--blip-to-height);
+    rx: var(--blip-to-r);
+    ry: var(--blip-to-r);
+    opacity: 0.45;
+    filter: drop-shadow(0 0 4px #86efac);
+  }
+}
+
+.motion-paused .regional-map .regional-commute-endpoint-blip {
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .regional-map .regional-commute-endpoint-blip {
+    opacity: 0.5;
   }
 }

@@ -764,6 +764,38 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(regionalOverlaysSource, /segmentLayer\.append\(foreground\)/);
   });
 
+  it("shows and hides GO/UP hover copies without an opacity fade", () => {
+    // A fading SVG element gets a GPU layer sized in GO/UP's large SVG units.
+    // Chooser rows sliding under the cursor during a zoom would fade copies
+    // repeatedly and overflow tile memory, flickering the whole page.
+    const copyRule = globalsCss.match(/\.regional-impact-hover-foreground,\s*\.regional-impact-top-hover-foreground\s*\{[^}]*\}/)?.[0] ?? "";
+    assert.match(copyRule, /display:\s*none/);
+    assert.doesNotMatch(copyRule, /transition|opacity/);
+    assert.doesNotMatch(globalsCss, /@starting-style\s*\{[^{]*regional-impact(-top)?-hover-foreground/);
+    assert.match(globalsCss, /\.regional-impact-top-hover-foreground \.regional-impact-hover-boundary\s*\{\s*transition:\s*none;/);
+  });
+
+  it("hides masked alert outlines in both maps while the map changes scale", () => {
+    // Re-rastering corridor-length masks at every zoom step overflowed tile
+    // memory on GO/UP. Drags keep the outlines because they do not rescale.
+    const css = globalsCss.replace(/\s+/g, " ");
+    assert.ok(css.includes(
+      ':is([data-map-zoom-active="true"], [data-regional-map-camera-moving="true"]) :is( .regional-impact-preview-outline, .regional-impact-top-hover-foreground ) { display: none; }',
+    ));
+    assert.ok(css.includes(
+      ':is([data-map-zoom-active="true"], [data-map-camera-moving="true"]) :is( .ttc-impact-preview-outline, .ttc-impact-hover-foreground g[mask] ) { display: none; }',
+    ));
+  });
+
+  it("scales the existing map raster while zooming instead of re-rastering each step", () => {
+    const css = globalsCss.replace(/\s+/g, " ");
+    assert.ok(css.includes(
+      '.linewatch-shell:not(.mobile-performance-mode) :is( [data-map-zoom-active="true"], [data-map-camera-moving="true"], [data-regional-map-camera-moving="true"] ) :is(.ttc-map-stage, .regional-map-stage) { will-change: transform; }',
+    ));
+    // Drags do not change scale and must not gain a transient layer.
+    assert.doesNotMatch(css, /data-map-gesture-active="true"\][^{]*\{ will-change: transform/);
+  });
+
   it("keeps station-specific alert arrows and radar beacons inside station dots", () => {
     assert.match(regionalOverlaysSource, /regional-station-impact-beacon-group/);
     assert.match(regionalOverlaysSource, /station-impact-dot-red-glow/);
@@ -800,12 +832,19 @@ describe("network-scoped regional dashboard", () => {
     );
   });
 
-  it("cycles pointer activation through overlapping regional segment and station impacts", () => {
-    assert.match(regionalOverlaysSource, /function nextRegionalPointerImpactSelection\(/);
+  it("gives commute endpoints a blip in the station marker's shape, the same distance past every station", () => {
+    assert.match(regionalOverlaysSource, /const pill = anchorElement \? regionalStationPillBounds\(anchorElement\) : null;/);
+    assert.match(regionalOverlaysSource, /function regionalCommuteEndpointBlip\(/);
+    assert.match(regionalOverlaysSource, /const margin = outlineHalfWidth \+ offset;/);
+    assert.match(regionalOverlaysSource, /rect\.style\.setProperty\(`--blip-\$\{name\}-width`/);
+  });
+
+  it("selects the regional alert under the pointer", () => {
+    assert.match(regionalOverlaysSource, /function regionalPointerImpactSelection\(/);
+    assert.match(regionalOverlaysSource, /if \(group\.dataset\.regionalImpactSelected !== "true"\) return hit;/);
     assert.match(regionalOverlaysSource, /group\.dataset\.regionalImpactSegmentIds = segmentIds\.join\(","\)/);
-    assert.match(regionalOverlaysSource, /data-regional-station-impact-station-id/);
-    assert.match(regionalOverlaysSource, /regionalImpactPriority\(left\.kind\) - regionalImpactPriority\(right\.kind\)/);
-    assert.match(regionalMapSource, /nextRegionalPointerImpactSelection\([\s\S]*event\.currentTarget,[\s\S]*impact,[\s\S]*selection/);
+    assert.match(regionalOverlaysSource, /if \(!hit \|\| ring\?\.dataset\.regionalImpactSelected !== "true"\) return hit;/);
+    assert.match(regionalMapSource, /selection: regionalPointerImpactSelection\(event\.currentTarget, impact, event\.clientX, event\.clientY\)/);
   });
 
   it("reuses the TTC overlap indicator for regional same-type and mixed impacts", () => {
@@ -882,7 +921,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /readDesktopLeftOcclusion\(viewport, desktopMenuPinned/);
     assert.match(sidebarStateSource, /#linewatch-main-menu/);
     assert.match(sidebarStateSource, /\.floating-panel-shell/);
-    assert.match(regionalMapSource, /focusInsets\.left = Math\.max\(focusInsets\.left, leftOcclusion\)/);
+    assert.match(regionalMapSource, /insets\.left = Math\.max\(insets\.left, leftOcclusion\)/);
     assert.match(regionalMapSource, /const selectionFit = computeBoundedMapFrame\(/);
     assert.match(regionalMapSource, /REGIONAL_SELECTION_FIT_COMFORT_RATIO = 0\.82/);
     assert.match(regionalMapSource, /const targetScale = Math\.min\([\s\S]*clampPanZoomScale\(preferredTargetScale, effectiveFitScale\)[\s\S]*selectionFit\.scale \* REGIONAL_SELECTION_FIT_COMFORT_RATIO/);

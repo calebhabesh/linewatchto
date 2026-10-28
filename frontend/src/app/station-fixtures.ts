@@ -838,6 +838,18 @@ const fallbackStationSummarySeed: StationListResponse = {
         accessStatus: "normal"
     },
     {
+        id: "o_connor",
+        name: "O'Connor",
+        mapX: 6236,
+        mapY: 1811,
+        interchange: false,
+        lineIds: [
+            "line-5"
+        ],
+        hasActiveImpact: false,
+        accessStatus: "normal"
+    },
+    {
         id: "pharmacy",
         name: "Pharmacy",
         mapX: 6407,
@@ -1322,18 +1334,6 @@ const fallbackStationSummarySeed: StationListResponse = {
         name: "Aga Khan Park & Museum",
         mapX: 5720,
         mapY: 1810,
-        interchange: false,
-        lineIds: [
-            "line-5"
-        ],
-        hasActiveImpact: false,
-        accessStatus: "normal"
-    },
-    {
-        id: "o_connor",
-        name: "O'Connor",
-        mapX: 6236,
-        mapY: 1811,
         interchange: false,
         lineIds: [
             "line-5"
