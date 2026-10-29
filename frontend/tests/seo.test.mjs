@@ -10,6 +10,7 @@ import {
   getLineWatchSiteOrigin,
   getLineWatchSiteVerification,
 } from "../src/app/seo.ts";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 function readRequiredSource(relativePath) {
   const url = new URL(relativePath, import.meta.url);
@@ -147,7 +148,7 @@ describe("LineWatchTO SEO baseline", () => {
   });
 
   it("renders a semantic dashboard heading without changing the visual layout", () => {
-    const shellSource = readRequiredSource("../src/components/LineWatchShell.tsx");
+    const shellSource = readShellSource();
 
     assert.match(shellSource, /<h1\s+className="sr-only">/);
     assert.match(shellSource, /TTC subway and LRT reliability dashboard/);

@@ -8,6 +8,7 @@ import {
   privacyAcknowledgementLinks,
 } from "../src/app/privacy-acknowledgements-data.ts";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 const panelUrl = new URL("../src/components/PrivacyAcknowledgementsPanel.tsx", import.meta.url);
 
@@ -58,7 +59,7 @@ describe("privacy and acknowledgement content", () => {
 });
 
 describe("privacy and acknowledgement navigation", () => {
-  const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+  const shellSource = readShellSource();
   const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
   const globalCss = readAppStylesheet();
 

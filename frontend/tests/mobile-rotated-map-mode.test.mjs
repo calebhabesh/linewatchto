@@ -11,8 +11,9 @@ import {
 } from "../src/hooks/panZoomMath.ts";
 import { computeRotatedScrollDelta } from "../src/hooks/useRotatedListDragScroll.ts";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
-const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const shellSource = readShellSource();
 const controlsSource = readFileSync(new URL("../src/components/MobileMapControls.tsx", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const chooserKeepoutsSource = readFileSync(new URL("../src/components/map-chooser-keepouts.ts", import.meta.url), "utf8");

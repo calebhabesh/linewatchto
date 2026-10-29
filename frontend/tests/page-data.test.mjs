@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 const dashboardDataSource = readFileSync(new URL("../src/app/dashboard-data.ts", import.meta.url), "utf8");
 const dashboardAdapterSource = readFileSync(new URL("../src/app/dashboard-adapter.ts", import.meta.url), "utf8");
 const dashboardSessionSource = readFileSync(new URL("../src/hooks/useDashboardSession.ts", import.meta.url), "utf8");
-const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const shellSource = readShellSource();
 const regionalDataSource = readFileSync(new URL("../src/app/regional-data.ts", import.meta.url), "utf8");
 const regionalStationDetailSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
 
@@ -59,7 +60,9 @@ describe("dashboard server data binding", () => {
   });
 
   it("pauses dashboard refresh while the closed screen covers the feed", () => {
-    assert.match(shellSource, /subwayOperatingState\.status === "closed" && !closedMapPeek/);
+    assert.match(shellSource, /subwayStatus: subwayOperatingState\.status/);
+    assert.match(shellSource, /subwayStatus === "closed" && !closedMapPeek/);
+    assert.match(shellSource, /regionalStatus === "closed" && !closedMapPeek/);
     assert.match(shellSource, /return;/);
   });
 

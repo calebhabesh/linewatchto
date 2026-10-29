@@ -2,16 +2,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 const searchPanelSource = readFileSync(
   new URL("../src/components/StationSearchPanel.tsx", import.meta.url),
   "utf8",
 );
 const globalCss = readAppStylesheet();
-const shellSource = readFileSync(
-  new URL("../src/components/LineWatchShell.tsx", import.meta.url),
-  "utf8",
-);
+const shellSource = readShellSource();
 
 describe("unified search alert group headings", () => {
   it("reuses canonical badges for transit lines and accessibility destinations", () => {

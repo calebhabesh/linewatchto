@@ -12,9 +12,10 @@ import {
   shouldShowReleaseNotesNotice,
 } from "../src/app/release-notes.ts";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const shellSource = readShellSource();
 const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 const appUpdateBannerSource = readFileSync(new URL("../src/components/AppUpdateBanner.tsx", import.meta.url), "utf8");
 const versionRouteSource = readFileSync(new URL("../src/app/version.json/route.ts", import.meta.url), "utf8");

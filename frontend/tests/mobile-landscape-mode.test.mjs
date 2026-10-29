@@ -4,8 +4,9 @@ import { describe, it } from "node:test";
 
 import { MOBILE_VIEWPORT_QUERY } from "../src/hooks/useMobilePerformanceMode.ts";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
-const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const shellSource = readShellSource();
 const globalCss = readAppStylesheet();
 const hookSource = readFileSync(new URL("../src/hooks/useMobilePerformanceMode.ts", import.meta.url), "utf8");
 

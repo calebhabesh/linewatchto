@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
-const shell = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const shell = readShellSource();
 const panel = readFileSync(new URL("../src/components/MyStationsPanel.tsx", import.meta.url), "utf8");
 const stationDetail = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 const stationDetailHeader = readFileSync(new URL("../src/components/StationDetailHeader.tsx", import.meta.url), "utf8");

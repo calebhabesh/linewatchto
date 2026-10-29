@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { desktopRailDestinationForView } from "../src/app/desktop-sidebar-state.ts";
 
 import { readFileSync } from "node:fs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 const railSource = readFileSync(new URL("../src/components/DesktopNavRail.tsx", import.meta.url), "utf8");
 
@@ -93,7 +94,7 @@ describe("desktop navigation destinations", () => {
 
   it("renders stretched NetworkSelector on the status page above Current Service header", () => {
     const statusOverviewSource = readFileSync(new URL("../src/components/DesktopStatusOverview.tsx", import.meta.url), "utf8");
-    const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+    const shellSource = readShellSource();
     const desktopChromeCss = readFileSync(new URL("../src/styles/shell/desktop-chrome.css", import.meta.url), "utf8");
 
     assert.match(statusOverviewSource, /<NetworkSelector[\s\S]*?network=\{networkId\}[\s\S]*?onChange=\{onNetworkChange\}[\s\S]*?stretched/);

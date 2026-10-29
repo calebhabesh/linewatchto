@@ -9,8 +9,9 @@ import {
   getSubwayOperatingState,
   isSubwayClosed,
 } from "../src/app/subway-hours.ts";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
-const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const shellSource = readShellSource();
 
 describe("subway operating hours", () => {
   it("closes after 2 a.m. on weekdays until the 6 a.m. start", () => {

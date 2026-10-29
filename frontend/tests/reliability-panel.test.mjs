@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 const source = readFileSync(new URL("../src/components/ReliabilityPanel.tsx", import.meta.url), "utf8");
 
@@ -52,7 +53,7 @@ describe("official TTC performance panel source", () => {
   });
 
   it("keeps Reliability Analytics accessible in both TTC and GO/UP modes", () => {
-    const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+    const shellSource = readShellSource();
     const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 
     assert.doesNotMatch(shellSource, /selectedNetwork === "ttc" \? [^>]*Reliability Analytics/);

@@ -8,6 +8,7 @@ import {
   isRegionalRailClosed,
 } from "../src/app/regional-rail-hours.ts";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 describe("GO and UP regional rail operating hours", () => {
   it("uses the broad weekday overnight pause after the last regular trains", () => {
@@ -85,10 +86,7 @@ describe("GO and UP closed-hours UI", () => {
     new URL("../src/components/GoUpClosingSoonChip.tsx", import.meta.url),
     "utf8",
   );
-  const shellSource = readFileSync(
-    new URL("../src/components/LineWatchShell.tsx", import.meta.url),
-    "utf8",
-  );
+  const shellSource = readShellSource();
   const globalCss = readAppStylesheet();
 
   it("renders corridor-aware schedule copy and official schedule links", () => {
@@ -117,14 +115,9 @@ describe("GO and UP closed-hours UI", () => {
   });
 
   it("scopes TTC and regional operating notices to their selected maps", () => {
-    assert.match(
-      shellSource,
-      /selectedNetwork === "ttc" && subwayOperatingState\.closingSoon/,
-    );
-    assert.match(
-      shellSource,
-      /selectedNetwork === "regional" && regionalRailOperatingState\.closingSoon/,
-    );
+    // Each map reads only its own network's hours (tests/shell-service-notices.test.mjs).
+    assert.match(shellSource, /const hours = network === "ttc" \? subway : regional;/);
+    assert.match(shellSource, /subway: subwayOperatingState,\s*regional: regionalRailOperatingState,/);
     assert.match(shellSource, /showRegionalClosedScreen/);
     assert.match(shellSource, /GoUpClosedScreen/);
     assert.match(shellSource, /GO & UP Rail Closed/);

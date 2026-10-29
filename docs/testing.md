@@ -56,6 +56,10 @@ visual suite.
 - Use source/CSS guardrails sparingly for architecture rules that cannot be
   observed through a stable public function. Do not use source-string matching
   as a substitute for behavioral coverage.
+- Source guardrails about the app shell read `readShellSource()` from
+  `frontend/tests/helpers/shell-source.mjs`, which joins `LineWatchShell.tsx`
+  with the components and hooks split out of it. When you move shell code into
+  a new module, add the module to that list.
 - Use Playwright for integrated navigation, browser APIs, responsive layout,
   accessibility roles, and map gestures.
 - Avoid fixed sleeps. Prefer a visible element, an attribute, or `expect.poll`

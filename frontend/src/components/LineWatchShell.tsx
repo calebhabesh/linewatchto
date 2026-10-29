@@ -7,15 +7,12 @@ import { preloadablePanel } from "./preloadable-panel";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
-import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
 import { startMapSurfaceTransition, type MapFadeController } from "../app/map-surface-transition";
 import { NetworkMap, prepareNetworkMap } from "./NetworkMap";
 import { resolveSelectionAttentionAnchor, type SelectionAttentionAnchor } from "../app/selection-attention-key";
 import { NetworkSelector, NetworkSwitchContext } from "./NetworkSelector";
-import { DefaultMapModeControl } from "./DefaultMapModeControl";
 import SquishSwitch from "./SquishSwitch";
 const RegionalStationDetailPanel = preloadablePanel(() => import("./RegionalStationDetailPanel").then((mod) => mod.RegionalStationDetailPanel));
-import { DelayIcon } from "./DelayIcon";
 const ActiveAlertsPanel = preloadablePanel(() => import("./ActiveAlertsPanel").then((mod) => mod.ActiveAlertsPanel));
 const DelaysPanel = preloadablePanel(() => import("./DelaysPanel").then((mod) => mod.DelaysPanel));
 const ReducedSpeedZonesPanel = preloadablePanel(() => import("./ReducedSpeedZonesPanel").then((mod) => mod.ReducedSpeedZonesPanel));
@@ -56,14 +53,16 @@ import {
 } from "../app/desktop-sidebar-state";
 import { PwaInstallNudge } from "./PwaInstallNudge";
 import { usePwaInstallPrompt } from "../hooks/usePwaInstallPrompt";
-import { TransitLineBadge } from "./TransitLineBadge";
 import { PanelHeader } from "./PanelHeader";
 import { LogsDropdown, SourceDiagnosticsBody, SourceStatusRefreshButton } from "./LogsDropdown";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { ScrollOverflowAffordances } from "./ScrollOverflowAffordances";
 import { DataProvider, DashboardData } from "../app/DataContext";
 import { DecorativeMotionPausedContext } from "./DecorativeMotionContext";
-import { snapshotNotice } from "../app/dashboard-snapshot";
+import { serviceConnectionNotice, serviceOperatingNotice } from "../app/shell-service-notices";
+import { DesktopNoticeBanner, type DesktopNotice } from "./DesktopNoticeBanner";
+import { MainMenu, type MainMenuActionElement } from "./MainMenu";
+import { DesktopImpactChips } from "./DesktopImpactChips";
 import {
   useDashboardSession,
   dashboardRefreshIntervalMs,
@@ -71,55 +70,27 @@ import {
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { stationImpactSelectionsByStation } from "../app/station-impact-types";
-import {
-  type AccessibilityOutageResponse,
-  getAccessibilityOutages,
-} from "../app/accessibility-outage-data";
 import type { AccessibilityOutageTarget } from "./AccessibilityOutagesPanel";
 const AccessibilityOutagesPanel = preloadablePanel(() => import("./AccessibilityOutagesPanel").then((mod) => mod.AccessibilityOutagesPanel));
-import { getSurfaceNotices, type SurfaceNoticeResponse, type SurfaceNoticeDetail } from "../app/surface-notice-data";
+import type { SurfaceNoticeDetail } from "../app/surface-notice-data";
 const SurfaceNoticesPanel = preloadablePanel(() => import("./SurfaceNoticesPanel").then((mod) => mod.SurfaceNoticesPanel));
-import { getRegionalTripChanges } from "../app/regional-trip-changes";
-import { getTtcAnnouncements } from "../app/announcement-data";
 const TtcAnnouncementsPanel = preloadablePanel(() => import("./TtcAnnouncementsPanel").then((mod) => mod.TtcAnnouncementsPanel));
-import {
-  fallbackStationSummaries,
-  getStationDetail,
-  getStationSummaries,
-  preserveStationDetailOnRefresh,
-  type StationDataResult,
-  type StationDetail,
-  type StationSummary,
-} from "../app/station-data";
-import {
-  recentTtcStationDetails,
-  rememberTtcStationDetail,
-  ttcStationDetailKey,
-  warmSavedStationCaches,
-} from "../app/station-request-lifecycle";
 const StationDetailPanel = preloadablePanel(() => import("./StationDetailPanel").then((mod) => mod.StationDetailPanel));
 
-import {
-  EMPTY_ESTIMATED_TRAIN_SNAPSHOT,
-  EMPTY_REGIONAL_TRAIN_SNAPSHOT,
-  createEstimatedTrainMarkerContinuityState,
-  estimatedTrainMarkerRefreshMs,
-  getEstimatedTrainMarkers,
-  reconcileEstimatedTrainSnapshot,
-  type EstimatedTrainSnapshot,
-} from "../app/train-markers";
+import { useEstimatedTrains } from "../hooks/useEstimatedTrains";
+import { useSavedStations } from "../hooks/useSavedStations";
+import { useTtcStationDetail } from "../hooks/useTtcStationDetail";
+import { useNetworkServiceFeeds } from "../hooks/useNetworkServiceFeeds";
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { MOBILE_PERFORMANCE_QUERY, MOBILE_VIEWPORT_QUERY, useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Accessibility, Activity, Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, MapPin, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen, ChevronRight, CircleCheck, Clock3 } from "lucide-react";
+import { Accessibility, Activity, Menu, X, Train, AlertTriangle, Bookmark, MapPin, Navigation, BarChart3, Search, UserRound, Sun, Moon, History, FileText, Megaphone, Loader2 } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { GoUpClosedScreen } from "./GoUpClosedScreen";
 import { useRegionalRailOperatingState } from "../hooks/useRegionalRailOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
 import { OpeningDisclaimer } from "./OpeningDisclaimer";
-import { formatResumeDuration } from "../app/subway-hours";
-import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import {
   MOBILE_SHEET_DEFAULT_RATIO,
   MOBILE_STATION_SHEET_RESIZE_EVENT,
@@ -145,18 +116,9 @@ import {
   type AccountMatchedImpact,
   type SavedCommuteSort,
 } from "../app/commute-data";
-import { AccountAvailabilityNotice } from "./AccountAvailabilityNotice";
-import {
-  getSavedStations,
-  removeSavedStation,
-  saveStation,
-  type AccountSavedStation,
-} from "../app/saved-station-data";
 import { summarizeSavedStationStatuses } from "../app/saved-stations";
 import { getCurrentPushSubscription } from "../app/push-browser-state";
 import { hasReleaseNotes } from "../app/release-notes";
-import { lineWatchAppVersionLabel } from "../app/app-build";
-import { clearServiceStatusLabel } from "../app/network-presentation";
 import { resolveCommuteImpactMapSelection } from "./map-impact-normalization";
 import {
   persistVisualPreferencesCookie,
@@ -194,11 +156,6 @@ import {
   useNavigationTransitions,
 } from "../hooks/useNavigationTransitions";
 
-type EstimatedTrainRequestState = "idle" | "loading" | "ready" | "reconnecting";
-type SavedStationNotice = {
-  message: string;
-  linksToMyStations?: boolean;
-};
 
 // Panels are code-split. Load them once the map is usable and the browser is idle, so a
 // panel's first open renders at once instead of an empty, collapsed sheet.
@@ -225,9 +182,6 @@ function preloadPanelModules() {
   ]);
 }
 
-const STATION_DETAIL_REFRESH_MS = 15_000;
-// Under the 60s recent-result reuse window, so warmed saved-station results never expire before use.
-const SAVED_STATION_WARM_INTERVAL_MS = 45_000;
 
 function viewForSavedCommuteImpact(
   impact: AccountMatchedImpact,
@@ -448,28 +402,32 @@ export function LineWatchShell({
   } | null>(null);
   const [pwaEngagementSignal, setPwaEngagementSignal] = useState(0);
   const [estimatedTrainsEnabled, setEstimatedTrainsEnabled] = useState(initialVisualPreferences.estimatedTrainsEnabled);
-  const [estimatedTrainSnapshot, setEstimatedTrainSnapshot] = useState<EstimatedTrainSnapshot>(EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
-  const [estimatedTrainRequestState, setEstimatedTrainRequestState] = useState<EstimatedTrainRequestState>("idle");
-  const estimatedTrainConnectedRef = useRef({ ttc: false, regional: false });
-  const trainMarkerContinuityRef = useRef({
-    ttc: createEstimatedTrainMarkerContinuityState(),
-    regional: createEstimatedTrainMarkerContinuityState(),
-  });
   const subwayOperatingState = useSubwayOperatingState();
   const regionalRailOperatingState = useRegionalRailOperatingState();
   const trainNetworkOpen = selectedNetwork === "ttc"
     ? subwayOperatingState.status === "open"
     : regionalRailOperatingState.status === "open";
-  const estimatedTrainMarkersVisible = estimatedTrainsEnabled && trainNetworkOpen && !displayData.snapshot;
+  const {
+    estimatedTrainSnapshot,
+    estimatedTrainMarkersVisible,
+    estimatedTrainStatusLabel,
+    estimatedTrainControlUnavailableReason,
+    estimatedTrainDisplayPending,
+    estimatedTrainPendingLabel,
+  } = useEstimatedTrains({
+    selectedNetwork,
+    estimatedTrainsEnabled,
+    trainNetworkOpen,
+    viewingSnapshot: Boolean(displayData.snapshot),
+  });
 
   const onSignOutCommuteResetRef = useRef<() => void>(() => {});
+  const onSignOutSavedStationsResetRef = useRef<() => void>(() => {});
 
   const accountSession = useAccountSession({
     onSignOut: () => {
       setAccountCommutes([]);
-      setSavedStations([]);
-      setPendingSavedStationIds(new Set());
-      setSavedStationsError(null);
+      onSignOutSavedStationsResetRef.current();
       onSignOutCommuteResetRef.current();
     },
   });
@@ -490,13 +448,6 @@ export function LineWatchShell({
   });
   const accountDialogOpenRef = useRef(Boolean(accountDialogRequest));
   const [accountCommutes, setAccountCommutes] = useState<AccountSavedCommute[]>([]);
-  const [savedStations, setSavedStations] = useState<AccountSavedStation[]>([]);
-  const [savedStationsLoading, setSavedStationsLoading] = useState(false);
-  const [savedStationsError, setSavedStationsError] = useState<string | null>(null);
-  const [pendingSavedStationIds, setPendingSavedStationIds] = useState<Set<string>>(() => new Set());
-  const [savedStationNotice, setSavedStationNotice] = useState<SavedStationNotice | null>(null);
-  const [savedStationNoticeKey, setSavedStationNoticeKey] = useState(0);
-  const savedStationNoticeTimerRef = useRef<number | null>(null);
   const [myStationsListModeEpoch, setMyStationsListModeEpoch] = useState(0);
   const [commutesActiveTab, setCommutesActiveTab] = useState<"create" | "saved">("saved");
   const [commutesDraft, setCommutesDraft] = useState<SavedCommuteDraft | null>(() => persistedCommuteDraftStore.current);
@@ -822,84 +773,6 @@ export function LineWatchShell({
     persistVisualPreferencesCookie(preferences, window.location.protocol);
   }, [defaultNetworkPreference, dotBackgroundEnabled, estimatedTrainsEnabled, highContrast, isDark, mapViewPreference, reducedMotion, reducedMotionOverride, visualPreferencesReady]);
 
-  useEffect(() => {
-    let cancelled = false;
-    let intervalId: number | null = null;
-    let trainMarkerRefreshInFlight = false;
-
-    const refresh = async () => {
-      if (!estimatedTrainMarkersVisible || document.visibilityState !== "visible") {
-        return;
-      }
-      if (trainMarkerRefreshInFlight) {
-        return;
-      }
-      trainMarkerRefreshInFlight = true;
-      try {
-        const result = await getEstimatedTrainMarkers({ network: selectedNetwork });
-        if (!cancelled) {
-          const reconciled = reconcileEstimatedTrainSnapshot(
-            trainMarkerContinuityRef.current[selectedNetwork],
-            result.data,
-            selectedNetwork,
-          );
-          setEstimatedTrainSnapshot(reconciled);
-          if (result.source === "backend") {
-            estimatedTrainConnectedRef.current[selectedNetwork] = true;
-            setEstimatedTrainRequestState("ready");
-          } else {
-            setEstimatedTrainRequestState(estimatedTrainConnectedRef.current[selectedNetwork]
-              ? "reconnecting"
-              : "loading");
-          }
-        }
-      } finally {
-        trainMarkerRefreshInFlight = false;
-      }
-    };
-
-    if (estimatedTrainMarkersVisible) {
-      setEstimatedTrainRequestState(estimatedTrainConnectedRef.current[selectedNetwork]
-        ? "reconnecting"
-        : "loading");
-      setEstimatedTrainSnapshot(selectedNetwork === "regional"
-        ? EMPTY_REGIONAL_TRAIN_SNAPSHOT
-        : EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
-      refresh();
-      intervalId = window.setInterval(
-        refresh,
-        estimatedTrainMarkerRefreshMs(selectedNetwork),
-      );
-      const refreshAfterResume = () => {
-        if (document.visibilityState === "visible") void refresh();
-      };
-      document.addEventListener("visibilitychange", refreshAfterResume);
-      window.addEventListener("online", refreshAfterResume);
-
-      return () => {
-        cancelled = true;
-        if (intervalId !== null) {
-          window.clearInterval(intervalId);
-        }
-        document.removeEventListener("visibilitychange", refreshAfterResume);
-        window.removeEventListener("online", refreshAfterResume);
-      };
-    } else {
-      trainMarkerContinuityRef.current[selectedNetwork] = createEstimatedTrainMarkerContinuityState();
-      setEstimatedTrainSnapshot(selectedNetwork === "regional"
-        ? EMPTY_REGIONAL_TRAIN_SNAPSHOT
-        : EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
-      setEstimatedTrainRequestState("idle");
-    }
-
-    return () => {
-      cancelled = true;
-      if (intervalId !== null) {
-        window.clearInterval(intervalId);
-      }
-    };
-  }, [estimatedTrainMarkersVisible, selectedNetwork]);
-
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY);
@@ -1047,7 +920,6 @@ export function LineWatchShell({
       && activeView !== "closures"
     ) {
       // The line focus is navigation context, not a saved filter preference.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setImpactListLaunch((current) => current.lineId === null ? current : { ...current, lineId: null });
     }
   }, [activeView]);
@@ -1127,7 +999,19 @@ export function LineWatchShell({
     onReducedSpeedZoneClick: (lineId: string) => openLegendImpactCategory("reduced-speed-zones", lineId),
     onClosureClick: (lineId: string) => openLegendImpactCategory("closures", lineId),
   }), [legendExpanded, openLegendImpactCategory, openLineImpacts]);
-  const [ttcStationSummaries, setTtcStationSummaries] = useState<StationSummary[]>(fallbackStationSummaries.stations);
+  const {
+    ttcStationSummaries,
+    accessibilityOutageState,
+    currentServiceNotices,
+    surfaceNoticeCount,
+    regionalTripChangeCount,
+    announcementCount,
+  } = useNetworkServiceFeeds({
+    selectedNetwork,
+    closedMapPeek,
+    subwayStatus: subwayOperatingState.status,
+    regionalStatus: regionalRailOperatingState.status,
+  });
   const stationCatalogs = useMemo(
     () => ({
       ttc: ttcStationSummaries,
@@ -1136,6 +1020,31 @@ export function LineWatchShell({
     [ttcStationSummaries],
   );
   const stationSummaries = stationCatalogs[selectedNetwork];
+  const {
+    savedStations,
+    savedStationsLoading,
+    savedStationsError,
+    pendingSavedStationIds,
+    savedStationNotice,
+    savedStationNoticeKey,
+    refreshSavedStations,
+    clearSavedStationNotice,
+    resetSavedStations,
+    handleSaveStation,
+    handleRemoveSavedStation,
+    handleToggleSavedStation,
+  } = useSavedStations({
+    selectedNetwork,
+    accountState,
+    userGeneration,
+    userGenerationRef,
+    activeViewRef,
+    openAuthChoice,
+    stationCatalogs,
+  });
+  useEffect(() => {
+    onSignOutSavedStationsResetRef.current = resetSavedStations;
+  }, [resetSavedStations]);
 
   const desktopMetrics = useMemo(() => {
     return computeDesktopLayoutMetrics({ windowWidth, isMobile, activeView, selectedStationId });
@@ -1152,31 +1061,21 @@ export function LineWatchShell({
     window.addEventListener(MOBILE_STATION_SHEET_RESIZE_EVENT, handleSheetResize);
     return () => window.removeEventListener(MOBILE_STATION_SHEET_RESIZE_EVENT, handleSheetResize);
   }, []);
-  const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
-  const [stationLoading, setStationLoading] = useState(false);
+  const { visibleStationResult, setVisibleStationResult, stationLoading } = useTtcStationDetail(selectedNetwork, selectedStationId);
   useEffect(() => {
     if (selection?.kind !== "planned-closure") return;
     if (displayData.plannedClosures.some((closure) => closure.id === selection.id)) return;
     selectionRef.current = null;
     // The notice can disappear on refresh or after its final window closes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelection(null);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMobileInspectorDetent("map-focus");
     announceDesktop("Selected planned advisory is no longer available");
   }, [announceDesktop, displayData.plannedClosures, selection, setMobileInspectorDetent]);
-  const [accessibilityOutageState, setAccessibilityOutageState] = useState<{
-    networkId: NetworkId;
-    data: AccessibilityOutageResponse;
-  } | null>(null);
   const accessibilityOutageResult = accessibilityOutageState?.networkId === selectedNetwork
     ? accessibilityOutageState.data
     : null;
   const [expandedMyStationDisruptionIds, setExpandedMyStationDisruptionIds] = useState<Set<string>>(() => new Set());
-  const [currentServiceNotices, setCurrentServiceNotices] = useState<{ networkId: NetworkId; data: SurfaceNoticeResponse } | null>(null);
-  const [surfaceNoticeCount, setSurfaceNoticeCount] = useState<number | null>(null);
-  const [regionalTripChangeCount, setRegionalTripChangeCount] = useState<number | null>(null);
-  const [announcementCount, setAnnouncementCount] = useState<number | null>(null);
 
 
   const currentSavedStations = useMemo(
@@ -1249,38 +1148,6 @@ export function LineWatchShell({
     pushSettings.accountNotificationsDesired,
     pushSettings.subscribed,
   ]);
-
-  const estimatedTrainStatusLabel = !trainNetworkOpen
-    ? "Closed"
-    : estimatedTrainsEnabled
-      ? estimatedTrainSnapshot.markers.length > 0
-        ? estimatedTrainSnapshot.fresh
-          ? `${estimatedTrainSnapshot.markers.length} shown`
-          : `${estimatedTrainSnapshot.markers.length} held`
-        : estimatedTrainRequestState === "reconnecting"
-          ? "Reconnecting"
-          : estimatedTrainRequestState === "loading"
-            ? "Connecting"
-            : estimatedTrainSnapshot.availability === "disabled"
-              || estimatedTrainSnapshot.availability === "unavailable"
-              ? "Unavailable"
-              : "Waiting"
-      : "Off";
-  const estimatedTrainControlUnavailableReason = !trainNetworkOpen
-    ? "Estimated train markers are unavailable while rail service is closed"
-    : displayData.snapshot
-      ? "Estimated train markers are unavailable while viewing saved data"
-      : null;
-
-  const estimatedTrainDisplayPending = estimatedTrainMarkersVisible
-    && estimatedTrainSnapshot.markers.length === 0
-    && (estimatedTrainRequestState === "loading"
-      || estimatedTrainRequestState === "reconnecting"
-      || (estimatedTrainSnapshot.availability !== "disabled"
-        && estimatedTrainSnapshot.availability !== "unavailable"));
-  const estimatedTrainPendingLabel = estimatedTrainRequestState === "reconnecting"
-    ? "Estimated train markers reconnecting"
-    : "Waiting for estimated train markers";
 
   const notificationSummary = useMemo(() => {
     const tone: "on" | "off" | "unavailable" =
@@ -1529,89 +1396,8 @@ export function LineWatchShell({
     };
   }, [accountState.authenticated, accountState.user?.id, userGeneration, userGenerationRef]);
 
-  const refreshSavedStations = useCallback(async () => {
-    const currentGeneration = userGeneration;
-    if (!accountState.authenticated) {
-      setSavedStations([]);
-      setSavedStationsError(null);
-      setSavedStationsLoading(false);
-      return;
-    }
-
-    setSavedStationsLoading(true);
-    const result = await getSavedStations();
-    if (userGenerationRef.current !== currentGeneration) {
-      return;
-    }
-    if (result.source === "backend") {
-      setSavedStations(result.stations);
-      setSavedStationsError(null);
-    } else {
-      setSavedStationsError(result.message ?? "Saved stations are unavailable.");
-    }
-    setSavedStationsLoading(false);
-  }, [accountState.authenticated, userGeneration, userGenerationRef]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void refreshSavedStations();
-  }, [accountState.user?.id, refreshSavedStations]);
-
-  const savedStationWarmKey = useMemo(
-    () => savedStations.map((saved) => `${saved.networkId}:${saved.station.id}`).sort().join(","),
-    [savedStations],
-  );
-
-  // Keep saved-station details warm in the shared recent-result caches so My Stations and
-  // saved station panels open without a fetch wait. The open My Stations panel refreshes itself.
-  useEffect(() => {
-    if (!accountState.authenticated || !savedStationWarmKey) return;
-    const stations = savedStationWarmKey.split(",").map((entry) => {
-      const [networkId, stationId] = entry.split(":") as [NetworkId, string];
-      return { networkId, stationId };
-    });
-    let controller: AbortController | null = null;
-    const warm = () => {
-      if (document.visibilityState !== "visible" || activeViewRef.current === "my-stations") return;
-      controller?.abort();
-      controller = new AbortController();
-      void warmSavedStationCaches(stations, { signal: controller.signal }).catch(() => undefined);
-    };
-
-    warm();
-    const interval = window.setInterval(warm, SAVED_STATION_WARM_INTERVAL_MS);
-    document.addEventListener("visibilitychange", warm);
-    return () => {
-      controller?.abort();
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", warm);
-    };
-  }, [accountState.authenticated, savedStationWarmKey, activeViewRef]);
-
-  useEffect(() => () => {
-    if (savedStationNoticeTimerRef.current !== null) {
-      window.clearTimeout(savedStationNoticeTimerRef.current);
-    }
-  }, []);
-
-  const showSavedStationNotice = useCallback((message: string, linksToMyStations = false) => {
-    if (savedStationNoticeTimerRef.current !== null) {
-      window.clearTimeout(savedStationNoticeTimerRef.current);
-    }
-    setSavedStationNotice({ message, linksToMyStations });
-    setSavedStationNoticeKey((current) => current + 1);
-    savedStationNoticeTimerRef.current = window.setTimeout(() => {
-      setSavedStationNotice(null);
-      savedStationNoticeTimerRef.current = null;
-    }, 3200);
-  }, []);
-
   const openMyStations = () => {
-    if (savedStationNoticeTimerRef.current !== null) {
-      window.clearTimeout(savedStationNoticeTimerRef.current);
-      savedStationNoticeTimerRef.current = null;
-    }
-    setSavedStationNotice(null);
+    clearSavedStationNotice();
     setSelection(null);
     setSelectedStationId(null);
     setCommutePathPreview(null);
@@ -1629,95 +1415,6 @@ export function LineWatchShell({
     navigateForward("commutes");
   };
 
-  const setSavedStationPending = useCallback((stationId: string, pending: boolean) => {
-    setPendingSavedStationIds((current) => {
-      const next = new Set(current);
-      if (pending) next.add(stationId);
-      else next.delete(stationId);
-      return next;
-    });
-  }, []);
-
-  const handleSaveStation = useCallback(async (stationId: string, networkId: NetworkId = selectedNetwork) => {
-    if (accountState.source === "unavailable") {
-      showSavedStationNotice("Account connection interrupted. Retrying automatically");
-      return false;
-    }
-    if (!accountState.authenticated) {
-      openAuthChoice("register");
-      return false;
-    }
-    if (savedStations.some((saved) => saved.networkId === networkId && saved.station.id === stationId)) return true;
-    const station = stationCatalogs[networkId].find((candidate) => candidate.id === stationId);
-    if (!station || pendingSavedStationIds.has(stationId)) return false;
-
-    const optimistic: AccountSavedStation = {
-      networkId,
-      station,
-      savedAt: new Date().toISOString(),
-    };
-    setSavedStationPending(stationId, true);
-    setSavedStations((current) => [
-      optimistic,
-      ...current.filter((saved) => saved.networkId !== networkId || saved.station.id !== stationId),
-    ]);
-    try {
-      const saved = await saveStation(stationId, networkId);
-      setSavedStations((current) => [
-        saved,
-        ...current.filter((item) => item.networkId !== networkId || item.station.id !== stationId),
-      ]);
-      showSavedStationNotice(`${station.name} added to`, true);
-      return true;
-    } catch (error) {
-      setSavedStations((current) => current.filter(
-        (saved) => saved.networkId !== networkId || saved.station.id !== stationId,
-      ));
-      showSavedStationNotice(error instanceof Error ? error.message : "Could not save station");
-      return false;
-    } finally {
-      setSavedStationPending(stationId, false);
-    }
-  }, [accountState.authenticated, accountState.source, openAuthChoice, pendingSavedStationIds, savedStations, selectedNetwork, setSavedStationPending, showSavedStationNotice, stationCatalogs]);
-
-  const handleRemoveSavedStation = useCallback(async (stationId: string, networkId: NetworkId = selectedNetwork) => {
-    if (accountState.source === "unavailable") {
-      showSavedStationNotice("Account connection interrupted. Retrying automatically");
-      return false;
-    }
-    if (!accountState.authenticated || pendingSavedStationIds.has(stationId)) return false;
-    const previous = savedStations.find(
-      (saved) => saved.networkId === networkId && saved.station.id === stationId,
-    );
-    if (!previous) return true;
-
-    setSavedStationPending(stationId, true);
-    setSavedStations((current) => current.filter(
-      (saved) => saved.networkId !== networkId || saved.station.id !== stationId,
-    ));
-    try {
-      await removeSavedStation(stationId, networkId);
-      showSavedStationNotice(`${previous.station.name} removed from My Stations`);
-      return true;
-    } catch (error) {
-      setSavedStations((current) => [
-        previous,
-        ...current.filter((saved) => saved.networkId !== networkId || saved.station.id !== stationId),
-      ]);
-      showSavedStationNotice(error instanceof Error ? error.message : "Could not remove station");
-      return false;
-    } finally {
-      setSavedStationPending(stationId, false);
-    }
-  }, [accountState.authenticated, accountState.source, pendingSavedStationIds, savedStations, selectedNetwork, setSavedStationPending, showSavedStationNotice]);
-
-  const handleToggleSavedStation = useCallback((stationId: string, networkId: NetworkId = selectedNetwork) => {
-    if (savedStations.some((saved) => saved.networkId === networkId && saved.station.id === stationId)) {
-      void handleRemoveSavedStation(stationId, networkId);
-    } else {
-      void handleSaveStation(stationId, networkId);
-    }
-  }, [handleRemoveSavedStation, handleSaveStation, savedStations, selectedNetwork]);
   const handleDemoAccount = useCallback(async () => {
     setIsActionBusy(true);
     setAccountActionError(null);
@@ -1877,11 +1574,9 @@ export function LineWatchShell({
   const headerSearchBarRef = useRef<HTMLDivElement>(null);
   const stationKeyDownHandlerRef = useRef<((event: KeyboardEvent<HTMLInputElement>) => void) | null>(null);
   const menuPanelRef = useRef<HTMLDivElement>(null);
-  type MainMenuActionElement = HTMLButtonElement | HTMLAnchorElement;
   const menuActionRefs = useRef<Array<MainMenuActionElement | null>>([]);
 
   const registerMenuAction = (index: number) => (element: MainMenuActionElement | null) => {
-    // eslint-disable-next-line react-hooks/refs
     menuActionRefs.current[index] = element;
   };
 
@@ -1949,216 +1644,6 @@ export function LineWatchShell({
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);
   }, [reducedMotionOverride]);
-
-  const fetchAccessibilityOutages = useCallback(async () => {
-    const networkId = selectedNetwork;
-    try {
-      const res = await getAccessibilityOutages(undefined, { networkId });
-      setAccessibilityOutageState({ networkId, data: res.data });
-    } catch (err) {
-      console.error("Failed to fetch accessibility outages:", err);
-    }
-  }, [selectedNetwork]);
-
-  const fetchSurfaceNoticesCount = useCallback(async () => {
-    try {
-      const res = await getSurfaceNotices({ networkId: selectedNetwork });
-      setCurrentServiceNotices({ networkId: selectedNetwork, data: res.data });
-      if (res.source === "backend" && res.data.fresh) {
-        setSurfaceNoticeCount(res.data.categories.reduce((total, category) => total + category.count, 0));
-      } else {
-        setSurfaceNoticeCount(null);
-      }
-    } catch (err) {
-      console.error("Failed to fetch surface notices count:", err);
-    }
-  }, [selectedNetwork]);
-
-  const fetchRegionalTripChangeCount = useCallback(async () => {
-    if (selectedNetwork !== "regional") {
-      setRegionalTripChangeCount(null);
-      return;
-    }
-    try {
-      const res = await getRegionalTripChanges({ limit: 0 });
-      setRegionalTripChangeCount(res.source === "backend" && res.data.fresh ? res.data.totalCount : null);
-    } catch (err) {
-      console.error("Failed to fetch regional trip change count:", err);
-      setRegionalTripChangeCount(null);
-    }
-  }, [selectedNetwork]);
-
-  const fetchAnnouncementCount = useCallback(async () => {
-    if (selectedNetwork !== "ttc") {
-      setAnnouncementCount(null);
-      return;
-    }
-    try {
-      const res = await getTtcAnnouncements({ limit: 0 });
-      if (res.source === "backend" && res.data.fresh) {
-        setAnnouncementCount(res.data.announcements.length);
-      } else {
-        setAnnouncementCount(null);
-      }
-    } catch (err) {
-      console.error("Failed to fetch TTC announcements count:", err);
-    }
-  }, [selectedNetwork]);
-
-  useEffect(() => {
-    if (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedMapPeek) {
-      return;
-    }
-    if (selectedNetwork === "regional" && regionalRailOperatingState.status === "closed" && !closedMapPeek) {
-      return;
-    }
-
-    const refreshDashboardData = () => {
-      if (document.visibilityState !== "visible") {
-        return;
-      }
-
-      fetchAccessibilityOutages();
-      fetchSurfaceNoticesCount();
-      fetchRegionalTripChangeCount();
-      fetchAnnouncementCount();
-    };
-
-    const interval = window.setInterval(refreshDashboardData, dashboardRefreshIntervalMs());
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        fetchAccessibilityOutages();
-        fetchSurfaceNoticesCount();
-        fetchRegionalTripChangeCount();
-        fetchAnnouncementCount();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [closedMapPeek, selectedNetwork, subwayOperatingState.status, regionalRailOperatingState.status, fetchAccessibilityOutages, fetchSurfaceNoticesCount, fetchRegionalTripChangeCount, fetchAnnouncementCount]);
-
-
-  useEffect(() => {
-    let cancelled = false;
-
-    if (selectedNetwork === "regional") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAccessibilityOutageState(null);
-      setSurfaceNoticeCount(null);
-      setRegionalTripChangeCount(null);
-      setAnnouncementCount(null);
-      const timer = window.setTimeout(() => {
-        if (!cancelled) {
-          fetchAccessibilityOutages();
-          fetchSurfaceNoticesCount();
-          fetchRegionalTripChangeCount();
-        }
-      }, 300);
-      return () => {
-        cancelled = true;
-        window.clearTimeout(timer);
-      };
-    }
-
-    const timer = window.setTimeout(() => {
-      if (cancelled) return;
-      getStationSummaries().then((result) => {
-        if (!cancelled) {
-          setTtcStationSummaries(result.data.stations);
-        }
-      });
-
-      fetchAccessibilityOutages();
-      fetchSurfaceNoticesCount();
-      fetchRegionalTripChangeCount();
-      fetchAnnouncementCount();
-    }, 300);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [selectedNetwork, fetchAccessibilityOutages, fetchSurfaceNoticesCount, fetchRegionalTripChangeCount, fetchAnnouncementCount]);
-
-  useEffect(() => {
-    let cancelled = false;
-    let requestId = 0;
-    let controller: AbortController | null = null;
-
-    if (!selectedStationId || selectedNetwork !== "ttc") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setVisibleStationResult(null);
-      setStationLoading(false);
-      return () => {
-        cancelled = true;
-        controller?.abort();
-      };
-    }
-
-    const fetchStationDetail = (showLoading: boolean) => {
-      controller?.abort();
-      controller = new AbortController();
-      const activeRequestId = ++requestId;
-      if (showLoading) {
-        setStationLoading(true);
-      }
-      getStationDetail(selectedStationId, { signal: controller.signal })
-        .then((result) => {
-          rememberTtcStationDetail(ttcStationDetailKey(selectedStationId), result);
-          if (!cancelled && activeRequestId === requestId) {
-            setVisibleStationResult((current) => preserveStationDetailOnRefresh(current, result));
-          }
-        })
-        .catch((error) => {
-          if (
-            (error instanceof DOMException && error.name === "AbortError")
-            || (typeof error === "object" && error !== null && (error as { name?: string }).name === "AbortError")
-          ) {
-            return;
-          }
-        })
-        .finally(() => {
-          if (!cancelled && activeRequestId === requestId) {
-            setStationLoading(false);
-          }
-        });
-    };
-
-    // A recent result from My Stations or the saved-station warm-up paints first; the fetch still refreshes it.
-    const recent = recentTtcStationDetails.get(ttcStationDetailKey(selectedStationId));
-    if (recent) {
-      setVisibleStationResult(recent);
-    }
-    fetchStationDetail(!recent);
-
-    const interval = window.setInterval(() => {
-      if (document.visibilityState !== "visible") {
-        return;
-      }
-
-      fetchStationDetail(false);
-    }, STATION_DETAIL_REFRESH_MS);
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        fetchStationDetail(false);
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      cancelled = true;
-      controller?.abort();
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [selectedNetwork, selectedStationId]);
 
   const handleToggleMenu = () => {
     if (menuPinned) {
@@ -3274,112 +2759,30 @@ export function LineWatchShell({
     }
   }, [desktopSidebarCollapsed, navigateRoot, setCommutePathPreview, setSelectedStationId, setSelection, announceDesktop, selectedNetwork]);
 
-  type DesktopNotice =
-    | {
-        kind: "connection";
-        message: string;
-        snapshot?: boolean;
-        showSpinner?: boolean;
-      }
-    | {
-        kind: "closing-soon" | "closed";
-        title: string;
-        details?: string;
-        action?: () => void;
-      };
-
   const desktopNotice: DesktopNotice | null = useMemo(() => {
-    if (showClosedScreen) {
-      return null;
-    }
-
-    // Priority 1: Connection notice
-    if (displayData.snapshot?.reason !== "refreshing") {
-      if (displayData.snapshot) {
-        return {
-          kind: "connection",
-          message: snapshotNotice(displayData.snapshot, snapshotClock),
-          snapshot: true,
-          showSpinner: !connectionOffline,
-        };
-      }
-      if (dashboardRequestState === "reconnecting") {
-        return {
-          kind: "connection",
-          message: "Connection issue — Showing cached snapshot",
-          showSpinner: true,
-        };
-      }
-      if (displayData.availability === "degraded") {
-        return {
-          kind: "connection",
-          message: "Source refresh issue — Showing last successful update",
-          showSpinner: false,
-        };
-      }
-      if (displayData.availability === "unavailable") {
-        return {
-          kind: "connection",
-          message: "Service unavailable — Showing fallback data",
-          showSpinner: false,
-        };
-      }
-    }
-
-    // Priority 2: Operating notice
-    if (selectedNetwork === "ttc") {
-      if (subwayOperatingState.status === "closed") {
-        return {
-          kind: "closed",
-          title: "Subway Closed",
-          details: `Resumes ${(subwayOperatingState.nextResumeLabel ?? "")
-            .replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
-            .replace(/\.$/, "")}.`,
-          action: handleOpenClosedScreen,
-        };
-      }
-    }
-    if (
-      selectedNetwork === "ttc" && subwayOperatingState.closingSoon &&
-      subwayOperatingState.minutesUntilClose !== null &&
-      subwayOperatingState.nextCloseLabel
-    ) {
-      const durationText = formatResumeDuration(subwayOperatingState.minutesUntilClose);
-      const timeText = subwayOperatingState.nextCloseLabel.replace(/^(Today|Tomorrow) /, "");
+    if (showClosedScreen) return null;
+    const connection = serviceConnectionNotice({
+      snapshot: displayData.snapshot,
+      availability: displayData.availability,
+      requestState: dashboardRequestState,
+      snapshotClock,
+      offline: connectionOffline,
+    });
+    if (connection) {
       return {
-        kind: "closing-soon",
-        title: "Subway Closing Soon",
-        details: `Closes in ${durationText} · ${timeText}`,
+        kind: "connection",
+        message: connection.message,
+        snapshot: connection.snapshot,
+        showSpinner: connection.showSpinner,
       };
     }
-    if (selectedNetwork === "regional") {
-      if (regionalRailOperatingState.status === "closed") {
-        return {
-          kind: "closed",
-          title: "GO & UP Rail Closed",
-          details: `Trains return ${(regionalRailOperatingState.nextResumeLabel ?? "")
-            .replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
-            .replace(/\.$/, "")}.`,
-          action: handleOpenClosedScreen,
-        };
-      }
-    }
-    if (
-      selectedNetwork === "regional" && regionalRailOperatingState.closingSoon &&
-      regionalRailOperatingState.minutesUntilClose !== null &&
-      regionalRailOperatingState.nextCloseLabel
-    ) {
-      const durationText = formatResumeDuration(regionalRailOperatingState.minutesUntilClose);
-      const timeText = regionalRailOperatingState.nextCloseLabel.replace(/^(Today|Tomorrow) /, "");
-      const formattedTime = timeText.startsWith("at ") ? timeText : `at ${timeText}`;
-      return {
-        kind: "closing-soon",
-        title: "GO & UP Closing Soon",
-        details: `Broad close ${formattedTime} (${durationText})`,
-      };
-    }
-
-    return null;
+    return serviceOperatingNotice({
+      network: selectedNetwork,
+      subway: subwayOperatingState,
+      regional: regionalRailOperatingState,
+      showClosed: true,
+      onOpenClosed: handleOpenClosedScreen,
+    });
   }, [
     showClosedScreen,
     displayData.snapshot,
@@ -3388,80 +2791,11 @@ export function LineWatchShell({
     connectionOffline,
     dashboardRequestState,
     selectedNetwork,
-    subwayOperatingState.status,
-    subwayOperatingState.closingSoon,
-    subwayOperatingState.minutesUntilClose,
-    subwayOperatingState.nextCloseLabel,
-    subwayOperatingState.nextResumeLabel,
-    regionalRailOperatingState.status,
-    regionalRailOperatingState.closingSoon,
-    regionalRailOperatingState.minutesUntilClose,
-    regionalRailOperatingState.nextCloseLabel,
-    regionalRailOperatingState.nextResumeLabel,
+    subwayOperatingState,
+    regionalRailOperatingState,
     handleOpenClosedScreen,
   ]);
 
-  const renderDesktopNoticeBanner = (notice: DesktopNotice) => {
-    if (notice.kind === "connection") {
-      return (
-        <div
-          className="mobile-service-sheet-notice-row mobile-service-sheet-notice-row--connection"
-          data-snapshot={notice.snapshot ? "true" : undefined}
-          role="status"
-          aria-live="polite"
-          onClick={(e) => e.stopPropagation()}
-          aria-label={notice.message}
-        >
-          <AlertTriangle size={13} className="dashboard-availability-notice-icon shrink-0" aria-hidden="true" />
-          <span className="mobile-service-sheet-notice-message">{notice.message}</span>
-          {notice.showSpinner !== false && (
-            <Loader2 size={12} className="dashboard-availability-notice-spinner shrink-0" aria-hidden="true" />
-          )}
-        </div>
-      );
-    }
-
-    if (notice.action) {
-      return (
-        <button
-          type="button"
-          aria-live="polite"
-          className={`mobile-service-sheet-notice-row desktop-operating-notice mobile-service-sheet-notice-row--${notice.kind}`}
-          onClick={(event) => {
-            event.stopPropagation();
-            notice.action?.();
-          }}
-        >
-          <span className="mobile-service-sheet-notice-icon shrink-0" aria-hidden="true">
-            <Moon size={13} strokeWidth={1} fill="currentColor" />
-          </span>
-          <span className="desktop-operating-notice-copy">
-            <strong className="mobile-service-sheet-notice-title">{notice.title}</strong>
-            {notice.details && <span className="mobile-service-sheet-notice-details">{notice.details}</span>}
-          </span>
-          {notice.details && (
-            <ChevronRight size={12} strokeWidth={2.5} className="mobile-service-sheet-notice-chevron" aria-hidden="true" />
-          )}
-        </button>
-      );
-    }
-
-    return (
-      <div
-        role="status"
-        aria-live="polite"
-        className={`mobile-service-sheet-notice-row desktop-operating-notice mobile-service-sheet-notice-row--${notice.kind}`}
-      >
-        <span className="mobile-service-sheet-notice-icon shrink-0" aria-hidden="true">
-          <Clock3 size={13} strokeWidth={2.5} />
-        </span>
-        <span className="desktop-operating-notice-copy">
-          <strong className="mobile-service-sheet-notice-title">{notice.title}</strong>
-          {notice.details && <span className="mobile-service-sheet-notice-details">{notice.details}</span>}
-        </span>
-      </div>
-    );
-  };
 
   const renderDesktopSidebarContent = () => {
     const renderDesktopActivePanel = () => {
@@ -3572,7 +2906,7 @@ export function LineWatchShell({
             tripChangeCount={regionalTripChangeCount ?? 0}
             surfaceNotices={!displayData.snapshot && currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
             operatingState={selectedNetwork === "ttc" ? subwayOperatingState : regionalRailOperatingState}
-            notice={!desktopSidebarCollapsed && desktopNotice ? renderDesktopNoticeBanner(desktopNotice) : null}
+            notice={!desktopSidebarCollapsed && desktopNotice ? <DesktopNoticeBanner notice={desktopNotice} /> : null}
             onOpenCategory={(view, lineId) => {
               if (view === "line-impacts" && lineId) {
                 openLineImpacts(lineId);
@@ -3772,104 +3106,21 @@ export function LineWatchShell({
     setHasLeftMap(true);
   }
 
-  const mobileOperatingNotice: MobileOperatingNotice | null = useMemo(() => {
-    if (selectedNetwork === "ttc") {
-      if (subwayOperatingState.status === "closed" && closedMapPeek) {
-        return {
-          kind: "closed",
-          title: "Subway Closed",
-          details: `Resumes ${(subwayOperatingState.nextResumeLabel ?? "")
-            .replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
-            .replace(/\.$/, "")}.`,
-          action: handleOpenClosedScreen,
-        };
-      }
-      if (
-        subwayOperatingState.closingSoon &&
-        subwayOperatingState.minutesUntilClose !== null &&
-        subwayOperatingState.nextCloseLabel
-      ) {
-        const durationText = formatResumeDuration(subwayOperatingState.minutesUntilClose);
-        const timeText = subwayOperatingState.nextCloseLabel.replace(/^(Today|Tomorrow) /, "");
-        return {
-          kind: "closing-soon",
-          title: "Subway Closing Soon",
-          details: `Closes in ${durationText} · ${timeText}`,
-        };
-      }
-    } else if (selectedNetwork === "regional") {
-      if (regionalRailOperatingState.status === "closed" && closedMapPeek) {
-        return {
-          kind: "closed",
-          title: "GO & UP Rail Closed",
-          details: `Trains return ${(regionalRailOperatingState.nextResumeLabel ?? "")
-            .replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
-            .replace(/\.$/, "")}.`,
-          action: handleOpenClosedScreen,
-        };
-      }
-      if (
-        regionalRailOperatingState.closingSoon &&
-        regionalRailOperatingState.minutesUntilClose !== null &&
-        regionalRailOperatingState.nextCloseLabel
-      ) {
-        const durationText = formatResumeDuration(regionalRailOperatingState.minutesUntilClose);
-        const timeText = regionalRailOperatingState.nextCloseLabel.replace(/^(Today|Tomorrow) /, "");
-        const formattedTime = timeText.startsWith("at ") ? timeText : `at ${timeText}`;
-        return {
-          kind: "closing-soon",
-          title: "GO & UP Closing Soon",
-          details: `Broad close ${formattedTime} (${durationText})`,
-        };
-      }
-    }
-    return null;
-  }, [
-    selectedNetwork,
-    subwayOperatingState.status,
-    subwayOperatingState.closingSoon,
-    subwayOperatingState.minutesUntilClose,
-    subwayOperatingState.nextCloseLabel,
-    subwayOperatingState.nextResumeLabel,
-    regionalRailOperatingState.status,
-    regionalRailOperatingState.closingSoon,
-    regionalRailOperatingState.minutesUntilClose,
-    regionalRailOperatingState.nextCloseLabel,
-    regionalRailOperatingState.nextResumeLabel,
-    closedMapPeek,
-    handleOpenClosedScreen,
-  ]);
+  const mobileOperatingNotice: MobileOperatingNotice | null = useMemo(() => serviceOperatingNotice({
+    network: selectedNetwork,
+    subway: subwayOperatingState,
+    regional: regionalRailOperatingState,
+    showClosed: closedMapPeek,
+    onOpenClosed: handleOpenClosedScreen,
+  }), [selectedNetwork, subwayOperatingState, regionalRailOperatingState, closedMapPeek, handleOpenClosedScreen]);
 
-  const mobileConnectionNotice: MobileConnectionNotice | null = useMemo(() => {
-    if (displayData.snapshot?.reason === "refreshing") return null;
-    if (displayData.snapshot) return {
-      snapshot: true,
-      hasSavedSnapshot: displayData.snapshot.savedAt !== null,
-      message: snapshotNotice(displayData.snapshot, snapshotClock),
-      showSpinner: !connectionOffline,
-      reason: displayData.snapshot.reason,
-    };
-    if (dashboardRequestState === "reconnecting") {
-      return {
-        message: "Connection issue — Showing cached snapshot",
-        showSpinner: true,
-        reason: "reconnecting",
-      };
-    }
-    if (displayData.availability === "degraded") {
-      return {
-        message: "Source refresh issue — Showing last successful update",
-        showSpinner: false,
-      };
-    }
-    if (displayData.availability === "unavailable") {
-      return {
-        message: "Service unavailable — Showing fallback data",
-        showSpinner: false,
-      };
-    }
-    return null;
-  }, [dashboardRequestState, displayData.availability, displayData.snapshot, snapshotClock, connectionOffline]);
+  const mobileConnectionNotice: MobileConnectionNotice | null = useMemo(() => serviceConnectionNotice({
+    snapshot: displayData.snapshot,
+    availability: displayData.availability,
+    requestState: dashboardRequestState,
+    snapshotClock,
+    offline: connectionOffline,
+  }), [dashboardRequestState, displayData.availability, displayData.snapshot, snapshotClock, connectionOffline]);
 
   const mobileMapPerformanceMode = mobilePerformanceMode || rotatedMapMode;
 
@@ -3895,7 +3146,6 @@ export function LineWatchShell({
     } : {}),
   } as CSSProperties;
 
-  let actionIndex = 0;
   return (
     <DataProvider data={displayData}>
       <DecorativeMotionPausedContext.Provider value={reducedMotion || highContrast}>
@@ -4118,698 +3368,57 @@ export function LineWatchShell({
           </div>
 
           {/* Floating Dropdown Menu */}
-          <div
-            ref={menuPanelRef}
-            id="linewatch-main-menu"
-            role="menu"
-            onKeyDown={handleMenuKeyDown}
-            className={`desktop-top-chrome panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] max-h-[calc(var(--visual-viewport-height,100dvh)-96px)] overflow-hidden border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl flex flex-col origin-top-left transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${menuVisible ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-90 -translate-y-4 pointer-events-none"}`}
-            aria-hidden={!menuVisible}
-          >
-            <div
-              className={`linewatch-transit-accent-strip shrink-0${selectedNetwork === "regional" ? " linewatch-transit-accent-strip--regional" : ""}`}
-              data-network={selectedNetwork}
-              aria-hidden="true"
-            >
-              {selectedNetwork === "regional" ? (
-                <>
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                </>
-              ) : (
-                <>
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                </>
-              )}
-            </div>
-            <div id="linewatch-main-menu-scroll" className="flex-1 overflow-y-auto stealth-scrollbar flex flex-col">
-               {/* Branding */}
-                <div className="flex items-center gap-3 p-4 border-b border-black/10 dark:border-white/10 bg-white/40 dark:bg-black/20">
-                  <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-sm border border-black/10 dark:border-white/10 bg-white dark:bg-white/10 p-1">
-                     <Image src="/assets/linewatch/logo.svg" alt="LineWatchTO Logo" width={24} height={24} className="drop-shadow-sm" />
-                  </div>
-                  <strong className="linewatch-wordmark -ml-1 text-slate-900 dark:text-white">LineWatchTO</strong>
-                  <div className="ml-auto hidden md:flex items-center gap-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400/80 dark:text-slate-500/80 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)] select-none whitespace-nowrap">
-                      Pin Menu
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setMenuPinned((current) => !current)}
-                      className="main-menu-pin flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-blue-500/10 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-300 transition-colors shrink-0"
-                      aria-label={menuPinned ? "Unpin main menu" : "Pin main menu open"}
-                      aria-pressed={menuPinned}
-                      title={menuPinned ? "Unpin main menu" : "Keep main menu open"}
-                    >
-                      {menuPinned ? <PinOff size={19} /> : <Pin size={19} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="account-menu-block flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
-                  <div className="px-3 pt-2 pb-2 select-none">
-                    <div className="station-subsection-header flex items-center gap-2">
-                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
-                      <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Account</span>
-                    </div>
-                  </div>
-                  {accountState.source === "unavailable" ? (
-                    <AccountAvailabilityNotice
-                      compact
-                      knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null}
-                    />
-                  ) : accountState.authenticated && accountState.user ? (
-                    <div className="flex flex-col gap-0.5">
-                      <div className="flex items-center gap-2 min-w-0 text-sm text-slate-700 dark:text-slate-200 px-3 py-2">
-                        <UserRound size={17} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
-                        <span className="min-w-0 truncate font-bold">{accountState.user.displayName || accountState.user.email}</span>
-                        {accountState.user.demo ? (
-                          <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
-                            Demo
-                          </span>
-                        ) : null}
-                      </div>
-                      <button
-                        ref={registerMenuAction(actionIndex++)}
-                        role="menuitem"
-                        type="button"
-                        onClick={handleSignOut}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
-                        disabled={accountBusy}
-                      >
-                        <LogOut size={18} className="text-slate-500 dark:text-slate-400" />
-                        Sign Out
-                      </button>
-                      {authConfig.googleSignInAvailable && !accountState.user.demo ? (
-                        accountState.user.googleLinked ? (
-                          <div className="account-linked-status" aria-label="Google sign-in linked">
-                            <ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400" />
-                            Google Linked
-                          </div>
-                        ) : (
-                          <button
-                            ref={registerMenuAction(actionIndex++)}
-                            role="menuitem"
-                            type="button"
-                            onClick={openGoogleLinkDialog}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
-                            disabled={accountBusy}
-                          >
-                            <ShieldCheck size={18} className="text-slate-500 dark:text-slate-400" />
-                            Link Google
-                          </button>
-                        )
-                      ) : null}
-                      <button
-                        ref={registerMenuAction(actionIndex++)}
-                        role="menuitem"
-                        onClick={() => navigateForward("commutes")}
-                        aria-current={activeView === "commutes" ? "page" : undefined}
-                        className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
-                          My Commutes
-                        </div>
-                        {accountCommutes.length > 0 && (
-                          <div className="flex items-center gap-1.5 shrink-0" data-testid="commute-status-badges">
-                            <span
-                              className={`desktop-menu-count-badge desktop-menu-count-commutes-clear flex h-6 ${
-                                commuteClearCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                              } items-center justify-center rounded-full text-[11px] font-bold`}
-                              aria-label={`${commuteClearCount} clear commutes`}
-                            >
-                              {commuteClearCount}
-                            </span>
-                            <span
-                              className={`desktop-menu-count-badge desktop-menu-count-commutes-affected flex h-6 ${
-                                commuteAffectedCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                              } items-center justify-center rounded-full text-[11px] font-bold`}
-                              aria-label={`${commuteAffectedCount} affected commutes`}
-                            >
-                              {commuteAffectedCount}
-                            </span>
-                          </div>
-                        )}
-                      </button>
-                      <button
-                        ref={registerMenuAction(actionIndex++)}
-                        role="menuitem"
-                        onClick={() => navigateForward("my-stations")}
-                        aria-current={activeView === "my-stations" ? "page" : undefined}
-                        className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
-                      >
-                        <span className="flex items-center gap-3">
-                          <MapPin size={18} className="text-slate-500 dark:text-slate-400" />
-                          My Stations
-                        </span>
-                        {savedStations.length > 0 && (
-                          <div className="flex items-center gap-1.5 shrink-0" data-testid="station-status-badges">
-                            <span
-                              className={`desktop-menu-count-badge desktop-menu-count-stations-clear flex h-6 ${
-                                savedStationsClearCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                              } items-center justify-center rounded-full text-[11px] font-bold`}
-                              aria-label={`${savedStationsClearCount} clear stations`}
-                            >
-                              {savedStationsClearCount}
-                            </span>
-                            <span
-                              className={`desktop-menu-count-badge desktop-menu-count-stations-affected flex h-6 ${
-                                savedStationsAffectedCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                              } items-center justify-center rounded-full text-[11px] font-bold`}
-                              aria-label={`${savedStationsAffectedCount} affected stations`}
-                            >
-                              {savedStationsAffectedCount}
-                            </span>
-                          </div>
-                        )}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="account-action-row">
-                      <button
-                        ref={registerMenuAction(actionIndex++)}
-                        role="menuitem"
-                        type="button"
-                        onClick={() => openAuthChoice("login")}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
-                      >
-                        <LogIn size={18} className="text-slate-500 dark:text-slate-400" />
-                        Sign In
-                      </button>
-                      <button
-                        ref={registerMenuAction(actionIndex++)}
-                        role="menuitem"
-                        type="button"
-                        onClick={() => openAuthChoice("register")}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
-                      >
-                        <UserPlus size={18} className="text-slate-500 dark:text-slate-400" />
-                        Create Account
-                      </button>
-                      <button
-                        ref={registerMenuAction(actionIndex++)}
-                        role="menuitem"
-                        type="button"
-                        onClick={handleDemoAccount}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
-                        disabled={accountBusy}
-                      >
-                        <UserRound size={18} className="text-emerald-600 dark:text-emerald-400" />
-                        Demo Account
-                      </button>
-                      <button
-                        ref={registerMenuAction(actionIndex++)}
-                        role="menuitem"
-                        onClick={() => navigateForward("commutes")}
-                        aria-current={activeView === "commutes" ? "page" : undefined}
-                        className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
-                          My Commutes
-                        </div>
-                        {accountCommutes.length > 0 && (
-                          <div className="flex items-center gap-1.5 shrink-0" data-testid="commute-status-badges">
-                            <span
-                              className={`desktop-menu-count-badge desktop-menu-count-commutes-clear flex h-6 ${
-                                commuteClearCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                              } items-center justify-center rounded-full text-[11px] font-bold`}
-                              aria-label={`${commuteClearCount} clear commutes`}
-                            >
-                              {commuteClearCount}
-                            </span>
-                            <span
-                              className={`desktop-menu-count-badge desktop-menu-count-commutes-affected flex h-6 ${
-                                commuteAffectedCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                              } items-center justify-center rounded-full text-[11px] font-bold`}
-                              aria-label={`${commuteAffectedCount} affected commutes`}
-                            >
-                              {commuteAffectedCount}
-                            </span>
-                          </div>
-                        )}
-                      </button>
-                      <button
-                        ref={registerMenuAction(actionIndex++)}
-                        role="menuitem"
-                        onClick={() => navigateForward("my-stations")}
-                        aria-current={activeView === "my-stations" ? "page" : undefined}
-                        className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
-                      >
-                        <span className="flex items-center gap-3">
-                          <MapPin size={18} className="text-slate-500 dark:text-slate-400" />
-                          My Stations
-                        </span>
-                        {savedStations.length > 0 && (
-                          <div className="flex items-center gap-1.5 shrink-0" data-testid="station-status-badges">
-                            <span
-                              className={`desktop-menu-count-badge desktop-menu-count-stations-clear flex h-6 ${
-                                savedStationsClearCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                              } items-center justify-center rounded-full text-[11px] font-bold`}
-                              aria-label={`${savedStationsClearCount} clear stations`}
-                            >
-                              {savedStationsClearCount}
-                            </span>
-                            <span
-                              className={`desktop-menu-count-badge desktop-menu-count-stations-affected flex h-6 ${
-                                savedStationsAffectedCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                              } items-center justify-center rounded-full text-[11px] font-bold`}
-                              aria-label={`${savedStationsAffectedCount} affected stations`}
-                            >
-                              {savedStationsAffectedCount}
-                            </span>
-                          </div>
-                        )}
-                      </button>
-                    </div>
-                  )}
-                  <DefaultMapModeControl
-                    value={defaultNetworkPreference}
-                    onChange={handleDefaultNetworkChange}
-                  />
-                  {accountActionError ? <p className="px-2 pb-2 text-xs font-semibold text-red-600 dark:text-red-300">{accountActionError}</p> : null}
-                </div>
-
-                {/* Maps & Alerts */}
-                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
-                  <div className="px-3 pt-2 pb-2 select-none">
-                    <div className="station-subsection-header flex items-center gap-2">
-                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
-                      <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Maps & Alerts</span>
-                    </div>
-                  </div>
-                  <button
-                    ref={registerMenuAction(actionIndex++)}
-                    role="menuitem"
-                    onClick={() => { setActiveView("map"); setSelection(null); }}
-                    aria-current={activeView === "map" ? "page" : undefined}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                  >
-                    <MapIcon size={18} className="text-slate-500 dark:text-slate-400" /> Map
-                  </button>
-                  <button
-                    ref={registerMenuAction(actionIndex++)}
-                    role="menuitem"
-                    onClick={() => openImpactCategory("alerts")}
-                    aria-current={activeView === "alerts" ? "page" : undefined}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <AlertTriangle size={18} className="text-slate-500 dark:text-slate-400" /> Suspensions
-                    </div>
-                    {activeAlerts.length > 0 && (
-                      <span
-                        className={`desktop-menu-count-badge desktop-menu-count-alerts flex h-6 ${
-                          activeAlerts.length < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                        } items-center justify-center rounded-full text-[11px] font-bold`}
-                      >
-                        {activeAlerts.length}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    ref={registerMenuAction(actionIndex++)}
-                    role="menuitem"
-                    onClick={() => openImpactCategory("delays")}
-                    aria-current={activeView === "delays" ? "page" : undefined}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <DelayIcon size={18} className="text-slate-500 dark:text-slate-400" filled={false} /> Delays
-                    </div>
-                    {delays.length > 0 && (
-                      <span
-                        className={`desktop-menu-count-badge desktop-menu-count-delays flex h-6 ${
-                          delays.length < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                        } items-center justify-center rounded-full text-[11px] font-bold`}
-                      >
-                        {delays.length}
-                      </span>
-                    )}
-                  </button>
-                  {selectedNetwork === "ttc" ? <button
-                    ref={registerMenuAction(actionIndex++)}
-                    role="menuitem"
-                    onClick={() => openImpactCategory("reduced-speed-zones")}
-                    aria-current={activeView === "reduced-speed-zones" ? "page" : undefined}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Construction size={18} className="text-slate-500 dark:text-slate-400" /> Reduced Speed Zones
-                    </div>
-                    {reducedSpeedZones.length > 0 && (
-                      <span
-                        className={`desktop-menu-count-badge desktop-menu-count-rsz flex h-6 ${
-                          reducedSpeedZoneCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                        } items-center justify-center rounded-full text-[11px] font-bold`}
-                      >
-                        {reducedSpeedZoneCount}
-                      </span>
-                    )}
-                  </button> : null}
-                  <button
-                    ref={registerMenuAction(actionIndex++)}
-                    role="menuitem"
-                    onClick={() => openImpactCategory("closures")}
-                    aria-current={activeView === "closures" ? "page" : undefined}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <PlannedClosureIcon size={18} className="text-slate-500 dark:text-slate-400" /> Planned Advisories
-                    </div>
-                    {plannedClosures.length > 0 && (
-                      <span
-                        className={`desktop-menu-count-badge desktop-menu-count-closures flex h-6 ${
-                          plannedClosures.length < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                        } items-center justify-center rounded-full text-[11px] font-bold`}
-                      >
-                        {plannedClosures.length}
-                      </span>
-                    )}
-                  </button>
-                  {selectedNetwork === "regional" ? <button
-                    ref={registerMenuAction(actionIndex++)}
-                    role="menuitem"
-                    onClick={openRegionalTripChanges}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Train size={18} className="text-slate-500 dark:text-slate-400" /> Trip Changes
-                    </div>
-                    {regionalTripChangeCount !== null && regionalTripChangeCount > 0 ? (
-                      <span
-                        className={`desktop-menu-count-badge desktop-menu-count-trip-changes trip-change-count-badge flex h-6 ${
-                          regionalTripChangeCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                        } items-center justify-center rounded-full text-[11px] font-bold`}
-                      >
-                        {regionalTripChangeCount}
-                      </span>
-                    ) : null}
-                  </button> : null}
-                  <button
-                    ref={registerMenuAction(actionIndex++)}
-                    role="menuitem"
-                    onClick={() => navigateForward("accessibility-outages")}
-                    aria-current={activeView === "accessibility-outages" ? "page" : undefined}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        className="w-[18px] h-[18px] shrink-0 text-slate-500 dark:text-slate-400"
-                      >
-                        <path
-                          fill="currentColor"
-                          d="M11.468 6.403a1.5 1.5 0 1 1 1.064 0a2.25 2.25 0 0 1-1.064 0M9 5q.001.202.026.399L6.15 4.178a2.266 2.266 0 0 0-2.96 1.184a2.24 2.24 0 0 0 1.18 2.954l3.634 1.542v3.701l-1.88 5.458a2.25 2.25 0 1 0 4.256 1.465l.145-.422a6.5 6.5 0 0 1-.496-3.169L8.96 19.993a.75.75 0 0 1-1.418-.488l1.893-5.497a1.3 1.3 0 0 0 .068-.407V9.693c0-.502-.3-.955-.762-1.151L4.956 6.935a.74.74 0 0 1-.39-.977a.766 2.266 0 0 1 .998-.4l4.971 2.11q.24.102.487.169a3 3 0 0 0 1.956 0q.248-.066.488-.168l4.97-2.11a.766 2.266 0 0 1 1 .399a.74.74 0 0 1-.391.977l-3.78 1.605a1.25 1.25 0 0 0-.762 1.15v1.623a6.5 6.5 0 0 1 1.5-.294V9.856l3.628-1.54a2.24 2.24 0 0 0 1.18-2.954a2.266 2.266 0 0 0-2.96-1.184l-2.877 1.22Q15 5.204 15 5a3 3 0 1 0-6 0"
-                        />
-                        <path
-                          fill="currentColor"
-                          d="M22 17.5a5.5 5.5 0 1 1-11 0a5.5 5.5 0 0 1 11 0M16.5 14a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0v-4a.5.5 0 0 0-.5-.5m0 7.125a.625.625 0 1 0 0-1.25a.625.625 0 0 0 0 1.25"
-                        />
-                      </svg>
-                      Accessibility Outages
-                    </div>
-                    {accessibilityOutageResult && accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0) > 0 && (
-                      <span
-                        className={`desktop-menu-count-badge desktop-menu-count-accessibility flex h-6 ${
-                          accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0) < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                        } items-center justify-center rounded-full text-[11px] font-bold`}
-                      >
-                        {accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0)}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    ref={registerMenuAction(actionIndex++)}
-                    role="menuitem"
-                    onClick={openServiceNotices}
-                    aria-current={activeView === "surface-notices" ? "page" : undefined}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      {selectedNetwork === "regional" ? (
-                        <Megaphone size={18} className="text-slate-500 dark:text-slate-400" />
-                      ) : (
-                        <Bus size={18} className="text-slate-500 dark:text-slate-400" />
-                      )} {selectedNetwork === "regional" ? "Service Notices" : "Streetcar & Bus Notices"}
-                    </div>
-                    {surfaceNoticeCount !== null && surfaceNoticeCount > 0 && (
-                      <span
-                        className={`desktop-menu-count-badge desktop-menu-count-surface flex h-6 ${
-                          surfaceNoticeCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                        } items-center justify-center rounded-full text-[11px] font-bold`}
-                      >
-                        {surfaceNoticeCount}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    ref={registerMenuAction(actionIndex++)}
-                    role="menuitem"
-                    onClick={() => navigateForward("alert-history")}
-                    aria-current={activeView === "alert-history" ? "page" : undefined}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                  >
-                    <History size={18} className="text-slate-500 dark:text-slate-400" /> Alert History
-                  </button>
-                  {selectedNetwork === "ttc" ? <button
-                    ref={registerMenuAction(actionIndex++)}
-                    role="menuitem"
-                    onClick={() => navigateForward("announcements")}
-                    aria-current={activeView === "announcements" ? "page" : undefined}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Megaphone size={18} className="text-slate-500 dark:text-slate-400" /> TTC Announcements
-                    </div>
-                    {announcementCount !== null && announcementCount > 0 && (
-                      <span
-                        className={`desktop-menu-count-badge desktop-menu-count-announcements flex h-6 ${
-                          announcementCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                        } items-center justify-center rounded-full text-[11px] font-bold`}
-                      >
-                        {announcementCount}
-                      </span>
-                    )}
-                  </button> : null}
-                </div>
-
-                {/* Line Status */}
-                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
-                  <div className="px-3 pt-2 pb-2 select-none">
-                    <div className="station-subsection-header flex items-center gap-2">
-                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
-                      <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Line Status</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    {lineStatuses.map(l => {
-                      const hasAlert = activeAlerts.some(a => a.lineId === l.id);
-                      const hasDelay = delays.some(delay => delay.lineId === l.id);
-                      const hasRSZ = reducedSpeedZones.some(z => z.lineId === l.id);
-                      const hasClosure = plannedClosures.some(c => c.lineId === l.id);
-                      const isClear = !hasAlert && !hasDelay && !hasRSZ && !hasClosure;
-                      
-                      return (
-                        <button
-                          key={l.id}
-                          ref={registerMenuAction(actionIndex++)}
-                          role="menuitem"
-                          type="button"
-                          onClick={() => openLineImpacts(l.id)}
-                          aria-label={`View all service impacts for ${l.name}`}
-                          className="desktop-line-status-row group/line-status flex items-center gap-3 px-2 py-2 rounded-lg !bg-white dark:!bg-[#12151c] border border-black/5 dark:border-white/5 shadow-sm text-left hover:border-blue-500/30 hover:bg-blue-500/5 transition-colors"
-                        >
-                           <TransitLineBadge lineId={l.id} lineNumber={l.number} lineName={l.name} size={24} className="flex-shrink-0" />
-                           <div className="flex min-w-0 flex-1 flex-col justify-center">
-                              <div className="flex min-w-0 items-center gap-2">
-                                <span className="min-w-0 truncate text-sm font-bold text-slate-800 dark:text-slate-200">{l.name}</span>
-                                <div className="ml-auto flex shrink-0 items-center gap-1.5">
-                                  {hasAlert && <AlertTriangle size={14} className="text-red-500 dark:text-red-400" />}
-                                  {hasDelay && <DelayIcon size={14} className="delay-tone" /> /* /assets/linewatch/delay-icon.svg */}
-                                  {hasRSZ && <Construction size={14} className="rsz-tone" />}
-                                  {hasClosure && <PlannedClosureIcon size={14} className="text-blue-500 dark:text-blue-400" />}
-                                </div>
-                                {isClear && (
-                                  <CircleCheck
-                                    size={16}
-                                    strokeWidth={2.7}
-                                    className="good-service-check-badge ml-1 shrink-0 text-emerald-600 dark:text-emerald-400"
-                                    aria-label={clearServiceStatusLabel({
-                                      networkId: selectedNetwork,
-                                      dataSource: displayData.dataSource,
-                                    })}
-                                  />
-                                )}
-                              </div>
-                           </div>
-                           <ChevronRight size={19} strokeWidth={2.8} className="shrink-0 text-slate-500 dark:text-slate-300 transition-transform duration-200 ease-out group-hover/line-status:translate-x-[3px]" aria-hidden="true" />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-               {/* Notifications */}
-               <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
-                 <div className="px-3 pt-2 pb-2 select-none">
-                   <div className="station-subsection-header flex items-center gap-2">
-                     <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
-                     <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Notifications</span>
-                   </div>
-                 </div>
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => navigateForward("notifications")}
-                   aria-current={activeView === "notifications" ? "page" : undefined}
-                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <Bell size={18} className="text-slate-500 dark:text-slate-400" /> Notifications
-                 </button>
-               </div>
-
-               {/* Operations */}
-               <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
-                 <div className="px-3 pt-2 pb-2 select-none">
-                    <div className="station-subsection-header flex items-center gap-2">
-                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
-                      <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Operations</span>
-                    </div>
-                 </div>
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => navigateForward("analytics")}
-                   aria-current={activeView === "analytics" ? "page" : undefined}
-                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" /> Reliability Analytics
-                 </button>
-                </div>
-
-               {/* Display */}
-               <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
-                 <div className="px-3 pt-2 pb-2 select-none">
-                    <div className="station-subsection-header flex items-center gap-2">
-                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
-                      <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Display</span>
-                    </div>
-                 </div>
-                 <div className="flex items-center justify-between px-3 py-2.5">
-                   <span className="main-menu-display-label text-slate-700 dark:text-slate-200 flex items-center gap-3">
-                     <Contrast size={18} className="text-slate-500 dark:text-slate-400" /> High Contrast Mode
-                   </span>
-                   <SquishSwitch
-                      ref={registerMenuAction(actionIndex++)}
-                      role="menuitemcheckbox"
-                      checked={highContrast}
-                      ariaLabel="Toggle high contrast mode"
-                      onChange={handleToggleHighContrast}
-                   />
-                 </div>
-                 <div className="flex items-center justify-between px-3 py-2.5">
-                   <span className="main-menu-display-label text-slate-700 dark:text-slate-200 flex items-center gap-3">
-                     <Pause size={18} className="text-slate-500 dark:text-slate-400" /> Reduced Motion
-                   </span>
-                   <SquishSwitch
-                      ref={registerMenuAction(actionIndex++)}
-                      role="menuitemcheckbox"
-                      checked={reducedMotion}
-                      ariaLabel="Toggle reduced motion"
-                      onChange={handleToggleReducedMotion}
-                   />
-                 </div>
-                 <div className="flex items-center justify-between px-3 py-2.5">
-                   <span className="main-menu-display-label text-slate-700 dark:text-slate-200 flex items-center gap-3">
-                     <Sparkles size={18} className="text-slate-500 dark:text-slate-400" /> {BACKGROUND_PREFERENCE_LABEL}
-                   </span>
-                   <SquishSwitch
-                      ref={registerMenuAction(actionIndex++)}
-                      role="menuitemcheckbox"
-                      checked={dotBackgroundEnabled}
-                      ariaLabel={`Toggle ${BACKGROUND_PREFERENCE_LABEL.toLowerCase()}`}
-                      onChange={handleToggleDotBackground}
-                   />
-                 </div>
-               </div>
-
-               {/* Support & About */}
-               <div className="flex flex-col px-2 pt-2 pb-0.5 gap-0.5">
-                 <div className="px-3 pt-2 pb-2 select-none">
-                    <div className="station-subsection-header flex items-center gap-2">
-                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
-                      <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Support & About</span>
-                    </div>
-                 </div>
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => navigateForward("feedback")}
-                   aria-current={activeView === "feedback" ? "page" : undefined}
-                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" /> Leave Feedback
-                 </button>
-                 {supportUrl ? (
-                   <button
-                     ref={registerMenuAction(actionIndex++)}
-                     role="menuitem"
-                     onClick={() => window.open(supportUrl, "_blank", "noopener,noreferrer")}
-                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                   >
-                     <HeartHandshake size={18} className="text-slate-500 dark:text-slate-400" /> Support
-                   </button>
-                 ) : null}
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => navigateForward("privacy-acknowledgements")}
-                   aria-current={activeView === "privacy-acknowledgements" ? "page" : undefined}
-                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <FileText size={18} className="text-slate-500 dark:text-slate-400" /> Privacy & Acknowledgements
-                 </button>
-                 {hasReleaseNotes ? (
-                   <button
-                     ref={registerMenuAction(actionIndex++)}
-                     role="menuitem"
-                     onClick={() => navigateForward("release-notes")}
-                     aria-current={activeView === "release-notes" ? "page" : undefined}
-                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                   >
-                     <Sparkles size={18} className="text-slate-500 dark:text-slate-400" /> {"What's New"}
-                   </button>
-                 ) : null}
-                 <a
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   href="/explore"
-                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
-                 >
-                   <BookOpen size={18} className="text-slate-500 dark:text-slate-400 shrink-0" /> Transit Guides
-                 </a>
-               </div>
-
-               <div className="pt-0.5 pb-3 text-center">
-                 <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 select-none" aria-label={`App version ${lineWatchAppVersionLabel}`}>
-                   {lineWatchAppVersionLabel}
-                 </span>
-               </div>
-              </div>
-            </div>
+          <MainMenu
+            accessibilityOutageResult={accessibilityOutageResult}
+            accountActionError={accountActionError}
+            accountBusy={accountBusy}
+            accountCommutes={accountCommutes}
+            accountState={accountState}
+            activeAlerts={activeAlerts}
+            activeView={activeView}
+            announcementCount={announcementCount}
+            authConfig={authConfig}
+            commuteAffectedCount={commuteAffectedCount}
+            commuteClearCount={commuteClearCount}
+            defaultNetworkPreference={defaultNetworkPreference}
+            delays={delays}
+            displayData={displayData}
+            dotBackgroundEnabled={dotBackgroundEnabled}
+            handleDefaultNetworkChange={handleDefaultNetworkChange}
+            handleDemoAccount={handleDemoAccount}
+            handleMenuKeyDown={handleMenuKeyDown}
+            handleSignOut={handleSignOut}
+            handleToggleDotBackground={handleToggleDotBackground}
+            handleToggleHighContrast={handleToggleHighContrast}
+            handleToggleReducedMotion={handleToggleReducedMotion}
+            highContrast={highContrast}
+            lineStatuses={lineStatuses}
+            menuPanelRef={menuPanelRef}
+            menuPinned={menuPinned}
+            menuVisible={menuVisible}
+            navigateForward={navigateForward}
+            openAuthChoice={openAuthChoice}
+            openGoogleLinkDialog={openGoogleLinkDialog}
+            openImpactCategory={openImpactCategory}
+            openLineImpacts={openLineImpacts}
+            openRegionalTripChanges={openRegionalTripChanges}
+            openServiceNotices={openServiceNotices}
+            plannedClosures={plannedClosures}
+            reducedMotion={reducedMotion}
+            reducedSpeedZoneCount={reducedSpeedZoneCount}
+            reducedSpeedZones={reducedSpeedZones}
+            regionalTripChangeCount={regionalTripChangeCount}
+            registerMenuAction={registerMenuAction}
+            savedStations={savedStations}
+            savedStationsAffectedCount={savedStationsAffectedCount}
+            savedStationsClearCount={savedStationsClearCount}
+            selectedNetwork={selectedNetwork}
+            setActiveView={setActiveView}
+            setMenuPinned={setMenuPinned}
+            setSelection={setSelection}
+            supportUrl={supportUrl}
+            surfaceNoticeCount={surfaceNoticeCount}
+          />
           <StationSearchPanel
             open={activeView === "search" || isClosingSearch}
             isClosing={isClosingSearch}
@@ -5213,7 +3822,7 @@ export function LineWatchShell({
             {/* Desktop Collapsed Map Notice (Bottom Center) */}
             {desktopSidebarCollapsed && desktopNotice ? (
               <div className="desktop-collapsed-map-notice-anchor">
-                {renderDesktopNoticeBanner(desktopNotice)}
+                {<DesktopNoticeBanner notice={desktopNotice} />}
               </div>
             ) : null}
           </div>
@@ -5426,80 +4035,16 @@ export function LineWatchShell({
               onCategory={(view, lineId) => openImpactCategory(view, lineId)}
               onNotices={openServiceNotices}
             />}
-          <div className="desktop-status-chip-row desktop-header-impact-chips" aria-label="Open impact categories">
-            <button
-              type="button"
-              className="desktop-status-chip desktop-status-chip--alerts"
-              data-count={activeAlerts.length === 0 ? "zero" : "positive"}
-              onClick={() => openImpactCategory("alerts")}
-              aria-label={`${activeAlerts.length} ${activeAlerts.length === 1 ? "suspension" : "suspensions"}`}
-              title={`${activeAlerts.length} ${activeAlerts.length === 1 ? "Suspension" : "Suspensions"}`}
-            >
-              <AlertTriangle size={18} aria-hidden="true" />
-              <span className="desktop-status-chip-count" data-digit-count={activeAlerts.length >= 10 ? "multiple" : "single"}>
-                <span className="desktop-status-chip-count-value">{activeAlerts.length}</span>
-              </span>
-              <span className="desktop-status-chip-label">{activeAlerts.length === 1 ? "Suspension" : "Suspensions"}</span>
-            </button>
-            <button
-              type="button"
-              className="desktop-status-chip desktop-status-chip--delays"
-              data-count={delays.length === 0 ? "zero" : "positive"}
-              onClick={() => openImpactCategory("delays")}
-              aria-label={`${delays.length} ${delays.length === 1 ? "delay" : "delays"}`}
-              title={`${delays.length} ${delays.length === 1 ? "Delay" : "Delays"}`}
-            >
-              <DelayIcon size={18} aria-hidden="true" />
-              <span className="desktop-status-chip-count" data-digit-count={delays.length >= 10 ? "multiple" : "single"}>
-                <span className="desktop-status-chip-count-value">{delays.length}</span>
-              </span>
-              <span className="desktop-status-chip-label">{delays.length === 1 ? "Delay" : "Delays"}</span>
-            </button>
-            <button
-              type="button"
-              className="desktop-status-chip desktop-status-chip--closures"
-              data-count={plannedClosures.length === 0 ? "zero" : "positive"}
-              onClick={() => openImpactCategory("closures")}
-              aria-label={`${plannedClosures.length} ${plannedClosures.length === 1 ? "planned advisory" : "planned advisories"}`}
-              title={`${plannedClosures.length} ${plannedClosures.length === 1 ? "Planned Advisory" : "Planned Advisories"}`}
-            >
-              <PlannedClosureIcon size={18} aria-hidden="true" />
-              <span className="desktop-status-chip-count" data-digit-count={plannedClosures.length >= 10 ? "multiple" : "single"}>
-                <span className="desktop-status-chip-count-value">{plannedClosures.length}</span>
-              </span>
-              <span className="desktop-status-chip-label">{plannedClosures.length === 1 ? "Planned Advisory" : "Planned Advisories"}</span>
-            </button>
-            {selectedNetwork === "ttc" ? <button
-              type="button"
-              className="desktop-status-chip desktop-status-chip--reduced-speed-zone"
-              data-count={reducedSpeedZoneCount === 0 ? "zero" : "positive"}
-              onClick={() => openImpactCategory("reduced-speed-zones")}
-              aria-label={`${reducedSpeedZoneCount} ${reducedSpeedZoneCount === 1 ? "reduced speed zone" : "reduced speed zones"}`}
-              title={`${reducedSpeedZoneCount} ${reducedSpeedZoneCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}`}
-            >
-              <Construction size={18} aria-hidden="true" />
-              <span className="desktop-status-chip-count" data-digit-count={reducedSpeedZoneCount >= 10 ? "multiple" : "single"}>
-                <span className="desktop-status-chip-count-value">{reducedSpeedZoneCount}</span>
-              </span>
-              <span className="desktop-status-chip-label">
-                {reducedSpeedZoneCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}
-              </span>
-            </button> : null}
-            {selectedNetwork === "regional" ? <button
-              type="button"
-              className="desktop-status-chip desktop-status-chip--trip-changes"
-              data-count={(regionalTripChangeCount ?? 0) === 0 ? "zero" : "positive"}
-              onClick={openRegionalTripChanges}
-              aria-label={`${regionalTripChangeCount ?? 0} ${(regionalTripChangeCount ?? 0) === 1 ? "trip change" : "trip changes"}`}
-              title={`${regionalTripChangeCount ?? 0} ${(regionalTripChangeCount ?? 0) === 1 ? "Trip Change" : "Trip Changes"}`}
-            >
-              <Train size={18} aria-hidden="true" />
-              <span className="desktop-status-chip-count" data-digit-count={(regionalTripChangeCount ?? 0) >= 10 ? "multiple" : "single"}>
-                <span className="desktop-status-chip-count-value">{regionalTripChangeCount ?? 0}</span>
-              </span>
-              <span className="desktop-status-chip-label">{(regionalTripChangeCount ?? 0) === 1 ? "Trip Change" : "Trip Changes"}</span>
-            </button> : null}
-          </div>
+          <DesktopImpactChips
+            selectedNetwork={selectedNetwork}
+            suspensionCount={activeAlerts.length}
+            delayCount={delays.length}
+            plannedAdvisoryCount={plannedClosures.length}
+            reducedSpeedZoneCount={reducedSpeedZoneCount}
+            regionalTripChangeCount={regionalTripChangeCount}
+            openImpactCategory={openImpactCategory}
+            openRegionalTripChanges={openRegionalTripChanges}
+          />
         </aside>
 
       </>

@@ -4,9 +4,10 @@ import { describe, it } from "node:test";
 import { chooseOpeningExperience } from "../src/app/opening-experience.ts";
 import { releaseNotes } from "../src/app/release-notes.ts";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 const onboardingPath = new URL("../src/components/OpeningDisclaimer.tsx", import.meta.url);
-const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const shellSource = readShellSource();
 const onboardingSource = readFileSync(onboardingPath, "utf8");
 const globalCss = readAppStylesheet();
 

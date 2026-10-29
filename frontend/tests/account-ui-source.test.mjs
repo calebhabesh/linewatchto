@@ -3,10 +3,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 import { toTitleCase } from "../src/app/text-format.ts";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 const devBootstrapUrl = new URL("../src/components/LineWatchDevBootstrap.tsx", import.meta.url);
 const devBootstrapSource = existsSync(devBootstrapUrl) ? readFileSync(devBootstrapUrl, "utf8") : "";
-const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const shellSource = readShellSource();
 const deepLinkSource = readFileSync(new URL("../src/app/navigation-transitions.ts", import.meta.url), "utf8");
 const homePageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
 const resetPasswordPageSource = readFileSync(new URL("../src/app/reset-password/page.tsx", import.meta.url), "utf8");

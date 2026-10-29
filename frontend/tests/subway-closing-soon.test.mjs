@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 const chipPath = new URL("../src/components/SubwayClosingSoonChip.tsx", import.meta.url);
 const previewScriptPath = new URL("../scripts/preview-closing-soon.mjs", import.meta.url);
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const shellSource = readShellSource();
 const mobileLegendSource = readFileSync(new URL("../src/components/MobileLegend.tsx", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 const baseClosingSoonChipCss = globalCss.match(/\.subway-closing-soon-chip\s*\{[^}]*\}/s)?.[0] ?? "";
@@ -31,9 +32,8 @@ describe("subway closing soon chip", () => {
 
   it("mounts on desktop during the open-state closing window and relocates mobile notice to MobileStatusPeek", () => {
     assert.match(shellSource, /desktopNotice/);
-    assert.match(shellSource, /subwayOperatingState\.closingSoon/);
-    assert.match(shellSource, /subwayOperatingState\.minutesUntilClose !== null/);
-    assert.match(shellSource, /subwayOperatingState\.nextCloseLabel/);
+    assert.match(shellSource, /subway: subwayOperatingState,/);
+    assert.match(shellSource, /!hours\.closingSoon \|\| hours\.minutesUntilClose === null \|\| !hours\.nextCloseLabel/);
     assert.match(shellSource, /operatingNotice=\{mobileOperatingNotice\}/);
     assert.match(globalCss, /\.subway-closing-soon-chip/);
     assert.match(globalCss, /flex:\s*0 1/);

@@ -14,11 +14,11 @@ import {
   shouldShowPwaInstallNudge,
 } from "../src/app/pwa-install-state.ts";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 const hookSourceUrl = new URL("../src/hooks/usePwaInstallPrompt.ts", import.meta.url);
 const nudgeSourceUrl = new URL("../src/components/PwaInstallNudge.tsx", import.meta.url);
 const moreSheetSourceUrl = new URL("../src/components/MobileMoreSheet.tsx", import.meta.url);
-const shellSourceUrl = new URL("../src/components/LineWatchShell.tsx", import.meta.url);
 const iosGuideIconUrl = new URL("../public/assets/linewatch/guide-icons/share-iphone.svg", import.meta.url);
 const androidGuideIconUrl = new URL("../public/assets/linewatch/guide-icons/add-to-homescreen-android.svg", import.meta.url);
 
@@ -237,7 +237,7 @@ describe("PWA install entry in More sheet", () => {
 
 describe("PWA install shell wiring", () => {
   it("tracks mobile engagement, renders the nudge, and suppresses status peek while the nudge is visible", () => {
-    const shellSource = readFileSync(shellSourceUrl, "utf8");
+    const shellSource = readShellSource();
 
     assert.match(shellSource, /usePwaInstallPrompt/);
     assert.match(shellSource, /PwaInstallNudge/);
@@ -254,7 +254,7 @@ describe("PWA install shell wiring", () => {
 describe("PWA share entry in More sheet", () => {
   it("keeps a mobile share action available for standalone PWA users", () => {
     const moreSheetSource = readFileSync(moreSheetSourceUrl, "utf8");
-    const shellSource = readFileSync(shellSourceUrl, "utf8");
+    const shellSource = readShellSource();
 
     assert.match(moreSheetSource, /Share2/);
     assert.match(moreSheetSource, /onShareApp/);

@@ -18,6 +18,7 @@ import {
   computeInsetViewportFocus,
 } from "../src/hooks/panZoomMath.ts";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 const panelSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 const regionalPanelSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
@@ -26,7 +27,7 @@ const hookSource = readFileSync(new URL("../src/hooks/useMobileDraggableSheet.ts
 const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
-const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const shellSource = readShellSource();
 
 describe("mobile station draggable sheet UX", () => {
   it("defines bounded floor and ceiling constants for vertical sheet drag", () => {

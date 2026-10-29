@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import { runInNewContext } from "node:vm";
 
 import manifest from "../src/app/manifest.ts";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 const layoutSource = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
 const nextConfigSource = readFileSync(new URL("../next.config.ts", import.meta.url), "utf8");
@@ -1452,7 +1453,7 @@ describe("LineWatch PWA configuration", () => {
   });
 
   it("LineWatchShell reads URLSearchParams, opens panels, and focuses concrete impacts on the map", () => {
-    const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+    const shellSource = readShellSource();
     assert.match(shellSource, /URLSearchParams/);
     assert.match(shellSource, /window\.location\.search/);
     assert.match(shellSource, /panel=notifications/);

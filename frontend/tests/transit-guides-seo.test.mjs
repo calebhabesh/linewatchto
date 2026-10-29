@@ -9,6 +9,7 @@ import {
   ttcGuideRoutes,
   ttcGuideStations,
 } from "../src/app/transit-guide-data.ts";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 function source(relativePath) {
   return readFileSync(new URL(relativePath, import.meta.url), "utf8");
@@ -77,7 +78,7 @@ describe("crawlable transit guides", () => {
   });
 
   it("deep-links guide visitors into the existing interactive dashboard", () => {
-    const shell = source("../src/components/LineWatchShell.tsx");
+    const shell = readShellSource();
     const mobileMore = source("../src/components/MobileMoreSheet.tsx");
 
     assert.match(guideComponents, /station:\s*station\.id/);

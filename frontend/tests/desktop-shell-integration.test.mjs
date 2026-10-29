@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
-const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const shellSource = readShellSource();
 const navSource = readFileSync(new URL("../src/hooks/useNavigationTransitions.ts", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
@@ -138,8 +139,9 @@ describe("desktop shell layout & geometry integration (Session 1)", () => {
       const desktopNoticeStart = shellSource.indexOf("const desktopNotice: DesktopNotice | null = useMemo(");
       assert.notEqual(desktopNoticeStart, -1, "desktopNotice must be defined in LineWatchShell");
 
-      const connectionCheckIdx = shellSource.indexOf("// Priority 1: Connection notice", desktopNoticeStart);
-      const operatingCheckIdx = shellSource.indexOf("// Priority 2: Operating notice", desktopNoticeStart);
+      // Wording and priority rules live in app/shell-service-notices.ts (tests/shell-service-notices.test.mjs).
+      const connectionCheckIdx = shellSource.indexOf("serviceConnectionNotice(", desktopNoticeStart);
+      const operatingCheckIdx = shellSource.indexOf("serviceOperatingNotice(", desktopNoticeStart);
 
       assert.ok(connectionCheckIdx > -1, "desktopNotice must check connection priority");
       assert.ok(operatingCheckIdx > -1, "desktopNotice must check operating priority");

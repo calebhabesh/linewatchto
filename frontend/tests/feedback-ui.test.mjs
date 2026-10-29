@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 const panelUrl = new URL("../src/components/FeedbackPanel.tsx", import.meta.url);
 const globalCss = readAppStylesheet();
@@ -37,7 +38,7 @@ describe("feedback panel UI", () => {
 });
 
 describe("feedback navigation", () => {
-  const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+  const shellSource = readShellSource();
   const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
   const desktopMoreSource = readFileSync(new URL("../src/components/DesktopMorePanel.tsx", import.meta.url), "utf8");
 

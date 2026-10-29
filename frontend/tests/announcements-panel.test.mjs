@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { readFile } from "node:fs/promises";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
-const shellSource = await readFile(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const shellSource = readShellSource();
 const mobileStatusSource = await readFile(new URL("../src/components/MobileStatusSheet.tsx", import.meta.url), "utf8");
 const mobileMoreSource = await readFile(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 const panelSource = await readFile(new URL("../src/components/TtcAnnouncementsPanel.tsx", import.meta.url), "utf8");

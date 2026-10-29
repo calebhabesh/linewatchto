@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
-const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const shellSource = readShellSource();
 const desktopMoreSource = readFileSync(new URL("../src/components/DesktopMorePanel.tsx", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 const guideComponentUrl = new URL("../src/components/SiteGuideDropdown.tsx", import.meta.url);
@@ -231,7 +232,7 @@ describe("site guide dropdown", () => {
 
   it("displays site guide container over other components with elevated z-index and preserves position outside topbar", () => {
     const guideSource = readFileSync(guideComponentUrl, "utf8");
-    const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+    const shellSource = readShellSource();
 
     const topbarMatch = shellSource.match(/className="mobile-app-topbar"[\s\S]*?<\/div>\s*\)\}/)?.[0] ?? "";
     assert.doesNotMatch(topbarMatch, /mobile-app-info/);
@@ -248,7 +249,7 @@ describe("site guide dropdown", () => {
   });
 
   it("renders the blue info button in the desktop map utility cluster beside the theme toggle", () => {
-    const currentShellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+    const currentShellSource = readShellSource();
     const guideSource = readFileSync(guideComponentUrl, "utf8");
 
     assert.match(

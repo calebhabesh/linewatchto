@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { readFileSync } from "node:fs";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readShellSource } from "./helpers/shell-source.mjs";
 
 const timelineSource = readFileSync(
   new URL("../src/components/AlertHistoryTimeline.tsx", import.meta.url),
@@ -15,10 +16,7 @@ const panelSource = readFileSync(
   new URL("../src/components/AlertHistoryPanel.tsx", import.meta.url),
   "utf8",
 );
-const shellSource = readFileSync(
-  new URL("../src/components/LineWatchShell.tsx", import.meta.url),
-  "utf8",
-);
+const shellSource = readShellSource();
 const moreSheetSource = readFileSync(
   new URL("../src/components/MobileMoreSheet.tsx", import.meta.url),
   "utf8",
