@@ -304,6 +304,8 @@ export function placeOverlapChooser({
       mapBounds: bounds,
       siblingGap: 0,
       clearance: CHOOSER_OBSTACLE_CLEARANCE,
+      // keptPreferredBox re-checks a kept card against the full gaps.
+      fullClearance: true,
       cellSize: CHOOSER_CELL_SIZE,
       searchRadius: Math.hypot(viewportSize.width, viewportSize.height),
     });

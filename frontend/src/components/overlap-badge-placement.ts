@@ -81,6 +81,12 @@ export type OverlapBadgePlacementOptions = {
   siblingGap: number;
   /** Extra space kept between a badge and any obstacle. */
   clearance?: number;
+  /**
+   * Keep the whole clearance on every side, as formations do, instead of
+   * letting a single badge use half of it to fit a tight nook. For callers
+   * that re-check a placed box against the full clearance later.
+   */
+  fullClearance?: boolean;
   /** Grid resolution in map units. */
   cellSize?: number;
   /** How far from its overlay a badge may be placed before falling back. */
@@ -527,6 +533,7 @@ function badgeState(
   searchRadius: number,
   clearance: number,
   tuning: Tuning,
+  fullClearance: boolean,
 ): BadgeState {
   const reach = searchRadius + Math.max(request.size.width, request.size.height);
   const window = searchWindow(grid, request.targets, reach);
@@ -549,22 +556,23 @@ function badgeState(
   }
   const halfWidth = request.size.width / 2 + clearance;
   const halfHeight = request.size.height / 2 + clearance;
+  const outward: CellExtent = {
+    left: Math.floor(0.5 - halfWidth / grid.cell),
+    right: Math.ceil(0.5 + halfWidth / grid.cell) - 1,
+    top: Math.floor(0.5 - halfHeight / grid.cell),
+    bottom: Math.ceil(0.5 + halfHeight / grid.cell) - 1,
+  };
   return {
     request,
     window,
     cost,
-    extent: {
+    extent: fullClearance ? outward : {
       left: -Math.floor(halfWidth / grid.cell),
       right: Math.floor(halfWidth / grid.cell),
       top: -Math.floor(halfHeight / grid.cell),
       bottom: Math.floor(halfHeight / grid.cell),
     },
-    formationExtent: {
-      left: Math.floor(0.5 - halfWidth / grid.cell),
-      right: Math.ceil(0.5 + halfWidth / grid.cell) - 1,
-      top: Math.floor(0.5 - halfHeight / grid.cell),
-      bottom: Math.ceil(0.5 + halfHeight / grid.cell) - 1,
-    },
+    formationExtent: outward,
   };
 }
 
@@ -865,6 +873,7 @@ export function placeOverlapBadges({
   siblingGap,
   unitScale = 1,
   clearance = DEFAULT_CLEARANCE * unitScale,
+  fullClearance = false,
   cellSize = DEFAULT_CELL_SIZE * unitScale,
   searchRadius = DEFAULT_SEARCH_RADIUS * unitScale,
   groupDistance = siblingGap * 2,
@@ -883,7 +892,7 @@ export function placeOverlapBadges({
   const grid = new OccupancyGrid(mapBounds, cellSize);
   for (const layer of obstacleLayers) grid.addLayer(layer);
   grid.rebuildTable();
-  const states = requests.map((request) => badgeState(grid, request, searchRadius, clearance, tuning));
+  const states = requests.map((request) => badgeState(grid, request, searchRadius, clearance, tuning, fullClearance));
 
   const fallbackCandidate = (state: BadgeState): Candidate => ({
     positions: [{

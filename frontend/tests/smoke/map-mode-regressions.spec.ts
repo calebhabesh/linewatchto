@@ -203,7 +203,8 @@ for (const network of ["ttc", "regional"] as const) {
       };
 
       const drag = await beginDrag(page, mapViewport(page, network, mode), isMobile);
-      for (const [dx, dy] of [[-8, 6], [-20, 14], [-32, 22]]) {
+      // Pan away from the sidebar, so a card beside it can keep its spot.
+      for (const [dx, dy] of [[8, 6], [20, 14], [32, 22]]) {
         await drag.move(dx, dy);
         if (mode === "geographic") await flushFrames(page);
         expectAttached(await chooserAndBadgeCenters(page, network, mode, segmentId), `mid-drag ${dx},${dy}`);
