@@ -33,6 +33,22 @@ function edgeGap(first, second) {
   return Math.hypot(horizontal, vertical);
 }
 
+/** Boxes covering the whole map except the given open rectangles. */
+function blockedExcept(open) {
+  const ys = [...new Set([0, MAP.height, ...open.flatMap((area) => [area.y, area.y + area.height])])].sort((a, b) => a - b);
+  const boxes = [];
+  for (let index = 0; index < ys.length - 1; index += 1) {
+    const [top, bottom] = [ys[index], ys[index + 1]];
+    let x = 0;
+    for (const area of open.filter((area) => area.y < bottom && area.y + area.height > top).sort((a, b) => a.x - b.x)) {
+      if (area.x > x) boxes.push({ x, y: top, width: area.x - x, height: bottom - top });
+      x = Math.max(x, area.x + area.width);
+    }
+    if (x < MAP.width) boxes.push({ x, y: top, width: MAP.width - x, height: bottom - top });
+  }
+  return boxes;
+}
+
 function boxPointDistance(box, point) {
   const dx = Math.max(box.x - point.x, 0, point.x - (box.x + box.width));
   const dy = Math.max(box.y - point.y, 0, point.y - (box.y + box.height));
@@ -116,9 +132,12 @@ describe("overlap badge placement", () => {
     ];
     const placement = place([{ id: "station", size: ROUND, targets: [target] }], obstacles).get("station");
 
+    // The pocket spans x 470-650 and y 510-690; a single badge keeps at least
+    // half its clearance from the walls.
+    const box = badgeBox(placement.position, ROUND, CLEARANCE / 2);
     assert.equal(placement.collisionAvoided, true);
-    assert.ok(Math.abs(placement.position.x - 560) <= 10, JSON.stringify(placement.position));
-    assert.ok(Math.abs(placement.position.y - 600) <= 10, JSON.stringify(placement.position));
+    assert.ok(box.x >= 470 && box.x + box.width <= 650, JSON.stringify(placement.position));
+    assert.ok(box.y >= 510 && box.y + box.height <= 690, JSON.stringify(placement.position));
   });
 
   it("aligns neighbouring badges in a row or column with an exact sibling gap", () => {
@@ -174,6 +193,41 @@ describe("overlap badge placement", () => {
     assert.ok([...placements.values()].every((placement) => placement.collisionAvoided));
   });
 
+  it("lets a badge with only one nearby spot keep it from a badge that has another", () => {
+    // Both badges want the left pocket. The easy badge also has the right
+    // pocket close by; the hard one would have to go far across the map.
+    const obstacles = blockedExcept([
+      { x: 900, y: 500, width: 180, height: 180 },
+      { x: 1300, y: 500, width: 180, height: 180 },
+    ]);
+    const placements = place([
+      { id: "a-easy", size: ROUND, targets: [{ x: 1150, y: 590 }] },
+      { id: "b-hard", size: ROUND, targets: [{ x: 700, y: 590 }] },
+    ], obstacles);
+
+    assert.ok(placements.get("b-hard").position.x < 1080, JSON.stringify(placements.get("b-hard").position));
+    assert.ok(placements.get("a-easy").position.x > 1300, JSON.stringify(placements.get("a-easy").position));
+  });
+
+  it("aligns badges that end up side by side after being placed apart", () => {
+    // "b" loses its pocket to "c" and lands in the open area next to "a".
+    const obstacles = blockedExcept([
+      { x: 200, y: 300, width: 600, height: 600 },
+      { x: 1200, y: 500, width: 180, height: 180 },
+    ]);
+    const placements = place([
+      { id: "a", size: ROUND, targets: [{ x: 700, y: 420 }] },
+      { id: "b", size: ROUND, targets: [{ x: 1100, y: 590 }] },
+      { id: "c", size: ROUND, targets: [{ x: 1290, y: 720 }] },
+    ], obstacles);
+    const a = placements.get("a");
+    const b = placements.get("b");
+
+    assert.equal(a.groupId, b.groupId);
+    assert.ok(Math.abs(a.position.x - b.position.x) < 0.001 || Math.abs(a.position.y - b.position.y) < 0.001);
+    assert.ok(Math.abs(edgeGap(badgeBox(a.position, ROUND), badgeBox(b.position, ROUND)) - 36) < 0.001);
+  });
+
   it("keeps a badge from reading as part of another alert's overlay", () => {
     // Every spot on the ring around the target is equally close to it. Other
     // alerts' overlays run just above, right of, and below the ring, so only
@@ -197,7 +251,7 @@ describe("overlap badge placement", () => {
       [{ id: "station", size: ROUND, targets: [{ x: 20, y: 20 }] }],
       [{ x: 0, y: 0, width: 2000, height: 1200 }],
     ).get("station");
-    const box = badgeBox(placement.position, ROUND, CLEARANCE);
+    const box = badgeBox(placement.position, ROUND, CLEARANCE / 2);
 
     assert.equal(placement.collisionAvoided, false);
     assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.width <= 2000 && box.y + box.height <= 1200);

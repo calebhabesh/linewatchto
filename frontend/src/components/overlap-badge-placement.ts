@@ -20,7 +20,11 @@
  *    always beats an open area far from it.
  * 4. Group badges whose best spots are close together, and try every aligned
  *    formation for the group. Keep the formation unless it costs much more
- *    proximity than placing the badges one by one.
+ *    proximity than placing the badges one by one. Placed one by one, the
+ *    badges compete for the same spots, so several orders are tried and the
+ *    cheapest kept, instead of always letting the nearest badge go first.
+ * 5. Badges from different groups that still end up side by side get the same
+ *    formation check, so neighbours are always aligned when it is cheap.
  *
  * The result depends only on its inputs: the same geometry always produces the
  * same layout, so badges stay still across refreshes without stored history.
@@ -108,6 +112,8 @@ export type OverlapBadgeConnectorCheck = {
 
 /** How many clear spots to try, cheapest first, looking for one with a clear connector. */
 const MAX_CONNECTOR_SPOTS = 240;
+/** Largest group for which every badge gets a turn to be placed first. */
+const MAX_ORDERED_GROUP = 6;
 
 const DEFAULT_CLEARANCE = 10;
 
@@ -121,13 +127,14 @@ export const BADGE_FEATURE_GAPS = {
   /**
    * From the outer edge of an alert overlay's hover outline. Leaves room for
    * the connector: its 18-unit end dot plus a short visible line, so a badge
-   * at its closest still reads as connected.
+   * at its closest still reads as connected. At rest, with no hover outline,
+   * the visible gap to the rail is about 10 units wider.
    */
-  alertOverlay: 30,
+  alertOverlay: 28,
   /** From the edge of an unalerted transit line. */
   transitLine: 48,
-  /** From a label's glyph box. */
-  label: 28,
+  /** From a label's glyph box. Tight enough for a badge to fit a nook between labels. */
+  label: 22,
   /** From other artwork: station dots, interchange hubs, route badges, logos. */
   artwork: 28,
 } as const;
@@ -228,9 +235,23 @@ type BadgeState = {
   window: Window;
   /** Placement cost per window cell; Infinity where the overlay is out of reach. */
   cost: Float64Array;
-  /** Cell offsets from a badge's centre cell to the edges of its padded box. */
-  extent: { left: number; right: number; top: number; bottom: number };
+  /**
+   * Cell offsets from a badge's centre cell to the cells whose centres lie in
+   * its padded box. Obstacles mark every cell they touch, so the padded box
+   * can reach at most half a cell into an obstacle's cell, and a badge always
+   * keeps at least half its clearance. Rounding the box outward as well would
+   * waste up to a cell on each side and hide nooks the badge fits in.
+   */
+  extent: CellExtent;
+  /**
+   * The padded box rounded outward, for formations: their members sit at
+   * exact sibling offsets off the cell centres, which uses the other half of
+   * the clearance.
+   */
+  formationExtent: CellExtent;
 };
+
+type CellExtent = { left: number; right: number; top: number; bottom: number };
 
 type Candidate = { positions: MapPoint[]; cost: number; collisionAvoided: boolean };
 
@@ -533,6 +554,12 @@ function badgeState(
     window,
     cost,
     extent: {
+      left: -Math.floor(halfWidth / grid.cell),
+      right: Math.floor(halfWidth / grid.cell),
+      top: -Math.floor(halfHeight / grid.cell),
+      bottom: Math.floor(halfHeight / grid.cell),
+    },
+    formationExtent: {
       left: Math.floor(0.5 - halfWidth / grid.cell),
       right: Math.ceil(0.5 + halfWidth / grid.cell) - 1,
       top: Math.floor(0.5 - halfHeight / grid.cell),
@@ -550,8 +577,8 @@ function costAt(state: BadgeState, column: number, row: number): number {
   return state.cost[localRow * state.window.cols + localColumn];
 }
 
-function blockedAt(grid: OccupancyGrid, state: BadgeState, column: number, row: number): number {
-  const { extent } = state;
+function blockedAt(grid: OccupancyGrid, state: BadgeState, column: number, row: number, inFormation = false): number {
+  const extent = inFormation ? state.formationExtent : state.extent;
   return grid.blockedCells(column + extent.left, row + extent.top, column + extent.right, row + extent.bottom);
 }
 
@@ -578,11 +605,16 @@ function edgeGap(first: MapBounds, second: MapBounds): number {
   return Math.hypot(horizontal, vertical);
 }
 
-/** The cheapest clear spot, after the cheapest, whose connector line is clear. */
+/**
+ * The cheapest clear spot, after the cheapest, whose connector line is clear.
+ * Stops at spots costing `budget` or more, returning an infinite-cost
+ * candidate, since the caller has a cheaper option already.
+ */
 function nextSpotWithClearConnector(
   grid: OccupancyGrid,
   state: BadgeState,
   acceptsConnector: (position: MapPoint) => boolean,
+  budget = Infinity,
 ): Candidate | null {
   const { window, cost } = state;
   const clear: { cost: number; column: number; row: number }[] = [];
@@ -600,6 +632,7 @@ function nextSpotWithClearConnector(
   const tried: { column: number; row: number }[] = [];
   for (const spot of clear) {
     if (tried.length >= MAX_CONNECTOR_SPOTS) break;
+    if (spot.cost >= budget) return { positions: [grid.cellCenter(spot.column, spot.row)], cost: Infinity, collisionAvoided: true };
     if (tried.some((other) => Math.abs(other.column - spot.column) < spacing && Math.abs(other.row - spot.row) < spacing)) continue;
     tried.push(spot);
     const position = grid.cellCenter(spot.column, spot.row);
@@ -616,6 +649,7 @@ function bestSinglePlacement(
   grid: OccupancyGrid,
   state: BadgeState,
   acceptsConnector?: (position: MapPoint) => boolean,
+  budget = Infinity,
 ): Candidate | null {
   const { window, cost } = state;
   let best: { cost: number; column: number; row: number } | null = null;
@@ -628,7 +662,7 @@ function bestSinglePlacement(
     }
   }
   if (best && acceptsConnector && !acceptsConnector(grid.cellCenter(best.column, best.row))) {
-    const alternative = nextSpotWithClearConnector(grid, state, acceptsConnector);
+    const alternative = nextSpotWithClearConnector(grid, state, acceptsConnector, budget);
     if (alternative) return alternative;
   }
   if (best) {
@@ -676,7 +710,7 @@ function bestFormationPlacement(
       if (!(cost < (best?.cost ?? Infinity))) continue;
       let clear = true;
       for (let index = 0; index < members.length && clear; index += 1) {
-        clear = blockedAt(grid, members[index], column + cellOffsets[index].columns, row + cellOffsets[index].rows) === 0;
+        clear = blockedAt(grid, members[index], column + cellOffsets[index].columns, row + cellOffsets[index].rows, true) === 0;
       }
       if (clear) best = { cost, column, row };
     }
@@ -774,9 +808,31 @@ function groupFormations(members: BadgeState[], gap: number): MapPoint[][] {
   return formations;
 }
 
+/**
+ * Orders to try when a group's badges are placed one by one. Nearest-first
+ * alone lets a badge with other good spots take the only good spot of a
+ * harder one, so the hardest first and each badge first are tried too.
+ */
+function separateOrders(nearestFirst: BadgeState[]): BadgeState[][] {
+  if (nearestFirst.length < 2) return [nearestFirst];
+  const orders = [nearestFirst, [...nearestFirst].reverse()];
+  if (nearestFirst.length <= MAX_ORDERED_GROUP) {
+    nearestFirst.forEach((member, index) => {
+      if (index > 0) orders.push([member, ...nearestFirst.filter((other) => other !== member)]);
+    });
+  }
+  const seen = new Set<string>();
+  return orders.filter((order) => {
+    const key = order.map((member) => member.request.id).join("\n");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function groupsByProximity(
   states: BadgeState[],
-  ideal: Map<string, Candidate>,
+  positions: Map<string, MapPoint>,
   groupDistance: number,
 ): BadgeState[][] {
   const parent = states.map((_state, index) => index);
@@ -787,7 +843,7 @@ function groupsByProximity(
     }
     return index;
   };
-  const boxes = states.map((state) => paddedBox(ideal.get(state.request.id)!.positions[0], state.request.size, 0));
+  const boxes = states.map((state) => paddedBox(positions.get(state.request.id)!, state.request.size, 0));
   for (let first = 0; first < states.length; first += 1) {
     for (let second = first + 1; second < states.length; second += 1) {
       if (edgeGap(boxes[first], boxes[second]) <= groupDistance) parent[find(second)] = find(first);
@@ -853,11 +909,12 @@ export function placeOverlapBadges({
     const check = connectorAt(id, position, extra);
     return !check.needed || check.line !== null;
   };
-  const placeAlone = (state: BadgeState, withConnector = false): Candidate => (
+  const placeAlone = (state: BadgeState, withConnector = false, budget = Infinity): Candidate => (
     bestSinglePlacement(
       grid,
       state,
       withConnector && connector ? (position) => hasClearConnector(state.request.id, position) : undefined,
+      budget,
     ) ?? fallbackCandidate(state)
   );
   // Keep at least a sibling gap between neighbouring groups as well, and keep
@@ -875,14 +932,45 @@ export function placeOverlapBadges({
     ]);
   };
 
+  const emptyGrid = grid.snapshot();
+  const stateById = new Map(states.map((state) => [state.request.id, state]));
+  // The cheapest clear formation of a group around `near` in which every
+  // member keeps a clear connector line.
+  const bestFormation = (group: BadgeState[], near: MapPoint[]): Candidate | null => {
+    const area = searchWindow(grid, near, tuning.formationMargin);
+    const candidates = groupFormations(group, siblingGap)
+      .map((offsets) => bestFormationPlacement(grid, group, offsets, area))
+      .filter((candidate): candidate is Candidate => candidate !== null)
+      .sort((first, second) => first.cost - second.cost);
+    return candidates.find((candidate) => !connector || group.every((member, index) => (
+      hasClearConnector(
+        member.request.id,
+        candidate.positions[index],
+        group
+          .map((other, otherIndex) => ({ id: other.request.id, position: candidate.positions[otherIndex], size: other.request.size }))
+          .filter((other) => other.id !== member.request.id),
+      )
+    ))) ?? null;
+  };
+  const pushFormation = (group: BadgeState[], formation: Candidate) => {
+    const groupId = group.map((member) => member.request.id).join("+");
+    group.forEach((member, index) => {
+      results.push({ id: member.request.id, position: formation.positions[index], groupId, collisionAvoided: true });
+    });
+    reserve(group, formation.positions);
+  };
+
   // Ideal spot for each badge on its own, used to decide which badges share a
   // neighbourhood and should be aligned with each other.
   const ideal = new Map(states.map((state) => [state.request.id, placeAlone(state)]));
-  const groups = groupsByProximity(states, ideal, groupDistance)
-    .sort((first, second) => (
-      second.length - first.length
-      || first[0].request.id.localeCompare(second[0].request.id)
-    ));
+  const groups = groupsByProximity(
+    states,
+    new Map([...ideal].map(([id, candidate]) => [id, candidate.positions[0]])),
+    groupDistance,
+  ).sort((first, second) => (
+    second.length - first.length
+    || first[0].request.id.localeCompare(second[0].request.id)
+  ));
 
   for (const group of groups) {
     if (group.length === 1) {
@@ -898,58 +986,86 @@ export function placeOverlapBadges({
     }
 
     // A formation only needs to be searched around where its members want to be.
-    const area = searchWindow(grid, group.map((member) => ideal.get(member.request.id)!.positions[0]), tuning.formationMargin);
-    let formation: Candidate | null = null;
-    for (const offsets of groupFormations(group, siblingGap)) {
-      const candidate = bestFormationPlacement(grid, group, offsets, area);
-      if (candidate && (!formation || candidate.cost < formation.cost)) formation = candidate;
-    }
+    const formation = bestFormation(group, group.map((member) => ideal.get(member.request.id)!.positions[0]));
 
-    // Compare with placing each badge on its own, nearest-first. Alignment
-    // wins unless it pushes badges noticeably farther from their overlays.
-    const ordered = [...group].sort((first, second) => (
+    // Compare with placing each badge on its own. Badges that want the same
+    // spot compete for it, so try a few orders and keep the cheapest.
+    const nearestFirst = [...group].sort((first, second) => (
       ideal.get(first.request.id)!.cost - ideal.get(second.request.id)!.cost
       || first.request.id.localeCompare(second.request.id)
     ));
-    // An aligned row is only worth it if every member keeps a clear line.
-    const formationConnectorsClear = Boolean(formation) && (!connector || group.every((member, index) => (
-      hasClearConnector(
-        member.request.id,
-        formation!.positions[index],
-        group
-          .map((other, otherIndex) => ({ id: other.request.id, position: formation!.positions[otherIndex], size: other.request.size }))
-          .filter((other) => other.id !== member.request.id),
-      )
-    )));
     const beforeGroup = grid.snapshot();
     const resultsBeforeGroup = results.length;
-    const separate = ordered.map((member) => {
-      const placement = placeAlone(member, true);
-      reserve([member], placement.positions);
-      // Later members route their lines around this one.
-      results.push({ id: member.request.id, position: placement.positions[0], groupId: member.request.id, collisionAvoided: placement.collisionAvoided });
-      return placement;
-    });
-    results.length = resultsBeforeGroup;
-    const separateCost = separate.reduce((sum, placement) => sum + placement.cost, 0);
-
-    if (formation && formationConnectorsClear && formation.cost <= separateCost + alignmentTolerance * group.length) {
-      // The separate placements were reserved while comparing; swap in the formation.
+    // Gives up as soon as the order costs more than `limit`; costs only add up.
+    const placeInOrder = (order: BadgeState[], limit = Infinity) => {
+      let cost = 0;
+      for (const member of order) {
+        const placement = placeAlone(member, true, limit - cost);
+        cost += placement.cost;
+        if (cost >= limit) break;
+        reserve([member], placement.positions);
+        // Later members route their lines around this one.
+        results.push({ id: member.request.id, position: placement.positions[0], groupId: member.request.id, collisionAvoided: placement.collisionAvoided });
+      }
+      const attempt = cost < limit
+        ? { results: results.splice(resultsBeforeGroup), grid: grid.snapshot(), cost }
+        : null;
+      results.length = resultsBeforeGroup;
       grid.restore(beforeGroup);
-      const groupId = group.map((member) => member.request.id).join("+");
-      group.forEach((member, index) => {
-        results.push({ id: member.request.id, position: formation.positions[index], groupId, collisionAvoided: true });
-      });
-      reserve(group, formation.positions);
+      return attempt;
+    };
+    let separate = placeInOrder(nearestFirst)!;
+    for (const order of separateOrders(nearestFirst).slice(1)) {
+      separate = placeInOrder(order, separate.cost) ?? separate;
+    }
+
+    // Alignment wins unless it pushes badges noticeably farther from their overlays.
+    if (formation && formation.cost <= separate.cost + alignmentTolerance * group.length) {
+      pushFormation(group, formation);
     } else {
-      ordered.forEach((member, index) => {
-        results.push({
-          id: member.request.id,
-          position: separate[index].positions[0],
-          groupId: member.request.id,
-          collisionAvoided: separate[index].collisionAvoided,
-        });
-      });
+      results.push(...separate.results);
+      grid.restore(separate.grid);
+    }
+  }
+
+  // Badges placed apart can still land side by side, such as two badges both
+  // pushed out of a crowded area into the same open space. Align those too.
+  const finalPositions = new Map(results.map((result) => [result.id, result.position]));
+  const groupIdOf = new Map(results.map((result) => [result.id, result.groupId]));
+  const neighbours = groupsByProximity(states, finalPositions, groupDistance)
+    .filter((group) => new Set(group.map((member) => groupIdOf.get(member.request.id))).size > 1)
+    .sort((first, second) => (
+      second.length - first.length
+      || first[0].request.id.localeCompare(second[0].request.id)
+    ));
+  for (const group of neighbours) {
+    const ids = new Set(group.map((member) => member.request.id));
+    const kept = results.filter((result) => !ids.has(result.id));
+    const current = results.filter((result) => ids.has(result.id));
+    const currentCost = group.reduce((sum, member) => {
+      const position = current.find((result) => result.id === member.request.id)!.position;
+      return sum + costAt(
+        member,
+        Math.floor((position.x - grid.bounds.x) / grid.cell),
+        Math.floor((position.y - grid.bounds.y) / grid.cell),
+      );
+    }, 0);
+    // Free the group's space, keeping every other badge and its line reserved.
+    results.length = 0;
+    grid.restore(emptyGrid);
+    for (const result of kept) {
+      reserve([stateById.get(result.id)!], [result.position]);
+      results.push(result);
+    }
+    const formation = bestFormation(group, group.map((member) => finalPositions.get(member.request.id)!));
+    if (formation && formation.cost <= currentCost + alignmentTolerance * group.length) {
+      pushFormation(group, formation);
+    } else {
+      results.push(...current);
+      reserve(
+        current.map((result) => stateById.get(result.id)!),
+        current.map((result) => result.position),
+      );
     }
   }
 
