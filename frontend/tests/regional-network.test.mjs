@@ -558,7 +558,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalOverlaysSource, /"regional-impact-aura"/);
     assert.match(regionalOverlaysSource, /"regional-impact-interactive-glow"/);
     assert.match(regionalOverlaysSource, /visiblePath\.classList\.add\("delay-static-base"\)/);
-    assert.match(regionalOverlaysSource, /regionalDelayGlyphLane\(documentNode, sourcePath, travelDirection, reducedMotion\)/);
+    assert.match(regionalOverlaysSource, /regionalDelayGlyphLane\(documentNode, sourcePath, travelDirection\)/);
     assert.match(regionalOverlaysSource, /lane\.dataset\.regionalDelayDirection = travelDirection/);
     assert.match(regionalOverlaysSource, /travelDirection === "bidirectional" \|\| index % 2 === 0/);
     assert.match(regionalGeometrySource, /REGIONAL_IMPACT_OVERLAY_WIDTH = 196/);
@@ -570,14 +570,13 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalOverlaysSource, /REGIONAL_IMPACT_HIT_TARGET_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH \+ 169/);
     assert.match(regionalOverlaysSource, /REGIONAL_DELAY_GLYPH_SPACING = 96/);
     assert.match(regionalOverlaysSource, /travelDirection === "bidirectional"[\s\S]*REGIONAL_DELAY_GLYPH_SPACING \* 1\.3[\s\S]*Math\.floor\(length \/ glyphSpacing\)/);
-    assert.match(regionalOverlaysSource, /REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND = \(160 \/ 12\) \* \(175 \/ 102\)/);
-    assert.match(regionalOverlaysSource, /travelDirection !== "bidirectional" && pathD/);
-    assert.match(regionalOverlaysSource, /createElementNS\(SVG_NAMESPACE, "animateMotion"\)/);
+    // Alert glyphs rest along the lane, as on TTC; nothing moves.
+    assert.doesNotMatch(regionalOverlaysSource, /animateMotion/);
     assert.match(regionalOverlaysSource, /impact\.travelDirection/);
     assert.match(globalsCss, /data-regional-impact-kind="delay"[\s\S]*stroke:\s*#0ea5e9[\s\S]*stroke-width:\s*var\(--regional-impact-width\)/);
     assert.doesNotMatch(globalsCss, /regional-delay-static-shift/);
     assert.doesNotMatch(globalsCss, /data-regional-impact-kind="reduced-speed-zone"[^}]*regional-impact-path\s*\{[^}]*map-overlay-rail-pulse/s);
-    assert.match(globalsCss, /\.regional-impact-aura\s*\{[^}]*animation:\s*aura-pulse var\(--map-overlay-pulse-half-cycle\) infinite alternate var\(--map-overlay-pulse-easing\);[^}]*animation-delay:\s*var\(--map-pulse-offset\)/s);
+    assert.doesNotMatch(globalsCss, /\.regional-impact-aura\s*\{[^}]*animation:\s*aura-pulse/s);
     assert.match(globalsCss, /regional-overlay-segment-group:not\(\[data-regional-impact-selected="true"\]\)[^}]*regional-impact-interactive-glow\s*\{[^}]*animation:\s*none\s*!important/s);
     assert.match(globalsCss, /regional-overlay-segment-group:not\(\[data-regional-impact-selected="true"\]\)[^}]*regional-impact-interactive-glow\s*\{[^}]*display:\s*none\s*!important/s);
     // Pan release restores glow blur. Animating filter or stroke-width back
@@ -799,7 +798,7 @@ describe("network-scoped regional dashboard", () => {
   it("keeps station-specific alert arrows and radar beacons inside station dots", () => {
     assert.match(regionalOverlaysSource, /regional-station-impact-beacon-group/);
     assert.match(regionalOverlaysSource, /station-impact-dot-red-glow/);
-    assert.match(regionalOverlaysSource, /station-impact-dot-red-ping/);
+    assert.match(regionalOverlaysSource, /station-impact-dot-red-beacon/);
     assert.match(regionalOverlaysSource, /regional-station-impact-fill/);
     assert.match(regionalOverlaysSource, /regional-station-impact-direction-glyph/);
     assert.match(regionalOverlaysSource, /station-impact-direction-badge/);

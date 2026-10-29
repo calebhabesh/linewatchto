@@ -69,7 +69,6 @@ describe("stable raster map renderer", () => {
     );
     assert.match(ttc, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
     assert.match(regional, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
-    assert.match(ttc, /reducedMotion=\{mapEffectMotionPaused\}/);
     assert.match(ttc, /animate=\{!mapEffectMotionPaused\}/);
     assert.match(regional, /overlayMotionPaused = mapEffectMotionPaused \|\| useMobileRendering/);
     assert.match(regional, /setMotionPaused\(overlayMotionPaused\)/);

@@ -3,11 +3,12 @@ import { describe, it } from "node:test";
 
 import {
   regionalChevronGlyphLane,
+  regionalDelayGlyphLane,
   regionalPlannedClosureIconLane,
-  setRegionalGlyphLaneMotion,
+  regionalSuspensionGlyphLane,
 } from "../src/app/regional-map-overlays.ts";
 
-// Just enough SVG DOM for building glyph lanes and toggling their motion.
+// Just enough SVG DOM for building glyph lanes.
 function fakeElement(tagName) {
   const attributes = new Map();
   const element = {
@@ -55,38 +56,28 @@ const sourcePath = {
 };
 const motionOf = (glyph) => glyph.children.find((child) => child.tagName === "animateMotion");
 
-describe("regional glyph lane motion", () => {
-  it("pauses and resumes motion in place without replacing glyphs, like TTC", () => {
-    const lane = regionalChevronGlyphLane(documentNode, sourcePath, "forward", false);
-    const glyphs = [...lane.children];
-    assert.ok(glyphs.length > 1);
-    const begins = glyphs.map((glyph) => motionOf(glyph)?.getAttribute("begin"));
-    assert.ok(begins.every(Boolean), "a one-way lane moves when motion is allowed");
-    assert.ok(glyphs.every((glyph) => glyph.getAttribute("transform") === null));
+// Alert overlays never animate on either map (docs/map-renderer-parity.md).
+describe("regional glyph lanes", () => {
+  for (const [name, build] of [
+    ["delay", regionalDelayGlyphLane],
+    ["suspension", regionalSuspensionGlyphLane],
+    ["reduced speed zone", regionalChevronGlyphLane],
+    ["planned closure", regionalPlannedClosureIconLane],
+  ]) {
+    it(`places ${name} glyphs at rest along a one-way lane`, () => {
+      const lane = build(documentNode, sourcePath, "forward");
+      assert.ok(lane.children.length > 0);
+      assert.ok(lane.children.every((glyph) => !motionOf(glyph)), "no glyph moves");
+      assert.ok(lane.children.every((glyph) => /^translate\(/.test(glyph.getAttribute("transform") ?? "")));
+    });
+  }
 
-    setRegionalGlyphLaneMotion(documentNode, lane, false);
-    assert.deepEqual([...lane.children], glyphs, "pausing keeps the same glyph nodes");
-    assert.ok(glyphs.every((glyph) => !motionOf(glyph)));
-    assert.ok(glyphs.every((glyph) => glyph.getAttribute("transform") === glyph.dataset.restingTransform));
-
-    setRegionalGlyphLaneMotion(documentNode, lane, true);
-    assert.deepEqual([...lane.children], glyphs, "resuming keeps the same glyph nodes");
-    assert.deepEqual(glyphs.map((glyph) => motionOf(glyph)?.getAttribute("begin")), begins,
-      "resumed glyphs keep their spacing along the lane");
-    assert.ok(glyphs.every((glyph) => glyph.getAttribute("transform") === null));
-  });
-
-  it("builds a reduced-motion lane at rest and lets it start moving later", () => {
-    const lane = regionalChevronGlyphLane(documentNode, sourcePath, "forward", true);
-    assert.ok(lane.children.every((glyph) => !motionOf(glyph) && glyph.getAttribute("transform")));
-    setRegionalGlyphLaneMotion(documentNode, lane, true);
-    assert.ok(lane.children.every((glyph) => motionOf(glyph)));
-  });
-
-  it("keeps a directionless planned lane at rest even when motion is allowed", () => {
-    const lane = regionalPlannedClosureIconLane(documentNode, sourcePath, "bidirectional", false);
-    setRegionalGlyphLaneMotion(documentNode, lane, true);
-    assert.ok(lane.children.length > 0);
-    assert.ok(lane.children.every((glyph) => !motionOf(glyph) && glyph.getAttribute("transform")));
+  it("spaces glyphs along the lane and flips them for reverse travel", () => {
+    const forward = regionalChevronGlyphLane(documentNode, sourcePath, "forward");
+    const reverse = regionalChevronGlyphLane(documentNode, sourcePath, "reverse");
+    const xs = forward.children.map((glyph) => Number(/translate\(([-\d.]+)/.exec(glyph.getAttribute("transform"))[1]));
+    assert.deepEqual(xs, [...xs].sort((a, b) => a - b), "forward glyphs run along the lane");
+    assert.match(forward.children[0].getAttribute("transform"), /rotate\(0\)/);
+    assert.match(reverse.children[0].getAttribute("transform"), /rotate\(180\)/);
   });
 });

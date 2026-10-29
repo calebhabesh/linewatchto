@@ -13,6 +13,12 @@ import type {
 } from "./linewatch-data.ts";
 import type { AccountCommutePathPreview } from "./commute-data.ts";
 import {
+  STATION_IMPACT_BEACON_STROKE_RATIO,
+  STATION_IMPACT_RING_SCALE,
+  stationImpactBeaconSize,
+  type StationBeaconNeighbour,
+} from "../components/station-impact-beacon.ts";
+import {
   pathCorridorCollisionBoxes,
   svgElementMatrixToRootCoordinates,
   transformBoundsToRootPolygon,
@@ -100,7 +106,6 @@ export const REGIONAL_UNION_TOP_HOVER_CUTOUT_STROKE_WIDTH = 96;
 export const REGIONAL_DELAY_GLYPH_SPACING = 96;
 // TTC's lane advances 160 SVG units over 12 seconds. Regional authored map
 // units are about 175 / 102 larger for the equivalent corridor stroke.
-export const REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND = (160 / 12) * (175 / 102);
 export const REGIONAL_OVERLAP_CHOOSER_GAP = 24;
 
 export const REGIONAL_DYNAMIC_SEGMENT_LAYER_ID = "regional-dynamic-segment-layer";
@@ -119,9 +124,6 @@ export const REGIONAL_MAP_PULSE_CYCLE_MS = 2400;
 export const REGIONAL_SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
   "aura-pulse",
   "map-overlay-rail-pulse",
-  "gold-ring-pulse",
-  "station-radar-core",
-  "station-radar-ping",
   "station-selected-pulse",
 ]);
 
@@ -282,28 +284,18 @@ export function appendRegionalDelayGlyph(
   return glyph;
 }
 
-// Glyph motion is presentation state, not overlay content. Every lane glyph
-// records its resting placement and, when it may move, its motion spec, so
-// pausing or resuming motion swaps animateMotion in place. Rebuilding the
-// lane to change motion would restart every overlay, unlike TTC, where React
-// keeps the glyph and only toggles its animateMotion child.
+// Alert glyphs rest along their lane; alert overlays never move
+// (map-renderer-parity.md), matching TTC's GlyphLane.
 type RegionalGlyphPlacement = {
   sourcePath: SVGPathElement;
   length: number;
   progress: number;
   travelDirection: TravelDirection;
   rotateAtRest: boolean;
-  motion: { pathD: string; durationSeconds: number; rotate: string } | null;
 };
 
-function placeRegionalLaneGlyph(
-  documentNode: RegionalSvgScope,
-  lane: SVGGElement,
-  glyph: SVGGElement,
-  placement: RegionalGlyphPlacement,
-  reducedMotion: boolean,
-) {
-  const { sourcePath, length, progress, travelDirection, rotateAtRest, motion } = placement;
+function placeRegionalLaneGlyph(glyph: SVGGElement, placement: RegionalGlyphPlacement) {
+  const { sourcePath, length, progress, travelDirection, rotateAtRest } = placement;
   const distance = travelDirection === "reverse" ? length * (1 - progress) : length * progress;
   const point = sourcePath.getPointAtLength(distance);
   let transform = `translate(${point.x} ${point.y})`;
@@ -314,51 +306,13 @@ function placeRegionalLaneGlyph(
       + (travelDirection === "reverse" ? 180 : 0);
     transform += ` rotate(${angle})`;
   }
-  glyph.dataset.restingTransform = transform;
-  if (motion) {
-    lane.dataset.motionPath = motion.pathD;
-    glyph.dataset.motionDur = `${motion.durationSeconds}s`;
-    glyph.dataset.motionBegin = `${-(motion.durationSeconds * progress)}s`;
-    glyph.dataset.motionKeyPoints = travelDirection === "reverse" ? "1;0" : "0;1";
-    glyph.dataset.motionRotate = motion.rotate;
-  }
-  setRegionalLaneGlyphMotion(documentNode, glyph, !reducedMotion);
-}
-
-function setRegionalLaneGlyphMotion(documentNode: RegionalSvgScope, glyph: SVGElement, moving: boolean) {
-  const existing = [...glyph.children].find((child) => child.tagName.toLowerCase() === "animatemotion");
-  const pathD = glyph.parentElement?.dataset.motionPath;
-  if (!moving || !glyph.dataset.motionDur || !pathD) {
-    existing?.remove();
-    if (glyph.dataset.restingTransform) glyph.setAttribute("transform", glyph.dataset.restingTransform);
-    return;
-  }
-  if (existing) return;
-  glyph.removeAttribute("transform");
-  const motion = documentNode.createElementNS(SVG_NAMESPACE, "animateMotion");
-  motion.setAttribute("path", pathD);
-  motion.setAttribute("dur", glyph.dataset.motionDur);
-  motion.setAttribute("begin", glyph.dataset.motionBegin ?? "0s");
-  motion.setAttribute("repeatCount", "indefinite");
-  motion.setAttribute("calcMode", "linear");
-  motion.setAttribute("keyTimes", "0;1");
-  motion.setAttribute("keyPoints", glyph.dataset.motionKeyPoints ?? "0;1");
-  motion.setAttribute("rotate", glyph.dataset.motionRotate ?? "0");
-  glyph.append(motion);
-}
-
-/** Pause or resume every regional glyph lane under `root` without rebuilding it. */
-export function setRegionalGlyphLaneMotion(documentNode: RegionalSvgScope, root: ParentNode, moving: boolean) {
-  root.querySelectorAll<SVGElement>("[data-resting-transform]").forEach((glyph) => {
-    setRegionalLaneGlyphMotion(documentNode, glyph, moving);
-  });
+  glyph.setAttribute("transform", transform);
 }
 
 export function regionalDelayGlyphLane(
   documentNode: RegionalSvgScope,
   sourcePath: SVGPathElement,
   travelDirection: TravelDirection,
-  reducedMotion: boolean,
 ) {
   const lane = documentNode.createElementNS(SVG_NAMESPACE, "g");
   lane.classList.add("regional-delay-glyph-lane");
@@ -380,8 +334,6 @@ export function regionalDelayGlyphLane(
     ? REGIONAL_DELAY_GLYPH_SPACING * 1.3
     : REGIONAL_DELAY_GLYPH_SPACING;
   const count = Math.max(1, Math.floor(length / glyphSpacing));
-  const durationSeconds = Math.max(10, length / REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND);
-  const pathD = sourcePath.getAttribute("d") ?? "";
 
   for (let index = 0; index < count; index += 1) {
     const glyphKind = travelDirection === "bidirectional" || index % 2 === 0
@@ -390,14 +342,10 @@ export function regionalDelayGlyphLane(
     const glyph = appendRegionalDelayGlyph(documentNode, lane, glyphKind);
     const progress = (index + 0.5) / count;
 
-    // TTC displays a directionless/bidirectional delay as a static hourglass
-    // lane. Only a trustworthy one-way direction produces moving arrows.
-    placeRegionalLaneGlyph(documentNode, lane, glyph, {
+    // A directionless delay shows only hourglasses; a one-way delay adds arrows.
+    placeRegionalLaneGlyph(glyph, {
       sourcePath, length, progress, travelDirection, rotateAtRest: true,
-      motion: travelDirection !== "bidirectional" && pathD
-        ? { pathD, durationSeconds, rotate: travelDirection === "reverse" ? "auto-reverse" : "auto" }
-        : null,
-    }, reducedMotion);
+    });
   }
 
   return lane;
@@ -453,7 +401,6 @@ export function regionalSuspensionGlyphLane(
   documentNode: RegionalSvgScope,
   sourcePath: SVGPathElement,
   travelDirection: TravelDirection,
-  reducedMotion: boolean,
 ) {
   const lane = documentNode.createElementNS(SVG_NAMESPACE, "g");
   lane.classList.add("regional-suspension-glyph-lane");
@@ -471,8 +418,6 @@ export function regionalSuspensionGlyphLane(
   // while keeping active-alert glyphs slightly denser for urgency.
   const glyphSpacing = travelDirection === "bidirectional" ? 165 : 145;
   const count = Math.max(1, Math.floor(length / glyphSpacing));
-  const durationSeconds = Math.max(10, length / REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND);
-  const pathD = sourcePath.getAttribute("d") ?? "";
 
   for (let index = 0; index < count; index += 1) {
     const glyphKind = travelDirection === "bidirectional" || index % 2 === 0
@@ -481,12 +426,9 @@ export function regionalSuspensionGlyphLane(
     const glyph = appendRegionalSuspensionGlyph(documentNode, lane, glyphKind);
     const progress = (index + 0.5) / count;
 
-    placeRegionalLaneGlyph(documentNode, lane, glyph, {
+    placeRegionalLaneGlyph(glyph, {
       sourcePath, length, progress, travelDirection, rotateAtRest: glyphKind !== "no-entry",
-      motion: travelDirection !== "bidirectional" && pathD
-        ? { pathD, durationSeconds, rotate: glyphKind === "no-entry" ? "0" : (travelDirection === "reverse" ? "auto-reverse" : "auto") }
-        : null,
-    }, reducedMotion);
+    });
   }
 
   return lane;
@@ -513,7 +455,6 @@ export function regionalChevronGlyphLane(
   documentNode: RegionalSvgScope,
   sourcePath: SVGPathElement,
   travelDirection: TravelDirection,
-  reducedMotion: boolean,
 ) {
   const lane = documentNode.createElementNS(SVG_NAMESPACE, "g");
   lane.classList.add("regional-chevron-glyph-lane");
@@ -529,19 +470,14 @@ export function regionalChevronGlyphLane(
 
   const glyphSpacing = 100;
   const count = Math.max(1, Math.floor(length / glyphSpacing));
-  const durationSeconds = Math.max(8, length / (REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND * 1.2));
-  const pathD = sourcePath.getAttribute("d") ?? "";
 
   for (let index = 0; index < count; index += 1) {
     const glyph = appendRegionalChevronGlyph(documentNode, lane);
     const progress = (index + 0.5) / count;
 
-    placeRegionalLaneGlyph(documentNode, lane, glyph, {
+    placeRegionalLaneGlyph(glyph, {
       sourcePath, length, progress, travelDirection, rotateAtRest: true,
-      motion: pathD
-        ? { pathD, durationSeconds, rotate: travelDirection === "reverse" ? "auto-reverse" : "auto" }
-        : null,
-    }, reducedMotion);
+    });
   }
 
   return lane;
@@ -598,7 +534,6 @@ export function regionalPlannedClosureIconLane(
   documentNode: RegionalSvgScope,
   sourcePath: SVGPathElement,
   travelDirection: TravelDirection,
-  reducedMotion: boolean,
 ) {
   const lane = documentNode.createElementNS(SVG_NAMESPACE, "g");
   lane.classList.add("regional-planned-closure-glyph-lane");
@@ -614,8 +549,6 @@ export function regionalPlannedClosureIconLane(
 
   const glyphSpacing = travelDirection === "bidirectional" ? 176 : 148;
   const count = Math.max(1, Math.floor(length / glyphSpacing));
-  const durationSeconds = Math.max(12, length / REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND);
-  const pathD = sourcePath.getAttribute("d") ?? "";
 
   for (let index = 0; index < count; index += 1) {
     const glyphKind = travelDirection === "bidirectional" || index % 2 === 0
@@ -624,12 +557,9 @@ export function regionalPlannedClosureIconLane(
     const glyph = appendRegionalPlannedClosureGlyph(documentNode, lane, glyphKind);
     const progress = (index + 0.5) / count;
 
-    placeRegionalLaneGlyph(documentNode, lane, glyph, {
+    placeRegionalLaneGlyph(glyph, {
       sourcePath, length, progress, travelDirection, rotateAtRest: glyphKind !== "icon",
-      motion: travelDirection !== "bidirectional" && pathD
-        ? { pathD, durationSeconds, rotate: glyphKind === "icon" ? "0" : (travelDirection === "reverse" ? "auto-reverse" : "auto") }
-        : null,
-    }, reducedMotion);
+    });
   }
 
   return lane;
@@ -645,7 +575,6 @@ export function regionalImpactGroup(
     segmentCount = 1,
     segmentIds = [],
     travelDirection = "bidirectional",
-    reducedMotion = false,
   }: {
     impactId: string;
     kind: ImpactKind;
@@ -653,7 +582,6 @@ export function regionalImpactGroup(
     segmentCount?: number;
     segmentIds?: string[];
     travelDirection?: TravelDirection;
-    reducedMotion?: boolean;
   },
 ) {
   const visualState = regionalImpactVisualState(kind);
@@ -712,16 +640,16 @@ export function regionalImpactGroup(
 
   group.append(aura, boundary, visiblePath);
   if (kind === "delay") {
-    group.append(regionalDelayGlyphLane(documentNode, sourcePath, travelDirection, reducedMotion));
+    group.append(regionalDelayGlyphLane(documentNode, sourcePath, travelDirection));
   } else if (kind === "suspension") {
-    group.append(regionalSuspensionGlyphLane(documentNode, sourcePath, travelDirection, reducedMotion));
+    group.append(regionalSuspensionGlyphLane(documentNode, sourcePath, travelDirection));
   } else if (kind === "reduced-speed-zone") {
-    group.append(regionalChevronGlyphLane(documentNode, sourcePath, travelDirection, reducedMotion));
+    group.append(regionalChevronGlyphLane(documentNode, sourcePath, travelDirection));
   } else if (kind === "planned-closure") {
-    group.append(regionalPlannedClosureIconLane(documentNode, sourcePath, travelDirection, reducedMotion));
+    group.append(regionalPlannedClosureIconLane(documentNode, sourcePath, travelDirection));
   }
   // Match TTC selection layering: the attention stroke belongs above the
-  // authored alert treatment and its moving glyphs, while the transparent hit
+  // authored alert treatment and its glyphs, while the transparent hit
   // target remains the top interactive element.
   group.append(interactiveGlow, hitTarget);
   return group;
@@ -1785,6 +1713,26 @@ export function regionalPlacedOverlapBadges(
 }
 
 /** Station dots a connector should not end on, with room for impact rings. */
+/** TTC's small-station core radius, the unit its ring widths are authored in. */
+const REGIONAL_TTC_CORE_RADIUS = 26;
+/** Matches TTC's beacon gap: 4 units against its 26-unit core. */
+const REGIONAL_STATION_BEACON_GAP_RATIO = 0.15;
+/** A dot's authored outline adds about this much to its radius (TTC: 36 / 32). */
+const REGIONAL_STATION_DOT_OUTLINE_RATIO = 1.15;
+
+/** Every station dot in the stations layer's space, where beacons are drawn. */
+function regionalStationBeaconNeighbours(svg: SVGSVGElement): StationBeaconNeighbour[] {
+  const stationsLayer = svg.querySelector<SVGElement>("#regional-stations-layer");
+  if (!stationsLayer) return [];
+  return [...stationsLayer.querySelectorAll<SVGElement>(':scope > [id^="station-"]')].flatMap((station) => (
+    regionalStationVisualAnchors(station).map((anchor) => ({
+      id: anchor.id,
+      center: anchor.point,
+      radius: anchor.radius * REGIONAL_STATION_DOT_OUTLINE_RATIO,
+    }))
+  ));
+}
+
 function regionalStationDotKeepouts(svg: SVGSVGElement): { center: MapPoint; radius: number }[] {
   const stationsLayer = svg.querySelector<SVGElement>("#regional-stations-layer");
   if (!stationsLayer) return [];
@@ -2054,7 +2002,6 @@ export function installRegionalOverlaySession(
   let pulseFrame: number | null = null;
   let settledPulseFrame: number | null = null;
   let motionPaused = false;
-
   const synchronizePulses = () => {
     if (pulseFrame !== null) window.cancelAnimationFrame(pulseFrame);
     if (settledPulseFrame !== null) window.cancelAnimationFrame(settledPulseFrame);
@@ -2281,7 +2228,6 @@ export function installRegionalOverlaySession(
         label: `${alert.lineNumber} ${alert.title}`,
         segmentCount: segments.length,
         segmentIds: segments.map((segment) => segment.id),
-        reducedMotion: Boolean(data.reducedMotion),
       });
       addRegionalSegmentFocusTargets(group, segments);
       segmentLayer.append(group);
@@ -2329,7 +2275,6 @@ export function installRegionalOverlaySession(
         segmentCount: run.segments.length,
         segmentIds: run.segments.map((segment) => segment.id),
         travelDirection: run.impact.travelDirection,
-        reducedMotion: Boolean(data.reducedMotion),
       });
       addRegionalSegmentFocusTargets(group, segments);
       segmentLayer.append(group);
@@ -2341,6 +2286,15 @@ export function installRegionalOverlaySession(
       reducedSpeedZones: data.reducedSpeedZones,
       plannedClosures: data.plannedClosures,
     };
+    // Every station dot, and the ones with an alert beacon, so each beacon
+    // stops short of its neighbours (station-impact-beacon.ts; TTC matches).
+    const stationBeaconNeighbours = regionalStationBeaconNeighbours(svg);
+    const stationBeaconAnchorIds = new Set(data.stationNodeImpacts.flatMap((impact) => {
+      const stationVisual = svg.querySelector<SVGElement>(`#station-${CSS.escape(impact.stationId)}`);
+      if (!stationVisual) return [];
+      const lineId = stationImpactDirectionSource(impact, directionData)?.lineId;
+      return regionalStationImpactAnchors(stationVisual, lineId).map((anchor) => anchor.id);
+    }));
     for (const [impactIndex, impact] of data.stationNodeImpacts.entries()) {
       const stationVisual = svg.querySelector<SVGElement>(`#station-${CSS.escape(impact.stationId)}`);
       if (!stationVisual) continue;
@@ -2401,17 +2355,39 @@ export function installRegionalOverlaySession(
         beaconGroup.style.setProperty("--station-impact-glow", regionalImpactColor(impact.kind));
         beaconGroup.setAttribute("pointer-events", "none");
 
+        const beacon = stationImpactBeaconSize(
+          anchorPoint,
+          effectRadius,
+          stationBeaconNeighbours,
+          stationBeaconAnchorIds,
+          effectRadius * REGIONAL_STATION_BEACON_GAP_RATIO,
+        );
+        // The idle gold ring TTC draws: gold for a suspension, else the alert's colour.
+        const visualRing = documentNode.createElementNS(SVG_NAMESPACE, "circle");
+        visualRing.classList.add("station-impact-ring", "regional-station-impact-visual-ring", impact.kind);
+        visualRing.setAttribute("cx", String(anchorPoint.x));
+        visualRing.setAttribute("cy", String(anchorPoint.y));
+        visualRing.setAttribute("r", String(effectRadius * STATION_IMPACT_RING_SCALE));
+        visualRing.setAttribute("fill", "none");
+        visualRing.setAttribute("aria-hidden", "true");
+        visualRing.style.setProperty("--station-impact-ring-unit", `${effectRadius / REGIONAL_TTC_CORE_RADIUS}px`);
+        if (impact.kind === "suspension") {
+          visualRing.style.setProperty("--station-impact-glow", "initial");
+        } else {
+          visualRing.style.setProperty("stroke", regionalImpactColor(impact.kind));
+        }
+        const beaconShape = documentNode.createElementNS(SVG_NAMESPACE, "circle");
+        beaconShape.classList.add("station-impact-dot-red-beacon", "regional-station-impact-beacon");
+        beaconShape.setAttribute("cx", String(anchorPoint.x));
+        beaconShape.setAttribute("cy", String(anchorPoint.y));
+        beaconShape.setAttribute("r", String(beacon.radius));
+        beaconShape.setAttribute("stroke-width", String(effectRadius * STATION_IMPACT_BEACON_STROKE_RATIO));
         const glowCircle = documentNode.createElementNS(SVG_NAMESPACE, "circle");
         glowCircle.classList.add("station-impact-dot-red-glow", "regional-station-impact-beacon-glow");
         glowCircle.setAttribute("cx", String(anchorPoint.x));
         glowCircle.setAttribute("cy", String(anchorPoint.y));
         glowCircle.setAttribute("r", String(effectRadius));
-        const pingCircle = documentNode.createElementNS(SVG_NAMESPACE, "circle");
-        pingCircle.classList.add("station-impact-dot-red-ping", "regional-station-impact-beacon-ping");
-        pingCircle.setAttribute("cx", String(anchorPoint.x));
-        pingCircle.setAttribute("cy", String(anchorPoint.y));
-        pingCircle.setAttribute("r", String(effectRadius));
-        beaconGroup.append(glowCircle, pingCircle);
+        beaconGroup.append(glowCircle);
         stationImpactBeaconLayer.append(beaconGroup);
 
         const foregroundAnchor = foregroundAnchors.get(anchorId);
@@ -2596,7 +2572,6 @@ export function installRegionalOverlaySession(
   const setMotionPaused = (paused: boolean) => {
     if (paused === motionPaused) return;
     motionPaused = paused;
-    setRegionalGlyphLaneMotion(regionalSvgScope(svg), viewport, !paused);
     topStationImpactLayer.dataset.mapOverlayMotionPaused = paused ? "true" : "false";
     synchronizePulses();
   };

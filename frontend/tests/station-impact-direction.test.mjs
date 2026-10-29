@@ -297,3 +297,40 @@ describe("station impact map direction arrows", () => {
     );
   });
 });
+
+describe("GO/UP trip direction arrows", () => {
+  const empty = { activeAlerts: [], delays: [], reducedSpeedZones: [], plannedClosures: [] };
+  const directionAt = (stationId, lineId, displayDirection, kind = "delay") => stationImpactDirectionForImpact(
+    { stationId, kind, cardId: "go-trip" },
+    { ...empty, [kind === "delay" ? "delays" : "activeAlerts"]: [{ id: "go-trip", lineId, displayDirection }] },
+  )?.arrow.direction ?? null;
+
+  it("points a trip heading for Union the way Union lies on each line", () => {
+    assert.equal(directionAt("weston", "regional-ki", "Towards Union Station"), "right");
+    assert.equal(directionAt("oakville", "regional-lw", "Towards Union Station"), "right");
+    assert.equal(directionAt("cooksville", "regional-mi", "Towards Union Station"), "right");
+    assert.equal(directionAt("weston", "regional-up", "Towards Union Station"), "right");
+    assert.equal(directionAt("pickering", "regional-le", "Towards Union Station"), "left");
+    assert.equal(directionAt("aurora", "regional-br", "Towards Union Station"), "down");
+    assert.equal(directionAt("langstaff", "regional-rh", "Towards Union Station"), "down");
+    assert.equal(directionAt("markham", "regional-st", "Towards Union Station", "suspension"), "down");
+  });
+
+  it("points a trip heading out of Union, or to a farther stop, away from Union", () => {
+    assert.equal(directionAt("weston", "regional-ki", "Towards Kitchener"), "left");
+    assert.equal(directionAt("pickering", "regional-le", "Towards Durham College Oshawa"), "right");
+    assert.equal(directionAt("burlington", "regional-lw", "Towards St. Catharines"), "left");
+    assert.equal(directionAt("weston", "regional-up", "Towards Pearson Airport"), "left");
+    assert.equal(directionAt("union", "regional-br", "Towards Barrie South"), "up");
+    // An inbound trip that ends short of Union still points towards Union.
+    assert.equal(directionAt("georgetown", "regional-ki", "Towards Bramalea"), "right");
+  });
+
+  it("draws no arrow without a trip direction it can place", () => {
+    assert.equal(directionAt("weston", "regional-ki", null), null);
+    assert.equal(directionAt("weston", "regional-ki", "Towards Somewhere Else"), null);
+    assert.equal(directionAt("union", "regional-ki", "Towards Union Station"), null);
+    // A destination off the alerted line cannot be placed.
+    assert.equal(directionAt("weston", "regional-ki", "Towards Pickering"), null);
+  });
+});

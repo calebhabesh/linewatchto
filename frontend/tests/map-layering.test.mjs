@@ -208,7 +208,7 @@ describe("asset-backed map layering", () => {
     );
   });
 
-  it("renders direction-aware planned closures with slowly moving calendar icons", () => {
+  it("renders direction-aware planned closures with still calendar icons", () => {
     assert.match(interactiveMapSource, /import \{ PlannedClosureIcon \} from "\.\/PlannedClosureIcon"/);
     assert.match(interactiveMapSource, /function PlannedClosureIconLane\(/);
     assert.match(interactiveMapSource, /className="planned-closure-icon-lane"/);
@@ -219,12 +219,11 @@ describe("asset-backed map layering", () => {
     assert.match(plannedClosureIconSource, /<rect[\s\S]*?x="3"[\s\S]*?y="5"[\s\S]*?width="18"[\s\S]*?height="16"[\s\S]*?rx="3"/);
     assert.match(plannedClosureIconSource, /M3 9H21M12 12V15M12 18H12\.01M7 3V5M17 3V5/);
     assert.match(interactiveMapSource, /travelDirection === "bidirectional"[\s\S]*?planned-closure-map-icon planned-closure-map-icon--static/);
-    assert.match(interactiveMapSource, /<animateMotion[\s\S]*?calcMode="linear"[\s\S]*?repeatCount="indefinite"[\s\S]*?rotate="0"/);
     assert.match(interactiveMapSource, /className="planned-closure-direction-chevron"/);
     assert.match(interactiveMapSource, /d="M -10 -13 L 10 0 L -10 13"/);
-    assert.match(interactiveMapSource, /rotate=\{direction === "reverse" \? "auto-reverse" : "auto"\}/);
+    assert.match(interactiveMapSource, /transform=\{`translate\(\$\{point\.chevronX\} \$\{point\.chevronY\}\) rotate\(\$\{staticAngle\}\)`\}/);
     assert.match(interactiveMapSource, /x=\{-36\}[\s\S]*?y=\{-36\}[\s\S]*?width=\{72\}[\s\S]*?height=\{72\}/);
-    assert.match(interactiveMapSource, /<PlannedClosureIconLane[\s\S]*?pathD=\{segment\.pathD\}[\s\S]*?travelDirection=\{travelDirection\}[\s\S]*?reducedMotion=\{reducedMotion\}/);
+    assert.match(interactiveMapSource, /<PlannedClosureIconLane[\s\S]*?pathD=\{segment\.pathD\}[\s\S]*?travelDirection=\{travelDirection\}/);
     assert.match(interactiveMapSource, /closure\.travelDirection \?\? "bidirectional"/);
     assert.doesNotMatch(interactiveMapSource, /planned-preview-underlay/);
     assert.doesNotMatch(globalCss, /planned-preview-separator/);
@@ -292,7 +291,7 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(interactiveMapSource, /ttc-impact-hover-rail/);
   });
 
-  it("renders animated visual effects for delays, closures, and station impacts", () => {
+  it("renders still visual effects for delays, closures, and station impacts", () => {
     assert.match(interactiveMapSource, /<pattern id="badge-suspension-hash"/);
     assert.match(interactiveMapSource, /className="rsz-chevron"/);
     assert.match(interactiveMapSource, /d="M -12 -10 L 8 0 L -12 10"/);
@@ -304,7 +303,8 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /className="asset-alert-path suspension-candy suspension-solid pointer-events-none"/);
     assert.match(globalCss, /@keyframes station-selected-pulse/);
     assert.match(globalCss, /@keyframes aura-pulse/);
-    assert.match(globalCss, /\.asset-alert-path-glow\.delay\s*\{[^}]*animation:\s*aura-pulse var\(--map-overlay-pulse-half-cycle\) infinite alternate var\(--map-overlay-pulse-easing\);/s);
+    assert.doesNotMatch(globalCss, /\.asset-alert-path-glow\.(?:suspension|delay|reduced-speed-zone|delay-static)\s*\{[^}]*animation:(?!\s*none)/s);
+    assert.doesNotMatch(globalCss, /\.delay-static-path\s*\{[^}]*animation:(?!\s*none)/s);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow,[\s\S]*animation:\s*none\s*!important;/s);
 
     const mapGeometrySource = readFileSync(new URL("../src/app/map-geometry.ts", import.meta.url), "utf8");
@@ -366,66 +366,46 @@ describe("asset-backed map layering", () => {
 
     assert.ok(rszStart > -1, "reduced speed zone overlay branch must exist");
     assert.ok(suspensionStart > rszStart, "suspension branch should follow reduced speed zone branch");
-    assert.match(rszBlock, /<AnimatedChevronLane/);
+    assert.match(rszBlock, /<ChevronGlyphLane/);
     assert.match(rszBlock, /className="rsz-chevron-lanes"/);
     assert.doesNotMatch(rszBlock, /className="rsz-chevron-mask-path/);
     assert.doesNotMatch(rszBlock, /<g\s+mask=\{`url\(#\$\{segment\.id\}-mask\)`\}/);
     assert.match(globalCss, /\.rsz-chevron-lanes\s*\{[^}]*overflow:\s*visible;/s);
   });
 
-  it("moves alert glyphs with native SVG motion instead of per-frame JavaScript geometry reads", () => {
-    const laneStart = interactiveMapSource.indexOf("function MotionGlyphLane(");
+  it("keeps every alert overlay still on both maps", () => {
+    const laneStart = interactiveMapSource.indexOf("function GlyphLane(");
     const laneEnd = interactiveMapSource.indexOf("function SuspensionNoEntryGlyph(", laneStart);
     const laneBlock = interactiveMapSource.slice(laneStart, laneEnd);
 
-    assert.ok(laneStart > -1, "MotionGlyphLane must exist");
-    assert.ok(laneEnd > laneStart, "MotionGlyphLane block must include the moving alert glyphs");
-    assert.match(laneBlock, /<animateMotion/);
-    assert.match(laneBlock, /rotate=\{shouldRotate \? \(direction === "reverse" \? "auto-reverse" : "auto"\) : "0"\}/);
-    assert.match(interactiveMapSource, /function measureMotionLane/);
+    assert.ok(laneStart > -1, "GlyphLane must exist");
+    assert.match(laneBlock, /transform=\{glyphLaneTransform\(metrics, index, shouldRotate\)\}/);
+    assert.match(interactiveMapSource, /function measureGlyphLane/);
     assert.match(interactiveMapSource, /const sampleCount = Math\.max\(2, Math\.ceil\(length \/ 12\)\)/);
-    assert.doesNotMatch(laneBlock, /requestAnimationFrame|setAttribute\(\s*"transform"/);
-  });
-
-  it("freezes continuous map decoration when a snapshot has many overlay layers", () => {
-    assert.match(interactiveMapSource, /const MAX_CONTINUOUSLY_ANIMATED_OVERLAY_LAYERS = 8/);
-    assert.match(
-      interactiveMapSource,
-      /const overlayPulseMotionPaused = mapEffectMotionPaused[\s\S]*renderedImpactLayers\.length \+ plannedPreviewLayers\.length[\s\S]*MAX_CONTINUOUSLY_ANIMATED_OVERLAY_LAYERS/,
-    );
-    assert.match(interactiveMapSource, /data-map-overlay-motion-paused=\{overlayPulseMotionPaused \? "true" : "false"\}/);
-    assert.match(interactiveMapSource, /reducedMotion=\{mapEffectMotionPaused\}/);
-    assert.match(globalCss, /\[data-map-overlay-motion-paused="true"\] \.asset-alert-path-glow,[\s\S]*?animation:\s*none !important;[\s\S]*?transition:\s*none !important;/);
-    const denseMotionBlock = globalCss.match(
-      /\/\* Keep high-alert snapshots responsive[\s\S]*?\n\}/,
-    )?.[0] ?? "";
-    assert.doesNotMatch(denseMotionBlock, /station-impact-(?:ring|dot-red-glow|dot-red-ping)/);
+    // No moving glyphs, alert pulses, or motion budget on either map.
+    assert.doesNotMatch(interactiveMapSource, /<animateMotion|MAX_CONTINUOUSLY_ANIMATED_OVERLAY_LAYERS|data-map-overlay-motion-paused/);
+    assert.doesNotMatch(regionalOverlaysSource, /animateMotion|MAX_CONTINUOUSLY_ANIMATED_OVERLAY_LAYERS/);
+    assert.doesNotMatch(globalCss, /@keyframes (?:gold-ring-pulse|station-radar-core|station-radar-ping|regional-station-impact-fill-pulse|delay-static-shift)\b/);
+    assert.doesNotMatch(globalCss, /\.regional-impact-aura\s*\{[^}]*animation:(?!\s*none)/s);
     assert.match(globalCss, /\.asset-alert-path-glow:not\(\.map-selection-attention\):not\(\.interactive-glow\):not\(\.commute-path-preview-glow\)\s*\{[^}]*display:\s*none !important;[^}]*animation:\s*none !important;[^}]*filter:\s*none !important;/s);
   });
 
-  it("keeps all pulse and glow animations on one shared phase", () => {
+  it("keeps the remaining pulses (commute preview, selected station) on one shared phase", () => {
     assert.match(globalCss, /--map-overlay-pulse-half-cycle:\s*1\.2s/);
     assert.match(globalCss, /--map-overlay-pulse-easing:\s*cubic-bezier\(0\.37, 0, 0\.63, 1\)/);
     assert.match(globalCss, /@keyframes map-overlay-rail-pulse\s*\{[\s\S]*var\(--map-overlay-rail-width\)[\s\S]*var\(--map-overlay-rail-pulse-width\)/);
     assert.match(globalCss, /--map-pulse-offset/);
-    assert.match(globalCss, /\.asset-alert-path-glow\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
-    assert.match(
-      globalCss,
-      /\.asset-alert-path-glow\.suspension,[\s\S]*?\.asset-alert-path-glow\.delay-static\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s,
-    );
-    assert.match(interactiveMapSource, /SYNCHRONIZED_OVERLAY_PULSE_NAMES/);
+    assert.match(interactiveMapSource, /SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set\(\[\s*"aura-pulse",\s*"map-overlay-rail-pulse",\s*"station-selected-pulse",\s*\]\)/);
     assert.match(interactiveMapSource, /mapRoot\.getAnimations\(\{ subtree: true \}\)/);
     assert.match(interactiveMapSource, /document\.timeline\.currentTime/);
     assert.match(interactiveMapSource, /--map-pulse-offset", "0ms"/);
     assert.match(interactiveMapSource, /animation\.currentTime = pulsePhaseMs/);
     assert.match(interactiveMapSource, /animation\.startTime = pulseCycleStartMs/);
     assert.match(interactiveMapSource, /requestAnimationFrame\(synchronizePulseAnimations\)/);
-    assert.match(interactiveMapSource, /\}, \[loadState, overlayPulseMotionPaused, pulseSyncSignature\]\);/);
+    assert.match(interactiveMapSource, /\}, \[loadState, mapEffectMotionPaused, pulseSyncSignature\]\);/);
     assert.doesNotMatch(globalCss, /\.asset-alert-path\.(?:delay-candy|suspension-candy|delay-static-base)\s*\{[^}]*map-overlay-rail-pulse/s);
     assert.match(globalCss, /\.delay-hourglass-mask-path,\s*\.suspension-mask-path\s*\{[^}]*stroke-width:\s*var\(--ttc-alert-rail-width\);/s);
     assert.doesNotMatch(globalCss, /@keyframes mask-size-pulse/);
-    assert.match(globalCss, /\.station-impact-ring\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
-    assert.match(globalCss, /\.station-impact-dot-red-glow\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
   });
 
   it("does not render a selected planned closure twice when it is already an active impact", () => {
@@ -438,13 +418,13 @@ describe("asset-backed map layering", () => {
   });
 
   it("renders directional suspension lanes", () => {
-    const laneStart = interactiveMapSource.indexOf("function AnimatedSuspensionLane(");
+    const laneStart = interactiveMapSource.indexOf("function SuspensionGlyphLane(");
     const laneEnd = interactiveMapSource.indexOf("function SuspensionNoEntryGlyph(", laneStart);
     const laneBlock = interactiveMapSource.slice(laneStart, laneEnd);
 
-    assert.ok(laneStart > -1, "AnimatedSuspensionLane must exist");
-    assert.ok(laneEnd > laneStart, "AnimatedSuspensionLane block should end before the no-entry glyph helper");
-    assert.match(interactiveMapSource, /AnimatedSuspensionLane/);
+    assert.ok(laneStart > -1, "SuspensionGlyphLane must exist");
+    assert.ok(laneEnd > laneStart, "SuspensionGlyphLane block should end before the no-entry glyph helper");
+    assert.match(interactiveMapSource, /SuspensionGlyphLane/);
     assert.match(interactiveMapSource, /circle cx="12" cy="12" r="10\.5"/);
     assert.match(interactiveMapSource, /stroke="#ffffff"/);
     assert.match(laneBlock, /rotateGlyph=\{\(index\) => index % 2 !== 0\}/);

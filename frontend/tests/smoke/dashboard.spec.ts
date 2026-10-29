@@ -2826,8 +2826,6 @@ test("disruption rails stay static across TTC and regional maps", async ({ page,
       closureMaskWidth: getComputedStyle(closureMask).strokeWidth,
     };
   });
-  await expect(page.locator("[data-map-pan-zoom-viewport]"))
-    .toHaveAttribute("data-map-overlay-motion-paused", "true");
   expect(ttcPulse.animationCount).toBe(0);
   expect(ttcPulse.plannedWidth).toBe(ttcPulse.rszWidth);
   expect(ttcPulse.plannedPreviewWidth).toBe(ttcPulse.rszWidth);

@@ -226,12 +226,11 @@ describe("stylesheet-graph helper", () => {
     assert.match(stationMarkersContent, /\.station-impact-ring/);
     assert.match(stationMarkersContent, /\.station-impact-hover-priority/);
     assert.match(stationMarkersContent, /\.station-impact-dot-red-glow/);
-    assert.match(stationMarkersContent, /\.station-impact-dot-red-ping/);
+    assert.match(stationMarkersContent, /\.station-impact-dot-red-beacon/);
     assert.match(stationMarkersContent, /\.station-impact-direction-glyph/);
     assert.match(stationMarkersContent, /@keyframes station-selected-pulse/);
-    assert.match(stationMarkersContent, /@keyframes gold-ring-pulse/);
-    assert.match(stationMarkersContent, /@keyframes station-radar-core/);
-    assert.match(stationMarkersContent, /@keyframes station-radar-ping/);
+    // Station alerts never animate, so their pulses are gone.
+    assert.doesNotMatch(stationMarkersContent, /@keyframes (?:gold-ring-pulse|station-radar-core|station-radar-ping)\b/);
   });
 
   it("resolves the extracted map/impact-overlays.css in the application stylesheet graph", () => {

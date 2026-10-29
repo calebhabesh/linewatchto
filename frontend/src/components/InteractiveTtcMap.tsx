@@ -157,6 +157,11 @@ import {
   visibleMapChooserKeepouts,
 } from "./map-chooser-keepouts";
 import { isMapWheelScrollRegionTarget } from "./map-wheel-events";
+import {
+  STATION_IMPACT_BEACON_STROKE_RATIO,
+  stationImpactBeaconSize,
+  type StationBeaconNeighbour,
+} from "./station-impact-beacon";
 import { getImpactPriority, plannedAdvisoryStationImpacts } from "../app/map-alert-selector";
 import { linkedCurrentImpactIds } from "../app/selection-attention-key";
 import {
@@ -269,16 +274,11 @@ function setTtcStationHovered(root: HTMLElement | null, stationId: string, hover
 // is 2.4 seconds. Use the full cycle when phase-locking layers mounted by
 // separate dashboard snapshots.
 const MAP_PULSE_CYCLE_MS = 2400;
-// Synchronized blur and pulse effects scale with every additional disruption.
-// Dense snapshots drop ambient effects. Directional motion is separately
-// reserved for one selected corridor. Selection must not change glyph density.
-const MAX_CONTINUOUSLY_ANIMATED_OVERLAY_LAYERS = 8;
+// Alert overlays never animate (map-renderer-parity.md). The pulses that
+// remain, a commute preview and a selected station, share one clock.
 const SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
   "aura-pulse",
   "map-overlay-rail-pulse",
-  "gold-ring-pulse",
-  "station-radar-core",
-  "station-radar-ping",
   "station-selected-pulse",
 ]);
 import {
@@ -366,8 +366,9 @@ function isStationVisuallyLarge(station: { id: string; interchange: boolean }): 
   if (largeTerminals.includes(station.id)) {
     return true;
   }
+  // Union is an interchange drawn with a regular-size dot.
   if (station.id === "union") {
-    return true;
+    return false;
   }
   return station.interchange;
 }
@@ -379,6 +380,14 @@ function stationImpactEffectRadius(isLargeStation: boolean): number {
 function stationImpactDirectionBadgeRadius(isLargeStation: boolean): number {
   return isLargeStation ? 40 : 24;
 }
+
+/** A station dot's visible radius with its outline (authored r 32 or 59, stroke 8 or 15). */
+function stationDotOuterRadius(isLargeStation: boolean): number {
+  return isLargeStation ? 66 : 36;
+}
+
+/** Clear space a station beacon keeps from a neighbouring dot or beacon. */
+const STATION_BEACON_GAP = 4;
 
 function stationImpactRingRadius(isLargeStation: boolean): number {
   return isLargeStation ? 56 : 38;
@@ -1593,20 +1602,6 @@ function InteractiveTtcMapComponent({
     return paths;
   }, [plannedPreviewLayers, renderedImpactLayers]);
 
-  const overlayPulseMotionPaused = mapEffectMotionPaused
-    || !selection
-    || renderedImpactLayers.length + plannedPreviewLayers.length
-      > MAX_CONTINUOUSLY_ANIMATED_OVERLAY_LAYERS;
-
-  // A selection can own multiple disconnected corridors or retained exit
-  // layers. Only one current corridor receives the continuous motion budget.
-  const selectedMotionLayerKey = selection
-    ? retainedImpactLayers.find(({ item: { impact }, exiting }) => !exiting
-      && impact.kind === selection.kind && impact.cardId === selection.id)?.key
-      ?? retainedPlannedPreviewLayers.find(({ item: { closure }, exiting }) => !exiting
-        && selection.kind === "planned-closure" && closure.id === selection.id)?.key
-    : undefined;
-
   const selectedImpactEmphasis = useMemo<SelectedImpactEmphasisLayer | null>(() => {
     if (!selection) return null;
 
@@ -1646,6 +1641,27 @@ function InteractiveTtcMapComponent({
     }),
     [activeAlerts, delays, plannedClosures, reducedSpeedZones],
   );
+
+  // Every station dot, and the ones with an alert beacon, so each beacon
+  // stops short of its neighbours (station-impact-beacon.ts; GO/UP matches).
+  const stationBeaconNeighbours = useMemo<StationBeaconNeighbour[]>(() => stations.flatMap((station) => (
+    visualAnchorsForStation(station).map((anchor) => ({
+      id: anchor.id,
+      center: anchor.point,
+      radius: stationDotOuterRadius(isStationVisuallyLarge(station)),
+    }))
+  )), [stations, visualAnchorsForStation]);
+  const stationBeaconAnchorIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const impact of stationNodeImpacts) {
+      const station = stationBySummaryId.get(impact.stationId);
+      if (!station) continue;
+      for (const anchor of stationImpactVisualAnchors(station, impact, directionData, stationCenterPoints)) {
+        ids.add(anchor.id);
+      }
+    }
+    return ids;
+  }, [directionData, stationBySummaryId, stationCenterPoints, stationNodeImpacts]);
 
   const stationImpactDirectionLayers = useMemo<StationImpactDirectionLayer[]>(() => {
     const impactsByAnchor = new Map<
@@ -1762,7 +1778,7 @@ function InteractiveTtcMapComponent({
   useLayoutEffect(() => {
     const mapRoot = mapRootRef.current;
     if (!mapRoot) return;
-    if (overlayPulseMotionPaused) {
+    if (mapEffectMotionPaused) {
       mapRoot.style.setProperty("--map-pulse-offset", "0ms");
       return;
     }
@@ -1794,7 +1810,7 @@ function InteractiveTtcMapComponent({
       window.cancelAnimationFrame(pulseFrame);
       if (settledPulseFrame !== null) window.cancelAnimationFrame(settledPulseFrame);
     };
-  }, [loadState, overlayPulseMotionPaused, pulseSyncSignature]);
+  }, [loadState, mapEffectMotionPaused, pulseSyncSignature]);
 
   const collisionBoxesByImpact = useMemo(() => {
     const boxesByImpact = new Map<string, SvgBounds[]>();
@@ -2362,7 +2378,6 @@ function InteractiveTtcMapComponent({
         data-map-camera-moving="false"
         data-map-gesture-active="false"
         data-map-pointer-dragging="false"
-        data-map-overlay-motion-paused={overlayPulseMotionPaused ? "true" : "false"}
         data-map-zoom-active="false"
         className="relative w-full h-full overflow-hidden select-none touch-none cursor-grab"
         onPointerDown={(event) => {
@@ -2573,7 +2588,6 @@ function InteractiveTtcMapComponent({
                         selectedSegmentIds={selectedSegmentIds}
                         onSelectImpact={onSelectImpact}
                         shouldSuppressMapClick={shouldSuppressMapClick}
-                        reducedMotion={mapEffectMotionPaused || exiting || key !== selectedMotionLayerKey}
                         exiting={exiting}
                         renderInteractionTarget={false}
                       />
@@ -2603,7 +2617,6 @@ function InteractiveTtcMapComponent({
                           selectedSegmentIds={selectedSegmentIds}
                           onSelectImpact={onSelectImpact}
                           shouldSuppressMapClick={shouldSuppressMapClick}
-                          reducedMotion={mapEffectMotionPaused}
                           idSuffix="-commute-focus"
                           renderInteractionTarget={false}
                         />
@@ -2978,10 +2991,17 @@ function InteractiveTtcMapComponent({
                     <g
                       key={key}
                       className={exiting ? "map-layer-exiting" : "map-layer-current"}
-                      data-map-station-impact-motion-paused={mapEffectMotionPaused || !selected || exiting ? "true" : "false"}
                       style={exiting ? { pointerEvents: "none" } : undefined}
                     >
-                      {visualAnchors.map(({ id: anchorId, point }) => (
+                      {visualAnchors.map(({ id: anchorId, point }) => {
+                        const beacon = stationImpactBeaconSize(
+                          point,
+                          effectRadius,
+                          stationBeaconNeighbours,
+                          stationBeaconAnchorIds,
+                          STATION_BEACON_GAP,
+                        );
+                        return (
                         <g key={`${key}:${anchorId}`}>
                           <circle
                             aria-label={`${impact.title}: ${station.name}${directionLabel}`}
@@ -3048,6 +3068,15 @@ function InteractiveTtcMapComponent({
                             tabIndex={exiting ? -1 : 0}
                           />
                           <circle
+                            className="station-impact-dot-red-beacon"
+                            style={effectColor ? { "--station-impact-glow": effectColor } as CSSProperties : undefined}
+                            cx={point.x}
+                            cy={point.y}
+                            r={beacon.radius}
+                            strokeWidth={effectRadius * STATION_IMPACT_BEACON_STROKE_RATIO}
+                            pointerEvents="none"
+                          />
+                          <circle
                             className="station-impact-dot-red-glow"
                             style={effectColor ? { fill: effectColor, filter: `drop-shadow(0 0 6px ${effectColor})`, "--station-impact-glow": effectColor } as CSSProperties : undefined}
                             cx={point.x}
@@ -3055,23 +3084,9 @@ function InteractiveTtcMapComponent({
                             r={effectRadius}
                             pointerEvents="none"
                           />
-                          <circle
-                            className="station-impact-dot-red-ping"
-                            style={effectColor ? { fill: effectColor, stroke: effectColor } : undefined}
-                            cx={point.x}
-                            cy={point.y}
-                            r={effectRadius}
-                            pointerEvents="none"
-                          />
-                          <circle
-                            className="station-impact-dot-red-beacon"
-                            cx={point.x}
-                            cy={point.y}
-                            r={effectRadius}
-                            pointerEvents="none"
-                          />
                         </g>
-                      ))}
+                        );
+                      })}
                     </g>
                   );
                 })}
@@ -3843,23 +3858,21 @@ function labelForSegments(segments: RenderedNetworkSegment[]): string {
   return `${first.label} through ${last.label}`;
 }
 
-type MotionLaneMetrics = {
+type GlyphLaneMetrics = {
   count: number;
-  durationSeconds: number;
-  motionPathD: string;
-  staticFrames: Array<{
+  frames: Array<{
     x: number;
     y: number;
     rotation: number;
   }>;
 };
 
-function measureMotionLane(
+function measureGlyphLane(
   pathD: string,
   requestedStep: number,
   normalOffset: number,
   direction: "forward" | "reverse",
-): MotionLaneMetrics | null {
+): GlyphLaneMetrics | null {
   if (typeof document === "undefined") return null;
 
   try {
@@ -3869,12 +3882,10 @@ function measureMotionLane(
     if (length <= 0) return null;
 
     const count = Math.max(1, Math.floor(length / requestedStep));
-    let motionPathD = pathD;
+    let lanePathD = pathD;
 
     if (normalOffset !== 0) {
-      // SVG animateMotion does not have a perpendicular-offset primitive.
-      // Resolve the two bidirectional lanes once when their path changes,
-      // rather than re-sampling every glyph on every animation frame.
+      // Offset the two bidirectional lanes to either side of the rail.
       const sampleCount = Math.max(2, Math.ceil(length / 12));
       const points = Array.from({ length: sampleCount + 1 }, (_, index) => {
         const distance = length * index / sampleCount;
@@ -3888,17 +3899,17 @@ function measureMotionLane(
       }).filter((point): point is MapPoint => Boolean(point));
 
       if (points.length >= 2) {
-        motionPathD = points
+        lanePathD = points
           .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
           .join(" ");
       }
     }
 
-    // Resting glyphs and moving glyphs share the offset lane's distance and
-    // tangent, including on curves where the two lanes have different lengths.
-    path.setAttribute("d", motionPathD);
+    // Glyphs sit on the offset lane's own distance and tangent, including on
+    // curves where the two lanes have different lengths.
+    path.setAttribute("d", lanePathD);
     const laneLength = path.getTotalLength();
-    const staticFrames = Array.from({ length: count }, (_, index) => {
+    const frames = Array.from({ length: count }, (_, index) => {
       const progress = index / count;
       const distance = laneLength * (direction === "forward" ? progress : 1 - progress);
       const frame = extrapolatedPathFrame(path, laneLength, distance);
@@ -3911,56 +3922,31 @@ function measureMotionLane(
       };
     });
 
-    return {
-      count,
-      durationSeconds: Math.max(4, (length / 80) * 6),
-      motionPathD,
-      staticFrames,
-    };
+    return { count, frames };
   } catch (error) {
-    console.error("Error creating SVG motion path:", error);
+    console.error("Error measuring SVG glyph lane:", error);
     return null;
   }
 }
 
-function staticMotionGlyphTransform(
-  metrics: MotionLaneMetrics,
+function glyphLaneTransform(
+  metrics: GlyphLaneMetrics,
   index: number,
   rotate: boolean,
 ): string {
-  const frame = metrics.staticFrames[index];
+  const frame = metrics.frames[index];
   if (!frame) return "";
   return rotate
     ? `translate(${frame.x} ${frame.y}) rotate(${frame.rotation})`
     : `translate(${frame.x} ${frame.y})`;
 }
 
-function startGlyphLaneMotion(root: SVGGElement | null) {
-  // Start at this selection's time, rather than the SVG document's time.
-  root?.querySelectorAll<SVGAnimationElement>("animateMotion").forEach((motion) => {
-    const now = motion.ownerSVGElement?.getCurrentTime() ?? 0;
-    motion.setAttribute("begin", `${now}s`);
-  });
-}
-
-function glyphMotionKeyPoints(progress: number, direction: "forward" | "reverse") {
-  // The repeated key time wraps at the corridor endpoint. Encoding each
-  // glyph's resting progress avoids starting new animations in the past.
-  return direction === "reverse"
-    ? `${1 - progress};0;1;${1 - progress}`
-    : `${progress};1;0;${progress}`;
-}
-
-function glyphMotionKeyTimes(progress: number) {
-  return `0;${1 - progress};${1 - progress};1`;
-}
-
-function MotionGlyphLane({
+/** Alert glyphs at rest along a lane; alert overlays never move (map-renderer-parity.md). */
+function GlyphLane({
   pathD,
   step,
   direction,
   travelDirection,
-  reducedMotion,
   renderGlyph,
   rotateGlyph = true,
 }: {
@@ -3968,11 +3954,9 @@ function MotionGlyphLane({
   step: number;
   direction: "forward" | "reverse";
   travelDirection: string;
-  reducedMotion: boolean;
   renderGlyph: (index: number) => React.ReactNode;
   rotateGlyph?: boolean | ((index: number) => boolean);
 }) {
-  const laneRef = useRef<SVGGElement>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -3984,41 +3968,22 @@ function MotionGlyphLane({
     ? direction === "reverse" ? 18 : -18
     : 0;
   const metrics = useMemo(
-    () => mounted ? measureMotionLane(pathD, step, normalOffset, direction) : null,
+    () => mounted ? measureGlyphLane(pathD, step, normalOffset, direction) : null,
     [direction, mounted, normalOffset, pathD, step],
   );
-
-  useLayoutEffect(() => {
-    if (!reducedMotion) startGlyphLaneMotion(laneRef.current);
-  }, [metrics, reducedMotion]);
 
   if (!metrics) return null;
 
   return (
-    <g ref={laneRef} data-motion-glyph-lane>
+    <g data-glyph-lane>
       {Array.from({ length: metrics.count }, (_, index) => {
         const shouldRotate = typeof rotateGlyph === "function" ? rotateGlyph(index) : rotateGlyph;
-        const staticTransform = reducedMotion
-          ? staticMotionGlyphTransform(metrics, index, shouldRotate)
-          : undefined;
         return (
           <g
             key={index}
             data-index={index}
-            transform={staticTransform}
+            transform={glyphLaneTransform(metrics, index, shouldRotate)}
           >
-            {!reducedMotion ? (
-              <animateMotion
-                begin="indefinite"
-                calcMode="linear"
-                dur={`${metrics.durationSeconds}s`}
-                keyPoints={glyphMotionKeyPoints(index / metrics.count, direction)}
-                keyTimes={glyphMotionKeyTimes(index / metrics.count)}
-                path={metrics.motionPathD}
-                repeatCount="indefinite"
-                rotate={shouldRotate ? (direction === "reverse" ? "auto-reverse" : "auto") : "0"}
-              />
-            ) : null}
             {renderGlyph(index)}
           </g>
         );
@@ -4027,26 +3992,23 @@ function MotionGlyphLane({
   );
 }
 
-function AnimatedChevronLane({
+function ChevronGlyphLane({
   pathD,
   step,
   direction,
   travelDirection,
-  reducedMotion,
 }: {
   pathD: string;
   step: number;
   direction: "forward" | "reverse";
   travelDirection: string;
-  reducedMotion: boolean;
 }) {
   return (
-    <MotionGlyphLane
+    <GlyphLane
       pathD={pathD}
       step={step}
       direction={direction}
       travelDirection={travelDirection}
-      reducedMotion={reducedMotion}
       renderGlyph={() => (
         <path
           d="M -12 -10 L 8 0 L -12 10"
@@ -4058,26 +4020,23 @@ function AnimatedChevronLane({
   );
 }
 
-function AnimatedSuspensionLane({
+function SuspensionGlyphLane({
   pathD,
   step,
   direction,
   travelDirection,
-  reducedMotion,
 }: {
   pathD: string;
   step: number;
   direction: "forward" | "reverse";
   travelDirection: string;
-  reducedMotion: boolean;
 }) {
   return (
-    <MotionGlyphLane
+    <GlyphLane
       pathD={pathD}
       step={step}
       direction={direction}
       travelDirection={travelDirection}
-      reducedMotion={reducedMotion}
       rotateGlyph={(index) => index % 2 !== 0}
       renderGlyph={(index) => index % 2 === 0 ? (
         <SuspensionNoEntryGlyph />
@@ -4153,28 +4112,25 @@ function SuspensionNoEntryLane({
   );
 }
 
-function AnimatedHourglassLane({
+function HourglassGlyphLane({
   pathD,
   step,
   direction,
   travelDirection,
-  reducedMotion,
   onlyHourglasses = false,
 }: {
   pathD: string;
   step: number;
   direction: "forward" | "reverse";
   travelDirection: string;
-  reducedMotion: boolean;
   onlyHourglasses?: boolean;
 }) {
   return (
-    <MotionGlyphLane
+    <GlyphLane
       pathD={pathD}
       step={step}
       direction={direction}
       travelDirection={travelDirection}
-      reducedMotion={reducedMotion}
       renderGlyph={(index) => {
         const isHourglass = index % 2 === 0;
         if (!isHourglass && onlyHourglasses) return null;
@@ -4228,13 +4184,10 @@ function AnimatedHourglassLane({
 function PlannedClosureIconLane({
   pathD,
   travelDirection,
-  reducedMotion,
 }: {
   pathD: string;
   travelDirection: TravelDirection;
-  reducedMotion: boolean;
 }) {
-  const laneRef = useRef<SVGGElement>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -4268,10 +4221,8 @@ function PlannedClosureIconLane({
           return {
             x: point.x,
             y: point.y,
-            progress: distance / length,
             chevronX: chevronPoint.x,
             chevronY: chevronPoint.y,
-            chevronProgress: chevronDistance / length,
             angle: Math.atan2(after.y - before.y, after.x - before.x) * (180 / Math.PI),
           };
         }),
@@ -4281,14 +4232,10 @@ function PlannedClosureIconLane({
     }
   }, [mounted, pathD, travelDirection]);
 
-  useLayoutEffect(() => {
-    if (!reducedMotion) startGlyphLaneMotion(laneRef.current);
-  }, [pathMetrics, reducedMotion]);
-
   if (Array.isArray(pathMetrics) || pathMetrics.points.length === 0) return null;
 
   return (
-    <g ref={laneRef} className="planned-closure-icon-lane" aria-hidden="true">
+    <g className="planned-closure-icon-lane" aria-hidden="true">
       {pathMetrics.points.map((point, index) => {
         if (travelDirection === "bidirectional") {
           return (
@@ -4305,29 +4252,14 @@ function PlannedClosureIconLane({
         }
 
         const direction = travelDirection;
-        const durationSeconds = Math.max(28, pathMetrics.length / 13);
-        const calendarOffset = direction === "reverse" ? 1 - point.progress : point.progress;
-        const chevronOffset = direction === "reverse" ? 1 - point.chevronProgress : point.chevronProgress;
         const staticAngle = point.angle + (direction === "reverse" ? 180 : 0);
 
         return (
           <g
             key={`${point.x}-${point.y}-${index}`}
-            className={`planned-closure-moving-glyph planned-closure-moving-glyph--${direction}`}
+            className={`planned-closure-lane-glyph planned-closure-lane-glyph--${direction}`}
           >
-            <g transform={reducedMotion ? `translate(${point.x} ${point.y})` : undefined}>
-              {!reducedMotion ? (
-                <animateMotion
-                  begin="indefinite"
-                  calcMode="linear"
-                  dur={`${durationSeconds}s`}
-                  keyPoints={glyphMotionKeyPoints(calendarOffset, direction)}
-                  keyTimes={glyphMotionKeyTimes(calendarOffset)}
-                  path={pathD}
-                  repeatCount="indefinite"
-                  rotate="0"
-                />
-              ) : null}
+            <g transform={`translate(${point.x} ${point.y})`}>
               <PlannedClosureIcon
                 className="planned-closure-map-icon"
                 x={-36}
@@ -4337,22 +4269,7 @@ function PlannedClosureIconLane({
                 strokeWidth={2.25}
               />
             </g>
-            <g transform={reducedMotion
-              ? `translate(${point.chevronX} ${point.chevronY}) rotate(${staticAngle})`
-              : undefined}
-            >
-              {!reducedMotion ? (
-                <animateMotion
-                  begin="indefinite"
-                  calcMode="linear"
-                  dur={`${durationSeconds}s`}
-                  keyPoints={glyphMotionKeyPoints(chevronOffset, direction)}
-                  keyTimes={glyphMotionKeyTimes(chevronOffset)}
-                  path={pathD}
-                  repeatCount="indefinite"
-                  rotate={direction === "reverse" ? "auto-reverse" : "auto"}
-                />
-              ) : null}
+            <g transform={`translate(${point.chevronX} ${point.chevronY}) rotate(${staticAngle})`}>
               <path
                 className="planned-closure-direction-chevron"
                 d="M -10 -13 L 10 0 L -10 13"
@@ -4907,7 +4824,6 @@ function OverlaySegment({
   selectedSegmentIds,
   onSelectImpact,
   shouldSuppressMapClick,
-  reducedMotion,
   exiting,
   idSuffix = "",
   renderInteractionTarget = true,
@@ -4919,7 +4835,6 @@ function OverlaySegment({
   selectedSegmentIds: string[];
   onSelectImpact: (selection: ImpactSelection) => void;
   shouldSuppressMapClick: () => boolean;
-  reducedMotion: boolean;
   exiting?: boolean;
   idSuffix?: string;
   renderInteractionTarget?: boolean;
@@ -5056,32 +4971,29 @@ function OverlaySegment({
             style={{ "--chevron-step": `${step}px` } as React.CSSProperties}
           >
             {travelDirection === "bidirectional" ? (
-              <AnimatedHourglassLane
+              <HourglassGlyphLane
                 pathD={segment.pathD}
                 step={28}
                 direction="forward"
                 travelDirection="forward" // Force single column (dy = 0)
-                reducedMotion={true} // Forces it to be static (no animation)
                 onlyHourglasses={true} // Omit arrows
               />
             ) : (
               <>
                 {renderForwardLane && (
-                  <AnimatedHourglassLane
+                  <HourglassGlyphLane
                     pathD={segment.pathD}
                     step={step}
                     direction="forward"
                     travelDirection={travelDirection}
-                    reducedMotion={reducedMotion}
                   />
                 )}
                 {renderReverseLane && (
-                  <AnimatedHourglassLane
+                  <HourglassGlyphLane
                     pathD={segment.pathD}
                     step={step}
                     direction="reverse"
                     travelDirection={travelDirection}
-                    reducedMotion={reducedMotion}
                   />
                 )}
               </>
@@ -5100,7 +5012,6 @@ function OverlaySegment({
           <PlannedClosureIconLane
             pathD={segment.pathD}
             travelDirection={travelDirection}
-            reducedMotion={reducedMotion}
           />
         </>
       ) : null}
@@ -5131,21 +5042,19 @@ function OverlaySegment({
             style={{ "--chevron-step": `${step}px` } as React.CSSProperties}
           >
             {renderForwardLane && (
-              <AnimatedChevronLane
+              <ChevronGlyphLane
                 pathD={segment.pathD}
                 step={step}
                 direction="forward"
                 travelDirection={travelDirection}
-                reducedMotion={reducedMotion}
               />
             )}
             {renderReverseLane && (
-              <AnimatedChevronLane
+              <ChevronGlyphLane
                 pathD={segment.pathD}
                 step={step}
                 direction="reverse"
                 travelDirection={travelDirection}
-                reducedMotion={reducedMotion}
               />
             )}
           </g>
@@ -5196,21 +5105,19 @@ function OverlaySegment({
               </defs>
               <g mask={`url(#${overlaySegmentId}-suspension-mask)`}>
                 {travelDirection === "forward" && (
-                  <AnimatedSuspensionLane
+                  <SuspensionGlyphLane
                     pathD={segment.pathD}
                     step={48}
                     direction="forward"
                     travelDirection={travelDirection}
-                    reducedMotion={reducedMotion}
                   />
                 )}
                 {travelDirection === "reverse" && (
-                  <AnimatedSuspensionLane
+                  <SuspensionGlyphLane
                     pathD={segment.pathD}
                     step={48}
                     direction="reverse"
                     travelDirection={travelDirection}
-                    reducedMotion={reducedMotion}
                   />
                 )}
               </g>

@@ -16,7 +16,6 @@
 .linewatch-shell.mobile-performance-mode .station-selected-indicator,
 .linewatch-shell.mobile-performance-mode .station-impact-ring,
 .linewatch-shell.mobile-performance-mode .station-impact-dot-red-glow,
-.linewatch-shell.mobile-performance-mode .station-impact-dot-red-ping,
 .linewatch-shell.mobile-performance-mode .station-commute-green-flash,
 .linewatch-shell.mobile-performance-mode .commute-path-preview-glow {
   animation: none !important;
@@ -122,30 +121,12 @@
 }
 
 .linewatch-shell.mobile-performance-mode .station-impact-ring {
-  stroke-width: 5;
+  stroke-width: calc(5 * var(--station-impact-ring-unit, 1px));
   opacity: 0.95;
 }
 
 .linewatch-shell.mobile-performance-mode .station-impact-dot-red-glow {
-  transform: scale(1);
   opacity: 0.95;
-}
-
-.linewatch-shell.mobile-performance-mode .station-impact-dot-red-ping {
-  display: none;
-}
-
-.linewatch-shell.mobile-performance-mode .station-impact-dot-red-beacon {
-  display: block;
-  fill: #ff3b30;
-  fill-opacity: 0.15;
-  stroke: #ff4b5c;
-  stroke-width: 1.5;
-  stroke-opacity: 0.65;
-  transform-origin: center;
-  transform-box: fill-box;
-  transform: scale(2.2);
-  pointer-events: none;
 }
 
 .linewatch-shell.mobile-performance-mode .station-hit-target {
@@ -209,7 +190,6 @@
 
 .asset-alert-path-glow.suspension {
   stroke: rgba(239, 68, 68, 0.7); /* Red aura for suspensions */
-  animation: aura-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
 }
 
 .asset-alert-path.suspension-candy {
@@ -228,28 +208,16 @@
 
 .asset-alert-path-glow.delay {
   stroke: rgba(254, 236, 65, 0.7); /* Orange aura for delays */
-  animation: aura-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
 }
 
 .asset-alert-path-glow.reduced-speed-zone {
   stroke: var(--impact-rsz);
-  animation: aura-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
 }
 
 .asset-alert-path-glow.delay-static {
   stroke: rgba(14, 165, 233, 0.7); /* Frozen blue aura for delays */
-  animation: aura-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
 }
 
-/* The subtype animation shorthands above reset animation-delay. Reapply the
-   shared clock after them so glows added by later alert snapshots cannot drift
-   away from the already-rendered overlay rails. */
-.asset-alert-path-glow.suspension,
-.asset-alert-path-glow.delay,
-.asset-alert-path-glow.reduced-speed-zone,
-.asset-alert-path-glow.delay-static {
-  animation-delay: var(--map-pulse-offset);
-}
 
 .asset-alert-path.delay-candy {
   stroke-width: var(--ttc-alert-rail-width);
@@ -267,18 +235,6 @@
 .motion-paused .asset-alert-path.delay-static-base,
 .motion-paused .delay-static-path {
   animation: none;
-}
-
-/* Reserve continuous corridor pulses for a focused, bounded snapshot.
-   Directional glyphs receive a separate per-selection budget. */
-[data-map-overlay-motion-paused="true"] .asset-alert-path-glow,
-[data-map-overlay-motion-paused="true"] .asset-alert-path.planned-preview,
-[data-map-overlay-motion-paused="true"] .asset-alert-path.delay-candy,
-[data-map-overlay-motion-paused="true"] .asset-alert-path.suspension-candy,
-[data-map-overlay-motion-paused="true"] .asset-alert-path.delay-static-base,
-[data-map-overlay-motion-paused="true"] .delay-static-path {
-  animation: none !important;
-  transition: none !important;
 }
 
 .motion-paused .asset-alert-path-glow {
@@ -416,16 +372,6 @@
   filter: url("#delay-static-filter");
   stroke: #FEEC41;
   stroke-dasharray: 2 5 11 3;
-  animation: delay-static-shift 700ms steps(4, end) infinite;
-}
-
-@keyframes delay-static-shift {
-  0% {
-    stroke-dashoffset: 0;
-  }
-  100% {
-    stroke-dashoffset: -72;
-  }
 }
 
 .delay-hourglass-mask-path,
@@ -461,10 +407,6 @@
 .planned-closure-icon-lane {
   overflow: visible;
   pointer-events: none;
-}
-
-.planned-closure-moving-glyph {
-  will-change: transform;
 }
 
 .planned-closure-map-icon {

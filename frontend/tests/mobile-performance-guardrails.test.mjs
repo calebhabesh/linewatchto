@@ -55,7 +55,6 @@ describe("mobile performance guardrails", () => {
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.station-impact-ring/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.station-impact-dot-red-glow/);
-    assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.station-impact-dot-red-ping/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.overlap-indicator/);
     assert.match(globalCss, /filter:\s*none\s*!important/);
   });
@@ -132,7 +131,7 @@ describe("mobile performance guardrails", () => {
 
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.station-impact-ring\s*\{[^}]*stroke-width:\s*5;[^}]*opacity:\s*0\.95;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.station-impact-ring\s*\{[^}]*stroke-width:\s*calc\(5 \* var\(--station-impact-ring-unit, 1px\)\);[^}]*opacity:\s*0\.95;[^}]*\}/s,
     );
 
     assert.match(
@@ -142,13 +141,9 @@ describe("mobile performance guardrails", () => {
 
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.station-impact-dot-red-glow\s*\{[^}]*transform:\s*scale\(1\);[^}]*opacity:\s*0\.95;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.station-impact-dot-red-glow\s*\{[^}]*opacity:\s*0\.95;[^}]*\}/s,
     );
 
-    assert.match(
-      globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.station-impact-dot-red-ping\s*\{[^}]*display:\s*none;[^}]*\}/s,
-    );
   });
 
   it("uses static programmatic map transforms in mobile performance mode", () => {
@@ -243,7 +238,6 @@ describe("mobile performance guardrails", () => {
     assert.match(globalCss, /\) \.interactive-glow/);
     assert.match(globalCss, /\) \.station-impact-ring/);
     assert.match(globalCss, /\) \.station-impact-dot-red-glow/);
-    assert.match(globalCss, /\) \.station-impact-dot-red-ping/);
     assert.match(globalCss, /\) \.asset-alert-path\.planned-preview/);
     assert.match(globalCss, /animation-play-state:\s*paused\s*!important/);
     assert.match(globalCss, /transition:\s*none\s*!important/);

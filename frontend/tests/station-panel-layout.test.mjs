@@ -388,7 +388,7 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /key=\{station\?\.id \?\? "empty"\}/);
     assert.match(panelSource, /station-detail-content-swap/);
     assert.doesNotMatch(globalCss, /filter:\s*blur\(1px\)/);
-    assert.doesNotMatch(globalCss, /opacity:\s*0\.35/);
+    assert.doesNotMatch(globalCss, /(?<![-\w])opacity:\s*0\.35/);
     assert.match(globalCss, /@keyframes station-detail-content-in-mobile/);
     assert.match(globalCss, /@keyframes station-detail-content-in-desktop/);
   });

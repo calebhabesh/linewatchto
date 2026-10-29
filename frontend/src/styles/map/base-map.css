@@ -250,7 +250,6 @@
   .regional-station-impact-ring,
   .regional-station-impact-beacon-group,
   .station-impact-dot-red-glow,
-  .station-impact-dot-red-ping,
   .commute-path-preview-glow,
   .commute-path-preview-path,
   .estimated-train-marker
@@ -408,7 +407,6 @@
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .delay-static-path,
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-ring:not(.map-selection-attention),
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-dot-red-glow,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-dot-red-ping,
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-commute-green-flash,
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .commute-path-preview-glow,
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .commute-path-preview-path,
@@ -443,7 +441,6 @@
   .interactive-glow,
   .station-impact-ring,
   .station-impact-dot-red-glow,
-  .station-impact-dot-red-ping,
   .station-impact-dot-red-beacon,
   .station-selected-indicator,
   .station-selection-flash,
@@ -462,12 +459,9 @@
 
 :is([data-map-gesture-active="true"], [data-map-zoom-active="true"]) :is(
   .asset-alert-path-glow:not(.map-selection-attention),
-  .station-impact-dot-red-ping,
-  .station-impact-dot-red-beacon,
   .commute-path-preview-glow,
   .regional-impact-aura,
-  .regional-impact-glow:not(.map-selection-attention),
-  .regional-station-impact-beacon-group
+  .regional-impact-glow:not(.map-selection-attention)
 ) {
   opacity: 0 !important;
 }
@@ -518,7 +512,6 @@
 [data-map-camera-moving="true"] .delay-static-path,
 [data-map-camera-moving="true"] .station-impact-ring:not(.map-selection-attention),
 [data-map-camera-moving="true"] .station-impact-dot-red-glow,
-[data-map-camera-moving="true"] .station-impact-dot-red-ping,
 [data-map-camera-moving="true"] .station-commute-green-flash,
 [data-map-camera-moving="true"] .commute-path-preview-glow,
 [data-map-camera-moving="true"] .commute-path-preview-path {

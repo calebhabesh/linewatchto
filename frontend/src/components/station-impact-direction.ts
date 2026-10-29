@@ -5,6 +5,7 @@ import type {
   ReducedSpeedZone,
   StationNodeImpact,
 } from "../app/linewatch-data";
+import { REGIONAL_ROUTE_STATIONS, stationName, type RegionalRouteCode } from "../app/regional-data.ts";
 
 export type StationImpactArrowDirection =
   | "left"
@@ -80,6 +81,15 @@ export function stationImpactDirectionForImpact(
   if (!source) return null;
   const displayDirection = source.displayDirection;
   if (!displayDirection) return null;
+
+  const towards = regionalTowardsArrow(impact.stationId, source.lineId, displayDirection);
+  if (towards) {
+    return {
+      lineId: source.lineId,
+      displayDirection,
+      arrow: towards,
+    };
+  }
 
   if (isUnionLineOneStationImpact(impact, source.lineId)) {
     const unionArrow = unionStationImpactDirectionArrow(displayDirection);
@@ -205,6 +215,61 @@ export function stationImpactDirectionSource(
     data.plannedClosures.find((closure) => closure.id === impact.cardId) ??
     data.activeAlerts.find((alert) => alert.id === impact.cardId)
   );
+}
+
+/**
+ * Which way a GO/UP train heading for Union points on the schematic map. The
+ * opposite way is away from Union. Lines run out of Union, so "towards" a
+ * station nearer Union is inbound.
+ */
+const REGIONAL_TOWARDS_UNION: Record<RegionalRouteCode, CardinalDirection> = {
+  BR: "down",
+  KI: "right",
+  LE: "left",
+  LW: "right",
+  MI: "right",
+  RH: "down",
+  ST: "down",
+  UP: "right",
+};
+
+const OPPOSITE: Record<CardinalDirection, CardinalDirection> = {
+  left: "right",
+  right: "left",
+  up: "down",
+  down: "up",
+};
+
+function normalizedStationName(name: string): string {
+  return name.toLowerCase()
+    .replace(/[.'’]/g, "")
+    .replace(/\s+(?:go\s+)?station$/, "")
+    .replace(/\s+go$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Metrolinx alerts carry no direction field. The backend names a trip's
+ * destination ("Towards Union Station") when the wording identifies the trip;
+ * this turns that into an arrow from where the alerted station sits on the line.
+ */
+function regionalTowardsArrow(
+  stationId: string,
+  lineId: string | null | undefined,
+  displayDirection: string,
+): StationImpactDirectionArrow | null {
+  const match = /^towards\s+(.+)$/i.exec(displayDirection.trim());
+  if (!match || !lineId?.startsWith("regional-")) return null;
+  const routeCode = lineId.slice("regional-".length).toUpperCase() as RegionalRouteCode;
+  const route = REGIONAL_ROUTE_STATIONS[routeCode];
+  if (!route) return null;
+  const destination = normalizedStationName(match[1]);
+  const destinationIndex = route.findIndex((id) => normalizedStationName(stationName(id)) === destination);
+  const stationIndex = route.indexOf(stationId);
+  if (destinationIndex < 0 || stationIndex < 0 || destinationIndex === stationIndex) return null;
+  const towardsUnion = REGIONAL_TOWARDS_UNION[routeCode];
+  return arrow(destinationIndex < stationIndex ? towardsUnion : OPPOSITE[towardsUnion], displayDirection.trim());
 }
 
 function isUnionLineOneStationImpact(
