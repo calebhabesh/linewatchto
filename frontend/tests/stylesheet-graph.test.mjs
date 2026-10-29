@@ -281,7 +281,6 @@ describe("stylesheet-graph helper", () => {
     const overlapChooserContent = readStylesheet(new URL("../src/styles/map/overlap-chooser.css", import.meta.url));
     assert.match(overlapChooserContent, /\.overlap-indicator/);
     assert.match(overlapChooserContent, /\.overlap-chooser-surface/);
-    assert.match(overlapChooserContent, /@keyframes overlap-chooser-enter/);
     assert.match(overlapChooserContent, /\.overlap-chooser-choice/);
     assert.match(overlapChooserContent, /\.overlap-indicator-pill/);
     assert.match(overlapChooserContent, /\.overlap-indicator-badge/);
@@ -335,14 +334,12 @@ describe("stylesheet-graph helper", () => {
     assert.match(dashboardShellContent, /--desktop-global-search-width/);
     assert.match(dashboardShellContent, /\.panel-heading/);
     assert.match(dashboardShellContent, /\.network-map/);
-    assert.match(dashboardShellContent, /@keyframes map-center-fade-in/);
     assert.match(dashboardShellContent, /\.alert-card/);
     assert.match(dashboardShellContent, /\.closure-card/);
     assert.match(dashboardShellContent, /\.commute-card/);
     assert.match(dashboardShellContent, /\.line-list/);
     assert.match(dashboardShellContent, /\.line-row/);
     assert.match(dashboardShellContent, /\.commute-panel/);
-    assert.match(dashboardShellContent, /@keyframes drift-network/);
     assert.match(dashboardShellContent, /@media \(max-width: 1180px\)/);
     assert.match(dashboardShellContent, /@media \(max-width: 900px\)/);
     assert.match(dashboardShellContent, /@media \(max-width: 520px\)/);

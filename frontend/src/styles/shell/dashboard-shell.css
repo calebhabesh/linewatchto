@@ -86,17 +86,6 @@
   padding: 12px;
 }
 
-@keyframes map-center-fade-in {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 /* --------------------------------------------------------------------------
    Section 4: Dashboard Cards & List Containers
    -------------------------------------------------------------------------- */
@@ -164,21 +153,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   Section 5: Network Background Drift Animation
-   -------------------------------------------------------------------------- */
-
-@keyframes drift-network {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    transform: translate3d(64px, 36px, 0);
-  }
-}
-
-/* --------------------------------------------------------------------------
-   Section 6: Responsive Dashboard Layout Breakpoints
+   Section 5: Responsive Dashboard Layout Breakpoints
    -------------------------------------------------------------------------- */
 
 @media (max-width: 1180px) {
@@ -234,7 +209,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   Section 7: Card Selection Highlight Glow & Keyframes
+   Section 6: Card Selection Highlight Glow & Keyframes
    -------------------------------------------------------------------------- */
 
 @keyframes highlight-glow {

@@ -494,15 +494,6 @@
   }
 }
 
-@keyframes chevron-slide {
-  0% {
-    transform: translate(calc(-0.5 * var(--chevron-step, 56px)), 0);
-  }
-  100% {
-    transform: translate(calc(0.5 * var(--chevron-step, 56px)), 0);
-  }
-}
-
 .rsz-chevron {
   fill: none;
   stroke: var(--impact-rsz-ink);

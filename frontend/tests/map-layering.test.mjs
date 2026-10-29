@@ -297,7 +297,6 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /<pattern id="badge-suspension-hash"/);
     assert.match(interactiveMapSource, /className="rsz-chevron"/);
     assert.match(interactiveMapSource, /d="M -12 -10 L 8 0 L -12 10"/);
-    assert.match(globalCss, /@keyframes chevron-slide/);
     assert.match(interactiveMapSource, /mask=\{\`url\(#\$\{overlaySegmentId\}-mask\)\`\}/);
     assert.match(interactiveMapSource, /className="asset-alert-path delay-candy pointer-events-none"/);
     assert.match(interactiveMapSource, /style=\{\{\s*pointerEvents:\s*"none",\s*stroke:\s*chevronBg\s*\}\}/);
@@ -723,9 +722,6 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.overlap-chooser-surface/);
     assert.match(globalCss, /\.overlap-chooser-surface\s*\{[^}]*border:\s*none\s*!important;[^}]*height:\s*fit-content;/s);
     assert.match(globalCss, /\.overlap-chooser-portal\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*45;[^}]*height:\s*fit-content\s*!important;/s);
-    assert.match(globalCss, /opacity:\s*0;\s*transform:\s*scale\(0\.96\);/);
-    assert.match(globalCss, /opacity:\s*1;\s*transform:\s*scale\(1\);/);
-    assert.match(globalCss, /@keyframes overlap-chooser-enter/);
     assert.match(globalCss, /\.overlap-chooser-header-count/);
     assert.match(globalCss, /\.overlap-chooser-choice\s*\{[^}]*border-left-width:\s*2px;/s);
     assert.match(globalCss, /\.overlap-chooser-choice\s*\{[^}]*border:\s*none\s*!important;/s);

@@ -237,7 +237,7 @@ describe("CSS measurement tool (Chunk C1)", () => {
     assert.ok(metrics.graph.decls > 15000, "resolved graph must report over 15000 declarations");
     assert.equal(metrics.graph.importants, 503, "resolved graph !important must match baseline ceiling (503)");
     assert.equal(metrics.graph.classSubstrings, 18, "resolved graph class-substrings must match ceiling (18)");
-    assert.equal(metrics.graph.keyframes, 93, "resolved graph keyframes must match unique definitions (93)");
+    assert.equal(metrics.graph.keyframes, 89, "resolved graph keyframes must match unique definitions (89)");
     assert.equal(metrics.graph.duplicateKeyframes.length, 0, "resolved graph must have zero duplicate keyframe names");
 
     // Population 3: Other Authored Component Styles
