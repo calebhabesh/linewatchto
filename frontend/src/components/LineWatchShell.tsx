@@ -624,6 +624,7 @@ export function LineWatchShell({
     navigateForward,
     handleClosePanel,
     handleSubmenuBack,
+    handleImpactStepBack,
     handleSelectStationId: navSelectStationId,
     closeSelectedStation,
     handleMapSelectImpact: navMapSelectImpact,
@@ -737,7 +738,10 @@ export function LineWatchShell({
     network: NetworkId;
   } | null>(null);
 
-  const handleMapSelectImpact = useCallback((nextSelection: ImpactSelection, focusOnMap = true) => {
+  const handleMapSelectImpact = useCallback((
+    nextSelection: ImpactSelection,
+    { focusOnMap = true, related = false }: { focusOnMap?: boolean; related?: boolean } = {},
+  ) => {
     if (!isMobile) {
       setDesktopMapFocus(nextSelection && focusOnMap ? {
         selection: nextSelection,
@@ -748,7 +752,7 @@ export function LineWatchShell({
     if (nextSelection && isMobile) {
       setMobileInspectorDetent("details-focus");
     }
-    navMapSelectImpact(nextSelection);
+    navMapSelectImpact(nextSelection, { related });
   }, [isMobile, navMapSelectImpact, selectedNetwork, selectionAttentionGeneration, setMobileInspectorDetent]);
 
   const handleSelectStationId = useCallback((id: string | null) => {
@@ -2499,7 +2503,7 @@ export function LineWatchShell({
   const handleRelatedImpact = useCallback((nextSelection: ImpactSelection) => {
     if (!nextSelection) return;
     if (isMobile && activeView === "map") {
-      handleMapSelectImpact(nextSelection);
+      handleMapSelectImpact(nextSelection, { related: true });
     } else {
       handleSelectImpactDetails(nextSelection);
     }
@@ -2512,7 +2516,7 @@ export function LineWatchShell({
     && desktopMapFocus.selection.id === selection?.id;
   const handleReturnImpactToMap = desktopImpactIsMapFocused
     ? () => handleMapSelectImpact(null)
-    : impactBackContext ? handleSubmenuBack : undefined;
+    : impactBackContext ? handleImpactStepBack : undefined;
 
   const handleSearchSelectStation = (stationId: string, networkId: NetworkId) => {
     if (searchClosingTimeoutRef.current) {
@@ -3591,7 +3595,7 @@ export function LineWatchShell({
               navigateForward(view);
             }}
             onSelectImpact={(impactSelection) => {
-              handleMapSelectImpact(impactSelection, false);
+              handleMapSelectImpact(impactSelection, { focusOnMap: false });
             }}
             onSelectSurfaceNotice={handleSearchOpenSurfaceNotice}
             onNetworkChange={handleNetworkChange}
@@ -5523,7 +5527,7 @@ export function LineWatchShell({
           backLabel={impactBackContext?.origin.selection ? "Back to previous impact" : impactBackContext?.origin.activeView === "map" ? "Back to map" : "Back"}
           unfocusLabel={mobileImpactReturnView === "my-stations" ? "Back to My Stations" : undefined}
           onViewFullDetails={() => navigateForward(viewForImpactSelection(selection))}
-          onSelectImpact={handleMapSelectImpact}
+          onSelectImpact={handleRelatedImpact}
           commutePathPreview={commutePathPreview}
           onClearCommutePathPreview={handleClearCommutePathPreview}
         />

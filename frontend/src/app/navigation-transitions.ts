@@ -87,9 +87,23 @@ export function impactReturnContext(state: Pick<NavigationState, "activeView" | 
     ? context : null;
 }
 
-function withImpactHistory(state: NavigationState, nextState: NavigationState): NavigationState {
+/**
+ * Records an impact step for Back. With `replace`, the current step's
+ * destination is swapped in place so picking sibling impacts (list "View",
+ * map markers) never stacks: Back still returns to where browsing started.
+ */
+function withImpactHistory(state: NavigationState, nextState: NavigationState, options: { replace?: boolean } = {}): NavigationState {
   if (!nextState.selection || state.selectedStationId || state.stationDrilldownOrigin || state.commutePathPreview) return nextState;
   if (state.activeView === nextState.activeView && sameImpact(state.selection, nextState.selection)) return nextState;
+  if (options.replace) {
+    const current = impactReturnContext(state);
+    return current ? {
+      ...nextState,
+      impactHistory: [...state.impactHistory.slice(0, -1), {
+        ...current, destinationView: nextState.activeView, destinationSelection: nextState.selection,
+      }],
+    } : nextState;
+  }
   return {
     ...nextState,
     impactHistory: [...(impactReturnContext(state) ? state.impactHistory : []), {
@@ -502,10 +516,23 @@ export function transitionClosePanel(
  */
 export function transitionSubmenuBack(
   state: NavigationState,
-  options: { isMobile: boolean },
+  options: {
+    isMobile: boolean;
+    /** Undo only the selected-card step (the card's own Back), never leave the list. */
+    stepOnly?: boolean;
+  },
 ): NavigationTransitionResult {
   const impactBack = transitionImpactBack(state);
   if (impactBack && !state.stationDrilldownOrigin && !state.commutePathPreview) {
+    // On desktop a card picked from this same list is only a highlight, so the
+    // header Back leaves the list in one press. Related hops still unwind.
+    const context = impactReturnContext(state)!;
+    const pickedInThisList = !options.isMobile && !options.stepOnly
+      && !context.origin.selection && context.origin.activeView === state.activeView;
+    if (pickedInThisList) {
+      const leave = transitionSubmenuBack(impactBack, options);
+      return { nextState: leave.nextState, historyEffect: { type: "consume", count: 2 } };
+    }
     return { nextState: impactBack, historyEffect: { type: "consume", count: 1 } };
   }
   const stationOriginId = state.stationDrilldownOrigin;
@@ -620,9 +647,11 @@ export function transitionSelectImpact(
     selection: ImpactSelection;
     targetView: ActiveView;
     isMobile: boolean;
+    /** A deliberate hop from the current impact (related/overlap link) that Back should undo. */
+    related?: boolean;
   },
 ): NavigationTransitionResult {
-  const { selection, targetView, isMobile } = options;
+  const { selection, targetView, isMobile, related = false } = options;
 
   if (!selection) {
     return {
@@ -638,7 +667,11 @@ export function transitionSelectImpact(
 
   const changesImpact = !sameImpact(state.selection, selection);
   const changesView = state.activeView !== (isMobile ? "map" : targetView);
-  const historyEffect: BrowserHistoryEffect = changesImpact || changesView ? { type: "push" } : { type: "none" };
+  // Swapping the selected impact (or a station opened from the map) for a
+  // sibling pick reuses the current Back step instead of stacking another.
+  const replacesStep = !related && changesImpact
+    && (Boolean(state.selection) || (Boolean(state.selectedStationId) && !state.stationDrilldownOrigin));
+  const historyEffect: BrowserHistoryEffect = !replacesStep && (changesImpact || changesView) ? { type: "push" } : { type: "none" };
   const currentView = state.activeView;
 
   if (isMobile) {
@@ -666,7 +699,7 @@ export function transitionSelectImpact(
         viewHistory,
         mobileImpactReturnView: preservesOrigin ? state.mobileImpactReturnView : null,
         navDirection: "forward",
-      }),
+      }, { replace: replacesStep }),
       historyEffect,
     };
   }
@@ -687,7 +720,7 @@ export function transitionSelectImpact(
       activeView: targetView,
       viewHistory,
       navDirection: "forward",
-    }),
+    }, { replace: replacesStep }),
     historyEffect,
   };
 }
@@ -725,7 +758,7 @@ export function transitionSelectStationImpact(
   },
 ): NavigationTransitionResult {
   const originStation = state.selectedStationId;
-  const result = transitionSelectImpact(state, options);
+  const result = transitionSelectImpact(state, { ...options, related: true });
   if (originStation) {
     return {
       ...result,

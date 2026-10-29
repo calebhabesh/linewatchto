@@ -58,13 +58,77 @@ it("overlapping map details restore the previous alert on browser Back", () => {
     selection: { kind: "delay", id: "a" }, targetView: "delays", isMobile: true,
   }).nextState;
   const b = transitionSelectImpact(a, {
-    selection: { kind: "planned-closure", id: "b" }, targetView: "closures", isMobile: true,
+    selection: { kind: "planned-closure", id: "b" }, targetView: "closures", isMobile: true, related: true,
   });
   assert.equal(b.historyEffect.type, "push");
   const back = transitionBrowserBack(b.nextState, { isMobile: true }).nextState;
   assert.equal(back.activeView, "map");
   assert.deepEqual(back.selection, a.selection);
   assert.deepEqual(back.impactHistory, a.impactHistory);
+});
+
+it("picking sibling cards in a list replaces the Back step instead of stacking", () => {
+  const list = transitionNavigateForward(transitionNavigateRoot(INITIAL_NAVIGATION_STATE, "status").nextState, "reduced-speed-zones").nextState;
+  const pick = (state, id) => transitionSelectImpact(state, {
+    selection: { kind: "reduced-speed-zone", id }, targetView: "reduced-speed-zones", isMobile: false,
+  });
+  const a = pick(list, "a");
+  assert.equal(a.historyEffect.type, "push");
+  const b = pick(a.nextState, "b");
+  const c = pick(b.nextState, "c");
+  assert.equal(b.historyEffect.type, "none");
+  assert.equal(c.historyEffect.type, "none");
+  assert.equal(c.nextState.impactHistory.length, 1);
+
+  const cardBack = transitionSubmenuBack(c.nextState, { isMobile: false, stepOnly: true });
+  assert.equal(cardBack.nextState.activeView, "reduced-speed-zones");
+  assert.equal(cardBack.nextState.selection, null);
+  assert.deepEqual(cardBack.historyEffect, { type: "consume", count: 1 });
+
+  const browserBack = transitionBrowserBack(c.nextState, { isMobile: false }).nextState;
+  assert.equal(browserBack.activeView, "reduced-speed-zones");
+  assert.equal(browserBack.selection, null);
+});
+
+it("desktop header Back leaves a list in one press while a card is selected", () => {
+  const list = transitionNavigateForward(transitionNavigateRoot(INITIAL_NAVIGATION_STATE, "status").nextState, "reduced-speed-zones").nextState;
+  const selected = transitionSelectImpact(list, {
+    selection: { kind: "reduced-speed-zone", id: "a" }, targetView: "reduced-speed-zones", isMobile: false,
+  }).nextState;
+  const back = transitionSubmenuBack(selected, { isMobile: false });
+  assert.equal(back.nextState.activeView, "status");
+  assert.equal(back.nextState.selection, null);
+  assert.equal(back.nextState.impactHistory.length, 0);
+  assert.deepEqual(back.historyEffect, { type: "consume", count: 2 });
+});
+
+it("desktop header Back still unwinds a related hop before leaving the list", () => {
+  const list = transitionNavigateForward(transitionNavigateRoot(INITIAL_NAVIGATION_STATE, "status").nextState, "delays").nextState;
+  const a = transitionSelectImpact(list, { selection: { kind: "delay", id: "a" }, targetView: "delays", isMobile: false }).nextState;
+  const b = transitionSelectImpactDetails(a, { kind: "delay", id: "b" }, "delays").nextState;
+  const backToA = transitionSubmenuBack(b, { isMobile: false });
+  assert.deepEqual(backToA.nextState.selection, a.selection);
+  assert.deepEqual(backToA.historyEffect, { type: "consume", count: 1 });
+  const leave = transitionSubmenuBack(backToA.nextState, { isMobile: false }).nextState;
+  assert.equal(leave.activeView, "status");
+});
+
+it("tapping another map marker on mobile keeps Back pointed at the list it came from", () => {
+  const list = transitionNavigateForward(INITIAL_NAVIGATION_STATE, "delays").nextState;
+  const a = transitionSelectImpact(list, { selection: { kind: "delay", id: "a" }, targetView: "delays", isMobile: true }).nextState;
+  const b = transitionSelectImpact(a, { selection: { kind: "planned-closure", id: "b" }, targetView: "closures", isMobile: true });
+  assert.equal(b.historyEffect.type, "none");
+  const back = transitionBrowserBack(b.nextState, { isMobile: true }).nextState;
+  assert.equal(back.activeView, "delays");
+  assert.equal(back.selection, null);
+});
+
+it("tapping an impact while a map-opened station is shown reuses the station's Back step", () => {
+  const station = transitionSelectStation(INITIAL_NAVIGATION_STATE, "st-clair").nextState;
+  const impact = transitionSelectImpact(station, { selection: { kind: "delay", id: "a" }, targetView: "delays", isMobile: true });
+  assert.equal(impact.historyEffect.type, "none");
+  const fromDetails = transitionSelectStationImpact(station, { selection: { kind: "delay", id: "a" }, targetView: "delays", isMobile: true });
+  assert.equal(fromDetails.historyEffect.type, "push");
 });
 
 it("hopping back to an impact already in the trail returns to it instead of stacking", () => {

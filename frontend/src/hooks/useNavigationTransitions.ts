@@ -233,7 +233,8 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     const addedContext = nextHistory.at(-1);
     const selector = addedContext ? VIEW_SCROLL_SELECTORS[addedContext.origin.activeView] : null;
     const scrollTop = selector ? document.querySelector<HTMLElement>(selector)?.scrollTop : undefined;
-    const history = addedContext && nextState.navDirection === "forward" && addedContext !== impactHistoryRef.current.at(-1)
+    // A replaced step keeps its origin, so keep the origin's saved detent and scroll too.
+    const history = addedContext && nextState.navDirection === "forward" && addedContext.origin !== impactHistoryRef.current.at(-1)?.origin
       ? [...nextHistory.slice(0, -1), { ...addedContext, inspectorDetent: getInspectorDetentRef.current?.(), scrollTop }]
       : nextHistory;
     impactHistoryRef.current = history;
@@ -377,18 +378,24 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
   }, [consumeBrowserNavigationEntries, isClosingPanel, isMobile, onClearPersistedCommuteDraft, onResetMapPresentation, onSetMobileInspectorDetent, reducedMotion]);
 
   // Submenu Back
-  const handleSubmenuBack = useCallback(() => {
+  const submenuBack = useCallback((stepOnly: boolean) => {
     if (isGoingBack) return;
-    consumeBrowserNavigationEntries();
+    const stationOriginId = stationDrilldownOriginRef.current;
+    const currentState = getCurrentNavigationState();
+    const result = transitionSubmenuBack(currentState, { isMobile, stepOnly });
+    const consumeCount = result.historyEffect.type === "consume" ? result.historyEffect.count ?? 1 : 1;
+    consumeBrowserNavigationEntries(consumeCount);
     setNavDirection("back");
     if (backTimeoutRef.current) window.clearTimeout(backTimeoutRef.current);
 
-    const stationOriginId = stationDrilldownOriginRef.current;
-    const currentState = getCurrentNavigationState();
-    const result = transitionSubmenuBack(currentState, { isMobile });
     if (impactReturnContext(currentState) && !stationOriginId && !currentState.commutePathPreview) {
-      applyImpactBack(result.nextState);
-      return;
+      // One entry: back to the previous impact or the plain list. Two: the
+      // card step was skipped and the list itself is being left.
+      if (consumeCount === 1) {
+        applyImpactBack(result.nextState);
+        return;
+      }
+      syncImpactHistory(result.nextState);
     }
 
     const finishBackNavigation = () => {
@@ -441,7 +448,12 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
 
     setIsGoingBack(true);
     backTimeoutRef.current = window.setTimeout(finishBackNavigation, 240);
-  }, [applyImpactBack, consumeBrowserNavigationEntries, getCurrentNavigationState, isGoingBack, isMobile, reducedMotion]);
+  }, [applyImpactBack, consumeBrowserNavigationEntries, getCurrentNavigationState, isGoingBack, isMobile, reducedMotion, syncImpactHistory]);
+
+  /** Header Back: leaves a list in one press even when a card is selected (desktop). */
+  const handleSubmenuBack = useCallback(() => submenuBack(false), [submenuBack]);
+  /** A selected card's own Back: undoes just that card step. */
+  const handleImpactStepBack = useCallback(() => submenuBack(true), [submenuBack]);
 
   const navigateToMapDrilldown = useCallback(() => {
     const currentView = activeViewRef.current;
@@ -525,7 +537,8 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
   }, [announceDesktop, consumeBrowserNavigationEntries]);
 
   // Map Select Impact
-  const handleMapSelectImpact = useCallback((nextSelection: ImpactSelection) => {
+  const handleMapSelectImpact = useCallback((nextSelection: ImpactSelection, options: { related?: boolean } = {}) => {
+    const stationBeforeSelection = selectedStationIdRef.current;
     selectedStationIdRef.current = null;
     setSelectedStationId(null);
     if (!commutePathPreviewRef.current) {
@@ -548,10 +561,11 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     saveCurrentViewScroll();
 
     const targetView = viewForImpactSelection(nextSelection);
-    const result = transitionSelectImpact(getCurrentNavigationState(), {
+    const result = transitionSelectImpact({ ...getCurrentNavigationState(), selectedStationId: stationBeforeSelection }, {
       selection: nextSelection,
       targetView,
       isMobile,
+      related: options.related,
     });
     if (result.historyEffect.type === "push") pushBrowserNavigationEntry();
     syncImpactHistory(result.nextState);
@@ -608,7 +622,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     if (selectedStationIdRef.current) {
       stationDrilldownOriginRef.current = selectedStationIdRef.current;
     }
-    handleMapSelectImpact(nextSelection);
+    handleMapSelectImpact(nextSelection, { related: true });
   }, [handleMapSelectImpact]);
 
   // Preview Commute
@@ -1078,6 +1092,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     navigateForward,
     handleClosePanel,
     handleSubmenuBack,
+    handleImpactStepBack,
     handleSelectStationId,
     closeSelectedStation,
     handleMapSelectImpact,
