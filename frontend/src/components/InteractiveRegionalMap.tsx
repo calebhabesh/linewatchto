@@ -272,6 +272,7 @@ function InteractiveRegionalMapComponent({
   commutePathPreview = null,
   onClearCommutePathPreview,
   isMapActive = true,
+  cameraCommandsEnabled = true,
   onNetworkChange,
   mapView,
   onMapViewChange,
@@ -302,6 +303,9 @@ function InteractiveRegionalMapComponent({
   commutePathPreview?: AccountCommutePathPreview | null;
   onClearCommutePathPreview?: () => void;
   isMapActive?: boolean;
+  /** False while this map waits hidden behind the other network: shared zoom
+   *  and Center commands are consumed without moving its camera. */
+  cameraCommandsEnabled?: boolean;
   onNetworkChange?: (network: NetworkId) => void;
   mapView?: MapViewPreference;
   onMapViewChange?: (view: MapViewPreference) => void;
@@ -316,6 +320,10 @@ function InteractiveRegionalMapComponent({
   const mapControlRailRef = useRef<HTMLDivElement>(null);
   const cameraInitializedRef = useRef(false);
   const cameraAdjustedByUserRef = useRef(false);
+  const cameraCommandsEnabledRef = useRef(cameraCommandsEnabled);
+  useEffect(() => {
+    cameraCommandsEnabledRef.current = cameraCommandsEnabled;
+  }, [cameraCommandsEnabled]);
   const isMapActiveRef = useRef(isMapActive);
   useEffect(() => {
     isMapActiveRef.current = isMapActive;
@@ -1087,6 +1095,7 @@ function InteractiveRegionalMapComponent({
     // never replay an old Center request that is still stored by the shell.
     if (recenterSignal === undefined || recenterSignal === lastRecenterSignalRef.current) return;
     lastRecenterSignalRef.current = recenterSignal;
+    if (!cameraCommandsEnabledRef.current) return;
     handleFitNetwork();
   }, [handleFitNetwork, recenterSignal]);
 
@@ -1549,6 +1558,7 @@ function InteractiveRegionalMapComponent({
   useEffect(() => {
     if (zoomInSignal === undefined || zoomInSignal === lastZoomInSignalRef.current) return;
     lastZoomInSignalRef.current = zoomInSignal;
+    if (!cameraCommandsEnabledRef.current) return;
     zoomAtCenter(1.25);
   }, [zoomAtCenter, zoomInSignal]);
 
@@ -1556,6 +1566,7 @@ function InteractiveRegionalMapComponent({
   useEffect(() => {
     if (zoomOutSignal === undefined || zoomOutSignal === lastZoomOutSignalRef.current) return;
     lastZoomOutSignalRef.current = zoomOutSignal;
+    if (!cameraCommandsEnabledRef.current) return;
     zoomAtCenter(1 / 1.25);
   }, [zoomAtCenter, zoomOutSignal]);
 

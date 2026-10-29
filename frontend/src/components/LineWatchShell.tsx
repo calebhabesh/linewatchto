@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
-import type { ComponentProps, CSSProperties, KeyboardEvent } from "react";
+import type { ComponentProps, CSSProperties, Dispatch, KeyboardEvent, SetStateAction } from "react";
 import { flushSync } from "react-dom";
 import { preloadablePanel } from "./preloadable-panel";
 import Image from "next/image";
@@ -960,6 +960,12 @@ export function LineWatchShell({
   const [recenterSignal, setRecenterSignal] = useState(0);
   const [zoomInSignal, setZoomInSignal] = useState(0);
   const [zoomOutSignal, setZoomOutSignal] = useState(0);
+  // While a network switch runs, the outgoing map is still the active one, so
+  // a Center or zoom press would move the map the rider is leaving.
+  const sendMapCameraCommand = useCallback((send: Dispatch<SetStateAction<number>>) => {
+    if (networkTransitionTargetRef.current) return;
+    send((prev) => prev + 1);
+  }, []);
 
   // Start with the map available overnight; the closed notice opens details on demand.
   const [closedMapPeek, setClosedMapPeek] = useState(true);
@@ -3894,7 +3900,7 @@ export function LineWatchShell({
                   onExitRotated={() => {
                     setMapPresentationMode("standard");
                   }}
-                  onRecenter={() => setRecenterSignal((prev) => prev + 1)}
+                  onRecenter={() => sendMapCameraCommand(setRecenterSignal)}
                 />
               </div>
               {rotatedSelectionVisible && !mobileInspectorOpen ? (
@@ -4118,9 +4124,9 @@ export function LineWatchShell({
             }
             navigateForward(view);
           }}
-          onRecenter={() => setRecenterSignal((prev) => prev + 1)}
-          onZoomIn={() => setZoomInSignal((prev) => prev + 1)}
-          onZoomOut={() => setZoomOutSignal((prev) => prev + 1)}
+          onRecenter={() => sendMapCameraCommand(setRecenterSignal)}
+          onZoomIn={() => sendMapCameraCommand(setZoomInSignal)}
+          onZoomOut={() => sendMapCameraCommand(setZoomOutSignal)}
         >
           {isMobile && <CurrentServicePanel
               data={displayData}

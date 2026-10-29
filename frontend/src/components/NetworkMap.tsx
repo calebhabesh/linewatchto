@@ -172,6 +172,7 @@ function DiagramNetworkMaps({ network, preparingNetwork, warmingNetwork, diagram
     diagramNetwork === "regional" ? (
         <InteractiveRegionalMap
           isMapActive={!preparing && isMapActive}
+          cameraCommandsEnabled={!preparing}
           selection={preparing ? null : props.selection}
           onSelectImpact={selectImpact}
           selectedStationId={preparing ? null : props.selectedStationId}
@@ -217,6 +218,7 @@ function DiagramNetworkMaps({ network, preparingNetwork, warmingNetwork, diagram
           commutePathPreview={preparing ? null : props.commutePathPreview}
           deferInitialEntrance={preparing ? false : props.deferInitialEntrance}
           isMapActive={!preparing && isMapActive}
+          cameraCommandsEnabled={!preparing}
           onReady={ready}
         />
       );

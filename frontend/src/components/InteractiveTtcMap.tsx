@@ -423,6 +423,7 @@ function InteractiveTtcMapComponent({
   animateInitialEntrance = true,
   deferInitialEntrance = false,
   isMapActive = true,
+  cameraCommandsEnabled = true,
   onReady,
   onNetworkChange,
   mapView,
@@ -455,6 +456,9 @@ function InteractiveTtcMapComponent({
   animateInitialEntrance?: boolean;
   deferInitialEntrance?: boolean;
   isMapActive?: boolean;
+  /** False while this map waits hidden behind the other network: shared zoom
+   *  and Center commands are consumed without moving its camera. */
+  cameraCommandsEnabled?: boolean;
   onReady?: () => void;
   onNetworkChange?: (network: NetworkId) => void;
   mapView?: MapViewPreference;
@@ -955,6 +959,10 @@ function InteractiveTtcMapComponent({
 
 
 
+  const cameraCommandsEnabledRef = useRef(cameraCommandsEnabled);
+  useEffect(() => {
+    cameraCommandsEnabledRef.current = cameraCommandsEnabled;
+  }, [cameraCommandsEnabled]);
   const lastRecenterSignalRef = useRef(recenterSignal ?? 0);
 
   useEffect(() => {
@@ -966,6 +974,7 @@ function InteractiveTtcMapComponent({
       || loadState !== "ready"
     ) return;
     lastRecenterSignalRef.current = recenterSignal;
+    if (!cameraCommandsEnabledRef.current) return;
     recenterWithFeedback();
   }, [recenterSignal, loadState, recenterWithFeedback]);
 
@@ -977,6 +986,7 @@ function InteractiveTtcMapComponent({
       || loadState !== "ready"
     ) return;
     lastZoomInSignalRef.current = zoomInSignal;
+    if (!cameraCommandsEnabledRef.current) return;
     zoomIn();
   }, [zoomInSignal, loadState, zoomIn]);
 
@@ -988,6 +998,7 @@ function InteractiveTtcMapComponent({
       || loadState !== "ready"
     ) return;
     lastZoomOutSignalRef.current = zoomOutSignal;
+    if (!cameraCommandsEnabledRef.current) return;
     zoomOut();
   }, [zoomOutSignal, loadState, zoomOut]);
 

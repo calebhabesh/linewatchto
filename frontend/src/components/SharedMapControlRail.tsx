@@ -1,8 +1,11 @@
 "use client";
 
-import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, type ComponentPropsWithRef, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, type ComponentPropsWithRef, type ReactNode, type SyntheticEvent } from "react";
 import { observeDesktopControlRail } from "../app/desktop-sidebar-state";
 import type { NetworkId } from "../app/regional-data";
+import { NetworkSwitchContext } from "./NetworkSelector";
+
+const CAMERA_CONTROLS = ".map-control-recenter-container, .map-control-zoom-group";
 
 type PublishRail = (network: NetworkId, rail: ReactNode | null) => void;
 type RailContextValue = { publish: PublishRail; hasRail: (network: NetworkId) => boolean };
@@ -23,13 +26,22 @@ export function SharedMapControlRailProvider({ network, children }: { network: N
   // `display: contents` keeps the rail's layout parent while giving placement a handle on it.
   const anchorRef = useRef<HTMLSpanElement>(null);
   const activeRail = rails[network];
+  // During a network switch this is still the outgoing map's rail. Its Center
+  // and zoom controls would move the map the rider is leaving, so they wait.
+  const requestedNetwork = useContext(NetworkSwitchContext);
+  const switching = requestedNetwork !== null && requestedNetwork !== network;
+  const holdCameraControl = useCallback((event: SyntheticEvent) => {
+    if (!switching || !(event.target instanceof Element) || !event.target.closest(CAMERA_CONTROLS)) return;
+    event.preventDefault();
+    event.stopPropagation();
+  }, [switching]);
   useLayoutEffect(() => observeDesktopControlRail(
     anchorRef.current?.querySelector<HTMLElement>(".desktop-map-control-rail") ?? null,
   ), [activeRail]);
   return (
     <RailContext.Provider value={context}>
       {children}
-      <span ref={anchorRef} style={{ display: "contents" }}>{activeRail}</span>
+      <span ref={anchorRef} style={{ display: "contents" }} onClickCapture={holdCameraControl} onChangeCapture={holdCameraControl}>{activeRail}</span>
     </RailContext.Provider>
   );
 }
