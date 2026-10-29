@@ -2,7 +2,6 @@
 
 Date of Audit: 2026-09-18  
 Implementation Phase: Session 1 / Phase A: prove geographic coverage  
-Implementation Plan: [geographic-map-implementation-plan.md](geographic-map-implementation-plan.md)  
 Associated Manifest: [geographic-map-coverage-manifest.json](geographic-map-coverage-manifest.json)  
 Status: **PASSED — 100% Station and Link Geometry Verified**
 

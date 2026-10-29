@@ -79,12 +79,12 @@ and wrappers/configuration have an identified purpose.
 
 ## P3 — Current documentation and contributor entry points
 
-**Evidence:** [HANDOVER.md](../../HANDOVER.md), dated June 1, says live reads
-have not switched to normalized alerts. [REMAINING_TASKS.md](../../REMAINING_TASKS.md),
-dated June 2, instructs new sessions to implement work that current code/docs
+**Evidence:** `HANDOVER.md`, dated June 1, said live reads
+had not switched to normalized alerts. `REMAINING_TASKS.md`,
+dated June 2, instructed new sessions to implement work that current code/docs
 already describe as implemented. The README spans over 1,100 lines, mixing
 setup, product inventory, operations and historical portfolio language.
-[CSS progress](../globals-css-refactor-progress.md) is a large historical log
+The CSS refactor progress log was a large historical log
 whose metrics do not establish current health.
 
 **Change:** mark historical handoffs as historical with a current entry-point
