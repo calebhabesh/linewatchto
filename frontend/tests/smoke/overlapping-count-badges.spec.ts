@@ -277,17 +277,13 @@ async function expectMapVectorGlyphInsideBadge(marker: Locator) {
 test("overlapping count glyphs stay inside their badge through viewport and control transforms", async ({ page, request, isMobile }) => {
   await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
   await page.setViewportSize(isMobile ? { width: 412, height: 915 } : { width: 1280, height: 800 });
-  await page.addInitScript(() => {
-    window.localStorage.setItem("linewatch-welcome-seen-v1", "true");
-    window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
-    window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
-  });
+  await installDismissedTransientUi(page);
   await page.goto(openMapPreviewUrl);
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
   const badge = isMobile
     ? page.locator(".mobile-bottom-nav-badge").first()
-    : page.locator(".desktop-menu-count-badge").first();
+    : page.locator(".desktop-rail-badge").first();
 
   await expectGlyphInsideBadge(badge);
 
@@ -300,8 +296,7 @@ test("overlapping count glyphs stay inside their badge through viewport and cont
       await expectGlyphInsideBadge(badge);
     }
   } else {
-    const menuButton = page.getByRole("button", { name: /Toggle menu/ });
-    await menuButton.hover();
+    await page.locator('[data-dest="status"]').hover();
     await expectGlyphInsideBadge(badge);
     await page.setViewportSize({ width: 1100, height: 700 });
     await expectGlyphInsideBadge(badge);
@@ -345,10 +340,7 @@ test("TTC and GO/UP map overlap counts stay bounded through mobile compositor ch
 test("TTC hover repaints overlay artwork above default-priority corridors", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "Mouse hover is desktop-only");
   await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
-  await page.addInitScript(() => {
-    window.localStorage.setItem("linewatch-welcome-seen-v1", "true");
-    window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
-  });
+  await installDismissedTransientUi(page);
   await page.goto(openMapPreviewUrl);
   const target = page.locator('[aria-label="Disruption overlay interaction targets"] .map-segment-hit-target').first();
   await expect(target).toBeAttached();
@@ -359,7 +351,8 @@ test("TTC hover repaints overlay artwork above default-priority corridors", asyn
     const href = element.querySelector("use")!.getAttribute("href")!;
     const source = document.getElementById(href.slice(1));
     const overlays = element.closest("svg")!.querySelector('[aria-label="Disruption overlays"]')!;
-    const priority: Record<string, number> = { "reduced-speed-zone": 1, "planned-closure": 2, delay: 3, suspension: 4 };
+    // Same paint order as getImpactPriority: planned advisories at the bottom.
+    const priority: Record<string, number> = { "planned-closure": 1, "reduced-speed-zone": 2, delay: 3, suspension: 4 };
     const ranks = Array.from(overlays.children).map((child) => priority[child.getAttribute("data-map-impact-kind")!]);
     return {
       artwork: Boolean(source?.querySelector(".asset-alert-path")),
@@ -371,12 +364,20 @@ test("TTC hover repaints overlay artwork above default-priority corridors", asyn
   await expect(visual).toHaveCount(0);
 });
 
-test("nav badges are visibly centered for single and multi-digit counts (1, 2, 9, 20, 99)", async ({ page, isMobile }) => {
+test("nav badges are visibly centered for single and multi-digit counts (1, 2, 9, 20, 99)", async ({ page, request, isMobile }) => {
+  await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
+  await installDismissedTransientUi(page);
   await page.setViewportSize(isMobile ? { width: 375, height: 667 } : { width: 1280, height: 800 });
   await page.goto(openMapPreviewUrl);
 
+  // Size the test badges like the live navigation badge on this device.
+  const badgeClass = isMobile ? "mobile-bottom-nav-badge" : "desktop-rail-badge";
+  const liveBadge = page.locator(`.${badgeClass}`).first();
+  await expect(liveBadge).toBeVisible();
+  const liveHeight = await liveBadge.evaluate((element) => element.getBoundingClientRect().height);
+
   const testCounts = [1, 2, 9, 20, 99];
-  const results = await page.evaluate((counts) => {
+  const results = await page.evaluate(({ counts, badgeClass }) => {
     const container = document.createElement("div");
     container.className = "linewatch-shell";
     container.style.position = "fixed";
@@ -391,7 +392,7 @@ test("nav badges are visibly centered for single and multi-digit counts (1, 2, 9
       const isSingle = label.length <= 1;
 
       const span = document.createElement("span");
-      span.className = "overlapping-count-badge mobile-bottom-nav-badge";
+      span.className = `overlapping-count-badge ${badgeClass}`;
       span.setAttribute("data-count-digits", String(label.length));
       span.setAttribute("data-single-digit", isSingle ? "true" : "false");
       span.setAttribute("aria-hidden", "true");
@@ -431,14 +432,14 @@ test("nav badges are visibly centered for single and multi-digit counts (1, 2, 9
 
     document.body.removeChild(container);
     return data;
-  }, testCounts);
+  }, { counts: testCounts, badgeClass });
 
   for (const r of results) {
-    expect(r.height).toBe(15);
+    expect(r.height).toBe(liveHeight);
     if (r.isSingle) {
-      expect(r.width).toBe(15);
+      expect(r.width).toBe(r.height);
     } else {
-      expect(r.width).toBeGreaterThanOrEqual(15);
+      expect(r.width).toBeGreaterThanOrEqual(r.height);
     }
     expect(r.leftInset).toBeGreaterThanOrEqual(0);
     expect(r.rightInset).toBeGreaterThanOrEqual(0);
@@ -579,13 +580,29 @@ test("planned chooser distinguishes closure and limited service with readable da
         effectFontWeight: effect.fontWeight,
         height: element.getBoundingClientRect().height,
         lineHeight: parseFloat(style.lineHeight),
+        // The separator dot and the effect words share one line.
+        effectLines: (() => {
+          const effect = element.querySelector(".overlap-chooser-choice-effect")!;
+          const separator = effect.firstElementChild!.firstChild as Text;
+          const words = effect.lastChild as Text;
+          const top = (node: Text, start: number, end: number) => {
+            const range = document.createRange();
+            range.setStart(node, start);
+            range.setEnd(node, end);
+            return Math.round(range.getBoundingClientRect().top);
+          };
+          const dot = separator.data.indexOf("·");
+          return new Set([top(separator, dot, dot + 1), top(words, 0, words.length)]).size;
+        })(),
         width: element.getBoundingClientRect().width,
         availableWidth: element.parentElement!.clientWidth,
       };
     });
     expect(heading.effectFontSize).toBe(heading.fontSize);
     expect(heading.effectFontWeight).toBe(heading.fontWeight);
-    expect(heading.height).toBeLessThan(heading.lineHeight * 1.5);
+    // A long heading may wrap on a narrow phone, but the effect stays in one piece.
+    expect(heading.effectLines).toBe(1);
+    expect(heading.height).toBeLessThan(heading.lineHeight * 2.5);
     expect(heading.width).toBeLessThanOrEqual(heading.availableWidth + 1);
   }
   await expect(planned.first().locator(".overlap-chooser-choice-date")).toBeVisible();

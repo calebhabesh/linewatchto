@@ -519,7 +519,10 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
 
     const canvasBox = await geoMap.locator("canvas").boundingBox();
     expect(canvasBox).not.toBeNull();
-    await page.mouse.click(canvasBox!.x + 4, canvasBox!.y + 4);
+    // The map runs under the sidebar, so clear the selection on open map beside it.
+    const sidebarBox = (await page.locator("#desktop-sidebar-container").boundingBox())!;
+    await page.mouse.click(sidebarBox.x + sidebarBox.width + 40, canvasBox!.y + canvasBox!.height - 40);
+    await expect(card).not.toHaveClass(/is-active/);
     await expect(card).not.toHaveClass(/highlight-active-card/);
 
     const key = "segment:line-4-leslie-don-mills";

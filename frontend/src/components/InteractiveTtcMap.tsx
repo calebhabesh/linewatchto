@@ -3743,7 +3743,7 @@ function OverlapChooser({
                 </span>
                 <span className="overlap-chooser-choice-copy">
                   <strong>{overlapChooserTypeLabel(impact.kind, details)}{impact.kind === "planned-closure" && details?.serviceEffect ? (
-                    <span className="overlap-chooser-choice-effect"><span aria-hidden="true"> · </span>{details.serviceEffect === "limited-service" ? "Limited Service" : details.serviceEffect === "suspension" ? "Closure" : "Delay"}</span>
+                    <span className="overlap-chooser-choice-effect"><span aria-hidden="true">{" ·\u00a0"}</span>{details.serviceEffect === "limited-service" ? "Limited Service" : details.serviceEffect === "suspension" ? "Closure" : "Delay"}</span>
                   ) : null}</strong>
                   {impact.kind === "planned-closure" && details?.closureDateLabel ? (
                     <span className="overlap-chooser-choice-date">{details.closureDateLabel}{details?.closureTimeLabel ? <><span className="sr-only">, </span><span className="overlap-chooser-choice-time">{details.closureTimeLabel}</span></> : null}</span>

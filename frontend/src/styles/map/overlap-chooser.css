@@ -430,6 +430,13 @@
 
 .overlap-chooser-choice-effect {
   font: inherit;
+  /* A long heading wraps before the separator dot, never after it or inside
+     "Limited Service" (the dot is followed by a no-break space). */
+  white-space: nowrap;
+}
+
+.overlap-chooser-choice-effect > [aria-hidden="true"] {
+  white-space: normal;
 }
 
 .overlap-chooser-choice-date {

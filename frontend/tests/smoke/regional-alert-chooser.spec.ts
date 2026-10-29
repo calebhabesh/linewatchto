@@ -78,7 +78,8 @@ for (const theme of ["light", "dark"] as const) {
     }
     const marker = page.locator('[data-overlap-segment-id^="regional-overlap-"]');
     await expect(marker).toHaveCount(1);
-    await marker.click();
+    // Click the visible badge: the marker's box also spans its anchor on the line.
+    await marker.locator(".overlap-indicator-pill").click();
     const chooser = page.getByRole("dialog", { name: /Choose Alert on/ });
     await expect(chooser).toBeVisible();
     const planned = chooser.locator('[data-overlap-choice-id="regional-demo-planned"]');
