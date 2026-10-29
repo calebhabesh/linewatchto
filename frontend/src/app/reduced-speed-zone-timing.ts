@@ -6,7 +6,7 @@ import {
 
 export type ReducedSpeedZoneTimingField = "startedAt" | "updatedAt";
 
-export type ReducedSpeedZoneTimingEntry = {
+type ReducedSpeedZoneTimingEntry = {
   timestamp: string;
   direction: ReducedSpeedZoneDirection;
   count: number;

@@ -53,7 +53,7 @@ import {
   type MapContentBounds,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
-import { ZoomIn, ZoomOut, Locate, Sun, Moon, X } from "lucide-react";
+import { ZoomIn, ZoomOut, Locate, X } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import { NetworkSelector } from "./NetworkSelector";
 import { SharedMapControlRail } from "./SharedMapControlRail";
@@ -87,17 +87,13 @@ import {
   TRAIN_MARKER_WINDOWS,
   type EstimatedTrainMarker,
 } from "../app/train-markers";
-import { LogsDropdown } from "./LogsDropdown";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import {
   MapOverlapIndicator,
-  mapOverlapIndicatorSizeForKindCount,
   restoreMapOverlapIndicatorFocus,
-  type MapOverlapIndicatorSize,
 } from "./MapOverlapIndicator";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
-import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
 import {
   observeMobileMapFrame,
@@ -111,11 +107,16 @@ import { useMapLabelFontReady } from "../hooks/useMapLabelFontReady";
 import { usePageVisibility } from "../hooks/usePageVisibility";
 import { useRotatedListDragScroll } from "../hooks/useRotatedListDragScroll";
 import {
+  activeImpactsForSegment,
   buildStationOverlapBadgeGroups,
   coveredSegmentOverlapBadgeSignatures,
+  getUniqueImpactKinds,
   hasOverlappingImpacts,
+  mapOverlapIndicatorSizeForKindCount,
   overlapBadgeKindCounts,
+  overlapBadgeSignature,
   overlapBadgeVisualItemCount,
+  type MapOverlapIndicatorSize,
 } from "./map-overlap-badges";
 import {
   BADGE_FEATURE_GAPS,
@@ -401,7 +402,6 @@ function InteractiveTtcMapComponent({
   onSelectStationId,
   isDark,
   highContrast = false,
-  onToggleTheme,
   layoutResetSignal,
   entranceSignal,
   recenterSignal,
@@ -434,7 +434,6 @@ function InteractiveTtcMapComponent({
   onSelectStationId: (id: string | null) => void;
   isDark: boolean;
   highContrast?: boolean;
-  onToggleTheme: () => void;
   layoutResetSignal?: number;
   entranceSignal?: number;
   recenterSignal?: number;
@@ -1516,7 +1515,7 @@ function InteractiveTtcMapComponent({
     const groups = new Map<string, { impact: MapImpact; segments: RenderedNetworkSegment[] }>();
 
     for (const segment of renderedOverlaySegments) {
-      const impacts = segment.impacts?.length ? segment.impacts : legacyImpactsForSegment(segment);
+      const impacts = activeImpactsForSegment(segment);
       for (const impact of impacts) {
         const key = impactLayerKey(impact);
         const group = groups.get(key);
@@ -2285,23 +2284,6 @@ function InteractiveTtcMapComponent({
       className="relative w-full h-full flex flex-col overflow-hidden bg-transparent"
       data-map-viewport-orientation={viewportOrientation}
     >
-      {/* Top right Theme toggle (styled like hamburger) and poll chip */}
-      <div className="map-utility-cluster absolute top-4 sm:top-6 right-4 sm:right-6 z-20 flex items-center gap-2 pointer-events-auto hidden">
-        <LogsDropdown />
-        <button
-          onClick={onToggleTheme}
-          className="theme-toggle-btn panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
-          aria-label="Toggle theme"
-        >
-          {isDark ? (
-            <Sun size={24} className="text-yellow-500 fill-yellow-500" />
-          ) : (
-            <Moon size={24} className="text-purple-500 fill-purple-500" />
-          )}
-        </button>
-        <SiteGuideDropdown />
-      </div>
-
       {/* Top center map controls */}
       {/* Note: ml-2 sm:ml-3 is added to visually center the mass of the controls, since the left side has 2 buttons and is visually heavier than the right side */}
       <SharedMapControlRail network="ttc" ref={mapControlRailRef} className="map-control-rail desktop-map-control-rail absolute top-14 sm:top-5 left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto" data-map-chooser-keepout>
@@ -3461,28 +3443,6 @@ function stationOverlapProtectedBox(point: MapPoint): SvgBounds {
   );
 }
 
-function legacyImpactsForSegment(segment: NetworkSegment): MapImpact[] {
-  if (segment.overlay === "clear") {
-    return [];
-  }
-
-  const sourceAlertIds = segment.sourceAlertIds ?? [];
-  const reducedSpeedZoneId = segment.reducedSpeedZoneIds?.[0];
-  const cardId = reducedSpeedZoneId ?? segment.alertId ?? sourceAlertIds[0] ?? segment.id;
-  const kind: MapImpactKind = segment.overlay === "suspension"
-    ? "suspension"
-    : reducedSpeedZoneId
-      ? "reduced-speed-zone"
-      : "delay";
-
-  return [{
-    kind,
-    cardId,
-    travelDirection: segment.travelDirection ?? "bidirectional",
-    sourceAlertIds: sourceAlertIds.length ? sourceAlertIds : [cardId],
-  }];
-}
-
 function visualStateForImpactKind(kind: MapImpactKind): OverlayVisualState {
   switch (kind) {
     case "suspension":
@@ -3494,15 +3454,6 @@ function visualStateForImpactKind(kind: MapImpactKind): OverlayVisualState {
     case "reduced-speed-zone":
       return "reduced-speed-zone";
   }
-}
-
-function getUniqueImpactKinds(impacts: MapImpact[]): MapImpactKind[] {
-  return Array.from(new Set(impacts.map((impact) => impact.kind)))
-    .sort((a, b) => getImpactPriority(b) - getImpactPriority(a));
-}
-
-function activeImpactsForSegment(segment: NetworkSegment): MapImpact[] {
-  return segment.impacts?.length ? segment.impacts : legacyImpactsForSegment(segment);
 }
 
 function plannedPreviewImpactsForSegment(
@@ -3531,13 +3482,6 @@ function overlapBadgeImpactsForSegment(
     impactsByKey.set(`${impact.kind}:${impact.cardId}`, impact);
   }
   return Array.from(impactsByKey.values());
-}
-
-function overlapBadgeSignature(impacts: MapImpact[]): string {
-  return impacts
-    .map((impact) => `${impact.kind}:${impact.cardId}`)
-    .sort()
-    .join("|");
 }
 
 function groupOverlapBadgeSegments(

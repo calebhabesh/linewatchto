@@ -10,7 +10,7 @@ import {
   TRAIN_MARKER_WINDOWS,
 } from "../app/train-markers.ts";
 
-export type TrainMarkerPaint = {
+type TrainMarkerPaint = {
   outlineStroke: string;
   outlineWidth: number;
   coreStroke: string;
@@ -85,10 +85,10 @@ export function readTrainMarkerPaint(
 }
 
 /** Glyph-space half extent drawn: the body (36 x 15) plus outline and shadow room. */
-export const TRAIN_GLYPH_HALF_WIDTH = 44;
-export const TRAIN_GLYPH_HALF_HEIGHT = 24;
+const TRAIN_GLYPH_HALF_WIDTH = 44;
+const TRAIN_GLYPH_HALF_HEIGHT = 24;
 /** The body's length in glyph units (nose to back). */
-export const TRAIN_GLYPH_BODY_LENGTH = 72;
+const TRAIN_GLYPH_BODY_LENGTH = 72;
 
 /**
  * Draws the glyph pointing east, its body `bodyLengthPx` CSS px long, at

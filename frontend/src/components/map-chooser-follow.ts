@@ -56,7 +56,7 @@ export function chooserBadgeInView(
 }
 
 /** A logical offset as a CSS offset of the card's portal, which is rotated with the map. */
-export function physicalChooserOffset(
+function physicalChooserOffset(
   offset: ChooserFollowPoint,
   orientation: MapViewportOrientation,
 ): ChooserFollowPoint {
@@ -65,7 +65,7 @@ export function physicalChooserOffset(
 
 const round = (value: number) => Math.round(value * 100) / 100;
 
-export function chooserFollowTransform(
+function chooserFollowTransform(
   offset: ChooserFollowPoint,
   orientation: MapViewportOrientation,
 ): string {
@@ -73,11 +73,11 @@ export function chooserFollowTransform(
   return orientation === "rotated-landscape" ? `${translate} rotate(90deg)` : translate;
 }
 
-export type ChooserFollowElement = {
+type ChooserFollowElement = {
   style: { transform: string; transition: string; translate: string };
 };
 
-export type ChooserFollowEnvironment = {
+type ChooserFollowEnvironment = {
   /**
    * The element's rendered offset for one property, including any running
    * transition: the translation of `transform`, or the `translate` property.

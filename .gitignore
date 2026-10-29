@@ -16,7 +16,6 @@ backend/target/
 frontend/node_modules/
 frontend/.next/
 frontend/.next-scenario/
-frontend/.next-account-edits/
 frontend/.next-onboarding/
 frontend/out/
 frontend/coverage/

@@ -255,14 +255,6 @@
   }
 }
 
-.estimated-train-pending-spinner {
-  animation: train-spinner-rotate 1.6s linear infinite;
-}
-
-.motion-paused .estimated-train-pending-spinner {
-  animation: none;
-}
-
 .desktop-status-chip-row {
   align-items: center;
   display: flex;
@@ -825,38 +817,6 @@
 /* ============================================================
    Menu Action Rows & Top Chrome Active Page State
    ============================================================ */
-.menu-action-row {
-  align-items: center;
-  border-radius: 8px;
-  color: rgb(51, 65, 85);
-  display: flex;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  font-weight: 500;
-  gap: 0.75rem;
-  padding: 0.625rem 0.75rem;
-  text-align: left;
-  transition: background 0.16s ease, color 0.16s ease;
-  width: 100%;
-}
-
-.menu-action-row:hover,
-.menu-action-row:focus-visible {
-  background: rgba(0, 0, 0, 0.05);
-  outline: none;
-}
-
-.dark .menu-action-row,
-.high-contrast .menu-action-row {
-  color: rgb(226, 232, 240);
-}
-
-.dark .menu-action-row:hover,
-.dark .menu-action-row:focus-visible,
-.high-contrast .menu-action-row:hover,
-.high-contrast .menu-action-row:focus-visible {
-  background: rgba(255, 255, 255, 0.05);
-}
 
 .desktop-top-chrome [aria-current="page"] {
   background: rgba(0, 0, 0, 0.05);
@@ -1480,14 +1440,6 @@
   height: 21px;
   padding: 0;
   width: 21px;
-}
-
-.desktop-rail-network-slot {
-  align-items: center;
-  display: flex;
-  justify-content: center;
-  margin: 0;
-  width: 100%;
 }
 
 .network-selector--compact-vertical {
@@ -2222,93 +2174,6 @@
    Desktop Saved Section Switcher & Container
    -------------------------------------------------------------------------- */
 
-.desktop-saved-container {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
-  width: 100%;
-}
-
-.desktop-saved-nav {
-  align-items: center;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  display: flex;
-  gap: 8px;
-  padding: 12px 16px;
-  width: 100%;
-}
-
-.dark .desktop-saved-nav {
-  border-bottom-color: rgba(255, 255, 255, 0.05);
-}
-
-.high-contrast .desktop-saved-nav {
-  border-bottom: 1px solid currentColor;
-}
-
-.desktop-saved-tab {
-  align-items: center;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  color: var(--muted);
-  cursor: pointer;
-  display: flex;
-  font-size: 13px;
-  font-weight: 600;
-  gap: 6px;
-  outline: none;
-  padding: 6px 12px;
-  transition: background-color 140ms ease, color 140ms ease;
-}
-
-.desktop-saved-tab:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: var(--text);
-}
-
-.dark .desktop-saved-tab:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
-}
-
-.desktop-saved-tab--active {
-  background: rgba(0, 0, 0, 0.08);
-  color: var(--text);
-  font-weight: 700;
-}
-
-.dark .desktop-saved-tab--active {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-}
-
-.desktop-saved-tab-count {
-  align-items: center;
-  background: rgba(0, 0, 0, 0.08);
-  border-radius: 9999px;
-  display: inline-flex;
-  font-size: 11px;
-  font-weight: 700;
-  height: 18px;
-  justify-content: center;
-  min-width: 18px;
-  padding: 0 5px;
-}
-
-.dark .desktop-saved-tab-count {
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.desktop-saved-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
-  overflow-y: auto;
-}
-
 /* --------------------------------------------------------------------------
    Desktop Status Overview Styles
    -------------------------------------------------------------------------- */
@@ -2821,40 +2686,6 @@
   display: none;
 }
 
-.desktop-status-border-beam-wrapper {
-  border-style: solid;
-  border-color: transparent;
-  border-width: var(--border-beam-width, 3px);
-  border-radius: inherit;
-  inset: -1px;
-  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  overflow: hidden;
-  pointer-events: none;
-  position: absolute;
-  z-index: 2;
-}
-
-.desktop-status-border-beam-motion {
-  aspect-ratio: 1 / 1;
-  pointer-events: none;
-  position: absolute;
-  will-change: transform, offset-distance;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .desktop-status-border-beam-wrapper {
-    display: none;
-  }
-}
-
-.high-contrast .desktop-status-border-beam-wrapper,
-.linewatch-shell.high-contrast .desktop-status-border-beam-wrapper {
-  display: none;
-}
-
 .desktop-status-incident-row {
   align-items: flex-start;
   background: rgba(220, 38, 38, 0.05);
@@ -3275,17 +3106,6 @@
   color: #ffffff;
 }
 
-.desktop-status-remaining-status--rsz strong,
-.desktop-status-remaining-status--rsz span {
-  color: #d97706;
-  font-weight: 600;
-}
-
-.dark .desktop-status-remaining-status--rsz strong,
-.dark .desktop-status-remaining-status--rsz span {
-  color: #fbbf24;
-}
-
 .desktop-status-remaining-status--closed strong {
   color: #7c3aed;
 }
@@ -3548,8 +3368,7 @@
   min-width: 0;
 }
 
-.desktop-more-account-name,
-.desktop-more-user-name {
+.desktop-more-account-name {
   color: var(--text);
   font-size: 15px;
   font-weight: 700;
@@ -3565,91 +3384,9 @@
   font-weight: 500;
 }
 
-.desktop-more-demo-badge {
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  border-radius: 4px;
-  color: #059669;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  padding: 2px 6px;
-  text-transform: uppercase;
-}
-
-.dark .desktop-more-demo-badge {
-  color: #34d399;
-}
-
-.desktop-more-account-actions,
-.desktop-more-auth-row {
+.desktop-more-account-actions {
   display: flex;
   gap: 8px;
-}
-
-.desktop-more-btn {
-  align-items: center;
-  border-radius: 6px;
-  cursor: pointer;
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 600;
-  gap: 6px;
-  justify-content: center;
-  padding: 7px 12px;
-  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
-  background: rgba(0, 0, 0, 0.05);
-  border: none;
-  color: var(--text);
-}
-
-.dark .desktop-more-btn {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.desktop-more-btn--primary {
-  background: var(--logo-blue, #2563eb);
-  color: #ffffff;
-}
-
-.desktop-more-btn--primary:hover {
-  background: #1d4ed8;
-}
-
-.desktop-more-btn--danger {
-  background: rgba(239, 68, 68, 0.12);
-  color: #dc2626;
-}
-
-.dark .desktop-more-btn--danger {
-  background: rgba(239, 68, 68, 0.2);
-  color: #f87171;
-}
-
-.desktop-more-btn--ghost {
-  background: transparent;
-}
-
-.desktop-more-btn--ghost:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.dark .desktop-more-btn--ghost:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.desktop-more-btn--outline {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-
-.desktop-more-btn--outline:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.dark .desktop-more-btn--outline:hover {
-  background: rgba(255, 255, 255, 0.06);
 }
 
 .desktop-more-section-caption {
@@ -3713,90 +3450,6 @@
   font-size: 15px;
   font-weight: 500;
   color: var(--text);
-}
-
-.desktop-more-setting-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.desktop-more-setting-title {
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.desktop-more-setting-description {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.desktop-more-toggle-btn {
-  align-items: center;
-  background: rgba(0, 0, 0, 0.07);
-  border: none;
-  border-radius: 6px;
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  font-size: 12px;
-  font-weight: 700;
-  gap: 6px;
-  padding: 5px 10px;
-  transition: background-color 140ms ease;
-}
-
-.dark .desktop-more-toggle-btn {
-  background: rgba(255, 255, 255, 0.09);
-}
-
-.desktop-more-toggle-btn:hover {
-  background: rgba(0, 0, 0, 0.1);
-}
-
-.dark .desktop-more-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.desktop-more-network-pills {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 4px;
-  padding: 4px;
-}
-
-.desktop-more-network-pill {
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 8px 10px;
-  text-align: center;
-  transition: background-color 140ms ease, color 140ms ease;
-}
-
-.desktop-more-network-pill:hover {
-  color: var(--text);
-  background: rgba(0, 0, 0, 0.04);
-}
-
-.dark .desktop-more-network-pill:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.desktop-more-network-pill.active {
-  background: var(--panel-strong, #ffffff);
-  color: var(--text, #000000);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  font-weight: 700;
-}
-
-.dark .desktop-more-network-pill.active {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
 }
 
 .desktop-more-section--default-map .desktop-more-default-map-options {
@@ -4088,13 +3741,10 @@
 .desktop-sidebar-container .compact-impact-list-item,
 .desktop-sidebar-container .commute-card,
 .desktop-sidebar-container .saved-commute-card,
-.desktop-sidebar-container .my-stations-card,
 .desktop-sidebar-container .my-stations-row,
 .desktop-sidebar-container .saved-station-rich-row,
 .desktop-sidebar-container .saved-station-list-slot,
 .desktop-sidebar-container .my-stations-picker-section,
-.desktop-sidebar-container .accessibility-outage-card,
-.desktop-sidebar-container .surface-notice-card,
 .desktop-sidebar-container .surface-notice-route-group,
 .desktop-sidebar-container .alert-history-item,
 .desktop-sidebar-container .station-impact-card,
@@ -4102,7 +3752,6 @@
 .desktop-sidebar-container .my-stations-picker-row,
 .desktop-sidebar-container .my-stations-empty,
 .desktop-sidebar-container .saved-station-inline-undo,
-.desktop-sidebar-container .saved-commute-preview-card,
 .desktop-sidebar-container .account-feature-preview {
   box-sizing: border-box;
   max-width: 100%;

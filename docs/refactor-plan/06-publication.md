@@ -64,8 +64,8 @@ Inventory scripts by entry point, owner, required inputs, output and test.
 Retain useful compatibility aliases:
 [dev-live-backend.sh](../../scripts/dev-live-backend.sh) forwards to
 [dev-backend-live.sh](../../scripts/dev-backend-live.sh) and is used by current
-README/guidance/tests. The `.js` mock-server wrapper also needs a caller check
-before removal; forwarding alone is not enough reason to delete a script.
+README/guidance/tests. Forwarding alone is not enough reason to delete a script;
+the uncalled `.js` mock-server wrapper was removed after a caller check.
 
 **Acceptance:** fresh checkout using the lockfile can install, typecheck/build,
 run the fixture dashboard, and start documented local backend infrastructure

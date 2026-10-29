@@ -14,6 +14,8 @@ const ttcChooserPlacementSource = readFileSync(new URL("../src/components/ttc-ch
 const geographicMapSource = readFileSync(new URL("../src/components/GeographicNetworkMap.tsx", import.meta.url), "utf8");
 const overlapChooserSource = readFileSync(new URL("../src/components/MapOverlapChooser.tsx", import.meta.url), "utf8");
 const overlapIndicatorSource = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
+const overlapBadgesSource = readFileSync(new URL("../src/components/map-overlap-badges.ts", import.meta.url), "utf8");
+const overlapSvgSource = readFileSync(new URL("../src/components/map-overlap-svg.ts", import.meta.url), "utf8");
 const chooserKeepoutsSource = readFileSync(new URL("../src/components/map-chooser-keepouts.ts", import.meta.url), "utf8");
 const plannedClosureIconSource = readFileSync(new URL("../src/components/PlannedClosureIcon.tsx", import.meta.url), "utf8");
 const mapImpactNormalizationSource = readFileSync(new URL("../src/components/map-impact-normalization.ts", import.meta.url), "utf8");
@@ -575,11 +577,16 @@ describe("asset-backed map layering", () => {
     assert.match(overlapIndicatorSource, /const isSingleVisualItem = totalItems === 1;/);
     assert.match(overlapIndicatorSource, /isSingleVisualItem \? \(/);
     assert.match(overlapIndicatorSource, /<circle className="overlap-indicator-pill"/);
-    assert.match(overlapIndicatorSource, /if \(impactKindCount === 1\)/);
+    assert.match(overlapBadgesSource, /if \(impactKindCount === 1\)/);
     assert.match(overlapIndicatorSource, /kind=\{kind\} size=\{44\}/);
-    assert.match(overlapIndicatorSource, /const OVERLAP_BADGE_CIRCLE_RADIUS = 35;/);
-    assert.match(overlapIndicatorSource, /const OVERLAP_BADGE_ITEM_GAP = 10;/);
-    assert.match(overlapIndicatorSource, /OVERLAP_BADGE_CIRCLE_RADIUS \* 2 \+ OVERLAP_BADGE_ITEM_GAP/);
+    assert.match(overlapSvgSource, /export const OVERLAP_BADGE_CIRCLE_RADIUS = 35;/);
+    assert.match(overlapSvgSource, /export const OVERLAP_BADGE_ITEM_GAP = 10;/);
+    assert.match(overlapSvgSource, /OVERLAP_BADGE_CIRCLE_RADIUS \* 2 \+ OVERLAP_BADGE_ITEM_GAP/);
+    // Badge geometry and impact helpers have one owner, shared by both maps.
+    for (const source of [overlapIndicatorSource, overlapBadgesSource, interactiveMapSource]) {
+      assert.doesNotMatch(source, /const OVERLAP_BADGE_CIRCLE_RADIUS =/);
+    }
+    assert.doesNotMatch(interactiveMapSource, /function (getUniqueImpactKinds|overlapBadgeSignature|activeImpactsForSegment|legacyImpactsForSegment)\b/);
     assert.match(interactiveMapSource, /getUniqueImpactKinds/);
     assert.doesNotMatch(interactiveMapSource, /if \(impactKinds\.length <= 1\) continue;/);
     assert.match(interactiveMapSource, /const measuredGeometrySignatureRef = useRef<string \| null>\(null\)/);
@@ -599,10 +606,10 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /const frame = pathMidpointFrame\(segment\.pathD\)/);
     assert.match(interactiveMapSource, /OVERLAY_CORRIDOR_COLLISION_RADIUS/);
     assert.match(interactiveMapSource, /const OVERLAY_CORRIDOR_COLLISION_RADIUS = 54;/);
-    assert.match(overlapIndicatorSource, /const OVERLAP_INDICATOR_SCALE = 1\.5;/);
-    assert.match(overlapIndicatorSource, /width: OVERLAP_BADGE_PILL_THICKNESS \* OVERLAP_INDICATOR_SCALE,/);
-    assert.match(overlapIndicatorSource, /\(totalItems - 1\) \* OVERLAP_BADGE_ITEM_SPACING \+ OVERLAP_BADGE_PILL_THICKNESS/);
-    assert.match(overlapIndicatorSource, /height: OVERLAP_BADGE_PILL_THICKNESS \* OVERLAP_INDICATOR_SCALE/);
+    assert.match(overlapSvgSource, /export const OVERLAP_INDICATOR_SCALE = 1\.5;/);
+    assert.match(overlapBadgesSource, /width: OVERLAP_BADGE_PILL_THICKNESS \* OVERLAP_INDICATOR_SCALE,/);
+    assert.match(overlapBadgesSource, /\(totalItems - 1\) \* OVERLAP_BADGE_ITEM_SPACING \+ OVERLAP_BADGE_PILL_THICKNESS/);
+    assert.match(overlapBadgesSource, /height: OVERLAP_BADGE_PILL_THICKNESS \* OVERLAP_INDICATOR_SCALE/);
     assert.match(overlapIndicatorSource, /<g transform=\{`scale\(\$\{OVERLAP_INDICATOR_SCALE\}\)`\}>/);
     assert.match(interactiveMapSource, /overlayPlacementObstacles/);
     assert.match(

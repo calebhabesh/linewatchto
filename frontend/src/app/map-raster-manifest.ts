@@ -1,4 +1,4 @@
-export const RASTER_MAP_NETWORKS = ["ttc", "regional"] as const;
+const RASTER_MAP_NETWORKS = ["ttc", "regional"] as const;
 export type RasterMapNetwork = "ttc" | "regional";
 
 export const RASTER_MAP_THEMES = ["light", "dark", "high-contrast"] as const;
@@ -7,10 +7,10 @@ export type RasterMapTheme = "light" | "dark" | "high-contrast";
 export const RASTER_MAP_DENSITIES = ["mobile", "balanced", "desktop"] as const;
 export type RasterMapDensity = "mobile" | "balanced" | "desktop";
 
-export const TTC_RASTER_MAP_PLANES = ["background", "foreground", "labels", "badges"] as const;
+const TTC_RASTER_MAP_PLANES = ["background", "foreground", "labels", "badges"] as const;
 export type TtcRasterMapPlane = "background" | "foreground" | "labels" | "badges";
 
-export const REGIONAL_RASTER_MAP_PLANES = ["background", "foreground", "labels"] as const;
+const REGIONAL_RASTER_MAP_PLANES = ["background", "foreground", "labels"] as const;
 export type RegionalRasterMapPlane = "background" | "foreground" | "labels";
 
 export type RasterMapPlane = TtcRasterMapPlane;
@@ -20,7 +20,7 @@ export const RASTER_MAP_PLANES_BY_NETWORK = {
   regional: REGIONAL_RASTER_MAP_PLANES,
 } as const;
 
-export type RasterMapPlaneFor<N extends RasterMapNetwork> =
+type RasterMapPlaneFor<N extends RasterMapNetwork> =
   N extends "ttc" ? TtcRasterMapPlane : RegionalRasterMapPlane;
 
 export const RASTER_MAP_WIDTHS = {
@@ -34,27 +34,7 @@ export const RASTER_MAP_RENDERED_SIZES = {
   regionalLabels: { width: 17036.959, height: 9031.6719 },
 } as const;
 
-export const RASTER_MAP_REQUIRED_FONTS = [
-  {
-    family: "TeX Gyre Heros",
-    style: "normal",
-    weight: "normal",
-    file: "/assets/fonts/texgyreheros-regular.woff2",
-  },
-  {
-    family: "TeX Gyre Heros",
-    style: "normal",
-    weight: "bold",
-    file: "/assets/fonts/texgyreheros-bold.woff2",
-  },
-] as const;
-
-export const RASTER_MAP_SVG_SOURCES = {
-  ttc: "frontend/public/assets/linewatch/ttc-subway-map-custom.svg",
-  regional: "frontend/public/assets/linewatch/regional-rail-map.svg",
-} as const;
-
-export interface RasterMapVariantDescriptor {
+interface RasterMapVariantDescriptor {
   network: RasterMapNetwork;
   plane: RasterMapPlane;
   theme: RasterMapTheme;

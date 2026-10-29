@@ -1,20 +1,20 @@
-export type AccountDialogMode = "login" | "register";
+type AccountDialogMode = "login" | "register";
 
-export type AccountCredentialInput = {
+type AccountCredentialInput = {
   mode: AccountDialogMode;
   email: string;
   password: string;
 };
 
-export type AccountValidationResult = {
+type AccountValidationResult = {
   valid: boolean;
   normalizedEmail: string;
   message: string | null;
 };
 
-export const ACCOUNT_EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-export const MIN_ACCOUNT_PASSWORD_LENGTH = 8;
-export const MAX_ACCOUNT_PASSWORD_BYTES = 72;
+const ACCOUNT_EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+const MIN_ACCOUNT_PASSWORD_LENGTH = 8;
+const MAX_ACCOUNT_PASSWORD_BYTES = 72;
 
 export function normalizeAccountEmail(email: string) {
   return email.trim().toLowerCase();

@@ -25,19 +25,13 @@
 .linewatch-shell.high-contrast .text-slate-900,
 .linewatch-shell.high-contrast .text-slate-800,
 .linewatch-shell.high-contrast .text-slate-700,
-.linewatch-shell.high-contrast .text-slate-600,
-.linewatch-shell.high-contrast .text-gray-900,
-.linewatch-shell.high-contrast .text-gray-800,
-.linewatch-shell.high-contrast .text-gray-700,
-.linewatch-shell.high-contrast .text-gray-600 {
+.linewatch-shell.high-contrast .text-slate-600 {
   color: #ffffff !important;
 }
 
 .linewatch-shell.high-contrast .text-slate-500,
 .linewatch-shell.high-contrast .text-slate-400,
-.linewatch-shell.high-contrast .text-slate-300,
-.linewatch-shell.high-contrast .text-gray-500,
-.linewatch-shell.high-contrast .text-gray-400 {
+.linewatch-shell.high-contrast .text-slate-300 {
   color: #f0f0f0 !important;
 }
 
@@ -66,7 +60,6 @@
 /* Force high-contrast background, border, and sub-card styling on all panels/submenus */
 .linewatch-shell.high-contrast .panel,
 .linewatch-shell.high-contrast .panel-strong,
-.linewatch-shell.high-contrast .map-panel,
 .linewatch-shell.high-contrast .commute-panel,
 .linewatch-shell.high-contrast .analytics-panel,
 .linewatch-shell.high-contrast .health-panel,

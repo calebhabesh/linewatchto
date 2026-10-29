@@ -3,7 +3,7 @@ import type { PlannedClosure } from "./linewatch-data";
 // Placeholder windows that carry no dates or times of their own.
 const GENERIC_WINDOWS = new Set(["Nightly closure windows", "Closure timing unavailable", "Timing TBD"]);
 
-export type PlannedClosureTiming = { dates: string | null; time: string | null };
+type PlannedClosureTiming = { dates: string | null; time: string | null };
 
 /** Splits a planned closure's schedule into a date part and an explicit time part for compact lists. */
 export function plannedClosureTiming(

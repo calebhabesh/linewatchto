@@ -41,7 +41,6 @@
 .mobile-line-status-row,
 .mobile-more-account,
 .mobile-more-row,
-.mobile-more-health-grid div,
 .mobile-more-install-help,
 .notification-settings-card,
 .notification-settings-row,
@@ -58,7 +57,6 @@
 .high-contrast .mobile-line-status-impacts button,
 .high-contrast .mobile-more-account,
 .high-contrast .mobile-more-row,
-.high-contrast .mobile-more-health-grid div,
 .high-contrast .mobile-more-install-help,
 .high-contrast .notification-settings-card,
 .high-contrast .notification-settings-row,
@@ -88,18 +86,15 @@
 /* Keep More-menu groupings legible in light mode, especially on mobile. */
 .mobile-more-account,
 .mobile-more-row,
-.mobile-more-health-grid div,
 .mobile-more-install-help {
   border: none !important;
 }
 
 .high-contrast .mobile-more-account,
 .high-contrast .mobile-more-row,
-.high-contrast .mobile-more-health-grid div,
 .high-contrast .mobile-more-install-help,
 .linewatch-shell.high-contrast .mobile-more-account,
 .linewatch-shell.high-contrast .mobile-more-row,
-.linewatch-shell.high-contrast .mobile-more-health-grid div,
 .linewatch-shell.high-contrast .mobile-more-install-help {
   border: 1px solid #ffffff !important;
 }
@@ -145,9 +140,7 @@
 .station-impact-card[data-station-impact-tone="reduced-speed-zone"],
 .compact-impact-list-item.rsz-card-border,
 .commute-card.warning,
-.saved-station-rich-row.is-affected,
-.alert-history-item.alert-history-tone-reduced-speed-zone,
-.alert-history-item.alert-history-event-active {
+.saved-station-rich-row.is-affected {
   border-left: 1.5px solid rgba(245, 158, 11, 0.85);
   box-shadow: inset 2px 0 6px -1px rgba(245, 158, 11, 0.20);
   background: linear-gradient(90deg, rgba(245, 158, 11, 0.07) 0%, rgba(245, 158, 11, 0.02) 12px, transparent 24px), #f8fafc;
@@ -157,18 +150,14 @@
 .dark .station-impact-card[data-station-impact-tone="reduced-speed-zone"],
 .dark .compact-impact-list-item.rsz-card-border,
 .dark .commute-card.warning,
-.dark .saved-station-rich-row.is-affected,
-.dark .alert-history-item.alert-history-tone-reduced-speed-zone,
-.dark .alert-history-item.alert-history-event-active {
+.dark .saved-station-rich-row.is-affected {
   background: linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.04) 14px, transparent 30px), #12151c;
 }
 
 .alert-card.delay-card-border,
 .station-impact-card.delay-card-border,
 .station-impact-card[data-station-impact-tone="delay"],
-.compact-impact-list-item.delay-card-border,
-.alert-history-item.alert-history-tone-delay,
-.alert-history-item.alert-history-event-active.alert-history-tone-delay {
+.compact-impact-list-item.delay-card-border {
   border-left: 1.5px solid rgba(254, 236, 65, 0.85);
   box-shadow: inset 2px 0 6px -1px rgba(254, 236, 65, 0.20);
   background: linear-gradient(90deg, rgba(254, 236, 65, 0.07) 0%, rgba(254, 236, 65, 0.02) 12px, transparent 24px), #f8fafc;
@@ -176,9 +165,7 @@
 .dark .alert-card.delay-card-border,
 .dark .station-impact-card.delay-card-border,
 .dark .station-impact-card[data-station-impact-tone="delay"],
-.dark .compact-impact-list-item.delay-card-border,
-.dark .alert-history-item.alert-history-tone-delay,
-.dark .alert-history-item.alert-history-event-active.alert-history-tone-delay {
+.dark .compact-impact-list-item.delay-card-border {
   background: linear-gradient(90deg, rgba(254, 236, 65, 0.11) 0%, rgba(254, 236, 65, 0.035) 14px, transparent 30px), #12151c;
 }
 
@@ -186,9 +173,7 @@
 .station-impact-card.suspension-card-border,
 .station-impact-card[data-station-impact-tone="active"],
 .compact-impact-list-item.suspension-card-border,
-.commute-card.danger,
-.alert-history-item.alert-history-tone-suspension,
-.alert-history-item.alert-history-event-active.alert-history-tone-suspension {
+.commute-card.danger {
   border-left: 1.5px solid rgba(239, 68, 68, 0.85);
   box-shadow: inset 2px 0 6px -1px rgba(239, 68, 68, 0.20);
   background: linear-gradient(90deg, rgba(239, 68, 68, 0.07) 0%, rgba(239, 68, 68, 0.02) 12px, transparent 24px), #f8fafc;
@@ -197,9 +182,7 @@
 .dark .station-impact-card.suspension-card-border,
 .dark .station-impact-card[data-station-impact-tone="active"],
 .dark .compact-impact-list-item.suspension-card-border,
-.dark .commute-card.danger,
-.dark .alert-history-item.alert-history-tone-suspension,
-.dark .alert-history-item.alert-history-event-active.alert-history-tone-suspension {
+.dark .commute-card.danger {
   background: linear-gradient(90deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.04) 14px, transparent 30px), #12151c;
 }
 
@@ -207,9 +190,7 @@
 .alert-card.planned-closure-card-border,
 .station-impact-card.planned-closure-card-border,
 .station-impact-card[data-station-impact-tone="planned"],
-.compact-impact-list-item.planned-closure-card-border,
-.alert-history-item.alert-history-tone-planned-closure,
-.alert-history-item.alert-history-event-active.alert-history-tone-planned-closure {
+.compact-impact-list-item.planned-closure-card-border {
   border-left: 1.5px solid rgba(59, 130, 246, 0.85);
   box-shadow: inset 2px 0 6px -1px rgba(59, 130, 246, 0.20);
   background: linear-gradient(90deg, rgba(59, 130, 246, 0.07) 0%, rgba(59, 130, 246, 0.02) 12px, transparent 24px), #f8fafc;
@@ -218,9 +199,7 @@
 .dark .alert-card.planned-closure-card-border,
 .dark .station-impact-card.planned-closure-card-border,
 .dark .station-impact-card[data-station-impact-tone="planned"],
-.dark .compact-impact-list-item.planned-closure-card-border,
-.dark .alert-history-item.alert-history-tone-planned-closure,
-.dark .alert-history-item.alert-history-event-active.alert-history-tone-planned-closure {
+.dark .compact-impact-list-item.planned-closure-card-border {
   background: linear-gradient(90deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 14px, transparent 30px), #12151c;
 }
 
@@ -753,8 +732,7 @@ button.station-detail-disruption-card:focus-visible {
 
 
 .station-detail-panel [data-station-section="station-impacts"] .station-impact-card,
-.station-detail-panel [data-station-section="station-impacts"] .border-l-2,
-.station-detail-panel [data-station-section="station-impacts"] .border-l-4 {
+.station-detail-panel [data-station-section="station-impacts"] .border-l-2 {
   border-top: none;
   border-right: none;
   border-bottom: none;

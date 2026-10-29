@@ -6,7 +6,7 @@ export type TtcMapMarkupParts = {
   badges: string;
 };
 
-export function parseTtcMapMarkup(text: string): TtcMapMarkupParts {
+function parseTtcMapMarkup(text: string): TtcMapMarkupParts {
   const documentNode = new DOMParser().parseFromString(text, "image/svg+xml");
   if (documentNode.querySelector("parsererror")) {
     throw new Error("Invalid TTC map SVG");
@@ -98,11 +98,3 @@ export function preloadTtcMapMarkup(source: string): Promise<TtcMapMarkupParts> 
   ttcMapMarkupPromises.set(source, load);
   return load;
 }
-
-export {
-  DEFAULT_REGIONAL_MAP_SOURCE,
-  getRegionalMapMarkup,
-  preloadRegionalMapMarkup,
-  prepareRegionalMapMarkup,
-  regionalMapMarkupCache,
-} from "./regional-map-asset.ts";

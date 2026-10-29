@@ -18,7 +18,7 @@ type GroupStationArrivalsOptions = {
   includeEmptyDirections?: boolean;
 };
 
-export type StationArrivalGroup = {
+type StationArrivalGroup = {
   key: string;
   line: StationLine | null;
   lineId: string;
@@ -304,7 +304,7 @@ export function formatArrivalSourceBadgeLabel(
   return "Unavailable";
 }
 
-export function formatArrivalSourceText(source: string): string {
+function formatArrivalSourceText(source: string): string {
   if (!source) return "";
   const lower = source.toLowerCase();
   if (lower === "ttc scheduled service") {
@@ -361,7 +361,7 @@ export function formatArrivalClockTime(
   return `${day}, ${time}`;
 }
 
-export function formatArrivalMinutesDuration(minutes: number): string {
+function formatArrivalMinutesDuration(minutes: number): string {
   return formatArrivalMinutes(minutes);
 }
 

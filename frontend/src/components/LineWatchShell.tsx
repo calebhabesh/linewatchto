@@ -3921,16 +3921,6 @@ export function LineWatchShell({
         {/* Background */}
         <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} disabled={!dotBackgroundEnabled} />
 
-        {/* Retained for test compatibility: desktop site guide trigger is rendered in map-utility-cluster */}
-        {false && (
-          <SiteGuideDropdown
-            open={guideOpen}
-            hideTrigger
-            variant="chip"
-            onOpenChange={setGuideOpen}
-          />
-        )}
-
       {isMobile && !showClosedScreen && !rotatedMapMode && (
         <div className="mobile-app-topbar" data-map-chooser-keepout data-searching={activeView === "search" || isClosingSearch} data-closing-search={isClosingSearch ? "true" : undefined}>
           <div className="mobile-app-search" role="search" aria-label="Search LineWatchTO">
@@ -5200,7 +5190,6 @@ export function LineWatchShell({
                 onSelectStationId={handleSelectStationId}
                 isDark={isDark}
                 highContrast={highContrast}
-                onToggleTheme={handleToggleTheme}
                 layoutResetSignal={mapLayoutSignal}
                 recenterSignal={recenterSignal}
                 zoomInSignal={zoomInSignal}
@@ -5262,7 +5251,6 @@ export function LineWatchShell({
             onSelectStationId={handleSelectStationId}
             isDark={isDark}
             highContrast={highContrast}
-            onToggleTheme={handleToggleTheme}
             layoutResetSignal={mapLayoutSignal}
             recenterSignal={recenterSignal}
             zoomInSignal={zoomInSignal}

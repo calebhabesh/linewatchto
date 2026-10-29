@@ -23,7 +23,7 @@ export type StationBeaconNeighbour = {
   radius: number;
 };
 
-export type StationBeaconSize = {
+type StationBeaconSize = {
   /** Radius of the shaded beacon circle. */
   radius: number;
 };

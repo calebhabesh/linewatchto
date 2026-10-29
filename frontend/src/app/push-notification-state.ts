@@ -12,7 +12,7 @@ export type DevicePushSetupState =
   | "needs-device-enable"
   | "restoring";
 
-export type AutoRestoreDevicePushInput = {
+type AutoRestoreDevicePushInput = {
   authenticated: boolean;
   supported: boolean;
   webPushAvailable: boolean;
@@ -24,7 +24,7 @@ export type AutoRestoreDevicePushInput = {
   deviceDisabledByUser: boolean;
 };
 
-export type PreferenceUpdateDeviceStateInput = AutoRestoreDevicePushInput & {
+type PreferenceUpdateDeviceStateInput = AutoRestoreDevicePushInput & {
   currentlySubscribed: boolean;
 };
 

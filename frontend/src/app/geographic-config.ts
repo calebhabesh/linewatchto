@@ -12,17 +12,17 @@ export const OPENFREEMAP_STYLES = {
 
 export const GEOGRAPHIC_LOAD_TIMEOUT_MS = 12000;
 
-export const TTC_CATALOG_URL = "/assets/linewatch/geographic/ttc-catalog.json";
-export const REGIONAL_CATALOG_URL = "/assets/linewatch/geographic/regional-catalog.json";
+const TTC_CATALOG_URL = "/assets/linewatch/geographic/ttc-catalog.json";
+const REGIONAL_CATALOG_URL = "/assets/linewatch/geographic/regional-catalog.json";
 
 // Bounding box for TTC subway/LRT network [[west, south], [east, north]]
-export const TTC_GEOGRAPHIC_BOUNDS: [[number, number], [number, number]] = [
+const TTC_GEOGRAPHIC_BOUNDS: [[number, number], [number, number]] = [
   [-79.63, 43.58],
   [-79.18, 43.83],
 ];
 
-export const TTC_GEOGRAPHIC_CENTER: [number, number] = [-79.3832, 43.68];
-export const TTC_GEOGRAPHIC_DEFAULT_ZOOM = 11.2;
+const TTC_GEOGRAPHIC_CENTER: [number, number] = [-79.3832, 43.68];
+const TTC_GEOGRAPHIC_DEFAULT_ZOOM = 11.2;
 export const GEOGRAPHIC_MIN_ZOOM = 7.0;
 export const GEOGRAPHIC_MAX_ZOOM = 17.0;
 export const STATION_FOCUS_ZOOM = 14.2;
@@ -36,13 +36,13 @@ export const TTC_LINE_COLORS: Record<string, string> = {
 };
 
 // Regional rail (GO Transit 7 corridors + UP Express)
-export const REGIONAL_GEOGRAPHIC_BOUNDS: [[number, number], [number, number]] = [
+const REGIONAL_GEOGRAPHIC_BOUNDS: [[number, number], [number, number]] = [
   [-81.05, 43.05],
   [-78.80, 44.45],
 ];
 
-export const REGIONAL_GEOGRAPHIC_CENTER: [number, number] = [-79.60, 43.68];
-export const REGIONAL_GEOGRAPHIC_DEFAULT_ZOOM = 9.0;
+const REGIONAL_GEOGRAPHIC_CENTER: [number, number] = [-79.60, 43.68];
+const REGIONAL_GEOGRAPHIC_DEFAULT_ZOOM = 9.0;
 
 export const REGIONAL_LINE_COLORS: Record<string, string> = {
   "regional-br": "#155ba0",
@@ -88,10 +88,10 @@ export const REGIONAL_MAJOR_STATIONS = new Set([
   "stratford",
 ]);
 
-export const GEOGRAPHIC_ATTRIBUTION =
+const GEOGRAPHIC_ATTRIBUTION =
   'TTC shapes <a href="https://open.toronto.ca/" target="_blank" rel="noopener noreferrer">© City of Toronto</a>';
 
-export const REGIONAL_GEOGRAPHIC_ATTRIBUTION =
+const REGIONAL_GEOGRAPHIC_ATTRIBUTION =
   'Regional shapes <a href="https://www.gotransit.com/" target="_blank" rel="noopener noreferrer">© Metrolinx</a>';
 
 export function getCatalogUrl(network: "ttc" | "regional"): string {

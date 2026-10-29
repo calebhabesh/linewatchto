@@ -45,12 +45,12 @@ import { getOverlapBadgeKey } from "../components/map-overlap-svg.ts";
 
 export { getImpactPriority };
 
-export type FeatureCollection<T = GeographicFeature> = {
+type FeatureCollection<T = GeographicFeature> = {
   type: "FeatureCollection";
   features: T[];
 };
 
-export type ProjectedImpactLinkFeature = {
+type ProjectedImpactLinkFeature = {
   type: "Feature";
   id: string;
   geometry: {
@@ -75,7 +75,7 @@ export type ProjectedImpactLinkFeature = {
   };
 };
 
-export type ProjectedImpactStationFeature = {
+type ProjectedImpactStationFeature = {
   type: "Feature";
   id: string;
   geometry: {
@@ -95,7 +95,7 @@ export type ProjectedImpactStationFeature = {
   };
 };
 
-export type ProjectedImpactBadgeFeature = {
+type ProjectedImpactBadgeFeature = {
   type: "Feature";
   id: string;
   geometry: {
@@ -147,7 +147,7 @@ export type ProjectedImpactBadgeFeature = {
   };
 };
 
-export type ProjectedImpactArrowFeature = {
+type ProjectedImpactArrowFeature = {
   type: "Feature";
   id: string;
   geometry: {
@@ -172,7 +172,7 @@ export type ProjectedImpactArrowFeature = {
   };
 };
 
-export type ProjectedTrainMarkerFeature = {
+type ProjectedTrainMarkerFeature = {
   type: "Feature";
   id: string;
   geometry: {
@@ -214,7 +214,7 @@ export function getImpactColor(kind: ImpactKind, network: NetworkId = "ttc"): st
   }
 }
 
-export interface ImpactArrowColors {
+interface ImpactArrowColors {
   casingColor: string;
   coreColor: string;
 }
@@ -254,7 +254,7 @@ export function getImpactArrowColors(
 /**
  * Returns canonical single-impact glyph label for an impact kind.
  */
-export function getDefaultImpactBadgeLabel(kind: ImpactKind): string {
+function getDefaultImpactBadgeLabel(kind: ImpactKind): string {
   switch (kind) {
     case "suspension":
       return "!";
@@ -389,7 +389,7 @@ export function getCoordinateDistanceMeters(
   return R * c;
 }
 
-export type PolylineDistanceTable = {
+type PolylineDistanceTable = {
   segmentLengths: number[];
   cumulativeDistances: number[];
   totalDistance: number;
@@ -1193,9 +1193,9 @@ export function projectImpactBadges(
   };
 }
 
-export const DEFAULT_ARROW_SPACING_METERS = 240;
-export const ARROW_SPACING_METERS = DEFAULT_ARROW_SPACING_METERS;
-export const MAX_ARROWS_PER_LINK = 6;
+const DEFAULT_ARROW_SPACING_METERS = 240;
+const ARROW_SPACING_METERS = DEFAULT_ARROW_SPACING_METERS;
+const MAX_ARROWS_PER_LINK = 6;
 
 /**
  * Projects spaced, static directional indicators along affected catalog links.
@@ -1702,7 +1702,7 @@ export function getProjectedSelectionBounds(
   return boundsForCoordinates(coords);
 }
 
-export type ProjectedImpactGroup = {
+type ProjectedImpactGroup = {
   targetId: string;
   targetType: "segment" | "station";
   label: string;
@@ -1756,83 +1756,4 @@ export function getProjectedImpactGroup(
       : station!.geometry.coordinates,
     impacts,
   };
-}
-
-/**
- * Legacy raw-data bounds helper retained for callers outside the geographic
- * renderer. New geographic camera focus should use getProjectedSelectionBounds.
- */
-export function getSelectionBounds(
-  catalog: GeographicCatalog,
-  selection: ImpactSelection,
-  networkSegments: NetworkSegment[],
-  stationNodeImpacts: StationNodeImpact[],
-  plannedClosures?: PlannedClosure[],
-): [[number, number], [number, number]] | null {
-  if (!selection) return null;
-
-  const coords: GeographicCoordinate[] = [];
-
-  // Match station impacts
-  const matchedStationImpacts = stationNodeImpacts.filter(
-    (imp) => imp.cardId === selection.id || imp.stationId === selection.id,
-  );
-  for (const imp of matchedStationImpacts) {
-    const stationCoords = getStationCoordinates(catalog, imp.stationId);
-    if (stationCoords) coords.push(stationCoords);
-  }
-
-  // Match planned closure preview selection
-  if (selection.kind === "planned-closure" && plannedClosures) {
-    const closure = plannedClosures.find((c) => c.id === selection.id);
-    if (closure && closure.previewSegmentIds) {
-      const catalogLinks = getLinkFeatures(catalog);
-      for (const segId of closure.previewSegmentIds) {
-        const norm = segId.replace(/^segment-/, "");
-        const matched = catalogLinks.filter(
-          (l) => l.properties.segmentId === segId || l.properties.segmentId.replace(/^segment-/, "") === norm,
-        );
-        for (const l of matched) {
-          coords.push(...l.geometry.coordinates);
-        }
-      }
-    }
-  }
-
-  // Match segment impacts
-  const matchedSegments = networkSegments.filter((seg) => {
-    if (
-      seg.impacts?.some(
-        (imp) => imp.cardId === selection.id || imp.sourceAlertIds?.includes(selection.id),
-      )
-    ) {
-      return true;
-    }
-    if (seg.alertId === selection.id) return true;
-    return false;
-  });
-
-  for (const seg of matchedSegments) {
-    const links = getLinkFeatures(catalog).filter((link) =>
-      impactMatchesCatalogLink(link, seg, catalog.network),
-    );
-    for (const link of links) {
-      coords.push(...link.geometry.coordinates);
-    }
-  }
-
-  // Fallback: check if selection matches catalog link directly
-  if (coords.length === 0) {
-    const normSelId = selection.id.replace(/^segment-/, "");
-    const directLinks = getLinkFeatures(catalog).filter(
-      (link) =>
-        link.properties.segmentId === selection.id ||
-        link.properties.segmentId.replace(/^segment-/, "") === normSelId,
-    );
-    for (const link of directLinks) {
-      coords.push(...link.geometry.coordinates);
-    }
-  }
-
-  return boundsForCoordinates(coords);
 }

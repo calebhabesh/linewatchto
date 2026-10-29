@@ -4,7 +4,7 @@
  * short screen), it covers the top of the sheet instead, from the alert-type
  * grid down, never over the search bar and shortcuts.
  */
-export type UpdateBannerPlacement = { top: number; placement: "above-sheet" | "over-sheet" };
+type UpdateBannerPlacement = { top: number; placement: "above-sheet" | "over-sheet" };
 
 export const UPDATE_BANNER_SHEET_GAP = 10;
 

@@ -1,9 +1,9 @@
 import { apiUrl } from "./api-client.ts";
 import { regionalStations } from "./regional-data.ts";
 
-export type RegionalTripChangeKind = "cancellation" | "skipped-stop" | "added-stop";
+type RegionalTripChangeKind = "cancellation" | "skipped-stop" | "added-stop";
 
-export type RegionalTripChangeStop = {
+type RegionalTripChangeStop = {
   stationId: string;
   stationName: string;
   kind: RegionalTripChangeKind;
@@ -40,12 +40,12 @@ export type RegionalTripChangeResponse = {
   changes: RegionalTripChange[];
 };
 
-export type RegionalTripChangeResult = {
+type RegionalTripChangeResult = {
   source: "backend" | "fallback";
   data: RegionalTripChangeResponse;
 };
 
-export type RegionalTripChangeFetchOptions = {
+type RegionalTripChangeFetchOptions = {
   fetcher?: typeof fetch;
   apiBaseUrl?: string;
   stationId?: string;

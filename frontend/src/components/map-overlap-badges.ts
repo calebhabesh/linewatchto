@@ -6,6 +6,11 @@ import type {
   StationNodeImpact,
 } from "../app/linewatch-data.ts";
 import { getImpactPriority } from "../app/map-alert-selector.ts";
+import {
+  OVERLAP_BADGE_ITEM_SPACING,
+  OVERLAP_BADGE_PILL_THICKNESS,
+  OVERLAP_INDICATOR_SCALE,
+} from "./map-overlap-svg.ts";
 
 export type MapOverlapChooserLayout = {
   left: number;
@@ -18,14 +23,6 @@ export type MapOverlapIndicatorSize = {
   width: number;
   height: number;
 };
-
-export const OVERLAP_INDICATOR_SCALE = 1.5;
-export const OVERLAP_BADGE_CIRCLE_RADIUS = 35;
-export const OVERLAP_BADGE_ITEM_GAP = 10;
-export const OVERLAP_BADGE_ITEM_SPACING =
-  OVERLAP_BADGE_CIRCLE_RADIUS * 2 + OVERLAP_BADGE_ITEM_GAP;
-export const OVERLAP_BADGE_PILL_THICKNESS =
-  OVERLAP_BADGE_CIRCLE_RADIUS * 2 + OVERLAP_BADGE_ITEM_GAP * 2;
 
 export type OverlapBadgeSourceSegment = Pick<
   NetworkSegment,
@@ -132,7 +129,7 @@ function legacyImpactsForSegment(segment: OverlapBadgeSourceSegment): MapImpact[
   ];
 }
 
-function activeImpactsForSegment(segment: OverlapBadgeSourceSegment): MapImpact[] {
+export function activeImpactsForSegment(segment: OverlapBadgeSourceSegment): MapImpact[] {
   return segment.impacts?.length ? segment.impacts : legacyImpactsForSegment(segment);
 }
 

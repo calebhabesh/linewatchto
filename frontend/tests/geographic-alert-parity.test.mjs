@@ -15,7 +15,6 @@ import {
   projectImpactedLinks,
   projectImpactedStations,
   projectImpactBadges,
-  getSelectionBounds,
   getProjectedImpactGroup,
 } from "../src/app/geographic-overlays.ts";
 
@@ -435,7 +434,7 @@ test("Session 2: Station-only service impacts and interchange isolation", async 
     }
   });
 
-  await t.test("missing link geometry is gracefully handled without throwing or inventing bogus coordinates", () => {
+  await t.test("missing link geometry is gracefully handled without throwing or inventing bogus links", () => {
     const unmappedSegment = [
       {
         id: "imaginary-future-line-segment",
@@ -450,13 +449,5 @@ test("Session 2: Station-only service impacts and interchange isolation", async 
 
     const projected = projectImpactedLinks(ttcCatalog, unmappedSegment, "ttc");
     assert.equal(projected.features.length, 0);
-
-    const bounds = getSelectionBounds(
-      ttcCatalog,
-      { kind: "delay", id: "fake-delay" },
-      unmappedSegment,
-      [],
-    );
-    assert.equal(bounds, null);
   });
 });

@@ -4,7 +4,7 @@ export const SNAPSHOT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 export const DASHBOARD_VERIFICATION_MS = 2 * 60 * 1000;
 export const snapshotKey = (network: NetworkId) => `linewatch-dashboard-snapshot-v1:${network}`;
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
-export type DashboardSnapshot = { version: 1; savedAt: number; data: DashboardData };
+type DashboardSnapshot = { version: 1; savedAt: number; data: DashboardData };
 
 export function canSaveDashboard(data: DashboardData): boolean {
   return data.dataSource === "backend" && data.generatedAt.live

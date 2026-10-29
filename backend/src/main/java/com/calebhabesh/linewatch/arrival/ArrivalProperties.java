@@ -14,7 +14,6 @@ public class ArrivalProperties {
     }
 
     private boolean enabled = false;
-    private URI url = URI.create("https://bustime.ttc.ca/gtfsrt"); // keeping for backwards compatibility or live mode usage
     private Duration connectTimeout = Duration.ofSeconds(3);
     private Duration readTimeout = Duration.ofSeconds(5);
     private Duration maxAge = Duration.ofMinutes(5);
@@ -48,14 +47,6 @@ public class ArrivalProperties {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
-    }
-
-    public URI getUrl() {
-        return url;
-    }
-
-    public void setUrl(URI url) {
-        this.url = url;
     }
 
     public Duration getConnectTimeout() {

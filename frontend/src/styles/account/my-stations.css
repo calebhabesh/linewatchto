@@ -476,24 +476,6 @@
   transform: translateY(0.5px);
 }
 
-.my-stations-state {
-  color: rgb(100, 116, 139);
-  font-size: 11px;
-  font-weight: 750;
-}
-
-.my-stations-state.impact {
-  color: rgb(220, 38, 38);
-}
-
-.my-stations-state.outage {
-  color: rgb(180, 83, 9);
-}
-
-.my-stations-state.clear {
-  color: rgb(5, 150, 105);
-}
-
 .my-stations-picker-conditions {
   align-items: center;
   display: inline-flex;
@@ -883,20 +865,8 @@
   color: rgb(226, 232, 240);
 }
 
-.saved-station-disruption-action .expanded-label {
-  display: none;
-}
-
 .saved-station-disruption-action svg {
   transition: transform 160ms ease;
-}
-
-.saved-station-disruption-disclosure[open] .collapsed-label {
-  display: none;
-}
-
-.saved-station-disruption-disclosure[open] .expanded-label {
-  display: inline;
 }
 
 .saved-station-disruption-disclosure[open] .saved-station-disruption-action svg {
@@ -1274,8 +1244,7 @@
   margin: -3px 1px 0;
 }
 
-.saved-station-inline-undo,
-.my-stations-undo {
+.saved-station-inline-undo {
   align-items: center;
   background: rgb(15, 23, 42);
   border: 1px solid rgba(125, 211, 252, 0.3);
@@ -1292,18 +1261,7 @@
   width: 100%;
 }
 
-.my-stations-undo {
-  border-color: rgba(255, 255, 255, 0.16);
-  bottom: 12px;
-  box-shadow: 0 10px 28px rgba(2, 6, 23, 0.32);
-  left: 12px;
-  max-width: calc(100% - 24px);
-  position: absolute;
-  z-index: 3;
-}
-
-.saved-station-inline-undo span,
-.my-stations-undo span {
+.saved-station-inline-undo span {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -1311,14 +1269,12 @@
   white-space: nowrap;
 }
 
-.saved-station-inline-undo button:first-of-type,
-.my-stations-undo button:first-of-type {
+.saved-station-inline-undo button:first-of-type {
   color: rgb(125, 211, 252);
   font-weight: 900;
 }
 
-.saved-station-inline-undo button:last-of-type,
-.my-stations-undo button:last-of-type {
+.saved-station-inline-undo button:last-of-type {
   align-items: center;
   display: inline-flex;
   height: 32px;
@@ -1416,7 +1372,6 @@
 }
 
 .motion-paused .my-stations-panel,
-.motion-paused .my-stations-undo,
 .motion-paused .my-stations-mode-action-content,
 .motion-paused .my-stations-search.picker-nudge {
   animation: none;

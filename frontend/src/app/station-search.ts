@@ -37,7 +37,7 @@ export type StationAmenityFilter = {
   ppudo?: boolean;
 };
 
-export type StationAmenityCounts = {
+type StationAmenityCounts = {
   total: number;
   wheelchair: number;
   elevator: number;
@@ -63,7 +63,7 @@ export type StationLineGroup = {
   stations: StationSummary[];
 };
 
-export type StationSearchResult = {
+type StationSearchResult = {
   station: StationSummary;
   score: number;
   matchKind: MatchKind;
@@ -72,7 +72,7 @@ export type StationSearchResult = {
 
 export type StationSearchCatalogs = Record<NetworkId, StationSummary[]>;
 
-export type NetworkStationSearchResult = StationSearchResult & {
+type NetworkStationSearchResult = StationSearchResult & {
   networkId: NetworkId;
 };
 

@@ -42,11 +42,6 @@
     margin: 0;
   }
 
-  .mobile-sheet-heading p.mobile-sheet-source--updated,
-  .mobile-sheet-source--updated {
-    color: #4ade80 !important;
-  }
-
   .mobile-sheet-kicker {
     align-items: center;
     color: var(--quiet);
@@ -595,31 +590,6 @@
     background: #151821;
   }
 
-  .mobile-more-health-grid {
-    background: var(--light-container);
-    border: none;
-    border-radius: 12px;
-    box-shadow: var(--mobile-card-shadow);
-    display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding: 12px;
-  }
-
-  .dark .mobile-more-health-grid {
-    background: #151821;
-  }
-
-  .mobile-more-health-grid div {
-    background: rgba(15, 23, 42, 0.04);
-    border: none;
-    border-radius: 8px;
-  }
-
-  .dark .mobile-more-health-grid div {
-    background: rgba(255, 255, 255, 0.04);
-  }
-
   .mobile-more-install-help {
     background: var(--light-container);
     border: none;
@@ -657,24 +627,16 @@
   .high-contrast .mobile-more-account,
   .high-contrast .mobile-more-row,
   .high-contrast .default-map-mode-control.is-compact,
-  .high-contrast .mobile-more-health-grid,
   .high-contrast .mobile-more-install-help,
   .high-contrast .push-diagnostics-panel,
   .linewatch-shell.high-contrast .mobile-more-account,
   .linewatch-shell.high-contrast .mobile-more-row,
   .linewatch-shell.high-contrast .default-map-mode-control.is-compact,
-  .linewatch-shell.high-contrast .mobile-more-health-grid,
   .linewatch-shell.high-contrast .mobile-more-install-help,
   .linewatch-shell.high-contrast .push-diagnostics-panel {
     background: #000000 !important;
     border: 1px solid #ffffff !important;
     box-shadow: none !important;
-  }
-
-  .high-contrast .mobile-more-health-grid div,
-  .linewatch-shell.high-contrast .mobile-more-health-grid div {
-    background: #000000 !important;
-    border: 1px solid #ffffff !important;
   }
 
   .mobile-more-install-help span {
@@ -954,42 +916,6 @@
   .mobile-more-row strong,
   .mobile-more-account strong {
     margin-left: auto;
-  }
-
-  .mobile-more-utility-row {
-    display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .mobile-more-health-grid {
-    display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .mobile-more-health-grid div {
-    background: var(--panel-soft);
-    border: none;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-    padding: 8px;
-  }
-
-  .mobile-more-health-grid span {
-    color: var(--quiet);
-    font-size: 10px;
-    font-weight: 900;
-    text-transform: uppercase;
-  }
-
-  .mobile-more-health-grid strong {
-    color: var(--text);
-    font-size: 12px;
-    line-height: 1.25;
   }
 }
 
@@ -1496,12 +1422,10 @@
   .floating-panel-shell .panel-header-metadata .closure-count-badge,
   .floating-panel-shell .panel-header-metadata .accessibility-count-badge,
   .floating-panel-shell .panel-header-metadata .surface-notices-count-badge,
-  .floating-panel-shell .panel-header-metadata .trip-changes-count-badge,
   .floating-panel-shell .panel-header-metadata .line-impact-total-badge,
   .floating-panel-shell .panel-header-metadata .my-stations-count,
   .floating-panel-shell .panel-header-metadata .status-pill,
   .floating-panel-shell .panel-header-metadata .panel-header-badge,
-  .floating-panel-shell .panel-header-metadata .slate-count-badge,
   .floating-panel-shell .panel-header-metadata .surface-notices-source-tag,
   .floating-panel-shell .panel-header-metadata .card-source {
     align-items: center;
@@ -1517,8 +1441,7 @@
     white-space: nowrap;
   }
 
-  .floating-panel-shell .panel-header-actions .my-stations-count,
-  .floating-panel-shell .panel-header-actions .my-commutes-count {
+  .floating-panel-shell .panel-header-actions .my-stations-count {
     align-items: center;
     border: none;
     border-radius: 9999px;
@@ -1535,8 +1458,7 @@
     white-space: nowrap;
   }
 
-  .floating-panel-shell .panel-header-actions .my-stations-count[data-single-digit="true"],
-  .floating-panel-shell .panel-header-actions .my-commutes-count[data-single-digit="true"] {
+  .floating-panel-shell .panel-header-actions .my-stations-count[data-single-digit="true"] {
     padding: 0;
     width: 28px;
   }

@@ -34,43 +34,43 @@ export type EstimatedTrainSnapshot = {
   markers: EstimatedTrainMarker[];
 };
 
-export type EstimatedTrainDataResult = {
+type EstimatedTrainDataResult = {
   source: "backend" | "fallback";
   data: EstimatedTrainSnapshot;
 };
 
-export type EstimatedTrainFetchOptions = {
+type EstimatedTrainFetchOptions = {
   fetcher?: typeof fetch;
   apiBaseUrl?: string;
   network?: "ttc" | "regional";
 };
 
-export type EstimatedTrainMarkerSegment = {
+type EstimatedTrainMarkerSegment = {
   stationAId?: string;
   stationBId?: string;
   stationAAnchorId?: string;
   stationBAnchorId?: string;
 };
 
-export type EstimatedTrainMarkerSegmentDirection = {
+type EstimatedTrainMarkerSegmentDirection = {
   fromStationId: string;
   toStationId: string;
   fromAnchorId: string;
   toAnchorId: string;
 };
 
-export type EstimatedTrainMarkerContinuityState = {
+type EstimatedTrainMarkerContinuityState = {
   markers: Map<string, { marker: EstimatedTrainMarker; lastSeenAt: number }>;
 };
 
-export type EstimatedTrainMarkerMotionSegment = {
+type EstimatedTrainMarkerMotionSegment = {
   id: string;
   lineId: string;
   stationAId?: string;
   stationBId?: string;
 };
 
-export type EstimatedTrainMarkerMotionSample = {
+type EstimatedTrainMarkerMotionSample = {
   from: EstimatedTrainMarker;
   to: EstimatedTrainMarker;
   progress: number;

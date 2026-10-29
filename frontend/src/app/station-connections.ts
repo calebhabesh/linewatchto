@@ -10,7 +10,7 @@ export type StationConnection = {
   icon?: string;
 };
 
-export type InterNetworkConnection = {
+type InterNetworkConnection = {
   ttcStationId: string;
   regionalStationId: string;
   services: readonly ("go" | "up")[];

@@ -52,7 +52,7 @@ export const REGIONAL_GEOGRAPHIC_LINE_BADGE_ANCHORS: readonly GeographicLineBadg
   { id: "regional-up-pearson", lineId: "regional-up", lineNumber: "UP", stationId: "pearson-airport", offset: [20, -10] },
 ] as const;
 
-export type GeographicLineBadgeFeature = GeoJSON.Feature<GeoJSON.Point, {
+type GeographicLineBadgeFeature = GeoJSON.Feature<GeoJSON.Point, {
   anchorId: string;
   lineId: string;
   lineNumber: string;

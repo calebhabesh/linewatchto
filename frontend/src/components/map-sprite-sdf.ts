@@ -2,7 +2,7 @@ const SDF_RADIUS_PX = 8;
 const SDF_CUTOFF = 0.25;
 const INF = 1e20;
 
-export type MapSdfImageData = {
+type MapSdfImageData = {
   width: number;
   height: number;
   data: Uint8ClampedArray;

@@ -132,10 +132,6 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /\.mobile-legend-pill--regional\s*\{[^}]*max-width:\s*44px/);
     assert.match(globalsCss, /\.mobile-legend-line-list\s*\{[^}]*position:\s*absolute/s);
     assert.match(
-      globalsCss,
-      /\.mobile-legend-pill--regional\.mobile-legend-pill--announcement\s*\{[\s\S]*var\(--mobile-regional-announcement-chip-height\)/,
-    );
-    assert.match(
       shellSource,
       /data-network=\{selectedNetwork\}/,
     );

@@ -6,7 +6,7 @@ import {
   type StationAmenityFilter,
 } from "./station-search.ts";
 
-export type SavedStationStatusSummary = {
+type SavedStationStatusSummary = {
   clear: number;
   affectedNow: number;
 };
@@ -32,7 +32,7 @@ export function summarizeSavedStationStatuses(
   };
 }
 
-export type SavedStationSort = "attention" | "name" | "recent" | "oldest" | "line";
+type SavedStationSort = "attention" | "name" | "recent" | "oldest" | "line";
 
 const LINE_ORDER = [
   "line-1", "line-2", "line-4", "line-5", "line-6",

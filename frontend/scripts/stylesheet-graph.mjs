@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
 
-export const DEFAULT_ENTRY_URL = new URL("../src/app/globals.css", import.meta.url);
+const DEFAULT_ENTRY_URL = new URL("../src/app/globals.css", import.meta.url);
 
 /**
  * Normalizes a path or file:// URL to an absolute filesystem path.

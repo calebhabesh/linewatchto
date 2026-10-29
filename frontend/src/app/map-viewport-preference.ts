@@ -48,9 +48,9 @@ export function clearMapViewport(network: string) {
   try { window.sessionStorage.removeItem(mapViewportKey(network)); } catch { /* Optional preference. */ }
 }
 
-export type GeographicCamera = { lng: number; lat: number; zoom: number };
+type GeographicCamera = { lng: number; lat: number; zoom: number };
 
-export const geographicMapViewportKey = (network: string) => `linewatch-geographic-map-viewport-v1:${network}`;
+const geographicMapViewportKey = (network: string) => `linewatch-geographic-map-viewport-v1:${network}`;
 
 export function saveGeographicMapViewport(
   storage: StorageLike,

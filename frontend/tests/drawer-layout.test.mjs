@@ -111,7 +111,6 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /\.mobile-legend-route-badge \.mobile-legend-route-number\s*\{[^}]*font-variant-numeric:\s*lining-nums tabular-nums[^}]*height:\s*100%[^}]*justify-content:\s*center[^}]*text-align:\s*center[^}]*width:\s*100%/s);
     assert.match(globalCss, /\.mobile-legend-line-status > strong\.service-tone-affected\s*\{[^}]*color:\s*#ef4444/s);
     assert.match(globalCss, /--mobile-legend-expanded-width:\s*min\([\s\S]*44px - var\(--mobile-announcement-gap\)/);
-    assert.match(globalCss, /\.mobile-train-toggle--legend-expanded\s*\{[^}]*pointer-events:\s*none !important/s);
   });
 
   it("keeps the desktop panel chrome stable while animating keyed view content", () => {

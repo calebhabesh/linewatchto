@@ -50,7 +50,7 @@ export type GeographicLinkFeature = {
 
 export type GeographicFeature = GeographicStationFeature | GeographicLinkFeature;
 
-export type GeographicCoverageItem = {
+type GeographicCoverageItem = {
   id: string;
   reason: string;
   stationOnlyPossible?: boolean;
@@ -69,42 +69,6 @@ export type GeographicCatalog = {
   network: "ttc" | "regional";
   features: GeographicFeature[];
   coverage: GeographicCoverage;
-};
-
-export type GeographicNetworkSource = {
-  feedVersion: string;
-  feedStartDate: string;
-  feedEndDate: string;
-  sourceName: string;
-  publisher: string;
-  license: string;
-  attribution: string;
-};
-
-export type GeographicNetworkManifestEntry = {
-  assetUrl: string;
-  contentHash: string;
-  stationCount: number;
-  linkCount: number;
-  coverageStatus: string;
-  feedVersion?: string;
-  feedStartDate?: string;
-  feedEndDate?: string;
-  sourceName?: string;
-  publisher?: string;
-  license?: string;
-  attribution?: string;
-  sources?: Record<string, GeographicNetworkSource>;
-};
-
-export type GeographicManifest = {
-  schemaVersion: string;
-  contentVersion: string;
-  generatedAt: string;
-  networks: {
-    ttc: GeographicNetworkManifestEntry;
-    regional: GeographicNetworkManifestEntry;
-  };
 };
 
 export function isGeographicStationFeature(

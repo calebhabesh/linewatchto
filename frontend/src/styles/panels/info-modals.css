@@ -271,15 +271,6 @@
   cursor: grabbing;
 }
 
-.opening-welcome-slide-wrapper {
-  align-items: flex-start;
-  box-sizing: border-box;
-  display: flex;
-  max-width: 100%;
-  width: 100%;
-  will-change: transform;
-}
-
 .opening-welcome-slide-item {
   box-sizing: border-box;
   flex: 0 0 100%;
@@ -466,14 +457,6 @@
 .opening-welcome-secondary-button:hover,
 .opening-welcome-skip-button:hover {
   color: var(--text);
-}
-
-.opening-welcome-step-counter {
-  color: var(--muted);
-  font-size: 0.68rem;
-  font-weight: 750;
-  letter-spacing: 0.04em;
-  opacity: 0.85;
 }
 
 .opening-disclaimer-panel .opening-welcome-account-copy,
@@ -706,14 +689,6 @@
     overflow: hidden;
     position: relative;
     width: 100%;
-  }
-
-  .opening-welcome-slide-wrapper {
-    align-items: flex-start;
-    box-sizing: border-box;
-    display: flex;
-    width: 100%;
-    will-change: transform;
   }
 
   .opening-welcome-slide-item {
@@ -1420,8 +1395,7 @@
   box-shadow: none;
 }
 
-.release-note-card-heading time,
-.release-note-section-title {
+.release-note-card-heading time {
   color: #64748b;
   font-size: 11px;
   font-weight: 900;

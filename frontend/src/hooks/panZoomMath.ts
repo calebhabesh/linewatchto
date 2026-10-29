@@ -30,7 +30,7 @@ export type MapContentBounds = {
   height: number;
 };
 
-export type PanZoomViewportSize = {
+type PanZoomViewportSize = {
   width: number;
   height: number;
 };
@@ -85,7 +85,7 @@ export function computeBoundedMapFrame(
   };
 }
 
-export type DesktopMapFrameOptions = {
+type DesktopMapFrameOptions = {
   viewportWidth: number;
   viewportHeight: number;
   bounds: MapContentBounds;
@@ -193,19 +193,19 @@ export type PanZoomPoint = {
 
 export type MapViewportOrientation = "standard" | "rotated-landscape";
 
-export type ViewportClientRect = {
+type ViewportClientRect = {
   left: number;
   top: number;
   width: number;
   height: number;
 };
 
-export type ClientRectBounds = ViewportClientRect & {
+type ClientRectBounds = ViewportClientRect & {
   right: number;
   bottom: number;
 };
 
-export type LogicalViewportBounds = {
+type LogicalViewportBounds = {
   x: number;
   y: number;
   width: number;

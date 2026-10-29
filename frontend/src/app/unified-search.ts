@@ -11,19 +11,19 @@ export type GlobalDestinationView =
   | "my-stations"
   | "surface-notices";
 
-export type GlobalDestination = {
+type GlobalDestination = {
   view: GlobalDestinationView;
   label: string;
   description: string;
   aliases: string[];
 };
 
-export type TransitLineSearchResult = {
+type TransitLineSearchResult = {
   line: StationSearchLine;
   score: number;
 };
 
-export type SearchableSavedCommute = {
+type SearchableSavedCommute = {
   id: string;
   label: string;
   originStationName: string;
@@ -34,17 +34,17 @@ export type SearchableSavedCommute = {
   };
 };
 
-export type SavedCommuteSearchResult<T extends SearchableSavedCommute = SearchableSavedCommute> = {
+type SavedCommuteSearchResult<T extends SearchableSavedCommute = SearchableSavedCommute> = {
   commute: T;
   score: number;
 };
 
-export type SurfaceNoticeSearchResult = {
+type SurfaceNoticeSearchResult = {
   notice: SurfaceNoticeDetail;
   score: number;
 };
 
-export const GLOBAL_SEARCH_DESTINATIONS: GlobalDestination[] = [
+const GLOBAL_SEARCH_DESTINATIONS: GlobalDestination[] = [
   {
     view: "commutes",
     label: "My Commutes",

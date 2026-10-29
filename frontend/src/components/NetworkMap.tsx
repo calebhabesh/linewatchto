@@ -160,7 +160,6 @@ function DiagramNetworkMaps({ network, preparingNetwork, warmingNetwork, diagram
   const selectStation = useCallback<TtcMapProps["onSelectStationId"]>(station => callbacks.current.onSelectStationId(station), []);
   const changeNetwork = useCallback((next: NetworkId) => callbacks.current.onNetworkChange?.(next), []);
   const changeView = useCallback<NonNullable<TtcMapProps["onMapViewChange"]>>(view => callbacks.current.onMapViewChange?.(view), []);
-  const toggleTheme = useCallback(() => callbacks.current.onToggleTheme(), []);
   const clearCommute = useCallback(() => callbacks.current.onClearCommutePathPreview?.(), []);
   const ttcReady = useCallback(() => setReadyNetworks(current => current.ttc ? current : { ...current, ttc: true }), []);
   const regionalReady = useCallback(() => setReadyNetworks(current => current.regional ? current : { ...current, regional: true }), []);
@@ -208,7 +207,6 @@ function DiagramNetworkMaps({ network, preparingNetwork, warmingNetwork, diagram
           stations={diagramStations.ttc}
           onSelectImpact={selectImpact}
           onSelectStationId={selectStation}
-          onToggleTheme={toggleTheme}
           onClearCommutePathPreview={clearCommute}
           onNetworkChange={props.onNetworkChange ? changeNetwork : undefined}
           onMapViewChange={props.onMapViewChange ? changeView : undefined}

@@ -11,7 +11,6 @@ const scannedPaths = [
   "frontend/public",
   "backend/src/main",
   "scripts",
-  "view_ttc_alerts.py",
 ];
 
 const textFilePattern = /\.(css|html|java|js|mjs|py|ts|tsx)$/;

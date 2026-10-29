@@ -23,7 +23,7 @@ export interface SelectionAttentionFrame {
   active: boolean;
 }
 
-export interface SelectionAttentionRequest {
+interface SelectionAttentionRequest {
   id: string;
   kind?: string;
   generation: number;
@@ -33,16 +33,16 @@ export interface SelectionAttentionRequest {
 }
 
 export const ATTENTION_INTRO_DURATION_MS = 2400;
-export const ATTENTION_INTRO_CYCLE_MS = 600;
-export const ATTENTION_BREATHE_DURATION_MS = 1200;
+const ATTENTION_INTRO_CYCLE_MS = 600;
+const ATTENTION_BREATHE_DURATION_MS = 1200;
 
 export const ATTENTION_TROUGH_OPACITY = 0.40;
 export const ATTENTION_PEAK_OPACITY = 1.0;
 export const ATTENTION_BREATHE_HIGH_OPACITY = 0.92;
 
-export const ATTENTION_TROUGH_WIDTH_MULTIPLIER = 1.0;
-export const ATTENTION_PEAK_WIDTH_MULTIPLIER = 1.20;
-export const ATTENTION_BREATHE_HIGH_WIDTH_MULTIPLIER = 1.10;
+const ATTENTION_TROUGH_WIDTH_MULTIPLIER = 1.0;
+const ATTENTION_PEAK_WIDTH_MULTIPLIER = 1.20;
+const ATTENTION_BREATHE_HIGH_WIDTH_MULTIPLIER = 1.10;
 
 export const ATTENTION_STATIC_OPACITY = 0.90;
 export const ATTENTION_STATIC_WIDTH_MULTIPLIER = 1.0;

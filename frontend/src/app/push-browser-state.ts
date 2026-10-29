@@ -1,4 +1,4 @@
-export type PushServiceWorkerContainer = {
+type PushServiceWorkerContainer = {
   getRegistration: (clientURL?: string | URL) => Promise<ServiceWorkerRegistration | undefined>;
   ready: Promise<ServiceWorkerRegistration>;
   register: (
@@ -7,14 +7,14 @@ export type PushServiceWorkerContainer = {
   ) => Promise<ServiceWorkerRegistration>;
 };
 
-export type PushManagedServiceWorkerRegistration = {
+type PushManagedServiceWorkerRegistration = {
   pushManager: {
     getSubscription: () => Promise<PushSubscription | null>;
   };
   unregister: () => Promise<boolean>;
 };
 
-export type PushRegistrationLookupOptions = {
+type PushRegistrationLookupOptions = {
   readyTimeoutMs?: number;
   scopePath?: string;
 };

@@ -1,6 +1,6 @@
 import type { ReducedSpeedZone } from "./linewatch-data";
 
-export type ReducedSpeedZoneResolutionEntry = {
+type ReducedSpeedZoneResolutionEntry = {
   resolution: string;
   count: number;
   direction: string;

@@ -8,7 +8,7 @@ import { formatImpactLocation } from "./impact-location.ts";
  */
 export type StationSpanTravel = "one-way" | "both-ways" | "unspecified";
 
-export type StationSpan = { from: string; to: string; travel: StationSpanTravel };
+type StationSpan = { from: string; to: string; travel: StationSpanTravel };
 
 const ONE_WAY = /\s+(?:→|->)\s+/;
 const BOTH_WAYS = /\s*(?:⇄|↔|<\s*-+\s*>)\s*/;
@@ -20,7 +20,7 @@ const BIDIRECTIONAL_LABELS = new Set([
 ]);
 
 /** True when a direction line already says every direction is affected. */
-export function isBidirectionalDirection(direction?: string | null): boolean {
+function isBidirectionalDirection(direction?: string | null): boolean {
   if (!direction) return false;
   return BIDIRECTIONAL_LABELS.has(direction.trim().toLowerCase().replace(/\s+/g, " "));
 }
@@ -53,7 +53,7 @@ export function stationSpanAccessibleText(span: StationSpan): string {
 }
 
 /** Prefer the backend's direction-aware span; older payloads only carry source text. */
-export function withDisplayLocation<T extends { location: string | null; displayLocation?: string | null }>(item: T): T {
+function withDisplayLocation<T extends { location: string | null; displayLocation?: string | null }>(item: T): T {
   const display = item.displayLocation?.trim();
   return display ? { ...item, location: display } : item;
 }

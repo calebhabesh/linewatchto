@@ -11,7 +11,7 @@ export type PwaInstallPlatform =
   | "ios-other"
   | "unsupported";
 
-export type PwaInstallPromptInput = {
+type PwaInstallPromptInput = {
   activeView: string;
   blockedByOverlay: boolean;
   dismissedAt: number | null;
@@ -42,7 +42,7 @@ type StandaloneWindowLike = {
   };
 };
 
-export type InstalledRelatedApp = {
+type InstalledRelatedApp = {
   platform?: string;
   id?: string;
   url?: string;
@@ -231,7 +231,7 @@ export function getPwaInstallInstructionText({
   return "Use your browser menu to add LineWatchTO to your home screen.";
 }
 
-export function isPwaInstallDismissalFresh({
+function isPwaInstallDismissalFresh({
   dismissedAt,
   now,
   cooldownMs = PWA_INSTALL_DISMISS_COOLDOWN_MS,

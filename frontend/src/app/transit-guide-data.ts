@@ -20,7 +20,6 @@ import {
   type RegionalRouteCode,
 } from "./regional-data.ts";
 import {
-  STATION_LINE_DEFINITIONS,
   STATION_LINE_STATION_IDS,
   fallbackStationDetails,
   fallbackStationSummaries,
@@ -160,7 +159,7 @@ export const regionalGuideRoutes: TransitGuideRoute[] = REGIONAL_ROUTE_DEFINITIO
   };
 });
 
-export const allTransitGuideRoutes = [...ttcGuideRoutes, ...regionalGuideRoutes];
+const allTransitGuideRoutes = [...ttcGuideRoutes, ...regionalGuideRoutes];
 
 const ttcRouteById = new Map(ttcGuideRoutes.map((route) => [route.id, route]));
 const regionalRouteById = new Map(regionalGuideRoutes.map((route) => [route.id, route]));
@@ -237,7 +236,7 @@ export const regionalGuideStations: TransitGuideStation[] = regionalStations.map
   };
 });
 
-export const allTransitGuideStations = [...ttcGuideStations, ...regionalGuideStations];
+const allTransitGuideStations = [...ttcGuideStations, ...regionalGuideStations];
 
 export function findTransitGuideRoute(networkSlug: TransitGuideNetworkSlug, routeSlug: string) {
   const routes = networkSlug === "ttc" ? ttcGuideRoutes : regionalGuideRoutes;
@@ -310,6 +309,3 @@ export function transitGuideSitemapPages() {
   return [...fixedPages, ...routePages, ...stationPages];
 }
 
-export function stationLineDefinition(lineId: string) {
-  return STATION_LINE_DEFINITIONS[lineId];
-}

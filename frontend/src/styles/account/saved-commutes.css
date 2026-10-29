@@ -64,44 +64,6 @@
 /* ==========================================================================
    Header Count Badge (VisionOS Jewel Styling)
    ========================================================================== */
-.my-commutes-count {
-  align-items: center;
-  background: rgba(16, 185, 129, 0.14);
-  border: none;
-  border-radius: 9999px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
-  color: #047857;
-  display: inline-flex;
-  font-feature-settings: "tnum";
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 800;
-  height: 28px;
-  justify-content: center;
-  min-width: 28px;
-  padding: 0 6px;
-}
-
-.my-commutes-count[data-single-digit="true"] {
-  padding: 0;
-  width: 28px;
-}
-
-.dark .my-commutes-count {
-  background: rgba(16, 185, 129, 0.28);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  color: #6ee7b7;
-}
-
-.my-commutes-count.my-commutes-count-affected {
-  background: rgba(245, 158, 11, 0.18);
-  color: var(--trip-change-ink);
-}
-
-.dark .my-commutes-count.my-commutes-count-affected {
-  background: rgba(245, 158, 11, 0.28);
-  color: var(--trip-change);
-}
 
 /* ==========================================================================
    Saved Commute Cards Shell, Endpoints, Tones & Disruption Disclosures
@@ -1184,12 +1146,6 @@
   color: #ffffff;
 }
 
-.saved-commute-leg-list {
-  display: grid;
-  gap: 0.34rem;
-  margin-top: 0.65rem;
-}
-
 .saved-commute-time-estimate {
   border: none;
   border-radius: 8px;
@@ -1469,87 +1425,6 @@
   color: #fecaca;
 }
 
-.saved-commute-leg-row {
-  align-items: center;
-  background: rgba(15, 23, 42, 0.04);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 8px;
-  display: grid;
-  gap: 0.4rem;
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: 0.45rem 0.55rem;
-}
-
-.saved-commute-leg-row.clear-tint {
-  background: rgba(48, 209, 117, 0.08);
-  border-color: rgba(48, 209, 117, 0.2);
-}
-
-.saved-commute-leg-row.affected-tint {
-  background: rgba(255, 159, 28, 0.08);
-  border-color: rgba(255, 159, 28, 0.2);
-}
-
-.dark .saved-commute-leg-row.clear-tint,
-.high-contrast .saved-commute-leg-row.clear-tint {
-  background: rgba(48, 209, 117, 0.12);
-  border-color: rgba(48, 209, 117, 0.25);
-}
-
-.dark .saved-commute-leg-row.affected-tint,
-.high-contrast .saved-commute-leg-row.affected-tint {
-  background: rgba(255, 159, 28, 0.12);
-  border-color: rgba(255, 159, 28, 0.25);
-}
-
-.saved-commute-leg-row .status-pill.ok {
-  background: rgba(48, 209, 117, 0.12);
-  color: var(--ok);
-}
-
-.saved-commute-leg-row .status-pill.warning {
-  background: rgba(255, 159, 28, 0.12);
-  color: var(--warning);
-}
-
-.saved-commute-leg-row .status-pill.danger {
-  background: rgba(255, 69, 69, 0.12);
-  color: var(--danger);
-}
-
-.saved-commute-leg-row strong {
-  font-size: 0.92rem;
-  font-weight: 850;
-  min-width: 0;
-}
-
-.saved-commute-leg-row.clear-tint strong {
-  color: var(--ok);
-}
-
-.saved-commute-leg-row.affected-tint strong {
-  color: var(--warning);
-}
-
-.saved-commute-leg-row em {
-  color: rgb(100, 116, 139);
-  font-size: 0.68rem;
-  font-style: normal;
-  grid-column: 1 / -1;
-  min-width: 0;
-}
-
-.dark .saved-commute-leg-row,
-.high-contrast .saved-commute-leg-row {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-.dark .saved-commute-leg-row em,
-.high-contrast .saved-commute-leg-row em {
-  color: rgb(148, 163, 184);
-}
-
 .saved-commute-map-action[aria-pressed="true"] {
   background: rgba(37, 99, 235, 0.22);
   border-color: rgba(29, 78, 216, 0.72);
@@ -1643,113 +1518,10 @@
 /* ==========================================================================
    Saved Route Delete Actions & Confirmations
    ========================================================================== */
-.commute-route-delete-button,
-.commute-route-delete-confirm-button {
-  margin-left: auto; /* right aligned */
-  background-color: #ffffff; /* white container box */
-  color: #dc2626; /* red text */
-  border: 1px solid rgba(15, 23, 42, 0.15);
-  border-radius: 8px;
-  font-size: 0.68rem;
-  font-weight: 900;
-  min-height: 30px;
-  padding: 0.35rem 0.65rem;
-  text-transform: uppercase;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.commute-route-delete-button {
-  align-items: center;
-  box-sizing: border-box;
-  display: inline-flex;
-  flex: 0 0 32px;
-  height: 30px;
-  justify-content: center;
-  max-width: 32px;
-  padding: 0;
-  width: 32px;
-}
-
-.commute-route-delete-button svg {
-  height: 22px;
-  stroke-width: 2.4;
-  width: 22px;
-}
-
-.commute-route-delete-confirmation {
-  align-items: center;
-  display: flex;
-  gap: 0.25rem;
-  justify-content: center;
-  margin-left: auto;
-}
-
-.commute-route-delete-confirmation .commute-route-delete-confirm-button {
-  margin-left: 0;
-}
-
-.commute-route-delete-confirmation-prompt {
-  left: 2px;
-  position: relative;
-}
-
-.commute-route-delete-button:hover,
-.commute-route-delete-confirm-button:hover {
-  background-color: #f8fafc;
-  color: #b91c1c;
-  border-color: rgba(15, 23, 42, 0.25);
-}
-
-.commute-route-delete-cancel-button {
-  background-color: transparent;
-  color: rgb(100, 116, 139); /* slate-500 */
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 8px;
-  font-size: 0.68rem;
-  font-weight: 900;
-  min-height: 30px;
-  padding: 0.35rem 0.65rem;
-  text-transform: uppercase;
-  transition: all 0.2s ease;
-}
-
-.commute-route-delete-cancel-button:hover {
-  background-color: rgba(15, 23, 42, 0.05);
-  color: rgb(15, 23, 42);
-}
 
 /* Dark mode overrides for buttons to keep the white container/red text aesthetic readable and premium */
-.dark .commute-route-delete-button,
-.dark .commute-route-delete-confirm-button {
-  background-color: #ffffff;
-  color: #dc2626;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.dark .commute-route-delete-button:hover,
-.dark .commute-route-delete-confirm-button:hover {
-  background-color: #f1f5f9;
-  color: #b91c1c;
-}
-
-.dark .commute-route-delete-cancel-button {
-  color: rgb(148, 163, 184); /* slate-400 */
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-.dark .commute-route-delete-cancel-button:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: rgb(255, 255, 255);
-}
 
 /* High Contrast Mode overrides */
-.high-contrast .commute-route-delete-button,
-.high-contrast .commute-route-delete-confirm-button {
-  background-color: #ffffff !important;
-  color: #ff0000 !important;
-  border: 2px solid #ff0000 !important;
-}
 
 /* ==========================================================================
    Toast Notifications, Routing Boundary Disclaimers & Action Buttons

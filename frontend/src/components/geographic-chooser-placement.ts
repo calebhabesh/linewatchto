@@ -2,7 +2,7 @@
 import type { MapOverlapChooserLayout } from "./MapOverlapChooser";
 import { chooserWidthCandidates } from "./map-chooser-layout.ts";
 
-export type GeographicChooserKeepout = {
+type GeographicChooserKeepout = {
   left: number;
   top: number;
   right: number;

@@ -2,8 +2,6 @@ import { CalendarCheck2 } from "lucide-react";
 import { LiveSignalIcon } from "./LiveSignalIcon";
 import { arrivalTileSourceIndicatorData } from "../app/arrival-source-badge";
 
-export { arrivalTileSourceIndicatorData };
-
 type Props = {
   status: "live" | "scheduled" | "unavailable" | "demo" | string;
   isDue?: boolean;

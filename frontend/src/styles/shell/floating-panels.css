@@ -1,4 +1,3 @@
-.map-panel,
 .panel,
 .commute-panel,
 .analytics-panel,
@@ -206,12 +205,10 @@
 .panel-header-metadata .closure-count-badge,
 .panel-header-metadata .accessibility-count-badge,
 .panel-header-metadata .surface-notices-count-badge,
-.panel-header-metadata .trip-changes-count-badge,
 .panel-header-metadata .line-impact-total-badge,
 .panel-header-metadata .my-stations-count,
 .panel-header-metadata .status-pill,
 .panel-header-metadata .panel-header-badge,
-.panel-header-metadata .slate-count-badge,
 .panel-header-metadata .surface-notices-source-tag,
 .panel-header-metadata .card-source {
   align-items: center;
@@ -228,8 +225,7 @@
   white-space: nowrap;
 }
 
-.panel-header-actions .my-stations-count,
-.panel-header-actions .my-commutes-count {
+.panel-header-actions .my-stations-count {
   align-items: center;
   border: none;
   border-radius: 9999px;
@@ -246,8 +242,7 @@
   white-space: nowrap;
 }
 
-.panel-header-actions .my-stations-count[data-single-digit="true"],
-.panel-header-actions .my-commutes-count[data-single-digit="true"] {
+.panel-header-actions .my-stations-count[data-single-digit="true"] {
   padding: 0;
   width: 28px;
 }

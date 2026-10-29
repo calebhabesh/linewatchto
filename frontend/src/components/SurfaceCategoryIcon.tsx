@@ -2,7 +2,7 @@
 
 import { CalendarClock, CircleX, CornerUpRight, GitBranch, Info } from "lucide-react";
 
-export function getSurfaceCategoryColor(category: string): string {
+function getSurfaceCategoryColor(category: string): string {
   const cat = category.toLowerCase();
   switch (cat) {
     case "no-service":

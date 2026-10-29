@@ -52,12 +52,12 @@ export type SurfaceNoticeResponse = {
   notices: SurfaceNoticeDetail[];
 };
 
-export type SurfaceNoticeResult = {
+type SurfaceNoticeResult = {
   source: "backend" | "fallback";
   data: SurfaceNoticeResponse;
 };
 
-export type SurfaceNoticeFetchOptions = {
+type SurfaceNoticeFetchOptions = {
   fetcher?: typeof fetch;
   apiBaseUrl?: string;
   category?: SurfaceNoticeCategory | "all";

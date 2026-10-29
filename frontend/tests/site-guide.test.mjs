@@ -3,7 +3,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
-const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const desktopMoreSource = readFileSync(new URL("../src/components/DesktopMorePanel.tsx", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
@@ -36,7 +35,6 @@ describe("site guide dropdown", () => {
 
     assert.match(desktopMoreSource, /onClick=\{onOpenGuide\}[\s\S]*?<span>Site Guide<\/span>/);
     assert.match(shellSource, /onOpenGuide=\{\(\) => setGuideOpen\(true\)\}/);
-    assert.match(shellSource, /<SiteGuideDropdown[\s\S]*?open=\{guideOpen\}[\s\S]*?hideTrigger/);
     assert.match(guideSource, /open\?: boolean/);
     assert.match(guideSource, /hideTrigger\?: boolean/);
   });
@@ -147,11 +145,6 @@ describe("site guide dropdown", () => {
       assert.doesNotMatch(asset, /station-ring-static-pulse/);
       assert.doesNotMatch(asset, /<animate\b/);
     }
-  });
-
-  it("renders after the ingestion log and theme buttons in the top-right map rail", () => {
-    assert.match(interactiveMapSource, /import \{ SiteGuideDropdown \} from "\.\/SiteGuideDropdown";/);
-    assert.match(interactiveMapSource, /<LogsDropdown \/>[\s\S]*aria-label="Toggle theme"[\s\S]*<SiteGuideDropdown \/>/);
   });
 
   it("explains the dashboard, controls, overlay meanings, and title capitalization", () => {

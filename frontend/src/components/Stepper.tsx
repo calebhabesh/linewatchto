@@ -9,7 +9,7 @@ import React, {
 import { AnimatePresence, motion, type Variants } from "motion/react";
 import "./Stepper.css";
 
-export interface StepperProps {
+interface StepperProps {
   children: ReactNode;
   initialStep?: number;
   currentStep?: number;
@@ -286,7 +286,7 @@ const stepVariants: Variants = {
   }),
 };
 
-export interface StepProps {
+interface StepProps {
   children: ReactNode;
   className?: string;
 }

@@ -3,7 +3,7 @@ import type { NetworkId } from "./regional-data.ts";
 export const ARRIVAL_PINS_STORAGE_KEY = "linewatch-arrival-line-pins-v1";
 export const ARRIVAL_PINS_CHANGED_EVENT = "linewatch-arrival-line-pins-changed";
 
-export type ArrivalLinePin = {
+type ArrivalLinePin = {
   networkId: NetworkId;
   stationId: string;
   lineId: string;

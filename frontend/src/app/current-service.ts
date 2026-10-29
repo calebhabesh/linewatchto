@@ -5,7 +5,7 @@ import type { ActiveAlert, DelayAlert, IncidentRiderDetails, ImpactKind, LineSta
 import { countReducedSpeedZones } from "./reduced-speed-zone-count.ts";
 import { compareSurfaceNotices } from "./surface-notice-groups.ts";
 
-export type CurrentServiceData = {
+type CurrentServiceData = {
   networkId?: "ttc" | "regional";
   snapshot?: { savedAt: number | null };
   activeAlerts: ActiveAlert[];

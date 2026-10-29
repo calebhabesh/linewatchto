@@ -1,4 +1,4 @@
-export type GeographicLifecycleEventType =
+type GeographicLifecycleEventType =
   | "constructor"
   | "removal"
   | "setStyle"
@@ -10,13 +10,13 @@ export type GeographicLifecycleEventType =
   | "resize"
   | "sourceUpdate";
 
-export interface GeographicLifecycleEvent {
+interface GeographicLifecycleEvent {
   type: GeographicLifecycleEventType;
   timestamp: number;
   detail?: string;
 }
 
-export interface GeographicMapLifecycleStats {
+interface GeographicMapLifecycleStats {
   constructors: number;
   removals: number;
   styleReplacements: number;

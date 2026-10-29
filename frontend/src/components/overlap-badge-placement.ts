@@ -32,9 +32,9 @@
 
 import type { MapBounds, MapPoint } from "../app/map-geometry.ts";
 
-export type OverlapBadgeSize = { width: number; height: number };
+type OverlapBadgeSize = { width: number; height: number };
 
-export type OverlapBadgePlacementRequest = {
+type OverlapBadgePlacementRequest = {
   id: string;
   size: OverlapBadgeSize;
   /** Sampled points along the overlay (or station) this badge explains. */
@@ -61,7 +61,7 @@ export type PlacementObstacle =
   | { polyline: MapPoint[]; radius: number }
   | { polygon: MapPoint[]; padding: number };
 
-export type OverlapBadgePlacement = {
+type OverlapBadgePlacement = {
   id: string;
   position: MapPoint;
   /** Badges sharing a group id were laid out together in one aligned formation. */
@@ -69,7 +69,7 @@ export type OverlapBadgePlacement = {
   collisionAvoided: boolean;
 };
 
-export type OverlapBadgePlacementOptions = {
+type OverlapBadgePlacementOptions = {
   badges: OverlapBadgePlacementRequest[];
   /**
    * Obstacles in layers. Each layer's rasterization is cached by array
@@ -109,7 +109,7 @@ export type OverlapBadgePlacementOptions = {
   connector?: (request: OverlapBadgeConnectorCheck) => { needed: boolean; line: [MapPoint, MapPoint] | null };
 };
 
-export type OverlapBadgeConnectorCheck = {
+type OverlapBadgeConnectorCheck = {
   id: string;
   position: MapPoint;
   /** Badges placed so far, which the line must go around. */

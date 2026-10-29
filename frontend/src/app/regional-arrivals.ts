@@ -9,7 +9,7 @@ import {
   type RegionalRouteCode,
 } from "./regional-data.ts";
 
-export type RegionalArrivalAvailability = "available" | "no-service" | "disabled" | "unavailable";
+type RegionalArrivalAvailability = "available" | "no-service" | "disabled" | "unavailable";
 
 export type RegionalArrival = {
   lineId: string;
@@ -44,7 +44,7 @@ export type RegionalArrivalDataResult = {
   receivedAt: number;
 };
 
-export const REGIONAL_ARRIVAL_HTTP_FAILURE_GRACE_MS = 90_000;
+const REGIONAL_ARRIVAL_HTTP_FAILURE_GRACE_MS = 90_000;
 
 export function preserveRegionalArrivalsOnRefresh(
   current: RegionalArrivalDataResult | null | undefined,
@@ -126,8 +126,8 @@ export function formatRegionalArrivalCoachCount(
   return `Coaches: ${arrival.coachCount}`;
 }
 
-export const REGIONAL_ARRIVAL_DELAY_DISPLAY_WINDOW_MINUTES = 30;
-export const REGIONAL_ARRIVAL_DELAY_MINIMUM_MINUTES = 5;
+const REGIONAL_ARRIVAL_DELAY_DISPLAY_WINDOW_MINUTES = 30;
+const REGIONAL_ARRIVAL_DELAY_MINIMUM_MINUTES = 5;
 
 export function shouldShowRegionalArrivalDelay(
   arrival: Pick<RegionalArrival, "delayMinutes" | "minutes" | "predictedAt" | "status">,
@@ -139,13 +139,13 @@ export function shouldShowRegionalArrivalDelay(
     && getRegionalArrivalMinutes(arrival, now) <= REGIONAL_ARRIVAL_DELAY_DISPLAY_WINDOW_MINUTES;
 }
 
-export type RegionalArrivalPlatformGroup = {
+type RegionalArrivalPlatformGroup = {
   key: string;
   label: string;
   arrivals: RegionalArrival[];
 };
 
-export type RegionalArrivalDirectionGroup = {
+type RegionalArrivalDirectionGroup = {
   key: string;
   lineId: string;
   lineNumber: string;
@@ -157,7 +157,7 @@ export type RegionalArrivalDirectionGroup = {
 };
 
 /** Trains shown per direction before the rider asks for later ones. */
-export const REGIONAL_ARRIVAL_COLLAPSED_LIMIT = 4;
+const REGIONAL_ARRIVAL_COLLAPSED_LIMIT = 4;
 
 /**
  * Keeps the next `limit` trains of a direction (by departure time, across
@@ -299,7 +299,7 @@ export function isRegionalArrivalSoon(
   return minutes > 0 && minutes <= thresholdMinutes;
 }
 
-export type RegionalArrivalTimeDisplay = {
+type RegionalArrivalTimeDisplay = {
   primary: string;
   secondary: string;
 };
@@ -365,7 +365,7 @@ const REGIONAL_OUTWARD_DIRECTIONS: Record<RegionalRouteCode, string> = {
   UP: "Westbound",
 };
 
-export const REGIONAL_ROUTE_TERMINALS: Record<RegionalRouteCode, { outward: string; inward: string }> = {
+const REGIONAL_ROUTE_TERMINALS: Record<RegionalRouteCode, { outward: string; inward: string }> = {
   BR: { outward: "Allandale Waterfront", inward: "Union" },
   KI: { outward: "Kitchener", inward: "Union" },
   LE: { outward: "Durham College Oshawa", inward: "Union" },
@@ -402,7 +402,7 @@ function matchesStationName(destination: string, candidate: string) {
  * "Niagara Falls GO (VIA Station)") to a catalog station. Stations on the arrival's
  * own route win, and the longest name wins so "Union" never claims "Unionville".
  */
-export function resolveRegionalDestinationStation(
+function resolveRegionalDestinationStation(
   rawDirection: string | null | undefined,
   routeCode?: RegionalRouteCode,
 ) {

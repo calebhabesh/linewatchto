@@ -7,6 +7,7 @@ import { countBadgeInkOffset } from "../src/components/overlapping-count-ink.ts"
 const css = readAppStylesheet();
 const badge = readFileSync(new URL("../src/components/OverlappingCountBadge.tsx", import.meta.url), "utf8");
 const mapBadge = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
+const mapBadgeSvg = readFileSync(new URL("../src/components/map-overlap-svg.ts", import.meta.url), "utf8");
 const regionalMap = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const ttcMap = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const mobileNav = readFileSync(new URL("../src/components/MobileBottomNav.tsx", import.meta.url), "utf8");
@@ -94,7 +95,7 @@ describe("overlapping count badge sizing", () => {
     assert.match(regionalMap, /<MapOverlapIndicator/);
     assert.match(mapBadge, /function MapBadgeVectorLabel/);
     assert.match(mapBadge, /MAP_BADGE_GLYPH_OUTLINES/);
-    assert.match(mapBadge, /Fixed Inter Black outlines/);
+    assert.match(mapBadgeSvg, /Fixed Inter Black outlines/);
     assert.match(mapBadge, /className="overlap-indicator-vector-label"/);
     assert.doesNotMatch(mapBadge, /<text(?:\s|>)/);
     assert.match(css, /\.overlap-indicator-vector-label\s*\{[^}]*fill:\s*#ffffff;/s);

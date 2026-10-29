@@ -26,7 +26,7 @@ export const EMPTY_GEOJSON_FEATURE_COLLECTION: GeoJSON.FeatureCollection = {
   features: [],
 };
 
-export interface GeographicDynamicSourcesData {
+interface GeographicDynamicSourcesData {
   impactedLinks: GeoJSON.FeatureCollection;
   impactedStations: GeoJSON.FeatureCollection;
   impactBadges: GeoJSON.FeatureCollection;
@@ -36,13 +36,13 @@ export interface GeographicDynamicSourcesData {
   commuteStations: GeoJSON.FeatureCollection;
 }
 
-export interface GeographicSelectionStylingState {
+interface GeographicSelectionStylingState {
   selectedStationId?: string | null;
   selection?: { kind: string; id: string } | null;
   plannedClosures?: PlannedClosure[];
 }
 
-export interface GeographicMapDynamicState {
+interface GeographicMapDynamicState {
   overlayData: GeographicDynamicSourcesData;
   activeFilteredLine?: string | null;
   selectedStationId?: string | null;
@@ -50,7 +50,7 @@ export interface GeographicMapDynamicState {
   plannedClosures?: PlannedClosure[];
 }
 
-export interface InstallTransitLayersInitialData {
+interface InstallTransitLayersInitialData {
   overlayData?: GeographicDynamicSourcesData;
   activeFilteredLine?: string | null;
   selectedStationId?: string | null;
@@ -80,7 +80,7 @@ export function ensureBadgeImages(
   }
 }
 
-export function registerMapImages(map: MapLibreMap): void {
+function registerMapImages(map: MapLibreMap): void {
   if (typeof document === "undefined") return;
 
   if (map.hasImage && !map.hasImage("direction-arrow")) {

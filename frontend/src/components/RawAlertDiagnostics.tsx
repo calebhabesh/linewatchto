@@ -3,8 +3,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Check, ChevronDown, ChevronUp, Copy, RefreshCw, Terminal } from "lucide-react";
 import { apiUrl } from "../app/api-client.ts";
-import type { RawAlert } from "../app/mock-raw-alerts";
 import type { NetworkId } from "../app/regional-data";
+
+/** One retained provider record from /api/diagnostics/raw-alerts/*. */
+type RawAlert = {
+  sourceSection: string;
+  source_section?: string;
+  sourceId: string;
+  routeType: string;
+  sourceUpdatedAt: string | null;
+  payload: string;
+  active: boolean;
+};
 
 type Props = {
   network: NetworkId;

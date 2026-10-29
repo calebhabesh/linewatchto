@@ -1,5 +1,5 @@
 import { apiUrl } from "./api-client.ts";
-import { formatArrivalMinutes, formatNearArrivalRange, isNearLiveArrival, NEAR_ARRIVAL_RANGE_SECONDS } from "./arrival-countdown.ts";
+import { formatArrivalMinutes, formatNearArrivalRange, isNearLiveArrival } from "./arrival-countdown.ts";
 
 export type SurfaceArrivalAvailability = "available" | "no-service" | "disabled" | "unavailable";
 export type SurfaceArrivalMode = "bus" | "streetcar";
@@ -43,13 +43,13 @@ export type SurfaceArrivalGroup = {
   arrivals: SurfaceArrival[];
 };
 
-export type SurfaceBaySection = {
+type SurfaceBaySection = {
   bayKey: string;
   bayLabel: string;
   groups: SurfaceArrivalGroup[];
 };
 
-export type SurfaceRouteDetails = {
+type SurfaceRouteDetails = {
   displayRouteName: string;
   destinationTarget: string;
   cleanDestination: string;
@@ -57,12 +57,11 @@ export type SurfaceRouteDetails = {
   metaSubtitle: string;
 };
 
-export const SURFACE_DETAILED_COUNTDOWN_THRESHOLD_SECONDS = NEAR_ARRIVAL_RANGE_SECONDS;
-export const SURFACE_DUE_EXPIRY_SECONDS = 90;
+const SURFACE_DUE_EXPIRY_SECONDS = 90;
 export const SURFACE_ARRIVAL_COUNTDOWN_TICK_MS = 3_000;
-export const SURFACE_ARRIVAL_DELAY_DISPLAY_WINDOW_MINUTES = 30;
-export const TTC_SURFACE_ARRIVAL_DELAY_MINIMUM_MINUTES = 5;
-export const GO_BUS_ARRIVAL_DELAY_MINIMUM_MINUTES = 15;
+const SURFACE_ARRIVAL_DELAY_DISPLAY_WINDOW_MINUTES = 30;
+const TTC_SURFACE_ARRIVAL_DELAY_MINIMUM_MINUTES = 5;
+const GO_BUS_ARRIVAL_DELAY_MINIMUM_MINUTES = 15;
 
 type FetchOptions = {
   fetcher?: typeof fetch;
@@ -107,7 +106,7 @@ export async function getSurfaceArrivals(
   }
 }
 
-export function hasValidSurfaceArrival(
+function hasValidSurfaceArrival(
   arrival: Pick<SurfaceArrival, "minutes" | "predictedAt" | "scheduledAt">,
 ): boolean {
   if (arrival.predictedAt && !Number.isNaN(Date.parse(arrival.predictedAt ?? arrival.scheduledAt ?? ""))) {
@@ -436,7 +435,7 @@ export function shouldUseDetailedSurfaceArrivalCountdown(
   return isNearLiveArrival(arrival.status, secondsUntilArrival);
 }
 
-export function formatSurfaceArrivalMinutesDuration(minutes: number): string {
+function formatSurfaceArrivalMinutesDuration(minutes: number): string {
   return formatArrivalMinutes(minutes);
 }
 
@@ -486,7 +485,7 @@ export function formatSurfaceArrivalClockTime(
   }).format(date);
 }
 
-export function surfaceArrivalMinutes(
+function surfaceArrivalMinutes(
   arrival: Pick<SurfaceArrival, "minutes" | "predictedAt"> & Partial<Pick<SurfaceArrival, "scheduledAt">>,
   now: number | Date = Date.now(),
 ): number {

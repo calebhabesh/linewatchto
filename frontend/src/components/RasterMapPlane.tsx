@@ -13,8 +13,6 @@ export {
   rasterMapSource,
   type RasterMapDensity,
   type RasterMapTheme,
-  type RegionalRasterMapPlane,
-  type TtcRasterMapPlane,
 } from "../app/map-assets";
 
 type BaseRasterMapPlaneProps = {
@@ -28,7 +26,7 @@ type BaseRasterMapPlaneProps = {
   onReady?: () => void;
 };
 
-export type RasterMapPlaneProps = BaseRasterMapPlaneProps & (
+type RasterMapPlaneProps = BaseRasterMapPlaneProps & (
   | { network: "ttc"; plane: TtcRasterMapPlane }
   | { network: "regional"; plane: RegionalRasterMapPlane }
 );
@@ -66,7 +64,7 @@ export function preloadRasterMapSource(source: string): Promise<void> {
   return decode;
 }
 
-export function rasterMapSourceIsDecoded(source: string): boolean {
+function rasterMapSourceIsDecoded(source: string): boolean {
   return decodedRasterSources.has(source);
 }
 

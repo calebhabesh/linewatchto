@@ -1,9 +1,9 @@
 import { apiUrl } from "./api-client.ts";
 import type { NetworkId } from "./regional-data.ts";
 
-export type AccessibilityAssetType = "elevator" | "escalator";
+type AccessibilityAssetType = "elevator" | "escalator";
 
-export type AccessibilityOutageLineSummary = {
+type AccessibilityOutageLineSummary = {
   lineId: string;
   lineNumber: string;
   lineName: string;
@@ -28,7 +28,7 @@ export type AccessibilityOutageDetail = {
   source: string;
 };
 
-export type AccessibilityOutageStationGroup = {
+type AccessibilityOutageStationGroup = {
   stationId: string;
   stationName: string;
   count: number;
@@ -51,7 +51,7 @@ export type AccessibilityOutageResponse = {
   groups: AccessibilityOutageLineGroup[];
 };
 
-export type AccessibilityOutageResult = {
+type AccessibilityOutageResult = {
   source: "backend" | "fallback";
   data: AccessibilityOutageResponse;
 };

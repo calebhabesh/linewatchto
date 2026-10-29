@@ -129,9 +129,6 @@ describe("desktop content and navigation migration (Session 2)", () => {
 
     it("contains dedicated desktop sidebar, saved navigation, and overview styles", () => {
       assert.match(globalCss, /\.desktop-sidebar-search-clear/);
-      assert.match(globalCss, /\.desktop-saved-container/);
-      assert.match(globalCss, /\.desktop-saved-nav/);
-      assert.match(globalCss, /\.desktop-saved-tab/);
       assert.match(globalCss, /\.desktop-status-overview/);
       assert.match(globalCss, /\.desktop-status-header-row/);
       assert.match(globalCss, /\.desktop-more-panel/);

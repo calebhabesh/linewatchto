@@ -207,7 +207,7 @@ describe("stylesheet-graph helper", () => {
     assert.match(baseMapContent, /\.map-center-feedback/);
     assert.match(baseMapContent, /\.ttc-map-stage\[data-raster-map-ready="true"\]\s*\.ttc-authored-svg-source/);
     assert.match(baseMapContent, /\.linewatch-shell\.mobile-performance-mode\s*:is\(\.ttc-map-stage,\s*\.regional-map-stage\)/);
-    assert.match(baseMapContent, /\.map-layer-entering,\s*\.map-layer-current/);
+    assert.match(baseMapContent, /\.map-layer-current/);
     assert.match(baseMapContent, /\.map-attribution-notice/);
     assert.match(baseMapContent, /:is\(\.map-gesture-active,\s*\[data-map-gesture-active="true"\],\s*\[data-map-zoom-active="true"\]\)/);
     assert.match(baseMapContent, /\[data-map-camera-moving="true"\]/);
@@ -333,12 +333,9 @@ describe("stylesheet-graph helper", () => {
     assert.match(dashboardShellContent, /\.linewatch-wordmark/);
     assert.match(dashboardShellContent, /\.linewatch-shell/);
     assert.match(dashboardShellContent, /--desktop-global-search-width/);
-    assert.match(dashboardShellContent, /\.panel-title-row/);
     assert.match(dashboardShellContent, /\.panel-heading/);
-    assert.match(dashboardShellContent, /\.map-panel/);
     assert.match(dashboardShellContent, /\.network-map/);
     assert.match(dashboardShellContent, /@keyframes map-center-fade-in/);
-    assert.match(dashboardShellContent, /\.animate-map-center-fade/);
     assert.match(dashboardShellContent, /\.alert-card/);
     assert.match(dashboardShellContent, /\.closure-card/);
     assert.match(dashboardShellContent, /\.commute-card/);
@@ -377,7 +374,6 @@ describe("stylesheet-graph helper", () => {
     assert.match(desktopChromeContent, /\.desktop-status-chip--alerts/);
     assert.match(desktopChromeContent, /\.desktop-status-chip--delays/);
     assert.match(desktopChromeContent, /\.main-menu-pin/);
-    assert.match(desktopChromeContent, /\.menu-action-row/);
   });
 
 
@@ -386,7 +382,6 @@ describe("stylesheet-graph helper", () => {
     const files = getAppStylesheetGraphFiles();
     assert.ok(files.some(f => f.endsWith("floating-panels.css")), "floating-panels.css must be in graph files");
     const floatingPanelsContent = readStylesheet(new URL("../src/styles/shell/floating-panels.css", import.meta.url));
-    assert.match(floatingPanelsContent, /\.map-panel/);
     assert.match(floatingPanelsContent, /\.panel/);
     assert.match(floatingPanelsContent, /\.floating-panel-shell/);
     assert.match(floatingPanelsContent, /\.floating-panel-scroll/);

@@ -11,7 +11,7 @@ const MAP_LABEL_FONT_SAMPLE = "Tobermory Norfinch Oakdale Union";
 let mapLabelFontLoaded = false;
 let mapLabelFontLoadPromise: Promise<boolean> | null = null;
 
-export function loadMapLabelFont(): Promise<boolean> {
+function loadMapLabelFont(): Promise<boolean> {
   if (mapLabelFontLoaded) return Promise.resolve(true);
   if (typeof document !== "undefined" && document.fonts?.check) {
     const isAlreadyLoaded = MAP_LABEL_FONT_SPECS.every((spec) =>

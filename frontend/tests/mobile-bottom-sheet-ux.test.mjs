@@ -58,7 +58,6 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /--mobile-bottom-nav-height/);
     assert.match(globalCss, /\.mobile-status-peek-info-btn\s*\{[^}]*gap:\s*6px/s);
     assert.match(globalCss, /\.mobile-status-peek-alert-icon\s*\{[^}]*align-items:\s*center/s);
-    assert.match(globalCss, /\.mobile-status-peek-source--updated\s*\{[^}]*margin-top:\s*0(?:px)?/s);
     assert.match(globalCss, /\.mobile-status-peek-info-btn\s*\{[^}]*backdrop-filter:\s*blur\((?:6|10|12|16)px\)/s);
     assert.match(globalCss, /\.mobile-status-peek-counts\s*\{[^}]*display:\s*grid/s);
     assert.match(globalCss, /\.mobile-status-peek-count-badge\s*\{[^}]*display:\s*flex/s);
@@ -98,7 +97,6 @@ describe("mobile bottom sheet UX", () => {
     assert.match(statusSheetSource, /mobile-status-sheet-live-blip/);
     assert.match(globalCss, /\.mobile-sheet-heading h2\s*\{[^}]*font-size:\s*22px/s);
     assert.match(globalCss, /\.mobile-status-sheet-live-blip\s*\{[^}]*background:\s*#22c55e/s);
-    assert.match(globalCss, /\.mobile-sheet-source--updated\s*\{[^}]*color:\s*#4ade80\s*!important/s);
     assert.match(globalCss, /\.mobile-status-section-heading\s*\{[^}]*align-items:\s*center;[^}]*display:\s*flex;[^}]*gap:\s*8px/s);
     assert.match(globalCss, /\.mobile-line-status-copy\s*\{[^}]*align-items:\s*center;[^}]*display:\s*flex;[^}]*flex-direction:\s*row;/s);
     assert.match(globalCss, /\.mobile-line-status-impacts\s*\{[^}]*display:\s*flex;[^}]*flex-wrap:\s*wrap;/s);
@@ -208,7 +206,6 @@ describe("mobile bottom sheet UX", () => {
   });
 
   it("simplifies mobile map controls and hides desktop map utilities on phones", () => {
-    assert.match(mapSource, /map-utility-cluster/);
     assert.match(mapSource, /map-control-zoom-group/);
     assert.match(globalCss, /\.map-utility-cluster/);
     assert.match(globalCss, /\.map-control-zoom-group/);
@@ -237,7 +234,6 @@ describe("mobile bottom sheet UX", () => {
   it("keeps the mobile legend aligned below iPhone status chrome with top controls", () => {
     assert.match(globalCss, /\.mobile-legend-pill\s*\{[\s\S]*top:\s*calc\(var\(--mobile-safe-top\)\s*\+\s*var\(--mobile-edge-inset\)\)\s*!important/);
     assert.match(globalCss, /\.mobile-legend-pill\s*\{[\s\S]*left:\s*calc\(var\(--mobile-safe-left\)\s*\+\s*var\(--mobile-edge-inset\)\)\s*!important/);
-    assert.match(globalCss, /\.mobile-legend-pill--announcement\s*\{[\s\S]*top:\s*calc\(var\(--mobile-safe-top\)\s*\+\s*var\(--mobile-edge-inset\)\s*\+\s*var\(--mobile-announcement-top-offset\)\s*\+\s*var\(--mobile-announcement-chip-height\)/);
   });
 
   it("keeps iPhone bottom navigation close to the bottom without compounding safe-area gaps", () => {

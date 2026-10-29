@@ -277,11 +277,6 @@
     bottom: calc(var(--mobile-bottom-nav-occupied-height) + var(--mobile-status-peek-actual-height, 108px) + 24px) !important;
     z-index: 41;
   }
-
-  .mobile-train-toggle--legend-expanded {
-    opacity: 0 !important;
-    pointer-events: none !important;
-  }
 }
 
 @media (min-width: 768px) {

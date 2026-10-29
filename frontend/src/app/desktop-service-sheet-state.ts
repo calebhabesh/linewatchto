@@ -1,6 +1,6 @@
 export const DESKTOP_SERVICE_SHEET_STORAGE_KEY = "linewatch-desktop-service-sheet-position-v1";
 
-export type DesktopServiceSheetPosition = { expanded: boolean; height: number | null };
+type DesktopServiceSheetPosition = { expanded: boolean; height: number | null };
 
 export function parseDesktopServiceSheetPosition(raw: string | null): DesktopServiceSheetPosition | null {
   if (!raw) return null;

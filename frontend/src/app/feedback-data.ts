@@ -8,7 +8,7 @@ type AdapterOptions = {
 };
 
 export const MAX_FEEDBACK_MESSAGE_LENGTH = 2000;
-export const FEEDBACK_DESTINATION_EMAIL = "feedback@linewatchto.ca";
+const FEEDBACK_DESTINATION_EMAIL = "feedback@linewatchto.ca";
 
 export type SubmitFeedbackInput = {
   message: string;
@@ -19,7 +19,7 @@ export type SubmitFeedbackInput = {
   website: string;
 };
 
-export type SubmitFeedbackResponse = {
+type SubmitFeedbackResponse = {
   accepted: boolean;
   message: string;
 };

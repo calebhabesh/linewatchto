@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { ChevronLeft, X } from "lucide-react";
 
-export interface PanelHeaderProps {
+interface PanelHeaderProps {
   title: ReactNode;
   icon?: ReactNode;
   kicker?: ReactNode;

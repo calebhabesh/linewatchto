@@ -13,7 +13,7 @@ export type SurfaceNoticeDisplayStop = {
   stopName: string;
 };
 
-export type SurfaceNoticeRouteGroup = {
+type SurfaceNoticeRouteGroup = {
   key: string;
   category: string;
   routeType: string;
@@ -61,7 +61,7 @@ export function groupSurfaceNoticesByRoute(
   return Array.from(groups.values());
 }
 
-export function deriveDisplayStops(notice: SurfaceNoticeDetail): SurfaceNoticeDisplayStop[] {
+function deriveDisplayStops(notice: SurfaceNoticeDetail): SurfaceNoticeDisplayStop[] {
   if (notice.stops?.length) {
     return notice.stops
       .map((stop) => normalizeDisplayStop(stop.stopId, stop.stopName))
@@ -102,7 +102,7 @@ export function deriveDisplayStops(notice: SurfaceNoticeDetail): SurfaceNoticeDi
   return [];
 }
 
-export function deriveDisplayLocation(
+function deriveDisplayLocation(
   notice: SurfaceNoticeDetail,
   displayStops: SurfaceNoticeDisplayStop[] = deriveDisplayStops(notice),
 ): string {
@@ -144,7 +144,7 @@ export function deriveSurfaceNoticeCause(notice: SurfaceNoticeDetail): string | 
   return firstSentence(notice.title || notice.description);
 }
 
-export function deriveSurfaceNoticeDirection(notice: SurfaceNoticeDetail): string | null {
+function deriveSurfaceNoticeDirection(notice: SurfaceNoticeDetail): string | null {
   if (notice.direction && notice.direction.trim()) {
     return normalizeDirection(notice.direction);
   }
@@ -162,7 +162,7 @@ export function deriveSurfaceNoticeDirection(notice: SurfaceNoticeDetail): strin
   return null;
 }
 
-export const TTC_SURFACE_ROUTE_NAMES: Record<string, string> = {
+const TTC_SURFACE_ROUTE_NAMES: Record<string, string> = {
   "5": "Eglinton Line",
   "6": "Finch West Line",
   "7": "Bathurst",
@@ -374,7 +374,7 @@ export const TTC_SURFACE_ROUTE_NAMES: Record<string, string> = {
   "996": "Wilson Express",
 };
 
-export function deriveRouteName(notice: SurfaceNoticeDetail): string | null {
+function deriveRouteName(notice: SurfaceNoticeDetail): string | null {
   const routeIds = notice.routeIds?.filter(Boolean) ?? [];
   const textParts = [notice.title, notice.description].filter(Boolean);
   const text = textParts.join(" ");

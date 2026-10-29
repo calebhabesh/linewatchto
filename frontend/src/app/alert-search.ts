@@ -12,14 +12,14 @@ import type {
 import type { StationSummary } from "./station-data.ts";
 import { normalizeStationQuery, STATION_SEARCH_LINES } from "./station-search.ts";
 
-export type ImpactSearchCategory = {
+type ImpactSearchCategory = {
   kind: ImpactKind;
   label: string;
   singularLabel: string;
   aliases: string[];
 };
 
-export type SearchableImpact = ActiveAlert | DelayAlert | ReducedSpeedZone | PlannedClosure;
+type SearchableImpact = ActiveAlert | DelayAlert | ReducedSpeedZone | PlannedClosure;
 
 export type ImpactSearchResult = {
   selection: NonNullable<ImpactSelection>;
@@ -38,13 +38,13 @@ export type ImpactSearchResult = {
   score: number;
 };
 
-export type ImpactSearchGroup = {
+type ImpactSearchGroup = {
   kind: ImpactKind;
   label: string;
   results: ImpactSearchResult[];
 };
 
-export type ImpactSearchData = {
+type ImpactSearchData = {
   activeAlerts: ActiveAlert[];
   delays: DelayAlert[];
   reducedSpeedZones: ReducedSpeedZone[];

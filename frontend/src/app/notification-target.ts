@@ -65,7 +65,7 @@ export type NotificationDestination =
   | { type: "trip-changes"; tripChangeId: string; lineId: string | null }
   | { type: "commutes"; network: NetworkId | null; commuteId: string };
 
-export type NotificationTargetContext = {
+type NotificationTargetContext = {
   dashboard: DashboardData;
   /** The target network has completed a dashboard request this session. */
   verified: boolean;
@@ -108,7 +108,7 @@ export function parseNotificationTarget(params: URLSearchParams): NotificationTa
 }
 
 /** Matches the lookups the impact inspector uses, so "found" means the inspector can render it. */
-export function findNotificationImpact(
+function findNotificationImpact(
   selection: NonNullable<ImpactSelection>,
   data: Pick<DashboardData, "activeAlerts" | "delays" | "reducedSpeedZones" | "plannedClosures">,
 ): { lineId: string } | null {
@@ -127,7 +127,7 @@ export function findNotificationImpact(
 }
 
 /** Only fresh backend data may say an alert ended; snapshots and fixtures cannot. */
-export function dashboardConfirmsCurrentService(dashboard: DashboardData): boolean {
+function dashboardConfirmsCurrentService(dashboard: DashboardData): boolean {
   return dashboard.dataSource === "backend"
     && !dashboard.snapshot
     && (dashboard.availability === "available" || dashboard.availability === "degraded");

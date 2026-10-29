@@ -120,7 +120,7 @@ export const FALLBACK_WITHOUT_ELEVATOR = new Set([
   "sentinel:line-6",
 ]);
 
-export const FALLBACK_WITH_WASHROOMS = new Set<string>([
+const FALLBACK_WITH_WASHROOMS = new Set<string>([
   // Line 1
   "bloor-yonge",
   "eglinton",
@@ -148,7 +148,7 @@ export const FALLBACK_WITH_WASHROOMS = new Set<string>([
   "humber-college",
 ]);
 
-export const FALLBACK_WITH_PARKING = new Set<string>([
+const FALLBACK_WITH_PARKING = new Set<string>([
   // Line 1
   "finch",
   "finch-west",
@@ -173,7 +173,7 @@ export const FALLBACK_WITH_PARKING = new Set<string>([
   "mount-dennis",
 ]);
 
-export const FALLBACK_WITH_BICYCLE_LOCKUP = new Set<string>([
+const FALLBACK_WITH_BICYCLE_LOCKUP = new Set<string>([
   "avenue",
   "bathurst",
   "bayview",
@@ -247,7 +247,7 @@ export const FALLBACK_WITH_BICYCLE_LOCKUP = new Set<string>([
   "yorkdale",
 ]);
 
-export const FALLBACK_WITH_BICYCLE_REPAIR = new Set<string>([
+const FALLBACK_WITH_BICYCLE_REPAIR = new Set<string>([
   "bathurst",
   "bayview",
   "bessarion",
@@ -298,7 +298,7 @@ export const FALLBACK_WITH_BICYCLE_REPAIR = new Set<string>([
   "york-university",
 ]);
 
-export const FALLBACK_WITH_BIKE_SHARE = new Set<string>([
+const FALLBACK_WITH_BIKE_SHARE = new Set<string>([
   "bathurst",
   "bay",
   "bloor-yonge",
@@ -357,7 +357,7 @@ export const FALLBACK_WITH_BIKE_SHARE = new Set<string>([
   "york-university",
 ]);
 
-export const FALLBACK_WITH_PPUDO = new Set<string>([
+const FALLBACK_WITH_PPUDO = new Set<string>([
   "don-mills",
   "finch",
   "finch-west",

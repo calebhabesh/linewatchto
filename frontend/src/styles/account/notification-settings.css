@@ -29,55 +29,9 @@
  * .push-diagnostics-recipient, .push-diagnostics-events, .push-diagnostics-empty-events).
  */
 
-.push-settings-card {
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.18);
-  border-radius: 8px;
-  display: grid;
-  gap: 0.45rem;
-  padding: 0.625rem;
-}
-
-.push-settings-heading {
-  align-items: center;
-  display: flex;
-  gap: 0.45rem;
-}
-
-.push-settings-heading h3 {
-  color: rgb(15, 23, 42);
-  font-size: 0.8rem;
-  font-weight: 900;
-  margin: 0;
-}
-
-.push-settings-toggle,
 .notification-settings-toggle {
   font-size: 0.72rem;
   margin: 0;
-}
-
-.push-settings-message {
-  color: rgb(71, 85, 105);
-  font-size: 0.7rem;
-  font-weight: 700;
-  line-height: 1.25;
-  margin: 0;
-}
-
-.dark .push-settings-card,
-.high-contrast .push-settings-card {
-  border-color: rgba(16, 185, 129, 0.22);
-}
-
-.dark .push-settings-heading h3,
-.high-contrast .push-settings-heading h3 {
-  color: rgb(241, 245, 249);
-}
-
-.dark .push-settings-message,
-.high-contrast .push-settings-message {
-  color: rgb(203, 213, 225);
 }
 
 .notification-settings-row-main span,
@@ -166,8 +120,7 @@
   text-transform: uppercase;
 }
 
-.notification-settings-section-header span,
-.notification-settings-status {
+.notification-settings-section-header span {
   background: rgba(15, 23, 42, 0.06);
   border-radius: 999px;
   color: rgb(71, 85, 105);
@@ -411,9 +364,7 @@
 }
 
 .dark .notification-settings-section-header span,
-.dark .notification-settings-status,
-.high-contrast .notification-settings-section-header span,
-.high-contrast .notification-settings-status {
+.high-contrast .notification-settings-section-header span {
   background: rgba(255, 255, 255, 0.1);
   color: rgb(203, 213, 225);
 }

@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useState, type ComponentType } from "react";
 
-export type PreloadablePanel<P> = ComponentType<P> & { preload: () => Promise<unknown> };
+type PreloadablePanel<P> = ComponentType<P> & { preload: () => Promise<unknown> };
 
 /**
  * Client-only code-split panel that can be loaded ahead of its first open.

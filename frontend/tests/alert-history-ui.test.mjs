@@ -124,7 +124,6 @@ describe("alert history timeline UI", () => {
     assert.match(timelineSource, /formatHistoryStateLabel\(latestState\)/);
     assert.match(timelineSource, /incident\.latestState \|\| latestEvent\.state/);
     assert.match(timelineSource, /alert-history-status-\$\{latestState\}/);
-    assert.match(cssSource, /\.alert-history-status-updated/);
   });
 
   it("uses the shared compact timestamp formatter for visible history times", () => {

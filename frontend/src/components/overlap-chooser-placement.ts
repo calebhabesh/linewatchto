@@ -26,9 +26,9 @@ import type { MapBounds, MapPoint } from "../app/map-geometry.ts";
 import { chooserWidthCandidates } from "./map-chooser-layout.ts";
 import { placeOverlapBadges, type PlacementObstacle } from "./overlap-badge-placement.ts";
 
-export const CHOOSER_VIEWPORT_MARGIN = 16;
-export const CHOOSER_BADGE_GAP = 12;
-export const CHOOSER_KEEPOUT_GAP = 8;
+const CHOOSER_VIEWPORT_MARGIN = 16;
+const CHOOSER_BADGE_GAP = 12;
+const CHOOSER_KEEPOUT_GAP = 8;
 // Never shrink below this unless the viewport itself is shorter.
 const CHOOSER_MIN_HEIGHT = 142;
 // About three rows: the smallest card that still reads as a list.
@@ -42,7 +42,7 @@ const BADGE_OUTLINE_SPACING = 8;
 // How far the tie-break anchor leans from the badge toward the affected area.
 const AFFECTED_AREA_LEAN = 0.25;
 
-export type OverlapChooserPlacement = {
+type OverlapChooserPlacement = {
   left: number;
   top: number;
   width: number;
@@ -54,7 +54,7 @@ export type OverlapChooserPlacement = {
   coversAffectedArea: boolean;
 };
 
-export type OverlapChooserPlacementInput = {
+type OverlapChooserPlacementInput = {
   viewportSize: { width: number; height: number };
   /** The badge's rendered box, in viewport pixels. */
   badgeBox: MapBounds;
@@ -126,7 +126,7 @@ function pointInPolygon(point: MapPoint, polygon: MapPoint[]): boolean {
 }
 
 /** True when `box` comes within `clearance` of the obstacle. */
-export function boxTouchesObstacle(box: MapBounds, obstacle: PlacementObstacle, clearance: number): boolean {
+function boxTouchesObstacle(box: MapBounds, obstacle: PlacementObstacle, clearance: number): boolean {
   if ("polyline" in obstacle) {
     const reach = obstacle.radius + clearance;
     const points = obstacle.polyline;

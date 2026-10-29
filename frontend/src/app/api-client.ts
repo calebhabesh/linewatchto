@@ -13,7 +13,7 @@ function isLocalAbsoluteApiBaseUrl(value: string) {
   }
 }
 
-export function resolveApiBaseUrl(configuredApiBaseUrl = process.env.NEXT_PUBLIC_LINEWATCH_API_BASE_URL) {
+function resolveApiBaseUrl(configuredApiBaseUrl = process.env.NEXT_PUBLIC_LINEWATCH_API_BASE_URL) {
   const trimmed = configuredApiBaseUrl?.trim() ?? "";
   if (!trimmed || isLocalAbsoluteApiBaseUrl(trimmed)) {
     return "";

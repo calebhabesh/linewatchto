@@ -7,7 +7,7 @@ export const lineWatchSeoDescription =
   "Unofficial Toronto transit dashboard for TTC subway and LRT, GO Transit, and UP Express alerts, closures, accessibility, and reliability.";
 export const lineWatchSeoImagePath = "/assets/linewatch/og-image.png";
 
-export type LineWatchSitemapPage = {
+type LineWatchSitemapPage = {
   path: string;
   changeFrequency?: MetadataRoute.Sitemap[number]["changeFrequency"];
   priority?: number;

@@ -87,22 +87,6 @@
   background-color: #ffffff;
 }
 
-.map-control-divider-v {
-  align-self: center;
-  background-color: rgba(15, 23, 42, 0.16);
-  height: 1px;
-  margin: 4px 0;
-  width: 32px;
-}
-
-.dark .map-control-divider-v {
-  background-color: rgba(255, 255, 255, 0.18);
-}
-
-.high-contrast .map-control-divider-v {
-  background-color: #ffffff;
-}
-
 .map-control-button {
   align-items: center;
   border-radius: 8px;

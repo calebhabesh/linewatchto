@@ -24,7 +24,7 @@ import type {
 import type { NetworkId } from "./regional-data.ts";
 import { STATION_LINE_STATION_IDS } from "./station-data.ts";
 
-export type LogicalMapImpact = {
+type LogicalMapImpact = {
   id: string;
   cardId: string;
   allCardIds: string[];
@@ -40,7 +40,7 @@ export type LogicalMapImpact = {
   isStationOnly: boolean;
 };
 
-export type OverlapKindCount = {
+type OverlapKindCount = {
   kind: MapImpactKind;
   count: number;
 };
@@ -196,22 +196,6 @@ export function countUniqueImpactsByKind(
 
   return Array.from(counts, ([kind, count]) => ({ kind, count })).sort(
     (a, b) => getImpactPriority(b.kind) - getImpactPriority(a.kind),
-  );
-}
-
-/**
- * Determines whether a planned preview should be rendered on a segment.
- */
-export function shouldRenderPlannedPreviewOnSegment(
-  segmentId: string,
-  existingImpacts: MapImpact[] | undefined,
-  closure: PlannedClosure,
-): boolean {
-  if (!closure.previewSegmentIds?.includes(segmentId)) {
-    return false;
-  }
-  return !(existingImpacts ?? []).some(
-    (impact) => impact.kind === "planned-closure" && impact.cardId === closure.id,
   );
 }
 

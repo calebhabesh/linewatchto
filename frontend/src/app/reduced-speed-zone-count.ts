@@ -9,7 +9,7 @@ export type ReducedSpeedZoneDirection =
   | "bidirectional"
   | "unknown";
 
-export type ReducedSpeedZoneDirectionCount = {
+type ReducedSpeedZoneDirectionCount = {
   direction: ReducedSpeedZoneDirection;
   count: number;
   destination: string | null;

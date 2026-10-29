@@ -64,7 +64,6 @@ describe("subway closing soon chip", () => {
     assert.match(globalCss, /\.linewatch-shell > header\s*\{[\s\S]*var\(--mobile-safe-right\)[\s\S]*var\(--mobile-safe-left\)/);
     assert.match(globalCss, /\.map-utility-cluster\s*\{[\s\S]*gap:\s*var\(--mobile-top-action-gap\)/);
     assert.match(globalCss, /\.theme-toggle-btn,[\s\S]*\.site-guide-trigger\s*\{[\s\S]*height:\s*var\(--mobile-top-action-button-size\)/);
-    assert.match(globalCss, /\.mobile-legend-pill--announcement/);
     assert.doesNotMatch(mobileLegendSource, /mobile-legend-pill--announcement/);
     assert.doesNotMatch(globalCss, /max-width:\s*calc\(100vw - 16px - \d+px\)/);
     assert.doesNotMatch(globalCss, /flex-basis:\s*max\([^;]*calc\(100vw - 168px\)/);

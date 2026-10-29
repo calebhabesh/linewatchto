@@ -58,7 +58,7 @@ export const releaseNotes: ReleaseNote[] = [
 export const latestReleaseNote = releaseNotes[0] ?? null;
 export const hasReleaseNotes = releaseNotes.length > 0;
 
-export function releaseNoteForVersion(version: string | null | undefined) {
+function releaseNoteForVersion(version: string | null | undefined) {
   const normalizedVersion = version?.trim();
   if (!normalizedVersion) {
     return null;

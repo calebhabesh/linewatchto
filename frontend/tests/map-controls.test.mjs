@@ -11,7 +11,6 @@ describe("map controls", () => {
     assert.match(mapSource, /map-control-rail/);
     assert.match(mapSource, /map-control-button/);
     assert.match(mapSource, /map-control-slider/);
-    assert.match(mapSource, /map-utility-cluster/);
     assert.match(mapSource, /map-control-zoom-group/);
     assert.match(globalCss, /\.map-control-zoom-group/);
   });

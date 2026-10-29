@@ -5,7 +5,7 @@ import {
   type AccountRetryOptions,
 } from "./account-transport.ts";
 
-export type LogoutOptions = AdapterOptions & {
+type LogoutOptions = AdapterOptions & {
   pushEndpoint?: string | null;
 };
 
@@ -24,7 +24,7 @@ export type AccountState = {
   message?: string;
 };
 
-export type AuthResponse = {
+type AuthResponse = {
   authenticated: boolean;
   user: AccountUser | null;
 };
@@ -36,7 +36,7 @@ export type AuthConfig = {
 
 export type GoogleAuthMode = "login" | "link";
 
-export type AuthConfigResult = {
+type AuthConfigResult = {
   source: "backend" | "unavailable";
   config: AuthConfig;
   message?: string;
@@ -47,14 +47,14 @@ export const unavailableAuthConfig: AuthConfig = {
   googleClientId: "",
 };
 
-export type PasswordResetRequestResponse = {
+type PasswordResetRequestResponse = {
   accepted: boolean;
   message: string;
   devResetToken?: string | null;
   expiresAt?: string | null;
 };
 
-export type EmailVerificationRequestResponse = {
+type EmailVerificationRequestResponse = {
   accepted: boolean;
   message: string;
   devVerificationToken?: string | null;

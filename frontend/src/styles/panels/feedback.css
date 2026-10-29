@@ -167,13 +167,6 @@
   flex-wrap: wrap;
 }
 
-.feedback-buttons-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
 .feedback-support-card {
   display: flex;
   align-items: center;

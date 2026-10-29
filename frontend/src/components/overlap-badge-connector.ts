@@ -41,7 +41,7 @@ export const OVERLAP_BADGE_CONNECTOR_DOT_RADIUS = 9;
  * longer (a very short shortest line would otherwise leave no room at all).
  */
 export const CONNECTOR_DETOUR_RATIO = 1.75;
-export const CONNECTOR_DETOUR_BADGE_HEIGHTS = 3;
+const CONNECTOR_DETOUR_BADGE_HEIGHTS = 3;
 
 type Bounds = { minX: number; minY: number; maxX: number; maxY: number };
 

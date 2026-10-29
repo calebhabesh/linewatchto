@@ -19,7 +19,7 @@ export type TtcAnnouncementResponse = {
   announcements: TtcAnnouncementDetail[];
 };
 
-export type TtcAnnouncementResult = {
+type TtcAnnouncementResult = {
   source: "backend" | "fallback";
   data: TtcAnnouncementResponse;
 };

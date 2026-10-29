@@ -1,7 +1,7 @@
 import type { NetworkId } from "./regional-data";
 
 export type AlertHistoryPeriod = "today" | "7d" | "30d";
-export type AlertHistorySource = "backend" | "fallback";
+type AlertHistorySource = "backend" | "fallback";
 
 export type AlertHistoryEvent = {
   id: number;
@@ -39,7 +39,7 @@ export type AlertHistoryIncident = {
   events: AlertHistoryEvent[];
 };
 
-export type AlertHistoryResponse = {
+type AlertHistoryResponse = {
   generatedAt: string;
   period: AlertHistoryPeriod;
   since: string;
@@ -47,7 +47,7 @@ export type AlertHistoryResponse = {
   incidents: AlertHistoryIncident[];
 };
 
-export type AlertHistoryResult = {
+type AlertHistoryResult = {
   source: AlertHistorySource;
   data: AlertHistoryResponse;
 };

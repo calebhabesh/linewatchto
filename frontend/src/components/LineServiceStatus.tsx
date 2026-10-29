@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import { lineAdvisoryCountLabel, type LineStatusPresentation } from "../app/current-service";
 
-export function LineAdvisoryCount({ count }: { count: number }) {
+function LineAdvisoryCount({ count }: { count: number }) {
   return (
     <span className="line-service-advisory-count current-service-notice-service">
       <Plus size={12} strokeWidth={2.5} aria-hidden="true" />

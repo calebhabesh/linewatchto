@@ -3,13 +3,10 @@ import {
   accountRequestError,
   accountEmptyRequest,
   readJson,
-  AccountRequestError,
   type AdapterOptions,
 } from "./account-transport.ts";
 import type { StationSummary } from "./station-data.ts";
 import type { NetworkId } from "./regional-data.ts";
-
-export { AccountRequestError };
 
 export type AccountSavedStation = {
   networkId: NetworkId;
@@ -17,7 +14,7 @@ export type AccountSavedStation = {
   savedAt: string;
 };
 
-export type SavedStationResult = {
+type SavedStationResult = {
   source: "backend" | "unavailable";
   stations: AccountSavedStation[];
   message?: string;

@@ -14,7 +14,6 @@ import {
   projectImpactedStations,
   projectImpactBadges,
   projectCommutePreview,
-  getSelectionBounds,
 } from "../src/app/geographic-overlays.ts";
 
 const ttcCatalogUrl = new URL("../public/assets/linewatch/geographic/ttc-catalog.json", import.meta.url);
@@ -239,62 +238,5 @@ describe("geographic overlays: commute preview & selection bounds", () => {
     const result = projectCommutePreview(regionalCatalog, null);
     assert.equal(result.links.features.length, 0);
     assert.equal(result.stations.features.length, 0);
-  });
-
-  it("computes valid bounding box for an impacted segment selection", () => {
-    const mockSegments = [
-      {
-        id: "segment-br-aurora-newmarket",
-        lineId: "regional-br",
-        label: "Aurora to Newmarket",
-        overlay: "delay",
-        impacts: [{ kind: "delay", cardId: "alert-focus", travelDirection: "forward", sourceAlertIds: [] }],
-      },
-    ];
-
-    const bounds = getSelectionBounds(
-      regionalCatalog,
-      { kind: "delay", id: "alert-focus" },
-      mockSegments,
-      [],
-    );
-
-    assert.ok(bounds);
-    const [[west, south], [east, north]] = bounds;
-    assert.ok(west < east);
-    assert.ok(south < north);
-  });
-
-  it("computes valid bounding box for a single station impact selection with padding", () => {
-    const mockStationImpacts = [
-      {
-        stationId: "bloor-yonge",
-        kind: "delay",
-        cardId: "bloor-delay-1",
-        title: "Bloor-Yonge Crowd Delay",
-      },
-    ];
-
-    const bounds = getSelectionBounds(
-      ttcCatalog,
-      { kind: "delay", id: "bloor-delay-1" },
-      [],
-      mockStationImpacts,
-    );
-
-    assert.ok(bounds, "Must compute padded bounds for station-only impact");
-    const [[west, south], [east, north]] = bounds;
-    assert.ok(west < east);
-    assert.ok(south < north);
-  });
-
-  it("returns null when selection does not match any coordinates", () => {
-    const bounds = getSelectionBounds(
-      regionalCatalog,
-      { kind: "delay", id: "unknown-alert-id" },
-      [],
-      [],
-    );
-    assert.equal(bounds, null);
   });
 });

@@ -1,4 +1,4 @@
-export const MAP_WHEEL_SCROLL_REGION_ATTRIBUTE = "data-map-wheel-scroll-region";
+const MAP_WHEEL_SCROLL_REGION_ATTRIBUTE = "data-map-wheel-scroll-region";
 
 export function isMapWheelScrollRegionTarget(target: EventTarget | null): boolean {
   return target instanceof Element

@@ -339,7 +339,6 @@
 /* ============================================================
    Map layer transitions & attribution notice
    ============================================================ */
-.map-layer-entering,
 .map-layer-current {
   opacity: 1;
   transition: opacity 180ms ease;
@@ -351,7 +350,6 @@
   transition: opacity 240ms ease;
 }
 
-.motion-paused .map-layer-entering,
 .motion-paused .map-layer-current,
 .motion-paused .map-layer-exiting {
   transition: none;

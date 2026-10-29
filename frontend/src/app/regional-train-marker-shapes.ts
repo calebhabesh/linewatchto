@@ -38,7 +38,7 @@ function roundedRectRing({ x, y, width, height, rx }: { x: number; y: number; wi
 }
 const WINDOW_RINGS = TRAIN_MARKER_WINDOWS.map(roundedRectRing);
 
-export type RegionalTrainMarkerRings = {
+type RegionalTrainMarkerRings = {
   body: MapPoint[];
   windows: MapPoint[][];
   arrow: MapPoint[];

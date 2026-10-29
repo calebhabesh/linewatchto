@@ -1,6 +1,6 @@
 export type ImpactListSort = "updated" | "line" | "location" | "soonest";
 
-export type ImpactListControls = {
+type ImpactListControls = {
   lineId: string | "all";
   sort: ImpactListSort;
   query?: string;

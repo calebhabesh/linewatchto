@@ -48,7 +48,7 @@ export type StationLine = {
   hasElevator: boolean;
 };
 
-export type StationFacilityOutage = {
+type StationFacilityOutage = {
   id: string;
   assetType: "elevator" | "escalator";
   title: string;
@@ -163,7 +163,7 @@ export type StationFetchOptions = {
   signal?: AbortSignal;
 };
 
-export const TTC_STATION_HTTP_FAILURE_GRACE_MS = 30_000;
+const TTC_STATION_HTTP_FAILURE_GRACE_MS = 30_000;
 
 export function preserveStationDetailOnRefresh(
   current: StationDataResult<StationDetail | null> | null | undefined,

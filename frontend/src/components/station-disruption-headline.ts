@@ -1,4 +1,4 @@
-export type StationDisruptionTone = "active" | "delay" | "planned" | "reduced-speed-zone";
+type StationDisruptionTone = "active" | "delay" | "planned" | "reduced-speed-zone";
 
 const TONE_PRIORITY: Record<StationDisruptionTone, number> = {
   active: 0,
@@ -7,7 +7,7 @@ const TONE_PRIORITY: Record<StationDisruptionTone, number> = {
   planned: 3,
 };
 
-export type StationDisruptionGroup<T> = {
+type StationDisruptionGroup<T> = {
   key: string;
   /** Distinct classifications in the group, e.g. "Active Closure, Suspension". */
   label: string;

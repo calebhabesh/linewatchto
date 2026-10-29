@@ -6,7 +6,7 @@
  */
 import type { MapViewportOrientation } from "../hooks/panZoomMath.ts";
 
-export type ScreenBox = { left: number; top: number; right: number; bottom: number };
+type ScreenBox = { left: number; top: number; right: number; bottom: number };
 
 function revealAxis(start: number, end: number, safeStart: number, safeEnd: number): number {
   if (end - start <= safeEnd - safeStart) {
@@ -21,7 +21,7 @@ function revealAxis(start: number, end: number, safeStart: number, safeEnd: numb
 }
 
 /** How far to pan so `box` sits inside `safe`, per axis. */
-export function revealPanOffset(box: ScreenBox, safe: ScreenBox): { dx: number; dy: number } {
+function revealPanOffset(box: ScreenBox, safe: ScreenBox): { dx: number; dy: number } {
   return {
     dx: revealAxis(box.left, box.right, safe.left, safe.right),
     dy: revealAxis(box.top, box.bottom, safe.top, safe.bottom),

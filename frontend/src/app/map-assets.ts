@@ -12,22 +12,6 @@ import {
 export type { RasterMapDensity, RasterMapTheme };
 
 export {
-  RASTER_MAP_DENSITIES,
-  RASTER_MAP_NETWORKS,
-  RASTER_MAP_PLANES_BY_NETWORK,
-  RASTER_MAP_RENDERED_SIZES,
-  RASTER_MAP_REQUIRED_FONTS,
-  RASTER_MAP_SVG_SOURCES,
-  RASTER_MAP_THEMES,
-  RASTER_MAP_WIDTHS,
-  REGIONAL_RASTER_MAP_PLANES,
-  TTC_RASTER_MAP_PLANES,
-  isRasterMapPlaneForNetwork,
-  listAllRasterMapVariants,
-  type RasterMapNetwork,
-  type RasterMapPlane,
-  type RasterMapPlaneFor,
-  type RasterMapVariantDescriptor,
   type RegionalRasterMapPlane,
   type TtcRasterMapPlane,
 } from "./map-raster-manifest";

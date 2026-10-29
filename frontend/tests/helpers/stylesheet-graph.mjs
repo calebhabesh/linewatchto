@@ -1,9 +1,7 @@
 import {
   analyzeCssAst,
-  buildStylesheetGraph,
   countClassSubstringSelectors,
   countImportantDeclarations,
-  countLines,
   getImportDirectives,
   readStylesheet,
   resolveStylesheetGraph,
@@ -13,15 +11,12 @@ import {
 
 export {
   analyzeCssAst,
-  buildStylesheetGraph,
   countClassSubstringSelectors,
   countImportantDeclarations,
-  countLines,
   getImportDirectives,
   readStylesheet,
   resolveStylesheetGraph,
   stripCssComments,
-  toAbsolutePath,
 };
 
 const DEFAULT_ENTRY_URL = new URL("../../src/app/globals.css", import.meta.url);

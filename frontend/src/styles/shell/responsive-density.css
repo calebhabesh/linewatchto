@@ -231,10 +231,6 @@
     line-height: 1.3;
   }
 
-  .opening-welcome-divider {
-    margin: 6px 0 3px;
-  }
-
   .opening-welcome-slide {
     gap: 5px;
   }
@@ -450,11 +446,6 @@
     font-size: 14px;
   }
 
-  .mobile-status-peek-source,
-  .mobile-status-peek-source--updated {
-    font-size: 11.5px;
-  }
-
   .mobile-status-peek-counts {
     gap: 3px;
   }
@@ -573,10 +564,6 @@
   .mobile-more-sheet {
     gap: 8px;
     padding: 8px var(--mobile-sheet-gutter, 10px);
-  }
-
-  .mobile-more-accent-strip {
-    margin: -9px -9px -9px;
   }
 
   /* Status and More headings sit inside scroll areas. The more specific rule in
@@ -717,15 +704,6 @@
   .mobile-more-install-copy span:last-child,
   .mobile-more-share-copy span:last-child {
     font-size: 10px;
-  }
-
-  .mobile-more-health-grid,
-  .mobile-more-utility-row {
-    gap: 6px;
-  }
-
-  .mobile-more-health-grid div {
-    padding: 7px;
   }
 
   /* Alert, closure, reliability, notification, and commute cards */
@@ -936,11 +914,6 @@
 
   .my-stations-controls-top {
     gap: 6px;
-  }
-
-  .my-stations-card,
-  .my-stations-list-item {
-    padding: 9px;
   }
 
   /* Search, station details, and map inspectors */

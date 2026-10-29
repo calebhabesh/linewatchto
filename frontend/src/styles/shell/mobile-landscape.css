@@ -463,19 +463,6 @@
     color: rgba(226, 232, 240, 0.78);
   }
 
-  .rotated-map-selection-line-badge {
-    background: rgba(15, 23, 42, 0.08);
-    border-radius: 6px;
-    color: #0f172a;
-    padding: 3px 6px;
-  }
-
-  .dark .rotated-map-selection-line-badge,
-  .high-contrast .rotated-map-selection-line-badge {
-    background: rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-  }
-
   .rotated-map-selection-card-location {
     color: #1e293b;
     font-size: 12px;
