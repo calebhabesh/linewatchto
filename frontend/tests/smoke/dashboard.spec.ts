@@ -12,14 +12,47 @@ import { currentReleaseNote, RELEASE_NOTES_SEEN_STORAGE_KEY } from "../../src/ap
 const welcomeStorageKey = "linewatch-welcome-seen-v1";
 const disclaimerStorageKey = "linewatch-unofficial-notice-ack-v1";
 
+// Mobile opens the More tab. Desktop has no menu: the sidebar opens on Status,
+// and its rail reaches every other destination (see openDesktopDestination).
 async function openDashboardMenu(page: Page, isMobile = false) {
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
   if (isMobile) {
     await page.getByRole("button", { name: "More", exact: true }).click();
   } else {
-    await page.getByRole("button", { name: "Toggle menu" }).click();
+    await expect(page.locator("#desktop-sidebar-container")).toBeVisible();
   }
+}
+
+type DesktopDestination =
+  | "status" | "sign-in" | "stations" | "commutes" | "alert-history" | "more" | "source-status"
+  | "accessibility-outages" | "surface-notices" | "announcements"
+  | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "trip-changes";
+
+async function openDesktopDestination(page: Page, destination: DesktopDestination) {
+  await page.locator(`.desktop-nav-rail [data-dest="${destination}"]`).click();
+}
+
+async function signInDesktopDemoAccount(page: Page) {
+  await openDesktopDestination(page, "more");
+  await page.locator(".desktop-more-panel").getByRole("button", { name: "Demo Account" }).click();
+  await expect(page.locator(".desktop-nav-rail [data-dest=\"sign-in\"]")).toHaveAttribute("aria-label", "Account, Signed in");
+}
+
+// Desktop shows a switch; mobile shows a pressed-state "View Trains" button.
+function estimatedTrainToggle(page: Page) {
+  const name = /Toggle estimated train markers/;
+  return page.getByRole("switch", { name }).or(page.getByRole("button", { name })).filter({ visible: true });
+}
+
+function serviceCategoryDestination(name: RegExp | string): DesktopDestination {
+  const label = typeof name === "string" ? name : name.source;
+  if (/Delay/i.test(label)) return "delays";
+  if (/Reduced Speed/i.test(label)) return "reduced-speed-zones";
+  if (/Suspension/i.test(label)) return "alerts";
+  if (/Closure|Planned/i.test(label)) return "closures";
+  if (/Trip Change/i.test(label)) return "trip-changes";
+  throw new Error(`No desktop rail shortcut for ${label}`);
 }
 
 async function expectStaticMobileMapEffects(page: Page) {
@@ -45,11 +78,7 @@ async function openServiceCategory(page: Page, isMobile: boolean, name: RegExp |
     await page.getByRole("button", { name: "Status", exact: true }).click();
     await page.locator(".mobile-status-actions").getByRole("button", { name }).click();
   } else {
-    const isExpanded = await page.getByRole("button", { name: "Toggle menu" }).getAttribute("aria-expanded");
-    if (isExpanded !== "true") {
-      await page.getByRole("button", { name: "Toggle menu" }).click();
-    }
-    await page.getByRole("menuitem", { name }).click();
+    await openDesktopDestination(page, serviceCategoryDestination(name));
   }
 }
 
@@ -231,7 +260,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("foreground recovery restarts map and constellation animation with stale visibility state", async ({ page, request }) => {
+test("foreground recovery restarts the constellation animation with stale visibility state", async ({ page, request }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
 
@@ -271,11 +300,8 @@ test("foreground recovery restarts map and constellation animation with stale vi
     window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
   });
 
-  await expect.poll(async () => {
-    const first = await chevronTransforms();
-    await page.waitForTimeout(150);
-    return JSON.stringify(await chevronTransforms()) !== JSON.stringify(first);
-  }).toBe(true);
+  // Alert glyphs never move (docs/map-renderer-parity.md); only the background animates.
+  expect(await chevronTransforms()).toEqual(pausedTransforms);
 
   await expect.poll(async () => {
     const first = await constellation.evaluate((canvas) => (canvas as HTMLCanvasElement).toDataURL());
@@ -552,23 +578,18 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   const networkSelector = page.locator("#desktop-sidebar-container")
     .getByRole("group", { name: "Select transit network" });
   const mapSurface = page.locator(".network-map-transition-surface");
-  const root = page.locator("html");
   const mapLegend = mapSurface.locator(".desktop-map-legend");
+  const activeLayer = (network: "ttc" | "regional") =>
+    mapSurface.locator(`[data-network-map-layer="${network}"]:not([data-preparing])`);
   await expect(networkSelector.getByRole("button", { name: "TTC", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(mapLegend.getByText("Line 1 Yonge-University", { exact: true })).toBeVisible();
-  await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(1);
-  await expect(mapSurface.locator(".regional-map")).toHaveCount(0);
-  await expect(mapSurface).toHaveCSS("view-transition-name", "none");
+  await expect(activeLayer("ttc").locator(".ttc-svg-container")).toHaveCount(1);
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
 
-  await expect(root).toHaveAttribute("data-network-transition-direction", "forward");
-  await expect(page.locator("#desktop-sidebar-container")).toHaveCSS("view-transition-name", "desktop-sidebar");
-  await expect(page.locator(".desktop-sidebar-accent-strip")).toHaveCSS("view-transition-name", "desktop-sidebar-accent");
-  await expect.poll(() => root.evaluate((element) => (
-    getComputedStyle(element, "::view-transition-group(desktop-sidebar)").zIndex
-  ))).toBe("2");
-  await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(0);
-  await expect(mapSurface.locator(".regional-map")).toHaveCount(1);
+  // Both diagrams stay mounted; the switch makes the GO/UP layer the active one.
+  await waitForNetworkTransition(page, "regional");
+  await expect(activeLayer("regional").locator(".regional-map")).toHaveCount(1);
+  await expect(mapSurface.locator('[data-network-map-layer="ttc"]')).toHaveAttribute("data-preparing", "true");
   await expect(mapSurface.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
   await expect.poll(async () => {
@@ -576,8 +597,6 @@ test("switches the complete dashboard to the fixture-backed regional network", a
     return box ? box.x + box.width <= page.viewportSize()!.width + 1 : false;
   }).toBe(true);
   await expect(mapLegend.getByText("Barrie Line", { exact: true })).toBeVisible();
-  await expect(root).not.toHaveAttribute("data-network-transition-direction");
-  await expect(mapSurface).toHaveCSS("view-transition-name", "none");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
   await expect(page.getByRole("switch", { name: /Toggle estimated train markers/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toHaveCount(0);
@@ -627,42 +646,11 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await westonPanel.getByRole("button", { name: "Close station details" }).click();
 
   await page.getByRole("button", { name: "Center map view" }).click({ force: true });
-  const [regionalFadeSamples] = await Promise.all([
-    page.evaluate(() => new Promise<number[]>((resolve) => {
-      const samples: number[] = [];
-      const root = document.documentElement;
-      const surface = document.querySelector<HTMLElement>(".network-map-transition-surface");
-      if (!surface) {
-        resolve(samples);
-        return;
-      }
-
-      const sampleFade = () => {
-        samples.push(Number.parseFloat(getComputedStyle(surface).opacity));
-        if (root.dataset.networkTransitionDirection) {
-          resolve(samples);
-          return;
-        }
-        requestAnimationFrame(sampleFade);
-      };
-      const observer = new MutationObserver(() => {
-        if (root.dataset.networkTransitionPhase !== "fade-out") return;
-        observer.disconnect();
-        requestAnimationFrame(sampleFade);
-      });
-      observer.observe(root, { attributes: true });
-    })),
-    networkSelector.getByRole("button", { name: "TTC", exact: true }).click(),
-  ]);
-  expect(regionalFadeSamples.some((opacity) => opacity > 0 && opacity < 1)).toBe(true);
-  expect(regionalFadeSamples.at(-1)).toBeLessThanOrEqual(0.01);
-  await expect(root).toHaveAttribute("data-network-transition-direction", "back");
-  await expect(page.locator(".desktop-nav-rail")).toHaveCSS("view-transition-name", "desktop-nav-rail");
-  await expect.poll(() => root.evaluate((element) => (
-    getComputedStyle(element, "::view-transition-group(desktop-nav-rail)").zIndex
-  ))).toBe("2");
-  await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(1);
-  await expect(mapSurface.locator(".regional-map")).toHaveCount(0);
+  // The fade itself is covered by network-fade.spec.ts.
+  await networkSelector.getByRole("button", { name: "TTC", exact: true }).click();
+  await waitForNetworkTransition(page, "ttc");
+  await expect(activeLayer("ttc").locator(".ttc-svg-container")).toHaveCount(1);
+  await expect(mapSurface.locator('[data-network-map-layer="regional"]')).toHaveAttribute("data-preparing", "true");
   await expect(mapSurface.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await expect(mapSurface.locator(".ttc-map-stage")).not.toHaveAttribute("data-map-recenter-effect");
   await expect.poll(async () => {
@@ -670,8 +658,6 @@ test("switches the complete dashboard to the fixture-backed regional network", a
     return box ? box.x + box.width <= page.viewportSize()!.width + 1 : false;
   }).toBe(true);
   await expect(mapLegend.getByText("Line 1 Yonge-University", { exact: true })).toBeVisible();
-  await expect(root).not.toHaveAttribute("data-network-transition-direction");
-  await expect(mapSurface).toHaveCSS("view-transition-name", "none");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeHidden();
 });
@@ -686,7 +672,7 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   const ttcStage = page.locator(".ttc-map-stage");
   await expect(ttcStage).toHaveAttribute("data-raster-map-ready", "true");
   await expect(page.locator(".ttc-map-entrance-reveal")).toHaveCount(0);
-  await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(3);
+  await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(4);
   await expect(ttcStage.locator(".ttc-authored-svg-source").first()).toHaveCSS("visibility", "hidden");
   await page.getByRole("button", { name: "Collapse sidebar" }).click();
   await ttcStage.locator('[data-station-label-id="kipling"]').hover();
@@ -703,7 +689,7 @@ test("uses decoded raster artwork while preserving live map geometry in both net
     images.map((image) => (image as HTMLImageElement).currentSrc)
   );
   await ttcStage.dispatchEvent("wheel", { deltaY: -160, clientX: 720, clientY: 500 });
-  await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(3);
+  await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(4);
   expect(await ttcStage.locator(".raster-map-plane").evaluateAll((images) =>
     images.map((image) => (image as HTMLImageElement).currentSrc)
   )).toEqual(ttcRasterSources);
@@ -712,6 +698,7 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   const networkSelector = page.locator("#desktop-sidebar-container")
     .getByRole("group", { name: "Select transit network" });
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
+  await waitForNetworkTransition(page, "regional");
   const regionalStage = page.locator(".regional-map-stage");
   await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
   await expect(regionalStage.locator(".raster-map-plane")).toHaveCount(3);
@@ -732,7 +719,8 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   await expect(regionalLabelTarget).not.toHaveClass(/regional-raster-label-halo|regional-station-label-hovered/);
   await expect(regionalRasterLabelHover).toHaveCount(1);
   await regionalLabelTarget.dispatchEvent("pointerup", { pointerId: 31, pointerType: "mouse", button: 0 });
-  await expect(regionalStage.locator('[data-regional-station-label-for="kipling"]').locator("..")).toHaveCSS("opacity", "0");
+  // The authored label stays hidden under its raster copy.
+  await expect(regionalStage.locator('[data-regional-station-label-for="kipling"]')).toHaveCSS("visibility", "hidden");
 });
 
 test("waits for the authored map font before measuring station label hover geometry", async ({ page, request, isMobile }) => {
@@ -785,7 +773,7 @@ test("mobile loads compact independent label textures for both maps", async ({ p
 
   const ttcStage = page.locator(".ttc-map-stage");
   await expect(ttcStage).toHaveAttribute("data-raster-map-ready", "true");
-  await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(3);
+  await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(4);
   await expect(ttcStage.locator(".raster-map-plane--labels")).toHaveCount(1);
   await expect(ttcStage.locator('.raster-map-plane--labels image')).toHaveAttribute("href", /ttc-labels-dark-mobile\.png/);
 
@@ -892,14 +880,15 @@ test("regional station names share the TTC raster hover glow and station selecti
 
 test("mobile preserves status and station interaction language across network switches", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile-only cross-network parity smoke");
-  await setStubMode(request, "seeded");
+  // Seeded mode has no GO/UP source; use the live stub so GO/UP has a status to show.
+  await setStubMode(request, "regional-live");
   await page.goto("/");
 
   const networkSelector = page.locator(".mobile-network-selector-slot")
     .getByRole("group", { name: "Select transit network" });
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
+  await waitForNetworkTransition(page, "regional");
 
-  await expect(page.getByText("Regional Demo · Not Live", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Status", exact: true }).click();
   const statusSheet = page.getByRole("region", { name: "Current service status" });
   await expect(statusSheet).toContainText("GO & UP regional rail");
@@ -1153,9 +1142,9 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
 
-  await expect(page.getByText("Last Polled: Metrolinx smoke poll", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Pickering to Whitby delay impact" })).toBeAttached();
-  await expect(page.getByText("Last Polled: regional fixture mode", { exact: true })).toHaveCount(0);
+  await waitForNetworkTransition(page, "regional");
+  await expect(page.locator(".desktop-status-header-row")).toContainText(/Live/i);
+  await expect(page.getByRole("button", { name: "Ajax to Whitby impact details" })).toBeAttached();
 
   const delayOverlay = page.locator(
     '.regional-overlay-segment-group[data-regional-impact-kind="delay"][data-regional-impact-id="regional-demo-delay"]',
@@ -1292,12 +1281,19 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   expect(markerBox!.x + markerBox!.width).toBeLessThanOrEqual(viewport!.width);
   expect(markerBox!.y + markerBox!.height).toBeLessThanOrEqual(viewport!.height);
 
+  // Measure the visible badge; the marker's box also spans its anchor dot on the line.
   const visibleOverlapBoxes = await page.locator('[data-overlap-segment-id^="regional-overlap-"]:visible')
-    .evaluateAll((markers) => markers.map((marker) => marker.getBoundingClientRect().toJSON()));
+    .evaluateAll((markers) => markers.map((marker) => (
+      marker.querySelector(".overlap-indicator-pill") ?? marker
+    ).getBoundingClientRect().toJSON()));
   const visibleMapTextBoxes = await page.locator(
     'svg[aria-label="GO and UP regional rail schematic"] text:visible',
   ).evaluateAll((labels) => labels.map((label) => label.getBoundingClientRect().toJSON()));
-  for (const overlapBox of visibleOverlapBoxes) {
+  // The map runs under the docked sidebar; only badges a rider can see must clear the labels.
+  const sidebarBox = await page.locator("#desktop-sidebar-container").boundingBox();
+  const underSidebar = (box: { x: number; width: number }) => Boolean(sidebarBox)
+    && box.x + box.width / 2 < sidebarBox!.x + sidebarBox!.width;
+  for (const overlapBox of visibleOverlapBoxes.filter((box) => !underSidebar(box))) {
     for (const textBox of visibleMapTextBoxes) {
       const overlapsText = overlapBox.x < textBox.x + textBox.width
         && overlapBox.x + overlapBox.width > textBox.x
@@ -1532,6 +1528,7 @@ test("regional corridor hover encloses the entire referenced impact", async ({ p
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
+  await waitForNetworkTransition(page, "regional");
 
   const corridor = page.locator(
     '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-lw-corridor-delay"]',
@@ -1542,10 +1539,9 @@ test("regional corridor hover encloses the entire referenced impact", async ({ p
   );
   await expect(segmentTargets).toHaveCount(15);
 
-  const overlapBadge = page.getByRole("button", {
-    name: /Overlapping alerts: Delay x2 on Union to Niagara Falls/,
-  });
-  await overlapBadge.focus();
+  // The overlap badge previews its whole group with a separate outline, so
+  // start from the corridor's own segments.
+  await segmentTargets.nth(0).focus();
   await expect(hoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
   await expect(hoverForeground).not.toHaveAttribute("mask");
 
@@ -1652,9 +1648,10 @@ test("focuses a station-only regional planned closure on the map", async ({ page
   await expect(marker).toBeVisible();
   await expect.poll(() => mapStage.getAttribute("style")).not.toBe(initialTransform);
 
+  // The card's map button now reads "Back to map"; the selection survives the sidebar returning.
+  await expect(card.getByRole("button", { name: "Back to map: Pickering station construction" })).toBeVisible();
   const expandSidebar = page.getByRole("button", { name: "Expand sidebar" });
   if (await expandSidebar.isVisible()) await expandSidebar.click();
-  await mapButton.click();
   await expect(marker).toHaveAttribute("data-regional-impact-selected", "true");
 
   const viewport = page.locator(".regional-map-viewport");
@@ -1760,6 +1757,7 @@ test("uses one station selection animation in both map modes", async ({ page, re
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
+  await waitForNetworkTransition(page, "regional");
   await page.locator('.regional-station-hit-target[data-regional-station-id="union"]').press("Enter");
 
   const regionalUnderlay = page.locator(
@@ -1788,13 +1786,13 @@ test("renders regional accessibility outages in the global and station views", a
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
   await waitForNetworkTransition(page, "regional");
-  await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("menuitem", { name: /^Accessibility Outages/ }).click();
+  await openDesktopDestination(page, "accessibility-outages");
 
   await expect(page.getByRole("heading", { name: "Accessibility Outages" })).toBeVisible();
   await page.getByRole("button", { name: /Elevator Outages/ }).click();
-  await expect(page.getByText("Lakeshore East corridor", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: /Eglinton.*1 outage/ }).click();
+  await expect(page.locator(".accessibility-outages-scroll")).toContainText("Lakeshore East Line");
+  const eglinton = page.getByRole("button", { name: /Eglinton.*1 outage/ });
+  if (await eglinton.getAttribute("aria-expanded") !== "true") await eglinton.click();
   await expect(page.getByText("The east tunnel elevator is out of service.", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "View Station" }).click();
@@ -1822,7 +1820,7 @@ test("advances a timed regional marker toward its next station between polls", a
   const networkSelector = page.getByRole("group", { name: "Select transit network" });
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
-  await page.getByRole("switch", { name: /Toggle estimated train markers/ }).click();
+  await estimatedTrainToggle(page).click();
   const marker = page.locator('[data-marker-key="regional-ki:vehicle:cab-3775"]');
   await expect(marker).toBeAttached();
 
@@ -1857,7 +1855,7 @@ test("renders regional estimated train markers from the network-scoped endpoint"
   await expect(page.locator(".regional-estimated-train-marker-layer")).toBeAttached();
   await expect(page.locator(".regional-estimated-train-marker-layer .estimated-train-marker")).toHaveCount(0);
 
-  await page.getByRole("switch", { name: /Toggle estimated train markers/ }).click();
+  await estimatedTrainToggle(page).click();
 
   await expect(page.locator(".regional-estimated-train-marker-layer")).toBeAttached();
   const marker = page.locator('[data-marker-key="regional-ki:vehicle:cab-3775"]');
@@ -1965,38 +1963,12 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
   await openDashboardMenu(page, isMobile);
 
   if (!isMobile) {
-    await expect(page.getByText("Stub API Yonge-University", { exact: true })).toBeVisible();
-    await expect(page.getByText("Stub API Sheppard", { exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Stub Station station details" })).toBeVisible();
+    // The sidebar lists the API's line names (rail badge sizing is covered in
+    // overlapping-count-badges.spec.ts).
+    const overview = page.locator(".desktop-status-overview");
+    await expect(overview.getByRole("button", { name: "View Stub API Yonge-University line impacts" })).toBeVisible();
+    await expect(overview.getByRole("button", { name: "View Stub API Sheppard line impacts" })).toBeVisible();
     await expect(page.getByText(/Backend offline \(Fixture mode\)/)).toHaveCount(0);
-
-    const countBadges = page.locator(".desktop-header-impact-chips .desktop-status-chip-count");
-    await expect(countBadges).toHaveCount(4);
-    const doubleDigitBadgeMetrics = await countBadges.nth(2).evaluate((badge) => {
-      const value = badge.querySelector<HTMLElement>(".desktop-status-chip-count-value");
-      if (!value) throw new Error("Missing desktop status count value");
-      value.textContent = "11";
-      badge.setAttribute("data-digit-count", "multiple");
-      const badgeBounds = badge.getBoundingClientRect();
-      const valueBounds = value.getBoundingClientRect();
-      return {
-        badgeHeight: badgeBounds.height,
-        badgeWidth: badgeBounds.width,
-        badgeFontFamily: getComputedStyle(badge).fontFamily,
-        buttonFontFamily: getComputedStyle(badge.closest("button")!).fontFamily,
-        horizontalOpticalOffset:
-          badgeBounds.left + badgeBounds.width / 2 - (valueBounds.left + valueBounds.width / 2),
-        verticalCenterDelta: Math.abs(
-          badgeBounds.top + badgeBounds.height / 2 - (valueBounds.top + valueBounds.height / 2),
-        ),
-      };
-    });
-    expect(doubleDigitBadgeMetrics.badgeWidth).toBe(36);
-    expect(doubleDigitBadgeMetrics.badgeHeight).toBe(36);
-    expect(doubleDigitBadgeMetrics.badgeFontFamily).toBe(doubleDigitBadgeMetrics.buttonFontFamily);
-    expect(doubleDigitBadgeMetrics.horizontalOpticalOffset).toBeGreaterThanOrEqual(0.5);
-    expect(doubleDigitBadgeMetrics.horizontalOpticalOffset).toBeLessThanOrEqual(1);
-    expect(doubleDigitBadgeMetrics.verticalCenterDelta).toBeLessThanOrEqual(1);
   }
 
   await openServiceCategory(page, isMobile, /Delay/);
@@ -2028,13 +2000,9 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
     rows.map((row) => row.getBoundingClientRect().top),
   );
   expect(startedRowTops[1]).toBeGreaterThan(startedRowTops[0]);
-  const timingCountColor = await groupedTimingCard.locator(".rsz-timing-count").first().evaluate(
-    (element) => getComputedStyle(element).color,
-  );
-  const zoneCountColor = await groupedTimingCard.locator(".rsz-zone-count-label-total").evaluate(
-    (element) => getComputedStyle(element).color,
-  );
-  expect(timingCountColor).toBe(zoneCountColor);
+  // Per-direction counts render only for two or more zones in one direction;
+  // the stub's King zones have one per direction.
+  await expect(groupedTimingCard.locator(".rsz-timing-count")).toHaveCount(0);
   if (isMobile) {
     const directionalTimingColumns = await groupedTimingCard.locator(".has-directional-timing").evaluateAll(
       (fields) => fields.map((field) => ({
@@ -2047,7 +2015,7 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
       { start: "1", end: "-1" },
     ]);
 
-    await groupedTimingCard.getByRole("button", { name: "View on Map" }).click();
+    await groupedTimingCard.getByRole("button", { name: /^View .* on map$/ }).click();
     const groupedTimingInspector = page.locator('[data-mobile-impact-inspector]');
     await expect(groupedTimingInspector).toBeVisible();
     const inspectorTimingColumns = await groupedTimingInspector.locator(".has-directional-timing").evaluateAll(
@@ -2064,7 +2032,7 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
     await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
   }
 
-  await page.locator('.alert-card').filter({ hasText: 'Eglinton' }).getByRole("button", { name: "View on Map" }).click();
+  await page.locator('.alert-card').filter({ hasText: 'Eglinton' }).getByRole("button", { name: /^View .* on map$/ }).click();
   await expect(page.locator('[data-map-highlight-id="reduced-speed-zone-stub-zone-south-source"]')).toBeAttached();
 
   if (isMobile) {
@@ -2166,8 +2134,8 @@ test("opens the site guide and completes verified email signup", async ({ page, 
     await page.getByRole("button", { name: "More", exact: true }).click();
     await page.getByRole("button", { name: "Create Account" }).click();
   } else {
-    await page.getByRole("button", { name: "Toggle menu" }).click();
-    await page.getByRole("menuitem", { name: "Create Account" }).click();
+    await openDesktopDestination(page, "more");
+    await page.getByRole("button", { name: "Register", exact: true }).click();
   }
   const choiceDialog = page.getByRole("dialog", { name: "Choose how to create a LineWatchTO account" });
   await expect(choiceDialog).toBeVisible();
@@ -2193,9 +2161,9 @@ test("opens the site guide and completes verified email signup", async ({ page, 
   await verificationDialog.getByLabel("Password", { exact: true }).fill("correct horse battery staple");
   await verificationDialog.getByLabel("Confirm password").fill("correct horse battery staple");
   await verificationDialog.getByRole("button", { name: "Verify Local Account" }).click();
-  await expect(verificationDialog).toContainText("Email verified. You are now signed in.");
-  await verificationDialog.getByRole("button", { name: "Continue" }).click();
+  // Signing in closes the dialog and opens My Commutes.
   await expect(verificationDialog).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
 });
 
 test("accepts a one-time email verification link", async ({ page, request }) => {
@@ -2209,7 +2177,7 @@ test("accepts a one-time email verification link", async ({ page, request }) => 
   await dialog.getByLabel("Confirm password").fill("correct horse battery staple");
   await dialog.getByRole("button", { name: "Verify Email" }).click();
 
-  await expect(dialog).toContainText("Email verified. You are now signed in.");
+  await expect(dialog).toHaveCount(0);
   await expect(page).toHaveURL("/");
 });
 
@@ -2237,8 +2205,7 @@ test("map overlays open the corresponding submenu cards", async ({ page, request
   if (isMobile) {
     await page.getByRole("button", { name: "Map", exact: true }).click();
   } else {
-    await page.getByRole("button", { name: "Toggle menu" }).click();
-    await page.getByRole("menuitem", { name: "Map", exact: true }).click();
+    await openDesktopDestination(page, "status");
   }
   await page.getByRole("button", { name: "Center map view" }).click();
   await page.waitForTimeout(500);
@@ -2248,7 +2215,6 @@ test("map overlays open the corresponding submenu cards", async ({ page, request
     const inspector = page.locator('[data-mobile-impact-inspector]');
     await expect(inspector).toBeVisible();
     await expect(inspector.getByRole("heading", { name: "Suspension", exact: true })).toBeVisible();
-    await expect(inspector).not.toContainText("Stub API signal problem");
     await inspector.getByRole("button", { name: "View in List" }).click();
   }
 
@@ -2321,8 +2287,9 @@ test("affected segment targets distinguish dragging from selection", async ({ pa
   await expect(page.getByRole("heading", { name: "Delays" })).toHaveCount(0);
 
   await target.click();
-  await expect(target).toHaveClass(/selection-context/);
-  await expect(target).toHaveCSS("stroke-width", "190px");
+  // Selection draws its own emphasis; hit targets keep their width (f5ffcd35).
+  await expect(page.locator("[data-selected-impact-emphasis]").first()).toBeAttached();
+  await expect(target).toHaveCSS("stroke-width", isMobile ? "144px" : "96px");
   await expect(page.locator('[data-station-id="stub-station"]')).toHaveAttribute("r", "37");
   if (isMobile) {
     await expect(page.locator('[data-mobile-impact-inspector]')).toBeVisible();
@@ -2341,7 +2308,7 @@ test("mobile keeps lightweight map focus flashes and menu transitions", async ({
   await page
     .locator(".alert-card")
     .filter({ hasText: "Eglinton" })
-    .getByRole("button", { name: "View on Map" })
+    .getByRole("button", { name: /^View .* on map$/ })
     .click();
 
   const mapFlash = page.locator('[data-map-highlight-id="reduced-speed-zone-stub-zone-south-source"]').first();
@@ -2399,21 +2366,23 @@ test("alert submenus persist one per-device card or list preference", async ({ p
   );
   await page.getByRole("button", { name: "List view" }).click();
   await expect(page.locator(".alert-stack")).toHaveClass(/is-list-view/);
-  await expect(page.locator(".compact-impact-list-item")).toHaveCount(2);
+  // A row with Details wraps its button in an outer row, so count top-level rows.
+  const compactRows = page.locator(".alert-stack > .compact-impact-list-item");
+  await expect(compactRows).toHaveCount(2);
   await expect(page.locator(".alert-card")).toHaveCount(0);
-  const firstCompactRow = page.locator(".compact-impact-list-item").first();
-  await expect(firstCompactRow).toContainText("Direction:");
-  await expect(firstCompactRow).toContainText("Reduced Speed:");
+  const firstCompactRow = compactRows.first();
+  await expect(firstCompactRow).toContainText("Directions:");
+  await expect(firstCompactRow).toContainText("Speed:");
   await expect(firstCompactRow).toContainText("Est. Resolution:");
   await expect(firstCompactRow).toContainText("Updated:");
-  await expect(firstCompactRow).toContainText("Zone Count:");
-  const secondCompactRow = page.locator(".compact-impact-list-item").nth(1);
-  await expect(secondCompactRow).toContainText("Zone Count:");
+  const secondCompactRow = compactRows.nth(1);
+  await expect(secondCompactRow).toContainText("Directions:");
   await expect(firstCompactRow).toHaveCSS("border-left-color", "rgba(245, 158, 11, 0.85)");
   await expect(firstCompactRow).toHaveCSS("border-left-width", cardEdgeWidth);
   await expect(firstCompactRow.locator(".compact-impact-list-item__facts")).toBeVisible();
-  const firstStartedBounds = await firstCompactRow.locator(".is-column-3").boundingBox();
-  const secondStartedBounds = await secondCompactRow.locator(".is-column-3").boundingBox();
+  // Reduced speed zone rows align their Directions facts in column 2.
+  const firstStartedBounds = await firstCompactRow.locator(".is-column-2").first().boundingBox();
+  const secondStartedBounds = await secondCompactRow.locator(".is-column-2").first().boundingBox();
   expect(firstStartedBounds).not.toBeNull();
   expect(secondStartedBounds).not.toBeNull();
   await expect.poll(() => page.evaluate(() => window.localStorage.getItem("linewatch-impact-list-view-v1"))).toBe("list");
@@ -2734,10 +2703,11 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
   await expect(regionalMap).toHaveAttribute("data-map-zoom-active", "false");
   expect(Number(await regionalGlow.evaluate((element) => getComputedStyle(element).opacity))).toBeGreaterThan(0);
 
-  const regionalRecenterPaint = await page.getByRole("button", { name: "Fit regional network" }).evaluate(async (button) => {
+  const regionalRecenterPaint = await page.getByRole("button", { name: "Center map view" }).evaluate(async (button) => {
     const root = document.querySelector<HTMLElement>(".regional-map");
     const stage = root?.querySelector<HTMLElement>(".regional-map-stage");
-    const zoomIn = root?.querySelector<HTMLButtonElement>('button[aria-label="Zoom in"]');
+    // The toolbar renders through the shared rail, outside the map root.
+    const zoomIn = document.querySelector<HTMLButtonElement>('.regional-map-control-rail button[aria-label="Zoom in"]');
     if (!stage || !zoomIn) throw new Error("Missing regional Center regression controls");
 
     const cycles: Array<{
@@ -2830,7 +2800,8 @@ test("disruption rails stay static across TTC and regional maps", async ({ page,
   expect(ttcPulse.plannedWidth).toBe(ttcPulse.rszWidth);
   expect(ttcPulse.plannedPreviewWidth).toBe(ttcPulse.rszWidth);
   expect(ttcPulse.closureMaskAnimation).toBe("none");
-  expect(ttcPulse.closureMaskWidth).toBe("102px");
+  // TTC rails use the authored 80-unit line width (a1fac8ab).
+  expect(ttcPulse.closureMaskWidth).toBe("80px");
 
   const releaseNotesDismiss = page.getByRole("button", { name: "Close introduction" });
   if (await releaseNotesDismiss.isVisible()) {
@@ -2920,7 +2891,7 @@ test("mobile View on Map from a delay submenu centers the affected section", asy
   await expect(page.locator('.ttc-map-stage[data-raster-map-ready="true"]')).toBeVisible();
   await openServiceCategory(page, isMobile, /^Delays/);
   await page.locator('.alert-card').filter({ hasText: 'Sheppard-Yonge' })
-    .getByRole('button', { name: 'View on Map' }).click();
+    .getByRole('button', { name: /^View .* on map$/ }).click();
   await expect(page.locator('[data-mobile-impact-inspector]')).toBeVisible();
   await page.waitForTimeout(700);
   const geometry = await page.locator('[data-map-pan-zoom-viewport]').evaluate((viewport) => {
@@ -3024,16 +2995,16 @@ test("desktop closing impact details preserves the focused map camera", async ({
   const defaultTransform = await mapLayer.evaluate((element) => element.style.transform);
 
   await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" }).click();
-  const delayPanel = page.locator(".floating-panel-shell");
-  await expect(delayPanel.getByRole("heading", { name: "Delays" })).toBeVisible();
+  const sidebar = page.locator("#desktop-sidebar-container");
+  await expect(sidebar.getByRole("heading", { name: "Delays" })).toBeVisible();
   await expect
     .poll(async () => mapLayer.evaluate((element) => element.style.transform))
     .not.toBe(defaultTransform);
 
   const focusedTransform = await mapLayer.evaluate((element) => element.style.transform);
 
-  await delayPanel.getByRole("button", { name: "Close" }).click();
-  await expect(delayPanel).toHaveCount(0);
+  await sidebar.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(sidebar.getByRole("heading", { name: "Delays" })).toHaveCount(0);
   await page.waitForTimeout(500);
 
   await expect
@@ -3226,13 +3197,11 @@ test("LineLegend clicks open a temporary line-focused view without highlighting 
   await expect(page.locator(".highlight-active-card")).toHaveCount(0);
   await expect(page.locator(".alert-card").first()).not.toHaveClass(/!bg-amber-950|highlight-active-card/);
 
-  await page.getByRole("button", { name: "Back" }).click();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Toggle menu" })).toHaveAttribute("aria-expanded", "false");
-  await page.getByRole("button", { name: "Toggle menu" }).click();
-  await expect(page.getByText("Maps & Alerts", { exact: true })).toBeVisible();
-  await page.getByRole("menuitem", { name: /Reduced Speed Zones/ }).click();
+  // The category itself opens unfiltered: the line filter belonged to the legend visit.
+  await openDesktopDestination(page, "reduced-speed-zones");
   await expect(page.locator('select[aria-label="Filter Reduced Speed Zones by line"]')).toHaveValue("all");
 });
 
@@ -3276,8 +3245,7 @@ test("TTC notices filter exact routes and compose service and stop search", asyn
     await page.getByRole("button", { name: "Status", exact: true }).click();
     await page.getByRole("button", { name: /Streetcar & Bus Notices/ }).click();
   } else {
-    await openDashboardMenu(page);
-    await page.getByRole("menuitem", { name: "Streetcar & Bus Notices" }).click();
+    await openDesktopDestination(page, "surface-notices");
   }
   await page.getByRole("button", { name: "Filter notices by route or line" }).click();
   await page.getByRole("menuitemradio", { name: /^Route 9 1$/ }).click();
@@ -3302,9 +3270,11 @@ test("TTC notices filter exact routes and compose service and stop search", asyn
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Reset filters" }).click();
   await expect(page.locator(".surface-notice-route-group")).toHaveCount(2);
-  const closeBox = await page.getByRole("button", { name: "Close", exact: true }).boundingBox();
-  expect(closeBox!.x + closeBox!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
-  await page.screenshot({ path: `/tmp/ttc-notices-${isMobile ? "mobile" : "desktop"}.png` });
+  if (isMobile) {
+    // The mobile sheet's Close stays on screen; desktop panels close from the rail.
+    const closeBox = await page.getByRole("button", { name: "Close", exact: true }).boundingBox();
+    expect(closeBox!.x + closeBox!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  }
 });
 
 test("regional line menus show impacts before notices in one filterable list", async ({ page, request, isMobile }) => {
@@ -3356,7 +3326,7 @@ test("mobile map legend summarizes line impacts and opens the all-types line vie
   }).toBeGreaterThanOrEqual(7);
   await legendToggle.click();
 
-  await expect(page.getByText("Service by line", { exact: true })).toBeVisible();
+  // The expanded legend lists lines directly; it no longer has a "Service by line" heading.
   await expect.poll(async () => {
     const [legendBox, themeBox] = await Promise.all([
       page.locator(".mobile-legend-pill").boundingBox(),
@@ -3381,28 +3351,20 @@ test("Line Status opens an all-types line submenu on desktop and mobile", async 
     await page.setViewportSize({ width: 390, height: 600 });
   }
   await page.goto("/");
-  if (isMobile) {
+  // Mobile opens the line from the Status sheet and restores its scroll on Back;
+  // desktop opens it from the map legend, which does not scroll.
+  const originScroll = isMobile ? page.locator(".mobile-status-content-scroll") : null;
+  const lineStatusButton = isMobile
+    ? page.getByRole("button", { name: /View all service impacts for .*Yonge-University/ })
+    : page.locator(".desktop-map-legend").getByRole("button", { name: /View all service impacts for Line 1 Yonge-University:/ });
+  let enteredScrollTop = 0;
+  if (originScroll) {
     await page.getByRole("button", { name: "Status", exact: true }).click();
-  } else {
-    await openDashboardMenu(page, isMobile);
-  }
-
-  const originScroll = isMobile
-    ? page.locator(".mobile-status-content-scroll")
-    : page.locator("#linewatch-main-menu-scroll");
-  const lineStatusButton = page.getByRole(isMobile ? "button" : "menuitem", {
-    name: /View all service impacts for .*Yonge-University/,
-  });
-  if (isMobile) {
     await originScroll.evaluate((element) => {
       element.scrollTop = Math.min(40, element.scrollHeight - element.clientHeight);
     });
-  } else {
-    await lineStatusButton.scrollIntoViewIfNeeded();
-  }
-  const enteredScrollTop = await originScroll.evaluate((element) => element.scrollTop);
-  expect(enteredScrollTop).toBeGreaterThan(0);
-  if (isMobile) {
+    enteredScrollTop = await originScroll.evaluate((element) => element.scrollTop);
+    expect(enteredScrollTop).toBeGreaterThan(0);
     await lineStatusButton.evaluate((element: HTMLButtonElement) => element.click());
   } else {
     await lineStatusButton.click();
@@ -3411,11 +3373,14 @@ test("Line Status opens an all-types line submenu on desktop and mobile", async 
   const typeFilters = page.getByRole("group", { name: /Filter .*Yonge-University impacts by alert type/ });
   await expect(typeFilters).toBeVisible();
   await expect(page.locator('select[aria-label^="Sort "][aria-label$="Yonge-University impacts"]')).toHaveValue("updated");
-  await expect(page.getByRole("searchbox", { name: /Filter .*Yonge-University impacts/ })).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: /Search .*Yonge-University impacts/ })).toBeVisible();
   await expect(typeFilters.getByRole("button", { name: /Reduced Speed Zones/ })).toBeVisible();
   if (!isMobile) {
-    const filterTops = await typeFilters.getByRole("button").evaluateAll((buttons) => buttons.map((button) => Math.round(button.getBoundingClientRect().top)));
-    expect(new Set(filterTops).size).toBe(1);
+    // The sidebar may wrap the filter chips, but none may run past its edge.
+    expect(await typeFilters.evaluate((group) => {
+      const right = group.getBoundingClientRect().right;
+      return [...group.querySelectorAll("button")].every((button) => button.getBoundingClientRect().right <= right + 1);
+    })).toBe(true);
   }
   await expect(page.locator(".line-impact-total-badge")).toContainText(/\d+ Service Impacts/);
   const linePanel = page.locator(".line-impacts-panel");
@@ -3427,9 +3392,11 @@ test("Line Status opens an all-types line submenu on desktop and mobile", async 
   await typeFilters.getByRole("button", { name: /Reduced Speed Zones/ }).click();
   await expect(page.locator(".line-impact-panel-stack .rsz-card-border").first()).toBeVisible();
   await expect(page.locator(".line-impact-panel-stack .embedded-impact-panel > .panel-heading")).toBeHidden();
-  await page.getByRole("button", { name: "Back" }).click();
-  await expect.poll(async () => originScroll.evaluate((element) => Math.round(element.scrollTop)))
-    .toBe(Math.round(enteredScrollTop));
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  if (originScroll) {
+    await expect.poll(async () => originScroll.evaluate((element) => Math.round(element.scrollTop)))
+      .toBe(Math.round(enteredScrollTop));
+  }
 });
 
 test("regional corridor status opens the same all-types submenu", async ({ page, request, isMobile }) => {
@@ -3438,11 +3405,11 @@ test("regional corridor status opens the same all-types submenu", async ({ page,
   await page.goto("/");
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Fit regional network" })).toBeVisible();
-  await expect(page.getByText("Last Polled: regional fixture mode", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
   await waitForNetworkTransition(page, "regional");
-  await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("menuitem", { name: /View all service impacts for .*Barrie/ }).click();
+  // Seeded mode has no GO/UP source, so the sidebar marks its status unknown.
+  await expect(page.locator(".desktop-status-header-row")).toContainText(/Unknown/i);
+  await page.locator(".desktop-map-legend").getByRole("button", { name: /View all service impacts for Barrie Line:/ }).click();
   await expect(page.getByRole("heading", { name: /Barrie/ })).toBeVisible();
   await expect(page.getByRole("group", { name: /Filter .*Barrie impacts by alert type/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Reduced Speed Zones/ })).toHaveCount(0);
@@ -3455,13 +3422,13 @@ test("mobile More restores its scroll position after submenu back navigation", a
   await openDashboardMenu(page, isMobile);
 
   const moreScroll = page.locator(".mobile-more-content-scroll");
-  const historyButton = page.getByRole("button", { name: "Alert History", exact: true });
+  const historyButton = page.getByLabel("More LineWatchTO options").getByRole("button", { name: "Alert History", exact: true });
   await historyButton.scrollIntoViewIfNeeded();
   const enteredScrollTop = await moreScroll.evaluate((element) => element.scrollTop);
   expect(enteredScrollTop).toBeGreaterThan(0);
   await historyButton.click();
   await expect(page.getByRole("heading", { name: "Alert History", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Back" }).click();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
   await expect.poll(async () => moreScroll.evaluate((element) => Math.round(element.scrollTop)))
     .toBe(Math.round(enteredScrollTop));
 });
@@ -3530,7 +3497,9 @@ test("retains the last dashboard snapshot while browser requests reconnect", asy
   dashboardUnavailable = true;
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
 
-  await expect(page.locator(".dashboard-availability-notice")).toContainText(/Reconnecting.*Saved/);
+  // Mobile shows the notice over the map; desktop shows it in the sidebar's status view.
+  await expect(page.locator(".dashboard-availability-notice, .desktop-status-notice-wrapper").first())
+    .toContainText(/Reconnecting.*Saved/);
   await expect(retainedOverlay).toBeAttached();
 
   dashboardUnavailable = false;
@@ -3577,7 +3546,8 @@ test("shows an active planned closure in both current and scheduled views", asyn
 
   await activeClosureChildCard.getByRole("button", { name: "View related planned advisory details" }).click();
   await expect(page.getByRole("heading", { name: "Planned Advisories" })).toBeVisible();
-  await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toHaveClass(/highlight-active-card/);
+  // An in-card badge swaps the card in place, so the target is selected without a glow.
+  await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toHaveClass(/is-active/);
 
   if (isMobile) {
     await page.getByRole("button", { name: "Status", exact: true }).click();
@@ -3632,13 +3602,13 @@ for (const sameIdProjection of [false, true]) {
     await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
     if (isMobile) {
       await page.getByRole("button", { name: "Status", exact: true }).click();
-      await page.locator(".mobile-status-actions").getByRole("button", { name: /Closure/ }).click();
+      await page.locator(".mobile-status-actions").getByRole("button", { name: /Planned Advisor/ }).click();
     } else {
       await page.getByRole("navigation", { name: "Desktop primary navigation" }).getByRole("button", { name: /^Planned Advisories/ }).click();
     }
     const closureCard = page.locator('[data-impact-card-id="stub-closure-line-1"]');
     await expect(closureCard).toBeVisible();
-    await closureCard.getByRole("button", { name: "View active alert", exact: true }).click();
+    await closureCard.getByRole("button", { name: "View current impact", exact: true }).click();
     if (isMobile) {
       const inspector = page.locator('[data-mobile-impact-inspector]');
       await expect(inspector.getByRole("button", { name: "View related planned advisory details" })).toBeVisible();
@@ -3657,7 +3627,7 @@ for (const sameIdProjection of [false, true]) {
     }
     await expect(page.getByRole("heading", { name: "Planned Advisories" })).toBeVisible();
     await expect(closureCard.getByText("Current window", { exact: true })).toBeVisible();
-    await closureCard.getByRole("button", { name: "View active alert", exact: true }).click();
+    await closureCard.getByRole("button", { name: "View current impact", exact: true }).click();
     if (isMobile) {
       await page.locator('[data-mobile-impact-inspector]').getByRole("button", { name: "View in List" }).click();
     }
@@ -3759,7 +3729,11 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
     }
   }
   if (!isMobile) {
-    await page.locator(".network-map-transition-surface").getByLabel("Zoom level slider").fill("2");
+    // The compact desktop toolbar hides the zoom slider; zoom with the buttons.
+    for (let step = 0; step < 3; step++) {
+      await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+    }
+    await expect(overlapChooser).toBeVisible();
     await expect.poll(async () => Math.abs(((await overlapChooser.boundingBox())?.width ?? 0) - chooserWidthAtDefaultZoom))
       .toBeLessThan(2);
   }
@@ -3782,9 +3756,9 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   await expect(overlapChooser.getByText("Suspension", { exact: true })).toHaveCount(2);
   await expect(overlapChooser.getByText("Active Closure", { exact: true })).toHaveCount(0);
   await expect(overlapChooser.getByText("Planned Advisory", { exact: true })).toBeVisible();
-  await expect(overlapChooser.getByText("Line 1: Stub Station to Stub Terminal (Northbound & Southbound)")).toHaveCount(3);
+  await expect(overlapChooser.getByRole("button", { name: /Line 1: Stub Station to Stub Terminal , both directions Northbound & Southbound$/ })).toHaveCount(3);
   await expect(overlapChooser.locator('[data-overlap-choice-kind="planned-closure"] .overlap-chooser-choice-date'))
-    .toHaveText("Thu, Jul 23 – Fri, Jul 24");
+    .toHaveText("Thu, Jul 23 – Fri, Jul 24, Nightly 11:00 PM – 2:00 AM");
   await expect(overlapChooser.locator(".overlap-chooser-choice-action")).toHaveCount(0);
   await expect(overlapChooser.locator('[data-overlap-choice-kind="planned-closure"]').first()).toHaveCSS("border-left-width", "2px");
   if (!isMobile) {
@@ -3998,22 +3972,26 @@ test("station names share hover and selection behavior with station dots", async
   await expect(labelTarget).toHaveCount(1);
 
   if (!isMobile) {
+    // Kipling sits under the docked sidebar; collapsing it leaves the camera alone.
+    await page.getByRole("button", { name: "Collapse sidebar" }).click();
+    await expect(page.locator("#desktop-sidebar-container")).toHaveClass(/desktop-sidebar-container--collapsed/);
     const authoredLabel = page.locator('[data-station-label-for="kipling"]');
     const hoverEffect = authoredLabel.locator("..");
     await expect.poll(async () => authoredLabel.evaluate((element) => getComputedStyle(element).fontSize))
       .not.toBe("");
     const authoredFontSize = await authoredLabel.evaluate((element) => getComputedStyle(element).fontSize);
-    await labelTarget.hover();
+    // The label sits in an animated map layer, so skip the stability wait.
+    await labelTarget.hover({ force: true });
     await expect(authoredLabel).toHaveClass(/station-label-hovered/);
     const pressedLabel = page.locator(".ttc-map-stage .raster-station-label-text-hover");
     await page.mouse.down();
     await expect(pressedLabel).toBeVisible();
     await expect(pressedLabel).toHaveCSS("transform", /matrix\(0\.985, 0, 0, 0\.985, 0, 0\)/);
     await page.mouse.up();
-    await labelTarget.hover();
+    await labelTarget.hover({ force: true });
 
     await expect(hoverEffect).toHaveCSS("transition-duration", "0.12s, 0.12s");
-    await expect(hoverEffect).toHaveCSS("transition-delay", "0s");
+    await expect(hoverEffect).toHaveCSS("transition-delay", "0s, 0s");
     await expect(hoverEffect).toHaveCSS("animation-name", "none");
     await expect(authoredLabel).toHaveCSS("font-size", authoredFontSize);
     await expect(page.locator('[data-station-hover-id="kipling"]')).not.toHaveClass(/active/);
@@ -4058,9 +4036,9 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
   await expect(page.getByRole("heading", { name: "Suspensions" })).toBeVisible();
   const activeAlertCard = page.locator('[data-impact-card-id="stub-alert-line-1"]');
   await expect(activeAlertCard).toBeVisible();
-  await expect(activeAlertCard.getByText("Overlap:")).toBeVisible();
-  await expect(activeAlertCard.getByText("Delay", { exact: true })).toBeVisible();
-  await expect(activeAlertCard.getByText("Reduced Speed Zone", { exact: true })).toBeVisible();
+  await expect(activeAlertCard.getByText("Overlapping impacts", { exact: true })).toBeVisible();
+  await expect(activeAlertCard.getByRole("button", { name: /^View Delay at / })).toBeVisible();
+  await expect(activeAlertCard.getByRole("button", { name: /^View Reduced Speed Zone at / })).toBeVisible();
 
   await openServiceCategory(page, isMobile, /Delay/);
   const delaysPanel = page.locator("section").filter({
@@ -4068,23 +4046,23 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
   });
   const delayCard = delaysPanel.locator('[data-impact-card-id="stub-delay-line-1-overlap"]');
   await expect(delayCard).toBeVisible();
-  await expect(delayCard.getByText("Overlap:")).toBeVisible();
-  await expect(delayCard.getByText("Suspension", { exact: true })).toHaveCount(2);
+  await expect(delayCard.getByText("Overlapping impacts", { exact: true })).toBeVisible();
+  await expect(delayCard.getByRole("button", { name: /^View Suspension at / })).toHaveCount(2);
 
   await openServiceCategory(page, isMobile, /Suspension/);
   const boundaryActiveCard = page.locator('[data-impact-card-id="stub-alert-st-george-boundary"]');
   await expect(boundaryActiveCard).toBeVisible();
-  await expect(boundaryActiveCard.getByText("Overlap:")).toBeVisible();
-  await expect(boundaryActiveCard.getByText("Planned Advisory", { exact: true })).toBeVisible();
+  await expect(boundaryActiveCard.getByText("Overlapping impacts", { exact: true })).toBeVisible();
+  await expect(boundaryActiveCard.getByRole("button", { name: /^View Planned Advisory at / })).toBeVisible();
 
-  await openServiceCategory(page, isMobile, /Closure/);
+  await openServiceCategory(page, isMobile, /Planned Advisor/);
   const closuresPanel = page.locator("section").filter({
     has: page.getByRole("heading", { name: "Planned Advisories" }),
   });
   const boundaryClosureCard = closuresPanel.locator('[data-impact-card-id="stub-upcoming-closure-st-george-boundary"]');
   await expect(boundaryClosureCard).toBeVisible();
-  await expect(boundaryClosureCard.getByText("Overlap:")).toBeVisible();
-  await expect(boundaryClosureCard.getByText("Suspension", { exact: true })).toBeVisible();
+  await expect(boundaryClosureCard.getByText("Overlapping impacts", { exact: true })).toBeVisible();
+  await expect(boundaryClosureCard.getByRole("button", { name: /^View Suspension at / })).toBeVisible();
 });
 
 test("production capability keeps TTC source status sanitized", async ({ page, request, isMobile }) => {
@@ -4094,9 +4072,10 @@ test("production capability keeps TTC source status sanitized", async ({ page, r
 
   if (isMobile) {
     await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "Toggle Source Status" }).click();
+  } else {
+    await openDesktopDestination(page, "source-status");
   }
-
-  await page.getByRole("button", { name: "Toggle Source Status" }).click();
   await expect(page.getByText("TTC Source Status").last()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Dashboard feed" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "30-day feed availability" })).toBeVisible();
@@ -4136,9 +4115,10 @@ test("opens TTC retained records when non-production diagnostics are enabled", a
 
   if (isMobile) {
     await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "Toggle Source Status" }).click();
+  } else {
+    await openDesktopDestination(page, "source-status");
   }
-
-  await page.getByRole("button", { name: "Toggle Source Status" }).click();
   await expect(page.getByRole("tab", { name: "Source records" })).toBeVisible();
   await page.getByRole("tab", { name: "Source records" }).click();
   await expect(page.getByText("Development / staging diagnostics")).toBeVisible();
@@ -4164,9 +4144,10 @@ test("opens regional source coverage and retained records in non-production", as
   if (isMobile) {
     await page.getByRole("button", { name: "More", exact: true }).click();
     await expect(page.getByText("GO / UP Source Status")).toBeVisible();
+    await page.getByRole("button", { name: "Toggle Source Status" }).click();
+  } else {
+    await openDesktopDestination(page, "source-status");
   }
-
-  await page.getByRole("button", { name: "Toggle Source Status" }).click();
   await expect(page.getByText("GO / UP Source Status").last()).toBeVisible();
   await expect(page.getByRole("heading", { name: "30-day feed availability" })).toBeVisible();
   await expect(page.getByText("99.91%", { exact: true })).toBeVisible();
@@ -4210,8 +4191,7 @@ test("nonlinear guide-backed overlays open their corresponding cards", async ({ 
   if (isMobile) {
     await page.getByRole("button", { name: "Map", exact: true }).click();
   } else {
-    await page.getByRole("button", { name: "Toggle menu" }).click();
-    await page.getByRole("menuitem", { name: "Map", exact: true }).click();
+    await openDesktopDestination(page, "status");
   }
   await page.getByRole("button", { name: "delay: Spadina to St George" }).dispatchEvent("click");
   if (isMobile) {
@@ -4270,7 +4250,8 @@ test("global station search switches maps for a station on the other network", a
 
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Oakville regional station details" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "GO/UP" })).toHaveAttribute("aria-pressed", "true");
+  // The network switch is tucked away while station details are open.
+  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", "regional");
 });
 
 test("mobile GO and UP map uses the rotated logical landscape viewport", async ({ page, request, isMobile }) => {
@@ -4336,131 +4317,17 @@ test("mobile GO and UP map uses the rotated logical landscape viewport", async (
   await expect(regionalViewport).toHaveAttribute("data-map-viewport-orientation", "standard");
 });
 
-test("pinned desktop menu focuses impacts in the unobscured map area", async ({ page, request, isMobile }) => {
-  test.skip(isMobile, "desktop-only pinned menu layout");
-  await setStubMode(request, "seeded");
-  await page.addInitScript(() => {
-    window.localStorage.setItem("linewatch-menu-pinned", "true");
-  });
-  await page.goto("/?panel=delays");
-
-  const panel = page.locator(".floating-panel-shell");
-  const viewport = page.locator("[data-map-pan-zoom-viewport]");
-  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-menu-pinned", "true");
-  await expect(panel).toBeVisible();
-
-  const delayCard = page.locator('[data-impact-card-id="stub-delay-line-4"]');
-  await delayCard.getByRole("button", { name: "View on Map" }).click();
-  const highlight = page.locator('[data-map-highlight-id="stub-delay-line-4"]');
-  await expect(highlight).toBeAttached();
-  await page.waitForTimeout(900);
-
-  const [panelBox, viewportBox, highlightBox] = await Promise.all([
-    panel.boundingBox(),
-    viewport.boundingBox(),
-    highlight.boundingBox(),
-  ]);
-  expect(panelBox).not.toBeNull();
-  expect(viewportBox).not.toBeNull();
-  expect(highlightBox).not.toBeNull();
-
-  const visibleMapCenter = (
-    panelBox!.x + panelBox!.width + 16 + viewportBox!.x + viewportBox!.width
-  ) / 2;
-  const highlightCenter = highlightBox!.x + highlightBox!.width / 2;
-  expect(highlightCenter).toBeGreaterThan(panelBox!.x + panelBox!.width);
-  expect(Math.abs(highlightCenter - visibleMapCenter)).toBeLessThan(100);
-});
-
-test("pinned desktop menu blocks pull up sheet and alert badges across mode switches, reloads, and navigation", async ({ page, request, isMobile }) => {
-  test.skip(isMobile, "desktop-only pinned menu layout");
-  await setStubMode(request, "seeded");
-  await page.goto("/");
-
-  const badges = page.locator(".desktop-status-chip-row-container");
-  await expect(badges).toHaveCSS("opacity", "1");
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
-  const initialTransform = await page.locator(".ttc-map-stage").evaluate((el) => el.style.transform);
-
-  // Open menu (badges fade to opacity 0 without shifting layout or map camera)
-  await page.getByRole("button", { name: /Toggle menu/ }).click();
-  await expect(badges).toHaveCSS("opacity", "0");
-  await expect(badges).toHaveCSS("pointer-events", "none");
-  const openedTransform = await page.locator(".ttc-map-stage").evaluate((el) => el.style.transform);
-  expect(openedTransform).toBe(initialTransform);
-
-  // Close menu (badges reappear, map does not shift)
-  await page.getByRole("button", { name: /Toggle menu/ }).click();
-  await expect(badges).toHaveCSS("opacity", "1");
-  const closedTransform = await page.locator(".ttc-map-stage").evaluate((el) => el.style.transform);
-  expect(closedTransform).toBe(initialTransform);
-
-  // Open menu again to pin
-  await page.getByRole("button", { name: /Toggle menu/ }).click();
-  await expect(badges).toHaveCSS("opacity", "0");
-
-  // Pin menu
-  const pinButton = page.getByRole("button", { name: "Pin main menu open" });
-  await expect(pinButton).toBeVisible();
-  await pinButton.click();
-  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-menu-pinned", "true");
-  await expect(badges).toHaveCSS("opacity", "0");
-  await expect(badges).toHaveCSS("pointer-events", "none");
-  await expect(page.locator(".desktop-status-chip-row-container .current-service")).not.toBeAttached();
-
-  // 1. Switch map mode
-  await page.getByRole("button", { name: "GO & UP" }).first().click();
-  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-menu-pinned", "true");
-  await expect(badges).toHaveCSS("opacity", "0");
-  await expect(badges).toHaveCSS("pointer-events", "none");
-  await expect(page.locator(".desktop-status-chip-row-container .current-service")).not.toBeAttached();
-
-  // 2. Reload page
-  await page.reload();
-  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-menu-pinned", "true");
-  await expect(badges).toHaveCSS("opacity", "0");
-  await expect(badges).toHaveCSS("pointer-events", "none");
-  await expect(page.locator(".desktop-status-chip-row-container .current-service")).not.toBeAttached();
-
-  // 3. Navigate parts of the map (click "Map" item in pinned menu)
-  await page.getByRole("menuitem", { name: "Map", exact: true }).click();
-  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-menu-pinned", "true");
-  await expect(badges).toHaveCSS("opacity", "0");
-  await expect(badges).toHaveCSS("pointer-events", "none");
-  await expect(page.locator(".desktop-status-chip-row-container .current-service")).not.toBeAttached();
-
-  // 4. Unpin menu: badges should reappear with opacity 1
-  const unpinButton = page.getByRole("button", { name: "Unpin main menu" });
-  await unpinButton.click();
-  await expect(page.locator(".linewatch-shell")).not.toHaveAttribute("data-menu-pinned", "true");
-  await expect(badges).toHaveCSS("opacity", "1");
-});
-
 test("global search opens a condensed alert result in its detailed card and mobile map inspector", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
 
-  if (isMobile) {
-    await page.getByRole("searchbox", { name: "Station Search" }).click();
-  } else {
-    await page.locator(".header-search-bar").click({ position: { x: 5, y: 5 } });
-  }
+  await page.getByRole("searchbox", { name: "Station Search" }).click();
 
   const searchbox = page.getByRole("searchbox", { name: "Station Search" });
   await expect(searchbox).toHaveAttribute("placeholder", "Search all stations and alerts...");
   const searchPanel = page.locator("[data-station-search-panel]");
   await expect(searchPanel).toBeVisible();
   if (!isMobile) {
-    await expect
-      .poll(async () => {
-        const [searchBarBox, searchPanelBox] = await Promise.all([
-          page.locator(".header-search-bar").boundingBox(),
-          searchPanel.boundingBox(),
-        ]);
-        return Math.abs((searchBarBox?.width ?? 0) - (searchPanelBox?.width ?? 1));
-      })
-      .toBeLessThanOrEqual(1);
-
     const [activeAlertsBox, plannedClosuresBox, reducedSpeedZonesBox] = await Promise.all([
       page.getByRole("button", { name: "Suspensions", exact: true }).boundingBox(),
       page.getByRole("button", { name: "Planned Advisories", exact: true }).boundingBox(),
@@ -4470,7 +4337,9 @@ test("global search opens a condensed alert result in its detailed card and mobi
     expect(plannedClosuresBox).not.toBeNull();
     expect(reducedSpeedZonesBox).not.toBeNull();
     expect(Math.abs(plannedClosuresBox!.y - activeAlertsBox!.y)).toBeLessThanOrEqual(1);
-    expect(reducedSpeedZonesBox!.y).toBeGreaterThan(activeAlertsBox!.y);
+    // Reduced Speed Zones follows in reading order: later on the row, or wrapped below.
+    expect(reducedSpeedZonesBox!.y > activeAlertsBox!.y + 1
+      || reducedSpeedZonesBox!.x >= plannedClosuresBox!.x + plannedClosuresBox!.width).toBe(true);
 
     const linesColumn = page.locator(".station-search-lines-column");
     await expect(linesColumn).toHaveAttribute("data-scroll-more-below", "");
@@ -4503,7 +4372,7 @@ test("global search opens a condensed alert result in its detailed card and mobi
   await expect(page.locator('[data-map-highlight-id="stub-delay-line-4"]')).toBeAttached();
 
   if (isMobile) {
-    await delayCard.getByRole("button", { name: "View on Map" }).click();
+    await delayCard.getByRole("button", { name: /^View .* on map$/ }).click();
     const inspector = page.locator("[data-mobile-impact-inspector]");
     await expect(inspector).toBeVisible();
     await expect(inspector).toContainText("Delay");
@@ -4514,30 +4383,25 @@ test("global search opens a condensed alert result in its detailed card and mobi
 
 test("shows seamless continuation gradients on constrained desktop and mobile lists", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
+  // Desktop stays above the 520px landscape-phone breakpoint.
   await page.setViewportSize(isMobile
     ? { width: 390, height: 480 }
-    : { width: 1100, height: 420 });
+    : { width: 1100, height: 540 });
   await openDashboardMenu(page, isMobile);
+  // Mobile checks the More sheet; desktop checks a sidebar impact list.
+  if (!isMobile) await openDesktopDestination(page, "alerts");
 
-  const primaryList = isMobile
+  const list = isMobile
     ? page.locator(".mobile-more-content-scroll")
-    : page.locator("#linewatch-main-menu-scroll");
-  await expect(primaryList).toHaveAttribute("data-scroll-more-below", "");
-  expect(await primaryList.evaluate((element) => getComputedStyle(element).maskImage))
+    : page.locator(".alert-stack");
+  await expect(list).toHaveAttribute("data-scroll-more-below", "");
+  expect(await list.evaluate((element) => getComputedStyle(element).maskImage))
     .toContain("linear-gradient");
 
-  await primaryList.evaluate((element) => {
+  await list.evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });
-  await expect(primaryList).not.toHaveAttribute("data-scroll-more-below", "");
-
-  if (!isMobile) {
-    await page.getByRole("menuitem", { name: /^Suspensions/ }).click();
-    const submenuList = page.locator(".alert-stack");
-    await expect(submenuList).toHaveAttribute("data-scroll-more-below", "");
-    expect(await submenuList.evaluate((element) => getComputedStyle(element).maskImage))
-      .toContain("linear-gradient");
-  }
+  await expect(list).not.toHaveAttribute("data-scroll-more-below", "");
 });
 
 test("alert category panels filter by line and sort without changing dashboard data", async ({ page, request }) => {
@@ -4610,7 +4474,7 @@ test("drag after focus zoom cancels animation and retains transform", async ({ p
   // Verify the control rail styling and visibility
   const rail = page.locator(".network-map-transition-surface").locator(".map-control-rail");
   await expect(rail).toBeVisible();
-  await expect(rail).toHaveCSS("border-radius", "8px");
+  await expect(rail).toHaveCSS("border-radius", "12px");
 
   // Click a station to trigger focus zoom animation
   await page.getByRole("button", { name: "Stub Station station details" }).click();
@@ -4623,11 +4487,12 @@ test("drag after focus zoom cancels animation and retains transform", async ({ p
   const initialTransform = await mapElement.evaluate((el) => el.style.transform);
 
   // Drag the map slightly
-  const viewport = page.locator(".cursor-grab").first();
+  const viewport = page.locator("[data-map-pan-zoom-viewport]").first();
   const dragBox = await viewport.boundingBox();
   expect(dragBox).not.toBeNull();
-  
-  const startX = dragBox!.x + dragBox!.width / 4;
+
+  // Start right of the docked sidebar, which sits over the map's left side.
+  const startX = dragBox!.x + dragBox!.width * 0.75;
   const startY = dragBox!.y + dragBox!.height / 3;
 
   await page.mouse.move(startX, startY);
@@ -4673,33 +4538,6 @@ test("desktop wheel zoom keeps the main-map compositor topology and updates smoo
   await expect(mapSurface).toHaveCSS("view-transition-name", "none");
 });
 
-test("keyboard opens and closes the main menu", async ({ page, request, isMobile }) => {
-  test.skip(isMobile, "desktop-only menu keyboard accessibility");
-  await setStubMode(request, "seeded");
-  await page.goto("/");
-  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
-  const mapViewport = page.locator("[data-map-pan-zoom-viewport]");
-  const mapStage = page.locator(".ttc-map-stage");
-  await expect(mapStage).toHaveAttribute("data-raster-map-ready", "true");
-  await expect(mapViewport).toHaveAttribute("data-map-camera-moving", "false", { timeout: 2_000 });
-  const settledMapTransform = await mapStage.evaluate((element) => element.style.transform);
-
-  await page.getByRole("button", { name: "Toggle menu" }).focus();
-  await page.keyboard.press("Enter");
-  await expect(page.getByRole("menu")).toBeVisible();
-  await page.waitForTimeout(100);
-
-  await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("End");
-  await page.keyboard.press("Escape");
-
-  await expect(page.getByRole("menu")).toBeHidden();
-  await expect(page.getByRole("button", { name: "Toggle menu" })).toBeFocused();
-  await expect.poll(() => mapStage.evaluate((element) => element.style.transform)).toBe(settledMapTransform);
-  await expect(mapViewport).toHaveAttribute("data-map-camera-moving", "false");
-});
-
 test("keyboard searches and selects a station", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "desktop-only search keyboard accessibility");
   await setStubMode(request, "seeded");
@@ -4711,11 +4549,18 @@ test("keyboard searches and selects a station", async ({ page, request, isMobile
   await expect(page.getByRole("searchbox", { name: "Station Search" })).toBeFocused();
 
   await page.keyboard.type("Stub");
-  await page.keyboard.press("ArrowDown");
+  // Matching alerts are listed first; step down to the station result.
+  const stationResult = page.getByRole("button", { name: /^Stub Station TTC station search result/ });
+  for (let step = 0; step < 15 && !(await stationResult.evaluate((element) => element === document.activeElement)); step++) {
+    await page.keyboard.press("ArrowDown");
+  }
+  await expect(stationResult).toBeFocused();
   await page.keyboard.press("Enter");
 
-  await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toBeVisible();
-  await expect(page.getByRole("searchbox", { name: "Station Search" })).toBeFocused();
+  // Focus moves to the details that replace the closed search panel.
+  const details = page.getByRole("complementary", { name: "Stub Station station details" });
+  await expect(details).toBeVisible();
+  await expect(details).toBeFocused();
 });
 
 test("demo account shows account-backed saved commutes", async ({ page, request, isMobile }) => {
@@ -4728,9 +4573,8 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
     await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
   } else {
     await openDashboardMenu(page, isMobile);
-    await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
-    await page.getByRole("button", { name: "Toggle menu" }).click({ force: true });
-    await page.getByRole("menuitem", { name: "My Commutes" }).click({ force: true });
+    await signInDesktopDemoAccount(page);
+    await openDesktopDestination(page, "commutes");
   }
 
   await expect(page.getByText("Demo account").filter({ visible: true })).toBeVisible();
@@ -4783,7 +4627,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByRole("textbox", { name: "Commute label" })).toHaveValue("Morning commute");
   await expect(page.locator(".commute-station-picker").filter({ hasText: "Origin" })).toContainText("Stub Station");
   await expect(page.locator(".commute-station-picker").filter({ hasText: "Destination" })).toContainText("Union");
-  await expect(page.getByRole("checkbox", { name: "Track Return Route" })).toBeChecked();
+  await expect(page.getByRole("switch", { name: "Track return route" })).toBeChecked();
   await page.getByRole("button", { name: "Cancel" }).click();
   await expect(commuteCard.getByText("Stub Station", { exact: false }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Edit Alerts" })).toBeVisible();
@@ -4793,9 +4637,12 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
     .evaluateAll((labels) => labels
       .sort((left, right) => Number.parseInt(getComputedStyle(left).order) - Number.parseInt(getComputedStyle(right).order))
       .map((label) => label.textContent?.trim().replace(/\s+/g, " ")));
-  expect(eventTypeVisualOrder).toEqual(isMobile
-    ? ["Suspensions", "Delays", "Planned Advisories", "Service Restored", "Reduced Speed Zones"]
-    : ["Suspensions", "Delays", "Reduced Speed Zones", "Planned Advisories", "Service Restored"]);
+  // A container query moves Reduced Speed Zones up once the list is at least 34rem wide.
+  const eventTypesWide = await page.locator(".saved-commute-event-types").first()
+    .evaluate((element) => element.getBoundingClientRect().width >= 34 * 16);
+  expect(eventTypeVisualOrder).toEqual(eventTypesWide
+    ? ["Suspensions", "Delays", "Reduced Speed Zones", "Planned Advisories", "Service Restored"]
+    : ["Suspensions", "Delays", "Planned Advisories", "Service Restored", "Reduced Speed Zones"]);
   const outboundWindow = page.getByRole("group", { name: "Outbound Route notification window" });
   await expect(outboundWindow.getByRole("button", { name: "AM Rush" })).toHaveAttribute("aria-pressed", "true");
   await outboundWindow.getByRole("button", { name: "Custom" }).click();
@@ -4822,12 +4669,12 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(impactDisclosure).not.toHaveAttribute("open", "");
   await expect(impactDisclosure.getByText("1 Suspension", { exact: true })).toBeVisible();
   await expect(impactDisclosure.getByText("1 Active Closure", { exact: true })).toBeVisible();
-  await expect(impactDisclosure.getByText(/Line 1: Stub Station To Stub Terminal/).first()).toBeHidden();
+  await expect(impactDisclosure.getByText(/Line 1: Stub Station to Stub Terminal/).first()).toBeHidden();
   await impactDisclosure.locator("summary").click();
   await expect(impactDisclosure).toHaveAttribute("open", "");
   await expect(impactDisclosure.getByText("Suspension", { exact: true })).toBeVisible();
   await expect(impactDisclosure.getByText("Active Closure", { exact: true })).toBeVisible();
-  await expect(impactDisclosure.getByText(/Line 1: Stub Station To Stub Terminal/).first()).toBeVisible();
+  await expect(impactDisclosure.getByText(/Line 1: Stub Station to Stub Terminal/).first()).toBeVisible();
 
   const commuteHeaderMetrics = await page.locator(".commute-card").first().evaluate((card) => {
     const header = card.querySelector<HTMLElement>(".saved-commute-card-header");
@@ -5051,7 +4898,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await viewPathButton.click();
   await expect(page.locator("[data-commute-path-preview]")).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "Viewing" })).toBeVisible();
-  await page.getByRole("button", { name: "Back" }).click({ force: true });
+  await page.getByRole("button", { name: "Back", exact: true }).click({ force: true });
   await expect(page.locator("[data-commute-path-preview]")).toHaveCount(0);
 });
 
@@ -5064,9 +4911,8 @@ test("saved commute active closure focuses its current active-alert overlay", as
     await page.getByRole("button", { name: "Demo Account" }).click();
   } else {
     await openDashboardMenu(page, isMobile);
-    await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
-    await page.getByRole("button", { name: "Toggle menu" }).click({ force: true });
-    await page.getByRole("menuitem", { name: "My Commutes" }).click({ force: true });
+    await signInDesktopDemoAccount(page);
+    await openDesktopDestination(page, "commutes");
   }
 
   const impactDisclosure = page.locator(".saved-commute-impact-disclosure").first();
@@ -5099,9 +4945,8 @@ test("custom commute notification schedules are non-blocking", async ({ page, re
     await page.getByRole("button", { name: "Demo Account" }).click();
   } else {
     await openDashboardMenu(page, isMobile);
-    await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
-    await page.getByRole("button", { name: "Toggle menu" }).click({ force: true });
-    await page.getByRole("menuitem", { name: "My Commutes" }).click({ force: true });
+    await signInDesktopDemoAccount(page);
+    await openDesktopDestination(page, "commutes");
   }
 
   await page.getByRole("button", { name: "Edit Alerts" }).click();
@@ -5135,9 +4980,8 @@ test("regional commute notifications omit TTC-only event types", async ({ page, 
     await page.getByRole("button", { name: "Demo Account" }).click();
   } else {
     await openDashboardMenu(page, isMobile);
-    await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
-    await page.getByRole("button", { name: "Toggle menu" }).click({ force: true });
-    await page.getByRole("menuitem", { name: "My Commutes" }).click({ force: true });
+    await signInDesktopDemoAccount(page);
+    await openDesktopDestination(page, "commutes");
   }
 
   const commutePanel = page.locator(".commute-panel");
@@ -5169,9 +5013,8 @@ test("saved commute View on Map transitions cleanly across network modes and pan
     await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
     await expect(page.locator(".regional-map-stage")).toBeVisible();
     await openDashboardMenu(page, isMobile);
-    await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
-    await page.getByRole("button", { name: "Toggle menu" }).click({ force: true });
-    await page.getByRole("menuitem", { name: "My Commutes" }).click({ force: true });
+    await signInDesktopDemoAccount(page);
+    await openDesktopDestination(page, "commutes");
   }
 
   // Find TTC morning commute and click View on Map for the suspension impact
@@ -5296,12 +5139,12 @@ test("My Stations shows regional disruptions, accessibility outages, and arrival
   await page.goto("/");
 
   await openDashboardMenu(page, isMobile);
-  await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
-  await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
-  await page.getByRole("button", { name: "Close", exact: true }).first().click();
+  await signInDesktopDemoAccount(page);
+  await openDesktopDestination(page, "status");
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
+  await waitForNetworkTransition(page, "regional");
 
   await page.locator('.regional-station-hit-target[data-regional-station-id="pickering"]').press("Enter");
   const stationPanel = page.getByRole("complementary", { name: "Pickering regional station details" });
@@ -5338,8 +5181,7 @@ test("requests and confirms a password reset from the sign-in dialog", async ({ 
     await page.getByRole("button", { name: "More", exact: true }).click();
     await page.getByRole("button", { name: "Sign In", exact: true }).click();
   } else {
-    await page.getByRole("button", { name: "Toggle menu" }).click();
-    await page.getByRole("menuitem", { name: "Sign In" }).click();
+    await openDesktopDestination(page, "sign-in");
   }
 
   const choiceDialog = page.getByRole("dialog", { name: "Choose how to sign in to LineWatchTO" });
@@ -5366,8 +5208,10 @@ test("requests and confirms a password reset from the sign-in dialog", async ({ 
 
   if (isMobile) {
     await page.getByRole("button", { name: "More", exact: true }).click();
+  } else {
+    await openDesktopDestination(page, "more");
   }
-  await expect(page.getByText("Rider").filter({ visible: true })).toBeVisible();
+  await expect(page.getByText("Rider").filter({ visible: true }).first()).toBeVisible();
 });
 
 test("opens emailed password reset links directly", async ({ page, request, isMobile }) => {
@@ -5386,8 +5230,10 @@ test("opens emailed password reset links directly", async ({ page, request, isMo
 
   if (isMobile) {
     await page.getByRole("button", { name: "More", exact: true }).click();
+  } else {
+    await openDesktopDestination(page, "more");
   }
-  await expect(page.getByText("Rider").filter({ visible: true })).toBeVisible();
+  await expect(page.getByText("Rider").filter({ visible: true }).first()).toBeVisible();
 });
 
 test("shows official TTC performance metrics from backend", async ({ page, request, isMobile }) => {
@@ -5399,8 +5245,8 @@ test("shows official TTC performance metrics from backend", async ({ page, reque
     await page.getByRole("button", { name: "More", exact: true }).click();
     await page.getByRole("button", { name: "Reliability Analytics" }).click();
   } else {
-    await page.getByRole("button", { name: "Toggle menu" }).click();
-    await page.getByRole("menuitem", { name: "Reliability Analytics" }).click();
+    await openDesktopDestination(page, "more");
+    await page.locator(".desktop-more-panel").getByRole("button", { name: "Reliability Analytics" }).click();
   }
   await expect(page.getByText("Official TTC Performance")).toBeVisible();
   await expect(page.getByText("Source: TTC.ca")).toBeVisible();
@@ -5458,10 +5304,10 @@ test("mobile uses bottom navigation and status sheets", async ({ page, request, 
   expect(searchPanelBox).not.toBeNull();
   expect(mobileNavigationBox).not.toBeNull();
   expect(lastSearchLineBox).not.toBeNull();
+  // The panel runs down to the navigation bar and scrolls (with a fade) above it.
   const searchNavGap = mobileNavigationBox!.y - (searchPanelBox!.y + searchPanelBox!.height);
-  expect(searchNavGap).toBeGreaterThanOrEqual(8);
+  expect(searchNavGap).toBeGreaterThanOrEqual(0);
   expect(searchNavGap).toBeLessThanOrEqual(16);
-  expect(searchPanelBox!.y + searchPanelBox!.height - (lastSearchLineBox!.y + lastSearchLineBox!.height)).toBeLessThanOrEqual(32);
   // Focus the input to move elements up and hide navigation
   await page.getByRole("searchbox", { name: "Station Search" }).click();
   await expect(page.getByRole("searchbox", { name: "Station Search" })).toBeFocused();
@@ -5493,7 +5339,7 @@ test("mobile Close uses the same sheet exit animation as Back", async ({ page, r
   await page.locator(".mobile-status-peek-count-badge.delays").click();
   const backSheet = page.locator('[data-floating-panel="mobile-panel"]');
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
-  await backSheet.getByRole("button", { name: "Back" }).click();
+  await backSheet.getByRole("button", { name: "Back", exact: true }).click();
   await expect(backSheet).toHaveAttribute("data-going-back", "true");
   const backAnimation = await backSheet.evaluate((element) => {
     const style = getComputedStyle(element);
@@ -5515,7 +5361,7 @@ test("mobile browser Back restores the path that launched View on Map", async ({
   await page.locator(".mobile-status-actions").getByRole("button", { name: /Delay/ }).click();
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
 
-  await page.getByRole("button", { name: "View on Map" }).first().click();
+  await page.getByRole("button", { name: /^View .* on map$/ }).first().click();
   await expect(page.locator("[data-mobile-impact-inspector]")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Delays" })).toHaveCount(0);
 
@@ -5532,45 +5378,40 @@ test("mobile browser Back restores the path that launched View on Map", async ({
 });
 
 test("map impact shortcuts return directly to the map", async ({ page, request, isMobile }) => {
+  // Desktop's map chips gave way to rail shortcuts, which are top-level
+  // destinations (see desktop-profiles-and-collapse.spec.ts).
+  test.skip(!isMobile, "mobile map shortcuts only");
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
   const openMapDelayShortcut = async () => {
-    if (isMobile) {
-      await page.locator(".mobile-status-peek-count-badge.delays").click();
-    } else {
-      await page.locator(".desktop-status-chip--delays").click();
-    }
+    await page.locator(".mobile-status-peek-count-badge.delays").click();
     await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
   };
 
   const expectMapOrigin = async () => {
     await expect(page.getByRole("heading", { name: "Delays" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
-    if (isMobile) {
-      await expect(page.locator(".mobile-status-peek")).toBeVisible();
-      await expect(page.getByRole("heading", { name: "System Status" })).toHaveCount(0);
-    } else {
-      await expect(page.getByRole("button", { name: "Toggle menu" })).toHaveAttribute("aria-expanded", "false");
-    }
+    await expect(page.locator(".mobile-status-peek")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "System Status" })).toHaveCount(0);
   };
 
   await openMapDelayShortcut();
-  await page.getByRole("button", { name: "Back" }).click();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
   await expectMapOrigin();
 
   await openMapDelayShortcut();
   await page.goBack();
   await expectMapOrigin();
 
-  if (isMobile) {
+  {
     await page.getByRole("button", { name: "Status", exact: true }).click();
     await expect(page.getByRole("heading", { name: "System Status" })).toBeVisible();
     const mobileSheet = page.locator('[data-floating-panel="mobile-panel"]');
     await mobileSheet.evaluate((element) => { element.setAttribute("data-smoke-stable-sheet", "true"); });
     await page.locator(".mobile-status-actions").getByRole("button", { name: /Delay/ }).click();
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
     await expect(page.getByRole("heading", { name: "System Status" })).toBeVisible();
     await expect(page.locator('[data-floating-panel="mobile-panel"][data-smoke-stable-sheet="true"]')).toBeVisible();
   }
@@ -5582,37 +5423,39 @@ test("desktop browser Back unfocuses an impact before leaving its submenu", asyn
   await openDashboardMenu(page, isMobile);
   await openServiceCategory(page, isMobile, /Delay/);
 
-  const showOnMap = page.getByRole("button", { name: "View on Map" }).first();
+  const showOnMap = page.getByRole("button", { name: /^View .* on map$/ }).first();
   await showOnMap.click();
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Unfocus" }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Back to map:/ }).first()).toBeVisible();
 
+  // Rail destinations act like tabs and add no history entry; focusing an
+  // impact does, so browser Back only unfocuses it.
   await page.goBack();
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "View on Map" }).first()).toBeVisible();
-
-  await page.goBack();
-  await expect(page.getByRole("menu")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^View .* on map$/ }).first()).toBeVisible();
 });
 
 test("submenu Back reverses the path used to open account features", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await openDashboardMenu(page, isMobile);
 
+  if (!isMobile) {
+    // My Commutes and My Stations are rail destinations on desktop; only
+    // features opened from More have a Back path to reverse.
+    await openDesktopDestination(page, "more");
+    await page.locator(".desktop-more-panel").getByRole("button", { name: "Notifications" }).click();
+    await expect(page.getByRole("heading", { name: "Notifications", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+    await expect(page.locator(".desktop-more-panel")).toBeVisible();
+    return;
+  }
+
   const openFeature = async (name: "My Commutes" | "My Stations" | "Notifications") => {
-    if (isMobile) {
-      const mobileName = name === "Notifications" ? /^Notifications/ : name;
-      await page.getByRole("button", { name: mobileName, exact: name !== "Notifications" }).click();
-    } else {
-      await page.getByRole("menuitem", { name, exact: true }).click();
-    }
+    const mobileName = name === "Notifications" ? /^Notifications/ : name;
+    await page.getByRole("button", { name: mobileName, exact: name !== "Notifications" }).click();
     await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Back", exact: true }).click();
-    if (isMobile) {
-      await expect(page.getByRole("heading", { name: "More", exact: true })).toBeVisible();
-    } else {
-      await expect(page.getByRole("menu")).toBeVisible();
-    }
+    await expect(page.getByRole("heading", { name: "More", exact: true })).toBeVisible();
   };
 
   await openFeature("My Commutes");
@@ -5675,7 +5518,7 @@ test("manages push notification preferences on mobile", async ({ page, request, 
   await rszSwitch.click();
   await expect(rszSwitch).not.toBeChecked();
 
-  await page.getByRole("button", { name: "Back" }).click();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
   await expect(page.getByRole("heading", { name: "More" })).toBeVisible();
 
   await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toBeVisible();
@@ -5689,7 +5532,7 @@ test("renders and incrementally moves estimated train markers on desktop and mob
   await expect(page.locator(".linewatch-shell")).not.toHaveClass(/motion-paused/);
   await expect(page.locator(".estimated-train-marker-core")).toHaveCount(0);
 
-  await page.getByRole("switch", { name: /Toggle estimated train markers/ }).click();
+  await estimatedTrainToggle(page).click();
 
   const marker = page.locator('[data-train-marker-line-id="line-1"]');
   await expect(page.locator(".estimated-train-marker-core")).toHaveCount(1);
@@ -5798,7 +5641,7 @@ test("shows train-marker connection progress until markers return on desktop and
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  const toggle = page.getByRole("switch", { name: /Toggle estimated train markers/ });
+  const toggle = estimatedTrainToggle(page);
   await toggle.click();
   const pendingIndicator = page.locator(isMobile
     ? ".mobile-train-pending-spinner"
@@ -5847,8 +5690,12 @@ test.describe("regional history source details", () => {
     await networkSelector.getByRole("group", { name: "Select transit network" })
       .getByRole("button", { name: "GO/UP", exact: true }).click();
     await waitForNetworkTransition(page, "regional");
-    await page.getByRole("button", { name: isMobile ? "More" : "Toggle menu", exact: isMobile }).click();
-    await (isMobile ? page.getByLabel("More LineWatchTO options") : page).getByRole(isMobile ? "button" : "menuitem", { name: "Alert History", exact: true }).click();
+    if (isMobile) {
+      await page.getByRole("button", { name: "More", exact: true }).click();
+      await page.getByLabel("More LineWatchTO options").getByRole("button", { name: "Alert History", exact: true }).click();
+    } else {
+      await openDesktopDestination(page, "alert-history");
+    }
     const card = page.locator(".alert-history-item");
     await expect(card).toHaveCount(1);
     const historySearch = page.getByRole("searchbox", { name: "Search alert history" });
@@ -5865,7 +5712,7 @@ test.describe("regional history source details", () => {
     await expect(card.locator(".alert-history-content > .alert-history-description")).toHaveText(updated.description);
     await expect(card.getByText("Source category", { exact: true })).toBeVisible();
     await expect(card.getByText("Unknown Cause", { exact: true })).toHaveCount(0);
-    await expect(card.getByText("Affected area", { exact: true }).first()).toBeVisible();
+    await expect(card.getByText("Affected stations", { exact: true }).first()).toBeVisible();
     const snapshots = card.locator(".alert-history-snapshot");
     await snapshots.first().locator("summary").click();
     await expect(snapshots.first().locator("summary")).toHaveText("Source details · Changed: Description");

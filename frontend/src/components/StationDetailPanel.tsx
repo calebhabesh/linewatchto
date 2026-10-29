@@ -567,6 +567,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
       data-closing={isClosing ? "true" : undefined}
       aria-live="polite"
       aria-label={station ? `${station.name} station details` : "Station details"}
+      tabIndex={-1}
       data-sheet-expanded={isExpanded ? "true" : undefined}
     >
       <MobileSheetDragHandle

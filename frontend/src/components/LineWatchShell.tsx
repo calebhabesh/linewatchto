@@ -195,6 +195,30 @@ function viewForSavedCommuteImpact(
   return "reduced-speed-zones";
 }
 
+function focusStationDetailWhenOpen() {
+  window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+    const panel = document.querySelector<HTMLElement>(".station-detail-panel:not([data-closing])");
+    if (panel && (document.activeElement === document.body || document.activeElement === null)) {
+      panel.focus({ preventScroll: true });
+    }
+  }));
+}
+
+// Closing the account dialog steps back over its history entry, which lands on
+// the emailed verification or reset link again. Once that step settles, swap
+// the address for the dashboard so a reload cannot replay a spent token.
+function leaveEmailedLinkRoute() {
+  const leave = () => {
+    window.clearTimeout(fallback);
+    window.removeEventListener("popstate", leave);
+    if (["/verify-email", "/reset-password"].includes(window.location.pathname)) {
+      window.history.replaceState(window.history.state, "", "/");
+    }
+  };
+  window.addEventListener("popstate", leave);
+  const fallback = window.setTimeout(leave, 250);
+}
+
 export function LineWatchShell({
   initialData,
   initialEmailVerificationToken = "",
@@ -1457,8 +1481,10 @@ export function LineWatchShell({
 
   const handleAuthenticated = useCallback((nextState: AccountState) => {
     setAccountState(nextState);
+    const onEmailedLinkRoute = ["/verify-email", "/reset-password"].includes(window.location.pathname);
     closeAccountDialog();
     setActiveView("commutes");
+    if (onEmailedLinkRoute) leaveEmailedLinkRoute();
   }, [closeAccountDialog, setAccountState, setActiveView]);
 
 
@@ -2021,6 +2047,9 @@ export function LineWatchShell({
     searchSessionActiveRef.current = false;
     if (networkId === selectedNetwork) {
       handleSelectStationId(stationId);
+      // The search panel closes under the focused result; keep keyboard users
+      // on the station details that open in its place.
+      focusStationDetailWhenOpen();
       return;
     }
 

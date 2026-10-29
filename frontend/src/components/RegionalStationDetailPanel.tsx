@@ -659,6 +659,7 @@ export function RegionalStationDetailPanel({
       data-closing={isClosing ? "true" : undefined}
       aria-live="polite"
       aria-label={`${station.name} regional station details`}
+      tabIndex={-1}
       data-sheet-expanded={isExpanded ? "true" : undefined}
     >
       <MobileSheetDragHandle

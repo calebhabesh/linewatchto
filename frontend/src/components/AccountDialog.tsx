@@ -2,7 +2,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Mail, X } from "lucide-react";
 import { AccountRequestError } from "../app/account-transport";
 import {
@@ -68,7 +67,6 @@ export function AccountDialog({
   onClose,
   onAuthenticated,
 }: AccountDialogProps) {
-  const router = useRouter();
 
   const [mode, setMode] = useState<AccountDialogMode>(() => request?.mode ?? "auth-choice");
   const [entryIntent, setEntryIntent] = useState<AccountEntryIntent>(() => request?.entryIntent ?? "login");
@@ -237,9 +235,6 @@ export function AccountDialog({
         user: response.user,
       });
       resetForm();
-      if (typeof window !== "undefined" && window.location.pathname === "/reset-password") {
-        router.replace("/");
-      }
       handleDismiss();
     } catch (err) {
       if (err instanceof AccountRequestError) {
@@ -313,7 +308,6 @@ export function AccountDialog({
       setDevVerificationToken(null);
       setVerificationMessage(null);
       setSuccessMessage("Email verified. You are now signed in.");
-      router.replace("/");
     } catch (err) {
       if (err instanceof AccountRequestError) {
         setError(err.message);

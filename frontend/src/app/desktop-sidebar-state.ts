@@ -204,6 +204,21 @@ export function placeDesktopControlRail({
   };
 }
 
+/** Whether a placed toolbar ends inside its container's right margin. */
+export function desktopControlRailFits({
+  containerWidth,
+  left,
+  railWidth,
+  margin = 16,
+}: {
+  containerWidth: number;
+  left: number;
+  railWidth: number;
+  margin?: number;
+}): boolean {
+  return left + railWidth <= containerWidth - margin + 1;
+}
+
 /** Keeps a map's desktop toolbar placed by `placeDesktopControlRail` as the layout changes. */
 export function observeDesktopControlRail(rail: HTMLElement | null): () => void {
   if (!rail || typeof window === "undefined") return () => {};
@@ -219,6 +234,7 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
         rail.style.removeProperty(name);
       }
       delete rail.dataset.compact;
+      delete rail.dataset.hideNetwork;
       const cluster = shell?.querySelector<HTMLElement>(".map-utility-cluster");
       if (cluster) delete cluster.dataset.compact;
       return;
@@ -251,6 +267,7 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
     // starts from the full layout, so the result settles on the same state every time.
     setCompact(clusterElement, false);
     setCompact(rail, false);
+    delete rail.dataset.hideNetwork;
     let placement = placeWith(rail.offsetWidth);
     if (placement.top !== 20) {
       setCompact(rail, true);
@@ -258,6 +275,14 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
     }
     if (placement.top !== 20) {
       setCompact(clusterElement, true);
+      placement = placeWith(rail.offsetWidth);
+    }
+    // Beside a floating sidebar on a narrow window even the second row can be
+    // too short. The sidebar has its own network switch, so drop the toolbar's.
+    if (sidebar && !desktopControlRailFits({
+      containerWidth: containerRect.width, left: placement.left, railWidth: rail.offsetWidth,
+    })) {
+      rail.dataset.hideNetwork = "true";
       placement = placeWith(rail.offsetWidth);
     }
     rail.style.setProperty("--desktop-rail-left", `${placement.left}px`);

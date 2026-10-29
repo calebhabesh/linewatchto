@@ -53,6 +53,7 @@
 /* Narrow desktop windows: drop the zoom slider and captions so the toolbar fits beside the
    right-hand buttons. Every button keeps its aria-label. */
 @media (min-width: 768px) {
+  .desktop-map-control-rail[data-hide-network="true"] .desktop-map-control-network-group,
   .desktop-map-control-rail[data-compact="true"] .map-control-slider,
   .desktop-map-control-rail[data-compact="true"] .map-control-button > span,
   .map-utility-cluster[data-compact="true"] .desktop-train-toggle-btn label {

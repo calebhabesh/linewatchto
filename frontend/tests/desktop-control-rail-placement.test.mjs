@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { placeDesktopControlRail } from "../src/app/desktop-sidebar-state.ts";
+import { desktopControlRailFits, placeDesktopControlRail } from "../src/app/desktop-sidebar-state.ts";
 
 describe("desktop toolbar placement", () => {
   it("stays centered over the whole map when nothing is in the way", () => {
@@ -32,5 +32,17 @@ describe("desktop toolbar placement", () => {
     assert.equal(placement.top, 93);
     assert.ok(placement.left >= 436);
     assert.ok(placement.left + 674 <= 1286 - 16);
+  });
+
+  it("reports a second row that still runs past a narrow window", () => {
+    // 900px window: 820px map, 420px floating sidebar, 552px compact toolbar.
+    const placement = placeDesktopControlRail({
+      containerWidth: 820, workspaceLeft: 420, railWidth: 552, rightControls: { left: 567, bottom: 81 },
+    });
+    assert.equal(desktopControlRailFits({ containerWidth: 820, left: placement.left, railWidth: 552 }), false);
+    const narrower = placeDesktopControlRail({
+      containerWidth: 820, workspaceLeft: 420, railWidth: 330, rightControls: { left: 567, bottom: 81 },
+    });
+    assert.equal(desktopControlRailFits({ containerWidth: 820, left: narrower.left, railWidth: 330 }), true);
   });
 });

@@ -360,6 +360,11 @@
   animation: station-detail-enter-mobile 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* The panel takes focus when it opens from search; its controls keep their own rings. */
+.station-detail-panel:focus {
+  outline: none;
+}
+
 @media (min-width: 768px) {
   .station-detail-panel {
     animation-name: station-detail-enter-desktop;
