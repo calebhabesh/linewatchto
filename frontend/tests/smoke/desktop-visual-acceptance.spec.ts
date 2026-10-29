@@ -121,7 +121,7 @@ test.describe("Desktop Visual Acceptance (Step 3)", () => {
     await setStubMode(request, "seeded");
     await prepareDesktopPage(page, { theme: "dark", viewport: { width: 1440, height: 900 } });
 
-    await page.getByRole("button", { name: /Planned Advisories/i }).click();
+    await page.locator('.desktop-rail-item[data-dest="closures"]').click();
     const sidebar = page.locator(".desktop-sidebar-container");
     const box = await sidebar.boundingBox();
     expect(box?.width).toBe(560);
@@ -205,14 +205,14 @@ test.describe("Desktop Visual Acceptance (Step 3)", () => {
     await setStubMode(request, "seeded");
     await prepareDesktopPage(page, { theme: "dark", viewport: { width: 1024, height: 768 } });
 
-    await page.getByRole("button", { name: /Planned Advisories/i }).click();
+    await page.locator('.desktop-rail-item[data-dest="closures"]').click();
     const sidebar = page.locator(".desktop-sidebar-container");
     await expect(sidebar).toHaveClass(/desktop-sidebar-container--overlay/);
     await page.waitForTimeout(300);
     await page.screenshot({ path: join(SCREENSHOT_DIR, "desktop-overlay-1024x768.png") });
 
     // Transient collapse via View on map
-    const viewOnMapBtn = page.getByRole("button", { name: /View on map/i }).first();
+    const viewOnMapBtn = page.getByRole("button", { name: /^View .+ on map$/i }).first();
     await viewOnMapBtn.click();
     await expect(sidebar).toHaveClass(/desktop-sidebar-container--collapsed/);
     await page.waitForTimeout(300);

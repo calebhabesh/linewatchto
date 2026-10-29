@@ -48,6 +48,7 @@ These tools generate, normalize, and export static assets (SVG maps, raster plan
 | `frontend/generate_og_glass.js` | SEO Assets | Compatibility wrapper for `generate-og-image.mjs` using glassmorphic style | Same as `generate-og-image.mjs` | Same as `generate-og-image.mjs` (default style: `glass`) | `scripts/tests/generate-og-image.test.mjs` | Retained compatibility wrapper; zero hardcoded paths |
 | `frontend/generate_og_blur.js` | SEO Assets | Compatibility wrapper for `generate-og-image.mjs` using blur/haze style | Same as `generate-og-image.mjs` | Same as `generate-og-image.mjs` (default style: `blur`) | `scripts/tests/generate-og-image.test.mjs` | Retained compatibility wrapper; zero hardcoded paths |
 | `frontend/scripts/generate-onboarding-screenshots.mjs` | Docs Assets | Refreshes onboarding slideshow screenshots with synthetic demo data | Playwright Chromium, optional `--project`, `--grep` | PNGs in `frontend/public/assets/linewatch/onboarding/` and HTML report | `npm run screenshots:onboarding:check` | Uses isolated test ports 4193/4194; no credentials required |
+| `frontend/scripts/capture-readme-screenshots.mjs` | Docs Assets | Captures the README screenshots from the public application at a full-screen desktop tab (1920×1080) and phone size, both 2× | Playwright Chromium, network access, optional `--origin`, `--out`, `--allow-stale` | `docs/assets/*.png` and `capture-provenance.json` | Manual image review (see `docs/assets/README.md`) | Writes nothing unless every capture succeeds and both dashboards report a live source |
 
 ---
 

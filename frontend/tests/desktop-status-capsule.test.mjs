@@ -86,7 +86,7 @@ describe("desktop status and map chrome relocation", () => {
 
   it("moves desktop map controls upward into top area for both networks", () => {
     assert.match(mapSource, /desktop-map-control-rail/);
-    assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[\s\S]*\.desktop-map-control-rail\s*\{[\s\S]*top:\s*20px\s*!important/);
+    assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[\s\S]*\.desktop-map-control-rail\s*\{[\s\S]*top:\s*var\(--desktop-rail-top,\s*20px\)\s*!important/);
     assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[\s\S]*\.regional-map-control-rail\s*\{[\s\S]*top:\s*20px/);
   });
 

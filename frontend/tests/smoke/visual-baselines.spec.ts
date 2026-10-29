@@ -9,6 +9,10 @@ type PrepareOptions = {
   viewport?: { width: number; height: number };
 };
 
+// Desktop baselines use a full-screen browser tab, plus a small laptop's tab for the narrow layout.
+const FULL_TAB = { width: 1920, height: 1080 };
+const SMALL_LAPTOP_TAB = { width: 1366, height: 657 };
+
 async function prepareVisualBaselinePage(page: Page, options: PrepareOptions = {}) {
   const theme = options.theme ?? "dark";
   const highContrast = Boolean(options.highContrast);
@@ -104,7 +108,7 @@ test.describe("Visual Regression Baselines", () => {
     await prepareVisualBaselinePage(page, {
       theme: "light",
       network: "ttc",
-      viewport: { width: 1280, height: 800 },
+      viewport: FULL_TAB,
     });
 
     await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
@@ -118,7 +122,7 @@ test.describe("Visual Regression Baselines", () => {
     await prepareVisualBaselinePage(page, {
       theme: "dark",
       network: "ttc",
-      viewport: { width: 1280, height: 800 },
+      viewport: FULL_TAB,
     });
 
     await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
@@ -132,13 +136,24 @@ test.describe("Visual Regression Baselines", () => {
     await prepareVisualBaselinePage(page, {
       theme: "dark",
       network: "regional",
-      viewport: { width: 1280, height: 800 },
+      viewport: FULL_TAB,
     });
 
-    await expect(page.getByRole("button", { name: "Fit regional network" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
     await expect(page.locator(".regional-map-stage")).toBeVisible();
     await expect(page).toHaveScreenshot("regional-desktop-map.png");
   });
+
+  for (const network of ["ttc", "regional"] as const) {
+    test(`${network === "ttc" ? "TTC" : "GO/UP"} desktop map, small laptop tab`, async ({ page, request, isMobile }) => {
+      test.skip(isMobile, "desktop-only visual baseline");
+      await setStubMode(request, network === "ttc" ? "seeded" : "regional-live");
+      await prepareVisualBaselinePage(page, { theme: "light", network, viewport: SMALL_LAPTOP_TAB });
+
+      await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
+      await expect(page).toHaveScreenshot(`${network}-desktop-map-small-laptop.png`);
+    });
+  }
 
   test("TTC mobile portrait", async ({ page, request, isMobile }) => {
     test.skip(!isMobile, "mobile-only visual baseline");
@@ -174,10 +189,10 @@ test.describe("Visual Regression Baselines", () => {
       theme: "dark",
       highContrast: true,
       network: "ttc",
-      viewport: { width: 1280, height: 800 },
+      viewport: FULL_TAB,
     });
 
-    await page.locator(".desktop-status-cat-btn--alerts").click();
+    await page.locator('.desktop-rail-item[data-dest="alerts"]').click();
     await expect(page.getByRole("heading", { name: "Suspensions" })).toBeVisible();
     await expect(page).toHaveScreenshot("high-contrast-panel-state.png");
   });
@@ -189,10 +204,10 @@ test.describe("Visual Regression Baselines", () => {
       theme: "dark",
       highContrast: false,
       network: "ttc",
-      viewport: { width: 1280, height: 800 },
+      viewport: FULL_TAB,
     });
 
-    await page.locator(".desktop-status-cat-btn--alerts").click();
+    await page.locator('.desktop-rail-item[data-dest="alerts"]').click();
     await expect(page.getByRole("heading", { name: "Suspensions" })).toBeVisible();
     await expect(page).toHaveScreenshot("current-status-alerts-panel.png");
   });
@@ -203,7 +218,7 @@ test.describe("Visual Regression Baselines", () => {
     await prepareVisualBaselinePage(page, {
       theme: "dark",
       network: "ttc",
-      viewport: { width: 1280, height: 800 },
+      viewport: FULL_TAB,
     });
 
     const stubStation = page.getByRole("button", { name: "Stub Station station details" });
@@ -221,11 +236,10 @@ test.describe("Visual Regression Baselines", () => {
     await prepareVisualBaselinePage(page, {
       theme: "dark",
       network: "ttc",
-      viewport: { width: 1280, height: 800 },
+      viewport: FULL_TAB,
     });
 
-    await page.locator('.desktop-rail-item[data-dest="saved"]').click();
-    await page.getByRole("tab", { name: /My Commutes/i }).click();
+    await page.locator('.desktop-rail-item[data-dest="commutes"]').click();
     await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
     await expect(page).toHaveScreenshot("my-commutes-panel.png");
   });
@@ -236,7 +250,7 @@ test.describe("Visual Regression Baselines", () => {
     await prepareVisualBaselinePage(page, {
       theme: "dark",
       network: "ttc",
-      viewport: { width: 1280, height: 800 },
+      viewport: FULL_TAB,
     });
 
     const overlapMarker = page.locator('[data-overlap-segment-id="stub-line-1-segment"]').first();

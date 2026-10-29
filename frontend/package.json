@@ -12,6 +12,7 @@
     "lint": "eslint",
     "screenshots:onboarding:check": "playwright test verify.spec.ts --config playwright.onboarding.config.ts",
     "screenshots:onboarding": "node scripts/generate-onboarding-screenshots.mjs",
+    "screenshots:readme": "node scripts/capture-readme-screenshots.mjs",
     "generate:map-rasters": "node scripts/generate-map-rasters.mjs",
     "generate:og-image": "node scripts/generate-og-image.mjs",
     "generate:geographic-catalog": "node ../scripts/generate-geographic-catalog.mjs",

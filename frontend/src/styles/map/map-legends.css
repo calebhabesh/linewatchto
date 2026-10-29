@@ -36,6 +36,68 @@
   backface-visibility: hidden;
 }
 
+/* A soft shade hugging the legend, in the expanded sidebar's background color, so it reads as
+   an overlay when the zoomed map runs beneath it. Its edges feather out to nothing: no border
+   or hard shadow. It is painted on a pseudo-element so the legend's box and click targets are
+   unchanged, and it has no backdrop blur, which would re-render on every pan frame. */
+@media (min-width: 768px) {
+  .desktop-map-legend::before {
+    --legend-feather: 22px;
+    background: rgb(255 255 255 / 0.86); /* sidebar: #ffffff */
+    border-radius: 28px;
+    content: "";
+    /* The line buttons already end in 4px of padding, so the right side is 4px shorter and
+       the visible space around the legend is even. */
+    inset: -16px -16px -16px -20px;
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
+    -webkit-mask-image:
+      linear-gradient(to right, transparent, #000 var(--legend-feather), #000 calc(100% - var(--legend-feather)), transparent),
+      linear-gradient(to bottom, transparent, #000 var(--legend-feather), #000 calc(100% - var(--legend-feather)), transparent);
+    mask-image:
+      linear-gradient(to right, transparent, #000 var(--legend-feather), #000 calc(100% - var(--legend-feather)), transparent),
+      linear-gradient(to bottom, transparent, #000 var(--legend-feather), #000 calc(100% - var(--legend-feather)), transparent);
+    pointer-events: none;
+    position: absolute;
+    z-index: -1;
+  }
+
+  .dark .desktop-map-legend::before {
+    background: rgb(12 16 23 / 0.82); /* sidebar: #0c1017 */
+  }
+
+  .high-contrast .desktop-map-legend::before {
+    background: rgb(0 0 0 / 0.94);
+  }
+}
+
+/* The legend keeps its designed size, and shrinks on small windows so it doesn't cover the
+   map. `zoom`, unlike a transform, also scales its layout box and click targets. */
+@media (min-width: 768px) and (max-width: 1499px), (min-width: 768px) and (max-height: 859px) {
+  .desktop-map-legend {
+    zoom: 0.8;
+  }
+}
+
+@media (min-width: 768px) and (max-height: 699px) {
+  .desktop-map-legend {
+    zoom: 0.7;
+  }
+}
+
+/* GO/UP's two-column legend is wider, so it shrinks further on small windows. */
+@media (min-width: 768px) and (max-width: 1499px), (min-width: 768px) and (max-height: 859px) {
+  .desktop-map-legend--regional {
+    zoom: 0.64;
+  }
+}
+
+@media (min-width: 768px) and (max-height: 699px) {
+  .desktop-map-legend--regional {
+    zoom: 0.56;
+  }
+}
+
 .legend-line-name {
   display: inline-block;
   line-height: 1;

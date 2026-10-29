@@ -26,8 +26,12 @@
 .regional-map-controls svg { width: 1.15rem; }
 
 @media (min-width: 768px) {
+  /* Placed by observeDesktopControlRail: centered beside the sidebar, clear of the
+     right-hand buttons, or on a second row when the window is too narrow for both. */
   .desktop-map-control-rail {
-    top: 20px !important;
+    left: var(--desktop-rail-left, 50%);
+    top: var(--desktop-rail-top, 20px) !important;
+    translate: var(--desktop-rail-translate, -50% 0);
     height: 56px;
     border-radius: 12px;
     box-sizing: border-box;
@@ -43,6 +47,16 @@
   .map-control-rail .map-control-button,
   .map-control-rail .map-view-toggle-btn {
     gap: 4px;
+  }
+}
+
+/* Narrow desktop windows: drop the zoom slider and captions so the toolbar fits beside the
+   right-hand buttons. Every button keeps its aria-label. */
+@media (min-width: 768px) {
+  .desktop-map-control-rail[data-compact="true"] .map-control-slider,
+  .desktop-map-control-rail[data-compact="true"] .map-control-button > span,
+  .map-utility-cluster[data-compact="true"] .desktop-train-toggle-btn label {
+    display: none;
   }
 }
 

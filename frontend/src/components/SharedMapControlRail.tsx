@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, type ComponentPropsWithRef, type ReactNode } from "react";
+import { observeDesktopControlRail } from "../app/desktop-sidebar-state";
 import type { NetworkId } from "../app/regional-data";
 
 type PublishRail = (network: NetworkId, rail: ReactNode | null) => void;
@@ -19,7 +20,18 @@ export function SharedMapControlRailProvider({ network, children }: { network: N
   }, []);
   const hasRail = useCallback((id: NetworkId) => Boolean(railsRef.current[id]), []);
   const context = useMemo(() => ({ publish, hasRail }), [publish, hasRail]);
-  return <RailContext.Provider value={context}>{children}{rails[network]}</RailContext.Provider>;
+  // `display: contents` keeps the rail's layout parent while giving placement a handle on it.
+  const anchorRef = useRef<HTMLSpanElement>(null);
+  const activeRail = rails[network];
+  useLayoutEffect(() => observeDesktopControlRail(
+    anchorRef.current?.querySelector<HTMLElement>(".desktop-map-control-rail") ?? null,
+  ), [activeRail]);
+  return (
+    <RailContext.Provider value={context}>
+      {children}
+      <span ref={anchorRef} style={{ display: "contents" }}>{activeRail}</span>
+    </RailContext.Provider>
+  );
 }
 
 export function SharedMapControlRail({ network, ...props }: ComponentPropsWithRef<"div"> & { network: NetworkId }) {

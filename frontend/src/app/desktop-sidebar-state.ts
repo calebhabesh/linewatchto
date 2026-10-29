@@ -95,7 +95,7 @@ export function computeDesktopLayoutMetrics({
 
 /**
  * Reads the left occlusion inside the map viewport caused by the open desktop sidebar.
- * The sidebar always overlays the stable map workspace; collapsed mode has no inset.
+ * The sidebar overlays the map viewport, which keeps a stable size; collapsed mode has no inset.
  */
 export function readDesktopOverlayInsets(viewport: HTMLElement | null): { left: number } {
   if (!viewport || typeof window === "undefined" || window.innerWidth < 768) {
@@ -158,6 +158,134 @@ export function readDesktopLeftOcclusion(
     Math.max(overlayRight - viewportRect.left + focusPadding, 0),
     Math.max(viewportRect.width - minimumVisibleWidth, 0),
   );
+}
+
+function visibleRect(element: Element | null | undefined): DOMRect | null {
+  if (!element || element.getAttribute("aria-hidden") === "true") return null;
+  if (window.getComputedStyle(element).display === "none") return null;
+  const rect = element.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0 ? rect : null;
+}
+
+export type DesktopControlRailPlacement = { left: number; top: number };
+
+/**
+ * Places the desktop map toolbar, in its container's coordinates. It stays centered over the
+ * whole map, as designed, and moves only to stay clear of an open sidebar on its left and the
+ * right-hand buttons; when the gap between them is too narrow it sits on a second row.
+ */
+export function placeDesktopControlRail({
+  containerWidth,
+  workspaceLeft,
+  railWidth,
+  rightControls,
+  margin = 16,
+  top = 20,
+}: {
+  containerWidth: number;
+  workspaceLeft: number;
+  railWidth: number;
+  rightControls: { left: number; bottom: number } | null;
+  margin?: number;
+  top?: number;
+}): DesktopControlRailPlacement {
+  const centered = (containerWidth - railWidth) / 2;
+  const lowestLeft = workspaceLeft > 0 ? workspaceLeft + margin : margin;
+  const highestLeft = (rightControls?.left ?? containerWidth) - margin - railWidth;
+  if (highestLeft >= lowestLeft) {
+    return { left: Math.round(Math.min(Math.max(centered, lowestLeft), highestLeft)), top };
+  }
+
+  const rowCenter = workspaceLeft + (containerWidth - workspaceLeft - railWidth) / 2;
+  const rowHighest = Math.max(lowestLeft, containerWidth - margin - railWidth);
+  return {
+    left: Math.round(Math.min(Math.max(rowCenter, lowestLeft), rowHighest)),
+    top: Math.round((rightControls?.bottom ?? top) + 12),
+  };
+}
+
+/** Keeps a map's desktop toolbar placed by `placeDesktopControlRail` as the layout changes. */
+export function observeDesktopControlRail(rail: HTMLElement | null): () => void {
+  if (!rail || typeof window === "undefined") return () => {};
+  const container = rail.offsetParent instanceof HTMLElement ? rail.offsetParent : rail.parentElement;
+  if (!container) return () => {};
+  const shell = rail.closest<HTMLElement>(".linewatch-shell");
+  let frame: number | null = null;
+
+  const place = () => {
+    frame = null;
+    if (window.innerWidth < 768) {
+      for (const name of ["--desktop-rail-left", "--desktop-rail-top", "--desktop-rail-translate"]) {
+        rail.style.removeProperty(name);
+      }
+      delete rail.dataset.compact;
+      const cluster = shell?.querySelector<HTMLElement>(".map-utility-cluster");
+      if (cluster) delete cluster.dataset.compact;
+      return;
+    }
+    const containerRect = container.getBoundingClientRect();
+    const sidebar = visibleRect(shell?.querySelector(
+      ".desktop-sidebar-container:not(.desktop-sidebar-container--collapsed)",
+    ));
+    const clusterElement = shell?.querySelector<HTMLElement>(".map-utility-cluster") ?? null;
+    const workspaceLeft = sidebar ? Math.max(0, sidebar.right - containerRect.left) : 0;
+    const placeWith = (railWidth: number) => {
+      const cluster = visibleRect(clusterElement);
+      return placeDesktopControlRail({
+        containerWidth: containerRect.width,
+        workspaceLeft,
+        railWidth,
+        rightControls: cluster
+          ? { left: cluster.left - containerRect.left, bottom: cluster.bottom - containerRect.top }
+          : null,
+      });
+    };
+    const setCompact = (element: HTMLElement | null, compact: boolean) => {
+      if (!element || (element.dataset.compact === "true") === compact) return;
+      if (compact) element.dataset.compact = "true";
+      else delete element.dataset.compact;
+    };
+
+    // Keep the toolbar on the top row by dropping, in order, its zoom slider and captions,
+    // then the right-hand buttons' captions; only then move it to a second row. Each pass
+    // starts from the full layout, so the result settles on the same state every time.
+    setCompact(clusterElement, false);
+    setCompact(rail, false);
+    let placement = placeWith(rail.offsetWidth);
+    if (placement.top !== 20) {
+      setCompact(rail, true);
+      placement = placeWith(rail.offsetWidth);
+    }
+    if (placement.top !== 20) {
+      setCompact(clusterElement, true);
+      placement = placeWith(rail.offsetWidth);
+    }
+    rail.style.setProperty("--desktop-rail-left", `${placement.left}px`);
+    rail.style.setProperty("--desktop-rail-top", `${placement.top}px`);
+    rail.style.setProperty("--desktop-rail-translate", "0 0");
+  };
+  const schedule = () => {
+    if (frame === null) frame = window.requestAnimationFrame(place);
+  };
+
+  place();
+  const resizeObserver = new ResizeObserver(schedule);
+  const classObserver = new MutationObserver(schedule);
+  resizeObserver.observe(container);
+  resizeObserver.observe(rail);
+  for (const selector of [".desktop-sidebar-container", ".map-utility-cluster"]) {
+    const element = shell?.querySelector<HTMLElement>(selector);
+    if (!element) continue;
+    resizeObserver.observe(element);
+    classObserver.observe(element, { attributes: true, attributeFilter: ["class", "aria-hidden", "style"] });
+  }
+  window.addEventListener("resize", schedule);
+  return () => {
+    if (frame !== null) window.cancelAnimationFrame(frame);
+    resizeObserver.disconnect();
+    classObserver.disconnect();
+    window.removeEventListener("resize", schedule);
+  };
 }
 
 export type DesktopMapInsets = {

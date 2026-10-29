@@ -90,16 +90,33 @@ export function LineLegend({
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, snapshot } = useDashboardData();
   const isRegional = mode === "regional";
 
-  const renderLineItem = (line: { id: string; number: string; name: string }) => {
-    const dataLineId = isRegional
-      ? line.id === "up-express"
-        ? "regional-up"
-        : `regional-${line.id.replace("go-", "")}`
-      : line.id;
-    const alertCount = activeAlerts.filter((a) => a.lineId === dataLineId).length;
-    const delayCount = delays.filter((a) => a.lineId === dataLineId).length;
-    const rszCount = isRegional ? 0 : countReducedSpeedZones(reducedSpeedZones.filter((a) => a.lineId === dataLineId));
-    const closureCount = plannedClosures.filter((c) => c.lineId === dataLineId).length;
+  const dataLineIdFor = (lineId: string) => (isRegional
+    ? lineId === "up-express"
+      ? "regional-up"
+      : `regional-${lineId.replace("go-", "")}`
+    : lineId);
+  const impactCountsFor = (lineId: string) => {
+    const dataLineId = dataLineIdFor(lineId);
+    return {
+      alertCount: activeAlerts.filter((a) => a.lineId === dataLineId).length,
+      delayCount: delays.filter((a) => a.lineId === dataLineId).length,
+      rszCount: isRegional ? 0 : countReducedSpeedZones(reducedSpeedZones.filter((a) => a.lineId === dataLineId)),
+      closureCount: plannedClosures.filter((c) => c.lineId === dataLineId).length,
+    };
+  };
+  const impactKindCount = (lineId: string) => Object.values(impactCountsFor(lineId)).filter((count) => count > 0).length;
+
+  // GO/UP icon slots are sized per legend column to the most icons any line in it shows (one
+  // column of stacked icons, or a 2x2 grid), and dropped when none do, so the legend's edges
+  // hug what is drawn and its backdrop sits evenly around it.
+  const regionalSlotClass = (lines: { id: string }[]) => {
+    const most = Math.max(0, ...lines.map((line) => impactKindCount(line.id)));
+    return most === 0 ? null : most <= 2 ? "w-6" : "w-[48px]";
+  };
+
+  const renderLineItem = (line: { id: string; number: string; name: string }, slotClass: string | null = null) => {
+    const dataLineId = dataLineIdFor(line.id);
+    const { alertCount, delayCount, rszCount, closureCount } = impactCountsFor(line.id);
 
     const totalImpactCount = alertCount + delayCount + rszCount + closureCount;
     const tone = snapshot ? "unknown" : totalImpactCount > 0 ? "affected" : "good";
@@ -193,20 +210,21 @@ export function LineLegend({
     const renderIconsContainer = () => {
       if (!isRegional) {
         return (
-          <div className="w-22 h-[40px] flex items-center gap-1.5 shrink-0 justify-end">
+          <div className="h-[40px] flex items-center gap-1.5 justify-end">
             {buttons}
           </div>
         );
       }
 
       const count = buttons.length;
+      if (!slotClass) return null;
       if (count === 0) {
-        return <div className="w-[48px] h-[48px] shrink-0" aria-hidden="true" />;
+        return <div className={`${slotClass} h-[48px] shrink-0`} aria-hidden="true" />;
       }
 
       if (count === 1) {
         return (
-          <div className="w-[48px] h-[48px] flex items-center justify-end shrink-0">
+          <div className={`${slotClass} h-[48px] flex items-center justify-end shrink-0`}>
             {buttons[0]}
           </div>
         );
@@ -214,7 +232,7 @@ export function LineLegend({
 
       if (count === 2) {
         return (
-          <div className="w-[48px] h-[48px] flex flex-col justify-center items-end gap-0.5 shrink-0">
+          <div className={`${slotClass} h-[48px] flex flex-col justify-center items-end gap-0.5 shrink-0`}>
             {buttons[0]}
             {buttons[1]}
           </div>
@@ -223,7 +241,7 @@ export function LineLegend({
 
       if (count === 3) {
         return (
-          <div className="w-[48px] h-[48px] grid grid-cols-2 gap-0.5 items-center justify-items-center shrink-0">
+          <div className={`${slotClass} h-[48px] grid grid-cols-2 gap-0.5 items-center justify-items-center shrink-0`}>
             <div className="col-span-2 flex justify-center">
               {buttons[0]}
             </div>
@@ -234,7 +252,7 @@ export function LineLegend({
       }
 
       return (
-        <div className="w-[48px] h-[48px] grid grid-cols-2 gap-0.5 items-center justify-items-center shrink-0">
+        <div className={`${slotClass} h-[48px] grid grid-cols-2 gap-0.5 items-center justify-items-center shrink-0`}>
           <div>{buttons[0]}</div>
           <div>{buttons[1]}</div>
           <div>{buttons[2]}</div>
@@ -252,9 +270,7 @@ export function LineLegend({
     return (
       <div
         key={line.id}
-        className={`flex items-center ${
-          isRegional ? "gap-2 min-w-0" : "gap-2.5"
-        }`}
+        className={isRegional ? "flex items-center gap-2 min-w-0" : "contents"}
       >
         {renderIconsContainer()}
 
@@ -360,9 +376,9 @@ export function LineLegend({
   const REGULAR_SERVICE_GREY = "#94a3b8";
   const LIMITED_SERVICE_GREY = "#8292a7";
 
-  const renderLimitedServiceItem = () => (
+  const renderLimitedServiceItem = (slotClass: string | null) => (
     <div key="limited-service" className="flex items-center gap-2 min-w-0">
-      <div className="w-[48px] h-[48px] shrink-0" aria-hidden="true" />
+      {slotClass ? <div className={`${slotClass} h-[48px] shrink-0`} aria-hidden="true" /> : null}
       <div
         className="legend-line-segment relative shrink-0 flex items-center justify-center rounded-none overflow-hidden"
         style={{
@@ -394,9 +410,9 @@ export function LineLegend({
     </div>
   );
 
-  const renderRegularServiceItem = () => (
+  const renderRegularServiceItem = (slotClass: string | null) => (
     <div key="regular-service" className="flex items-center gap-2 min-w-0">
-      <div className="w-[48px] h-[48px] shrink-0" aria-hidden="true" />
+      {slotClass ? <div className={`${slotClass} h-[48px] shrink-0`} aria-hidden="true" /> : null}
       <div
         className="legend-line-segment relative shrink-0 flex items-center justify-center rounded-none overflow-hidden"
         style={{
@@ -412,6 +428,8 @@ export function LineLegend({
     </div>
   );
 
+  const leftSlotClass = isRegional ? regionalSlotClass(REGIONAL_LINES.filter((_, index) => index % 2 === 0)) : null;
+  const rightSlotClass = isRegional ? regionalSlotClass(REGIONAL_LINES.filter((_, index) => index % 2 === 1)) : null;
   const regionalRows = [
     [REGIONAL_LINES[0], REGIONAL_LINES[1]],
     [REGIONAL_LINES[2], REGIONAL_LINES[3]],
@@ -424,19 +442,19 @@ export function LineLegend({
       className={`select-none pointer-events-none ${
         isRegional
           ? "grid grid-cols-[max-content_max-content] gap-x-3 gap-y-2.5"
-          : "flex flex-col gap-2.5"
+          : "grid grid-cols-[repeat(3,max-content)] items-center gap-2.5"
       }`}
     >
       {isRegional ? (
         <>
           {regionalRows.map(([leftLine, rightLine], idx) => (
             <React.Fragment key={idx}>
-              {renderLineItem(leftLine)}
-              {renderLineItem(rightLine)}
+              {renderLineItem(leftLine, leftSlotClass)}
+              {renderLineItem(rightLine, rightSlotClass)}
             </React.Fragment>
           ))}
-          {renderLimitedServiceItem()}
-          {renderRegularServiceItem()}
+          {renderLimitedServiceItem(leftSlotClass)}
+          {renderRegularServiceItem(rightSlotClass)}
         </>
       ) : (
         TTC_LINES.map((line) => renderLineItem(line))
