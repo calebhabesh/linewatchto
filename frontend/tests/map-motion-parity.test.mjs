@@ -3,7 +3,10 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-const ttc = read("../src/components/InteractiveTtcMap.tsx");
+// The TTC renderer plus the glyph lanes it draws alert overlays with.
+const ttc = ["InteractiveTtcMap.tsx", "TtcGlyphLanes.tsx"]
+  .map((name) => read(`../src/components/${name}`))
+  .join("\n");
 const regional = read("../src/app/regional-map-overlays.ts");
 const css = ["station-markers", "impact-overlays", "regional-map", "base-map"]
   .map((name) => read(`../src/styles/map/${name}.css`))

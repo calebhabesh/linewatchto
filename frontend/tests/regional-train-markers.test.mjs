@@ -19,14 +19,14 @@ const regionalMotionSource = readFileSync(
   new URL("../src/app/regional-train-marker-motion.ts", import.meta.url),
   "utf8",
 );
-const ttcMapSource = readFileSync(
-  new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url),
+const ttcTrainMarkerLayerSource = readFileSync(
+  new URL("../src/components/TtcTrainMarkerLayer.tsx", import.meta.url),
   "utf8",
 );
 
 describe("regional estimated train marker rendering", () => {
   it("uses the TTC vehicle glyph for regional corridor-coloured markers", () => {
-    assert.match(ttcMapSource, /TRAIN_MARKER_BODY_PATH/);
+    assert.match(ttcTrainMarkerLayerSource, /TRAIN_MARKER_BODY_PATH/);
     assert.match(regionalMapSource, /TRAIN_MARKER_BODY_PATH/);
     assert.match(regionalMapSource, /estimated-train-marker-outline/);
     assert.match(regionalMapSource, /estimated-train-marker-window/);
@@ -51,8 +51,8 @@ describe("regional estimated train marker rendering", () => {
   });
 
   it("uses path-relative directional lanes on both map modes", () => {
-    assert.match(ttcMapSource, /estimatedTrainMarkerLanePoint/);
-    assert.match(ttcMapSource, /TTC_TRAIN_MARKER_LANE_OFFSET/);
+    assert.match(ttcTrainMarkerLayerSource, /estimatedTrainMarkerLanePoint/);
+    assert.match(ttcTrainMarkerLayerSource, /TTC_TRAIN_MARKER_LANE_OFFSET/);
     assert.match(regionalGeometrySource, /pathStartsAtFrom \? "forward" : "reverse"/);
   });
 

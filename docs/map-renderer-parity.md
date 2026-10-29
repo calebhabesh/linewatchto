@@ -1,6 +1,6 @@
 # Map renderer parity: TTC and GO/UP
 
-TTC (`InteractiveTtcMap.tsx`) and GO/UP (`InteractiveRegionalMap.tsx` with `app/regional-map-overlays.ts`) must look and behave the same over their SVG maps: same overlay vocabulary, same gesture handling, same stability. TTC renders overlays as React elements. GO/UP builds them imperatively inside injected SVG markup. Because of that difference, GO/UP does not get React's node reuse for free and has to match it on purpose. Most GO/UP-only flicker has come from that gap.
+TTC (`InteractiveTtcMap.tsx`, with its glyph lanes in `TtcGlyphLanes.tsx`, train markers in `TtcTrainMarkerLayer.tsx`, and badge obstacles in `ttc-map-obstacles.ts`) and GO/UP (`InteractiveRegionalMap.tsx` with `app/regional-map-overlays.ts`) must look and behave the same over their SVG maps: same overlay vocabulary, same gesture handling, same stability. TTC renders overlays as React elements. GO/UP builds them imperatively inside injected SVG markup. Because of that difference, GO/UP does not get React's node reuse for free and has to match it on purpose. Most GO/UP-only flicker has come from that gap.
 
 ## Baseline contract
 
