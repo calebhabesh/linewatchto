@@ -14,16 +14,7 @@ import {
   reliabilitySnapshot as fallbackReliability,
   mapAsset,
   ttcPerformanceSnapshot as fallbackPerformance,
-  type TtcPerformanceSnapshot,
-  type ReliabilitySnapshot,
-  type ReducedSpeedZone,
-  type ActiveAlert,
-  type DelayAlert,
-  type LineStatus,
-  type NetworkSegment,
-  type PlannedClosure,
-  type Station,
-  type StationNodeImpact
+  type ReliabilitySnapshot
 } from "./linewatch-data";
 import {
   isDashboardApiResponse,
@@ -36,17 +27,6 @@ export { isDashboardApiResponse, type DashboardApiResponse } from "./dashboard-c
 export { dashboardDataFromApi } from "./dashboard-adapter";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
-
-type MapApiResponse = {
-  stations: Station[];
-  segments: NetworkSegment[];
-  stationNodeImpacts: StationNodeImpact[];
-};
-
-type StatusApiResponse = {
-  generatedAt: typeof fallbackGeneratedAt;
-  lines: LineStatus[];
-};
 
 async function fetchSafe<T>(path: string): Promise<T | null> {
   try {
@@ -97,36 +77,6 @@ async function loadDashboardFromAggregate(): Promise<DashboardData | null> {
   return dashboardDataFromApi(payload, reliability ?? fallbackReliability);
 }
 
-async function loadDashboardFromLegacyEndpoints(): Promise<DashboardData | null> {
-  const [mapData, statusData, activeAlerts, delays, reducedSpeedZones, plannedClosures, performanceData, reliability] = await Promise.all([
-    fetchSafe<MapApiResponse>("/api/map"),
-    fetchSafe<StatusApiResponse>("/api/status"),
-    fetchSafe<ActiveAlert[]>("/api/alerts"),
-    fetchSafe<DelayAlert[]>("/api/alerts?type=delay"),
-    fetchSafe<ReducedSpeedZone[]>("/api/alerts?type=slowdown"),
-    fetchSafe<PlannedClosure[]>("/api/alerts?type=planned"),
-    fetchSafe<TtcPerformanceSnapshot>("/api/performance"),
-    fetchSafe<ReliabilitySnapshot>("/api/reliability/lines?network=ttc"),
-  ]);
-
-  const useFallback = !mapData || !statusData || !activeAlerts || !delays || !reducedSpeedZones || !plannedClosures;
-  if (useFallback) {
-    return null;
-  }
-
-  return dashboardDataFromApi({
-    map: mapData,
-    status: statusData,
-    activeAlerts,
-    delays,
-    reducedSpeedZones,
-    plannedClosures,
-    performance: performanceData ?? fallbackPerformance,
-  }, reliability ?? fallbackReliability);
-}
-
 export async function loadDashboardInitialData(): Promise<DashboardData> {
-  return await loadDashboardFromAggregate()
-    ?? await loadDashboardFromLegacyEndpoints()
-    ?? fallbackDashboardData();
+  return await loadDashboardFromAggregate() ?? fallbackDashboardData();
 }

@@ -1,19 +1,12 @@
 package com.calebhabesh.linewatch.dashboard;
 
-import com.calebhabesh.linewatch.alert.AlertDashboardService;
 import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
 import com.calebhabesh.linewatch.cache.DashboardCacheService;
-import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
-import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
-import com.calebhabesh.linewatch.map.MapController;
-import com.calebhabesh.linewatch.performance.PerformanceController;
-import com.calebhabesh.linewatch.status.StatusController;
 import com.calebhabesh.linewatch.regional.RegionalDashboardService;
 import com.calebhabesh.linewatch.regional.RegionalNetworkCatalog;
 import tools.jackson.core.type.TypeReference;
 import java.time.Duration;
 import java.util.Objects;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,7 +22,6 @@ public class DashboardController {
     private final DashboardCacheService cache;
     private final DashboardCacheProperties cacheProperties;
 
-    @Autowired
     public DashboardController(
         TtcDashboardService ttcDashboardService,
         RegionalDashboardService regionalDashboardService,
@@ -40,32 +32,6 @@ public class DashboardController {
         this.regionalDashboardService = Objects.requireNonNull(regionalDashboardService, "regionalDashboardService must not be null");
         this.cache = Objects.requireNonNull(cache, "cache must not be null");
         this.cacheProperties = Objects.requireNonNull(cacheProperties, "cacheProperties must not be null");
-    }
-
-    public DashboardController(
-        MapController mapController,
-        StatusController statusController,
-        AlertDashboardService alertDashboardService,
-        PerformanceController performanceController,
-        DashboardCacheService cache,
-        DashboardCacheProperties cacheProperties,
-        IngestionFreshness ingestionFreshness,
-        IngestionRunStore ingestionRunStore,
-        RegionalDashboardService regionalDashboardService
-    ) {
-        this(
-            new TtcDashboardService(
-                mapController != null ? mapController::getMap : () -> null,
-                statusController != null ? statusController::getStatus : () -> null,
-                alertDashboardService,
-                performanceController != null ? performanceController::performance : () -> null,
-                ingestionFreshness,
-                ingestionRunStore
-            ),
-            regionalDashboardService,
-            cache,
-            cacheProperties
-        );
     }
 
     @GetMapping

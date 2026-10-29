@@ -105,7 +105,7 @@ class MapDashboardServiceTest {
             )
         ));
 
-        MapController.MapResponse response = service.getMap();
+        MapResponses.MapResponse response = service.getMap();
 
         assertThat(response.stations()).singleElement().satisfies(station -> {
             assertThat(station.id()).isEqualTo("jane");

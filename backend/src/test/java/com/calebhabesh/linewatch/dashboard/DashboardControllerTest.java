@@ -13,11 +13,13 @@ import com.calebhabesh.linewatch.ingestion.AlertIngestionProperties;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
 import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
-import com.calebhabesh.linewatch.map.MapController;
-import com.calebhabesh.linewatch.performance.PerformanceController;
+import com.calebhabesh.linewatch.map.MapDashboardService;
+import com.calebhabesh.linewatch.map.MapResponses;
 import com.calebhabesh.linewatch.performance.TtcPerformanceResponses;
+import com.calebhabesh.linewatch.performance.TtcPerformanceService;
 import com.calebhabesh.linewatch.regional.RegionalDashboardService;
-import com.calebhabesh.linewatch.status.StatusController;
+import com.calebhabesh.linewatch.status.StatusDashboardService;
+import com.calebhabesh.linewatch.status.StatusResponses;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -31,10 +33,10 @@ import org.junit.jupiter.api.Test;
 class DashboardControllerTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-06-01T12:00:00Z"), ZoneOffset.UTC);
 
-    private final MapController mapController = mock(MapController.class);
-    private final StatusController statusController = mock(StatusController.class);
+    private final MapDashboardService mapDashboardService = mock(MapDashboardService.class);
+    private final StatusDashboardService statusDashboardService = mock(StatusDashboardService.class);
     private final AlertDashboardService alertDashboardService = mock(AlertDashboardService.class);
-    private final PerformanceController performanceController = mock(PerformanceController.class);
+    private final TtcPerformanceService performanceService = mock(TtcPerformanceService.class);
     private final DashboardCacheService cache = mock(DashboardCacheService.class);
     private final DashboardCacheProperties cacheProperties = new DashboardCacheProperties();
     private final IngestionRunStore ingestionRunStore = mock(IngestionRunStore.class);
@@ -45,15 +47,17 @@ class DashboardControllerTest {
         CLOCK
     );
     private final DashboardController controller = new DashboardController(
-        mapController,
-        statusController,
-        alertDashboardService,
-        performanceController,
+        new TtcDashboardService(
+            mapDashboardService,
+            statusDashboardService,
+            alertDashboardService,
+            performanceService,
+            ingestionFreshness,
+            ingestionRunStore
+        ),
+        regionalDashboardService,
         cache,
-        cacheProperties,
-        ingestionFreshness,
-        ingestionRunStore,
-        regionalDashboardService
+        cacheProperties
     );
 
     @BeforeEach
@@ -67,9 +71,9 @@ class DashboardControllerTest {
 
     @Test
     void returnsCombinedPublicDashboardPayload() {
-        MapController.MapResponse map = new MapController.MapResponse(List.of(), List.of(), List.of());
-        StatusController.StatusResponse status = new StatusController.StatusResponse(
-            new StatusController.GeneratedAtDto("8:00 AM", "Jun 1, 2026", true, "2 minutes ago"),
+        MapResponses.MapResponse map = new MapResponses.MapResponse(List.of(), List.of(), List.of());
+        StatusResponses.StatusResponse status = new StatusResponses.StatusResponse(
+            new StatusResponses.GeneratedAtDto("8:00 AM", "Jun 1, 2026", true, "2 minutes ago"),
             List.of()
         );
         TtcPerformanceResponses.SnapshotResponse performance = new TtcPerformanceResponses.SnapshotResponse(
@@ -84,13 +88,13 @@ class DashboardControllerTest {
             List.of()
         );
 
-        when(mapController.getMap()).thenReturn(map);
-        when(statusController.getStatus()).thenReturn(status);
+        when(mapDashboardService.getMap(any())).thenReturn(map);
+        when(statusDashboardService.getStatus(any())).thenReturn(status);
         when(alertDashboardService.activeAlerts()).thenReturn(List.of());
         when(alertDashboardService.delays()).thenReturn(List.of());
         when(alertDashboardService.reducedSpeedZones()).thenReturn(List.of());
         when(alertDashboardService.plannedClosures()).thenReturn(List.of());
-        when(performanceController.performance()).thenReturn(performance);
+        when(performanceService.performance()).thenReturn(performance);
 
         DashboardResponses.DashboardResponse response = controller.dashboard("ttc");
 
@@ -119,12 +123,12 @@ class DashboardControllerTest {
             started,
             null
         )));
-        when(mapController.getMap()).thenReturn(new MapController.MapResponse(List.of(), List.of(), List.of()));
-        when(statusController.getStatus()).thenReturn(new StatusController.StatusResponse(
-            new StatusController.GeneratedAtDto("8:00 AM", "Jun 1, 2026", true, "30 seconds ago"),
+        when(mapDashboardService.getMap(any())).thenReturn(new MapResponses.MapResponse(List.of(), List.of(), List.of()));
+        when(statusDashboardService.getStatus(any())).thenReturn(new StatusResponses.StatusResponse(
+            new StatusResponses.GeneratedAtDto("8:00 AM", "Jun 1, 2026", true, "30 seconds ago"),
             List.of()
         ));
-        when(performanceController.performance()).thenReturn(new TtcPerformanceResponses.SnapshotResponse(
+        when(performanceService.performance()).thenReturn(new TtcPerformanceResponses.SnapshotResponse(
             "disabled",
             "TTC.ca",
             "https://www.ttc.ca/",
@@ -189,16 +193,16 @@ class DashboardControllerTest {
         return new DashboardResponses.DashboardResponse(
             "regional", "unavailable", List.of("metrolinx-go-service-alerts", "metrolinx-up-gtfs-alerts"),
             "Regional realtime ingestion is not configured.",
-            new MapController.MapResponse(
+            new MapResponses.MapResponse(
                 com.calebhabesh.linewatch.regional.RegionalNetworkCatalog.stations().stream()
-                    .map(station -> new MapController.StationDto(station.id(), station.name(), 0, 0, station.interchange()))
+                    .map(station -> new MapResponses.StationDto(station.id(), station.name(), 0, 0, station.interchange()))
                     .toList(),
                 List.of(), List.of()
             ),
-            new StatusController.StatusResponse(
-                new StatusController.GeneratedAtDto("Unavailable", "Regional source not configured", false, "not configured"),
+            new StatusResponses.StatusResponse(
+                new StatusResponses.GeneratedAtDto("Unavailable", "Regional source not configured", false, "not configured"),
                 com.calebhabesh.linewatch.regional.RegionalNetworkCatalog.routes().stream()
-                    .map(route -> new StatusController.LineStatusDto(route.id(), route.number(), route.name(), route.name(), route.color(), "ready", "Data unavailable", "Not configured", "Not configured"))
+                    .map(route -> new StatusResponses.LineStatusDto(route.id(), route.number(), route.name(), route.name(), route.color(), "ready", "Data unavailable", "Not configured", "Not configured"))
                     .toList()
             ),
             List.of(), List.of(), List.of(), List.of(),

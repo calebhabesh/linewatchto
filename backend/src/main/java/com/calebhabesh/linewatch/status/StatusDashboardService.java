@@ -57,28 +57,28 @@ public class StatusDashboardService {
         this.cacheProperties = Objects.requireNonNull(cacheProperties, "cacheProperties must not be null");
     }
 
-    public StatusController.StatusResponse getStatus() {
+    public StatusResponses.StatusResponse getStatus() {
         return getStatus((Supplier<TtcDashboardReadModel>) null);
     }
 
-    public StatusController.StatusResponse getStatus(Supplier<TtcDashboardReadModel> readModelSupplier) {
+    public StatusResponses.StatusResponse getStatus(Supplier<TtcDashboardReadModel> readModelSupplier) {
         Optional<IngestionRunSnapshot> latestRun = ingestionRunStore.findLatestSuccessful();
         Duration ttl = ingestionFreshness.remainingFreshness(latestRun)
             .map(remaining -> remaining.compareTo(cacheProperties.getStatusTtl()) < 0 ? remaining : cacheProperties.getStatusTtl())
             .orElse(cacheProperties.getStatusTtl());
         return cache.getOrCompute(
             "status",
-            new TypeReference<StatusController.StatusResponse>() {},
+            new TypeReference<StatusResponses.StatusResponse>() {},
             ttl,
             () -> buildStatus(readModelSupplier != null ? readModelSupplier.get() : null)
         );
     }
 
-    public StatusController.StatusResponse buildStatus() {
+    public StatusResponses.StatusResponse buildStatus() {
         return buildStatus(null);
     }
 
-    public StatusController.StatusResponse buildStatus(TtcDashboardReadModel readModel) {
+    public StatusResponses.StatusResponse buildStatus(TtcDashboardReadModel readModel) {
         Optional<IngestionRunSnapshot> latestRun = readModel != null && readModel.latestSuccessfulRun().isPresent()
             ? readModel.latestSuccessfulRun()
             : ingestionRunStore.findLatestSuccessful();
@@ -94,12 +94,12 @@ public class StatusDashboardService {
 
         OffsetDateTime now = readModel != null ? readModel.now() : OffsetDateTime.now(clock);
 
-        List<StatusController.LineStatusDto> lines = transitLineRepository.findAllByOrderBySortOrderAsc().stream()
+        List<StatusResponses.LineStatusDto> lines = transitLineRepository.findAllByOrderBySortOrderAsc().stream()
                 .map(entity -> toDto(entity, activeAlerts, activeClosures, now))
                 .collect(Collectors.toList());
 
-        return new StatusController.StatusResponse(
-                new StatusController.GeneratedAtDto(
+        return new StatusResponses.StatusResponse(
+                new StatusResponses.GeneratedAtDto(
                     now.atZoneSameInstant(TORONTO_ZONE).format(DateTimeFormatter.ofPattern("h:mm a")),
                     now.atZoneSameInstant(TORONTO_ZONE).format(DateTimeFormatter.ofPattern("MMM d, yyyy")),
                     dashboardLive,
@@ -109,7 +109,7 @@ public class StatusDashboardService {
         );
     }
 
-    private StatusController.LineStatusDto toDto(
+    private StatusResponses.LineStatusDto toDto(
         TransitLineEntity entity,
         List<AlertEntity> allActiveAlerts,
         List<AlertDashboardService.PlannedClosureDto> allActiveClosures
@@ -117,7 +117,7 @@ public class StatusDashboardService {
         return toDto(entity, allActiveAlerts, allActiveClosures, OffsetDateTime.now(clock));
     }
 
-    private StatusController.LineStatusDto toDto(
+    private StatusResponses.LineStatusDto toDto(
         TransitLineEntity entity,
         List<AlertEntity> allActiveAlerts,
         List<AlertDashboardService.PlannedClosureDto> allActiveClosures,
@@ -239,7 +239,7 @@ public class StatusDashboardService {
             updatedAgo = updatedAgo(mostRecent.getSourceUpdatedAt(), now);
         }
 
-        return new StatusController.LineStatusDto(
+        return new StatusResponses.LineStatusDto(
                 entity.getId(),
                 entity.getNumber(),
                 entity.getName(),

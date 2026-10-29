@@ -11,10 +11,9 @@ const prodBuildPushSource = readFileSync(new URL("../../scripts/prod-build-push.
 const stagingComposeSource = readFileSync(new URL("../../docker-compose.staging.yml", import.meta.url), "utf8");
 
 describe("dashboard spike mitigation", () => {
-  it("prefers the single aggregate dashboard endpoint before legacy fan-out", () => {
+  it("loads the single aggregate dashboard endpoint", () => {
     assert.match(dashboardDataSource, /fetchSafe<DashboardApiResponse>\("\/api\/dashboard\?network=ttc"\)/);
-    assert.match(dashboardDataSource, /loadDashboardFromAggregate/);
-    assert.match(dashboardDataSource, /loadDashboardFromLegacyEndpoints/);
+    assert.match(dashboardDataSource, /loadDashboardFromAggregate\(\) \?\? fallbackDashboardData\(\)/);
   });
 
   it("keeps fixture fallback when backend dashboard data is unavailable", () => {

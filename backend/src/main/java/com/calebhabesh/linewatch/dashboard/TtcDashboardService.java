@@ -5,11 +5,11 @@ import com.calebhabesh.linewatch.alert.TtcDashboardReadModel;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
 import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
-import com.calebhabesh.linewatch.map.MapController;
+import com.calebhabesh.linewatch.map.MapResponses;
 import com.calebhabesh.linewatch.map.MapDashboardService;
 import com.calebhabesh.linewatch.performance.TtcPerformanceResponses;
 import com.calebhabesh.linewatch.performance.TtcPerformanceService;
-import com.calebhabesh.linewatch.status.StatusController;
+import com.calebhabesh.linewatch.status.StatusResponses;
 import com.calebhabesh.linewatch.status.StatusDashboardService;
 import java.time.Duration;
 import java.util.List;
@@ -23,8 +23,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class TtcDashboardService {
 
-    private final Function<Supplier<TtcDashboardReadModel>, MapController.MapResponse> mapFunction;
-    private final Function<Supplier<TtcDashboardReadModel>, StatusController.StatusResponse> statusFunction;
+    private final Function<Supplier<TtcDashboardReadModel>, MapResponses.MapResponse> mapFunction;
+    private final Function<Supplier<TtcDashboardReadModel>, StatusResponses.StatusResponse> statusFunction;
     private final AlertDashboardService alertDashboardService;
     private final Supplier<TtcPerformanceResponses.SnapshotResponse> performanceSupplier;
     private final IngestionFreshness ingestionFreshness;
@@ -50,8 +50,8 @@ public class TtcDashboardService {
     }
 
     public TtcDashboardService(
-        Supplier<MapController.MapResponse> mapSupplier,
-        Supplier<StatusController.StatusResponse> statusSupplier,
+        Supplier<MapResponses.MapResponse> mapSupplier,
+        Supplier<StatusResponses.StatusResponse> statusSupplier,
         AlertDashboardService alertDashboardService,
         Supplier<TtcPerformanceResponses.SnapshotResponse> performanceSupplier,
         IngestionFreshness ingestionFreshness,
@@ -72,8 +72,8 @@ public class TtcDashboardService {
     }
 
     public TtcDashboardService(
-        Function<Supplier<TtcDashboardReadModel>, MapController.MapResponse> mapFunction,
-        Function<Supplier<TtcDashboardReadModel>, StatusController.StatusResponse> statusFunction,
+        Function<Supplier<TtcDashboardReadModel>, MapResponses.MapResponse> mapFunction,
+        Function<Supplier<TtcDashboardReadModel>, StatusResponses.StatusResponse> statusFunction,
         AlertDashboardService alertDashboardService,
         Supplier<TtcPerformanceResponses.SnapshotResponse> performanceSupplier,
         IngestionFreshness ingestionFreshness,
@@ -95,10 +95,10 @@ public class TtcDashboardService {
         Optional<IngestionRunSnapshot> latestSuccessful = ingestionRunStore.findLatestSuccessful();
         Supplier<TtcDashboardReadModel> readModelSupplier = memoize(() -> alertDashboardService.createReadModel(latestSuccessful));
 
-        StatusController.StatusResponse status = statusFunction.apply(readModelSupplier);
+        StatusResponses.StatusResponse status = statusFunction.apply(readModelSupplier);
         boolean live = status != null && status.generatedAt() != null && status.generatedAt().live();
         String availability = live ? ttcAvailability() : "unavailable";
-        MapController.MapResponse map = mapFunction.apply(readModelSupplier);
+        MapResponses.MapResponse map = mapFunction.apply(readModelSupplier);
 
         TtcDashboardReadModel readModel = readModelSupplier.get();
         List<AlertDashboardService.ActiveAlertDto> activeAlerts = readModel != null

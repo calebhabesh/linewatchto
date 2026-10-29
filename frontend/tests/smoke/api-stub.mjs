@@ -693,35 +693,6 @@ const server = createServer(async (request, response) => {
   }
 
   // Public Dashboard APIs
-  if (request.method === "GET" && url.pathname === "/api/map") {
-    sendJson(request, response, 200, mode === "map-authoritative-overlap" ? mapAuthoritativeOverlapResponse : mapResponse);
-    return;
-  }
-
-  if (request.method === "GET" && url.pathname === "/api/performance") {
-    sendJson(request, response, 200, {
-      status: "available",
-      source: "TTC.ca",
-      sourceUrl: "https://www.ttc.ca/",
-      title: "On-time performance and elevator/escalator status",
-      updatedLabel: "June 7, 2026 7:00 AM",
-      fetchedAt: "2026-06-07T12:00:00Z",
-      stale: false,
-      message: "Official TTC performance metrics loaded from TTC.ca.",
-      metrics: [
-        { id: "line-1", label: "Line 1", category: "subway", percentage: 94, target: 90, valueLabel: "94%", note: null },
-        { id: "line-2", label: "Line 2", category: "subway", percentage: 91, target: 90, valueLabel: "91%", note: null },
-        { id: "elevators", label: "Elevators", category: "accessibility", percentage: 99, target: 98, valueLabel: "99%", note: null }
-      ]
-    });
-    return;
-  }
-
-  if (request.method === "GET" && url.pathname === "/api/status") {
-    sendJson(request, response, 200, statusResponse);
-    return;
-  }
-
   if (request.method === "GET" && url.pathname === "/api/alert-history") {
     sendJson(request, response, 200, {
       generatedAt: "2026-08-25T12:30:00-04:00",
@@ -782,24 +753,6 @@ const server = createServer(async (request, response) => {
         },
       ],
     });
-    return;
-  }
-
-  if (request.method === "GET" && url.pathname === "/api/alerts") {
-    const type = url.searchParams.get("type");
-    if (type === "planned") {
-      sendJson(request, response, 200, mode === "map-authoritative-overlap" ? mapAuthoritativePlannedClosuresResponse : plannedClosuresResponse);
-      return;
-    }
-    if (type === "slowdown") {
-      sendJson(request, response, 200, mode === "map-authoritative-overlap" ? mapAuthoritativeReducedSpeedZonesResponse : reducedSpeedZonesResponse);
-      return;
-    }
-    if (type === "delay") {
-      sendJson(request, response, 200, mode === "map-authoritative-overlap" ? mapAuthoritativeDelaysResponse : delaysResponse);
-      return;
-    }
-    sendJson(request, response, 200, mode === "map-authoritative-overlap" ? mapAuthoritativeActiveAlertsResponse : activeAlertsResponse);
     return;
   }
 

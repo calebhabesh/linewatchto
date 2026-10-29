@@ -431,7 +431,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   }
 
   console.log("\n-----------------------------------------------------------------");
-  console.log("Markdown Table for docs/globals-css-refactor-progress.md:\n");
+  console.log("Markdown table:\n");
   console.log("| Metric | Population | Value |");
   console.log("|---|---|---:|");
   console.log(`| Global entry lines | Entry manifest | ${metrics.manifest.lines.toLocaleString()} |`);

@@ -1,9 +1,9 @@
 package com.calebhabesh.linewatch.dashboard;
 
 import com.calebhabesh.linewatch.alert.AlertDashboardService;
-import com.calebhabesh.linewatch.map.MapController;
+import com.calebhabesh.linewatch.map.MapResponses;
 import com.calebhabesh.linewatch.performance.TtcPerformanceResponses;
-import com.calebhabesh.linewatch.status.StatusController;
+import com.calebhabesh.linewatch.status.StatusResponses;
 import java.util.List;
 import java.util.Map;
 import java.time.OffsetDateTime;
@@ -16,8 +16,8 @@ public final class DashboardResponses {
         String availability,
         List<String> sourceSystems,
         String message,
-        MapController.MapResponse map,
-        StatusController.StatusResponse status,
+        MapResponses.MapResponse map,
+        StatusResponses.StatusResponse status,
         List<AlertDashboardService.ActiveAlertDto> activeAlerts,
         List<AlertDashboardService.DelayAlertDto> delays,
         List<AlertDashboardService.ReducedSpeedZoneDto> reducedSpeedZones,
@@ -27,7 +27,7 @@ public final class DashboardResponses {
     ) {
         public DashboardResponse(
             String networkId, String availability, List<String> sourceSystems, String message,
-            MapController.MapResponse map, StatusController.StatusResponse status,
+            MapResponses.MapResponse map, StatusResponses.StatusResponse status,
             List<AlertDashboardService.ActiveAlertDto> activeAlerts,
             List<AlertDashboardService.DelayAlertDto> delays,
             List<AlertDashboardService.ReducedSpeedZoneDto> reducedSpeedZones,

@@ -48,29 +48,29 @@ public class MapDashboardService {
         this.ingestionRunStore = Objects.requireNonNull(ingestionRunStore, "ingestionRunStore must not be null");
     }
 
-    public MapController.MapResponse getMap() {
+    public MapResponses.MapResponse getMap() {
         return getMap((Supplier<TtcDashboardReadModel>) null);
     }
 
-    public MapController.MapResponse getMap(Supplier<TtcDashboardReadModel> readModelSupplier) {
+    public MapResponses.MapResponse getMap(Supplier<TtcDashboardReadModel> readModelSupplier) {
         Duration ttl = ingestionFreshness.remainingFreshness(ingestionRunStore.findLatestSuccessful())
             .map(remaining -> remaining.compareTo(cacheProperties.getMapTtl()) < 0 ? remaining : cacheProperties.getMapTtl())
             .orElse(cacheProperties.getMapTtl());
         return cache.getOrCompute(
             "map",
-            new TypeReference<MapController.MapResponse>() {},
+            new TypeReference<MapResponses.MapResponse>() {},
             ttl,
             () -> buildMap(readModelSupplier != null ? readModelSupplier.get() : null)
         );
     }
 
-    public MapController.MapResponse buildMap() {
+    public MapResponses.MapResponse buildMap() {
         return buildMap(null);
     }
 
-    public MapController.MapResponse buildMap(TtcDashboardReadModel readModel) {
-        List<MapController.StationDto> stations = stationRepository.findAllByOrderBySortOrderAscNameAsc().stream()
-                .map(s -> new MapController.StationDto(s.getId(), s.getName(), s.getMapX(), s.getMapY(), s.isInterchange()))
+    public MapResponses.MapResponse buildMap(TtcDashboardReadModel readModel) {
+        List<MapResponses.StationDto> stations = stationRepository.findAllByOrderBySortOrderAscNameAsc().stream()
+                .map(s -> new MapResponses.StationDto(s.getId(), s.getName(), s.getMapX(), s.getMapY(), s.isInterchange()))
                 .collect(Collectors.toList());
 
         Map<String, List<AlertDashboardService.SegmentImpact>> impacts = readModel != null
@@ -81,14 +81,14 @@ public class MapDashboardService {
                 ? readModel.segments()
                 : lineSegmentRepository.findAllByOrderBySortOrderAsc();
 
-        List<MapController.NetworkSegmentDto> segments = segmentsList.stream()
+        List<MapResponses.NetworkSegmentDto> segments = segmentsList.stream()
                 .map(s -> {
                     List<AlertDashboardService.SegmentImpact> segmentImpacts =
                             impacts.getOrDefault(s.getId(), List.of());
                     AlertDashboardService.SegmentImpact primaryImpact =
                             primaryImpact(segmentImpacts);
 
-                    return new MapController.NetworkSegmentDto(
+                    return new MapResponses.NetworkSegmentDto(
                         s.getId(),
                         s.getLineId(),
                         "Segment " + s.getId(),
@@ -111,11 +111,11 @@ public class MapDashboardService {
                 })
                 .collect(Collectors.toList());
 
-        List<MapController.StationNodeImpactDto> stationNodeImpacts = (readModel != null
+        List<MapResponses.StationNodeImpactDto> stationNodeImpacts = (readModel != null
                 ? readModel.stationNodeImpacts()
                 : dashboardService.activeStationNodeImpacts())
                 .stream()
-                .map(impact -> new MapController.StationNodeImpactDto(
+                .map(impact -> new MapResponses.StationNodeImpactDto(
                         impact.stationId(),
                         impact.kind(),
                         impact.cardId(),
@@ -123,7 +123,7 @@ public class MapDashboardService {
                 ))
                 .toList();
 
-        return new MapController.MapResponse(stations, segments, stationNodeImpacts);
+        return new MapResponses.MapResponse(stations, segments, stationNodeImpacts);
     }
 
     private AlertDashboardService.SegmentImpact primaryImpact(
@@ -144,8 +144,8 @@ public class MapDashboardService {
         };
     }
 
-    private MapController.SegmentImpactDto toSegmentImpactDto(AlertDashboardService.SegmentImpact impact) {
-        return new MapController.SegmentImpactDto(
+    private MapResponses.SegmentImpactDto toSegmentImpactDto(AlertDashboardService.SegmentImpact impact) {
+        return new MapResponses.SegmentImpactDto(
             impact.kind(),
             impact.cardId(),
             impact.travelDirection(),

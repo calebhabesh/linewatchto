@@ -10,9 +10,9 @@ import com.calebhabesh.linewatch.ingestion.AlertIngestionProperties;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
 import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
-import com.calebhabesh.linewatch.map.MapController;
+import com.calebhabesh.linewatch.map.MapResponses;
 import com.calebhabesh.linewatch.performance.TtcPerformanceResponses;
-import com.calebhabesh.linewatch.status.StatusController;
+import com.calebhabesh.linewatch.status.StatusResponses;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -35,9 +35,9 @@ class TtcDashboardServiceTest {
 
     @Test
     void buildsTtcDashboardResponseFromSubservices() {
-        MapController.MapResponse map = new MapController.MapResponse(List.of(), List.of(), List.of());
-        StatusController.StatusResponse status = new StatusController.StatusResponse(
-            new StatusController.GeneratedAtDto("8:00 AM", "Jun 1, 2026", true, "succeeded 1 min ago"),
+        MapResponses.MapResponse map = new MapResponses.MapResponse(List.of(), List.of(), List.of());
+        StatusResponses.StatusResponse status = new StatusResponses.StatusResponse(
+            new StatusResponses.GeneratedAtDto("8:00 AM", "Jun 1, 2026", true, "succeeded 1 min ago"),
             List.of()
         );
         TtcPerformanceResponses.SnapshotResponse performance = new TtcPerformanceResponses.SnapshotResponse(
@@ -81,8 +81,8 @@ class TtcDashboardServiceTest {
 
     @Test
     void marksDegradedWhenLiveButLatestRunFailed() {
-        StatusController.StatusResponse status = new StatusController.StatusResponse(
-            new StatusController.GeneratedAtDto("8:00 AM", "Jun 1, 2026", true, "failed"),
+        StatusResponses.StatusResponse status = new StatusResponses.StatusResponse(
+            new StatusResponses.GeneratedAtDto("8:00 AM", "Jun 1, 2026", true, "failed"),
             List.of()
         );
 
@@ -92,7 +92,7 @@ class TtcDashboardServiceTest {
         )));
 
         TtcDashboardService service = new TtcDashboardService(
-            () -> new MapController.MapResponse(List.of(), List.of(), List.of()),
+            () -> new MapResponses.MapResponse(List.of(), List.of(), List.of()),
             () -> status,
             alertDashboardService,
             () -> null,
@@ -108,13 +108,13 @@ class TtcDashboardServiceTest {
 
     @Test
     void marksUnavailableWhenNotLive() {
-        StatusController.StatusResponse status = new StatusController.StatusResponse(
-            new StatusController.GeneratedAtDto("8:00 AM", "Jun 1, 2026", false, "not run"),
+        StatusResponses.StatusResponse status = new StatusResponses.StatusResponse(
+            new StatusResponses.GeneratedAtDto("8:00 AM", "Jun 1, 2026", false, "not run"),
             List.of()
         );
 
         TtcDashboardService service = new TtcDashboardService(
-            () -> new MapController.MapResponse(List.of(), List.of(), List.of()),
+            () -> new MapResponses.MapResponse(List.of(), List.of(), List.of()),
             () -> status,
             alertDashboardService,
             () -> null,

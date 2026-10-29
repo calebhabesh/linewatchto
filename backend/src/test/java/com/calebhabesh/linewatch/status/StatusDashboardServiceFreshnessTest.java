@@ -28,7 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-class StatusControllerTest {
+class StatusDashboardServiceFreshnessTest {
     private static final Clock CLOCK = Clock.fixed(
             Instant.parse("2026-06-01T12:00:00Z"),
             ZoneOffset.UTC
@@ -45,7 +45,7 @@ class StatusControllerTest {
     private final AlertDashboardService alertDashboardService = mock(AlertDashboardService.class);
     private final DashboardCacheService cache = mock(DashboardCacheService.class);
     private final DashboardCacheProperties cacheProperties = new DashboardCacheProperties();
-    private final StatusController controller = new StatusController(
+    private final StatusDashboardService service = new StatusDashboardService(
             repository,
             alertRepository,
             ingestionRunStore,
@@ -72,7 +72,7 @@ class StatusControllerTest {
         when(alertRepository.findByActiveTrueAndType("active-alert")).thenReturn(List.of());
         when(ingestionRunStore.findLatestSuccessful()).thenReturn(Optional.empty());
 
-        StatusController.StatusResponse response = controller.getStatus();
+        StatusResponses.StatusResponse response = service.getStatus();
 
         assertThat(response.generatedAt().live()).isFalse();
         assertThat(response.generatedAt().lastPoll()).isEqualTo("not run");
@@ -94,7 +94,7 @@ class StatusControllerTest {
                 8, 8, 2, 0, completedAt.minusMinutes(1), null
         )));
 
-        StatusController.StatusResponse response = controller.getStatus();
+        StatusResponses.StatusResponse response = service.getStatus();
 
         assertThat(response.generatedAt().live()).isTrue();
         assertThat(response.generatedAt().lastPoll()).isEqualTo("succeeded 1 min ago");
@@ -150,7 +150,7 @@ class StatusControllerTest {
         );
         when(alertDashboardService.activePlannedClosures()).thenReturn(List.of(activeClosure));
 
-        StatusController.StatusResponse response = controller.getStatus();
+        StatusResponses.StatusResponse response = service.getStatus();
 
         assertThat(response.lines()).singleElement().satisfies(line -> {
             assertThat(line.status()).isEqualTo("planned");
@@ -174,7 +174,7 @@ class StatusControllerTest {
                 8, 8, 2, 0, completedAt.minusMinutes(1), null
         )));
 
-        StatusController.StatusResponse response = controller.getStatus();
+        StatusResponses.StatusResponse response = service.getStatus();
 
         assertThat(response.generatedAt().live()).isFalse();
         assertThat(response.generatedAt().lastPoll()).isEqualTo("succeeded 15 min ago");
@@ -195,21 +195,21 @@ class StatusControllerTest {
         when(ingestionRunStore.findLatestSuccessful()).thenReturn(Optional.of(new IngestionRunSnapshot(
                 3L, "success", now, now, 0, 0, 0, 0, null, null
         )));
-        assertThat(controller.getStatus().generatedAt().lastPoll()).isEqualTo("succeeded just now");
+        assertThat(service.getStatus().generatedAt().lastPoll()).isEqualTo("succeeded just now");
 
         // Succeeded 2 hr ago
         OffsetDateTime twoHrAgo = now.minusHours(2);
         when(ingestionRunStore.findLatestSuccessful()).thenReturn(Optional.of(new IngestionRunSnapshot(
                 4L, "success", twoHrAgo, twoHrAgo, 0, 0, 0, 0, null, null
         )));
-        assertThat(controller.getStatus().generatedAt().lastPoll()).isEqualTo("succeeded 2 hr ago");
+        assertThat(service.getStatus().generatedAt().lastPoll()).isEqualTo("succeeded 2 hr ago");
 
         // Succeeded 3 days ago
         OffsetDateTime threeDaysAgo = now.minusDays(3);
         when(ingestionRunStore.findLatestSuccessful()).thenReturn(Optional.of(new IngestionRunSnapshot(
                 5L, "success", threeDaysAgo, threeDaysAgo, 0, 0, 0, 0, null, null
         )));
-        assertThat(controller.getStatus().generatedAt().lastPoll()).isEqualTo("succeeded 3 days ago");
+        assertThat(service.getStatus().generatedAt().lastPoll()).isEqualTo("succeeded 3 days ago");
     }
 
     @Test
@@ -226,7 +226,7 @@ class StatusControllerTest {
                 8, 8, 2, 0, completedAt.minusMinutes(1), null
         )));
 
-        StatusController.StatusResponse response = controller.getStatus();
+        StatusResponses.StatusResponse response = service.getStatus();
 
         assertThat(response.lines()).singleElement().satisfies(line -> {
             assertThat(line.status()).isEqualTo("normal");

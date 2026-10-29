@@ -76,15 +76,15 @@ class StatusDashboardServiceTest {
             "Synthetic test fixture", "Closure - Planned Track Work", null, true, "active-now", true,
             now.minusHours(1), now.plusHours(1), "Tonight", null, null, null, "11 PM–2 AM", "Sep 28–Oct 1"
         ).withServiceEffect("limited-service");
-        StatusController.LineStatusDto status = org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+        StatusResponses.LineStatusDto status = org.springframework.test.util.ReflectionTestUtils.invokeMethod(
             service, "toDto", line, List.<AlertEntity>of(), List.of(advisory), now);
         assertThat(status.status()).isEqualTo("delay");
         assertThat(status.statusLabel()).isEqualTo("Limited service");
-        StatusController.LineStatusDto specificDelay = org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+        StatusResponses.LineStatusDto specificDelay = org.springframework.test.util.ReflectionTestUtils.invokeMethod(
             service, "toDto", line, List.<AlertEntity>of(), List.of(advisory.withServiceEffect("delay")), now);
         assertThat(specificDelay.status()).isEqualTo("delay");
         assertThat(specificDelay.statusLabel()).isEqualTo("Delayed");
-        StatusController.LineStatusDto suspension = org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+        StatusResponses.LineStatusDto suspension = org.springframework.test.util.ReflectionTestUtils.invokeMethod(
             service, "toDto", line, List.<AlertEntity>of(), List.of(advisory.withServiceEffect("suspension")), now);
         assertThat(suspension.status()).isEqualTo("planned");
     }
@@ -97,7 +97,7 @@ class StatusDashboardServiceTest {
         when(alertRepository.findByActiveTrueAndType("active-alert")).thenReturn(List.of());
         when(ingestionRunStore.findLatestSuccessful()).thenReturn(Optional.empty());
 
-        StatusController.StatusResponse response = service.getStatus();
+        StatusResponses.StatusResponse response = service.getStatus();
 
         assertThat(response.generatedAt().live()).isFalse();
         assertThat(response.generatedAt().lastPoll()).isEqualTo("not run");
@@ -118,7 +118,7 @@ class StatusDashboardServiceTest {
                 8, 8, 2, 0, completedAt.minusMinutes(1), null
         )));
 
-        StatusController.StatusResponse response = service.getStatus();
+        StatusResponses.StatusResponse response = service.getStatus();
 
         assertThat(response.generatedAt().live()).isTrue();
         assertThat(response.generatedAt().lastPoll()).isEqualTo("succeeded 1 min ago");

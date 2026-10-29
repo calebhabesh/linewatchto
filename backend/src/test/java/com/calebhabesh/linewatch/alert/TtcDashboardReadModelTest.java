@@ -18,7 +18,7 @@ import com.calebhabesh.linewatch.ingestion.AlertIngestionProperties;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
 import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
-import com.calebhabesh.linewatch.map.MapController;
+import com.calebhabesh.linewatch.map.MapResponses;
 import com.calebhabesh.linewatch.map.MapDashboardService;
 import com.calebhabesh.linewatch.performance.TtcPerformanceResponses;
 import com.calebhabesh.linewatch.performance.TtcPerformanceService;
@@ -28,7 +28,7 @@ import com.calebhabesh.linewatch.station.StationEntity;
 import com.calebhabesh.linewatch.station.StationRepository;
 import com.calebhabesh.linewatch.station.TransitLineEntity;
 import com.calebhabesh.linewatch.station.TransitLineRepository;
-import com.calebhabesh.linewatch.status.StatusController;
+import com.calebhabesh.linewatch.status.StatusResponses;
 import com.calebhabesh.linewatch.status.StatusDashboardService;
 import tools.jackson.databind.ObjectMapper;
 import java.time.Clock;
@@ -185,8 +185,8 @@ class TtcDashboardReadModelTest {
         verify(reducedSpeedZoneProjector, times(1)).project(anyList(), anyList());
 
         // Now consume through all dashboard components passing the read model
-        StatusController.StatusResponse status = statusDashboardService.buildStatus(readModel);
-        MapController.MapResponse map = mapDashboardService.buildMap(readModel);
+        StatusResponses.StatusResponse status = statusDashboardService.buildStatus(readModel);
+        MapResponses.MapResponse map = mapDashboardService.buildMap(readModel);
         List<AlertDashboardService.ActiveAlertDto> activeAlerts = alertDashboardService.activeAlerts(readModel);
         List<AlertDashboardService.DelayAlertDto> delays = alertDashboardService.delays(readModel);
         List<AlertDashboardService.ReducedSpeedZoneDto> rszs = alertDashboardService.reducedSpeedZones(readModel);
@@ -244,8 +244,8 @@ class TtcDashboardReadModelTest {
             .thenReturn(List.of(new TransitLineEntity("line-1", "1", "Yonge-University", "#FFD700", 1)));
 
         // 1. Build standalone
-        StatusController.StatusResponse standaloneStatus = statusDashboardService.buildStatus();
-        MapController.MapResponse standaloneMap = mapDashboardService.buildMap();
+        StatusResponses.StatusResponse standaloneStatus = statusDashboardService.buildStatus();
+        MapResponses.MapResponse standaloneMap = mapDashboardService.buildMap();
         List<AlertDashboardService.ActiveAlertDto> standaloneActiveAlerts = alertDashboardService.activeAlerts();
         List<AlertDashboardService.DelayAlertDto> standaloneDelays = alertDashboardService.delays();
         List<AlertDashboardService.ReducedSpeedZoneDto> standaloneRszs = alertDashboardService.reducedSpeedZones();
@@ -267,8 +267,8 @@ class TtcDashboardReadModelTest {
 
         // 2. Build via read model
         TtcDashboardReadModel readModel = alertDashboardService.createReadModel(Optional.of(snapshot));
-        StatusController.StatusResponse readModelStatus = statusDashboardService.buildStatus(readModel);
-        MapController.MapResponse readModelMap = mapDashboardService.buildMap(readModel);
+        StatusResponses.StatusResponse readModelStatus = statusDashboardService.buildStatus(readModel);
+        MapResponses.MapResponse readModelMap = mapDashboardService.buildMap(readModel);
         List<AlertDashboardService.ActiveAlertDto> readModelActiveAlerts = alertDashboardService.activeAlerts(readModel);
         List<AlertDashboardService.DelayAlertDto> readModelDelays = alertDashboardService.delays(readModel);
         List<AlertDashboardService.ReducedSpeedZoneDto> readModelRszs = alertDashboardService.reducedSpeedZones(readModel);
@@ -302,9 +302,9 @@ class TtcDashboardReadModelTest {
         );
         when(ingestionRunStore.findLatestSuccessful()).thenReturn(Optional.of(snapshot));
 
-        MapController.MapResponse cachedMap = new MapController.MapResponse(List.of(), List.of(), List.of());
-        StatusController.StatusResponse cachedStatus = new StatusController.StatusResponse(
-            new StatusController.GeneratedAtDto("12:00 PM", "Jun 1, 2026", true, "succeeded just now"),
+        MapResponses.MapResponse cachedMap = new MapResponses.MapResponse(List.of(), List.of(), List.of());
+        StatusResponses.StatusResponse cachedStatus = new StatusResponses.StatusResponse(
+            new StatusResponses.GeneratedAtDto("12:00 PM", "Jun 1, 2026", true, "succeeded just now"),
             List.of()
         );
 
@@ -318,12 +318,12 @@ class TtcDashboardReadModelTest {
 
         AtomicBoolean readModelLoaded = new AtomicBoolean(false);
 
-        MapController.MapResponse retrievedMap = mapDashboardService.getMap(() -> {
+        MapResponses.MapResponse retrievedMap = mapDashboardService.getMap(() -> {
             readModelLoaded.set(true);
             return alertDashboardService.createReadModel();
         });
 
-        StatusController.StatusResponse retrievedStatus = statusDashboardService.getStatus(() -> {
+        StatusResponses.StatusResponse retrievedStatus = statusDashboardService.getStatus(() -> {
             readModelLoaded.set(true);
             return alertDashboardService.createReadModel();
         });
@@ -359,8 +359,8 @@ class TtcDashboardReadModelTest {
         TtcDashboardReadModel readModel = alertDashboardService.createReadModel(Optional.of(snapshot));
 
         // Both calls must fall back to computation using the read model without throwing
-        MapController.MapResponse map = mapDashboardService.getMap(() -> readModel);
-        StatusController.StatusResponse status = statusDashboardService.getStatus(() -> readModel);
+        MapResponses.MapResponse map = mapDashboardService.getMap(() -> readModel);
+        StatusResponses.StatusResponse status = statusDashboardService.getStatus(() -> readModel);
 
         assertThat(map).isNotNull();
         assertThat(status).isNotNull();

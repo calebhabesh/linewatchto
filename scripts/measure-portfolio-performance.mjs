@@ -21,9 +21,6 @@ const endpointCatalog = [
   { id: "health", path: "api/health" },
   { id: "dashboard-ttc", path: "api/dashboard?network=ttc" },
   { id: "dashboard-regional", path: "api/dashboard?network=regional" },
-  { id: "map", path: "api/map" },
-  { id: "status", path: "api/status" },
-  { id: "alerts-live", path: "api/alerts?type=live" },
 ];
 
 const commandCatalog = [

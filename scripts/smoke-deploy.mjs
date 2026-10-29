@@ -39,9 +39,8 @@ await checkJson("frontend health", `${frontendUrl}/healthz`, body => body.servic
 await checkJson("backend health", `${backendUrl}/api/health`, body => body.status === "ok");
 await checkJson("ingestion health", `${backendUrl}/api/health/ingestion`, body => typeof body.status === "string" && typeof body.dashboardLive === "boolean");
 await checkJson("schedule health", `${backendUrl}/api/health/schedule`, body => typeof body.status === "string" && typeof body.scheduleActive === "boolean" && Object.hasOwn(body, "serviceDaysRemaining") && Object.hasOwn(body, "refreshStatus") && Object.hasOwn(body, "refreshStartedAt") && Object.hasOwn(body, "refreshCompletedAt") && Object.hasOwn(body, "refreshErrorMessage"));
-await checkJson("status", `${backendUrl}/api/status`, body => Array.isArray(body.lines) && body.generatedAt);
-await checkJson("map", `${backendUrl}/api/map`, body => Array.isArray(body.stations) && Array.isArray(body.segments));
-await checkJson("performance", `${backendUrl}/api/performance`, body => typeof body.status === "string" && body.source === "TTC.ca" && Array.isArray(body.metrics));
+await checkJson("TTC dashboard", `${backendUrl}/api/dashboard?network=ttc`, body => body.networkId === "ttc" && Array.isArray(body.status?.lines) && body.status.generatedAt && Array.isArray(body.map?.stations) && Array.isArray(body.map.segments) && body.performance?.source === "TTC.ca" && Array.isArray(body.performance.metrics));
+await checkJson("regional dashboard", `${backendUrl}/api/dashboard?network=regional`, body => body.networkId === "regional" && Array.isArray(body.status?.lines) && Array.isArray(body.map?.stations));
 await checkJson("TTC reliability", `${backendUrl}/api/reliability/lines?network=ttc`, body => body.networkId === "ttc" && body.period === "30d" && Array.isArray(body.metrics));
 await checkJson("regional reliability", `${backendUrl}/api/reliability/lines?network=regional`, body => body.networkId === "regional" && body.period === "30d" && Array.isArray(body.metrics));
 await checkHtml("frontend", frontendUrl, "LineWatchTO");

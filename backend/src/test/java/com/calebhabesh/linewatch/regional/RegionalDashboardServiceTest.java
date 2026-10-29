@@ -51,7 +51,7 @@ class RegionalDashboardServiceTest {
             assertThat(alert.affectedSegmentIds()).isEmpty();
         });
         assertThat(dashboard.map().stationNodeImpacts())
-            .extracting(com.calebhabesh.linewatch.map.MapController.StationNodeImpactDto::stationId)
+            .extracting(com.calebhabesh.linewatch.map.MapResponses.StationNodeImpactDto::stationId)
             .containsExactly("clarkson", "oakville", "burlington");
         assertThat(dashboard.map().segments()).allSatisfy(segment -> assertThat(segment.impacts()).isEmpty());
     }

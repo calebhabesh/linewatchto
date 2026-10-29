@@ -3,9 +3,9 @@ package com.calebhabesh.linewatch.regional;
 import com.calebhabesh.linewatch.alert.AlertDashboardService;
 import com.calebhabesh.linewatch.dashboard.DashboardResponses;
 import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
-import com.calebhabesh.linewatch.map.MapController;
+import com.calebhabesh.linewatch.map.MapResponses;
 import com.calebhabesh.linewatch.performance.TtcPerformanceResponses;
-import com.calebhabesh.linewatch.status.StatusController;
+import com.calebhabesh.linewatch.status.StatusResponses;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -107,9 +107,9 @@ public class RegionalDashboardService {
         return alertStore.nextTransition();
     }
 
-    private MapController.MapResponse map(List<RegionalNormalizedAlert> alerts) {
-        List<MapController.StationDto> stations = RegionalNetworkCatalog.stations().stream()
-            .map(station -> new MapController.StationDto(station.id(), station.name(), 0, 0, station.interchange()))
+    private MapResponses.MapResponse map(List<RegionalNormalizedAlert> alerts) {
+        List<MapResponses.StationDto> stations = RegionalNetworkCatalog.stations().stream()
+            .map(station -> new MapResponses.StationDto(station.id(), station.name(), 0, 0, station.interchange()))
             .toList();
         Map<String, List<RegionalNormalizedAlert>> alertsBySegment = new LinkedHashMap<>();
         for (RegionalNormalizedAlert alert : alerts) {
@@ -118,21 +118,21 @@ public class RegionalDashboardService {
                 alertsBySegment.computeIfAbsent(segmentId, ignored -> new ArrayList<>()).add(alert);
             }
         }
-        List<MapController.NetworkSegmentDto> segments = RegionalNetworkCatalog.segments().stream()
+        List<MapResponses.NetworkSegmentDto> segments = RegionalNetworkCatalog.segments().stream()
             .map(segment -> segment(segment, alertsBySegment.getOrDefault(segment.id(), List.of())))
             .toList();
-        List<MapController.StationNodeImpactDto> stationImpacts = alerts.stream()
+        List<MapResponses.StationNodeImpactDto> stationImpacts = alerts.stream()
             .filter(alert -> !"advisory".equals(alert.impactKind())
                 && !"planned-closure".equals(alert.impactKind()))
             .filter(alert -> !alert.stationIds().isEmpty() && alert.affectedSegmentIds().isEmpty())
-            .flatMap(alert -> alert.stationIds().stream().map(stationId -> new MapController.StationNodeImpactDto(
+            .flatMap(alert -> alert.stationIds().stream().map(stationId -> new MapResponses.StationNodeImpactDto(
                 stationId, alert.impactKind(), alert.id(), alert.title()
             )))
             .toList();
-        return new MapController.MapResponse(stations, segments, stationImpacts);
+        return new MapResponses.MapResponse(stations, segments, stationImpacts);
     }
 
-    private MapController.NetworkSegmentDto segment(
+    private MapResponses.NetworkSegmentDto segment(
         RegionalNetworkCatalog.Segment segment,
         List<RegionalNormalizedAlert> alerts
     ) {
@@ -142,12 +142,12 @@ public class RegionalDashboardService {
         RegionalNormalizedAlert primary = ordered.stream()
             .filter(alert -> !"planned-closure".equals(alert.impactKind()))
             .findFirst().orElse(null);
-        List<MapController.SegmentImpactDto> impacts = ordered.stream()
-            .map(alert -> new MapController.SegmentImpactDto(
+        List<MapResponses.SegmentImpactDto> impacts = ordered.stream()
+            .map(alert -> new MapResponses.SegmentImpactDto(
                 alert.impactKind(), alert.id(), "bidirectional", List.of(alert.id())
             ))
             .toList();
-        return new MapController.NetworkSegmentDto(
+        return new MapResponses.NetworkSegmentDto(
             segment.id(), segment.lineId(), segment.label(), segment.stationAId(), segment.stationBId(),
             segment.stationAAnchorId(), segment.stationBAnchorId(), segment.guidePathId(), false, "", impacts,
             primary == null ? "clear" : overlay(primary.impactKind()),
@@ -157,7 +157,7 @@ public class RegionalDashboardService {
         );
     }
 
-    private StatusController.StatusResponse status(
+    private StatusResponses.StatusResponse status(
         List<RegionalNormalizedAlert> alerts,
         OffsetDateTime sourceUpdatedAt,
         IngestionRunSnapshot latestRun,
@@ -166,16 +166,16 @@ public class RegionalDashboardService {
     ) {
         OffsetDateTime displayTime = sourceUpdatedAt == null ? OffsetDateTime.now(clock) : sourceUpdatedAt;
         var toronto = displayTime.atZoneSameInstant(TORONTO_ZONE);
-        StatusController.GeneratedAtDto generated = fresh
-            ? new StatusController.GeneratedAtDto(
+        StatusResponses.GeneratedAtDto generated = fresh
+            ? new StatusResponses.GeneratedAtDto(
                 TIME.format(toronto), DATE.format(toronto), true,
                 "succeeded " + relativeAge(latestRun == null ? null : latestRun.completedAt())
             )
-            : new StatusController.GeneratedAtDto("Unavailable", "Regional source unavailable", false, "not configured or stale");
-        List<StatusController.LineStatusDto> lines = RegionalNetworkCatalog.routes().stream()
+            : new StatusResponses.GeneratedAtDto("Unavailable", "Regional source unavailable", false, "not configured or stale");
+        List<StatusResponses.LineStatusDto> lines = RegionalNetworkCatalog.routes().stream()
             .map(route -> lineStatus(route, alerts, fresh, alertCoverageIncomplete))
             .toList();
-        return new StatusController.StatusResponse(generated, lines);
+        return new StatusResponses.StatusResponse(generated, lines);
     }
 
     private String relativeAge(OffsetDateTime timestamp) {
@@ -193,7 +193,7 @@ public class RegionalDashboardService {
         return days == 1 ? "1 day ago" : days + " days ago";
     }
 
-    private StatusController.LineStatusDto lineStatus(
+    private StatusResponses.LineStatusDto lineStatus(
         RegionalNetworkCatalog.Route route,
         List<RegionalNormalizedAlert> alerts,
         boolean fresh,
@@ -204,27 +204,27 @@ public class RegionalDashboardService {
             .sorted(Comparator.comparingInt(alert -> impactPriority(alert.impactKind())))
             .toList();
         if (!fresh) {
-            return new StatusController.LineStatusDto(
+            return new StatusResponses.LineStatusDto(
                 route.id(), route.number(), route.name(), route.displayName(), route.color(),
                 "ready", "Data unavailable", "Metrolinx realtime data is disabled, unavailable, or stale.", "Not live"
             );
         }
         if (lineAlerts.isEmpty()) {
             if (alertCoverageIncomplete) {
-                return new StatusController.LineStatusDto(
+                return new StatusResponses.LineStatusDto(
                     route.id(), route.number(), route.name(), route.displayName(), route.color(),
                     "ready", "Alert coverage incomplete",
                     "No confirmed current rail impact; a supplemental Metrolinx alert collection did not refresh.",
                     "Latest poll"
                 );
             }
-            return new StatusController.LineStatusDto(
+            return new StatusResponses.LineStatusDto(
                 route.id(), route.number(), route.name(), route.displayName(), route.color(),
                 "normal", "Normal", "No current rail service impacts in the latest Metrolinx alert dataset.", "Latest poll"
             );
         }
         if (lineAlerts.stream().allMatch(alert -> "advisory".equals(alert.impactKind()))) {
-            return new StatusController.LineStatusDto(
+            return new StatusResponses.LineStatusDto(
                 route.id(), route.number(), route.name(), route.displayName(), route.color(),
                 "ready", "Advisory — timing or scope unverified",
                 lineAlerts.getFirst().title() + " — service impact not verified; see Service Notices.",
@@ -244,7 +244,7 @@ public class RegionalDashboardService {
             default -> "Service change";
         };
         String summary = lineAlerts.size() == 1 ? primary.title() : lineAlerts.size() + " Metrolinx service updates";
-        return new StatusController.LineStatusDto(
+        return new StatusResponses.LineStatusDto(
             route.id(), route.number(), route.name(), route.displayName(), route.color(),
             state, label, summary, "Latest poll"
         );

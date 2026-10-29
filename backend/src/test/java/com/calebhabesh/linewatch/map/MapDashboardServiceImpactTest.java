@@ -22,7 +22,7 @@ import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class MapControllerTest {
+class MapDashboardServiceImpactTest {
     private static final Clock CLOCK = Clock.fixed(
         Instant.parse("2026-06-01T12:00:00Z"),
         ZoneOffset.UTC
@@ -40,7 +40,7 @@ class MapControllerTest {
     private final DashboardCacheService cache = mock(DashboardCacheService.class);
     private final DashboardCacheProperties cacheProperties = new DashboardCacheProperties();
 
-    private final MapController controller = new MapController(
+    private final MapDashboardService service = new MapDashboardService(
         stationRepository,
         lineSegmentRepository,
         dashboardService,
@@ -95,7 +95,7 @@ class MapControllerTest {
             )
         ));
 
-        MapController.MapResponse response = controller.getMap();
+        MapResponses.MapResponse response = service.getMap();
 
         assertThat(response.segments()).singleElement().satisfies(segment -> {
             assertThat(segment.stationAId()).isEqualTo("jane");
@@ -152,7 +152,7 @@ class MapControllerTest {
         ));
         when(dashboardService.activeStationNodeImpacts()).thenReturn(List.of());
 
-        MapController.MapResponse response = controller.getMap();
+        MapResponses.MapResponse response = service.getMap();
 
         assertThat(response.segments()).singleElement().satisfies(segment -> {
             assertThat(segment.overlay()).isEqualTo("suspension");
@@ -218,7 +218,7 @@ class MapControllerTest {
         ));
         when(dashboardService.activeStationNodeImpacts()).thenReturn(List.of());
 
-        MapController.MapResponse response = controller.getMap();
+        MapResponses.MapResponse response = service.getMap();
 
         assertThat(response.segments()).hasSize(2);
         assertThat(response.segments().get(0)).satisfies(segment -> {

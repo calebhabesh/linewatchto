@@ -127,11 +127,7 @@ Expression:
 (
   http.request.uri.path in {
     "/api/dashboard"
-    "/api/status"
-    "/api/map"
     "/api/trains"
-    "/api/alerts"
-    "/api/performance"
     "/api/accessibility-outages"
     "/api/surface-notices"
     "/api/announcements"
@@ -154,7 +150,7 @@ Browser TTL: Respect origin
 Cache key: include query string
 ```
 
-`/api/alerts?type=delay`, `/api/alerts?type=slowdown`, and `/api/alerts?type=planned` share the same path but must remain distinct by query string.
+`/api/dashboard?network=ttc` and `/api/dashboard?network=regional` share the same path but must remain distinct by query string.
 `/api/announcements` also supports query parameters. Keep the query string in the cache key for direct API consumers; the LineWatchTO panel and menu count share one unfiltered read, and the panel searches that result locally to avoid creating an edge-cache entry for every search term.
 The origin gives `/api/trains` and `/api/regional/trains` a separate `max-age=0, s-maxage=4, stale-while-revalidate=4` policy. Keep Rule 3 set to respect origin so a newly enabled marker layer is not held behind the dashboard's 30-second shared-cache cadence.
 Dynamic `/api/stations/*` and `/api/regional/stations/*` responses contain independently refreshed arrivals and must remain in Rule 1's cache-bypass set. The station-list endpoint `/api/stations` remains cacheable.
@@ -193,11 +189,7 @@ Expression:
 (
   http.request.uri.path in {
     "/api/dashboard"
-    "/api/status"
-    "/api/map"
     "/api/trains"
-    "/api/alerts"
-    "/api/performance"
     "/api/accessibility-outages"
     "/api/surface-notices"
     "/api/announcements"
@@ -277,12 +269,10 @@ scripts/prod-deploy.sh <full-git-sha>
 Run twice for public API paths. The second request should usually be `HIT` or `REVALIDATED` once Cloudflare is proxying and the rule is active.
 
 ```bash
-curl -I https://linewatchto.ca/api/dashboard
-curl -I https://linewatchto.ca/api/dashboard
+curl -I 'https://linewatchto.ca/api/dashboard?network=ttc'
+curl -I 'https://linewatchto.ca/api/dashboard?network=ttc'
 curl -I https://linewatchto.ca/api/trains
 curl -I https://linewatchto.ca/api/trains
-curl -I 'https://linewatchto.ca/api/alerts?type=delay'
-curl -I 'https://linewatchto.ca/api/alerts?type=delay'
 curl -I https://linewatchto.ca/api/alert-history
 curl -I https://linewatchto.ca/api/alert-history
 curl -I https://linewatchto.ca/api/announcements
