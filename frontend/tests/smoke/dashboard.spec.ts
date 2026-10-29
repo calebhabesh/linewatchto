@@ -3189,7 +3189,7 @@ test("station detail shows accessibility facilities and active outage warning", 
   await expect(arrivalsSection.getByText("Southbound", { exact: true })).toBeVisible();
   await expect(arrivalsSection.getByText("To Union", { exact: true })).toBeVisible();
   await expect(arrivalsSection.getByText("Due")).toBeVisible();
-  await expect(arrivalsSection.getByText("3m")).toBeVisible();
+  await expect(arrivalsSection.getByText("3 min", { exact: true })).toBeVisible();
   await expect(arrivalsSection.getByText("Scheduled arrivals use TTC timetable data and are not live train predictions.")).toBeVisible();
   await expect(arrivalsSection.getByText(/demo placeholders/)).toHaveCount(0);
   const lineOnePinButtons = arrivalsSection.getByRole("button", { name: "Pin Line 1 arrivals at Stub Station" });

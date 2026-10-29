@@ -281,7 +281,7 @@ describe("station arrival grouping", () => {
   });
 
   it("uses compact labels for arrival tiles", () => {
-    assert.equal(formatArrivalTileLabel({ label: "3 min", minutes: 3 }), "3m");
+    assert.equal(formatArrivalTileLabel({ label: "3 min", minutes: 3 }), "3 min");
     assert.equal(formatArrivalTileLabel({ label: "Due", minutes: 0 }), "Due");
     assert.equal(formatArrivalTileLabel({ label: "Unavailable", minutes: null }), "Unavailable");
   });
@@ -333,13 +333,13 @@ describe("station arrival grouping", () => {
       formatArrivalTileLabel(liveArrival, {
         now: new Date("2026-07-02T10:26:45Z"),
       }),
-      "5m",
+      "5 min",
     );
     assert.equal(
       formatArrivalTileLabel(liveArrival, {
         now: new Date("2026-07-02T10:29:10Z"),
       }),
-      "2m",
+      "2 min",
     );
   });
 
@@ -384,7 +384,7 @@ describe("station arrival grouping", () => {
     );
   });
 
-  it("uses a ticking range label for the nearest live arrival tile", () => {
+  it("uses a whole-minute range for the nearest live arrival tile", () => {
     const liveArrival = {
       label: "1 min",
       minutes: 1,
@@ -397,7 +397,7 @@ describe("station arrival grouping", () => {
         detailedCountdown: true,
         now: new Date("2026-07-02T10:25:46Z"),
       }),
-      "0:42 - 1:42",
+      "<1 min",
     );
     assert.equal(
       formatArrivalTileLabel(liveArrival, {
@@ -406,10 +406,10 @@ describe("station arrival grouping", () => {
       }),
       "Due",
     );
-    assert.equal(formatArrivalTileLabel(liveArrival), "1m");
+    assert.equal(formatArrivalTileLabel(liveArrival), "1 min");
   });
 
-  it("uses the ticking range label for scheduled arrivals inside the final two minutes", () => {
+  it("never gives timetable-only arrivals a range that implies a live estimate", () => {
     const scheduledArrival = {
       label: "1 min",
       minutes: 1,
@@ -419,14 +419,14 @@ describe("station arrival grouping", () => {
 
     assert.equal(
       shouldUseDetailedArrivalCountdown(scheduledArrival, new Date("2026-07-02T10:25:46Z")),
-      true,
+      false,
     );
     assert.equal(
       formatArrivalTileLabel(scheduledArrival, {
         detailedCountdown: true,
         now: new Date("2026-07-02T10:25:46Z"),
       }),
-      "0:42 - 1:42",
+      "1 min",
     );
   });
 
@@ -447,7 +447,7 @@ describe("station arrival grouping", () => {
         detailedCountdown: true,
         now: new Date("2026-07-02T10:25:46Z"),
       }),
-      "3m",
+      "3 min",
     );
     assert.equal(
       shouldUseDetailedArrivalCountdown(liveArrival, new Date("2026-07-02T10:26:55Z")),
@@ -458,7 +458,7 @@ describe("station arrival grouping", () => {
         detailedCountdown: true,
         now: new Date("2026-07-02T10:26:55Z"),
       }),
-      "1:51 - 2:51",
+      "1–2 min",
     );
   });
 

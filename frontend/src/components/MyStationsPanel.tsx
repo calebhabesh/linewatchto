@@ -604,7 +604,7 @@ function SavedStationRow({
                                   </strong>
                                   {group.destinationLabel ? (
                                     <span className="saved-station-arrival-destination flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                                      <span className="min-w-0 truncate">{group.destinationLabel}</span>
+                                      <span className="saved-station-arrival-destination-text min-w-0">{group.destinationLabel}</span>
                                       {group.isTerminating && (
                                         <ArrivalTerminatingBadge className="saved-station-arrival-terminating" />
                                       )}

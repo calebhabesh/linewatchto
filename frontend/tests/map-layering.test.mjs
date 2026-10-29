@@ -605,7 +605,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /const measuredGeometrySignatureRef = useRef<string \| null>\(null\)/);
     assert.match(interactiveMapSource, /placeOverlapBadges\(/);
     assert.match(interactiveMapSource, /siblingGap: OVERLAP_BADGE_SIBLING_CLEARANCE/);
-    assert.match(interactiveMapSource, /obstacleLayers: \[mapPlacementObstacles, overlayPlacementObstacles\]/);
+    assert.match(interactiveMapSource, /obstacleLayers: \[mapPlacementLayers\.artwork, unalertedLineObstacles, overlayPlacementObstacles\]/);
     assert.match(interactiveMapSource, /collectMapPlacementObstacles/);
     assert.match(interactiveMapSource, /collectBaseRouteObstacles/);
     assert.match(interactiveMapSource, /measuredGeometrySignatureRef\.current === measurementSignature/);

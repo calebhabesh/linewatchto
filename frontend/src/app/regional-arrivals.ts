@@ -1,4 +1,5 @@
 import { apiUrl } from "./api-client.ts";
+import { formatNearArrivalRange, isNearLiveArrival } from "./arrival-countdown.ts";
 import {
   REGIONAL_ROUTE_CARDINAL_DIRECTIONS,
   REGIONAL_ROUTE_DEFINITIONS,
@@ -155,6 +156,37 @@ export type RegionalArrivalDirectionGroup = {
   platforms: RegionalArrivalPlatformGroup[];
 };
 
+/** Trains shown per direction before the rider asks for later ones. */
+export const REGIONAL_ARRIVAL_COLLAPSED_LIMIT = 4;
+
+/**
+ * Keeps the next `limit` trains of a direction (by departure time, across
+ * platforms) and drops platforms left empty, so the collapsed view always
+ * starts with the very next trains.
+ */
+export function limitRegionalArrivalGroup(
+  group: RegionalArrivalDirectionGroup,
+  limit = REGIONAL_ARRIVAL_COLLAPSED_LIMIT,
+): { platforms: RegionalArrivalPlatformGroup[]; hiddenCount: number } {
+  const all = group.platforms.flatMap((platform) => platform.arrivals);
+  if (all.length <= limit) {
+    return { platforms: group.platforms, hiddenCount: 0 };
+  }
+  const departureMs = (arrival: RegionalArrival) => {
+    const parsed = Date.parse(arrival.predictedAt);
+    return Number.isNaN(parsed) ? arrival.minutes * 60_000 : parsed;
+  };
+  const kept = new Set(
+    [...all].sort((a, b) => departureMs(a) - departureMs(b)).slice(0, Math.max(0, limit)),
+  );
+  return {
+    platforms: group.platforms
+      .map((platform) => ({ ...platform, arrivals: platform.arrivals.filter((arrival) => kept.has(arrival)) }))
+      .filter((platform) => platform.arrivals.length > 0),
+    hiddenCount: all.length - kept.size,
+  };
+}
+
 export type RegionalArrivalFetchOptions = {
   fetcher?: typeof fetch;
   apiBaseUrl?: string;
@@ -276,11 +308,10 @@ type RegionalArrivalTimeDisplayOptions = {
   detailedCountdown?: boolean;
 };
 
-const DETAILED_COUNTDOWN_THRESHOLD_SECONDS = 120;
 export const REGIONAL_ARRIVAL_COUNTDOWN_TICK_MS = 3_000;
 
 export function regionalArrivalTimeDisplay(
-  arrival: Pick<RegionalArrival, "minutes" | "predictedAt">,
+  arrival: Pick<RegionalArrival, "minutes" | "predictedAt"> & Partial<Pick<RegionalArrival, "status">>,
   now: Date | number = Date.now(),
   options: RegionalArrivalTimeDisplayOptions = {},
 ): RegionalArrivalTimeDisplay {
@@ -288,7 +319,7 @@ export function regionalArrivalTimeDisplay(
     const predictedAt = Date.parse(arrival.predictedAt);
     const secondsUntilArrival = Math.ceil((predictedAt - toMillis(now)) / 1000);
     return {
-      primary: `${formatCountdownDuration(secondsUntilArrival)} - ${formatCountdownDuration(secondsUntilArrival + 60)}`,
+      primary: formatNearArrivalRange(secondsUntilArrival),
       secondary: formatRegionalArrivalClockTime(arrival.predictedAt, now),
     };
   }
@@ -312,7 +343,7 @@ export function regionalArrivalTimeDisplay(
 }
 
 export function shouldUseDetailedRegionalArrivalCountdown(
-  arrival: Pick<RegionalArrival, "predictedAt">,
+  arrival: Pick<RegionalArrival, "predictedAt"> & Partial<Pick<RegionalArrival, "status">>,
   now?: Date | number | string,
 ): boolean {
   const predictedAt = Date.parse(arrival.predictedAt);
@@ -320,13 +351,7 @@ export function shouldUseDetailedRegionalArrivalCountdown(
     return false;
   }
   const secondsUntilArrival = Math.ceil((predictedAt - toMillis(now)) / 1000);
-  return secondsUntilArrival > 0 && secondsUntilArrival < DETAILED_COUNTDOWN_THRESHOLD_SECONDS;
-}
-
-function formatCountdownDuration(totalSeconds: number): string {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  return isNearLiveArrival(arrival.status, secondsUntilArrival);
 }
 
 const REGIONAL_OUTWARD_DIRECTIONS: Record<RegionalRouteCode, string> = {
@@ -359,33 +384,57 @@ function normalizeStationName(value: string) {
     .trim();
 }
 
+function stripRegionalRoutePrefix(value: string, routeCode?: RegionalRouteCode) {
+  const trimmed = value.trim();
+  if (routeCode) {
+    const routePrefix = new RegExp(`^\\s*${routeCode}\\s*-\\s*`, "i");
+    return trimmed.replace(routePrefix, "").trim();
+  }
+  return trimmed.replace(/^[A-Za-z]{1,4}\s*-\s*/, "").trim();
+}
+
+function matchesStationName(destination: string, candidate: string) {
+  return Boolean(candidate) && (destination === candidate || destination.startsWith(`${candidate} `));
+}
+
+/**
+ * Resolves a Metrolinx destination ("Hamilton GO Centre", "LW - Niagara Falls GO",
+ * "Niagara Falls GO (VIA Station)") to a catalog station. Stations on the arrival's
+ * own route win, and the longest name wins so "Union" never claims "Unionville".
+ */
+export function resolveRegionalDestinationStation(
+  rawDirection: string | null | undefined,
+  routeCode?: RegionalRouteCode,
+) {
+  if (!rawDirection) return null;
+  const destination = normalizeStationName(stripRegionalRoutePrefix(rawDirection, routeCode));
+  if (!destination) return null;
+  const routeStationIds = routeCode ? REGIONAL_ROUTE_STATIONS[routeCode] ?? [] : [];
+  const pick = (candidates: typeof regionalStations) => candidates
+    .filter((candidate) => matchesStationName(destination, normalizeStationName(candidate.name)))
+    .sort((a, b) => normalizeStationName(b.name).length - normalizeStationName(a.name).length)[0] ?? null;
+  return pick(regionalStations.filter((candidate) => routeStationIds.includes(candidate.id)))
+    ?? pick(regionalStations);
+}
+
 export function formatRegionalDestinationName(
   rawDirection: string | null | undefined,
   routeCode?: RegionalRouteCode,
 ): string {
   if (!rawDirection) return "";
-  let cleaned = rawDirection.trim();
-  if (routeCode) {
-    const routePrefix = new RegExp(`^\\s*${routeCode}\\s*-\\s*`, "i");
-    cleaned = cleaned.replace(routePrefix, "").trim();
-  } else {
-    cleaned = cleaned.replace(/^[A-Za-z]{1,4}\s*-\\s*/, "").trim();
-  }
-  const normalized = normalizeStationName(cleaned);
-  const matchedStation = regionalStations.find(
-    (candidate) => normalizeStationName(candidate.name) === normalized,
-  );
+  const matchedStation = resolveRegionalDestinationStation(rawDirection, routeCode);
   if (matchedStation) {
     return matchedStation.name;
   }
-  return cleaned
+  return stripRegionalRoutePrefix(rawDirection, routeCode)
+    .replace(/\s*\([^)]*\)\s*$/, "")
     .replace(/\s+(GO(\s+Station|\s+Centre)?|Station)$/i, "")
     .trim();
 }
 
-function cleanRegionalDestination(value: string, routeCode: RegionalRouteCode) {
-  const routePrefix = new RegExp(`^\\s*${routeCode}\\s*-\\s*`, "i");
-  return value.replace(routePrefix, "").trim();
+function formatDestinationList(names: string[]) {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`;
 }
 
 function regionalTravelDirection(arrival: RegionalArrival, stationId: string) {
@@ -407,10 +456,8 @@ function regionalTravelDirection(arrival: RegionalArrival, stationId: string) {
   }
 
   const currentIndex = stationIds.indexOf(stationId);
-  const destinationName = normalizeStationName(cleanRegionalDestination(arrival.direction, routeCode));
-  const destination = regionalStations.find(
-    (candidate) => normalizeStationName(candidate.name) === destinationName,
-  );
+  const destinationName = normalizeStationName(stripRegionalRoutePrefix(arrival.direction, routeCode));
+  const destination = resolveRegionalDestinationStation(arrival.direction, routeCode);
   const destinationIndex = destination ? stationIds.indexOf(destination.id) : -1;
 
   if (destinationIndex >= 0 && currentIndex >= 0) {
@@ -420,7 +467,7 @@ function regionalTravelDirection(arrival: RegionalArrival, stationId: string) {
     return destinationIndex > currentIndex ? outwardDirection : inwardDirection;
   }
 
-  return destinationName === "union" ? inwardDirection : outwardDirection;
+  return matchesStationName(destinationName, "union") ? inwardDirection : outwardDirection;
 }
 
 const REGIONAL_ROUTE_INDEX = new Map<string, number>(
@@ -511,20 +558,29 @@ export function groupRegionalStationArrivals(
         ? (REGIONAL_ROUTE_TERMINALS[routeCode]?.outward ?? "Terminal")
         : (REGIONAL_ROUTE_TERMINALS[routeCode]?.inward ?? "Union");
 
+      // List every destination shown, nearest first along the direction of
+      // travel, so short-turn trains are not hidden behind the line terminus.
       const allGroupArrivals = group.platforms.flatMap((platform) => platform.arrivals);
-      const uniqueDestinations = [
-        ...new Set(
-          allGroupArrivals
-            .map((arrival) => formatRegionalDestinationName(arrival.direction, routeCode))
-            .filter(Boolean),
-        ),
-      ];
+      const destinationOrder = new Map<string, number>();
+      for (const arrival of allGroupArrivals) {
+        const name = formatRegionalDestinationName(arrival.direction, routeCode);
+        if (!name || destinationOrder.has(name)) continue;
+        const station = resolveRegionalDestinationStation(arrival.direction, routeCode);
+        const index = station ? stationIds.indexOf(station.id) : -1;
+        const distance = index < 0
+          ? Number.MAX_SAFE_INTEGER
+          : isOutward ? index : stationIds.length - 1 - index;
+        destinationOrder.set(name, distance);
+      }
+      const uniqueDestinations = [...destinationOrder.entries()]
+        .sort((a, b) => a[1] - b[1])
+        .map(([name]) => name);
 
       let destinationLabel: string;
-      if (uniqueDestinations.length === 1) {
-        destinationLabel = `To ${uniqueDestinations[0]}`;
-      } else if (isTerminating) {
+      if (isTerminating) {
         destinationLabel = `To ${stationName(stationId) || terminal}`;
+      } else if (uniqueDestinations.length > 0) {
+        destinationLabel = `To ${formatDestinationList(uniqueDestinations)}`;
       } else {
         destinationLabel = `To ${terminal}`;
       }

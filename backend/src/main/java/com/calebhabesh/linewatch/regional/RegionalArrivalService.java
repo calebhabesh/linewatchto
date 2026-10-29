@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 public class RegionalArrivalService {
     private static final Duration PAST_TOLERANCE = Duration.ofMinutes(1);
     private static final Duration SCHEDULE_MATCH_TOLERANCE = Duration.ofMinutes(2);
+    private static final Duration TRIP_NUMBER_MATCH_WINDOW = Duration.ofHours(6);
 
     private record CachedSnapshot(OffsetDateTime expiresAt, RegionalArrivalResponses.SnapshotResponse response) {
     }
@@ -369,6 +370,7 @@ public class RegionalArrivalService {
         String scheduledTrip = normalize(scheduled.tripNumber());
         String realtimeTrip = normalize(realtime.tripNumber());
         if (!scheduledTrip.isBlank() && scheduledTrip.equals(realtimeTrip)) return true;
+        if (sameTripNumber(scheduled, realtime)) return true;
 
         String scheduledDirection = directionFamily(stationId, scheduled);
         String realtimeDirection = directionFamily(stationId, realtime);
@@ -381,6 +383,27 @@ public class RegionalArrivalService {
 
         Duration difference = Duration.between(scheduled.scheduledAt(), realtime.scheduledAt()).abs();
         return difference.compareTo(SCHEDULE_MATCH_TOLERANCE) <= 0;
+    }
+
+    /**
+     * GO timetable trip IDs look like "20261028-LW-1875" while Next Service sends
+     * "1875". The trailing trip number identifies the run; the time bound keeps
+     * tomorrow's run of the same number from absorbing today's live estimate.
+     */
+    private boolean sameTripNumber(RegionalArrivalRecord scheduled, RegionalArrivalRecord realtime) {
+        String scheduledNumber = trailingTripNumber(scheduled.tripNumber());
+        String realtimeNumber = trailingTripNumber(realtime.tripNumber());
+        if (scheduledNumber.isBlank() || !scheduledNumber.equals(realtimeNumber)) return false;
+        if (scheduled.scheduledAt() == null || realtime.scheduledAt() == null) return false;
+        return Duration.between(scheduled.scheduledAt(), realtime.scheduledAt()).abs()
+            .compareTo(TRIP_NUMBER_MATCH_WINDOW) <= 0;
+    }
+
+    private String trailingTripNumber(String tripNumber) {
+        if (tripNumber == null) return "";
+        String trimmed = tripNumber.trim();
+        String number = trimmed.substring(trimmed.lastIndexOf('-') + 1).trim();
+        return number.matches("\\d+") ? number : "";
     }
 
     private List<RegionalArrivalRecord> deduplicate(List<RegionalArrivalRecord> arrivals) {
@@ -410,14 +433,19 @@ public class RegionalArrivalService {
 
         String destinationName = normalize(arrival.direction()
             .replaceFirst("(?i)^\\s*" + route.number() + "\\s*-\\s*", ""));
+        // Metrolinx names carry suffixes ("Hamilton GO Centre", "Niagara Falls GO
+        // (VIA Station)"), so match the longest station name the destination starts with.
         int destinationIndex = -1;
-        for (String candidateId : route.stationIds()) {
-            String candidateName = RegionalNetworkCatalog.station(candidateId)
+        int matchedLength = 0;
+        for (int index = 0; index < route.stationIds().size(); index++) {
+            String candidateName = RegionalNetworkCatalog.station(route.stationIds().get(index))
                 .map(station -> normalize(station.name()))
                 .orElse("");
-            if (candidateName.equals(destinationName)) {
-                destinationIndex = route.stationIds().indexOf(candidateId);
-                break;
+            boolean matches = !candidateName.isBlank()
+                && (destinationName.equals(candidateName) || destinationName.startsWith(candidateName + " "));
+            if (matches && candidateName.length() > matchedLength) {
+                destinationIndex = index;
+                matchedLength = candidateName.length();
             }
         }
 
@@ -439,7 +467,7 @@ public class RegionalArrivalService {
             }
             return destinationIndex > currentIndex ? outward : inward;
         }
-        return "union".equals(destinationName) ? inward : "";
+        return "union".equals(destinationName) || destinationName.startsWith("union ") ? inward : "";
     }
 
     private String normalize(String value) {

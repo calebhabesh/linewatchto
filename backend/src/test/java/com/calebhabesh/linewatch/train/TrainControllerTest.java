@@ -39,6 +39,8 @@ class TrainControllerTest {
                 0.333,
                 120,
                 predictedAt,
+                true,
+                true,
                 "232",
                 "126789",
                 feedCreatedAt,

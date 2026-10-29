@@ -297,6 +297,40 @@ public class RegionalGtfsScheduleRepository {
         return result;
     }
 
+    /**
+     * Typical timetabled time between consecutive stops of the active GO and UP imports: the
+     * median departure-to-departure gap for each ordered station pair a trip serves in turn.
+     */
+    public List<LinkTime> scheduledLinkTimes() {
+        return jdbc.query("""
+            with ordered as (
+                select departure.line_id, departure.station_id, departure.departure_seconds,
+                       lag(departure.station_id) over trip_stops as previous_station_id,
+                       lag(departure.departure_seconds) over trip_stops as previous_departure_seconds
+                from regional_gtfs_departures departure
+                join regional_gtfs_schedule_imports import
+                  on import.id = departure.import_id and import.active = true
+                window trip_stops as (
+                    partition by departure.import_id, departure.trip_id
+                    order by departure.stop_sequence nulls last, departure.departure_seconds
+                )
+            )
+            select line_id, previous_station_id, station_id,
+                   percentile_disc(0.5) within group (
+                       order by departure_seconds - previous_departure_seconds
+                   ) as link_seconds
+            from ordered
+            where previous_station_id is not null
+              and previous_station_id <> station_id
+              and departure_seconds > previous_departure_seconds
+              and departure_seconds - previous_departure_seconds <= 3600
+            group by line_id, previous_station_id, station_id
+            """, Map.of(), (rs, row) -> new LinkTime(
+            rs.getString("line_id"), rs.getString("previous_station_id"), rs.getString("station_id"),
+            rs.getInt("link_seconds")
+        ));
+    }
+
     public Optional<ActiveImport> activeImport(String sourceSystem) {
         return jdbc.query("""
             select id, source_system, source_url, imported_at, service_start, service_end
@@ -324,6 +358,7 @@ public class RegionalGtfsScheduleRepository {
         String stationId, Integer stopSequence, int departureSeconds, String platform,
         LocalDate serviceDate
     ) {}
+    public record LinkTime(String lineId, String fromStationId, String toStationId, int seconds) {}
     public record ActiveImport(
         long id, String sourceSystem, String sourceUrl, OffsetDateTime importedAt,
         LocalDate serviceStart, LocalDate serviceEnd

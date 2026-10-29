@@ -43,7 +43,7 @@ describe("surface station arrivals", () => {
     const first = row({ predictedAt: null, scheduledAt: "2026-08-14T12:05:00Z", status: "scheduled", minutes: 5, tripId: "s1" });
     const second = row({ predictedAt: null, scheduledAt: "2026-08-14T12:10:00Z", status: "scheduled", minutes: 10, tripId: "s2" });
     assert.deepEqual(groupSurfaceArrivals([second, first])[0].arrivals, [first, second]);
-    assert.equal(formatSurfaceArrivalTileLabel(first, { now: Date.parse("2026-08-14T12:02:00Z") }), "3m");
+    assert.equal(formatSurfaceArrivalTileLabel(first, { now: Date.parse("2026-08-14T12:02:00Z") }), "3 min");
     assert.deepEqual(filterActiveSurfaceArrivals([first, second], Date.parse("2026-08-14T12:08:00Z")), [second]);
   });
 
@@ -205,19 +205,23 @@ describe("surface station arrivals", () => {
     assert.equal(pinnedBays[1].bayLabel, "Bay 2");
   });
 
-  it("formats countdown ranges and clock times like trains", () => {
+  it("formats whole-minute ranges and clock times like trains", () => {
     const now = Date.parse("2026-08-14T12:00:00Z");
     const soonArrival = row({ predictedAt: "2026-08-14T12:01:15Z" }); // 75 seconds away
 
     assert.equal(shouldUseDetailedSurfaceArrivalCountdown(soonArrival, now), true);
     assert.equal(
       formatSurfaceArrivalTileLabel(soonArrival, { detailedCountdown: true, now }),
-      "1:15 - 2:15",
+      "1–2 min",
     );
+
+    const scheduledSoon = row({ predictedAt: "2026-08-14T12:01:15Z", status: "scheduled" });
+    assert.equal(shouldUseDetailedSurfaceArrivalCountdown(scheduledSoon, now), false);
+    assert.equal(formatSurfaceArrivalTileLabel(scheduledSoon, { detailedCountdown: true, now }), "2 min");
 
     const laterArrival = row({ predictedAt: "2026-08-14T12:08:00Z" });
     assert.equal(shouldUseDetailedSurfaceArrivalCountdown(laterArrival, now), false);
-    assert.equal(formatSurfaceArrivalTileLabel(laterArrival, { now }), "8m");
+    assert.equal(formatSurfaceArrivalTileLabel(laterArrival, { now }), "8 min");
 
     const clock = formatSurfaceArrivalClockTime("2026-08-14T12:05:00Z");
     assert.match(clock, /8:05\s*AM/i); // America/Toronto is UTC-4 in summer

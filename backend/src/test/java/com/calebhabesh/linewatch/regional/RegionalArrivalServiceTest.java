@@ -482,6 +482,56 @@ class RegionalArrivalServiceTest {
     }
 
     @Test
+    void replacesTimetableRowsWithTheLiveTripAcrossMetrolinxNamingDifferences() {
+        MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
+        RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);
+        RegionalArrivalProperties properties = new RegionalArrivalProperties();
+        properties.setEnabled(true);
+        properties.setScheduleEnabled(true);
+        properties.setMaxArrivalsPerLine(6);
+        OffsetDateTime updatedAt = OffsetDateTime.parse("2026-07-28T19:47:43Z");
+        when(client.fetchGoNextService("CL")).thenReturn(new RegionalArrivalFeed(updatedAt, List.of(
+            regionalLiveArrival(
+                "regional-lw", "Hamilton GO Centre", "2026-07-28T20:16:00Z", "2026-07-28T20:15:00Z", "1875"
+            ),
+            regionalLiveArrival(
+                "regional-lw", "Niagara Falls GO (VIA Station)",
+                "2026-07-28T20:24:00Z", "2026-07-28T20:24:00Z", "1977"
+            )
+        )));
+        when(scheduled.arrivals("clarkson", List.of("regional-lw"))).thenReturn(List.of(
+            // GTFS trip IDs wrap the Next Service trip number in a date and line prefix.
+            regionalScheduledArrival(
+                "regional-lw", "LW - Hamilton GO Centre", "2026-07-28T20:15:00Z", "20260728-LW-1875"
+            ),
+            // No shared trip number: the same-time, same-direction fallback must still
+            // recognise "Niagara Falls GO (VIA Station)" as Niagara Falls.
+            regionalScheduledArrival(
+                "regional-lw", "LW - Niagara Falls GO", "2026-07-28T20:24:00Z", "NIAGARA-EXCURSION"
+            ),
+            // Tomorrow's run of trip 1875 is a different train.
+            regionalScheduledArrival(
+                "regional-lw", "LW - Hamilton GO Centre", "2026-07-29T20:15:00Z", "20260729-LW-1875"
+            )
+        ));
+        when(scheduled.hasActiveSchedule(List.of("regional-lw"))).thenReturn(true);
+        RegionalArrivalService service = new RegionalArrivalService(client, scheduled, properties, CLOCK);
+
+        RegionalArrivalResponses.SnapshotResponse response = service.arrivals("clarkson");
+
+        assertThat(response.arrivals())
+            .extracting(
+                RegionalArrivalResponses.ArrivalResponse::tripNumber,
+                RegionalArrivalResponses.ArrivalResponse::status
+            )
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("1875", "live"),
+                org.assertj.core.groups.Tuple.tuple("1977", "live"),
+                org.assertj.core.groups.Tuple.tuple("20260729-LW-1875", "scheduled")
+            );
+    }
+
+    @Test
     void deduplicatesRepeatedRealtimeRowsBeforeBoundingDirections() {
         MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
         RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);

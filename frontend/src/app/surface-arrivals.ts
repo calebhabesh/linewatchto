@@ -1,4 +1,5 @@
 import { apiUrl } from "./api-client.ts";
+import { formatArrivalMinutes, formatNearArrivalRange, isNearLiveArrival, NEAR_ARRIVAL_RANGE_SECONDS } from "./arrival-countdown.ts";
 
 export type SurfaceArrivalAvailability = "available" | "no-service" | "disabled" | "unavailable";
 export type SurfaceArrivalMode = "bus" | "streetcar";
@@ -56,7 +57,7 @@ export type SurfaceRouteDetails = {
   metaSubtitle: string;
 };
 
-export const SURFACE_DETAILED_COUNTDOWN_THRESHOLD_SECONDS = 120;
+export const SURFACE_DETAILED_COUNTDOWN_THRESHOLD_SECONDS = NEAR_ARRIVAL_RANGE_SECONDS;
 export const SURFACE_DUE_EXPIRY_SECONDS = 90;
 export const SURFACE_ARRIVAL_COUNTDOWN_TICK_MS = 3_000;
 export const SURFACE_ARRIVAL_DELAY_DISPLAY_WINDOW_MINUTES = 30;
@@ -425,32 +426,22 @@ export function filterActiveSurfaceArrivals(
 }
 
 export function shouldUseDetailedSurfaceArrivalCountdown(
-  arrival: Pick<SurfaceArrival, "predictedAt"> & Partial<Pick<SurfaceArrival, "scheduledAt">>,
+  arrival: Pick<SurfaceArrival, "predictedAt"> & Partial<Pick<SurfaceArrival, "scheduledAt" | "status">>,
   now: number | Date = Date.now(),
 ): boolean {
   const nowMs = now instanceof Date ? now.getTime() : now;
   const predictedAt = Date.parse(arrival.predictedAt ?? arrival.scheduledAt ?? "");
   if (Number.isNaN(predictedAt)) return false;
   const secondsUntilArrival = Math.ceil((predictedAt - nowMs) / 1000);
-  return secondsUntilArrival > 0 && secondsUntilArrival < SURFACE_DETAILED_COUNTDOWN_THRESHOLD_SECONDS;
-}
-
-export function formatSurfaceCountdownDuration(totalSeconds: number): string {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  return isNearLiveArrival(arrival.status, secondsUntilArrival);
 }
 
 export function formatSurfaceArrivalMinutesDuration(minutes: number): string {
-  if (minutes <= 0) return "Due";
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return remainingMinutes === 0 ? `${hours}h` : `${hours}h ${remainingMinutes}m`;
+  return formatArrivalMinutes(minutes);
 }
 
 export function formatSurfaceArrivalTileLabel(
-  arrival: Pick<SurfaceArrival, "minutes" | "predictedAt"> & Partial<Pick<SurfaceArrival, "scheduledAt">>,
+  arrival: Pick<SurfaceArrival, "minutes" | "predictedAt"> & Partial<Pick<SurfaceArrival, "scheduledAt" | "status">>,
   options: { detailedCountdown?: boolean; now?: number | Date } = {},
 ): string {
   const nowMs = options.now instanceof Date
@@ -460,7 +451,7 @@ export function formatSurfaceArrivalTileLabel(
 
   if (options.detailedCountdown && shouldUseDetailedSurfaceArrivalCountdown(arrival, nowMs)) {
     const secondsUntilArrival = Math.ceil((predictedAt - nowMs) / 1000);
-    return `${formatSurfaceCountdownDuration(secondsUntilArrival)} - ${formatSurfaceCountdownDuration(secondsUntilArrival + 60)}`;
+    return formatNearArrivalRange(secondsUntilArrival);
   }
 
   if (!Number.isNaN(predictedAt)) {

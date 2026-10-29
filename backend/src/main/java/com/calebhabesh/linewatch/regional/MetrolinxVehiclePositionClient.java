@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.function.Function;
 import org.springframework.stereotype.Component;
 
@@ -17,8 +18,11 @@ import org.springframework.stereotype.Component;
  * reviewed adjacent links. A train's progress along its link comes from the
  * predicted arrival at its next stop in the shared TripUpdates snapshot (the
  * same prediction station arrivals show), so the marker reaches the station
- * when the arrival tile says it is due. Trains without a prediction fall back
- * to a coarse placement from their reported status.
+ * when the arrival tile says it is due. The link's length in time comes from
+ * the trip's own departure from the previous stop when the feed still has it,
+ * otherwise from the timetable; once a train has left a station its marker is
+ * never drawn at that station. Trains without a prediction fall back to a
+ * coarse placement from their reported status.
  */
 @Component
 public class MetrolinxVehiclePositionClient {
@@ -32,13 +36,23 @@ public class MetrolinxVehiclePositionClient {
     static final double STOPPED_AT_STATION_PROGRESS = 0.98;
     static final double INCOMING_MIN_PROGRESS = 0.85;
     static final double UNTIMED_PROGRESS = 0.5;
+    /** A train that has left a station is drawn clear of it, even when running behind. */
+    static final double MIN_DEPARTED_PROGRESS = 0.12;
+    static final int FALLBACK_UP_LINK_SECONDS = 300;
+    static final int FALLBACK_GO_LINK_SECONDS = 420;
 
     private final MetrolinxFeedFetcher fetcher;
     private final MetrolinxTripUpdateSnapshots tripUpdates;
+    private final RegionalLinkTravelTimes linkTravelTimes;
 
-    public MetrolinxVehiclePositionClient(MetrolinxFeedFetcher fetcher, MetrolinxTripUpdateSnapshots tripUpdates) {
+    public MetrolinxVehiclePositionClient(
+        MetrolinxFeedFetcher fetcher,
+        MetrolinxTripUpdateSnapshots tripUpdates,
+        RegionalLinkTravelTimes linkTravelTimes
+    ) {
         this.fetcher = fetcher;
         this.tripUpdates = tripUpdates;
+        this.linkTravelTimes = linkTravelTimes;
     }
 
     public RegionalTrainMarkerFeed fetchGo() {
@@ -151,8 +165,12 @@ public class MetrolinxVehiclePositionClient {
             String nextStopCode = RegionalNetworkCatalog.stopCodeForStationId(nextStationId).orElse(null);
             UpTripUpdateFeed.StopTime fromStop = stopTimes.apply(fromStopCode).orElse(null);
             UpTripUpdateFeed.StopTime nextStop = stopTimes.apply(nextStopCode).orElse(null);
-            int segmentTravelSeconds = segmentTravelSeconds(lineId, fromStop, nextStop);
+            int segmentTravelSeconds = segmentTravelSeconds(lineId, fromStationId, nextStationId, fromStop, nextStop);
             OffsetDateTime arrivesAt = nextStop == null ? null : nextStop.reachedAt();
+            // Feeds drop a stop once the train leaves it, so a missing previous
+            // stop (or a departure already past) means the train is under way.
+            boolean departed = !stopped && !waitingAtOrigin && (fromStop == null
+                || (updatedAt != null && fromStop.predictedAt() != null && !fromStop.predictedAt().isAfter(updatedAt)));
 
             double progress;
             boolean timed = false;
@@ -162,9 +180,14 @@ public class MetrolinxVehiclePositionClient {
                 progress = STOPPED_AT_STATION_PROGRESS;
             } else if (arrivesAt != null && updatedAt != null) {
                 long remainingSeconds = Duration.between(updatedAt, arrivesAt).toSeconds();
-                // A prediction further out than the whole link means the train
-                // has not left yet: hold it at the station it is leaving.
-                progress = clamp(1 - remainingSeconds / (double) Math.max(1, segmentTravelSeconds), 0, MAX_TIMED_PROGRESS);
+                // A prediction further out than the whole link means a train that
+                // has not left yet is held at its station; one that has left is
+                // drawn just clear of it.
+                progress = clamp(
+                    1 - remainingSeconds / (double) Math.max(1, segmentTravelSeconds),
+                    departed ? MIN_DEPARTED_PROGRESS : 0,
+                    MAX_TIMED_PROGRESS
+                );
                 timed = true;
             } else {
                 progress = UNTIMED_PROGRESS;
@@ -185,16 +208,24 @@ public class MetrolinxVehiclePositionClient {
         return new RegionalTrainMarkerFeed(sourceUpdatedAt, source, List.copyOf(markers));
     }
 
-    /** Departure from the previous stop to arrival at the next, else a typical link time. */
+    /**
+     * The trip's departure from the previous stop to its arrival at the next;
+     * else the timetable's time for this link; else a typical link time.
+     */
     private int segmentTravelSeconds(
         String lineId,
+        String fromStationId,
+        String nextStationId,
         UpTripUpdateFeed.StopTime fromStop,
         UpTripUpdateFeed.StopTime nextStop
     ) {
-        int fallback = "regional-up".equals(lineId) ? 300 : 420;
-        if (fromStop == null || nextStop == null) return fallback;
-        long seconds = Duration.between(fromStop.predictedAt(), nextStop.reachedAt()).toSeconds();
-        return seconds >= 60 && seconds <= 1_200 ? (int) seconds : fallback;
+        if (fromStop != null && nextStop != null && fromStop.predictedAt() != null && nextStop.reachedAt() != null) {
+            long seconds = Duration.between(fromStop.predictedAt(), nextStop.reachedAt()).toSeconds();
+            if (seconds >= 60 && seconds <= 1_200) return (int) seconds;
+        }
+        OptionalInt scheduled = linkTravelTimes.seconds(lineId, fromStationId, nextStationId);
+        if (scheduled.isPresent()) return scheduled.getAsInt();
+        return "regional-up".equals(lineId) ? FALLBACK_UP_LINK_SECONDS : FALLBACK_GO_LINK_SECONDS;
     }
 
     private static double clamp(double value, double min, double max) {

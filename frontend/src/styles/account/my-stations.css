@@ -1153,6 +1153,13 @@
   align-items: center;
 }
 
+/* Short-turn lines list several destinations; wrap rather than hide the far ones. */
+.saved-station-arrival-direction .saved-station-arrival-destination-text {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 .saved-station-arrival-direction .saved-station-arrival-terminating {
   display: inline-flex;
   flex-shrink: 0;

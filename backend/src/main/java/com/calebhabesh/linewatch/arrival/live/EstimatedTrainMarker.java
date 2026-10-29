@@ -14,6 +14,10 @@ public record EstimatedTrainMarker(
     double progress,
     int segmentTravelSeconds,
     OffsetDateTime predictedAt,
+    /** False while the train is stopped at its next station. */
+    boolean moving,
+    /** Progress comes from {@code predictedAt}, so clients can advance it between snapshots. */
+    boolean timed,
     String vehicleId,
     String tripId,
     OffsetDateTime feedCreatedAt,

@@ -11,7 +11,8 @@ public class RegionalArrivalProperties {
     private Duration maxSourceAge = Duration.ofMinutes(5);
     private Duration liveArrivalRetention = Duration.ofSeconds(90);
     private Duration horizon = Duration.ofHours(3);
-    private int maxArrivalsPerLine = 4;
+    /** The station panel shows four per direction and reveals the rest on request. */
+    private int maxArrivalsPerLine = 12;
     private boolean scheduleEnabled;
     private boolean scheduleRefreshEnabled;
     private String goScheduleZipPath = "";

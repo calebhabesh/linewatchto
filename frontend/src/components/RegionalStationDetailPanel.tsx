@@ -28,6 +28,7 @@ import {
   formatRegionalGroupSourceBadgeLabel,
   getRegionalStationArrivals,
   groupRegionalStationArrivals,
+  limitRegionalArrivalGroup,
   isRegionalArrivalDue,
   isRegionalArrivalSoon,
   REGIONAL_ARRIVAL_COUNTDOWN_TICK_MS,
@@ -296,6 +297,8 @@ export function RegionalStationDetailPanel({
 }: Props) {
   const { pinnedLineIds, togglePin } = useArrivalLinePins("regional", station.id);
   const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
+  // Direction groups the rider expanded, keyed by station so another station starts collapsed.
+  const [expandedArrivalGroups, setExpandedArrivalGroups] = useState<ReadonlySet<string>>(() => new Set());
 
   const dashboard = useDashboardData();
   const [isClosing, setIsClosing] = useState(false);
@@ -1025,6 +1028,17 @@ export function RegionalStationDetailPanel({
                                   const isLast = groupIndex === section.groups.length - 1;
                                   const allGroupArrivals = group.platforms.flatMap((platform) => platform.arrivals);
                                   const statusLabel = formatRegionalGroupSourceBadgeLabel(allGroupArrivals);
+                                  const expansionKey = `${station.id}|${group.key}`;
+                                  const expanded = expandedArrivalGroups.has(expansionKey);
+                                  const collapsed = limitRegionalArrivalGroup(group);
+                                  const visiblePlatforms = expanded ? group.platforms : collapsed.platforms;
+                                  const toggleExpanded = () => setExpandedArrivalGroups((current) => {
+                                    const next = new Set(current);
+                                    if (next.has(expansionKey)) next.delete(expansionKey);
+                                    else next.add(expansionKey);
+                                    return next;
+                                  });
+                                  const platformListId = `regional-arrivals-${station.id}-${group.key}`.replace(/[^a-zA-Z0-9_-]/g, "-");
 
                                   return (
                                     <article
@@ -1074,8 +1088,8 @@ export function RegionalStationDetailPanel({
                                         </div>
                                       </div>
 
-                                        <div className="mt-2 flex flex-col gap-3">
-                                        {group.platforms.map((platform) => (
+                                        <div id={platformListId} className="mt-2 flex flex-col gap-3">
+                                        {visiblePlatforms.map((platform) => (
                                           <div key={platform.key} data-regional-arrival-platform={platform.key}>
                                             <div className="mb-2 flex items-center justify-between gap-2">
                                               <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -1228,6 +1242,25 @@ export function RegionalStationDetailPanel({
                                           </div>
                                         ))}
                                       </div>
+                                      {collapsed.hiddenCount > 0 ? (
+                                        <button
+                                          type="button"
+                                          className="station-arrival-more-toggle"
+                                          onClick={toggleExpanded}
+                                          aria-expanded={expanded}
+                                          aria-controls={platformListId}
+                                          aria-label={expanded
+                                            ? `Show fewer ${group.directionLabel} trains`
+                                            : `Show ${collapsed.hiddenCount} later ${group.directionLabel} ${collapsed.hiddenCount === 1 ? "train" : "trains"}`}
+                                        >
+                                          <span>{expanded ? "Show fewer" : `Show ${collapsed.hiddenCount} more`}</span>
+                                          <ChevronDown
+                                            size={14}
+                                            aria-hidden="true"
+                                            className={`transition-transform duration-200 motion-reduce:transition-none ${expanded ? "rotate-180" : ""}`}
+                                          />
+                                        </button>
+                                      ) : null}
                                     </article>
                                   );
                                 })}

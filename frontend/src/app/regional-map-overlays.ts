@@ -16,6 +16,7 @@ import {
   pathCorridorCollisionBoxes,
   svgElementMatrixToRootCoordinates,
   transformBoundsToRootPolygon,
+  type MapBounds,
   type MapPoint,
 } from "./map-geometry.ts";
 import { removeDescendantIds } from "./regional-map-asset.ts";
@@ -61,6 +62,7 @@ import {
   BADGE_FEATURE_GAPS,
   badgeObstacleReach,
   placeOverlapBadges,
+  withoutAlertedStretches,
   type PlacementObstacle,
 } from "../components/overlap-badge-placement.ts";
 import {
@@ -69,9 +71,14 @@ import {
 } from "../components/overlap-chooser-placement.ts";
 import {
   OVERLAP_BADGE_CONNECTOR_DOT_RADIUS,
+  badgeConnectorKeepOut,
   overlapBadgeConnector,
+  overlapBadgeConnectorSearch,
+  type ConnectorCrossing,
+  type ConnectorKeepOut,
   type ConnectorOutline,
   type OverlapBadgeConnector,
+  type OverlapBadgeConnectorOptions,
 } from "../components/overlap-badge-connector.ts";
 
 export const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
@@ -1539,7 +1546,7 @@ const REGIONAL_TRANSIT_LINE_RADIUS = badgeObstacleReach(
 const REGIONAL_STATION_ALERT_PADDING = 24;
 const REGIONAL_CORRIDOR_SAMPLE_SPACING = 48;
 const REGIONAL_STATION_BADGE_TARGET_RADIUS = 320 * REGIONAL_BADGE_UNIT_SCALE;
-const REGIONAL_CONNECTOR_MIN_LENGTH = 24 * REGIONAL_BADGE_UNIT_SCALE;
+const REGIONAL_CONNECTOR_MIN_LENGTH = 12 * REGIONAL_BADGE_UNIT_SCALE;
 // Station impact rings are stroked at least 65 units wide, plus 20 per extra alert.
 const REGIONAL_STATION_RING_STROKE_HALF_WIDTH = 45;
 // Station shapes plus the impact ring drawn around them.
@@ -1551,24 +1558,57 @@ type RegionalAlertCorridor = { impactKey: string; polyline: MapPoint[] };
  * Map artwork as placement obstacles in root coordinates. Labels keep their
  * rotation and lines become corridors, matching the TTC map.
  */
-const artworkObstacleCache = new WeakMap<SVGSVGElement, { fontKey: string; obstacles: PlacementObstacle[] }>();
+type RegionalArtwork = {
+  /** Everything a badge must not cover, apart from transit lines. */
+  obstacles: PlacementObstacle[];
+  /** Transit line corridors a badge must not cover where no alert overlays them. */
+  transitLines: { polyline: MapPoint[]; radius: number }[];
+  /** Station names, connection labels, and line-name badges: connectors never pass through them. */
+  connectorKeepOut: ConnectorKeepOut[];
+  /** Transit line strokes: connectors avoid crossing them. */
+  connectorCrossings: ConnectorCrossing[];
+};
+
+const artworkObstacleCache = new WeakMap<SVGSVGElement, { fontKey: string; artwork: RegionalArtwork }>();
 
 /**
  * Artwork only changes when the map asset or its web fonts change, so reuse
  * one measurement per SVG and font state. Returning the same array also lets
  * the placement engine reuse its rasterization.
  */
-function cachedRegionalArtworkObstacles(svg: SVGSVGElement): PlacementObstacle[] {
+function cachedRegionalArtwork(svg: SVGSVGElement): RegionalArtwork {
   const fonts = typeof document !== "undefined" ? document.fonts : undefined;
   const fontKey = fonts ? `${fonts.status}:${fonts.size}` : "";
   const cached = artworkObstacleCache.get(svg);
-  if (cached && cached.fontKey === fontKey) return cached.obstacles;
-  const obstacles = regionalArtworkObstacles(svg);
-  artworkObstacleCache.set(svg, { fontKey, obstacles });
-  return obstacles;
+  if (cached && cached.fontKey === fontKey) return cached.artwork;
+  const artwork = regionalArtwork(svg);
+  artworkObstacleCache.set(svg, { fontKey, artwork });
+  return artwork;
 }
 
-function regionalArtworkObstacles(svg: SVGSVGElement): PlacementObstacle[] {
+const unalertedLineCache = new WeakMap<RegionalArtwork, { key: string; lines: PlacementObstacle[] }>();
+
+/**
+ * Transit lines minus the stretches alert overlays cover, which keep the
+ * overlay's tighter gap instead (as on the TTC map). Reused while the alerts
+ * stay the same, so the placement engine can reuse its rasterization.
+ */
+function cachedUnalertedLineObstacles(artwork: RegionalArtwork, corridors: RegionalAlertCorridor[]): PlacementObstacle[] {
+  const key = corridors
+    .map(({ polyline }) => polyline.map((point) => `${Math.round(point.x)},${Math.round(point.y)}`).join(" "))
+    .join("|");
+  const cached = unalertedLineCache.get(artwork);
+  if (cached && cached.key === key) return cached.lines;
+  const lines = withoutAlertedStretches(
+    artwork.transitLines,
+    corridors.map(({ polyline }) => polyline),
+    REGIONAL_TRANSIT_LINE_HALF_WIDTH,
+  );
+  unalertedLineCache.set(artwork, { key, lines });
+  return lines;
+}
+
+function regionalArtwork(svg: SVGSVGElement): RegionalArtwork {
   const labels = [...svg.querySelectorAll<SVGGraphicsElement>("text")].flatMap((element) => {
     try {
       const box = element.getBBox();
@@ -1597,18 +1637,26 @@ function regionalArtworkObstacles(svg: SVGSVGElement): PlacementObstacle[] {
       radius: REGIONAL_TRANSIT_LINE_RADIUS,
     }))
     .filter((line) => line.polyline.length > 0);
+  const lineBadges: MapBounds[] = [];
   const artwork = [...svg.querySelectorAll<SVGGraphicsElement>(REGIONAL_ARTWORK_SELECTOR)].flatMap((element) => {
     if (element.closest(REGIONAL_INJECTED_ARTWORK_SELECTOR)) return [];
     try {
       const box = regionalCollisionBoxForElement(svg, element);
-      return box && box.width > 0 && box.height > 0
-        ? [expandedRegionalCollisionBox(box, REGIONAL_ARTWORK_PADDING)]
-        : [];
+      if (!box || box.width <= 0 || box.height <= 0) return [];
+      const expanded = expandedRegionalCollisionBox(box, REGIONAL_ARTWORK_PADDING);
+      if (element.closest("#regional-route-labels-layer")) lineBadges.push(expanded);
+      return [expanded];
     } catch {
       return [];
     }
   });
-  return [...labels, ...connectionLabels, ...transitLines, ...artwork];
+  return {
+    obstacles: [...labels, ...connectionLabels, ...artwork],
+    transitLines,
+    // Station dots stay out: station-alert connectors have to land beside them.
+    connectorKeepOut: [...labels, ...connectionLabels, ...lineBadges],
+    connectorCrossings: transitLines,
+  };
 }
 
 function regionalAlertCorridors(svg: SVGSVGElement): RegionalAlertCorridor[] {
@@ -1651,6 +1699,38 @@ export function regionalPlacedOverlapBadges(
     ...corridors.map(({ polyline }) => ({ polyline, radius: REGIONAL_IMPACT_CORRIDOR_RADIUS })),
     ...regionalStationAlertObstacles(svg),
   ];
+  const scaledSize = (badge: RegionalOverlapBadge) => ({
+    width: badge.size.width * REGIONAL_OVERLAP_INDICATOR_SCALE,
+    height: badge.size.height * REGIONAL_OVERLAP_INDICATOR_SCALE,
+  });
+  const outlines = regionalConnectorOutlines(svg, corridors);
+  const stationDots = regionalStationDotKeepouts(svg);
+  const artwork = cachedRegionalArtwork(svg);
+  const { connectorKeepOut, connectorCrossings } = artwork;
+  const badgeKeepOutPadding = OVERLAP_BADGE_CONNECTOR_DOT_RADIUS * REGIONAL_OVERLAP_INDICATOR_SCALE;
+  // One set of connector rules for placement and for drawing, matching the
+  // TTC map: a badge's line crosses only open space.
+  const connectorOptionsFor = (
+    badge: RegionalOverlapBadge,
+    position: MapPoint,
+    others: { position: MapPoint; size: { width: number; height: number } }[],
+  ): OverlapBadgeConnectorOptions => ({
+    position,
+    size: scaledSize(badge),
+    outlines: badge.impacts.flatMap((impact) => outlines.get(`${impact.kind}:${impact.cardId}`) ?? []),
+    minimumLength: REGIONAL_CONNECTOR_MIN_LENGTH,
+    within: badge.stationPoint
+      ? { center: badge.stationPoint, radius: REGIONAL_STATION_BADGE_TARGET_RADIUS }
+      : undefined,
+    avoid: stationDots,
+    endRadius: OVERLAP_BADGE_CONNECTOR_DOT_RADIUS * REGIONAL_OVERLAP_INDICATOR_SCALE,
+    keepOut: [
+      ...connectorKeepOut,
+      ...others.map((other) => badgeConnectorKeepOut(other.position, other.size, badgeKeepOutPadding)),
+    ],
+    crossings: connectorCrossings,
+  });
+  const badgeById = new Map(badges.map((badge) => [badge.markerId, badge]));
   const placements = new Map(placeOverlapBadges({
     badges: badges.map((badge) => {
       const ownImpactKeys = new Set(badge.impacts.map((impact) => `${impact.kind}:${impact.cardId}`));
@@ -1664,10 +1744,7 @@ export function regionalPlacedOverlapBadges(
         : [];
       return {
         id: badge.markerId,
-        size: {
-          width: badge.size.width * REGIONAL_OVERLAP_INDICATOR_SCALE,
-          height: badge.size.height * REGIONAL_OVERLAP_INDICATOR_SCALE,
-        },
+        size: scaledSize(badge),
         targets: [...badge.placementTargets, ...nearbyOverlayTargets],
         anchor: stationPoint,
         foreignTargets: corridors
@@ -1675,35 +1752,34 @@ export function regionalPlacedOverlapBadges(
           .flatMap((corridor) => corridor.polyline),
       };
     }),
-    obstacleLayers: [cachedRegionalArtworkObstacles(svg), alertObstacles],
+    obstacleLayers: [artwork.obstacles, cachedUnalertedLineObstacles(artwork, corridors), alertObstacles],
     mapBounds: REGIONAL_MAP_VIEWBOX,
     siblingGap: REGIONAL_BADGE_SIBLING_GAP,
     unitScale: REGIONAL_BADGE_UNIT_SCALE,
+    // Every badge gets a spot with a clear connector line when one exists.
+    connector: ({ id, position, placed }) => {
+      const badge = badgeById.get(id);
+      if (!badge) return { needed: false, line: null };
+      const { needed, connector } = overlapBadgeConnectorSearch(connectorOptionsFor(badge, position, placed));
+      return { needed, line: connector ? [connector.from, connector.to] : null };
+    },
   }).map((placement) => [placement.id, placement]));
 
-  const outlines = regionalConnectorOutlines(svg, corridors);
-  const stationDots = regionalStationDotKeepouts(svg);
+  const positionOf = (badge: RegionalOverlapBadge) => placements.get(badge.markerId)?.position ?? badge.position;
   return badges.map((badge) => {
     const placement = placements.get(badge.markerId);
-    const position = placement?.position ?? badge.position;
+    const position = positionOf(badge);
     return {
       ...badge,
       position,
       collisionAvoided: placement?.collisionAvoided ?? badge.collisionAvoided,
-      connector: overlapBadgeConnector({
+      connector: overlapBadgeConnector(connectorOptionsFor(
+        badge,
         position,
-        size: {
-          width: badge.size.width * REGIONAL_OVERLAP_INDICATOR_SCALE,
-          height: badge.size.height * REGIONAL_OVERLAP_INDICATOR_SCALE,
-        },
-        outlines: badge.impacts.flatMap((impact) => outlines.get(`${impact.kind}:${impact.cardId}`) ?? []),
-        minimumLength: REGIONAL_CONNECTOR_MIN_LENGTH,
-        within: badge.stationPoint
-          ? { center: badge.stationPoint, radius: REGIONAL_STATION_BADGE_TARGET_RADIUS }
-          : undefined,
-        avoid: stationDots,
-        endRadius: OVERLAP_BADGE_CONNECTOR_DOT_RADIUS * REGIONAL_OVERLAP_INDICATOR_SCALE,
-      }),
+        badges
+          .filter((other) => other.markerId !== badge.markerId)
+          .map((other) => ({ position: positionOf(other), size: scaledSize(other) })),
+      )),
     };
   });
 }

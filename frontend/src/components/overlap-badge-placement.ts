@@ -91,7 +91,23 @@ export type OverlapBadgePlacementOptions = {
    * (clearance, cell size, search radius, margins) scales with it.
    */
   unitScale?: number;
+  /**
+   * The connector line a badge would get at a spot, given the badges already
+   * placed. A spot whose needed line is blocked is passed over for the next
+   * clear spot, and each placed line is reserved so later badges keep off it.
+   */
+  connector?: (request: OverlapBadgeConnectorCheck) => { needed: boolean; line: [MapPoint, MapPoint] | null };
 };
+
+export type OverlapBadgeConnectorCheck = {
+  id: string;
+  position: MapPoint;
+  /** Badges placed so far, which the line must go around. */
+  placed: { id: string; position: MapPoint; size: OverlapBadgeSize }[];
+};
+
+/** How many clear spots to try, cheapest first, looking for one with a clear connector. */
+const MAX_CONNECTOR_SPOTS = 240;
 
 const DEFAULT_CLEARANCE = 10;
 
@@ -102,8 +118,12 @@ const DEFAULT_CLEARANCE = 10;
  * spacing relative to their own size on every map.
  */
 export const BADGE_FEATURE_GAPS = {
-  /** From the outer edge of an alert overlay's hover outline. */
-  alertOverlay: 5,
+  /**
+   * From the outer edge of an alert overlay's hover outline. Leaves room for
+   * the connector: its 18-unit end dot plus a short visible line, so a badge
+   * at its closest still reads as connected.
+   */
+  alertOverlay: 30,
   /** From the edge of an unalerted transit line. */
   transitLine: 48,
   /** From a label's glyph box. */
@@ -120,6 +140,70 @@ export const BADGE_FEATURE_GAPS = {
 export function badgeObstacleReach(visibleHalfWidth: number, gap: number, unitScale = 1): number {
   return visibleHalfWidth + (gap - DEFAULT_CLEARANCE) * unitScale;
 }
+/**
+ * Line obstacles with the stretches that alert overlays cover taken out. An
+ * alerted stretch is spaced by its overlay's tighter gap, so badges can tuck
+ * in beside it; the wider transit-line gap applies only where no alert covers
+ * the line. Points within `tolerance` of an overlay count as covered. Other
+ * obstacles pass through unchanged.
+ */
+export function withoutAlertedStretches(
+  obstacles: readonly PlacementObstacle[],
+  overlays: readonly MapPoint[][],
+  tolerance: number,
+): PlacementObstacle[] {
+  const segments = overlays.flatMap((polyline) => (
+    polyline.length === 1
+      ? [[polyline[0], polyline[0]] as const]
+      : polyline.slice(1).map((end, index) => [polyline[index], end] as const)
+  )).map(([start, end]) => ({
+    start,
+    end,
+    x0: Math.min(start.x, end.x) - tolerance,
+    x1: Math.max(start.x, end.x) + tolerance,
+    y0: Math.min(start.y, end.y) - tolerance,
+    y1: Math.max(start.y, end.y) + tolerance,
+  }));
+  if (segments.length === 0) return [...obstacles];
+  const covered = (point: MapPoint) => segments.some((segment) => (
+    point.x >= segment.x0 && point.x <= segment.x1 && point.y >= segment.y0 && point.y <= segment.y1
+    && segmentDistance(point.x, point.y, segment.start, segment.end) <= tolerance
+  ));
+  const step = Math.max(1, tolerance);
+  return obstacles.flatMap((obstacle): PlacementObstacle[] => {
+    if (!("polyline" in obstacle)) return [obstacle];
+    const runs: MapPoint[][] = [];
+    let run: MapPoint[] = [];
+    let cut = false;
+    const visit = (point: MapPoint) => {
+      if (covered(point)) {
+        cut = true;
+        if (run.length > 0) runs.push(run);
+        run = [];
+      } else {
+        run.push(point);
+      }
+    };
+    obstacle.polyline.forEach((point, index) => {
+      if (index > 0) {
+        // Sample between vertices so a long straight stroke can be cut mid-way.
+        const previous = obstacle.polyline[index - 1];
+        const count = Math.ceil(Math.hypot(point.x - previous.x, point.y - previous.y) / step);
+        for (let sample = 1; sample < count; sample += 1) {
+          visit({
+            x: previous.x + ((point.x - previous.x) * sample) / count,
+            y: previous.y + ((point.y - previous.y) * sample) / count,
+          });
+        }
+      }
+      visit(point);
+    });
+    if (!cut) return [obstacle];
+    if (run.length > 0) runs.push(run);
+    return runs.map((polyline) => ({ polyline, radius: obstacle.radius }));
+  });
+}
+
 const DEFAULT_CELL_SIZE = 10;
 const DEFAULT_SEARCH_RADIUS = 1000;
 const DEFAULT_ALIGNMENT_TOLERANCE = 110;
@@ -494,8 +578,45 @@ function edgeGap(first: MapBounds, second: MapBounds): number {
   return Math.hypot(horizontal, vertical);
 }
 
-/** Cheapest clear spot for one badge, or the least-covered spot when none is clear. */
-function bestSinglePlacement(grid: OccupancyGrid, state: BadgeState): Candidate | null {
+/** The cheapest clear spot, after the cheapest, whose connector line is clear. */
+function nextSpotWithClearConnector(
+  grid: OccupancyGrid,
+  state: BadgeState,
+  acceptsConnector: (position: MapPoint) => boolean,
+): Candidate | null {
+  const { window, cost } = state;
+  const clear: { cost: number; column: number; row: number }[] = [];
+  for (let row = 0; row < window.rows; row += 1) {
+    for (let column = 0; column < window.cols; column += 1) {
+      const value = cost[row * window.cols + column];
+      if (value === Infinity) continue;
+      if (blockedAt(grid, state, window.c0 + column, window.r0 + row) !== 0) continue;
+      clear.push({ cost: value, column: window.c0 + column, row: window.r0 + row });
+    }
+  }
+  clear.sort((first, second) => first.cost - second.cost);
+  // Neighbouring cells give nearly the same line, so try spots a few cells apart.
+  const spacing = Math.max(1, Math.round(Math.min(state.request.size.width, state.request.size.height) / 4 / grid.cell));
+  const tried: { column: number; row: number }[] = [];
+  for (const spot of clear) {
+    if (tried.length >= MAX_CONNECTOR_SPOTS) break;
+    if (tried.some((other) => Math.abs(other.column - spot.column) < spacing && Math.abs(other.row - spot.row) < spacing)) continue;
+    tried.push(spot);
+    const position = grid.cellCenter(spot.column, spot.row);
+    if (acceptsConnector(position)) return { positions: [position], cost: spot.cost, collisionAvoided: true };
+  }
+  return null;
+}
+
+/**
+ * Cheapest clear spot for one badge whose connector line is clear too, else
+ * the cheapest clear spot, else the least-covered spot when none is clear.
+ */
+function bestSinglePlacement(
+  grid: OccupancyGrid,
+  state: BadgeState,
+  acceptsConnector?: (position: MapPoint) => boolean,
+): Candidate | null {
   const { window, cost } = state;
   let best: { cost: number; column: number; row: number } | null = null;
   for (let row = 0; row < window.rows; row += 1) {
@@ -505,6 +626,10 @@ function bestSinglePlacement(grid: OccupancyGrid, state: BadgeState): Candidate 
       if (blockedAt(grid, state, window.c0 + column, window.r0 + row) !== 0) continue;
       best = { cost: value, column: window.c0 + column, row: window.r0 + row };
     }
+  }
+  if (best && acceptsConnector && !acceptsConnector(grid.cellCenter(best.column, best.row))) {
+    const alternative = nextSpotWithClearConnector(grid, state, acceptsConnector);
+    if (alternative) return alternative;
   }
   if (best) {
     return { positions: [grid.cellCenter(best.column, best.row)], cost: best.cost, collisionAvoided: true };
@@ -688,6 +813,7 @@ export function placeOverlapBadges({
   searchRadius = DEFAULT_SEARCH_RADIUS * unitScale,
   groupDistance = siblingGap * 2,
   alignmentTolerance = DEFAULT_ALIGNMENT_TOLERANCE * unitScale,
+  connector,
 }: OverlapBadgePlacementOptions): OverlapBadgePlacement[] {
   const tuning: Tuning = {
     foreignMargin: FOREIGN_PROXIMITY_MARGIN * unitScale,
@@ -711,10 +837,42 @@ export function placeOverlapBadges({
     cost: Infinity,
     collisionAvoided: false,
   });
-  const placeAlone = (state: BadgeState): Candidate => bestSinglePlacement(grid, state) ?? fallbackCandidate(state);
-  // Keep at least a sibling gap between neighbouring groups as well.
+  const results: OverlapBadgePlacement[] = [];
+  const sizeById = new Map(requests.map((request) => [request.id, request.size]));
+  const placedBadges = () => results.map((result) => ({
+    id: result.id,
+    position: result.position,
+    size: sizeById.get(result.id)!,
+  }));
+  const connectorAt = (id: string, position: MapPoint, extra: OverlapBadgeConnectorCheck["placed"] = []) => (
+    connector
+      ? connector({ id, position, placed: [...placedBadges(), ...extra].filter((other) => other.id !== id) })
+      : { needed: false, line: null }
+  );
+  const hasClearConnector = (id: string, position: MapPoint, extra?: OverlapBadgeConnectorCheck["placed"]) => {
+    const check = connectorAt(id, position, extra);
+    return !check.needed || check.line !== null;
+  };
+  const placeAlone = (state: BadgeState, withConnector = false): Candidate => (
+    bestSinglePlacement(
+      grid,
+      state,
+      withConnector && connector ? (position) => hasClearConnector(state.request.id, position) : undefined,
+    ) ?? fallbackCandidate(state)
+  );
+  // Keep at least a sibling gap between neighbouring groups as well, and keep
+  // later badges off each placed badge's connector line.
   const reserve = (members: BadgeState[], positions: MapPoint[]) => {
-    grid.add(members.map((member, index) => paddedBox(positions[index], member.request.size, siblingGap - clearance)));
+    const lines = connector
+      ? members.flatMap((member, index) => {
+        const line = connectorAt(member.request.id, positions[index]).line;
+        return line ? [{ polyline: line, radius: clearance }] : [];
+      })
+      : [];
+    grid.add([
+      ...members.map((member, index) => paddedBox(positions[index], member.request.size, siblingGap - clearance)),
+      ...lines,
+    ]);
   };
 
   // Ideal spot for each badge on its own, used to decide which badges share a
@@ -726,10 +884,9 @@ export function placeOverlapBadges({
       || first[0].request.id.localeCompare(second[0].request.id)
     ));
 
-  const results: OverlapBadgePlacement[] = [];
   for (const group of groups) {
     if (group.length === 1) {
-      const placement = placeAlone(group[0]);
+      const placement = placeAlone(group[0], true);
       results.push({
         id: group[0].request.id,
         position: placement.positions[0],
@@ -754,15 +911,29 @@ export function placeOverlapBadges({
       ideal.get(first.request.id)!.cost - ideal.get(second.request.id)!.cost
       || first.request.id.localeCompare(second.request.id)
     ));
+    // An aligned row is only worth it if every member keeps a clear line.
+    const formationConnectorsClear = Boolean(formation) && (!connector || group.every((member, index) => (
+      hasClearConnector(
+        member.request.id,
+        formation!.positions[index],
+        group
+          .map((other, otherIndex) => ({ id: other.request.id, position: formation!.positions[otherIndex], size: other.request.size }))
+          .filter((other) => other.id !== member.request.id),
+      )
+    )));
     const beforeGroup = grid.snapshot();
+    const resultsBeforeGroup = results.length;
     const separate = ordered.map((member) => {
-      const placement = placeAlone(member);
+      const placement = placeAlone(member, true);
       reserve([member], placement.positions);
+      // Later members route their lines around this one.
+      results.push({ id: member.request.id, position: placement.positions[0], groupId: member.request.id, collisionAvoided: placement.collisionAvoided });
       return placement;
     });
+    results.length = resultsBeforeGroup;
     const separateCost = separate.reduce((sum, placement) => sum + placement.cost, 0);
 
-    if (formation && formation.cost <= separateCost + alignmentTolerance * group.length) {
+    if (formation && formationConnectorsClear && formation.cost <= separateCost + alignmentTolerance * group.length) {
       // The separate placements were reserved while comparing; swap in the formation.
       grid.restore(beforeGroup);
       const groupId = group.map((member) => member.request.id).join("+");

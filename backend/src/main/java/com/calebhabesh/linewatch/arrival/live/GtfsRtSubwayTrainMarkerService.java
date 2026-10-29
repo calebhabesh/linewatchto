@@ -23,8 +23,17 @@ import org.springframework.stereotype.Service;
 @Service
 public class GtfsRtSubwayTrainMarkerService {
     private static final int DEFAULT_SEGMENT_SECONDS = 120;
-    private static final double MIN_PROGRESS = 0.08;
-    private static final double MAX_PROGRESS = 0.92;
+    // Same placement rules as GO/UP markers (MetrolinxVehiclePositionClient), so
+    // both System Maps move trains the same way.
+    static final double MIN_DEPARTED_PROGRESS = 0.12;
+    static final double MAX_TIMED_PROGRESS = 0.95;
+    static final double STOPPED_AT_STATION_PROGRESS = 0.98;
+    /**
+     * TTC's feed restates each prediction as a countdown held for about 30 s, so
+     * the predicted time slides later with the clock and then drops about a
+     * minute. A prediction this much later than the held one is a real delay.
+     */
+    static final Duration PREDICTION_SLIDE_TOLERANCE = Duration.ofSeconds(90);
     private static final Duration PAST_TOLERANCE = Duration.ofSeconds(30);
     private static final Duration MARKER_SNAPSHOT_TTL = Duration.ofSeconds(1);
     private static final String DISCLAIMER =
@@ -39,6 +48,7 @@ public class GtfsRtSubwayTrainMarkerService {
     private volatile WeightSnapshot weightSnapshot = new WeightSnapshot("", Map.of());
     private volatile MarkerSnapshotCache markerSnapshotCache = MarkerSnapshotCache.empty();
     private volatile Map<String, RetainedMarker> retainedMarkers = Map.of();
+    private Map<String, HeldPrediction> heldPredictions = Map.of();
 
     public GtfsRtSubwayTrainMarkerService(
         GtfsRtSubwayArrivalCache cache,
@@ -136,12 +146,14 @@ public class GtfsRtSubwayTrainMarkerService {
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
         Map<String, SegmentTravelTime> segmentWeights = segmentWeights();
 
+        Map<String, HeldPrediction> nextHeldPredictions = new LinkedHashMap<>();
         List<EstimatedTrainMarker> currentMarkers = groupedArrivals(snapshot.arrivals())
             .values()
             .stream()
-            .map(rows -> markerForTrain(rows, snapshot, segments, segmentWeights, generatedAt))
+            .map(rows -> markerForTrain(rows, snapshot, segments, segmentWeights, generatedAt, nextHeldPredictions))
             .flatMap(Optional::stream)
             .toList();
+        heldPredictions = Map.copyOf(nextHeldPredictions);
         List<EstimatedTrainMarker> markers = retainRecentMarkers(currentMarkers, generatedAt)
             .stream()
             .sorted(Comparator
@@ -231,6 +243,33 @@ public class GtfsRtSubwayTrainMarkerService {
 
     private void clearRetainedMarkers() {
         retainedMarkers = Map.of();
+        synchronized (this) {
+            heldPredictions = Map.of();
+        }
+    }
+
+    /**
+     * Keeps the earliest prediction for a train's next station while the feed's
+     * held countdown slides it later, so the marker keeps moving with the clock.
+     * An earlier prediction, a new next station, or a slide past the tolerance
+     * (a real hold) replaces it.
+     */
+    private OffsetDateTime heldPredictedAt(
+        String trainKey,
+        GtfsRtSubwayStationArrival next,
+        Map<String, HeldPrediction> nextHeldPredictions
+    ) {
+        OffsetDateTime reported = next.predictedAt();
+        HeldPrediction held = heldPredictions.get(trainKey);
+        OffsetDateTime predictedAt = reported;
+        if (held != null
+            && held.stationId().equals(next.stationId())
+            && reported.isAfter(held.predictedAt())
+            && Duration.between(held.predictedAt(), reported).compareTo(PREDICTION_SLIDE_TOLERANCE) <= 0) {
+            predictedAt = held.predictedAt();
+        }
+        nextHeldPredictions.put(trainKey, new HeldPrediction(next.stationId(), predictedAt));
+        return predictedAt;
     }
 
     private Map<String, List<GtfsRtSubwayStationArrival>> groupedArrivals(List<GtfsRtSubwayStationArrival> arrivals) {
@@ -258,7 +297,8 @@ public class GtfsRtSubwayTrainMarkerService {
         GtfsRtSubwayArrivalSnapshot snapshot,
         List<LineSegmentEntity> segments,
         Map<String, SegmentTravelTime> segmentWeights,
-        OffsetDateTime generatedAt
+        OffsetDateTime generatedAt,
+        Map<String, HeldPrediction> nextHeldPredictions
     ) {
         if (rows.isEmpty()) {
             return Optional.empty();
@@ -277,9 +317,15 @@ public class GtfsRtSubwayTrainMarkerService {
         }
 
         int travelSeconds = travelSeconds(segment.get().segment(), segmentWeights);
-        long secondsToNext = Math.max(0, Duration.between(generatedAt, next.predictedAt()).toSeconds());
-        double rawProgress = (travelSeconds - secondsToNext) / (double) travelSeconds;
-        double progress = clamp(rawProgress, MIN_PROGRESS, MAX_PROGRESS);
+        OffsetDateTime predictedAt = heldPredictedAt(trainKey(next), next, nextHeldPredictions);
+        long secondsToNext = Duration.between(generatedAt, predictedAt).toSeconds();
+        // The feed keeps a stop until the train leaves it, so a next stop whose
+        // time has come means the train is standing there. Otherwise it has
+        // left the previous station and is drawn clear of it.
+        boolean stopped = secondsToNext <= 0;
+        double progress = stopped
+            ? STOPPED_AT_STATION_PROGRESS
+            : clamp(1 - secondsToNext / (double) travelSeconds, MIN_DEPARTED_PROGRESS, MAX_TIMED_PROGRESS);
 
         return Optional.of(new EstimatedTrainMarker(
             markerId(next),
@@ -292,7 +338,9 @@ public class GtfsRtSubwayTrainMarkerService {
             next.stationId(),
             progress,
             travelSeconds,
-            next.predictedAt(),
+            predictedAt,
+            !stopped,
+            true,
             next.vehicleId(),
             next.tripId(),
             snapshot.feedCreatedAt(),
@@ -421,7 +469,8 @@ public class GtfsRtSubwayTrainMarkerService {
         return new EstimatedTrainMarker(
             current.id(), current.lineId(), current.direction(), current.travelDirection(), current.segmentId(),
             current.fromStationId(), current.toStationId(), current.nextStationId(), previous.marker().progress(),
-            current.segmentTravelSeconds(), current.predictedAt(), current.vehicleId(), current.tripId(),
+            current.segmentTravelSeconds(), current.predictedAt(), current.moving(), current.timed(),
+            current.vehicleId(), current.tripId(),
             current.feedCreatedAt(), current.updatedAt()
         );
     }
@@ -504,6 +553,8 @@ public class GtfsRtSubwayTrainMarkerService {
         String signature,
         Map<String, SegmentTravelTime> weights
     ) {}
+
+    private record HeldPrediction(String stationId, OffsetDateTime predictedAt) {}
 
     private record RetainedMarker(
         EstimatedTrainMarker marker,

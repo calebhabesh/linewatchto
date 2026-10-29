@@ -12,6 +12,7 @@ import {
   getRegionalArrivalDelayMinutes,
   getRegionalStationArrivals,
   groupRegionalStationArrivals,
+  limitRegionalArrivalGroup,
   isRegionalArrivalDue,
   isRegionalArrivalSoon,
   preserveRegionalArrivalsOnRefresh,
@@ -189,22 +190,27 @@ describe("regional station arrivals adapter", () => {
     assert.equal(isRegionalArrivalSoon(distantArrival, now), false);
   });
 
-  it("uses a ticking range for the nearest live or scheduled arrival inside two minutes", () => {
+  it("uses a whole-minute range for the nearest live arrival and none for timetable rows", () => {
     const now = new Date("2026-07-29T12:00:00-04:00");
-    const liveArrival = { minutes: 1, predictedAt: "2026-07-29T12:00:42-04:00" };
-    const scheduledArrival = { minutes: 1, predictedAt: "2026-07-29T12:01:51-04:00" };
+    const liveArrival = { minutes: 1, predictedAt: "2026-07-29T12:00:42-04:00", status: "live" };
+    const laterLiveArrival = { minutes: 2, predictedAt: "2026-07-29T12:01:51-04:00", status: "live" };
+    const scheduledArrival = { minutes: 2, predictedAt: "2026-07-29T12:01:51-04:00", status: "scheduled" };
 
     assert.equal(isRegionalArrivalDue(liveArrival, now), false);
     assert.equal(isRegionalArrivalSoon(liveArrival, now), true);
     assert.equal(shouldUseDetailedRegionalArrivalCountdown(liveArrival, now), true);
     assert.deepEqual(
       regionalArrivalTimeDisplay(liveArrival, now, { detailedCountdown: true }),
-      { primary: "0:42 - 1:42", secondary: "12:00 PM" },
+      { primary: "<1 min", secondary: "12:00 PM" },
     );
-    assert.equal(shouldUseDetailedRegionalArrivalCountdown(scheduledArrival, now), true);
+    assert.deepEqual(
+      regionalArrivalTimeDisplay(laterLiveArrival, now, { detailedCountdown: true }),
+      { primary: "1–2 min", secondary: "12:01 PM" },
+    );
+    assert.equal(shouldUseDetailedRegionalArrivalCountdown(scheduledArrival, now), false);
     assert.deepEqual(
       regionalArrivalTimeDisplay(scheduledArrival, now, { detailedCountdown: true }),
-      { primary: "1:51 - 2:51", secondary: "12:01 PM" },
+      { primary: "1 min", secondary: "12:01 PM" },
     );
   });
 
@@ -399,8 +405,48 @@ describe("regional station arrivals adapter", () => {
 
     assert.equal(groups.length, 1);
     assert.equal(groups[0].directionLabel, "Westbound");
-    assert.equal(groups[0].destinationLabel, "To Kitchener");
+    assert.equal(groups[0].destinationLabel, "To Bramalea, Mount Pleasant or Kitchener");
     assert.equal(groups[0].platforms[0].arrivals.length, 3);
+  });
+
+  it("names every short-turn destination in route order instead of only the line terminus", () => {
+    const base = {
+      lineId: "regional-lw",
+      lineNumber: "LW",
+      lineName: "Lakeshore West",
+      predictedAt: "2026-07-29T17:30:00-04:00",
+      scheduledAt: "2026-07-29T17:30:00-04:00",
+      delayMinutes: 0,
+      platform: "1",
+      source: "Metrolinx GO Next Service",
+      status: "live",
+    };
+    const groups = groupRegionalStationArrivals([
+      { ...base, direction: "Niagara Falls GO (VIA Station)", tripNumber: "1977", minutes: 39 },
+      { ...base, direction: "Hamilton GO Centre", tripNumber: "1875", minutes: 30 },
+      { ...base, direction: "West Harbour GO", tripNumber: "1675", minutes: 2 },
+      { ...base, direction: "Aldershot GO", tripNumber: "1075", minutes: 10 },
+      { ...base, direction: "Oakville GO", tripNumber: "1325", minutes: 27, platform: "2" },
+      { ...base, direction: "LW - Hamilton GO Centre", tripNumber: "20260729-LW-1877", minutes: 60, platform: "", status: "scheduled" },
+      { ...base, direction: "Union Station", tripNumber: "1626", minutes: 23, platform: "3" },
+    ], "clarkson");
+
+    assert.deepEqual(
+      groups.map((group) => [group.directionLabel, group.destinationLabel]),
+      [
+        ["Eastbound", "To Union"],
+        ["Westbound", "To Oakville, Aldershot, West Harbour, Hamilton or Niagara Falls"],
+      ],
+    );
+    // Direction comes from the resolved station, so a suffixed name past the
+    // current station still reads as eastbound toward Union.
+    const eastOfHamilton = groupRegionalStationArrivals([
+      { ...base, direction: "Hamilton GO Centre", tripNumber: "1880", minutes: 5 },
+    ], "st-catharines");
+    assert.deepEqual(
+      eastOfHamilton.map((group) => [group.directionLabel, group.destinationLabel]),
+      [["Eastbound", "To Hamilton"]],
+    );
   });
 
   it("correctly classifies terminating outward trains and uses canonical line terminus labels", () => {
@@ -539,6 +585,41 @@ describe("regional station arrivals adapter", () => {
     assert.equal(stratfordEastbound.isTerminating, false, "Eastbound departures from Stratford are not terminating");
   });
 
+  it("collapses a direction to its next trains across platforms and counts the rest", () => {
+    const base = {
+      lineId: "regional-lw",
+      lineNumber: "LW",
+      lineName: "Lakeshore West",
+      scheduledAt: "2026-07-29T17:00:00-04:00",
+      delayMinutes: 0,
+      source: "Metrolinx GO Next Service",
+      status: "live",
+    };
+    const at = (minutes) => new Date(Date.parse("2026-07-29T17:00:00-04:00") + minutes * 60_000).toISOString();
+    const [group] = groupRegionalStationArrivals([
+      { ...base, direction: "Hamilton GO Centre", tripNumber: "1", minutes: 16, predictedAt: at(16), platform: "1" },
+      { ...base, direction: "Oakville GO", tripNumber: "2", minutes: 13, predictedAt: at(13), platform: "2" },
+      { ...base, direction: "Niagara Falls GO", tripNumber: "3", minutes: 24, predictedAt: at(24), platform: "1" },
+      { ...base, direction: "Oakville GO", tripNumber: "4", minutes: 39, predictedAt: at(39), platform: "2" },
+      { ...base, direction: "Appleby GO", tripNumber: "5", minutes: 52, predictedAt: at(52), platform: "2" },
+      { ...base, direction: "Hamilton GO Centre", tripNumber: "6", minutes: 80, predictedAt: at(80), platform: "3" },
+    ], "clarkson");
+
+    const collapsed = limitRegionalArrivalGroup(group, 4);
+    assert.equal(collapsed.hiddenCount, 2);
+    assert.deepEqual(
+      collapsed.platforms.map((platform) => [platform.key, platform.arrivals.map((arrival) => arrival.tripNumber)]),
+      [["1", ["1", "3"]], ["2", ["2", "4"]]],
+      "Later trains and the platform they leave empty are hidden",
+    );
+    // The header still names every destination, including hidden ones.
+    assert.equal(group.destinationLabel, "To Oakville, Appleby, Hamilton or Niagara Falls");
+
+    const short = limitRegionalArrivalGroup(group, 10);
+    assert.equal(short.hiddenCount, 0);
+    assert.equal(short.platforms, group.platforms);
+  });
+
   it("formats clean regional destination names across corridors", () => {
     assert.equal(formatRegionalDestinationName("KI - Kitchener GO", "KI"), "Kitchener");
     assert.equal(formatRegionalDestinationName("KI - Mount Pleasant GO", "KI"), "Mount Pleasant");
@@ -551,6 +632,11 @@ describe("regional station arrivals adapter", () => {
     assert.equal(formatRegionalDestinationName("ST - Old Elm GO", "ST"), "Old Elm");
     assert.equal(formatRegionalDestinationName("BR - Allandale Waterfront GO", "BR"), "Allandale Waterfront");
     assert.equal(formatRegionalDestinationName("LE - Durham College Oshawa GO", "LE"), "Durham College Oshawa");
+    assert.equal(formatRegionalDestinationName("Hamilton GO Centre", "LW"), "Hamilton");
+    assert.equal(formatRegionalDestinationName("LW - Hamilton GO Centre", "LW"), "Hamilton");
+    assert.equal(formatRegionalDestinationName("Niagara Falls GO (VIA Station)", "LW"), "Niagara Falls");
+    assert.equal(formatRegionalDestinationName("ST - Unionville GO", "ST"), "Unionville");
+    assert.equal(formatRegionalDestinationName("Union Station", "ST"), "Union");
   });
 
   it("formats regional prediction clock times in Toronto time", () => {

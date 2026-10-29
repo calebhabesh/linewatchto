@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { placeOverlapBadges } from "../src/components/overlap-badge-placement.ts";
+import { placeOverlapBadges, withoutAlertedStretches } from "../src/components/overlap-badge-placement.ts";
 
 const MAP = { x: 0, y: 0, width: 2000, height: 1200 };
 const ROUND = { width: 135, height: 135 };
@@ -216,5 +216,91 @@ describe("overlap badge placement", () => {
 
     assert.deepEqual(reversed, first);
     assert.deepEqual(fresh, first);
+  });
+
+  it("moves a badge to a spot with a clear connector line when its best spot has none", () => {
+    const targets = sampleLine({ x: 600, y: 600 }, { x: 1400, y: 600 });
+    const free = place([{ id: "a", size: ROUND, targets }], []);
+    // Pretend a label blocks every line from above the overlay.
+    const placed = place([{ id: "a", size: ROUND, targets }], [], {
+      connector: ({ position }) => ({
+        needed: true,
+        line: position.y > 600 ? [position, { x: position.x, y: 600 }] : null,
+      }),
+    });
+    assert.ok(free.get("a").position.y <= 600, "without the rule the badge takes a spot whose line is blocked");
+    assert.ok(placed.get("a").position.y > 600, JSON.stringify(placed.get("a").position));
+  });
+
+  it("keeps a spot whose badge touches its overlay without needing a line", () => {
+    const targets = sampleLine({ x: 600, y: 600 }, { x: 1400, y: 600 });
+    const free = place([{ id: "a", size: ROUND, targets }], []);
+    const placed = place([{ id: "a", size: ROUND, targets }], [], {
+      connector: () => ({ needed: false, line: null }),
+    });
+    assert.deepEqual(placed.get("a").position, free.get("a").position);
+  });
+
+  it("keeps later badges off an earlier badge's connector line", () => {
+    const targets = sampleLine({ x: 600, y: 600 }, { x: 1400, y: 600 });
+    const longLine = [{ x: 1000, y: 200 }, { x: 1000, y: 1100 }];
+    const placed = place([
+      { id: "a", size: ROUND, targets },
+      { id: "b", size: ROUND, targets: sampleLine({ x: 1000, y: 900 }, { x: 1000, y: 1000 }) },
+    ], [], {
+      connector: ({ id }) => (id === "a" ? { needed: true, line: longLine } : { needed: false, line: null }),
+    });
+    const b = badgeBox(placed.get("b").position, ROUND);
+    assert.ok(!(b.x <= 1000 && b.x + b.width >= 1000), `badge b sits on a's line: ${JSON.stringify(b)}`);
+  });
+
+  it("gives up an aligned row when it would leave a member without a clear line", () => {
+    const targets = sampleLine({ x: 600, y: 600 }, { x: 1400, y: 600 });
+    const placed = place([
+      { id: "a", size: ROUND, targets },
+      { id: "b", size: ROUND, targets },
+    ], [], {
+      // Badge b's line is only clear from below the overlay.
+      connector: ({ id, position }) => (id === "b"
+        ? { needed: true, line: position.y > 600 ? [position, { x: position.x, y: 600 }] : null }
+        : { needed: false, line: null }),
+    });
+    assert.ok(placed.get("b").position.y > 600, JSON.stringify(placed.get("b").position));
+  });
+});
+
+describe("alerted stretches of transit lines", () => {
+  const track = { polyline: [{ x: 0, y: 500 }, { x: 2000, y: 500 }], radius: 120 };
+  const overlay = [{ x: 600, y: 500 }, { x: 1400, y: 500 }];
+
+  it("cuts the stretch an alert overlay covers out of a line obstacle", () => {
+    const pieces = withoutAlertedStretches([track], [overlay], 20);
+
+    assert.equal(pieces.length, 2);
+    for (const piece of pieces) {
+      assert.equal(piece.radius, track.radius);
+      assert.ok(piece.polyline.every((point) => point.x < 600 || point.x > 1400), JSON.stringify(piece.polyline));
+    }
+    assert.ok(Math.max(...pieces[0].polyline.map((point) => point.x)) >= 540);
+    assert.ok(Math.min(...pieces[1].polyline.map((point) => point.x)) <= 1460);
+  });
+
+  it("leaves lines and other obstacles that no overlay covers unchanged", () => {
+    const label = { x: 100, y: 100, width: 50, height: 20 };
+    const parallel = { polyline: [{ x: 0, y: 700 }, { x: 2000, y: 700 }], radius: 120 };
+    const kept = withoutAlertedStretches([track, label, parallel], [], 20);
+    assert.deepEqual(kept, [track, label, parallel]);
+    assert.deepEqual(withoutAlertedStretches([label, parallel], [overlay], 20), [label, parallel]);
+  });
+
+  it("lets a badge sit at the overlay's gap beside an alerted stretch", () => {
+    const overlayObstacle = { polyline: overlay, radius: 40 };
+    const targets = sampleLine(overlay[0], overlay[1]);
+    const badges = [{ id: "alert", size: ROUND, targets }];
+    const spaced = place(badges, [track, overlayObstacle]).get("alert");
+    const tucked = place(badges, [...withoutAlertedStretches([track], [overlay], 20), overlayObstacle]).get("alert");
+
+    assert.ok(nearestTargetGap(spaced.position, ROUND, targets) >= track.radius);
+    assert.ok(nearestTargetGap(tucked.position, ROUND, targets) < track.radius - 40, JSON.stringify(tucked.position));
   });
 });

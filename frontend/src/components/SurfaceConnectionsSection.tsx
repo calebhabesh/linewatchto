@@ -82,7 +82,7 @@ function SurfaceRouteCard({
       data-surface-mode={group.mode}
       data-pinned-route={isPinned ? "true" : "false"}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <span
             className={`inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md px-1.5 text-xs font-black text-white shadow-sm ${
@@ -106,7 +106,11 @@ function SurfaceRouteCard({
               )}
             </div>
             {details.destinationTarget ? (
-              <p className="mt-0.5 truncate text-xs font-medium text-slate-600 dark:text-slate-300">
+              // Long branch names wrap to a second line instead of running into the badge.
+              <p
+                className="mt-0.5 line-clamp-2 break-words text-xs font-medium leading-snug text-slate-600 dark:text-slate-300"
+                title={details.destinationTarget}
+              >
                 {details.destinationTarget}
               </p>
             ) : null}
@@ -272,7 +276,10 @@ function SurfaceCompactRouteRow({
             )}
           </div>
           {details.destinationTarget ? (
-            <p className="saved-station-arrival-destination mt-0.5 truncate text-xs font-medium text-slate-600 dark:text-slate-300">
+            <p
+              className="saved-station-arrival-destination mt-0.5 truncate text-xs font-medium text-slate-600 dark:text-slate-300"
+              title={details.destinationTarget}
+            >
               {details.destinationTarget}
             </p>
           ) : null}

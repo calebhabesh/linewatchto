@@ -526,6 +526,89 @@ class GtfsRtSubwayTrainMarkerServiceTest {
         verify(travelTimeRepository, times(1)).findActiveScheduledSegmentWeights();
     }
 
+    @Test
+    void holdsTheEarliestPredictionWhileTheFeedsCountdownSlidesSoMarkersKeepMoving() {
+        MutableClock mutableClock = new MutableClock(Instant.parse("2026-07-02T10:00:00Z"), ZoneOffset.UTC);
+        GtfsRtSubwayArrivalCache mutableCache = new GtfsRtSubwayArrivalCache(properties, mutableClock);
+        GtfsRtSubwayTrainMarkerService mutableService = new GtfsRtSubwayTrainMarkerService(
+            mutableCache, lineSegmentRepository, travelTimeRepository, properties, mutableClock,
+            new SubwayOperatingWindow(mutableClock)
+        );
+        stubBaySegment();
+        OffsetDateTime start = OffsetDateTime.now(mutableClock);
+        java.util.function.Function<OffsetDateTime, EstimatedTrainMarker> observe = predictedAt -> {
+            OffsetDateTime now = OffsetDateTime.now(mutableClock);
+            mutableCache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(1), now, List.of(
+                new GtfsRtSubwayStationArrival("bay", "line-2", "Eastbound", predictedAt, null,
+                    "232", "126789", "13753", 19, 16)
+            )));
+            return mutableService.estimatedMarkers().markers().getFirst();
+        };
+
+        EstimatedTrainMarker first = observe.apply(start.plusSeconds(80));
+        assertThat(first.timed()).isTrue();
+        assertThat(first.moving()).isTrue();
+        assertThat(first.progress()).isCloseTo(40 / 120.0, org.assertj.core.data.Offset.offset(1e-9));
+
+        // Ten seconds on, the held countdown still says 80 s: the arrival time slid.
+        mutableClock.advance(Duration.ofSeconds(10));
+        EstimatedTrainMarker slid = observe.apply(start.plusSeconds(90));
+        assertThat(slid.predictedAt()).isEqualTo(start.plusSeconds(80));
+        assertThat(slid.progress()).isCloseTo(50 / 120.0, org.assertj.core.data.Offset.offset(1e-9));
+
+        // The countdown drops: an earlier time replaces the held one.
+        mutableClock.advance(Duration.ofSeconds(25));
+        EstimatedTrainMarker dropped = observe.apply(start.plusSeconds(60));
+        assertThat(dropped.predictedAt()).isEqualTo(start.plusSeconds(60));
+
+        // A slide far past the held countdown is a real hold and is accepted.
+        mutableClock.advance(Duration.ofSeconds(5));
+        EstimatedTrainMarker held = observe.apply(start.plusSeconds(220));
+        assertThat(held.predictedAt()).isEqualTo(start.plusSeconds(220));
+    }
+
+    @Test
+    void showsATrainStandingAtItsNextStationAsStoppedThere() {
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        stubBaySegment();
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(2), now.minusSeconds(1), List.of(
+            new GtfsRtSubwayStationArrival("bay", "line-2", "Eastbound", now, null,
+                "232", "126789", "13753", 19, 16)
+        )));
+
+        assertThat(service.estimatedMarkers().markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.moving()).isFalse();
+            assertThat(marker.progress()).isEqualTo(GtfsRtSubwayTrainMarkerService.STOPPED_AT_STATION_PROGRESS);
+        });
+    }
+
+    @Test
+    void drawsATrainThatHasLeftClearOfThePreviousStation() {
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        stubBaySegment();
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(2), now.minusSeconds(1), List.of(
+            new GtfsRtSubwayStationArrival("bay", "line-2", "Eastbound", now.plusSeconds(300), null,
+                "232", "126789", "13753", 19, 16)
+        )));
+
+        assertThat(service.estimatedMarkers().markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.moving()).isTrue();
+            assertThat(marker.progress()).isEqualTo(GtfsRtSubwayTrainMarkerService.MIN_DEPARTED_PROGRESS);
+        });
+    }
+
+    private void stubBaySegment() {
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-st-george-bay", "line-2", "st-george", "bay", 315, "eastbound")
+        ));
+        when(travelTimeRepository.activeScheduleSignature()).thenReturn("active-import-42");
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of(
+            "line-2-st-george-bay",
+            new CommuteTravelTimeRepository.SegmentTravelTime("line-2-st-george-bay", 120, 25, CommuteTravelTimeRepository.GTFS_SOURCE)
+        ));
+        when(travelTimeRepository.findSeededFallbackSegmentWeights()).thenReturn(Map.of());
+    }
+
     private LineSegmentEntity segment(String id, String lineId, String stationAId, String stationBId, int sortOrder, String forwardDirection) {
         return new LineSegmentEntity(id, lineId, stationAId, stationBId, null, null, sortOrder, forwardDirection, null, false, null, null);
     }

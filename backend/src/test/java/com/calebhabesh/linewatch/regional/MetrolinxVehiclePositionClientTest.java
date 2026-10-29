@@ -41,7 +41,80 @@ class MetrolinxVehiclePositionClientTest {
         Clock clock = Clock.fixed(Instant.ofEpochSecond(1785268043), ZoneOffset.UTC);
         fetcher = new MetrolinxFeedFetcher(builder.build(), JsonMapper.builder().findAndAddModules().build(), properties, clock);
         snapshots = new MetrolinxTripUpdateSnapshots(fetcher, new MetrolinxUpTripUpdateParser(), clock);
-        client = new MetrolinxVehiclePositionClient(fetcher, snapshots);
+        client = new MetrolinxVehiclePositionClient(fetcher, snapshots, RegionalLinkTravelTimes.NONE);
+    }
+
+    // An eastbound UP train that has left Bloor: the TripUpdate no longer lists
+    // Bloor and Union is 420 s away. Clock is 1785268043; vehicle seen at ...040.
+    private static final String UP_VP_LEFT_BLOOR = """
+        {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+         "entity":[{"id":"up-4026","vehicle":{"trip":{"trip_id":"4026","route_id":"UP"},
+           "vehicle":{"id":"cab-4026"},"current_status":"IN_TRANSIT_TO","stop_id":"UN","timestamp":1785268040}}]}
+        """;
+    private static final String UP_TU_LEFT_BLOOR = """
+        {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+         "entity":[{"id":"20260728-4026","trip_update":{
+           "trip":{"trip_id":"20260728-4026","route_id":"UP"},
+           "vehicle":{"id":"cab-4026","label":"UP - Union Station"},
+           "stop_time_update":[
+             {"stop_id":"UN","arrival":{"time":1785268460}}
+           ]}}]}
+        """;
+
+    @Test
+    void timesALinkFromTheTimetableOnceTheFeedDropsThePreviousStop() {
+        client = new MetrolinxVehiclePositionClient(fetcher, snapshots, (lineId, from, to) ->
+            "regional-up".equals(lineId) && "bloor".equals(from) && "union".equals(to)
+                ? java.util.OptionalInt.of(540) : java.util.OptionalInt.empty());
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess(UP_VP_LEFT_BLOOR, MediaType.APPLICATION_JSON));
+        expectUpTripUpdates(UP_TU_LEFT_BLOOR);
+
+        assertThat(client.fetchUp().markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.segmentId()).isEqualTo("segment-up-union-bloor");
+            assertThat(marker.fromStationId()).isEqualTo("bloor");
+            assertThat(marker.nextStationId()).isEqualTo("union");
+            assertThat(marker.timed()).isTrue();
+            assertThat(marker.segmentTravelSeconds()).isEqualTo(540);
+            // 420 s of a 540 s link remain, so it is two ninths of the way to Union.
+            assertThat(marker.progress()).isCloseTo(120 / 540.0, org.assertj.core.data.Offset.offset(1e-9));
+        });
+        server.verify();
+    }
+
+    @Test
+    void neverDrawsATrainAtAStationItHasAlreadyLeft() {
+        // No timetable time: the 300 s fallback is shorter than the 420 s left,
+        // which used to park the marker on Bloor while Bloor's tiles had no train.
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess(UP_VP_LEFT_BLOOR, MediaType.APPLICATION_JSON));
+        expectUpTripUpdates(UP_TU_LEFT_BLOOR);
+
+        assertThat(client.fetchUp().markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.timed()).isTrue();
+            assertThat(marker.moving()).isTrue();
+            assertThat(marker.progress()).isEqualTo(MetrolinxVehiclePositionClient.MIN_DEPARTED_PROGRESS);
+        });
+        server.verify();
+    }
+
+    @Test
+    void prefersTheTripsOwnDepartureOverTheTimetableLinkTime() {
+        client = new MetrolinxVehiclePositionClient(fetcher, snapshots, (lineId, from, to) -> java.util.OptionalInt.of(900));
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess(GO_VP_TO_WESTON, MediaType.APPLICATION_JSON));
+        expectGoTripUpdates("""
+            {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+             "entity":[{"id":"t-3775","trip_update":{"trip":{"trip_id":"3775","route_id":"KI"},
+               "stop_time_update":[
+                 {"stop_id":"ET","departure":{"time":1785267900}},
+                 {"stop_id":"WE","arrival":{"time":1785268100}}
+               ]}}]}
+            """);
+
+        assertThat(client.fetchGo().markers()).singleElement()
+            .satisfies(marker -> assertThat(marker.segmentTravelSeconds()).isEqualTo(200));
+        server.verify();
     }
 
     @Test

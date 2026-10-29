@@ -1,3 +1,4 @@
+import { formatArrivalMinutes, formatNearArrivalRange, isNearLiveArrival } from "./arrival-countdown.ts";
 import type { StationArrival, StationLine } from "./station-data";
 
 type ArrivalTimeFields = Pick<StationArrival, "label" | "minutes" | "status"> & Partial<Pick<StationArrival, "predictedAt">>;
@@ -121,7 +122,6 @@ const LIVE_ARRIVALS_DISCLAIMER =
   "Arrival predictions are source-labeled and may be affected by active TTC service alerts. Live arrival times and ranges may fluctuate as new GTFS-RT feed samples are received.";
 const MIXED_ARRIVALS_DISCLAIMER =
   "Live GTFS-RT rows are shown where available; scheduled rows fill missing directions. Live arrival times and ranges may fluctuate as new GTFS-RT feed samples are received.";
-const DETAILED_COUNTDOWN_THRESHOLD_SECONDS = 120;
 export const ARRIVAL_COUNTDOWN_TICK_MS = 3_000;
 
 export function groupStationArrivals(
@@ -362,18 +362,14 @@ export function formatArrivalClockTime(
 }
 
 export function formatArrivalMinutesDuration(minutes: number): string {
-  if (minutes <= 0) return "Due";
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return remainingMinutes === 0 ? `${hours}h` : `${hours}h ${remainingMinutes}m`;
+  return formatArrivalMinutes(minutes);
 }
 
 export function formatArrivalTileLabel(arrival: ArrivalTileLabelFields, options: ArrivalTileLabelOptions = {}): string {
   if (options.detailedCountdown && shouldUseDetailedArrivalCountdown(arrival, options.now)) {
     const predictedAt = Date.parse(arrival.predictedAt ?? "");
     const secondsUntilArrival = Math.ceil((predictedAt - toMillis(options.now)) / 1000);
-    return `${formatCountdownDuration(secondsUntilArrival)} - ${formatCountdownDuration(secondsUntilArrival + 60)}`;
+    return formatNearArrivalRange(secondsUntilArrival);
   }
   if (options.now !== undefined && arrival.status === "live" && arrival.predictedAt) {
     const predictedAt = Date.parse(arrival.predictedAt);
@@ -398,7 +394,7 @@ export function formatArrivalTileLabel(arrival: ArrivalTileLabelFields, options:
 }
 
 export function shouldUseDetailedArrivalCountdown(arrival: ArrivalTileLabelFields, now?: Date | number | string): boolean {
-  if (arrival.status === "unavailable" || !arrival.predictedAt) {
+  if (!arrival.predictedAt) {
     return false;
   }
   const predictedAt = Date.parse(arrival.predictedAt);
@@ -406,7 +402,7 @@ export function shouldUseDetailedArrivalCountdown(arrival: ArrivalTileLabelField
     return false;
   }
   const secondsUntilArrival = Math.ceil((predictedAt - toMillis(now)) / 1000);
-  return secondsUntilArrival > 0 && secondsUntilArrival < DETAILED_COUNTDOWN_THRESHOLD_SECONDS;
+  return isNearLiveArrival(arrival.status, secondsUntilArrival);
 }
 
 function toMillis(value: Date | number | string | undefined): number {
@@ -422,12 +418,6 @@ function toMillis(value: Date | number | string | undefined): number {
     return Number.isNaN(parsed) ? Date.now() : parsed;
   }
   return Date.now();
-}
-
-function formatCountdownDuration(totalSeconds: number): string {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 function compareArrivals(a: StationArrival, b: StationArrival): number {

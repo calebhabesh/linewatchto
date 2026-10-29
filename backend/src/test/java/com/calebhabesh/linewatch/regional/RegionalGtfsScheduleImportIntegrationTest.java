@@ -110,6 +110,34 @@ class RegionalGtfsScheduleImportIntegrationTest {
     }
 
     @Test
+    void scheduledLinkTimesTakeTheMedianGapBetweenConsecutiveStopsOfActiveImports() {
+        LocalDate serviceDate = LocalDate.parse("2026-10-06");
+        java.util.function.BiFunction<String, int[], List<RegionalGtfsScheduleImport.Departure>> trip =
+            (tripId, seconds) -> List.of(
+                new RegionalGtfsScheduleImport.Departure(
+                    "pearson-airport", "regional-up", "S1", tripId, "", "Union", seconds[0], "", 1),
+                new RegionalGtfsScheduleImport.Departure(
+                    "weston", "regional-up", "S1", tripId, "", "Union", seconds[1], "", 2),
+                new RegionalGtfsScheduleImport.Departure(
+                    "mount-dennis", "regional-up", "S1", tripId, "", "Union", seconds[2], "", 3)
+            );
+        List<RegionalGtfsScheduleImport.Departure> departures = new java.util.ArrayList<>();
+        departures.addAll(trip.apply("T1", new int[] {60_000, 60_720, 60_900}));
+        departures.addAll(trip.apply("T2", new int[] {61_000, 61_660, 61_840}));
+        departures.addAll(trip.apply("T3", new int[] {62_000, 62_720, 62_960}));
+        repository.replace(new RegionalGtfsScheduleImport(
+            "up", "https://example.test/up.zip", serviceDate, serviceDate.plusDays(1),
+            List.of(), List.of(new RegionalGtfsScheduleImport.ServiceException("S1", serviceDate, 1)),
+            departures
+        ), java.time.OffsetDateTime.parse("2026-10-06T12:00:00Z"));
+
+        assertThat(repository.scheduledLinkTimes()).containsExactlyInAnyOrder(
+            new RegionalGtfsScheduleRepository.LinkTime("regional-up", "pearson-airport", "weston", 720),
+            new RegionalGtfsScheduleRepository.LinkTime("regional-up", "weston", "mount-dennis", 180)
+        );
+    }
+
+    @Test
     void successfulImportStreamsDeparturesInBatchesAndActivatesAtomically() throws Exception {
         // Step 1: establish initial active import for "go" with 2 departures
         Path initialZip = tempDir.resolve("go_initial.zip");

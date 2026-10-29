@@ -121,13 +121,19 @@ import {
   BADGE_FEATURE_GAPS,
   badgeObstacleReach,
   placeOverlapBadges,
+  withoutAlertedStretches,
   type PlacementObstacle,
 } from "./overlap-badge-placement";
 import {
   OVERLAP_BADGE_CONNECTOR_DOT_RADIUS,
+  badgeConnectorKeepOut,
   overlapBadgeConnector,
+  overlapBadgeConnectorSearch,
+  type ConnectorCrossing,
+  type ConnectorKeepOut,
   type ConnectorOutline,
   type OverlapBadgeConnector,
+  type OverlapBadgeConnectorOptions,
 } from "./overlap-badge-connector";
 import { getSelectedImpactDetails } from "./MobileImpactInspector";
 import {
@@ -1830,9 +1836,15 @@ function InteractiveTtcMapComponent({
 
   // Same overlays as above, but as true corridors so badges can tuck in beside
   // diagonal alert lines instead of being kept off their bounding squares.
+  const alertOverlayPolylines = useMemo(() => (
+    [...renderedImpactLayers, ...plannedPreviewLayers]
+      .map(({ segment }) => pathPolylinePoints(segment.pathD))
+      .filter((polyline) => polyline.length > 0)
+  ), [plannedPreviewLayers, renderedImpactLayers]);
+
   const overlayPlacementObstacles = useMemo<PlacementObstacle[]>(() => {
-    const corridors = [...renderedImpactLayers, ...plannedPreviewLayers].map(({ segment }) => ({
-      polyline: pathPolylinePoints(segment.pathD),
+    const corridors = alertOverlayPolylines.map((polyline) => ({
+      polyline,
       radius: OVERLAY_BADGE_OBSTACLE_RADIUS,
     }));
     const stationBoxes = stationNodeImpacts.flatMap((impact) => {
@@ -1842,8 +1854,26 @@ function InteractiveTtcMapComponent({
           .map((anchor) => stationOverlapProtectedBox(anchor.point))
         : [];
     });
-    return [...corridors.filter((corridor) => corridor.polyline.length > 0), ...stationBoxes];
-  }, [directionData, plannedPreviewLayers, renderedImpactLayers, stationBySummaryId, stationCenterPoints, stationNodeImpacts]);
+    return [...corridors, ...stationBoxes];
+  }, [alertOverlayPolylines, directionData, stationBySummaryId, stationCenterPoints, stationNodeImpacts]);
+
+  // Track strokes keep badges at the wide transit-line gap only where no alert
+  // overlay covers them; alerted stretches use the overlay's own gap. The rest
+  // of the artwork stays one stable layer so its rasterization is reused.
+  const mapPlacementLayers = useMemo(() => ({
+    artwork: mapPlacementObstacles.filter((obstacle) => !("polyline" in obstacle)),
+    lines: mapPlacementObstacles.filter((obstacle) => "polyline" in obstacle),
+  }), [mapPlacementObstacles]);
+  const unalertedLineObstacles = useMemo(() => (
+    withoutAlertedStretches(mapPlacementLayers.lines, alertOverlayPolylines, TRANSIT_LINE_HALF_WIDTH)
+  ), [alertOverlayPolylines, mapPlacementLayers]);
+
+  // Station names connectors never pass through, and track strokes they avoid
+  // crossing. Same split as the GO/UP map (regionalArtwork).
+  const connectorArtwork = useMemo(() => ({
+    keepOut: mapPlacementObstacles.filter((obstacle): obstacle is ConnectorKeepOut & { polygon: MapPoint[] } => "polygon" in obstacle),
+    crossings: mapPlacementObstacles.filter((obstacle): obstacle is ConnectorCrossing => "polyline" in obstacle),
+  }), [mapPlacementObstacles]);
 
   // Station dots a connector should not end on, with room for their rings.
   const stationDotKeepouts = useMemo(() => stations.flatMap((station) => (
@@ -1977,8 +2007,36 @@ function InteractiveTtcMapComponent({
     stationPointFor,
   ]);
 
+  // One set of connector rules for placement and for drawing: a badge's line
+  // crosses only open space, so it goes around station names, track strokes,
+  // station dots, and every other badge.
+  const connectorOptionsFor = useMemo(() => (
+    badge: OverlapBadgeSegment,
+    position: MapPoint,
+    others: { position: MapPoint; size: { width: number; height: number } }[],
+  ): OverlapBadgeConnectorOptions => ({
+    position,
+    size: badge.size,
+    outlines: badge.impacts.flatMap((impact) => (
+      connectorOutlinesByImpact.get(impactCollisionKey(impact.kind, impact.cardId)) ?? []
+    )),
+    minimumLength: OVERLAP_BADGE_CONNECTOR_MIN_LENGTH,
+    // A station badge points at its overlays right beside the station.
+    within: badge.placementAnchor
+      ? { center: badge.placementAnchor, radius: STATION_BADGE_TARGET_RADIUS }
+      : undefined,
+    avoid: stationDotKeepouts,
+    endRadius: OVERLAP_BADGE_CONNECTOR_DOT_RADIUS,
+    keepOut: [
+      ...connectorArtwork.keepOut,
+      ...others.map((other) => badgeConnectorKeepOut(other.position, other.size, OVERLAP_BADGE_CONNECTOR_DOT_RADIUS)),
+    ],
+    crossings: connectorArtwork.crossings,
+  }), [connectorArtwork, connectorOutlinesByImpact, stationDotKeepouts]);
+
   const overlapBadgePlacements = useMemo(() => {
     const badges = [...overlapBadgeSegments, ...stationOverlapBadges];
+    const badgeById = new Map(badges.map((badge) => [badge.layoutId, badge]));
     return new Map(placeOverlapBadges({
       badges: badges.map((badge) => {
         const ownImpactKeys = new Set(badge.impacts.map((impact) => impactCollisionKey(impact.kind, impact.cardId)));
@@ -1992,49 +2050,50 @@ function InteractiveTtcMapComponent({
             .flatMap(([, boxes]) => boxes.map(boxCenter)),
         };
       }),
-      obstacleLayers: [mapPlacementObstacles, overlayPlacementObstacles],
+      obstacleLayers: [mapPlacementLayers.artwork, unalertedLineObstacles, overlayPlacementObstacles],
       mapBounds: MAP_VIEWBOX_BOUNDS,
       siblingGap: OVERLAP_BADGE_SIBLING_CLEARANCE,
+      // Every badge gets a spot with a clear connector line when one exists.
+      connector: ({ id, position, placed }) => {
+        const badge = badgeById.get(id);
+        if (!badge) return { needed: false, line: null };
+        const { needed, connector } = overlapBadgeConnectorSearch(connectorOptionsFor(badge, position, placed));
+        return { needed, line: connector ? [connector.from, connector.to] : null };
+      },
     }).map((placement) => [placement.id, placement]));
   }, [
     collisionBoxesByImpact,
-    mapPlacementObstacles,
+    connectorOptionsFor,
+    mapPlacementLayers,
     overlayPlacementObstacles,
     overlapBadgeSegments,
     stationOverlapBadges,
+    unalertedLineObstacles,
   ]);
 
   const overlapBadges = useMemo<OverlapBadgeWithChooser[]>(() => {
-    return [...overlapBadgeSegments, ...stationOverlapBadges].map((badge) => {
+    const positionedBadges = [...overlapBadgeSegments, ...stationOverlapBadges].map((badge) => {
       const placement = overlapBadgePlacements.get(badge.layoutId);
-      const positioned = placement
+      return placement
         ? { ...badge, position: { ...placement.position, collisionAvoided: placement.collisionAvoided } }
         : badge;
-      const affectedOutlines = badge.impacts.flatMap((impact) => (
-        connectorOutlinesByImpact.get(impactCollisionKey(impact.kind, impact.cardId)) ?? []
-      ));
+    });
+    return positionedBadges.map((badge) => {
+      const options = connectorOptionsFor(
+        badge,
+        badge.position,
+        positionedBadges.filter((other) => other.layoutId !== badge.layoutId),
+      );
       return {
-        ...positioned,
-        affectedOutlines,
+        ...badge,
+        affectedOutlines: options.outlines,
         chooserSize: overlapChooserSize(badge.impacts.length, mapViewportSize.width),
-        connector: overlapBadgeConnector({
-          position: positioned.position,
-          size: positioned.size,
-          outlines: affectedOutlines,
-          minimumLength: OVERLAP_BADGE_CONNECTOR_MIN_LENGTH,
-          // A station badge points at its overlays right beside the station.
-          within: badge.placementAnchor
-            ? { center: badge.placementAnchor, radius: STATION_BADGE_TARGET_RADIUS }
-            : undefined,
-          avoid: stationDotKeepouts,
-          endRadius: OVERLAP_BADGE_CONNECTOR_DOT_RADIUS,
-        }),
+        connector: overlapBadgeConnector(options),
       };
     });
   }, [
-    connectorOutlinesByImpact,
+    connectorOptionsFor,
     mapViewportSize.width,
-    stationDotKeepouts,
     overlapBadgePlacements,
     overlapBadgeSegments,
     stationOverlapBadges,
@@ -3368,7 +3427,8 @@ const OVERLAY_BADGE_OBSTACLE_RADIUS = badgeObstacleReach(OVERLAY_HOVER_OUTLINE_H
 // Station-only alert rings are stroked up to 8 units wide when highlighted.
 const STATION_IMPACT_RING_STROKE_HALF_WIDTH = 4;
 // Below this gap the badge visibly touches its overlay and needs no line.
-const OVERLAP_BADGE_CONNECTOR_MIN_LENGTH = 24;
+// Badges sit at least BADGE_FEATURE_GAPS.alertOverlay away, which is above it.
+const OVERLAP_BADGE_CONNECTOR_MIN_LENGTH = 12;
 const CONNECTOR_STATION_CLEARANCE = 12;
 
 function overlapBadgeTargetsForPath(pathD: string): MapPoint[] {
