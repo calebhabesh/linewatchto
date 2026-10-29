@@ -1,4 +1,6 @@
 const DEFAULT_NOW = "2026-07-29T18:00:00.000Z";
+/** Current alerts stay active this long, so a dev server keeps them all session. */
+const SESSION_MINUTES = 24 * 60;
 
 export const regionalScenarioNames = [
   "all-alert-types",
@@ -8,12 +10,29 @@ export const regionalScenarioNames = [
 ];
 
 export const regionalScenarioExpectations = {
+  // One alert of every kind the GO/UP map and menus show, modeled on the
+  // shapes in recorded Metrolinx history, with no two covering the same case.
   "all-alert-types": {
-    goRecordCount: 9,
-    upRecordCount: 3,
-    normalizedAlertCount: 11,
-    accessibilityCount: 3,
+    goRecordCount: 4,
+    goGtfsRecordCount: 6,
+    upRecordCount: 2,
+    normalizedAlertCount: 10,
+    accessibilityCount: 2,
     impactKinds: ["advisory", "delay", "planned-closure"],
+    coverage: {
+      "advisory-span": "LW-SCENARIO-BR-CROSSING",
+      "advisory-station": "LW-SCENARIO-KI-TRACK-REPAIR",
+      "delay-span-trip-direction": "linewatch-go-le-trip-delay",
+      "delay-station-trip-direction": "linewatch-go-ki-station-trip-delay",
+      "delay-span-both-directions": "linewatch-go-lw-speed-reduction",
+      "delay-whole-line": "linewatch-go-mi-corridor-delay",
+      "planned-closure-span-upcoming": "linewatch-go-rh-weekend-closure",
+      "planned-closure-listed-stations": "linewatch-go-st-stop-closures",
+      "no-service-now": "linewatch-up-suspension",
+      "delay-station-no-direction": "linewatch-up-station-delay",
+      "accessibility-elevator": "LW-SCENARIO-AG-ELEVATOR",
+      "accessibility-escalator": "LW-SCENARIO-ESCALATOR",
+    },
     lineIds: [
       "regional-br", "regional-ki", "regional-le", "regional-lw",
       "regional-mi", "regional-rh", "regional-st", "regional-up",
@@ -96,7 +115,7 @@ function translated(text) {
 
 function upEntity(now, {
   id, header, description, cause, effect, stops = [], startOffset = -30,
-  endOffset = 180, origin = "synthetic",
+  endOffset = SESSION_MINUTES, origin = "synthetic",
 }) {
   return {
     id,
@@ -114,6 +133,18 @@ function upEntity(now, {
     },
     _linewatchScenarioOrigin: origin,
   };
+}
+
+/** A GO GTFS-RT alert: the timed, stop-tagged half of a Metrolinx notice. */
+function goEntity(now, {
+  id, header, description, cause, effect, route, stops = [], startOffset = -30,
+  endOffset = SESSION_MINUTES, origin = "synthetic",
+}) {
+  const entity = upEntity(now, { id, header, description, cause, effect, stops, startOffset, endOffset, origin });
+  entity.alert.informed_entity = stops.length > 0
+    ? stops.map((stop_id) => ({ route_id: route, stop_id }))
+    : [{ route_id: route }];
+  return entity;
 }
 
 function records(now) {
@@ -216,9 +247,86 @@ function records(now) {
     startOffset: 120,
     endOffset: 300,
   });
+
+  // all-alert-types: one record per alert kind, worded like recorded notices.
+  const crossingAdvisory = goMessage(now, {
+    code: "LW-SCENARIO-BR-CROSSING",
+    subject: "Barrie - Railway crossing issue",
+    body: "Synthetic scenario: trains may be delayed between Maple GO and King City GO while crews respond to a railway crossing issue.",
+    lines: ["BR"],
+    stops: ["MP", "KC"],
+    subCategory: "Service Disruption",
+  });
+  const trackRepairAdvisory = goMessage(now, {
+    code: "LW-SCENARIO-KI-TRACK-REPAIR",
+    subject: "Kitchener - Unplanned track repair",
+    body: "Synthetic scenario: crews are making an unplanned track repair near Georgetown GO. Trains may be delayed.",
+    lines: ["GT"],
+    stops: ["GE"],
+    subCategory: "Service Disruption",
+  });
+  const tripDelaySpan = goEntity(now, {
+    id: "linewatch-go-le-trip-delay",
+    header: "Train delay - Union Station 4:53 PM - Durham College Oshawa GO 5:56 PM",
+    description: "Synthetic scenario: this trip is delayed up to 15 minutes between Union Station and Rouge Hill GO due to a signal issue.",
+    cause: "TECHNICAL_PROBLEM",
+    effect: "SIGNIFICANT_DELAYS",
+    route: "LE",
+    stops: ["UN", "RO"],
+  });
+  const tripDelayStation = goEntity(now, {
+    id: "linewatch-go-ki-station-trip-delay",
+    header: "Train delay - Stratford GO 6:16 AM - Union Station 8:47 AM",
+    description: "Synthetic scenario: this trip is delayed at Weston GO by up to 10 minutes due to a mechanical issue.",
+    cause: "TECHNICAL_PROBLEM",
+    effect: "SIGNIFICANT_DELAYS",
+    route: "GT",
+    stops: ["WE"],
+  });
+  const speedReduction = goEntity(now, {
+    id: "linewatch-go-lw-speed-reduction",
+    header: "Lakeshore West - Track speed reductions",
+    description: "Synthetic scenario: trains are operating at reduced speed between Confederation GO and Niagara Falls GO. Expect delays of up to 10 minutes.",
+    cause: "MAINTENANCE",
+    effect: "SIGNIFICANT_DELAYS",
+    route: "LW",
+    stops: ["CF", "NI"],
+  });
+  const corridorDelay = goEntity(now, {
+    id: "linewatch-go-mi-corridor-delay",
+    header: "Milton - Delays across the corridor",
+    description: "Synthetic scenario: trains are operating with delays of up to 20 minutes across the corridor due to a signal issue.",
+    cause: "TECHNICAL_PROBLEM",
+    effect: "SIGNIFICANT_DELAYS",
+    route: "MI",
+  });
+  const weekendClosure = goEntity(now, {
+    id: "linewatch-go-rh-weekend-closure",
+    header: "Richmond Hill - Weekend construction",
+    description: "Synthetic scenario: there will be no train service between Langstaff GO and Richmond Hill GO for planned construction. Buses will replace trains.",
+    cause: "CONSTRUCTION",
+    effect: "NO_SERVICE",
+    route: "RH",
+    stops: ["LA", "RI"],
+    startOffset: 1440,
+    endOffset: 4320,
+  });
+  const stopClosures = goEntity(now, {
+    id: "linewatch-go-st-stop-closures",
+    header: "Stouffville - Service adjustments",
+    description: "Synthetic scenario: trains will not stop at Agincourt GO and Milliken GO for planned platform work.",
+    cause: "CONSTRUCTION",
+    effect: "STOP_CLOSED",
+    route: "ST",
+    stops: ["AG", "MK"],
+    startOffset: 1440,
+    endOffset: 2880,
+  });
   return {
     leDelay, lePlanned, lwRouteDelay, stationSuspension, kiAdjustment, multiLine,
     elevator, unionMaintenance, escalator, upSuspension, upStationDelay, upPlanned,
+    crossingAdvisory, trackRepairAdvisory, tripDelaySpan, tripDelayStation, speedReduction,
+    corridorDelay, weekendClosure, stopClosures,
   };
 }
 
@@ -229,11 +337,12 @@ export function buildRegionalScenario(name, { now = DEFAULT_NOW } = {}) {
   const r = records(now);
   const selected = {
     "all-alert-types": {
-      go: [
-        r.leDelay, r.lePlanned, r.lwRouteDelay, r.stationSuspension, r.kiAdjustment,
-        r.multiLine, r.elevator, r.unionMaintenance, r.escalator,
+      go: [r.crossingAdvisory, r.trackRepairAdvisory, r.elevator, r.escalator],
+      goGtfs: [
+        r.tripDelaySpan, r.tripDelayStation, r.speedReduction, r.corridorDelay,
+        r.weekendClosure, r.stopClosures,
       ],
-      up: [r.upSuspension, r.upStationDelay, r.upPlanned],
+      up: [r.upSuspension, r.upStationDelay],
     },
     "go-corridor-overlap": {
       go: [r.leDelay, r.lePlanned, r.lwRouteDelay],
@@ -259,6 +368,14 @@ export function buildRegionalScenario(name, { now = DEFAULT_NOW } = {}) {
         ErrorMessage: "OK",
       },
       Messages: { Message: selected.go },
+    },
+    goGtfs: {
+      header: {
+        gtfs_realtime_version: "2.0",
+        incrementality: "FULL_DATASET",
+        timestamp: Math.floor(sourceTime.getTime() / 1000),
+      },
+      entity: selected.goGtfs ?? [],
     },
     up: {
       header: {

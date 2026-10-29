@@ -29,4 +29,8 @@ scripts for GO/UP. The shared `all-alert-types` backend serves both source shape
 TTC-focused scenarios disable regional ingestion to avoid leaking configured live
 regional data into a synthetic scenario. All committed scenario records are authored
 synthetic examples, including the reusable templates in `scripts/alert-scenario-templates.mjs`.
-They are never current public service information.
+They are never current public service information. `all-alert-types` holds one record per alert case
+for each network, modeled on the shapes and wording in recorded alert history, and
+lists them in its `coverageMatrix` (TTC) or `coverage` (GO/UP); add a case there
+rather than a second record of one already covered. Timed GO notices come from GO
+GTFS-RT alerts, as live, so their windows stay current for the whole dev session.

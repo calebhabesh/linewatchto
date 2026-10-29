@@ -1,6 +1,6 @@
 {
   "lastUpdated": "2026-06-03T14:59:00.000Z",
-  "total": 26,
+  "total": 18,
   "routes": [
     {
       "id": "scenario-active-line-2",
@@ -44,39 +44,6 @@
       "_linewatchScenarioOrigin": "synthetic"
     },
     {
-      "id": "scenario-active-line-1-dupont-cedarvale",
-      "alertType": "Live",
-      "lastUpdated": "2026-06-03T14:55:00.000Z",
-      "activePeriod": {
-        "start": "2026-06-03T14:30:00.000Z",
-        "end": "0001-01-01T00:00:00Z"
-      },
-      "route": "1",
-      "routeType": "Subway",
-      "stopStart": "Dupont",
-      "stopEnd": "Cedarvale",
-      "stopIDList": [
-        "Dupont",
-        "St Clair West",
-        "Cedarvale"
-      ],
-      "title": "No service between Dupont and Cedarvale stations while we respond to a security incident.",
-      "headerText": "Line 1 Yonge-University: No service between Dupont and Cedarvale stations while we respond to a security incident.",
-      "effect": "NO_SERVICE",
-      "effectDesc": "No Service",
-      "cause": "SECURITY_INCIDENT",
-      "causeDescription": "Security incident",
-      "childAlerts": [],
-      "direction": "Both ways",
-      "shuttleType": "Ordered",
-      "shuttleStart": "Dupont",
-      "shuttleEnd": "Cedarvale",
-      "activePeriodGroup": [
-        "Current"
-      ],
-      "_linewatchScenarioOrigin": "synthetic"
-    },
-    {
       "id": "scenario-active-line-1-king-union",
       "alertType": "Live",
       "lastUpdated": "2026-06-03T14:55:00.000Z",
@@ -109,38 +76,6 @@
       "_linewatchScenarioOrigin": "synthetic"
     },
     {
-      "id": "scenario-active-line-1-museum-st-george",
-      "alertType": "Live",
-      "lastUpdated": "2026-06-03T14:55:00.000Z",
-      "activePeriod": {
-        "start": "2026-06-03T14:30:00.000Z",
-        "end": "0001-01-01T00:00:00Z"
-      },
-      "route": "1",
-      "routeType": "Subway",
-      "stopStart": "Museum",
-      "stopEnd": "St George",
-      "stopIDList": [
-        "Museum",
-        "St George"
-      ],
-      "title": "No service northbound from Museum to St George stations while we respond to a security incident.",
-      "headerText": "Line 1 Yonge-University: No service northbound from Museum to St George stations while we respond to a security incident.",
-      "effect": "NO_SERVICE",
-      "effectDesc": "No Service",
-      "cause": "SECURITY_INCIDENT",
-      "causeDescription": "Security incident",
-      "childAlerts": [],
-      "direction": "Northbound",
-      "shuttleType": "Ordered",
-      "shuttleStart": "Museum",
-      "shuttleEnd": "St George",
-      "activePeriodGroup": [
-        "Current"
-      ],
-      "_linewatchScenarioOrigin": "synthetic"
-    },
-    {
       "id": "scenario-station-node-bloor-yonge-line-1",
       "alertType": "Live",
       "lastUpdated": "2026-06-03T14:55:00.000Z",
@@ -163,63 +98,6 @@
       "causeDescription": "Security incident",
       "childAlerts": [],
       "direction": "Both ways",
-      "activePeriodGroup": [
-        "Current"
-      ],
-      "_linewatchScenarioOrigin": "synthetic"
-    },
-    {
-      "id": "scenario-station-node-bloor-yonge-line-2",
-      "alertType": "Live",
-      "lastUpdated": "2026-06-03T14:55:00.000Z",
-      "activePeriod": {
-        "start": "2026-06-03T14:30:00.000Z",
-        "end": "0001-01-01T00:00:00Z"
-      },
-      "route": "2",
-      "routeType": "Subway",
-      "stopStart": "Bloor-Yonge",
-      "stopEnd": "Bloor-Yonge",
-      "stopIDList": [
-        "Bloor-Yonge"
-      ],
-      "title": "Trains are not stopping at Bloor-Yonge station due to a security incident.",
-      "headerText": "Line 2 Bloor-Danforth: Trains are not stopping at Bloor-Yonge station due to a security incident.",
-      "effect": "NO_SERVICE",
-      "effectDesc": "No Service",
-      "cause": "SECURITY_INCIDENT",
-      "causeDescription": "Security incident",
-      "childAlerts": [],
-      "direction": "Both ways",
-      "activePeriodGroup": [
-        "Current"
-      ],
-      "_linewatchScenarioOrigin": "synthetic"
-    },
-    {
-      "id": "scenario-delay-line-4",
-      "alertType": "Live",
-      "lastUpdated": "2026-06-03T14:55:00.000Z",
-      "activePeriod": {
-        "start": "2026-06-03T14:30:00.000Z",
-        "end": "0001-01-01T00:00:00Z"
-      },
-      "route": "4",
-      "routeType": "Subway",
-      "stopStart": "Sheppard-Yonge",
-      "stopEnd": "Don Mills",
-      "stopIDList": [
-        "Davisville",
-        "Eglinton"
-      ],
-      "title": "Delays eastbound between Sheppard-Yonge and Don Mills while we respond to a signal problem.",
-      "headerText": "Line 4 Sheppard: Delays eastbound between Sheppard-Yonge and Don Mills while we respond to a signal problem.",
-      "effect": "SIGNIFICANT_DELAYS",
-      "effectDesc": "Delays",
-      "cause": "SIGNALS",
-      "causeDescription": "Signal problem",
-      "childAlerts": [],
-      "direction": "Eastbound",
       "activePeriodGroup": [
         "Current"
       ],
@@ -255,29 +133,28 @@
       "_linewatchScenarioOrigin": "synthetic"
     },
     {
-      "id": "scenario-delay-line-1-dupont-spadina",
+      "id": "scenario-station-node-christie-eastbound",
       "alertType": "Live",
       "lastUpdated": "2026-06-03T14:55:00.000Z",
       "activePeriod": {
         "start": "2026-06-03T14:30:00.000Z",
         "end": "0001-01-01T00:00:00Z"
       },
-      "route": "1",
+      "route": "2",
       "routeType": "Subway",
-      "stopStart": "Dupont",
-      "stopEnd": "Spadina",
+      "stopStart": "Christie",
+      "stopEnd": "Christie",
       "stopIDList": [
-        "Dupont",
-        "Spadina"
+        "Christie"
       ],
-      "title": "Delays southbound from Dupont to Spadina while we respond to an operational problem.",
-      "headerText": "Line 1 Yonge-University: Delays southbound from Dupont to Spadina while we respond to an operational problem.",
-      "effect": "SIGNIFICANT_DELAYS",
-      "effectDesc": "Delays",
-      "cause": "OPERATIONS",
-      "causeDescription": "Operational problem",
+      "title": "Trains are not stopping eastbound at Christie station due to a security incident.",
+      "headerText": "Line 2 Bloor-Danforth: Trains are not stopping eastbound at Christie station due to a security incident.",
+      "effect": "NO_SERVICE",
+      "effectDesc": "No Service",
+      "cause": "SECURITY_INCIDENT",
+      "causeDescription": "Security incident",
       "childAlerts": [],
-      "direction": "Southbound",
+      "direction": "Eastbound",
       "activePeriodGroup": [
         "Current"
       ],
@@ -307,119 +184,6 @@
       "effectDesc": "Delays",
       "cause": "MAINTENANCE",
       "causeDescription": "Track problem",
-      "childAlerts": [],
-      "direction": "Both ways",
-      "activePeriodGroup": [
-        "Current"
-      ],
-      "_linewatchScenarioOrigin": "synthetic"
-    },
-    {
-      "id": "scenario-delay-line-2-jane-runnymede",
-      "alertType": "Live",
-      "lastUpdated": "2026-06-03T14:55:00.000Z",
-      "activePeriod": {
-        "start": "2026-06-03T14:30:00.000Z",
-        "end": "0001-01-01T00:00:00Z"
-      },
-      "route": "2",
-      "routeType": "Subway",
-      "stopStart": "Jane",
-      "stopEnd": "Runnymede",
-      "stopIDList": [
-        "Jane",
-        "Runnymede"
-      ],
-      "title": "Delays both ways between Jane and Runnymede while we respond to a track problem.",
-      "headerText": "Line 2 Bloor-Danforth: Delays both ways between Jane and Runnymede while we respond to a track problem.",
-      "effect": "SIGNIFICANT_DELAYS",
-      "effectDesc": "Delays",
-      "cause": "MAINTENANCE",
-      "causeDescription": "Track problem",
-      "childAlerts": [],
-      "direction": "Both ways",
-      "activePeriodGroup": [
-        "Current"
-      ],
-      "_linewatchScenarioOrigin": "synthetic"
-    },
-    {
-      "id": "scenario-station-node-jane-overlap",
-      "alertType": "Live",
-      "lastUpdated": "2026-06-03T14:55:00.000Z",
-      "activePeriod": {
-        "start": "2026-06-03T14:30:00.000Z",
-        "end": "0001-01-01T00:00:00Z"
-      },
-      "route": "2",
-      "routeType": "Subway",
-      "stopStart": "Jane",
-      "stopEnd": "Jane",
-      "stopIDList": [
-        "Jane"
-      ],
-      "title": "Delays at Jane station while we respond to an emergency alarm.",
-      "headerText": "Line 2 Bloor-Danforth: Delays at Jane station while we respond to an emergency alarm.",
-      "effect": "SIGNIFICANT_DELAYS",
-      "effectDesc": "Delays",
-      "cause": "MEDICAL_EMERGENCY",
-      "causeDescription": "Emergency alarm",
-      "childAlerts": [],
-      "direction": "Eastbound",
-      "activePeriodGroup": [
-        "Current"
-      ],
-      "_linewatchScenarioOrigin": "synthetic"
-    },
-    {
-      "id": "scenario-station-node-keele",
-      "alertType": "Live",
-      "lastUpdated": "2026-06-03T14:55:00.000Z",
-      "activePeriod": {
-        "start": "2026-06-03T14:30:00.000Z",
-        "end": "0001-01-01T00:00:00Z"
-      },
-      "route": "2",
-      "routeType": "Subway",
-      "stopStart": "Keele",
-      "stopEnd": "Keele",
-      "stopIDList": [
-        "Keele"
-      ],
-      "title": "Delays westbound at Keele station while we respond to an emergency alarm.",
-      "headerText": "Line 2 Bloor-Danforth: Delays westbound at Keele station while we respond to an emergency alarm.",
-      "effect": "SIGNIFICANT_DELAYS",
-      "effectDesc": "Delays",
-      "cause": "MEDICAL_EMERGENCY",
-      "causeDescription": "Emergency alarm",
-      "childAlerts": [],
-      "direction": "Westbound",
-      "activePeriodGroup": [
-        "Current"
-      ],
-      "_linewatchScenarioOrigin": "synthetic"
-    },
-    {
-      "id": "scenario-station-node-dundas-west-bidirectional",
-      "alertType": "Live",
-      "lastUpdated": "2026-06-03T14:55:00.000Z",
-      "activePeriod": {
-        "start": "2026-06-03T14:30:00.000Z",
-        "end": "0001-01-01T00:00:00Z"
-      },
-      "route": "2",
-      "routeType": "Subway",
-      "stopStart": "Dundas West",
-      "stopEnd": "Dundas West",
-      "stopIDList": [
-        "Dundas West"
-      ],
-      "title": "Delays both ways at Dundas West station while we respond to an emergency alarm.",
-      "headerText": "Line 2 Bloor-Danforth: Delays both ways at Dundas West station while we respond to an emergency alarm.",
-      "effect": "SIGNIFICANT_DELAYS",
-      "effectDesc": "Delays",
-      "cause": "MEDICAL_EMERGENCY",
-      "causeDescription": "Emergency alarm",
       "childAlerts": [],
       "direction": "Both ways",
       "activePeriodGroup": [
@@ -478,62 +242,6 @@
       "causeDescription": "Emergency alarm",
       "childAlerts": [],
       "direction": "Both ways",
-      "activePeriodGroup": [
-        "Current"
-      ],
-      "_linewatchScenarioOrigin": "synthetic"
-    },
-    {
-      "id": "scenario-station-node-lawrence-west",
-      "alertType": "Live",
-      "lastUpdated": "2026-06-03T14:55:00.000Z",
-      "activePeriod": {
-        "start": "2026-06-03T14:30:00.000Z",
-        "end": "0001-01-01T00:00:00Z"
-      },
-      "route": "1",
-      "routeType": "Subway",
-      "stopStart": "Lawrence West",
-      "stopEnd": "Lawrence West",
-      "stopIDList": [
-        "Lawrence West"
-      ],
-      "title": "Delays both ways at Lawrence West station while we respond to an emergency alarm.",
-      "headerText": "Line 1 Yonge-University: Delays both ways at Lawrence West station while we respond to an emergency alarm.",
-      "effect": "SIGNIFICANT_DELAYS",
-      "effectDesc": "Delays",
-      "cause": "MEDICAL_EMERGENCY",
-      "causeDescription": "Emergency alarm",
-      "childAlerts": [],
-      "direction": "Both ways",
-      "activePeriodGroup": [
-        "Current"
-      ],
-      "_linewatchScenarioOrigin": "synthetic"
-    },
-    {
-      "id": "scenario-station-node-spadina-line-2-westbound",
-      "alertType": "Live",
-      "lastUpdated": "2026-06-03T14:55:00.000Z",
-      "activePeriod": {
-        "start": "2026-06-03T14:30:00.000Z",
-        "end": "0001-01-01T00:00:00Z"
-      },
-      "route": "2",
-      "routeType": "Subway",
-      "stopStart": "Spadina",
-      "stopEnd": "Spadina",
-      "stopIDList": [
-        "Spadina"
-      ],
-      "title": "Delays westbound at Spadina station while we respond to an emergency alarm.",
-      "headerText": "Line 2 Bloor-Danforth: Delays westbound at Spadina station while we respond to an emergency alarm.",
-      "effect": "SIGNIFICANT_DELAYS",
-      "effectDesc": "Delays",
-      "cause": "MEDICAL_EMERGENCY",
-      "causeDescription": "Emergency alarm",
-      "childAlerts": [],
-      "direction": "Westbound",
       "activePeriodGroup": [
         "Current"
       ],
@@ -762,6 +470,139 @@
         }
       ],
       "direction": "Both ways",
+      "_linewatchScenarioOrigin": "synthetic"
+    },
+    {
+      "id": "scenario-limited-parent",
+      "priority": 0,
+      "alertType": "Planned",
+      "lastUpdated": "2026-06-03T14:55:00.000Z",
+      "activePeriod": {
+        "start": "2026-06-03T14:00:00.000Z",
+        "end": "2026-06-04T16:00:00.000Z"
+      },
+      "activePeriodGroup": [
+        "Current",
+        "Nightly"
+      ],
+      "routeOrder": 1,
+      "route": "1",
+      "routeBranch": "",
+      "routeTypeSrc": "400",
+      "routeType": "Subway",
+      "stopStart": "Vaughan Metropolitan Centre",
+      "stopEnd": "Finch West",
+      "stopStartId": null,
+      "stopEndId": null,
+      "stops": [],
+      "title": "Limited nightly service between Vaughan and Finch West",
+      "description": "There will be limited nightly subway service due to planned track work.",
+      "url": "",
+      "urlPlaceholder": "",
+      "accessibility": "Routes",
+      "effect": "LIMITED_SERVICE",
+      "effectDesc": "Limited service",
+      "severityOrder": 1,
+      "severity": "Critical",
+      "customHeaderText": null,
+      "headerText": "Line 1: Limited nightly service between Vaughan and Finch West",
+      "direction": "Both ways",
+      "cause": "MAINTENANCE",
+      "causeDescription": "Closure - Planned Track Work",
+      "stopIDList": [
+        "Vaughan Metropolitan Centre",
+        "Highway 407",
+        "Pioneer Village",
+        "York University",
+        "Finch West"
+      ],
+      "stopNameList": [],
+      "stopRouteList": [],
+      "rszLength": null,
+      "distance": null,
+      "trackPercent": null,
+      "reducedSpeed": null,
+      "averageSpeed": null,
+      "targetRemoval": null,
+      "shuttleType": null,
+      "shuttleStart": null,
+      "shuttleEnd": null,
+      "elevatorCode": null,
+      "escalatorCode": null,
+      "criticality": 0,
+      "childAlerts": [
+        {
+          "id": "scenario-limited-child",
+          "startTime": "2026-06-03T14:00:00.000Z",
+          "endTime": "2026-06-03T17:00:00.000Z"
+        },
+        {
+          "id": "scenario-limited-next",
+          "startTime": "2026-06-04T14:00:00.000Z",
+          "endTime": "2026-06-04T17:00:00.000Z"
+        }
+      ],
+      "_linewatchScenarioOrigin": "synthetic"
+    },
+    {
+      "id": "scenario-limited-child",
+      "priority": 0,
+      "alertType": "Live",
+      "lastUpdated": "2026-06-03T14:55:00.000Z",
+      "activePeriod": {
+        "start": "2026-06-03T14:00:00.000Z",
+        "end": "2026-06-03T17:00:00.000Z"
+      },
+      "activePeriodGroup": [
+        "Current",
+        "Nightly"
+      ],
+      "routeOrder": 1,
+      "route": "1",
+      "routeBranch": "",
+      "routeTypeSrc": "400",
+      "routeType": "Subway",
+      "stopStart": "Vaughan Metropolitan Centre",
+      "stopEnd": "Finch West",
+      "stopStartId": null,
+      "stopEndId": null,
+      "stops": [],
+      "title": "There is limited subway service between Vaughan and Finch West stations.",
+      "description": "There is limited subway service due to planned track work.",
+      "url": "",
+      "urlPlaceholder": "",
+      "accessibility": "Routes",
+      "effect": "LIMITED_SERVICE",
+      "effectDesc": "Limited service",
+      "severityOrder": 1,
+      "severity": "Critical",
+      "customHeaderText": null,
+      "headerText": "Line 1: There is limited subway service between Vaughan and Finch West stations.",
+      "direction": "Both ways",
+      "cause": "MAINTENANCE",
+      "causeDescription": "Closure - Planned Track Work",
+      "stopIDList": [
+        "Vaughan Metropolitan Centre",
+        "Highway 407",
+        "Pioneer Village",
+        "York University",
+        "Finch West"
+      ],
+      "stopNameList": [],
+      "stopRouteList": [],
+      "rszLength": null,
+      "distance": null,
+      "trackPercent": null,
+      "reducedSpeed": null,
+      "averageSpeed": null,
+      "targetRemoval": null,
+      "shuttleType": null,
+      "shuttleStart": null,
+      "shuttleEnd": null,
+      "elevatorCode": null,
+      "escalatorCode": null,
+      "criticality": 0,
+      "childAlerts": [],
       "_linewatchScenarioOrigin": "synthetic"
     }
   ],

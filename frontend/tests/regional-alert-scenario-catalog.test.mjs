@@ -27,6 +27,7 @@ describe("regional alert scenario catalog", () => {
       assert.equal(fixture.up.header.incrementality, "FULL_DATASET");
       assert.equal(fixture.go.Messages.Message.length, entry.goRecordCount);
       assert.equal(fixture.up.entity.length, entry.upRecordCount);
+      assert.equal(fixture.goGtfs.entity.length, entry.goGtfsRecordCount ?? 0);
     }
   });
 
@@ -45,12 +46,18 @@ describe("regional alert scenario catalog", () => {
 
   it("uses authored synthetic records for every regional scenario", () => {
     const fixture = JSON.parse(readFileSync(new URL("all-alert-types.json", fixtureRoot), "utf8"));
-    const records = [...fixture.go.Messages.Message, ...fixture.up.entity];
+    const records = [...fixture.go.Messages.Message, ...fixture.goGtfs.entity, ...fixture.up.entity];
     const origins = new Set(records.map((record) => record._linewatchScenarioOrigin));
     assert.deepEqual([...origins].sort(), ["synthetic"]);
-    assert.ok(records.some((record) => record.Code === "LW-SCENARIO-KI-ADJUSTMENT"));
-    assert.ok(records.some((record) => record.Code === "LW-SCENARIO-AG-ELEVATOR"));
-    assert.ok(records.some((record) => record.Code === "LW-SCENARIO-UN-MAINTENANCE"));
     assert.ok(records.every((record) => record._linewatchScenarioOrigin));
+  });
+
+  it("covers each all-alert-types case with exactly one record", () => {
+    const fixture = JSON.parse(readFileSync(new URL("all-alert-types.json", fixtureRoot), "utf8"));
+    const ids = [...fixture.go.Messages.Message, ...fixture.goGtfs.entity, ...fixture.up.entity]
+      .map((record) => record.Code ?? record.id);
+    const coverage = Object.values(regionalScenarioExpectations["all-alert-types"].coverage);
+    assert.deepEqual([...ids].sort(), [...coverage].sort(), "every record covers one case, and every case has a record");
+    assert.equal(new Set(coverage).size, coverage.length);
   });
 });

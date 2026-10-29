@@ -43,9 +43,10 @@ class TtcAlertScenarioCatalogTest {
 
     static Stream<Arguments> scenarios() {
         return Stream.of(
-            Arguments.of("all-alert-types.json", 24, 2, EnumSet.of(
+            Arguments.of("all-alert-types.json", 16, 2, EnumSet.of(
                 AlertImpactKind.SUSPENSION,
                 AlertImpactKind.DELAY,
+                AlertImpactKind.LIMITED_SERVICE,
                 AlertImpactKind.REDUCED_SPEED_ZONE,
                 AlertImpactKind.PLANNED_CLOSURE
             )),
@@ -121,9 +122,10 @@ class TtcAlertScenarioCatalogTest {
                 "delay-bidirectional-segment",
                 "delay-directional-segment",
                 "delay-directional-station",
-                "delay-bidirectional-station",
-                "suspension-four-way-junction-station-line-1",
-                "suspension-four-way-junction-station-line-2",
+                "delay-bidirectional-station-multi-dot",
+                "suspension-bidirectional-station",
+                "suspension-directional-station",
+                "limited-service-active-window",
                 "reduced-speed-zone-directional",
                 "reduced-speed-zone-bidirectional",
                 "reduced-speed-zone-directionless",
@@ -141,13 +143,13 @@ class TtcAlertScenarioCatalogTest {
             .isEqualTo("synthetic-template");
         assertThat(coverageMatrix.get("accessibility-escalator").get("sourceKind").asText())
             .isEqualTo("synthetic-template");
-        assertThat(coverageMatrix.get("delay-bidirectional-station").get("sourceKind").asText())
+        assertThat(coverageMatrix.get("delay-bidirectional-station-multi-dot").get("sourceKind").asText())
             .isEqualTo("modeled-gap-fill");
         assertThat(coverageMatrix.get("delay-directional-station").get("sourceKind").asText())
             .isEqualTo("modeled-gap-fill");
-        assertThat(coverageMatrix.get("suspension-four-way-junction-station-line-1").get("sourceKind").asText())
+        assertThat(coverageMatrix.get("suspension-bidirectional-station").get("sourceKind").asText())
             .isEqualTo("modeled-gap-fill");
-        assertThat(coverageMatrix.get("suspension-four-way-junction-station-line-2").get("sourceKind").asText())
+        assertThat(coverageMatrix.get("suspension-directional-station").get("sourceKind").asText())
             .isEqualTo("modeled-gap-fill");
         assertThat(coverageMatrix.get("reduced-speed-zone-directionless").get("sourceKind").asText())
             .isEqualTo("modeled-gap-fill");
@@ -166,7 +168,7 @@ class TtcAlertScenarioCatalogTest {
         assertThat(routeAlerts)
             .filteredOn(alert -> alert.impactKind() == AlertImpactKind.SUSPENSION)
             .extracting(NormalizedRouteAlert::direction)
-            .contains(AlertDirection.BIDIRECTIONAL, AlertDirection.NORTHBOUND);
+            .contains(AlertDirection.BIDIRECTIONAL, AlertDirection.SOUTHBOUND, AlertDirection.EASTBOUND);
         assertThat(routeAlerts)
             .filteredOn(alert -> alert.sourceId().equals("scenario-active-line-2"))
             .singleElement()
@@ -192,7 +194,7 @@ class TtcAlertScenarioCatalogTest {
         assertThat(routeAlerts)
             .filteredOn(alert -> alert.impactKind() == AlertImpactKind.DELAY)
             .extracting(NormalizedRouteAlert::direction)
-            .contains(AlertDirection.BIDIRECTIONAL, AlertDirection.SOUTHBOUND);
+            .contains(AlertDirection.BIDIRECTIONAL, AlertDirection.NORTHBOUND);
         assertThat(routeAlerts)
             .filteredOn(alert -> alert.sourceId().equals("scenario-delay-line-2-main-street-kennedy"))
             .singleElement()
@@ -201,16 +203,6 @@ class TtcAlertScenarioCatalogTest {
                 assertThat(alert.endStationId()).isEqualTo("kennedy");
                 assertThat(alert.stationIds()).containsExactly("main-street", "victoria-park", "warden", "kennedy");
                 assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.DELAY);
-                assertThat(alert.direction()).isEqualTo(AlertDirection.BIDIRECTIONAL);
-            });
-        assertThat(routeAlerts)
-            .filteredOn(alert -> alert.sourceId().equals("scenario-active-line-1-dupont-cedarvale"))
-            .singleElement()
-            .satisfies(alert -> {
-                assertThat(alert.startStationId()).isEqualTo("dupont");
-                assertThat(alert.endStationId()).isEqualTo("cedarvale");
-                assertThat(alert.stationIds()).containsExactly("dupont", "st-clair-west", "cedarvale");
-                assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.SUSPENSION);
                 assertThat(alert.direction()).isEqualTo(AlertDirection.BIDIRECTIONAL);
             });
         assertThat(routeAlerts)
@@ -234,16 +226,6 @@ class TtcAlertScenarioCatalogTest {
                 assertThat(alert.direction()).isEqualTo(AlertDirection.BIDIRECTIONAL);
             });
         assertThat(routeAlerts)
-            .filteredOn(alert -> alert.sourceId().equals("scenario-station-node-bloor-yonge-line-2"))
-            .singleElement()
-            .satisfies(alert -> {
-                assertThat(alert.startStationId()).isEqualTo("bloor-yonge");
-                assertThat(alert.endStationId()).isEqualTo("bloor-yonge");
-                assertThat(alert.stationIds()).containsExactly("bloor-yonge");
-                assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.SUSPENSION);
-                assertThat(alert.direction()).isEqualTo(AlertDirection.BIDIRECTIONAL);
-            });
-        assertThat(routeAlerts)
             .noneMatch(alert -> alert.sourceId().equals("scenario-active-line-1-st-andrew-union"));
         assertThat(routeAlerts)
             .filteredOn(alert -> alert.sourceId().equals("scenario-delay-line-1-union-st-andrew"))
@@ -254,25 +236,6 @@ class TtcAlertScenarioCatalogTest {
                 assertThat(alert.stationIds()).containsExactly("union", "st-andrew");
                 assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.DELAY);
                 assertThat(alert.direction()).isEqualTo(AlertDirection.NORTHBOUND);
-            });
-        assertThat(routeAlerts)
-            .filteredOn(alert -> alert.sourceId().equals("scenario-station-node-jane-overlap"))
-            .singleElement()
-            .satisfies(alert -> {
-                assertThat(alert.startStationId()).isEqualTo("jane");
-                assertThat(alert.endStationId()).isEqualTo("jane");
-                assertThat(alert.stationIds()).containsExactly("jane");
-                assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.DELAY);
-            });
-        assertThat(routeAlerts)
-            .filteredOn(alert -> alert.sourceId().equals("scenario-station-node-dundas-west-bidirectional"))
-            .singleElement()
-            .satisfies(alert -> {
-                assertThat(alert.startStationId()).isEqualTo("dundas-west");
-                assertThat(alert.endStationId()).isEqualTo("dundas-west");
-                assertThat(alert.stationIds()).containsExactly("dundas-west");
-                assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.DELAY);
-                assertThat(alert.direction()).isEqualTo(AlertDirection.BIDIRECTIONAL);
             });
         assertThat(routeAlerts)
             .filteredOn(alert -> alert.sourceId().equals("scenario-station-node-union-vaughan"))
@@ -310,6 +273,14 @@ class TtcAlertScenarioCatalogTest {
             .filteredOn(alert -> alert.impactKind() == AlertImpactKind.PLANNED_CLOSURE)
             .extracting(NormalizedRouteAlert::direction)
             .contains(AlertDirection.BIDIRECTIONAL, AlertDirection.NORTHBOUND);
+        assertThat(routeAlerts)
+            .filteredOn(alert -> alert.sourceId().equals("scenario-station-node-christie-eastbound"))
+            .singleElement()
+            .satisfies(alert -> {
+                assertThat(alert.stationIds()).containsExactly("christie");
+                assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.SUSPENSION);
+                assertThat(alert.direction()).isEqualTo(AlertDirection.EASTBOUND);
+            });
         assertThat(accessibilityOutages)
             .extracting(NormalizedAccessibilityOutage::assetType)
             .containsExactlyInAnyOrder("elevator", "escalator");

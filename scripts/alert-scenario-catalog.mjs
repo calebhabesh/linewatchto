@@ -20,9 +20,9 @@ export const scenarioNames = [
 
 export const scenarioExpectations = {
   "all-alert-types": {
-    routeCount: 24,
+    routeCount: 16,
     accessibilityCount: 2,
-    impactKinds: ["suspension", "delay", "reduced-speed-zone", "planned-closure"],
+    impactKinds: ["suspension", "delay", "limited-service", "reduced-speed-zone", "planned-closure"],
     directionCoverage: {
       "delay": ["bidirectional", "directional"],
       "planned-closure": ["bidirectional", "directional"],
@@ -42,16 +42,6 @@ export const scenarioExpectations = {
         sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
         modeledFromSourceId: "synthetic-rsz-line-1",
       },
-      "suspension-four-way-junction-station-line-1": {
-        sourceId: "scenario-station-node-bloor-yonge-line-1",
-        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
-        modeledFromSourceId: "synthetic-rsz-line-1",
-      },
-      "suspension-four-way-junction-station-line-2": {
-        sourceId: "scenario-station-node-bloor-yonge-line-2",
-        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
-        modeledFromSourceId: "synthetic-rsz-line-1",
-      },
       "delay-bidirectional-segment": {
         sourceId: "scenario-delay-line-2-main-street-kennedy",
         sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
@@ -62,20 +52,30 @@ export const scenarioExpectations = {
         sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
         modeledFromSourceId: "synthetic-rsz-line-1",
       },
+      "suspension-bidirectional-station": {
+        sourceId: "scenario-station-node-bloor-yonge-line-1",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-rsz-line-1",
+      },
+      "suspension-directional-station": {
+        sourceId: "scenario-station-node-christie-eastbound",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-rsz-line-1",
+      },
       "delay-directional-station": {
-        sourceId: "scenario-station-node-keele",
+        sourceId: "scenario-station-node-union-vaughan",
         sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
         modeledFromSourceId: "synthetic-rsz-line-1",
       },
-      "delay-bidirectional-station": {
-        sourceId: "scenario-station-node-dundas-west-bidirectional",
-        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
-        modeledFromSourceId: "synthetic-rsz-line-1",
-      },
-      "delay-multi-dot-interchange-station": {
+      "delay-bidirectional-station-multi-dot": {
         sourceId: "scenario-station-node-spadina",
         sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
         modeledFromSourceId: "synthetic-rsz-line-1",
+      },
+      "limited-service-active-window": {
+        sourceId: "scenario-limited-parent",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-planned-line-1",
       },
       "reduced-speed-zone-directional": {
         sourceId: "synthetic-rsz-line-1",
@@ -345,6 +345,8 @@ function feed(now, routes, accessibility = []) {
   };
 }
 
+// One alert of every kind the TTC map and menus show, modeled on the shapes in
+// recorded TTC history, with no two covering the same case.
 function allAlertTypes(now) {
   return feed(now, [
     activeGapFillRoute(now, {
@@ -377,23 +379,6 @@ function allAlertTypes(now) {
       shuttleEnd: "Kennedy",
     }),
     activeGapFillRoute(now, {
-      id: "scenario-active-line-1-dupont-cedarvale",
-      route: "1",
-      stopStart: "Dupont",
-      stopEnd: "Cedarvale",
-      stopIDList: ["Dupont", "St Clair West", "Cedarvale"],
-      title: "No service between Dupont and Cedarvale stations while we respond to a security incident.",
-      headerText: "Line 1 Yonge-University: No service between Dupont and Cedarvale stations while we respond to a security incident.",
-      effect: "NO_SERVICE",
-      effectDesc: "No Service",
-      direction: "Both ways",
-      cause: "SECURITY_INCIDENT",
-      causeDescription: "Security incident",
-      shuttleType: "Ordered",
-      shuttleStart: "Dupont",
-      shuttleEnd: "Cedarvale",
-    }),
-    activeGapFillRoute(now, {
       id: "scenario-active-line-1-king-union",
       route: "1",
       stopStart: "King",
@@ -411,23 +396,6 @@ function allAlertTypes(now) {
       shuttleEnd: "Union",
     }),
     activeGapFillRoute(now, {
-      id: "scenario-active-line-1-museum-st-george",
-      route: "1",
-      stopStart: "Museum",
-      stopEnd: "St George",
-      stopIDList: ["Museum", "St George"],
-      title: "No service northbound from Museum to St George stations while we respond to a security incident.",
-      headerText: "Line 1 Yonge-University: No service northbound from Museum to St George stations while we respond to a security incident.",
-      effect: "NO_SERVICE",
-      effectDesc: "No Service",
-      direction: "Northbound",
-      cause: "SECURITY_INCIDENT",
-      causeDescription: "Security incident",
-      shuttleType: "Ordered",
-      shuttleStart: "Museum",
-      shuttleEnd: "St George",
-    }),
-    activeGapFillRoute(now, {
       id: "scenario-station-node-bloor-yonge-line-1",
       route: "1",
       stopStart: "Bloor-Yonge",
@@ -440,33 +408,6 @@ function allAlertTypes(now) {
       direction: "Both ways",
       cause: "SECURITY_INCIDENT",
       causeDescription: "Security incident",
-    }),
-    activeGapFillRoute(now, {
-      id: "scenario-station-node-bloor-yonge-line-2",
-      route: "2",
-      stopStart: "Bloor-Yonge",
-      stopEnd: "Bloor-Yonge",
-      stopIDList: ["Bloor-Yonge"],
-      title: "Trains are not stopping at Bloor-Yonge station due to a security incident.",
-      headerText: "Line 2 Bloor-Danforth: Trains are not stopping at Bloor-Yonge station due to a security incident.",
-      effect: "NO_SERVICE",
-      effectDesc: "No Service",
-      direction: "Both ways",
-      cause: "SECURITY_INCIDENT",
-      causeDescription: "Security incident",
-    }),
-    activeGapFillRoute(now, {
-      id: "scenario-delay-line-4",
-      route: "4",
-      stopStart: "Sheppard-Yonge",
-      stopEnd: "Don Mills",
-      title: "Delays eastbound between Sheppard-Yonge and Don Mills while we respond to a signal problem.",
-      headerText: "Line 4 Sheppard: Delays eastbound between Sheppard-Yonge and Don Mills while we respond to a signal problem.",
-      effect: "SIGNIFICANT_DELAYS",
-      effectDesc: "Delays",
-      direction: "Eastbound",
-      cause: "SIGNALS",
-      causeDescription: "Signal problem",
     }),
     activeGapFillRoute(now, {
       id: "scenario-delay-line-1-union-st-andrew",
@@ -483,18 +424,18 @@ function allAlertTypes(now) {
       causeDescription: "Operational problem",
     }),
     activeGapFillRoute(now, {
-      id: "scenario-delay-line-1-dupont-spadina",
-      route: "1",
-      stopStart: "Dupont",
-      stopEnd: "Spadina",
-      stopIDList: ["Dupont", "Spadina"],
-      title: "Delays southbound from Dupont to Spadina while we respond to an operational problem.",
-      headerText: "Line 1 Yonge-University: Delays southbound from Dupont to Spadina while we respond to an operational problem.",
-      effect: "SIGNIFICANT_DELAYS",
-      effectDesc: "Delays",
-      direction: "Southbound",
-      cause: "OPERATIONS",
-      causeDescription: "Operational problem",
+      id: "scenario-station-node-christie-eastbound",
+      route: "2",
+      stopStart: "Christie",
+      stopEnd: "Christie",
+      stopIDList: ["Christie"],
+      title: "Trains are not stopping eastbound at Christie station due to a security incident.",
+      headerText: "Line 2 Bloor-Danforth: Trains are not stopping eastbound at Christie station due to a security incident.",
+      effect: "NO_SERVICE",
+      effectDesc: "No Service",
+      direction: "Eastbound",
+      cause: "SECURITY_INCIDENT",
+      causeDescription: "Security incident",
     }),
     activeGapFillRoute(now, {
       id: "scenario-delay-line-2-main-street-kennedy",
@@ -509,62 +450,6 @@ function allAlertTypes(now) {
       direction: "Both ways",
       cause: "MAINTENANCE",
       causeDescription: "Track problem",
-    }),
-    activeGapFillRoute(now, {
-      id: "scenario-delay-line-2-jane-runnymede",
-      route: "2",
-      stopStart: "Jane",
-      stopEnd: "Runnymede",
-      stopIDList: ["Jane", "Runnymede"],
-      title: "Delays both ways between Jane and Runnymede while we respond to a track problem.",
-      headerText: "Line 2 Bloor-Danforth: Delays both ways between Jane and Runnymede while we respond to a track problem.",
-      effect: "SIGNIFICANT_DELAYS",
-      effectDesc: "Delays",
-      direction: "Both ways",
-      cause: "MAINTENANCE",
-      causeDescription: "Track problem",
-    }),
-    activeGapFillRoute(now, {
-      id: "scenario-station-node-jane-overlap",
-      route: "2",
-      stopStart: "Jane",
-      stopEnd: "Jane",
-      stopIDList: ["Jane"],
-      title: "Delays at Jane station while we respond to an emergency alarm.",
-      headerText: "Line 2 Bloor-Danforth: Delays at Jane station while we respond to an emergency alarm.",
-      effect: "SIGNIFICANT_DELAYS",
-      effectDesc: "Delays",
-      direction: "Eastbound",
-      cause: "MEDICAL_EMERGENCY",
-      causeDescription: "Emergency alarm",
-    }),
-    activeGapFillRoute(now, {
-      id: "scenario-station-node-keele",
-      route: "2",
-      stopStart: "Keele",
-      stopEnd: "Keele",
-      stopIDList: ["Keele"],
-      title: "Delays westbound at Keele station while we respond to an emergency alarm.",
-      headerText: "Line 2 Bloor-Danforth: Delays westbound at Keele station while we respond to an emergency alarm.",
-      effect: "SIGNIFICANT_DELAYS",
-      effectDesc: "Delays",
-      direction: "Westbound",
-      cause: "MEDICAL_EMERGENCY",
-      causeDescription: "Emergency alarm",
-    }),
-    activeGapFillRoute(now, {
-      id: "scenario-station-node-dundas-west-bidirectional",
-      route: "2",
-      stopStart: "Dundas West",
-      stopEnd: "Dundas West",
-      stopIDList: ["Dundas West"],
-      title: "Delays both ways at Dundas West station while we respond to an emergency alarm.",
-      headerText: "Line 2 Bloor-Danforth: Delays both ways at Dundas West station while we respond to an emergency alarm.",
-      effect: "SIGNIFICANT_DELAYS",
-      effectDesc: "Delays",
-      direction: "Both ways",
-      cause: "MEDICAL_EMERGENCY",
-      causeDescription: "Emergency alarm",
     }),
     activeGapFillRoute(now, {
       id: "scenario-station-node-union-vaughan",
@@ -591,34 +476,6 @@ function allAlertTypes(now) {
       effect: "SIGNIFICANT_DELAYS",
       effectDesc: "Delays",
       direction: "Both ways",
-      cause: "MEDICAL_EMERGENCY",
-      causeDescription: "Emergency alarm",
-    }),
-    activeGapFillRoute(now, {
-      id: "scenario-station-node-lawrence-west",
-      route: "1",
-      stopStart: "Lawrence West",
-      stopEnd: "Lawrence West",
-      stopIDList: ["Lawrence West"],
-      title: "Delays both ways at Lawrence West station while we respond to an emergency alarm.",
-      headerText: "Line 1 Yonge-University: Delays both ways at Lawrence West station while we respond to an emergency alarm.",
-      effect: "SIGNIFICANT_DELAYS",
-      effectDesc: "Delays",
-      direction: "Both ways",
-      cause: "MEDICAL_EMERGENCY",
-      causeDescription: "Emergency alarm",
-    }),
-    activeGapFillRoute(now, {
-      id: "scenario-station-node-spadina-line-2-westbound",
-      route: "2",
-      stopStart: "Spadina",
-      stopEnd: "Spadina",
-      stopIDList: ["Spadina"],
-      title: "Delays westbound at Spadina station while we respond to an emergency alarm.",
-      headerText: "Line 2 Bloor-Danforth: Delays westbound at Spadina station while we respond to an emergency alarm.",
-      effect: "SIGNIFICANT_DELAYS",
-      effectDesc: "Delays",
-      direction: "Westbound",
       cause: "MEDICAL_EMERGENCY",
       causeDescription: "Emergency alarm",
     }),
@@ -732,6 +589,7 @@ function allAlertTypes(now) {
         { id: "scenario-planned-line-2-long-upcoming-window", startTime: iso(now, 1440), endTime: iso(now, 5760) },
       ],
     }),
+    ...limitedServiceRecords(now),
   ], [
     templateAccessibility(now, "warden-elevator-test-e1"),
     templateAccessibility(now, "pioneer-village-escalator-test-s1"),
@@ -915,7 +773,7 @@ function nightlyClosureActiveWindow(now) {
   ]);
 }
 
-function limitedServiceActiveWindow(now) {
+function limitedServiceRecords(now) {
   const parent = routeAlert(now, {
     id: "scenario-limited-parent", alertType: "Planned", route: "1",
     stopStart: "Vaughan Metropolitan Centre", stopEnd: "Finch West",
@@ -938,7 +796,11 @@ function limitedServiceActiveWindow(now) {
     description: "There is limited subway service due to planned track work.",
     activePeriod: finitePeriod(now, -60, 120), childAlerts: [],
   });
-  return feed(now, [parent, child]);
+  return [parent, child];
+}
+
+function limitedServiceActiveWindow(now) {
+  return feed(now, limitedServiceRecords(now));
 }
 
 function stationNodeImpact(now) {

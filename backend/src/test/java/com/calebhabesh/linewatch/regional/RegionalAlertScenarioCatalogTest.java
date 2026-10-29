@@ -38,7 +38,7 @@ class RegionalAlertScenarioCatalogTest {
 
     static Stream<Arguments> scenarios() {
         return Stream.of(
-            Arguments.of("all-alert-types.json", 11, 3),
+            Arguments.of("all-alert-types.json", 10, 2),
             Arguments.of("go-corridor-overlap.json", 3, 0),
             Arguments.of("go-station-and-accessibility.json", 1, 3),
             Arguments.of("up-service-alerts.json", 2, 0)
@@ -87,7 +87,7 @@ class RegionalAlertScenarioCatalogTest {
             assertThat(alert.stationIds()).hasSizeGreaterThan(1);
             assertThat(alert.affectedSegmentIds()).isNotEmpty();
         });
-        assertThat(alerts).filteredOn(alert -> alert.lineId().equals("regional-le"))
+        assertThat(alerts).filteredOn(alert -> alert.lineId().equals("regional-br"))
             .extracting(RegionalNormalizedAlert::impactKind)
             .contains("advisory");
     }
@@ -117,9 +117,15 @@ class RegionalAlertScenarioCatalogTest {
         ).dashboard();
 
         assertThat(dashboard.activeAlerts()).hasSize(1);
-        assertThat(dashboard.delays()).hasSize(1);
-        assertThat(dashboard.plannedClosures()).isEmpty();
-        assertThat(dashboard.map().stationNodeImpacts()).hasSize(1);
+        assertThat(dashboard.delays()).hasSize(5);
+        assertThat(dashboard.plannedClosures()).hasSize(2);
+        // A trip-direction station delay (arrow) and a directionless one.
+        assertThat(dashboard.map().stationNodeImpacts())
+            .extracting(impact -> impact.stationId())
+            .containsExactlyInAnyOrder("weston", "mount-dennis");
+        assertThat(dashboard.delays())
+            .extracting(delay -> delay.displayDirection())
+            .contains("Towards Union Station", "Towards Durham College Oshawa");
         assertThat(dashboard.map().segments())
             .anySatisfy(segment -> assertThat(segment.impacts())
                 .extracting(impact -> impact.kind())
@@ -133,12 +139,14 @@ class RegionalAlertScenarioCatalogTest {
         JsonNode root = fixture("all-alert-types.json");
         List<JsonNode> records = new ArrayList<>();
         root.path("go").path("Messages").path("Message").forEach(records::add);
+        root.path("goGtfs").path("entity").forEach(records::add);
         root.path("up").path("entity").forEach(records::add);
 
         assertThat(records).isNotEmpty().allSatisfy(record -> {
             assertThat(record.path("_linewatchScenarioOrigin").asText()).isEqualTo("synthetic");
             String id = record.has("Code") ? record.path("Code").asText() : record.path("id").asText();
-            assertThat(id).startsWith(record.has("Code") ? "LW-SCENARIO-" : "linewatch-up-");
+            if (record.has("Code")) assertThat(id).startsWith("LW-SCENARIO-");
+            else assertThat(id).matches("linewatch-(go|up)-.+");
         });
     }
 
@@ -150,6 +158,7 @@ class RegionalAlertScenarioCatalogTest {
         Map<String, Boolean> completeSources = new LinkedHashMap<>();
         completeSources.put(MetrolinxSourceSystem.GO_SERVICE_ALERTS, true);
         completeSources.put(MetrolinxSourceSystem.UP_GTFS_ALERTS, true);
+        completeSources.put(MetrolinxSourceSystem.GO_GTFS_ALERTS, true);
 
         for (JsonNode message : iterable(root.path("go").path("Messages").path("Message"))) {
             String payload = objectMapper.writeValueAsString(message);
@@ -157,6 +166,13 @@ class RegionalAlertScenarioCatalogTest {
             fetched.add(new MetrolinxFetchedRecord(MetrolinxSourceSystem.GO_SERVICE_ALERTS, sourceId, payload));
             sourceRecords.add(new RegionalAccessibilityOutageReadRepository.SourceRecord(
                 sourceId, payload, sourceUpdatedAt
+            ));
+        }
+        for (JsonNode entity : iterable(root.path("goGtfs").path("entity"))) {
+            fetched.add(new MetrolinxFetchedRecord(
+                MetrolinxSourceSystem.GO_GTFS_ALERTS,
+                entity.path("id").asText(),
+                objectMapper.writeValueAsString(entity)
             ));
         }
         for (JsonNode entity : iterable(root.path("up").path("entity"))) {

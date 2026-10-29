@@ -10,139 +10,46 @@
     "Messages": {
       "Message": [
         {
-          "Code": "LW-SCENARIO-LE-DELAY",
+          "Code": "LW-SCENARIO-BR-CROSSING",
           "Status": "UPD",
           "PostedDateTime": "2026-07-29 13:40:00",
-          "SubjectEnglish": "Lakeshore East trains operating with delays",
-          "BodyEnglish": "Synthetic scenario: trains are delayed between Pickering and Whitby.",
+          "SubjectEnglish": "Barrie - Railway crossing issue",
+          "BodyEnglish": "Synthetic scenario: trains may be delayed between Maple GO and King City GO while crews respond to a railway crossing issue.",
           "Category": "Service Disruption",
-          "SubCategory": "Modified Trip",
-          "Lines": [
-            {
-              "Code": "LE"
-            }
-          ],
-          "Stops": [
-            {
-              "Code": "PIN"
-            },
-            {
-              "Code": "AJ"
-            },
-            {
-              "Code": "WH"
-            }
-          ],
-          "_linewatchScenarioOrigin": "synthetic"
-        },
-        {
-          "Code": "LW-SCENARIO-LE-PLANNED",
-          "Status": "UPD",
-          "PostedDateTime": "2026-07-29 15:30:00",
-          "SubjectEnglish": "Planned service change on Lakeshore East",
-          "BodyEnglish": "Synthetic scenario: a planned closure will affect Pickering to Ajax.",
-          "Category": "Service Disruption",
-          "SubCategory": "Planned Service",
-          "Lines": [
-            {
-              "Code": "LE"
-            }
-          ],
-          "Stops": [
-            {
-              "Code": "PIN"
-            },
-            {
-              "Code": "AJ"
-            }
-          ],
-          "_linewatchScenarioOrigin": "synthetic"
-        },
-        {
-          "Code": "LW-SCENARIO-LW-ROUTE",
-          "Status": "UPD",
-          "PostedDateTime": "2026-07-29 13:40:00",
-          "SubjectEnglish": "Lakeshore West corridor delay",
-          "BodyEnglish": "Synthetic scenario: service is operating with delays across the corridor.",
-          "Category": "Service Disruption",
-          "SubCategory": "Modified Trip",
-          "Lines": [
-            {
-              "Code": "LW"
-            }
-          ],
-          "Stops": [],
-          "_linewatchScenarioOrigin": "synthetic"
-        },
-        {
-          "Code": "LW-SCENARIO-KI-STATION",
-          "Status": "UPD",
-          "PostedDateTime": "2026-07-29 13:40:00",
-          "SubjectEnglish": "Service suspended at Bloor GO",
-          "BodyEnglish": "Synthetic scenario: Kitchener trains are temporarily bypassing Bloor GO.",
-          "Category": "Service Disruption",
-          "SubCategory": "Service Suspension",
-          "Lines": [
-            {
-              "Code": "GT"
-            }
-          ],
-          "Stops": [
-            {
-              "Code": "BL"
-            }
-          ],
-          "_linewatchScenarioOrigin": "synthetic"
-        },
-        {
-          "Code": "LW-SCENARIO-KI-ADJUSTMENT",
-          "Status": "UPD",
-          "PostedDateTime": "2026-07-29 13:40:00",
-          "SubjectEnglish": "Kitchener line service adjustment",
-          "BodyEnglish": "Synthetic scenario: test trains are five minutes later than usual.",
-          "Category": "Service Disruption",
-          "SubCategory": "Modified Trip",
-          "Lines": [
-            {
-              "Code": "GT"
-            }
-          ],
-          "Stops": [
-            {
-              "Code": "BL"
-            },
-            {
-              "Code": "MD"
-            },
-            {
-              "Code": "WE"
-            }
-          ],
-          "_linewatchScenarioOrigin": "synthetic"
-        },
-        {
-          "Code": "LW-SCENARIO-MULTI-LINE",
-          "Status": "UPD",
-          "PostedDateTime": "2026-07-29 13:40:00",
-          "SubjectEnglish": "Network rail service delay",
-          "BodyEnglish": "Synthetic scenario: several GO corridors are operating with delays.",
-          "Category": "Service Disruption",
-          "SubCategory": "Modified Trip",
+          "SubCategory": "Service Disruption",
           "Lines": [
             {
               "Code": "BR"
-            },
-            {
-              "Code": "MI"
-            },
-            {
-              "Code": "RH"
-            },
-            {
-              "Code": "ST"
             }
           ],
-          "Stops": [],
+          "Stops": [
+            {
+              "Code": "MP"
+            },
+            {
+              "Code": "KC"
+            }
+          ],
+          "_linewatchScenarioOrigin": "synthetic"
+        },
+        {
+          "Code": "LW-SCENARIO-KI-TRACK-REPAIR",
+          "Status": "UPD",
+          "PostedDateTime": "2026-07-29 13:40:00",
+          "SubjectEnglish": "Kitchener - Unplanned track repair",
+          "BodyEnglish": "Synthetic scenario: crews are making an unplanned track repair near Georgetown GO. Trains may be delayed.",
+          "Category": "Service Disruption",
+          "SubCategory": "Service Disruption",
+          "Lines": [
+            {
+              "Code": "GT"
+            }
+          ],
+          "Stops": [
+            {
+              "Code": "GE"
+            }
+          ],
           "_linewatchScenarioOrigin": "synthetic"
         },
         {
@@ -161,44 +68,6 @@
           "Stops": [
             {
               "Code": "AG"
-            }
-          ],
-          "_linewatchScenarioOrigin": "synthetic"
-        },
-        {
-          "Code": "LW-SCENARIO-UN-MAINTENANCE",
-          "Status": "UPD",
-          "PostedDateTime": "2026-07-29 13:40:00",
-          "SubjectEnglish": "Elevator Maintenance Notice - York Concourse",
-          "BodyEnglish": "Synthetic scenario: a Union elevator is unavailable for a test maintenance window.",
-          "Category": "Amenity",
-          "SubCategory": "Elevator-Escalator Disruption",
-          "Lines": [
-            {
-              "Code": "BR"
-            },
-            {
-              "Code": "GT"
-            },
-            {
-              "Code": "LE"
-            },
-            {
-              "Code": "LW"
-            },
-            {
-              "Code": "MI"
-            },
-            {
-              "Code": "RH"
-            },
-            {
-              "Code": "ST"
-            }
-          ],
-          "Stops": [
-            {
-              "Code": "UN"
             }
           ],
           "_linewatchScenarioOrigin": "synthetic"
@@ -226,6 +95,252 @@
       ]
     }
   },
+  "goGtfs": {
+    "header": {
+      "gtfs_realtime_version": "2.0",
+      "incrementality": "FULL_DATASET",
+      "timestamp": 1785347880
+    },
+    "entity": [
+      {
+        "id": "linewatch-go-le-trip-delay",
+        "is_deleted": false,
+        "alert": {
+          "active_period": [
+            {
+              "start": 1785346200,
+              "end": 1785434400
+            }
+          ],
+          "cause": "TECHNICAL_PROBLEM",
+          "effect": "SIGNIFICANT_DELAYS",
+          "header_text": {
+            "translation": [
+              {
+                "text": "Train delay - Union Station 4:53 PM - Durham College Oshawa GO 5:56 PM",
+                "language": "en"
+              }
+            ]
+          },
+          "description_text": {
+            "translation": [
+              {
+                "text": "Synthetic scenario: this trip is delayed up to 15 minutes between Union Station and Rouge Hill GO due to a signal issue.",
+                "language": "en"
+              }
+            ]
+          },
+          "informed_entity": [
+            {
+              "route_id": "LE",
+              "stop_id": "UN"
+            },
+            {
+              "route_id": "LE",
+              "stop_id": "RO"
+            }
+          ]
+        },
+        "_linewatchScenarioOrigin": "synthetic"
+      },
+      {
+        "id": "linewatch-go-ki-station-trip-delay",
+        "is_deleted": false,
+        "alert": {
+          "active_period": [
+            {
+              "start": 1785346200,
+              "end": 1785434400
+            }
+          ],
+          "cause": "TECHNICAL_PROBLEM",
+          "effect": "SIGNIFICANT_DELAYS",
+          "header_text": {
+            "translation": [
+              {
+                "text": "Train delay - Stratford GO 6:16 AM - Union Station 8:47 AM",
+                "language": "en"
+              }
+            ]
+          },
+          "description_text": {
+            "translation": [
+              {
+                "text": "Synthetic scenario: this trip is delayed at Weston GO by up to 10 minutes due to a mechanical issue.",
+                "language": "en"
+              }
+            ]
+          },
+          "informed_entity": [
+            {
+              "route_id": "GT",
+              "stop_id": "WE"
+            }
+          ]
+        },
+        "_linewatchScenarioOrigin": "synthetic"
+      },
+      {
+        "id": "linewatch-go-lw-speed-reduction",
+        "is_deleted": false,
+        "alert": {
+          "active_period": [
+            {
+              "start": 1785346200,
+              "end": 1785434400
+            }
+          ],
+          "cause": "MAINTENANCE",
+          "effect": "SIGNIFICANT_DELAYS",
+          "header_text": {
+            "translation": [
+              {
+                "text": "Lakeshore West - Track speed reductions",
+                "language": "en"
+              }
+            ]
+          },
+          "description_text": {
+            "translation": [
+              {
+                "text": "Synthetic scenario: trains are operating at reduced speed between Confederation GO and Niagara Falls GO. Expect delays of up to 10 minutes.",
+                "language": "en"
+              }
+            ]
+          },
+          "informed_entity": [
+            {
+              "route_id": "LW",
+              "stop_id": "CF"
+            },
+            {
+              "route_id": "LW",
+              "stop_id": "NI"
+            }
+          ]
+        },
+        "_linewatchScenarioOrigin": "synthetic"
+      },
+      {
+        "id": "linewatch-go-mi-corridor-delay",
+        "is_deleted": false,
+        "alert": {
+          "active_period": [
+            {
+              "start": 1785346200,
+              "end": 1785434400
+            }
+          ],
+          "cause": "TECHNICAL_PROBLEM",
+          "effect": "SIGNIFICANT_DELAYS",
+          "header_text": {
+            "translation": [
+              {
+                "text": "Milton - Delays across the corridor",
+                "language": "en"
+              }
+            ]
+          },
+          "description_text": {
+            "translation": [
+              {
+                "text": "Synthetic scenario: trains are operating with delays of up to 20 minutes across the corridor due to a signal issue.",
+                "language": "en"
+              }
+            ]
+          },
+          "informed_entity": [
+            {
+              "route_id": "MI"
+            }
+          ]
+        },
+        "_linewatchScenarioOrigin": "synthetic"
+      },
+      {
+        "id": "linewatch-go-rh-weekend-closure",
+        "is_deleted": false,
+        "alert": {
+          "active_period": [
+            {
+              "start": 1785434400,
+              "end": 1785607200
+            }
+          ],
+          "cause": "CONSTRUCTION",
+          "effect": "NO_SERVICE",
+          "header_text": {
+            "translation": [
+              {
+                "text": "Richmond Hill - Weekend construction",
+                "language": "en"
+              }
+            ]
+          },
+          "description_text": {
+            "translation": [
+              {
+                "text": "Synthetic scenario: there will be no train service between Langstaff GO and Richmond Hill GO for planned construction. Buses will replace trains.",
+                "language": "en"
+              }
+            ]
+          },
+          "informed_entity": [
+            {
+              "route_id": "RH",
+              "stop_id": "LA"
+            },
+            {
+              "route_id": "RH",
+              "stop_id": "RI"
+            }
+          ]
+        },
+        "_linewatchScenarioOrigin": "synthetic"
+      },
+      {
+        "id": "linewatch-go-st-stop-closures",
+        "is_deleted": false,
+        "alert": {
+          "active_period": [
+            {
+              "start": 1785434400,
+              "end": 1785520800
+            }
+          ],
+          "cause": "CONSTRUCTION",
+          "effect": "STOP_CLOSED",
+          "header_text": {
+            "translation": [
+              {
+                "text": "Stouffville - Service adjustments",
+                "language": "en"
+              }
+            ]
+          },
+          "description_text": {
+            "translation": [
+              {
+                "text": "Synthetic scenario: trains will not stop at Agincourt GO and Milliken GO for planned platform work.",
+                "language": "en"
+              }
+            ]
+          },
+          "informed_entity": [
+            {
+              "route_id": "ST",
+              "stop_id": "AG"
+            },
+            {
+              "route_id": "ST",
+              "stop_id": "MK"
+            }
+          ]
+        },
+        "_linewatchScenarioOrigin": "synthetic"
+      }
+    ]
+  },
   "up": {
     "header": {
       "gtfs_realtime_version": "2.0",
@@ -240,7 +355,7 @@
           "active_period": [
             {
               "start": 1785346200,
-              "end": 1785358800
+              "end": 1785434400
             }
           ],
           "cause": "TECHNICAL_PROBLEM",
@@ -279,7 +394,7 @@
           "active_period": [
             {
               "start": 1785346200,
-              "end": 1785358800
+              "end": 1785434400
             }
           ],
           "cause": "OTHER_CAUSE",
@@ -305,38 +420,6 @@
               "stop_id": "MD"
             }
           ]
-        },
-        "_linewatchScenarioOrigin": "synthetic"
-      },
-      {
-        "id": "linewatch-up-planned",
-        "is_deleted": false,
-        "alert": {
-          "active_period": [
-            {
-              "start": 1785355200,
-              "end": 1785366000
-            }
-          ],
-          "cause": "CONSTRUCTION",
-          "effect": "MODIFIED_SERVICE",
-          "header_text": {
-            "translation": [
-              {
-                "text": "Planned UP Express service change",
-                "language": "en"
-              }
-            ]
-          },
-          "description_text": {
-            "translation": [
-              {
-                "text": "Synthetic scenario: scheduled service changes affect the full route.",
-                "language": "en"
-              }
-            ]
-          },
-          "informed_entity": []
         },
         "_linewatchScenarioOrigin": "synthetic"
       }

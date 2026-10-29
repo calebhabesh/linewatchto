@@ -86,10 +86,16 @@ const server = createServer((request, response) => {
 
   if (
     request.method === "GET"
-    && [
-      "/OpenDataAPI/api/V1/Gtfs/Feed/Alerts",
-      "/OpenDataAPI/api/V1/Gtfs/Feed/TripUpdates",
-    ].includes(url.pathname)
+    && url.pathname === "/OpenDataAPI/api/V1/Gtfs/Feed/Alerts"
+    && activeRegionalScenarioFeed != null
+  ) {
+    sendJson(response, 200, activeRegionalScenarioFeed.goGtfs);
+    return;
+  }
+
+  if (
+    request.method === "GET"
+    && url.pathname === "/OpenDataAPI/api/V1/Gtfs/Feed/TripUpdates"
     && emptyRegionalGtfsAlerts != null
   ) {
     sendJson(response, 200, emptyRegionalGtfsAlerts);

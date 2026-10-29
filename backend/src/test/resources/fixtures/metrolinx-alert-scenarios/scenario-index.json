@@ -4,15 +4,30 @@
     {
       "name": "all-alert-types",
       "file": "all-alert-types.json",
-      "goRecordCount": 9,
-      "upRecordCount": 3,
-      "normalizedAlertCount": 11,
-      "accessibilityCount": 3,
+      "goRecordCount": 4,
+      "goGtfsRecordCount": 6,
+      "upRecordCount": 2,
+      "normalizedAlertCount": 10,
+      "accessibilityCount": 2,
       "impactKinds": [
         "advisory",
         "delay",
         "planned-closure"
       ],
+      "coverage": {
+        "advisory-span": "LW-SCENARIO-BR-CROSSING",
+        "advisory-station": "LW-SCENARIO-KI-TRACK-REPAIR",
+        "delay-span-trip-direction": "linewatch-go-le-trip-delay",
+        "delay-station-trip-direction": "linewatch-go-ki-station-trip-delay",
+        "delay-span-both-directions": "linewatch-go-lw-speed-reduction",
+        "delay-whole-line": "linewatch-go-mi-corridor-delay",
+        "planned-closure-span-upcoming": "linewatch-go-rh-weekend-closure",
+        "planned-closure-listed-stations": "linewatch-go-st-stop-closures",
+        "no-service-now": "linewatch-up-suspension",
+        "delay-station-no-direction": "linewatch-up-station-delay",
+        "accessibility-elevator": "LW-SCENARIO-AG-ELEVATOR",
+        "accessibility-escalator": "LW-SCENARIO-ESCALATOR"
+      },
       "lineIds": [
         "regional-br",
         "regional-ki",

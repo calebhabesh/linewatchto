@@ -47,10 +47,12 @@ createServer((request, response) => {
     json(response, 200, emptyGoAlerts);
   } else if (
     request.method === "GET"
-    && [
-      "/OpenDataAPI/api/V1/Gtfs/Feed/Alerts",
-      "/OpenDataAPI/api/V1/Gtfs/Feed/TripUpdates",
-    ].includes(url.pathname)
+    && url.pathname === "/OpenDataAPI/api/V1/Gtfs/Feed/Alerts"
+  ) {
+    json(response, 200, payload.goGtfs);
+  } else if (
+    request.method === "GET"
+    && url.pathname === "/OpenDataAPI/api/V1/Gtfs/Feed/TripUpdates"
   ) {
     json(response, 200, emptyGoGtfsAlerts);
   } else if (

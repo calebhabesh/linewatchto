@@ -4,11 +4,12 @@
     {
       "name": "all-alert-types",
       "file": "all-alert-types.json",
-      "routeCount": 24,
+      "routeCount": 16,
       "accessibilityCount": 2,
       "impactKinds": [
         "suspension",
         "delay",
+        "limited-service",
         "reduced-speed-zone",
         "planned-closure"
       ],
@@ -50,16 +51,6 @@
           "sourceKind": "modeled-gap-fill",
           "modeledFromSourceId": "synthetic-rsz-line-1"
         },
-        "suspension-four-way-junction-station-line-1": {
-          "sourceId": "scenario-station-node-bloor-yonge-line-1",
-          "sourceKind": "modeled-gap-fill",
-          "modeledFromSourceId": "synthetic-rsz-line-1"
-        },
-        "suspension-four-way-junction-station-line-2": {
-          "sourceId": "scenario-station-node-bloor-yonge-line-2",
-          "sourceKind": "modeled-gap-fill",
-          "modeledFromSourceId": "synthetic-rsz-line-1"
-        },
         "delay-bidirectional-segment": {
           "sourceId": "scenario-delay-line-2-main-street-kennedy",
           "sourceKind": "modeled-gap-fill",
@@ -70,20 +61,30 @@
           "sourceKind": "modeled-gap-fill",
           "modeledFromSourceId": "synthetic-rsz-line-1"
         },
+        "suspension-bidirectional-station": {
+          "sourceId": "scenario-station-node-bloor-yonge-line-1",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
+        "suspension-directional-station": {
+          "sourceId": "scenario-station-node-christie-eastbound",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
         "delay-directional-station": {
-          "sourceId": "scenario-station-node-keele",
+          "sourceId": "scenario-station-node-union-vaughan",
           "sourceKind": "modeled-gap-fill",
           "modeledFromSourceId": "synthetic-rsz-line-1"
         },
-        "delay-bidirectional-station": {
-          "sourceId": "scenario-station-node-dundas-west-bidirectional",
-          "sourceKind": "modeled-gap-fill",
-          "modeledFromSourceId": "synthetic-rsz-line-1"
-        },
-        "delay-multi-dot-interchange-station": {
+        "delay-bidirectional-station-multi-dot": {
           "sourceId": "scenario-station-node-spadina",
           "sourceKind": "modeled-gap-fill",
           "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
+        "limited-service-active-window": {
+          "sourceId": "scenario-limited-parent",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-planned-line-1"
         },
         "reduced-speed-zone-directional": {
           "sourceId": "synthetic-rsz-line-1",
