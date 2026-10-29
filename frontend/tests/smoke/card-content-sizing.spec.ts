@@ -10,8 +10,8 @@ test("a single regional impact card stays sized to its content", async ({ page, 
   await page.goto("/?network=regional&panel=alerts");
 
   await expect(page.getByRole("heading", { name: "Suspensions", exact: true })).toBeVisible();
-  await page.getByRole("combobox", { name: "Filter active alerts by line" })
-    .selectOption({ label: "Kitchener Line" });
+  await page.getByRole("button", { name: "Filter suspensions by line" }).click();
+  await page.locator(".impact-list-select-options").getByRole("option", { name: "Kitchener Line" }).click();
   const cards = page.locator(".alert-stack > .alert-card");
   await expect(cards).toHaveCount(1);
 

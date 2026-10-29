@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { installDismissedTransientUi, setStubMode } from "./test-support";
+import { installDismissedTransientUi, setStubMode, waitForNetworkTransition } from "./test-support";
 
 test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse", () => {
   test.beforeEach(async ({ page }) => {
@@ -65,7 +65,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     await expect(sidebar).not.toHaveClass(/desktop-sidebar-container--collapsed/);
     await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
     await expect(page.locator(".alert-card.is-active")).toHaveCount(1);
-    await expect(page.getByRole("button", { name: /^Back:/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Back to map:/i })).toBeVisible();
     expect(await page.evaluate(() => (
       window.localStorage.getItem("linewatch-desktop-sidebar-collapsed")
     ))).toBeNull();
@@ -149,7 +149,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
 
   test("preserves destination-based width across TTC and GO/UP networks", async ({ page, request, isMobile }) => {
     test.skip(isMobile, "Desktop sidebar layout tests apply only to desktop");
-    await setStubMode(request, "seeded");
+    await setStubMode(request, "regional-live");
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
@@ -187,7 +187,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
 
   test("keeps each desktop camera stable through sidebar changes and network switches", async ({ page, request, isMobile }) => {
     test.skip(isMobile, "Desktop camera persistence applies only to desktop");
-    await setStubMode(request, "seeded");
+    await setStubMode(request, "regional-live");
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
 
@@ -221,6 +221,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
 
     await page.locator('[data-dest="status"]').click();
     await sidebar.getByRole("button", { name: "GO/UP", exact: true }).click();
+    await waitForNetworkTransition(page, "regional");
     const regionalMap = page.locator(".regional-map");
     const regionalStage = page.locator(".regional-map-stage");
     await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
@@ -231,16 +232,20 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
       (element as HTMLElement).style.transform
     ))).not.toBe(regionalDefaultCamera);
     await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
+    const regionalCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
 
+    // Each network keeps the camera the rider left it at across a round trip.
     await sidebar.getByRole("button", { name: "TTC", exact: true }).click();
+    await waitForNetworkTransition(page, "ttc");
     await expect(ttcStage).toHaveAttribute("data-raster-map-ready", "true");
     await expect(ttcViewport).toHaveAttribute("data-map-camera-moving", "false");
-    expect(await ttcStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(ttcDefaultCamera);
+    expect(await ttcStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(ttcCamera);
 
     await sidebar.getByRole("button", { name: "GO/UP", exact: true }).click();
+    await waitForNetworkTransition(page, "regional");
     await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
     await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
-    expect(await regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(regionalDefaultCamera);
+    expect(await regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(regionalCamera);
   });
 
   test("starts expanded on every desktop visit and ignores retired saved collapse state", async ({ page, request, isMobile }) => {
@@ -295,7 +300,7 @@ test("compact views fit docking boundaries and preserve mobile layout", async ({
 test("desktop rail exposes network-specific impact shortcuts above the data divider", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "Desktop navigation rail applies only to desktop");
   await installDismissedTransientUi(page);
-  await setStubMode(request, "seeded");
+  await setStubMode(request, "regional-live");
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
 
@@ -307,7 +312,7 @@ test("desktop rail exposes network-specific impact shortcuts above the data divi
     "reduced-speed-zones",
     "closures",
   ]);
-  await expect(page.locator('[data-dest="alerts"]')).toContainText("ActiveAlerts");
+  await expect(page.locator('[data-dest="alerts"]')).toContainText("Suspensions");
   await expect(page.locator('[data-dest="reduced-speed-zones"]')).toContainText("ReducedSpeedZones");
 
   const shortcutBottom = await page.locator(".desktop-rail-alert-shortcuts").evaluate((element) => element.getBoundingClientRect().bottom);

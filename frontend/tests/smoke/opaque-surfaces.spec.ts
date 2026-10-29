@@ -1,58 +1,46 @@
 import { expect, test, type Locator } from "@playwright/test";
-import { setStubMode } from "./test-support";
+import { installDismissedTransientUi, setStubMode } from "./test-support";
 
+// Reading surfaces sit over the busy map, so they must be solid in every theme:
+// an opaque background colour and no see-through blur.
 async function expectOpaque(surface: Locator) {
   await expect(surface).toBeVisible();
-  const color = await surface.evaluate(element => getComputedStyle(element).backgroundColor);
-  expect(color).toMatch(/^rgb\(\d+, \d+, \d+\)$/);
+  const style = await surface.evaluate((element) => {
+    const computed = getComputedStyle(element);
+    return { color: computed.backgroundColor, blur: computed.backdropFilter };
+  });
+  expect(style.color).toMatch(/^rgb\(\d+, \d+, \d+\)$/);
+  expect(style.blur).toBe("none");
 }
 
 for (const theme of ["light", "dark", "high-contrast"]) {
   test(`reading surfaces stay opaque in ${theme}`, async ({ page, request, isMobile }) => {
+    await installDismissedTransientUi(page);
     await setStubMode(request, "seeded");
-    await page.addInitScript(() => {
-      localStorage.setItem("linewatch-welcome-seen-v1", "true");
-      localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
-      localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
-    });
     await page.goto("/");
     const shell = page.locator(".linewatch-shell").first();
     await shell.evaluate((element, mode) => {
       element.classList.toggle("dark", mode !== "light");
       element.classList.toggle("high-contrast", mode === "high-contrast");
     }, theme);
+
     if (isMobile) {
       const sheet = page.locator(".mobile-service-sheet");
       await expectOpaque(sheet);
       await page.getByRole("button", { name: "Expand service sheet" }).click();
+      await expect(sheet).toHaveAttribute("data-snap", "halfway");
       await expectOpaque(sheet);
-      await page.screenshot({ path: `/tmp/linewatch-sheet-${theme}.png` });
+      await sheet.getByRole("button", { name: /Suspensions/ }).first().click();
+      await expect(page.getByRole("heading", { name: "Suspensions", exact: true })).toBeVisible();
+      await expectOpaque(page.locator('.floating-panel-shell[data-floating-panel="mobile-panel"] .floating-panel-scroll'));
     } else {
-      const service = page.getByRole("region", { name: "Current Service", exact: true });
-      const expectServiceOpaque = async () => {
-        const style = await service.evaluate(element => {
-          const surface = getComputedStyle(element, "::before");
-          return { color: surface.backgroundColor, image: surface.backgroundImage, mask: surface.maskImage, blur: surface.backdropFilter };
-        });
-        expect(style.color).toMatch(/^rgb\(\d+, \d+, \d+\)$/);
-        expect(style.image).toBe("none");
-        if (theme === "high-contrast") expect(style.mask).toBe("none");
-        else expect(style.mask).toContain("linear-gradient");
-        expect(style.blur).toBe("none");
-        await expectOpaque(service.locator(".current-service-handle-container"));
-      };
-      await expectServiceOpaque();
-      await service.getByRole("button", { name: "Expand current service sheet" }).click();
-      await expect(service).toHaveAttribute("data-expanded", "true");
-      await expectServiceOpaque();
-      await page.screenshot({ path: `/tmp/linewatch-desktop-sheet-${theme}.png` });
-      await service.getByRole("button", { name: "Collapse current service sheet" }).click();
-      await page.getByRole("button", { name: "Toggle menu" }).click();
-      await expectOpaque(page.locator("#linewatch-main-menu"));
-      await page.screenshot({ path: `/tmp/linewatch-menu-${theme}.png` });
-      await page.getByRole("menuitem", { name: /Suspensions/i }).click();
-      await expectOpaque(page.locator(".floating-panel-scroll"));
-      await page.screenshot({ path: `/tmp/linewatch-submenu-${theme}.png` });
+      const sidebar = page.locator("#desktop-sidebar-container");
+      await expectOpaque(sidebar);
+      await expectOpaque(page.locator(".desktop-nav-rail"));
+      await page.locator('[data-dest="alerts"]').click();
+      await expect(page.getByRole("heading", { name: "Suspensions", exact: true })).toBeVisible();
+      await expect(sidebar).toHaveCSS("width", "560px");
+      await expectOpaque(sidebar);
     }
   });
 }
