@@ -331,11 +331,13 @@
   display: none;
 }
 
+/* Tubes are drawing only; each alert's `.map-segment-hit-target` takes the
+   pointer. A tube that took it would also make its `<use>` hover copy, drawn
+   above the targets, swallow presses on GO/UP's interactive SVG. */
 .asset-alert-path {
-  cursor: pointer;
   fill: none;
   outline: none;
-  pointer-events: stroke;
+  pointer-events: none;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-opacity: 1;
@@ -381,6 +383,16 @@
   filter: url("#delay-static-filter");
   stroke: #FEEC41;
   stroke-dasharray: 2 5 11 3;
+}
+
+/* Glyph lanes are clipped to their tube by a mask as long as the alert.
+   Chromium re-rasters masked content at every new scale; on GO/UP, where a
+   whole-line delay's mask spans a corridor in its large SVG units, zooming
+   overflowed tile memory and the whole page flickered. While the scale
+   changes the glyphs drop the clip (they stay where they are); it returns
+   once the zoom or camera flight settles. Panning keeps it. */
+:is([data-map-zoom-active="true"], [data-map-camera-moving="true"]) .map-glyph-lane-clip {
+  mask: none;
 }
 
 .delay-hourglass-mask-path,

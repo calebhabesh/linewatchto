@@ -116,9 +116,8 @@ noted.
   commute route is TTC's width and one path, with TTC's white endpoint dots
   and green flashes. On TTC, endpoint flashes moved out of each station's
   target group into their own group in the same plane.
-- Phase 5 (removal and consolidation): code done 2026-10-30; browser,
-  zoom-memory and visual checks pending. `RegionalOverlaySession` is deleted.
-  Its duties moved: badge placement to `regionalOverlapBadgeLayout`
+- Phase 5 (removal and consolidation): done 2026-10-30. `RegionalOverlaySession`
+  is deleted. Its duties moved: badge placement to `regionalOverlapBadgeLayout`
   (`app/regional-map-overlays.ts`, called from `InteractiveRegionalMap`),
   station selection and station-label hover to `app/regional-station-interaction.ts`,
   and pulse sync to `map-overlays/pulse-sync.ts` (`useMapPulseSync`), which
@@ -128,9 +127,28 @@ noted.
   now ends the pointer hover, station hover and label on both maps and keeps
   chooser and badge group previews (TTC used to clear those too). The last
   GO/UP-only overlay CSS, the commute rail-pulse keyframes, moved to
-  `commute-preview.css`. Changes riders may notice: on TTC, badges keep clear
-  of a station alert's whole beacon rather than a fixed 54-unit box, so some
-  badges near alerted stations move. Open: the GO/UP desktop-map baseline's
-  legend shift traces to the legend's icon slot (24 px for up to two alert
-  kinds per line, 48 px for three or more); find which demo-data change took
-  Lakeshore East from three kinds to two before updating the baseline.
+  `commute-preview.css`. Fixes found while checking GO/UP against live data:
+  a planned-closure tube took the pointer (its `pointerEvents` attribute lost
+  to `.asset-alert-path { pointer-events: stroke }`), so on GO/UP's
+  interactive SVG its `<use>` hover copy, drawn above the targets, swallowed
+  presses: nothing was selected and focus landed on the hover layer, which
+  drew the browser's focus box around the alert. Tubes now never take the
+  pointer. GO/UP also lacked TTC's native non-passive wheel listener, so a
+  trackpad pinch zoomed the page as well as the map; both maps now share
+  `usePreventMapWheelDefault`, and the passive React handlers no longer call
+  `preventDefault` (which logged console errors on both maps). The GO/UP
+  desktop-map baseline was updated: Bloor's ring and beacon, Pickering's blue
+  planned ring and shared station badge, and the legend, whose old baseline
+  was captured mid-load (the settled legend is identical at 9e03b189, the
+  baseline's own commit); the visual spec now waits for `data-map-ready`.
+  New browser coverage: a real press on a GO/UP line alert selects it, and a
+  GO/UP commute preview draws the shared route, endpoint dots and flashes.
+  Zoom flicker on GO/UP: the shared glyph lanes brought TTC's
+  corridor-length clip masks to GO/UP, where a whole-line delay's mask spans
+  a corridor in its large SVG units; re-rastering it at every zoom step logged
+  about 160 `tile memory limits exceeded` warnings per burst on live data and
+  flickered the page. `.map-glyph-lane-clip` now drops its mask while the
+  scale changes, on both maps (0 warnings on both; the zoom-memory limit is
+  now 100, was 400). Not changed:
+  the alert chooser still keeps off alerts by per-map distances (TTC 54,
+  GO/UP rail plus 28); they could come from `overlay-obstacles.ts` too.

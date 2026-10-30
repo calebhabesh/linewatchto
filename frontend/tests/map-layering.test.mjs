@@ -6,6 +6,7 @@ import { getImpactPriority } from "../src/app/map-alert-selector.ts";
 import { readShellSource } from "./helpers/shell-source.mjs";
 
 const globalCss = readAppStylesheet();
+const lineAlertOverlaysSource = readFileSync(new URL("../src/components/map-overlays/LineAlertOverlays.tsx", import.meta.url), "utf8");
 // The shared overlay layer both maps draw alerts with (components/map-overlays).
 const sharedOverlaySource = [
   "map-overlays/LineAlertOverlays.tsx",
@@ -431,6 +432,25 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(globalCss, /@keyframes (?:gold-ring-pulse|station-radar-core|station-radar-ping|regional-station-impact-fill-pulse|delay-static-shift)\b/);
     assert.doesNotMatch(globalCss, /\.regional-impact-aura\s*\{[^}]*animation:(?!\s*none)/s);
     assert.match(globalCss, /\.asset-alert-path-glow:not\(\.map-selection-attention\):not\(\.interactive-glow\):not\(\.commute-path-preview-glow\)\s*\{[^}]*display:\s*none !important;[^}]*animation:\s*none !important;[^}]*filter:\s*none !important;/s);
+  });
+
+  it("lifts glyph-lane masks while the map changes scale", () => {
+    // Corridor-length masks re-rastered at every zoom step overflowed tile
+    // memory on GO/UP (whole-line delays) and flickered the whole page.
+    assert.match(globalCss, /:is\(\[data-map-zoom-active="true"\], \[data-map-camera-moving="true"\]\) \.map-glyph-lane-clip\s*\{\s*mask:\s*none;/);
+    const maskedGroups = lineAlertOverlaysSource.match(/<g[^>]*mask=\{`url\(#\$\{visualId\}[^>]*>/g) ?? [];
+    assert.ok(maskedGroups.length >= 3);
+    for (const group of maskedGroups) assert.match(group, /className="map-glyph-lane-clip"/);
+  });
+
+  it("leaves the pointer to alert targets: tubes and their hover copies never take it", () => {
+    // GO/UP's SVG is interactive, so a tube that took the pointer made its
+    // <use> hover copy, drawn above the targets, swallow presses and focus.
+    assert.match(globalCss, /\n\.asset-alert-path\s*\{[^}]*pointer-events:\s*none;/s);
+    assert.doesNotMatch(globalCss, /\n\.asset-alert-path\s*\{[^}]*cursor:\s*pointer/s);
+    // A presentation attribute loses to any stylesheet rule; inline styles do not.
+    assert.doesNotMatch(lineAlertOverlaysSource, /className=\{?[`"]asset-alert-path[^>]*pointerEvents="none"/s);
+    assert.match(globalCss, /\.map-segment-hit-target\s*\{[^}]*pointer-events:\s*stroke;/s);
   });
 
   it("keeps the remaining pulses (commute preview, selected station) on one shared phase", () => {

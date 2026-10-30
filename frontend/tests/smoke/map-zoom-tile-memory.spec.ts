@@ -22,7 +22,9 @@ const ZOOM_ROUNDS = 8;
 const TICKS_PER_DIRECTION = 12;
 // Measured at 2560 x 1309 on 2026-10-26: about 105-135 (GO/UP) and 8 (TTC)
 // with the zoom-time fixes, and about 1,800 (GO/UP) without them.
-const MAX_TILE_WARNINGS = Number(process.env.LINEWATCH_MAX_TILE_WARNINGS ?? 400);
+// Both maps log 0 here since glyph-lane masks lift while zooming (about 160
+// on GO/UP's live data before). 100 leaves room for machine variance.
+const MAX_TILE_WARNINGS = Number(process.env.LINEWATCH_MAX_TILE_WARNINGS ?? 100);
 
 // Chrome writes tile-memory warnings only to its own stderr, which
 // Playwright does not expose, so the test starts Chrome itself and attaches.

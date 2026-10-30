@@ -119,7 +119,7 @@ export function MapLineAlertTube({
             d={pathD}
             style={{ pointerEvents: "none", stroke: DELAY_RAIL_COLOR }}
           />
-          <g mask={`url(#${visualId}-mask)`} style={{ "--chevron-step": `${step}px` } as CSSProperties}>
+          <g className="map-glyph-lane-clip" mask={`url(#${visualId}-mask)`} style={{ "--chevron-step": `${step}px` } as CSSProperties}>
             {travelDirection === "bidirectional" ? (
               // A directionless delay shows one row of hourglasses, no arrows.
               <HourglassGlyphLane
@@ -149,7 +149,7 @@ export function MapLineAlertTube({
           <path
             className={`asset-alert-path planned-preview pointer-events-none ${selectedClass}`}
             d={pathD}
-            pointerEvents="none"
+            style={{ pointerEvents: "none" }}
           />
           <PlannedClosureIconLane pathD={pathD} travelDirection={travelDirection} unit={unit} />
         </>
@@ -182,7 +182,7 @@ export function MapLineAlertTube({
               style={{ pointerEvents: "none", stroke: SUSPENSION_COLOR }}
             />
             <GlyphMask id={`${visualId}-suspension-static-mask`} pathD={pathD} plane={plane} className="suspension-mask-path" />
-            <g mask={`url(#${visualId}-suspension-static-mask)`}>
+            <g className="map-glyph-lane-clip" mask={`url(#${visualId}-suspension-static-mask)`}>
               <SuspensionNoEntryLane pathD={pathD} step={88} unit={unit} />
             </g>
           </>
@@ -194,7 +194,7 @@ export function MapLineAlertTube({
               style={{ pointerEvents: "none", stroke: SUSPENSION_COLOR }}
             />
             <GlyphMask id={`${visualId}-suspension-mask`} pathD={pathD} plane={plane} className="suspension-mask-path" />
-            <g mask={`url(#${visualId}-suspension-mask)`}>
+            <g className="map-glyph-lane-clip" mask={`url(#${visualId}-suspension-mask)`}>
               <SuspensionGlyphLane
                 pathD={pathD}
                 step={48}

@@ -96,6 +96,10 @@ async function prepareVisualBaselinePage(page: Page, options: PrepareOptions = {
     ? page.locator(".regional-map-stage")
     : page.locator(".ttc-map-stage");
   await expect(mapStage).toHaveAttribute("data-raster-map-ready", "true");
+  // The map is ready only once its live overlays and the dashboard data
+  // behind the legend have landed; a shot taken earlier can catch the
+  // legend mid-load (the GO/UP baseline once did, with a wider icon slot).
+  await expect(page.locator(`[data-network-map-layer="${network}"]`).first()).toHaveAttribute("data-map-ready", "true");
 
   // Allow settled layout
   await page.waitForTimeout(200);

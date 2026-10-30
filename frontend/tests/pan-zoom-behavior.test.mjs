@@ -28,6 +28,7 @@ import { readShellSource } from "./helpers/shell-source.mjs";
 const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const wheelEventsSource = readFileSync(new URL("../src/components/map-wheel-events.ts", import.meta.url), "utf8");
 const shellSource = readShellSource();
 const sidebarStateSource = readFileSync(new URL("../src/app/desktop-sidebar-state.ts", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
@@ -336,9 +337,16 @@ describe("pan zoom behavior guardrails", () => {
       /const onWheel = useCallback\(([\s\S]*?)\n  \}, \[[^\]]*\]\);/,
     )?.[1] ?? "";
 
-    assert.match(ttcWheelHandler, /if \(isMapWheelScrollRegionTarget\(e\.target\)\) return;[\s\S]*e\.preventDefault\(\)/);
-    assert.match(regionalWheelHandler, /if \(isMapWheelScrollRegionTarget\(event\.target\)\) return;[\s\S]*event\.preventDefault\(\)/);
-    assert.match(mapSource, /const preventScroll = \(e: WheelEvent\) => \{[\s\S]*isMapWheelScrollRegionTarget\(e\.target\)[\s\S]*e\.preventDefault\(\)/);
+    assert.match(ttcWheelHandler, /if \(isMapWheelScrollRegionTarget\(e\.target\)\) return;/);
+    assert.match(regionalWheelHandler, /if \(isMapWheelScrollRegionTarget\(event\.target\)\) return;/);
+    // React's onWheel is passive, so both maps cancel the browser's wheel
+    // action (and a trackpad pinch's page zoom) with one native listener.
+    assert.doesNotMatch(ttcWheelHandler, /preventDefault/);
+    assert.doesNotMatch(regionalWheelHandler, /preventDefault/);
+    assert.match(wheelEventsSource, /const preventDefault = \(event: WheelEvent\) => \{[\s\S]*isMapWheelScrollRegionTarget\(event\.target\)[\s\S]*event\.preventDefault\(\)/);
+    assert.match(wheelEventsSource, /addEventListener\("wheel", preventDefault, \{ passive: false \}\)/);
+    assert.match(mapSource, /usePreventMapWheelDefault\(containerRef\)/);
+    assert.match(regionalMapSource, /usePreventMapWheelDefault\(viewportRef\)/);
   });
 
   it("commits programmatic transforms to the ref synchronously", () => {

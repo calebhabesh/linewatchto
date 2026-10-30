@@ -175,7 +175,7 @@ import {
   observeMapChooserKeepouts,
   visibleMapChooserKeepouts,
 } from "./map-chooser-keepouts";
-import { isMapWheelScrollRegionTarget } from "./map-wheel-events";
+import { isMapWheelScrollRegionTarget, usePreventMapWheelDefault } from "./map-wheel-events";
 import {
   stationImpactBeaconSize,
   type StationBeaconNeighbour,
@@ -785,17 +785,7 @@ function InteractiveTtcMapComponent({
     };
   }, [mapAsset.src]);
 
-  // Prevent default wheel scrolling on the container
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const preventScroll = (e: WheelEvent) => {
-      if (isMapWheelScrollRegionTarget(e.target)) return;
-      e.preventDefault();
-    };
-    el.addEventListener("wheel", preventScroll, { passive: false });
-    return () => el.removeEventListener("wheel", preventScroll);
-  }, [containerRef]);
+  usePreventMapWheelDefault(containerRef);
 
   const focusTargetKey = useMemo(() => {
     if (selection) return `${selection.kind}:${selection.id}`;

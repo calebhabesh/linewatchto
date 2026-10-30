@@ -117,7 +117,7 @@ import {
   MapOverlapChooser,
   type MapOverlapChooserLayout,
 } from "./MapOverlapChooser";
-import { isMapWheelScrollRegionTarget } from "./map-wheel-events";
+import { isMapWheelScrollRegionTarget, usePreventMapWheelDefault } from "./map-wheel-events";
 import {
   cameraFromOrientedTransformMatrix,
   clampPanZoomScale,
@@ -1679,11 +1679,12 @@ function InteractiveRegionalMapComponent({
     scheduleCameraCommit();
   }, [clearProgrammaticAnimation, endCameraMotion, fitScale, logicalViewportSize, scheduleCameraCommit, setCamera, setMapTransition, setUserZoomMotion, writeMapTransform]);
 
+  // The browser's wheel action (page zoom on a trackpad pinch) stays off the map, as on TTC.
+  usePreventMapWheelDefault(viewportRef);
   const onWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
     if (isMapWheelScrollRegionTarget(event.target)) return;
     // A wheel ends the pointer hover (the hover controller ends alert hover).
     setHoveredStationLabel(null);
-    event.preventDefault();
     const viewport = viewportRef.current;
     if (!viewport) return;
     cameraAdjustedByUserRef.current = true;

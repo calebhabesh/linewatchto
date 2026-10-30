@@ -879,8 +879,9 @@ export function usePanZoom({
 
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
+    // The map's native listener (usePreventMapWheelDefault) cancels the
+    // browser's own wheel action; React's onWheel is passive and cannot.
     if (isMapWheelScrollRegionTarget(e.target)) return;
-    e.preventDefault();
     cameraAdjustedByUserRef.current = true;
 
     // Interrupt a camera flight once at the start of a wheel gesture. Reading

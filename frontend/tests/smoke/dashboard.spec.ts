@@ -356,7 +356,7 @@ test("introduces first-time riders before showing the unofficial-project notice"
   const notice = page.getByRole("region", { name: "Unofficial dashboard notice" });
   await expect(notice).toBeVisible();
   await expect(notice).toContainText("LineWatchTO is not affiliated with, endorsed by, or operated by the TTC or Metrolinx.");
-  await page.getByRole("button", { name: "Got it" }).click();
+  await page.getByRole("button", { name: "Got It" }).click();
   await expect(notice).toHaveCount(0);
 
   await page.reload();
@@ -1014,7 +1014,7 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
   const scheduleCard = page.locator(".surface-notice-route-group").filter({
     hasText: "We are running on a Saturday schedule for Labour Day",
   });
-  await expect(scheduleCard.getByText("Schedule announcement", { exact: true })).toBeVisible();
+  await expect(scheduleCard.getByText("Schedule Announcement", { exact: true })).toBeVisible();
   await expect(scheduleCard.getByText("Published for:", { exact: true })).toBeVisible();
   await expect(scheduleCard.getByText("Lakeshore East", { exact: true })).toBeVisible();
   await expect(scheduleCard).not.toContainText("Station / Lines Affected");
@@ -1025,7 +1025,7 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
   await expect(scheduleCard).toHaveCSS("border-left-style", "solid");
   await page.getByRole("button", { name: "Sort notices" }).click();
   await page.getByRole("menuitemradio", { name: "Most Recent" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Newest updates first" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Newest Updates First" })).toBeVisible();
   await page.getByRole("button", { name: "Sort notices" }).click();
   await page.getByRole("menuitemradio", { name: "Importance" }).click();
   await page.screenshot({ path: `/tmp/notices-${isMobile ? "mobile" : "desktop"}.png` });
@@ -1606,6 +1606,53 @@ test("regional corridor hover encloses the entire referenced impact", async ({ p
   await expect(emphasis.first()).toBeAttached();
 });
 
+test("a press on a GO/UP line alert reaches its target and selects it", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "hover requires a pointer");
+  await setStubMode(request, "regional-live");
+
+  await page.goto("/");
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+  await waitForNetworkTransition(page, "regional");
+
+  // A visible point on any line alert, where that alert's target is on top.
+  const pressPoint = await page.evaluate(() => {
+    const viewport = document.querySelector(".regional-map-viewport")!;
+    // Planned closures first: their tubes are the ones riders press most.
+    const targets = [...document.querySelectorAll<SVGPathElement>(".regional-map .map-segment-hit-target")]
+      .sort((a, b) => Number(b.dataset.mapImpactKind === "planned-closure") - Number(a.dataset.mapImpactKind === "planned-closure"));
+    for (const path of targets) {
+      for (let step = 1; step < 20; step += 1) {
+        const point = path.getPointAtLength(path.getTotalLength() * step / 20).matrixTransform(path.getScreenCTM()!);
+        const hit = document.elementFromPoint(point.x, point.y);
+        if (hit === path && viewport.contains(hit)) return { x: point.x, y: point.y, id: path.dataset.mapImpactId!, kind: path.dataset.mapImpactKind };
+      }
+    }
+    throw new Error("no visible line alert");
+  });
+  const hoverForeground = page.locator(
+    `#regional-dynamic-hover-layer .map-impact-hover-foreground[data-map-hover-impact-id="${pressPoint.id}"]`,
+  );
+  await page.mouse.move(pressPoint.x, pressPoint.y);
+  await expect(hoverForeground).toHaveAttribute("data-map-impact-hovered", "true");
+
+  // Neither the tube nor its hover copy, drawn above the targets, takes the
+  // pointer. When they did, the press selected nothing and focused GO/UP's
+  // hover layer, which drew the browser's focus box around the alert.
+  const hit = await page.evaluate(({ x, y }) => {
+    const element = document.elementFromPoint(x, y) as SVGElement | null;
+    return `${element?.getAttribute("class")}:${element?.dataset.mapImpactId}`;
+  }, pressPoint);
+  expect(hit).toBe(`map-segment-hit-target:${pressPoint.id}`);
+  await page.mouse.down();
+  await page.mouse.up();
+  await expect(page.locator(
+    `#regional-dynamic-selected-segment-layer [data-selected-impact-emphasis="${pressPoint.id}"]`,
+  ).first()).toBeAttached();
+  expect(await page.evaluate(() => document.activeElement?.closest("#regional-dynamic-hover-layer") ?? null)).toBeNull();
+});
+
 test("selecting a hovered regional station preserves distinct overlays", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "hover requires a pointer");
   await setStubMode(request, "regional-live");
@@ -1689,8 +1736,8 @@ test("focuses a station-only regional planned closure on the map", async ({ page
   await expect(marker).toBeVisible();
   await expect.poll(() => mapStage.getAttribute("style")).not.toBe(initialTransform);
 
-  // The card's map button now reads "Back to map"; the selection survives the sidebar returning.
-  await expect(card.getByRole("button", { name: "Back to map: Pickering station construction" })).toBeVisible();
+  // The card's map button now reads "Back to Map"; the selection survives the sidebar returning.
+  await expect(card.getByRole("button", { name: "Back to Map: Pickering station construction" })).toBeVisible();
   const expandSidebar = page.getByRole("button", { name: "Expand sidebar" });
   if (await expandSidebar.isVisible()) await expandSidebar.click();
   await expect(marker).toHaveClass(/\bselected\b/);
@@ -2195,12 +2242,12 @@ test("opens the site guide and completes verified email signup", async ({ page, 
   const verificationDialog = page.getByRole("dialog", { name: "Verify your email for LineWatchTO" });
   await expect(verificationDialog).toContainText("Check your email to verify your LineWatchTO account");
   await verificationDialog.getByLabel("Password", { exact: true }).fill("aaaaaaaaaa");
-  await verificationDialog.getByLabel("Confirm password").fill("aaaaaaaaaa");
+  await verificationDialog.getByLabel("Confirm Password").fill("aaaaaaaaaa");
   await verificationDialog.getByRole("button", { name: "Verify Local Account" }).click();
   await expect(verificationDialog.getByRole("alert")).toContainText("Password must include a number, symbol, or space.");
 
   await verificationDialog.getByLabel("Password", { exact: true }).fill("correct horse battery staple");
-  await verificationDialog.getByLabel("Confirm password").fill("correct horse battery staple");
+  await verificationDialog.getByLabel("Confirm Password").fill("correct horse battery staple");
   await verificationDialog.getByRole("button", { name: "Verify Local Account" }).click();
   // Signing in closes the dialog and opens My Commutes.
   await expect(verificationDialog).toHaveCount(0);
@@ -2215,7 +2262,7 @@ test("accepts a one-time email verification link", async ({ page, request }) => 
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText("Verification links expire after 24 hours");
   await dialog.getByLabel("Password", { exact: true }).fill("correct horse battery staple");
-  await dialog.getByLabel("Confirm password").fill("correct horse battery staple");
+  await dialog.getByLabel("Confirm Password").fill("correct horse battery staple");
   await dialog.getByRole("button", { name: "Verify Email" }).click();
 
   await expect(dialog).toHaveCount(0);
@@ -3610,11 +3657,11 @@ test("shows an active planned closure in both current and scheduled views", asyn
   const activeClosureCard = plannedClosuresPanel.locator('[data-impact-card-id="stub-closure-line-1"]');
   await expect(activeClosureCard).toBeVisible();
   await expect(activeClosureCard.getByText("Active Now", { exact: true })).toBeVisible();
-  await expect(activeClosureCard.getByText("Advisory hours", { exact: true })).toBeVisible();
+  await expect(activeClosureCard.getByText("Advisory Hours", { exact: true })).toBeVisible();
   await expect(activeClosureCard.getByText("11:59 PM – 3:30 AM", { exact: true })).toBeVisible();
-  await expect(activeClosureCard.getByText("Advisory dates", { exact: true })).toBeVisible();
+  await expect(activeClosureCard.getByText("Advisory Dates", { exact: true })).toBeVisible();
   await expect(activeClosureCard.getByText("Mon, Jul 20 – Wed, Jul 22", { exact: true })).toBeVisible();
-  await expect(activeClosureCard.getByText("Current window", { exact: true })).toBeVisible();
+  await expect(activeClosureCard.getByText("Current Window", { exact: true })).toBeVisible();
   const currentWindowValue = activeClosureCard.locator(".planned-closure-metadata dd").nth(2);
   await expect(currentWindowValue).toContainText("Wed, Jul 22");
   await expect(currentWindowValue).toContainText("11:59 PM");
@@ -3624,7 +3671,7 @@ test("shows an active planned closure in both current and scheduled views", asyn
   )).toBe(true);
   const upcomingClosureCard = plannedClosuresPanel.locator('[data-impact-card-id="stub-upcoming-closure-line-1"]');
   await expect(upcomingClosureCard).toBeVisible();
-  await expect(upcomingClosureCard.getByText("Overlapping impacts")).toBeVisible();
+  await expect(upcomingClosureCard.getByText("Overlapping Impacts")).toBeVisible();
   await expect(upcomingClosureCard.getByText("Suspension", { exact: true })).toHaveCount(2);
   await expect(upcomingClosureCard.getByText("Active Closure", { exact: true })).toHaveCount(0);
 });
@@ -3672,7 +3719,7 @@ for (const sameIdProjection of [false, true]) {
     // The planned-advisory badge swaps the list in place on every device.
     await alertCard.getByRole("button", { name: "View related planned advisory details" }).click();
     await expect(page.getByRole("heading", { name: "Planned Advisories" })).toBeVisible();
-    await expect(closureCard.getByText("Current window", { exact: true })).toBeVisible();
+    await expect(closureCard.getByText("Current Window", { exact: true })).toBeVisible();
     await closureCard.getByRole("button", { name: "View current impact", exact: true }).click();
     if (isMobile) {
       // The current impact opens in the map inspector on phones.
@@ -4086,7 +4133,7 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
   await expect(page.getByRole("heading", { name: "Suspensions" })).toBeVisible();
   const activeAlertCard = page.locator('[data-impact-card-id="stub-alert-line-1"]');
   await expect(activeAlertCard).toBeVisible();
-  await expect(activeAlertCard.getByText("Overlapping impacts", { exact: true })).toBeVisible();
+  await expect(activeAlertCard.getByText("Overlapping Impacts", { exact: true })).toBeVisible();
   await expect(activeAlertCard.getByRole("button", { name: /^View Delay at / })).toBeVisible();
   await expect(activeAlertCard.getByRole("button", { name: /^View Reduced Speed Zone at / })).toBeVisible();
 
@@ -4096,13 +4143,13 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
   });
   const delayCard = delaysPanel.locator('[data-impact-card-id="stub-delay-line-1-overlap"]');
   await expect(delayCard).toBeVisible();
-  await expect(delayCard.getByText("Overlapping impacts", { exact: true })).toBeVisible();
+  await expect(delayCard.getByText("Overlapping Impacts", { exact: true })).toBeVisible();
   await expect(delayCard.getByRole("button", { name: /^View Suspension at / })).toHaveCount(2);
 
   await openServiceCategory(page, isMobile, /Suspension/);
   const boundaryActiveCard = page.locator('[data-impact-card-id="stub-alert-st-george-boundary"]');
   await expect(boundaryActiveCard).toBeVisible();
-  await expect(boundaryActiveCard.getByText("Overlapping impacts", { exact: true })).toBeVisible();
+  await expect(boundaryActiveCard.getByText("Overlapping Impacts", { exact: true })).toBeVisible();
   await expect(boundaryActiveCard.getByRole("button", { name: /^View Planned Advisory at / })).toBeVisible();
 
   await openServiceCategory(page, isMobile, /Planned Advisor/);
@@ -4111,7 +4158,7 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
   });
   const boundaryClosureCard = closuresPanel.locator('[data-impact-card-id="stub-upcoming-closure-st-george-boundary"]');
   await expect(boundaryClosureCard).toBeVisible();
-  await expect(boundaryClosureCard.getByText("Overlapping impacts", { exact: true })).toBeVisible();
+  await expect(boundaryClosureCard.getByText("Overlapping Impacts", { exact: true })).toBeVisible();
   await expect(boundaryClosureCard.getByRole("button", { name: /^View Suspension at / })).toBeVisible();
 });
 
@@ -4127,7 +4174,7 @@ test("production capability keeps TTC source status sanitized", async ({ page, r
     await openDesktopDestination(page, "source-status");
   }
   await expect(page.getByText("TTC Source Status").last()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Dashboard feed" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Dashboard Feed" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "30-day feed availability" })).toBeVisible();
   await expect(page.getByText("99.72%", { exact: true })).toBeVisible();
   await expect(page.getByText("alerts.ttc.ca", { exact: true })).toBeVisible();
@@ -4135,8 +4182,8 @@ test("production capability keeps TTC source status sanitized", async ({ page, r
   await expect(page.getByText("/api/alerts/live-alerts", { exact: true })).toBeVisible();
   await expect(page.locator('code[title="https://alerts.ttc.ca/api/alerts/live-alerts"]')).toBeVisible();
   await expect(page.getByText("LineWatchTO processing failures are excluded", { exact: false })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Processing summary" })).toBeVisible();
-  await expect(page.getByText("Rider summaries")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Processing Summary" })).toBeVisible();
+  await expect(page.getByText("Rider Summaries")).toBeVisible();
   await expect(page.getByText("12", { exact: true })).toBeVisible();
   await expect(page.getByText("original source records are not publicly exposed", { exact: false })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Source records" })).toHaveCount(0);
@@ -4206,7 +4253,7 @@ test("opens regional source coverage and retained records in non-production", as
   await expect(page.getByText("UP Express Alerts", { exact: true })).toBeVisible();
   await expect(page.getByText("/api/V1/UP/Gtfs/Feed/Alerts", { exact: true })).toBeVisible();
   await expect(page.getByText("Supplemental collections and LineWatchTO processing failures are excluded", { exact: false })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Collection coverage" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Collection Coverage" })).toBeVisible();
   await expect(page.getByText("GO service alerts", { exact: true })).toBeVisible();
   await expect(page.getByText("UP rail service alerts", { exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "Source records" }).click();
@@ -4423,8 +4470,8 @@ test("global search opens a condensed alert result in its detailed card and mobi
   if (isMobile) {
     // The search result already focuses this delay on the map (highlight checked
     // above); its card button steps back to the search results and says so.
-    await expect(delayCard.getByRole("button", { name: /^Back to map: / })).toHaveCount(0);
-    await delayCard.getByRole("button", { name: /^Back to search results: / }).click();
+    await expect(delayCard.getByRole("button", { name: /^Back to Map: / })).toHaveCount(0);
+    await delayCard.getByRole("button", { name: /^Back to Search Results: / }).click();
     await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-active-view", "search");
   }
 });
@@ -5079,6 +5126,86 @@ test("saved commute View on Map transitions cleanly across network modes and pan
   expect(mapTransform).not.toBe("translate(0px, 0px) scale(1)");
 });
 
+test.describe("GO/UP commute preview", () => {
+  // The service worker would answer the commutes request before the route.
+  test.use({ serviceWorkers: "block" });
+
+  test("draws a GO/UP commute with the shared route, endpoint dots and flashes", async ({ page, request, isMobile }) => {
+    test.skip(isMobile, "desktop sign-in path");
+    await setStubMode(request, "regional-live");
+    // The demo account has only TTC commutes; add a Union to Long Branch one.
+    const stationIds = ["union", "exhibition", "mimico", "long-branch"];
+    const segmentIds = stationIds.slice(1).map((stationId, index) => `segment-lw-${stationIds[index]}-${stationId}`);
+    await page.route("**/api/account/commutes", async (route) => {
+      if (route.request().method() !== "GET") return route.fallback();
+      const response = await route.fetch();
+      const body = await response.json();
+      const [template] = body.commutes ?? [];
+      if (template) {
+        const path = {
+          ...template.outboundLeg.path,
+          stationIds,
+          segmentIds,
+          segmentHops: segmentIds.map((segmentId, index) => ({
+            segmentId, lineId: "regional-lw", fromStationId: stationIds[index], toStationId: stationIds[index + 1],
+          })),
+          lineIds: ["regional-lw"],
+          transferStationIds: [],
+          weightSource: "regional-topology-estimate",
+        };
+        const impact = { ...template.outboundLeg.impact, status: "clear", severity: "none", matchedImpacts: [] };
+        body.commutes.push({
+          ...template,
+          id: "commute_regional_union_long_branch",
+          label: "Lakeshore commute",
+          networkId: "regional",
+          originStationId: "union",
+          originStationName: "Union",
+          destinationStationId: "long-branch",
+          destinationStationName: "Long Branch",
+          routeLabel: "Union -> Long Branch",
+          watchReturnTrip: false,
+          outboundLeg: {
+            ...template.outboundLeg,
+            routeLabel: "Union -> Long Branch",
+            fromStationId: "union",
+            fromStationName: "Union",
+            toStationId: "long-branch",
+            toStationName: "Long Branch",
+            path,
+            impact,
+          },
+          returnLeg: undefined,
+          path,
+          impact,
+        });
+      }
+      await route.fulfill({ response, json: body });
+    });
+
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+    await page.getByRole("group", { name: "Select transit network" })
+      .getByRole("button", { name: "GO/UP", exact: true })
+      .click();
+    await waitForNetworkTransition(page, "regional");
+    await openDashboardMenu(page, isMobile);
+    await signInDesktopDemoAccount(page);
+    await openDesktopDestination(page, "commutes");
+
+    await page.getByRole("button", { name: "View on map for Lakeshore commute" }).click();
+    const preview = page.locator('.regional-map [data-commute-path-preview]');
+    await expect(preview).toBeAttached();
+    // One route path through the commute's segments, under station artwork.
+    const routeD = await preview.locator(".commute-path-preview-path").getAttribute("d");
+    expect(routeD?.match(/M/g)?.length ?? 0).toBeGreaterThanOrEqual(segmentIds.length);
+    await expect(preview.locator(".commute-path-preview-endpoint")).toHaveCount(2);
+    // Green flashes above the artwork; Union's takes its pill shape.
+    await expect(page.locator('.regional-map .station-commute-green-flash--pill[data-commute-path-endpoint="origin"]')).toHaveCount(1);
+    await expect(page.locator('.regional-map circle.station-commute-green-flash[data-commute-path-endpoint="destination"]')).toHaveCount(1);
+  });
+});
+
 test("signed-in riders save, browse, remove, undo, and reload My Stations", async ({ page, request, isMobile }) => {
   await installDismissedTransientUi(page);
   await setStubMode(request, "seeded");
@@ -5236,8 +5363,8 @@ test("requests and confirms a password reset from the sign-in dialog", async ({ 
 
   const confirmDialog = page.getByRole("dialog", { name: "Choose a new LineWatchTO password" });
   await expect(confirmDialog).toBeVisible();
-  await confirmDialog.getByLabel("New password").fill("new correct horse 2");
-  await confirmDialog.getByLabel("Confirm password").fill("new correct horse 2");
+  await confirmDialog.getByLabel("New Password").fill("new correct horse 2");
+  await confirmDialog.getByLabel("Confirm Password").fill("new correct horse 2");
   await confirmDialog.getByRole("button", { name: "Reset Password" }).click();
   await expect(confirmDialog).toHaveCount(0);
 
@@ -5256,9 +5383,9 @@ test("opens emailed password reset links directly", async ({ page, request, isMo
   const confirmDialog = page.getByRole("dialog", { name: "Choose a new LineWatchTO password" });
   await expect(confirmDialog).toBeVisible();
   await expect(confirmDialog.getByText("Enter a new password to finish recovery.")).toBeVisible();
-  await expect(confirmDialog.getByLabel("Reset token")).toHaveCount(0);
-  await confirmDialog.getByLabel("New password").fill("new correct horse 2");
-  await confirmDialog.getByLabel("Confirm password").fill("new correct horse 2");
+  await expect(confirmDialog.getByLabel("Reset Token")).toHaveCount(0);
+  await confirmDialog.getByLabel("New Password").fill("new correct horse 2");
+  await confirmDialog.getByLabel("Confirm Password").fill("new correct horse 2");
   await confirmDialog.getByRole("button", { name: "Reset Password" }).click();
   await expect(confirmDialog).toHaveCount(0);
   await expect(page).toHaveURL("/");
@@ -5462,7 +5589,7 @@ test("desktop browser Back unfocuses an impact before leaving its submenu", asyn
   const showOnMap = page.getByRole("button", { name: /^View .* on map$/ }).first();
   await showOnMap.click();
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^Back to map:/ }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Back to Map:/ }).first()).toBeVisible();
 
   // Rail destinations act like tabs and add no history entry; focusing an
   // impact does, so browser Back only unfocuses it.
@@ -5521,7 +5648,7 @@ test("manages push notification preferences on mobile", async ({ page, request, 
 
   await expect(page.getByRole("heading", { name: "Notifications", exact: true })).toBeVisible();
   await expect(page.getByText("Device Notifications")).toBeVisible();
-  await expect(page.getByText(/Push for this browser|This Device|Enable on This Device/)).toBeVisible();
+  await expect(page.getByText(/Push for This Browser|This Device|Enable on This Device/)).toBeVisible();
   await expect(page.getByText(/Account notifications are on|This device is receiving notifications|Push not configured/).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Line & Corridor Subscriptions" })).toBeVisible();
   const subscriptionNetwork = page.getByRole("group", { name: "Notification subscription network" });
@@ -5746,9 +5873,9 @@ test.describe("regional history source details", () => {
     await expect(page.locator(".alert-history-line-filter-options").getByRole("button", { name: /Barrie/ })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(card.locator(".alert-history-content > .alert-history-description")).toHaveText(updated.description);
-    await expect(card.getByText("Source category", { exact: true })).toBeVisible();
+    await expect(card.getByText("Source Category", { exact: true })).toBeVisible();
     await expect(card.getByText("Unknown Cause", { exact: true })).toHaveCount(0);
-    await expect(card.getByText("Affected stations", { exact: true }).first()).toBeVisible();
+    await expect(card.getByText("Affected Stations", { exact: true }).first()).toBeVisible();
     const snapshots = card.locator(".alert-history-snapshot");
     await snapshots.first().locator("summary").click();
     await expect(snapshots.first().locator("summary")).toHaveText("Source details · Changed: Description");
