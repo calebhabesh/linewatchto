@@ -2233,6 +2233,17 @@ export function LineWatchShell({
   }, [setActiveView, setMapLayoutSignal, setMobileInspectorDetent, setMapPresentationMode]);
 
   const handleClearMobileImpactSelection = useCallback(() => {
+    // An impact opened from My Stations returns there, whatever history led to it.
+    if (mobileImpactReturnView === "my-stations") {
+      if (selectionRef.current) consumeBrowserNavigationEntries();
+      selectionRef.current = null;
+      selectionBackBehaviorRef.current = "clear";
+      setMobileImpactReturnView(null);
+      setSelection(null);
+      setMobileInspectorDetent("map-focus");
+      navigateRoot("my-stations");
+      return;
+    }
     if (dismissImpactNavigation()) {
       setMobileInspectorDetent("map-focus");
       return;
@@ -2247,7 +2258,7 @@ export function LineWatchShell({
     if (shouldRestoreOrigin) {
       restoreMapDrilldownOrigin();
     }
-  }, [consumeBrowserNavigationEntries, dismissImpactNavigation, restoreMapDrilldownOrigin, selectionBackBehaviorRef, selectionRef, setMobileImpactReturnView, setMobileInspectorDetent, setSelection]);
+  }, [consumeBrowserNavigationEntries, dismissImpactNavigation, mobileImpactReturnView, navigateRoot, restoreMapDrilldownOrigin, selectionBackBehaviorRef, selectionRef, setMobileImpactReturnView, setMobileInspectorDetent, setSelection]);
 
   const handleClearRotatedSelection = useCallback(() => {
     if (selectionRef.current || selectedStationIdRef.current) consumeBrowserNavigationEntries();

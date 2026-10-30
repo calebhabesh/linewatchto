@@ -1154,13 +1154,24 @@
     right: auto;
   }
 
+  /* Search and the sort/view controls share a row while they fit. A long sort
+     label (GO/UP's "Impacts first · Updated") wraps the controls below instead
+     of squeezing the search box to nothing. */
   .line-impacts-panel .impact-list-toolbar {
-    grid-template-columns: minmax(0, 1fr) auto;
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .line-impacts-panel .impact-list-toolbar > .filter-search-row {
+    flex: 1 1 10rem;
+    min-width: 10rem;
   }
 
   .line-impacts-panel .impact-list-selects {
+    flex: 0 1 auto;
     flex-wrap: nowrap;
     justify-content: flex-end;
+    margin-left: auto;
   }
 
   .line-impacts-panel .impact-list-selects .saved-commute-sort-options.impact-list-select-options {

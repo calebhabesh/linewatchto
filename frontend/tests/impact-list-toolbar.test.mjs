@@ -29,10 +29,12 @@ describe("impact list toolbar", () => {
     assert.match(globalCss, /@media \(max-width: 767px\)[\s\S]*?saved-commute-sort-options\.impact-list-select-options[\s\S]*?left:\s*0;[\s\S]*?right:\s*auto;/);
   });
 
-  it("keeps search bar and sort dropdown side-by-side on mobile for transit line submenus", () => {
+  it("keeps search bar and sort dropdown side-by-side on mobile for transit line submenus while they fit", () => {
+    // The controls wrap below a long sort label instead of squeezing the search box.
+    assert.match(globalCss, /@media \(max-width:\s*767px\)[\s\S]*?\.line-impacts-panel \.impact-list-toolbar\s*\{[^}]*display:\s*flex;[^}]*flex-wrap:\s*wrap;/s);
     assert.match(
       globalCss,
-      /@media \(max-width: 767px\)[\s\S]*?\.line-impacts-panel \.impact-list-toolbar\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto;/s,
+      /@media \(max-width: 767px\)[\s\S]*?\.line-impacts-panel \.impact-list-toolbar > \.filter-search-row\s*\{[^}]*min-width:\s*10rem;/s,
     );
     assert.match(
       globalCss,
