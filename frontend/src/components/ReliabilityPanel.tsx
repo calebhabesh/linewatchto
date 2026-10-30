@@ -648,7 +648,7 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
 
         {networkId === "ttc" && (metrics.length === 0 ? (
           <div className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5">
-            <strong className="text-sm font-bold text-slate-800 dark:text-white">Official metrics unavailable</strong>
+            <strong className="text-sm font-bold text-slate-800 dark:text-white">Official Metrics Unavailable</strong>
             <p className="text-xs text-slate-500 dark:text-slate-400">{ttcPerformance.message}</p>
           </div>
         ) : (

@@ -24,7 +24,7 @@ interface Props {
   onSelectImpact: (selection: ImpactSelection) => void;
   onSelectRelatedImpact?: (selection: ImpactSelection) => void;
   onReturnToMap?: () => void;
-  /** Where an active card's Back action returns, e.g. "Back to search results". */
+  /** Where an active card's Back action returns, e.g. "Back to Search Results". */
   returnToMapLabel?: string;
   onBack?: () => void;
   onClose?: () => void;
@@ -197,7 +197,7 @@ export function DelaysPanel({
                     <OverlappingImpactRefs
                       overlaps={overlappingImpacts}
                       onSelectImpact={onSelectRelatedImpact}
-                      label="Overlapping impacts"
+                      label="Overlapping Impacts"
                     />
                   )}
                 />

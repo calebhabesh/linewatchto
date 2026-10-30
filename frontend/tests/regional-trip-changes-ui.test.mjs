@@ -50,7 +50,7 @@ describe("regional trip changes UI", () => {
   it("shows collection states and schedule lookahead in the source-status panel", () => {
     assert.match(logsSource, /\/api\/health\/regional-ingestion/);
     assert.match(logsSource, /\/api\/health\/regional-schedule/);
-    assert.match(logsSource, /Collection coverage/);
+    assert.match(logsSource, /Collection Coverage/);
     assert.match(logsSource, /collection\.recordsFetched/);
     assert.match(logsSource, /schedule\.requiredThrough/);
   });

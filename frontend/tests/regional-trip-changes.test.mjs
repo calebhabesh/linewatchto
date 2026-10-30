@@ -88,8 +88,8 @@ describe("regional trip changes adapter", () => {
 
   it("uses short factual labels for supported change kinds", () => {
     assert.equal(regionalTripChangeLabel("cancellation"), "Cancelled");
-    assert.equal(regionalTripChangeLabel("skipped-stop"), "Not stopping");
-    assert.equal(regionalTripChangeLabel("added-stop"), "Additional stop");
+    assert.equal(regionalTripChangeLabel("skipped-stop"), "Not Stopping");
+    assert.equal(regionalTripChangeLabel("added-stop"), "Additional Stop");
   });
 
   it("extracts clean front-facing train numbers and destination names", () => {

@@ -18,7 +18,7 @@ describe("arrival tile source indicator and badge contracts", () => {
     const liveStandard = arrivalTileSourceIndicatorData("live", false, false);
     assert.equal(liveStandard.isLive, true);
     assert.equal(liveStandard.source, "live");
-    assert.equal(liveStandard.title, "Live arrival estimate");
+    assert.equal(liveStandard.title, "Live Arrival Estimate");
     assert.equal(liveStandard.iconSize, 13);
     assert.ok(liveStandard.signalClass.includes("text-emerald-600"));
 
@@ -30,7 +30,7 @@ describe("arrival tile source indicator and badge contracts", () => {
     const scheduledNotDue = arrivalTileSourceIndicatorData("scheduled", false, false);
     assert.equal(scheduledNotDue.isLive, false);
     assert.equal(scheduledNotDue.source, "scheduled");
-    assert.equal(scheduledNotDue.title, "Scheduled timetable");
+    assert.equal(scheduledNotDue.title, "Scheduled Timetable");
     assert.ok(scheduledNotDue.calendarClass.includes("text-slate-400"));
 
     const scheduledDue = arrivalTileSourceIndicatorData("scheduled", true, false);

@@ -100,7 +100,7 @@ export function PwaInstallNudge({
               {installing ? "Opening" : "Install"}
             </>
           ) : (
-            "Got it"
+            "Got It"
           )}
         </button>
         <button

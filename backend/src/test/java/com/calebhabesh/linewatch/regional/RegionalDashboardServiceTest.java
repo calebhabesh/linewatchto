@@ -143,6 +143,34 @@ class RegionalDashboardServiceTest {
     }
 
     @Test
+    void givesADatedUpcomingAdvisoryItsNextWindowAndLeavesUndatedOnesUnknown() {
+        when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
+        OffsetDateTime start = OffsetDateTime.parse("2026-08-08T04:00:00Z");
+        when(alertStore.findActiveAlerts()).thenReturn(List.of(
+            new RegionalNormalizedAlert("dated", MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M4", "regional-up",
+                "planned-closure", "Aug. 8-9: Service adjustments", "GO buses replace trains.", "Construction",
+                start, start.plusDays(2), OffsetDateTime.parse("2026-07-28T18:12:00Z"), List.of(),
+                RegionalNetworkCatalog.segmentIds("regional-up", List.of()), "text-date-range", "", "go-bus", null, start),
+            new RegionalNormalizedAlert("undated", MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M5", "regional-up",
+                "planned-closure", "Upcoming service adjustments", "GO buses replace trains.", "Construction",
+                null, null, OffsetDateTime.parse("2026-07-28T18:12:00Z"), List.of(),
+                RegionalNetworkCatalog.segmentIds("regional-up", List.of()), "unknown", "", "go-bus", null, null)));
+
+        var closures = service.dashboard().plannedClosures();
+
+        assertThat(closures).filteredOn(closure -> "dated".equals(closure.id())).singleElement().satisfies(closure -> {
+            assertThat(closure.timingStatus()).isEqualTo("upcoming");
+            assertThat(closure.nextWindowStart()).isEqualTo(start);
+            assertThat(closure.nextWindowEnd()).isEqualTo(start.plusDays(2));
+            assertThat(closure.activeNow()).isFalse();
+        });
+        assertThat(closures).filteredOn(closure -> "undated".equals(closure.id())).singleElement().satisfies(closure -> {
+            assertThat(closure.timingStatus()).isEqualTo("unknown");
+            assertThat(closure.nextWindowStart()).isNull();
+        });
+    }
+
+    @Test
     void exposesFreshRegionalAlertsStatusesAndReviewedMapImpacts() {
         when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
         when(alertStore.findActiveAlerts()).thenReturn(List.of(new RegionalNormalizedAlert(

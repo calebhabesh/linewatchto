@@ -12,8 +12,8 @@ const DIRECTION_LABELS: Record<ReducedSpeedZoneDirection, string> = {
   southbound: "Southbound",
   eastbound: "Eastbound",
   westbound: "Westbound",
-  bidirectional: "Both directions",
-  unknown: "Direction not specified",
+  bidirectional: "Both Directions",
+  unknown: "Direction Not Specified",
 };
 
 const LINE_DIRECTION_COLORS: Record<string, string> = {

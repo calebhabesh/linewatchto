@@ -94,7 +94,7 @@ for (const theme of ["light", "dark"] as const) {
       .toHaveText("Eastbound & Westbound");
     await expect(planned.locator(".overlap-chooser-choice-summary")).toHaveCount(0);
     await expect(delay.locator(".overlap-chooser-choice-summary")).toHaveCount(0);
-    await expect(delay).toContainText("Both directions");
+    await expect(delay).toContainText("Both Directions");
     await expect(chooser.locator('[data-overlap-choice-id="regional-demo-suspension"] .overlap-chooser-choice-direction'))
       .toHaveText("Eastbound & Westbound");
     expect(await chooser.evaluate((element) => {

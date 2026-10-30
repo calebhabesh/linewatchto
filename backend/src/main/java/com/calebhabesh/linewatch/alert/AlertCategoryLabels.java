@@ -10,7 +10,7 @@ public final class AlertCategoryLabels {
         return switch (key(kind)) {
             case "suspension", "active-alert" -> "Suspension";
             case "delay" -> "Delay";
-            case "limited-service" -> "Limited service";
+            case "limited-service" -> "Limited Service";
             case "reduced-speed-zone", "rsz" -> "Reduced Speed Zone";
             case "planned-closure", "closure" -> "Planned Advisory";
             case "trip-cancellation", "cancellation" -> "Train Cancellation";

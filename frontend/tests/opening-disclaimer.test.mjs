@@ -24,7 +24,7 @@ describe("first-visit welcome experience", () => {
     assert.match(onboardingSource, /Unofficial Personal Project/);
     assert.match(onboardingSource, /TTC or Metrolinx/);
     assert.match(onboardingSource, /Information may be delayed or unavailable/);
-    assert.match(onboardingSource, /Got it/);
+    assert.match(onboardingSource, /Got It/);
   });
 
   it("opens the right tab for new and returning visitors", () => {

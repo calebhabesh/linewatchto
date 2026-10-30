@@ -36,7 +36,7 @@ test("limited service uses one delay row and retains its specific effect and nig
   assert.equal(summary.rows[0].timingTarget, parent.activeWindowEnd);
   assert.equal(summary.rows[0].maximumDelayMinutes, undefined);
   assert.equal(summary.rows[0].shuttle, false);
-  assert.equal(serviceEffectLabel(parent, true), "Planned limited service");
+  assert.equal(serviceEffectLabel(parent, true), "Planned Limited Service");
   assert.deepEqual(stationImpactSelection("parent", data), { kind: "delay", id: "child" });
 });
 
@@ -77,8 +77,8 @@ test("nightly advisory status uses Toronto dates and keeps incomplete schedules 
   assert.equal(plannedAdvisoryStatus(nightly, Date.parse("2026-09-29T16:00:00Z")), "Next Tonight");
   assert.equal(plannedAdvisoryStatus(nightly, Date.parse("2026-09-29T03:30:00Z")), "Next: Tue, Sep 29");
   assert.equal(plannedAdvisoryStatus({ ...nightly, nightly: false }, Date.parse("2026-09-29T16:00:00Z")), "Next Tonight");
-  assert.equal(plannedAdvisoryStatus({ timingStatus: "unknown" }, null), "Schedule incomplete");
-  assert.equal(plannedAdvisoryStatus({ nextWindowStart: "invalid" }, null), "Schedule incomplete");
+  assert.equal(plannedAdvisoryStatus({ timingStatus: "unknown" }, null), "Schedule Incomplete");
+  assert.equal(plannedAdvisoryStatus({ nextWindowStart: "invalid" }, null), "Schedule Incomplete");
 });
 
 test("legacy and offline payloads retain source-honest compatibility", () => {
@@ -90,7 +90,7 @@ test("legacy and offline payloads retain source-honest compatibility", () => {
 
 test("limited history retains its effect label within the existing Delays filter", () => {
   assert.equal(normalizeEventTypeKey("limited-service"), "delay");
-  assert.equal(formatAlertTypeName("limited-service"), "Limited service");
+  assert.equal(formatAlertTypeName("limited-service"), "Limited Service");
   assert.equal(isSameEventType("limited-service", "delay"), true);
   const options = buildAlertHistoryTypeOptions([{ eventType: "limited-service" }]);
   assert.equal(options.filter(option => option.value === "delay").length, 1);
@@ -110,7 +110,7 @@ test("station-only planned previews stay local and defer to their current delay"
 
 test("geographic station projections use orange current and blue planned colors at one station", () => {
   const catalog = JSON.parse(readFileSync(new URL("../public/assets/linewatch/geographic/ttc-catalog.json", import.meta.url), "utf8"));
-  const current = projectImpactedStations(catalog, [{ stationId: "jane", kind: "delay", cardId: "child", title: "Limited service" }]);
+  const current = projectImpactedStations(catalog, [{ stationId: "jane", kind: "delay", cardId: "child", title: "Limited Service" }]);
   const preview = projectImpactedStations(catalog, plannedAdvisoryStationImpacts([
     { ...parent, activeNow: false, timingStatus: "upcoming", previewSegmentIds: [], previewStationIds: ["jane"] },
   ]));

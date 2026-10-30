@@ -15,7 +15,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
 
   return (
     <BrandedErrorScreen
-      eyebrow="Dashboard error"
+      eyebrow="Dashboard Error"
       title="Something interrupted the dashboard"
       message="The current view could not finish loading. Try again, or return to the main LineWatchTO dashboard."
       primaryActionLabel="Try again"

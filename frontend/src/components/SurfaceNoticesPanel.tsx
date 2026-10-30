@@ -511,18 +511,18 @@ export function SurfaceNoticesPanel({
             <div className="alert-history-selects-row surface-notice-filters">
               {regional ? <NoticeFilter label="Filter GO / UP notices by service" prefix="Service"
                 value={serviceType} onChange={(value) => setServiceType(value as typeof serviceType)}
-                options={[{ value: "all", label: "All services", count: serviceRows.length }, { value: "train", label: "Train", count: serviceRows.filter((notice) => notice.routeType !== "GO Bus").length }, { value: "bus", label: "Bus", count: serviceRows.filter((notice) => notice.routeType === "GO Bus").length }]} /> : null}
+                options={[{ value: "all", label: "All Services", count: serviceRows.length }, { value: "train", label: "Train", count: serviceRows.filter((notice) => notice.routeType !== "GO Bus").length }, { value: "bus", label: "Bus", count: serviceRows.filter((notice) => notice.routeType === "GO Bus").length }]} /> : null}
               {!regional ? <NoticeFilter label="Filter notices by service" prefix="Service" value={serviceType}
-                onChange={setServiceType} options={[{ value: "all", label: "All services", count: serviceRows.length },
+                onChange={setServiceType} options={[{ value: "all", label: "All Services", count: serviceRows.length },
                   ...serviceOptions.map(value => ({ value, label: value, count: serviceRows.filter(notice => notice.routeType === value).length }))]} /> : null}
               {!scopedRoute ? <NoticeFilter label="Filter notices by route or line" prefix={regional ? "Line / route" : "Route"}
-                value={route} onChange={setRoute} options={[{ value: "all", label: "All routes", count: routeRows.length },
+                value={route} onChange={setRoute} options={[{ value: "all", label: "All Routes", count: routeRows.length },
                   ...routeOptions.map(value => ({ value, label: routeLabel(value), icon: renderRouteBadge(value), badgeOnly: true, count: routeRows.filter(notice => notice.routeIds.some(id => canonicalNoticeRoute(id) === value)).length })),
-                  { value: "unspecified", label: "No route specified", count: routeRows.filter(notice => !notice.routeIds.length).length }]} /> : null}
+                  { value: "unspecified", label: "No Route Specified", count: routeRows.filter(notice => !notice.routeIds.length).length }]} /> : null}
               <NoticeFilter label="Filter notices by timing" prefix="Timing" value={timing} onChange={setTiming}
-                options={[{ value: "all", label: "Any time" }, { value: "ongoing", label: "Started" },
-                  { value: "upcoming", label: "Upcoming" }, { value: "unknown", label: "Start not supplied" }].map(option => ({ ...option, count: timingRows.filter(notice => matchesNoticeFilters(notice, { timing: option.value }, now)).length }))}  />
-              <NoticeFilter label="Notice type" prefix="Type" value={category}
+                options={[{ value: "all", label: "Any Time" }, { value: "ongoing", label: "Started" },
+                  { value: "upcoming", label: "Upcoming" }, { value: "unknown", label: "Start Not Supplied" }].map(option => ({ ...option, count: timingRows.filter(notice => matchesNoticeFilters(notice, { timing: option.value }, now)).length }))}  />
+              <NoticeFilter label="Notice Type" prefix="Type" value={category}
                 onChange={(value) => setCategory(value as typeof category)}
                 options={[{ value: "all", label: "All Types", count: data ? totalCount : undefined },
                   ...visibleCategories.map((cat) => ({
@@ -537,14 +537,14 @@ export function SurfaceNoticesPanel({
                   { value: "importance", label: "Importance", icon: <ArrowUpDown size={12} className="shrink-0 text-amber-500 dark:text-amber-400" /> },
                   { value: "route", label: "Route / line" },
                   { value: "location", label: "Station / stop" },
-                  { value: "start", label: "Start time" },
+                  { value: "start", label: "Start Time" },
                   { value: "recent", label: "Most Recent", icon: <CalendarClock size={12} className="shrink-0 text-blue-500 dark:text-blue-400" /> },
                 ]} />
             </div>
           ) : null}
           {regionalContent === "notices" && <div className="flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
             <FilterResultCount shown={serviceFilteredNotices.length} total={availableNotices.length} noun="notices" />
-            {sortOrder === "recent" && <span className="sr-only" role="status">Newest updates first</span>}
+            {sortOrder === "recent" && <span className="sr-only" role="status">Newest Updates First</span>}
           </div>}
           {scopedRoute && <p className="text-xs text-slate-500 dark:text-slate-400">Source-tagged service information for this corridor, separate from service impacts. Notices do not change line status.</p>}
         </div>}
@@ -585,7 +585,7 @@ export function SurfaceNoticesPanel({
                   <div className="flex items-start justify-between gap-2 px-3.5 pt-3 pb-2">
                     <div className="min-w-0 flex flex-col gap-1">
                       <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                        {regional && group.routeType === "GO Bus" ? "GO Bus routes tagged by source" : regional && group.notices[0].scheduleAnnouncement ? "Schedule announcement" : regional && group.routeType !== "GO Bus" ? "Station / Lines Affected" : "Routes Affected"}
+                        {regional && group.routeType === "GO Bus" ? "GO Bus routes tagged by source" : regional && group.notices[0].scheduleAnnouncement ? "Schedule Announcement" : regional && group.routeType !== "GO Bus" ? "Station / Lines Affected" : "Routes Affected"}
                       </p>
                       {regional ? (
                         <>

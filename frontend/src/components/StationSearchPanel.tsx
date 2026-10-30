@@ -836,7 +836,7 @@ export function StationSearchPanel({
       <div className="station-search-content">
         <div className="station-search-amenity-toolbar" role="toolbar" aria-label="Filter stations by amenities">
           <div className="station-search-amenity-header">
-            <span>Filter amenities</span>
+            <span>Filter Amenities</span>
             {hasActiveFilters && (
               <button
                 type="button"
@@ -1092,7 +1092,7 @@ export function StationSearchPanel({
                 {savedStationResults.length > 0 ? (
                   <section className="global-search-group" aria-labelledby="global-search-saved-stations-heading">
                     <div className="global-search-group-heading">
-                      <h3 id="global-search-saved-stations-heading">Saved stations</h3>
+                      <h3 id="global-search-saved-stations-heading">Saved Stations</h3>
                       <span>{savedStationResults.length}</span>
                     </div>
                     {networkResultOrder.map((networkId) => {
@@ -1207,7 +1207,7 @@ export function StationSearchPanel({
                         <ImpactTypeIcon kind={group.kind} size={14} />
                         {group.label}
                       </h3>
-                      <button type="button" onClick={() => chooseCategory(group.kind)}>View all</button>
+                      <button type="button" onClick={() => chooseCategory(group.kind)}>View All</button>
                     </div>
                     {group.results.map((result) => {
                       const keyboardIndex = nextResultButtonIndex++;
@@ -1228,7 +1228,7 @@ export function StationSearchPanel({
                   <section className="global-search-group" aria-labelledby="global-search-surface-heading">
                     <div className="global-search-group-heading">
                       <h3 id="global-search-surface-heading">{currentNetwork === "regional" ? "GO / UP Notices" : "Streetcar & Bus Notices"}</h3>
-                      <button type="button" onClick={() => onOpenDestination("surface-notices")}>View all</button>
+                      <button type="button" onClick={() => onOpenDestination("surface-notices")}>View All</button>
                     </div>
                     {surfaceNoticeResults.map(({ notice }) => {
                       const keyboardIndex = nextResultButtonIndex++;
@@ -1266,7 +1266,7 @@ export function StationSearchPanel({
           <div className="station-search-browse-container" aria-label="Browse stations by line">
             <div className="station-search-lines-column" aria-hidden={isExpanded ? "true" : undefined}>
               <div className="global-search-browse-alerts" aria-label="Browse alert categories">
-                <span>Browse alerts</span>
+                <span>Browse Alerts</span>
                 <div>
                   {BROWSE_IMPACT_CATEGORIES.map((category) => (
                     <button key={category.kind} type="button" onClick={() => chooseCategory(category.kind)}>
@@ -1291,7 +1291,7 @@ export function StationSearchPanel({
                       {startsNetworkSection ? (
                         <div className={`station-search-network-heading ${group.networkId}`}>
                           {group.networkId === "ttc" ? "TTC Subway & LRT" : "GO/UP Rail"}
-                          {group.networkId === currentNetwork ? <span>Current map</span> : null}
+                          {group.networkId === currentNetwork ? <span>Current Map</span> : null}
                         </div>
                       ) : null}
                       <div

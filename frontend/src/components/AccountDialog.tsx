@@ -600,7 +600,7 @@ export function AccountDialog({
                         />
                       </label>
                       <label className="account-field">
-                        <span>Confirm password</span>
+                        <span>Confirm Password</span>
                         <input
                           type="password"
                           value={passwordConfirmation}
@@ -745,7 +745,7 @@ export function AccountDialog({
                 <p className="account-reset-hint">Enter a new password to finish recovery.</p>
               ) : (
                 <label className="account-field">
-                  <span>Reset token</span>
+                  <span>Reset Token</span>
                   <input
                     value={resetToken}
                     autoComplete="one-time-code"
@@ -754,7 +754,7 @@ export function AccountDialog({
                 </label>
               )}
               <label className="account-field">
-                <span>New password</span>
+                <span>New Password</span>
                 <input
                   type="password"
                   value={password}
@@ -764,7 +764,7 @@ export function AccountDialog({
                 />
               </label>
               <label className="account-field">
-                <span>Confirm password</span>
+                <span>Confirm Password</span>
                 <input
                   type="password"
                   value={passwordConfirmation}
@@ -803,7 +803,7 @@ export function AccountDialog({
             <>
               {mode === "register" ? (
                 <label className="account-field">
-                  <span>Display name</span>
+                  <span>Display Name</span>
                   <input
                     value={displayName}
                     onChange={(event) => setDisplayName(event.target.value)}

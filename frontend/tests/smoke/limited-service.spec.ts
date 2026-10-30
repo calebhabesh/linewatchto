@@ -23,7 +23,7 @@ for (const theme of ["light", "dark"] as const) {
         const details = {
           id: "limited-child", lineId: "line-1", lineNumber: "1", title: "Limited service between Eglinton and Davisville due to planned track work", location: "Eglinton to Davisville",
           description: "Synthetic fixture: there is limited subway service due to planned track work.",
-          displayDirection: "Both directions", source: "Synthetic test fixture", cause: "Closure - Planned Track Work",
+          displayDirection: "Both Directions", source: "Synthetic test fixture", cause: "Closure - Planned Track Work",
           serviceEffect: "limited-service", relatedPlannedClosureId: "limited-parent", affectedSegmentIds: [segment.id],
           activeWindowEnd: "2026-09-29T06:00:00Z", startedAt: "2026-09-29T03:00:00Z", updatedAt: "2026-09-29T04:00:00Z", shuttle: false,
         };
@@ -43,7 +43,7 @@ for (const theme of ["light", "dark"] as const) {
         }));
         payload.map.stationNodeImpacts = [];
         payload.status.lines = payload.status.lines.map((line: { id: string }) => ({
-          ...line, status: line.id === "line-1" ? "delay" : "normal", statusLabel: line.id === "line-1" ? "Limited service" : "Normal Service",
+          ...line, status: line.id === "line-1" ? "delay" : "normal", statusLabel: line.id === "line-1" ? "Limited Service" : "Normal Service",
         }));
         await route.fulfill({ response, json: payload });
       });
@@ -58,7 +58,7 @@ for (const theme of ["light", "dark"] as const) {
       const current = page.locator('[data-impact-card-id="limited-child"]');
       await expect(current).toHaveClass(/delay-card-border/);
       await expect(current).toContainText("Limited service");
-      await expect(current).toContainText("Source cause");
+      await expect(current).toContainText("Source Cause");
       await expect(current.locator(".impact-card-title")).toHaveText("Limited service between Eglinton and Davisville due to planned track work");
       await expect(current.locator(".impact-overlap-refs")).toHaveCount(0);
       await expect(current.locator(".impact-card-badges").getByRole("button", { name: "View related planned advisory details" })).toBeVisible();
@@ -71,9 +71,9 @@ for (const theme of ["light", "dark"] as const) {
         expect(await headingText.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
       }
       const planned = page.locator('[data-impact-card-id="limited-parent"]');
-      await expect(planned).toContainText("Planned limited service");
-      await expect(planned).toContainText("Advisory dates");
-      await expect(planned).toContainText("Advisory hours");
+      await expect(planned).toContainText("Planned Limited Service");
+      await expect(planned).toContainText("Advisory Dates");
+      await expect(planned).toContainText("Advisory Hours");
       await expect(planned.locator(".impact-overlap-refs")).toHaveCount(0);
       await expect(planned.getByRole("button", { name: "View current impact" })).toHaveClass(/is-delay/);
       await expect(planned.getByRole("button", { name: "View current impact" })).toBeVisible();
@@ -81,7 +81,7 @@ for (const theme of ["light", "dark"] as const) {
       await page.screenshot({ path: `/tmp/linewatch-limited-planned-${theme}-${mapView}-${isMobile ? "mobile" : "desktop"}.png` });
       await planned.getByRole("button", { name: "View current impact" }).click();
       if (isMobile) {
-        await expect(page.getByRole("heading", { name: "Limited service", exact: true })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Limited Service", exact: true })).toBeVisible();
         await page.getByRole("button", { name: "View in List", exact: true }).click();
       }
       await expect(page.getByRole("heading", { name: "Delays", exact: true })).toBeVisible();
@@ -106,7 +106,7 @@ test("station-only limited service keeps orange current and blue local planned m
     const response = await route.fetch();
     const payload = await response.json();
     const details = { id: "local-child", lineId: "line-1", lineNumber: "1", title: "Limited service at Stub Station",
-      description: "Synthetic station-only limited service.", location: "Stub Station", displayDirection: "Both directions",
+      description: "Synthetic station-only limited service.", location: "Stub Station", displayDirection: "Both Directions",
       source: "Synthetic test fixture", serviceEffect: "limited-service", affectedSegmentIds: [],
       relatedPlannedClosureId: "local-parent", startedAt: "2026-09-29T03:00:00Z", activeWindowEnd: "2026-09-29T06:00:00Z", shuttle: false };
     payload.activeAlerts = [];

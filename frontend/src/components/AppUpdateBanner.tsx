@@ -290,7 +290,7 @@ export function AppUpdateBanner() {
     <aside ref={bannerRef} className="app-update-banner" role="status" aria-live="polite" aria-busy={isUpdating}>
       <div className="app-update-banner-copy">
         <div className="app-update-banner-heading">
-          <strong>{releaseNote ? `${releaseNote.title} available` : "New version available"}</strong>
+          <strong>{releaseNote ? `${releaseNote.title} available` : "New Version Available"}</strong>
           {updateVersion ? <span className="app-update-banner-version">v{updateVersion}</span> : null}
         </div>
         <span className="app-update-banner-summary">{releaseNote?.summary ?? "Update LineWatchTO to get the latest fixes and improvements."}</span>

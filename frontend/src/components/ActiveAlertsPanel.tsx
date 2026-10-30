@@ -23,7 +23,7 @@ interface Props {
   onSelectImpact: (selection: ImpactSelection) => void;
   onSelectRelatedImpact?: (selection: ImpactSelection) => void;
   onReturnToMap?: () => void;
-  /** Where an active card's Back action returns, e.g. "Back to search results". */
+  /** Where an active card's Back action returns, e.g. "Back to Search Results". */
   returnToMapLabel?: string;
   onBack?: () => void;
   onClose?: () => void;
@@ -198,7 +198,7 @@ export function ActiveAlertsPanel({
                       {showImpactTypeIndicator ? (
                         <span className={`impact-card-type-badge ${impactKindForAlert(alert)}`}>
                           <ImpactTypeIcon kind={impactKindForAlert(alert)} size={13} />
-                          {impactKindForAlert(alert) === "delay" ? "Delay" : "Active alert"}
+                          {impactKindForAlert(alert) === "delay" ? "Delay" : "Active Alert"}
                         </span>
                       ) : null}
                       {alert.shuttle ? (
@@ -213,7 +213,7 @@ export function ActiveAlertsPanel({
                     <OverlappingImpactRefs
                       overlaps={overlappingImpacts}
                       onSelectImpact={onSelectRelatedImpact}
-                      label="Overlapping impacts"
+                      label="Overlapping Impacts"
                     />
                   )}
                 />

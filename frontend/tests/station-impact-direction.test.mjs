@@ -21,7 +21,7 @@ describe("station impact map direction arrows", () => {
     assert.equal(stationImpactDirectionArrow("line-1", "Northbound")?.direction, "up");
     assert.equal(stationImpactDirectionArrow("line-1", "Southbound")?.direction, "down");
     assert.equal(
-      stationImpactDirectionArrow("line-1", "Both ways")?.direction,
+      stationImpactDirectionArrow("line-1", "Both Ways")?.direction,
       "vertical-bidirectional",
     );
   });
@@ -29,20 +29,20 @@ describe("station impact map direction arrows", () => {
   it("maps bidirectional regional corridor alerts to readable station-dot arrows", () => {
     for (const lineId of ["regional-ki", "regional-le", "regional-lw", "regional-mi", "regional-up"]) {
       assert.equal(
-        stationImpactDirectionArrow(lineId, "Both directions")?.direction,
+        stationImpactDirectionArrow(lineId, "Both Directions")?.direction,
         "horizontal-bidirectional",
       );
     }
     for (const lineId of ["regional-br", "regional-rh", "regional-st"]) {
       assert.equal(
-        stationImpactDirectionArrow(lineId, "Both directions")?.direction,
+        stationImpactDirectionArrow(lineId, "Both Directions")?.direction,
         "vertical-bidirectional",
       );
     }
   });
 
   it("omits regional station arrows when the source does not specify a direction", () => {
-    for (const displayDirection of [undefined, null, "", " ", "Unknown", "Direction not specified"]) {
+    for (const displayDirection of [undefined, null, "", " ", "Unknown", "Direction Not Specified"]) {
       const details = stationImpactDirectionForImpact(
         { stationId: "bloor", kind: "delay", cardId: "regional-bloor-delay" },
         {
@@ -62,7 +62,7 @@ describe("station impact map direction arrows", () => {
   });
 
   it("keeps explicit regional directions from the linked source card", () => {
-    for (const [displayDirection, expected] of [["Westbound", "left"], ["Both directions", "horizontal-bidirectional"]]) {
+    for (const [displayDirection, expected] of [["Westbound", "left"], ["Both Directions", "horizontal-bidirectional"]]) {
       const details = stationImpactDirectionForImpact(
         { stationId: "bloor", kind: "delay", cardId: "regional-bloor-delay" },
         {
@@ -154,7 +154,7 @@ describe("station impact map direction arrows", () => {
 
   it("does not invent an arrow when the source direction is unavailable", () => {
     assert.equal(stationImpactDirectionArrow("line-1", null), null);
-    assert.equal(stationImpactDirectionArrow("line-1", "Direction not specified"), null);
+    assert.equal(stationImpactDirectionArrow("line-1", "Direction Not Specified"), null);
   });
 
   it("combines junction station card directions into a four-way arrow", () => {
@@ -268,7 +268,7 @@ describe("station impact map direction arrows", () => {
       delays: [
         { id: "spadina-sb", lineId: "line-1", displayDirection: "Southbound" },
         { id: "spadina-nb", lineId: "line-1", displayDirection: "Northbound" },
-        { id: "spadina-bw", lineId: "line-1", displayDirection: "Both ways" },
+        { id: "spadina-bw", lineId: "line-1", displayDirection: "Both Ways" },
       ],
       reducedSpeedZones: [],
       plannedClosures: [],

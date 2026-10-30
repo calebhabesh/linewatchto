@@ -260,7 +260,7 @@ test("canonical alert type names match canonical specifications", () => {
 
   // Bypassing Station
   assert.equal(getCanonicalAlertTitle({
-    id: "b1", kind: "suspension", lineId: "1", lineNumber: "1", condition: "Bypassing station", location: "Museum", shuttle: false, priority: 0,
+    id: "b1", kind: "suspension", lineId: "1", lineNumber: "1", condition: "Bypassing Station", location: "Museum", shuttle: false, priority: 0,
   }), "Bypassing Station");
 
   // Snapshot preserved
@@ -300,7 +300,7 @@ test("getLineStatusPresentation accurately classifies operational states", () =>
   assert.equal(resRsz.hasRsz, true);
   assert.equal(resRsz.rszCount, 1);
   assert.equal(resRsz.advisoryCount, 1);
-  assert.equal(lineStatusDescription(resRsz), "Normal Service, Speed zones, + 1 advisory");
+  assert.equal(lineStatusDescription(resRsz), "Normal Service, Speed Zones, + 1 Advisory");
 
   // 3. Closed line
   const resClosed = getLineStatusPresentation(lineClosed, normalData, normalSummary);
@@ -325,7 +325,7 @@ test("getLineStatusPresentation accurately classifies operational states", () =>
   const unavailSummary = currentServiceSummary(unavailData);
   const resUnavail = getLineStatusPresentation(line1, unavailData, unavailSummary);
   assert.equal(resUnavail.state, "unavailable");
-  assert.equal(resUnavail.label, "Current status unavailable");
+  assert.equal(resUnavail.label, "Current Status Unavailable");
   assert.equal(resUnavail.isNormal, false);
 
   // 7. Fixture / demo
@@ -355,13 +355,13 @@ test("line status distinguishes future closures and speed zones together", () =>
   assert.equal(closureOnly.isNormal, false);
   assert.equal(closureOnly.state, "running");
   assert.equal(closureOnly.advisoryCount, 1);
-  assert.equal(lineStatusDescription(closureOnly), "Normal Service, Advisory planned, + 1 advisory");
+  assert.equal(lineStatusDescription(closureOnly), "Normal Service, Advisory Planned, + 1 Advisory");
 
   input.reducedSpeedZones = [impact("speed-zone", "1")];
   const combined = getLineStatusPresentation(input.lineStatuses[0], input, currentServiceSummary(input, now));
   assert.equal(combined.isNormal, false);
   assert.equal(combined.advisoryCount, 2);
-  assert.equal(lineStatusDescription(combined), "Normal Service, Speed zones, Advisory planned, + 2 advisories");
+  assert.equal(lineStatusDescription(combined), "Normal Service, Speed Zones, Advisory Planned, + 2 Advisories");
   assert.deepEqual(combined.qualifiers.map(({ kind }) => kind), ["reduced-speed-zones", "planned-closure"]);
   assert.equal(lineStatusDescription(getLineStatusPresentation(input.lineStatuses[1], input, currentServiceSummary(input, now))), "Normal Service");
 });
@@ -370,7 +370,7 @@ test("unwindowed regional closure qualifies line status without inventing timing
   const input = data({ networkId: "regional", plannedClosures: [impact("notice", "1")] });
   const presentation = getLineStatusPresentation(input.lineStatuses[0], input, currentServiceSummary(input));
   assert.equal(presentation.isNormal, false);
-  assert.equal(lineStatusDescription(presentation), "Normal Service, Advisory planned, + 1 advisory");
+  assert.equal(lineStatusDescription(presentation), "Normal Service, Advisory Planned, + 1 Advisory");
 });
 
 test("closure qualifiers never replace closed, disrupted, unavailable, or saved status", () => {
@@ -418,8 +418,8 @@ test("advisory total sums underlying speed zones and upcoming closure badge coun
   });
   const presentation = getLineStatusPresentation(input.lineStatuses[0], input, currentServiceSummary(input, now));
   assert.equal(presentation.advisoryCount, 5);
-  assert.equal(lineAdvisoryCountLabel(presentation.advisoryCount), "5 advisories");
-  assert.equal(lineAdvisoryCountLabel(1), "1 advisory");
+  assert.equal(lineAdvisoryCountLabel(presentation.advisoryCount), "5 Advisories");
+  assert.equal(lineAdvisoryCountLabel(1), "1 Advisory");
 });
 
 test("CurrentServicePanel renders individual remaining-line rows with route badges and accurate status text", () => {
@@ -716,12 +716,12 @@ test("GO/UP replacement facts name the stops the buses skip", async () => {
   assert.equal(incidentFacts({ ...row, replacementSkippedStations: ["Bloor"] }).service, "");
 });
 
-test("whole-line GO/UP impacts say Entire line under their terminal span", async () => {
+test("whole-line GO/UP impacts say Entire Line under their terminal span", async () => {
   const { withIncidentDetails } = await import("../src/app/regional-data.ts");
   const closure = { id: "up", displayDirection: null };
-  assert.equal(withIncidentDetails(closure, { wholeLine: true }).displayDirection, "Entire line");
+  assert.equal(withIncidentDetails(closure, { wholeLine: true }).displayDirection, "Entire Line");
   assert.equal(withIncidentDetails({ ...closure, displayDirection: "Towards Union Station" }, { wholeLine: true }).displayDirection,
-    "Entire line · Towards Union Station");
+    "Entire Line · Towards Union Station");
   assert.equal(withIncidentDetails({ ...closure, displayDirection: "Towards Union Station" }, { wholeLine: false }).displayDirection,
     "Towards Union Station");
   assert.equal(withIncidentDetails(closure, undefined), closure);

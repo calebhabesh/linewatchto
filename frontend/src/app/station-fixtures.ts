@@ -1396,7 +1396,7 @@ function toFallbackArrivals(line: StationLine): StationArrival[] {
         minutes,
         predictedAt: null,
         label: `${minutes} min`,
-        source: "Demo estimates",
+        source: "Demo Estimates",
         status: "demo" as const,
       };
     });
@@ -1418,16 +1418,16 @@ function toFallbackStationDetail(station: StationSummary): StationDetail {
       summary: advisory
         ? "One elevator advisory is included as fallback demo data."
         : "No station access advisories in fallback demo data.",
-      updatedAgo: "Fallback fixture",
+      updatedAgo: "Fallback Fixture",
       outages: [],
     },
     impacts: [],
     notices: [],
     arrivals: lines.flatMap(toFallbackArrivals),
-    arrivalsSource: "Demo estimates",
+    arrivalsSource: "Demo Estimates",
     arrivalContext: {
       scheduleMayBeDisrupted: false,
-      message: "Schedule active",
+      message: "Schedule Active",
       reason: "No active service impacts linked to this station.",
       severity: "normal",
       source: "LineWatchTO",

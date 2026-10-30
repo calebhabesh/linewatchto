@@ -267,7 +267,7 @@ export function getSelectedImpactDetails(
   const specificWindowLabel = closure.activeNow
     ? closure.activeWindowLabel
     : closure.nextWindowLabel;
-  const specificWindowHeading = closure.activeNow ? "Current window" : "Next window";
+  const specificWindowHeading = closure.activeNow ? "Current Window" : "Next Window";
   const hasScheduleDetails = Boolean(
     closure.windowHours || closure.windowDates || specificWindowLabel,
   );
@@ -300,11 +300,11 @@ export function getSelectedImpactDetails(
     targetRemoval: closure.targetRemoval,
     leadingRows: [
       {
-        label: "Advisory dates",
+        label: "Advisory Dates",
         value: closure.windowDates ? formatClosureScheduleValue(closure.windowDates) : null,
       },
       {
-        label: "Advisory hours",
+        label: "Advisory Hours",
         value: closure.windowHours ? formatClosureScheduleValue(closure.windowHours) : null,
       },
       {
@@ -312,7 +312,7 @@ export function getSelectedImpactDetails(
         value: specificWindowLabel ? formatClosureScheduleValue(specificWindowLabel) : null,
       },
       {
-        label: "Advisory window",
+        label: "Advisory Window",
         value: hasScheduleDetails ? null : closure.window,
       },
     ],
@@ -355,7 +355,7 @@ export function MobileImpactInspector({
   onChangeDetent,
   onUnfocus,
   onBack,
-  backLabel = "Back to previous impact",
+  backLabel = "Back to Previous Impact",
   unfocusLabel = "Unfocus impact",
   onViewFullDetails,
   onSelectImpact,

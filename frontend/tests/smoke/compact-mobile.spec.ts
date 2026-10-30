@@ -33,7 +33,7 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   await expect(welcome.locator(".opening-welcome-image-frame--mobile").first()).toHaveCSS("aspect-ratio", "4 / 3");
 
   await welcome.getByRole("button", { name: "Skip" }).click();
-  await page.getByRole("button", { name: "Got it" }).click();
+  await page.getByRole("button", { name: "Got It" }).click();
   await expect(mapEntranceReveal).toHaveClass(/ttc-map-entrance-reveal--ready/);
   await expect(mapEntranceReveal).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   const nav = page.getByRole("navigation", { name: "Primary mobile navigation" });
@@ -726,14 +726,14 @@ for (const width of [320, 375, 412]) {
       .getByRole("button", { name: /Streetcar & Bus Notices/ }).click();
     const header = page.locator('.mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading');
     await expect(header.locator(".surface-notices-source-tag")).toBeVisible();
-    await page.getByRole("button", { name: "Notice type" }).click();
+    await page.getByRole("button", { name: "Notice Type" }).click();
     const typeOptions = page.getByRole("menuitemradio");
     await expect(typeOptions.first().locator(".filter-option-count")).toBeVisible();
     await expect(typeOptions.first()).not.toContainText("(");
     const countEdges = await typeOptions.locator(".filter-option-count").evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().right));
     expect(Math.max(...countEdges) - Math.min(...countEdges)).toBeLessThan(2);
     await page.screenshot({ path: `/tmp/linewatch-notice-counts-${width}.png` });
-    await page.getByRole("button", { name: "Notice type" }).click();
+    await page.getByRole("button", { name: "Notice Type" }).click();
 
     await expect.poll(() => header.evaluate(element => {
       const title = element.querySelector("h2")!;

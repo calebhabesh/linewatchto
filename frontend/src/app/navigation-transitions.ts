@@ -199,7 +199,7 @@ export function searchReturnDestinationAndLabel(
   }
   const destination = context.selectedStationId ? "my-stations" : context.activeView;
   const label = context.selectedStationId
-    ? "Back to station details"
+    ? "Back to Station Details"
     : `Back to ${SEARCH_RETURN_LABELS[context.activeView] ?? "previous page"}`;
   return { destination, label };
 }

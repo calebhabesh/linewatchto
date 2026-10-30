@@ -262,7 +262,7 @@ export function SourceDiagnosticsBody({
         <>
           <section className="source-status-card rounded-lg bg-slate-50 p-3 dark:bg-white/5">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">Dashboard feed</h3>
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">Dashboard Feed</h3>
               <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${fresh
                 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
                 : "bg-amber-500/15 text-amber-700 dark:text-amber-300"}`}
@@ -273,9 +273,9 @@ export function SourceDiagnosticsBody({
             <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-[11px]">
               <dt className="text-slate-500 dark:text-slate-400">Availability</dt>
               <dd className="text-right font-semibold capitalize">{status?.replaceAll("-", " ") ?? "Unavailable"}</dd>
-              <dt className="text-slate-500 dark:text-slate-400">Last completed</dt>
-              <dd className="text-right font-semibold">{completedAt ? formatImpactTimestamp(completedAt) : "Not available"}</dd>
-              <dt className="text-slate-500 dark:text-slate-400">Source updated</dt>
+              <dt className="text-slate-500 dark:text-slate-400">Last Completed</dt>
+              <dd className="text-right font-semibold">{completedAt ? formatImpactTimestamp(completedAt) : "Not Available"}</dd>
+              <dt className="text-slate-500 dark:text-slate-400">Source Updated</dt>
               <dd className="text-right font-semibold">{sourceUpdatedAt ? formatImpactTimestamp(sourceUpdatedAt) : "Not Reported"}</dd>
             </dl>
           </section>
@@ -686,12 +686,12 @@ function formatApiEndpointGroup(
 function TtcCoverage({ health }: { health: TtcIngestionHealth }) {
   return (
     <section className="source-status-card rounded-lg bg-slate-50 p-3 dark:bg-white/5">
-      <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">Processing summary</h3>
+      <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">Processing Summary</h3>
       <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
-        <Metric label="Records received" value={health.recordsFetched} />
-        <Metric label="Records retained" value={health.recordsStaged} />
-        <Metric label="Rider summaries" value={health.recordsNormalized} />
-        <Metric label="Not mapped" value={health.recordsUnmatched} />
+        <Metric label="Records Received" value={health.recordsFetched} />
+        <Metric label="Records Retained" value={health.recordsStaged} />
+        <Metric label="Rider Summaries" value={health.recordsNormalized} />
+        <Metric label="Not Mapped" value={health.recordsUnmatched} />
       </div>
     </section>
   );
@@ -706,7 +706,7 @@ function RegionalCoverage({
 }) {
   return (
     <section className="source-status-card rounded-lg bg-slate-50 p-3 dark:bg-white/5" data-regional-data-coverage>
-      <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">Collection coverage</h3>
+      <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">Collection Coverage</h3>
       <div className="mt-2 flex flex-col gap-1.5">
         {health.collections.map((collection) => (
           <div key={collection.sourceSystem} className="source-status-inset grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 rounded bg-white/70 px-2.5 py-2 text-[11px] dark:bg-black/10">
@@ -727,11 +727,11 @@ function RegionalCoverage({
         ))}
       </div>
       <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
-        <Metric label="Records received" value={health.recordsFetched} />
-        <Metric label="Rider summaries" value={health.recordsNormalized} />
+        <Metric label="Records Received" value={health.recordsFetched} />
+        <Metric label="Rider Summaries" value={health.recordsNormalized} />
       </div>
       <div className="source-status-inset mt-2 rounded bg-white/70 px-2.5 py-2 text-[11px] dark:bg-black/10">
-        <strong className="text-slate-800 dark:text-slate-100">Published schedule coverage</strong>
+        <strong className="text-slate-800 dark:text-slate-100">Published Schedule Coverage</strong>
         <p className="mt-0.5 text-slate-500 dark:text-slate-400">
           {schedule
             ? schedule.scheduleActive && schedule.lookaheadCovered

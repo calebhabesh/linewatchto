@@ -18,7 +18,7 @@ describe("subway operating hours", () => {
     const state = getSubwayOperatingState(new Date("2026-06-04T03:15:00-04:00"));
 
     assert.equal(state.status, "closed");
-    assert.equal(state.title, "Subway closed overnight");
+    assert.equal(state.title, "Subway Closed Overnight");
     assert.equal(state.nextResumeLabel, "Today at 6:00 AM");
     assert.equal(state.nextResumeTime, "6:00 AM");
     assert.equal(state.minutesUntilResume, 165);

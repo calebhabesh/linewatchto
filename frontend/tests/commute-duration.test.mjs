@@ -79,8 +79,8 @@ describe("saved commute duration formatting", () => {
       estimatedHighSeconds: null,
       confidence: "none",
     }), {
-      value: "Estimate unavailable",
-      context: "No route time available",
+      value: "Estimate Unavailable",
+      context: "No Route Time Available",
     });
   });
 });

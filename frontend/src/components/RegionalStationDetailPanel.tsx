@@ -1108,7 +1108,7 @@ export function RegionalStationDetailPanel({
                                                     ? "Live estimates"
                                                   : platform.arrivals.some((arrival) => arrival.status === "live")
                                                     ? "On schedule"
-                                                    : "Scheduled timetable"}
+                                                    : "Scheduled Timetable"}
                                               </span>
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">

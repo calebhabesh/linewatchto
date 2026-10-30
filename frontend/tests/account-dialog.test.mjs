@@ -26,8 +26,8 @@ describe("account dialog state helpers and contracts", () => {
     it("renders specific titles for auxiliary recovery and verification modes", () => {
       assert.equal(accountDialogTitle("link-google", "login"), "Link Google");
       assert.equal(accountDialogTitle("verify-email", "login"), "Verify Email");
-      assert.equal(accountDialogTitle("forgot-password", "login"), "Reset password");
-      assert.equal(accountDialogTitle("reset-password", "login"), "Choose new password");
+      assert.equal(accountDialogTitle("forgot-password", "login"), "Reset Password");
+      assert.equal(accountDialogTitle("reset-password", "login"), "Choose New Password");
     });
 
     it("falls back to Sign In for null or default mode", () => {

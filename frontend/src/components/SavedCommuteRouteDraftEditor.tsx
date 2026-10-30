@@ -245,7 +245,7 @@ export function SavedCommuteRouteDraftEditor({
               aria-label={`Delete commute ${newLabel}`}
             >
               <Trash2 size={15} aria-hidden="true" />
-              <span>Delete this commute</span>
+              <span>Delete This Commute</span>
             </button>
           )}
         </div>

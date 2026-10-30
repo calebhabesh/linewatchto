@@ -61,7 +61,7 @@ export function diagnosticDeviceOptions(
     options.set(diagnosticDeviceKey(recipient), diagnosticDeviceLabel(recipient, duplicatedLabels));
   }
   return [
-    { key: "all", label: showArchivedDevices ? "All endpoints" : "Current and delivered endpoints" },
+    { key: "all", label: showArchivedDevices ? "All Endpoints" : "Current and Delivered Endpoints" },
     ...[...options.entries()].map(([key, label]) => ({ key, label })),
   ];
 }

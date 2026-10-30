@@ -247,7 +247,7 @@ export const ttcPerformanceSnapshot: TtcPerformanceSnapshot = {
   source: "TTC.ca",
   sourceUrl: "https://www.ttc.ca/",
   title: "On-time performance and elevator/escalator status",
-  updatedLabel: "Local demo",
+  updatedLabel: "Local Demo",
   fetchedAt: "2026-06-07T12:00:00Z",
   stale: false,
   message: "Official TTC performance metrics loaded in fixture mode.",
@@ -334,8 +334,8 @@ export type IngestionHealthItem = {
 };
 
 export const generatedAt = {
-  time: "Fixture mode",
-  date: "Local demo",
+  time: "Fixture Mode",
+  date: "Local Demo",
   live: false,
   lastPoll: "fixture mode",
 };
@@ -366,7 +366,7 @@ export const lineStatuses: LineStatus[] = [
     status: "normal",
     statusLabel: "Normal",
     summary: "No active service impacts reported in fixture mode.",
-    updatedAgo: "Fixture mode",
+    updatedAgo: "Fixture Mode",
   },
   {
     id: "line-2",
@@ -377,7 +377,7 @@ export const lineStatuses: LineStatus[] = [
     status: "normal",
     statusLabel: "Normal",
     summary: "No active service impacts reported in fixture mode.",
-    updatedAgo: "Fixture mode",
+    updatedAgo: "Fixture Mode",
   },
   {
     id: "line-4",
@@ -388,7 +388,7 @@ export const lineStatuses: LineStatus[] = [
     status: "normal",
     statusLabel: "Normal",
     summary: "No active service impacts reported in fixture mode.",
-    updatedAgo: "Fixture mode",
+    updatedAgo: "Fixture Mode",
   },
   {
     id: "line-5",
@@ -399,7 +399,7 @@ export const lineStatuses: LineStatus[] = [
     status: "normal",
     statusLabel: "Normal",
     summary: "No active service impacts reported in fixture mode.",
-    updatedAgo: "Fixture mode",
+    updatedAgo: "Fixture Mode",
   },
   {
     id: "line-6",
@@ -410,7 +410,7 @@ export const lineStatuses: LineStatus[] = [
     status: "normal",
     statusLabel: "Normal",
     summary: "No active service impacts reported in fixture mode.",
-    updatedAgo: "Fixture mode",
+    updatedAgo: "Fixture Mode",
   },
 ];
 
@@ -566,10 +566,10 @@ export const reliabilitySnapshot: ReliabilitySnapshot = {
 };
 
 export const ingestionHealth: IngestionHealthItem[] = [
-  { label: "GTFS snapshot", value: "4 lines / 16 display stops", state: "ok" },
-  { label: "Service alerts", value: "0 active in fixture mode", state: "ok" },
+  { label: "GTFS Snapshot", value: "4 lines / 16 display stops", state: "ok" },
+  { label: "Service Alerts", value: "0 active in fixture mode", state: "ok" },
   { label: "Planned Advisories", value: "0 upcoming in fixture mode", state: "ok" },
-  { label: "Snapshot history", value: "1,284 alert samples", state: "ok" },
+  { label: "Snapshot History", value: "1,284 alert samples", state: "ok" },
 ];
 
 export function findAlertBySegmentId(segmentId: string): ActiveAlert | undefined {

@@ -62,7 +62,7 @@ const data = {
       lineNumber: "2",
       title: "Reduced Speed Zone",
       location: "Bloor-Yonge to Sherbourne",
-      displayDirection: "Both ways",
+      displayDirection: "Both Ways",
       description: "Trains are operating at reduced speed.",
       affectedSegmentIds: ["line-2-bloor-sherbourne"],
       sourceAlertIds: [],

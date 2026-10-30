@@ -194,7 +194,7 @@ public class StatusDashboardService {
             updatedAgo = updatedAgo(mostRecentClosure.updatedAt(), now);
         } else if (hasLimitedService) {
             status = "delay";
-            statusLabel = "Limited service";
+            statusLabel = "Limited Service";
             summary = lineClosures.stream().filter(c -> "limited-service".equals(c.serviceEffect()))
                 .map(AlertDashboardService.PlannedClosureDto::title).findFirst()
                 .orElseGet(() -> lineAlerts.stream().filter(alert -> "limited-service".equals(alert.getImpactKind()))

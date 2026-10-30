@@ -65,7 +65,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     await expect(sidebar).not.toHaveClass(/desktop-sidebar-container--collapsed/);
     await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
     await expect(page.locator(".alert-card.is-active")).toHaveCount(1);
-    await expect(page.getByRole("button", { name: /^Back to map:/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Back to Map:/i })).toBeVisible();
     expect(await page.evaluate(() => (
       window.localStorage.getItem("linewatch-desktop-sidebar-collapsed")
     ))).toBeNull();

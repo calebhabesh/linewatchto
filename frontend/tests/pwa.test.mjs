@@ -1314,7 +1314,7 @@ describe("LineWatch PWA configuration", () => {
     assert.match(appUpdateBannerSource, /appUpdateReleaseKey/);
     assert.match(appUpdateBannerSource, /\/version\.json/);
     assert.match(appUpdateBannerSource, /cache:\s*"no-store"/);
-    assert.match(appUpdateBannerSource, /New version available/);
+    assert.match(appUpdateBannerSource, /New Version Available/);
     assert.match(appUpdateBannerSource, /Update LineWatchTO to get the latest fixes and improvements\./);
     assert.match(appUpdateBannerSource, /releaseNote/);
     assert.match(appUpdateBannerSource, /View Changes/);

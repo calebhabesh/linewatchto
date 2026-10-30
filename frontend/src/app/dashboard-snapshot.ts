@@ -61,7 +61,7 @@ export function snapshotDashboard(data: DashboardData, savedAt: number | null,
     snapshot: { savedAt, reason },
     generatedAt: { ...data.generatedAt, live: false },
     lineStatuses: data.lineStatuses.map((line) => ({ ...line, status: "ready",
-      statusLabel: "Current status unknown",
+      statusLabel: "Current Status Unknown",
       summary: hasSnapshot
         ? `Last reported: ${line.statusLabel}. Service may have changed.`
         : isRefreshing
@@ -85,7 +85,7 @@ export function snapshotDashboard(data: DashboardData, savedAt: number | null,
 }
 
 export function snapshotNotice(snapshot: NonNullable<DashboardData["snapshot"]>, now: number): string {
-  const prefix = snapshot.reason === "offline" ? "Offline" : snapshot.reason === "stale" ? "Updates unavailable" : snapshot.reason === "refreshing" ? "Refreshing" : "Reconnecting";
+  const prefix = snapshot.reason === "offline" ? "Offline" : snapshot.reason === "stale" ? "Updates Unavailable" : snapshot.reason === "refreshing" ? "Refreshing" : "Reconnecting";
   if (snapshot.savedAt === null) {
     if (snapshot.reason === "refreshing") return "Refreshing — Checking current service status...";
     return `${prefix} — No saved dashboard for this network. Current status unknown.`;

@@ -556,7 +556,7 @@ export function formatAlertTypeName(eventType: string): string {
   ) {
     return "Suspension";
   }
-  if (normalized === "limited-service") return "Limited service";
+  if (normalized === "limited-service") return "Limited Service";
   if (normalized === "delay") {
     return "Delay";
   }

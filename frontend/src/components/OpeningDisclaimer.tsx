@@ -743,7 +743,7 @@ export function OpeningDisclaimer({
             <strong>Unofficial Personal Project</strong>
             <p>LineWatchTO is not affiliated with, endorsed by, or operated by the TTC or Metrolinx. Information may be delayed or unavailable.</p>
           </div>
-          <button type="button" onClick={dismissNotice}>Got it</button>
+          <button type="button" onClick={dismissNotice}>Got It</button>
         </aside>
       ) : null}
     </>

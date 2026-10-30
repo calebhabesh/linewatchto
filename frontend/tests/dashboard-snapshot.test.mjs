@@ -29,7 +29,7 @@ test('storage denial does not break the dashboard', () => {
 test('offline view retains notices but cannot claim live or normal service or demo impacts', () => {
  const view=snapshotDashboard(data,1000,'offline');
  assert.equal(view.generatedAt.live,false); assert.deepEqual(view.activeAlerts,data.activeAlerts);
- assert.ok(view.lineStatuses.every(l=>l.status==='ready' && l.statusLabel==='Current status unknown'));
+ assert.ok(view.lineStatuses.every(l=>l.status==='ready' && l.statusLabel==='Current Status Unknown'));
  assert.deepEqual(view.commuteImpacts,[]);
  const empty=snapshotDashboard(data,null,'offline');
  assert.deepEqual(empty.activeAlerts,[]); assert.ok(empty.networkSegments.every(s=>s.overlay==='clear' && s.impacts.length===0));

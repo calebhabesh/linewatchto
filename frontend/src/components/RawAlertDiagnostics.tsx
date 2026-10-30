@@ -107,7 +107,7 @@ export function RawAlertDiagnostics({ network }: Props) {
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <Terminal size={15} className="shrink-0 text-slate-500 dark:text-slate-400" />
-          <strong className="truncate text-xs">Retained source records</strong>
+          <strong className="truncate text-xs">Retained Source Records</strong>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <label className="flex cursor-pointer select-none items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">

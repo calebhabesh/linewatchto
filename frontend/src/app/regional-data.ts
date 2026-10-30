@@ -559,7 +559,7 @@ const regionalLineStatuses: LineStatus[] = REGIONAL_ROUTE_DEFINITIONS.map((route
   route: regionalLineLabel(route.id),
   color: route.color,
   status: "ready",
-  statusLabel: "Demo data",
+  statusLabel: "Demo Data",
   summary: "Realtime regional status is unavailable until Metrolinx ingestion is configured.",
   updatedAgo: "Demo fixture",
 }));
@@ -602,7 +602,7 @@ export const regionalDashboardData: DashboardData = {
   networkSegments: regionalSegments,
   stations: regionalStations,
   lineStatuses: regionalLineStatuses,
-  generatedAt: { time: "Fixture mode", date: "Local regional demo", live: false, lastPoll: "regional fixture mode" },
+  generatedAt: { time: "Fixture Mode", date: "Local Regional Demo", live: false, lastPoll: "regional fixture mode" },
   activeAlerts: [],
   delays: [],
   reducedSpeedZones: [],
@@ -641,13 +641,13 @@ export const regionalDashboardData: DashboardData = {
     status: "disabled",
     source: "Unavailable in regional fixture mode",
     sourceUrl: "",
-    title: "Regional performance unavailable",
-    updatedLabel: "Not available",
+    title: "Regional Performance Unavailable",
+    updatedLabel: "Not Available",
     stale: false,
     message: "Regional reliability aggregation is not implemented.",
     metrics: [],
   },
-  ingestionHealth: [{ label: "Regional source", value: "Demo fixture — not live", state: "ok" }],
+  ingestionHealth: [{ label: "Regional Source", value: "Demo fixture — not live", state: "ok" }],
   mapAsset: {
     src: "/assets/linewatch/regional-rail-map.svg",
     viewBox: [-200, -200, 14871.575, 10032.7812],
@@ -679,7 +679,7 @@ export type RegionalDashboardApiResponse = {
 
 /**
  * Adds published rider facts to an impact. A whole-line impact's heading names the line's
- * terminals like any span, so its direction line also says "Entire line".
+ * terminals like any span, so its direction line also says "Entire Line".
  */
 export function withIncidentDetails<T extends { displayDirection?: string | null }>(
   impact: T,
@@ -692,7 +692,7 @@ export function withIncidentDetails<T extends { displayDirection?: string | null
   return { ...impact, ...details, displayDirection: direction };
 }
 
-export const ENTIRE_LINE_LABEL = "Entire line";
+export const ENTIRE_LINE_LABEL = "Entire Line";
 
 export function regionalDashboardDataFromApi(
   payload: RegionalDashboardApiResponse,
@@ -716,7 +716,7 @@ export function regionalDashboardDataFromApi(
       lastPoll: payload.status?.generatedAt?.lastPoll || "not configured or stale",
     };
     fallback.ingestionHealth = [{
-      label: "Metrolinx source",
+      label: "Metrolinx Source",
       value: message,
       state: "error",
     }];
@@ -743,7 +743,7 @@ export function regionalDashboardDataFromApi(
     reliability,
     ttcPerformance: payload.performance,
     ingestionHealth: [{
-      label: "Metrolinx source",
+      label: "Metrolinx Source",
       value: payload.message?.trim() || "Fresh regional data loaded.",
       state: "ok",
     }],
@@ -783,7 +783,7 @@ export function regionalDashboardDataForScenario(
       lastPoll: "not configured",
     };
     data.ingestionHealth = [{
-      label: "Regional source",
+      label: "Regional Source",
       value: "Unavailable — no Metrolinx API connection",
       state: "error",
     }];
@@ -806,7 +806,7 @@ export function regionalDashboardDataForScenario(
     location: "Pickering to Whitby",
     description: "Synthetic regional scenario data for interface verification.",
     affectedSegmentIds: delaySegmentIds,
-    displayDirection: "Both directions",
+    displayDirection: "Both Directions",
     source: "Synthetic regional fixture",
   };
   const lwCorridorDelay: DelayAlert = {
@@ -873,7 +873,7 @@ export function regionalDashboardDataForScenario(
     location: "Bloor GO/UP",
     description: "Synthetic regional scenario data for grouped station-impact verification.",
     affectedSegmentIds: [],
-    displayDirection: "Both directions",
+    displayDirection: "Both Directions",
     source: "Synthetic regional fixture",
   };
   const stationImpact: StationNodeImpact = {

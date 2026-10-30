@@ -223,7 +223,7 @@ describe("useDashboardSession unit tests", () => {
     });
 
     it("shows real failures during verification and stale snapshots after a switch", () => {
-      for (const [reason, prefix] of [["offline", "Offline"], ["reconnecting", "Reconnecting"], ["stale", "Updates unavailable"]]) {
+      for (const [reason, prefix] of [["offline", "Offline"], ["reconnecting", "Reconnecting"], ["stale", "Updates Unavailable"]]) {
         for (const savedAt of [null, 100_000]) {
           const data = snapshotDashboard(sampleLiveTtcData(), savedAt, reason);
           assert.ok(computeDashboardAvailabilityNotice(data, "ready", 105_000).startsWith(prefix));

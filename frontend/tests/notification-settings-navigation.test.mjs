@@ -40,7 +40,7 @@ describe("notification settings navigation", () => {
 
   it("shows real saved-commute push controls plus conservative future notification sections", () => {
     assert.match(notificationPanelSource, /Device Notifications/);
-    assert.match(notificationPanelSource, /Push for this browser/);
+    assert.match(notificationPanelSource, /Push for This Browser/);
     assert.match(notificationPanelSource, /Account notifications are on/);
     assert.match(notificationPanelSource, /This device is receiving notifications/);
     assert.match(notificationPanelSource, /Enable on This Device/);
@@ -105,8 +105,8 @@ describe("notification settings navigation", () => {
     assert.match(diagnosticsPanelSource, /notification\.recipients/);
     assert.match(diagnosticsPanelSource, /recipient\.reason/);
     assert.match(diagnosticsPanelSource, /showArchivedDevices/);
-    assert.match(diagnosticsPanelSource, /Show archived devices/);
-    assert.match(diagnosticsStateSource, /Current and delivered endpoints/);
+    assert.match(diagnosticsPanelSource, /Show Archived Devices/);
+    assert.match(diagnosticsStateSource, /Current and Delivered Endpoints/);
     assert.match(diagnosticsPanelSource, /sourceIncidentKey/);
     assert.doesNotMatch(notificationPanelSource, /getPushDeliveryDiagnostics/);
     assert.doesNotMatch(notificationPanelSource, /Delivery Diagnostics/);

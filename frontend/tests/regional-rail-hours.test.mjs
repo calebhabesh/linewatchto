@@ -15,7 +15,7 @@ describe("GO and UP regional rail operating hours", () => {
     const state = getRegionalRailOperatingState(new Date("2026-07-23T03:15:00-04:00"));
 
     assert.equal(state.status, "closed");
-    assert.equal(state.title, "Regional rail closed overnight");
+    assert.equal(state.title, "Regional Rail Closed Overnight");
     assert.equal(state.nextResumeLabel, "Today at 4:55 AM");
     assert.equal(state.nextResumeTime, "4:55 AM");
     assert.equal(state.minutesUntilResume, 100);

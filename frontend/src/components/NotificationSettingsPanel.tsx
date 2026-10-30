@@ -224,7 +224,7 @@ export function NotificationSettingsPanel({
                     <NotificationSwitch
                       checked={deviceNotificationsEnabled}
                       disabled={busy || !supported || !config?.webPushAvailable}
-                      label="Push for this browser"
+                      label="Push for This Browser"
                       onChange={(checked) => {
                         if (checked) {
                           enableDeviceNotifications();
@@ -307,7 +307,7 @@ export function NotificationSettingsPanel({
                     <NotificationSwitch
                       checked={preferences.savedCommutes.plannedClosureReminders}
                       disabled={busy || !preferencesLoaded}
-                      label="Planned advisory reminders"
+                      label="Planned Advisory Reminders"
                       onChange={(checked) => {
                         updatePreferences({
                           ...preferences,

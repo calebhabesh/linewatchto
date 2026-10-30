@@ -6,9 +6,9 @@ const torontoHour = new Intl.DateTimeFormat("en-US", { timeZone: "America/Toront
 const EVENING_START_HOUR = 17;
 
 export function plannedAdvisoryStatus(closure: Pick<PlannedClosure, "nextWindowStart" | "nightly" | "timingStatus">, now: number | null): string {
-  if (!closure.nextWindowStart) return closure.timingStatus === "unknown" ? "Schedule incomplete" : "Upcoming";
+  if (!closure.nextWindowStart) return closure.timingStatus === "unknown" ? "Schedule Incomplete" : "Upcoming";
   const next = Date.parse(closure.nextWindowStart);
-  if (!Number.isFinite(next)) return "Schedule incomplete";
+  if (!Number.isFinite(next)) return "Schedule Incomplete";
   if (now !== null && next > now && torontoDay.format(next) === torontoDay.format(now)) {
     // One-off evening closures are "tonight" too, not only nightly series.
     return closure.nightly || Number(torontoHour.format(next)) >= EVENING_START_HOUR ? "Next Tonight" : "Later Today";

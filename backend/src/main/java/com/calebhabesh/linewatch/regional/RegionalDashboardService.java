@@ -293,10 +293,17 @@ public class RegionalDashboardService {
         return alerts.stream().filter(alert -> "planned-closure".equals(alert.impactKind()))
             .map(alert -> {
                 RegionalStationSpan.Span span = RegionalStationSpan.describe(alert);
+                // A dated window that has not started is the advisory's next window, so cards show
+                // "Next: Sat, Nov 14" rather than an incomplete schedule. Undated ones stay unknown.
+                boolean upcoming = alert.activePeriodStart() != null
+                    && alert.activePeriodStart().isAfter(OffsetDateTime.now(clock));
                 return new AlertDashboardService.PlannedClosureDto(
                     alert.id(), alert.lineId(), lineNumber(alert), alert.title(), window(alert), location(alert),
                     span.displayDirection(), alert.description(), alert.activePeriodStart(), alert.sourceUpdatedAt(),
-                    alert.affectedSegmentIds(), false, sourceLabel(alert), alert.cause(), null, alert.stationIds()
+                    alert.affectedSegmentIds(), false, sourceLabel(alert), alert.cause(), null,
+                    false, upcoming ? "upcoming" : "unknown", false, null, null, null,
+                    upcoming ? alert.activePeriodStart() : null, upcoming ? alert.activePeriodEnd() : null,
+                    null, null, null, alert.title(), "bidirectional", alert.stationIds(), null
                 ).withDisplayLocation(span.displayLocation());
             }).toList();
     }

@@ -42,9 +42,9 @@ export function accountDialogTitle(mode: AccountDialogMode | null, entryIntent: 
     case "verify-email":
       return "Verify Email";
     case "forgot-password":
-      return "Reset password";
+      return "Reset Password";
     case "reset-password":
-      return "Choose new password";
+      return "Choose New Password";
     case "login":
     default:
       return "Sign In";

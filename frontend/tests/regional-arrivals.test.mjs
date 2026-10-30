@@ -115,8 +115,8 @@ describe("regional station arrivals adapter", () => {
       formatRegionalArrivalSourceSummary([goLive, upLive, scheduled]),
       "Metrolinx live estimates + published schedule",
     );
-    assert.equal(formatRegionalArrivalSourceSummary([scheduled]), "Metrolinx published schedule");
-    assert.equal(formatRegionalArrivalSourceSummary([]), "Metrolinx regional arrivals");
+    assert.equal(formatRegionalArrivalSourceSummary([scheduled]), "Metrolinx Published Schedule");
+    assert.equal(formatRegionalArrivalSourceSummary([]), "Metrolinx Regional Arrivals");
   });
 
   it("labels only source-backed live arrivals that are at least one minute late", () => {
@@ -322,7 +322,7 @@ describe("regional station arrivals adapter", () => {
       scheduledAt: "2026-07-29T17:30:00-04:00",
       delayMinutes: 0,
       platform: "",
-      source: "Metrolinx published schedule",
+      source: "Metrolinx Published Schedule",
       status: "scheduled",
     };
     const groups = groupRegionalStationArrivals([
@@ -394,7 +394,7 @@ describe("regional station arrivals adapter", () => {
       scheduledAt: "2026-07-29T17:30:00-04:00",
       delayMinutes: 0,
       platform: "",
-      source: "Metrolinx published schedule",
+      source: "Metrolinx Published Schedule",
       status: "scheduled",
     };
     const groups = groupRegionalStationArrivals([
@@ -459,7 +459,7 @@ describe("regional station arrivals adapter", () => {
       scheduledAt: "2026-08-18T19:11:00-04:00",
       delayMinutes: 0,
       platform: "",
-      source: "Metrolinx published schedule",
+      source: "Metrolinx Published Schedule",
       status: "scheduled",
     };
 
@@ -555,7 +555,7 @@ describe("regional station arrivals adapter", () => {
         scheduledAt: "2026-08-18T19:28:00-04:00",
         delayMinutes: 0,
         platform: "",
-        source: "Metrolinx published schedule",
+        source: "Metrolinx Published Schedule",
         status: "scheduled",
       },
       {
@@ -569,7 +569,7 @@ describe("regional station arrivals adapter", () => {
         scheduledAt: "2026-08-18T20:13:00-04:00",
         delayMinutes: 0,
         platform: "",
-        source: "Metrolinx published schedule",
+        source: "Metrolinx Published Schedule",
         status: "scheduled",
       },
     ], "stratford");

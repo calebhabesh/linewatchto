@@ -49,7 +49,7 @@ describe("alert card and list views", () => {
     assert.match(compactRowSource, /CompactImpactLocation/);
     assert.match(compactRowSource, /data-impact-card-id=\{impactId\}/);
     assert.match(compactRowSource, /Show .* on map/);
-    assert.match(compactRowSource, /Back to map/);
+    assert.match(compactRowSource, /Back to Map/);
     assert.doesNotMatch(compactRowSource, /aria-pressed/);
     assert.match(compactRowSource, /mapActionLabel \?\? "View"/);
     assert.match(compactRowSource, /mapActionIsBack \? \([\s\S]*?<ArrowLeft[\s\S]*?: \([\s\S]*?<JumpToLocationIcon/);

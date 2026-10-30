@@ -134,7 +134,7 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
     id: alert.id,
     kind: alert.severity === "delay" ? "delay" : "suspension",
     lineId: alert.lineId, lineNumber: alert.lineNumber,
-    condition: planned ? "Planned Closure in Effect" : /\bbypass(?:ing|ed)?\b/i.test(alert.title) ? "Bypassing station" : alert.severity === "delay" ? "Delays" : alert.severity === "planned" ? "Closure in effect" : "No Service",
+    condition: planned ? "Planned Closure in Effect" : /\bbypass(?:ing|ed)?\b/i.test(alert.title) ? "Bypassing Station" : alert.severity === "delay" ? "Delays" : alert.severity === "planned" ? "Closure in effect" : "No Service",
     iconKind: planned ? "suspension" : undefined,
     timing: planned ? windowTime(closure?.activeWindowEnd, now, true) : undefined,
     timingTarget: planned ? closure?.activeWindowEnd : undefined,
@@ -150,7 +150,7 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
     const closure = data.plannedClosures.find(item => item.id === delay.relatedPlannedClosureId);
     const timing = windowTime(delay.activeWindowEnd ?? closure?.activeWindowEnd, now, true);
     rows.push({ id: delay.id, kind: "delay", lineId: delay.lineId, lineNumber: delay.lineNumber,
-      condition: delay.serviceEffect === "limited-service" ? "Limited service" : "Delays",
+      condition: delay.serviceEffect === "limited-service" ? "Limited Service" : "Delays",
       timing,
       timingTarget: delay.activeWindowEnd ?? closure?.activeWindowEnd,
       location: delay.location || delay.title, direction: delay.displayDirection, shuttle: !!delay.shuttle,
@@ -176,7 +176,7 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
       lineId: closure.lineId,
       lineNumber: closure.lineNumber,
       condition: closure.serviceEffect === "limited-service"
-        ? active ? "Limited service" : "Planned limited service"
+        ? active ? "Limited Service" : "Planned Limited Service"
         : active ? "Planned Closure in Effect" : "Upcoming Closure",
       iconKind: active ? closure.serviceEffect === "limited-service" ? "delay" : "suspension" : undefined,
       timing: windowTime(active ? closure.nextWindowEnd : closure.nextWindowStart, now, active),
@@ -309,7 +309,7 @@ export function lineStatusDescription(presentation: LineStatusPresentation): str
 }
 
 export function lineAdvisoryCountLabel(count: number): string {
-  return `${count} ${count === 1 ? "advisory" : "advisories"}`;
+  return `${count} ${count === 1 ? "Advisory" : "Advisories"}`;
 }
 
 export function getLineStatusPresentation(
@@ -320,7 +320,7 @@ export function getLineStatusPresentation(
   if (data.snapshot) {
     return {
       state: "snapshot",
-      label: data.snapshot.savedAt != null ? (line.statusLabel || "Saved status") : "Current status unknown",
+      label: data.snapshot.savedAt != null ? (line.statusLabel || "Saved Status") : "Current Status Unknown",
       isNormal: false,
       hasRsz: false,
     };
@@ -329,7 +329,7 @@ export function getLineStatusPresentation(
   if (data.availability === "fixture") {
     return {
       state: "snapshot",
-      label: line.statusLabel || "Demo status",
+      label: line.statusLabel || "Demo Status",
       isNormal: false,
       hasRsz: false,
     };
@@ -338,7 +338,7 @@ export function getLineStatusPresentation(
   if (!summary.fresh || data.availability === "unavailable" || !data.generatedAt?.live) {
     return {
       state: "unavailable",
-      label: "Current status unavailable",
+      label: "Current Status Unavailable",
       isNormal: false,
       hasRsz: false,
     };
@@ -388,8 +388,8 @@ export function getLineStatusPresentation(
   if (rszList.length > 0 || closureCount > 0) {
     const rszCount = countReducedSpeedZones(rszList);
     const qualifiers: NonNullable<LineStatusPresentation["qualifiers"]> = [];
-    if (rszList.length > 0) qualifiers.push({ kind: "reduced-speed-zones", label: "Speed zones" });
-    if (closureCount > 0) qualifiers.push({ kind: "planned-closure", label: "Advisory planned" });
+    if (rszList.length > 0) qualifiers.push({ kind: "reduced-speed-zones", label: "Speed Zones" });
+    if (closureCount > 0) qualifiers.push({ kind: "planned-closure", label: "Advisory Planned" });
     return {
       state: rszList.length > 0 ? "reduced-speed-zones" : "running",
       label: "Normal Service",

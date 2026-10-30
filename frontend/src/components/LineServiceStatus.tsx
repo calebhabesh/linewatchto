@@ -13,7 +13,7 @@ function LineAdvisoryCount({ count }: { count: number }) {
 export function LineAdvisorySummary({ count }: { count: number }) {
   return (
     <div className="line-service-advisory-summary">
-      <span>Other advisories</span>
+      <span>Other Advisories</span>
       <LineAdvisoryCount count={count} />
     </div>
   );

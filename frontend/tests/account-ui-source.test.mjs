@@ -200,7 +200,7 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /onViewPath/);
     assert.match(savedCommuteCardSource, /commute-route-map-button[\s\S]*?View on Map/);
     assert.match(savedCommuteDraftSource, /saved-commute-edit-delete-button/);
-    assert.match(savedCommuteDraftSource, /Delete this commute/);
+    assert.match(savedCommuteDraftSource, /Delete This Commute/);
     assert.match(savedCommuteDraftSource, /saved-commute-delete-confirm-box/);
     assert.match(globalCss, /\.saved-commute-edit-delete-button\s*\{(?=[^}]*font-weight:\s*850;)(?=[^}]*text-transform:\s*uppercase;)(?=[^}]*letter-spacing:\s*0\.025em;)[^}]*\}/s);
     assert.match(globalCss, /\.saved-commute-delete-confirm-prompt\s*\{(?=[^}]*font-weight:\s*850;)(?=[^}]*text-transform:\s*uppercase;)[^}]*\}/s);

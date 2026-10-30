@@ -22,6 +22,6 @@ describe("planned advisory status", () => {
   });
 
   it("reports an incomplete schedule instead of guessing", () => {
-    assert.equal(plannedAdvisoryStatus({ nextWindowStart: null, nightly: true, timingStatus: "unknown" }, morning), "Schedule incomplete");
+    assert.equal(plannedAdvisoryStatus({ nextWindowStart: null, nightly: true, timingStatus: "unknown" }, morning), "Schedule Incomplete");
   });
 });

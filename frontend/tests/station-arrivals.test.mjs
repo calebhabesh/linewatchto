@@ -486,7 +486,7 @@ describe("station arrival grouping", () => {
           minutes: 3,
           predictedAt: null,
           label: "3 min",
-          source: "Demo estimates",
+          source: "Demo Estimates",
           status: "demo",
         },
       ], staleDisclaimer),

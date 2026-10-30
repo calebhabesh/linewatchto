@@ -60,7 +60,7 @@ describe("LineWatch dashboard fixture data", () => {
     assert.ok(lineStatuses.every((line) => ["normal", "ready"].includes(line.status)));
     assert.ok(commuteImpacts.every((commute) => commute.impact === "clear"));
     assert.equal(
-      ingestionHealth.find((item) => item.label === "Service alerts")?.value,
+      ingestionHealth.find((item) => item.label === "Service Alerts")?.value,
       "0 active in fixture mode",
     );
     assert.equal(

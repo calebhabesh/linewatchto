@@ -634,7 +634,7 @@ const HistoryIncident = memo(function HistoryIncident({
   const facts = [
     incident.displayDirection ? { label: "Direction", value: incident.displayDirection } : null,
     cause ? { label: "Cause", value: formatCause(cause) } : null,
-    !cause && category ? { label: "Source category", value: category } : null,
+    !cause && category ? { label: "Source Category", value: category } : null,
     incident.source ? { label: "Source", value: normalizeDashboardSourceLabel(incident.source) } : null,
   ].filter((fact): fact is { label: string; value: string } => Boolean(fact?.value));
 
@@ -830,14 +830,14 @@ function HistoryLineIdentity({ incident }: { incident: AlertHistoryIncident }) {
         className={`alert-history-line-name min-w-0 truncate${hasLine ? "" : " unknown"}`}
         aria-label={lineLabel(incident)}
       >
-        {hasLine ? incident.lineName ?? `Line ${incident.lineNumber}` : "Line unavailable"}
+        {hasLine ? incident.lineName ?? `Line ${incident.lineNumber}` : "Line Unavailable"}
       </span>
     </div>
   );
 }
 
 function lineLabel(incident: AlertHistoryIncident) {
-  if (!incident.lineNumber) return "Line unavailable";
+  if (!incident.lineNumber) return "Line Unavailable";
   return incident.lineName
     ? `Line ${incident.lineNumber} ${incident.lineName}`
     : `Line ${incident.lineNumber}`;

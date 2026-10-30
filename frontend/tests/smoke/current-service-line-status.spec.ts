@@ -40,12 +40,12 @@ for (const network of ["ttc", "regional"] as const) {
         ? page.getByRole("region", { name: "Current Service", exact: true })
         : page.locator(".desktop-status-overview");
       const status = network === "ttc"
-        ? "Normal Service, Speed zones, Advisory planned"
-        : "Normal Service, Advisory planned";
+        ? "Normal Service, Speed Zones, Advisory Planned"
+        : "Normal Service, Advisory Planned";
       const affected = service.getByRole("button", { name: new RegExp(status) });
       await expect(affected).toBeVisible();
       await expect(affected.locator(".current-service-good-service-icon")).toHaveCount(0);
-      await expect(affected.locator(".line-service-advisory-count")).toHaveText(network === "ttc" ? "2 advisories" : "1 advisory");
+      await expect(affected.locator(".line-service-advisory-count")).toHaveText(network === "ttc" ? "2 Advisories" : "1 Advisory");
       await expect(service.locator(".line-service-advisory-count")).toHaveCount(1);
       await expect(service.getByText("Normal Service", { exact: true }).first()).toBeVisible();
       const textFits = await affected.evaluate((button) => {
@@ -96,7 +96,7 @@ test("urgent line rows also show their non-urgent advisory count", async ({ page
   if (isMobile) await page.getByRole("button", { name: "Expand service sheet" }).click();
   const line = page.locator(isMobile ? ".current-service-line" : ".desktop-status-rail-line-group").first();
   const advisoryCount = line.locator(".line-service-advisory-count");
-  await expect(advisoryCount).toHaveText("2 advisories");
+  await expect(advisoryCount).toHaveText("2 Advisories");
   const countFits = await advisoryCount.evaluate((element) => {
     const row = element.parentElement?.getBoundingClientRect();
     const count = element.getBoundingClientRect();

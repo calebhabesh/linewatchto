@@ -18,7 +18,7 @@ export default function GlobalErrorPage({ error }: GlobalErrorPageProps) {
     <html lang="en">
       <body>
         <BrandedErrorScreen
-          eyebrow="App shell error"
+          eyebrow="App Shell Error"
           title="LineWatchTO needs a refresh"
           message="The app shell could not recover this view. Refresh the dashboard to load a clean session."
           primaryActionLabel="Refresh Dashboard"

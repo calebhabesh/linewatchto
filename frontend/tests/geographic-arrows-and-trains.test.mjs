@@ -71,12 +71,12 @@ test("Session 3: Direction indicators and travel direction resolution", async (t
     assert.equal(line1UnivNb.directionCertainty, "explicit");
 
     // Both directions
-    const bothDir = resolveTravelDirectionFromDisplay("Both directions", "line-2");
+    const bothDir = resolveTravelDirectionFromDisplay("Both Directions", "line-2");
     assert.equal(bothDir.travelDirection, "bidirectional");
     assert.equal(bothDir.directionCertainty, "explicit");
 
     // Unknown or unspecified direction
-    const unspec = resolveTravelDirectionFromDisplay("Direction not specified", "line-2");
+    const unspec = resolveTravelDirectionFromDisplay("Direction Not Specified", "line-2");
     assert.equal(unspec.travelDirection, "bidirectional");
     assert.equal(unspec.directionCertainty, "unspecified");
 

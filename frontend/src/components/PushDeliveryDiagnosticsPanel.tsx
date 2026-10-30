@@ -255,7 +255,7 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
         <Activity size={18} className="text-sky-600 dark:text-sky-400" aria-hidden="true" />
         <span className="push-diagnostics-summary-copy">
           <span>Notification Diagnostics</span>
-          <span>Recent push attempts by device</span>
+          <span>Recent Push Attempts by Device</span>
         </span>
         <span className="push-diagnostics-status">{diagnosticsStatusLabel}</span>
         <ChevronDown size={16} className="push-diagnostics-chevron" aria-hidden="true" />
@@ -374,7 +374,7 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
                         }
                       }}
                     />
-                    <span>Show archived devices</span>
+                    <span>Show Archived Devices</span>
                   </label>
                 ) : null}
                 {diagnosticDeviceOptionsForView.length > 2 ? (

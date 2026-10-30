@@ -90,8 +90,8 @@ export function formatTravelTimeHeadline(estimate: TravelTimeHeadlineEstimate) {
       };
     case "unavailable":
       return {
-        value: "Estimate unavailable",
-        context: "No route time available",
+        value: "Estimate Unavailable",
+        context: "No Route Time Available",
       };
   }
 }

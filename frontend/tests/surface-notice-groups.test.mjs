@@ -315,7 +315,7 @@ it("uses the backend schedule classification without inferring affected corridor
   };
   const [group] = groupSurfaceNoticesByRoute([notice]);
   assert.deepEqual(group.routeIds, ["LE"]);
-  assert.equal(group.notices[0].displayLocation, "Schedule announcement");
+  assert.equal(group.notices[0].displayLocation, "Schedule Announcement");
   assert.equal(group.notices[0].scheduleAnnouncement, true);
   const [ordinary] = groupSurfaceNoticesByRoute([{ ...notice, scheduleAnnouncement: false }]);
   assert.equal(ordinary.notices[0].displayLocation, "Route-wide Notice");

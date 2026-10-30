@@ -268,7 +268,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
       </button>
     </div>
     <header className="current-service-heading"><h2>Current Service</h2><span>Suspensions, delays & planned advisories starting within 24h</span></header>
-    {!summary.fresh && <p key={`avail-${data.networkId}`} className="current-service-availability">{data.availability === "fixture" ? "Demo data · Current status unavailable" : "Current status unavailable"}</p>}
+    {!summary.fresh && <p key={`avail-${data.networkId}`} className="current-service-availability">{data.availability === "fixture" ? "Demo Data · Current Status Unavailable" : "Current Status Unavailable"}</p>}
     <div key={data.networkId} className="current-service-columns">
       <section aria-label="Rail service status">
         <h3 className="current-service-section-heading">

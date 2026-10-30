@@ -275,27 +275,27 @@ describe("floating menu layout", () => {
   it("presents planned closure schedule fields in the shared metadata grid", () => {
     assert.match(plannedClosuresSource, /closure\.windowHours/);
     assert.match(plannedClosuresSource, /closure\.windowDates/);
-    assert.match(plannedClosuresSource, /Advisory hours/);
-    assert.match(plannedClosuresSource, /Advisory dates/);
+    assert.match(plannedClosuresSource, /Advisory Hours/);
+    assert.match(plannedClosuresSource, /Advisory Dates/);
     assert.doesNotMatch(plannedClosuresSource, /closure\.nightly \? "Closure nights"/);
-    assert.match(plannedClosuresSource, /Current window/);
-    assert.match(plannedClosuresSource, /Next window/);
+    assert.match(plannedClosuresSource, /Current Window/);
+    assert.match(plannedClosuresSource, /Next Window/);
     assert.match(impactCardFieldsSource, /export function formatClosureScheduleValue/);
     assert.match(impactCardFieldsSource, /replace\(\/\\s\*\[–—\]\\s\*\/g, " – "\)/);
     assert.match(plannedClosuresSource, /formatClosureScheduleValue\(specificWindowLabel\)/);
     assert.match(plannedClosuresSource, /<MetadataGrid[\s\S]*?leadingRows=\{\[/s);
-    assert.match(plannedClosuresSource, /label:\s*"Advisory hours"/);
-    assert.match(plannedClosuresSource, /label:\s*"Advisory dates"/);
+    assert.match(plannedClosuresSource, /label:\s*"Advisory Hours"/);
+    assert.match(plannedClosuresSource, /label:\s*"Advisory Dates"/);
     assert.match(plannedClosuresSource, /label:\s*specificWindowHeading/);
-    assert.match(plannedClosuresSource, /label:\s*"Advisory window"/);
+    assert.match(plannedClosuresSource, /label:\s*"Advisory Window"/);
     assert.doesNotMatch(plannedClosuresSource, /planned-closure-schedule/);
     assert.doesNotMatch(globalCss, /\.planned-closure-schedule/);
     assert.ok(
-      plannedClosuresSource.indexOf('label: "Advisory dates"')
-        < plannedClosuresSource.indexOf('label: "Advisory hours"'),
+      plannedClosuresSource.indexOf('label: "Advisory Dates"')
+        < plannedClosuresSource.indexOf('label: "Advisory Hours"'),
       "closure dates should be rendered before closure hours",
     );
-    assert.match(impactCardFieldsSource, /\.\.\.renderedLeadingRows,[\s\S]*?causeValue \? \["Source cause"/s);
+    assert.match(impactCardFieldsSource, /\.\.\.renderedLeadingRows,[\s\S]*?causeValue \? \["Source Cause"/s);
     assert.match(impactCardFieldsSource, /index < renderedLeadingRows\.length \? "is-emphasized"/);
     assert.match(plannedClosuresSource, /className="no-border planned-closure-metadata"/);
     assert.match(globalCss, /\.planned-closure-metadata \.is-emphasized dt\s*\{[^}]*color:\s*var\(--color-logo-blue\);[^}]*text-shadow:/s);
@@ -425,11 +425,11 @@ describe("floating menu layout", () => {
   it("renders shared clickable overlapping impact refs on every alert card type", () => {
     assert.match(activeAlertsSource, /getOverlappingImpactRefs/);
     assert.match(activeAlertsSource, /OverlappingImpactRefs/);
-    assert.match(activeAlertsSource, /Overlapping impacts/);
+    assert.match(activeAlertsSource, /Overlapping Impacts/);
     assert.doesNotMatch(activeAlertsSource, /Also overlapping:/);
     assert.match(delaysPanelSource, /getOverlappingImpactRefs/);
     assert.match(delaysPanelSource, /OverlappingImpactRefs/);
-    assert.match(delaysPanelSource, /Overlapping impacts/);
+    assert.match(delaysPanelSource, /Overlapping Impacts/);
     assert.doesNotMatch(delaysPanelSource, /Also overlapping:/);
     assert.match(reducedSpeedZonesSource, /getOverlappingImpactRefs/);
     assert.match(reducedSpeedZonesSource, /OverlappingImpactRefs/);

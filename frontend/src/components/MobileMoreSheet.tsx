@@ -455,7 +455,7 @@ export function MobileMoreSheet({
             <Share2 size={18} className="text-slate-500 dark:text-slate-400" />
             <span className="mobile-more-share-copy">
               <span>Share LineWatchTO</span>
-              <span>Send app link to friends</span>
+              <span>Send App Link to Friends</span>
             </span>
             {shareStatusLabel ? (
               <strong className="mobile-more-share-status" aria-live="polite">
@@ -489,7 +489,7 @@ export function MobileMoreSheet({
             <MapIcon size={18} className="text-slate-500 dark:text-slate-400" />
             <div className="mobile-more-map-attribution-copy">
               <span className="mobile-more-map-attribution-title">Map Attribution</span>
-              <span className="mobile-more-map-attribution-summary">Diagram and geographic map sources</span>
+              <span className="mobile-more-map-attribution-summary">Diagram and Geographic Map Sources</span>
               <dl className="mobile-more-map-attribution-sources">
                 <div>
                   <dt>TTC</dt>

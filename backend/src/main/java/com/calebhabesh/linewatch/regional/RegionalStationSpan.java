@@ -60,7 +60,7 @@ final class RegionalStationSpan {
 
         List<String> ordered = alert.stationIds() == null ? List.of()
             : route.stationIds().stream().filter(alert.stationIds()::contains).toList();
-        // A whole-line impact names the line's terminals, like any other span; cards add "Entire line".
+        // A whole-line impact names the line's terminals, like any other span; cards add "Entire Line".
         if (ordered.isEmpty() && coversWholeLine(alert)) {
             ordered = List.of(route.stationIds().getFirst(), route.stationIds().getLast());
         }

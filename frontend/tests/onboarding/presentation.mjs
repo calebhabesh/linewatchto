@@ -6,17 +6,17 @@ export function onboardingPresentation(value, key = "") {
     return Object.fromEntries(Object.entries(value).map(([name, item]) => [name, onboardingPresentation(item, name)]));
   }
   if (key === "live") return false;
-  if (key === "lastPoll") return "Demo data";
+  if (key === "lastPoll") return "Demo Data";
   if (typeof value !== "string") return value;
-  if (/source$/i.test(key) || key === "arrivalsSource") return "Demo data";
+  if (/source$/i.test(key) || key === "arrivalsSource") return "Demo Data";
   return value
     .replaceAll("Morning commute", "Morning Commute")
     .replaceAll("Stub Station", "Eglinton")
     .replaceAll("Stub Terminal", "Sheppard-Yonge")
     .replaceAll("Stub API ", "")
-    .replaceAll("Playwright API stub", "Demo data")
+    .replaceAll("Playwright API stub", "Demo Data")
     .replaceAll("Smoke fixture", "Example service impacts")
-    .replaceAll("Seeded demo", "Demo data")
+    .replaceAll("Seeded demo", "Demo Data")
     .replaceAll("Seeded smoke alert for browser verification.", "Example signal issue. Shuttle buses are running.")
     .replaceAll("Seeded active planned closure for browser verification.", "Example track work during a planned closure.")
     .replaceAll("for browser verification.", "in this demonstration.");
@@ -46,7 +46,7 @@ export function onboardingResponse(body) {
         detail: "1 current impact matches this route.",
         matchedImpacts: [{ id: "reduced-speed-zone-stub-zone-south-source", kind: "reduced-speed-zone",
           status: "current", severity: "minor", title: "Reduced Speed Zone", lineId: "line-1", lineNumber: "1",
-          location: "Eglinton to Davisville", displayDirection: "Southbound", source: "Demo data",
+          location: "Eglinton to Davisville", displayDirection: "Southbound", source: "Demo Data",
           matchedSegmentIds: path.segmentIds, matchedStationIds: [], timingStatus: "active-now" }],
         travelTimeEstimate: { status: "estimated", baselineSeconds: 120, estimatedLowSeconds: 180,
           estimatedHighSeconds: 300, extraLowSeconds: 60, extraHighSeconds: 180, confidence: "low",

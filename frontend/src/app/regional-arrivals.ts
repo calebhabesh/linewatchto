@@ -84,9 +84,9 @@ export function formatRegionalArrivalSourceSummary(
       : "Metrolinx GO live estimates";
   }
   if (hasScheduled) {
-    return "Metrolinx published schedule";
+    return "Metrolinx Published Schedule";
   }
-  return "Metrolinx regional arrivals";
+  return "Metrolinx Regional Arrivals";
 }
 
 export function formatRegionalGroupSourceBadgeLabel(
@@ -537,7 +537,7 @@ export function groupRegionalStationArrivals(
     if (!platform) {
       platform = {
         key: platformKey,
-        label: platformKey === "unassigned" ? "Platform not assigned" : `Platform ${platformKey}`,
+        label: platformKey === "unassigned" ? "Platform Not Assigned" : `Platform ${platformKey}`,
         arrivals: [],
       };
       group.platforms.push(platform);

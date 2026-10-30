@@ -61,7 +61,7 @@ export function getRegionalRailOperatingState(now = new Date()): RegionalRailOpe
 
   return {
     status: closed ? "closed" : "open",
-    title: closed ? "Regional rail closed overnight" : "Regional rail operating window",
+    title: closed ? "Regional Rail Closed Overnight" : "Regional Rail Operating Window",
     summary: closed
       ? "Regular GO and UP passenger rail service is outside the broad overnight operating window."
       : "At least part of the GO and UP rail network may be inside its scheduled operating window.",

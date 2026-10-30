@@ -201,7 +201,7 @@ describe("PWA install nudge component", () => {
     assert.match(nudgeSource, /Add LineWatchTO to your home screen/);
     assert.match(nudgeSource, /instructionText/);
     assert.match(nudgeSource, /Install/);
-    assert.match(nudgeSource, /Got it/);
+    assert.match(nudgeSource, /Got It/);
     assert.match(nudgeSource, /Tap Share/);
     assert.match(nudgeSource, /Add to Home Screen/);
     assert.match(nudgeSource, /Android install steps/);
@@ -260,7 +260,7 @@ describe("PWA share entry in More sheet", () => {
     assert.match(moreSheetSource, /onShareApp/);
     assert.match(moreSheetSource, /shareStatusLabel/);
     assert.match(moreSheetSource, /Share LineWatchTO/);
-    assert.match(moreSheetSource, /Send app link to friends/);
+    assert.match(moreSheetSource, /Send App Link to Friends/);
     assert.match(moreSheetSource, /mobile-more-share-status/);
     assert.match(moreSheetSource, /Support & About/);
     assert.ok(

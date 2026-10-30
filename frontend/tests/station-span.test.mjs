@@ -30,7 +30,7 @@ describe("direction-aware station spans", () => {
   });
 
   it("treats 'to' as both directions when the direction line says so", () => {
-    for (const direction of ["Northbound & Southbound", "Eastbound & Westbound", "Both Ways", "Both directions"]) {
+    for (const direction of ["Northbound & Southbound", "Eastbound & Westbound", "Both Ways", "Both Directions"]) {
       assert.equal(parseStationSpan("York Mills to Eglinton", direction).travel, "both-ways");
     }
   });

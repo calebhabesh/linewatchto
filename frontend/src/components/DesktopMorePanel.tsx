@@ -255,7 +255,7 @@ export function DesktopMorePanel({
         </div>
         <p className="desktop-more-section-caption">
           <MapPinCheck size={13} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
-          <span>Loaded on launch</span>
+          <span>Loaded on Launch</span>
         </p>
         <div
           className="default-map-mode-options desktop-more-default-map-options"

@@ -9,7 +9,7 @@ export const ALERT_CATEGORIES: Record<ImpactKind, { label: string; singular: str
 };
 
 export function serviceEffectLabel(incident: IncidentRiderDetails, planned = false): string {
-  if (incident.serviceEffect === "limited-service") return planned ? "Planned limited service" : "Limited service";
+  if (incident.serviceEffect === "limited-service") return planned ? "Planned Limited Service" : "Limited Service";
   return planned ? ALERT_CATEGORIES["planned-closure"].singular : ALERT_CATEGORIES.delay.singular;
 }
 

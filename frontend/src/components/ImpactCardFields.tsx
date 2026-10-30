@@ -98,7 +98,7 @@ export function plannedAdvisoryWindowRows(
     : undefined;
 }
 
-const PLANNED_WINDOW_LABEL = "Planned window";
+const PLANNED_WINDOW_LABEL = "Planned Window";
 
 /** Replacement service and the stops it skips, when the source names them. */
 export function replacementServiceRows(incident: Pick<IncidentRiderDetails, "replacementService" | "replacementSkippedStations">) {
@@ -107,7 +107,7 @@ export function replacementServiceRows(incident: Pick<IncidentRiderDetails, "rep
   const skipped = skippedStationsLabel(incident.replacementSkippedStations);
   return [
     { label: "Replacement", value: replacement },
-    ...(skipped ? [{ label: "Buses skip", value: skipped }] : []),
+    ...(skipped ? [{ label: "Buses Skip", value: skipped }] : []),
   ];
 }
 
@@ -164,7 +164,7 @@ function formatElapsed(timeStr: string) {
 
 export function formatCompactLocation(location: string, direction?: string | null): string {
   const sections = parseStationSections(location, direction);
-  if (!sections) return formatImpactLocation(location) || "Affected segment unavailable";
+  if (!sections) return formatImpactLocation(location) || "Affected Segment Unavailable";
   return joinSections(sections.map(formatStationSpanText));
 }
 
@@ -173,7 +173,7 @@ export function CompactImpactLocation({ location, direction }: { location: strin
   if (!sections) {
     return (
       <span className="compact-impact-location">
-        <span className="compact-impact-location__station">{formatImpactLocation(location) || "Affected segment unavailable"}</span>
+        <span className="compact-impact-location__station">{formatImpactLocation(location) || "Affected Segment Unavailable"}</span>
       </span>
     );
   }
@@ -224,7 +224,7 @@ export function ImpactRouteHeader({
         </div>
       ) : (
         <div className="impact-route__bounds">
-          <span>{formatImpactLocation(location) || "Affected segment unavailable"}</span>
+          <span>{formatImpactLocation(location) || "Affected Segment Unavailable"}</span>
         </div>
       )}
       {direction && <div className="impact-route__direction">{direction}</div>}
@@ -308,7 +308,7 @@ export function MetadataGrid({
 
   const rows = [
     ...renderedLeadingRows,
-    causeValue ? ["Source cause", causeValue, null] as const : null,
+    causeValue ? ["Source Cause", causeValue, null] as const : null,
     resolutionValue ? ["Est. Resolution", resolutionValue, null] as const : null,
     ...renderedExtraRows,
     ["Started", startedValue ?? <ImpactTimestamp key="started" timestamp={startedAt} />, null] as const,
@@ -389,7 +389,7 @@ export function ImpactCardMapButton({
   onClick,
   title,
   actionLabel,
-  backLabel = "Back to map",
+  backLabel = "Back to Map",
   variant = "labeled",
   className = "",
   disabled = false,

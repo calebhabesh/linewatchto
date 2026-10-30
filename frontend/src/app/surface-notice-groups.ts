@@ -114,7 +114,7 @@ function deriveDisplayLocation(
     return `${displayStops[0].stopName} to ${displayStops[displayStops.length - 1].stopName}`;
   }
 
-  return notice.scheduleAnnouncement ? "Schedule announcement" : notice.location?.trim() || "Route-wide Notice";
+  return notice.scheduleAnnouncement ? "Schedule Announcement" : notice.location?.trim() || "Route-wide Notice";
 }
 
 export function surfaceNoticePreviewLocation(notice: SurfaceNoticeDetail, includeStopId: boolean): string {
@@ -151,7 +151,7 @@ function deriveSurfaceNoticeDirection(notice: SurfaceNoticeDetail): string | nul
 
   const text = `${notice.title} ${notice.description}`.toLowerCase();
   if (text.includes("both ways") || text.includes("both directions")) {
-    return "Both ways";
+    return "Both Ways";
   }
 
   const directionalMatch = text.match(/\b(northbound|southbound|eastbound|westbound)\b/);
@@ -546,7 +546,7 @@ function trimSentence(value: string): string {
 function normalizeDirection(value: string): string {
   const lower = value.trim().toLowerCase();
   if (lower === "both way" || lower === "both ways" || lower === "both directions") {
-    return "Both ways";
+    return "Both Ways";
   }
   return titleCase(value);
 }

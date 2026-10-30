@@ -88,8 +88,8 @@ export async function getRegionalTripChanges(
 
 export function regionalTripChangeLabel(kind: RegionalTripChangeKind): string {
   if (kind === "cancellation") return "Cancelled";
-  if (kind === "skipped-stop") return "Not stopping";
-  return "Additional stop";
+  if (kind === "skipped-stop") return "Not Stopping";
+  return "Additional Stop";
 }
 
 function torontoServiceDate(timestamp: string): string {

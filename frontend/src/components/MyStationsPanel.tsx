@@ -438,7 +438,7 @@ function SavedStationRow({
                     <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={kind} size={15} /></span>
                     <div className="saved-commute-impact-copy">
                       <div className="saved-commute-impact-details">
-                        <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{dashboard.delays.find(item => item.id === (selection?.id ?? impactId))?.serviceEffect === "limited-service" ? "Limited service" : disruptionKindLabel(kind)}</span></strong></div>
+                        <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{dashboard.delays.find(item => item.id === (selection?.id ?? impactId))?.serviceEffect === "limited-service" ? "Limited Service" : disruptionKindLabel(kind)}</span></strong></div>
                         <span><IncidentStationSpan location={stationImpactContext(selection?.id ?? impactId, saved.station.name, dashboard)} /></span>
                       </div>
                       <div className="saved-commute-impact-action">
@@ -777,7 +777,7 @@ function SavedStationRow({
                     <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={kind} size={15} /></span>
                     <div className="saved-commute-impact-copy">
                       <div className="saved-commute-impact-details">
-                        <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{dashboard.delays.find(item => item.id === (selection?.id ?? impactId))?.serviceEffect === "limited-service" ? "Limited service" : disruptionKindLabel(kind)}</span></strong></div>
+                        <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{dashboard.delays.find(item => item.id === (selection?.id ?? impactId))?.serviceEffect === "limited-service" ? "Limited Service" : disruptionKindLabel(kind)}</span></strong></div>
                         <span><IncidentStationSpan location={stationImpactContext(selection?.id ?? impactId, saved.station.name, dashboard)} /></span>
                       </div>
                       <div className="saved-commute-impact-action">

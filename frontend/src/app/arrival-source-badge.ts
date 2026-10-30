@@ -46,7 +46,7 @@ export function arrivalTileSourceIndicatorData(status: string, isDue = false, is
   return {
     isLive,
     source: isLive ? "live" : "scheduled",
-    title: isLive ? "Live arrival estimate" : "Scheduled timetable",
+    title: isLive ? "Live Arrival Estimate" : "Scheduled Timetable",
     iconSize: isCompact ? 10.5 : 13,
     signalClass: isDue ? "text-emerald-400" : "text-emerald-600 dark:text-emerald-400",
     calendarClass: isDue ? "text-red-200/80" : "text-slate-400 dark:text-slate-500",

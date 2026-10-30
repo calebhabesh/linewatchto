@@ -24,7 +24,7 @@ interface Props {
   onSelectImpact: (selection: ImpactSelection) => void;
   onSelectRelatedImpact?: (selection: ImpactSelection) => void;
   onReturnToMap?: () => void;
-  /** Where an active card's Back action returns, e.g. "Back to search results". */
+  /** Where an active card's Back action returns, e.g. "Back to Search Results". */
   returnToMapLabel?: string;
   onBack?: () => void;
   onClose?: () => void;
@@ -138,7 +138,7 @@ export function PlannedClosuresPanel({
             const specificWindowLabel = closure.activeNow
               ? closure.activeWindowLabel
               : closure.nextWindowLabel;
-            const specificWindowHeading = closure.activeNow ? "Current window" : "Next window";
+            const specificWindowHeading = closure.activeNow ? "Current Window" : "Next Window";
             const hasScheduleDetails = Boolean(
               closure.windowHours || closure.windowDates || specificWindowLabel,
             );
@@ -157,7 +157,7 @@ export function PlannedClosuresPanel({
                   lineNumber={closure.lineNumber}
                   title={serviceEffectLabel(closure, true)}
                   locationFirst
-                  details={<><p>{closure.title}</p><p>Direction: {closure.displayDirection || "Not reported"}</p><p>Started: <CompactImpactTimeValue timestamp={closure.startedAt} /></p></>}
+                  details={<><p>{closure.title}</p><p>Direction: {closure.displayDirection || "Not Reported"}</p><p>Started: <CompactImpactTimeValue timestamp={closure.startedAt} /></p></>}
                   location={closure.location}
                   facts={[
                     ...((closure.windowDates || closure.windowHours) ? [{ label: "Schedule", value: [closure.windowDates, closure.windowHours].filter(Boolean).map(value => formatClosureScheduleValue(value!)).join(" · "), emphasized: true }] : []),
@@ -169,7 +169,7 @@ export function PlannedClosuresPanel({
                     },
                     { column: 3, label: "Updated", value: <CompactImpactTimeValue timestamp={closure.updatedAt} fallback={closure.updatedAgo} /> },
                   ]}
-                  status={<><span>{currentImpact ? "Active now" : <PlannedAdvisoryStatus closure={closure} />}</span>{closure.nightly ? " · Nightly" : ""}{closure.shuttle ? " · Shuttle" : ""}</>}
+                  status={<><span>{currentImpact ? "Active Now" : <PlannedAdvisoryStatus closure={closure} />}</span>{closure.nightly ? " · Nightly" : ""}{closure.shuttle ? " · Shuttle" : ""}</>}
                   active={isActive}
                   toneClassName="planned-closure-card-border"
                   onShowOnMap={isActive && onReturnToMap ? onReturnToMap : () => handleClosureClick(closure.id)}
@@ -245,7 +245,7 @@ export function PlannedClosuresPanel({
                     <OverlappingImpactRefs
                       overlaps={overlappingImpacts}
                       onSelectImpact={onSelectRelatedImpact}
-                      label="Overlapping impacts"
+                      label="Overlapping Impacts"
                     />
                   )}
                 />
@@ -262,13 +262,13 @@ export function PlannedClosuresPanel({
                     updatedAgo={closure.updatedAgo}
                     leadingRows={[
                       {
-                        label: "Advisory dates",
+                        label: "Advisory Dates",
                         value: closure.windowDates
                           ? formatClosureScheduleValue(closure.windowDates)
                           : null,
                       },
                       {
-                        label: "Advisory hours",
+                        label: "Advisory Hours",
                         value: closure.windowHours
                           ? formatClosureScheduleValue(closure.windowHours)
                           : null,
@@ -280,7 +280,7 @@ export function PlannedClosuresPanel({
                           : null,
                       },
                       {
-                        label: "Advisory window",
+                        label: "Advisory Window",
                         value: hasScheduleDetails ? null : closure.window,
                       },
                     ]}

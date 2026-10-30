@@ -535,5 +535,5 @@ export function surfaceSourceSummary(snapshot: SurfaceArrivalSnapshot): string {
   const scheduled = snapshot.arrivals.some((arrival) => arrival.status === "scheduled" && arrival.scheduledAt !== null);
   if (live && scheduled) return "Live estimates + scheduled departures";
   if (live) return snapshot.networkId === "regional" ? "Metrolinx live GO Bus estimates" : "TTC live surface estimates";
-  return scheduled ? "Published scheduled departures" : "Route connections · predictions unavailable";
+  return scheduled ? "Published Scheduled Departures" : "Route connections · predictions unavailable";
 }

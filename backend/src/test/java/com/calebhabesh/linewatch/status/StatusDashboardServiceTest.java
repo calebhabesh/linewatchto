@@ -79,7 +79,7 @@ class StatusDashboardServiceTest {
         StatusResponses.LineStatusDto status = org.springframework.test.util.ReflectionTestUtils.invokeMethod(
             service, "toDto", line, List.<AlertEntity>of(), List.of(advisory), now);
         assertThat(status.status()).isEqualTo("delay");
-        assertThat(status.statusLabel()).isEqualTo("Limited service");
+        assertThat(status.statusLabel()).isEqualTo("Limited Service");
         StatusResponses.LineStatusDto specificDelay = org.springframework.test.util.ReflectionTestUtils.invokeMethod(
             service, "toDto", line, List.<AlertEntity>of(), List.of(advisory.withServiceEffect("delay")), now);
         assertThat(specificDelay.status()).isEqualTo("delay");

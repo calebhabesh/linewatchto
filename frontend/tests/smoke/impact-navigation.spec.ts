@@ -25,7 +25,7 @@ for (const back of ["card", "browser", "header"] as const) {
       expect(arrowStrokes.every(stroke => stroke === buttonColor)).toBeTruthy();
       if (theme === "dark") await page.getByRole("button", { name: "Switch to light theme" }).click();
     }
-    if (back === "card") await card.getByRole("button", { name: /^Back to map:/ }).click();
+    if (back === "card") await card.getByRole("button", { name: /^Back to Map:/ }).click();
     else if (back === "header") await page.getByRole("button", { name: "Back", exact: true }).click();
     else await page.goBack();
     await expect(inspector).toContainText("Sheppard-Yonge");
@@ -74,14 +74,14 @@ for (const back of ["back", "close", "browser"] as const) {
     await expect(inspector.getByRole("button", { name: "Show more map" })).toBeVisible();
     await expect(page.locator('[data-map-highlight-id]').first()).toBeAttached();
     const controls = inspector.getByRole("group", { name: "Impact navigation" });
-    await expect(controls.getByRole("button", { name: "Back to map", exact: true })).toBeVisible();
+    await expect(controls.getByRole("button", { name: "Back to Map", exact: true })).toBeVisible();
     await expect(controls.getByRole("button", { name: "Unfocus impact" })).toBeVisible();
     const mapBox = await page.locator('[data-map-pan-zoom-viewport]').first().boundingBox();
     const inspectorBox = await inspector.boundingBox();
     expect(mapBox && inspectorBox && inspectorBox.y > mapBox.y + 100).toBeTruthy();
     if (back === "back") await page.screenshot({ path: "/tmp/linewatch-mobile-service-split.png" });
     if (back === "browser") await page.goBack();
-    else await controls.getByRole("button", { name: back === "back" ? "Back to map" : "Unfocus impact", exact: true }).click();
+    else await controls.getByRole("button", { name: back === "back" ? "Back to Map" : "Unfocus impact", exact: true }).click();
     await expect(inspector).toHaveCount(0);
     await expect(service).toBeVisible();
     await expect(page.locator(".mobile-service-sheet")).toHaveAttribute("data-snap", sheetSnap!);
@@ -100,7 +100,7 @@ test("mobile overlapping map details group Back and Close and restore the prior 
   await expect(inspector.getByRole("heading", { name: "Delay", exact: true })).toBeVisible();
   await inspector.locator(".overlap-impact-ref").first().click();
   const controls = inspector.getByRole("group", { name: "Impact navigation" });
-  const back = controls.getByRole("button", { name: "Back to previous impact" });
+  const back = controls.getByRole("button", { name: "Back to Previous Impact" });
   const close = controls.getByRole("button", { name: "Unfocus impact" });
   await expect(back).toBeVisible();
   await expect(close).toBeVisible();
@@ -115,7 +115,7 @@ test("mobile overlapping map details group Back and Close and restore the prior 
   await back.click();
   await expect(inspector.getByRole("heading", { name: "Delay", exact: true })).toBeVisible();
   await expect(page.locator('[data-map-highlight-id="stub-delay-line-1-overlap"]')).toBeAttached();
-  await expect(controls.getByRole("button", { name: "Back to previous impact" })).toHaveCount(0);
+  await expect(controls.getByRole("button", { name: "Back to Previous Impact" })).toHaveCount(0);
 });
 
 test("mobile split description hints only while more content remains below", async ({ page, isMobile }) => {
@@ -152,7 +152,7 @@ test("overlapping detail Back restores the previous alert", async ({ page, reque
     const inspector = page.locator("[data-mobile-impact-inspector]");
     await expect(inspector.getByRole("heading", { name: "Delay", exact: true })).toBeVisible();
     await inspector.locator(".overlap-impact-ref").first().click();
-    await inspector.getByRole("button", { name: "Back to previous impact" }).click();
+    await inspector.getByRole("button", { name: "Back to Previous Impact" }).click();
     await expect(inspector.getByRole("heading", { name: "Delay", exact: true })).toBeVisible();
     await expect(page.locator('[data-map-highlight-id="stub-delay-line-1-overlap"]')).toBeAttached();
     return;

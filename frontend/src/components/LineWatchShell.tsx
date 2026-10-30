@@ -1934,8 +1934,8 @@ export function LineWatchShell({
     : impactBackContext ? handleImpactStepBack : undefined;
   // An impact opened from search steps back to the search results, not the map.
   const impactReturnLabel = !desktopImpactIsMapFocused && impactBackContext?.origin.activeView === "search"
-    ? "Back to search results"
-    : "Back to map";
+    ? "Back to Search Results"
+    : "Back to Map";
 
   const handleSearchSelectStation = (stationId: string, networkId: NetworkId) => {
     if (searchClosingTimeoutRef.current) {
@@ -3777,7 +3777,7 @@ export function LineWatchShell({
           onChangeDetent={setMobileInspectorDetent}
           onUnfocus={handleClearMobileImpactSelection}
           onBack={impactBackContext ? handleSubmenuBack : undefined}
-          backLabel={impactBackContext?.origin.selection ? "Back to previous impact" : impactBackContext?.origin.activeView === "map" ? "Back to map" : "Back"}
+          backLabel={impactBackContext?.origin.selection ? "Back to Previous Impact" : impactBackContext?.origin.activeView === "map" ? "Back to Map" : "Back"}
           unfocusLabel={mobileImpactReturnView === "my-stations" ? "Back to My Stations" : undefined}
           onViewFullDetails={() => navigateForward(viewForImpactSelection(selection))}
           onSelectImpact={handleRelatedImpact}

@@ -529,7 +529,7 @@ export function SavedCommuteCard({
             <div className="saved-commute-impact-heading">
               <strong className="text-slate-800 dark:text-slate-200">
                 <span className="saved-commute-impact-kind-label">
-                  {impact.serviceEffect === "limited-service" ? impact.status === "planned" ? "Planned limited service" : "Limited service" : toTitleCase(impactKindLabel(impact.kind, impact.kind === "planned-closure" && impact.status === "current"))}
+                  {impact.serviceEffect === "limited-service" ? impact.status === "planned" ? "Planned Limited Service" : "Limited Service" : toTitleCase(impactKindLabel(impact.kind, impact.kind === "planned-closure" && impact.status === "current"))}
                 </span>
                 {impact.ignoredByRule ? (
                   <em className="saved-commute-impact-filter-note">(Ignored by Route Filter)</em>

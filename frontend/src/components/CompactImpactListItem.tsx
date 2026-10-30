@@ -63,14 +63,14 @@ export function CompactImpactListItem({
   onShowOnMap,
   mapUnavailable = false,
   mapActionLabel,
-  mapBackLabel = "Back to map",
+  mapBackLabel = "Back to Map",
 }: Props) {
   const omitTitle = hideTypeLabel && /^(planned closure|planned advisory|reduced speed zone|delay|service delay|service suspension|suspension|active alert)$/i.test(title.trim());
   const routeFirst = locationFirst || omitTitle;
   const renderedFacts: CompactImpactFact[] = direction
     ? [{ label: "Direction", value: direction }, ...facts]
     : facts;
-  const effectiveMapActionLabel = mapUnavailable ? "No map location" : mapActionLabel ?? "View";
+  const effectiveMapActionLabel = mapUnavailable ? "No Map Location" : mapActionLabel ?? "View";
   const mapActionIsBack = effectiveMapActionLabel === "Back";
 
   const content = (

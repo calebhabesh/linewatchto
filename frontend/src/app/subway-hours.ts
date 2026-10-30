@@ -85,7 +85,7 @@ export function getSubwayOperatingState(now = new Date()): SubwayOperatingState 
 
   return {
     status: closed ? "closed" : "open",
-    title: closed ? "Subway closed overnight" : "Subway operating",
+    title: closed ? "Subway Closed Overnight" : "Subway Operating",
     summary: closed
       ? "Regular subway service is outside operating hours. The live feed is hidden until service resumes."
       : "Regular subway service is inside the general operating window.",
