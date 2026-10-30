@@ -48,6 +48,91 @@ class RegionalAlertExtractionPolicyTest {
     }
 
     @Test
+    void validatesEverySectionOfAMultiSectionReplyAndOrdersThemAlongTheLine() {
+        var valid = RegionalAlertExtraction.validate(reply("""
+            {"effect":"no-service","scope":"segment-span",
+             "spans":[{"from":"weston","to":"pearson-airport"},{"from":"bloor","to":"union"}],
+             "listedStations":[],"replacement":"none","skippedStations":["union","mount-dennis"],
+             "statedWindow":null,"confidence":"high"}
+            """), UP_INPUT);
+        assertThat(valid.valid()).isTrue();
+        assertThat(valid.extraction().span()).containsExactly("union", "bloor", "weston", "pearson-airport");
+        assertThat(valid.extraction().skippedStations()).containsExactly("mount-dennis");
+
+        assertThat(RegionalAlertExtraction.validate(reply("""
+            {"effect":"no-service","scope":"segment-span","spans":[{"from":"union","to":"bloor"},
+             {"from":"weston","to":"kipling"}],"replacement":"none","confidence":"high"}
+            """), UP_INPUT).rejection()).isEqualTo("unknown-station");
+        assertThat(RegionalAlertExtraction.validate(reply("""
+            {"effect":"no-service","scope":"segment-span","spans":[{"from":"weston","to":"weston"}],
+             "replacement":"none","confidence":"high"}
+            """), UP_INPUT).rejection()).isEqualTo("span-single-station");
+        assertThat(RegionalAlertExtraction.validate(reply("""
+            {"effect":"no-service","scope":"segment-span","spans":[],"replacement":"none","confidence":"high"}
+            """), UP_INPUT).rejection()).isEqualTo("span-missing");
+        assertThat(RegionalAlertExtraction.validate(reply("""
+            {"effect":"no-service","scope":"segment-span","spans":[{"from":"union"}],
+             "replacement":"none","confidence":"high"}
+            """), UP_INPUT).rejection()).isEqualTo("span-missing");
+        // Sections only matter for a segment span; an incomplete one does not reject a corridor reading.
+        var corridor = RegionalAlertExtraction.validate(reply("""
+            {"effect":"no-service","scope":"corridor","spans":[{"from":"union"}],
+             "replacement":"go-bus","confidence":"high"}
+            """), UP_INPUT);
+        assertThat(corridor.valid()).isTrue();
+        assertThat(corridor.extraction().span()).isEmpty();
+    }
+
+    @Test
+    void appliesSeveralSectionsAndKeepsTheClassifiersWhenTheReadingCannotSayWhere() {
+        List<String> sections = List.of("union", "bloor", "weston", "pearson-airport");
+        RegionalAlertClassification refined = RegionalAlertExtractionPolicy.refine(
+            classification("no-service", "unknown", List.of(), List.of(), null),
+            new RegionalAlertExtraction("no-service", "segment-span", sections, List.of(), "none", List.of(),
+                null, "high"), "m");
+        assertThat(refined.scope()).isEqualTo("segment-span");
+        assertThat(refined.spanStationIds()).containsExactlyElementsOf(sections);
+        assertThat(refined.impacts()).singleElement()
+            .satisfies(impact -> assertThat(impact.stationIds()).containsExactlyElementsOf(sections));
+
+        RegionalAlertClassification deterministic = classification("no-service", "segment-span", sections, List.of(), null);
+        RegionalAlertClassification kept = RegionalAlertExtractionPolicy.refine(deterministic,
+            new RegionalAlertExtraction("no-service", "unknown", List.of(), List.of(), "go-bus", List.of(),
+                null, "high"), "m");
+        assertThat(kept.scope()).isEqualTo("segment-span");
+        assertThat(kept.spanStationIds()).containsExactlyElementsOf(sections);
+        assertThat(kept.replacementService()).isEqualTo("go-bus");
+
+        // Section order and each section's direction do not make a difference.
+        assertThat(RegionalAlertExtractionPolicy.differences(RegionalAlertExtractionPolicy.Reading.of(deterministic),
+            new RegionalAlertExtraction("no-service", "segment-span",
+                List.of("pearson-airport", "weston", "bloor", "union"), List.of(), "none", List.of(), null, "high")))
+            .isEmpty();
+    }
+
+    @Test
+    void keepsSectionsDerivedFromTheRunningSectionWhileTheReadingSuppliesTheRest() {
+        List<String> sections = List.of("union", "bloor", "weston", "pearson-airport");
+        RegionalAlertClassification base = classification("no-service", "segment-span", sections, List.of(), null);
+        Map<String, List<String>> sources = new java.util.HashMap<>(base.fieldSources());
+        sources.put(MetrolinxAlertNormalizer.RUNNING_SECTION_FIELD, List.of("go-service-alerts:M1"));
+        RegionalAlertClassification fromRunning = new RegionalAlertClassification(base.canonicalEventId(), base.sources(),
+            base.lineIds(), base.tripNumbers(), base.timing(), base.serviceEffect(), base.operatingChange(), base.scope(),
+            base.cause(), base.replacementService(), base.maximumDelayMinutes(), base.title(), base.description(),
+            base.activePeriodStart(), base.activePeriodEnd(), base.activePeriodBasis(), base.sourceActivePeriodStart(),
+            base.sourceActivePeriodEnd(), base.publishedAt(), base.stationIds(), base.spanStationIds(), base.stationRoles(),
+            Map.copyOf(sources), base.primaryRawPayload(), base.impacts());
+
+        RegionalAlertClassification refined = RegionalAlertExtractionPolicy.refine(fromRunning,
+            new RegionalAlertExtraction("no-service", "segment-span", List.of("union", "bloor", "weston", "mount-dennis"),
+                List.of(), "go-bus", List.of(), null, "high"), "m");
+
+        assertThat(refined.spanStationIds()).containsExactlyElementsOf(sections);
+        assertThat(refined.replacementService()).isEqualTo("go-bus");
+        assertThat(refined.fieldSources()).containsKey("modelReading");
+    }
+
+    @Test
     void correctsAWrongDeterministicSpanAndMarksSkippedStops() {
         RegionalAlertClassification deterministic = classification("no-service", "segment-span",
             List.of("union", "weston"), List.of(), null);
@@ -99,7 +184,7 @@ class RegionalAlertExtractionPolicyTest {
         // Model-chosen listed stations replace a wrong deterministic span.
         RegionalAlertClassification listed = RegionalAlertExtractionPolicy.refine(
             classification("no-service", "segment-span", List.of("union", "weston"), List.of(), null),
-            new RegionalAlertExtraction("no-service", "listed-stations", null, null, List.of("bloor"), "none",
+            new RegionalAlertExtraction("no-service", "listed-stations", List.of(), List.of("bloor"), "none",
                 List.of(), null, "high"), "m");
         assertThat(listed.scope()).isEqualTo("listed-stations");
         assertThat(listed.spanStationIds()).isEmpty();
@@ -182,7 +267,8 @@ class RegionalAlertExtractionPolicyTest {
     private static RegionalAlertExtraction extraction(
         String effect, String scope, String from, String to, String replacement, String confidence, List<String> skipped
     ) {
-        return new RegionalAlertExtraction(effect, scope, from, to, List.of(), replacement, skipped, null, confidence);
+        List<String> span = from == null || to == null ? List.of() : List.of(from, to);
+        return new RegionalAlertExtraction(effect, scope, span, List.of(), replacement, skipped, null, confidence);
     }
 
     private static JsonNode reply(String json) {

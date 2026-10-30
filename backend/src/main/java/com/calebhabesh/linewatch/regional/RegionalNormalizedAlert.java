@@ -82,6 +82,24 @@ public record RegionalNormalizedAlert(
             && (affectedSegmentIds == null || affectedSegmentIds.isEmpty());
     }
 
+    /**
+     * Names each separately closed section ("Union ↔ Mount Dennis and Mount Pleasant ↔ Stratford"),
+     * joining each section's end stations with {@code connector}. Null unless the alert's segments
+     * form two or more separate stretches of its line.
+     */
+    public String sectionsLabel(java.util.function.BinaryOperator<String> connector) {
+        List<List<String>> sections = RegionalSpans.sections(lineId, affectedSegmentIds);
+        if (sections.size() < 2) return null;
+        List<String> labels = sections.stream()
+            .map(section -> connector.apply(stationName(section.getFirst()), stationName(section.getLast())))
+            .toList();
+        return String.join(", ", labels.subList(0, labels.size() - 1)) + " and " + labels.getLast();
+    }
+
+    private static String stationName(String stationId) {
+        return RegionalNetworkCatalog.station(stationId).map(station -> station.name()).orElse(stationId);
+    }
+
     /** Names each listed stop in route order ("Clarkson, Oakville & Burlington"), never as a span. */
     public String stationListLabel() {
         List<String> ordered = RegionalNetworkCatalog.route(lineId)

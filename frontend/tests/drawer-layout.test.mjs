@@ -412,7 +412,7 @@ describe("floating menu layout", () => {
 
   it("draws route headers with the shared direction-aware station span", () => {
     // Connector semantics are covered by tests/station-span.test.mjs.
-    assert.match(impactCardFieldsSource, /const span = parseStationSpan\(location, direction\);/);
+    assert.match(impactCardFieldsSource, /const sections = parseStationSections\(location, direction\);/);
     assert.match(impactCardFieldsSource, /<StationSpanConnector travel=\{span\.travel\} size=\{20\} className="impact-route__arrow" \/>/);
     assert.doesNotMatch(impactCardFieldsSource, /LongArrowLeftRight|LongArrowRight/);
   });
@@ -437,7 +437,7 @@ describe("floating menu layout", () => {
     assert.match(plannedClosuresSource, /OverlappingImpactRefs/);
     assert.match(plannedClosuresSource, /previewSegmentIds/);
     assert.match(impactCardFieldsSource, /export function formatCompactLocation/);
-    assert.match(impactCardFieldsSource, /return formatStationSpanText\(span\);/);
+    assert.match(impactCardFieldsSource, /return joinSections\(sections\.map\(formatStationSpanText\)\);/);
     assert.match(impactOverlapRefsSource, /ImpactTypeIcon/);
     assert.match(impactTypeIconSource, /impact-type-icon/);
     assert.match(impactOverlapRefsSource, /overlap-impact-ref/);

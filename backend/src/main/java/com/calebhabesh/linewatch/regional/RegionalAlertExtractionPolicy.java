@@ -60,7 +60,7 @@ final class RegionalAlertExtractionPolicy {
             differences.add("scope: " + deterministic.scope() + " vs " + model.scope());
         }
         if ("segment-span".equals(deterministic.scope()) && "segment-span".equals(model.scope())
-            && !Set.copyOf(deterministic.span()).equals(Set.copyOf(model.span()))) {
+            && !sameSections(deterministic.span(), model.span())) {
             differences.add("span: " + String.join("-", deterministic.span()) + " vs " + String.join("-", model.span()));
         }
         if ("listed-stations".equals(deterministic.scope()) && "listed-stations".equals(model.scope())
@@ -93,7 +93,13 @@ final class RegionalAlertExtractionPolicy {
         String scope = extraction.scope();
         List<String> span;
         List<String> scopeStations;
-        switch (scope) {
+        // Sections the classifier derived from "trains will run between X and Y" follow the notice's
+        // own words to the line's ends, so a closure reading keeps them.
+        if ("no-service".equals(effect) && fromRunningSection(classification)) {
+            scope = classification.scope();
+            span = classification.spanStationIds();
+            scopeStations = span;
+        } else switch (scope) {
             case "segment-span" -> {
                 span = extraction.span();
                 if (spansFullLine(classification.lineIds(), span)) {
@@ -112,8 +118,10 @@ final class RegionalAlertExtractionPolicy {
                 scopeStations = extraction.listedStations();
             }
             default -> {
-                span = List.of();
-                scopeStations = classification.stationIds();
+                // A reading that cannot say where keeps the classifier's place, if it found one.
+                scope = classification.scope();
+                span = "segment-span".equals(scope) ? classification.spanStationIds() : List.of();
+                scopeStations = "segment-span".equals(scope) ? span : classification.stationIds();
             }
         }
 
@@ -164,6 +172,24 @@ final class RegionalAlertExtractionPolicy {
             classification.sourceActivePeriodStart(), classification.sourceActivePeriodEnd(),
             classification.publishedAt(), classification.stationIds(), List.copyOf(span), Map.copyOf(roles),
             Map.copyOf(fieldSources), classification.primaryRawPayload(), impacts);
+    }
+
+    private static boolean fromRunningSection(RegionalAlertClassification classification) {
+        return "segment-span".equals(classification.scope()) && classification.fieldSources() != null
+            && classification.fieldSources().containsKey(MetrolinxAlertNormalizer.RUNNING_SECTION_FIELD);
+    }
+
+    /** Equal closed sections, ignoring the order of sections and of each section's ends. */
+    static boolean sameSections(List<String> left, List<String> right) {
+        return sectionSet(left).equals(sectionSet(right));
+    }
+
+    private static Set<Set<String>> sectionSet(List<String> span) {
+        List<List<String>> pairs = RegionalSpans.pairs(span);
+        if (pairs.isEmpty()) return Set.of(Set.copyOf(span));
+        Set<Set<String>> sections = new LinkedHashSet<>();
+        pairs.forEach(pair -> sections.add(Set.copyOf(pair)));
+        return sections;
     }
 
     private static boolean spansFullLine(List<String> lineIds, List<String> span) {

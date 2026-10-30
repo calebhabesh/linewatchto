@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import tools.jackson.databind.JsonNode;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,7 +66,10 @@ class RegionalAlertExtractionServiceTest {
         ArgumentCaptor<String> differences = ArgumentCaptor.forClass(String.class);
         verify(store).recordRequest(QUOTA_DAY, MODEL);
         verify(store).succeed(eq(11L), result.capture(), differences.capture(), any());
-        assertThat(objectMapper.readTree(result.getValue()).path("spanTo").asText()).isEqualTo("pearson-airport");
+        JsonNode stored = objectMapper.readTree(result.getValue());
+        assertThat(stored.path("spans")).hasSize(1);
+        assertThat(stored.path("spans").path(0).path("from").asText()).isEqualTo("union");
+        assertThat(stored.path("spans").path(0).path("to").asText()).isEqualTo("pearson-airport");
         assertThat(objectMapper.readTree(differences.getValue())).extracting(node -> node.asText())
             .containsExactly("span: union-weston vs union-pearson-airport", "skipped: [] vs [weston]");
     }

@@ -125,6 +125,24 @@ class RegionalDashboardServiceTest {
     }
 
     @Test
+    void namesEachSectionOfAClosureThatLeavesTheMiddleOfTheLineRunning() {
+        when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
+        OffsetDateTime start = OffsetDateTime.parse("2026-07-28T17:00:00Z");
+        List<String> sections = List.of("union", "mount-dennis", "mount-pleasant", "stratford");
+        when(alertStore.findActiveAlerts()).thenReturn(List.of(new RegionalNormalizedAlert(
+            "ki-closure", MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M3", "regional-ki", "planned-closure",
+            "Weekend service adjustments", "GO trains will run between Mount Pleasant and Mount Dennis GO.",
+            "Construction", start, start.plusDays(2), OffsetDateTime.parse("2026-07-28T18:12:00Z"), sections,
+            RegionalSpans.segmentIds("regional-ki", sections), "text-date-range", "", null, null, start
+        )));
+
+        var closure = service.dashboard().plannedClosures().getFirst();
+
+        assertThat(closure.displayLocation()).isEqualTo("Union ⇄ Mount Dennis and Mount Pleasant ⇄ Stratford");
+        assertThat(closure.location()).isEqualTo("Union ↔ Mount Dennis and Mount Pleasant ↔ Stratford");
+    }
+
+    @Test
     void exposesFreshRegionalAlertsStatusesAndReviewedMapImpacts() {
         when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
         when(alertStore.findActiveAlerts()).thenReturn(List.of(new RegionalNormalizedAlert(

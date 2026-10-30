@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, createLucideIcon } from "lucide-react";
 import type { AccountCommutePathPreview } from "../app/commute-data";
 import type { ImpactSelection, PlannedClosure } from "../app/linewatch-data";
@@ -8,8 +8,8 @@ import { suppliedAlertCause } from "../app/alert-cause";
 import { formatImpactLocation } from "../app/impact-location";
 import { replacementServiceLabel, skippedStationsLabel } from "../app/current-service";
 import type { IncidentRiderDetails } from "../app/linewatch-data";
-import { formatStationSpanText, parseStationSpan, stationSpanAccessibleText } from "../app/station-span";
-import { StationSpanConnector } from "./IncidentStationSpan";
+import { formatStationSpanText, joinSections, parseStationSections, stationSpanAccessibleText } from "../app/station-span";
+import { StationSectionJoiner, StationSpanConnector } from "./IncidentStationSpan";
 import { ImpactTimestamp } from "./ImpactTimestamp";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
@@ -163,14 +163,14 @@ function formatElapsed(timeStr: string) {
 }
 
 export function formatCompactLocation(location: string, direction?: string | null): string {
-  const span = parseStationSpan(location, direction);
-  if (!span) return formatImpactLocation(location) || "Affected segment unavailable";
-  return formatStationSpanText(span);
+  const sections = parseStationSections(location, direction);
+  if (!sections) return formatImpactLocation(location) || "Affected segment unavailable";
+  return joinSections(sections.map(formatStationSpanText));
 }
 
 export function CompactImpactLocation({ location, direction }: { location: string; direction?: string | null }) {
-  const span = parseStationSpan(location, direction);
-  if (!span) {
+  const sections = parseStationSections(location, direction);
+  if (!sections) {
     return (
       <span className="compact-impact-location">
         <span className="compact-impact-location__station">{formatImpactLocation(location) || "Affected segment unavailable"}</span>
@@ -179,10 +179,17 @@ export function CompactImpactLocation({ location, direction }: { location: strin
   }
 
   return (
-    <span className="compact-impact-location" aria-label={stationSpanAccessibleText(span)}>
-      <span className="compact-impact-location__station">{span.from}</span>
-      <StationSpanConnector travel={span.travel} size={14} className="compact-impact-location__arrow" />
-      <span className="compact-impact-location__station">{span.to}</span>
+    <span className="compact-impact-location" aria-label={joinSections(sections.map(stationSpanAccessibleText))}>
+      {sections.map((span, index) => (
+        <Fragment key={index}>
+          {index > 0 ? (
+            <StationSectionJoiner last={index === sections.length - 1} className="compact-impact-location__joiner" />
+          ) : null}
+          <span className="compact-impact-location__station">{span.from}</span>
+          <StationSpanConnector travel={span.travel} size={14} className="compact-impact-location__arrow" />
+          <span className="compact-impact-location__station">{span.to}</span>
+        </Fragment>
+      ))}
     </span>
   );
 }
@@ -194,16 +201,26 @@ export function ImpactRouteHeader({
   location: string;
   direction?: string | null;
 }) {
-  const span = parseStationSpan(location, direction);
+  const sections = parseStationSections(location, direction);
   return (
     <div className="impact-route">
-      {span ? (
-        <div className="impact-route__bounds impact-route__bounds--segment" aria-label={stationSpanAccessibleText(span)}>
-          <span className="impact-route__station">{span.from}</span>
-          <span className="impact-route__target">
-            <StationSpanConnector travel={span.travel} size={20} className="impact-route__arrow" />
-            <span className="impact-route__station">{span.to}</span>
-          </span>
+      {sections ? (
+        <div
+          className="impact-route__bounds impact-route__bounds--segment"
+          aria-label={joinSections(sections.map(stationSpanAccessibleText))}
+        >
+          {sections.map((span, index) => (
+            <Fragment key={index}>
+              {index > 0 ? (
+                <StationSectionJoiner last={index === sections.length - 1} className="impact-route__joiner" />
+              ) : null}
+              <span className="impact-route__station">{span.from}</span>
+              <span className="impact-route__target">
+                <StationSpanConnector travel={span.travel} size={20} className="impact-route__arrow" />
+                <span className="impact-route__station">{span.to}</span>
+              </span>
+            </Fragment>
+          ))}
         </div>
       ) : (
         <div className="impact-route__bounds">

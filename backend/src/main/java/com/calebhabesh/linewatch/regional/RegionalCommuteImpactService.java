@@ -99,6 +99,8 @@ public class RegionalCommuteImpactService {
         if (routeWide) return RegionalNetworkCatalog.route(alert.lineId())
             .map(RegionalNetworkCatalog.Route::displayName).orElse("Regional line");
         if (alert.listsStationClosures()) return alert.stationListLabel();
+        String sections = alert.sectionsLabel((from, to) -> from + " to " + to);
+        if (sections != null) return sections;
         List<String> names = alert.stationIds().stream()
             .map(id -> RegionalNetworkCatalog.station(id).map(station -> station.name()).orElse(id))
             .toList();

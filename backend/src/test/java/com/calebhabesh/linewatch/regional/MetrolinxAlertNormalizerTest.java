@@ -237,7 +237,7 @@ class MetrolinxAlertNormalizerTest {
     }
 
     @Test
-    void doesNotMarkTheSectionWhereTrainsWillStillRunAsClosed() throws Exception {
+    void closesTheRestOfTheLineWhenANoticeSaysOnlyWhereTrainsStillRun() throws Exception {
         MetrolinxFetchedRecord notice = serviceAlert("""
             {
               "Code":"LW-SYNTHETIC-KI-TRAINS-WILL-RUN",
@@ -252,9 +252,137 @@ class MetrolinxAlertNormalizerTest {
             """);
 
         assertThat(normalizer.classify(feed(notice))).singleElement().satisfies(classification -> {
-            assertThat(classification.scope()).isNotEqualTo("segment-span");
-            assertThat(classification.spanStationIds()).doesNotContain("mount-pleasant");
+            assertThat(classification.scope()).isEqualTo("segment-span");
+            // Two closed sections either side of the running section, as station pairs.
+            assertThat(classification.spanStationIds())
+                .containsExactly("union", "mount-dennis", "mount-pleasant", "stratford");
+            assertThat(classification.fieldSources()).containsKey(MetrolinxAlertNormalizer.RUNNING_SECTION_FIELD);
         });
+        assertThat(normalizer.normalize(feed(notice))).filteredOn(alert -> !"advisory".equals(alert.impactKind()))
+            .singleElement().satisfies(alert -> {
+                assertThat(alert.impactKind()).isEqualTo("planned-closure");
+                assertThat(alert.affectedSegmentIds()).containsExactlyElementsOf(java.util.stream.Stream.concat(
+                    RegionalNetworkCatalog.segmentIds("regional-ki", List.of("union", "mount-dennis")).stream(),
+                    RegionalNetworkCatalog.segmentIds("regional-ki", List.of("mount-pleasant", "stratford")).stream()
+                ).toList());
+                // The running section stays open.
+                assertThat(alert.affectedSegmentIds()).doesNotContainAnyElementsOf(
+                    RegionalNetworkCatalog.segmentIds("regional-ki", List.of("mount-dennis", "mount-pleasant")));
+                assertThat(RegionalStationSpan.describe(alert).displayLocation())
+                    .isEqualTo("Union ⇄ Mount Dennis and Mount Pleasant ⇄ Stratford");
+                assertThat(alert.sectionsLabel((from, to) -> from + " ↔ " + to))
+                    .isEqualTo("Union ↔ Mount Dennis and Mount Pleasant ↔ Stratford");
+            });
+    }
+
+    private static final String KITCHENER_WEEKEND_BODY = "On Saturday, Aug. 8 and Sunday, Aug. 9, GO trains will run "
+        + "between Mount Pleasant and Mount Dennis GO. There will be select GO buses running between Kitchener GO "
+        + "and Hwy 407 Bus Terminal. There will be no GO Transit service at Bloor GO.";
+
+    private MetrolinxFetchedRecord kitchenerNotice(String code, String title, String body, boolean tagged, String... stops)
+        throws Exception {
+        return serviceAlert(objectMapper.writeValueAsString(java.util.Map.of(
+            "Code", code,
+            "PostedDateTime", "2026-07-28 00:00:00",
+            "SubjectEnglish", title,
+            "BodyEnglish", body,
+            "Category", "General Information",
+            "SubCategory", "E-Ticket",
+            "Lines", tagged ? List.of(java.util.Map.of("Code", "GT")) : List.of(),
+            "Stops", java.util.Arrays.stream(stops).map(stop -> java.util.Map.of("Code", stop)).toList())));
+    }
+
+    @Test
+    void foldsDifferentlyTitledStationCopiesIntoTheSectionsTheyLieIn() throws Exception {
+        var line = kitchenerNotice("M0000529156", "Aug. 8-9: Service adjustments", KITCHENER_WEEKEND_BODY, true);
+        // Metrolinx's station copies carry no line and a reworded title with the same dates.
+        var outer = kitchenerNotice("M0000529386", "Kitchener Line Service Adjustments Aug. 8-9",
+            "No GO train service at this station due to planned construction.", false, "GE", "AC", "GL", "KI", "SF");
+        var bloor = kitchenerNotice("M0000529388", "Kitchener Line Service Adjustments Aug. 8-9",
+            "No GO Transit service at this station due to planned construction.", false, "BL");
+        // Malton is in the running section, so its closure is not part of this event.
+        var running = kitchenerNotice("M0000529390", "Kitchener Line Service Adjustments Aug. 8-9",
+            "No GO train service at this station due to planned construction.", false, "MA");
+        var otherTopic = kitchenerNotice("M0000529391", "Kitchener Line parking changes Aug. 8-9",
+            "No GO train service at this station due to planned construction.", false, "KI");
+
+        var events = normalizer.classify(feed(line, outer, bloor, running, otherTopic));
+
+        assertThat(events).extracting(RegionalAlertClassification::canonicalEventId)
+            .containsExactlyInAnyOrder("go-529156", "go-529390", "go-529391");
+        assertThat(events).filteredOn(event -> "go-529156".equals(event.canonicalEventId())).singleElement()
+            .satisfies(event -> {
+                assertThat(event.sources()).extracting(RegionalAlertClassification.SourceReference::sourceId)
+                    .containsExactly("M0000529156", "M0000529386", "M0000529388");
+                assertThat(event.spanStationIds()).containsExactly("union", "mount-dennis", "mount-pleasant", "stratford");
+            });
+        assertThat(normalizer.normalize(feed(line, outer, bloor)))
+            .filteredOn(alert -> !"advisory".equals(alert.impactKind()))
+            .singleElement()
+            .satisfies(alert -> assertThat(alert.listsStationClosures()).isFalse());
+    }
+
+    @Test
+    void keepsEveryNoServiceBetweenClauseAsItsOwnSection() throws Exception {
+        MetrolinxFetchedRecord notice = serviceAlert("""
+            {
+              "Code":"LW-SYNTHETIC-TWO-SECTIONS",
+              "PostedDateTime":"2026-07-28 00:00:00",
+              "SubjectEnglish":"Aug. 8-9: Service adjustments",
+              "BodyEnglish":"On Saturday, Aug. 8 and Sunday, Aug. 9, there will be no GO train service between Union Station and Weston GO. There will be no GO train service between Georgetown GO and Kitchener GO.",
+              "Category":"Disruptions",
+              "SubCategory":"Broadcast Message",
+              "Lines":[{"Code":"GT"}],
+              "Stops":[]
+            }
+            """);
+
+        assertThat(normalizer.classify(feed(notice))).singleElement().satisfies(classification -> {
+            assertThat(classification.scope()).isEqualTo("segment-span");
+            assertThat(classification.spanStationIds()).containsExactly("union", "weston", "georgetown", "kitchener");
+        });
+        assertThat(normalizer.normalize(feed(notice))).filteredOn(alert -> !"advisory".equals(alert.impactKind()))
+            .singleElement()
+            .satisfies(alert -> assertThat(RegionalStationSpan.describe(alert).displayLocation())
+                .isEqualTo("Union ⇄ Weston and Georgetown ⇄ Kitchener"));
+    }
+
+    @Test
+    void treatsATriplessTrainCancellationNoticeThatClosesTheLineAsAClosure() throws Exception {
+        MetrolinxFetchedRecord closure = serviceAlert("""
+            {
+              "Code":"UP-SYNTHETIC-CLOSURE-AS-CANCELLATION",
+              "PostedDateTime":"2026-07-28 00:00:00",
+              "SubjectEnglish":"Aug. 8-9: UP Express service adjustments",
+              "BodyEnglish":"On Saturday, Aug. 8 and Sunday, Aug. 9, planned construction is taking place on UP Express. There will be no UP Express train service. GO buses will run direct between Union Station Bus Terminal and Pearson Airport Terminal 1.",
+              "Category":"Service Disruption",
+              "SubCategory":"Train Cancellation",
+              "Lines":[{"Code":"UP"}],
+              "Stops":[],
+              "Trips":[]
+            }
+            """);
+        MetrolinxFetchedRecord namedTrip = serviceAlert("""
+            {
+              "Code":"GO-SYNTHETIC-NAMED-TRIP",
+              "PostedDateTime":"2026-07-28 00:00:00",
+              "SubjectEnglish":"Train cancelled - Bramalea GO 07:26 - Union Station 08:05",
+              "BodyEnglish":"The Bramalea GO 07:26 - Union Station 08:05 train has been cancelled.",
+              "Category":"Service Disruption",
+              "SubCategory":"Train Cancellation",
+              "Lines":[{"Code":"GT"}],
+              "Stops":[],
+              "Trips":[]
+            }
+            """);
+
+        assertThat(normalizer.classify(feed(closure))).singleElement().satisfies(event -> {
+            assertThat(event.serviceEffect()).isEqualTo("no-service");
+            assertThat(event.scope()).isEqualTo("corridor");
+            assertThat(event.replacementService()).isEqualTo("go-bus");
+        });
+        assertThat(normalizer.classify(feed(namedTrip))).singleElement()
+            .satisfies(event -> assertThat(event.serviceEffect()).isEqualTo("trip-cancellation"));
     }
 
     @Test

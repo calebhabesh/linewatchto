@@ -8,7 +8,7 @@ import { formatImpactLocation } from "./impact-location.ts";
  */
 export type StationSpanTravel = "one-way" | "both-ways" | "unspecified";
 
-type StationSpan = { from: string; to: string; travel: StationSpanTravel };
+export type StationSpan = { from: string; to: string; travel: StationSpanTravel };
 
 const ONE_WAY = /\s+(?:→|->)\s+/;
 const BOTH_WAYS = /\s*(?:⇄|↔|<\s*-+\s*>)\s*/;
@@ -39,6 +39,27 @@ export function parseStationSpan(location: string | null | undefined, direction?
     return { from: parts[0].trim(), to: parts[1].trim(), travel: resolved };
   }
   return null;
+}
+
+const SECTION_SEPARATOR = /\s*,\s+|\s+and\s+/;
+
+/**
+ * Reads one span or several separately closed sections ("Union ⇄ Mount Dennis and Mount Pleasant ⇄
+ * Stratford"). Several sections are returned only when every part is itself a span.
+ */
+export function parseStationSections(location: string | null | undefined, direction?: string | null): StationSpan[] | null {
+  const single = parseStationSpan(location, direction);
+  if (single) return [single];
+  const text = formatImpactLocation(location ?? "").trim();
+  const parts = text.split(SECTION_SEPARATOR);
+  if (parts.length < 2) return null;
+  const sections = parts.map((part) => parseStationSpan(part, direction));
+  return sections.every((section): section is StationSpan => section !== null) ? sections : null;
+}
+
+/** Joins section texts as "A, B and C". */
+export function joinSections(texts: string[]): string {
+  return texts.length < 2 ? texts.join("") : `${texts.slice(0, -1).join(", ")} and ${texts[texts.length - 1]}`;
 }
 
 /** Plain-text span for labels, search results, and other text-only surfaces. */

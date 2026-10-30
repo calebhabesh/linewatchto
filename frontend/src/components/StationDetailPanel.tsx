@@ -47,6 +47,7 @@ import {
 import { distinctStationImpacts, plannedClosuresForStation } from "../app/station-impact-types";
 import { useDashboardData } from "../app/DataContext";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
+import { StationImpactTags } from "./StationImpactTags";
 import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
 import type {
   ActiveAlert,
@@ -90,6 +91,20 @@ type StationImpactDetailsTarget = {
   selection: NonNullable<ImpactSelection>;
   tone: "active" | "delay" | "planned" | "reduced-speed-zone";
 };
+
+/** The dashboard card an impact opens, for its line and replacement service. */
+function stationImpactCard(
+  id: string,
+  activeAlerts: ActiveAlert[],
+  delays: DelayAlert[],
+  reducedSpeedZones: ReducedSpeedZone[],
+  plannedClosures: PlannedClosure[]
+) {
+  return activeAlerts.find((item) => item.id === id)
+    ?? delays.find((item) => item.id === id)
+    ?? plannedClosures.find((item) => item.id === id)
+    ?? reducedSpeedZones.find((item) => item.id === id || item.sourceAlertIds?.includes(id));
+}
 
 function getStationImpactDetailsTarget(
   impact: StationImpact,
@@ -1249,6 +1264,13 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	                  const impactTone = detailsTarget?.tone ?? fallbackStationImpactTone(impact);
 	                  const classificationLabel = detailsTarget?.label ?? fallbackStationImpactLabel(impact);
 	                  const impactKind = detailsTarget?.selection.kind ?? stationImpactKind(impact);
+                  const impactCard = stationImpactCard(
+                    detailsTarget?.selection.id ?? impact.id,
+                    activeAlerts,
+                    delays,
+                    reducedSpeedZones,
+                    plannedClosures
+                  );
 
 	                  return (
 	                    <div
@@ -1260,6 +1282,11 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	                      <div className="flex items-center gap-2.5 font-bold text-sm text-slate-900 dark:text-white">
 	                        <StationImpactDetailsIcon kind={impactKind} tone={impactTone} size={26} />
 	                        <span data-station-impact-classification={classificationLabel} className="leading-none flex items-center">{classificationLabel}</span>
+	                        <StationImpactTags
+	                          lineId={impactCard?.lineId}
+	                          showLine={(station?.lines.length ?? 0) > 1}
+	                          replacement={impactCard && "shuttle" in impactCard && impactCard.shuttle ? "bus" : null}
+	                        />
 	                      </div>
 
 	                      <div className="flex flex-col gap-1">

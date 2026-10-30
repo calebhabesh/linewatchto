@@ -6,7 +6,7 @@ import tools.jackson.databind.JsonNode;
 /** Reads one notice with a language model and returns its structured reply, unvalidated. */
 interface RegionalAlertExtractionClient {
     /** Identifies the prompt and reply schema; a change re-extracts stored notices. */
-    String PROMPT_VERSION = "2026-10-30.2";
+    String PROMPT_VERSION = "2026-10-30.3";
 
     JsonNode extract(RegionalAlertExtractionInput input);
 

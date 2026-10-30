@@ -189,6 +189,10 @@ public class RegionalLineSubscriptionPushPlanner {
         if (alert.listsStationClosures()) {
             return alert.stationListLabel();
         }
+        String sections = alert.sectionsLabel((from, to) -> from + " ↔ " + to);
+        if (sections != null) {
+            return sections;
+        }
         List<String> orderedIds = route == null
             ? alert.stationIds()
             : route.stationIds().stream().filter(alert.stationIds()::contains).toList();

@@ -153,18 +153,48 @@ final class MetrolinxNoticeConsolidator {
 
     /**
      * A station-information notice listing the stops a line notice closes ("No GO Transit service at
-     * this station") is detail of that line notice, not a separate closure.
+     * this station") is detail of that line notice, not a separate closure. Its title must match. For
+     * a dated closure Metrolinx words the station copy's title differently ("Kitchener Line Service
+     * Adjustments Oct. 31-Nov. 1" for "Oct. 31-Nov. 1: Service adjustments"), so there the titles
+     * need only match once the line name and dates are left out.
      */
     private static boolean stationListFoldsInto(RegionalAlertClassification detail, RegionalAlertClassification lead) {
         return !detail.stationIds().isEmpty()
             && ("segment-span".equals(lead.scope()) || "corridor".equals(lead.scope()))
             && detail.lineIds().equals(lead.lineIds())
             && Objects.equals(detail.serviceEffect(), lead.serviceEffect())
-            && RepublicationKey.comparableText(detail.title()).equalsIgnoreCase(RepublicationKey.comparableText(lead.title()))
+            && (RepublicationKey.comparableText(detail.title()).equalsIgnoreCase(RepublicationKey.comparableText(lead.title()))
+                || datedClosure(detail) && datedClosure(lead)
+                    && titleTopic(detail).equals(titleTopic(lead)) && !titleTopic(lead).isEmpty())
             && detail.activePeriodStart() != null
             && detail.activePeriodStart().isEqual(nullSafe(lead.activePeriodStart()))
             && Objects.equals(instant(detail.activePeriodEnd()), instant(lead.activePeriodEnd()))
             && lead.lineIds().stream().allMatch(lineId -> stationsWithin(lineId, detail.stationIds(), lead));
+    }
+
+    /** A no-service notice whose window comes from dates stated in its own text. */
+    private static boolean datedClosure(RegionalAlertClassification event) {
+        return "no-service".equals(event.serviceEffect())
+            && "text-date-range".equals(event.activePeriodBasis())
+            && event.activePeriodStart() != null
+            && event.activePeriodEnd() != null;
+    }
+
+    /** A title's words without its dates or line names: "Kitchener Line ... Oct. 31-Nov. 1" -> "service adjustments". */
+    static String titleTopic(RegionalAlertClassification event) {
+        String title = event.title() == null ? "" : event.title();
+        StringBuilder topic = new StringBuilder(title);
+        List<RegionalAlertTextDateParser.DateRange> dates = RegionalAlertTextDateParser.ranges(title, event.publishedAt());
+        dates.stream().sorted(Comparator.comparingInt(RegionalAlertTextDateParser.DateRange::from).reversed())
+            .forEach(date -> topic.replace(date.from(), Math.min(date.to(), topic.length()), " "));
+        String text = topic.toString().toLowerCase(Locale.CANADA);
+        for (String lineId : event.lineIds()) {
+            RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(lineId).orElse(null);
+            if (route == null) continue;
+            String name = Pattern.quote(route.name().toLowerCase(Locale.CANADA));
+            text = text.replaceAll("\\b" + name + "(?:\\s+(?:line|corridor))?\\b", " ");
+        }
+        return text.replaceAll("[^\\p{L}\\p{N}]+", " ").strip();
     }
 
     /** A "Top Red Banner" restates a current notice in its own words over the same span and dates. */
@@ -235,14 +265,9 @@ final class MetrolinxNoticeConsolidator {
     private static Set<String> places(String lineId, RegionalAlertClassification event) {
         if ("corridor".equals(event.scope())) return Set.of();
         Set<String> places = new LinkedHashSet<>(event.stationIds());
-        List<String> stops = RegionalNetworkCatalog.route(lineId).map(RegionalNetworkCatalog.Route::stationIds)
-            .orElse(List.of());
-        if (event.spanStationIds().size() == 2) {
-            int first = stops.indexOf(event.spanStationIds().getFirst());
-            int second = stops.indexOf(event.spanStationIds().getLast());
-            if (first >= 0 && second >= 0) {
-                places.addAll(stops.subList(Math.min(first, second), Math.max(first, second) + 1));
-            }
+        RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(lineId).orElse(null);
+        if (route != null && RegionalSpans.valid(event.spanStationIds())) {
+            places.addAll(RegionalSpans.stationsWithin(route, event.spanStationIds()));
         } else {
             places.addAll(event.spanStationIds());
         }
@@ -252,15 +277,8 @@ final class MetrolinxNoticeConsolidator {
     private static boolean stationsWithin(String lineId, List<String> stationIds, RegionalAlertClassification lead) {
         RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(lineId).orElse(null);
         if (route == null) return false;
-        List<String> stops = route.stationIds();
-        if ("corridor".equals(lead.scope())) return stops.containsAll(stationIds);
-        if (lead.spanStationIds().size() != 2) return false;
-        int first = stops.indexOf(lead.spanStationIds().getFirst());
-        int second = stops.indexOf(lead.spanStationIds().getLast());
-        if (first < 0 || second < 0) return false;
-        int low = Math.min(first, second);
-        int high = Math.max(first, second);
-        return stationIds.stream().map(stops::indexOf).allMatch(index -> index >= low && index <= high);
+        if ("corridor".equals(lead.scope())) return route.stationIds().containsAll(stationIds);
+        return RegionalSpans.containsAll(route, lead.spanStationIds(), stationIds);
     }
 
     private static boolean windowsOverlap(RegionalAlertClassification left, RegionalAlertClassification right) {

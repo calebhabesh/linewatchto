@@ -305,6 +305,8 @@ public class RegionalDashboardService {
         RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(alert.lineId()).orElse(null);
         if (route == null) return "Regional line";
         if (alert.stationIds().isEmpty()) return route.displayName();
+        String sections = alert.sectionsLabel((from, to) -> from + " ↔ " + to);
+        if (sections != null) return sections;
         List<String> ordered = route.stationIds().stream().filter(alert.stationIds()::contains).toList();
         if (ordered.isEmpty()) return route.displayName();
         String first = RegionalNetworkCatalog.station(ordered.getFirst()).map(station -> station.name()).orElse(ordered.getFirst());

@@ -44,12 +44,15 @@ class GeminiAlertExtractionClient implements RegionalAlertExtractionClient {
         - unknown: none of the above is stated.
         scope:
         - corridor: the whole line is affected.
-        - segment-span: the section of line between two stations is affected.
+        - segment-span: one or more sections of line, each between two stations, are affected.
         - listed-stations: only specific stations are closed or affected; the track between them is not.
-        - unknown: the notice does not say where, or trains stop running on more than one separate \
-        section of the line.
-        spanFrom, spanTo: for segment-span only, the two stations that bound the affected section, in the \
-        order the notice names them. Stations a replacement bus skips are never span endpoints.
+        - unknown: the notice does not say where.
+        spans: for segment-span only, every affected section as {from, to}: the two stations that bound \
+        it, in the order the notice names them. List each separate section once. When a no-service \
+        notice says only where trains still run, the affected sections are the rest of that line, from \
+        each end of the running section to the last station listed for that end of the line, even when \
+        the notice names an earlier station as a bus terminus. Stations a replacement bus skips are \
+        never section ends.
         listedStations: for listed-stations only, the stations the notice names as affected.
         replacement: go-bus when GO buses replace trains, bus for other buses, none when no replacement is \
         mentioned, unknown otherwise.
@@ -142,15 +145,14 @@ class GeminiAlertExtractionClient implements RegionalAlertExtractionClient {
         ObjectNode fields = schema.putObject("properties");
         enumField(fields, "effect", RegionalAlertExtraction.EFFECTS, false);
         enumField(fields, "scope", RegionalAlertExtraction.SCOPES, false);
-        enumField(fields, "spanFrom", stations, true);
-        enumField(fields, "spanTo", stations, true);
+        sectionList(fields, "spans", stations);
         stationList(fields, "listedStations", stations);
         enumField(fields, "replacement", RegionalAlertExtraction.REPLACEMENTS, false);
         stationList(fields, "skippedStations", stations);
         fields.putObject("statedWindow").put("type", "STRING").put("nullable", true);
         enumField(fields, "confidence", RegionalAlertExtraction.CONFIDENCES, false);
         ArrayNode required = schema.putArray("required");
-        List.of("effect", "scope", "spanFrom", "spanTo", "listedStations", "replacement", "skippedStations",
+        List.of("effect", "scope", "spans", "listedStations", "replacement", "skippedStations",
             "statedWindow", "confidence").forEach(required::add);
         ArrayNode ordering = schema.putArray("propertyOrdering");
         required.forEach(ordering::add);
@@ -163,6 +165,22 @@ class GeminiAlertExtractionClient implements RegionalAlertExtractionClient {
         if (nullable) field.put("nullable", true);
         ArrayNode allowed = field.putArray("enum");
         values.stream().sorted().forEach(allowed::add);
+    }
+
+    private static void sectionList(ObjectNode fields, String name, List<String> stations) {
+        ObjectNode field = fields.putObject(name);
+        field.put("type", "ARRAY");
+        ObjectNode section = field.putObject("items");
+        section.put("type", "OBJECT");
+        ObjectNode ends = section.putObject("properties");
+        for (String end : List.of("from", "to")) {
+            ObjectNode station = ends.putObject(end);
+            station.put("type", "STRING");
+            ArrayNode allowed = station.putArray("enum");
+            stations.stream().sorted().forEach(allowed::add);
+        }
+        section.putArray("required").add("from").add("to");
+        section.putArray("propertyOrdering").add("from").add("to");
     }
 
     private static void stationList(ObjectNode fields, String name, List<String> stations) {

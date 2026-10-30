@@ -66,8 +66,14 @@ class GeminiAlertExtractionClientTest {
         JsonNode request = objectMapper.readTree(requestBody[0]);
         JsonNode schema = request.path("generationConfig").path("responseSchema");
         assertThat(request.path("generationConfig").path("responseMimeType").asText()).isEqualTo("application/json");
-        assertThat(schema.path("properties").path("spanFrom").path("enum")).extracting(JsonNode::asText)
-            .containsExactly("bloor", "mount-dennis", "pearson-airport", "union", "weston");
+        JsonNode section = schema.path("properties").path("spans").path("items");
+        assertThat(schema.path("properties").path("spans").path("type").asText()).isEqualTo("ARRAY");
+        assertThat(section.path("required")).extracting(JsonNode::asText).containsExactly("from", "to");
+        for (String end : List.of("from", "to")) {
+            assertThat(section.path("properties").path(end).path("enum")).extracting(JsonNode::asText)
+                .containsExactly("bloor", "mount-dennis", "pearson-airport", "union", "weston");
+        }
+        assertThat(schema.path("properties").has("spanFrom")).isFalse();
         assertThat(schema.path("properties").path("skippedStations").path("items").path("enum"))
             .extracting(JsonNode::asText).containsExactly("union", "bloor", "mount-dennis", "weston", "pearson-airport");
         String prompt = request.path("contents").path(0).path("parts").path(0).path("text").asText();

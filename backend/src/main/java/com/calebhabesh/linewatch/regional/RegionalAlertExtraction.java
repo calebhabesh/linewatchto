@@ -13,8 +13,8 @@ import tools.jackson.databind.JsonNode;
 record RegionalAlertExtraction(
     String effect,
     String scope,
-    String spanFrom,
-    String spanTo,
+    /** Closed sections for a segment span, as consecutive station pairs (see {@link RegionalSpans}). */
+    List<String> spans,
     List<String> listedStations,
     String replacement,
     List<String> skippedStations,
@@ -28,6 +28,7 @@ record RegionalAlertExtraction(
     static final Set<String> CONFIDENCES = Set.of("high", "medium", "low");
 
     RegionalAlertExtraction {
+        spans = spans == null ? List.of() : List.copyOf(spans);
         listedStations = listedStations == null ? List.of() : List.copyOf(listedStations);
         skippedStations = skippedStations == null ? List.of() : List.copyOf(skippedStations);
     }
@@ -36,9 +37,9 @@ record RegionalAlertExtraction(
         return "high".equals(confidence);
     }
 
-    /** Span endpoints for a segment span, or an empty list. */
+    /** Span pairs for a segment span, or an empty list. */
     List<String> span() {
-        return "segment-span".equals(scope) ? List.of(spanFrom, spanTo) : List.of();
+        return "segment-span".equals(scope) ? spans : List.of();
     }
 
     /** The classification's replacement-service value for this reading. */
@@ -62,44 +63,65 @@ record RegionalAlertExtraction(
         if (scope == null) return reject("scope");
         if (replacement == null) replacement = "unknown";
         if (confidence == null) return reject("confidence");
-        String spanFrom = station(reply, "spanFrom");
-        String spanTo = station(reply, "spanTo");
+        List<List<String>> sections = sections(reply);
+        if (sections == null) {
+            if ("segment-span".equals(scope)) return reject("span-missing");
+            sections = List.of();
+        }
         List<String> listed = stations(reply, "listedStations");
         List<String> skipped = stations(reply, "skippedStations");
-        for (String stationId : concat(spanFrom, spanTo, listed, skipped)) {
+        List<String> mentioned = new ArrayList<>(RegionalSpans.flatten(sections));
+        mentioned.addAll(listed);
+        mentioned.addAll(skipped);
+        for (String stationId : mentioned) {
             if (!candidates.contains(stationId)) return reject("unknown-station");
         }
+        List<String> span = List.of();
         switch (scope) {
             case "segment-span" -> {
-                if (spanFrom == null || spanTo == null) return reject("span-missing");
-                if (spanFrom.equals(spanTo)) return reject("span-single-station");
-                String from = spanFrom;
-                String to = spanTo;
-                if (input.lineIds().stream().map(RegionalNetworkCatalog::route).flatMap(java.util.Optional::stream)
-                    .noneMatch(route -> route.stationIds().contains(from) && route.stationIds().contains(to))) {
-                    return reject("span-off-line");
+                if (sections.isEmpty()) return reject("span-missing");
+                for (List<String> section : sections) {
+                    if (section.getFirst().equals(section.getLast())) return reject("span-single-station");
+                    if (RegionalSpans.route(input.lineIds(), section).isEmpty()) return reject("span-off-line");
                 }
+                span = RegionalSpans.normalize(input.lineIds(), sections);
                 listed = List.of();
             }
             case "listed-stations" -> {
                 if (listed.isEmpty()) return reject("listed-missing");
-                spanFrom = null;
-                spanTo = null;
             }
-            default -> {
-                spanFrom = null;
-                spanTo = null;
-                listed = List.of();
-            }
+            default -> listed = List.of();
         }
-        List<String> endpoints = new ArrayList<>();
-        if (spanFrom != null) endpoints.add(spanFrom);
-        if (spanTo != null) endpoints.add(spanTo);
+        List<String> endpoints = span;
         skipped = skipped.stream().filter(stationId -> !endpoints.contains(stationId)).toList();
         String window = reply.path("statedWindow").isString() ? reply.path("statedWindow").asString().strip() : null;
         if (window != null && (window.isEmpty() || window.length() > 200)) window = null;
-        return new Validation(new RegionalAlertExtraction(effect, scope, spanFrom, spanTo, listed, replacement,
+        return new Validation(new RegionalAlertExtraction(effect, scope, span, listed, replacement,
             skipped, window, confidence), null);
+    }
+
+    /**
+     * The reply's closed sections: {@code spans} as [{from, to}], or the earlier single
+     * {@code spanFrom}/{@code spanTo} pair. Null when a section is missing an end.
+     */
+    private static List<List<String>> sections(JsonNode reply) {
+        List<List<String>> sections = new ArrayList<>();
+        JsonNode spans = reply.path("spans");
+        if (spans.isArray()) {
+            for (JsonNode section : spans) {
+                String from = station(section, "from");
+                String to = station(section, "to");
+                if (from == null || to == null) return null;
+                List<String> pair = List.of(from, to);
+                if (!sections.contains(pair)) sections.add(pair);
+            }
+            return List.copyOf(sections);
+        }
+        String from = station(reply, "spanFrom");
+        String to = station(reply, "spanTo");
+        if (from == null && to == null) return List.of();
+        if (from == null || to == null) return null;
+        return List.of(List.of(from, to));
     }
 
     private static Validation reject(String reason) {
@@ -131,12 +153,4 @@ record RegionalAlertExtraction(
         return List.copyOf(stations);
     }
 
-    private static List<String> concat(String spanFrom, String spanTo, List<String> listed, List<String> skipped) {
-        List<String> all = new ArrayList<>();
-        if (spanFrom != null) all.add(spanFrom);
-        if (spanTo != null) all.add(spanTo);
-        all.addAll(listed);
-        all.addAll(skipped);
-        return all;
-    }
 }

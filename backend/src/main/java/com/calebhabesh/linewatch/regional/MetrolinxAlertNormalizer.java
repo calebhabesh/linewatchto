@@ -92,6 +92,11 @@ public class MetrolinxAlertNormalizer {
     private static final Pattern REST_NUMERIC_ID = Pattern.compile("(?i)^M0*(\\d+)$");
     private static final Pattern NUMERIC_ID = Pattern.compile("^0*(\\d+)$");
     private static final Pattern BETWEEN_STATIONS = Pattern.compile("\\bbetween\\b");
+    /** A timed trip, "Bramalea GO 07:26 - Union Station 08:05" or "the 5:15 p.m. train". */
+    private static final Pattern NAMED_TRIP = Pattern.compile(
+        "\\b\\d{1,2}:\\d{2}\\b[^.]{0,80}?[-–—][^.]{0,80}?\\b\\d{1,2}:\\d{2}\\b"
+            + "|\\b\\d{1,2}:\\d{2}\\s*(?:[ap]\\.?\\s?m\\.?)?\\s+(?:train|trip|departure)\\b",
+        Pattern.CASE_INSENSITIVE);
     private static final Pattern MAXIMUM_DELAY = Pattern.compile(
         "(?:delays? (?:of )?(?:up to|approximately|about)|up to)\\s+(\\d{1,3})\\s+minutes?",
         Pattern.CASE_INSENSITIVE
@@ -143,7 +148,7 @@ public class MetrolinxAlertNormalizer {
                     RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(lineId).orElse(null);
                     if (route == null) continue;
                     List<String> scopedStations = scopedStations(classification, impact, route);
-                    if ("segment-span".equals(impact.scope()) && scopedStations.size() != 2) continue;
+                    if ("segment-span".equals(impact.scope()) && !RegionalSpans.valid(scopedStations)) continue;
                     if ("listed-stations".equals(impact.scope()) && scopedStations.isEmpty()) continue;
                     alerts.add(normalized(classification, impact, route, impactKind, scopedStations, feed.sourceUpdatedAt()));
                 }
@@ -340,9 +345,11 @@ public class MetrolinxAlertNormalizer {
             : sourceStartsAt != null || sourceEndsAt != null ? "source-active-period" : "unknown";
         Set<String> effects = ordered.stream().map(Evidence::effect).filter(value -> !value.isBlank()).collect(
             java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        // Metrolinx also files line closures under "Train Cancellation" ("There will be no UP Express
+        // train service"). The category identifies a trip only when the notice lists or names one.
         boolean structuredTripCancellation = ordered.stream().anyMatch(value ->
             "train cancellation".equals(value.subcategory().trim().toLowerCase(Locale.CANADA))
-        );
+        ) && (!tripNumbers.isEmpty() || NAMED_TRIP.matcher(title + " " + description).find());
 
         boolean scheduleAnnouncement = !structuredTripCancellation
             && RegionalScheduleAnnouncement.matches(title, description);
@@ -368,15 +375,19 @@ public class MetrolinxAlertNormalizer {
             || lowerDescription.contains("trains will run")
             || lowerDescription.contains("trains operate")
             || lowerDescription.contains("service continues");
+        // "Trains will run between X and Y" in a closure notice closes the rest of the line.
+        List<String> outsideRunning = "no-service".equals(serviceEffect) && continuingServiceClause
+            && disruptedSpan.isEmpty() ? outsideRunningSection(description, lineIds) : List.of();
         List<String> spanStations = scheduleAnnouncement || "trip-cancellation".equals(serviceEffect)
             ? List.of()
             : !disruptedSpan.isEmpty() ? disruptedSpan
+                : !outsideRunning.isEmpty() ? outsideRunning
                 : "no-service".equals(serviceEffect) && continuingServiceClause ? List.of()
                     : spanStations(searchable, lineIds);
         String scope = scheduleAnnouncement ? "corridor"
             : scope(searchable, serviceEffect, lineIds, structuredStations, spanStations);
         if ("no-service".equals(serviceEffect) && continuingServiceClause
-            && disruptedSpan.isEmpty()) scope = "unknown";
+            && disruptedSpan.isEmpty() && outsideRunning.isEmpty()) scope = "unknown";
         Map<String, String> stationRoles = stationRoles(
             searchable, lineIds, serviceEffect, scope, replacementService, structuredStations
         );
@@ -395,6 +406,11 @@ public class MetrolinxAlertNormalizer {
         addSources(fieldSources, "title", ordered, value -> !value.title().isBlank() && value.title().equals(title));
         addSources(fieldSources, "description", ordered, value -> !value.description().isBlank() && riderDescription(title, value).equals(description));
         addSources(fieldSources, "classification", ordered, value -> true);
+        if (!outsideRunning.isEmpty() && outsideRunning.equals(spanStations)) {
+            // Sections stated by the notice's running section; a model reading does not move them.
+            addSources(fieldSources, RUNNING_SECTION_FIELD, ordered,
+                value -> riderDescription(title, value).equals(description));
+        }
 
         List<RegionalAlertClassification.Impact> impacts = impacts(
             title, description, serviceEffect, scope, spanStations, structuredStations,
@@ -468,7 +484,7 @@ public class MetrolinxAlertNormalizer {
             || namesWholeRouteClosure(searchable, lineIds)
             || spansFullRoute(lineIds, spanStations);
         if (corridorLanguage) return "corridor";
-        if (spanStations.size() == 2) return "segment-span";
+        if (RegionalSpans.valid(spanStations)) return "segment-span";
         if (!structuredStations.isEmpty()) return "listed-stations";
         if ("delay".equals(serviceEffect) && searchable.contains("corridor")) return "corridor";
         return "unknown";
@@ -520,7 +536,9 @@ public class MetrolinxAlertNormalizer {
         return mentioned.size() >= 2 ? List.of(mentioned.getFirst(), mentioned.getLast()) : List.of();
     }
 
+    /** Every section a "no service between X and Y" clause closes, as span pairs. */
     private List<String> disruptedSpanStations(String description, List<String> lineIds) {
+        List<List<String>> sections = new ArrayList<>();
         for (String clause : description.toLowerCase(Locale.CANADA).split("[.;\\n]")) {
             if (!(clause.contains("no service") || clause.contains("no go train service")
                 || clause.contains("no train service") || clause.contains("closed between"))) continue;
@@ -528,7 +546,36 @@ public class MetrolinxAlertNormalizer {
             // in the clause that states the disruption.
             if (clause.contains("trains run") || clause.contains("trains operate")) continue;
             List<String> mentioned = mentionedStations(clause, lineIds);
-            if (mentioned.size() >= 2) return List.of(mentioned.getFirst(), mentioned.get(1));
+            if (mentioned.size() < 2) continue;
+            List<String> section = List.of(mentioned.getFirst(), mentioned.get(1));
+            // Both ends must lie on one of the notice's lines, or the pair names no section.
+            if (RegionalSpans.route(lineIds, section).isPresent() && !sections.contains(section)) sections.add(section);
+        }
+        return RegionalSpans.normalize(lineIds, sections);
+    }
+
+    /** fieldSources key marking sections derived from where the notice says trains still run. */
+    static final String RUNNING_SECTION_FIELD = "runningSection";
+
+    private static final Pattern RUNNING_SECTION = Pattern.compile(
+        "\\b(?:trains?|service) (?:will )?(?:run|runs|operate|operates|continue to run) between\\b");
+
+    /**
+     * A closure notice that only says where trains still run ("GO trains will run between Mount
+     * Pleasant and Mount Dennis") closes the rest of its line: here Stratford to Mount Pleasant and
+     * Mount Dennis to Union. Applies to single-line notices whose running section has two named ends.
+     */
+    private List<String> outsideRunningSection(String description, List<String> lineIds) {
+        if (lineIds.size() != 1) return List.of();
+        RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(lineIds.getFirst()).orElse(null);
+        if (route == null) return List.of();
+        for (String clause : description.toLowerCase(Locale.CANADA).split("[.;\\n]")) {
+            if (clause.contains("bus")) continue;
+            Matcher matcher = RUNNING_SECTION.matcher(clause);
+            if (!matcher.find()) continue;
+            List<String> named = mentionedStations(clause.substring(matcher.start()), lineIds);
+            if (named.size() < 2) return List.of();
+            return RegionalSpans.outside(route, named.getFirst(), named.get(1));
         }
         return List.of();
     }
@@ -663,9 +710,12 @@ public class MetrolinxAlertNormalizer {
                 : EnglishClockTextFormatter.toTwelveHourClock(classification.description().trim()),
             firstNonBlank(humanize(classification.cause()), "Metrolinx service update"),
             impact.start(), impact.endExclusive(), sourceUpdatedAt,
-            stationIds, "advisory".equals(impactKind) || "unknown".equals(impact.scope())
+            "segment-span".equals(impact.scope()) ? List.copyOf(new LinkedHashSet<>(stationIds)) : stationIds,
+            "advisory".equals(impactKind) || "unknown".equals(impact.scope())
                 || stationOnly(classification, impact, stationIds)
-                ? List.of() : RegionalNetworkCatalog.segmentIds(route.id(), stationIds),
+                ? List.of()
+                : "segment-span".equals(impact.scope()) ? RegionalSpans.segmentIds(route.id(), stationIds)
+                : RegionalNetworkCatalog.segmentIds(route.id(), stationIds),
             impact.basis(),
             classification.primaryRawPayload(), classification.replacementService(),
             classification.maximumDelayMinutes(), classification.publishedAt()
@@ -691,11 +741,12 @@ public class MetrolinxAlertNormalizer {
         RegionalAlertClassification.Impact impact,
         RegionalNetworkCatalog.Route route
     ) {
-        List<String> candidates = switch (impact.scope()) {
-            case "corridor" -> List.of();
-            case "segment-span", "listed-stations" -> impact.stationIds();
-            default -> List.of();
-        };
+        if ("segment-span".equals(impact.scope())) {
+            // Keep each section whose ends lie on this route, as span pairs.
+            return RegionalSpans.flatten(RegionalSpans.pairs(impact.stationIds()).stream()
+                .filter(route.stationIds()::containsAll).toList());
+        }
+        List<String> candidates = "listed-stations".equals(impact.scope()) ? impact.stationIds() : List.of();
         return List.copyOf(new LinkedHashSet<>(candidates.stream().filter(route.stationIds()::contains).toList()));
     }
 

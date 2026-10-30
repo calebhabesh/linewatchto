@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 import { readFileSync } from "node:fs";
 import {
   formatStationSpanText,
+  joinSections,
+  parseStationSections,
   parseStationSpan,
   stationSpanAccessibleText,
   withDisplayLocations,
@@ -97,4 +99,17 @@ describe("display location adapters", () => {
     assert.doesNotMatch(span, /MoveHorizontal/);
     assert.doesNotMatch(span, />to</);
   });
+});
+
+it("separately closed sections parse as one span each", () => {
+  const sections = parseStationSections("Union ⇄ Mount Dennis and Mount Pleasant ⇄ Stratford");
+  assert.deepEqual(sections, [
+    { from: "Union", to: "Mount Dennis", travel: "both-ways" },
+    { from: "Mount Pleasant", to: "Stratford", travel: "both-ways" },
+  ]);
+  assert.equal(parseStationSections("Union ⇄ Weston, Malton ⇄ Bramalea and Georgetown ⇄ Kitchener")?.length, 3);
+  // A single span keeps its own parse; a station list is not sections.
+  assert.equal(parseStationSections("Union ⇄ Pearson Airport")?.length, 1);
+  assert.equal(parseStationSections("Clarkson, Oakville & Burlington"), null);
+  assert.equal(joinSections(["A ⇄ B", "C ⇄ D", "E ⇄ F"]), "A ⇄ B, C ⇄ D and E ⇄ F");
 });

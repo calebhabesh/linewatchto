@@ -65,6 +65,9 @@ final class RegionalStationSpan {
             ordered = List.of(route.stationIds().getFirst(), route.stationIds().getLast());
         }
         if (ordered.isEmpty()) return new Span(route.displayName(), displayDirection);
+        // A closure of separate sections names each one; every train through them is affected.
+        String sections = alert.sectionsLabel(StationSpanFormatter::bothWays);
+        if (sections != null) return new Span(sections, null);
         String first = stationName(ordered.getFirst());
         if (ordered.size() == 1) return new Span(first, displayDirection);
         String last = stationName(ordered.getLast());

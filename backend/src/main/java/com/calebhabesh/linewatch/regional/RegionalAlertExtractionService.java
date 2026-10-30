@@ -286,8 +286,9 @@ public class RegionalAlertExtractionService {
         ObjectNode node = objectMapper.createObjectNode();
         node.put("effect", extraction.effect());
         node.put("scope", extraction.scope());
-        node.put("spanFrom", extraction.spanFrom());
-        node.put("spanTo", extraction.spanTo());
+        ArrayNode spans = node.putArray("spans");
+        RegionalSpans.pairs(extraction.spans()).forEach(pair ->
+            spans.addObject().put("from", pair.getFirst()).put("to", pair.getLast()));
         strings(node.putArray("listedStations"), extraction.listedStations());
         node.put("replacement", extraction.replacement());
         strings(node.putArray("skippedStations"), extraction.skippedStations());

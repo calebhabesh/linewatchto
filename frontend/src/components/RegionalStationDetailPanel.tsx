@@ -57,6 +57,7 @@ import {
 import { StationDetailHeader } from "./StationDetailHeader";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
+import { StationImpactTags } from "./StationImpactTags";
 import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
@@ -100,6 +101,8 @@ type RegionalStationImpact = {
   updatedAgo?: string | null;
   classification: string;
   tone: "active" | "delay" | "planned" | "reduced-speed-zone";
+  lineId?: string;
+  replacement?: "go-bus" | "bus" | null;
 };
 
 const REGIONAL_ARRIVAL_REFRESH_MS = 15_000;
@@ -362,6 +365,8 @@ export function RegionalStationDetailPanel({
         updatedAgo: card && "updatedAgo" in card ? card.updatedAgo : null,
         classification,
         tone,
+        lineId: card?.lineId,
+        replacement: card && "replacementService" in card ? card.replacementService ?? null : null,
       });
     };
 
@@ -1348,6 +1353,11 @@ export function RegionalStationDetailPanel({
                         <div className="flex items-center gap-2.5 text-sm font-bold text-slate-900 dark:text-white">
                           <RegionalStationImpactIcon impact={impact} />
                           <span className="flex items-center leading-none">{impact.classification}</span>
+                          <StationImpactTags
+                            lineId={impact.lineId}
+                            showLine={routes.length > 1}
+                            replacement={impact.replacement}
+                          />
                         </div>
                         <div className="flex flex-col gap-1">
                           <strong className="block font-bold text-slate-900 dark:text-white">{impact.title}</strong>
