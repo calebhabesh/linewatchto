@@ -293,8 +293,23 @@
   stroke: rgba(248, 250, 252, 0.96);
   stroke-linecap: round;
   stroke-linejoin: round;
-  /* GO/UP's rail + 65 (regional-map.css), scaled to TTC's 80-unit rail. */
-  stroke-width: 106.5;
+  /* GO/UP's rail + 65 (regional-map.css), scaled to TTC's 96-unit rail. */
+  stroke-width: 122.5;
+}
+
+/* Background-coloured casing under each line's alert tubes. It is invisible
+   on open map and only shows as a thin gap where another line's tube or
+   track meets this line's tube. Each line's casings sit under all of its
+   tubes (InteractiveTtcMap groups overlays by line), so its own segment
+   joins stay seamless. Flat ends keep it off the line's own track where a
+   tube's rounded end runs onto it. */
+.asset-alert-path-casing {
+  fill: none;
+  pointer-events: none;
+  stroke: var(--map-canvas-bg);
+  stroke-linecap: butt;
+  stroke-linejoin: round;
+  stroke-width: var(--ttc-alert-rail-casing-width);
 }
 
 .linewatch-shell:not(.dark) .asset-alert-path-hover-boundary {
@@ -329,7 +344,7 @@
   pointer-events: stroke;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-opacity: 0.95;
+  stroke-opacity: 1;
   stroke-width: 102;
   transition: stroke-width 0.3s ease;
 }

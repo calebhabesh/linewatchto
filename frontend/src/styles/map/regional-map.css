@@ -206,7 +206,7 @@
 }
 
 .regional-overlay-segment-group .regional-impact-path {
-  opacity: 0.95;
+  opacity: 1;
   stroke: var(--regional-impact-color);
   stroke-dasharray: var(--regional-impact-dasharray);
   stroke-width: var(--regional-impact-width);

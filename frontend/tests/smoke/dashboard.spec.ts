@@ -2806,8 +2806,8 @@ test("disruption rails stay static across TTC and regional maps", async ({ page,
   expect(ttcPulse.plannedWidth).toBe(ttcPulse.rszWidth);
   expect(ttcPulse.plannedPreviewWidth).toBe(ttcPulse.rszWidth);
   expect(ttcPulse.closureMaskAnimation).toBe("none");
-  // TTC rails use the authored 80-unit line width (a1fac8ab).
-  expect(ttcPulse.closureMaskWidth).toBe("80px");
+  // TTC rails are a tube 8 units past each edge of the authored 80-unit line.
+  expect(ttcPulse.closureMaskWidth).toBe("96px");
 
   const releaseNotesDismiss = page.getByRole("button", { name: "Close introduction" });
   if (await releaseNotesDismiss.isVisible()) {

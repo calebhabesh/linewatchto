@@ -2551,39 +2551,53 @@ function InteractiveTtcMapComponent({
                   </filter>
                 </defs>
                 <g aria-label="Disruption overlays">
-                  {[
+                  {groupOverlayLayersByLine([
                     ...retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => ({
                       key, segment, impact: null, closure, exiting,
                     })),
                     ...retainedImpactLayers.map(({ key, item: { segment, impact }, exiting }) => ({
                       key, segment, impact, closure: undefined, exiting,
                     })),
-                  ].sort((a, b) =>
+                  ].filter(({ impact, closure }) => !(
+                    commutePreviewLayer && (
+                      (closure && selectedImpactEmphasis?.plannedClosure?.id === closure.id)
+                      || (impact && selectedImpactEmphasis?.impact?.kind === impact.kind &&
+                        selectedImpactEmphasis.impact.cardId === impact.cardId)
+                    )
+                  )).sort((a, b) =>
                     getImpactPriority(a.impact?.kind ?? "planned-closure")
                     - getImpactPriority(b.impact?.kind ?? "planned-closure")
-                  ).map(({ key, segment, impact, closure, exiting }) => {
-                    if (
-                      commutePreviewLayer && (
-                        (closure && selectedImpactEmphasis?.plannedClosure?.id === closure.id)
-                        || (impact && selectedImpactEmphasis?.impact?.kind === impact.kind &&
-                          selectedImpactEmphasis.impact.cardId === impact.cardId)
-                      )
-                    ) return null;
-                    return (
-                      <OverlaySegment
-                        key={key}
-                        segment={segment}
-                        impact={impact}
-                        plannedClosure={closure}
-                        selection={selection}
-                        selectedSegmentIds={selectedSegmentIds}
-                        onSelectImpact={onSelectImpact}
-                        shouldSuppressMapClick={shouldSuppressMapClick}
-                        exiting={exiting}
-                        renderInteractionTarget={false}
-                      />
-                    );
-                  })}
+                  )).map(({ lineId, layers }) => (
+                    <g key={lineId} data-ttc-alert-line={lineId}>
+                      {/* One casing per line, under all of that line's tubes:
+                          segments of a line join without seams, and a tube
+                          drawn edge to edge with another line's tube keeps a
+                          thin gap from it. */}
+                      <g className="asset-alert-path-casings" aria-hidden="true">
+                        {layers.map(({ key, segment, exiting }) => (
+                          <path
+                            key={key}
+                            className={`asset-alert-path-casing ${exiting ? "map-layer-exiting" : "map-layer-current"}`}
+                            d={segment.pathD}
+                          />
+                        ))}
+                      </g>
+                      {layers.map(({ key, segment, impact, closure, exiting }) => (
+                        <OverlaySegment
+                          key={key}
+                          segment={segment}
+                          impact={impact}
+                          plannedClosure={closure}
+                          selection={selection}
+                          selectedSegmentIds={selectedSegmentIds}
+                          onSelectImpact={onSelectImpact}
+                          shouldSuppressMapClick={shouldSuppressMapClick}
+                          exiting={exiting}
+                          renderInteractionTarget={false}
+                        />
+                      ))}
+                    </g>
+                  ))}
                 </g>
 
                 <g aria-label="Commute route preview">
@@ -4421,6 +4435,20 @@ function OverlaySegment({
 
     </g>
   );
+}
+
+/** Groups overlay layers by line, keeping their order within each line, with
+    lines in a fixed order so a refresh never repaints them in a new order. */
+function groupOverlayLayersByLine<T extends { segment: RenderedNetworkSegment }>(layers: T[]) {
+  const byLine = new Map<string, T[]>();
+  for (const layer of layers) {
+    const lineLayers = byLine.get(layer.segment.lineId);
+    if (lineLayers) lineLayers.push(layer);
+    else byLine.set(layer.segment.lineId, [layer]);
+  }
+  return [...byLine]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([lineId, lineLayers]) => ({ lineId, layers: lineLayers }));
 }
 
 function SelectedImpactEmphasis({

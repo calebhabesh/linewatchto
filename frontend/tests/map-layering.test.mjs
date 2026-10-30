@@ -208,11 +208,25 @@ describe("asset-backed map layering", () => {
     );
     assert.match(
       globalCss,
-      /\.asset-alert-path-hover-boundary\s*\{[^}]*stroke-width:\s*106\.5;[\s\S]*?\.overlay-segment-group:has\(\.map-segment-hit-target:hover\) \.asset-alert-path-hover-boundary,[\s\S]*?opacity:\s*0\.94;/,
+      /\.asset-alert-path-hover-boundary\s*\{[^}]*stroke-width:\s*122\.5;[\s\S]*?\.overlay-segment-group:has\(\.map-segment-hit-target:hover\) \.asset-alert-path-hover-boundary,[\s\S]*?opacity:\s*0\.94;/,
     );
     assert.match(
       globalCss,
       /\.asset-alert-path-glow\.interactive-glow\.planned-preview\s*\{[^}]*display:\s*block;[^}]*transition:/s,
+    );
+  });
+
+  it("draws TTC alert rails as tubes wider than the line", () => {
+    // TTC's 80-unit line shows a tube 8 units past each edge. A background-
+    // coloured casing, drawn once per line under all of that line's tubes,
+    // keeps a thin gap between lines drawn edge to edge (St George) without
+    // outlining tubes on open map or seaming a line's own segment joins.
+    assert.match(globalCss, /--ttc-alert-rail-width:\s*96px;/);
+    assert.match(globalCss, /--ttc-alert-rail-casing-width:\s*100px;/);
+    assert.match(globalCss, /\.asset-alert-path-casing\s*\{[^}]*stroke:\s*var\(--map-canvas-bg\);[^}]*stroke-linecap:\s*butt;/s);
+    assert.match(
+      interactiveMapSource,
+      /groupOverlayLayersByLine\([\s\S]*?className="asset-alert-path-casings"[\s\S]*?<OverlaySegment/,
     );
   });
 
@@ -294,8 +308,8 @@ describe("asset-backed map layering", () => {
     );
     assert.match(globalCss, /\.ttc-impact-hover-outline-core\s*\{[^}]*stroke:\s*rgba\(15,\s*23,\s*42,\s*0\.98\);/s);
     assert.match(globalCss, /\.ttc-impact-hover-outline-edge\s*\{[^}]*stroke:\s*rgba\(248,\s*250,\s*252,\s*0\.98\);[^}]*filter:\s*drop-shadow\(0 0 2\.9px/s);
-    assert.match(globalCss, /\.ttc-impact-hover-outline-mask-divider\s*\{[^}]*stroke:\s*black;[^}]*stroke-width:\s*92\.2px;/s);
-    assert.match(globalCss, /\.ttc-impact-hover-outline-mask-cutout\s*\{[^}]*stroke:\s*black;[^}]*stroke-width:\s*80px;/s);
+    assert.match(globalCss, /\.ttc-impact-hover-outline-mask-divider\s*\{[^}]*stroke:\s*black;[^}]*stroke-width:\s*108\.2px;/s);
+    assert.match(globalCss, /\.ttc-impact-hover-outline-mask-cutout\s*\{[^}]*stroke:\s*black;[^}]*stroke-width:\s*var\(--ttc-alert-rail-width\);/s);
     assert.doesNotMatch(ttcMapRendererSource, /ttc-impact-hover-rail/);
   });
 

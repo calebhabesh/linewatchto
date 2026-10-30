@@ -73,8 +73,8 @@
 }
 
 .ttc-impact-hover-outline {
-  /* TTC_HOVER_OUTLINE_WIDTHS: GO/UP's keyline scaled to TTC's 80-unit rail. */
-  stroke-width: 101.2px;
+  /* TTC_HOVER_OUTLINE_WIDTHS: GO/UP's keyline scaled to TTC's 96-unit rail. */
+  stroke-width: 117.2px;
 }
 
 .ttc-impact-hover-outline-core {
@@ -89,17 +89,17 @@
 
 .ttc-impact-hover-outline-mask-outer {
   stroke: white;
-  stroke-width: 101.2px;
+  stroke-width: 117.2px;
 }
 
 .ttc-impact-hover-outline-mask-cutout {
   stroke: black;
-  stroke-width: 80px;
+  stroke-width: var(--ttc-alert-rail-width);
 }
 
 .ttc-impact-hover-outline-mask-divider {
   stroke: black;
-  stroke-width: 92.2px;
+  stroke-width: 108.2px;
 }
 
 .map-selection-attention {
