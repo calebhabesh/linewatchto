@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 
 const SCROLL_LIST_SELECTOR = [
-  "#linewatch-main-menu-scroll",
   ".mobile-app-chip-scroll",
   ".line-impact-panel-stack",
   ".alert-stack",

@@ -147,10 +147,10 @@ describe("destination-aware sidebar widths", () => {
 describe("desktop map insets and occlusion helpers", () => {
   it("returns zero insets when container is missing or on mobile", () => {
     assert.deepEqual(measureDesktopMapInsets(null), { top: 0, bottom: 0 });
-    assert.equal(readDesktopLeftOcclusion(null, false), 0);
+    assert.equal(readDesktopLeftOcclusion(null), 0);
   });
 
-  it("measures desktop map insets from rail and bottom chips", () => {
+  it("measures desktop map insets from the rail and legend", () => {
     const origWindow = globalThis.window;
     globalThis.window = {
       innerWidth: 1024,
@@ -166,7 +166,7 @@ describe("desktop map insets and occlusion helpers", () => {
       closest: () => ({
         querySelector: (sel) => {
           if (sel === ".desktop-map-control-rail") return mockRail;
-          if (sel === ".desktop-status-chip-row-container") {
+          if (sel === ".desktop-map-legend") {
             return {
               getBoundingClientRect: () => ({ width: 400, height: 40, top: 720, bottom: 760 }),
             };
@@ -200,18 +200,12 @@ describe("desktop map insets and occlusion helpers", () => {
               getBoundingClientRect: () => ({ left: 0, right: 380, width: 380 }),
             };
           }
-          if (sel === "#linewatch-main-menu") {
-            return {
-              getAttribute: () => "false",
-              getBoundingClientRect: () => ({ left: 0, right: 280, width: 280 }),
-            };
-          }
           return null;
         },
       }),
     };
 
-    const occlusion = readDesktopLeftOcclusion(mockViewport, false, 24);
+    const occlusion = readDesktopLeftOcclusion(mockViewport, 24);
     assert.equal(occlusion, 380 + 24); // 404
 
     globalThis.window = origWindow;

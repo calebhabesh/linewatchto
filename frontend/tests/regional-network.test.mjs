@@ -47,7 +47,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(networkMapSource, /<InteractiveTtcMap/);
   });
 
-  it("lets riders persist a default map below My Stations on desktop and mobile", () => {
+  it("lets riders persist a default map below My Stations in the mobile More sheet", () => {
     assert.match(defaultMapModeSource, /Default Map/);
     assert.match(defaultMapModeSource, /TTC/);
     assert.match(defaultMapModeSource, /GO &amp; UP/);
@@ -57,8 +57,6 @@ describe("network-scoped regional dashboard", () => {
       globalsCss,
       /\.default-map-mode-options\[data-network="regional"\] \.default-map-mode-glider\s*\{[^}]*transform:\s*translateX\(100%\)/s,
     );
-    assert.match(shellSource, /<DefaultMapModeControl/);
-    assert.ok(shellSource.indexOf("My Stations") < shellSource.indexOf("<DefaultMapModeControl"));
     assert.match(mobileMoreSource, /<DefaultMapModeControl/);
     assert.ok(mobileMoreSource.indexOf("My Stations") < mobileMoreSource.indexOf("<DefaultMapModeControl"));
     assert.match(shellSource, /defaultNetwork:\s*defaultNetworkPreference/);
@@ -101,7 +99,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /mobile-map-inspector\[data-network="regional"\][\s\S]*--mobile-inspector-total-height:\s*50dvh/);
     assert.match(shellSource, /rotatedSelectionVisible && !mobileInspectorOpen/);
     assert.match(networkMapSource, /layoutResetSignal=\{props\.layoutResetSignal\}/);
-    assert.match(regionalMapSource, /`\$\{layoutResetSignal \?\? 0\}:\$\{desktopMenuPinned \? "pinned" : "free"\}[\s\S]*:\$\{viewportOrientation\}`/);
+    assert.match(regionalMapSource, /`\$\{layoutResetSignal \?\? 0\}:[\s\S]*:\$\{viewportOrientation\}`/);
   });
 
   it("preserves the authored regional corridor overlay width in mobile performance mode", () => {
@@ -436,13 +434,6 @@ describe("network-scoped regional dashboard", () => {
     assert.match(shellSource, /selectedNetwork === "ttc" && subwayOperatingState\.status/);
     assert.match(shellSource, /getEstimatedTrainMarkers\(\{ network: selectedNetwork \}\)/);
     assert.match(regionalMapSource, /Estimated regional train markers/);
-  });
-
-  it("docks desktop impact badges to the bottom-left corner across networks", () => {
-    assert.match(
-      shellSource,
-      /desktop-status-chip-row-container fixed bottom-6 left-6/,
-    );
   });
 
   it("does not invent current disruptions in regional fallback mode", () => {
@@ -908,14 +899,12 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("focuses the regional camera on station and impact selections from every UI entry point", () => {
-    assert.match(networkMapSource, /desktopMenuPinned=\{props\.desktopMenuPinned\}/);
     assert.match(networkMapSource, /preserveCameraOnSelectionClear=\{props\.preserveCameraOnSelectionClear\}/);
     assert.match(regionalMapSource, /data-regional-station-selection-id/);
     assert.match(regionalMapSource, /data-regional-impact-kind/);
     assert.match(regionalMapSource, /selectedMapElements/);
     assert.match(regionalMapSource, /getBoundingClientRect\(\)/);
-    assert.match(regionalMapSource, /readDesktopLeftOcclusion\(viewport, desktopMenuPinned/);
-    assert.match(sidebarStateSource, /#linewatch-main-menu/);
+    assert.match(regionalMapSource, /readDesktopLeftOcclusion\(viewport, /);
     assert.match(sidebarStateSource, /\.floating-panel-shell/);
     assert.match(regionalMapSource, /insets\.left = Math\.max\(insets\.left, leftOcclusion\)/);
     assert.match(regionalMapSource, /const selectionFit = computeBoundedMapFrame\(/);
@@ -975,7 +964,7 @@ describe("network-scoped regional dashboard", () => {
 
   it("centers the largest fitted default desktop network frame in the stable map workspace", () => {
     assert.match(regionalMapSource, /measureDesktopMapInsets/);
-    assert.match(sidebarStateSource, /\.desktop-status-chip-row-container/);
+    assert.match(sidebarStateSource, /\.desktop-map-legend/);
     assert.match(regionalMapSource, /setDesktopMapTopInset/);
     assert.match(regionalMapSource, /setDesktopMapBottomInset/);
     assert.match(regionalMapSource, /computeDesktopMapFrame/);

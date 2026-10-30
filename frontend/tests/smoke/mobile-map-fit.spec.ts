@@ -18,7 +18,6 @@ for (const network of ["ttc", "regional"] as const) {
       await switcher.getByRole("button", { name: "GO/UP", exact: true }).click();
     }
     await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", network, { timeout: 15_000 });
-    await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction", { timeout: 15_000 });
     await expect(page.locator(network === "ttc" ? ".ttc-map-stage" : ".regional-map-stage")).toBeVisible({ timeout: 15_000 });
     const shell = page.locator(".linewatch-shell");
     const viewport = page.locator(network === "ttc" ? "[data-map-pan-zoom-viewport]" : ".regional-map-viewport");
@@ -106,7 +105,6 @@ for (const network of ["ttc", "regional"] as const) {
       await switcher.getByRole("button", { name: "GO/UP", exact: true }).click();
     }
     await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", network, { timeout: 15_000 });
-    await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction", { timeout: 15_000 });
     await expect(page.locator(network === "ttc" ? ".ttc-map-stage" : ".regional-map-stage")).toBeVisible({ timeout: 15_000 });
     const shell = page.locator(".linewatch-shell");
     await page.getByRole("button", { name: "Rotate map" }).click();
@@ -145,7 +143,6 @@ for (const network of ["ttc", "regional"] as const) {
       await switcher.getByRole("button", { name: "GO/UP", exact: true }).click();
     }
     await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", network, { timeout: 15_000 });
-    await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction", { timeout: 15_000 });
     await expect(page.locator(network === "ttc" ? ".ttc-map-stage" : ".regional-map-stage")).toBeVisible({ timeout: 15_000 });
     const shell = page.locator(".linewatch-shell");
     await page.getByRole("button", { name: "Rotate map" }).click();

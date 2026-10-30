@@ -28,7 +28,6 @@ describe("notification settings navigation", () => {
     assert.match(moreSheetSource, /!accountState\.authenticated/);
     assert.match(moreSheetSource, />\s*Sign In\s*</);
     assert.doesNotMatch(moreSheetSource, /currentNetwork === "ttc" \? <button[^>]*onClick=\{onOpenNotifications\}/);
-    assert.match(shellSource, /role="menuitem"[\s\S]*?navigateForward\("notifications"\)[\s\S]*?<Bell[^>]*> Notifications/s);
     assert.match(desktopMoreSource, /onClick=\{onOpenNotifications\}/);
     assert.match(desktopMoreSource, /<Bell[\s\S]*?<span>Notifications<\/span>/);
     assert.match(shellSource, /<DesktopMorePanel[\s\S]*?onOpenNotifications=\{\(\) => navigateForward\("notifications"\)\}/);

@@ -15,7 +15,6 @@ describe("scroll overflow affordances", () => {
   it("mounts one overflow-aware controller for desktop and mobile list surfaces", () => {
     assert.match(shellSource, /<ScrollOverflowAffordances \/>/);
     [
-      "#linewatch-main-menu-scroll",
       ".line-impact-panel-stack",
       ".alert-stack",
       ".closure-stack",

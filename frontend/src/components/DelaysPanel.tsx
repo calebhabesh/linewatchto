@@ -24,6 +24,8 @@ interface Props {
   onSelectImpact: (selection: ImpactSelection) => void;
   onSelectRelatedImpact?: (selection: ImpactSelection) => void;
   onReturnToMap?: () => void;
+  /** Where an active card's Back action returns, e.g. "Back to search results". */
+  returnToMapLabel?: string;
   onBack?: () => void;
   onClose?: () => void;
   onFocusMap?: () => void;
@@ -42,6 +44,7 @@ export function DelaysPanel({
   onSelectImpact,
   onSelectRelatedImpact = onSelectImpact,
   onReturnToMap,
+  returnToMapLabel,
   onBack,
   onClose,
   onFocusMap,
@@ -143,6 +146,7 @@ export function DelaysPanel({
                   ]}
                   status={delay.shuttle ? <><Bus size={11} /> Shuttle</> : null}
                   mapActionLabel={isActive && onReturnToMap ? "Back" : "View"}
+                  mapBackLabel={returnToMapLabel}
                   active={isActive}
                   toneClassName="delay-card-border"
                   onShowOnMap={isActive && onReturnToMap ? onReturnToMap : () => handleDelayClick(delay.id)}
@@ -166,6 +170,7 @@ export function DelaysPanel({
                   direction={delay.displayDirection}
                   isMapActive={isActive}
                   onReturnToMap={onReturnToMap}
+                  mapBackLabel={returnToMapLabel}
                   onMapAction={() => handleDelayClick(delay.id)}
                   onFocusMap={onFocusMap}
                   mapActionVariant={mapActionVariant}

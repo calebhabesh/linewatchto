@@ -129,16 +129,11 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.mobile-more-build-label/);
   });
 
-  it("keeps desktop and mobile menu row typography uniform across links and buttons", () => {
-    assert.match(
-      globalCss,
-      /\.desktop-top-chrome \[role="menuitem"\],\s*\.desktop-top-chrome \.main-menu-display-label\s*\{[^}]*font-family:\s*inherit;[^}]*font-size:\s*1rem;[^}]*font-weight:\s*500;[^}]*line-height:\s*1\.5rem;/s,
-    );
+  it("keeps mobile More row typography uniform across links and buttons", () => {
     assert.match(
       globalCss,
       /\.mobile-more-row\s*\{[^}]*font-family:\s*inherit;[^}]*font-size:\s*14px;[^}]*font-weight:\s*500;[^}]*line-height:\s*1\.25rem;/s,
     );
-    assert.equal((shellSource.match(/main-menu-display-label/g) ?? []).length, 3);
   });
 
   it("prioritizes mobile More sections without turning More into Settings", () => {
@@ -422,13 +417,8 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.mobile-line-status-copy strong\s*\{[\s\S]*?font-size:\s*15\.5px;/);
   });
 
-  it("extends contemporary tactile container styling to desktop line status, menu, and chrome", () => {
-    assert.match(shellSource, /desktop-line-status-row/);
-    assert.match(shellSource, /desktop-menu-count-badge/);
-    assert.match(globalCss, /\.desktop-line-status-row\s*\{[\s\S]*?box-shadow:\s*inset 0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.85\)/);
-    assert.match(globalCss, /\.dark \.desktop-line-status-row\s*\{[\s\S]*?box-shadow:\s*inset 0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.08\)/);
+  it("extends contemporary tactile container styling to count badges and floating panels", () => {
     assert.match(globalCss, /\.desktop-menu-count-badge\s*\{[\s\S]*?box-shadow:\s*inset 0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.15\);/);
     assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[\s\S]*?\.dark \.floating-panel-scroll\s*\{[\s\S]*?inset 0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.08\)/);
-    assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[\s\S]*?\.dark #linewatch-main-menu\s*\{[\s\S]*?inset 0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.1\)/);
   });
 });

@@ -9,24 +9,7 @@ const lineLegendSource = readFileSync(new URL("../src/components/LineLegend.tsx"
 const squishSwitchSource = readFileSync(new URL("../src/components/SquishSwitch.jsx", import.meta.url), "utf8");
 
 describe("keyboard accessibility source", () => {
-  it("manages hamburger menu focus and arrow-key movement", () => {
-    assert.match(shellSource, /menuButtonRef/);
-    assert.match(shellSource, /menuPanelRef/);
-    assert.match(shellSource, /menuActionRefs/);
-    assert.match(shellSource, /aria-controls="linewatch-main-menu"/);
-    assert.match(shellSource, /aria-expanded=\{menuVisible\}/);
-    assert.match(shellSource, /aria-label=\{menuPinned \? "Unpin main menu" : "Pin main menu open"\}/);
-    assert.match(shellSource, /localStorage\.getItem\("linewatch-menu-pinned"\)/);
-    assert.match(shellSource, /localStorage\.setItem\("linewatch-menu-pinned", String\(menuPinned\)\)/);
-    assert.match(shellSource, /handleMenuKeyDown/);
-    assert.match(shellSource, /event\.key === "Escape"/);
-    assert.match(shellSource, /event\.key === "ArrowDown"/);
-    assert.match(shellSource, /event\.key === "ArrowUp"/);
-    assert.match(shellSource, /event\.key === "Home"/);
-    assert.match(shellSource, /event\.key === "End"/);
-    assert.match(shellSource, /aria-current=\{activeView === "alerts" \? "page" : undefined\}/);
-    assert.match(shellSource, /<SquishSwitch[\s\S]*?role="menuitemcheckbox"[\s\S]*?checked=\{highContrast\}/);
-    assert.match(shellSource, /<SquishSwitch[\s\S]*?role="menuitemcheckbox"[\s\S]*?checked=\{reducedMotion\}/);
+  it("lets SquishSwitch expose a role and checked state", () => {
     assert.match(squishSwitchSource, /role=\{role\}/);
     assert.match(squishSwitchSource, /aria-checked=\{on\}/);
     assert.match(squishSwitchSource, /ref=\{forwardedRef\}/);

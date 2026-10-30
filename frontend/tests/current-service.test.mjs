@@ -439,12 +439,6 @@ test("CurrentServicePanel pull up sheet has an opaque mobile-style container and
   const panelSource = readFileSync(new URL("../src/components/CurrentServicePanel.tsx", import.meta.url), "utf8");
   const stylesSource = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
 
-  // Bottom edge positioned closer to alert badges
-  assert.match(stylesSource, /\.desktop-status-chip-row-container\s*>\s*\.current-service\s*\{[^}]*bottom:\s*calc\(100%\s*-\s*20px\);/s);
-
-  // The desktop container is opaque like the mobile sheet.
-  assert.match(stylesSource, /\.desktop-status-chip-row-container\s*>\s*\.current-service::before\s*\{[^}]*mask-image:\s*none;/s);
-
   // Surface notices item body text has dedicated class
   assert.match(panelSource, /className="current-service-notice-text"/);
 
@@ -454,13 +448,11 @@ test("CurrentServicePanel pull up sheet has an opaque mobile-style container and
   assert.match(stylesSource, /\.current-service-notice-text[^}]*\{[^}]*font-size:\s*12px;/s);
 });
 
-test("CurrentServicePanel desktop content animates on entrance and suppresses during network transitions", () => {
+test("CurrentServicePanel content animates on entrance", () => {
   const stylesSource = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
 
   assert.match(stylesSource, /@keyframes current-service-enter\s*\{/);
   assert.match(stylesSource, /\.current-service-columns\s*\{[^}]*animation:\s*current-service-enter\s+220ms/s);
-  assert.match(stylesSource, /html\[data-network-transition-phase="fade-out"\]\s+\.current-service-columns/);
-  assert.match(stylesSource, /html\[data-network-transition-direction\]\s+\.current-service-columns/);
 });
 
 test("pull-up impact rows name the condition and put direction below the location", () => {

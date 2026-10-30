@@ -34,6 +34,8 @@ interface Props {
   onSelectImpact: (selection: ImpactSelection) => void;
   onSelectRelatedImpact?: (selection: ImpactSelection) => void;
   onReturnToMap?: () => void;
+  /** Where an active card's Back action returns, e.g. "Back to search results". */
+  returnToMapLabel?: string;
   onBack?: () => void;
   onClose?: () => void;
   onFocusMap?: () => void;
@@ -52,6 +54,7 @@ export function ReducedSpeedZonesPanel({
   onSelectImpact,
   onSelectRelatedImpact = onSelectImpact,
   onReturnToMap,
+  returnToMapLabel,
   onBack,
   onClose,
   onFocusMap,
@@ -172,6 +175,7 @@ export function ReducedSpeedZonesPanel({
                     extraRows={[{label: "Est. Resolution", value: showResolutionBreakdown ? <ReducedSpeedZoneResolutionBreakdown zone={zone} /> : reducedSpeedZoneResolutionText(zone)}]}
                   />}
                   mapActionLabel={isActive && onReturnToMap ? "Back" : "View"}
+                  mapBackLabel={returnToMapLabel}
                   active={isActive}
                   toneClassName="rsz-card-border"
                   onShowOnMap={isActive && onReturnToMap ? onReturnToMap : () => handleReducedSpeedZoneClick(zone.id)}
@@ -196,6 +200,7 @@ export function ReducedSpeedZonesPanel({
                   direction={zone.displayDirection}
                   isMapActive={isActive}
                   onReturnToMap={onReturnToMap}
+                  mapBackLabel={returnToMapLabel}
                   onMapAction={() => handleReducedSpeedZoneClick(zone.id)}
                   onFocusMap={onFocusMap}
                   mapActionVariant={mapActionVariant}

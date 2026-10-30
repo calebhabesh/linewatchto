@@ -606,22 +606,6 @@
    Account Status & Validation Badges
    ========================================================================== */
 
-.account-linked-status {
-  display: flex;
-  min-height: 36px;
-  align-items: center;
-  gap: 12px;
-  border-radius: 8px;
-  padding: 8px 10px;
-  color: rgb(21 128 61);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.dark .account-linked-status {
-  color: rgb(134 239 172);
-}
-
 .account-reset-status {
   border: 1px solid rgba(16, 185, 129, 0.24);
   border-radius: 8px;

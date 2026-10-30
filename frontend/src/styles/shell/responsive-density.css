@@ -1097,15 +1097,6 @@
   .floating-panel-shell[data-floating-panel="my-stations"] {
     width: min(600px, calc(100vw - 48px));
   }
-
-  .linewatch-shell[data-menu-pinned="true"] .floating-panel-shell {
-    left: 392px;
-    width: min(680px, calc(100vw - 408px));
-  }
-
-  .linewatch-shell[data-menu-pinned="true"] .floating-panel-shell[data-floating-panel="my-stations"] {
-    width: min(600px, calc(100vw - 408px));
-  }
 }
 
 @media (min-width: 768px) and (max-width: 899px) {

@@ -18,7 +18,6 @@ import {
 
 export type ActiveView =
   | "map"
-  | "menu"
   | "search"
   | "status"
   | "line-impacts"
@@ -1103,7 +1102,6 @@ export function transitionDesktopEscape(
 }
 
 export const VIEW_SCROLL_SELECTORS: Partial<Record<ActiveView, string>> = {
-  menu: "#linewatch-main-menu-scroll",
   status: ".mobile-status-content-scroll",
   more: ".mobile-more-content-scroll",
 };

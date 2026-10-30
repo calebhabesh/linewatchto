@@ -348,6 +348,8 @@ export interface ImpactCardMapButtonProps {
   onFocusMap?: () => void;
   title: string;
   actionLabel?: string;
+  /** Names where the Back action goes, for its accessible name and tooltip. */
+  backLabel?: string;
   variant?: "icon-only" | "labeled";
   className?: string;
   disabled?: boolean;
@@ -357,6 +359,7 @@ export function ImpactCardMapButton({
   onClick,
   title,
   actionLabel,
+  backLabel = "Back to map",
   variant = "labeled",
   className = "",
   disabled = false,
@@ -365,8 +368,8 @@ export function ImpactCardMapButton({
   const isBack = labelText.toLowerCase().includes("back") || labelText.toLowerCase().includes("unfocus");
   const ariaText = disabled
     ? `${title}: location unavailable on map`
-    : isBack ? `Back to map: ${title}` : `View ${title} on map`;
-  const tooltipText = isBack ? "Back to map" : "View on Map";
+    : isBack ? `${backLabel}: ${title}` : `View ${title} on map`;
+  const tooltipText = isBack ? backLabel : "View on Map";
 
   return (
     <button
@@ -410,6 +413,7 @@ export function ImpactCardShell({
   onFocusMap,
   mapActionVariant,
   mapActionLabel,
+  mapBackLabel,
   mapUnavailable = false,
   badges,
   overlaps,
@@ -428,6 +432,7 @@ export function ImpactCardShell({
   onFocusMap?: () => void;
   mapActionVariant?: "icon-only" | "labeled";
   mapActionLabel?: string;
+  mapBackLabel?: string;
   mapUnavailable?: boolean;
   badges?: ReactNode;
   overlaps?: ReactNode;
@@ -444,6 +449,7 @@ export function ImpactCardShell({
           title={title}
           variant={mapActionVariant}
           actionLabel={isMapActive && onReturnToMap ? "Back" : mapActionLabel}
+          backLabel={mapBackLabel}
           disabled={mapUnavailable}
         />
       </div>

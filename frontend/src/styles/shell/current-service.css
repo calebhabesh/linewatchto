@@ -191,7 +191,6 @@
   color: var(--muted);
   text-align: left;
 }
-.desktop-status-chip-row-container > .current-service { position: absolute; bottom: calc(100% - 20px); left: 0; margin-bottom: 0; }
 .mobile-status-peek > .current-service { position: absolute; bottom: calc(100% + 8px); left: 0; margin-bottom: 0; }
 @media (max-width: 767px) {
   .current-service-heading { gap: 2px 6px; margin-bottom: 2px; }
@@ -248,12 +247,6 @@
 
 /* Use the badge row's width without affecting map fitting or mobile controls. */
 @media (min-width: 768px) {
-  .desktop-status-chip-row-container > .current-service {
-    animation: none;
-    width: 100%;
-    min-width: 620px;
-    max-width: calc(100vw - 48px);
-  }
   .current-service { padding: 10px 12px; }
   .current-service-heading h2 { font-size: 16px; }
   .current-service-heading > span { font-size: 11px; margin-left: auto; text-align: right; }
@@ -264,13 +257,6 @@
   }
   .current-service-availability {
     animation: current-service-enter 220ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  html[data-network-transition-phase="fade-out"] .current-service-columns,
-  html[data-network-transition-phase="fade-out"] .current-service-availability,
-  html[data-network-transition-direction] .current-service-columns,
-  html[data-network-transition-direction] .current-service-availability {
-    opacity: 0;
-    animation: none;
   }
   .current-service-list { max-height: 108px; }
   .current-service-rail-list {
@@ -302,7 +288,6 @@
 .current-service-list[data-more-above="true"] { --list-fade-top: 14px; }
 .current-service-list[data-more-below="true"] { --list-fade-bottom: 20px; }
 
-
 /* Keep hover and keyboard highlights comfortably around each notice. */
 .current-service .current-service-impact {
   padding: 5px 6px;
@@ -312,6 +297,7 @@
   padding: 5px 4px;
   border-radius: 6px;
 }
+
 .current-service :is(.current-service-impact, .current-service-notice):focus-visible {
   border-radius: 6px;
 }
@@ -367,11 +353,7 @@
 .current-service-handle:hover,
 .current-service-handle:focus,
 .current-service-handle:focus-visible,
-.current-service-handle:active,
-.desktop-status-chip-row-container .current-service-handle:hover,
-.desktop-status-chip-row-container .current-service-handle:focus,
-.desktop-status-chip-row-container .current-service-handle:focus-visible,
-.desktop-status-chip-row-container .current-service-handle:active {
+.current-service-handle:active {
   background: transparent;
   outline: none;
   box-shadow: none;
@@ -411,139 +393,6 @@
 
 .mobile-service-sheet .current-service-handle-container {
   display: none;
-}
-
-@media (min-width: 768px) {
-  .desktop-status-chip-row-container > .current-service {
-    bottom: calc(100% - 20px);
-    margin-bottom: 0;
-    border-top-left-radius: 14px;
-    border-top-right-radius: 14px;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    background: transparent;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border: none;
-    padding: 10px 14px 18px;
-    box-shadow: none;
-    transition: box-shadow 200ms ease;
-    overflow: visible;
-  }
-
-  .desktop-status-chip-row-container > .current-service::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-top-left-radius: 22px;
-    border-top-right-radius: 22px;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    pointer-events: none;
-    background: var(--panel-opaque);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    box-shadow: 0 -8px 28px #0003, inset 0 1px 2px rgba(255, 255, 255, 0.45), inset 0 6px 10px -7px rgba(255, 255, 255, 0.22);
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-
-  .dark .desktop-status-chip-row-container > .current-service::before {
-    background: #111315;
-    box-shadow: 0 -8px 28px #0004, inset 0 1px 2px rgba(255, 255, 255, 0.09), inset 0 6px 10px -7px rgba(255, 255, 255, 0.10);
-  }
-
-  .high-contrast .desktop-status-chip-row-container > .current-service::before {
-    background: #000000;
-    border: 1px solid #ffffff;
-    border-bottom: none;
-    box-shadow: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-
-  .desktop-status-chip-row-container .current-service-handle-container {
-    position: absolute;
-    top: -13px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 68px;
-    height: 14px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0;
-    background: var(--panel-opaque);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    box-shadow: 0 -6px 16px #0002, inset 0 1px 2px rgba(255, 255, 255, 0.45);
-    cursor: ns-resize;
-    z-index: 2;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
-  .desktop-status-chip-row-container .current-service-handle-container[data-dragging="true"] {
-    cursor: grabbing;
-  }
-
-  .desktop-status-chip-row-container .current-service-handle-container::before,
-  .desktop-status-chip-row-container .current-service-handle-container::after {
-    display: none;
-  }
-
-  .dark .desktop-status-chip-row-container .current-service-handle-container {
-    background: #111315;
-    box-shadow: 0 -6px 16px #0004, inset 0 1px 2px rgba(255, 255, 255, 0.09);
-  }
-
-  .high-contrast .desktop-status-chip-row-container .current-service-handle-container {
-    background: #000000;
-    border: 1px solid #ffffff;
-    border-bottom: none;
-    box-shadow: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-
-  .desktop-status-chip-row-container .current-service-handle {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: none;
-    padding: 0;
-    cursor: inherit;
-  }
-
-
-
-  .desktop-status-chip-row-container > .current-service .current-service-list {
-    max-height: var(--custom-sheet-height, 116px);
-    transition: max-height 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-
-  .desktop-status-chip-row-container > .current-service[data-dragging="true"] .current-service-list {
-    transition: none;
-  }
-
-  .desktop-status-chip-row-container > .current-service[data-expanded="true"] .current-service-list {
-    max-height: var(--custom-sheet-height, 460px);
-  }
-
-  .desktop-status-chip-row-container > .current-service[data-expanded="true"] .current-service-rail-list {
-    max-height: var(--custom-sheet-height, 460px);
-    margin-bottom: 0;
-  }
 }
 
 .current-service-active-count {
@@ -1798,7 +1647,6 @@
   }
 }
 
-
 /* Mobile app shell: persistent search, service shortcuts and connected sheets. */
 .mobile-app-topbar { display: none; }
 
@@ -1945,6 +1793,7 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     border: 0;
+
   }
   .linewatch-shell.high-contrast .mobile-app-chip-scroll > .site-guide-trigger,
   .high-contrast .mobile-app-chip-scroll > .site-guide-trigger {
@@ -2296,44 +2145,6 @@
       #774111 75% 87.5%,
       #4084cd 87.5% 100%
     ) border-box;
-  }
-}
-
-/* Restore desktop geometry while hidden, then introduce the complete sheet. */
-@media (min-width: 768px) {
-  .desktop-status-chip-row-container > .current-service[data-position-ready="false"] {
-    opacity: 0;
-    pointer-events: none;
-    animation: none;
-  }
-  .desktop-status-chip-row-container > .current-service[data-position-ready="false"] .current-service-list {
-    transition: none;
-  }
-  .desktop-status-chip-row-container > .current-service[data-position-ready="true"] {
-    animation: current-service-enter 260ms ease-out both;
-  }
-  .desktop-status-chip-row-container > .current-service .current-service-list {
-    height: var(--custom-sheet-height, auto);
-  }
-}
-@media (min-width: 768px) and (prefers-reduced-motion: reduce) {
-  .desktop-status-chip-row-container > .current-service[data-position-ready="true"] {
-    animation: none;
-  }
-}
-
-@media (min-width: 768px) {
-  /* Join the raised handle to the sheet, covering the sheet's inset top edge. */
-  .desktop-status-chip-row-container .current-service-handle-container::after {
-    content: "";
-    display: block;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    height: 10px;
-    background: inherit;
-    pointer-events: none;
   }
 }
 

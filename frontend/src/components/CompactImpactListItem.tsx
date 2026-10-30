@@ -42,6 +42,8 @@ type Props = {
   onShowOnMap: () => void;
   mapUnavailable?: boolean;
   mapActionLabel?: string;
+  /** Names where the Back action goes, for its accessible name and tooltip. */
+  mapBackLabel?: string;
 };
 
 export function CompactImpactListItem({
@@ -61,6 +63,7 @@ export function CompactImpactListItem({
   onShowOnMap,
   mapUnavailable = false,
   mapActionLabel,
+  mapBackLabel = "Back to map",
 }: Props) {
   const omitTitle = hideTypeLabel && /^(planned closure|planned advisory|reduced speed zone|delay|service delay|service suspension|suspension|active alert)$/i.test(title.trim());
   const routeFirst = locationFirst || omitTitle;
@@ -79,8 +82,8 @@ export function CompactImpactListItem({
       disabled={mapUnavailable}
       aria-label={mapUnavailable
         ? `${title}: location unavailable on map`
-        : mapActionIsBack ? `Back to map: ${title}: ${location}` : `Show ${title} on map: ${location}`}
-      title={mapUnavailable ? "Location unavailable on map" : mapActionIsBack ? "Back to map" : "View on map"}
+        : mapActionIsBack ? `${mapBackLabel}: ${title}: ${location}` : `Show ${title} on map: ${location}`}
+      title={mapUnavailable ? "Location unavailable on map" : mapActionIsBack ? mapBackLabel : "View on map"}
     >
       <LineBadge lineId={lineId} lineNumber={lineNumber} />
       <span className="compact-impact-list-item__body">

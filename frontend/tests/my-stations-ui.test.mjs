@@ -18,7 +18,7 @@ describe("My Stations UI", () => {
   it("adds an account-owned shell view with desktop and mobile navigation", () => {
     assert.match(shell, /"my-stations"/);
     assert.match(shell, /<MyStationsPanel/);
-    assert.match(shell, /onClick=\{\(\) => navigateForward\("my-stations"\)\}/);
+    assert.match(shell, /navigateForward\("my-stations"\)/);
     assert.match(mobileMore, /My Commutes/);
     assert.match(mobileMore, /My Stations/);
     assert.ok(mobileMore.indexOf("My Commutes") < mobileMore.indexOf("My Stations"));
@@ -246,7 +246,6 @@ describe("My Stations UI", () => {
   });
 
   it("uses MapPin menu icons and shared panel header structure", () => {
-    assert.match(shell, /<MapPin size=\{18\} className="text-slate-500 dark:text-slate-400" \/>/);
     assert.match(mobileMore, /<MapPin size=\{18\} className="text-slate-500 dark:text-slate-400" \/>/);
     assert.match(panel, /<MapPin[^>]+my-stations-title-icon/);
     assert.match(panel, /<PanelHeader/);

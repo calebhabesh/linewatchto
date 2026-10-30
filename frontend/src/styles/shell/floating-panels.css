@@ -427,14 +427,3 @@
   border-radius: 8px;
   box-shadow: var(--shadow);
 }
-
-@media (min-width: 768px) {
-  .linewatch-shell[data-menu-pinned="true"] .floating-panel-shell {
-    left: 400px;
-    width: min(calc(100vw - 416px), 680px);
-  }
-
-  .linewatch-shell[data-menu-pinned="true"] .floating-panel-shell[data-floating-panel="my-stations"] {
-    width: min(calc(100vw - 416px), 600px);
-  }
-}

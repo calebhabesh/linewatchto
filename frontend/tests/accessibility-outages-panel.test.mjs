@@ -19,7 +19,6 @@ describe("accessibility outages panel and routing source verification", () => {
     assert.match(shellSource, /"accessibility-outages"/);
     assert.match(shellSource, /<AccessibilityOutagesPanel/);
     assert.match(shellSource, /accessibilityOutageResult/);
-    assert.match(shellSource, /setActiveView\(isMobile \? "status" : "menu"\)/);
     assert.match(shellSource, /activeView === "accessibility-outages" \?/);
   });
 
@@ -51,10 +50,6 @@ describe("accessibility outages panel and routing source verification", () => {
     assert.match(shellSource, /getAccessibilityOutages\(undefined, \{ networkId/);
     assert.match(shellSource, /networkId=\{selectedNetwork\}/);
     assert.match(panelSource, /GO and UP rail stations/);
-  });
-
-  it("keeps the desktop main-menu accessibility icon neutral", () => {
-    assert.match(shellSource, /viewBox="0 0 24 24"[\s\S]*?text-slate-500 dark:text-slate-400[\s\S]*?Accessibility Outages/);
   });
 
   it("keeps light mobile containers distinct from the panel background", () => {

@@ -64,8 +64,7 @@ describe("frosted glass rendering", () => {
     assert.match(globalCss, /\.linewatch-backdrop--plain-light\s*\{[^}]*background-color:\s*var\(--map-canvas-bg,\s*#f8fafc\);/s);
   });
 
-  it("uses the shared constellation preference label on desktop and mobile", () => {
-    assert.match(shellSource, /BACKGROUND_PREFERENCE_LABEL/);
+  it("uses the shared constellation preference label in the mobile More sheet", () => {
     assert.match(mobileMoreSource, /BACKGROUND_PREFERENCE_LABEL/);
     assert.doesNotMatch(mobileMoreSource, /Dot Background/);
   });

@@ -35,7 +35,6 @@ const PrivacyAcknowledgementsPanel = preloadablePanel(() => import("./PrivacyAck
 const ReleaseNotesPanel = preloadablePanel(() => import("./ReleaseNotesPanel").then((mod) => mod.ReleaseNotesPanel));
 import { FloatingPanelShell } from "./FloatingPanelShell";
 import { MobileBottomNav, type MobileNavKey } from "./MobileBottomNav";
-import { OverlappingCountBadge } from "./OverlappingCountBadge";
 import { CurrentServicePanel } from "./CurrentServicePanel";
 import { MobileStatusPeek, type MobileOperatingNotice, type MobileConnectionNotice } from "./MobileStatusPeek";
 import { MobileMapControls, PhoneRotateLandscapeIcon, type MapPresentationMode } from "./MobileMapControls";
@@ -61,8 +60,6 @@ import { DataProvider, DashboardData } from "../app/DataContext";
 import { DecorativeMotionPausedContext } from "./DecorativeMotionContext";
 import { serviceConnectionNotice, serviceOperatingNotice } from "../app/shell-service-notices";
 import { DesktopNoticeBanner, type DesktopNotice } from "./DesktopNoticeBanner";
-import { MainMenu, type MainMenuActionElement } from "./MainMenu";
-import { DesktopImpactChips } from "./DesktopImpactChips";
 import {
   useDashboardSession,
   dashboardRefreshIntervalMs,
@@ -84,7 +81,7 @@ import { useNetworkServiceFeeds } from "../hooks/useNetworkServiceFeeds";
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { MOBILE_PERFORMANCE_QUERY, MOBILE_VIEWPORT_QUERY, useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Accessibility, Activity, Menu, X, Train, AlertTriangle, Bookmark, MapPin, Navigation, BarChart3, Search, UserRound, Sun, Moon, History, FileText, Megaphone, Loader2 } from "lucide-react";
+import { Accessibility, Activity, X, Train, AlertTriangle, Bookmark, MapPin, Navigation, BarChart3, Search, UserRound, Sun, Moon, History, FileText, Megaphone, Loader2 } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { GoUpClosedScreen } from "./GoUpClosedScreen";
@@ -151,7 +148,7 @@ import {
 } from "../app/notification-target";
 import type { AlertHistoryFocus } from "./AlertHistoryTimeline";
 
-export type ActiveView = "map" | "menu" | "search" | "status" | "line-impacts" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "announcements" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes" | "source-status";
+export type ActiveView = "map" | "search" | "status" | "line-impacts" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "announcements" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes" | "source-status";
 import {
   useNavigationTransitions,
 } from "../hooks/useNavigationTransitions";
@@ -412,8 +409,6 @@ export function LineWatchShell({
     };
   }, [initialMapReady]);
 
-  const [menuPinned, setMenuPinned] = useState(false);
-  const [menuPinPreferenceReady, setMenuPinPreferenceReady] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState<boolean>(false);
   const [windowWidth, setWindowWidth] = useState<number>(1200);
@@ -457,7 +452,6 @@ export function LineWatchShell({
   });
   const { accountState, setAccountState, userGeneration, userGenerationRef, authConfig } = accountSession;
 
-  const [accountActionError, setAccountActionError] = useState<string | null>(null);
   const [isActionBusy, setIsActionBusy] = useState(false);
   const accountBusy = accountSession.isSigningOut || isActionBusy;
 
@@ -501,15 +495,9 @@ export function LineWatchShell({
     // Desktop collapse is page-lifetime UI state. Remove the retired durable
     // preference so an older visit cannot affect this or future releases.
     window.localStorage.removeItem("linewatch-desktop-sidebar-collapsed");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMenuPinned(window.localStorage.getItem("linewatch-menu-pinned") === "true");
-    setMenuPinPreferenceReady(true);
+    // The retired main menu's pin preference no longer has a surface.
+    window.localStorage.removeItem("linewatch-menu-pinned");
   }, []);
-
-  useEffect(() => {
-    if (!menuPinPreferenceReady || typeof window === "undefined") return;
-    window.localStorage.setItem("linewatch-menu-pinned", String(menuPinned));
-  }, [menuPinPreferenceReady, menuPinned]);
 
   const recordPwaInstallEngagement = useCallback(() => {
     if (!isMobile) return;
@@ -594,7 +582,6 @@ export function LineWatchShell({
     commutePathPreviewRef,
     searchReturnContextRef,
     crossNetworkStationSelectionRef,
-    viewScrollPositionsRef,
     navigateRoot,
     navigateForward,
     handleClosePanel,
@@ -1435,32 +1422,20 @@ export function LineWatchShell({
     navigateForward("my-stations");
   };
 
-  const openMyCommutes = () => {
-    setSelection(null);
-    setSelectedStationId(null);
-    setCommutePathPreview(null);
-    setCommutesActiveTab("saved");
-    setCommutesDraft(null);
-    clearPersistedCommuteDraft();
-    navigateForward("commutes");
-  };
-
   const handleDemoAccount = useCallback(async () => {
     setIsActionBusy(true);
-    setAccountActionError(null);
     try {
       await accountSession.loginDemo();
       setActiveView("commutes");
     } catch {
-      setAccountActionError("Demo account is unavailable.");
+      // No account surface shows this failure yet; the rider stays signed out.
     } finally {
       setIsActionBusy(false);
     }
-  }, [accountSession, setActiveView, setAccountActionError, setIsActionBusy]);
+  }, [accountSession, setActiveView, setIsActionBusy]);
 
   const handleSignOut = useCallback(async () => {
     setIsActionBusy(true);
-    setAccountActionError(null);
     try {
       let pushEndpoint: string | null = null;
       try {
@@ -1473,11 +1448,11 @@ export function LineWatchShell({
       }
       await accountSession.signOut({ pushEndpoint });
     } catch {
-      setAccountActionError("Sign out failed.");
+      // No account surface shows this failure yet; the session is left as it was.
     } finally {
       setIsActionBusy(false);
     }
-  }, [accountSession, pushSettings.supported, setAccountActionError, setIsActionBusy]);
+  }, [accountSession, pushSettings.supported, setIsActionBusy]);
 
   const handleAuthenticated = useCallback((nextState: AccountState) => {
     setAccountState(nextState);
@@ -1597,7 +1572,6 @@ export function LineWatchShell({
     clearCommutePreview(commuteIdOrEvent);
   }, [clearCommutePreview]);
 
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const stationSearchInputRef = useRef<HTMLInputElement>(null);
   const desktopRailToggleRef = useRef<HTMLButtonElement>(null);
   const searchOriginRef = useRef<ActiveView>("status");
@@ -1605,68 +1579,6 @@ export function LineWatchShell({
   const suppressSearchReopenRef = useRef<boolean>(false);
   const headerSearchBarRef = useRef<HTMLDivElement>(null);
   const stationKeyDownHandlerRef = useRef<((event: KeyboardEvent<HTMLInputElement>) => void) | null>(null);
-  const menuPanelRef = useRef<HTMLDivElement>(null);
-  const menuActionRefs = useRef<Array<MainMenuActionElement | null>>([]);
-
-  const registerMenuAction = (index: number) => (element: MainMenuActionElement | null) => {
-    menuActionRefs.current[index] = element;
-  };
-
-  const focusMenuAction = useCallback((index: number) => {
-    const actions = menuActionRefs.current.filter((element): element is MainMenuActionElement =>
-      element !== null && (!(element instanceof HTMLButtonElement) || !element.disabled)
-    );
-    if (actions.length === 0) return;
-    const nextIndex = Math.max(0, Math.min(index, actions.length - 1));
-    actions[nextIndex]?.focus();
-  }, []);
-
-  const handleMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const actions = menuActionRefs.current.filter((element): element is MainMenuActionElement =>
-      element !== null && (!(element instanceof HTMLButtonElement) || !element.disabled)
-    );
-    const currentIndex = actions.findIndex((element) => element === document.activeElement);
-
-    if (event.key === "Escape") {
-      event.preventDefault();
-      setMenuPinned(false);
-      setActiveView("map");
-      menuButtonRef.current?.focus();
-      return;
-    }
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      focusMenuAction(currentIndex < 0 ? 0 : (currentIndex + 1) % actions.length);
-      return;
-    }
-
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      focusMenuAction(currentIndex < 0 ? actions.length - 1 : (currentIndex - 1 + actions.length) % actions.length);
-      return;
-    }
-
-    if (event.key === "Home") {
-      event.preventDefault();
-      focusMenuAction(0);
-      return;
-    }
-
-    if (event.key === "End") {
-      event.preventDefault();
-      focusMenuAction(actions.length - 1);
-    }
-  };
-
-  useEffect(() => {
-    if (activeView === "menu") {
-      if (viewScrollPositionsRef.current.menu !== undefined) return;
-      const timer = window.setTimeout(() => focusMenuAction(0), 40);
-      return () => window.clearTimeout(timer);
-    }
-  }, [activeView, focusMenuAction]);
-
   useEffect(() => {
     if (reducedMotionOverride) return;
 
@@ -1676,22 +1588,6 @@ export function LineWatchShell({
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);
   }, [reducedMotionOverride]);
-
-  const handleToggleMenu = () => {
-    if (menuPinned) {
-      setMenuPinned(false);
-      navigateRoot("map");
-      return;
-    }
-    const nextView = activeViewRef.current === "menu" ? "map" : "menu";
-    if (activeViewRef.current !== "menu" && activeViewRef.current !== "map") {
-      setSelection(null);
-      setSelectedStationId(null);
-    }
-    navigateRoot(nextView);
-  };
-
-  const menuVisible = activeView === "menu" || menuPinned;
 
   const [stationSearchQuery, setStationSearchQuery] = useState("");
 
@@ -2034,6 +1930,10 @@ export function LineWatchShell({
   const handleReturnImpactToMap = desktopImpactIsMapFocused
     ? () => handleMapSelectImpact(null)
     : impactBackContext ? handleImpactStepBack : undefined;
+  // An impact opened from search steps back to the search results, not the map.
+  const impactReturnLabel = !desktopImpactIsMapFocused && impactBackContext?.origin.activeView === "search"
+    ? "Back to search results"
+    : "Back to map";
 
   const handleSearchSelectStation = (stationId: string, networkId: NetworkId) => {
     if (searchClosingTimeoutRef.current) {
@@ -2415,6 +2315,7 @@ export function LineWatchShell({
             onSelectImpact={handleMapSelectImpact}
             onSelectRelatedImpact={handleRelatedImpact}
             onReturnToMap={handleReturnImpactToMap}
+            returnToMapLabel={impactReturnLabel}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             onFocusMap={handleFocusMapFromPanel}
@@ -2429,6 +2330,7 @@ export function LineWatchShell({
             onSelectImpact={handleMapSelectImpact}
             onSelectRelatedImpact={handleRelatedImpact}
             onReturnToMap={handleReturnImpactToMap}
+            returnToMapLabel={impactReturnLabel}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             onFocusMap={handleFocusMapFromPanel}
@@ -2445,6 +2347,7 @@ export function LineWatchShell({
             onSelectImpact={handleMapSelectImpact}
             onSelectRelatedImpact={handleRelatedImpact}
             onReturnToMap={handleReturnImpactToMap}
+            returnToMapLabel={impactReturnLabel}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             onFocusMap={handleFocusMapFromPanel}
@@ -2461,6 +2364,7 @@ export function LineWatchShell({
             onSelectImpact={handleMapSelectImpact}
             onSelectRelatedImpact={handleRelatedImpact}
             onReturnToMap={handleReturnImpactToMap}
+            returnToMapLabel={impactReturnLabel}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             onFocusMap={handleFocusMapFromPanel}
@@ -2477,6 +2381,7 @@ export function LineWatchShell({
             onSelectImpact={handleMapSelectImpact}
             onSelectRelatedImpact={handleRelatedImpact}
             onReturnToMap={handleReturnImpactToMap}
+            returnToMapLabel={impactReturnLabel}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             onFocusMap={handleFocusMapFromPanel}
@@ -2579,7 +2484,6 @@ export function LineWatchShell({
               setMobileInspectorDetent("details-focus");
             }}
             onBack={handleSubmenuBack}
-            /* setActiveView(isMobile ? "status" : "menu") */
             onClose={handleClosePanel}
           />
         );
@@ -2593,7 +2497,6 @@ export function LineWatchShell({
             focusTripChangeId={focusTripChangeId}
             networkId={selectedNetwork}
             onBack={handleSubmenuBack}
-            /* setActiveView(isMobile ? "status" : "menu") */
             onClose={handleClosePanel}
           />
         );
@@ -3050,8 +2953,7 @@ export function LineWatchShell({
     );
   };
 
-  const isDesktopPanel = activeView !== "map" && activeView !== "search" && activeView !== "menu" && activeView !== "status";
-  const showMenuAttention = !menuVisible && !isDesktopPanel;
+  const isDesktopPanel = activeView !== "map" && activeView !== "search" && activeView !== "status";
 
   const activeFloatingPanel = (!showClosedScreen && (isDesktopPanel || isMobilePanel || isClosingPanel || isGoingBack)) ? (
     isMobilePanel || (isMobile && (isGoingBack || isClosingPanel)) ? (
@@ -3201,7 +3103,6 @@ export function LineWatchShell({
         data-active-view={activeView}
         data-network={selectedNetwork}
         data-network-switch-target={networkSwitchTarget ?? undefined}
-        data-menu-pinned={menuPinned ? "true" : undefined}
         className={`linewatch-shell relative w-full overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? (highContrast ? "dark bg-[#000000] text-slate-100" : "dark bg-[#0e1622] text-slate-100") : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""} ${mobileMapPerformanceMode ? "mobile-performance-mode" : ""} ${shellInspectorClasses}`}
       >
         <ScrollOverflowAffordances />
@@ -3270,93 +3171,6 @@ export function LineWatchShell({
       >
         {isMobile && (
         <div className="flex items-start gap-3 pointer-events-auto relative">
-          <div className="flex flex-col items-center gap-2">
-            {/* Menu Toggle Button */}
-            <button
-              ref={menuButtonRef}
-              onClick={handleToggleMenu}
-              className={`menu-toggle-btn menu-attention-beam desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer`}
-              aria-label={totalAlertCount > 0
-                ? `Toggle menu, ${totalAlertCount} total ${totalAlertCount === 1 ? "alert" : "alerts"}`
-                : "Toggle menu"}
-              aria-controls="linewatch-main-menu"
-              aria-expanded={menuVisible}
-              data-menu-attention={showMenuAttention ? "true" : "false"}
-            >
-              <div className="relative w-7 h-7 flex items-center justify-center">
-                 <Menu
-                    className={`absolute text-slate-800 dark:text-white transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${menuVisible ? "opacity-0 rotate-90 scale-50" : "opacity-100 rotate-0 scale-100"}`}
-                    size={26}
-                 />
-                 <X
-                    className={`absolute text-slate-800 dark:text-white transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${menuVisible ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-50"}`}
-                    size={26}
-                 />
-              </div>
-              {totalAlertCount > 0 && !menuVisible && (
-                <OverlappingCountBadge
-                  className="desktop-menu-count-badge absolute -top-2.5 -right-2.5 flex h-[26px] min-w-[26px] items-center justify-center rounded-full bg-red-500 px-1 text-white shadow-md border border-white dark:border-[#12151c]"
-                  count={totalAlertCount}
-                />
-              )}
-            </button>
-
-            {/* Desktop Quick-Jump Shortcuts (My Commutes & My Stations) */}
-            <div
-              className={`desktop-quick-shortcuts hidden md:flex flex-col items-center gap-3.5 transition-all duration-200 ${
-                menuVisible || isDesktopPanel || showClosedScreen ? "opacity-0 pointer-events-none -translate-y-2" : "opacity-100 translate-y-0"
-              }`}
-              role="group"
-              aria-label="Saved transit shortcuts"
-            >
-              <button
-                type="button"
-                onClick={openMyCommutes}
-                className="desktop-quick-action-btn desktop-quick-action-btn--commutes group/quick"
-                aria-label={
-                  commuteAffectedCount > 0
-                    ? `My Commutes, ${commuteAffectedCount} ${commuteAffectedCount === 1 ? "commute affected" : "commutes affected"}`
-                    : "My Commutes"
-                }
-                title="My Commutes"
-              >
-                <Navigation size={24} className="shrink-0" aria-hidden="true" />
-                {commuteAffectedCount > 0 && (
-                  <span className="desktop-quick-action-badge desktop-quick-action-badge--alert" aria-hidden="true">
-                    {commuteAffectedCount}
-                  </span>
-                )}
-                <span className="desktop-quick-action-tooltip">My Commutes</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={openMyStations}
-                className="desktop-quick-action-btn desktop-quick-action-btn--stations group/quick"
-                aria-label={
-                  savedStationsAffectedCount > 0
-                    ? `My Stations, ${savedStationsAffectedCount} ${savedStationsAffectedCount === 1 ? "station affected" : "stations affected"}`
-                    : savedStations.length > 0
-                      ? `My Stations, ${savedStations.length} ${savedStations.length === 1 ? "saved station" : "saved stations"}`
-                      : "My Stations"
-                }
-                title="My Stations"
-              >
-                <MapPin size={24} className="shrink-0" aria-hidden="true" />
-                {savedStationsAffectedCount > 0 ? (
-                  <span className="desktop-quick-action-badge desktop-quick-action-badge--alert" aria-hidden="true">
-                    {savedStationsAffectedCount}
-                  </span>
-                ) : savedStations.length > 0 ? (
-                  <span className="desktop-quick-action-badge desktop-quick-action-badge--stations" aria-hidden="true">
-                    {savedStations.length}
-                  </span>
-                ) : null}
-                <span className="desktop-quick-action-tooltip">My Stations</span>
-              </button>
-            </div>
-          </div>
-
           {/* Header station search input — replaces the old static button */}
           <div
             ref={headerSearchBarRef}
@@ -3413,58 +3227,6 @@ export function LineWatchShell({
             )}
           </div>
 
-          {/* Floating Dropdown Menu */}
-          <MainMenu
-            accessibilityOutageResult={accessibilityOutageResult}
-            accountActionError={accountActionError}
-            accountBusy={accountBusy}
-            accountCommutes={accountCommutes}
-            accountState={accountState}
-            activeAlerts={activeAlerts}
-            activeView={activeView}
-            announcementCount={announcementCount}
-            authConfig={authConfig}
-            commuteAffectedCount={commuteAffectedCount}
-            commuteClearCount={commuteClearCount}
-            defaultNetworkPreference={defaultNetworkPreference}
-            delays={delays}
-            displayData={displayData}
-            dotBackgroundEnabled={dotBackgroundEnabled}
-            handleDefaultNetworkChange={handleDefaultNetworkChange}
-            handleDemoAccount={handleDemoAccount}
-            handleMenuKeyDown={handleMenuKeyDown}
-            handleSignOut={handleSignOut}
-            handleToggleDotBackground={handleToggleDotBackground}
-            handleToggleHighContrast={handleToggleHighContrast}
-            handleToggleReducedMotion={handleToggleReducedMotion}
-            highContrast={highContrast}
-            lineStatuses={lineStatuses}
-            menuPanelRef={menuPanelRef}
-            menuPinned={menuPinned}
-            menuVisible={menuVisible}
-            navigateForward={navigateForward}
-            openAuthChoice={openAuthChoice}
-            openGoogleLinkDialog={openGoogleLinkDialog}
-            openImpactCategory={openImpactCategory}
-            openLineImpacts={openLineImpacts}
-            openRegionalTripChanges={openRegionalTripChanges}
-            openServiceNotices={openServiceNotices}
-            plannedClosures={plannedClosures}
-            reducedMotion={reducedMotion}
-            reducedSpeedZoneCount={reducedSpeedZoneCount}
-            reducedSpeedZones={reducedSpeedZones}
-            regionalTripChangeCount={regionalTripChangeCount}
-            registerMenuAction={registerMenuAction}
-            savedStations={savedStations}
-            savedStationsAffectedCount={savedStationsAffectedCount}
-            savedStationsClearCount={savedStationsClearCount}
-            selectedNetwork={selectedNetwork}
-            setActiveView={setActiveView}
-            setMenuPinned={setMenuPinned}
-            setSelection={setSelection}
-            supportUrl={supportUrl}
-            surfaceNoticeCount={surfaceNoticeCount}
-          />
           <StationSearchPanel
             open={activeView === "search" || isClosingSearch}
             isClosing={isClosingSearch}
@@ -3851,7 +3613,6 @@ export function LineWatchShell({
                 zoomOutSignal={zoomOutSignal}
                 reducedMotion={reducedMotion}
                 mobilePerformanceMode={mobileMapPerformanceMode}
-                desktopMenuPinned={menuPinned}
                 preserveCameraOnSelectionClear
                 commutePathPreview={commutePathPreview}
                 onClearCommutePathPreview={handleClearCommutePathPreview}
@@ -3912,7 +3673,6 @@ export function LineWatchShell({
             zoomOutSignal={zoomOutSignal}
             reducedMotion={reducedMotion}
             mobilePerformanceMode={mobileMapPerformanceMode}
-            desktopMenuPinned={menuPinned}
             preserveCameraOnSelectionClear
             commutePathPreview={commutePathPreview}
             onClearCommutePathPreview={handleClearCommutePathPreview}
@@ -4061,40 +3821,6 @@ export function LineWatchShell({
 
 
 
-      {/* Fixed borderless legend at the bottom right */}
-      {!showClosedScreen && (
-      <>
-        <aside
-          className={`desktop-status-chip-row-container fixed bottom-6 left-6 z-20 pointer-events-auto transition-opacity duration-200 ${menuVisible ? "opacity-0 pointer-events-none" : "opacity-100"}`}
-          aria-hidden={menuVisible ? "true" : undefined}
-        >
-          {!isMobile && !menuVisible && !rotatedMapMode && !showPwaInstallNudge && !commutePathPreview && (activeView === "map" || activeView === "search") && <CurrentServicePanel
-              overlapSelectors={[
-                activeView === "search" || isClosingSearch ? "#station-search-panel" : "",
-                selectedStationId ? ".station-detail-panel" : "",
-              ].filter(Boolean).join(",")}
-              data={displayData}
-              notices={!displayData.snapshot && currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
-              onNotice={handleSearchOpenSurfaceNotice}
-              onImpact={handleSearchSelectImpact}
-              onStatus={() => navigateForward("status")}
-              onCategory={(view, lineId) => openImpactCategory(view, lineId)}
-              onNotices={openServiceNotices}
-            />}
-          <DesktopImpactChips
-            selectedNetwork={selectedNetwork}
-            suspensionCount={activeAlerts.length}
-            delayCount={delays.length}
-            plannedAdvisoryCount={plannedClosures.length}
-            reducedSpeedZoneCount={reducedSpeedZoneCount}
-            regionalTripChangeCount={regionalTripChangeCount}
-            openImpactCategory={openImpactCategory}
-            openRegionalTripChanges={openRegionalTripChanges}
-          />
-        </aside>
-
-      </>
-      )}
 
       {!showClosedScreen && mobileImpactInspectorOpen && selection ? (
         <MobileImpactInspector

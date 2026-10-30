@@ -27,6 +27,8 @@ const reliabilitySource = readFileSync(new URL("../src/components/ReliabilityPan
 const dashboardDataSource = readFileSync(new URL("../src/app/dashboard-data.ts", import.meta.url), "utf8");
 const linewatchDataSource = readFileSync(new URL("../src/app/linewatch-data.ts", import.meta.url), "utf8");
 const mobileImpactInspectorSource = readFileSync(new URL("../src/components/MobileImpactInspector.tsx", import.meta.url), "utf8");
+const desktopStatusOverviewSource = readFileSync(new URL("../src/components/DesktopStatusOverview.tsx", import.meta.url), "utf8");
+const desktopMorePanelSource = readFileSync(new URL("../src/components/DesktopMorePanel.tsx", import.meta.url), "utf8");
 const mobileStatusSheetSource = readFileSync(new URL("../src/components/MobileStatusSheet.tsx", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 const subwayClosedSource = readFileSync(new URL("../src/components/SubwayClosedScreen.tsx", import.meta.url), "utf8");
@@ -39,7 +41,7 @@ const selectedImpactScrollSource = readFileSync(new URL("../src/hooks/useScrollS
 describe("floating menu layout", () => {
   it("opens a combined line-impact submenu from desktop and mobile line status", () => {
     assert.match(shellSource, /type ActiveView = [^;]*"line-impacts"/);
-    assert.match(shellSource, /onClick=\{\(\) => openLineImpacts\(l\.id\)\}/);
+    assert.match(desktopStatusOverviewSource, /onOpenCategory\("line-impacts", line\.id\)/);
     assert.match(shellSource, /<LineImpactsPanel/);
     assert.match(mobileStatusSheetSource, /onOpenCategory\("line-impacts", line\.id\)/);
     assert.match(lineImpactsSource, /<TransitLineBadge lineId=\{lineId\}/);
@@ -52,8 +54,8 @@ describe("floating menu layout", () => {
     assert.match(lineImpactsSource, /<ReducedSpeedZonesPanel \{\.\.\.sharedProps\}/);
     assert.match(lineImpactsSource, /<PlannedClosuresPanel \{\.\.\.sharedProps\}/);
     assert.match(lineImpactsSource, /line-impact-total-badge/);
-    assert.match(shellSource, /View all service impacts for \$\{l\.name\}[\s\S]*<ChevronRight/s);
-    assert.match(shellSource, /<CircleCheck[\s\S]*aria-label=\{clearServiceStatusLabel/s);
+    assert.match(mobileStatusSheetSource, /View all service impacts for \$\{line\.name\}[\s\S]*<ChevronRight/s);
+    assert.match(mobileStatusSheetSource, /aria-label=\{clearServiceStatusLabel[\s\S]*<CircleCheck/s);
     assert.match(globalCss, /\.line-impact-category-filters button\s*\{[^}]*min-height:\s*36px;[^}]*font-size:\s*10\.5px/s);
     assert.match(globalCss, /@media \(min-width:\s*768px\)[\s\S]*\.line-impact-category-filters\s*\{[^}]*flex-wrap:\s*wrap/s);
     assert.match(globalCss, /@media \(min-width:\s*768px\)[\s\S]*\.line-impact-category-filters button\s*\{[^}]*flex:\s*0 1 auto;/s);
@@ -132,21 +134,13 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /\.highlight-active-card\s*\{[^}]*var\(--selection-fast-cycle-duration\)/s);
   });
 
-  it("keeps the map first while exposing floating menu and submenu states", () => {
-    assert.match(shellSource, /type ActiveView = "map" \| "menu" \| "search" \| "status" \| "line-impacts" \| "alerts" \| "delays" \| "reduced-speed-zones" \| "closures" \| "commutes" \| "notifications" \| "analytics" \| "more"/);
-    assert.match(shellSource, /handleToggleMenu/);
-    assert.match(shellSource, /Toggle menu/);
-    assert.match(shellSource, /Floating Dropdown Menu/);
+  it("keeps the map first while exposing floating submenu states", () => {
+    assert.match(shellSource, /type ActiveView = "map" \| "search" \| "status" \| "line-impacts" \| "alerts" \| "delays" \| "reduced-speed-zones" \| "closures" \| "commutes" \| "notifications" \| "analytics" \| "more"/);
     assert.match(globalCss, /@keyframes menu-border-pulse/);
     assert.match(globalCss, /animation:\s*menu-border-pulse 2\.8s cubic-bezier\(0\.4, 0, 0\.2, 1\) infinite/);
-    assert.match(shellSource, /const showMenuAttention = !menuVisible && !isDesktopPanel;/);
-    assert.match(shellSource, /data-menu-attention=\{showMenuAttention \? "true" : "false"\}/);
-    assert.match(globalCss, /\.menu-attention-beam\[data-menu-attention="false"\]::before\s*\{[^}]*animation:\s*none;[^}]*content:\s*none;/s);
-    assert.doesNotMatch(globalCss, /\.menu-attention-beam:focus-visible::before\s*\{[^}]*opacity:\s*0;/s);
     assert.match(shellSource, /Floating Submenus/);
     assert.match(shellSource, /activeView === "alerts"/);
     assert.match(shellSource, /activeView === "delays"/);
-    assert.match(shellSource, /\/assets\/linewatch\/delay-icon\.svg/);
     assert.match(delaysPanelSource, /data-impact-card-id=/);
     assert.match(delaysPanelSource, /MetadataGrid/);
     assert.match(impactCardFieldsSource, /\["Started"/);
@@ -195,9 +189,10 @@ describe("floating menu layout", () => {
     assert.doesNotMatch(stationSearchSource, /station-search-flag-access/);
     assert.doesNotMatch(stationSearchSource, />\s*Access\s*</);
 
-    assert.match(shellSource, /Demo Account/);
-    assert.match(shellSource, /Create Account/);
-    assert.match(shellSource, /Sign In/);
+    const mobileMoreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
+    assert.match(mobileMoreSheetSource, /Demo Account/);
+    assert.match(mobileMoreSheetSource, /Create Account/);
+    assert.match(mobileMoreSheetSource, /Sign In/);
     assert.match(savedCommuteCardSource, /impact\.statusLabel/);
     assert.doesNotMatch(savedCommuteCardSource, /Impact matching pending/);
 
@@ -210,15 +205,12 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /\.mobile-status-peek/);
   });
 
-  it("shows the combined alert-category total on the hamburger badge", () => {
+  it("counts every alert category in the combined alert total", () => {
     assert.match(shellSource, /const reducedSpeedZoneCount = countReducedSpeedZones\(reducedSpeedZones\);/);
     assert.match(
       shellSource,
       /const totalAlertCount =\s*activeAlerts\.length\s*\+ delays\.length\s*\+ reducedSpeedZoneCount\s*\+ plannedClosures\.length;/,
     );
-    assert.match(shellSource, /\{totalAlertCount > 0 && !menuVisible && \(/);
-    assert.match(shellSource, /\{totalAlertCount\}/);
-    assert.match(shellSource, /`Toggle menu, \$\{totalAlertCount\} total \$\{totalAlertCount === 1 \? "alert" : "alerts"\}`/);
   });
 
   it("allows alert and planned closure copy to wrap instead of collapsing into narrow columns", () => {
@@ -513,8 +505,8 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /#FACC15/);
   });
 
-  it("shows the app version label under the ingestion status tiles in the desktop menu", () => {
-    assert.match(shellSource, /lineWatchAppVersionLabel/);
-    assert.match(shellSource, /aria-label=\{\`App version \$\{lineWatchAppVersionLabel\}\`\}/);
+  it("shows the app version label in the desktop More panel", () => {
+    assert.match(desktopMorePanelSource, /lineWatchAppVersionLabel/);
+    assert.match(desktopMorePanelSource, /aria-label=\{\`App version \$\{lineWatchAppVersionLabel\}\`\}/);
   });
 });

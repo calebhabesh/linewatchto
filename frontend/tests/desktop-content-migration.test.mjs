@@ -105,26 +105,10 @@ describe("desktop content and navigation migration (Session 2)", () => {
   });
 
   describe("stylesheet retirement of legacy desktop floating chrome", () => {
-    it("hides legacy top chrome buttons and bottom sheet chips on desktop screens", () => {
-      assert.match(
-        globalCss,
-        /@media\s*\(min-width:\s*768px\)\s*\{[^}]*\.linewatch-shell\s+\.menu-toggle-btn/s,
-      );
-      assert.match(
-        globalCss,
-        /@media\s*\(min-width:\s*768px\)\s*\{[^}]*\.linewatch-shell\s+\.desktop-quick-shortcuts/s,
-      );
+    it("hides the legacy header search bar on desktop screens", () => {
       assert.match(
         globalCss,
         /@media\s*\(min-width:\s*768px\)\s*\{[^}]*\.linewatch-shell\s+\.header-search-bar/s,
-      );
-      assert.match(
-        globalCss,
-        /@media\s*\(min-width:\s*768px\)\s*\{[^}]*\.linewatch-shell\s+#linewatch-main-menu/s,
-      );
-      assert.match(
-        globalCss,
-        /@media\s*\(min-width:\s*768px\)\s*\{[^}]*\.linewatch-shell\s+\.desktop-status-chip-row-container/s,
       );
     });
 

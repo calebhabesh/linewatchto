@@ -2,14 +2,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
-import { readShellSource } from "./helpers/shell-source.mjs";
 
 const globalCss = readAppStylesheet();
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const rszPanelSource = readFileSync(new URL("../src/components/ReducedSpeedZonesPanel.tsx", import.meta.url), "utf8");
 const directionalZoneCountSource = readFileSync(new URL("../src/components/DirectionalZoneCount.tsx", import.meta.url), "utf8");
 const impactCardFieldsSource = readFileSync(new URL("../src/components/ImpactCardFields.tsx", import.meta.url), "utf8");
-const shellSource = readShellSource();
 const legendSource = readFileSync(new URL("../src/components/LineLegend.tsx", import.meta.url), "utf8");
 const stationDetailSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 
@@ -28,17 +26,12 @@ describe("Reduced Speed Zone amber color", () => {
     assert.match(globalCss, /\.overlap-indicator-badge\.delay\s*\{[^}]*#FEEC41/s);
     assert.match(mapSource, /RSZ_IMPACT_COLOR/);
     assert.match(rszPanelSource, /rsz-tone/);
-    assert.match(shellSource, /rsz-tone/);
     assert.match(legendSource, /legend-rsz-button/);
     assert.match(stationDetailSource, /rsz-tone/);
     assert.doesNotMatch(rszPanelSource, /border-l-amber-500/);
     assert.doesNotMatch(rszPanelSource, /!bg-amber-50/);
 
-    // Desktop bottom-left chip and menu badge use canonical amber tokens
-    assert.match(globalCss, /\.desktop-header-impact-chips \.desktop-status-chip--reduced-speed-zone \.desktop-status-chip-count\s*\{[\s\S]*?color:\s*var\(--impact-rsz-ink\)/);
-    assert.match(globalCss, /\.dark \.desktop-header-impact-chips \.desktop-status-chip--reduced-speed-zone \.desktop-status-chip-count\s*\{[\s\S]*?color:\s*var\(--impact-rsz\)/);
-    assert.match(globalCss, /\.desktop-status-chip--reduced-speed-zone\s*\{[\s\S]*?color:\s*var\(--impact-rsz-ink\)/);
-    assert.match(globalCss, /\.dark \.desktop-status-chip--reduced-speed-zone\s*\{[\s\S]*?color:\s*var\(--impact-rsz\)/);
+    // Count badges use canonical amber tokens
     assert.match(globalCss, /\.desktop-menu-count-badge\.desktop-menu-count-rsz\s*\{[\s\S]*?color:\s*var\(--impact-rsz-ink\)/);
     assert.match(globalCss, /\.dark \.desktop-menu-count-badge\.desktop-menu-count-rsz\s*\{[\s\S]*?color:\s*var\(--impact-rsz\)/);
     assert.match(globalCss, /\.mobile-status-actions button\.mobile-status-btn-rsz \.mobile-status-btn-circle\[data-count="positive"\]\s*\{[\s\S]*?color:\s*var\(--impact-rsz-ink\)/);

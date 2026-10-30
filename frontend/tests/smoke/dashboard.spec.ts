@@ -175,7 +175,6 @@ async function expectRegionalChooserToClearReferencedAlerts(page: Page) {
 const mapChooserUiKeepoutSelector = [
   ".desktop-map-control-rail",
   ".desktop-map-legend",
-  ".desktop-status-chip-row-container",
   ".mobile-bottom-nav",
   ".mobile-status-peek",
   ".mobile-legend-pill",
@@ -802,7 +801,6 @@ test("regional refresh, pan, zoom, and center preserve the authored SVG instance
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
-  await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
   await page.getByRole("button", { name: "Collapse sidebar" }).click();
 
   const regionalMap = page.locator(".regional-map");
@@ -2870,7 +2868,6 @@ test("paints current delays above planned closures on both maps", async ({ page,
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
-  await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
 
   const regionalMap = page.locator(".regional-map");
   await expect(regionalMap.locator(
@@ -4157,7 +4154,6 @@ test("opens regional source coverage and retained records in non-production", as
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
-  await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
 
   if (isMobile) {
     await page.getByRole("button", { name: "More", exact: true }).click();
@@ -4391,8 +4387,9 @@ test("global search opens a condensed alert result in its detailed card and mobi
 
   if (isMobile) {
     // The search result already focuses this delay on the map (highlight checked
-    // above); its card button steps back to the search results.
-    await delayCard.getByRole("button", { name: /^Back to map: / }).click();
+    // above); its card button steps back to the search results and says so.
+    await expect(delayCard.getByRole("button", { name: /^Back to map: / })).toHaveCount(0);
+    await delayCard.getByRole("button", { name: /^Back to search results: / }).click();
     await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-active-view", "search");
   }
 });

@@ -8,6 +8,7 @@ const stationSource = readFileSync(new URL("../src/components/RegionalStationDet
 const listSource = readFileSync(new URL("../src/components/RegionalTripChangesList.tsx", import.meta.url), "utf8");
 const logsSource = readFileSync(new URL("../src/components/LogsDropdown.tsx", import.meta.url), "utf8");
 const shellSource = readShellSource();
+const desktopStatusOverviewSource = readFileSync(new URL("../src/components/DesktopStatusOverview.tsx", import.meta.url), "utf8");
 const mobileStatusSource = readFileSync(new URL("../src/components/MobileStatusSheet.tsx", import.meta.url), "utf8");
 const mobilePeekSource = readFileSync(new URL("../src/components/MobileStatusPeek.tsx", import.meta.url), "utf8");
 const mobileMoreSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
@@ -54,17 +55,7 @@ describe("regional trip changes UI", () => {
     assert.match(logsSource, /schedule\.requiredThrough/);
   });
 
-  it("places the regional trip changes entry below planned closures and above accessibility outages on desktop and mobile", () => {
-    const desktopClosuresIdx = shellSource.indexOf('onClick={() => openImpactCategory("closures")}');
-    const desktopTripChangesIdx = shellSource.indexOf("onClick={openRegionalTripChanges}", desktopClosuresIdx);
-    const desktopAccessibilityIdx = shellSource.indexOf('onClick={() => navigateForward("accessibility-outages")}');
-
-    assert.ok(desktopClosuresIdx !== -1, "desktop closures entry must exist");
-    assert.ok(desktopTripChangesIdx !== -1, "desktop trip changes entry must exist");
-    assert.ok(desktopAccessibilityIdx !== -1, "desktop accessibility outages entry must exist");
-    assert.ok(desktopClosuresIdx < desktopTripChangesIdx, "desktop planned closures must precede trip changes");
-    assert.ok(desktopTripChangesIdx < desktopAccessibilityIdx, "desktop trip changes must precede accessibility outages");
-
+  it("places the regional trip changes entry below planned closures and above accessibility outages on mobile", () => {
     const mobileClosuresIdx = mobileStatusSource.indexOf('onClick={() => onOpenCategory("closures")}');
     const mobileTripChangesIdx = mobileStatusSource.indexOf('onClick={() => onOpenCategory("trip-changes")}');
     const mobileAccessibilityIdx = mobileStatusSource.indexOf('onClick={() => onOpenCategory("accessibility-outages")}');
@@ -76,14 +67,12 @@ describe("regional trip changes UI", () => {
     assert.ok(mobileTripChangesIdx < mobileAccessibilityIdx, "mobile trip changes must precede accessibility outages");
   });
 
-  it("uses the canonical amber treatment in map, menu, and mobile status navigation", () => {
-    assert.match(shellSource, /desktop-status-chip--trip-changes/);
-    assert.match(shellSource, /trip-change-count-badge/);
+  it("uses the canonical amber treatment in map and mobile status navigation", () => {
     assert.doesNotMatch(shellSource, /bg-red-500\/20[\s\S]{0,160}regionalTripChangeCount/);
     assert.match(mobileStatusSource, /mobile-status-btn-trip-changes[\s\S]*trip-change-tone/);
     assert.match(stylesSource, /--trip-change:\s*#f59e0b/);
     assert.doesNotMatch(stylesSource, /\.mobile-status-btn-trip-changes \.mobile-status-btn-circle\s*\{/);
-    assert.match(shellSource, /\(regionalTripChangeCount \?\? 0\) === 1 \? "Trip Change" : "Trip Changes"/);
+    assert.match(desktopStatusOverviewSource, /tripChangeCount === 1 \? "Trip Change" : "Trip Changes"/);
     assert.match(mobilePeekSource, /tripChangeCount === 1 \? "Trip Change" : "Trip Changes"/);
     assert.match(mobilePeekSource, /mobile-status-peek-count-badge trip-changes/);
     assert.match(stylesSource, /\.mobile-status-peek-count-badge\.trip-changes/);

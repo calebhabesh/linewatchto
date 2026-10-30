@@ -20,7 +20,6 @@ export function desktopSidebarWidthForView(activeView: string, selectedStationId
     case "map":
       return 420;
     case "more":
-    case "menu":
       return 380;
     default:
       return DESKTOP_SIDEBAR_TARGET_WIDTH;
@@ -122,12 +121,10 @@ export function readDesktopOverlayInsets(viewport: HTMLElement | null): { left: 
 }
 
 /**
- * Reads the combined left occlusion caused by the desktop sidebar, pinned main menu,
- * or floating panels, constrained to leave at least a minimum visible map width.
+ * Reads the combined left occlusion caused by the desktop sidebar or floating panels, constrained to leave at least a minimum visible map width.
  */
 export function readDesktopLeftOcclusion(
   viewport: HTMLElement | null,
-  desktopMenuPinned: boolean,
   focusPadding = 24,
 ): number {
   if (!viewport || typeof window === "undefined" || window.innerWidth < 768) {
@@ -141,7 +138,6 @@ export function readDesktopLeftOcclusion(
   const shell = viewport.closest<HTMLElement>(".linewatch-shell");
   const overlayRightEdges = [
     desktopOverlay.left > 0 ? viewportRect.left + desktopOverlay.left : null,
-    desktopMenuPinned ? shell?.querySelector<HTMLElement>("#linewatch-main-menu") : null,
     shell?.querySelector<HTMLElement>(".floating-panel-shell"),
   ].flatMap((element) => {
     if (typeof element === "number") return [element];
@@ -348,18 +344,10 @@ export function measureDesktopMapInsets(
     }
   }
 
-  const impactBadges = shell?.querySelector<HTMLElement>(".desktop-status-chip-row-container")
-    ?? (typeof document !== "undefined" ? document.querySelector<HTMLElement>(".desktop-status-chip-row-container") : null);
   const legend = shell?.querySelector<HTMLElement>(".desktop-map-legend")
     ?? (typeof document !== "undefined" ? document.querySelector<HTMLElement>(".desktop-map-legend") : null);
 
   let bottom = 0;
-  if (impactBadges && window.getComputedStyle(impactBadges).display !== "none") {
-    const badgesRect = impactBadges.getBoundingClientRect();
-    if (badgesRect.width > 0 && badgesRect.height > 0) {
-      bottom = Math.max(bottom, Math.round(containerRect.bottom - badgesRect.top));
-    }
-  }
   if (legend && window.getComputedStyle(legend).display !== "none") {
     const legendRect = legend.getBoundingClientRect();
     if (legendRect.width > 0 && legendRect.height > 0) {
@@ -426,7 +414,6 @@ export function desktopRailDestinationForView(view: string): DesktopRailDestinat
     case "feedback":
       return "feedback";
     case "more":
-    case "menu":
     case "notifications":
     case "privacy-acknowledgements":
     case "release-notes":

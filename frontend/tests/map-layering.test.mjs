@@ -689,7 +689,6 @@ describe("asset-backed map layering", () => {
     assert.match(chooserKeepoutsSource, /\[data-map-chooser-keepout\]/);
     assert.match(chooserKeepoutsSource, /\.desktop-map-control-rail/);
     assert.match(chooserKeepoutsSource, /\.desktop-map-legend/);
-    assert.match(chooserKeepoutsSource, /\.desktop-status-chip-row-container/);
     assert.match(chooserKeepoutsSource, /\.mobile-status-peek/);
     assert.match(chooserKeepoutsSource, /\.mobile-legend-pill/);
     assert.match(chooserKeepoutsSource, /\.mobile-my-stations-shortcut/);

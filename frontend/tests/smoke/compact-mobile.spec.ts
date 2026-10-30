@@ -63,7 +63,6 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
-  await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
   const regionalMap = page.locator(".regional-map");
   const regionalMapStage = regionalMap.locator(".regional-map-stage");
   await expect(regionalMap).toBeVisible();

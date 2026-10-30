@@ -2,7 +2,6 @@ export const MAP_CHOOSER_KEEPOUT_SELECTOR = [
   ".desktop-sidebar-container:not(.desktop-sidebar-container--collapsed)",
   ".desktop-map-control-rail",
   ".desktop-map-legend",
-  ".desktop-status-chip-row-container",
   ".mobile-bottom-nav",
   ".mobile-status-peek",
   ".mobile-legend-pill",

@@ -412,7 +412,6 @@ function InteractiveTtcMapComponent({
   zoomOutSignal,
   reducedMotion,
   mobilePerformanceMode = false,
-  desktopMenuPinned = false,
   mapChromeVisible = false,
   preserveCameraOnSelectionClear = false,
   commutePathPreview,
@@ -445,7 +444,6 @@ function InteractiveTtcMapComponent({
   zoomOutSignal?: number;
   reducedMotion: boolean;
   mobilePerformanceMode?: boolean;
-  desktopMenuPinned?: boolean;
   mapChromeVisible?: boolean;
   preserveCameraOnSelectionClear?: boolean;
   commutePathPreview?: AccountCommutePathPreview | null;
@@ -764,8 +762,6 @@ function InteractiveTtcMapComponent({
     const observer = new ResizeObserver(measureDesktopInsets);
     observer.observe(root);
     observer.observe(rail);
-    const impactBadges = document.querySelector<HTMLElement>(".desktop-status-chip-row-container");
-    if (impactBadges) observer.observe(impactBadges);
     const legend = document.querySelector<HTMLElement>(".desktop-map-legend");
     if (legend) observer.observe(legend);
     window.addEventListener("resize", measureDesktopInsets);
@@ -1125,14 +1121,14 @@ function InteractiveTtcMapComponent({
     }
 
     if (!isMobile && typeof window !== "undefined") {
-      const leftOcclusion = readDesktopLeftOcclusion(viewport, desktopMenuPinned, 24);
+      const leftOcclusion = readDesktopLeftOcclusion(viewport, 24);
       if (leftOcclusion > 0) {
         insets.left = Math.max(insets.left, leftOcclusion);
       }
     }
 
     return { insets, topPillBottom, mobileStationTop };
-  }, [commutePathPreview, desktopMapTopInset, desktopMenuPinned, selectedStationId, selection]);
+  }, [commutePathPreview, desktopMapTopInset, selectedStationId, selection]);
 
   const focusSelectedMapElements = useCallback(() => {
     if (loadState !== "ready") return false;
@@ -1379,7 +1375,7 @@ function InteractiveTtcMapComponent({
   useEffect(() => {
     if (loadState !== "ready") return;
 
-    const currentLayoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${viewportOrientation}:${geometryReady}:${rasterMapReady}`;
+    const currentLayoutKey = `${layoutResetSignal ?? 0}:${viewportOrientation}:${geometryReady}:${rasterMapReady}`;
 
     if (isGestureActive()) return;
 
@@ -1428,7 +1424,6 @@ function InteractiveTtcMapComponent({
       }
     };
   }, [
-    desktopMenuPinned,
     focusSelectedMapElements,
     focusTargetKey,
     geometryReady,

@@ -3,36 +3,8 @@
    Stealth scrollbars, desktop panel scrollbars, and overflow fade masks.
    ========================================================================== */
 
-/* Thinner, stealthier scrollbar for menus */
-@supports not selector(::-webkit-scrollbar) {
-  .stealth-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: #303641 transparent;
-  }
-}
-.stealth-scrollbar::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-.stealth-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.stealth-scrollbar::-webkit-scrollbar-thumb {
-  background: #303641;
-  border-radius: 999px;
-}
-.stealth-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #4d5667;
-}
-.stealth-scrollbar::-webkit-scrollbar-button {
-  display: none;
-  width: 0;
-  height: 0;
-}
-
 /* Unified scrollbar styling for desktop scroll containers */
 @media (min-width: 768px) {
-  #linewatch-main-menu-scroll,
   .desktop-sidebar-content,
   .desktop-view-content-wrapper,
   .floating-panel-shell > div,
@@ -72,7 +44,6 @@
     -ms-overflow-style: auto; /* IE 10+ */
   }
 
-  #linewatch-main-menu-scroll::-webkit-scrollbar,
   .desktop-sidebar-content::-webkit-scrollbar,
   .desktop-view-content-wrapper::-webkit-scrollbar,
   .floating-panel-shell > div::-webkit-scrollbar,
@@ -112,7 +83,6 @@
     height: 8px;
   }
 
-  #linewatch-main-menu-scroll::-webkit-scrollbar-track,
   .desktop-sidebar-content::-webkit-scrollbar-track,
   .desktop-view-content-wrapper::-webkit-scrollbar-track,
   .floating-panel-shell > div::-webkit-scrollbar-track,
@@ -150,7 +120,6 @@
     background: transparent;
   }
 
-  #linewatch-main-menu-scroll::-webkit-scrollbar-thumb,
   .desktop-sidebar-content::-webkit-scrollbar-thumb,
   .desktop-view-content-wrapper::-webkit-scrollbar-thumb,
   .floating-panel-shell > div::-webkit-scrollbar-thumb,
@@ -190,7 +159,6 @@
     border: 1px solid transparent;
   }
 
-  #linewatch-main-menu-scroll::-webkit-scrollbar-thumb:hover,
   .desktop-sidebar-content::-webkit-scrollbar-thumb:hover,
   .desktop-view-content-wrapper::-webkit-scrollbar-thumb:hover,
   .floating-panel-shell > div::-webkit-scrollbar-thumb:hover,
@@ -322,39 +290,7 @@
     width: 0 !important;
   }
 
-  /* Enable top and bottom buttons (arrows) on desktop main menu */
-  #linewatch-main-menu-scroll::-webkit-scrollbar-button {
-    display: block;
-    width: 8px;
-    height: 12px;
-  }
-
-  /* Decrement button (up arrow) */
-  #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:decrement {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='18 15 12 9 6 15'></polyline></svg>");
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 8px;
-  }
-
-  #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:decrement:hover {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='18 15 12 9 6 15'></polyline></svg>");
-  }
-
-  /* Increment button (down arrow) */
-  #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:increment {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 8px;
-  }
-
-  #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:increment:hover {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
-  }
-
   /* High contrast support */
-  .linewatch-shell.high-contrast #linewatch-main-menu-scroll,
   .linewatch-shell.high-contrast .desktop-sidebar-content,
   .linewatch-shell.high-contrast .desktop-view-content-wrapper,
   .linewatch-shell.high-contrast .floating-panel-shell > div,
@@ -370,7 +306,6 @@
     scrollbar-color: #ffffff #000000;
   }
 
-  .linewatch-shell.high-contrast #linewatch-main-menu-scroll::-webkit-scrollbar-thumb,
   .linewatch-shell.high-contrast .desktop-sidebar-content::-webkit-scrollbar-thumb,
   .linewatch-shell.high-contrast .desktop-view-content-wrapper::-webkit-scrollbar-thumb,
   .linewatch-shell.high-contrast .floating-panel-shell > div::-webkit-scrollbar-thumb,
@@ -384,14 +319,6 @@
   .linewatch-shell.high-contrast .my-stations-list::-webkit-scrollbar-thumb,
   .linewatch-shell.high-contrast .alert-history-scroll::-webkit-scrollbar-thumb {
     background: #ffffff;
-  }
-
-  .linewatch-shell.high-contrast #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:decrement {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='18 15 12 9 6 15'></polyline></svg>");
-  }
-
-  .linewatch-shell.high-contrast #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:increment {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
   }
 }
 

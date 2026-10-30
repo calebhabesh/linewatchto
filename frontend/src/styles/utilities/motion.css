@@ -207,29 +207,7 @@
   }
 }
 
-/* --- 4. Desktop Menu Border Pulse --- */
-/* A restrained pulse makes the closed desktop menu discoverable without
-   introducing another shape around the control. */
-.menu-attention-beam[data-menu-attention="true"] {
-  border-color: transparent;
-}
-
-.menu-attention-beam[data-menu-attention="true"]::before {
-  animation: menu-border-pulse 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  border: 2.25px solid #81c9ff;
-  border-radius: inherit;
-  box-shadow: 0 0 4px rgba(129, 201, 255, 0.18);
-  content: "";
-  inset: -1px;
-  pointer-events: none;
-  position: absolute;
-}
-
-.menu-attention-beam[data-menu-attention="false"]::before {
-  animation: none;
-  content: none;
-}
-
+/* --- 4. Attention Border Pulse (Site Guide trigger) --- */
 @keyframes menu-border-pulse {
   0%,
   100% {
@@ -238,18 +216,6 @@
 
   50% {
     opacity: 1;
-  }
-}
-
-.motion-paused .menu-attention-beam[data-menu-attention="true"]::before {
-  animation: none;
-  opacity: 0.58;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .menu-attention-beam[data-menu-attention="true"]::before {
-    animation: none;
-    opacity: 0.58;
   }
 }
 
@@ -399,7 +365,6 @@
     will-change: transform, opacity;
   }
 
-
   @keyframes mobile-sheet-slide-down-exit {
     0% {
       opacity: 1;
@@ -434,8 +399,8 @@
       opacity: 0;
       transform: translateY(20px) scale(0.94);
     }
-  }
 
+  }
 
 }
 
@@ -471,10 +436,10 @@
 }
 
 .linewatch-shell button:not(:disabled):not(.network-selector-btn):active,
+
 .linewatch-shell [role="button"]:not([aria-disabled="true"]):active {
   transform: scale(0.98);
 }
-
 
 @keyframes terminating-blink {
   0%, 100% { opacity: 1; }
@@ -494,3 +459,4 @@
 .reduced-motion .animate-terminating-blink {
   animation: none;
 }
+

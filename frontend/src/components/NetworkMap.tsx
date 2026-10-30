@@ -187,7 +187,6 @@ function DiagramNetworkMaps({ network, preparingNetwork, warmingNetwork, diagram
           highContrast={props.highContrast}
           animateInitialEntrance={props.animateInitialEntrance}
           deferInitialEntrance={preparing ? false : props.deferInitialEntrance}
-          desktopMenuPinned={props.desktopMenuPinned}
           mapChromeVisible={props.mapChromeVisible}
           preserveCameraOnSelectionClear={props.preserveCameraOnSelectionClear}
           viewportOrientation={props.viewportOrientation}

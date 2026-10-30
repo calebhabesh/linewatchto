@@ -36,10 +36,11 @@ describe("account UI source", () => {
     assert.match(accountDialogSource, /registerAccount/);
     assert.match(accountSessionSource, /loginDemoAccount/);
     assert.match(accountSessionSource, /logoutAccount/);
-    assert.match(shellSource, /Sign In/);
-    assert.match(shellSource, /Create Account/);
-    assert.match(shellSource, /Demo Account/);
-    assert.match(shellSource, /Sign Out/);
+    const mobileMoreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
+    assert.match(mobileMoreSheetSource, /Sign In/);
+    assert.match(mobileMoreSheetSource, /Create Account/);
+    assert.match(mobileMoreSheetSource, /Demo Account/);
+    assert.match(mobileMoreSheetSource, /Sign Out/);
     assert.match(shellSource, /AccountDialog/);
     assert.match(accountDialogSource, /account-dialog/);
     assert.match(accountSessionSource, /getAuthConfig/);
@@ -48,7 +49,7 @@ describe("account UI source", () => {
     assert.match(accountDialogSource, /account-auth-divider/);
     assert.match(accountDialogSource, /"link-google"/);
     assert.match(accountDialogSource, /Link Google/);
-    assert.match(shellSource, /Google Linked/);
+    assert.match(mobileMoreSheetSource, /Google Linked/);
     assert.match(accountDialogSource, /"auth-choice"/);
     assert.match(accountDialogStateSource, /type AccountEntryIntent = "login" \| "register"/);
     assert.match(accountDialogSource, /AccountEntryIntent/);

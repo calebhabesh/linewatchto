@@ -86,7 +86,7 @@ describe("crawlable transit guides", () => {
     assert.match(deepLinks, /params\.get\("station"\)/);
     assert.match(deepLinks, /requestedStationId/);
     assert.match(shell, /deepLink\.stationDeepLink\.stationId/);
-    assert.match(shell, /href="\/explore"/);
+    assert.match(source("../src/components/DesktopMorePanel.tsx"), /href="\/explore"/);
     assert.match(mobileMore, /href="\/explore"/);
   });
 

@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 import { countBadgeInkOffset } from "../src/components/overlapping-count-ink.ts";
-import { readShellSource } from "./helpers/shell-source.mjs";
 
 const css = readAppStylesheet();
 const badge = readFileSync(new URL("../src/components/OverlappingCountBadge.tsx", import.meta.url), "utf8");
@@ -12,7 +11,6 @@ const mapBadgeSvg = readFileSync(new URL("../src/components/map-overlap-svg.ts",
 const regionalMap = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const ttcMap = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const mobileNav = readFileSync(new URL("../src/components/MobileBottomNav.tsx", import.meta.url), "utf8");
-const shell = readShellSource();
 const stationOutageBadge = readFileSync(new URL("../src/components/StationOutageBadge.tsx", import.meta.url), "utf8");
 const stationDetail = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 
@@ -58,9 +56,8 @@ describe("overlapping count badge sizing", () => {
     assert.match(css, /\.desktop-rail-icon-slot\s*\{[^}]*min-width:\s*22px;/s);
   });
 
-  it("hardens the mobile nav, desktop menu, and icon-overlap counters", () => {
+  it("hardens the mobile nav and icon-overlap counters", () => {
     assert.match(mobileNav, /<OverlappingCountBadge className="mobile-bottom-nav-badge" count=\{badge\}/);
-    assert.match(shell, /<OverlappingCountBadge[\s\S]*className="desktop-menu-count-badge absolute/);
     assert.match(stationOutageBadge, /<OverlappingCountBadge className="station-search-outage-count" count=\{count\}/);
     assert.match(stationDetail, /<OverlappingCountBadge className="station-access-outage-count" count=\{count\}/);
   });

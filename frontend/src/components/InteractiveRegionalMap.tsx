@@ -262,7 +262,6 @@ function InteractiveRegionalMapComponent({
   highContrast = false,
   animateInitialEntrance = true,
   deferInitialEntrance = false,
-  desktopMenuPinned = false,
   mapChromeVisible = false,
   preserveCameraOnSelectionClear = false,
   viewportOrientation = "standard",
@@ -293,7 +292,6 @@ function InteractiveRegionalMapComponent({
   highContrast?: boolean;
   animateInitialEntrance?: boolean;
   deferInitialEntrance?: boolean;
-  desktopMenuPinned?: boolean;
   mapChromeVisible?: boolean;
   preserveCameraOnSelectionClear?: boolean;
   viewportOrientation?: MapViewportOrientation;
@@ -619,7 +617,6 @@ function InteractiveRegionalMapComponent({
     const mapSurface = viewport?.closest<HTMLElement>(".network-map-transition-surface");
     const shell = viewport?.closest<HTMLElement>(".linewatch-shell");
     const rail = mapControlRailRef.current ?? shell?.querySelector<HTMLElement>(".desktop-map-control-rail");
-    const impactBadges = shell?.querySelector<HTMLElement>(".desktop-status-chip-row-container");
     if (!viewport || !mapSurface) return;
 
     const measureDesktopInsets = () => {
@@ -633,7 +630,6 @@ function InteractiveRegionalMapComponent({
     observer.observe(viewport);
     observer.observe(mapSurface);
     if (rail) observer.observe(rail);
-    if (impactBadges) observer.observe(impactBadges);
     const legend = document.querySelector<HTMLElement>(".desktop-map-legend");
     if (legend) observer.observe(legend);
     window.addEventListener("resize", measureDesktopInsets);
@@ -1321,14 +1317,14 @@ function InteractiveRegionalMapComponent({
     }
 
     if (!isMobile) {
-      const leftOcclusion = readDesktopLeftOcclusion(viewport, desktopMenuPinned, 16);
+      const leftOcclusion = readDesktopLeftOcclusion(viewport, 16);
       if (leftOcclusion > 0) {
         insets.left = Math.max(insets.left, leftOcclusion);
       }
     }
 
     return { insets, topPillBottom, mobileStationTop };
-  }, [commutePathPreview, desktopMapBottomInset, desktopMapTopInset, desktopMenuPinned, selectedStationId, selection]);
+  }, [commutePathPreview, desktopMapBottomInset, desktopMapTopInset, selectedStationId, selection]);
 
   const focusSelectedMapElements = useCallback(() => {
     const viewport = viewportRef.current;
@@ -1466,7 +1462,7 @@ function InteractiveRegionalMapComponent({
 
   useEffect(() => {
     if (!cameraInitializedRef.current || !svgMarkup) return;
-    const layoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${desktopMapTopInset}:${desktopMapBottomInset}:${viewportOrientation}`;
+    const layoutKey = `${layoutResetSignal ?? 0}:${desktopMapTopInset}:${desktopMapBottomInset}:${viewportOrientation}`;
 
     if (!focusTargetKey) {
       if (lastFocusedTargetKeyRef.current !== null) {
@@ -1506,7 +1502,6 @@ function InteractiveRegionalMapComponent({
   }, [
     desktopMapBottomInset,
     desktopMapTopInset,
-    desktopMenuPinned,
     fitNetwork,
     focusSelectedMapElements,
     focusTargetKey,

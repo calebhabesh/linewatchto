@@ -4,7 +4,7 @@ import { IncidentStationSpan } from "./IncidentStationSpan";
 import { IncidentFacts, IncidentPostedTime } from "./IncidentDetails";
 import { IncidentTiming } from "./IncidentTiming";
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowRight, BusFront, Info, TrainFront } from "lucide-react";
 import type { DashboardData } from "../app/DataContext";
 import type { ImpactSelection } from "../app/linewatch-data";
@@ -17,7 +17,6 @@ import {
   lineStatusDescription,
   getPlannedClosureCountBadgeLabel,
 } from "../app/current-service";
-import { DESKTOP_SERVICE_SHEET_STORAGE_KEY, parseDesktopServiceSheetPosition } from "../app/desktop-service-sheet-state";
 import { LineBadge } from "./ImpactCardFields";
 import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
@@ -29,7 +28,6 @@ import { surfaceNoticePreviewLocation } from "../app/surface-notice-groups";
 
 
 type Props = {
-  overlapSelectors?: string;
   data: DashboardData;
   notices: SurfaceNoticeResponse | null;
   onNotice: (notice: SurfaceNoticeDetail) => void;
@@ -119,11 +117,10 @@ function desktopContentHeight(panel: HTMLElement): number {
   return Math.max(COLLAPSED_LIST_HEIGHT, Math.min(height, window.innerHeight - 200));
 }
 
-export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatus, onCategory, onNotices, overlapSelectors = "" }: Props) {
+export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatus, onCategory, onNotices }: Props) {
   const [now, setNow] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [positionReady, setPositionReady] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const dragStartY = useRef<number | null>(null);
   const dragStartHeight = useRef<number>(COLLAPSED_LIST_HEIGHT);
@@ -136,92 +133,6 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
     const timer = window.setInterval(update, 30_000);
     return () => { cancelAnimationFrame(frame); window.clearInterval(timer); };
   }, []);
-
-  useLayoutEffect(() => {
-    const panel = sectionRef.current;
-    const shell = panel?.closest(".linewatch-shell");
-    if (!panel || !shell || !overlapSelectors) return;
-    const obstacles = [...shell.querySelectorAll<HTMLElement>(overlapSelectors)];
-    const measure = () => {
-      const a = panel.getBoundingClientRect();
-      const overlaps = obstacles.some((obstacle) => {
-        const b = obstacle.getBoundingClientRect();
-        return b.width > 0 && b.height > 0
-          && a.left < b.right && a.right > b.left
-          && a.top < b.bottom && a.bottom > b.top;
-      });
-      panel.style.visibility = overlaps ? "hidden" : "";
-    };
-    measure();
-    const frame = requestAnimationFrame(measure);
-    const observer = new ResizeObserver(measure);
-    observer.observe(panel);
-    obstacles.forEach((obstacle) => observer.observe(obstacle));
-    window.addEventListener("resize", measure);
-    shell.addEventListener("transitionend", measure);
-    shell.addEventListener("animationend", measure);
-    return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-      window.removeEventListener("resize", measure);
-      shell.removeEventListener("transitionend", measure);
-      shell.removeEventListener("animationend", measure);
-      panel.style.visibility = "";
-    };
-  }, [overlapSelectors]);
-
-  useLayoutEffect(() => {
-    if (!sectionRef.current?.closest(".desktop-status-chip-row-container")) return;
-    let revealFrame = 0;
-    const frame = requestAnimationFrame(() => {
-      try {
-        const saved = parseDesktopServiceSheetPosition(window.localStorage.getItem(DESKTOP_SERVICE_SHEET_STORAGE_KEY));
-        if (saved) {
-          setIsExpanded(saved.expanded);
-          const height = Math.max(COLLAPSED_LIST_HEIGHT,
-            Math.min(saved.height ?? (saved.expanded ? 460 : COLLAPSED_LIST_HEIGHT), window.innerHeight - 200));
-          sectionRef.current?.style.setProperty("--custom-sheet-height", `${height}px`);
-        }
-      } catch {
-        // Storage may be unavailable in private browsing.
-      }
-      // Let the restored geometry commit without height transitions before revealing it.
-      revealFrame = requestAnimationFrame(() => {
-        const panel = sectionRef.current;
-        if (panel) {
-          const requested = parseFloat(panel.style.getPropertyValue("--custom-sheet-height")) || COLLAPSED_LIST_HEIGHT;
-          panel.style.setProperty("--custom-sheet-height", `${Math.min(requested, desktopContentHeight(panel))}px`);
-        }
-        setPositionReady(true);
-      });
-    });
-    return () => { cancelAnimationFrame(frame); cancelAnimationFrame(revealFrame); };
-  }, []);
-
-  const savePosition = (expanded: boolean, height: number | null = null) => {
-    if (!sectionRef.current?.closest(".desktop-status-chip-row-container")) return;
-    try {
-      window.localStorage.setItem(DESKTOP_SERVICE_SHEET_STORAGE_KEY, JSON.stringify({ expanded, height }));
-    } catch {
-      // Keep the sheet usable when storage is blocked or full.
-    }
-  };
-
-  useLayoutEffect(() => {
-    const panel = sectionRef.current;
-    if (!panel?.closest(".desktop-status-chip-row-container") || !positionReady) return;
-    const clamp = () => {
-      const max = desktopContentHeight(panel);
-      const requested = parseFloat(panel.style.getPropertyValue("--custom-sheet-height"))
-        || (isExpanded ? 460 : COLLAPSED_LIST_HEIGHT);
-      if (requested > max) panel.style.setProperty("--custom-sheet-height", `${max}px`);
-    };
-    clamp();
-    const observer = new MutationObserver(clamp);
-    observer.observe(panel, { childList: true, subtree: true, characterData: true });
-    window.addEventListener("resize", clamp);
-    return () => { observer.disconnect(); window.removeEventListener("resize", clamp); };
-  }, [positionReady, isExpanded]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0) return;
@@ -263,8 +174,6 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
         const h = currentHeightRef.current;
         const expanded = h > COLLAPSED_LIST_HEIGHT;
         setIsExpanded(expanded);
-        savePosition(expanded, h);
-
       }
     };
 
@@ -288,7 +197,6 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
       return;
     }
     sectionRef.current?.style.removeProperty("--custom-sheet-height");
-    savePosition(!isExpanded);
     setIsExpanded(!isExpanded);
   };
 
@@ -327,7 +235,6 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
     className="current-service"
     aria-label="Current Service"
     data-expanded={isExpanded ? "true" : "false"}
-    data-position-ready={positionReady ? "true" : "false"}
     data-dragging={isDragging ? "true" : undefined}
   >
     <div

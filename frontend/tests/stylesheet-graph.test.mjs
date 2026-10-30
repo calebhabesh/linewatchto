@@ -367,10 +367,6 @@ describe("stylesheet-graph helper", () => {
     assert.match(desktopChromeContent, /\.network-selector/);
     assert.match(desktopChromeContent, /\.network-selector-glider/);
     assert.match(desktopChromeContent, /\.desktop-top-chrome/);
-    assert.match(desktopChromeContent, /\.desktop-header-impact-chips/);
-    assert.match(desktopChromeContent, /\.desktop-status-chip--alerts/);
-    assert.match(desktopChromeContent, /\.desktop-status-chip--delays/);
-    assert.match(desktopChromeContent, /\.main-menu-pin/);
   });
 
 
@@ -386,7 +382,6 @@ describe("stylesheet-graph helper", () => {
     assert.match(floatingPanelsContent, /\.line-impact-panel-stack/);
     assert.match(floatingPanelsContent, /@keyframes floating-panel-enter/);
     assert.match(floatingPanelsContent, /\.panel-strong/);
-    assert.match(floatingPanelsContent, /\[data-menu-pinned="true"\]/);
   });
 
   it("resolves the extracted shell/map-controls.css in the application stylesheet graph", () => {
@@ -1001,11 +996,8 @@ describe("stylesheet-graph helper", () => {
     const files = getAppStylesheetGraphFiles();
     assert.ok(files.some(f => f.endsWith("scroll.css")), "scroll.css must be in graph files");
     const content = readStylesheet(new URL("../src/styles/utilities/scroll.css", import.meta.url));
-    assert.match(content, /\.stealth-scrollbar/);
-    assert.match(content, /\.stealth-scrollbar::-webkit-scrollbar/);
-    assert.match(content, /#linewatch-main-menu-scroll::-webkit-scrollbar/);
     assert.match(content, /\.station-detail-scroll::-webkit-scrollbar/);
-    assert.match(content, /\.linewatch-shell\.high-contrast #linewatch-main-menu-scroll/);
+    assert.match(content, /\.linewatch-shell\.high-contrast \.desktop-sidebar-content/);
     assert.match(content, /\.linewatch-shell \[data-scroll-more-below\]/);
   });
 
@@ -1057,7 +1049,6 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.delay-card-border/);
     assert.match(content, /\.suspension-card-border/);
     assert.match(content, /\.planned-closure-card-border/);
-    assert.match(content, /\.desktop-line-status-row/);
     assert.match(content, /\.station-detail-disruption-card/);
     assert.match(content, /var\(--surface-card-opaque\)/);
   });

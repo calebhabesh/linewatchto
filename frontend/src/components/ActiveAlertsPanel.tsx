@@ -23,6 +23,8 @@ interface Props {
   onSelectImpact: (selection: ImpactSelection) => void;
   onSelectRelatedImpact?: (selection: ImpactSelection) => void;
   onReturnToMap?: () => void;
+  /** Where an active card's Back action returns, e.g. "Back to search results". */
+  returnToMapLabel?: string;
   onBack?: () => void;
   onClose?: () => void;
   onFocusMap?: () => void;
@@ -50,6 +52,7 @@ export function ActiveAlertsPanel({
   onSelectImpact,
   onSelectRelatedImpact = onSelectImpact,
   onReturnToMap,
+  returnToMapLabel,
   onBack,
   onClose,
   onFocusMap,
@@ -155,6 +158,7 @@ export function ActiveAlertsPanel({
                   ]}
                   status={alert.shuttle ? <><Bus size={11} /> Shuttle</> : null}
                   mapActionLabel={isActive && onReturnToMap ? "Back" : "View"}
+                  mapBackLabel={returnToMapLabel}
                   active={isActive}
                   toneClassName="suspension-card-border"
                   details={closureId ? (
@@ -182,6 +186,7 @@ export function ActiveAlertsPanel({
                   direction={alert.displayDirection}
                   isMapActive={isActive}
                   onReturnToMap={onReturnToMap}
+                  mapBackLabel={returnToMapLabel}
                   onMapAction={() => handleAlertClick(alert)}
                   onFocusMap={onFocusMap}
                   mapActionVariant={mapActionVariant}

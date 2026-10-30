@@ -221,16 +221,13 @@ describe("pan zoom behavior guardrails", () => {
       computeInsetViewportFocus(1536, 864, { left: 720 }),
       { focusX: 1128, focusY: 432 },
     );
-    assert.match(mapSource, /desktopMenuPinned/);
-    assert.match(mapSource, /readDesktopLeftOcclusion\(viewport, desktopMenuPinned/);
-    assert.match(sidebarStateSource, /#linewatch-main-menu/);
+    assert.match(mapSource, /readDesktopLeftOcclusion\(viewport, /);
     assert.match(sidebarStateSource, /\.floating-panel-shell/);
     assert.match(
       mapSource,
       /insets\.left = Math\.max\(insets\.left, leftOcclusion\)/,
     );
     assert.match(mapSource, /viewportInsets: selectionFocusInsets/);
-    assert.match(shellSource, /desktopMenuPinned=\{menuPinned\}/);
   });
 
   it("fits the complete selected overlay within the unobscured viewport", () => {

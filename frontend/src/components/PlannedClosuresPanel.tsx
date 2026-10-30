@@ -24,6 +24,8 @@ interface Props {
   onSelectImpact: (selection: ImpactSelection) => void;
   onSelectRelatedImpact?: (selection: ImpactSelection) => void;
   onReturnToMap?: () => void;
+  /** Where an active card's Back action returns, e.g. "Back to search results". */
+  returnToMapLabel?: string;
   onBack?: () => void;
   onClose?: () => void;
   onFocusMap?: () => void;
@@ -43,6 +45,7 @@ export function PlannedClosuresPanel({
   onSelectImpact,
   onSelectRelatedImpact = onSelectImpact,
   onReturnToMap,
+  returnToMapLabel,
   onBack,
   onClose,
   onFocusMap,
@@ -172,6 +175,7 @@ export function PlannedClosuresPanel({
                   onShowOnMap={isActive && onReturnToMap ? onReturnToMap : () => handleClosureClick(closure.id)}
                   mapUnavailable={!hasMapTarget}
                   mapActionLabel={isActive && onReturnToMap ? "Back" : "View"}
+                  mapBackLabel={returnToMapLabel}
                 />
               );
             }
@@ -194,6 +198,7 @@ export function PlannedClosuresPanel({
                   onReturnToMap={onReturnToMap}
                   onMapAction={() => handleClosureClick(closure.id)}
                   mapActionLabel={isActive && onReturnToMap ? "Back" : "View"}
+                  mapBackLabel={returnToMapLabel}
                   mapUnavailable={!hasMapTarget}
                   onFocusMap={onFocusMap}
                   mapActionVariant={mapActionVariant}

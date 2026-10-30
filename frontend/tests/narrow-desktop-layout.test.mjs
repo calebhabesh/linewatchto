@@ -11,17 +11,6 @@ test("narrow desktop windows reflow dense chrome without switching to mobile nav
   );
 });
 
-test("condensed desktop alert badges leave room for both icon and count", () => {
-  assert.match(
-    globalCss,
-    /\.desktop-header-impact-chips \.desktop-status-chip\s*\{[^}]*width:\s*72px;[^}]*height:\s*56px;[^}]*border-radius:\s*999px;/s,
-  );
-  assert.doesNotMatch(
-    globalCss,
-    /@media \(max-width:\s*1023px\)\s*\{\s*\.desktop-status-chip-row\s*\{[^}]*display:\s*none;/s,
-  );
-});
-
 test("the smallest desktop breakpoint constrains expandable search chrome", () => {
   assert.match(
     globalCss,
