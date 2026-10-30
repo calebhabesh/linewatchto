@@ -28,6 +28,7 @@ import {
 import { isSelectedLineAlert, lineAlertPathsByImpact, type MapLineAlert } from "./map-overlays/line-alert-model";
 import { mapImpactIdentityOf } from "./map-overlays/overlay-hover";
 import { installMapHoverController, type MapHoverController } from "./map-overlays/map-hover-controller";
+import { useMapPulseSync } from "./map-overlays/pulse-sync";
 import { mapSelectionIntroKey, useMapSelectionIntro } from "./map-overlays/selection-intro";
 import { mapOverlayUnitStyle, type MapOverlayPlane } from "./map-overlays/overlay-plane";
 import {
@@ -90,7 +91,7 @@ import {
   type RegionalTrainMarkerFrame,
 } from "../app/regional-map-geometry";
 import {
-  installRegionalOverlaySession,
+  regionalOverlapBadgeLayout,
   regionalOverlayContentSignature,
   regionalPointerImpactSelection,
   regionalOverlapMarker,
@@ -101,8 +102,11 @@ import {
   REGIONAL_TOP_STATION_IMPACT_LAYER_ID,
   REGIONAL_TRAIN_MARKER_LAYER_ID,
   type RegionalOverlapBadge,
-  type RegionalOverlaySession,
 } from "../app/regional-map-overlays";
+import {
+  applyRegionalStationSelection,
+  installRegionalStationLabelHover,
+} from "../app/regional-station-interaction";
 import type { MapBounds, MapPoint } from "../app/map-geometry";
 
 type SvgPoint = MapPoint;
@@ -502,20 +506,10 @@ function InteractiveRegionalMapComponent({
   const cameraRef = useRef(camera);
   const selectionRef = useRef(selection);
   const selectedStationIdRef = useRef(selectedStationId);
-  const selectionIntroCompletedRef = useRef(false);
   const hoverControllerRef = useRef<MapHoverController | null>(null);
   const previewOutlineLayerRef = useRef<SVGGElement>(null);
   const readyNotifiedRef = useRef(false);
-  const sessionRef = useRef<RegionalOverlaySession | null>(null);
   const lastOverlayInputsRef = useRef<unknown[] | null>(null);
-  // Dispose the previous SVG session before layout effects install its replacement.
-  // Passive cleanup runs too late and can dispose the newly installed session.
-  useLayoutEffect(() => {
-    return () => {
-      sessionRef.current?.dispose();
-      sessionRef.current = null;
-    };
-  }, [svgMarkup]);
   const entranceWasDeferredRef = useRef(false);
   const activeContainerRectRef = useRef<DOMRect | null>(null);
   const lastFocusedTargetKeyRef = useRef<string | null>(null);
@@ -885,11 +879,7 @@ function InteractiveRegionalMapComponent({
     commutePreviewKey: commutePathPreview ? `${commutePathPreview.id}:${commutePathPreview.legId}` : null,
     generation: selectionAttentionGeneration,
   });
-  const completeSelectionIntro = useCallback(() => {
-    selectionIntroCompletedRef.current = true;
-    sessionRef.current?.markSelectionIntroComplete();
-  }, []);
-  const selectionIntroComplete = useMapSelectionIntro(selectionIntroKey, completeSelectionIntro);
+  const selectionIntroComplete = useMapSelectionIntro(selectionIntroKey);
 
   // The mounted map already fits its current layout. Only new commands
   // should reset it; replaying a stored command interrupts network entry.
@@ -987,47 +977,29 @@ function InteractiveRegionalMapComponent({
   }, [isMapActive, svgMarkup, useMobileRendering]);
 
   const overlayMotionPaused = mapEffectMotionPaused || useMobileRendering;
-  const overlayMotionPausedRef = useRef(overlayMotionPaused);
-  useLayoutEffect(() => {
-    overlayMotionPausedRef.current = overlayMotionPaused;
-  }, [overlayMotionPaused]);
+  // Each poll parses fresh arrays even when nothing changed; compare what the
+  // overlays draw (map-renderer-parity.md, rule 1).
+  const overlayContentSignature = useMemo(() => regionalOverlayContentSignature({
+    activeAlerts, delays, reducedSpeedZones, plannedClosures,
+    networkSegments, stationNodeImpacts, stations, commutePathPreview,
+  }), [activeAlerts, commutePathPreview, delays, networkSegments, plannedClosures, reducedSpeedZones, stationNodeImpacts, stations]);
   useLayoutEffect(() => {
     // Build live overlays once when this diagram becomes active. Preparing an
     // inactive diagram otherwise builds them again during the network swap.
     if (!svgMarkup || !isMapActive) return;
     const viewport = viewportRef.current;
     if (!viewport) return;
-    const contentSignature = regionalOverlayContentSignature({
-      activeAlerts, delays, reducedSpeedZones, plannedClosures,
-      networkSegments, stationNodeImpacts, stations, commutePathPreview,
-    });
-    // Motion is applied in place by the effect below. Keeping it out of these
-    // inputs means a reduced-motion toggle or a brief page-visibility flip
-    // never deletes and rebuilds the overlays (TTC parity).
-    const inputs = [contentSignature, mapLabelFontReady, svgMarkup];
-    if (sessionRef.current && lastOverlayInputsRef.current?.every((value, index) => value === inputs[index])) return;
-
-    if (!sessionRef.current) {
-      sessionRef.current = installRegionalOverlaySession(viewport, {
-        isPointerGestureActive: () => activePointersRef.current.size > 0,
-        onHoverStationId: (stationId) => {
-          setHoveredStationLabel((current) => {
-            if (!mapLabelFontReady) return null;
-            if (current?.stationId === stationId) return current;
-            const root = viewportRef.current;
-            return root ? regionalStationLabelHover(root, stationId) : null;
-          });
-        },
-      });
-    }
+    // Motion, selection and hover are applied in place by their own effects,
+    // so a reduced-motion toggle or a brief page-visibility flip never
+    // rebuilds the overlays (TTC parity).
+    const inputs = [overlayContentSignature, mapLabelFontReady, svgMarkup];
+    if (lastOverlayInputsRef.current?.every((value, index) => value === inputs[index])) return;
 
     const svg = viewport.querySelector<SVGSVGElement>('svg[aria-label="GO and UP regional rail schematic"]');
     const plane = svg ? regionalOverlayPlane(svg) : null;
     const portals = regionalLineAlertPortals(viewport);
-    const nextLineAlerts = svg
-      ? regionalLineAlerts(svg, { activeAlerts, networkSegments, stationNodeImpacts })
-      : [];
     if (!svg || !plane || !portals) return;
+    const nextLineAlerts = regionalLineAlerts(svg, { activeAlerts, networkSegments, stationNodeImpacts });
     const nextStationOverlays = regionalStationAlerts(svg, {
       activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts: stationAlertImpacts, stations,
     }, plane.unit);
@@ -1051,29 +1023,15 @@ function InteractiveRegionalMapComponent({
     setLineAlertPortals((current) => (
       current?.segment === portals.segment ? current : portals
     ));
-
-    const result = sessionRef.current?.update({
-      lineAlerts: nextLineAlerts,
-      stationAlerts: nextStationOverlays.alerts,
-      plane,
-      activeAlerts,
-      delays,
-      reducedSpeedZones,
-      plannedClosures,
+    // Badges are placed from the overlay model, before React draws it.
+    setOverlapBadges(regionalOverlapBadgeLayout(svg, {
       networkSegments,
       stationNodeImpacts: stationAlertImpacts,
       stations,
-      commutePathPreview,
-      reducedMotion: overlayMotionPausedRef.current,
-      selectedStationId: selectedStationIdRef.current,
-      selection: selectionRef.current,
-      selectionIntroCompleted: selectionIntroCompletedRef.current,
-    });
-
-    if (result) {
-      lastOverlayInputsRef.current = inputs;
-      setOverlapBadges(result.overlapBadges);
-    }
+      lineAlerts: nextLineAlerts,
+      stationAlerts: nextStationOverlays.alerts,
+    }));
+    lastOverlayInputsRef.current = inputs;
   }, [
     activeAlerts,
     commutePathPreview,
@@ -1081,6 +1039,7 @@ function InteractiveRegionalMapComponent({
     isMapActive,
     mapLabelFontReady,
     networkSegments,
+    overlayContentSignature,
     plannedClosures,
     reducedSpeedZones,
     stationAlertImpacts,
@@ -1088,6 +1047,36 @@ function InteractiveRegionalMapComponent({
     stations,
     svgMarkup,
   ]);
+
+  // Station-label hover follows the mouse and keyboard focus.
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || !svgMarkup) return;
+    return installRegionalStationLabelHover(viewport, {
+      isPointerGestureActive: () => activePointersRef.current.size > 0,
+      onHoverStationId: (stationId) => {
+        setHoveredStationLabel((current) => {
+          if (!mapLabelFontReady) return null;
+          if (current?.stationId === stationId) return current;
+          const root = viewportRef.current;
+          return root ? regionalStationLabelHover(root, stationId) : null;
+        });
+      },
+    });
+  }, [mapLabelFontReady, svgMarkup]);
+
+  // The selected station's injected target and indicator, with its intro state.
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || !svgMarkup) return;
+    applyRegionalStationSelection(viewport, selectedStationId ?? null, selectionIntroComplete);
+  }, [isMapActive, selectedStationId, selectionIntroComplete, svgMarkup]);
+
+  // A commute preview and a selected station pulse on one clock, as on TTC.
+  useMapPulseSync(viewportRef, {
+    paused: overlayMotionPaused,
+    signature: `${isMapActive}:${svgMarkup ? "ready" : ""}::${overlayContentSignature}`,
+  });
 
   // Alert hover, chooser rows and group previews: the shared controller
   // (map-overlays/map-hover-controller.ts), as on TTC.
@@ -1113,10 +1102,6 @@ function InteractiveRegionalMapComponent({
   useLayoutEffect(() => {
     hoverControllerRef.current?.restore();
   }, [lineAlerts, lineAlertPortals, stationAlerts]);
-
-  useLayoutEffect(() => {
-    sessionRef.current?.setMotionPaused(overlayMotionPaused);
-  }, [overlayMotionPaused, svgMarkup, isMapActive]);
 
   useLayoutEffect(() => {
     const markerLayer = viewportRef.current?.querySelector<SVGGElement>(
@@ -1358,26 +1343,6 @@ function InteractiveRegionalMapComponent({
       if (resumeFrame !== null) window.cancelAnimationFrame(resumeFrame);
     };
   }, [reconcileRegionalViewport, refitUntouchedNetwork]);
-
-  useEffect(() => {
-    sessionRef.current?.updateStationSelection(selectedStationId, selectionIntroCompletedRef.current);
-  }, [selectedStationId, svgMarkup]);
-
-  useLayoutEffect(() => {
-    sessionRef.current?.updateSelection({
-      selection,
-      commutePathPreview,
-      selectionIntroCompleted: selectionIntroCompletedRef.current,
-    });
-  }, [commutePathPreview, selection, svgMarkup]);
-
-  // A new selection replays its intro; session-built nodes (planned-station
-  // markers, station indicators) drop the breathing state they were given.
-  useLayoutEffect(() => {
-    selectionIntroCompletedRef.current = false;
-    viewportRef.current?.querySelectorAll(".selection-intro-complete")
-      .forEach((element) => element.classList.remove("selection-intro-complete"));
-  }, [selectionIntroKey]);
 
   const selectedMapElements = useCallback(() => {
     const root = viewportRef.current;
@@ -1716,6 +1681,8 @@ function InteractiveRegionalMapComponent({
 
   const onWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
     if (isMapWheelScrollRegionTarget(event.target)) return;
+    // A wheel ends the pointer hover (the hover controller ends alert hover).
+    setHoveredStationLabel(null);
     event.preventDefault();
     const viewport = viewportRef.current;
     if (!viewport) return;
@@ -1835,6 +1802,10 @@ function InteractiveRegionalMapComponent({
   }, [interruptPointerInteraction]);
 
   const onPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    // A press ends the pointer hover, keeping a label that is itself pressed.
+    if (!(event.target instanceof Element && event.target.closest(".regional-station-label-hit-target"))) {
+      setHoveredStationLabel(null);
+    }
     if (event.pointerType === "mouse" && event.button !== 0) return;
     cancelCameraAnimation();
     // A direct drag follows the pointer with no transform easing. Easing each
@@ -2326,7 +2297,7 @@ function InteractiveRegionalMapComponent({
                 {selectedStationId ? (
                   <use
                     key={`station-selection:${selectedStationId}`}
-                    className="regional-station-top-selection map-selection-attention"
+                    className={`regional-station-top-selection map-selection-attention${selectionIntroComplete ? " selection-intro-complete" : ""}`}
                     data-regional-station-top-selected="true"
                     href={`#regional-station-selection-source-${selectedStationId}`}
                   />

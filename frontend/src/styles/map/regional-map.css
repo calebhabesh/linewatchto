@@ -95,15 +95,6 @@
   opacity: 0 !important;
 }
 
-@keyframes map-overlay-rail-pulse {
-  from {
-    stroke-width: var(--map-overlay-rail-width);
-  }
-  to {
-    stroke-width: var(--map-overlay-rail-pulse-width);
-  }
-}
-
 .motion-paused .regional-station-selected-indicator[data-regional-station-selected="true"],
 .motion-paused .regional-station-top-selection,
 .motion-paused .regional-station-hover-indicator {

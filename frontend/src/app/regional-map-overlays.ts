@@ -68,13 +68,20 @@ import {
 } from "../components/overlap-badge-connector.ts";
 import type { MapLineAlert } from "../components/map-overlays/line-alert-model.ts";
 import { mapImpactIdentityOf } from "../components/map-overlays/overlay-hover.ts";
-import { MAP_HOVER_OUTLINE_WIDTHS, type MapOverlayPlane } from "../components/map-overlays/overlay-plane.ts";
 import { mapStationAlertAtClientPoint } from "../components/map-overlays/map-hover-controller.ts";
+import type { MapStationAlert } from "../components/map-overlays/station-alert-model.ts";
 import {
-  STATION_ALERT_RING_STROKE_HALF_WIDTH,
-  stationAlertAnchorReach,
-  type MapStationAlert,
-} from "../components/map-overlays/station-alert-model.ts";
+  CONNECTOR_STATION_CLEARANCE,
+  OVERLAP_BADGE_CONNECTOR_MIN_LENGTH,
+  OVERLAP_BADGE_SIBLING_CLEARANCE,
+  STATION_BADGE_TARGET_RADIUS,
+  lineAlertBadgeObstacleRadius,
+  lineAlertOutlineHalfWidth,
+  stationAlertPlacementAnchors,
+  stationAlertPlacementObstacles,
+  type StationAlertPlacementAnchor,
+} from "../components/map-overlays/overlay-obstacles.ts";
+import { regionalStationAlertRingRadius } from "./regional-station-alerts.ts";
 
 export const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 export const REGIONAL_OVERLAP_CHOOSER_GAP = 24;
@@ -86,13 +93,6 @@ export const REGIONAL_DYNAMIC_HOVER_LAYER_ID = "regional-dynamic-hover-layer";
 export const REGIONAL_TOP_HOVER_LAYER_ID = "regional-top-hover-layer";
 export const REGIONAL_TOP_STATION_IMPACT_LAYER_ID = "regional-top-station-impact-layer";
 export const REGIONAL_TRAIN_MARKER_LAYER_ID = "regional-train-marker-layer";
-
-export const REGIONAL_MAP_PULSE_CYCLE_MS = 2400;
-export const REGIONAL_SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
-  "aura-pulse",
-  "map-overlay-rail-pulse",
-  "station-selected-pulse",
-]);
 
 export type RegionalOverlapBadge = {
   markerId: string;
@@ -125,49 +125,6 @@ export type RegionalOverlayRun = {
   pathD: string;
 };
 
-export type RegionalImpactIdentity = {
-  kind: ImpactKind;
-  id: string;
-};
-
-
-export function synchronizeRegionalOverlayPulses(root: SVGSVGElement) {
-  const pulseClockMs = Number(document.timeline?.currentTime ?? performance.now());
-  const pulsePhaseMs = pulseClockMs % REGIONAL_MAP_PULSE_CYCLE_MS;
-  const pulseCycleStartMs = pulseClockMs - pulsePhaseMs;
-  root.style.setProperty("--map-pulse-offset", "0ms");
-  root.style.setProperty("--regional-map-pulse-offset", "0ms");
-  for (const animation of root.getAnimations({ subtree: true })) {
-    const animationName = "animationName" in animation
-      ? String(animation.animationName)
-      : "";
-    if (REGIONAL_SYNCHRONIZED_OVERLAY_PULSE_NAMES.has(animationName)) {
-      animation.currentTime = pulsePhaseMs;
-      animation.startTime = pulseCycleStartMs;
-    }
-  }
-}
-
-export function markCompletedSelectionIntro(root: ParentNode) {
-  root.querySelectorAll<SVGElement>(
-    '[data-regional-station-selected="true"], '
-      + '[data-regional-station-top-selected="true"]',
-  ).forEach((element) => element.classList.add("selection-intro-complete"));
-}
-
-export function regionalImpactColor(kind: ImpactKind) {
-  switch (kind) {
-    case "suspension":
-      return "#ef4444";
-    case "planned-closure":
-      return "#3b82f6";
-    case "reduced-speed-zone":
-      return "#d97706";
-    case "delay":
-    default:
-      return "#f97316";
-  }
-}
 
 export function regionalImpactPriority(kind: ImpactKind) {
   switch (kind) {
@@ -232,71 +189,6 @@ export function regionalOverlayRuns(pieces: RegionalOverlayPiece[]): RegionalOve
     }
   }
   return runs;
-}
-
-// The markup each overlay node had when it was built, before selection or
-// hover state was applied to it in place. An update compares a fresh build
-// against this, so an alert whose drawing is unchanged keeps its nodes (and
-// their running animations) while its neighbours are added, changed or
-// removed. TTC gets the same per-alert reuse from React's keyed rendering.
-const builtOverlayMarkup = new WeakMap<Element, string>();
-
-/**
- * Returns `built` with each node swapped for a mounted node from `current`
- * whose as-built markup is identical. Mounted nodes that match nothing are
- * removed; call `placeRegionalOverlayChildren` to mount the result.
- */
-export function keepUnchangedRegionalOverlays<T extends Element>(
-  current: Iterable<Element>,
-  built: T[],
-  markupOf: (element: Element) => string = (element) => element.outerHTML,
-): T[] {
-  const reusable = new Map<string, Element[]>();
-  const mounted = [...current];
-  for (const element of mounted) {
-    const markup = builtOverlayMarkup.get(element);
-    if (markup === undefined) continue;
-    const matches = reusable.get(markup);
-    if (matches) matches.push(element);
-    else reusable.set(markup, [element]);
-  }
-  const next = built.map((element) => {
-    const markup = markupOf(element);
-    const kept = reusable.get(markup)?.shift();
-    if (kept) return kept as T;
-    builtOverlayMarkup.set(element, markup);
-    return element;
-  });
-  const keptElements = new Set<Element>(next);
-  for (const element of mounted) {
-    if (!keptElements.has(element)) element.remove();
-  }
-  return next;
-}
-
-/**
- * Makes `ordered` the children of `parent`, moving only nodes that are out of
- * place. Re-inserting a mounted node restarts its CSS animations, so nodes
- * already in order are never touched. Other children are removed.
- */
-export function placeRegionalOverlayChildren(parent: Element, ordered: Element[]) {
-  let cursor = parent.firstElementChild;
-  for (const element of ordered) {
-    if (element === cursor) {
-      cursor = cursor.nextElementSibling;
-      continue;
-    }
-    parent.insertBefore(element, cursor);
-  }
-  while (cursor) {
-    const next = cursor.nextElementSibling;
-    cursor.remove();
-    cursor = next;
-  }
-}
-
-export function regionalImpactIdentity(target: EventTarget | null): RegionalImpactIdentity | null {
-  return mapImpactIdentityOf(target);
 }
 
 /**
@@ -428,19 +320,18 @@ function regionalStationOverlapBadges(
   });
 }
 
-// The regional schematic is drawn at about twice the TTC map's scale.
-const REGIONAL_BADGE_UNIT_SCALE = 2;
-const REGIONAL_BADGE_SIBLING_GAP = 36 * REGIONAL_BADGE_UNIT_SCALE;
+// GO/UP draws overlap badges at twice TTC's size, so badge spacing doubles
+// too. Overlay sizes come from the shared metrics at GO/UP's overlay unit
+// (map-overlays/overlay-obstacles.ts), as on TTC.
+const REGIONAL_BADGE_SCALE = REGIONAL_OVERLAP_INDICATOR_SCALE;
+const REGIONAL_BADGE_SIBLING_GAP = OVERLAP_BADGE_SIBLING_CLEARANCE * REGIONAL_BADGE_SCALE;
 const REGIONAL_BADGE_TARGET_SPACING = 32;
 // Regional route strokes are 175 units wide.
 const REGIONAL_TRANSIT_LINE_HALF_WIDTH = 87.5;
-// While a badge is hovered its alerts get a 248-unit hover boundary; the
-// connector touches that outer edge.
-const REGIONAL_HOVER_BOUNDARY_HALF_WIDTH = MAP_HOVER_OUTLINE_WIDTHS.outer * REGIONAL_OVERLAY_UNIT / 2;
 // Shared spacing (see BADGE_FEATURE_GAPS) so GO/UP badges sit as far from
 // labels, lines, and alerts as TTC badges do, relative to badge size.
-const REGIONAL_LABEL_PADDING = badgeObstacleReach(0, BADGE_FEATURE_GAPS.label, REGIONAL_BADGE_UNIT_SCALE);
-const REGIONAL_ARTWORK_PADDING = badgeObstacleReach(0, BADGE_FEATURE_GAPS.artwork, REGIONAL_BADGE_UNIT_SCALE);
+const REGIONAL_LABEL_PADDING = badgeObstacleReach(0, BADGE_FEATURE_GAPS.label, REGIONAL_BADGE_SCALE);
+const REGIONAL_ARTWORK_PADDING = badgeObstacleReach(0, BADGE_FEATURE_GAPS.artwork, REGIONAL_BADGE_SCALE);
 // Station markers (including the Union hub) and route badges/logos.
 const REGIONAL_ARTWORK_SELECTOR = [
   "#regional-stations-layer rect",
@@ -459,28 +350,21 @@ const REGIONAL_INJECTED_ARTWORK_SELECTOR = [
   "mask",
   "clipPath",
   ".overlay-segment-group",
-  ".regional-overlay-segment-group",
   "[class*='-glyph']",
   ".regional-station-hit-target",
   ".station-hover-indicator",
   ".map-selection-attention",
 ].join(", ");
-const REGIONAL_IMPACT_CORRIDOR_RADIUS = badgeObstacleReach(
-  REGIONAL_HOVER_BOUNDARY_HALF_WIDTH,
-  BADGE_FEATURE_GAPS.alertOverlay,
-  REGIONAL_BADGE_UNIT_SCALE,
-);
+const REGIONAL_LINE_ALERT_OUTLINE_HALF_WIDTH = lineAlertOutlineHalfWidth(REGIONAL_OVERLAY_UNIT);
+const REGIONAL_LINE_ALERT_RADIUS = lineAlertBadgeObstacleRadius(REGIONAL_OVERLAY_UNIT, REGIONAL_BADGE_SCALE);
 const REGIONAL_TRANSIT_LINE_RADIUS = badgeObstacleReach(
   REGIONAL_TRANSIT_LINE_HALF_WIDTH,
   BADGE_FEATURE_GAPS.transitLine,
-  REGIONAL_BADGE_UNIT_SCALE,
+  REGIONAL_BADGE_SCALE,
 );
-const REGIONAL_STATION_ALERT_PADDING = 24;
 const REGIONAL_CORRIDOR_SAMPLE_SPACING = 48;
-const REGIONAL_STATION_BADGE_TARGET_RADIUS = 320 * REGIONAL_BADGE_UNIT_SCALE;
-const REGIONAL_CONNECTOR_MIN_LENGTH = 12 * REGIONAL_BADGE_UNIT_SCALE;
-// Station shapes plus the impact ring drawn around them.
-const REGIONAL_CONNECTOR_STATION_CLEARANCE = 60;
+const REGIONAL_STATION_BADGE_TARGET_RADIUS = STATION_BADGE_TARGET_RADIUS * REGIONAL_BADGE_SCALE;
+const REGIONAL_CONNECTOR_MIN_LENGTH = OVERLAP_BADGE_CONNECTOR_MIN_LENGTH * REGIONAL_BADGE_SCALE;
 
 type RegionalAlertCorridor = { impactKey: string; polyline: MapPoint[] };
 
@@ -613,31 +497,18 @@ export function regionalLineAlertCorridors(svg: SVGSVGElement, alerts: MapLineAl
 }
 
 /** Station alert drawings in root coordinates, for badge placement and connectors. */
-export type RegionalStationAlertReach = { impactKey: string; center: MapPoint; reach: number; ring: number };
-
-export function regionalStationAlertReaches(
+export function regionalStationAlertPlacement(
   svg: SVGSVGElement,
-  alerts: MapStationAlert[],
-  unit: number,
-): RegionalStationAlertReach[] {
+  alerts: readonly MapStationAlert[],
+): StationAlertPlacementAnchor[] {
   const stationsLayer = svg.querySelector<SVGElement>("#regional-stations-layer");
   if (!stationsLayer) return [];
-  return alerts.flatMap((alert) => alert.anchors.map((anchor) => {
-    const reach = stationAlertAnchorReach(anchor, unit);
-    return {
-      impactKey: `${alert.kind}:${alert.impactId}`,
-      center: pointInSvgRootCoordinates(stationsLayer, anchor.center),
-      reach,
-      ring: anchor.pill ? reach : anchor.ringRadius + STATION_ALERT_RING_STROKE_HALF_WIDTH * unit,
-    };
-  }));
-}
-
-function regionalStationAlertObstacles(reaches: RegionalStationAlertReach[]): PlacementObstacle[] {
-  return reaches.map(({ center, reach }) => expandedRegionalCollisionBox(
-    { x: center.x - reach, y: center.y - reach, width: 2 * reach, height: 2 * reach },
-    REGIONAL_STATION_ALERT_PADDING,
-  ));
+  return stationAlertPlacementAnchors(
+    alerts,
+    REGIONAL_OVERLAY_UNIT,
+    REGIONAL_BADGE_SCALE,
+    (point) => pointInSvgRootCoordinates(stationsLayer, point),
+  );
 }
 
 /**
@@ -649,12 +520,12 @@ export function regionalPlacedOverlapBadges(
   svg: SVGSVGElement,
   badges: RegionalOverlapBadge[],
   corridors: RegionalAlertCorridor[] = [],
-  stationAlerts: RegionalStationAlertReach[] = [],
+  stationAlerts: readonly StationAlertPlacementAnchor[] = [],
 ): RegionalOverlapBadge[] {
   if (badges.length === 0) return badges;
   const alertObstacles: PlacementObstacle[] = [
-    ...corridors.map(({ polyline }) => ({ polyline, radius: REGIONAL_IMPACT_CORRIDOR_RADIUS })),
-    ...regionalStationAlertObstacles(stationAlerts),
+    ...corridors.map(({ polyline }) => ({ polyline, radius: REGIONAL_LINE_ALERT_RADIUS })),
+    ...stationAlertPlacementObstacles(stationAlerts),
   ];
   const scaledSize = (badge: RegionalOverlapBadge) => ({
     width: badge.size.width * REGIONAL_OVERLAP_INDICATOR_SCALE,
@@ -712,7 +583,7 @@ export function regionalPlacedOverlapBadges(
     obstacleLayers: [artwork.obstacles, cachedUnalertedLineObstacles(artwork, corridors), alertObstacles],
     mapBounds: REGIONAL_MAP_VIEWBOX,
     siblingGap: REGIONAL_BADGE_SIBLING_GAP,
-    unitScale: REGIONAL_BADGE_UNIT_SCALE,
+    unitScale: REGIONAL_BADGE_SCALE,
     // Every badge gets a spot with a clear connector line when one exists.
     connector: ({ id, position, placed }) => {
       const badge = badgeById.get(id);
@@ -741,14 +612,14 @@ export function regionalPlacedOverlapBadges(
   });
 }
 
-/** Station dots a connector should not end on, with room for impact rings. */
+/** Station dots a connector should not end on, with room for their rings (as on TTC). */
 function regionalStationDotKeepouts(svg: SVGSVGElement): { center: MapPoint; radius: number }[] {
   const stationsLayer = svg.querySelector<SVGElement>("#regional-stations-layer");
   if (!stationsLayer) return [];
   return [...stationsLayer.querySelectorAll<SVGElement>(':scope > [id^="station-"]')].flatMap((station) => (
     regionalStationVisualAnchors(station, "root").map((anchor) => ({
       center: anchor.point,
-      radius: anchor.radius + REGIONAL_CONNECTOR_STATION_CLEARANCE,
+      radius: regionalStationAlertRingRadius(anchor.radius) + CONNECTOR_STATION_CLEARANCE * REGIONAL_OVERLAY_UNIT,
     }))
   ));
 }
@@ -756,17 +627,17 @@ function regionalStationDotKeepouts(svg: SVGSVGElement): { center: MapPoint; rad
 /** The visible edge of each alert's overlay, keyed by impact, for badge connectors. */
 function regionalConnectorOutlines(
   corridors: RegionalAlertCorridor[],
-  stationAlerts: RegionalStationAlertReach[],
+  stationAlerts: readonly StationAlertPlacementAnchor[],
 ): Map<string, ConnectorOutline[]> {
   const outlines = new Map<string, ConnectorOutline[]>();
   const add = (key: string, outline: ConnectorOutline) => {
     outlines.set(key, [...(outlines.get(key) ?? []), outline]);
   };
   for (const corridor of corridors) {
-    add(corridor.impactKey, { polyline: corridor.polyline, halfWidth: REGIONAL_HOVER_BOUNDARY_HALF_WIDTH });
+    add(corridor.impactKey, { polyline: corridor.polyline, halfWidth: REGIONAL_LINE_ALERT_OUTLINE_HALF_WIDTH });
   }
-  for (const { impactKey, center, ring } of stationAlerts) {
-    add(impactKey, { center, radius: ring });
+  for (const { impactKey, center, outlineRadius } of stationAlerts) {
+    add(impactKey, { center, radius: outlineRadius });
   }
   return outlines;
 }
@@ -903,7 +774,8 @@ export function regionalOverlapChooserLayout({
   };
 }
 
-export type RegionalOverlayData = {
+/** What GO/UP's overlays draw, for `regionalOverlayContentSignature`. */
+export type RegionalOverlayContent = {
   activeAlerts: ActiveAlert[];
   delays: DelayAlert[];
   reducedSpeedZones: ReducedSpeedZone[];
@@ -911,16 +783,7 @@ export type RegionalOverlayData = {
   networkSegments: NetworkSegment[];
   stationNodeImpacts: StationNodeImpact[];
   stations: Station[];
-  /** The line alerts React draws with the shared overlay layer (regionalLineAlerts). */
-  lineAlerts: MapLineAlert[];
-  /** The station alerts React draws with the shared overlay layer (regionalStationAlerts). */
-  stationAlerts: MapStationAlert[];
-  plane: MapOverlayPlane;
   commutePathPreview?: AccountCommutePathPreview | null;
-  reducedMotion?: boolean;
-  selection?: ImpactSelection;
-  selectedStationId?: string | null;
-  selectionIntroCompleted?: boolean;
 };
 
 // Each poll parses fresh arrays even when the feed is unchanged, and every
@@ -928,8 +791,7 @@ export type RegionalOverlayData = {
 // their animations, so compare what the overlays draw rather than identity.
 // TTC gets the same stability from React keeping unchanged nodes mounted.
 export function regionalOverlayContentSignature(
-  data: Pick<RegionalOverlayData, "activeAlerts" | "delays" | "reducedSpeedZones" | "plannedClosures"
-    | "networkSegments" | "stationNodeImpacts" | "stations" | "commutePathPreview">,
+  data: RegionalOverlayContent,
 ): string {
   return JSON.stringify([
     data.activeAlerts,
@@ -943,183 +805,28 @@ export function regionalOverlayContentSignature(
   ], (key, value) => (key === "updatedAt" ? undefined : value));
 }
 
-export type RegionalOverlaySelection = {
-  selection?: ImpactSelection;
-  selectedStationId?: string | null;
-  commutePathPreview?: AccountCommutePathPreview | null;
-  selectionIntroCompleted?: boolean;
-};
-
-export type RegionalOverlaySessionOptions = {
-  onHoverStationId?: (stationId: string | null) => void;
-  isPointerGestureActive?: () => boolean;
-};
-
-export interface RegionalOverlaySession {
-  update(data: RegionalOverlayData): { overlapBadges: RegionalOverlapBadge[] };
-  /** Pause or resume overlay motion in place; never rebuilds overlays. */
-  setMotionPaused(paused: boolean): void;
-  updateSelection(selection: RegionalOverlaySelection): void;
-  updateStationSelection(selectedStationId: string | null, selectionIntroCompleted?: boolean): void;
-  markSelectionIntroComplete(): void;
-  dispose(): void;
-}
-
 /**
- * GO/UP's remaining imperative work: overlap badge placement, station
- * selection, station-label hover and pulse sync. Every overlay is drawn by
- * the shared layer (components/map-overlays).
+ * GO/UP's overlap badges, placed: the same grouping and placement rules as
+ * TTC, around the line and station alerts the shared overlay layer draws.
  */
-export function installRegionalOverlaySession(
-  viewport: HTMLElement,
-  options?: RegionalOverlaySessionOptions,
-): RegionalOverlaySession | null {
-  const svg = viewport.querySelector<SVGSVGElement>(
-    'svg[aria-label="GO and UP regional rail schematic"]',
-  );
-  if (!svg) return null;
-
-
-  let pulseFrame: number | null = null;
-  let settledPulseFrame: number | null = null;
-  let motionPaused = false;
-  const synchronizePulses = () => {
-    if (pulseFrame !== null) window.cancelAnimationFrame(pulseFrame);
-    if (settledPulseFrame !== null) window.cancelAnimationFrame(settledPulseFrame);
-    pulseFrame = null;
-    settledPulseFrame = null;
-    if (motionPaused) return;
-    synchronizeRegionalOverlayPulses(svg);
-    pulseFrame = window.requestAnimationFrame(() => {
-      synchronizeRegionalOverlayPulses(svg);
-      settledPulseFrame = window.requestAnimationFrame(() => synchronizeRegionalOverlayPulses(svg));
-    });
-  };
-
-  // Station-label hover follows the pointer and keyboard focus.
-  const handlePointerMove = (event: globalThis.PointerEvent) => {
-    if (options?.isPointerGestureActive?.()) return;
-    if (event.pointerType !== "mouse") return;
-    const target = event.target instanceof Element ? event.target : null;
-    const onMap = target && viewport.contains(target) && !target.closest(".overlap-indicator");
-    const station = onMap ? target.closest<SVGElement>("[data-regional-station-id]") : null;
-    options?.onHoverStationId?.(station?.dataset.regionalStationId ?? null);
-  };
-
-  const handleFocusIn = (event: FocusEvent) => {
-    if (typeof window !== "undefined" && !window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-      return;
-    }
-    const station = event.target instanceof Element
-      ? event.target.closest<SVGElement>("[data-regional-station-id]")
-      : null;
-    if (station?.dataset.regionalStationId) {
-      options?.onHoverStationId?.(station.dataset.regionalStationId);
-    }
-  };
-
-  const handleFocusOut = (event: FocusEvent) => {
-    const currentStation = event.target instanceof Element
-      ? event.target.closest<SVGElement>("[data-regional-station-id]")
-      : null;
-    const nextStation = event.relatedTarget instanceof Element
-      ? event.relatedTarget.closest<SVGElement>("[data-regional-station-id]")
-      : null;
-    if (currentStation?.dataset.regionalStationId !== nextStation?.dataset.regionalStationId) {
-      options?.onHoverStationId?.(nextStation?.dataset.regionalStationId ?? null);
-    }
-  };
-
-  document.addEventListener("pointermove", handlePointerMove);
-  document.addEventListener("focusin", handleFocusIn);
-  document.addEventListener("focusout", handleFocusOut);
-
-  const applyStationSelection = (selectedStationId: string | null, selectionIntroCompleted = false) => {
-    viewport.querySelectorAll("[data-regional-station-selected]").forEach((element) => element.removeAttribute("data-regional-station-selected"));
-    if (selectedStationId) {
-      viewport.querySelector(
-        `[data-regional-station-id="${CSS.escape(selectedStationId)}"]`,
-      )?.setAttribute("data-regional-station-selected", "true");
-      const indicator = viewport.querySelector(
-        `[data-regional-station-selection-id="${CSS.escape(selectedStationId)}"]`,
-      );
-      indicator?.setAttribute("data-regional-station-selected", "true");
-    }
-    if (selectionIntroCompleted) {
-      markCompletedSelectionIntro(viewport);
-    }
-  };
-
-  const update = (data: RegionalOverlayData): { overlapBadges: RegionalOverlapBadge[] } => {
-    const documentNode = regionalSvgScope(svg);
-    motionPaused = Boolean(data.reducedMotion);
-
-    if (data.selectedStationId !== undefined) {
-      applyStationSelection(data.selectedStationId ?? null, data.selectionIntroCompleted);
-    }
-    if (data.selectionIntroCompleted) {
-      markCompletedSelectionIntro(svg);
-    }
-
-    synchronizePulses();
-
-    const overlapBadges = regionalPlacedOverlapBadges(
+export function regionalOverlapBadgeLayout(
+  svg: SVGSVGElement,
+  data: {
+    networkSegments: NetworkSegment[];
+    stationNodeImpacts: StationNodeImpact[];
+    stations: Pick<Station, "id" | "name">[];
+    lineAlerts: MapLineAlert[];
+    stationAlerts: MapStationAlert[];
+  },
+): RegionalOverlapBadge[] {
+  return regionalPlacedOverlapBadges(
+    svg,
+    regionalOverlapBadges(regionalSvgScope(svg), data.networkSegments, {
       svg,
-      regionalOverlapBadges(documentNode, data.networkSegments, {
-        svg,
-        stationNodeImpacts: data.stationNodeImpacts,
-        stations: data.stations,
-      }),
-      regionalLineAlertCorridors(svg, data.lineAlerts),
-      regionalStationAlertReaches(svg, data.stationAlerts, data.plane.unit),
-    );
-
-    return { overlapBadges };
-  };
-
-  const setMotionPaused = (paused: boolean) => {
-    if (paused === motionPaused) return;
-    motionPaused = paused;
-    synchronizePulses();
-  };
-
-  const updateSelection = (selectionOptions: RegionalOverlaySelection) => {
-    if (selectionOptions.selectedStationId !== undefined) {
-      applyStationSelection(
-        selectionOptions.selectedStationId,
-        selectionOptions.selectionIntroCompleted ?? false,
-      );
-    }
-  };
-
-  const updateStationSelection = (selectedStationId: string | null, selectionIntroCompleted = false) => {
-    applyStationSelection(selectedStationId, selectionIntroCompleted);
-  };
-
-  const markSelectionIntroComplete = () => {
-    markCompletedSelectionIntro(viewport);
-  };
-
-  const dispose = () => {
-    document.removeEventListener("pointermove", handlePointerMove);
-    document.removeEventListener("focusin", handleFocusIn);
-    document.removeEventListener("focusout", handleFocusOut);
-    if (pulseFrame !== null) {
-      window.cancelAnimationFrame(pulseFrame);
-      pulseFrame = null;
-    }
-    if (settledPulseFrame !== null) {
-      window.cancelAnimationFrame(settledPulseFrame);
-      settledPulseFrame = null;
-    }
-  };
-
-  return {
-    update,
-    setMotionPaused,
-    updateSelection,
-    updateStationSelection,
-    markSelectionIntroComplete,
-    dispose,
-  };
+      stationNodeImpacts: data.stationNodeImpacts,
+      stations: data.stations,
+    }),
+    regionalLineAlertCorridors(svg, data.lineAlerts),
+    regionalStationAlertPlacement(svg, data.stationAlerts),
+  );
 }

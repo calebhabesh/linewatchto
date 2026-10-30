@@ -29,6 +29,10 @@ import {
 const TTC_STATION_DOT_RADIUS = 32;
 const CORE_RATIO = 26 / TTC_STATION_DOT_RADIUS;
 const DIRECTION_BADGE_RATIO = 24 / TTC_STATION_DOT_RADIUS;
+/** The idle ring an alert draws around a dot of this authored radius. */
+export function regionalStationAlertRingRadius(dotRadius: number): number {
+  return dotRadius * CORE_RATIO * STATION_IMPACT_RING_SCALE;
+}
 /** TTC's clear space between a beacon and a neighbouring dot, in overlay units. */
 const BEACON_GAP = 4;
 /** A dot's visible radius with its outline, over its authored radius. */
@@ -113,7 +117,7 @@ export function regionalStationAlerts(
           id: anchor.id,
           center: anchor.point,
           coreRadius,
-          ringRadius: coreRadius * STATION_IMPACT_RING_SCALE,
+          ringRadius: regionalStationAlertRingRadius(anchor.radius),
           beaconRadius: stationImpactBeaconSize(
             anchor.point,
             coreRadius,

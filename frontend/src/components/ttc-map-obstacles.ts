@@ -11,7 +11,6 @@ import {
   type MapPoint,
 } from "../app/map-geometry";
 import type { MapImpactKind, NetworkSegment, Station } from "../app/linewatch-data";
-import { MAP_HOVER_OUTLINE_WIDTHS } from "./map-overlays/overlay-plane";
 import {
   BADGE_FEATURE_GAPS,
   badgeObstacleReach,
@@ -28,10 +27,6 @@ export const OVERLAY_CORRIDOR_COLLISION_RADIUS = 54;
 // Authored TTC route strokes are 80 units wide.
 export const TRANSIT_LINE_HALF_WIDTH = 40;
 const BASE_ROUTE_COLLISION_RADIUS = badgeObstacleReach(TRANSIT_LINE_HALF_WIDTH, BADGE_FEATURE_GAPS.transitLine);
-// Matches the 10-unit candidate and 12-unit occupied-box padding below, so an
-// aligned pair can touch those collision envelopes without visually drifting.
-// We add an extra 14 units because 22 was too close visually.
-export const OVERLAP_BADGE_SIBLING_CLEARANCE = 36;
 const OVERLAP_BADGE_MAP_COMPONENT_PADDING = badgeObstacleReach(0, BADGE_FEATURE_GAPS.artwork);
 const OVERLAP_BADGE_TEXT_PADDING = badgeObstacleReach(0, BADGE_FEATURE_GAPS.label);
 // Overlap markers are a primary alert-discovery control. Keep their collision
@@ -46,19 +41,6 @@ export function impactCollisionKey(kind: MapImpactKind, cardId: string): string 
 }
 
 const OVERLAP_BADGE_TARGET_SPACING = 16;
-export const STATION_BADGE_TARGET_RADIUS = 320;
-// The hover keyline around an alert rail (map-overlays/overlay-plane.ts).
-export const TTC_HOVER_OUTLINE_WIDTHS = MAP_HOVER_OUTLINE_WIDTHS;
-// The connector only shows while the badge is hovered, when its alerts are
-// drawn with the hover outline; the connector touches that outer edge.
-export const OVERLAY_HOVER_OUTLINE_HALF_WIDTH = TTC_HOVER_OUTLINE_WIDTHS.outer / 2;
-export const OVERLAY_BADGE_OBSTACLE_RADIUS = badgeObstacleReach(OVERLAY_HOVER_OUTLINE_HALF_WIDTH, BADGE_FEATURE_GAPS.alertOverlay);
-// Station-only alert rings are stroked up to 8 units wide when highlighted.
-export const STATION_IMPACT_RING_STROKE_HALF_WIDTH = 4;
-// Below this gap the badge visibly touches its overlay and needs no line.
-// Badges sit at least BADGE_FEATURE_GAPS.alertOverlay away, which is above it.
-export const OVERLAP_BADGE_CONNECTOR_MIN_LENGTH = 12;
-export const CONNECTOR_STATION_CLEARANCE = 12;
 
 export function overlapBadgeTargetsForPath(pathD: string): MapPoint[] {
   return pathCorridorCollisionBoxes(pathD, OVERLAP_BADGE_TARGET_SPACING).map(boxCenter);

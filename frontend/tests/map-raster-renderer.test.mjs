@@ -71,7 +71,7 @@ describe("stable raster map renderer", () => {
     assert.match(regional, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
     assert.match(ttc, /animate=\{!mapEffectMotionPaused\}/);
     assert.match(regional, /overlayMotionPaused = mapEffectMotionPaused \|\| useMobileRendering/);
-    assert.match(regional, /setMotionPaused\(overlayMotionPaused\)/);
+    assert.match(regional, /useMapPulseSync\(viewportRef, \{\s*paused: overlayMotionPaused/);
     assert.match(regional, /!mapEffectMotionPaused/);
     assert.match(ttc, /readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:labels`\)/);
     assert.match(regional, /readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:labels`\)/);

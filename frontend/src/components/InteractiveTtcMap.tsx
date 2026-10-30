@@ -79,19 +79,23 @@ import {
 import { installMapHoverController, type MapHoverController } from "./map-overlays/map-hover-controller";
 import type { MapOverlayPlane } from "./map-overlays/overlay-plane";
 import { mapSelectionIntroKey, useMapSelectionIntro } from "./map-overlays/selection-intro";
+import { useMapPulseSync } from "./map-overlays/pulse-sync";
 import { MapCommuteEndpointFlashes, MapCommutePreviewRoute } from "./map-overlays/CommutePreviewOverlays";
 import type { MapCommutePreview } from "./map-overlays/commute-preview-model";
 import { EstimatedTrainMarkerLayer } from "./TtcTrainMarkerLayer";
 import {
   CONNECTOR_STATION_CLEARANCE,
-  MAP_VIEWBOX_BOUNDS,
   OVERLAP_BADGE_CONNECTOR_MIN_LENGTH,
   OVERLAP_BADGE_SIBLING_CLEARANCE,
-  OVERLAY_BADGE_OBSTACLE_RADIUS,
-  OVERLAY_CORRIDOR_COLLISION_RADIUS,
-  OVERLAY_HOVER_OUTLINE_HALF_WIDTH,
   STATION_BADGE_TARGET_RADIUS,
-  STATION_IMPACT_RING_STROKE_HALF_WIDTH,
+  lineAlertBadgeObstacleRadius,
+  lineAlertOutlineHalfWidth,
+  stationAlertPlacementAnchors,
+  stationAlertPlacementObstacles,
+} from "./map-overlays/overlay-obstacles";
+import {
+  MAP_VIEWBOX_BOUNDS,
+  OVERLAY_CORRIDOR_COLLISION_RADIUS,
   TRANSIT_LINE_HALF_WIDTH,
   boxCenter,
   collectBaseRouteObstacles,
@@ -229,17 +233,6 @@ function setTtcStationHovered(root: HTMLElement | null, stationId: string, hover
   });
 }
 
-// Pulse keyframes alternate over 1.2 seconds, so their complete visual cycle
-// is 2.4 seconds. Use the full cycle when phase-locking layers mounted by
-// separate dashboard snapshots.
-const MAP_PULSE_CYCLE_MS = 2400;
-// Alert overlays never animate (map-renderer-parity.md). The pulses that
-// remain, a commute preview and a selected station, share one clock.
-const SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
-  "aura-pulse",
-  "map-overlay-rail-pulse",
-  "station-selected-pulse",
-]);
 import {
   preloadTtcMapMarkup,
   ttcMapMarkupCache,
@@ -1762,42 +1755,7 @@ function InteractiveTtcMapComponent({
     return `${plannedKeys}::${impactKeys}::${stationKeys}`;
   }, [retainedImpactLayers, retainedPlannedPreviewLayers, retainedStationNodeImpacts]);
 
-  useLayoutEffect(() => {
-    const mapRoot = mapRootRef.current;
-    if (!mapRoot) return;
-    if (mapEffectMotionPaused) {
-      mapRoot.style.setProperty("--map-pulse-offset", "0ms");
-      return;
-    }
-    const synchronizePulseAnimations = () => {
-      const pulseClockMs = Number(document.timeline.currentTime ?? performance.now());
-      const pulsePhaseMs = pulseClockMs % MAP_PULSE_CYCLE_MS;
-      const pulseCycleStartMs = pulseClockMs - pulsePhaseMs;
-      // All alert pulses use one document-timeline origin. This is stronger
-      // than assigning the same currentTime sequentially because animations
-      // can be instantiated on different rendering frames.
-      mapRoot.style.setProperty("--map-pulse-offset", "0ms");
-      for (const animation of mapRoot.getAnimations({ subtree: true })) {
-        const animationName = "animationName" in animation
-          ? String(animation.animationName)
-          : "";
-        if (SYNCHRONIZED_OVERLAY_PULSE_NAMES.has(animationName)) {
-          animation.currentTime = pulsePhaseMs;
-          animation.startTime = pulseCycleStartMs;
-        }
-      }
-    };
-    synchronizePulseAnimations();
-    let settledPulseFrame: number | null = null;
-    const pulseFrame = window.requestAnimationFrame(() => {
-      synchronizePulseAnimations();
-      settledPulseFrame = window.requestAnimationFrame(synchronizePulseAnimations);
-    });
-    return () => {
-      window.cancelAnimationFrame(pulseFrame);
-      if (settledPulseFrame !== null) window.cancelAnimationFrame(settledPulseFrame);
-    };
-  }, [loadState, mapEffectMotionPaused, pulseSyncSignature]);
+  useMapPulseSync(mapRootRef, { paused: mapEffectMotionPaused, signature: `${loadState}::${pulseSyncSignature}` });
 
   const collisionBoxesByImpact = useMemo(() => {
     const boxesByImpact = new Map<string, SvgBounds[]>();
@@ -1845,20 +1803,19 @@ function InteractiveTtcMapComponent({
       .filter((polyline) => polyline.length > 0)
   ), [plannedPreviewLayers, renderedImpactLayers]);
 
+  // Station alerts as drawn, sized for badges and connectors by the shared
+  // overlay metrics (map-overlays/overlay-obstacles.ts), as on GO/UP.
+  const stationAlertPlacement = useMemo(() => (
+    stationAlertPlacementAnchors(stationAlerts, TTC_OVERLAY_PLANE.unit, 1)
+  ), [stationAlerts]);
+
   const overlayPlacementObstacles = useMemo<PlacementObstacle[]>(() => {
     const corridors = alertOverlayPolylines.map((polyline) => ({
       polyline,
-      radius: OVERLAY_BADGE_OBSTACLE_RADIUS,
+      radius: lineAlertBadgeObstacleRadius(TTC_OVERLAY_PLANE.unit, 1),
     }));
-    const stationBoxes = stationNodeImpacts.flatMap((impact) => {
-      const station = stationBySummaryId.get(impact.stationId);
-      return station
-        ? stationImpactVisualAnchors(station, impact, directionData, stationCenterPoints)
-          .map((anchor) => stationOverlapProtectedBox(anchor.point))
-        : [];
-    });
-    return [...corridors, ...stationBoxes];
-  }, [alertOverlayPolylines, directionData, stationBySummaryId, stationCenterPoints, stationNodeImpacts]);
+    return [...corridors, ...stationAlertPlacementObstacles(stationAlertPlacement)];
+  }, [alertOverlayPolylines, stationAlertPlacement]);
 
   // Track strokes keep badges at the wide transit-line gap only where no alert
   // overlay covers them; alerted stretches use the overlay's own gap. The rest
@@ -1892,30 +1849,24 @@ function InteractiveTtcMapComponent({
     const add = (key: string, outline: ConnectorOutline) => {
       outlines.set(key, [...(outlines.get(key) ?? []), outline]);
     };
+    const halfWidth = lineAlertOutlineHalfWidth(TTC_OVERLAY_PLANE.unit);
     for (const { impact, segment } of renderedImpactLayers) {
       add(impactCollisionKey(impact.kind, impact.cardId), {
         polyline: pathPolylinePoints(segment.pathD),
-        halfWidth: OVERLAY_HOVER_OUTLINE_HALF_WIDTH,
+        halfWidth,
       });
     }
     for (const { closure, segment } of plannedPreviewLayers) {
       add(impactCollisionKey("planned-closure", closure.id), {
         polyline: pathPolylinePoints(segment.pathD),
-        halfWidth: OVERLAY_HOVER_OUTLINE_HALF_WIDTH,
+        halfWidth,
       });
     }
-    for (const impact of stationNodeImpacts) {
-      const station = stationBySummaryId.get(impact.stationId);
-      if (!station) continue;
-      for (const anchor of stationImpactVisualAnchors(station, impact, directionData, stationCenterPoints)) {
-        add(impactCollisionKey(impact.kind, impact.cardId), {
-          center: anchor.point,
-          radius: stationImpactRingRadius(isStationVisuallyLarge(station)) + STATION_IMPACT_RING_STROKE_HALF_WIDTH,
-        });
-      }
+    for (const { impactKey, center, outlineRadius } of stationAlertPlacement) {
+      add(impactKey, { center, radius: outlineRadius });
     }
     return outlines;
-  }, [directionData, plannedPreviewLayers, renderedImpactLayers, stationBySummaryId, stationCenterPoints, stationNodeImpacts]);
+  }, [plannedPreviewLayers, renderedImpactLayers, stationAlertPlacement]);
 
   const rawSegmentOverlapBadgeGroups = useMemo(() => {
     return groupOverlapBadgeSegments(renderedOverlaySegments, overlapPlannedClosures);
@@ -2187,11 +2138,18 @@ function InteractiveTtcMapComponent({
     );
   }, []);
 
-  const clearMapHover = useCallback((preserveStationLabel = false) => {
-    hoverControllerRef.current?.clear();
+  // A press or wheel ends the pointer hover: the hover controller ends alert
+  // hover, this the station hover and label (keeping a label that is itself
+  // pressed). Chooser and badge previews stay with their owners, as on GO/UP.
+  const endMapPointerHover = useCallback((preserveStationLabel = false) => {
     clearTtcStationHover(mapRootRef.current);
     if (!preserveStationLabel) setHoveredStationLabelId(null);
   }, []);
+
+  const clearMapHover = useCallback(() => {
+    hoverControllerRef.current?.clear();
+    endMapPointerHover();
+  }, [endMapPointerHover]);
 
   // A hovered chooser row behaves like hovering that alert on the map; with no
   // row hovered, the chooser previews its whole group as one outline.
@@ -2300,7 +2258,7 @@ function InteractiveTtcMapComponent({
             window.clearTimeout(suppressNextMapClickTimerRef.current);
             suppressNextMapClickTimerRef.current = null;
           }
-          clearMapHover(event.target instanceof Element && Boolean(event.target.closest(".station-label-hit-target")));
+          endMapPointerHover(event.target instanceof Element && Boolean(event.target.closest(".station-label-hit-target")));
           handlePointerDown(event);
         }}
         onPointerMove={handlePointerMove}
@@ -2310,7 +2268,7 @@ function InteractiveTtcMapComponent({
         onLostPointerCapture={handleLostPointerCapture}
         onFocus={(event) => revealFocusedMapTarget(event.target)}
         onWheel={(event) => {
-          if (!isMapWheelScrollRegionTarget(event.target)) clearMapHover();
+          if (!isMapWheelScrollRegionTarget(event.target)) endMapPointerHover();
           handleWheel(event);
         }}
         onClickCapture={(event) => {

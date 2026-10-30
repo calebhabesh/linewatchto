@@ -287,7 +287,7 @@
   stroke: rgba(248, 250, 252, 0.96);
   stroke-linecap: round;
   stroke-linejoin: round;
-  /* GO/UP's rail + 65 (regional-map.css), scaled to TTC's 96-unit rail. */
+  /* In overlay units, like every alert overlay size. */
   stroke-width: calc(122.5px * var(--map-overlay-unit, 1));
 }
 

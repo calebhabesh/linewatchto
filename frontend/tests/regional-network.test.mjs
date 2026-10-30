@@ -29,6 +29,8 @@ const regionalGeometrySource = readFileSync(new URL("../src/app/regional-map-geo
 const regionalAssetSource = readFileSync(new URL("../src/app/regional-map-asset.ts", import.meta.url), "utf8");
 const regionalOverlaysSource = readFileSync(new URL("../src/app/regional-map-overlays.ts", import.meta.url), "utf8");
 const regionalLineAlertsSource = readFileSync(new URL("../src/app/regional-line-alerts.ts", import.meta.url), "utf8");
+const stationInteractionSource = readFileSync(new URL("../src/app/regional-station-interaction.ts", import.meta.url), "utf8");
+const pulseSyncSource = readFileSync(new URL("../src/components/map-overlays/pulse-sync.ts", import.meta.url), "utf8");
 const hoverControllerSource = readFileSync(new URL("../src/components/map-overlays/map-hover-controller.ts", import.meta.url), "utf8");
 const regionalStationAlertsSource = readFileSync(new URL("../src/app/regional-station-alerts.ts", import.meta.url), "utf8");
 // The shared overlay layer both maps draw line alerts with.
@@ -527,10 +529,11 @@ describe("network-scoped regional dashboard", () => {
     assert.match(hoverControllerSource, /mapStationAlertAtClientPoint\(root, clientX, clientY\) \?\? mapLineAlertAtClientPoint\(root, clientX, clientY\)/);
     assert.match(hoverControllerSource, /ring\.isPointInStroke\(point\.matrixTransform\(screenMatrix\.inverse\(\)\)\)/);
     assert.match(hoverControllerSource, /root\.ownerDocument\.addEventListener\("pointermove", handlePointerMove\)/);
-    // The session keeps station-label hover only.
-    assert.match(regionalOverlaysSource, /document\.addEventListener\("pointermove", handlePointerMove\)/);
-    assert.doesNotMatch(regionalOverlaysSource, /document\.addEventListener\("pointerover"/);
-    assert.doesNotMatch(regionalOverlaysSource, /document\.addEventListener\("pointerout"/);
+    // Station-label hover follows the pointer from one document listener.
+    assert.match(regionalMapSource, /installRegionalStationLabelHover\(viewport, \{/);
+    assert.match(stationInteractionSource, /documentNode\.addEventListener\("pointermove", handlePointerMove\)/);
+    assert.doesNotMatch(stationInteractionSource, /addEventListener\("pointerover"/);
+    assert.doesNotMatch(stationInteractionSource, /addEventListener\("pointerout"/);
     assert.doesNotMatch(regionalOverlaysSource, /onLinkedImpactPointerOver/);
     assert.doesNotMatch(regionalOverlaysSource, /onLinkedImpactPointerOut/);
     assert.match(globalsCss, /\.map-impact-hover-foreground\[data-map-impact-hovered="true"\]\s*\{[^}]*display:\s*inline/s);
@@ -546,7 +549,7 @@ describe("network-scoped regional dashboard", () => {
     );
     assert.match(regionalAssetSource, /selectionSource\.id = `regional-station-selection-source-\$\{stationId\}`/);
     assert.match(regionalAssetSource, /transformedAncestors\.reverse\(\)/);
-    assert.match(regionalMapSource, /className="regional-station-top-selection map-selection-attention"/);
+    assert.match(regionalMapSource, /className=\{`regional-station-top-selection map-selection-attention\$\{selectionIntroComplete \? " selection-intro-complete" : ""\}`\}/);
     assert.match(regionalMapSource, /href=\{`#regional-station-selection-source-\$\{selectedStationId\}`\}/);
   });
 
@@ -711,11 +714,11 @@ describe("network-scoped regional dashboard", () => {
 
   it("keeps regional disruption rails static while synchronizing remaining effects", () => {
     assert.doesNotMatch(regionalOverlaysSource, /layerIndex \* 0\.4/);
-    assert.match(regionalOverlaysSource, /REGIONAL_SYNCHRONIZED_OVERLAY_PULSE_NAMES/);
-    assert.match(regionalOverlaysSource, /synchronizeRegionalOverlayPulses\(svg\)/);
-    assert.match(regionalOverlaysSource, /animation\.currentTime = pulsePhaseMs/);
-    assert.match(regionalOverlaysSource, /animation\.startTime = pulseCycleStartMs/);
-    assert.match(regionalOverlaysSource, /requestAnimationFrame\(\(\) => synchronizeRegionalOverlayPulses\(svg\)\)/);
+    // GO/UP's remaining pulses run on TTC's shared clock.
+    assert.match(regionalMapSource, /useMapPulseSync\(viewportRef, \{/);
+    assert.match(pulseSyncSource, /SYNCHRONIZED_OVERLAY_PULSE_NAMES/);
+    assert.match(pulseSyncSource, /animation\.currentTime = pulsePhaseMs/);
+    assert.match(pulseSyncSource, /animation\.startTime = pulseCycleStartMs/);
     assert.doesNotMatch(globalsCss, /\.asset-alert-path\.(?:delay-candy|suspension-candy|delay-static-base|planned-preview)\s*\{[^}]*animation:(?!\s*none)/s);
   });
 
@@ -1039,8 +1042,8 @@ describe("network-scoped regional dashboard", () => {
       /isPointerGestureActive:\s*\(\)\s*=>\s*activePointersRef\.current\.size\s*>\s*0/,
     );
     assert.match(
-      regionalOverlaysSource,
-      /const handlePointerMove = \(event: globalThis\.PointerEvent\) => \{\s*if \(options\?\.isPointerGestureActive\?\.\(\)\) return;/s,
+      stationInteractionSource,
+      /const handlePointerMove = \(event: PointerEvent\) => \{\s*if \(isPointerGestureActive\(\) \|\| event\.pointerType !== "mouse"\) return;/s,
     );
   });
 

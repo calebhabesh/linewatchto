@@ -20,6 +20,8 @@ const sharedOverlaySource = [
   "map-overlays/selection-intro.ts",
   "map-overlays/CommutePreviewOverlays.tsx",
   "map-overlays/commute-preview-model.ts",
+  "map-overlays/pulse-sync.ts",
+  "map-overlays/overlay-obstacles.ts",
 ].map((name) => readFileSync(new URL(`../src/components/${name}`, import.meta.url), "utf8")).join("\n");
 // TTC's renderer together with the shared layer it renders overlays with.
 const interactiveMapSource = [
@@ -437,13 +439,16 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /@keyframes map-overlay-rail-pulse\s*\{[\s\S]*var\(--map-overlay-rail-width\)[\s\S]*var\(--map-overlay-rail-pulse-width\)/);
     assert.match(globalCss, /--map-pulse-offset/);
     assert.match(interactiveMapSource, /SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set\(\[\s*"aura-pulse",\s*"map-overlay-rail-pulse",\s*"station-selected-pulse",\s*\]\)/);
-    assert.match(interactiveMapSource, /mapRoot\.getAnimations\(\{ subtree: true \}\)/);
-    assert.match(interactiveMapSource, /document\.timeline\.currentTime/);
+    assert.match(interactiveMapSource, /root\.getAnimations\(\{ subtree: true \}\)/);
+    assert.match(interactiveMapSource, /document\.timeline\?\.currentTime/);
     assert.match(interactiveMapSource, /--map-pulse-offset", "0ms"/);
     assert.match(interactiveMapSource, /animation\.currentTime = pulsePhaseMs/);
     assert.match(interactiveMapSource, /animation\.startTime = pulseCycleStartMs/);
-    assert.match(interactiveMapSource, /requestAnimationFrame\(synchronizePulseAnimations\)/);
-    assert.match(interactiveMapSource, /\}, \[loadState, mapEffectMotionPaused, pulseSyncSignature\]\);/);
+    assert.match(interactiveMapSource, /requestAnimationFrame\(\(\) => synchronizeMapPulses\(root\)\)/);
+    // Both maps run the same pulse clock.
+    assert.match(interactiveMapSource, /useMapPulseSync\(mapRootRef, \{ paused: mapEffectMotionPaused/);
+    assert.match(interactiveRegionalMapSource, /useMapPulseSync\(viewportRef, \{\s*paused: overlayMotionPaused/);
+    assert.match(interactiveMapSource, /signature: `\$\{loadState\}::\$\{pulseSyncSignature\}`/);
     assert.doesNotMatch(globalCss, /\.asset-alert-path\.(?:delay-candy|suspension-candy|delay-static-base)\s*\{[^}]*map-overlay-rail-pulse/s);
     assert.match(globalCss, /\.delay-hourglass-mask-path,\s*\.suspension-mask-path\s*\{[^}]*stroke-width:\s*calc\(var\(--map-alert-rail-width\) \* var\(--map-overlay-unit, 1\)\);/s);
     assert.doesNotMatch(globalCss, /@keyframes mask-size-pulse/);
@@ -834,8 +839,9 @@ describe("asset-backed map layering", () => {
       globalCss,
       /\.map-gesture-active \.asset-alert-path\.map-selection-flash[^}]*animation:\s*none/s,
     );
-    assert.match(interactiveRegionalMapSource, /selectionIntroCompletedRef/);
-    assert.match(regionalOverlaysSource, /markCompletedSelectionIntro\(svg\)/);
+    // GO/UP's injected station indicator takes the same intro state.
+    assert.match(interactiveRegionalMapSource, /applyRegionalStationSelection\(viewport, selectedStationId \?\? null, selectionIntroComplete\)/);
+    assert.match(interactiveRegionalMapSource, /regional-station-top-selection map-selection-attention\$\{selectionIntroComplete \? " selection-intro-complete" : ""\}/);
     assert.match(globalCss, /\.map-selection-attention\.selection-intro-complete\s*\{[^}]*animation-name:\s*var\(--selection-breathe-name\);/s);
     assert.match(interactiveMapSource, /aria-label="Station impact foreground highlights"/);
     assert.match(interactiveMapSource, /data-station-impact-selection-id=\{alert\.impactId\}/);

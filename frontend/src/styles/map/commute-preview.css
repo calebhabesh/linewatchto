@@ -21,6 +21,15 @@
   stroke-width: calc(155px * var(--map-overlay-unit, 1));
 }
 
+@keyframes map-overlay-rail-pulse {
+  from {
+    stroke-width: var(--map-overlay-rail-width);
+  }
+  to {
+    stroke-width: var(--map-overlay-rail-pulse-width);
+  }
+}
+
 .commute-path-preview-path {
   /* The shared rail pulse reads these; scale them for this map. */
   --map-overlay-rail-width: calc(102px * var(--map-overlay-unit, 1));

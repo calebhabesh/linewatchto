@@ -8,7 +8,6 @@ const panelSource = readFileSync(new URL("../src/components/SavedCommutesPanel.t
 const cardSource = readFileSync(new URL("../src/components/SavedCommuteCard.tsx", import.meta.url), "utf8");
 const draftEditorSource = readFileSync(new URL("../src/components/SavedCommuteRouteDraftEditor.tsx", import.meta.url), "utf8");
 const shellSource = readShellSource();
-const regionalOverlaysSource = readFileSync(new URL("../src/app/regional-map-overlays.ts", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const accountDataSource = readFileSync(new URL("../src/app/commute-data.ts", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();

@@ -116,3 +116,21 @@ noted.
   commute route is TTC's width and one path, with TTC's white endpoint dots
   and green flashes. On TTC, endpoint flashes moved out of each station's
   target group into their own group in the same plane.
+- Phase 5 (removal and consolidation): code done 2026-10-30; browser,
+  zoom-memory and visual checks pending. `RegionalOverlaySession` is deleted.
+  Its duties moved: badge placement to `regionalOverlapBadgeLayout`
+  (`app/regional-map-overlays.ts`, called from `InteractiveRegionalMap`),
+  station selection and station-label hover to `app/regional-station-interaction.ts`,
+  and pulse sync to `map-overlays/pulse-sync.ts` (`useMapPulseSync`), which
+  TTC uses too. Badge and connector clearances come from
+  `map-overlays/overlay-obstacles.ts` on both maps (hover outline, station
+  alert reach and ring), replacing the per-map constants. A press or wheel
+  now ends the pointer hover, station hover and label on both maps and keeps
+  chooser and badge group previews (TTC used to clear those too). The last
+  GO/UP-only overlay CSS, the commute rail-pulse keyframes, moved to
+  `commute-preview.css`. Changes riders may notice: on TTC, badges keep clear
+  of a station alert's whole beacon rather than a fixed 54-unit box, so some
+  badges near alerted stations move. Open: the GO/UP desktop-map baseline's
+  legend shift traces to the legend's icon slot (24 px for up to two alert
+  kinds per line, 48 px for three or more); find which demo-data change took
+  Lakeshore East from three kinds to two before updating the baseline.

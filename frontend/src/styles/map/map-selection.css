@@ -117,9 +117,9 @@
   animation-fill-mode: both, none;
 }
 
-/* Dynamic regional alert layers are rebuilt when fresh dashboard data arrives.
-   Once a selection has finished its one-time intro, recreated SVG nodes must
-   join the breathing phase instead of replaying the fast flashes. */
+/* An overlay node remounts when its alert's drawing changes. Once a selection
+   has finished its one-time intro, remounted nodes join the breathing phase
+   instead of replaying the fast flashes. */
 .map-selection-attention.selection-intro-complete {
   animation-name: var(--selection-breathe-name);
   animation-duration: var(--selection-breathe-duration);
