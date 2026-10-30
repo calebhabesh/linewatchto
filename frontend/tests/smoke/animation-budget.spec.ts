@@ -56,7 +56,7 @@ test("diagram keeps every alert symbol at rest, selected or not, at the same gly
   await expect.poll(() => page.locator(".ttc-map-stage").evaluate(element => element.getAnimations({ subtree: true })
     .filter(animation => animation.playState === "running" && animation.effect?.getTiming().iterations === Infinity).length))
     .toBe(0);
-  const corridor = page.locator('[data-map-impact-id="reduced-speed-zone-stub-union-curve"]');
+  const corridor = page.locator('.overlay-segment-group[data-map-impact-id="reduced-speed-zone-stub-union-curve"]');
   const glyphs = corridor.locator("[data-glyph-lane] > g");
   const count = await glyphs.count();
   expect(count).toBeGreaterThan(8);
@@ -77,7 +77,7 @@ test("directional planned calendars keep their glyph density and stay at rest wh
     await route.fulfill({ response, json: dashboard });
   });
   await page.goto("/");
-  const corridor = page.locator('[data-map-impact-id="stub-upcoming-closure-line-1"]');
+  const corridor = page.locator('.overlay-segment-group[data-map-impact-id="stub-upcoming-closure-line-1"]');
   const glyphs = corridor.locator(".planned-closure-lane-glyph > g");
   await expect(glyphs.first()).toBeAttached();
   const count = await glyphs.count();

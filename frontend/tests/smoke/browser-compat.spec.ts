@@ -69,7 +69,7 @@ test("keeps TTC dynamic geometry in authored viewBox coordinates", async ({ page
   // used to apply the SVG's 4500/8250 presentation scale to it a second time,
   // collapsing the path toward the upper-left corner of the viewBox.
   const guideBackedPath = stage.locator(
-    '[data-map-impact-id="reduced-speed-zone-stub-union-curve"] .asset-alert-path',
+    '.overlay-segment-group[data-map-impact-id="reduced-speed-zone-stub-union-curve"] .asset-alert-path',
   ).first();
   await expect(guideBackedPath).toBeAttached();
   const pathNumbers = (await guideBackedPath.getAttribute("d"))

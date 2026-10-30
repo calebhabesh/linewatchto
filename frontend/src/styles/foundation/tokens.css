@@ -21,8 +21,8 @@
      map's background colour, 2 units more per side, leaves a thin gap where
      two lines' tubes touch, such as Lines 1 and 2 at St George.
      ttc-map-obstacles.ts mirrors the rail width. */
-  --ttc-alert-rail-width: 96px;
-  --ttc-alert-rail-casing-width: 100px;
+  --map-alert-rail-width: 96px;
+  --map-alert-rail-casing-width: 100px;
   --color-logo-blue: #81c9ff;
   --logo-blue: var(--color-logo-blue, #81c9ff);
   --station-selection-accent: var(--color-logo-blue);

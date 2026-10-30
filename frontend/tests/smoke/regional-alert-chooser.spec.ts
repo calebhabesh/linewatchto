@@ -105,7 +105,7 @@ for (const theme of ["light", "dark"] as const) {
     await page.screenshot({ path: testInfo.outputPath("regional-chooser.png") });
     await planned.click();
     await expect(chooser).toHaveCount(0);
-    await expect(page.locator('[data-regional-impact-id="regional-demo-planned"][data-regional-impact-selected="true"]').first())
+    await expect(page.locator('[data-selected-impact-emphasis="regional-demo-planned"]').first())
       .toBeAttached();
   });
 }

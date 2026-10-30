@@ -29,7 +29,7 @@ describe("TTC My Commutes route review and editing", () => {
 
   it("keeps recalculated TTC paths reviewable on the authored map", () => {
     assert.match(cardSource, /onViewPath\(commute, selectedLeg\.id\)/);
-    assert.match(ttcMapSource, /commute-path-preview-layer/);
+    assert.match(ttcMapSource, /<MapCommutePreviewRoute preview=\{commutePreview\} \/>/);
     assert.match(ttcMapSource, /commutePathPreview\.segmentIds/);
   });
 });

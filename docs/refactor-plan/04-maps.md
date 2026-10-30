@@ -103,8 +103,10 @@ asset and browser-compatibility tests plus current integrated map flows apply.
 Only after extraction, profile unchanged polls and selection updates: nodes
 replaced, path/`getBBox` measurements, long tasks and update duration. Incremental
 overlay reconciliation is optional if measured churn warrants it. Preserve
-the existing train-marker reconciliation. No wholesale React/imperative
-rendering conversion is justified. Risk: high geometry/interaction sensitivity.
+the existing train-marker reconciliation. Superseded 2026-10-30: the owner
+chose one shared React overlay layer for both maps; see
+[unified map overlays](08-unified-map-overlays.md). Risk: high
+geometry/interaction sensitivity.
 
 ## M4 — Shared geographic update operations
 

@@ -78,10 +78,13 @@ export const REGIONAL_MAP_VIEWBOX: MapBounds = {
 };
 
 export const REGIONAL_IMPACT_OVERLAY_WIDTH = 196;
+/**
+ * GO/UP draws the shared overlay design (components/map-overlays) at its alert
+ * rail's width; 96 is TTC's rail, the design's unit (MAP_ALERT_RAIL_WIDTH).
+ */
+export const REGIONAL_OVERLAY_UNIT = REGIONAL_IMPACT_OVERLAY_WIDTH / 96;
 export const REGIONAL_OVERLAP_INDICATOR_SCALE = 2;
 export const REGIONAL_OVERLAP_INDICATOR_EDGE_GAP = 88;
-export const REGIONAL_STATION_IMPACT_EFFECT_RADIUS_RATIO = 0.9;
-export const REGIONAL_STATION_IMPACT_BADGE_RADIUS_RATIO = 0.72;
 export const REGIONAL_TRAIN_MARKER_LANE_OFFSET = 44;
 
 export function squaredPointDistance(a: MapPoint, b: MapPoint): number {

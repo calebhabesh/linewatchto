@@ -26,7 +26,7 @@ const ENTRY_STYLESHEET_PATH = getAppStylesheetGraphFiles()[0];
  * will reduce these numbers; they may NEVER increase.
  */
 const BASELINE_CEILINGS = {
-  GRAPH_IMPORTANT_DECLARATIONS: 491,
+  GRAPH_IMPORTANT_DECLARATIONS: 479,
   GRAPH_CLASS_SUBSTRING_SELECTORS: 18,
   GLOBALS_IMPORTANT_DECLARATIONS: 0,
   GLOBALS_CLASS_SUBSTRING_SELECTORS: 0,
@@ -337,7 +337,7 @@ describe("CSS architecture guardrails", () => {
         [],
         `Duplicate @keyframes names detected across the stylesheet graph: ${duplicates.join(", ")}`,
       );
-      assert.equal(keyframeNames.length, 89, "Expected exactly 89 unique @keyframes definitions across graph");
+      assert.equal(keyframeNames.length, 84, "Expected exactly 84 unique @keyframes definitions across graph");
     });
   });
 

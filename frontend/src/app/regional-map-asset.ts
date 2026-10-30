@@ -26,11 +26,10 @@ export const REGIONAL_LARGE_TERMINAL_IDS = new Set([
 export const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 export const REGIONAL_DYNAMIC_SEGMENT_LAYER_ID = "regional-dynamic-segment-layer";
 export const REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID = "regional-dynamic-selected-segment-layer";
-export const REGIONAL_DYNAMIC_STATION_RING_LAYER_ID = "regional-dynamic-station-ring-layer";
-export const REGIONAL_DYNAMIC_PLANNED_STATION_LAYER_ID = "regional-dynamic-planned-station-layer";
+/** Line alert pointer and keyboard targets, under station targets. */
+export const REGIONAL_DYNAMIC_TARGET_LAYER_ID = "regional-dynamic-target-layer";
 export const REGIONAL_DYNAMIC_COMMUTE_LAYER_ID = "regional-dynamic-commute-layer";
 export const REGIONAL_DYNAMIC_HOVER_LAYER_ID = "regional-dynamic-hover-layer";
-export const REGIONAL_DYNAMIC_EFFECTS_LAYER_ID = "regional-dynamic-effects-layer";
 
 export function removeDescendantIds(element: SVGElement): void {
   element.removeAttribute("id");
@@ -321,8 +320,8 @@ export function prepareRegionalMapMarkup(source: string): string {
     REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID,
     "regional-selected-segment-layer",
   );
-  const stationRingLayer = createLayer(REGIONAL_DYNAMIC_STATION_RING_LAYER_ID);
-  const plannedStationLayer = createLayer(REGIONAL_DYNAMIC_PLANNED_STATION_LAYER_ID);
+  const targetLayer = createLayer(REGIONAL_DYNAMIC_TARGET_LAYER_ID);
+  targetLayer.setAttribute("aria-label", "Disruption overlay interaction targets");
   const hoverLayer = createLayer(
     REGIONAL_DYNAMIC_HOVER_LAYER_ID,
     "regional-impact-hover-foreground-layer",
@@ -333,20 +332,9 @@ export function prepareRegionalMapMarkup(source: string): string {
   stationsLayer.insertBefore(segmentLayer, firstStationTarget);
   stationsLayer.insertBefore(commuteLayer, firstStationTarget);
   stationsLayer.insertBefore(selectedSegmentLayer, firstStationTarget);
-  stationsLayer.insertBefore(stationRingLayer, firstStationTarget);
+  stationsLayer.insertBefore(targetLayer, firstStationTarget);
   stationsLayer.insertBefore(hoverLayer, firstStationTarget);
 
-  const effectsLayer = createLayer(
-    REGIONAL_DYNAMIC_EFFECTS_LAYER_ID,
-    "regional-station-impact-effects-layer",
-  );
-  effectsLayer.setAttribute("aria-label", "Station alert beacons and directions");
-  effectsLayer.setAttribute("pointer-events", "none");
-  effectsLayer.style.setProperty("--map-pulse-offset", "0s");
-
-  // Match TTC's split planes: the complete repaint stays below authored
-  // stations, while the outline-only copy is painted in the top SVG.
-  stationsLayer.append(plannedStationLayer, effectsLayer);
 
   const root = documentNode.documentElement;
   root.removeAttribute("width");

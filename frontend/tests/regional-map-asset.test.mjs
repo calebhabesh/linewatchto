@@ -3,7 +3,7 @@ import { describe, it, beforeEach } from "node:test";
 
 import {
   DEFAULT_REGIONAL_MAP_SOURCE,
-  REGIONAL_DYNAMIC_PLANNED_STATION_LAYER_ID,
+  REGIONAL_DYNAMIC_COMMUTE_LAYER_ID,
   clearRegionalMapMarkupCache,
   getRegionalMapMarkup,
   preloadRegionalMapMarkup,
@@ -15,8 +15,8 @@ describe("regional map asset loader and lifecycle", () => {
     clearRegionalMapMarkupCache();
   });
 
-  it("exports the planned-station layer ID required by regional renderers", () => {
-    assert.equal(REGIONAL_DYNAMIC_PLANNED_STATION_LAYER_ID, "regional-dynamic-planned-station-layer");
+  it("exports the commute layer ID the shared commute preview renders into", () => {
+    assert.equal(REGIONAL_DYNAMIC_COMMUTE_LAYER_ID, "regional-dynamic-commute-layer");
     assert.equal(DEFAULT_REGIONAL_MAP_SOURCE, "/assets/linewatch/regional-rail-map.svg");
   });
 

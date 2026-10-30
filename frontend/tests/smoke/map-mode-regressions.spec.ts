@@ -410,10 +410,10 @@ test("the first GO/UP overlay click after a network swap keeps its focus", async
   await page.waitForTimeout(1_000);
   const fitted = await scale();
 
-  const overlay = page.locator(
-    '.regional-overlay-segment-group[data-regional-impact-kind="delay"][data-regional-impact-id="regional-demo-delay"]',
+  const target = page.locator(
+    '.regional-map .map-segment-hit-target[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-delay"]',
   );
-  await overlay.locator(".regional-impact-hit-target").dispatchEvent("click");
+  await target.dispatchEvent("click");
   await expect.poll(scale, { timeout: 3_000 }).toBeGreaterThan(fitted * 1.2);
   await page.waitForTimeout(1_000);
   expect(await scale()).toBeGreaterThan(fitted * 1.2);

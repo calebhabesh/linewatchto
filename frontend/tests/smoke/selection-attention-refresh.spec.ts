@@ -32,19 +32,21 @@ test("GO/UP diagram selection keeps breathing after a dashboard refresh", async 
 
   await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
 
-  const overlay = page.locator(
-    '.regional-overlay-segment-group[data-regional-impact-kind="delay"][data-regional-impact-id="regional-demo-delay"]',
+  const target = page.locator(
+    '.regional-map .map-segment-hit-target[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-delay"]',
   );
-  await expect(overlay).toHaveCount(1);
-  await overlay.locator(".regional-impact-hit-target").dispatchEvent("click");
-  await expect(overlay).toHaveAttribute("data-regional-impact-selected", "true");
-  const glow = overlay.locator(".regional-impact-interactive-glow");
+  await expect(target).toHaveCount(1);
+  await target.dispatchEvent("click");
+  const glow = page.locator('#regional-dynamic-selected-segment-layer [data-selected-impact-emphasis="regional-demo-delay"]').first();
   await expect(glow).toHaveClass(/map-selection-attention/, { timeout: 5_000 });
-  await expect(glow).toHaveCSS("animation-name", /regional-selection-path-(intro|breathe)/);
+  await expect(glow).toHaveCSS("animation-name", /map-selection-path-(intro|breathe)/);
+  const glowNode = await glow.elementHandle();
 
   const refreshed = page.waitForResponse((response) => response.url().includes("/api/dashboard?network=regional"));
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
   await refreshed;
   await expect(glow).toHaveClass(/map-selection-attention/);
-  await expect(glow).toHaveCSS("animation-name", /regional-selection-path-(intro|breathe)/);
+  await expect(glow).toHaveCSS("animation-name", /map-selection-path-(intro|breathe)/);
+  // The emphasis keeps its node across the refresh, so its breathing never restarts.
+  expect(await glowNode!.evaluate((node) => node.isConnected)).toBe(true);
 });

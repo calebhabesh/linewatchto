@@ -241,14 +241,6 @@
    demoting those layers during every gesture would still create needless
    compositor churn. */
 .regional-map[data-regional-map-camera-moving="true"] .regional-map-stage :is(
-  .regional-impact-aura,
-  .regional-impact-path,
-  .regional-delay-glyph,
-  .regional-suspension-glyph,
-  .regional-chevron-glyph,
-  .regional-planned-closure-glyph,
-  .regional-station-impact-ring,
-  .regional-station-impact-beacon-group,
   .station-impact-dot-red-glow,
   .commute-path-preview-glow,
   .commute-path-preview-path,
@@ -407,14 +399,7 @@
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-dot-red-glow,
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-commute-green-flash,
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .commute-path-preview-glow,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .commute-path-preview-path,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-impact-aura,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-impact-path,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-delay-glyph,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-suspension-glyph,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-chevron-glyph,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-planned-closure-glyph,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-impact-interactive-glow:not(.map-selection-attention) {
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .commute-path-preview-path {
   animation-play-state: paused !important;
   transition: none !important;
 }
@@ -428,7 +413,7 @@
 
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .interactive-glow.selected {
   opacity: 0.36;
-  stroke-width: 138;
+  stroke-width: calc(138px * var(--map-overlay-unit, 1));
 }
 
 /* Camera input takes priority over decorative paint. Removing blur/drop-shadow
@@ -444,11 +429,6 @@
   .station-selection-flash,
   .station-commute-green-flash,
   .commute-path-preview-glow,
-  .regional-impact-aura,
-  .regional-impact-glow,
-  .regional-impact-interactive-glow,
-  .regional-station-impact-ring,
-  .regional-station-impact-beacon-group,
   .regional-station-top-selection,
   .estimated-train-marker
 ) {
@@ -457,9 +437,7 @@
 
 :is([data-map-gesture-active="true"], [data-map-zoom-active="true"]) :is(
   .asset-alert-path-glow:not(.map-selection-attention),
-  .commute-path-preview-glow,
-  .regional-impact-aura,
-  .regional-impact-glow:not(.map-selection-attention)
+  .commute-path-preview-glow
 ) {
   opacity: 0 !important;
 }
@@ -470,11 +448,9 @@
   [data-map-camera-moving="true"],
   [data-regional-map-camera-moving="true"]
 ) :is(
-  .ttc-impact-hover-foreground,
+  .map-impact-hover-foreground,
   .station-impact-hover-priority,
   .station-hover-indicator,
-  .regional-impact-hover-foreground,
-  .regional-station-impact-hover-foreground,
   .regional-station-hover-indicator
 ) {
   opacity: 0 !important;
@@ -516,7 +492,6 @@
   animation-play-state: paused !important;
   transition: none !important;
 }
-
 
 /* The hovered label replaces a cutout in the base texture. Keep it painted
    during camera movement or that cutout becomes a momentary blank. */

@@ -68,17 +68,17 @@ describe("mobile performance guardrails", () => {
 
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow\s*\{[^}]*opacity:\s*0\.34;[^}]*stroke-width:\s*132;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow\s*\{[^}]*opacity:\s*0\.34;[^}]*stroke-width:\s*calc\(132px \* var\(--map-overlay-unit, 1\)\);[^}]*\}/s,
     );
 
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow\.selected\s*\{[^}]*opacity:\s*0\.54;[^}]*stroke-width:\s*162;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow\.selected\s*\{[^}]*opacity:\s*0\.54;[^}]*stroke-width:\s*calc\(162px \* var\(--map-overlay-unit, 1\)\);[^}]*\}/s,
     );
 
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path\.map-selection-flash\s*\{[^}]*opacity:\s*0\.7;[^}]*stroke-width:\s*140;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path\.map-selection-flash\s*\{[^}]*opacity:\s*0\.7;[^}]*stroke-width:\s*calc\(140px \* var\(--map-overlay-unit, 1\)\);[^}]*\}/s,
     );
 
     assert.match(
@@ -132,12 +132,12 @@ describe("mobile performance guardrails", () => {
 
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.station-impact-ring\s*\{[^}]*stroke-width:\s*calc\(5 \* var\(--station-impact-ring-unit, 1px\)\);[^}]*opacity:\s*0\.95;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.station-impact-ring\s*\{[^}]*stroke-width:\s*calc\(5px \* var\(--map-overlay-unit, 1\)\);[^}]*opacity:\s*0\.95;[^}]*\}/s,
     );
 
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.commute-path-preview-path\s*\{[^}]*animation:\s*none\s*!important;[^}]*stroke-width:\s*112;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.commute-path-preview-path\s*\{[^}]*animation:\s*none\s*!important;[^}]*stroke-width:\s*calc\(112px \* var\(--map-overlay-unit, 1\)\);[^}]*\}/s,
     );
 
     assert.match(
@@ -247,6 +247,6 @@ describe("mobile performance guardrails", () => {
       /:is\(\[data-map-gesture-active="true"\], \[data-map-zoom-active="true"\]\) :is\([\s\S]*?filter:\s*none\s*!important;/s,
     );
     assert.match(globalCss, /\.asset-alert-path-glow:not\(\.map-selection-attention\),[\s\S]*?opacity:\s*0\s*!important;/s);
-    assert.match(globalCss, /\.ttc-impact-hover-foreground,[\s\S]*?visibility:\s*hidden\s*!important;/s);
+    assert.match(globalCss, /\.map-impact-hover-foreground,[\s\S]*?visibility:\s*hidden\s*!important;/s);
   });
 });

@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { extrapolatedPathFrame, samplePath, type MapPoint } from "../app/map-geometry";
-import type { TravelDirection } from "../app/linewatch-data";
-import { PlannedClosureIcon } from "./PlannedClosureIcon";
+import { extrapolatedPathFrame, samplePath, type MapPoint } from "../../app/map-geometry";
+import type { TravelDirection } from "../../app/linewatch-data";
+import { PlannedClosureIcon } from "../PlannedClosureIcon";
+
+// Glyph art and spacing are designed in TTC overlay units. `unit` scales them
+// to a map's own units (MapOverlayPlane.unit), so both maps draw one design.
+function scaled(unit: number) {
+  return unit === 1 ? "" : ` scale(${unit})`;
+}
 
 type GlyphLaneMetrics = {
   count: number;
@@ -78,12 +84,13 @@ function glyphLaneTransform(
   metrics: GlyphLaneMetrics,
   index: number,
   rotate: boolean,
+  unit: number,
 ): string {
   const frame = metrics.frames[index];
   if (!frame) return "";
   return rotate
-    ? `translate(${frame.x} ${frame.y}) rotate(${frame.rotation})`
-    : `translate(${frame.x} ${frame.y})`;
+    ? `translate(${frame.x} ${frame.y}) rotate(${frame.rotation})${scaled(unit)}`
+    : `translate(${frame.x} ${frame.y})${scaled(unit)}`;
 }
 
 /** Alert glyphs at rest along a lane; alert overlays never move (map-renderer-parity.md). */
@@ -94,6 +101,7 @@ function GlyphLane({
   travelDirection,
   renderGlyph,
   rotateGlyph = true,
+  unit,
 }: {
   pathD: string;
   step: number;
@@ -101,6 +109,7 @@ function GlyphLane({
   travelDirection: string;
   renderGlyph: (index: number) => ReactNode;
   rotateGlyph?: boolean | ((index: number) => boolean);
+  unit: number;
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -110,11 +119,11 @@ function GlyphLane({
   }, []);
 
   const normalOffset = travelDirection === "bidirectional"
-    ? direction === "reverse" ? 18 : -18
+    ? (direction === "reverse" ? 18 : -18) * unit
     : 0;
   const metrics = useMemo(
-    () => mounted ? measureGlyphLane(pathD, step, normalOffset, direction) : null,
-    [direction, mounted, normalOffset, pathD, step],
+    () => mounted ? measureGlyphLane(pathD, step * unit, normalOffset, direction) : null,
+    [direction, mounted, normalOffset, pathD, step, unit],
   );
 
   if (!metrics) return null;
@@ -127,7 +136,7 @@ function GlyphLane({
           <g
             key={index}
             data-index={index}
-            transform={glyphLaneTransform(metrics, index, shouldRotate)}
+            transform={glyphLaneTransform(metrics, index, shouldRotate, unit)}
           >
             {renderGlyph(index)}
           </g>
@@ -142,11 +151,13 @@ export function ChevronGlyphLane({
   step,
   direction,
   travelDirection,
+  unit = 1,
 }: {
   pathD: string;
   step: number;
   direction: "forward" | "reverse";
   travelDirection: string;
+  unit?: number;
 }) {
   return (
     <GlyphLane
@@ -154,6 +165,7 @@ export function ChevronGlyphLane({
       step={step}
       direction={direction}
       travelDirection={travelDirection}
+      unit={unit}
       renderGlyph={() => (
         <path
           d="M -12 -10 L 8 0 L -12 10"
@@ -170,11 +182,13 @@ export function SuspensionGlyphLane({
   step,
   direction,
   travelDirection,
+  unit = 1,
 }: {
   pathD: string;
   step: number;
   direction: "forward" | "reverse";
   travelDirection: string;
+  unit?: number;
 }) {
   return (
     <GlyphLane
@@ -182,6 +196,7 @@ export function SuspensionGlyphLane({
       step={step}
       direction={direction}
       travelDirection={travelDirection}
+      unit={unit}
       rotateGlyph={(index) => index % 2 !== 0}
       renderGlyph={(index) => index % 2 === 0 ? (
         <SuspensionNoEntryGlyph />
@@ -225,9 +240,11 @@ function SuspensionNoEntryGlyph({
 export function SuspensionNoEntryLane({
   pathD,
   step,
+  unit = 1,
 }: {
   pathD: string;
   step: number;
+  unit?: number;
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -238,8 +255,8 @@ export function SuspensionNoEntryLane({
 
   const { points } = useMemo(() => {
     if (!mounted) return { points: [], step };
-    return samplePath(pathD, step);
-  }, [mounted, pathD, step]);
+    return samplePath(pathD, step * unit);
+  }, [mounted, pathD, step, unit]);
 
   if (!mounted || points.length === 0) return null;
 
@@ -248,7 +265,7 @@ export function SuspensionNoEntryLane({
       {points.map((point, index) => (
         <g
           key={`${point.x}-${point.y}-${index}`}
-          transform={`translate(${point.x} ${point.y})`}
+          transform={`translate(${point.x} ${point.y})${scaled(unit)}`}
         >
           <SuspensionNoEntryGlyph scale={2.65} />
         </g>
@@ -263,12 +280,14 @@ export function HourglassGlyphLane({
   direction,
   travelDirection,
   onlyHourglasses = false,
+  unit = 1,
 }: {
   pathD: string;
   step: number;
   direction: "forward" | "reverse";
   travelDirection: string;
   onlyHourglasses?: boolean;
+  unit?: number;
 }) {
   return (
     <GlyphLane
@@ -276,6 +295,7 @@ export function HourglassGlyphLane({
       step={step}
       direction={direction}
       travelDirection={travelDirection}
+      unit={unit}
       renderGlyph={(index) => {
         const isHourglass = index % 2 === 0;
         if (!isHourglass && onlyHourglasses) return null;
@@ -329,9 +349,11 @@ export function HourglassGlyphLane({
 export function PlannedClosureIconLane({
   pathD,
   travelDirection,
+  unit = 1,
 }: {
   pathD: string;
   travelDirection: TravelDirection;
+  unit?: number;
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -350,7 +372,7 @@ export function PlannedClosureIconLane({
       if (length <= 0) return { length: 0, points: [] };
 
       const isDirectional = travelDirection !== "bidirectional";
-      const count = Math.max(1, isDirectional ? Math.round(length / 124) : Math.floor(length / 112));
+      const count = Math.max(1, isDirectional ? Math.round(length / (124 * unit)) : Math.floor(length / (112 * unit)));
       const step = length / count;
       return {
         length,
@@ -361,8 +383,8 @@ export function PlannedClosureIconLane({
           const chevronDistance = (distance + step / 2) % length;
           const point = path.getPointAtLength(distance);
           const chevronPoint = path.getPointAtLength(chevronDistance);
-          const before = path.getPointAtLength(Math.max(0, chevronDistance - 4));
-          const after = path.getPointAtLength(Math.min(length, chevronDistance + 4));
+          const before = path.getPointAtLength(Math.max(0, chevronDistance - 4 * unit));
+          const after = path.getPointAtLength(Math.min(length, chevronDistance + 4 * unit));
           return {
             x: point.x,
             y: point.y,
@@ -375,7 +397,7 @@ export function PlannedClosureIconLane({
     } catch {
       return { length: 0, points: [] };
     }
-  }, [mounted, pathD, travelDirection]);
+  }, [mounted, pathD, travelDirection, unit]);
 
   if (Array.isArray(pathMetrics) || pathMetrics.points.length === 0) return null;
 
@@ -384,15 +406,16 @@ export function PlannedClosureIconLane({
       {pathMetrics.points.map((point, index) => {
         if (travelDirection === "bidirectional") {
           return (
-            <PlannedClosureIcon
-              key={`${point.x}-${point.y}-${index}`}
-              className="planned-closure-map-icon planned-closure-map-icon--static"
-              x={point.x - 36}
-              y={point.y - 36}
-              width={72}
-              height={72}
-              strokeWidth={2.25}
-            />
+            <g key={`${point.x}-${point.y}-${index}`} transform={`translate(${point.x} ${point.y})${scaled(unit)}`}>
+              <PlannedClosureIcon
+                className="planned-closure-map-icon planned-closure-map-icon--static"
+                x={-36}
+                y={-36}
+                width={72}
+                height={72}
+                strokeWidth={2.25}
+              />
+            </g>
           );
         }
 
@@ -404,7 +427,7 @@ export function PlannedClosureIconLane({
             key={`${point.x}-${point.y}-${index}`}
             className={`planned-closure-lane-glyph planned-closure-lane-glyph--${direction}`}
           >
-            <g transform={`translate(${point.x} ${point.y})`}>
+            <g transform={`translate(${point.x} ${point.y})${scaled(unit)}`}>
               <PlannedClosureIcon
                 className="planned-closure-map-icon"
                 x={-36}
@@ -414,7 +437,7 @@ export function PlannedClosureIconLane({
                 strokeWidth={2.25}
               />
             </g>
-            <g transform={`translate(${point.chevronX} ${point.chevronY}) rotate(${staticAngle})`}>
+            <g transform={`translate(${point.chevronX} ${point.chevronY}) rotate(${staticAngle})${scaled(unit)}`}>
               <path
                 className="planned-closure-direction-chevron"
                 d="M -10 -13 L 10 0 L -10 13"

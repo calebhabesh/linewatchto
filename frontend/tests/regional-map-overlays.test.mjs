@@ -4,18 +4,16 @@ import { describe, it } from "node:test";
 import {
   REGIONAL_DYNAMIC_SEGMENT_LAYER_ID,
   REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID,
-  REGIONAL_DYNAMIC_STATION_RING_LAYER_ID,
-  REGIONAL_DYNAMIC_PLANNED_STATION_LAYER_ID,
   REGIONAL_DYNAMIC_COMMUTE_LAYER_ID,
   REGIONAL_DYNAMIC_HOVER_LAYER_ID,
-  REGIONAL_DYNAMIC_EFFECTS_LAYER_ID,
   REGIONAL_TOP_HOVER_LAYER_ID,
-  REGIONAL_TOP_STATION_IMPACT_LAYER_ID,
   regionalImpactPriority,
   regionalOverlayRuns,
   regionalOverlapChooserLayout,
   installRegionalOverlaySession,
   regionalOverlayContentSignature,
+  keepUnchangedRegionalOverlays,
+  placeRegionalOverlayChildren,
 } from "../src/app/regional-map-overlays.ts";
 
 function createMockElement(tagName, id = "", classes = []) {
@@ -135,11 +133,8 @@ describe("regional map overlays lifecycle and utilities", () => {
     it("exports all dynamic layer IDs per contract", () => {
       assert.equal(REGIONAL_DYNAMIC_SEGMENT_LAYER_ID, "regional-dynamic-segment-layer");
       assert.equal(REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID, "regional-dynamic-selected-segment-layer");
-      assert.equal(REGIONAL_DYNAMIC_STATION_RING_LAYER_ID, "regional-dynamic-station-ring-layer");
-      assert.equal(REGIONAL_DYNAMIC_PLANNED_STATION_LAYER_ID, "regional-dynamic-planned-station-layer");
       assert.equal(REGIONAL_DYNAMIC_COMMUTE_LAYER_ID, "regional-dynamic-commute-layer");
       assert.equal(REGIONAL_DYNAMIC_HOVER_LAYER_ID, "regional-dynamic-hover-layer");
-      assert.equal(REGIONAL_DYNAMIC_EFFECTS_LAYER_ID, "regional-dynamic-effects-layer");
       assert.equal(REGIONAL_TOP_HOVER_LAYER_ID, "regional-top-hover-layer");
     });
   });
@@ -305,16 +300,6 @@ describe("regional map overlays lifecycle and utilities", () => {
       assert.equal(session, null);
     });
 
-    it("returns null when dynamic layer nodes are missing from SVG", () => {
-      const viewport = createMockElement("div");
-      const svg = createMockElement("svg");
-      svg.setAttribute("aria-label", "GO and UP regional rail schematic");
-      viewport.append(svg);
-
-      const session = installRegionalOverlaySession(viewport);
-      assert.equal(session, null);
-    });
-
     it("successfully installs, manages listeners, and cleans up on dispose", () => {
       const docListeners = new Map();
       const originalDocument = globalThis.document;
@@ -348,24 +333,17 @@ describe("regional map overlays lifecycle and utilities", () => {
 
         const segmentLayer = createMockElement("g", REGIONAL_DYNAMIC_SEGMENT_LAYER_ID);
         const selectedSegmentLayer = createMockElement("g", REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID);
-        const stationRingLayer = createMockElement("g", REGIONAL_DYNAMIC_STATION_RING_LAYER_ID);
-        const plannedStationLayer = createMockElement("g", REGIONAL_DYNAMIC_PLANNED_STATION_LAYER_ID);
         const commuteLayer = createMockElement("g", REGIONAL_DYNAMIC_COMMUTE_LAYER_ID);
         const hoverLayer = createMockElement("g", REGIONAL_DYNAMIC_HOVER_LAYER_ID);
-        const effectsLayer = createMockElement("g", REGIONAL_DYNAMIC_EFFECTS_LAYER_ID);
         const topHoverLayer = createMockElement("g", REGIONAL_TOP_HOVER_LAYER_ID);
-        const topStationImpactLayer = createMockElement("g", REGIONAL_TOP_STATION_IMPACT_LAYER_ID);
 
         svg.append(
           segmentLayer,
           selectedSegmentLayer,
-          stationRingLayer,
-          plannedStationLayer,
           commuteLayer,
           hoverLayer,
-          effectsLayer,
         );
-        viewport.append(svg, topHoverLayer, topStationImpactLayer);
+        viewport.append(svg, topHoverLayer);
 
         let hoveredStation = null;
         let hoveredImpact = null;
@@ -379,7 +357,6 @@ describe("regional map overlays lifecycle and utilities", () => {
         assert.ok(typeof session.update === "function");
         assert.ok(typeof session.updateSelection === "function");
         assert.ok(typeof session.updateStationSelection === "function");
-        assert.ok(typeof session.setExternalImpactsHover === "function");
         assert.ok(typeof session.dispose === "function");
 
         // Verify event listeners were registered on document
@@ -434,5 +411,91 @@ describe("regionalOverlayContentSignature", () => {
       regionalOverlayContentSignature(snapshot("2026-10-23T21:03:36Z")),
       regionalOverlayContentSignature(snapshot("2026-10-23T21:03:36Z", "Line closed")),
     );
+  });
+});
+
+describe("per-alert overlay reconciliation", () => {
+  // Just enough DOM for the reconciler. `remounts` counts how often a node
+  // that was already mounted is moved, which restarts its CSS animations.
+  class Node {
+    constructor(tag, attributes = {}) {
+      this.tag = tag;
+      this.attributes = new Map(Object.entries(attributes));
+      this.parent = null;
+      this.kids = [];
+      this.remounts = 0;
+    }
+    get children() { return [...this.kids]; }
+    get firstElementChild() { return this.kids[0] ?? null; }
+    get nextElementSibling() {
+      const siblings = this.parent?.kids ?? [];
+      return siblings[siblings.indexOf(this) + 1] ?? null;
+    }
+    get outerHTML() {
+      const attributes = [...this.attributes].sort().map(([name, value]) => ` ${name}="${value}"`).join("");
+      return `<${this.tag}${attributes}>${this.kids.map((kid) => kid.outerHTML).join("")}</${this.tag}>`;
+    }
+    setAttribute(name, value) { this.attributes.set(name, String(value)); }
+    remove() {
+      if (!this.parent) return;
+      this.parent.kids.splice(this.parent.kids.indexOf(this), 1);
+      this.parent = null;
+    }
+    insertBefore(node, reference) {
+      if (node.parent) node.remounts += 1;
+      node.remove();
+      const index = reference ? this.kids.indexOf(reference) : this.kids.length;
+      this.kids.splice(index, 0, node);
+      node.parent = this;
+    }
+  }
+  const alert = (id, kind = "delay") => new Node("g", { "data-map-impact-id": id, "data-map-impact-kind": kind });
+  const reconcile = (layer, built) => {
+    const next = keepUnchangedRegionalOverlays(layer.children, built);
+    placeRegionalOverlayChildren(layer, next);
+    return next;
+  };
+
+  it("keeps unchanged alerts mounted when another alert is added, changed, or removed", () => {
+    const layer = new Node("g");
+    const [a, b, c] = reconcile(layer, [alert("a"), alert("b"), alert("c")]);
+    // A poll-built copy of the same drawing, plus a new alert at the front.
+    const afterAdd = reconcile(layer, [alert("new"), alert("a"), alert("b"), alert("c")]);
+    assert.deepEqual(afterAdd.slice(1), [a, b, c]);
+    assert.equal(layer.kids.length, 4);
+
+    // b changes kind, so only b is replaced.
+    const afterChange = reconcile(layer, [alert("new"), alert("a"), alert("b", "suspension"), alert("c")]);
+    assert.equal(afterChange[1], a);
+    assert.notEqual(afterChange[2], b);
+    assert.equal(afterChange[3], c);
+    assert.equal(b.parent, null);
+
+    // Removing a leaves the rest in place.
+    const afterRemove = reconcile(layer, [alert("new"), alert("b", "suspension"), alert("c")]);
+    assert.deepEqual(afterRemove, [afterChange[0], afterChange[2], c]);
+    assert.equal(a.parent, null);
+    for (const node of [a, b, c]) assert.equal(node.remounts, 0, "unchanged alerts never move");
+  });
+
+  it("compares the drawing as built, ignoring selection and hover state applied in place", () => {
+    const layer = new Node("g");
+    const [selected] = reconcile(layer, [alert("a"), alert("b")]);
+    selected.setAttribute("data-regional-impact-selected", "true");
+    const next = reconcile(layer, [alert("a"), alert("b")]);
+    assert.equal(next[0], selected);
+    assert.equal(selected.attributes.get("data-regional-impact-selected"), "true");
+  });
+
+  it("pairs identical drawings one to one and drops nodes it did not build", () => {
+    const layer = new Node("g");
+    const stray = new Node("g", { class: "regional-impact-preview-outline" });
+    layer.insertBefore(stray, null);
+    const [first, second] = reconcile(layer, [alert("a"), alert("a")]);
+    assert.notEqual(first, second);
+    assert.equal(stray.parent, null);
+    const next = reconcile(layer, [alert("a"), alert("a"), alert("a")]);
+    assert.deepEqual(next.slice(0, 2), [first, second]);
+    assert.equal(layer.kids.length, 3);
   });
 });

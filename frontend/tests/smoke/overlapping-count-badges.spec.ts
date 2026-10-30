@@ -41,7 +41,7 @@ test("default map hierarchy preserves effect priority without extra outlines", a
   await page.setViewportSize(isMobile ? { width: 360, height: 800 } : { width: 1440, height: 900 });
   await page.goto("/");
   const overlays = page.getByLabel("Disruption overlays", { exact: true });
-  const speedZone = overlays.locator('[data-map-impact-id="reduced-speed-zone-stub-line-1-overlap"]');
+  const speedZone = overlays.locator('.overlay-segment-group[data-map-impact-id="reduced-speed-zone-stub-line-1-overlap"]');
   await expect(speedZone).toBeAttached();
   const orderedKinds = await overlays.locator(":scope > [data-map-impact-kind]").evaluateAll((elements) =>
     elements.map((element) => element.getAttribute("data-map-impact-kind")),
@@ -52,13 +52,13 @@ test("default map hierarchy preserves effect priority without extra outlines", a
   );
   await expect(page.locator("[data-secondary-overlap-kind]")).toHaveCount(0);
   await expect(page.locator("[data-overlap-chooser]")).toHaveCount(0);
-  await expect(page.locator('[data-ttc-impact-hovered="true"]')).toHaveCount(0);
+  await expect(page.locator('[data-map-impact-hovered="true"]')).toHaveCount(0);
   await page.screenshot({ path: `/tmp/linewatch-hierarchy-${isMobile ? "mobile" : "desktop"}.png` });
   if (!isMobile) {
     await setStubMode(request, "regional-live");
     await page.getByRole("group", { name: "Select transit network" })
       .getByRole("button", { name: "GO/UP", exact: true }).click();
-    await expect(page.locator(".regional-map .regional-overlay-segment-group").first()).toBeAttached();
+    await expect(page.locator(".regional-map .overlay-segment-group").first()).toBeAttached();
     await expect(page.locator("[data-secondary-overlap-kind]")).toHaveCount(0);
     await page.screenshot({ path: "/tmp/linewatch-hierarchy-regional.png" });
   }
@@ -82,9 +82,7 @@ for (const network of ["TTC", "GO/UP"] as const) {
       await marker.dispatchEvent("click");
       const chooser = page.locator("[data-overlap-chooser]");
       // A hovered row raises its alert like a map hover does.
-      const previews = page.locator(network === "TTC"
-        ? '.ttc-impact-hover-foreground[data-ttc-impact-hovered="true"]'
-        : '.regional-impact-hover-foreground[data-regional-impact-hovered="true"]');
+      const previews = page.locator('.map-impact-hover-foreground[data-map-impact-hovered="true"]');
       await expect(chooser.locator(".overlap-chooser-choice").first()).toBeFocused();
       await chooser.locator(".overlap-chooser-choice").nth(1).hover();
       await expect(previews.first()).toBeAttached();
@@ -96,11 +94,11 @@ for (const network of ["TTC", "GO/UP"] as const) {
       await expect(chooser).toHaveCount(0);
       await expect(marker).toBeFocused();
       await expect(previews).toHaveCount(0);
-      await expect(page.locator(".ttc-impact-preview-outline, .regional-impact-preview-outline")).toHaveCount(0);
+      await expect(page.locator(".map-impact-preview-outline")).toHaveCount(0);
       // A subsequent user focus should still preview the group as one outline.
       await marker.evaluate((element) => (element as SVGGElement).blur());
       await marker.focus();
-      await expect(page.locator(network === "TTC" ? ".ttc-impact-preview-outline" : ".regional-impact-preview-outline")).toBeAttached();
+      await expect(page.locator(".map-impact-preview-outline")).toBeAttached();
     });
   }
 
@@ -127,19 +125,16 @@ for (const network of ["TTC", "GO/UP"] as const) {
     ).sort());
     // The group preview draws one outline listing the chooser's alerts and
     // raises none of them; a hovered row raises just its alert, as on the map.
-    const previewedIdentities = () => page.evaluate((network) => {
-      const outline = document.querySelector(network === "TTC" ? ".ttc-impact-preview-outline" : ".regional-impact-preview-outline");
-      const keys = outline?.getAttribute(network === "TTC" ? "data-ttc-preview-impacts" : "data-regional-preview-impacts");
+    // Both maps share the overlay layer, so the selectors are the same.
+    const previewedIdentities = () => page.evaluate(() => {
+      const outline = document.querySelector(".map-impact-preview-outline");
+      const keys = outline?.getAttribute("data-map-preview-impacts");
       return keys ? keys.split(" ").sort() : [];
-    }, network);
-    const raisedIdentities = () => page.locator(network === "TTC"
-      ? '.ttc-impact-hover-foreground[data-ttc-impact-hovered="true"]'
-      : '.regional-impact-hover-foreground[data-regional-impact-hovered="true"]',
-    ).evaluateAll((elements, network) => [...new Set(elements.map((element) =>
-      network === "TTC"
-        ? `${element.getAttribute("data-ttc-hover-impact-kind")}:${element.getAttribute("data-ttc-hover-impact-id")}`
-        : `${element.getAttribute("data-regional-hover-impact-kind")}:${element.getAttribute("data-regional-hover-impact-id")}`,
-    ))].sort(), network);
+    });
+    const raisedIdentities = () => page.locator('.map-impact-hover-foreground[data-map-impact-hovered="true"]')
+      .evaluateAll((elements) => [...new Set(elements.map((element) =>
+        `${element.getAttribute("data-map-hover-impact-kind")}:${element.getAttribute("data-map-hover-impact-id")}`,
+      ))].sort());
     await expect.poll(previewedIdentities).toEqual(identities);
     expect(await raisedIdentities()).toEqual([]);
     if (isMobile) {
@@ -337,6 +332,23 @@ test("TTC and GO/UP map overlap counts stay bounded through mobile compositor ch
   }
 });
 
+/** A point on a TTC line alert's target where an alert target is on top. */
+async function openLineAlertPoint(target: Locator) {
+  return target.evaluate((path) => {
+    const geometry = path as SVGPathElement;
+    const length = geometry.getTotalLength();
+    for (let step = 1; step < 40; step += 1) {
+      const point = geometry.getPointAtLength(length * step / 40).matrixTransform(geometry.getScreenCTM()!);
+      if (point.x < 0 || point.y < 0 || point.x > window.innerWidth || point.y > window.innerHeight) continue;
+      // Another alert's target stacked on this one is fine; a station is not.
+      if (document.elementFromPoint(point.x, point.y)?.classList.contains("map-segment-hit-target")) {
+        return { x: point.x, y: point.y };
+      }
+    }
+    return null;
+  });
+}
+
 test("TTC hover repaints overlay artwork above default-priority corridors", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "Mouse hover is desktop-only");
   await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
@@ -344,8 +356,11 @@ test("TTC hover repaints overlay artwork above default-priority corridors", asyn
   await page.goto(openMapPreviewUrl);
   const target = page.locator('[aria-label="Disruption overlay interaction targets"] .map-segment-hit-target').first();
   await expect(target).toBeAttached();
-  await target.dispatchEvent("pointerover", { pointerType: "mouse" });
-  const visual = page.locator('.ttc-impact-hover-foreground[data-ttc-impact-hovered="true"]').filter({ has: page.locator("use") }).first();
+  // Hover is found from the pointer's position (map-hover-controller.ts).
+  const point = await openLineAlertPoint(target);
+  expect(point, "an alert point clear of station targets").not.toBeNull();
+  await page.mouse.move(point!.x, point!.y);
+  const visual = page.locator('.map-impact-hover-foreground[data-map-impact-hovered="true"]').filter({ has: page.locator("use") }).first();
   await expect(visual).toBeVisible();
   expect(await visual.evaluate((element) => {
     const href = element.querySelector("use")!.getAttribute("href")!;
@@ -353,15 +368,53 @@ test("TTC hover repaints overlay artwork above default-priority corridors", asyn
     const overlays = element.closest("svg")!.querySelector('[aria-label="Disruption overlays"]')!;
     // Same paint order as getImpactPriority: planned advisories at the bottom.
     const priority: Record<string, number> = { "planned-closure": 1, "reduced-speed-zone": 2, delay: 3, suspension: 4 };
-    const ranks = Array.from(overlays.children).map((child) => priority[child.getAttribute("data-map-impact-kind")!]);
+    // Alerts paint in priority order within each line's group (the shared layer).
+    const lines = Array.from(overlays.querySelectorAll(":scope > [data-map-alert-line]"));
+    const ordered = lines.length > 0 && lines.every((line) => {
+      const ranks = Array.from(line.querySelectorAll(":scope > [data-map-impact-kind]"))
+        .map((child) => priority[child.getAttribute("data-map-impact-kind")!]);
+      return ranks.every((rank, index) => index === 0 || rank >= ranks[index - 1]);
+    });
     return {
       artwork: Boolean(source?.querySelector(".asset-alert-path")),
       aboveOverlays: Boolean(overlays.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING),
-      ordered: ranks.every((rank, index) => index === 0 || rank >= ranks[index - 1]),
+      ordered,
     };
   })).toEqual({ artwork: true, aboveOverlays: true, ordered: true });
-  await target.dispatchEvent("pointerout", { pointerType: "mouse" });
+  const viewportBox = await page.locator("[data-map-pan-zoom-viewport]").first().boundingBox();
+  await page.mouse.move(viewportBox!.x + 4, viewportBox!.y + viewportBox!.height - 4);
   await expect(visual).toHaveCount(0);
+});
+
+test("TTC keeps an alert hovered while the pointer crosses a station on top of it", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "Mouse hover is desktop-only");
+  await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
+  await installDismissedTransientUi(page);
+  await page.goto(openMapPreviewUrl);
+  const targets = page.locator('[aria-label="Disruption overlay interaction targets"] .map-segment-hit-target');
+  await expect(targets.first()).toBeAttached();
+  // A station dot drawn over an alert: its target is on top at its centre,
+  // with the alert's target beneath (GO/UP has always behaved this way).
+  const crossing = await page.evaluate(() => {
+    for (const station of document.querySelectorAll<SVGGraphicsElement>(".station-hit-target")) {
+      const box = station.getBoundingClientRect();
+      if (box.width === 0) continue;
+      const x = box.left + box.width / 2;
+      const y = box.top + box.height / 2;
+      if (x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) continue;
+      const stack = document.elementsFromPoint(x, y);
+      const alert = stack.find((element) => element.classList.contains("map-segment-hit-target"));
+      if (stack[0] === station && alert) {
+        return { x, y, kind: alert.getAttribute("data-map-impact-kind")!, id: alert.getAttribute("data-map-impact-id")! };
+      }
+    }
+    return null;
+  });
+  expect(crossing, "a station on top of an alert").not.toBeNull();
+  await page.mouse.move(crossing!.x, crossing!.y);
+  await expect(page.locator(
+    `.map-impact-hover-foreground[data-map-hover-impact-kind="${crossing!.kind}"][data-map-hover-impact-id="${crossing!.id}"][data-map-impact-hovered="true"]`,
+  ).first()).toBeAttached();
 });
 
 test("nav badges are visibly centered for single and multi-digit counts (1, 2, 9, 20, 99)", async ({ page, request, isMobile }) => {

@@ -39,14 +39,16 @@ describe("station impact beacon", () => {
 
 describe("station impact beacon parity", () => {
   const ttc = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
-  const regional = readFileSync(new URL("../src/app/regional-map-overlays.ts", import.meta.url), "utf8");
+  const regional = readFileSync(new URL("../src/app/regional-station-alerts.ts", import.meta.url), "utf8");
+  const shared = readFileSync(new URL("../src/components/map-overlays/StationAlertOverlays.tsx", import.meta.url), "utf8");
+  const regionalMap = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
   const baseCss = readFileSync(new URL("../src/styles/map/base-map.css", import.meta.url), "utf8");
   const markersCss = readFileSync(new URL("../src/styles/map/station-markers.css", import.meta.url), "utf8");
 
   it("draws the same sized beacon on both maps", () => {
     assert.match(ttc, /stationImpactBeaconSize\(/);
     assert.match(regional, /stationImpactBeaconSize\(/);
-    assert.match(regional, /classList\.add\("station-impact-dot-red-beacon"/);
+    assert.match(shared, /className="station-impact-dot-red-beacon"/);
   });
 
   it("shows the beacon on every form factor and keeps it while the map moves", () => {
@@ -54,12 +56,14 @@ describe("station impact beacon parity", () => {
     const hiddenDuringGestures = baseCss.split("}").find((block) => (
       block.includes("data-map-gesture-active") && block.includes("opacity: 0 !important;") && block.includes(".commute-path-preview-glow")
     )) ?? "";
-    assert.ok(hiddenDuringGestures.includes(".regional-impact-aura"));
+    assert.ok(hiddenDuringGestures.includes(".asset-alert-path-glow"));
     assert.ok(!hiddenDuringGestures.includes("station-impact-dot-red-beacon"));
     assert.ok(!hiddenDuringGestures.includes("regional-station-impact-beacon-group"));
   });
 
-  it("draws TTC's idle gold ring on GO/UP too", () => {
-    assert.match(regional, /"station-impact-ring", "regional-station-impact-visual-ring"/);
+  it("draws TTC's idle ring, beacon and core on GO/UP with the shared layer", () => {
+    assert.match(shared, /className: `station-impact-ring \$\{alert\.kind\}/);
+    assert.match(ttc, /<MapStationAlertRings/);
+    assert.match(regionalMap, /<MapStationAlertRings/);
   });
 });

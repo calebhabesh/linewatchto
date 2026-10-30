@@ -10,21 +10,26 @@
   stroke-linejoin: round;
 }
 
+/* Both maps draw the same route; sizes scale by the map's overlay unit
+   (TTC 1, GO/UP 196 / 96), as for alerts. */
 .commute-path-preview-glow {
   animation: aura-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
-  filter: blur(16px);
+  filter: blur(calc(16px * var(--map-overlay-unit, 1)));
   opacity: 0.4;
   stroke: rgba(37, 99, 235, 0.7);
-  stroke-width: 155;
+  stroke-width: calc(155px * var(--map-overlay-unit, 1));
 }
 
 .commute-path-preview-path {
+  /* The shared rail pulse reads these; scale them for this map. */
+  --map-overlay-rail-width: calc(102px * var(--map-overlay-unit, 1));
+  --map-overlay-rail-pulse-width: calc(114px * var(--map-overlay-unit, 1));
   animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
   opacity: 0.72;
   stroke: #1d4ed8;
-  stroke-width: 102;
+  stroke-width: var(--map-overlay-rail-width);
   transition: none;
 }
 
@@ -32,12 +37,12 @@
   fill: #f8fafc;
   pointer-events: none;
   stroke: #1d4ed8;
-  stroke-width: 12;
+  stroke-width: calc(12px * var(--map-overlay-unit, 1));
 }
 
 .linewatch-shell.mobile-performance-mode .commute-path-preview-path {
   animation: none !important;
-  stroke-width: 112;
+  stroke-width: calc(112px * var(--map-overlay-unit, 1));
   transition: none;
 }
 
@@ -48,7 +53,7 @@
 
 .motion-paused .commute-path-preview-path {
   animation: none !important;
-  stroke-width: 102;
+  stroke-width: var(--map-overlay-rail-width);
   opacity: 0.72 !important;
 }
 
@@ -60,50 +65,8 @@
 
   .commute-path-preview-path {
     animation: none !important;
-    stroke-width: 102;
+    stroke-width: var(--map-overlay-rail-width);
     opacity: 0.72 !important;
-  }
-}
-
-@keyframes regional-commute-path-pulse {
-  0% {
-    stroke-width: 245;
-  }
-  100% {
-    stroke-width: 274;
-  }
-}
-
-.regional-map .regional-commute-path-preview-layer .commute-path-preview-glow {
-  filter: blur(26px);
-  stroke-width: 360px;
-}
-
-.regional-map .regional-commute-path-preview-layer .commute-path-preview-path {
-  animation-name: regional-commute-path-pulse;
-  stroke-width: 245px !important;
-}
-
-.regional-map .regional-commute-path-preview-endpoint {
-  stroke-width: 18px;
-}
-
-.linewatch-shell.mobile-performance-mode[data-network="regional"]
-  .regional-commute-path-preview-layer .commute-path-preview-glow {
-  stroke-width: 320px;
-}
-
-.linewatch-shell.mobile-performance-mode[data-network="regional"]
-  .regional-commute-path-preview-layer .commute-path-preview-path,
-.motion-paused .regional-map .regional-commute-path-preview-layer .commute-path-preview-path {
-  animation: none;
-  stroke-width: 245px !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .regional-map .regional-commute-path-preview-layer .commute-path-preview-path {
-    animation: none;
-    stroke-width: 245px !important;
   }
 }
 
@@ -347,43 +310,33 @@
   }
 }
 
-/* GO/UP commute endpoints: a faint blip in the station marker's shape (a
-   circle, or a pill for Union) that swells the same distance past every
-   station, so small dots and the Union pill match. Geometry comes from
-   inline custom properties. */
-.regional-map .regional-commute-endpoint-blip {
-  animation-name: regional-commute-endpoint-blip-anim;
+/* A pill-shaped endpoint (GO/UP's Union) swells its outline by a fixed
+   distance instead of scaling, which would stretch a long pill far past the
+   station. Geometry comes from inline custom properties. */
+.station-commute-green-flash.station-commute-green-flash--pill {
+  animation-name: map-commute-pill-flash;
+  transform: none !important;
 }
 
-@keyframes regional-commute-endpoint-blip-anim {
+@keyframes map-commute-pill-flash {
   0% {
-    x: var(--blip-from-x);
-    y: var(--blip-from-y);
-    width: var(--blip-from-width);
-    height: var(--blip-from-height);
-    rx: var(--blip-from-r);
-    ry: var(--blip-from-r);
+    x: var(--flash-from-x);
+    y: var(--flash-from-y);
+    width: var(--flash-from-width);
+    height: var(--flash-from-height);
+    rx: var(--flash-from-r);
+    ry: var(--flash-from-r);
     opacity: 0;
     filter: drop-shadow(0 0 0px transparent);
   }
   100% {
-    x: var(--blip-to-x);
-    y: var(--blip-to-y);
-    width: var(--blip-to-width);
-    height: var(--blip-to-height);
-    rx: var(--blip-to-r);
-    ry: var(--blip-to-r);
-    opacity: 0.45;
-    filter: drop-shadow(0 0 4px #86efac);
-  }
-}
-
-.motion-paused .regional-map .regional-commute-endpoint-blip {
-  opacity: 0.5;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .regional-map .regional-commute-endpoint-blip {
-    opacity: 0.5;
+    x: var(--flash-to-x);
+    y: var(--flash-to-y);
+    width: var(--flash-to-width);
+    height: var(--flash-to-height);
+    rx: var(--flash-to-r);
+    ry: var(--flash-to-r);
+    opacity: 0.9;
+    filter: drop-shadow(0 0 calc(8px * var(--map-overlay-unit, 1)) #86efac);
   }
 }

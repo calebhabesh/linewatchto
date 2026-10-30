@@ -148,10 +148,10 @@ async function expectRegionalChooserToClearReferencedAlerts(page: Page) {
         .map((choice) => choice.dataset.overlapChoiceId),
     );
     return [...document.querySelectorAll<SVGPathElement>(
-      ".regional-overlay-segment-group .regional-impact-path",
+      ".regional-map .overlay-segment-group > .asset-alert-path",
     )].some((path) => {
-      const group = path.closest<SVGElement>(".regional-overlay-segment-group");
-      if (!group?.dataset.regionalImpactId || !impactIds.has(group.dataset.regionalImpactId)) return false;
+      const group = path.closest<SVGElement>(".overlay-segment-group");
+      if (!group?.dataset.mapImpactId || !impactIds.has(group.dataset.mapImpactId)) return false;
       const matrix = path.getScreenCTM();
       if (!matrix) return false;
       const radius = Number.parseFloat(getComputedStyle(path).strokeWidth) / 2 * Math.max(
@@ -817,7 +817,7 @@ test("regional refresh, pan, zoom, and center preserve the authored SVG instance
   await setStubMode(request, "regional-live");
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
   await expect(page.locator(
-    '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"]',
+    '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-delay"]',
   )).toBeAttached();
   await expect(authoredSvg).toHaveAttribute("data-smoke-stable", "regional-base");
   await expect(authoredLines).toHaveAttribute("data-smoke-stable", "regional-lines");
@@ -839,6 +839,61 @@ test("regional refresh, pan, zoom, and center preserve the authored SVG instance
   await expect(authoredLines).toHaveAttribute("data-smoke-stable", "regional-lines");
   expect(await regionalStage.evaluate((element) => getComputedStyle(element).willChange)).toBe("auto");
   await expect(regionalMap.locator(".regional-map-recenter-veil")).toHaveCount(0);
+});
+
+test.describe("regional overlay reconciliation", () => {
+  // The service worker would answer the dashboard fetch before page.route.
+  test.use({ serviceWorkers: "block" });
+
+  test("a change to one regional alert leaves the other alert overlays mounted", async ({ page, request, isMobile }) => {
+    test.skip(isMobile, "the overlay session is shared by desktop and mobile");
+    await setStubMode(request, "regional-live");
+    let removedCardId: string | null = null;
+    await page.route("**/api/dashboard?network=regional*", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      for (const segment of body.map.segments) {
+        segment.impacts = (segment.impacts ?? []).filter((impact: { cardId: string }) => impact.cardId !== removedCardId);
+      }
+      await route.fulfill({ response, json: body });
+    });
+    await page.goto("/");
+    await page.getByRole("group", { name: "Select transit network" })
+      .getByRole("button", { name: "GO/UP", exact: true })
+      .click();
+
+    const removed = page.locator('.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-planned"]');
+    await expect(removed).toBeAttached();
+    const overlayNodes = [
+      "#regional-dynamic-segment-layer .overlay-segment-group",
+      "#regional-dynamic-hover-layer .map-impact-hover-foreground",
+      ".regional-map .map-impact-hover-foreground-layer .map-impact-hover-foreground",
+      ".regional-map .map-station-alert",
+      ".regional-map .map-station-alert-anchor > *",
+    ].join(", ");
+    const markMounted = () => page.evaluate((selector) => {
+      document.querySelectorAll<SVGElement>(selector).forEach((node) => {
+        node.dataset.smokeMounted ??= "true";
+      });
+    }, overlayNodes);
+    const unmarkedCount = () => page.evaluate((selector) => (
+      [...document.querySelectorAll<SVGElement>(selector)].filter((node) => !node.dataset.smokeMounted).length
+    ), overlayNodes);
+    await markMounted();
+
+    // Drop one alert, then restore it, through the dashboard refresh path. Only
+    // that alert's nodes (its tube, hover copy and hover outline) may be rebuilt.
+    removedCardId = "regional-demo-planned";
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await expect(removed).toHaveCount(0);
+    expect(await unmarkedCount()).toBe(0);
+
+    removedCardId = null;
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await expect(removed).toBeAttached();
+    expect(await unmarkedCount()).toBe(3);
+    await expect(removed).not.toHaveAttribute("data-smoke-mounted", "true");
+  });
 });
 
 test("regional station names share the TTC raster hover glow and station selection", async ({ page, request, isMobile }) => {
@@ -1022,7 +1077,7 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
   await expect(page.getByText("Union Station", { exact: true })).toBeVisible();
   await expect(page.getByText(/Schedule-matched changes include published stop times/)).toBeVisible();
   await expect(page.locator(
-    '[data-regional-impact-id="regional-trip-change-2026-06-04-BR681-cancellation"]',
+    '[data-map-impact-id="regional-trip-change-2026-06-04-BR681-cancellation"]',
   )).toHaveCount(0);
 });
 
@@ -1061,56 +1116,51 @@ test("regional segment selections flash quickly then breathe", async ({ page, re
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
 
-  const delayOverlay = page.locator(
-    '.regional-overlay-segment-group[data-regional-impact-kind="delay"][data-regional-impact-id="regional-demo-delay"]',
+  // GO/UP draws TTC's selection emphasis (the shared overlay layer) in its
+  // selected-alert layer, above every alert and below station artwork.
+  const delayHitTarget = page.locator(
+    '.regional-map .map-segment-hit-target[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-delay"]',
   );
-  await expect(delayOverlay).toHaveCount(1);
-  const delayHitTarget = delayOverlay.locator(".regional-impact-hit-target");
+  await expect(delayHitTarget).toHaveCount(1);
   await delayHitTarget.dispatchEvent("click");
-  await expect(delayOverlay).toHaveAttribute("data-regional-impact-selected", "true");
+  const selectedDelayGlow = page.locator(
+    '#regional-dynamic-selected-segment-layer [data-selected-impact-emphasis="regional-demo-delay"]',
+  ).first();
+  await expect(selectedDelayGlow).toBeAttached();
 
-  const selectedDelayGlow = delayOverlay.locator(".regional-impact-interactive-glow");
   await expect(page.locator(".regional-map")).toHaveAttribute(
     "data-regional-map-camera-moving",
     "true",
   );
-  expect(await selectedDelayGlow.evaluate(
-    (element) => getComputedStyle(element).animationName,
-  )).toBe("regional-selection-path-intro, regional-selection-path-breathe");
   await expect.poll(() => selectedDelayGlow.evaluate((element) => {
     const style = getComputedStyle(element);
     return {
       animationName: style.animationName,
       animationDuration: style.animationDuration,
       animationDelay: style.animationDelay,
-      transitionDuration: style.transitionDuration,
     };
   })).toEqual({
-    animationName: "regional-selection-path-intro, regional-selection-path-breathe",
+    animationName: "map-selection-path-intro, map-selection-path-breathe",
     animationDuration: "2.4s, 1.2s",
     animationDelay: "0s, 2.4s",
-    transitionDuration: "0s",
   });
-  await expect(selectedDelayGlow).not.toHaveAttribute("mask");
   await expect(selectedDelayGlow).toHaveCSS("stroke", "rgb(2, 132, 199)");
   expect(Number(await selectedDelayGlow.evaluate(
     (element) => getComputedStyle(element).opacity,
   ))).toBeGreaterThan(0);
-  expect(await delayOverlay.evaluate((group) => {
-    const visiblePath = group.querySelector(".regional-impact-path");
-    const selectionPath = group.querySelector(".regional-impact-interactive-glow");
-    const hitTarget = group.querySelector(".regional-impact-hit-target");
-    if (!visiblePath || !selectionPath || !hitTarget) return false;
-    return Boolean(
-      visiblePath.compareDocumentPosition(selectionPath) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ) && Boolean(
-      selectionPath.compareDocumentPosition(hitTarget) & Node.DOCUMENT_POSITION_FOLLOWING,
-    );
+  // Emphasis paints over every alert's tube, and targets stay on top of both.
+  expect(await page.evaluate(() => {
+    const tubes = document.querySelector("#regional-dynamic-segment-layer");
+    const selected = document.querySelector("#regional-dynamic-selected-segment-layer");
+    const targets = document.querySelector("#regional-dynamic-target-layer");
+    if (!tubes || !selected || !targets) return false;
+    return Boolean(tubes.compareDocumentPosition(selected) & Node.DOCUMENT_POSITION_FOLLOWING)
+      && Boolean(selected.compareDocumentPosition(targets) & Node.DOCUMENT_POSITION_FOLLOWING);
   })).toBe(true);
   const introSamples = await selectedDelayGlow.evaluate((element) => {
     const intro = element.getAnimations().find(
       (animation) => animation instanceof CSSAnimation
-        && animation.animationName === "regional-selection-path-intro",
+        && animation.animationName === "map-selection-path-intro",
     );
     if (!intro) return null;
     intro.pause();
@@ -1146,45 +1196,53 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
 
   await waitForNetworkTransition(page, "regional");
   await expect(page.locator(".desktop-status-header-row")).toContainText(/Live/i);
-  await expect(page.getByRole("button", { name: "Ajax to Whitby impact details" })).toBeAttached();
+  await expect(page.getByRole("button", { name: /^delay: .*Ajax to Whitby/ })).toBeAttached();
 
   const delayOverlay = page.locator(
-    '.regional-overlay-segment-group[data-regional-impact-kind="delay"][data-regional-impact-id="regional-demo-delay"]',
+    '.regional-map .overlay-segment-group[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-delay"]',
   );
   await expect(delayOverlay).toHaveCount(1);
+  // Within each line, alerts paint by priority (the shared overlay layer).
   const expectRegionalPriorityOrder = async () => {
-    const kinds = await page.locator("#regional-dynamic-segment-layer > [data-regional-impact-kind]")
-      .evaluateAll((elements) => elements.map((element) => element.getAttribute("data-regional-impact-kind")!));
-    const priorities: Record<string, number> = { "reduced-speed-zone": 0, "planned-closure": 1, delay: 2, suspension: 3 };
-    expect(kinds.length).toBeGreaterThan(1);
-    expect(kinds.map((kind) => priorities[kind])).toEqual(kinds.map((kind) => priorities[kind]).sort((a, b) => a - b));
+    const lines = await page.locator("#regional-dynamic-segment-layer > [data-map-alert-line]")
+      .evaluateAll((groups) => groups.map((group) => [...group.querySelectorAll(":scope > [data-map-impact-kind]")]
+        .map((element) => element.getAttribute("data-map-impact-kind")!)));
+    const priorities: Record<string, number> = { "planned-closure": 0, "reduced-speed-zone": 1, delay: 2, suspension: 3 };
+    expect(lines.flat().length).toBeGreaterThan(1);
+    for (const kinds of lines) {
+      expect(kinds.map((kind) => priorities[kind])).toEqual(kinds.map((kind) => priorities[kind]).sort((a, b) => a - b));
+    }
   };
   await expectRegionalPriorityOrder();
-  await expect(delayOverlay).toHaveAttribute("data-regional-impact-segment-count", "2");
-  expect(await delayOverlay.locator(".regional-impact-path").evaluate((path) => (
+  // One continuous tube over both segments, with a one-way lane of
+  // hourglasses and arrows (TTC's delay design).
+  await expect(delayOverlay).toHaveClass(/connected-corridor/);
+  expect(await delayOverlay.locator("> .asset-alert-path").evaluate((path) => (
     (path.getAttribute("d")?.match(/\bM\b/g) ?? []).length
   ))).toBe(1);
   await expect(delayOverlay.locator(".delay-static-base")).toBeAttached();
-  await expect(delayOverlay.locator('[data-regional-delay-direction="forward"]')).toBeAttached();
-  await expect(delayOverlay.locator(".regional-delay-glyph--hourglass").first()).toBeAttached();
-  await expect(delayOverlay.locator(".regional-delay-glyph--arrow").first()).toBeAttached();
-  await expect(page.locator(".regional-station-impact-beacon-group")).toHaveCount(1);
-  await expect(page.locator(".regional-station-impact-direction-glyph")).toHaveCount(1);
-  const bloorBeacon = page.locator(
-    '.regional-station-impact-beacon-group[data-regional-station-impact-anchor-id="station-bloor-up"]',
+  await expect(delayOverlay.locator("[data-glyph-lane]")).toHaveCount(1);
+  await expect(delayOverlay.locator(".delay-hourglass").first()).toBeAttached();
+  await expect(delayOverlay.locator('[data-glyph-lane] path[d="M -12 -10 L 8 0 L -12 10"]').first()).toBeAttached();
+  // Station alerts come from the shared layer (TTC's design) in the top plane.
+  const bloorAlert = page.locator(
+    '.regional-map .map-station-alert[data-map-impact-id="regional-demo-bloor-station-delay"]',
+  );
+  // Upcoming station-only planned closures also show (TTC's rule); count the rest.
+  await expect(page.locator('.regional-map .map-station-alert:not([data-map-impact-kind="planned-closure"])')).toHaveCount(1);
+  await expect(page.locator(".regional-map .station-impact-direction-glyph")).toHaveCount(1);
+  const bloorBeacon = bloorAlert.locator(
+    '.map-station-alert-anchor[data-map-station-anchor-id="station-bloor-up"] .station-impact-dot-red-beacon',
   );
   await expect(bloorBeacon).toBeVisible();
-  await expect(page.locator(
-    '.regional-station-impact-ring[data-regional-impact-id="regional-demo-bloor-station-delay"] :is(circle, ellipse)',
-  )).toHaveCount(1);
   await expect(
-    page.locator(".regional-station-impact-direction-glyph .station-impact-direction-arrow"),
+    page.locator(".regional-map .station-impact-direction-glyph .station-impact-direction-arrow"),
   ).toBeAttached();
   const [bloorDotBox, bloorBeaconBox, bloorArrowBox] = await Promise.all([
     page.locator("#station-bloor-up").boundingBox(),
     bloorBeacon.boundingBox(),
     page.locator(
-      '.regional-station-impact-direction-glyph[data-regional-station-impact-anchor-id="station-bloor-up"]',
+      '.regional-map .station-impact-direction-glyph[data-map-station-anchor-id="station-bloor-up"]',
     ).boundingBox(),
   ]);
   expect(bloorDotBox).not.toBeNull();
@@ -1202,53 +1260,42 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   }
   expect(bloorArrowBox!.width).toBeLessThan(bloorDotBox!.width * 0.9);
   expect(bloorArrowBox!.height).toBeLessThan(bloorDotBox!.height * 0.9);
-  expect(await page.locator(
-    '.regional-station-impact-ring[data-regional-impact-id="regional-demo-bloor-station-delay"] :is(circle, ellipse)',
-  ).evaluate((shape) => getComputedStyle(shape).stroke)).toBe("rgba(0, 0, 0, 0)");
-  expect(await page.locator(".regional-station-impact-effects-layer").evaluate((effects) => {
-    return effects.parentElement?.querySelector(".regional-station-impact-hover-foreground-layer") === null;
-  })).toBe(true);
 
-  const bloorImpactRing = page.locator(
-    '.regional-station-impact-ring[data-regional-impact-id="regional-demo-bloor-station-delay"]',
-  );
-  const bloorImpactPoint = await bloorImpactRing.locator("circle, ellipse").evaluate((shape) => {
-    const geometry = shape as SVGCircleElement | SVGEllipseElement;
-    const centerX = Number(geometry.getAttribute("cx") ?? 0);
-    const centerY = Number(geometry.getAttribute("cy") ?? 0);
-    const radiusX = Number(geometry.getAttribute("r") ?? geometry.getAttribute("rx") ?? 0);
-    const point = geometry.ownerSVGElement!.createSVGPoint();
-    point.x = centerX + radiusX;
-    point.y = centerY;
-    const screenPoint = point.matrixTransform(geometry.getScreenCTM()!);
+  // Hovering the alert's ring lights its hover priority ring, as on TTC.
+  const bloorImpactPoint = await bloorAlert.locator(".station-impact-ring").evaluate((shape) => {
+    const ring = shape as SVGCircleElement;
+    const point = ring.ownerSVGElement!.createSVGPoint();
+    point.x = ring.cx.baseVal.value + ring.r.baseVal.value;
+    point.y = ring.cy.baseVal.value;
+    const screenPoint = point.matrixTransform(ring.getScreenCTM()!);
     return { x: screenPoint.x, y: screenPoint.y };
   });
   await page.mouse.move(bloorImpactPoint.x, bloorImpactPoint.y);
-  const bloorStationHover = page.locator(
-    '.regional-station-hover-indicator[data-regional-station-hover-id="bloor"]',
-  );
-  await expect(bloorStationHover).toHaveAttribute("data-regional-station-impact-hovered", "true");
-  await expect(bloorStationHover).toHaveCSS("opacity", "1");
-  await expect(bloorImpactRing).not.toHaveAttribute("data-regional-impact-hovered");
+  if (!isMobile) {
+    const bloorHover = page.locator(
+      '.regional-map .station-impact-hover-priority[data-map-hover-impact-id="regional-demo-bloor-station-delay"]',
+    );
+    await expect(bloorHover).toHaveAttribute("data-map-impact-hovered", "true");
+    await expect(bloorHover).toHaveCSS("opacity", "1");
+  }
 
   const plannedOverlay = page.locator(
-    '.regional-overlay-segment-group[data-regional-impact-kind="planned-closure"][data-regional-impact-id="regional-demo-planned"]',
+    '.regional-map .overlay-segment-group[data-map-impact-kind="planned-closure"][data-map-impact-id="regional-demo-planned"]',
   );
   await expect(plannedOverlay).toHaveCount(1);
-  await expect(plannedOverlay).toHaveCSS("--regional-impact-width", "196px");
-  await expect(delayOverlay).toHaveCSS("--regional-impact-width", "196px");
-  await expect(delayOverlay.locator(".regional-impact-hit-target")).toHaveCSS("stroke-width", "365px");
-  await expect(plannedOverlay).toHaveCSS("--map-pulse-offset", "0s");
-  await expect(delayOverlay).toHaveCSS("--map-pulse-offset", "0s");
+  // GO/UP draws the shared design at its rail's width: 196 units, TTC's 96 scaled.
+  await expect(plannedOverlay.locator(".asset-alert-path.planned-preview")).toHaveCSS("stroke-width", "196px");
+  await expect(delayOverlay.locator(".delay-static-base")).toHaveCSS("stroke-width", "196px");
   const suspensionOverlay = page.locator(
-    '.regional-overlay-segment-group[data-regional-impact-kind="suspension"][data-regional-impact-id="regional-demo-suspension"]',
+    '.regional-map .overlay-segment-group[data-map-impact-kind="suspension"][data-map-impact-id="regional-demo-suspension"]',
   );
   await expect(suspensionOverlay).toHaveCount(1);
-  await expect(suspensionOverlay.locator(".regional-suspension-glyph--no-entry > g").first())
-    .toHaveAttribute("transform", /scale\(5\)/);
-  await expect(plannedOverlay.locator(".regional-planned-closure-glyph--icon > g").first())
-    .toHaveAttribute("transform", /scale\(6\.2\)/);
-  const authoredRouteGap = await suspensionOverlay.locator(".regional-impact-path").evaluate((overlay) => {
+  // Glyph art is TTC's, scaled by GO/UP's overlay unit.
+  await expect(suspensionOverlay.locator(".suspension-no-entry-lane > g").first())
+    .toHaveAttribute("transform", /scale\(2\.04\d*\)/);
+  await expect(plannedOverlay.locator(".planned-closure-icon-lane > g").first())
+    .toHaveAttribute("transform", /scale\(2\.04\d*\)/);
+  const authoredRouteGap = await suspensionOverlay.locator("> .asset-alert-path").evaluate((overlay) => {
     if (!(overlay instanceof SVGPathElement)) return Number.POSITIVE_INFINITY;
     const route = overlay.ownerSVGElement?.querySelector<SVGPathElement>("#regional-route-ki-path");
     if (!route) return Number.POSITIVE_INFINITY;
@@ -1272,7 +1319,9 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     }));
   });
   expect(authoredRouteGap).toBeLessThan(12);
-  const regionalOverlapMarker = page.locator('[data-overlap-segment-id^="regional-overlap-"]').first();
+  // The delay and planned closures meet Pickering's station-only planned
+  // closure there, so one station badge covers all three (TTC's rule).
+  const regionalOverlapMarker = page.locator('[data-overlap-segment-id*="delay:regional-demo-delay|"]').first();
   await expect(regionalOverlapMarker).toBeVisible();
   const markerBox = await regionalOverlapMarker.boundingBox();
   const viewport = page.viewportSize();
@@ -1356,23 +1405,23 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     markerBox!.x + markerBox!.width / 2,
     markerBox!.y + markerBox!.height / 2,
   );
+  // The shared hover copy (a <use> of the alert's artwork, under station
+  // artwork) and its outline in the top plane.
   const delayHoverForeground = page.locator(
-    '.regional-impact-hover-foreground-layer .regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-delay"]',
+    '#regional-dynamic-hover-layer .map-impact-hover-foreground[data-map-hover-impact-id="regional-demo-delay"]',
   );
   const plannedHoverForeground = page.locator(
-    '.regional-impact-hover-foreground-layer .regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-planned"]',
+    '#regional-dynamic-hover-layer .map-impact-hover-foreground[data-map-hover-impact-id="regional-demo-planned"]',
   );
   const delayTopHoverForeground = page.locator(
-    '#regional-top-hover-layer .regional-impact-top-hover-foreground[data-regional-hover-impact-id="regional-demo-delay"]',
+    '.regional-map .map-impact-hover-foreground-layer .map-impact-hover-foreground[data-map-hover-impact-id="regional-demo-delay"]',
   );
   // Hovering an overlap badge outlines its whole group (fad18679) instead of
   // marking each alert hovered.
-  const groupPreview = page.locator(".regional-impact-preview-outline");
-  await expect(groupPreview).toHaveAttribute("data-regional-preview-impacts", /delay:regional-demo-delay/);
-  await expect(groupPreview).toHaveAttribute("data-regional-preview-impacts", /planned-closure:regional-demo-planned/);
-  await expect(
-    page.locator(".regional-impact-hover-foreground-layer .regional-impact-hit-target"),
-  ).toHaveCount(0);
+  const groupPreview = page.locator(".regional-map .map-impact-preview-outline");
+  await expect(groupPreview).toHaveAttribute("data-map-preview-impacts", /delay:regional-demo-delay/);
+  await expect(groupPreview).toHaveAttribute("data-map-preview-impacts", /planned-closure:regional-demo-planned/);
+  await expect(page.locator("#regional-dynamic-hover-layer .map-segment-hit-target")).toHaveCount(0);
 
   await regionalOverlapMarker.dispatchEvent("click");
   const regionalOverlapChooser = page.locator("[data-overlap-chooser]");
@@ -1380,20 +1429,20 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expectRegionalChooserToClearReferencedAlerts(page);
   await expectChooserToClearUiKeepouts(page);
   await expect(regionalOverlapChooser.getByText("Choose Alert", { exact: true })).toBeVisible();
-  await expect(regionalOverlapChooser.locator(".overlap-chooser-choice")).toHaveCount(2);
+  // The delay, the corridor closure, and Pickering's station-only closure.
+  await expect(regionalOverlapChooser.locator(".overlap-chooser-choice")).toHaveCount(3);
   await regionalOverlapChooser
     .locator('[data-overlap-choice-id="regional-demo-delay"]')
     .hover();
-  await expect(delayHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
-  await expect(plannedHoverForeground).not.toHaveAttribute("data-regional-impact-hovered");
-  await expect(delayHoverForeground.locator(".regional-impact-path")).toHaveCSS("visibility", "visible");
-  await expect(delayHoverForeground.locator(".regional-delay-glyph--hourglass").first()).toBeVisible();
-  await expect(delayHoverForeground.locator(".regional-impact-hit-target")).toHaveCount(0);
+  await expect(delayHoverForeground).toHaveAttribute("data-map-impact-hovered", "true");
+  await expect(plannedHoverForeground).not.toHaveAttribute("data-map-impact-hovered");
+  await expect(delayHoverForeground).toHaveCSS("display", "inline");
+  await expect(delayHoverForeground.locator("use")).toHaveCount(1);
   // Preview the lower-priority closure above the delay, then restore the chooser selection.
   await regionalOverlapChooser.locator('[data-overlap-choice-id="regional-demo-planned"]').hover();
-  await expect(plannedHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
-  await expect(delayHoverForeground).not.toHaveAttribute("data-regional-impact-hovered");
-  await expect(plannedHoverForeground.locator(".regional-impact-path")).toHaveCSS("visibility", "visible");
+  await expect(plannedHoverForeground).toHaveAttribute("data-map-impact-hovered", "true");
+  await expect(delayHoverForeground).not.toHaveAttribute("data-map-impact-hovered");
+  await expect(plannedHoverForeground).toHaveCSS("display", "inline");
   expect(await plannedHoverForeground.evaluate((foreground) => {
     const segmentLayer = foreground.closest("svg")!.querySelector("#regional-dynamic-segment-layer")!;
     return Boolean(segmentLayer.compareDocumentPosition(foreground) & Node.DOCUMENT_POSITION_FOLLOWING);
@@ -1403,47 +1452,55 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     .locator('[data-overlap-choice-id="regional-demo-delay"]')
     .click();
   await expect(regionalOverlapChooser).toHaveCount(0);
-  await expect(delayOverlay).toHaveAttribute("data-regional-impact-selected", "true");
+  const delayEmphasis = page.locator(
+    '#regional-dynamic-selected-segment-layer [data-selected-impact-emphasis="regional-demo-delay"]',
+  ).first();
+  await expect(delayEmphasis).toBeAttached();
+  await expect(delayOverlay.locator(".interactive-glow.selected")).toHaveCount(1);
 
-  await delayOverlay.locator(".regional-impact-hit-target").dispatchEvent("click");
-  await expect(delayOverlay).toHaveAttribute("data-regional-impact-selected", "true");
+  const delayTarget = page.locator('.regional-map .map-segment-hit-target[data-map-impact-id="regional-demo-delay"]');
+  await delayTarget.dispatchEvent("click");
+  await expect(delayEmphasis).toBeAttached();
   expect(await delayOverlay.evaluate((delay, plannedSelector) => {
     const planned = document.querySelector(plannedSelector);
     return planned
       ? Boolean(planned.compareDocumentPosition(delay) & Node.DOCUMENT_POSITION_FOLLOWING)
       : false;
-  }, '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-planned"]')).toBe(true);
+  }, '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-planned"]')).toBe(true);
 
   const lwCorridorOverlay = page.locator(
-    '.regional-overlay-segment-group[data-regional-impact-kind="delay"][data-regional-impact-id="regional-demo-lw-corridor-delay"]',
+    '.regional-map .overlay-segment-group[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-lw-corridor-delay"]',
   );
   await expect(lwCorridorOverlay).toHaveCount(1);
-  await expect(lwCorridorOverlay).toHaveAttribute("data-regional-impact-segment-count", "15");
-  const lwCorridorPaths = await lwCorridorOverlay.locator(".regional-impact-path").evaluateAll(
+  await expect(lwCorridorOverlay).toHaveClass(/connected-corridor/);
+  const lwCorridorPaths = await lwCorridorOverlay.locator("> .asset-alert-path").evaluateAll(
     (paths) => paths.map((path) => path.getAttribute("d") ?? ""),
   );
   expect(lwCorridorPaths).toHaveLength(1);
-  // One path in two runs; the 15 segments are counted by the attribute above.
+  // One path in two runs (the corridor's two branches).
   expect((lwCorridorPaths[0].match(/\bM\b/g) ?? []).length).toBe(2);
+  // Outline masks extend past the corridor's west end at West Harbour.
   const lwHoverMaskX = await page.locator(
-    '.regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-lw-corridor-delay"] mask[id^="regional-hover-boundary-mask-"]',
+    '.regional-map .map-impact-hover-foreground[data-map-hover-impact-id="regional-demo-lw-corridor-delay"] mask',
   ).first().getAttribute("x");
   expect(Number(lwHoverMaskX)).toBeLessThan(-330);
-  const delayHoverPoint = await delayOverlay.locator(".regional-impact-hit-target").evaluate((path) => {
+  const delayHoverPoint = await delayTarget.evaluate((path) => {
     const geometry = path as SVGPathElement;
     const point = geometry.getPointAtLength(geometry.getTotalLength() * 0.85);
     const screenPoint = point.matrixTransform(geometry.getScreenCTM()!);
     return { x: screenPoint.x, y: screenPoint.y };
   });
   await page.mouse.move(delayHoverPoint.x, delayHoverPoint.y);
-  await expect(delayHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
-  await expect(delayTopHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
-  await expect(delayTopHoverForeground.locator(".regional-impact-hover-boundary")).toHaveCount(2);
-  await expect(delayTopHoverForeground.locator('[data-regional-top-hover-union-cutout="true"]')).toHaveCount(2);
+  await expect(delayHoverForeground).toHaveAttribute("data-map-impact-hovered", "true");
+  await expect(delayTopHoverForeground).toHaveAttribute("data-map-impact-hovered", "true");
+  await expect(delayTopHoverForeground.locator(".map-impact-hover-outline")).toHaveCount(2);
+  // The outline stops at Union's pill in both of its masks.
+  await expect(delayTopHoverForeground.locator(".map-impact-hover-outline-cutout")).toHaveCount(2);
+  // The top-plane outline follows the tube drawn in the stations layer.
   expect(await delayTopHoverForeground.evaluate((foreground) => {
-    const topPath = foreground.querySelector<SVGPathElement>(".regional-impact-hover-boundary-core");
+    const topPath = foreground.querySelector<SVGPathElement>(".map-impact-hover-outline-core");
     const lowerPath = document.querySelector<SVGPathElement>(
-      '.regional-impact-hover-foreground-layer .regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-delay"] .regional-impact-hover-boundary-core',
+      '#regional-dynamic-segment-layer .overlay-segment-group[data-map-impact-id="regional-demo-delay"] > .asset-alert-path',
     );
     if (!topPath || !lowerPath) return Number.POSITIVE_INFINITY;
     const ratios = [0, 0.25, 0.5, 0.75, 1];
@@ -1455,37 +1512,22 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
       return Math.hypot(topPoint.x - lowerPoint.x, topPoint.y - lowerPoint.y);
     }));
   })).toBeLessThan(1);
-  await expect(delayOverlay).not.toHaveAttribute("data-regional-impact-hovered");
-  await expect(delayHoverForeground.locator(".regional-impact-aura, .regional-impact-path, .regional-delay-glyph-lane"))
-    .toHaveCount(3);
-  await expect(delayHoverForeground.locator(".regional-impact-hover-boundary"))
-    .toHaveCount(2);
-  await expect(delayHoverForeground.locator(".regional-impact-hover-boundary-core"))
-    .toHaveAttribute("mask", /regional-hover-boundary-mask-/);
-  await expect(delayHoverForeground.locator(".regional-impact-hover-boundary-edge"))
-    .toHaveAttribute("mask", /regional-hover-boundary-mask-.*-outer/);
-  const hoverMaskWidths = await delayHoverForeground.locator('mask[id^="regional-hover-boundary-mask-"]')
+  // TTC's keyline proportions at GO/UP's scale: outer 117.2, divider 108.2,
+  // inner 96 (the rail), times 196 / 96.
+  const hoverMaskWidths = await delayTopHoverForeground.locator("mask")
     .evaluateAll((masks) => masks.map((mask) => ({
-    outer: mask.id.endsWith("-outer"),
-    outline: Number(mask.querySelector("path[stroke='white']")?.getAttribute("stroke-width")),
-    cutout: Number(mask.querySelector("path[stroke='black']")?.getAttribute("stroke-width")),
+      outer: mask.id.endsWith("-outer"),
+      outline: Number(mask.querySelector("path[stroke='white']")?.getAttribute("stroke-width")),
+      cutout: Number(mask.querySelector("path[stroke='black']")?.getAttribute("stroke-width")),
     })));
   expect(hoverMaskWidths).toHaveLength(2);
   const coreMaskWidths = hoverMaskWidths.find((mask) => !mask.outer);
   const edgeMaskWidths = hoverMaskWidths.find((mask) => mask.outer);
-  expect(coreMaskWidths).toBeDefined();
-  expect(edgeMaskWidths).toBeDefined();
   expect(coreMaskWidths!.outline).toBe(edgeMaskWidths!.outline);
-  expect(coreMaskWidths!.outline).toBe(248);
-  expect(coreMaskWidths!.cutout).toBe(184);
-  expect(edgeMaskWidths!.cutout).toBe(226);
-  expect(coreMaskWidths!.cutout).toBeLessThan(edgeMaskWidths!.cutout);
-  expect(edgeMaskWidths!.cutout).toBeLessThan(edgeMaskWidths!.outline);
-  expect(await delayHoverForeground.evaluate((foreground) => {
-    const core = foreground.querySelector(".regional-impact-hover-boundary-core");
-    const edge = foreground.querySelector(".regional-impact-hover-boundary-edge");
-    return core?.parentElement === edge?.parentElement;
-  })).toBe(true);
+  expect(coreMaskWidths!.outline).toBeCloseTo(117.2 * 196 / 96, 3);
+  expect(coreMaskWidths!.cutout).toBeCloseTo(196, 3);
+  expect(edgeMaskWidths!.cutout).toBeCloseTo(108.2 * 196 / 96, 3);
+  // Hover copies paint below station artwork.
   expect(await delayHoverForeground.evaluate((foreground) => {
     const hoverLayer = foreground.closest("#regional-dynamic-hover-layer");
     const stationVisual = hoverLayer?.parentElement?.querySelector(".regional-station-visual");
@@ -1495,13 +1537,9 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
       && (hoverLayer.compareDocumentPosition(stationVisual) & Node.DOCUMENT_POSITION_FOLLOWING),
     );
   })).toBe(true);
-  await expect(delayHoverForeground.locator(".regional-impact-path"))
-    .toHaveCSS("animation-name", "none");
-  await expect(delayOverlay.locator(".regional-impact-interactive-glow"))
-    .not.toHaveAttribute("mask");
-  await expect(delayOverlay.locator(".regional-impact-interactive-glow"))
-    .toHaveCSS("stroke", "rgb(2, 132, 199)");
-  await expect(lwCorridorOverlay.locator(".regional-impact-interactive-glow")).toHaveCSS("opacity", "0");
+  await expect(delayEmphasis).not.toHaveAttribute("mask");
+  await expect(delayEmphasis).toHaveCSS("stroke", "rgb(2, 132, 199)");
+  await expect(lwCorridorOverlay.locator(".interactive-glow")).toHaveCSS("display", "none");
 
   // Station hit targets sit above the authored rails. Crossing one must keep
   // the whole impact highlight on instead of briefly switching it off.
@@ -1511,7 +1549,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     whitbyBox!.x + whitbyBox!.width / 2,
     whitbyBox!.y + whitbyBox!.height / 2,
   );
-  await expect(delayHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
+  await expect(delayHoverForeground).toHaveAttribute("data-map-impact-hovered", "true");
 
   const pickeringStation = page.locator('.regional-station-hit-target[data-regional-station-id="pickering"]');
   await pickeringStation.press("Enter");
@@ -1536,40 +1574,36 @@ test("regional corridor hover encloses the entire referenced impact", async ({ p
     .click();
   await waitForNetworkTransition(page, "regional");
 
-  const corridor = page.locator(
-    '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-lw-corridor-delay"]',
-  );
-  const segmentTargets = corridor.locator(".regional-impact-segment-focus-target");
+  // One target covers the whole corridor alert (TTC's model); focus, hover
+  // and selection all outline the entire alert.
+  const target = page.locator('.regional-map .map-segment-hit-target[data-map-impact-id="regional-demo-lw-corridor-delay"]');
   const hoverForeground = page.locator(
-    '.regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-lw-corridor-delay"]',
+    '#regional-dynamic-hover-layer .map-impact-hover-foreground[data-map-hover-impact-id="regional-demo-lw-corridor-delay"]',
   );
-  await expect(segmentTargets).toHaveCount(15);
+  await expect(target).toHaveCount(1);
 
-  // The overlap badge previews its whole group with a separate outline, so
-  // start from the corridor's own segments.
-  await segmentTargets.nth(0).focus();
-  await expect(hoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
+  await target.focus();
+  await expect(hoverForeground).toHaveAttribute("data-map-impact-hovered", "true");
   await expect(hoverForeground).not.toHaveAttribute("mask");
 
-  await segmentTargets.nth(1).focus();
-  await expect(hoverForeground).not.toHaveAttribute("mask");
-  await segmentTargets.nth(2).focus();
-  await expect(hoverForeground).not.toHaveAttribute("mask");
-
-  const hoverPoint = await segmentTargets.nth(1).evaluate((path) => {
+  const hoverPoint = await target.evaluate((path) => {
     const geometry = path as SVGPathElement;
-    const point = geometry.getPointAtLength(geometry.getTotalLength() / 2);
+    const point = geometry.getPointAtLength(geometry.getTotalLength() / 3);
     const screenPoint = point.matrixTransform(geometry.getScreenCTM()!);
     return { x: screenPoint.x, y: screenPoint.y };
   });
   await page.mouse.move(hoverPoint.x, hoverPoint.y);
+  await expect(hoverForeground).toHaveAttribute("data-map-impact-hovered", "true");
   await expect(hoverForeground).not.toHaveAttribute("mask");
 
-  await corridor.locator(".regional-impact-hit-target").dispatchEvent("click");
-  await expect(corridor).toHaveAttribute("data-regional-impact-selected", "true");
-  await segmentTargets.nth(2).focus();
+  await target.dispatchEvent("click");
+  const emphasis = page.locator(
+    '#regional-dynamic-selected-segment-layer [data-selected-impact-emphasis="regional-demo-lw-corridor-delay"]',
+  );
+  await expect(emphasis.first()).toBeAttached();
+  await target.focus();
   await expect(hoverForeground).not.toHaveAttribute("mask");
-  await expect(corridor).toHaveAttribute("data-regional-impact-selected", "true");
+  await expect(emphasis.first()).toBeAttached();
 });
 
 test("selecting a hovered regional station preserves distinct overlays", async ({ page, request, isMobile }) => {
@@ -1647,10 +1681,11 @@ test("focuses a station-only regional planned closure on the map", async ({ page
   const mapButton = card.getByRole("button", { name: "View Pickering station construction on map" });
   await mapButton.click();
 
+  // A station-only planned closure is a shared station alert (TTC's design).
   const marker = page.locator(
-    '.regional-planned-station-marker[data-regional-impact-id="regional-station-only-planned"][data-regional-planned-station-id="pickering"]',
+    '.regional-map .map-station-alert[data-map-impact-kind="planned-closure"][data-map-impact-id="regional-station-only-planned"][data-map-station-id="pickering"] .station-impact-ring',
   );
-  await expect(marker).toHaveAttribute("data-regional-impact-selected", "true");
+  await expect(marker).toHaveClass(/\bselected\b/);
   await expect(marker).toBeVisible();
   await expect.poll(() => mapStage.getAttribute("style")).not.toBe(initialTransform);
 
@@ -1658,12 +1693,12 @@ test("focuses a station-only regional planned closure on the map", async ({ page
   await expect(card.getByRole("button", { name: "Back to map: Pickering station construction" })).toBeVisible();
   const expandSidebar = page.getByRole("button", { name: "Expand sidebar" });
   if (await expandSidebar.isVisible()) await expandSidebar.click();
-  await expect(marker).toHaveAttribute("data-regional-impact-selected", "true");
+  await expect(marker).toHaveClass(/\bselected\b/);
 
   const viewport = page.locator(".regional-map-viewport");
   await viewport.dispatchEvent("pointerdown", { pointerId: 91, pointerType: "mouse", button: 0, clientX: 12, clientY: 12 });
   await viewport.dispatchEvent("pointerup", { pointerId: 91, pointerType: "mouse", button: 0, clientX: 12, clientY: 12 });
-  await expect(marker).not.toHaveAttribute("data-regional-impact-selected", "true");
+  await expect(marker).not.toHaveClass(/\bselected\b/);
 });
 
 test("keeps transformed regional junction selection aligned with its station dots", async ({ page, request, isMobile }) => {
@@ -1954,7 +1989,7 @@ test("renders regional estimated train markers from the network-scoped endpoint"
     ).toBeLessThan(1);
   }
 
-  const disruptionOverlay = page.locator(".regional-overlay-segment-group").first();
+  const disruptionOverlay = page.locator(".regional-map .overlay-segment-group").first();
   await expect(disruptionOverlay).toBeAttached();
   const originalDisruptionOverlay = await disruptionOverlay.elementHandle();
   expect(originalDisruptionOverlay).not.toBeNull();
@@ -2636,10 +2671,10 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
   const regionalAuthoredMap = regionalMapStage.locator(":scope > div > svg");
   const regionalAuthoredTrack = regionalMapStage.locator("#regional-route-lw-main-path");
   const regionalGlow = regionalMap.locator(
-    '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"] .regional-impact-aura',
+    '.overlay-segment-group[data-map-impact-id="regional-demo-delay"] .asset-alert-path-glow:not(.interactive-glow)',
   );
   const regionalPlannedPath = regionalMap.locator(
-    '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-planned"] .regional-impact-path',
+    '.overlay-segment-group[data-map-impact-id="regional-demo-planned"] > .asset-alert-path',
   );
   await expect(regionalGlow).toBeAttached();
   await expect(regionalPlannedPath).toBeAttached();
@@ -2685,10 +2720,10 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   const regionalZoomPaint = await regionalMap.evaluate((root) => {
     const zoomGlow = root.querySelector<SVGElement>(
-      '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"] .regional-impact-aura',
+      '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-delay"] .asset-alert-path-glow:not(.interactive-glow)',
     );
     const zoomPlannedPath = root.querySelector<SVGElement>(
-      '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-planned"] .regional-impact-path',
+      '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-planned"] > .asset-alert-path',
     );
     if (!zoomGlow || !zoomPlannedPath) throw new Error("Missing regional zoom overlays");
     return {
@@ -2780,14 +2815,14 @@ test("disruption rails stay static across TTC and regional maps", async ({ page,
 
   const ttcPulse = await page.locator('g[aria-label="Disruption overlays"]').evaluate((root) => {
     const planned = root.querySelector<SVGPathElement>(
-      '[data-map-impact-id="stub-active-closure-child-line-1"] .asset-alert-path.suspension-candy',
+      '.overlay-segment-group[data-map-impact-id="stub-active-closure-child-line-1"] .asset-alert-path.suspension-candy',
     );
     const plannedPreview = root.querySelector<SVGPathElement>(".asset-alert-path.planned-preview");
     const rsz = root.querySelector<SVGPathElement>(
       '[data-map-impact-kind="reduced-speed-zone"] .asset-alert-path.delay-candy',
     );
     const closureMask = root.querySelector<SVGPathElement>(
-      '[data-map-impact-id="stub-active-closure-child-line-1"] .suspension-mask-path',
+      '.overlay-segment-group[data-map-impact-id="stub-active-closure-child-line-1"] .suspension-mask-path',
     );
     if (!planned || !plannedPreview || !rsz || !closureMask) {
       throw new Error("Missing overlapping TTC current closure, closure preview, and RSZ rails");
@@ -2823,10 +2858,10 @@ test("disruption rails stay static across TTC and regional maps", async ({ page,
 
   const regionalRails = await page.locator(".regional-map").evaluate((root) => {
     const delay = root.querySelector<SVGPathElement>(
-      '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"] .regional-impact-path',
+      '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-delay"] > .asset-alert-path',
     );
     const planned = root.querySelector<SVGPathElement>(
-      '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-planned"] .regional-impact-path',
+      '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-planned"] > .asset-alert-path',
     );
     if (!delay || !planned) throw new Error("Missing overlapping regional delay and planned-closure rails");
     return {
@@ -2849,16 +2884,16 @@ test("paints current delays above planned closures on both maps", async ({ page,
   await expect(page.getByTitle("Center view")).toBeVisible();
 
   const ttcOverlays = page.locator('g[aria-label="Disruption overlays"]');
-  await expect(ttcOverlays.locator('[data-map-impact-id="stub-upcoming-closure-line-1"]'))
+  await expect(ttcOverlays.locator('.overlay-segment-group[data-map-impact-id="stub-upcoming-closure-line-1"]'))
     .toHaveCount(1);
-  await expect(ttcOverlays.locator('[data-map-impact-id="stub-delay-line-1-overlap"]'))
+  await expect(ttcOverlays.locator('.overlay-segment-group[data-map-impact-id="stub-delay-line-1-overlap"]'))
     .toHaveCount(1);
   const ttcDelayPaintsAfterPlanned = await ttcOverlays
     .evaluate((root) => {
       const planned = root.querySelector(
-        '[data-map-impact-id="stub-upcoming-closure-line-1"]',
+        '.overlay-segment-group[data-map-impact-id="stub-upcoming-closure-line-1"]',
       );
-      const delay = root.querySelector('[data-map-impact-id="stub-delay-line-1-overlap"]');
+      const delay = root.querySelector('.overlay-segment-group[data-map-impact-id="stub-delay-line-1-overlap"]');
       if (!planned || !delay) return false;
       return Boolean(planned.compareDocumentPosition(delay) & Node.DOCUMENT_POSITION_FOLLOWING);
     });
@@ -2871,17 +2906,17 @@ test("paints current delays above planned closures on both maps", async ({ page,
 
   const regionalMap = page.locator(".regional-map");
   await expect(regionalMap.locator(
-    '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-planned"]',
+    '.overlay-segment-group[data-map-impact-id="regional-demo-planned"]',
   )).toHaveCount(1);
   await expect(regionalMap.locator(
-    '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"]',
+    '.overlay-segment-group[data-map-impact-id="regional-demo-delay"]',
   )).toHaveCount(1);
   const regionalDelayPaintsAfterPlanned = await regionalMap.evaluate((root) => {
     const planned = root.querySelector(
-      '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-planned"]',
+      '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-planned"]',
     );
     const delay = root.querySelector(
-      '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"]',
+      '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-delay"]',
     );
     if (!planned || !delay) return false;
     return Boolean(planned.compareDocumentPosition(delay) & Node.DOCUMENT_POSITION_FOLLOWING);
@@ -3504,7 +3539,7 @@ test("retains the last dashboard snapshot while browser requests reconnect", asy
   });
   await page.goto("/");
 
-  const retainedOverlay = page.locator('[data-map-impact-id="stub-alert-line-1"]');
+  const retainedOverlay = page.locator('.overlay-segment-group[data-map-impact-id="stub-alert-line-1"]');
   await expect(retainedOverlay).toBeAttached();
 
   dashboardUnavailable = true;
@@ -3673,12 +3708,12 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
 
   if (!isMobile) {
     await overlapMarker.hover();
-    await expect.poll(() => page.locator("[data-hover-priority-impact]").count()).toBeGreaterThan(0);
+    await expect.poll(() => page.locator("[data-map-hover-owner]").count()).toBeGreaterThan(0);
   }
   const overlapMarkerBox = await overlapMarker.boundingBox();
 
   await overlapMarker.dispatchEvent("click");
-  await expect.poll(() => page.locator("[data-hover-priority-impact]").count()).toBeGreaterThan(0);
+  await expect.poll(() => page.locator("[data-map-hover-owner]").count()).toBeGreaterThan(0);
   const overlapChooser = page.locator("[data-overlap-chooser]");
   await expect.poll(async () => overlapChooser.evaluate((element) =>
     element.getAnimations().some((animation) => animation.playState === "running"),
@@ -3776,9 +3811,9 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   await expect(overlapChooser.locator('[data-overlap-choice-kind="planned-closure"]').first()).toHaveCSS("border-left-width", "2px");
   if (!isMobile) {
     await overlapChooser.locator('[data-overlap-choice-id="stub-alert-line-1"]').hover();
-    const foregroundImpact = page.locator('[data-hover-foreground-impact="chooser:suspension:stub-alert-line-1"]').first();
+    const foregroundImpact = page.locator('.map-impact-hover-foreground[data-map-hover-owner="chooser:suspension:stub-alert-line-1"]').first();
     await expect(foregroundImpact).toBeVisible();
-    const stationImpactHover = page.locator('[data-station-impact-hover-id="stub-alert-line-1"]');
+    const stationImpactHover = page.locator('.station-impact-hover-priority[data-map-hover-impact-id="stub-alert-line-1"][data-map-impact-hovered="true"]');
     await expect(stationImpactHover).toBeVisible();
     await expect(stationImpactHover).toHaveCSS("stroke", "rgb(129, 201, 255)");
   }

@@ -82,84 +82,64 @@ test("regional station alerts keep severity fills and require explicit direction
   await waitForNetworkTransition(page, "regional");
   await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
 
-  const fills = page.locator(".regional-station-impact-fill");
-  const closureFill = page.locator('.regional-station-impact-fill[data-regional-station-impact-id="bloor-up-closure"]');
-  const delayFill = page.locator('.regional-station-impact-fill[data-regional-station-impact-id="bloor-ki-delay"]');
-  await expect(fills).toHaveCount(2);
-  await expect(closureFill).toHaveAttribute("data-regional-station-impact-anchor-id", "station-bloor-up");
-  await expect(delayFill).toHaveAttribute("data-regional-station-impact-anchor-id", "station-bloor-ki");
-  await expect(closureFill).toHaveCSS("fill", "rgb(239, 68, 68)");
-  await expect(delayFill).toHaveCSS("fill", "rgb(249, 115, 22)");
-  expect(await closureFill.evaluate(element => {
+  // The shared station-alert layer (TTC's design): each alert sits on its own
+  // line's platform at Bloor, with TTC's colours.
+  const alertAnchor = (id: string) => page.locator(
+    `.regional-map .map-station-alert[data-map-impact-id="${id}"] .map-station-alert-anchor`,
+  );
+  await expect(page.locator(".regional-map .map-station-alert")).toHaveCount(2);
+  await expect(alertAnchor("bloor-up-closure")).toHaveAttribute("data-map-station-anchor-id", "station-bloor-up");
+  await expect(alertAnchor("bloor-ki-delay")).toHaveAttribute("data-map-station-anchor-id", "station-bloor-ki");
+  const closureCore = alertAnchor("bloor-up-closure").locator(".station-impact-dot-red-glow");
+  const delayCore = alertAnchor("bloor-ki-delay").locator(".station-impact-dot-red-glow");
+  await expect(closureCore).toHaveCSS("fill", "rgb(255, 59, 48)");
+  await expect(delayCore).toHaveCSS("fill", "rgb(245, 158, 11)");
+  await expect(alertAnchor("bloor-up-closure").locator(".station-impact-dot-red-beacon")).toHaveCount(1);
+  await expect(alertAnchor("bloor-up-closure").locator(".station-impact-ring")).toHaveCSS("stroke", "rgb(250, 204, 21)");
+  // Drawn in the top plane, above the raster station artwork.
+  expect(await closureCore.evaluate(element => {
     const foreground = element.closest("svg")!;
     const artwork = element.closest(".regional-map-stage")!
       .querySelector(".raster-map-plane--foreground")!;
     return Number(getComputedStyle(foreground).zIndex) > Number(getComputedStyle(artwork).zIndex);
   })).toBe(true);
-  await expect(page.locator(".regional-station-impact-direction-glyph")).toHaveCount(1);
-  await expect(page.locator(".regional-station-impact-direction-glyph"))
-    .toHaveAttribute("data-regional-station-impact-anchor-id", "station-bloor-ki");
-  await expect(page.locator('.regional-station-impact-ring[data-regional-impact-id="bloor-up-closure"] :is(circle, ellipse)')).toHaveCount(1);
+  const glyph = page.locator(".regional-map .station-impact-direction-glyph");
+  await expect(glyph).toHaveCount(1);
+  await expect(glyph).toHaveAttribute("data-map-station-anchor-id", "station-bloor-ki");
 
-  // The fill covers the full authored interior and preserves its outline.
+  // The core sits inside its dot and the ring just outside it, as on TTC.
   const dot = page.locator("#station-bloor-up");
   const dotBox = await dot.boundingBox();
-  const fillBox = await closureFill.boundingBox();
+  const coreBox = await closureCore.boundingBox();
+  const ringBox = await alertAnchor("bloor-up-closure").locator(".station-impact-ring").boundingBox();
   expect(dotBox).not.toBeNull();
-  expect(fillBox).not.toBeNull();
-  expect(fillBox!.width).toBeCloseTo(dotBox!.width, 1);
-  expect(fillBox!.height).toBeCloseTo(dotBox!.height, 1);
-  expect(await closureFill.evaluate(element => getComputedStyle(element).stroke))
-    .toBe(await dot.evaluate(element => getComputedStyle(element).stroke));
-  expect(await closureFill.evaluate(element => getComputedStyle(element).strokeWidth))
-    .toBe(await dot.evaluate(element => getComputedStyle(element).strokeWidth));
-  expect(Math.abs(fillBox!.x + fillBox!.width / 2 - dotBox!.x - dotBox!.width / 2)).toBeLessThan(2);
-  expect(Math.abs(fillBox!.y + fillBox!.height / 2 - dotBox!.y - dotBox!.height / 2)).toBeLessThan(2);
-
-  if (!isMobile) {
-    const pulse = await closureFill.evaluateHandle(element => {
-      const animation = element.getAnimations()[0];
-      if (!animation) throw new Error("Expected an active station fill pulse");
-      animation.currentTime = 1200;
-      return { element, animation };
-    });
-    for (const name of ["Zoom in", "Zoom out"]) {
-      await page.getByRole("button", { name, exact: true }).click();
-      await expect(page.locator(".regional-map")).not.toHaveAttribute("data-regional-map-camera-moving", "true");
-      expect(await pulse.evaluate(({ element, animation }) => element.getAnimations()[0] === animation),
-        `${name} must preserve the fill animation rather than restart it`).toBe(true);
-    }
-    await pulse.dispose();
-  }
-
-  // Animation must never fade the affected dot back to an unmarked state.
-  const pulseSamples = await closureFill.evaluate(element => {
-    const animation = element.getAnimations()[0];
-    if (!animation) return null; // Performance budgets can keep the fill static.
-    animation.pause();
-    const duration = Number(animation.effect!.getTiming().duration);
-    const samples = [0, 0.25, 0.5, 0.75, 1].map(fraction => {
-      animation.currentTime = duration * fraction;
-      return Number(getComputedStyle(element).fillOpacity);
-    });
-    animation.play();
-    return samples;
+  expect(coreBox).not.toBeNull();
+  expect(ringBox).not.toBeNull();
+  // Bloor's group is rotated, so its box is wider than the dot; use the
+  // dot's own radius on screen.
+  const dotDiameter = await dot.evaluate((element) => {
+    const ellipse = element as SVGEllipseElement;
+    const matrix = ellipse.getScreenCTM()!;
+    return 2 * ellipse.rx.baseVal.value * Math.hypot(matrix.a, matrix.b);
   });
-  if (pulseSamples) {
-    expect(Math.min(...pulseSamples)).toBeGreaterThanOrEqual(0.6);
-    expect(Math.max(...pulseSamples)).toBeGreaterThan(Math.min(...pulseSamples));
+  expect(coreBox!.width).toBeLessThan(dotDiameter);
+  expect(ringBox!.width).toBeGreaterThan(dotDiameter);
+  expect(Math.abs(coreBox!.x + coreBox!.width / 2 - dotBox!.x - dotBox!.width / 2)).toBeLessThan(2);
+  expect(Math.abs(coreBox!.y + coreBox!.height / 2 - dotBox!.y - dotBox!.height / 2)).toBeLessThan(2);
+
+  // Alert overlays never animate (map-renderer-parity.md, rule 3).
+  for (const core of [closureCore, delayCore]) {
+    expect(await core.evaluate(element => element.getAnimations().length)).toBe(0);
   }
 
   const map = page.locator(".regional-map");
   await map.evaluate(element => element.setAttribute("data-map-gesture-active", "true"));
-  await expect(closureFill).toBeVisible();
-  if (!isMobile) await expect(closureFill).toHaveCSS("animation-play-state", "paused");
+  await expect(closureCore).toBeVisible();
   await map.evaluate(element => element.removeAttribute("data-map-gesture-active"));
 
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(closureFill).toHaveCSS("animation-name", "none");
-  await expect(closureFill).toHaveCSS("fill-opacity", "1");
-  await expect(delayFill).toHaveCSS("animation-name", "none");
+  await expect(closureCore).toHaveCSS("animation-name", "none");
+  await expect(delayCore).toHaveCSS("animation-name", "none");
   await attachScreenshot("regional-station-alerts-dark");
   const themeToggle = isMobile
     ? page.getByRole("button", { name: "Switch to light theme", exact: true })
@@ -167,8 +147,8 @@ test("regional station alerts keep severity fills and require explicit direction
   await themeToggle.click();
   await expect(page.locator(".linewatch-shell")).not.toHaveClass(/\bdark\b/);
   await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
-  await expect(closureFill).toHaveCSS("fill", "rgb(239, 68, 68)");
-  await expect(delayFill).toHaveCSS("fill", "rgb(249, 115, 22)");
+  await expect(closureCore).toHaveCSS("fill", "rgb(255, 59, 48)");
+  await expect(delayCore).toHaveCSS("fill", "rgb(245, 158, 11)");
   await attachScreenshot("regional-station-alerts-light");
   await expect(page.getByText(/UNKNOWN_CAUSE|Unknown Cause/i)).toHaveCount(0);
   if (isMobile) await page.locator(".mobile-service-sheet-handle").press("End");
@@ -180,8 +160,8 @@ test("regional station alerts keep severity fills and require explicit direction
     ? '.current-service-impact[data-impact-kind="suspension"]'
     : '.desktop-status-incident-row[data-impact-kind="suspension"]');
   await closureCard.click();
-  const closureRing = page.locator('.regional-station-impact-ring[data-regional-impact-id="bloor-up-closure"]');
-  await expect(closureRing).toHaveAttribute("data-regional-impact-selected", "true");
+  await expect(alertAnchor("bloor-up-closure").locator(".station-impact-ring")).toHaveClass(/\bselected\b/);
+  await expect(page.locator('.regional-map [data-station-impact-selection-id="bloor-up-closure"]')).toBeAttached();
   await expect(map).not.toHaveAttribute("data-regional-map-camera-moving", "true");
   await expect(page.getByText(/UNKNOWN_CAUSE|Unknown Cause/i)).toHaveCount(0);
   await attachScreenshot("regional-station-alert-focused");

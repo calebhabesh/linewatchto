@@ -17,13 +17,45 @@ import {
 import { clearMapViewport } from "../app/map-viewport-preference";
 import { useRetainedHover } from "../hooks/useRetainedHover";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
+import { createPortal } from "react-dom";
+import {
+  MapLineAlertHoverCopies,
+  MapLineAlertHoverOutlines,
+  MapLineAlertLayer,
+  MapLineAlertSelection,
+  MapLineAlertTargets,
+} from "./map-overlays/LineAlertOverlays";
+import { isSelectedLineAlert, lineAlertPathsByImpact, type MapLineAlert } from "./map-overlays/line-alert-model";
+import { mapImpactIdentityOf } from "./map-overlays/overlay-hover";
+import { installMapHoverController, type MapHoverController } from "./map-overlays/map-hover-controller";
+import { mapSelectionIntroKey, useMapSelectionIntro } from "./map-overlays/selection-intro";
+import { mapOverlayUnitStyle, type MapOverlayPlane } from "./map-overlays/overlay-plane";
+import {
+  MapStationAlertForeground,
+  MapStationAlertRings,
+  MapStationDirectionGlyphs,
+} from "./map-overlays/StationAlertOverlays";
+import type { MapStationAlert, MapStationDirectionGlyph } from "./map-overlays/station-alert-model";
+import { regionalLineAlerts, regionalOverlayPlane } from "../app/regional-line-alerts";
+import { regionalStationAlerts } from "../app/regional-station-alerts";
+import { plannedAdvisoryStationImpacts } from "../app/map-alert-selector";
+import { regionalCommutePreview } from "../app/regional-commute-preview";
+import { MapCommuteEndpointFlashes, MapCommutePreviewRoute } from "./map-overlays/CommutePreviewOverlays";
+import type { MapCommutePreview } from "./map-overlays/commute-preview-model";
+import {
+  REGIONAL_DYNAMIC_COMMUTE_LAYER_ID,
+  REGIONAL_DYNAMIC_HOVER_LAYER_ID,
+  REGIONAL_DYNAMIC_SEGMENT_LAYER_ID,
+  REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID,
+  REGIONAL_DYNAMIC_TARGET_LAYER_ID,
+} from "../app/regional-map-asset";
 import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import { NetworkSelector } from "./NetworkSelector";
 import { SharedMapControlRail } from "./SharedMapControlRail";
 import { MapViewSelector } from "./MapViewSelector";
 import type { NetworkId } from "../app/regional-data";
 import type { MapViewPreference } from "../app/visual-preferences";
-import type { ImpactSelection, MapImpact } from "../app/linewatch-data";
+import type { ImpactSelection, MapImpact, StationNodeImpact } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/commute-data";
 import {
   estimatedTrainMarkerRenderKey,
@@ -52,6 +84,7 @@ import {
   regionalStationLabelHover,
   regionalSvgScope,
   REGIONAL_OVERLAP_INDICATOR_SCALE,
+  REGIONAL_OVERLAY_UNIT,
   type RegionalCollisionBox,
   type RegionalSvgScope,
   type RegionalTrainMarkerFrame,
@@ -67,7 +100,6 @@ import {
   REGIONAL_TOP_HOVER_LAYER_ID,
   REGIONAL_TOP_STATION_IMPACT_LAYER_ID,
   REGIONAL_TRAIN_MARKER_LAYER_ID,
-  SELECTION_INTRO_DURATION_MS,
   type RegionalOverlapBadge,
   type RegionalOverlaySession,
 } from "../app/regional-map-overlays";
@@ -237,6 +269,27 @@ type CameraMotionOptions = {
   easing?: string;
 };
 
+/** The injected SVG layers the shared line-alert overlays render into. */
+type RegionalLineAlertPortals = {
+  segment: SVGGElement;
+  commute: SVGGElement;
+  selected: SVGGElement;
+  targets: SVGGElement;
+  hover: SVGGElement;
+};
+
+function regionalLineAlertPortals(viewport: HTMLElement): RegionalLineAlertPortals | null {
+  const layer = (id: string) => viewport.querySelector<SVGGElement>(`#${id}`);
+  const segment = layer(REGIONAL_DYNAMIC_SEGMENT_LAYER_ID);
+  const commute = layer(REGIONAL_DYNAMIC_COMMUTE_LAYER_ID);
+  const selected = layer(REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID);
+  const targets = layer(REGIONAL_DYNAMIC_TARGET_LAYER_ID);
+  const hover = layer(REGIONAL_DYNAMIC_HOVER_LAYER_ID);
+  return segment && commute && selected && targets && hover
+    ? { segment, commute, selected, targets, hover }
+    : null;
+}
+
 const RegionalSvgMarkup = memo(function RegionalSvgMarkup({ markup }: { markup: string }) {
   return <div dangerouslySetInnerHTML={{ __html: markup }} className="regional-live-svg raster-map-dynamic-plane absolute inset-0 w-full h-full" />;
 });
@@ -340,6 +393,29 @@ function InteractiveRegionalMapComponent({
   const [svgMarkup, setSvgMarkup] = useState(() => getRegionalMapMarkup());
   const [readyRasterPlanes, setReadyRasterPlanes] = useState(() => new Set<string>());
   const [overlapBadges, setOverlapBadges] = useState<RegionalOverlapBadge[]>([]);
+  // Line alerts, drawn with the shared overlay layer (components/map-overlays)
+  // into the layers prepareRegionalMapMarkup injects into the authored SVG.
+  const [lineAlerts, setLineAlerts] = useState<MapLineAlert[]>([]);
+  const [overlayPlane, setOverlayPlane] = useState<MapOverlayPlane | null>(null);
+  const [lineAlertPortals, setLineAlertPortals] = useState<RegionalLineAlertPortals | null>(null);
+  // Station alerts, drawn with the same shared layer in the top plane.
+  const [stationAlerts, setStationAlerts] = useState<MapStationAlert[]>([]);
+  const [stationDirectionGlyphs, setStationDirectionGlyphs] = useState<MapStationDirectionGlyph[]>([]);
+  const [commutePreview, setCommutePreview] = useState<MapCommutePreview | null>(null);
+  // Station-only planned advisories are drawn as station alerts, by TTC's
+  // rule: upcoming ones always, a current one only while selected.
+  const plannedStationImpacts = plannedAdvisoryStationImpacts(plannedClosures, activeAlerts, delays, selection);
+  const plannedStationImpactsKey = JSON.stringify(plannedStationImpacts);
+  const stationAlertImpacts = useMemo(() => {
+    const seen = new Set<string>();
+    const planned = JSON.parse(plannedStationImpactsKey) as StationNodeImpact[];
+    return [...stationNodeImpacts, ...planned].filter((impact) => {
+      const key = `${impact.kind}:${impact.cardId}:${impact.stationId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [plannedStationImpactsKey, stationNodeImpacts]);
   const linkedSelectionIds = useMemo(
     () => linkedCurrentImpactIds(selection, { activeAlerts, delays, plannedClosures }),
     [activeAlerts, delays, plannedClosures, selection],
@@ -426,9 +502,9 @@ function InteractiveRegionalMapComponent({
   const cameraRef = useRef(camera);
   const selectionRef = useRef(selection);
   const selectedStationIdRef = useRef(selectedStationId);
-  const selectionAttentionKeyRef = useRef<string | null>(null);
   const selectionIntroCompletedRef = useRef(false);
-  const selectionIntroTimerRef = useRef<number | null>(null);
+  const hoverControllerRef = useRef<MapHoverController | null>(null);
+  const previewOutlineLayerRef = useRef<SVGGElement>(null);
   const readyNotifiedRef = useRef(false);
   const sessionRef = useRef<RegionalOverlaySession | null>(null);
   const lastOverlayInputsRef = useRef<unknown[] | null>(null);
@@ -484,6 +560,8 @@ function InteractiveRegionalMapComponent({
     const root = regionalMapRef.current;
     if (!root) return;
     root.dataset.regionalMapCameraMoving = active ? "true" : "false";
+    // The shared overlay CSS reads the same flag on both maps.
+    root.dataset.mapCameraMoving = active ? "true" : "false";
   }, []);
 
   const beginCameraMotion = useCallback(() => {
@@ -800,6 +878,18 @@ function InteractiveRegionalMapComponent({
     if (commutePathPreview) return `commute:${commutePathPreview.id}:${commutePathPreview.legId}`;
     return null;
   }, [commutePathPreview, selection, selectedStationId, selectionAttentionGeneration]);
+  const selectionIntroKey = mapSelectionIntroKey({
+    selection,
+    linkedSelectionIntroKey,
+    selectedStationId,
+    commutePreviewKey: commutePathPreview ? `${commutePathPreview.id}:${commutePathPreview.legId}` : null,
+    generation: selectionAttentionGeneration,
+  });
+  const completeSelectionIntro = useCallback(() => {
+    selectionIntroCompletedRef.current = true;
+    sessionRef.current?.markSelectionIntroComplete();
+  }, []);
+  const selectionIntroComplete = useMapSelectionIntro(selectionIntroKey, completeSelectionIntro);
 
   // The mounted map already fits its current layout. Only new commands
   // should reset it; replaying a stored command interrupts network entry.
@@ -931,13 +1021,47 @@ function InteractiveRegionalMapComponent({
       });
     }
 
+    const svg = viewport.querySelector<SVGSVGElement>('svg[aria-label="GO and UP regional rail schematic"]');
+    const plane = svg ? regionalOverlayPlane(svg) : null;
+    const portals = regionalLineAlertPortals(viewport);
+    const nextLineAlerts = svg
+      ? regionalLineAlerts(svg, { activeAlerts, networkSegments, stationNodeImpacts })
+      : [];
+    if (!svg || !plane || !portals) return;
+    const nextStationOverlays = regionalStationAlerts(svg, {
+      activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts: stationAlertImpacts, stations,
+    }, plane.unit);
+    const nextCommutePreview = regionalCommutePreview(svg, commutePathPreview, networkSegments);
+    // The shared overlay layer draws these through portals below.
+    setLineAlerts((current) => (
+      JSON.stringify(current) === JSON.stringify(nextLineAlerts) ? current : nextLineAlerts
+    ));
+    setStationAlerts((current) => (
+      JSON.stringify(current) === JSON.stringify(nextStationOverlays.alerts) ? current : nextStationOverlays.alerts
+    ));
+    setStationDirectionGlyphs((current) => (
+      JSON.stringify(current) === JSON.stringify(nextStationOverlays.glyphs) ? current : nextStationOverlays.glyphs
+    ));
+    setCommutePreview((current) => (
+      JSON.stringify(current) === JSON.stringify(nextCommutePreview) ? current : nextCommutePreview
+    ));
+    setOverlayPlane((current) => (
+      JSON.stringify(current) === JSON.stringify(plane) ? current : plane
+    ));
+    setLineAlertPortals((current) => (
+      current?.segment === portals.segment ? current : portals
+    ));
+
     const result = sessionRef.current?.update({
+      lineAlerts: nextLineAlerts,
+      stationAlerts: nextStationOverlays.alerts,
+      plane,
       activeAlerts,
       delays,
       reducedSpeedZones,
       plannedClosures,
       networkSegments,
-      stationNodeImpacts,
+      stationNodeImpacts: stationAlertImpacts,
       stations,
       commutePathPreview,
       reducedMotion: overlayMotionPausedRef.current,
@@ -959,10 +1083,36 @@ function InteractiveRegionalMapComponent({
     networkSegments,
     plannedClosures,
     reducedSpeedZones,
+    stationAlertImpacts,
     stationNodeImpacts,
     stations,
     svgMarkup,
   ]);
+
+  // Alert hover, chooser rows and group previews: the shared controller
+  // (map-overlays/map-hover-controller.ts), as on TTC.
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const controller = installMapHoverController(viewport, {
+      previewOutlineLayer: () => previewOutlineLayerRef.current,
+      isPointerGestureActive: () => activePointersRef.current.size > 0,
+    });
+    hoverControllerRef.current = controller;
+    return () => {
+      controller.dispose();
+      hoverControllerRef.current = null;
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    hoverControllerRef.current?.setOutlineSource(overlayPlane, lineAlertPathsByImpact(lineAlerts));
+  }, [lineAlerts, overlayPlane]);
+
+  // Overlay nodes of changed alerts mount idle; reapply the current hover.
+  useLayoutEffect(() => {
+    hoverControllerRef.current?.restore();
+  }, [lineAlerts, lineAlertPortals, stationAlerts]);
 
   useLayoutEffect(() => {
     sessionRef.current?.setMotionPaused(overlayMotionPaused);
@@ -1221,39 +1371,13 @@ function InteractiveRegionalMapComponent({
     });
   }, [commutePathPreview, selection, svgMarkup]);
 
+  // A new selection replays its intro; session-built nodes (planned-station
+  // markers, station indicators) drop the breathing state they were given.
   useLayoutEffect(() => {
-    const nextKey = selection && linkedSelectionIntroKey
-      ? linkedSelectionIntroKey
-      : focusTargetKey
-        ? `${focusTargetKey}:${selectionAttentionGeneration}`
-        : null;
-    if (selectionAttentionKeyRef.current === nextKey) return;
-
-    selectionAttentionKeyRef.current = nextKey;
     selectionIntroCompletedRef.current = false;
-    if (selectionIntroTimerRef.current !== null) {
-      window.clearTimeout(selectionIntroTimerRef.current);
-      selectionIntroTimerRef.current = null;
-    }
-
-    const root = viewportRef.current;
-    root?.querySelectorAll(".selection-intro-complete")
+    viewportRef.current?.querySelectorAll(".selection-intro-complete")
       .forEach((element) => element.classList.remove("selection-intro-complete"));
-    if (!nextKey) return;
-
-    selectionIntroTimerRef.current = window.setTimeout(() => {
-      selectionIntroTimerRef.current = null;
-      if (selectionAttentionKeyRef.current !== nextKey) return;
-      selectionIntroCompletedRef.current = true;
-      sessionRef.current?.markSelectionIntroComplete();
-    }, SELECTION_INTRO_DURATION_MS);
-  }, [focusTargetKey, linkedSelectionIntroKey, selection, selectionAttentionGeneration]);
-
-  useEffect(() => () => {
-    if (selectionIntroTimerRef.current !== null) {
-      window.clearTimeout(selectionIntroTimerRef.current);
-    }
-  }, []);
+  }, [selectionIntroKey]);
 
   const selectedMapElements = useCallback(() => {
     const root = viewportRef.current;
@@ -1261,7 +1385,7 @@ function InteractiveRegionalMapComponent({
     if (commutePathPreview && selection) {
       return [
         ...root.querySelectorAll<SVGGraphicsElement>(
-          `[data-selected-commute-impact-overlay="${CSS.escape(selection.id)}"], [data-selected-impact-emphasis="${CSS.escape(selection.id)}"], [data-regional-impact-id="${CSS.escape(selection.id)}"], [data-regional-station-selection-id="${CSS.escape(selection.id)}"]`,
+          `[data-selected-commute-impact-overlay="${CSS.escape(selection.id)}"], [data-selected-impact-emphasis="${CSS.escape(selection.id)}"], [data-map-impact-id="${CSS.escape(selection.id)}"], [data-regional-station-selection-id="${CSS.escape(selection.id)}"]`,
         ),
       ];
     }
@@ -1273,7 +1397,7 @@ function InteractiveRegionalMapComponent({
     }
     if (selection) {
       return [...root.querySelectorAll<SVGGraphicsElement>(
-        `[data-regional-impact-kind="${selection.kind}"][data-regional-impact-id="${CSS.escape(selection.id)}"]`,
+        `[data-map-impact-kind="${selection.kind}"][data-map-impact-id="${CSS.escape(selection.id)}"]`,
       )];
     }
     if (selectedStationId) {
@@ -1731,13 +1855,13 @@ function InteractiveRegionalMapComponent({
 
     if (activePointersRef.current.size === 0) {
       const target = event.target instanceof Element ? event.target : null;
-      const impact = target?.closest<SVGElement>("[data-regional-impact-kind]");
+      const impact = target?.closest<SVGElement>("[data-map-impact-kind]");
       const station = target?.closest<SVGElement>("[data-regional-station-id]");
-      pointerActivationRef.current = impact?.dataset.regionalImpactKind && impact.dataset.regionalImpactId
-        ? {
-            type: "impact",
-            selection: regionalPointerImpactSelection(event.currentTarget, impact, event.clientX, event.clientY),
-          }
+      const impactSelection = impact
+        ? regionalPointerImpactSelection(event.currentTarget, impact, event.clientX, event.clientY)
+        : null;
+      pointerActivationRef.current = impactSelection
+        ? { type: "impact", selection: impactSelection }
         : station?.dataset.regionalStationId
           ? { type: "station", id: station.dataset.regionalStationId }
           : null;
@@ -1852,7 +1976,7 @@ function InteractiveRegionalMapComponent({
       }
     } else if (event.type === "pointerup" && !dragMovedRef.current && !activation) {
       const target = event.target instanceof Element ? event.target : null;
-      if (!target?.closest(".overlap-indicator, [data-regional-impact-kind], [data-regional-station-id], button, [role='button'], [data-map-chooser-keepout]")) {
+      if (!target?.closest(".overlap-indicator, [data-map-impact-kind], [data-regional-station-id], button, [role='button'], [data-map-chooser-keepout]")) {
         onSelectImpact(null);
         onSelectStationId(null);
       }
@@ -1864,9 +1988,9 @@ function InteractiveRegionalMapComponent({
 
   const activateTarget = useCallback((target: EventTarget | null) => {
     if (!(target instanceof Element)) return;
-    const impact = target.closest<SVGElement>("[data-regional-impact-kind]");
-    if (impact?.dataset.regionalImpactKind && impact.dataset.regionalImpactId) {
-      onSelectImpact({ kind: impact.dataset.regionalImpactKind as NonNullable<ImpactSelection>["kind"], id: impact.dataset.regionalImpactId });
+    const impact = mapImpactIdentityOf(target);
+    if (impact) {
+      onSelectImpact(impact);
       return;
     }
     const station = target.closest("[data-regional-station-id]") as SVGElement | null;
@@ -1880,7 +2004,10 @@ function InteractiveRegionalMapComponent({
     impacts: MapImpact[],
     hovered: boolean,
   ) => {
-    sessionRef.current?.setExternalImpactsHover(impacts, hovered);
+    hoverControllerRef.current?.setGroupPreview(
+      impacts.map((impact) => ({ kind: impact.kind, id: impact.cardId })),
+      hovered,
+    );
   }, []);
 
   const closeRegionalOverlapChooser = useCallback(() => {
@@ -2041,15 +2168,14 @@ function InteractiveRegionalMapComponent({
   // row hovered, the chooser previews its whole group as one outline.
   const hoverRegionalChooserImpact = useCallback((impact: MapImpact | null) => {
     if (!expandedOverlapBadge) return;
-    setRegionalOverlapImpactsHovered(expandedOverlapBadge.impacts, false);
-    sessionRef.current?.setChooserImpactHover(impact);
-    if (!impact) setRegionalOverlapImpactsHovered(expandedOverlapBadge.impacts, true);
+    setRegionalOverlapImpactsHovered(expandedOverlapBadge.impacts, !impact);
+    hoverControllerRef.current?.setChooserHover(impact ? { kind: impact.kind, id: impact.cardId } : null);
   }, [expandedOverlapBadge, setRegionalOverlapImpactsHovered]);
   useLayoutEffect(() => {
     if (!expandedOverlapBadge) return;
     hoverRegionalChooserImpact(null);
     return () => {
-      sessionRef.current?.setChooserImpactHover(null);
+      hoverControllerRef.current?.setChooserHover(null);
       setRegionalOverlapImpactsHovered(expandedOverlapBadge.impacts, false);
     };
   }, [expandedOverlapBadge, hoverRegionalChooserImpact, setRegionalOverlapImpactsHovered]);
@@ -2067,6 +2193,7 @@ function InteractiveRegionalMapComponent({
     <section
       ref={regionalMapRef}
       className="regional-map"
+      style={mapOverlayUnitStyle({ unit: REGIONAL_OVERLAY_UNIT })}
       data-map-gesture-active="false"
       data-regional-map-camera-moving="false"
       aria-label="Interactive GO and UP map"
@@ -2118,6 +2245,42 @@ function InteractiveRegionalMapComponent({
             onReady={() => markRasterPlaneReady("background")}
           />
           <RegionalSvgMarkup markup={svgMarkup} />
+          {lineAlertPortals && overlayPlane && lineAlertPortals.segment.isConnected ? (
+            <>
+              {createPortal(
+                <MapLineAlertLayer
+                  alerts={commutePathPreview && selection
+                    // The commute focus copy repaints the selected alert.
+                    ? lineAlerts.filter((alert) => !isSelectedLineAlert(alert, selection))
+                    : lineAlerts}
+                  plane={overlayPlane}
+                  selection={selection}
+                />,
+                lineAlertPortals.segment,
+              )}
+              {createPortal(
+                <MapCommutePreviewRoute preview={commutePreview} />,
+                lineAlertPortals.commute,
+              )}
+              {createPortal(
+                <MapLineAlertSelection
+                  alerts={lineAlerts.filter((alert) => isSelectedLineAlert(alert, selection))}
+                  plane={overlayPlane}
+                  commutePreviewActive={Boolean(commutePathPreview)}
+                  introComplete={selectionIntroComplete}
+                />,
+                lineAlertPortals.selected,
+              )}
+              {createPortal(
+                <MapLineAlertTargets alerts={lineAlerts} />,
+                lineAlertPortals.targets,
+              )}
+              {createPortal(
+                <MapLineAlertHoverCopies alerts={lineAlerts} plane={overlayPlane} />,
+                lineAlertPortals.hover,
+              )}
+            </>
+          ) : null}
           <RasterMapPlane
             network="regional"
             plane="foreground"
@@ -2140,26 +2303,45 @@ function InteractiveRegionalMapComponent({
             viewBox="-200 -200 17036.959 9031.6719"
             preserveAspectRatio="xMidYMid meet"
           >
+            {overlayPlane ? <MapLineAlertHoverOutlines alerts={lineAlerts} plane={overlayPlane} /> : null}
             <g
+              ref={previewOutlineLayerRef}
               id={REGIONAL_TOP_HOVER_LAYER_ID}
               className="regional-impact-top-hover-layer"
               aria-hidden="true"
               pointerEvents="none"
             />
-            {selectedStationId ? (
-              <use
-                key={`station-selection:${selectedStationId}`}
-                aria-hidden="true"
-                className="regional-station-top-selection map-selection-attention"
-                data-regional-station-top-selected="true"
-                href={`#regional-station-selection-source-${selectedStationId}`}
-              />
-            ) : null}
-            <g
-              id={REGIONAL_TOP_STATION_IMPACT_LAYER_ID}
-              aria-hidden="true"
-              pointerEvents="none"
-            />
+            {/* Station alerts: the shared layer, in TTC's order (rings, then
+                arrows, then selection and hover highlights). Rings are the
+                alerts' targets; the viewport's pointer handlers select them. */}
+            {overlayPlane ? <MapCommuteEndpointFlashes preview={commutePreview} plane={overlayPlane} /> : null}
+            <g id={REGIONAL_TOP_STATION_IMPACT_LAYER_ID} aria-label="Station alerts">
+              {overlayPlane ? (
+                <MapStationAlertRings alerts={stationAlerts} plane={overlayPlane} selection={selection} />
+              ) : null}
+              {overlayPlane ? (
+                <MapStationDirectionGlyphs glyphs={stationDirectionGlyphs} plane={overlayPlane} />
+              ) : null}
+              <g aria-hidden="true" pointerEvents="none">
+                {selectedStationId ? (
+                  <use
+                    key={`station-selection:${selectedStationId}`}
+                    className="regional-station-top-selection map-selection-attention"
+                    data-regional-station-top-selected="true"
+                    href={`#regional-station-selection-source-${selectedStationId}`}
+                  />
+                ) : null}
+                {overlayPlane ? (
+                  <MapStationAlertForeground
+                    alerts={stationAlerts}
+                    plane={overlayPlane}
+                    selection={selection}
+                    commutePreviewActive={Boolean(commutePathPreview)}
+                    introComplete={selectionIntroComplete}
+                  />
+                ) : null}
+              </g>
+            </g>
             {hoveredStationLabel ? (
               <g
                 aria-hidden="true"

@@ -4,7 +4,8 @@ import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const globalCss = readAppStylesheet();
-const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+// Both maps draw alert rails with the shared overlay layer.
+const mapSource = readFileSync(new URL("../src/components/map-overlays/LineAlertOverlays.tsx", import.meta.url), "utf8");
 const rszPanelSource = readFileSync(new URL("../src/components/ReducedSpeedZonesPanel.tsx", import.meta.url), "utf8");
 const directionalZoneCountSource = readFileSync(new URL("../src/components/DirectionalZoneCount.tsx", import.meta.url), "utf8");
 const impactCardFieldsSource = readFileSync(new URL("../src/components/ImpactCardFields.tsx", import.meta.url), "utf8");

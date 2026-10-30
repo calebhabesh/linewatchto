@@ -11,6 +11,7 @@ import {
   type MapPoint,
 } from "../app/map-geometry";
 import type { MapImpactKind, NetworkSegment, Station } from "../app/linewatch-data";
+import { MAP_HOVER_OUTLINE_WIDTHS } from "./map-overlays/overlay-plane";
 import {
   BADGE_FEATURE_GAPS,
   badgeObstacleReach,
@@ -46,16 +47,8 @@ export function impactCollisionKey(kind: MapImpactKind, cardId: string): string 
 
 const OVERLAP_BADGE_TARGET_SPACING = 16;
 export const STATION_BADGE_TARGET_RADIUS = 320;
-// Alert rails are a tube wider than the 80-unit authored line
-// (--ttc-alert-rail-width in tokens.css).
-const TTC_ALERT_RAIL_WIDTH = 96;
-// The hover keyline uses GO/UP's proportions (rail + 52 outer, + 30 divider
-// on a 196-unit rail), scaled to TTC's rail. map-selection.css matches these.
-export const TTC_HOVER_OUTLINE_WIDTHS = {
-  outer: 117.2,
-  divider: 108.2,
-  inner: TTC_ALERT_RAIL_WIDTH,
-} as const;
+// The hover keyline around an alert rail (map-overlays/overlay-plane.ts).
+export const TTC_HOVER_OUTLINE_WIDTHS = MAP_HOVER_OUTLINE_WIDTHS;
 // The connector only shows while the badge is hovered, when its alerts are
 // drawn with the hover outline; the connector touches that outer edge.
 export const OVERLAY_HOVER_OUTLINE_HALF_WIDTH = TTC_HOVER_OUTLINE_WIDTHS.outer / 2;

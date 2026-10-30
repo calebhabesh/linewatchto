@@ -146,9 +146,9 @@
   opacity: 0.92;
   stroke: #facc15; /* Glowing gold ring */
   stroke-linecap: round;
-  /* GO/UP's SVG units are larger; it sets the unit so both rings match. */
-  stroke-width: calc(4 * var(--station-impact-ring-unit, 1px));
-  filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.8));
+  /* Overlay sizes scale by the map's overlay unit (TTC 1, GO/UP 196 / 96). */
+  stroke-width: calc(4px * var(--map-overlay-unit, 1));
+  filter: drop-shadow(0 0 calc(6px * var(--map-overlay-unit, 1)) rgba(250, 204, 21, 0.8));
   transition: opacity 0.2s ease, stroke-width 0.2s ease, stroke 0.2s ease;
 }
 
@@ -156,9 +156,19 @@
 .station-impact-ring:hover,
 .station-impact-ring:focus-visible {
   opacity: 1;
-  stroke-width: calc(8 * var(--station-impact-ring-unit, 1px));
+  stroke-width: calc(8px * var(--map-overlay-unit, 1));
   stroke: #ffd700;
-  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.95)) drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
+  filter:
+    drop-shadow(0 0 calc(10px * var(--map-overlay-unit, 1)) rgba(255, 215, 0, 0.95))
+    drop-shadow(0 0 calc(20px * var(--map-overlay-unit, 1)) rgba(255, 215, 0, 0.6));
+}
+
+/* A pill hub (GO/UP's Union) draws no ring: its filled outline marks the
+   alert. The ring stays as an invisible target band around the pill. */
+.station-impact-ring.station-impact-ring--pill,
+.station-impact-ring.station-impact-ring--pill:is(.selected, :hover, :focus-visible) {
+  stroke: transparent !important;
+  filter: none !important;
 }
 
 .station-impact-hover-priority {
@@ -166,14 +176,14 @@
   opacity: 0;
   visibility: hidden;
   stroke: var(--station-selection-accent);
-  stroke-width: 9;
+  stroke-width: calc(9px * var(--map-overlay-unit, 1));
   transition:
     opacity 70ms ease-out,
     visibility 0s linear 70ms;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .station-impact-hover-priority[data-ttc-impact-hovered="true"] {
+  .station-impact-hover-priority[data-map-impact-hovered="true"] {
     opacity: 1;
     visibility: visible;
     transition-delay: 0s;
@@ -183,7 +193,7 @@
 .high-contrast .station-impact-hover-priority {
   fill: rgb(var(--station-selection-accent-rgb) / 32%);
   stroke: var(--station-selection-accent);
-  stroke-width: 11;
+  stroke-width: calc(11px * var(--map-overlay-unit, 1));
 }
 
 /* ============================================================
@@ -192,7 +202,7 @@
    ============================================================ */
 .station-impact-dot-red-glow {
   fill: #ff3b30; /* Vivid bright red core */
-  filter: drop-shadow(0 0 6px rgba(255, 59, 48, 0.9));
+  filter: drop-shadow(0 0 calc(6px * var(--map-overlay-unit, 1)) rgba(255, 59, 48, 0.9));
 }
 
 /* A static shaded disc around every station alert, on both maps, desktop and
@@ -210,13 +220,13 @@
    Section 5: Station Impact Direction Glyphs
    ============================================================ */
 .station-impact-direction-glyph {
-  filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.55));
+  filter: drop-shadow(0 0 calc(5px * var(--map-overlay-unit, 1)) rgba(0, 0, 0, 0.55));
 }
 
 .station-impact-direction-badge {
   fill: #ffffff;
   stroke: rgba(127, 29, 29, 0.9);
-  stroke-width: 2.5;
+  stroke-width: calc(2.5px * var(--map-overlay-unit, 1));
 }
 
 .station-impact-direction-arrow {
@@ -224,18 +234,18 @@
   stroke: #111827;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 6;
+  stroke-width: calc(6px * var(--map-overlay-unit, 1));
 }
 
 .linewatch-shell.high-contrast .station-impact-direction-badge {
   fill: #ffffff;
   stroke: #000000;
-  stroke-width: 3;
+  stroke-width: calc(3px * var(--map-overlay-unit, 1));
 }
 
 .linewatch-shell.high-contrast .station-impact-direction-arrow {
   stroke: #000000;
-  stroke-width: 7;
+  stroke-width: calc(7px * var(--map-overlay-unit, 1));
 }
 
 /* ============================================================

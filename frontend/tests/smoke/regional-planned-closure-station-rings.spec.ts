@@ -26,13 +26,15 @@ test("regional corridor planned closures do not add station rings", async ({ pag
 
   const closure = page.locator('[data-impact-card-id="regional-demo-planned"]');
   await closure.getByRole("button", { name: "View Synthetic planned service change on map" }).click();
-  await expect(page.locator('.regional-overlay-segment-group[data-regional-impact-id="regional-demo-planned"] .regional-impact-path'))
+  await expect(page.locator('.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-planned"] > .asset-alert-path'))
     .toHaveAttribute("d", /^M /);
   expect(dashboardRequests).toBeGreaterThan(0);
-  await expect(page.locator('.regional-planned-station-marker[data-regional-impact-id="regional-demo-planned"]'))
+  // Station-only planned closures are shared station alerts; a corridor
+  // closure is drawn on its rail only.
+  await expect(page.locator('.regional-map .map-station-alert[data-map-impact-id="regional-demo-planned"]'))
     .toHaveCount(0);
   await page.locator('[data-impact-card-id="regional-station-only-planned"]')
     .getByRole("button", { name: "View Pickering station construction on map" }).click();
-  const stationOnlyMarker = page.locator('.regional-planned-station-marker[data-regional-impact-id="regional-station-only-planned"]');
+  const stationOnlyMarker = page.locator('.regional-map .map-station-alert[data-map-impact-id="regional-station-only-planned"]');
   await expect(stationOnlyMarker).toHaveCount(1);
 });

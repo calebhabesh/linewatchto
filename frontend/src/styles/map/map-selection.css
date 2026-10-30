@@ -1,31 +1,21 @@
-.ttc-impact-hover-foreground-layer,
-.ttc-impact-hover-foreground {
+.map-impact-hover-foreground-layer,
+.map-impact-hover-foreground {
   pointer-events: none;
 }
 
-.ttc-impact-hover-foreground {
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 70ms ease-out,
-    visibility 0s linear 70ms;
+/* Every line alert has a hover copy and outline on both maps. Idle copies
+   stay out of rendering: `opacity: 0` or `visibility: hidden` would still
+   paint their glyphs on every pan frame, and Chromium gives each fading SVG
+   element its own GPU layer, sized in the map's SVG units (about 17000 x 9000
+   on GO/UP). They appear and disappear without a fade
+   (map-renderer-parity.md rule 5). */
+.map-impact-hover-foreground {
+  display: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .ttc-impact-hover-foreground[data-ttc-impact-hovered="true"] {
-    opacity: 1;
-    visibility: visible;
-    transition-delay: 0s;
-  }
-}
-
-.motion-paused .ttc-impact-hover-foreground {
-  transition: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ttc-impact-hover-foreground {
-    transition: none;
+  .map-impact-hover-foreground[data-map-impact-hovered="true"] {
+    display: inline;
   }
 }
 
@@ -33,13 +23,13 @@
    leave their artwork in its resting order. It stays put while the map moves,
    with its glow dropped during gestures, so panning with the chooser open does
    not blink it. */
-.ttc-impact-preview-outline {
+.map-impact-preview-outline {
   display: none;
   pointer-events: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .ttc-impact-preview-outline {
+  .map-impact-preview-outline {
     display: inline;
   }
 }
@@ -48,7 +38,7 @@
   [data-map-gesture-active="true"],
   [data-map-zoom-active="true"],
   [data-map-camera-moving="true"]
-) .ttc-impact-preview-outline .ttc-impact-hover-outline-edge {
+) .map-impact-preview-outline .map-impact-hover-outline-edge {
   filter: none;
 }
 
@@ -56,50 +46,50 @@
    re-rastering corridor-length masks at every zoom step overflowed tile
    memory. They return once the zoom settles; panning keeps them. */
 :is([data-map-zoom-active="true"], [data-map-camera-moving="true"]) :is(
-  .ttc-impact-preview-outline,
-  .ttc-impact-hover-foreground g[mask]
+  .map-impact-preview-outline,
+  .map-impact-hover-foreground g[mask]
 ) {
   display: none;
 }
 
-.ttc-impact-hover-outline,
-.ttc-impact-hover-outline-mask-outer,
-.ttc-impact-hover-outline-mask-cutout,
-.ttc-impact-hover-outline-mask-divider {
+.map-impact-hover-outline,
+.map-impact-hover-outline-mask-outer,
+.map-impact-hover-outline-mask-cutout,
+.map-impact-hover-outline-mask-divider {
   fill: none;
   pointer-events: none;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.ttc-impact-hover-outline {
+.map-impact-hover-outline {
   /* TTC_HOVER_OUTLINE_WIDTHS: GO/UP's keyline scaled to TTC's 96-unit rail. */
-  stroke-width: 117.2px;
+  stroke-width: calc(117.2px * var(--map-overlay-unit, 1));
 }
 
-.ttc-impact-hover-outline-core {
+.map-impact-hover-outline-core {
   stroke: rgba(15, 23, 42, 0.98);
 }
 
-.ttc-impact-hover-outline-edge {
+.map-impact-hover-outline-edge {
   stroke: rgba(248, 250, 252, 0.98);
   /* GO/UP's 7px glow, scaled like the widths. */
-  filter: drop-shadow(0 0 2.9px rgba(191, 219, 254, 0.62));
+  filter: drop-shadow(0 0 calc(2.9px * var(--map-overlay-unit, 1)) rgba(191, 219, 254, 0.62));
 }
 
-.ttc-impact-hover-outline-mask-outer {
+.map-impact-hover-outline-mask-outer {
   stroke: white;
-  stroke-width: 117.2px;
+  stroke-width: calc(117.2px * var(--map-overlay-unit, 1));
 }
 
-.ttc-impact-hover-outline-mask-cutout {
+.map-impact-hover-outline-mask-cutout {
   stroke: black;
-  stroke-width: var(--ttc-alert-rail-width);
+  stroke-width: calc(var(--map-alert-rail-width) * var(--map-overlay-unit, 1));
 }
 
-.ttc-impact-hover-outline-mask-divider {
+.map-impact-hover-outline-mask-divider {
   stroke: black;
-  stroke-width: 108.2px;
+  stroke-width: calc(108.2px * var(--map-overlay-unit, 1));
 }
 
 .map-selection-attention {
@@ -147,26 +137,26 @@
 @keyframes map-selection-path-intro {
   0%, 25%, 50%, 75%, 100% {
     opacity: 0.4;
-    stroke-width: 120;
-    filter: drop-shadow(0 0 8px rgba(2, 132, 199, 0.45));
+    stroke-width: calc(120px * var(--map-overlay-unit, 1));
+    filter: drop-shadow(0 0 calc(8px * var(--map-overlay-unit, 1)) rgba(2, 132, 199, 0.45));
   }
   12.5%, 37.5%, 62.5%, 87.5% {
     opacity: 1;
-    stroke-width: 142;
-    filter: drop-shadow(0 0 20px rgba(2, 132, 199, 0.95));
+    stroke-width: calc(142px * var(--map-overlay-unit, 1));
+    filter: drop-shadow(0 0 calc(20px * var(--map-overlay-unit, 1)) rgba(2, 132, 199, 0.95));
   }
 }
 
 @keyframes map-selection-path-breathe {
   from {
     opacity: 0.4;
-    stroke-width: 120;
-    filter: drop-shadow(0 0 8px rgba(2, 132, 199, 0.45));
+    stroke-width: calc(120px * var(--map-overlay-unit, 1));
+    filter: drop-shadow(0 0 calc(8px * var(--map-overlay-unit, 1)) rgba(2, 132, 199, 0.45));
   }
   to {
     opacity: 0.92;
-    stroke-width: 132;
-    filter: drop-shadow(0 0 20px rgba(2, 132, 199, 0.95));
+    stroke-width: calc(132px * var(--map-overlay-unit, 1));
+    filter: drop-shadow(0 0 calc(20px * var(--map-overlay-unit, 1)) rgba(2, 132, 199, 0.95));
   }
 }
 
@@ -178,9 +168,9 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-opacity: 0.95;
-  stroke-width: 118;
+  stroke-width: calc(118px * var(--map-overlay-unit, 1));
   stroke-dasharray: none;
-  filter: drop-shadow(0 0 16px rgba(2, 132, 199, 0.9));
+  filter: drop-shadow(0 0 calc(16px * var(--map-overlay-unit, 1)) rgba(2, 132, 199, 0.9));
 }
 
 .motion-paused .asset-alert-path.map-selection-flash {

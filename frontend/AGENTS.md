@@ -6,7 +6,7 @@
 - `src/app/linewatch-data.ts` is the fixture/API-shape seam; preserve complete source-labeled fallback. Follow existing adapters and Server/Client Component boundaries.
 - `src/app/dashboard-contract.ts` defines core dashboard contracts and types; `src/app/DataContext.tsx` distributes state to React components.
 - `src/components/NetworkMap.tsx` and its renderers (`InteractiveTtcMap.tsx`, `InteractiveRegionalMap.tsx`, `GeographicNetworkMap.tsx`) render authored SVG maps and raster planes with React overlays. Before changing map assets, geometry, IDs, or overlay anchoring, read [the map contract](../docs/ttc-map-asset-contract.md).
-- TTC and GO/UP must render and behave the same over their SVG maps. GO/UP builds overlays imperatively, so it does not get React's node reuse; before changing overlay rendering, motion, or gesture handling in either map, read [map renderer parity](../docs/map-renderer-parity.md) and keep both modes in step.
+- TTC and GO/UP must render and behave the same over their SVG maps. Line and station alerts come from the shared `src/components/map-overlays/` layer (GO/UP renders it through portals into its injected SVG and in its top plane); other GO/UP overlays are still built imperatively. Before changing overlay rendering, motion, or gesture handling in either map, read [map renderer parity](../docs/map-renderer-parity.md) and keep both modes in step.
 
 ## UI requirements
 

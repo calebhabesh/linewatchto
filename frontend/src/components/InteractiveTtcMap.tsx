@@ -5,7 +5,7 @@ import { IncidentStationSpan } from "./IncidentStationSpan";
 import { CardinalNorthIcon } from "./CardinalNorthIcon";
 
 import { useRetainedHover } from "../hooks/useRetainedHover";
-import { memo, useEffect, useState, useMemo, useLayoutEffect, useRef, useCallback, type CSSProperties } from "react";
+import { memo, useEffect, useState, useMemo, useLayoutEffect, useRef, useCallback } from "react";
 import {
   composeNetworkSegmentPath,
   pathCorridorCollisionBoxes,
@@ -16,7 +16,6 @@ import {
   readSvgStationCenters,
   resolveNetworkSegmentPath,
   visualTravelDirection,
-  samplePath,
   type MapBounds,
   type MapPoint,
   type MapPolygon,
@@ -69,12 +68,19 @@ import type { AccountCommutePathPreview } from "../app/commute-data";
 import type { EstimatedTrainMarker } from "../app/train-markers";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import {
-  ChevronGlyphLane,
-  HourglassGlyphLane,
-  PlannedClosureIconLane,
-  SuspensionGlyphLane,
-  SuspensionNoEntryLane,
-} from "./TtcGlyphLanes";
+  MapLineAlertHoverCopies,
+  MapLineAlertHoverOutlines,
+  MapLineAlertLayer,
+  MapLineAlertSelection,
+  MapLineAlertTargets,
+  type MapLineAlert,
+  type MapOverlayVisualState,
+} from "./map-overlays/LineAlertOverlays";
+import { installMapHoverController, type MapHoverController } from "./map-overlays/map-hover-controller";
+import type { MapOverlayPlane } from "./map-overlays/overlay-plane";
+import { mapSelectionIntroKey, useMapSelectionIntro } from "./map-overlays/selection-intro";
+import { MapCommuteEndpointFlashes, MapCommutePreviewRoute } from "./map-overlays/CommutePreviewOverlays";
+import type { MapCommutePreview } from "./map-overlays/commute-preview-model";
 import { EstimatedTrainMarkerLayer } from "./TtcTrainMarkerLayer";
 import {
   CONNECTOR_STATION_CLEARANCE,
@@ -87,7 +93,6 @@ import {
   STATION_BADGE_TARGET_RADIUS,
   STATION_IMPACT_RING_STROKE_HALF_WIDTH,
   TRANSIT_LINE_HALF_WIDTH,
-  TTC_HOVER_OUTLINE_WIDTHS,
   boxCenter,
   collectBaseRouteObstacles,
   collectMapPlacementObstacles,
@@ -141,12 +146,17 @@ import {
   type OverlapBadgeConnectorOptions,
 } from "./overlap-badge-connector";
 import { getSelectedImpactDetails } from "./MobileImpactInspector";
+import { stationImpactDirectionForImpact } from "./station-impact-direction";
 import {
-  stationImpactDirectionForImpact,
-  stationImpactDirectionForStationImpacts,
-  stationImpactDirectionPath,
-  type StationImpactArrowDirection,
-} from "./station-impact-direction";
+  MapStationAlertForeground,
+  MapStationAlertRings,
+  MapStationDirectionGlyphs,
+} from "./map-overlays/StationAlertOverlays";
+import {
+  stationDirectionGlyphs,
+  type MapStationAlert,
+  type MapStationDirectionGlyph,
+} from "./map-overlays/station-alert-model";
 import {
   stationImpactVisualAnchors,
   stationVisualAnchorIds,
@@ -163,7 +173,6 @@ import {
 } from "./map-chooser-keepouts";
 import { isMapWheelScrollRegionTarget } from "./map-wheel-events";
 import {
-  STATION_IMPACT_BEACON_STROKE_RATIO,
   stationImpactBeaconSize,
   type StationBeaconNeighbour,
 } from "./station-impact-beacon";
@@ -192,7 +201,12 @@ const TTC_MAP_CONTENT_BOUNDS: MapContentBounds = {
   height: (3840 - 120) * SVG_TO_RENDERED_MAP_SCALE,
 };
 
-const RSZ_IMPACT_COLOR = "#F59E0B";
+const TTC_OVERLAY_PLANE: MapOverlayPlane = {
+  idPrefix: "ttc",
+  unit: 1,
+  maskBounds: MAP_VIEWBOX_BOUNDS,
+  outlineCutouts: [],
+};
 
 type RetainedLayer<T> = {
   key: string;
@@ -200,67 +214,8 @@ type RetainedLayer<T> = {
   exiting: boolean;
 };
 
-type TtcImpactHoverIdentity = {
-  kind: MapImpactKind;
-  id: string;
-  segmentId?: string;
-  activationKey?: string;
-};
-
-function setTtcImpactHovered(
-  root: HTMLElement,
-  identity: TtcImpactHoverIdentity,
-  hovered: boolean,
-  scope: "all" | "station-rings" = "all",
-) {
-  root.querySelectorAll<SVGElement>(
-    scope === "station-rings"
-      ? ".station-impact-hover-priority[data-ttc-hover-impact-kind][data-ttc-hover-impact-id]"
-      : "[data-ttc-hover-impact-kind][data-ttc-hover-impact-id]",
-  ).forEach((foreground) => {
-    if (
-      foreground.dataset.ttcHoverImpactKind !== identity.kind
-      || foreground.dataset.ttcHoverImpactId !== identity.id
-    ) return;
-
-    const foregroundSegmentId = foreground.dataset.ttcHoverSegmentId;
-    if (
-      identity.segmentId
-      && foregroundSegmentId
-      && foregroundSegmentId !== identity.segmentId
-    ) return;
-
-    if (hovered) {
-      const activationKey = identity.activationKey
-        ?? `${identity.kind}:${identity.id}:${identity.segmentId ?? "all"}`;
-      foreground.dataset.ttcImpactHovered = "true";
-      foreground.dataset.hoverPriorityImpact = activationKey;
-      if (foreground.classList.contains("ttc-impact-hover-foreground")) {
-        foreground.dataset.hoverForegroundImpact = activationKey;
-      }
-      if (foreground.classList.contains("station-impact-hover-priority")) {
-        foreground.dataset.stationImpactHoverId = identity.id;
-      }
-      return;
-    }
-
-    foreground.removeAttribute("data-ttc-impact-hovered");
-    foreground.removeAttribute("data-hover-priority-impact");
-    foreground.removeAttribute("data-hover-foreground-impact");
-    foreground.removeAttribute("data-station-impact-hover-id");
-  });
-}
-
-function clearTtcTransientHover(root: HTMLElement | null) {
-  if (!root) return;
-  root.querySelectorAll<SVGElement>("[data-ttc-impact-hovered='true']")
-    .forEach((foreground) => {
-      foreground.removeAttribute("data-ttc-impact-hovered");
-      foreground.removeAttribute("data-hover-priority-impact");
-      foreground.removeAttribute("data-hover-foreground-impact");
-      foreground.removeAttribute("data-station-impact-hover-id");
-    });
-  root.querySelectorAll<SVGElement>(".station-hover-indicator.active")
+function clearTtcStationHover(root: HTMLElement | null) {
+  root?.querySelectorAll<SVGElement>(".station-hover-indicator.active")
     .forEach((indicator) => indicator.classList.remove("active"));
 }
 
@@ -486,20 +441,13 @@ function InteractiveTtcMapComponent({
   const pageVisible = usePageVisibility();
   const useMobileRendering = mobilePerformanceMode || mobilePerformanceModeMatches();
   const mapEffectMotionPaused = reducedMotion || !pageVisible;
-  const selectionIntroKey = selection
-    ? linkedSelectionIntroKey ?? `${selection.kind}:${selection.id}:${selectionAttentionGeneration}`
-    : selectedStationId
-      ? `station:${selectedStationId}:${selectionAttentionGeneration}`
-      : null;
-  const [completedSelectionIntroKey, setCompletedSelectionIntroKey] = useState<string | null>(null);
-  useEffect(() => {
-    if (!selectionIntroKey) return;
-    const timer = window.setTimeout(() => {
-      setCompletedSelectionIntroKey(selectionIntroKey);
-    }, 2400);
-    return () => window.clearTimeout(timer);
-  }, [selectionIntroKey]);
-  const selectionIntroComplete = Boolean(selectionIntroKey && completedSelectionIntroKey === selectionIntroKey);
+  const selectionIntroComplete = useMapSelectionIntro(mapSelectionIntroKey({
+    selection,
+    linkedSelectionIntroKey,
+    selectedStationId,
+    commutePreviewKey: commutePathPreview ? `${commutePathPreview.id}:${commutePathPreview.legId}` : null,
+    generation: selectionAttentionGeneration,
+  }));
   const rasterTheme: RasterMapTheme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
   // The shell's media-query hook resolves after hydration. Read the same query
   // synchronously for texture selection so a phone never starts decoding the
@@ -534,11 +482,8 @@ function InteractiveTtcMapComponent({
     restoreMapOverlapIndicatorFocus(mapRootRef.current
       ?.querySelector<SVGGElement>(`[data-overlap-segment-id="${CSS.escape(segmentId)}"] .overlap-indicator`));
   }, [expandedOverlapBadgeId]);
-  const hoveredMapImpactRef = useRef<TtcImpactHoverIdentity | null>(null);
-  const externallyHoveredImpactKeysRef = useRef(new Set<string>());
   const previewOutlineLayerRef = useRef<SVGGElement>(null);
-  const chooserRaisedImpactRef = useRef<TtcImpactHoverIdentity | null>(null);
-  const previewOutlinePathsRef = useRef(new Map<string, string[]>());
+  const hoverControllerRef = useRef<MapHoverController | null>(null);
   const mapControlRailRef = useRef<HTMLDivElement>(null);
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(() => {
     if (typeof window === "undefined" || window.innerWidth < 768) return 0;
@@ -1034,15 +979,6 @@ function InteractiveTtcMapComponent({
         : [];
     }));
   }, [anchorPoints, guidePaths, mapStations, networkSegments]);
-
-  const commuteFlashStationIds = useMemo(() => {
-    if (!commutePathPreview || commutePathPreview.stationIds.length === 0) {
-      return [];
-    }
-    const origin = commutePathPreview.stationIds[0];
-    const destination = commutePathPreview.stationIds.at(-1);
-    return origin && destination ? [origin, destination] : [];
-  }, [commutePathPreview]);
 
   const lastFocusedTargetKeyRef = useRef<string | null>(null);
   const lastFocusLayoutKeyRef = useRef("");
@@ -1635,6 +1571,27 @@ function InteractiveTtcMapComponent({
     } : null;
   }, [selection, plannedPreviewLayers, renderedImpactLayers]);
 
+  // Every line alert as the shared overlay layer draws it (map-overlays/).
+  const lineAlerts = useMemo<MapLineAlert[]>(() => [
+    ...retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => (
+      ttcLineAlert(key, segment, null, closure, exiting)
+    )),
+    ...retainedImpactLayers.map(({ key, item: { segment, impact }, exiting }) => (
+      ttcLineAlert(key, segment, impact, undefined, exiting)
+    )),
+  ], [retainedImpactLayers, retainedPlannedPreviewLayers]);
+
+  const selectedLineAlert = useMemo<MapLineAlert | null>(() => (
+    selectedImpactEmphasis
+      ? ttcLineAlert(
+          `selected:${selectedImpactEmphasis.id}`,
+          selectedImpactEmphasis.segment,
+          selectedImpactEmphasis.impact,
+          selectedImpactEmphasis.plannedClosure ?? undefined,
+        )
+      : null
+  ), [selectedImpactEmphasis]);
+
   const retainedStationNodeImpacts = useRetainedMapLayers(
     stationNodeImpacts,
     useCallback((impact) => `${impact.kind}:${impact.cardId}:${impact.stationId}`, []),
@@ -1671,56 +1628,65 @@ function InteractiveTtcMapComponent({
     return ids;
   }, [directionData, stationBySummaryId, stationCenterPoints, stationNodeImpacts]);
 
-  const stationImpactDirectionLayers = useMemo<StationImpactDirectionLayer[]>(() => {
-    const impactsByAnchor = new Map<
-      string,
-      { stationId: string; anchorId: string; impacts: typeof stationNodeImpacts }
-    >();
+  // Station alerts in the shared overlay model (components/map-overlays),
+  // which GO/UP draws too.
+  const stationAlerts = useMemo<MapStationAlert[]>(() => retainedStationNodeImpacts.flatMap(({ key, item: impact, exiting }) => {
+    const station = stationBySummaryId.get(impact.stationId);
+    if (!station) return [];
+    const isLarge = isStationVisuallyLarge(station);
+    const coreRadius = stationImpactEffectRadius(isLarge);
+    const impactDirection = stationImpactDirectionForImpact(impact, directionData);
+    const directionLabel = impactDirection?.displayDirection ? ` (${impactDirection.displayDirection})` : "";
+    return [{
+      key,
+      kind: impact.kind,
+      impactId: impact.cardId,
+      stationId: station.id,
+      label: `${impact.title}: ${station.name}${directionLabel}`,
+      exiting,
+      anchors: stationImpactVisualAnchors(station, impact, directionData, stationCenterPoints).map(({ id, point }) => ({
+        id,
+        center: point,
+        coreRadius,
+        ringRadius: stationImpactRingRadius(isLarge),
+        beaconRadius: stationImpactBeaconSize(
+          point,
+          coreRadius,
+          stationBeaconNeighbours,
+          stationBeaconAnchorIds,
+          STATION_BEACON_GAP,
+        ).radius,
+      })),
+    }];
+  }), [
+    directionData,
+    retainedStationNodeImpacts,
+    stationBeaconAnchorIds,
+    stationBeaconNeighbours,
+    stationBySummaryId,
+    stationCenterPoints,
+  ]);
 
-    for (const impact of stationNodeImpacts) {
+  const stationDirectionGlyphLayers = useMemo<MapStationDirectionGlyph[]>(() => stationDirectionGlyphs(
+    stationNodeImpacts.flatMap((impact) => {
       const station = stationBySummaryId.get(impact.stationId);
-      if (!station) continue;
-
-      const anchors = stationImpactVisualAnchors(
-        station,
+      if (!station) return [];
+      const badgeRadius = stationImpactDirectionBadgeRadius(isStationVisuallyLarge(station));
+      return stationImpactVisualAnchors(station, impact, directionData, stationCenterPoints).map(({ id, point }) => ({
         impact,
-        directionData,
-        stationCenterPoints,
-      );
+        anchor: { id, center: point, badgeRadius },
+      }));
+    }),
+    directionData,
+  ), [directionData, stationBySummaryId, stationCenterPoints, stationNodeImpacts]);
 
-      for (const anchor of anchors) {
-        const key = `${station.id}:${anchor.id}`;
-        const existing = impactsByAnchor.get(key);
-        if (existing) {
-          existing.impacts.push(impact);
-        } else {
-          impactsByAnchor.set(key, {
-            stationId: station.id,
-            anchorId: anchor.id,
-            impacts: [impact],
-          });
-        }
-      }
-    }
-
-    return Array.from(impactsByAnchor.values())
-      .map(({ stationId, anchorId, impacts }) => {
-        const direction = stationImpactDirectionForStationImpacts(impacts, directionData);
-        if (!direction) return null;
-
-        return {
-          key: `${stationId}:${anchorId}`,
-          stationId,
-          anchorId,
-          arrow: direction.arrow.direction,
-        };
-      })
-      .filter((layer): layer is StationImpactDirectionLayer => Boolean(layer));
-  }, [directionData, stationBySummaryId, stationCenterPoints, stationNodeImpacts]);
-
-  const retainedStationImpactDirectionLayers = useRetainedMapLayers(
-    stationImpactDirectionLayers,
-    useCallback((layer) => layer.key, []),
+  const retainedStationDirectionGlyphs = useRetainedMapLayers(
+    stationDirectionGlyphLayers,
+    useCallback((glyph) => glyph.key, []),
+  );
+  const stationDirectionGlyphItems = useMemo<MapStationDirectionGlyph[]>(
+    () => retainedStationDirectionGlyphs.map(({ item, exiting }) => ({ ...item, exiting })),
+    [retainedStationDirectionGlyphs],
   );
 
   const commutePreviewLayer = useMemo(() => {
@@ -1751,24 +1717,37 @@ function InteractiveTtcMapComponent({
     };
   }, [commutePathPreview, renderedNetworkSegments]);
 
-  const commutePreviewEndpointPoints = useMemo(() => {
-    if (!commutePathPreview || commutePathPreview.stationIds.length === 0) {
-      return [];
-    }
-
+  // The commute preview in the shared overlay model (GO/UP draws it too):
+  // the composed route, and each end's station dots.
+  const commutePreview = useMemo<MapCommutePreview | null>(() => {
+    // Endpoints flash even when the route has no drawable path.
+    const preview = commutePathPreview;
+    if (!preview || preview.stationIds.length === 0) return null;
     const stationById = new Map(stations.map((station) => [station.id, station]));
-    const endpointIds = [
-      commutePathPreview.stationIds[0],
-      commutePathPreview.stationIds.at(-1),
-    ].filter((stationId): stationId is string => Boolean(stationId));
-
-    return endpointIds.flatMap((stationId) => {
-      const station = stationById.get(stationId);
-      return station
-        ? visualAnchorsForStation(station).map((anchor) => anchor.point)
-        : [];
-    });
-  }, [commutePathPreview, stations, visualAnchorsForStation]);
+    const ends = [
+      { stationId: preview.stationIds[0], role: "origin" as const },
+      { stationId: preview.stationIds.at(-1), role: "destination" as const },
+    ];
+    return {
+      id: preview.id,
+      label: preview.routeLabel,
+      pathD: commutePreviewLayer?.segment.pathD ?? "",
+      endpoints: ends.flatMap(({ stationId, role }) => {
+        const station = stationId ? stationById.get(stationId) : undefined;
+        if (!station) return [];
+        const anchors = visualAnchorsForStation(station);
+        const flashRadius = anchors.length > 1 ? 33 : isStationVisuallyLarge(station) ? 48 : 38;
+        return anchors.map((anchor) => ({
+          key: `${role}:${station.id}:${anchor.id}`,
+          stationId: station.id,
+          role,
+          center: anchor.point,
+          dotRadius: 34,
+          flashRadius,
+        }));
+      }),
+    };
+  }, [commutePathPreview, commutePreviewLayer, stations, visualAnchorsForStation]);
 
   const pulseSyncSignature = useMemo(() => {
     const plannedKeys = retainedPlannedPreviewLayers
@@ -2176,116 +2155,60 @@ function InteractiveTtcMapComponent({
     setShownOverlapChooser(solvedOverlapChooser);
   }
 
-  // Hovering one alert, on the map or as a chooser row, repaints it above the
-  // others with its outline. Group previews (the open chooser with no row
-  // hovered, or a hovered badge) only outline every alert they cover, since
-  // several alerts cannot all be on top (setExternalImpactsHovered). Owners
-  // share elements, so an alert stays raised while any owner still holds it.
-  const setLinkedImpactHover = useCallback((
-    identity: TtcImpactHoverIdentity,
-    hovered: boolean,
-  ) => {
+  // Alert hover, chooser rows and group previews: the shared controller
+  // (map-overlays/map-hover-controller.ts), as on GO/UP.
+  useLayoutEffect(() => {
     const root = mapRootRef.current;
     if (!root) return;
-    setTtcImpactHovered(root, identity, hovered);
-    if (hovered) return;
-    const keeper = [hoveredMapImpactRef.current, chooserRaisedImpactRef.current].find((owner) => (
-      owner && owner !== identity && owner.kind === identity.kind && owner.id === identity.id
-    ));
-    if (keeper) {
-      setTtcImpactHovered(root, keeper, true);
-    } else if (externallyHoveredImpactKeysRef.current.has(`${identity.kind}:${identity.id}`)) {
-      setTtcImpactHovered(root, { kind: identity.kind, id: identity.id }, true, "station-rings");
-    }
-  }, []);
+    const controller = installMapHoverController(root, {
+      previewOutlineLayer: () => previewOutlineLayerRef.current,
+      isPointerGestureActive: isGestureActive,
+    });
+    hoverControllerRef.current = controller;
+    return () => {
+      controller.dispose();
+      hoverControllerRef.current = null;
+    };
+  }, [isGestureActive]);
 
-  const setMapImpactHover = useCallback((nextImpact: TtcImpactHoverIdentity | null) => {
-    const previousImpact = hoveredMapImpactRef.current;
-    if (
-      previousImpact?.kind === nextImpact?.kind
-      && previousImpact?.id === nextImpact?.id
-      && previousImpact?.segmentId === nextImpact?.segmentId
-    ) return;
+  useLayoutEffect(() => {
+    hoverControllerRef.current?.setOutlineSource(TTC_OVERLAY_PLANE, previewOutlinePathsByImpact);
+  }, [previewOutlinePathsByImpact]);
 
-    if (previousImpact) setLinkedImpactHover(previousImpact, false);
-    hoveredMapImpactRef.current = nextImpact;
-    if (nextImpact) setLinkedImpactHover(nextImpact, true);
-  }, [setLinkedImpactHover]);
+  // Overlay nodes of changed alerts mount idle; reapply the current hover.
+  useLayoutEffect(() => {
+    hoverControllerRef.current?.restore();
+  }, [lineAlerts, stationAlerts]);
 
-  const showPreviewOutline = useCallback(() => {
-    const layer = previewOutlineLayerRef.current;
-    if (!layer) return;
-    renderTtcPreviewOutline(
-      layer,
-      [...externallyHoveredImpactKeysRef.current].sort(),
-      previewOutlinePathsRef.current,
+  const setExternalImpactsHovered = useCallback((impacts: MapImpact[], hovered: boolean) => {
+    hoverControllerRef.current?.setGroupPreview(
+      impacts.map((impact) => ({ kind: impact.kind, id: impact.cardId })),
+      hovered,
     );
   }, []);
 
-  useLayoutEffect(() => {
-    previewOutlinePathsRef.current = previewOutlinePathsByImpact;
-    showPreviewOutline();
-  }, [previewOutlinePathsByImpact, showPreviewOutline]);
-
-  const setExternalImpactsHovered = useCallback((
-    impacts: MapImpact[],
-    hovered: boolean,
-  ) => {
-    const root = mapRootRef.current;
-    for (const impact of impacts) {
-      const impactKey = `${impact.kind}:${impact.cardId}`;
-      if (hovered) externallyHoveredImpactKeysRef.current.add(impactKey);
-      else externallyHoveredImpactKeysRef.current.delete(impactKey);
-      if (!root) continue;
-      const mapImpact = hoveredMapImpactRef.current;
-      const directlyHovered = mapImpact?.kind === impact.kind && mapImpact.id === impact.cardId;
-      setTtcImpactHovered(root, { kind: impact.kind, id: impact.cardId }, hovered || directlyHovered, "station-rings");
-    }
-    showPreviewOutline();
-  }, [showPreviewOutline]);
-
   const clearMapHover = useCallback((preserveStationLabel = false) => {
-    clearTtcTransientHover(mapRootRef.current);
-    hoveredMapImpactRef.current = null;
-    chooserRaisedImpactRef.current = null;
-    externallyHoveredImpactKeysRef.current.clear();
-    showPreviewOutline();
+    hoverControllerRef.current?.clear();
+    clearTtcStationHover(mapRootRef.current);
     if (!preserveStationLabel) setHoveredStationLabelId(null);
-  }, [showPreviewOutline]);
-
-  const releaseChooserRaisedImpact = useCallback(() => {
-    const previous = chooserRaisedImpactRef.current;
-    chooserRaisedImpactRef.current = null;
-    if (previous) setLinkedImpactHover(previous, false);
-  }, [setLinkedImpactHover]);
+  }, []);
 
   // A hovered chooser row behaves like hovering that alert on the map; with no
   // row hovered, the chooser previews its whole group as one outline.
   const highlightOverlapChooserImpact = useCallback((impact: MapImpact | null) => {
     if (!expandedOverlapBadge) return;
-    releaseChooserRaisedImpact();
-    setExternalImpactsHovered(expandedOverlapBadge.impacts, false);
-    if (impact) {
-      const raised = {
-        kind: impact.kind,
-        id: impact.cardId,
-        activationKey: `chooser:${impact.kind}:${impact.cardId}`,
-      };
-      chooserRaisedImpactRef.current = raised;
-      setLinkedImpactHover(raised, true);
-    } else {
-      setExternalImpactsHovered(expandedOverlapBadge.impacts, true);
-    }
-  }, [expandedOverlapBadge, releaseChooserRaisedImpact, setExternalImpactsHovered, setLinkedImpactHover]);
+    setExternalImpactsHovered(expandedOverlapBadge.impacts, !impact);
+    hoverControllerRef.current?.setChooserHover(impact ? { kind: impact.kind, id: impact.cardId } : null);
+  }, [expandedOverlapBadge, setExternalImpactsHovered]);
 
   useLayoutEffect(() => {
     if (!expandedOverlapBadge) return;
     highlightOverlapChooserImpact(null);
     return () => {
-      releaseChooserRaisedImpact();
+      hoverControllerRef.current?.setChooserHover(null);
       setExternalImpactsHovered(expandedOverlapBadge.impacts, false);
     };
-  }, [expandedOverlapBadge, highlightOverlapChooserImpact, releaseChooserRaisedImpact, setExternalImpactsHovered]);
+  }, [expandedOverlapBadge, highlightOverlapChooserImpact, setExternalImpactsHovered]);
 
   return (
     <div
@@ -2551,113 +2474,33 @@ function InteractiveTtcMapComponent({
                   </filter>
                 </defs>
                 <g aria-label="Disruption overlays">
-                  {groupOverlayLayersByLine([
-                    ...retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => ({
-                      key, segment, impact: null, closure, exiting,
-                    })),
-                    ...retainedImpactLayers.map(({ key, item: { segment, impact }, exiting }) => ({
-                      key, segment, impact, closure: undefined, exiting,
-                    })),
-                  ].filter(({ impact, closure }) => !(
-                    commutePreviewLayer && (
-                      (closure && selectedImpactEmphasis?.plannedClosure?.id === closure.id)
-                      || (impact && selectedImpactEmphasis?.impact?.kind === impact.kind &&
-                        selectedImpactEmphasis.impact.cardId === impact.cardId)
-                    )
-                  )).sort((a, b) =>
-                    getImpactPriority(a.impact?.kind ?? "planned-closure")
-                    - getImpactPriority(b.impact?.kind ?? "planned-closure")
-                  )).map(({ lineId, layers }) => (
-                    <g key={lineId} data-ttc-alert-line={lineId}>
-                      {/* One casing per line, under all of that line's tubes:
-                          segments of a line join without seams, and a tube
-                          drawn edge to edge with another line's tube keeps a
-                          thin gap from it. */}
-                      <g className="asset-alert-path-casings" aria-hidden="true">
-                        {layers.map(({ key, segment, exiting }) => (
-                          <path
-                            key={key}
-                            className={`asset-alert-path-casing ${exiting ? "map-layer-exiting" : "map-layer-current"}`}
-                            d={segment.pathD}
-                          />
-                        ))}
-                      </g>
-                      {layers.map(({ key, segment, impact, closure, exiting }) => (
-                        <OverlaySegment
-                          key={key}
-                          segment={segment}
-                          impact={impact}
-                          plannedClosure={closure}
-                          selection={selection}
-                          selectedSegmentIds={selectedSegmentIds}
-                          onSelectImpact={onSelectImpact}
-                          shouldSuppressMapClick={shouldSuppressMapClick}
-                          exiting={exiting}
-                          renderInteractionTarget={false}
-                        />
-                      ))}
-                    </g>
-                  ))}
+                  <MapLineAlertLayer
+                    alerts={commutePreviewLayer && selectedLineAlert
+                      // The commute focus copy below repaints the selected alert.
+                      ? lineAlerts.filter((alert) => !(
+                        alert.kind === selectedLineAlert.kind && alert.impactId === selectedLineAlert.impactId
+                      ))
+                      : lineAlerts}
+                    plane={TTC_OVERLAY_PLANE}
+                    selection={selection}
+                  />
                 </g>
 
                 <g aria-label="Commute route preview">
-                  {commutePreviewLayer ? (
-                    <CommutePathOverlay
-                      segment={commutePreviewLayer.segment}
-                      endpointPoints={commutePreviewEndpointPoints}
-                      preview={commutePreviewLayer.preview}
-                    />
-                  ) : null}
+                  <MapCommutePreviewRoute preview={commutePreview} />
                 </g>
 
                 <g aria-label="Selected disruption emphasis">
-                  {selectedImpactEmphasis ? (
-                    commutePreviewLayer ? (
-                      <g data-selected-commute-impact-overlay={selectedImpactEmphasis.id}>
-                        <OverlaySegment
-                          segment={selectedImpactEmphasis.segment}
-                          impact={selectedImpactEmphasis.impact}
-                          plannedClosure={selectedImpactEmphasis.plannedClosure ?? undefined}
-                          selection={selection}
-                          selectedSegmentIds={selectedSegmentIds}
-                          onSelectImpact={onSelectImpact}
-                          shouldSuppressMapClick={shouldSuppressMapClick}
-                          idSuffix="-commute-focus"
-                          renderInteractionTarget={false}
-                        />
-                      </g>
-                    ) : (
-                      <SelectedImpactEmphasis
-                        key={`${selection?.kind}:${selectedImpactEmphasis.id}`}
-                        emphasis={selectedImpactEmphasis}
-                        introComplete={selectionIntroComplete}
-                      />
-                    )
-                  ) : null}
+                  <MapLineAlertSelection
+                    alerts={selectedLineAlert ? [selectedLineAlert] : []}
+                    plane={TTC_OVERLAY_PLANE}
+                    commutePreviewActive={Boolean(commutePreviewLayer)}
+                    introComplete={selectionIntroComplete}
+                  />
                 </g>
 
-                {/* Repaint hovered visuals above impacts but below station artwork.
-                    Reuse the original SVG so patterns and directional glyphs stay identical. */}
-                <g aria-hidden="true" pointerEvents="none">
-                  {[
-                    ...retainedPlannedPreviewLayers.map(({ item: { segment, closure }, exiting }) => ({
-                      segment, kind: "planned-closure" as const, id: closure.id, exiting,
-                    })),
-                    ...retainedImpactLayers.map(({ item: { segment, impact }, exiting }) => ({
-                      segment, kind: impact.kind, id: impact.cardId, exiting,
-                    })),
-                  ].map(({ segment, kind, id, exiting }) => exiting ? null : (
-                    <g
-                      key={`hover-visual:${kind}:${id}:${segment.id}`}
-                      className="ttc-impact-hover-foreground"
-                      data-ttc-hover-impact-kind={kind}
-                      data-ttc-hover-impact-id={id}
-                      data-ttc-hover-segment-id={segment.id}
-                    >
-                      <use href={`#${ttcOverlayVisualId(kind, id, segment.id)}`} />
-                    </g>
-                  ))}
-                </g>
+                {/* Repaint hovered visuals above impacts but below station artwork. */}
+                <MapLineAlertHoverCopies alerts={lineAlerts} plane={TTC_OVERLAY_PLANE} />
 
                 {/* Top Layer: custom-map station labels, dots, and connections */}
                 <g className="ttc-authored-svg-source" dangerouslySetInnerHTML={{ __html: svgParts?.part2 ?? "" }} />
@@ -2783,59 +2626,17 @@ function InteractiveTtcMapComponent({
               viewBox="0 0 8250 4000"
               preserveAspectRatio="xMidYMid meet"
             >
-              <g
-                aria-hidden="true"
-                className="ttc-impact-hover-foreground-layer"
-                pointerEvents="none"
-              >
-                {retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => (
-                  exiting ? null : (
-                    <TtcImpactHoverForeground
-                      key={`hover:${key}`}
-                      segment={segment}
-                      kind="planned-closure"
-                      impactId={closure.id}
-                      visualState="planned-preview"
-                    />
-                  )
-                ))}
-                {retainedImpactLayers.map(({ key, item: { segment, impact }, exiting }) => (
-                  exiting ? null : (
-                    <TtcImpactHoverForeground
-                      key={`hover:${key}`}
-                      segment={segment}
-                      kind={impact.kind}
-                      impactId={impact.cardId}
-                      visualState={visualStateForImpactKind(impact.kind)}
-                    />
-                  )
-                ))}
-                <g ref={previewOutlineLayerRef} className="ttc-impact-preview-outline-layer" />
+              <MapLineAlertHoverOutlines alerts={lineAlerts} plane={TTC_OVERLAY_PLANE} />
+              <g aria-hidden="true" pointerEvents="none">
+                <g ref={previewOutlineLayerRef} className="map-impact-preview-outline-layer" />
               </g>
               <g aria-label="Disruption overlay interaction targets">
-                {[
-                  ...retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => ({
-                    key, segment, impact: null, closure, exiting,
-                  })),
-                  ...retainedImpactLayers.map(({ key, item: { segment, impact }, exiting }) => ({
-                    key, segment, impact, closure: undefined, exiting,
-                  })),
-                ].sort((a, b) =>
-                  getImpactPriority(a.impact?.kind ?? "planned-closure")
-                  - getImpactPriority(b.impact?.kind ?? "planned-closure")
-                ).map(({ key, segment, impact, closure, exiting }) => (
-                  <OverlayInteractionTarget
-                    key={`interaction:${key}`}
-                    segment={segment}
-                    impact={impact}
-                    plannedClosure={closure}
-                    exiting={exiting}
-                    onSelectImpact={onSelectImpact}
-                    shouldSuppressMapClick={shouldSuppressMapClick}
-                    suppressNextMapClick={suppressNextMapClick}
-                    onHoverChange={setMapImpactHover}
-                  />
-                ))}
+                <MapLineAlertTargets
+                  alerts={lineAlerts}
+                  onSelect={onSelectImpact}
+                  shouldSuppressMapClick={shouldSuppressMapClick}
+                  suppressNextMapClick={suppressNextMapClick}
+                />
               </g>
               <g aria-label="Station hit targets">
                 {stations.map((station) => {
@@ -2882,17 +2683,6 @@ function InteractiveTtcMapComponent({
                             r={hoverRadius}
                             pointerEvents="none"
                           />
-                          {commuteFlashStationIds.includes(station.id) && (
-                            <circle
-                              data-map-highlight-id={station.id}
-                              data-station-anchor-id={anchorId}
-                              className="station-commute-green-flash"
-                              cx={point.x}
-                              cy={point.y}
-                              r={highlightRadius}
-                              pointerEvents="none"
-                            />
-                          )}
                           {(selected || hasMultipleVisualAnchors) && (
                             <circle
                               data-station-selected-id={station.id}
@@ -2971,130 +2761,18 @@ function InteractiveTtcMapComponent({
                   );
                 })}
               </g>
+              <g aria-label="Commute endpoint highlights">
+                <MapCommuteEndpointFlashes preview={commutePreview} plane={TTC_OVERLAY_PLANE} />
+              </g>
               <g aria-label="Station impact rings">
-                {retainedStationNodeImpacts.map(({ key, item: impact, exiting }) => {
-                  const station = stationBySummaryId.get(impact.stationId);
-                  if (!station) return null;
-                  const selected = selection?.kind === impact.kind && selection.id === impact.cardId;
-                  const visualAnchors = stationImpactVisualAnchors(
-                    station,
-                    impact,
-                    directionData,
-                    stationCenterPoints,
-                  );
-                  const isLarge = isStationVisuallyLarge(station);
-                  const effectRadius = stationImpactEffectRadius(isLarge);
-                  const impactRingRadius = stationImpactRingRadius(isLarge);
-                  const effectColor = impact.kind === "delay" ? "#f59e0b"
-                    : impact.kind === "planned-closure" ? "var(--planned-preview-ink)" : undefined;
-                  const impactDirection = stationImpactDirectionForImpact(impact, directionData);
-                  const directionLabel = impactDirection?.displayDirection
-                    ? ` (${impactDirection.displayDirection})`
-                    : "";
-
-                  return (
-                    <g
-                      key={key}
-                      className={exiting ? "map-layer-exiting" : "map-layer-current"}
-                      style={exiting ? { pointerEvents: "none" } : undefined}
-                    >
-                      {visualAnchors.map(({ id: anchorId, point }) => {
-                        const beacon = stationImpactBeaconSize(
-                          point,
-                          effectRadius,
-                          stationBeaconNeighbours,
-                          stationBeaconAnchorIds,
-                          STATION_BEACON_GAP,
-                        );
-                        return (
-                        <g key={`${key}:${anchorId}`}>
-                          <circle
-                            aria-label={`${impact.title}: ${station.name}${directionLabel}`}
-                            className={`station-impact-ring ${impact.kind} ${selected ? "selected" : ""}`}
-                            style={effectColor ? { stroke: effectColor, filter: `drop-shadow(0 0 6px ${effectColor})`, "--station-impact-glow": effectColor } as CSSProperties : undefined}
-                            cx={point.x}
-                            cy={point.y}
-                            r={impactRingRadius}
-                            fill="none"
-                            onPointerDown={(event) => {
-                              if (exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
-                              try {
-                                event.currentTarget.setPointerCapture(event.pointerId);
-                              } catch {
-                                // Pointer capture can fail if the browser ended the pointer first.
-                              }
-                            }}
-                            onPointerUp={(event) => {
-                              if (exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
-                              if (shouldSuppressMapClick()) return;
-                              suppressNextMapClick();
-                              onSelectImpact({ kind: impact.kind, id: impact.cardId });
-                            }}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              if (exiting) return;
-                              // Pointer activation is handled on pointerup so a map-camera
-                              // update cannot retarget the synthesized click to the station.
-                              if (event.detail !== 0 || shouldSuppressMapClick()) return;
-                              onSelectImpact({ kind: impact.kind, id: impact.cardId });
-                            }}
-                            onKeyDown={(event) => {
-                              if (exiting) return;
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                onSelectImpact({ kind: impact.kind, id: impact.cardId });
-                              }
-                            }}
-                            onPointerEnter={(event) => {
-                              if (event.pointerType !== "mouse" || exiting) return;
-                              setMapImpactHover({
-                                kind: impact.kind,
-                                id: impact.cardId,
-                                activationKey: `station:${impact.kind}:${impact.cardId}`,
-                              });
-                            }}
-                            onPointerLeave={(event) => {
-                              if (event.pointerType !== "mouse") return;
-                              setMapImpactHover(null);
-                            }}
-                            onFocus={() => {
-                              if (typeof window !== "undefined" && !window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-                                return;
-                              }
-                              setMapImpactHover({
-                                kind: impact.kind,
-                                id: impact.cardId,
-                                activationKey: `station:${impact.kind}:${impact.cardId}`,
-                              });
-                            }}
-                            onBlur={() => setMapImpactHover(null)}
-                            pointerEvents={exiting ? "none" : "stroke"}
-                            role="button"
-                            tabIndex={exiting ? -1 : 0}
-                          />
-                          <circle
-                            className="station-impact-dot-red-beacon"
-                            style={effectColor ? { "--station-impact-glow": effectColor } as CSSProperties : undefined}
-                            cx={point.x}
-                            cy={point.y}
-                            r={beacon.radius}
-                            strokeWidth={effectRadius * STATION_IMPACT_BEACON_STROKE_RATIO}
-                            pointerEvents="none"
-                          />
-                          <circle
-                            className="station-impact-dot-red-glow"
-                            style={effectColor ? { fill: effectColor, filter: `drop-shadow(0 0 6px ${effectColor})`, "--station-impact-glow": effectColor } as CSSProperties : undefined}
-                            cx={point.x}
-                            cy={point.y}
-                            r={effectRadius}
-                            pointerEvents="none"
-                          />
-                        </g>
-                        );
-                      })}
-                    </g>
-                  );
-                })}
+                <MapStationAlertRings
+                  alerts={stationAlerts}
+                  plane={TTC_OVERLAY_PLANE}
+                  selection={selection}
+                  onSelect={onSelectImpact}
+                  shouldSuppressMapClick={shouldSuppressMapClick}
+                  suppressNextMapClick={suppressNextMapClick}
+                />
               </g>
               {/* Keep names in one foreground interaction plane. When label targets
                   are interleaved with station dots, a later invisible dot or impact
@@ -3156,28 +2834,7 @@ function InteractiveTtcMapComponent({
                 })}
               </g>
               <g aria-label="Station impact direction glyphs">
-                {retainedStationImpactDirectionLayers.map(({ key, item: impactDirection, exiting }) => {
-                  const station = stationBySummaryId.get(impactDirection.stationId);
-                  if (!station) return null;
-                  const point = stationCenterPoints.get(impactDirection.anchorId) ?? stationPointFor(station);
-                  const isLarge = isStationVisuallyLarge(station);
-                  const badgeRadius = stationImpactDirectionBadgeRadius(isLarge);
-
-                  return (
-                    <g
-                      key={key}
-                      className={exiting ? "map-layer-exiting" : "map-layer-current"}
-                      style={exiting ? { pointerEvents: "none" } : undefined}
-                    >
-                      <StationImpactDirectionGlyph
-                        x={point.x}
-                        y={point.y}
-                        direction={impactDirection.arrow}
-                        radius={badgeRadius}
-                      />
-                    </g>
-                  );
-                })}
+                <MapStationDirectionGlyphs glyphs={stationDirectionGlyphItems} plane={TTC_OVERLAY_PLANE} />
               </g>
               <g aria-label="Station impact foreground highlights" pointerEvents="none">
                 {stations.map((station) => {
@@ -3203,46 +2860,13 @@ function InteractiveTtcMapComponent({
                     </g>
                   );
                 })}
-                {retainedStationNodeImpacts.map(({ key, item: impact, exiting }) => {
-                  if (exiting) return null;
-                  const station = stationBySummaryId.get(impact.stationId);
-                  if (!station) return null;
-                  const visualAnchors = stationImpactVisualAnchors(
-                    station,
-                    impact,
-                    directionData,
-                    stationCenterPoints,
-                  );
-                  const isLarge = isStationVisuallyLarge(station);
-                  const impactRingRadius = stationImpactRingRadius(isLarge);
-
-                  return (
-                    <g key={`foreground:${key}`}>
-                      {visualAnchors.map(({ id: anchorId, point }) => (
-                        <g key={`foreground-anchor:${key}:${anchorId}`}>
-                          {selection && !commutePreviewLayer && selection.kind === impact.kind && selection.id === impact.cardId ? (
-                            <circle
-                              data-map-highlight-id={selection.id}
-                              data-station-impact-selection-id={impact.cardId}
-                              className={`station-selection-flash map-selection-attention${selectionIntroComplete ? " selection-intro-complete" : ""}`}
-                              cx={point.x}
-                              cy={point.y}
-                              r={impactRingRadius}
-                            />
-                          ) : null}
-                          <circle
-                            data-ttc-hover-impact-kind={impact.kind}
-                            data-ttc-hover-impact-id={impact.cardId}
-                            className="station-impact-hover-priority"
-                            cx={point.x}
-                            cy={point.y}
-                            r={impactRingRadius + 5}
-                          />
-                        </g>
-                      ))}
-                    </g>
-                  );
-                })}
+                <MapStationAlertForeground
+                  alerts={stationAlerts}
+                  plane={TTC_OVERLAY_PLANE}
+                  selection={selection}
+                  commutePreviewActive={Boolean(commutePreviewLayer)}
+                  introComplete={selectionIntroComplete}
+                />
               </g>
               <g aria-label="Overlapping alert badges">
                 {overlapBadges
@@ -3357,13 +2981,6 @@ type SelectedImpactEmphasisLayer = {
   plannedClosure: PlannedClosure | null;
 };
 
-type StationImpactDirectionLayer = {
-  key: string;
-  stationId: string;
-  anchorId: string;
-  arrow: StationImpactArrowDirection;
-};
-
 type SvgBounds = MapBounds;
 
 type OverlapBadgeSize = MapOverlapIndicatorSize;
@@ -3401,13 +3018,7 @@ type OverlapBadgeGroup = {
   impactKinds: MapImpactKind[];
 };
 
-type OverlayVisualState =
-  | "suspension"
-  | "delay-static"
-  | "reduced-speed-zone"
-  | "planned-preview";
-
-function visualStateForImpactKind(kind: MapImpactKind): OverlayVisualState {
+function visualStateForImpactKind(kind: MapImpactKind): MapOverlayVisualState {
   switch (kind) {
     case "suspension":
       return "suspension";
@@ -3418,6 +3029,30 @@ function visualStateForImpactKind(kind: MapImpactKind): OverlayVisualState {
     case "reduced-speed-zone":
       return "reduced-speed-zone";
   }
+}
+
+/** A TTC impact or planned-closure preview as the shared overlay layer draws it. */
+function ttcLineAlert(
+  key: string,
+  segment: RenderedNetworkSegment,
+  impact: MapImpact | null,
+  closure: PlannedClosure | undefined,
+  exiting = false,
+): MapLineAlert {
+  return {
+    key,
+    kind: impact?.kind ?? "planned-closure",
+    impactId: impact?.cardId ?? closure?.id ?? "unknown",
+    lineId: segment.lineId,
+    pathD: segment.pathD,
+    travelDirection: visualTravelDirection(segment),
+    visualState: impact ? visualStateForImpactKind(impact.kind) : "planned-preview",
+    label: impact
+      ? `${impact.kind}: ${segment.label}`
+      : `${closure?.title ?? "Planned advisory"}: ${segment.label}`,
+    segmentIds: segment.sourceSegmentIds ?? [segment.id],
+    exiting,
+  };
 }
 
 function plannedPreviewImpactsForSegment(
@@ -3801,670 +3436,6 @@ function OverlapIndicatorMarker({
       onActivate={onToggle}
       onHoverChange={onHoverChange}
       shouldSuppressMapClick={shouldSuppressMapClick}
-    />
-  );
-}
-
-function StationImpactDirectionGlyph({
-  x,
-  y,
-  direction,
-  radius,
-}: {
-  x: number;
-  y: number;
-  direction: StationImpactArrowDirection;
-  radius: number;
-}) {
-  return (
-    <g
-      aria-hidden="true"
-      className="station-impact-direction-glyph"
-      pointerEvents="none"
-      transform={`translate(${x} ${y})`}
-    >
-      <circle className="station-impact-direction-badge" r={radius} />
-      <path className="station-impact-direction-arrow" d={stationImpactDirectionPath(direction, radius)} />
-    </g>
-  );
-}
-
-function CommutePathOverlay({
-  segment,
-  endpointPoints,
-  preview,
-}: {
-  segment: RenderedNetworkSegment;
-  endpointPoints: MapPoint[];
-  preview: AccountCommutePathPreview;
-}) {
-  if (!segment.pathD) return null;
-
-  return (
-    <g className="commute-path-preview-layer" data-commute-path-preview={preview.id}>
-      <path className="asset-alert-path-glow commute-path-preview-glow" d={segment.pathD} />
-      <path className="asset-alert-path commute-path-preview-path" d={segment.pathD} />
-      {endpointPoints.map((point, index) => (
-        <circle
-          key={`${preview.id}-${index}`}
-          className="commute-path-preview-endpoint"
-          cx={point.x}
-          cy={point.y}
-          r={34}
-        />
-      ))}
-    </g>
-  );
-}
-
-function ttcOverlayVisualId(kind: MapImpactKind, impactId: string, segmentId: string) {
-  return `ttc-overlay-visual-${kind}-${impactId}-${segmentId}`;
-}
-
-/**
- * The hover keyline: a dark ring with a light edge around the given paths.
- * Masking every path together outlines their union, so several alerts with
- * different extents read as one shape instead of crossing capsules.
- */
-function TtcHoverOutline({
-  maskId,
-  paths,
-  visualState = "",
-}: {
-  maskId: string;
-  paths: string[];
-  visualState?: string;
-}) {
-  const outerMaskId = `${maskId}-outer`;
-  const maskStrokes = (className: string, stroke: string, width: number) => paths.map((d, index) => (
-    <path
-      key={`${className}:${index}`}
-      className={className}
-      d={d}
-      fill="none"
-      stroke={stroke}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={width}
-      style={{ strokeWidth: width }}
-    />
-  ));
-  const outlineStrokes = (className: string, mask: string, style: CSSProperties) => (
-    <g mask={`url(#${mask})`}>
-      {paths.map((d, index) => (
-        <path key={index} className={`ttc-impact-hover-outline ${className} ${visualState}`} d={d} style={style} />
-      ))}
-    </g>
-  );
-  return (
-    <>
-      <defs>
-        <mask
-          id={maskId}
-          maskUnits="userSpaceOnUse"
-          x={MAP_VIEWBOX_BOUNDS.x}
-          y={MAP_VIEWBOX_BOUNDS.y}
-          width={MAP_VIEWBOX_BOUNDS.width}
-          height={MAP_VIEWBOX_BOUNDS.height}
-        >
-          {maskStrokes("ttc-impact-hover-outline-mask-outer", "white", TTC_HOVER_OUTLINE_WIDTHS.outer)}
-          {maskStrokes("ttc-impact-hover-outline-mask-cutout", "black", TTC_HOVER_OUTLINE_WIDTHS.inner)}
-        </mask>
-        <mask
-          id={outerMaskId}
-          maskUnits="userSpaceOnUse"
-          x={MAP_VIEWBOX_BOUNDS.x}
-          y={MAP_VIEWBOX_BOUNDS.y}
-          width={MAP_VIEWBOX_BOUNDS.width}
-          height={MAP_VIEWBOX_BOUNDS.height}
-        >
-          {maskStrokes("ttc-impact-hover-outline-mask-outer", "white", TTC_HOVER_OUTLINE_WIDTHS.outer)}
-          {maskStrokes("ttc-impact-hover-outline-mask-divider", "black", TTC_HOVER_OUTLINE_WIDTHS.divider)}
-        </mask>
-      </defs>
-      {outlineStrokes("ttc-impact-hover-outline-core", maskId, {
-        stroke: "rgba(15, 23, 42, 0.98)",
-        strokeWidth: TTC_HOVER_OUTLINE_WIDTHS.outer,
-      })}
-      {outlineStrokes("ttc-impact-hover-outline-edge", outerMaskId, {
-        stroke: "rgba(248, 250, 252, 0.98)",
-        strokeWidth: TTC_HOVER_OUTLINE_WIDTHS.outer,
-      })}
-    </>
-  );
-}
-
-function TtcImpactHoverForeground({
-  segment,
-  kind,
-  impactId,
-  visualState,
-}: {
-  segment: RenderedNetworkSegment;
-  kind: MapImpactKind;
-  impactId: string;
-  visualState: OverlayVisualState;
-}) {
-  const hoverOutlineMaskId = `ttc-impact-hover-outline-${kind}-${impactId}-${segment.id}`
-    .replace(/[^a-zA-Z0-9_-]/g, "-");
-
-  return (
-    <g
-      className="ttc-impact-hover-foreground"
-      data-ttc-hover-impact-kind={kind}
-      data-ttc-hover-impact-id={impactId}
-      data-ttc-hover-segment-id={segment.id}
-    >
-      <TtcHoverOutline maskId={hoverOutlineMaskId} paths={[segment.pathD]} visualState={visualState} />
-    </g>
-  );
-}
-
-const SVG_NS = "http://www.w3.org/2000/svg";
-
-/**
- * Chooser and badge previews: one outline around every previewed alert,
- * matching TtcHoverOutline. It is written straight into its layer so a hover
- * shows before the next paint without rendering the map, and it never
- * repaints alert artwork, so the map keeps its resting paint order.
- */
-function renderTtcPreviewOutline(layer: SVGGElement, keys: string[], pathsByImpact: Map<string, string[]>) {
-  layer.replaceChildren();
-  const paths = keys.flatMap((key) => pathsByImpact.get(key) ?? []);
-  if (paths.length === 0) return;
-  const documentNode = layer.ownerDocument;
-  const element = <K extends keyof SVGElementTagNameMap>(tag: K, attributes: Record<string, string | number>) => {
-    const node = documentNode.createElementNS(SVG_NS, tag);
-    for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, String(value));
-    return node;
-  };
-  const maskId = `ttc-impact-preview-outline-${keys.join("-")}`.replace(/[^a-zA-Z0-9_-]/g, "-");
-  const mask = (id: string, cutoutClass: string, cutoutWidth: number) => {
-    const node = element("mask", {
-      id,
-      maskUnits: "userSpaceOnUse",
-      x: MAP_VIEWBOX_BOUNDS.x,
-      y: MAP_VIEWBOX_BOUNDS.y,
-      width: MAP_VIEWBOX_BOUNDS.width,
-      height: MAP_VIEWBOX_BOUNDS.height,
-    });
-    const stroke = (className: string, color: string, width: number) => paths.map((d) => element("path", {
-      class: className,
-      d,
-      fill: "none",
-      stroke: color,
-      "stroke-linecap": "round",
-      "stroke-linejoin": "round",
-      "stroke-width": width,
-      style: `stroke-width: ${width}`,
-    }));
-    node.append(
-      ...stroke("ttc-impact-hover-outline-mask-outer", "white", TTC_HOVER_OUTLINE_WIDTHS.outer),
-      ...stroke(cutoutClass, "black", cutoutWidth),
-    );
-    return node;
-  };
-  const defs = element("defs", {});
-  defs.append(
-    mask(maskId, "ttc-impact-hover-outline-mask-cutout", TTC_HOVER_OUTLINE_WIDTHS.inner),
-    mask(`${maskId}-outer`, "ttc-impact-hover-outline-mask-divider", TTC_HOVER_OUTLINE_WIDTHS.divider),
-  );
-  const strokes = (className: string, id: string, color: string) => {
-    const group = element("g", { mask: `url(#${id})` });
-    group.append(...paths.map((d) => element("path", {
-      class: `ttc-impact-hover-outline ${className}`,
-      d,
-      style: `stroke: ${color}; stroke-width: ${TTC_HOVER_OUTLINE_WIDTHS.outer}`,
-    })));
-    return group;
-  };
-  const outline = element("g", { class: "ttc-impact-preview-outline", "data-ttc-preview-impacts": keys.join(" ") });
-  outline.append(
-    defs,
-    strokes("ttc-impact-hover-outline-core", maskId, "rgba(15, 23, 42, 0.98)"),
-    strokes("ttc-impact-hover-outline-edge", `${maskId}-outer`, "rgba(248, 250, 252, 0.98)"),
-  );
-  layer.append(outline);
-}
-
-function OverlayInteractionTarget({
-  segment,
-  impact,
-  plannedClosure,
-  exiting,
-  onSelectImpact,
-  shouldSuppressMapClick,
-  suppressNextMapClick,
-  onHoverChange,
-}: {
-  segment: RenderedNetworkSegment;
-  impact: MapImpact | null;
-  plannedClosure: PlannedClosure | undefined;
-  exiting?: boolean;
-  onSelectImpact: (selection: ImpactSelection) => void;
-  shouldSuppressMapClick: () => boolean;
-  suppressNextMapClick?: () => void;
-  onHoverChange: (impact: TtcImpactHoverIdentity | null) => void;
-}) {
-  const impactKind = impact?.kind ?? "planned-closure";
-  const impactId = impact?.cardId ?? plannedClosure?.id ?? "unknown";
-  const targetId = `${impactKind}:${impactId}:${segment.id}`;
-  const hoverIdentity: TtcImpactHoverIdentity = {
-    kind: impactKind,
-    id: impactId,
-    segmentId: segment.id,
-    activationKey: targetId,
-  };
-  const ariaLabel = impact
-    ? `${impact.kind}: ${segment.label}`
-    : `${plannedClosure?.title ?? "Planned advisory"}: ${segment.label}`;
-  const selectCurrentImpact = () => {
-    if (impact) {
-      onSelectImpact({ kind: impact.kind, id: impact.cardId });
-    } else if (plannedClosure) {
-      onSelectImpact({ kind: "planned-closure", id: plannedClosure.id });
-    }
-  };
-
-  return (
-    <path
-      aria-label={ariaLabel}
-      className="map-segment-hit-target"
-      d={segment.pathD}
-      data-overlay-interaction-target={targetId}
-      onClick={(event) => {
-        // Pointer activation is owned by pointerup below. A map-camera commit or
-        // the desktop panel opening can otherwise retarget/drop the later
-        // synthesized click after the user has visibly pressed this path.
-        event.stopPropagation();
-        if (exiting || event.detail !== 0 || shouldSuppressMapClick()) return;
-        selectCurrentImpact();
-      }}
-      onKeyDown={(event) => {
-        if (exiting || (event.key !== "Enter" && event.key !== " ")) return;
-        event.preventDefault();
-        selectCurrentImpact();
-      }}
-      onPointerEnter={(event) => {
-        if (event.pointerType !== "mouse" || exiting) return;
-        onHoverChange(hoverIdentity);
-      }}
-      onPointerLeave={(event) => {
-        if (event.pointerType !== "mouse") return;
-        onHoverChange(null);
-      }}
-      onFocus={() => {
-        if (typeof window !== "undefined" && !window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-          return;
-        }
-        if (!exiting) onHoverChange(hoverIdentity);
-      }}
-      onBlur={() => onHoverChange(null)}
-      onPointerDown={(event) => {
-        if (exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
-        try {
-          event.currentTarget.setPointerCapture(event.pointerId);
-        } catch {
-          // Pointer capture can fail if the browser ended the pointer first.
-        }
-      }}
-      onPointerUp={(event) => {
-        if (exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
-        if (shouldSuppressMapClick()) return;
-        suppressNextMapClick?.();
-        selectCurrentImpact();
-      }}
-      pointerEvents={exiting ? "none" : "stroke"}
-      role="button"
-      style={exiting ? { pointerEvents: "none" } : undefined}
-      tabIndex={exiting ? -1 : 0}
-      vectorEffect="non-scaling-stroke"
-    />
-  );
-}
-
-function OverlaySegment({
-  segment,
-  impact,
-  plannedClosure,
-  selection,
-  selectedSegmentIds,
-  onSelectImpact,
-  shouldSuppressMapClick,
-  exiting,
-  idSuffix = "",
-  renderInteractionTarget = true,
-}: {
-  segment: RenderedNetworkSegment;
-  impact: MapImpact | null;
-  plannedClosure: PlannedClosure | undefined;
-  selection: ImpactSelection;
-  selectedSegmentIds: string[];
-  onSelectImpact: (selection: ImpactSelection) => void;
-  shouldSuppressMapClick: () => boolean;
-  exiting?: boolean;
-  idSuffix?: string;
-  renderInteractionTarget?: boolean;
-}) {
-  const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
-
-  const visualState = impact ? visualStateForImpactKind(impact.kind) : "planned-preview";
-
-  const { step } = useMemo(() => {
-    if (
-      (visualState === "reduced-speed-zone" || visualState === "delay-static") &&
-      segment.pathD
-    ) {
-      return samplePath(segment.pathD, 56);
-    }
-    return { step: 56 };
-  }, [segment.pathD, visualState]);
-
-  if (!segment.pathD) {
-    return null;
-  }
-
-  const isSelectedImpact = impact
-    ? selection?.kind === impact.kind && selection.id === impact.cardId
-    : selection?.kind === "planned-closure" && selection.id === plannedClosure?.id;
-  const impactSegmentIds = (() => {
-    if (plannedClosure) {
-      return plannedClosure.previewSegmentIds ?? [];
-    }
-    if (!impact) return [];
-    if (impact.kind === "planned-closure") {
-      return plannedClosures.find((c) => c.id === impact.cardId)?.previewSegmentIds
-        ?? activeAlerts.find((alert) => alert.id === impact.cardId)?.affectedSegmentIds
-        ?? [];
-    }
-    if (impact.kind === "suspension") {
-      return activeAlerts.find((a) => a.id === impact.cardId)?.affectedSegmentIds ?? [];
-    }
-    if (impact.kind === "delay") {
-      return delays.find((d) => d.id === impact.cardId)?.affectedSegmentIds ?? [];
-    }
-    if (impact.kind === "reduced-speed-zone") {
-      return reducedSpeedZones.find((z) => z.id === impact.cardId)?.affectedSegmentIds ?? [];
-    }
-    return [];
-  })();
-
-  const isMultiSegment = impactSegmentIds.length > 1;
-
-  const chevronBg = RSZ_IMPACT_COLOR;
-  const overlaySegmentId = `${segment.id}${idSuffix}`;
-  const travelDirection = visualTravelDirection(segment);
-  const renderForwardLane = travelDirection !== "reverse";
-  const renderReverseLane = travelDirection !== "forward";
-
-  const selectCurrentImpact = () => {
-    if (impact) {
-      onSelectImpact({ kind: impact.kind, id: impact.cardId });
-      return;
-    }
-    if (plannedClosure) {
-      onSelectImpact({ kind: "planned-closure", id: plannedClosure.id });
-    }
-  };
-
-  const handleSelect = (event: React.MouseEvent<SVGPathElement>) => {
-    if (shouldSuppressMapClick()) return;
-    event.stopPropagation();
-    selectCurrentImpact();
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent<SVGPathElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      selectCurrentImpact();
-    }
-  };
-
-  const ariaLabel = impact
-    ? `${impact.kind}: ${segment.label}`
-    : `${plannedClosure?.title ?? "Planned advisory"}: ${segment.label}`;
-  const selectedClass = isSelectedImpact ? "selected" : "";
-  const connectedClass =
-    isMultiSegment || (isSelectedImpact && selectedSegmentIds.length > 1)
-      ? "connected-corridor"
-      : "";
-
-  return (
-    <g
-      id={ttcOverlayVisualId(impact?.kind ?? "planned-closure", impact?.cardId ?? plannedClosure?.id ?? "unknown", overlaySegmentId)}
-      className={`overlay-segment-group ${connectedClass} ${exiting ? "map-layer-exiting" : "map-layer-current"}`.trim()}
-      data-map-impact-id={impact?.cardId ?? plannedClosure?.id}
-      data-map-impact-kind={impact?.kind ?? "planned-closure"}
-      style={exiting ? { pointerEvents: "none" } : undefined}
-    >
-
-
-      <path
-        className={`asset-alert-path-glow ${visualState}`}
-        d={segment.pathD}
-      />
-
-      <path
-        className={`asset-alert-path-glow interactive-glow ${visualState} ${selectedClass}`}
-        d={segment.pathD}
-        style={{ pointerEvents: "none" }}
-      />
-
-      <path
-        className={`asset-alert-path-hover-boundary ${visualState}`}
-        d={segment.pathD}
-        style={{ pointerEvents: "none" }}
-      />
-
-      {visualState === "delay-static" && (
-        <>
-          <defs>
-            <mask id={`${overlaySegmentId}-mask`}>
-              <path
-                className="delay-hourglass-mask-path pointer-events-none"
-                d={segment.pathD}
-                style={{ pointerEvents: "none", stroke: "white", fill: "none" }}
-                strokeWidth="102"
-              />
-            </mask>
-          </defs>
-          <path
-            className="asset-alert-path delay-static-base pointer-events-none"
-            d={segment.pathD}
-            style={{ pointerEvents: "none", stroke: "#0ea5e9" }}
-          />
-          <g
-            mask={`url(#${overlaySegmentId}-mask)`}
-            style={{ "--chevron-step": `${step}px` } as React.CSSProperties}
-          >
-            {travelDirection === "bidirectional" ? (
-              <HourglassGlyphLane
-                pathD={segment.pathD}
-                step={28}
-                direction="forward"
-                travelDirection="forward" // Force single column (dy = 0)
-                onlyHourglasses={true} // Omit arrows
-              />
-            ) : (
-              <>
-                {renderForwardLane && (
-                  <HourglassGlyphLane
-                    pathD={segment.pathD}
-                    step={step}
-                    direction="forward"
-                    travelDirection={travelDirection}
-                  />
-                )}
-                {renderReverseLane && (
-                  <HourglassGlyphLane
-                    pathD={segment.pathD}
-                    step={step}
-                    direction="reverse"
-                    travelDirection={travelDirection}
-                  />
-                )}
-              </>
-            )}
-          </g>
-        </>
-      )}
-
-      {visualState === "planned-preview" ? (
-        <>
-          <path
-            className={`asset-alert-path planned-preview pointer-events-none ${selectedClass}`}
-            d={segment.pathD}
-            pointerEvents="none"
-          />
-          <PlannedClosureIconLane
-            pathD={segment.pathD}
-            travelDirection={travelDirection}
-          />
-        </>
-      ) : null}
-
-      {renderInteractionTarget ? (
-        <path
-          aria-label={ariaLabel}
-          className="map-segment-hit-target"
-          d={segment.pathD}
-          onClick={handleSelect}
-          onKeyDown={handleKeyDown}
-          pointerEvents="stroke"
-          role="button"
-          tabIndex={0}
-          vectorEffect="non-scaling-stroke"
-        />
-      ) : null}
-
-      {visualState === "reduced-speed-zone" && (
-        <>
-          <path
-            className="asset-alert-path delay-candy pointer-events-none"
-            d={segment.pathD}
-            style={{ pointerEvents: "none", stroke: chevronBg }}
-          />
-          <g
-            className="rsz-chevron-lanes"
-            style={{ "--chevron-step": `${step}px` } as React.CSSProperties}
-          >
-            {renderForwardLane && (
-              <ChevronGlyphLane
-                pathD={segment.pathD}
-                step={step}
-                direction="forward"
-                travelDirection={travelDirection}
-              />
-            )}
-            {renderReverseLane && (
-              <ChevronGlyphLane
-                pathD={segment.pathD}
-                step={step}
-                direction="reverse"
-                travelDirection={travelDirection}
-              />
-            )}
-          </g>
-        </>
-      )}
-      {visualState === "suspension" && (
-        <>
-          {travelDirection === "bidirectional" ? (
-            <>
-              <path
-                className="asset-alert-path suspension-candy suspension-solid pointer-events-none"
-                d={segment.pathD}
-                style={{ pointerEvents: "none", stroke: "#ef4444" }}
-              />
-              <defs>
-                <mask id={`${overlaySegmentId}-suspension-static-mask`}>
-                  <path
-                    className="suspension-mask-path pointer-events-none"
-                    d={segment.pathD}
-                    style={{ pointerEvents: "none", stroke: "white", fill: "none" }}
-                    strokeWidth="102"
-                  />
-                </mask>
-              </defs>
-              <g mask={`url(#${overlaySegmentId}-suspension-static-mask)`}>
-                <SuspensionNoEntryLane
-                  pathD={segment.pathD}
-                  step={88}
-                />
-              </g>
-            </>
-          ) : (
-            <>
-              <path
-                className="asset-alert-path suspension-candy pointer-events-none"
-                d={segment.pathD}
-                style={{ pointerEvents: "none", stroke: "#ef4444" }}
-              />
-              <defs>
-                <mask id={`${overlaySegmentId}-suspension-mask`}>
-                  <path
-                    className="suspension-mask-path pointer-events-none"
-                    d={segment.pathD}
-                    style={{ pointerEvents: "none", stroke: "white", fill: "none" }}
-                    strokeWidth="102"
-                  />
-                </mask>
-              </defs>
-              <g mask={`url(#${overlaySegmentId}-suspension-mask)`}>
-                {travelDirection === "forward" && (
-                  <SuspensionGlyphLane
-                    pathD={segment.pathD}
-                    step={48}
-                    direction="forward"
-                    travelDirection={travelDirection}
-                  />
-                )}
-                {travelDirection === "reverse" && (
-                  <SuspensionGlyphLane
-                    pathD={segment.pathD}
-                    step={48}
-                    direction="reverse"
-                    travelDirection={travelDirection}
-                  />
-                )}
-              </g>
-            </>
-          )}
-        </>
-      )}
-
-    </g>
-  );
-}
-
-/** Groups overlay layers by line, keeping their order within each line, with
-    lines in a fixed order so a refresh never repaints them in a new order. */
-function groupOverlayLayersByLine<T extends { segment: RenderedNetworkSegment }>(layers: T[]) {
-  const byLine = new Map<string, T[]>();
-  for (const layer of layers) {
-    const lineLayers = byLine.get(layer.segment.lineId);
-    if (lineLayers) lineLayers.push(layer);
-    else byLine.set(layer.segment.lineId, [layer]);
-  }
-  return [...byLine]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([lineId, lineLayers]) => ({ lineId, layers: lineLayers }));
-}
-
-function SelectedImpactEmphasis({
-  emphasis: selectedImpactEmphasis,
-  introComplete,
-}: {
-  emphasis: SelectedImpactEmphasisLayer;
-  introComplete: boolean;
-}) {
-  return (
-    <path
-      data-selected-impact-emphasis={selectedImpactEmphasis.id}
-      data-map-highlight-id={selectedImpactEmphasis.id}
-      className={`asset-alert-path map-selection-flash map-selection-attention pointer-events-none${introComplete ? " selection-intro-complete" : ""}`}
-      d={selectedImpactEmphasis.segment.pathD}
-      aria-hidden="true"
     />
   );
 }

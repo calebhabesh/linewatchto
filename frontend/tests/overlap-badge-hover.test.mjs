@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-const mapSource = readFileSync(
-  new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url),
-  "utf8",
-);
+// TTC's renderer with the shared station-alert layer it draws with.
+const mapSource = [
+  "../src/components/InteractiveTtcMap.tsx",
+  "../src/components/map-overlays/StationAlertOverlays.tsx",
+  "../src/components/map-overlays/map-hover-controller.ts",
+].map((path) => readFileSync(new URL(path, import.meta.url), "utf8")).join("\n");
 const overlapIndicatorSource = readFileSync(
   new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url),
   "utf8",
@@ -14,14 +16,12 @@ const overlapIndicatorSource = readFileSync(
 describe("desktop overlap badge hover", () => {
   it("emphasizes every segment and station impact represented by the hovered badge", () => {
     assert.match(mapSource, /const setExternalImpactsHovered = useCallback/);
-    assert.match(mapSource, /for \(const impact of impacts\)/);
-    assert.match(mapSource, /externallyHoveredImpactKeysRef\.current\.add\(impactKey\)/);
+    assert.match(mapSource, /hoverControllerRef\.current\?\.setGroupPreview\(/);
     // Previews outline the alerts and light their station rings; they never
     // raise alert artwork the way a direct overlay hover does.
-    assert.match(mapSource, /setTtcImpactHovered\(root, \{ kind: impact\.kind, id: impact\.cardId \}, hovered \|\| directlyHovered, "station-rings"\)/);
-    assert.match(mapSource, /showPreviewOutline\(\);/);
-    assert.match(mapSource, /renderTtcPreviewOutline\(/);
-    assert.match(mapSource, /className="ttc-impact-hover-foreground-layer"/);
+    assert.match(mapSource, /if \(!owner && previewed\.has\(impactKey\(impact\)\)\) \{\s*setMapImpactHovered\(root, impact, true, "station-rings"\);/);
+    assert.match(mapSource, /renderMapPreviewOutline\(/);
+    assert.match(mapSource, /<MapLineAlertHoverOutlines/);
     assert.match(mapSource, /className="station-impact-hover-priority"/);
     assert.doesNotMatch(mapSource, /activeHoverForegrounds\.map|activeHoverHighlights\.map/);
   });

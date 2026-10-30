@@ -1647,7 +1647,7 @@
 .station-commute-green-flash {
   fill: rgba(134, 239, 172, 0.85); /* brighter green-300 fill pulse */
   stroke: #86efac; /* bright green-300 stroke */
-  stroke-width: 2.0; /* clean, crisp outline weight */
+  stroke-width: calc(2px * var(--map-overlay-unit, 1)); /* clean, crisp outline weight */
   transform-box: fill-box;
   transform-origin: center;
   animation: station-commute-green-flash-anim 1.2s infinite alternate ease-in-out;
@@ -1731,7 +1731,7 @@
     fill: #4ade80 !important;
     opacity: 1;
     stroke: #dcfce7;
-    stroke-width: 3.5 !important;
+    stroke-width: calc(3.5px * var(--map-overlay-unit, 1)) !important;
     transform: scale(1.4);
   }
 }

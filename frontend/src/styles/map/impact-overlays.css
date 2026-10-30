@@ -25,30 +25,22 @@
 
 /* The regional map owns additional SVG animation names, so explicitly give it
    the same static mobile rendering contract as the TTC map. */
-.linewatch-shell.mobile-performance-mode .regional-impact-aura,
-.linewatch-shell.mobile-performance-mode .regional-impact-path,
-.linewatch-shell.mobile-performance-mode .regional-impact-interactive-glow,
 .linewatch-shell.mobile-performance-mode .regional-station-selected-indicator,
 .linewatch-shell.mobile-performance-mode .regional-station-top-selection,
-.linewatch-shell.mobile-performance-mode .regional-station-selection-source-artwork,
-.linewatch-shell.mobile-performance-mode .regional-station-impact-ring {
+.linewatch-shell.mobile-performance-mode .regional-station-selection-source-artwork {
   animation: none !important;
   filter: none !important;
   transition: none !important;
 }
 
-.linewatch-shell.mobile-performance-mode .regional-impact-glow {
-  filter: none !important;
-}
-
 .linewatch-shell.mobile-performance-mode .asset-alert-path-glow {
   opacity: 0.34;
-  stroke-width: 132;
+  stroke-width: calc(132px * var(--map-overlay-unit, 1));
 }
 
 .linewatch-shell.mobile-performance-mode .asset-alert-path-glow.selected {
   opacity: 0.54;
-  stroke-width: 162;
+  stroke-width: calc(162px * var(--map-overlay-unit, 1));
 }
 
 .linewatch-shell.mobile-performance-mode .interactive-glow {
@@ -59,18 +51,12 @@
 
 .linewatch-shell.mobile-performance-mode .interactive-glow.selected {
   opacity: 0.52;
-  stroke-width: 162;
-}
-
-/* Regional corridors use a wider authored rail stroke than the TTC map. Keep
-   mobile paint simplification from narrowing the alert below its corridor. */
-.linewatch-shell.mobile-performance-mode[data-network="regional"] .regional-impact-path {
-  stroke-width: var(--regional-impact-width) !important;
+  stroke-width: calc(162px * var(--map-overlay-unit, 1));
 }
 
 .linewatch-shell.mobile-performance-mode .delay-hourglass-mask-path,
 .linewatch-shell.mobile-performance-mode .suspension-mask-path {
-  stroke-width: 108;
+  stroke-width: calc(108px * var(--map-overlay-unit, 1));
 }
 
 .linewatch-shell.mobile-performance-mode .delay-static-path {
@@ -83,7 +69,7 @@
   animation: none !important;
   filter: none !important;
   opacity: 0.7;
-  stroke-width: 140;
+  stroke-width: calc(140px * var(--map-overlay-unit, 1));
 }
 
 .linewatch-shell.mobile-performance-mode .station-selection-flash {
@@ -121,7 +107,7 @@
 }
 
 .linewatch-shell.mobile-performance-mode .station-impact-ring {
-  stroke-width: calc(5 * var(--station-impact-ring-unit, 1px));
+  stroke-width: calc(5px * var(--map-overlay-unit, 1));
   opacity: 0.95;
 }
 
@@ -157,15 +143,17 @@
   text-rendering: optimizeLegibility;
 }
 
-
 .asset-alert-path-glow {
   fill: none;
   pointer-events: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 155;
-  filter: blur(16px);
-  transition: all 0.3s ease;
+  stroke-width: calc(155px * var(--map-overlay-unit, 1));
+  filter: blur(calc(16px * var(--map-overlay-unit, 1)));
+  /* Only opacity eases. A gesture removes the blur and narrows the glow;
+     easing those back on release repaints the whole map layer every frame
+     (map-renderer-parity.md rule 4). */
+  transition: opacity 0.3s ease;
   opacity: 0.4;
   animation-delay: var(--map-pulse-offset);
 }
@@ -193,7 +181,7 @@
 }
 
 .asset-alert-path.suspension-candy {
-  stroke-width: var(--ttc-alert-rail-width);
+  stroke-width: calc(var(--map-alert-rail-width) * var(--map-overlay-unit, 1));
   transition: none;
 }
 
@@ -218,9 +206,8 @@
   stroke: rgba(14, 165, 233, 0.7); /* Frozen blue aura for delays */
 }
 
-
 .asset-alert-path.delay-candy {
-  stroke-width: var(--ttc-alert-rail-width);
+  stroke-width: calc(var(--map-alert-rail-width) * var(--map-overlay-unit, 1));
   transition: none;
 }
 
@@ -272,8 +259,8 @@
 .overlay-segment-group:has(.map-segment-hit-target:focus-visible) .asset-alert-path-glow,
 .overlay-segment-group:has(.map-segment-hit-target:active) .asset-alert-path-glow,
 .asset-alert-path-glow.selected {
-  stroke-width: 190;
-  filter: blur(18px);
+  stroke-width: calc(190px * var(--map-overlay-unit, 1));
+  filter: blur(calc(18px * var(--map-overlay-unit, 1)));
   opacity: 0.55;
 }
 
@@ -286,6 +273,13 @@
   animation: none;
 }
 
+/* An unselected interactive glow is never visible. Keep it out of rendering
+   so gestures and pans never repaint its blur (map-renderer-parity.md
+   rule 4); GO/UP's corridor-length glows made that costly. */
+.interactive-glow:not(.selected) {
+  display: none;
+}
+
 .asset-alert-path-hover-boundary {
   fill: none;
   opacity: 0;
@@ -294,7 +288,7 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   /* GO/UP's rail + 65 (regional-map.css), scaled to TTC's 96-unit rail. */
-  stroke-width: 122.5;
+  stroke-width: calc(122.5px * var(--map-overlay-unit, 1));
 }
 
 /* Background-coloured casing under each line's alert tubes. It is invisible
@@ -309,7 +303,7 @@
   stroke: var(--map-canvas-bg);
   stroke-linecap: butt;
   stroke-linejoin: round;
-  stroke-width: var(--ttc-alert-rail-casing-width);
+  stroke-width: calc(var(--map-alert-rail-casing-width) * var(--map-overlay-unit, 1));
 }
 
 .linewatch-shell:not(.dark) .asset-alert-path-hover-boundary {
@@ -345,7 +339,7 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-opacity: 1;
-  stroke-width: 102;
+  stroke-width: calc(102px * var(--map-overlay-unit, 1));
   transition: stroke-width 0.3s ease;
 }
 
@@ -379,7 +373,7 @@
 
 .asset-alert-path.delay-static-base {
   stroke: rgba(14, 165, 233, 0.88); /* Frozen blue base */
-  stroke-width: var(--ttc-alert-rail-width);
+  stroke-width: calc(var(--map-alert-rail-width) * var(--map-overlay-unit, 1));
   transition: none;
 }
 
@@ -394,20 +388,20 @@
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: var(--ttc-alert-rail-width);
+  stroke-width: calc(var(--map-alert-rail-width) * var(--map-overlay-unit, 1));
 }
 
 .motion-paused .delay-hourglass-mask-path,
 .motion-paused .suspension-mask-path {
   animation: none;
-  stroke-width: 102;
+  stroke-width: calc(102px * var(--map-overlay-unit, 1));
 }
 
 @media (prefers-reduced-motion: reduce) {
   .delay-hourglass-mask-path,
   .suspension-mask-path {
     animation: none;
-    stroke-width: 102;
+    stroke-width: calc(102px * var(--map-overlay-unit, 1));
   }
 }
 
@@ -415,7 +409,7 @@
   opacity: 1;
   stroke: var(--planned-preview-rail);
   stroke-dasharray: none;
-  stroke-width: var(--ttc-alert-rail-width);
+  stroke-width: calc(var(--map-alert-rail-width) * var(--map-overlay-unit, 1));
   transition: none;
 }
 
@@ -480,10 +474,10 @@
 
   .asset-alert-path-glow.interactive-glow.planned-preview {
     display: block;
-    filter: blur(10px);
+    filter: blur(calc(10px * var(--map-overlay-unit, 1)));
     opacity: 0;
     stroke: var(--planned);
-    stroke-width: 190;
+    stroke-width: calc(190px * var(--map-overlay-unit, 1));
     transition:
       filter 300ms ease-out,
       opacity 240ms ease-out;
@@ -491,7 +485,7 @@
 
   .overlay-segment-group:has(.map-segment-hit-target:hover) .asset-alert-path-glow.interactive-glow.planned-preview,
   .overlay-segment-group:has(.map-segment-hit-target:focus-visible) .asset-alert-path-glow.interactive-glow.planned-preview {
-    filter: blur(18px);
+    filter: blur(calc(18px * var(--map-overlay-unit, 1)));
     opacity: 0.55;
   }
 
@@ -543,7 +537,7 @@
 }
 
 .asset-alert-path.selected {
-  stroke-width: 118;
+  stroke-width: calc(118px * var(--map-overlay-unit, 1));
 }
 
 .connected-corridor .asset-alert-path,

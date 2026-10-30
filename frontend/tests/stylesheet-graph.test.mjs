@@ -252,11 +252,10 @@ describe("stylesheet-graph helper", () => {
     assert.ok(files.some(f => f.endsWith("regional-map.css")), "regional-map.css must be in graph files");
     const regionalMapContent = readStylesheet(new URL("../src/styles/map/regional-map.css", import.meta.url));
     assert.match(regionalMapContent, /\.regional-station-hit-target/);
-    assert.match(regionalMapContent, /\.regional-overlay-segment-group/);
-    assert.match(regionalMapContent, /\.regional-impact-path/);
-    assert.match(regionalMapContent, /\.regional-impact-glow/);
-    assert.match(regionalMapContent, /\.regional-delay-glyph/);
-    assert.match(regionalMapContent, /\.regional-station-impact-ring/);
+    // Planned station closures are shared station alerts now.
+    assert.doesNotMatch(regionalMapContent, /\.regional-planned-station-marker/);
+    // Station alerts use the shared station-markers.css rules on both maps.
+    assert.doesNotMatch(regionalMapContent, /\.regional-station-impact-ring/);
   });
 
   it("resolves the extracted map/map-selection.css in the application stylesheet graph", () => {
@@ -264,8 +263,8 @@ describe("stylesheet-graph helper", () => {
     const files = getAppStylesheetGraphFiles();
     assert.ok(files.some(f => f.endsWith("map-selection.css")), "map-selection.css must be in graph files");
     const mapSelectionContent = readStylesheet(new URL("../src/styles/map/map-selection.css", import.meta.url));
-    assert.match(mapSelectionContent, /\.ttc-impact-hover-foreground/);
-    assert.match(mapSelectionContent, /\.ttc-impact-hover-outline/);
+    assert.match(mapSelectionContent, /\.map-impact-hover-foreground/);
+    assert.match(mapSelectionContent, /\.map-impact-hover-outline/);
     assert.match(mapSelectionContent, /\.map-selection-attention/);
     assert.match(mapSelectionContent, /@keyframes map-selection-path-intro/);
     assert.match(mapSelectionContent, /@keyframes map-selection-station-intro/);
@@ -297,7 +296,7 @@ describe("stylesheet-graph helper", () => {
     assert.match(commutePreviewContent, /\.commute-path-preview-glow/);
     assert.match(commutePreviewContent, /\.commute-path-preview-path/);
     assert.match(commutePreviewContent, /\.commute-path-preview-endpoint/);
-    assert.match(commutePreviewContent, /@keyframes regional-commute-path-pulse/);
+    assert.match(commutePreviewContent, /@keyframes map-commute-pill-flash/);
     assert.match(commutePreviewContent, /@keyframes commute-preview-chip-enter/);
     assert.match(commutePreviewContent, /\.commute-path-preview-chip/);
     assert.match(commutePreviewContent, /\.commute-path-preview-chip\.commute-path-preview-embedded/);

@@ -9,6 +9,7 @@ const cardSource = readFileSync(new URL("../src/components/SavedCommuteCard.tsx"
 const draftEditorSource = readFileSync(new URL("../src/components/SavedCommuteRouteDraftEditor.tsx", import.meta.url), "utf8");
 const shellSource = readShellSource();
 const regionalOverlaysSource = readFileSync(new URL("../src/app/regional-map-overlays.ts", import.meta.url), "utf8");
+const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const accountDataSource = readFileSync(new URL("../src/app/commute-data.ts", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 
@@ -33,13 +34,16 @@ describe("regional My Commutes UI boundary", () => {
   });
 
   it("brings solid alert overlay to the front over commute path preview without fast/slow selection flash for both map modes", () => {
-    // Regional map: interactive glow is hidden while solid alert overlay is in the foreground
-    assert.match(regionalOverlaysSource, /bringRegionalImpactToFront\((?:root|viewport), selection\.kind, selection\.id, Boolean\(commutePathPreview\)\)/);
-    assert.match(globalCss, /\.regional-overlay-segment-group\[data-selected-commute-impact-overlay\] \.regional-impact-aura/);
-    assert.match(globalCss, /\.regional-overlay-segment-group\[data-selected-commute-impact-overlay\] \.regional-impact-interactive-glow/);
-    // TTC map: renders only solid OverlaySegment in data-selected-commute-impact-overlay (no SelectedImpactEmphasis) when commutePreviewLayer is active
+    // Both maps: while a commute is previewed, the selected alert's whole tube
+    // repaints over it with no selection flash (the shared overlay layer).
+    const lineAlertSource = readFileSync(new URL("../src/components/map-overlays/LineAlertOverlays.tsx", import.meta.url), "utf8");
+    assert.match(lineAlertSource, /commutePreviewActive \? \(\s*<g key=\{`commute:\$\{alert\.key\}`\} data-selected-commute-impact-overlay=\{alert\.impactId\}>[\s\S]*?<MapLineAlertTube[\s\S]*?\) : \(\s*<path[\s\S]*?map-selection-flash/);
     const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
-    assert.match(ttcMapSource, /commutePreviewLayer \?\s*\(\s*<g data-selected-commute-impact-overlay=\{selectedImpactEmphasis\.id\}>[\s\S]*?<\/g>\s*\)\s*:\s*\(\s*<SelectedImpactEmphasis/);
+    assert.match(ttcMapSource, /commutePreviewActive=\{Boolean\(commutePreviewLayer\)\}/);
+    assert.match(regionalMapSource, /commutePreviewActive=\{Boolean\(commutePathPreview\)\}/);
+    // Station alerts skip their selection flash under a commute preview too.
+    const stationAlertSource = readFileSync(new URL("../src/components/map-overlays/StationAlertOverlays.tsx", import.meta.url), "utf8");
+    assert.match(stationAlertSource, /const flashing = !commutePreviewActive && isSelectedStationAlert\(alert, selection\);/);
   });
 
   it("supports route review and endpoint, label, and return-leg editing", () => {
@@ -50,15 +54,13 @@ describe("regional My Commutes UI boundary", () => {
   });
 
   it("renders regional path previews and regional route notification controls", () => {
-    assert.match(regionalOverlaysSource, /regional-commute-path-preview-layer/);
-    assert.match(regionalOverlaysSource, /commutePathPreview\.segmentIds/);
-    assert.match(regionalOverlaysSource, /regional-commute-path-preview-endpoint/);
-    assert.match(regionalOverlaysSource, /dataset\.commutePathEndpoint/);
-    assert.match(regionalOverlaysSource, /station-commute-green-flash/);
-    assert.match(globalCss, /@keyframes regional-commute-path-pulse/);
-    assert.match(globalCss, /\.regional-map \.regional-commute-path-preview-layer \.commute-path-preview-path\s*\{[^}]*animation-name:\s*regional-commute-path-pulse;[^}]*stroke-width:\s*245px !important;/s);
-    // Round ends like the TTC preview (from .commute-path-preview-glow/-path).
-    assert.doesNotMatch(globalCss, /\.regional-commute-path-preview-layer \.commute-path-preview-(glow|path)\s*\{[^}]*stroke-linecap:\s*butt;/s);
+    // GO/UP draws the shared commute preview (map-overlays/CommutePreviewOverlays.tsx).
+    const regionalCommuteSource = readFileSync(new URL("../src/app/regional-commute-preview.ts", import.meta.url), "utf8");
+    assert.match(regionalCommuteSource, /preview\.segmentIds/);
+    assert.match(regionalCommuteSource, /pill: regionalStationPill\(anchorElement\)/);
+    assert.match(regionalMapSource, /<MapCommutePreviewRoute preview=\{commutePreview\} \/>,\s*lineAlertPortals\.commute/);
+    assert.match(regionalMapSource, /<MapCommuteEndpointFlashes preview=\{commutePreview\} plane=\{overlayPlane\} \/>/);
+    assert.doesNotMatch(globalCss, /regional-commute/);
     assert.match(globalCss, /\.commute-path-preview-glow,\s*\.commute-path-preview-path\s*\{[^}]*stroke-linecap:\s*round;/s);
     assert.match(cardSource, /Route Notifications:/);
     assert.doesNotMatch(panelSource, /Regional Notifications: Not available yet/);
