@@ -991,3 +991,5 @@ run_test "remote release passes the selected image digests" test_remote_release_
 run_test "remote release rejects a bad image before backup" test_remote_release_rejects_bad_image_before_backup
 
 printf '%s tests passed\n' "$TEST_COUNT"
+
+bash "$ROOT_DIR/scripts/tests/prod-ssh-deploy-gate.test.sh"

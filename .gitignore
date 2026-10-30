@@ -91,3 +91,6 @@ docs/reddit-launch-post.md
 
 # Python
 __pycache__/
+
+# Production secrets read from files (e.g. the Cloudflare Tunnel token)
+secrets/

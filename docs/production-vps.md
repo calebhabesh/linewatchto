@@ -27,24 +27,23 @@ WireGuard stays outside Compose because it protects access to Docker and the hos
 
 ## Public Network
 
-OCI ingress and the host firewall should allow:
+Public traffic reaches the sites only through Cloudflare Tunnel: each `cloudflared` connector dials out, and the LineWatchTO one reaches Caddy at `https://caddy:443` on the Compose network. No container publishes a public port, and TLS certificates still renew through the tunnel.
 
-- TCP `80` for Caddy HTTP redirects and certificate issuance.
-- TCP `443` for the app and API.
+OCI ingress (the default security list) allows only:
+
 - UDP `51820` for WireGuard.
+- TCP `8443` and UDP `3478` for the `orbit-net` relay.
+- ICMP types 3 and 4.
 
-Keep public TCP `22` only until WireGuard SSH has been verified after a VPS reboot. Then remove public SSH ingress.
+There is no public TCP `22`, `80`, or `443`. SSH is reached over Tailscale (`100.67.196.101`) or WireGuard (`10.0.0.1`).
 
-Suggested host firewall rules include:
+The host firewall repeats those limits so a loosened security list does not expose the host. `/etc/iptables/rules.v4` and `rules.v6` are loaded at boot by `netfilter-persistent`, before Docker and Tailscale add their own chains. Edit those files by hand; never replace them with `iptables-save` output, which would capture Docker's per-container rules. They:
 
-```bash
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw allow 51820/udp
-sudo ufw allow in on wg0 to any port 22 proto tcp
-```
+- accept SSH only on `tailscale0` and on `wg0` from `10.0.0.0/24`;
+- accept the WireGuard, Tailscale (UDP `41641`), and `orbit-net` ports, and reject all other inbound traffic;
+- drop new connections from the public interface (`enp0s6`) to containers in `DOCKER-USER`, because Docker's published ports bypass `INPUT`.
 
-Review existing SSH access before enabling or reloading the firewall.
+`sshd` allows only `ubuntu`, with keys only and no root login (`/etc/ssh/sshd_config.d/10-hardening.conf`). Unattended upgrades install security updates daily and reboot at 09:00 UTC when a kernel or libc update needs it (`/etc/apt/apt.conf.d/52unattended-reboot`).
 
 ## WireGuard
 
@@ -64,7 +63,8 @@ sudo systemctl status wg-quick@wg0
 
 Compose services:
 
-- `caddy`: public reverse proxy and automatic TLS.
+- `caddy`: reverse proxy and automatic TLS behind the tunnel.
+- `cloudflared` (`tunnel` profile): Cloudflare Tunnel connector; reads its token from `secrets/cloudflared-tunnel-token`.
 - `frontend`: Next.js standalone server on the private Compose network.
 - `backend`: Spring Boot API on the private Compose network.
 - `postgres`: PostgreSQL 17 with PostGIS on a persistent volume.
@@ -87,7 +87,7 @@ Production application images are built by the successful `main` CI run on a nat
 
 The production PostGIS image is built from `infra/postgres/Dockerfile`, which extends the official multi-architecture `postgres:17-bookworm` image. The official `postgis/postgis` image used for local development does not publish an ARM64 manifest for the selected tag.
 
-Only Caddy publishes host ports.
+No service publishes a public host port; Alloy binds `127.0.0.1:12345` only.
 
 ## Domains
 
@@ -128,6 +128,7 @@ deployment rather than silently initialize an empty database or certificate stor
 - Release env: `.env.release` in the checkout, written by `scripts/prod-deploy.sh` after a healthy deployment.
 - Release env template: `.env.release.example`.
 - Caddy config: `Caddyfile`, mounted read-only into Caddy.
+- Tunnel token: `secrets/cloudflared-tunnel-token`, readable only by the `cloudflared` image user (`sudo chown 65532:65532` and `chmod 400`). Keeping it out of `.env.production` and the command line hides it from `docker inspect`, the process list, and the backend's environment.
 
 Prepare the env file:
 
@@ -209,7 +210,7 @@ Create a GitHub Environment named `production` and add these **environment secre
 | --- | --- |
 | `VPS_HOST` | SSH host; use `10.0.0.1` when connecting over WireGuard. |
 | `VPS_USER` | SSH user with access to the production checkout and Docker, currently `ubuntu`. |
-| `VPS_SSH_KEY` | Private key for a dedicated deploy SSH key whose public key is authorized on the VPS. |
+| `VPS_SSH_KEY` | Private key for a dedicated deploy SSH key. On the VPS its public key is pinned to the deploy gate: `command="/usr/local/sbin/linewatch-deploy-gate",from="10.0.0.3",restrict`. The gate (`scripts/prod-ssh-deploy-gate.sh`, installed as a root-owned copy) ignores the script the workflow sends, accepts only the release arguments, and runs `prod-remote-release.sh` from `origin/main`, so the key cannot run other commands. Reinstall the copy when the gate changes. |
 | `VPS_SSH_KNOWN_HOSTS` | Pinned SSH host key entry for `VPS_HOST`; verify the fingerprint through an existing trusted connection before storing it. |
 | `VPS_WIREGUARD_CONFIG` | Full client `wg0.conf` for a **dedicated Actions peer**, if SSH is private to WireGuard. Add its public key as a new peer on the VPS first. Omit only when the runner has another authorized SSH route. |
 

@@ -101,9 +101,7 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     mem_limit: 512m
-    ports:
-      - "80:80"
-      - "443:443"
+    # No published ports: the cloudflared service reaches Caddy over linewatch-net.
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -124,18 +122,15 @@ services:
       start_period: 15s
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:2026.7.3
     restart: unless-stopped
     profiles:
       - tunnel
-    command:
-      [
-        "tunnel",
-        "--no-autoupdate",
-        "run",
-        "--token",
-        "${LINEWATCH_CLOUDFLARED_TUNNEL_TOKEN:-}"
-      ]
+    # The token comes from a file so it stays out of the process list and `docker inspect`.
+    # It must be readable by the image's user: chown 65532:65532, mode 400.
+    command: ["tunnel", "--no-autoupdate", "run", "--token-file", "/run/secrets/cloudflared-tunnel-token"]
+    secrets:
+      - cloudflared-tunnel-token
     depends_on:
       - caddy
     networks:
@@ -143,7 +138,7 @@ services:
     logging: *default-logging
 
   alloy:
-    image: grafana/alloy:latest
+    image: grafana/alloy:v1.17.0
     restart: unless-stopped
     profiles:
       - observability
@@ -207,3 +202,7 @@ volumes:
 networks:
   linewatch-net:
     driver: bridge
+
+secrets:
+  cloudflared-tunnel-token:
+    file: ./secrets/cloudflared-tunnel-token
