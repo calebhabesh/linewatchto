@@ -60,6 +60,10 @@ final class RegionalStationSpan {
 
         List<String> ordered = alert.stationIds() == null ? List.of()
             : route.stationIds().stream().filter(alert.stationIds()::contains).toList();
+        // A whole-line impact names the line's terminals, like any other span; cards add "Entire line".
+        if (ordered.isEmpty() && coversWholeLine(alert)) {
+            ordered = List.of(route.stationIds().getFirst(), route.stationIds().getLast());
+        }
         if (ordered.isEmpty()) return new Span(route.displayName(), displayDirection);
         String first = stationName(ordered.getFirst());
         if (ordered.size() == 1) return new Span(first, displayDirection);
@@ -87,6 +91,14 @@ final class RegionalStationSpan {
             return new Span(StationSpanFormatter.unspecified(first, last), null);
         }
         return new Span(StationSpanFormatter.bothWays(first, last), null);
+    }
+
+    /** True when the impact covers every segment of its line. */
+    static boolean coversWholeLine(RegionalNormalizedAlert alert) {
+        if (alert.affectedSegmentIds() == null || alert.affectedSegmentIds().isEmpty()) return false;
+        if (alert.stationIds() != null && !alert.stationIds().isEmpty()) return false;
+        List<String> all = RegionalNetworkCatalog.segmentIds(alert.lineId(), List.of());
+        return !all.isEmpty() && alert.affectedSegmentIds().containsAll(all);
     }
 
     /** An unplanned notice quoting a clock time may concern a trip we could not resolve. */

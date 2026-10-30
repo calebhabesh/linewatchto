@@ -232,6 +232,24 @@ public class RegionalAlertStore {
             .filter(java.util.Objects::nonNull).toList();
     }
 
+    /**
+     * Stations each active source record's replacement service skips, keyed by
+     * {@code sourceSystem:sourceId}. Read from the stored classification's station roles.
+     */
+    public Map<String, List<String>> findReplacementSkippedStations() {
+        Map<String, List<String>> skipped = new java.util.HashMap<>();
+        jdbc.query("""
+            select s.source_system, s.source_id, role.key as station_id
+            from metrolinx_alert_source_records s
+            cross join lateral jsonb_each_text(coalesce(s.deterministic_classification -> 'stationRoles', '{}'::jsonb)) role
+            where s.active = true and role.value = 'replacement-excluded'
+            """, new MapSqlParameterSource(), resultSet -> {
+                skipped.computeIfAbsent(resultSet.getString("source_system") + ":" + resultSet.getString("source_id"),
+                    ignored -> new java.util.ArrayList<>()).add(resultSet.getString("station_id"));
+            });
+        return skipped;
+    }
+
     public java.util.Optional<Duration> nextTransition() {
         OffsetDateTime now = OffsetDateTime.now(clock);
         OffsetDateTime next = jdbc.queryForObject("""

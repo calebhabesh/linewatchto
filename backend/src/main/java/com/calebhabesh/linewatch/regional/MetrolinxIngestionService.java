@@ -13,6 +13,7 @@ public class MetrolinxIngestionService {
     private final RegionalIngestionRunService runService;
     private final RegionalTripChangeService tripChangeService;
     private final DashboardCacheService cache;
+    private final RegionalAlertExtractionService extractionService;
 
     public MetrolinxIngestionService(
         MetrolinxApiClient client,
@@ -20,7 +21,8 @@ public class MetrolinxIngestionService {
         RegionalFeedApplicationService applicationService,
         RegionalIngestionRunService runService,
         RegionalTripChangeService tripChangeService,
-        DashboardCacheService cache
+        DashboardCacheService cache,
+        RegionalAlertExtractionService extractionService
     ) {
         this.client = client;
         this.normalizer = normalizer;
@@ -28,6 +30,7 @@ public class MetrolinxIngestionService {
         this.runService = runService;
         this.tripChangeService = tripChangeService;
         this.cache = cache;
+        this.extractionService = extractionService;
     }
 
     public FeedApplicationCounts ingestNow() {
@@ -42,6 +45,11 @@ public class MetrolinxIngestionService {
                 throw exception;
             }
             List<RegionalAlertClassification> classifications = normalizer.classify(feed);
+            // Optional model readings: new notice text is read now (within a short budget) so the
+            // first stored version and any push use it; otherwise the deterministic result stands.
+            extractionService.observe(classifications);
+            extractionService.readNew(classifications);
+            classifications = extractionService.refine(classifications);
             List<RegionalNormalizedAlert> alerts = normalizer.normalize(feed, classifications);
             FeedApplicationCounts counts = applicationService.apply(feed, alerts, classifications);
             tripChangeService.recordCurrentCancellations();

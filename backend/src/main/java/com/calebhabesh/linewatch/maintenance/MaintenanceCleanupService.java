@@ -43,7 +43,8 @@ public class MaintenanceCleanupService {
         int alertSourceRecordsDeleted =
             store.deleteOldInactiveAlertSourceRecords(alertSourceCutoff)
                 + store.deleteOldInactiveMetrolinxAlertSourceRecords(alertSourceCutoff)
-                + store.deleteOldInactiveMetrolinxOperationalSourceRecords(alertSourceCutoff);
+                + store.deleteOldInactiveMetrolinxOperationalSourceRecords(alertSourceCutoff)
+                + store.deleteOldRegionalAlertExtractions(alertSourceCutoff);
         CleanupResult result = new CleanupResult(
             demoAccountsDeleted,
             gtfsImportsDeleted,

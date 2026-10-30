@@ -9,10 +9,20 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 @Configuration
-@EnableConfigurationProperties({MetrolinxProperties.class, RegionalArrivalProperties.class, RegionalTrainMarkerProperties.class})
+@EnableConfigurationProperties({MetrolinxProperties.class, RegionalArrivalProperties.class, RegionalTrainMarkerProperties.class,
+    RegionalAlertExtractionProperties.class})
 public class MetrolinxConfiguration {
     @Bean
     RestClient metrolinxRestClient(RestClient.Builder builder, MetrolinxProperties properties) {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout((int) properties.getConnectTimeout().toMillis());
+        factory.setReadTimeout((int) properties.getReadTimeout().toMillis());
+        return builder.requestFactory(factory).build();
+    }
+
+    @Bean
+    @Qualifier("regionalAlertExtractionRestClient")
+    RestClient regionalAlertExtractionRestClient(RestClient.Builder builder, RegionalAlertExtractionProperties properties) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout((int) properties.getConnectTimeout().toMillis());
         factory.setReadTimeout((int) properties.getReadTimeout().toMillis());

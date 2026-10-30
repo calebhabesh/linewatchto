@@ -187,6 +187,77 @@ class MetrolinxAlertNormalizerTest {
     }
 
     @Test
+    void stopsSkippedByReplacementBusesDoNotBecomeTheUpSpanEndpoint() throws Exception {
+        MetrolinxFetchedRecord notice = serviceAlert("""
+            {
+              "Code":"LW-SYNTHETIC-UP-SKIPPED-STOPS",
+              "PostedDateTime":"2026-07-28 00:00:00",
+              "SubjectEnglish":"Tonight, there are some late-evening service adjustments.",
+              "BodyEnglish":"This weekend, GO buses replace UP Express trains due to planned construction. GO buses will run direct between Union Station Bus Terminal and Pearson Airport Terminal 1.GO buses will not stop at Bloor, Mount Dennis or Weston stations.Please check your schedules before travelling.",
+              "Category":"Disruptions",
+              "SubCategory":"Broadcast Message",
+              "Lines":[{"Code":"UP"}],
+              "Stops":[]
+            }
+            """);
+
+        assertThat(normalizer.classify(feed(notice))).singleElement().satisfies(classification -> {
+            assertThat(classification.serviceEffect()).isEqualTo("no-service");
+            assertThat(classification.spanStationIds()).containsExactly("union", "pearson-airport");
+            assertThat(classification.scope()).isEqualTo("corridor");
+            assertThat(classification.stationRoles()).containsEntry("bloor", "replacement-excluded")
+                .containsEntry("mount-dennis", "replacement-excluded")
+                .containsEntry("weston", "replacement-excluded");
+        });
+        assertThat(normalizer.normalize(feed(notice))).filteredOn(alert -> !"advisory".equals(alert.impactKind()))
+            .allSatisfy(alert -> assertThat(alert.affectedSegmentIds()).contains(
+                "segment-up-union-bloor", "segment-up-weston-pearson-airport"));
+    }
+
+    @Test
+    void readsNoUpExpressTrainServiceAsAClosureWithReplacementBuses() throws Exception {
+        MetrolinxFetchedRecord notice = serviceAlert("""
+            {
+              "Code":"LW-SYNTHETIC-UP-NO-TRAIN-SERVICE",
+              "PostedDateTime":"2026-07-28 00:00:00",
+              "SubjectEnglish":"Aug. 8-9: Service adjustments",
+              "BodyEnglish":"On Saturday, Aug. 8 and Sunday, Aug. 9, planned construction is taking place on UP Express.There will be no UP Express train service.GO buses will run direct between Union Station Bus Terminal and Pearson Airport Terminal 1.",
+              "Category":"Disruptions",
+              "SubCategory":"Broadcast Message",
+              "Lines":[{"Code":"UP"}],
+              "Stops":[]
+            }
+            """);
+
+        assertThat(normalizer.classify(feed(notice))).singleElement().satisfies(classification -> {
+            assertThat(classification.serviceEffect()).isEqualTo("no-service");
+            assertThat(classification.scope()).isEqualTo("corridor");
+            assertThat(classification.replacementService()).isEqualTo("go-bus");
+        });
+    }
+
+    @Test
+    void doesNotMarkTheSectionWhereTrainsWillStillRunAsClosed() throws Exception {
+        MetrolinxFetchedRecord notice = serviceAlert("""
+            {
+              "Code":"LW-SYNTHETIC-KI-TRAINS-WILL-RUN",
+              "PostedDateTime":"2026-07-28 00:00:00",
+              "SubjectEnglish":"Aug. 8-9: Kitchener line service adjustments",
+              "BodyEnglish":"On Saturday, Aug. 8 and Sunday, Aug. 9, GO trains will run between Mount Pleasant and Mount Dennis GO. There will be select GO buses running between Kitchener GO and Hwy 407 Bus Terminal. There will be no GO Transit service at Bloor GO.",
+              "Category":"Disruptions",
+              "SubCategory":"Broadcast Message",
+              "Lines":[{"Code":"GT"}],
+              "Stops":[]
+            }
+            """);
+
+        assertThat(normalizer.classify(feed(notice))).singleElement().satisfies(classification -> {
+            assertThat(classification.scope()).isNotEqualTo("segment-span");
+            assertThat(classification.spanStationIds()).doesNotContain("mount-pleasant");
+        });
+    }
+
+    @Test
     void keepsVagueFutureUpChangesOutOfTheClosureBucket() throws Exception {
         MetrolinxFetchedRecord future = upAlert("up-future", """
             {
@@ -407,11 +478,11 @@ class MetrolinxAlertNormalizerTest {
 
         assertThat(normalizer.classify(feed)).singleElement().satisfies(classification -> {
             assertThat(classification.scope()).isEqualTo("segment-span");
-            assertThat(classification.spanStationIds()).containsExactly("stouffville", "unionville");
+            assertThat(classification.spanStationIds()).containsExactly("centennial", "unionville");
             assertThat(classification.spanStationIds()).doesNotContain("union");
         });
         assertThat(normalizer.normalize(feed)).singleElement().satisfies(alert -> {
-            assertThat(alert.stationIds()).containsExactly("stouffville", "unionville");
+            assertThat(alert.stationIds()).containsExactly("centennial", "unionville");
             assertThat(alert.affectedSegmentIds()).isEmpty();
         });
     }
@@ -885,7 +956,7 @@ class MetrolinxAlertNormalizerTest {
         var replacementBanner = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528644",
             "This weekend, service will be adjusted on Lakeshore West due to planned construction.",
             "On Saturday, Aug. 8 and Sunday, Aug. 9, there will be no GO train service between Aldershot GO "
-                + "and Union Station. GO buses will replace train service.", "Top Red Banner");
+                + "and Union Station. Shuttle buses replace trains.", "Top Red Banner");
         assertThat(normalizer.classify(feed(lineNotice, extraStationBanner, bannerPeriod("528643"))))
             .as("a banner naming a station its notice does not is not folded")
             .hasSize(2);

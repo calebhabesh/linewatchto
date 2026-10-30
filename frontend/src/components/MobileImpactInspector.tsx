@@ -13,7 +13,7 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { PlannedAdvisoryStatus } from "./PlannedAdvisoryStatus";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { relatedPlannedClosureId } from "../app/related-planned-closure";
-import { CardSource, ImpactRouteHeader, LineBadge, MetadataGrid, RelatedPlannedClosureButton, CommutePathPreviewCardBanner, formatClosureScheduleValue, plannedAdvisoryWindowRows } from "./ImpactCardFields";
+import { CardSource, ImpactRouteHeader, LineBadge, MetadataGrid, RelatedPlannedClosureButton, CommutePathPreviewCardBanner, formatClosureScheduleValue, plannedAdvisoryWindowRows, replacementServiceRows } from "./ImpactCardFields";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { DirectionalZoneCount } from "./DirectionalZoneCount";
 import { reducedSpeedZoneResolutionEntries } from "../app/reduced-speed-zone-resolution";
@@ -113,6 +113,7 @@ export function getSelectedImpactDetails(
       title: alert.title,
       location: alert.location,
       displayDirection: alert.displayDirection,
+      extraRows: replacementServiceRows(alert),
       description: alert.description,
       source: alert.source,
       shuttle: alert.shuttle,
@@ -143,6 +144,7 @@ export function getSelectedImpactDetails(
         title: delay.title,
         location: delay.location,
         displayDirection: delay.displayDirection,
+        extraRows: replacementServiceRows(delay),
         description: delay.description,
         source: delay.source,
         startedAt: delay.startedAt,
@@ -168,6 +170,7 @@ export function getSelectedImpactDetails(
       title: alertDelay.title,
       location: alertDelay.location,
       displayDirection: alertDelay.displayDirection,
+      extraRows: replacementServiceRows(alertDelay),
       description: alertDelay.description,
       source: alertDelay.source,
       shuttle: alertDelay.shuttle,
@@ -280,6 +283,7 @@ export function getSelectedImpactDetails(
     title: closure.title,
     location: closure.location,
     displayDirection: closure.displayDirection,
+    extraRows: replacementServiceRows(closure),
     description: closure.description,
     source: closure.source,
     shuttle: closure.shuttle,

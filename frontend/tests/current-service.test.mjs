@@ -701,3 +701,28 @@ test("posted time hides future anchors and survives saved snapshots without a wi
   assert.match(saved.rows[0].condition, /^Last reported:/);
   assert.equal(saved.rows[0].postedAt, "2026-09-28T16:05:00Z");
 });
+
+test("GO/UP replacement facts name the stops the buses skip", async () => {
+  const { skippedStationsLabel } = await import("../src/app/current-service.ts");
+  assert.equal(skippedStationsLabel(["Bloor", "Mount Dennis", "Weston"]), "Bloor, Mount Dennis and Weston");
+  assert.equal(skippedStationsLabel(["Bloor"]), "Bloor");
+  assert.equal(skippedStationsLabel([]), undefined);
+  const row = { id: "up", kind: "suspension", lineId: "regional-up", lineNumber: "UP", condition: "No Service", location: "Union ⇄ Pearson Airport", title: "t" };
+  assert.equal(
+    incidentFacts({ ...row, replacementService: "go-bus", replacementSkippedStations: ["Bloor", "Weston"] }).service,
+    "GO Buses Replace Trains · Buses Skip Bloor and Weston",
+  );
+  // Skipped stops are only stated alongside a named replacement.
+  assert.equal(incidentFacts({ ...row, replacementSkippedStations: ["Bloor"] }).service, "");
+});
+
+test("whole-line GO/UP impacts say Entire line under their terminal span", async () => {
+  const { withIncidentDetails } = await import("../src/app/regional-data.ts");
+  const closure = { id: "up", displayDirection: null };
+  assert.equal(withIncidentDetails(closure, { wholeLine: true }).displayDirection, "Entire line");
+  assert.equal(withIncidentDetails({ ...closure, displayDirection: "Towards Union Station" }, { wholeLine: true }).displayDirection,
+    "Entire line · Towards Union Station");
+  assert.equal(withIncidentDetails({ ...closure, displayDirection: "Towards Union Station" }, { wholeLine: false }).displayDirection,
+    "Towards Union Station");
+  assert.equal(withIncidentDetails(closure, undefined), closure);
+});

@@ -44,7 +44,8 @@ public class MetrolinxAlertNormalizer {
         "MODIFIED_SERVICE", "DETOUR", "NO_EFFECT", "OTHER_EFFECT", "UNKNOWN_EFFECT"
     );
     private static final List<String> NO_SERVICE_PHRASES = List.of(
-        "no go train service", "no go transit service", "no train service", "no rail service", "service suspended",
+        "no go train service", "no go transit service", "no train service", "no up express train service",
+        "no rail service", "service suspended",
         "service suspension", "all trips cancelled", "all trains cancelled", "trains are not running",
         "trains not running", "line closed", "planned closure", "rail service is closed"
     );
@@ -364,6 +365,7 @@ public class MetrolinxAlertNormalizer {
         List<String> disruptedSpan = disruptedSpanStations(description, lineIds);
         String lowerDescription = description.toLowerCase(Locale.CANADA);
         boolean continuingServiceClause = lowerDescription.contains("trains run")
+            || lowerDescription.contains("trains will run")
             || lowerDescription.contains("trains operate")
             || lowerDescription.contains("service continues");
         List<String> spanStations = scheduleAnnouncement || "trip-cancellation".equals(serviceEffect)
@@ -492,6 +494,16 @@ public class MetrolinxAlertNormalizer {
 
     private List<String> spanStations(String searchable, List<String> lineIds) {
         if (!(searchable.contains(" between ") || searchable.contains(" from "))) return List.of();
+        // The clause that states the span ("between X and Y") names its endpoints. Stations named
+        // elsewhere, such as stops a replacement bus skips, must not stretch or shrink the span.
+        for (String clause : searchable.split("[.;\\n]")) {
+            int marker = clause.indexOf(" between ");
+            if (marker < 0) marker = clause.indexOf(" from ");
+            if (marker < 0) continue;
+            List<String> named = mentionedStations(clause.substring(marker), lineIds);
+            if (named.size() >= 2) return List.of(named.getFirst(), named.get(1));
+        }
+        Set<String> skipped = Set.copyOf(skippedStations(searchable, lineIds));
         List<String> mentioned = new ArrayList<>();
         for (String lineId : lineIds) {
             RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(lineId).orElse(null);
@@ -499,6 +511,7 @@ public class MetrolinxAlertNormalizer {
             route.stationIds().stream()
                 .sorted(Comparator.comparingInt(String::length).reversed())
                 .filter(stationId -> stationMentioned(searchable, stationId))
+                .filter(stationId -> !skipped.contains(stationId))
                 .sorted(Comparator.comparingInt(stationId -> stationMentionIndex(searchable, stationId)))
                 .forEach(stationId -> {
                     if (!mentioned.contains(stationId)) mentioned.add(stationId);
@@ -699,19 +712,26 @@ public class MetrolinxAlertNormalizer {
             && replacementService != null ? "replacement-served" : "affected";
         structuredStations.forEach(stationId -> roles.put(stationId, structuredRole));
         if (replacementService == null) return roles;
-
-        int marker = searchable.indexOf("not serve");
-        if (marker < 0) marker = searchable.indexOf("except");
-        if (marker < 0) return roles;
-        String exclusionText = searchable.substring(marker);
-        for (String lineId : lineIds) {
-            RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(lineId).orElse(null);
-            if (route == null) continue;
-            route.stationIds().stream()
-                .filter(stationId -> stationMentioned(exclusionText, stationId))
-                .forEach(stationId -> roles.put(stationId, "replacement-excluded"));
-        }
+        skippedStations(searchable, lineIds).forEach(stationId -> roles.put(stationId, "replacement-excluded"));
         return roles;
+    }
+
+    private static final List<String> SKIPPED_STOP_MARKERS = List.of(
+        "not serve", "not stop", "not stopping", "except", "bypass"
+    );
+
+    /** Stations named after "will not stop at", "does not serve", "except" or "bypass" in a sentence. */
+    static List<String> skippedStations(String searchable, List<String> lineIds) {
+        List<String> skipped = new ArrayList<>();
+        for (String clause : searchable.toLowerCase(Locale.CANADA).split("[.;\\n]")) {
+            int marker = SKIPPED_STOP_MARKERS.stream().mapToInt(clause::indexOf)
+                .filter(index -> index >= 0).min().orElse(-1);
+            if (marker < 0) continue;
+            mentionedStations(clause.substring(marker), lineIds).stream()
+                .filter(stationId -> !skipped.contains(stationId))
+                .forEach(skipped::add);
+        }
+        return List.copyOf(skipped);
     }
 
     private String dashboardImpactKind(RegionalAlertClassification.Impact impact) {
@@ -777,7 +797,8 @@ public class MetrolinxAlertNormalizer {
 
     private String replacementService(String searchable) {
         if (searchable.contains("go buses replace") || searchable.contains("go bus service will replace")
-            || searchable.contains("go buses will replace")) return "go-bus";
+            || searchable.contains("go buses will replace") || searchable.contains("go buses will run")
+            || searchable.contains("go buses will serve")) return "go-bus";
         if (searchable.contains("buses replace trains") || searchable.contains("bus service replaces train")) return "bus";
         return null;
     }

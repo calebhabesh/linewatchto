@@ -72,9 +72,23 @@ function incidentRiderDetails(incident: IncidentRiderDetails & { cause?: string 
     updatedAt: incident.updatedAt,
     publishedAt: incident.publishedAt,
     replacementService: incident.replacementService,
+    replacementSkippedStations: incident.replacementSkippedStations,
     maximumDelayMinutes: incident.maximumDelayMinutes,
     serviceEffect: incident.serviceEffect,
   };
+}
+
+/** "GO Buses Replace Trains", or undefined when the source names no replacement. */
+export function replacementServiceLabel(replacementService: IncidentRiderDetails["replacementService"]) {
+  return replacementService === "go-bus" ? "GO Buses Replace Trains"
+    : replacementService === "bus" ? "Buses Replace Trains" : undefined;
+}
+
+/** "Bloor, Mount Dennis and Weston" for stops a replacement service skips. */
+export function skippedStationsLabel(stations: IncidentRiderDetails["replacementSkippedStations"]) {
+  const names = (stations ?? []).map(name => name.trim()).filter(Boolean);
+  if (names.length <= 1) return names[0];
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
 /**
@@ -99,8 +113,9 @@ export function incidentFacts(row: CurrentServiceRow, now = 0) {
     cause: cause && !/^(unknown|other(?: cause)?|metrolinx service update|modified trip|no service|delay(?:s)?)$/i.test(cause.replace(/_/g, " ").trim()) ? cause : undefined,
     service: [
       Number.isInteger(delay) && delay! > 0 ? `Reported Delay: ${delay} min` : undefined,
-      row.replacementService === "go-bus" ? "GO Buses Replace Trains"
-        : row.replacementService === "bus" ? "Buses Replace Trains" : undefined,
+      replacementServiceLabel(row.replacementService),
+      row.replacementService && skippedStationsLabel(row.replacementSkippedStations)
+        ? `Buses Skip ${skippedStationsLabel(row.replacementSkippedStations)}` : undefined,
     ].filter(Boolean).join(" · "),
     // A future anchor is not yet posted; never render it as an elapsed age.
     postedAt: Number.isFinite(posted) && (now <= 0 || posted <= now) ? row.postedAt! : undefined,

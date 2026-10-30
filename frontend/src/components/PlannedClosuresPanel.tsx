@@ -8,7 +8,7 @@ import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/commute-data";
 import { skipNextImpactCardGlow, useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { MetadataGrid, CardSource, CommutePathPreviewCardBanner, ImpactCardShell, formatClosureScheduleValue } from "./ImpactCardFields";
+import { MetadataGrid, CardSource, CommutePathPreviewCardBanner, ImpactCardShell, formatClosureScheduleValue, replacementServiceRows } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -284,6 +284,7 @@ export function PlannedClosuresPanel({
                         value: hasScheduleDetails ? null : closure.window,
                       },
                     ]}
+                    extraRows={replacementServiceRows(closure)}
                   />
                 </div>
 

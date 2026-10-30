@@ -22,9 +22,31 @@ class MetrolinxIngestionServiceTest {
     private final RegionalIngestionRunService runService = mock(RegionalIngestionRunService.class);
     private final RegionalTripChangeService tripChangeService = mock(RegionalTripChangeService.class);
     private final DashboardCacheService cache = mock(DashboardCacheService.class);
+    private final RegionalAlertExtractionService extractionService = mock(RegionalAlertExtractionService.class);
     private final MetrolinxIngestionService service = new MetrolinxIngestionService(
-        client, normalizer, applicationService, runService, tripChangeService, cache
+        client, normalizer, applicationService, runService, tripChangeService, cache, extractionService
     );
+
+    @Test
+    void recordsDeterministicClassificationsForExtractionAndNormalizesRefinedOnes() {
+        MetrolinxFeed feed = new MetrolinxFeed(OffsetDateTime.parse("2026-09-03T20:00:00Z"), List.of(), Map.of());
+        List<RegionalAlertClassification> deterministic = List.of(mock(RegionalAlertClassification.class));
+        List<RegionalAlertClassification> refined = List.of(mock(RegionalAlertClassification.class));
+        when(runService.start()).thenReturn(7L);
+        when(client.fetchAlerts()).thenReturn(feed);
+        when(normalizer.classify(feed)).thenReturn(deterministic);
+        when(extractionService.refine(deterministic)).thenReturn(refined);
+        when(normalizer.normalize(feed, refined)).thenReturn(List.of());
+        when(applicationService.apply(feed, List.of(), refined)).thenReturn(new FeedApplicationCounts(0, 0, 0, 0));
+
+        service.ingestNow();
+
+        verify(extractionService).observe(deterministic);
+        verify(extractionService).readNew(deterministic);
+        verify(normalizer).normalize(feed, refined);
+        verify(applicationService).apply(feed, List.of(), refined);
+        verify(runService).succeed(7L, new FeedApplicationCounts(0, 0, 0, 0), feed);
+    }
 
     @Test
     void preservesSuccessfulSourceChecksWhenDownstreamProcessingFails() {

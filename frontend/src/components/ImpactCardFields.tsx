@@ -6,6 +6,8 @@ import { skipNextImpactCardGlow } from "../hooks/useScrollSelectedImpactCard";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { suppliedAlertCause } from "../app/alert-cause";
 import { formatImpactLocation } from "../app/impact-location";
+import { replacementServiceLabel, skippedStationsLabel } from "../app/current-service";
+import type { IncidentRiderDetails } from "../app/linewatch-data";
 import { formatStationSpanText, parseStationSpan, stationSpanAccessibleText } from "../app/station-span";
 import { StationSpanConnector } from "./IncidentStationSpan";
 import { ImpactTimestamp } from "./ImpactTimestamp";
@@ -97,6 +99,17 @@ export function plannedAdvisoryWindowRows(
 }
 
 const PLANNED_WINDOW_LABEL = "Planned window";
+
+/** Replacement service and the stops it skips, when the source names them. */
+export function replacementServiceRows(incident: Pick<IncidentRiderDetails, "replacementService" | "replacementSkippedStations">) {
+  const replacement = replacementServiceLabel(incident.replacementService);
+  if (!replacement) return undefined;
+  const skipped = skippedStationsLabel(incident.replacementSkippedStations);
+  return [
+    { label: "Replacement", value: replacement },
+    ...(skipped ? [{ label: "Buses skip", value: skipped }] : []),
+  ];
+}
 
 export function RelatedPlannedClosureButton({
   closureId,

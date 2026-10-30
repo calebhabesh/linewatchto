@@ -677,6 +677,23 @@ export type RegionalDashboardApiResponse = {
   incidentDetails?: Record<string, import("./linewatch-data").IncidentRiderDetails>;
 };
 
+/**
+ * Adds published rider facts to an impact. A whole-line impact's heading names the line's
+ * terminals like any span, so its direction line also says "Entire line".
+ */
+export function withIncidentDetails<T extends { displayDirection?: string | null }>(
+  impact: T,
+  details: import("./linewatch-data").IncidentRiderDetails | undefined,
+): T & import("./linewatch-data").IncidentRiderDetails {
+  if (!details) return impact;
+  const direction = details.wholeLine
+    ? [ENTIRE_LINE_LABEL, impact.displayDirection?.trim()].filter(Boolean).join(" · ")
+    : impact.displayDirection;
+  return { ...impact, ...details, displayDirection: direction };
+}
+
+export const ENTIRE_LINE_LABEL = "Entire line";
+
 export function regionalDashboardDataFromApi(
   payload: RegionalDashboardApiResponse,
   reliability: DashboardData["reliability"] = regionalDashboardData.reliability,
@@ -717,10 +734,10 @@ export function regionalDashboardDataFromApi(
     lineStatuses: payload.status.lines,
     generatedAt: payload.status.generatedAt,
     ...withDisplayLocations({
-      activeAlerts: payload.activeAlerts.map(alert => ({ ...alert, ...payload.incidentDetails?.[alert.id] })),
-      delays: payload.delays.map(alert => ({ ...alert, ...payload.incidentDetails?.[alert.id] })),
+      activeAlerts: payload.activeAlerts.map(alert => withIncidentDetails(alert, payload.incidentDetails?.[alert.id])),
+      delays: payload.delays.map(alert => withIncidentDetails(alert, payload.incidentDetails?.[alert.id])),
       reducedSpeedZones: payload.reducedSpeedZones,
-      plannedClosures: payload.plannedClosures.map(closure => ({ ...closure, ...payload.incidentDetails?.[closure.id] })),
+      plannedClosures: payload.plannedClosures.map(closure => withIncidentDetails(closure, payload.incidentDetails?.[closure.id])),
     }),
     stationNodeImpacts: payload.map.stationNodeImpacts,
     reliability,

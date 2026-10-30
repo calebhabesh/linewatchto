@@ -36,6 +36,15 @@ The owner is responsible for confirming the applicable source terms before enabl
 
 Store agreements and approval correspondence outside the public repository. Record only the scope, date, expiry or revocation terms, and internal document location in a private operational checklist. Publishing source code and credited authored maps does not establish permission for every deployed integration. Transit names and marks remain with their respective owners and must not suggest affiliation or endorsement.
 
+## Model-assisted notice reading
+
+Optional Metrolinx notice extraction (`LINEWATCH_INGESTION_METROLINX_EXTRACTION_*`, off by default) sends each new GO/UP rail notice's title, body, tagged stops, and line station list to the configured Gemini API model. Before enabling it, the owner confirms that:
+
+- the Metrolinx API agreement permits passing notice text to a third-party processor;
+- the provider tier's data terms are acceptable. On Google's free tier, prompts and responses may be used to improve Google's products; the paid tier excludes that.
+
+Only public notice text leaves the backend: never account data, credentials, or the Metrolinx developer key. The Gemini key is backend-only, travels in a request header, and must not appear in frontend variables, checked-in environment files, URLs, or logs. Stored readings hold catalog station IDs and enumerated values, never provider responses; rider-facing text stays the Metrolinx wording.
+
 ## Operator Raw Access
 
 Operator raw access is off unless both variables are configured on a trusted backend instance:

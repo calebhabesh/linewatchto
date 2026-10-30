@@ -10,7 +10,7 @@ import type { AccountCommutePathPreview } from "../app/commute-data";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { MetadataGrid, CardSource, RelatedPlannedClosureButton, CommutePathPreviewCardBanner, ImpactCardShell, plannedAdvisoryWindowRows } from "./ImpactCardFields";
+import { MetadataGrid, CardSource, RelatedPlannedClosureButton, CommutePathPreviewCardBanner, ImpactCardShell, plannedAdvisoryWindowRows, replacementServiceRows } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -209,6 +209,7 @@ export function DelaysPanel({
                     startedAt={delay.startedAt}
                     updatedAt={delay.updatedAt}
                     leadingRows={plannedAdvisoryWindowRows(delay.relatedPlannedClosureId, plannedClosures)}
+                    extraRows={replacementServiceRows(delay)}
                   />
                 </div>
 

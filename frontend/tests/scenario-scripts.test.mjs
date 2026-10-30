@@ -79,6 +79,8 @@ describe("alert scenario scripts", () => {
     assert.match(mockAlertsServerSource, /UP\/Gtfs\/Feed\/Alerts/);
     assert.match(scenarioBackendScript, /if \[ "\$SCENARIO" = "all-alert-types" \]/);
     assert.match(scenarioBackendScript, /LINEWATCH_INGESTION_METROLINX_ENABLED="\$REGIONAL_SCENARIO_ENABLED"/);
+    // Synthetic scenarios stay deterministic: never send them to the notice-reading model.
+    assert.match(scenarioBackendScript, /LINEWATCH_INGESTION_METROLINX_EXTRACTION_ENABLED=false/);
     assert.match(scenarioBackendScript, /LINEWATCH_INGESTION_METROLINX_BASE_URL="\$REGIONAL_SCENARIO_BASE_URL"/);
     assert.match(scenarioBackendScript, /GO\/UP ingestion is disabled for this TTC-focused scenario/);
   });
@@ -134,6 +136,7 @@ describe("alert scenario scripts", () => {
     const frontend = readFileSync(regionalScenarioFrontendUrl, "utf8");
     const source = readFileSync(regionalMockServerUrl, "utf8");
     assert.match(backend, /LINEWATCH_INGESTION_METROLINX_ENABLED=true/);
+    assert.match(backend, /LINEWATCH_INGESTION_METROLINX_EXTRACTION_ENABLED=false/);
     assert.match(backend, /LINEWATCH_INGESTION_ALERTS_ENABLED=false/);
     assert.match(backend, /linewatch_regional_scenario/);
     assert.match(backend, /CREATE DATABASE linewatch_regional_scenario/);

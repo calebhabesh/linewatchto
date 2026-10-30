@@ -101,6 +101,30 @@ class RegionalDashboardServiceTest {
     }
 
     @Test
+    void namesAWholeLineClosuresTerminalsAndTheStopsItsBusesSkip() {
+        when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
+        OffsetDateTime start = OffsetDateTime.parse("2026-07-28T17:00:00Z");
+        when(alertStore.findActiveAlerts()).thenReturn(List.of(new RegionalNormalizedAlert(
+            "up-closure", MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M2", "regional-up", "planned-closure",
+            "Weekend service adjustments", "GO buses replace UP Express trains.", "Construction", start,
+            start.plusDays(2), OffsetDateTime.parse("2026-07-28T18:12:00Z"), List.of(),
+            RegionalNetworkCatalog.segmentIds("regional-up", List.of()), "text-date-range", "", "go-bus", null, start
+        )));
+        when(alertStore.findReplacementSkippedStations()).thenReturn(java.util.Map.of(
+            MetrolinxSourceSystem.GO_SERVICE_ALERTS + ":M2", List.of("weston", "bloor", "mount-dennis")));
+
+        var dashboard = service.dashboard();
+
+        assertThat(dashboard.incidentDetails().get("up-closure")).satisfies(details -> {
+            assertThat(details.wholeLine()).isTrue();
+            assertThat(details.replacementSkippedStations()).containsExactly("Bloor", "Mount Dennis", "Weston");
+        });
+        assertThat(dashboard.plannedClosures().getFirst().displayLocation()).isEqualTo("Union ⇄ Pearson Airport");
+        // The source location used for push identity is unchanged.
+        assertThat(dashboard.plannedClosures().getFirst().location()).isEqualTo("UP Express");
+    }
+
+    @Test
     void exposesFreshRegionalAlertsStatusesAndReviewedMapImpacts() {
         when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
         when(alertStore.findActiveAlerts()).thenReturn(List.of(new RegionalNormalizedAlert(

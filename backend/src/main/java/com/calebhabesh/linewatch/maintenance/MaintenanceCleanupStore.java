@@ -87,6 +87,19 @@ public class MaintenanceCleanupStore {
             """, new MapSqlParameterSource("cutoff", cutoff));
     }
 
+    /** Model readings of notices no longer in the feed, and request counts older than the cutoff. */
+    public int deleteOldRegionalAlertExtractions(OffsetDateTime cutoff) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource("cutoff", cutoff);
+        jdbc.update("""
+            delete from regional_alert_extraction_usage
+            where usage_date < cast(:cutoff as date)
+            """, parameters);
+        return jdbc.update("""
+            delete from regional_alert_extractions
+            where last_seen_at < :cutoff
+            """, parameters);
+    }
+
     public int deleteOldInactiveMetrolinxOperationalSourceRecords(OffsetDateTime cutoff) {
         return jdbc.update("""
             delete from metrolinx_operational_source_records

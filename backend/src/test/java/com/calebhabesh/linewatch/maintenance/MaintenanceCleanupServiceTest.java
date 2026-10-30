@@ -35,6 +35,7 @@ class MaintenanceCleanupServiceTest {
         verify(store).deleteOldInactiveAlertSourceRecords(cutoff);
         verify(store).deleteOldInactiveMetrolinxAlertSourceRecords(cutoff);
         verify(store).deleteOldInactiveMetrolinxOperationalSourceRecords(cutoff);
+        verify(store).deleteOldRegionalAlertExtractions(cutoff);
         verifyNoMoreInteractions(store);
     }
 
@@ -60,6 +61,7 @@ class MaintenanceCleanupServiceTest {
         verify(store).deleteOldInactiveAlertSourceRecords(OffsetDateTime.parse("2026-06-24T12:00:00Z"));
         verify(store).deleteOldInactiveMetrolinxAlertSourceRecords(OffsetDateTime.parse("2026-06-24T12:00:00Z"));
         verify(store).deleteOldInactiveMetrolinxOperationalSourceRecords(OffsetDateTime.parse("2026-06-24T12:00:00Z"));
+        verify(store).deleteOldRegionalAlertExtractions(OffsetDateTime.parse("2026-06-24T12:00:00Z"));
     }
 
     @Test
@@ -83,5 +85,6 @@ class MaintenanceCleanupServiceTest {
         verify(store).deleteOldInactiveAlertSourceRecords(defaultCutoff);
         verify(store).deleteOldInactiveMetrolinxAlertSourceRecords(defaultCutoff);
         verify(store).deleteOldInactiveMetrolinxOperationalSourceRecords(defaultCutoff);
+        verify(store).deleteOldRegionalAlertExtractions(defaultCutoff);
     }
 }

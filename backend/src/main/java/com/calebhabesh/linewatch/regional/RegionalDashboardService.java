@@ -89,14 +89,28 @@ public class RegionalDashboardService {
 
     private Map<String, DashboardResponses.IncidentDetails> incidentDetails(List<RegionalNormalizedAlert> alerts) {
         Map<String, DashboardResponses.IncidentDetails> details = new LinkedHashMap<>();
+        Map<String, List<String>> skipped = alerts.stream().anyMatch(alert -> alert.replacementService() != null)
+            ? alertStore.findReplacementSkippedStations() : Map.of();
         for (RegionalNormalizedAlert alert : alerts) {
             if ("advisory".equals(alert.impactKind())) continue;
             details.put(alert.id(), new DashboardResponses.IncidentDetails(
                 alert.replacementService(), alert.maximumDelayMinutes(),
-                alert.publishedAt()
+                alert.publishedAt(), RegionalStationSpan.coversWholeLine(alert),
+                alert.replacementService() == null ? List.of()
+                    : stationNamesInRouteOrder(alert.lineId(),
+                        skipped.getOrDefault(alert.sourceSystem() + ":" + alert.sourceId(), List.of()))
             ));
         }
         return details;
+    }
+
+    private static List<String> stationNamesInRouteOrder(String lineId, List<String> stationIds) {
+        if (stationIds.isEmpty()) return List.of();
+        return RegionalNetworkCatalog.route(lineId)
+            .map(route -> route.stationIds().stream().filter(stationIds::contains)
+                .map(stationId -> RegionalNetworkCatalog.station(stationId).map(station -> station.name()).orElse(stationId))
+                .toList())
+            .orElse(List.of());
     }
 
     public Optional<Duration> remainingFreshness() {

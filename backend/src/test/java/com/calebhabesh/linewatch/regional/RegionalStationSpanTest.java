@@ -134,6 +134,21 @@ class RegionalStationSpanTest {
         assertThat(span.displayLocation()).endsWith(" to West Harbour");
     }
 
+    @Test
+    void aWholeLineImpactNamesTheLinesTerminalsLikeAnyOtherSpan() {
+        var closure = alert("regional-up", "planned-closure", "Tonight, there are some late-evening service adjustments.",
+            "This weekend, GO buses replace UP Express trains due to planned construction. GO buses will run direct "
+                + "between Union Station Bus Terminal and Pearson Airport Terminal 1.", List.of());
+
+        assertThat(RegionalStationSpan.coversWholeLine(closure)).isTrue();
+        assertThat(RegionalStationSpan.describe(closure).displayLocation()).isEqualTo("Union ⇄ Pearson Airport");
+
+        // Without mapped track the impact keeps the line name and is not called whole-line.
+        var advisory = alert("regional-up", "advisory", "UP Express update", "Service changes this weekend.", List.of());
+        assertThat(RegionalStationSpan.coversWholeLine(advisory)).isFalse();
+        assertThat(RegionalStationSpan.describe(advisory).displayLocation()).isEqualTo("UP Express");
+    }
+
     private static RegionalNormalizedAlert alert(
         String lineId, String impactKind, String title, String description, List<String> stationIds
     ) {

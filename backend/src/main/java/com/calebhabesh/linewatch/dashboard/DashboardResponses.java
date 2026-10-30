@@ -39,9 +39,21 @@ public final class DashboardResponses {
         }
     }
 
-    /** Published rider facts; alert validity windows are not recovery estimates. */
+    /**
+     * Published rider facts; alert validity windows are not recovery estimates. {@code wholeLine}
+     * marks an impact on every segment of its line; {@code replacementSkippedStations} names, in
+     * route order, the stations the replacement service does not serve.
+     */
     public record IncidentDetails(
         String replacementService, Integer maximumDelayMinutes,
-        OffsetDateTime publishedAt
-    ) {}
+        OffsetDateTime publishedAt, Boolean wholeLine, List<String> replacementSkippedStations
+    ) {
+        public IncidentDetails {
+            replacementSkippedStations = replacementSkippedStations == null ? List.of() : List.copyOf(replacementSkippedStations);
+        }
+
+        public IncidentDetails(String replacementService, Integer maximumDelayMinutes, OffsetDateTime publishedAt) {
+            this(replacementService, maximumDelayMinutes, publishedAt, false, List.of());
+        }
+    }
 }
