@@ -24,6 +24,8 @@ import {
 type Props = {
   accountState: AccountState;
   accountBusy: boolean;
+  /** A failed sign-out or demo sign-in, shown under the account actions. */
+  accountActionError?: string | null;
   highContrast: boolean;
   reducedMotion: boolean;
   dotBackgroundEnabled: boolean;
@@ -68,6 +70,7 @@ type Props = {
 export function MobileMoreSheet({
   accountState,
   accountBusy,
+  accountActionError = null,
   highContrast,
   reducedMotion,
   dotBackgroundEnabled,
@@ -199,6 +202,7 @@ export function MobileMoreSheet({
                 <LogOut size={18} />
                 Sign Out
               </button>
+              {accountActionError ? <p role="alert" className="mobile-more-account-error px-3 py-1 text-xs font-semibold text-red-600 dark:text-red-300">{accountActionError}</p> : null}
               {googleSignInAvailable && !accountState.user.demo ? (
                 accountState.user.googleLinked ? (
                   <div className="mobile-more-row mobile-more-linked-status" aria-label="Google sign-in linked">
@@ -289,6 +293,7 @@ export function MobileMoreSheet({
                 <UserRound size={18} />
                 Demo Account
               </button>
+              {accountActionError ? <p role="alert" className="mobile-more-account-error px-3 py-1 text-xs font-semibold text-red-600 dark:text-red-300">{accountActionError}</p> : null}
               <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenCommutes}>
                 <span className="flex items-center gap-[9px]">
                   <Navigation size={18} className="text-slate-500 dark:text-slate-400" />

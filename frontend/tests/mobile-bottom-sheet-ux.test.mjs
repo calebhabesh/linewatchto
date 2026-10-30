@@ -332,7 +332,7 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.mobile-status-content-scroll::-webkit-scrollbar\s*\{[\s\S]*?display:\s*block\s*!important/);
     assert.doesNotMatch(globalCss, /\.floating-panel-scroll::-webkit-scrollbar/);
     assert.doesNotMatch(globalCss, /--mobile-native-scrollbar-size/);
-    assert.match(globalCss, /\.mobile-status-content-scroll\s*\{[\s\S]*?padding-right:\s*16px\s*!important/);
+    assert.match(globalCss, /\.mobile-status-content-scroll\s*\{[^}]*padding-right:\s*12px;/);
     assert.doesNotMatch(globalCss, /\.linewatch-mobile-scrollbar/);
     assert.doesNotMatch(globalCss, /--mobile-scrollbar-thumb-top/);
     assert.doesNotMatch(globalCss, /--mobile-scrollbar-thumb-height/);
@@ -340,11 +340,9 @@ describe("mobile bottom sheet UX", () => {
     assert.doesNotMatch(globalCss, /radial-gradient\(circle,[\s\S]*?mobile-scroll-affordance/);
   });
 
-  it("hides desktop-only chrome on mobile without deleting it", () => {
-    assert.match(shellSource, /desktop-top-chrome/);
+  it("hides the desktop map legend on mobile without deleting it", () => {
     assert.match(shellSource, /<NetworkMap/);
     assert.match(networkMapLegendsSource, /desktop-map-legend absolute right-6/);
-    assert.match(globalCss, /\.desktop-top-chrome/);
     assert.match(globalCss, /\.desktop-map-legend/);
   });
 

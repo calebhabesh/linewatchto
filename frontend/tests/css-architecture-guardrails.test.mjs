@@ -26,7 +26,7 @@ const ENTRY_STYLESHEET_PATH = getAppStylesheetGraphFiles()[0];
  * will reduce these numbers; they may NEVER increase.
  */
 const BASELINE_CEILINGS = {
-  GRAPH_IMPORTANT_DECLARATIONS: 495,
+  GRAPH_IMPORTANT_DECLARATIONS: 491,
   GRAPH_CLASS_SUBSTRING_SELECTORS: 18,
   GLOBALS_IMPORTANT_DECLARATIONS: 0,
   GLOBALS_CLASS_SUBSTRING_SELECTORS: 0,
@@ -79,7 +79,6 @@ export const CANONICAL_IMPORT_MANIFEST = [
   '@import "../styles/utilities/motion.css";',
   '@import "../styles/shell/header-flare.css";',
   '@import "../styles/shell/card-elevation.css";',
-  '@import "../styles/shell/search-bar.css";',
   '@import "../styles/shell/badges.css";',
   '@import "../styles/map/map-legends.css";',
   '@import "../styles/shell/status-notices.css";',
@@ -253,15 +252,15 @@ describe("CSS architecture guardrails", () => {
         [],
         `Orphaned stylesheet files found in src/styles/ that are not imported in entry manifest: ${unimportedFiles.join(", ")}`,
       );
-      assert.equal(allStyleFiles.length, 52, "Expected exactly 52 modular stylesheets in src/styles/");
+      assert.equal(allStyleFiles.length, 51, "Expected exactly 51 modular stylesheets in src/styles/");
     });
 
-    it("verifies that the resolved stylesheet graph contains exactly 53 unique files without cycles", () => {
+    it("verifies that the resolved stylesheet graph contains exactly 52 unique files without cycles", () => {
       clearStylesheetCache();
       const files = getAppStylesheetGraphFiles();
 
-      assert.equal(files.length, 53, "Graph must contain 53 files (entry manifest + 52 modular stylesheets)");
-      assert.equal(new Set(files).size, 53, "Graph files must all be distinct");
+      assert.equal(files.length, 52, "Graph must contain 52 files (entry manifest + 51 modular stylesheets)");
+      assert.equal(new Set(files).size, 52, "Graph files must all be distinct");
       assert.ok(files[0].endsWith(".css") && files[0].includes("globals"), "Entry file must be globals entrypoint");
     });
   });

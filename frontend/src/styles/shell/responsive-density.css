@@ -1098,14 +1098,3 @@
     width: min(600px, calc(100vw - 48px));
   }
 }
-
-@media (min-width: 768px) and (max-width: 899px) {
-  .header-search-bar {
-    width: clamp(220px, 34vw, 270px);
-  }
-
-  .header-search-bar:focus-within,
-  .header-search-bar[data-active="true"] {
-    width: min(var(--desktop-global-search-width), calc(100vw - 240px));
-  }
-}

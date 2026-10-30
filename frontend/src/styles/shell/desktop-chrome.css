@@ -187,8 +187,6 @@
 }
 
 /* Ensure interactive menu rows and controls display in front of ambient header light */
-.desktop-top-chrome button,
-.desktop-top-chrome a,
 .mobile-more-row,
 .mobile-status-actions button,
 .station-detail-panel button {
@@ -1330,16 +1328,6 @@
   .desktop-sidebar-accent-strip,
   .desktop-nav-rail {
     transition: none;
-  }
-}
-
-/* --------------------------------------------------------------------------
-   Desktop Legacy Floating Chrome Retirement (>= 768px)
-   -------------------------------------------------------------------------- */
-
-@media (min-width: 768px) {
-  .linewatch-shell .header-search-bar {
-    display: none;
   }
 }
 

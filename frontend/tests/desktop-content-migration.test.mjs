@@ -105,13 +105,6 @@ describe("desktop content and navigation migration (Session 2)", () => {
   });
 
   describe("stylesheet retirement of legacy desktop floating chrome", () => {
-    it("hides the legacy header search bar on desktop screens", () => {
-      assert.match(
-        globalCss,
-        /@media\s*\(min-width:\s*768px\)\s*\{[^}]*\.linewatch-shell\s+\.header-search-bar/s,
-      );
-    });
-
     it("contains dedicated desktop sidebar, saved navigation, and overview styles", () => {
       assert.match(globalCss, /\.desktop-sidebar-search-clear/);
       assert.match(globalCss, /\.desktop-status-overview/);

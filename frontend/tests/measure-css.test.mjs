@@ -229,13 +229,13 @@ describe("CSS measurement tool (Chunk C1)", () => {
     assert.equal(metrics.manifest.rules, 0, "globals.css must contain 0 parsed rules");
     assert.equal(metrics.manifest.decls, 0, "globals.css must contain 0 declarations");
     assert.equal(metrics.manifest.importants, 0, "globals.css must contain 0 !important");
-    assert.equal(metrics.manifest.importsCount, 53, "globals.css must contain 53 import directives");
+    assert.equal(metrics.manifest.importsCount, 52, "globals.css must contain 52 import directives");
 
     // Population 2: Resolved Application Import Graph
-    assert.equal(metrics.graph.fileCount, 53, "resolved graph must contain 53 modular files");
+    assert.equal(metrics.graph.fileCount, 52, "resolved graph must contain 52 modular files");
     assert.ok(metrics.graph.rules > 5000, "resolved graph must report over 5000 parsed rules");
     assert.ok(metrics.graph.decls > 15000, "resolved graph must report over 15000 declarations");
-    assert.equal(metrics.graph.importants, 495, "resolved graph !important must match baseline ceiling (495)");
+    assert.equal(metrics.graph.importants, 491, "resolved graph !important must match baseline ceiling (491)");
     assert.equal(metrics.graph.classSubstrings, 18, "resolved graph class-substrings must match ceiling (18)");
     assert.equal(metrics.graph.keyframes, 89, "resolved graph keyframes must match unique definitions (89)");
     assert.equal(metrics.graph.duplicateKeyframes.length, 0, "resolved graph must have zero duplicate keyframe names");
@@ -247,7 +247,7 @@ describe("CSS measurement tool (Chunk C1)", () => {
     assert.ok(metrics.otherAuthored.files.some(f => f.path.includes("Stepper.css")));
 
     // Population 4: Combined Authored CSS Summary
-    assert.equal(metrics.authored.totalFiles, 56, "total authored files must be exactly 53 + 3 = 56");
+    assert.equal(metrics.authored.totalFiles, 55, "total authored files must be exactly 52 + 3 = 55");
     assert.equal(
       metrics.authored.totalLines,
       metrics.graph.totalLines + metrics.otherAuthored.totalLines,

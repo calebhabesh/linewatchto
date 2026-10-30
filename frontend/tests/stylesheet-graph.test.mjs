@@ -366,7 +366,6 @@ describe("stylesheet-graph helper", () => {
     const desktopChromeContent = readStylesheet(new URL("../src/styles/shell/desktop-chrome.css", import.meta.url));
     assert.match(desktopChromeContent, /\.network-selector/);
     assert.match(desktopChromeContent, /\.network-selector-glider/);
-    assert.match(desktopChromeContent, /\.desktop-top-chrome/);
   });
 
 
@@ -471,8 +470,6 @@ describe("stylesheet-graph helper", () => {
     assert.match(responsiveDensityContent, /\.station-search-panel/);
     assert.match(responsiveDensityContent, /@media \(orientation: landscape\)/);
     assert.match(responsiveDensityContent, /@media \(min-width: 768px\) and \(max-width: 1099px\)/);
-    assert.match(responsiveDensityContent, /@media \(min-width: 768px\) and \(max-width: 899px\)/);
-    assert.match(responsiveDensityContent, /\.header-search-bar/);
   });
 
   it("resolves the extracted station/station-search.css in the application stylesheet graph", () => {
@@ -1053,16 +1050,6 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /var\(--surface-card-opaque\)/);
   });
 
-  it("resolves the extracted shell/search-bar.css in the application stylesheet graph", () => {
-    clearStylesheetCache();
-    const files = getAppStylesheetGraphFiles();
-    assert.ok(files.some(f => f.endsWith("search-bar.css")), "search-bar.css must be in graph files");
-    const content = readStylesheet(new URL("../src/styles/shell/search-bar.css", import.meta.url));
-    assert.match(content, /\.header-search-bar/);
-    assert.match(content, /\.header-search-input/);
-    assert.match(content, /\.search-btn\[aria-expanded="true"\]/);
-  });
-
   it("resolves the extracted shell/badges.css in the application stylesheet graph", () => {
     clearStylesheetCache();
     const files = getAppStylesheetGraphFiles();
@@ -1187,7 +1174,7 @@ describe("stylesheet-graph helper", () => {
   it("extracts @import directives from stylesheet entries", () => {
     const directives = getImportDirectives();
     assert.ok(Array.isArray(directives));
-    assert.equal(directives.length, 53);
+    assert.equal(directives.length, 52);
     assert.equal(directives[0], '@import "tailwindcss" source("../");');
     assert.equal(directives[1], '@import "../styles/foundation/fonts.css";');
   });

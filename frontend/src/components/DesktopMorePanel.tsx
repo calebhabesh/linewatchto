@@ -33,6 +33,8 @@ import SquishSwitch from "./SquishSwitch";
 type Props = {
   accountState: AccountState;
   accountBusy: boolean;
+  /** A failed sign-out or demo sign-in, shown under the account actions. */
+  accountActionError?: string | null;
   highContrast: boolean;
   reducedMotion: boolean;
   dotBackgroundEnabled: boolean;
@@ -66,6 +68,7 @@ type Props = {
 export function DesktopMorePanel({
   accountState,
   accountBusy,
+  accountActionError = null,
   highContrast,
   reducedMotion,
   dotBackgroundEnabled,
@@ -182,6 +185,7 @@ export function DesktopMorePanel({
               </>
             )}
           </div>
+          {accountActionError ? <p role="alert" className="desktop-more-account-error px-1 text-xs font-semibold text-red-600 dark:text-red-300">{accountActionError}</p> : null}
         </div>
       </section>
 

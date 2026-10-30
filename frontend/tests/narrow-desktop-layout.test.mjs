@@ -11,13 +11,3 @@ test("narrow desktop windows reflow dense chrome without switching to mobile nav
   );
 });
 
-test("the smallest desktop breakpoint constrains expandable search chrome", () => {
-  assert.match(
-    globalCss,
-    /@media \(min-width: 768px\) and \(max-width: 899px\)[\s\S]*?\.header-search-bar\s*\{[^}]*width:\s*clamp\(220px, 34vw, 270px\);/,
-  );
-  assert.match(
-    globalCss,
-    /\.header-search-bar:focus-within,[\s\S]*?\.header-search-bar\[data-active="true"\]\s*\{[^}]*width:\s*min\(var\(--desktop-global-search-width\), calc\(100vw - 240px\)\);/,
-  );
-});

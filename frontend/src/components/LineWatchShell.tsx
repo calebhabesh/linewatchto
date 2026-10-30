@@ -453,6 +453,7 @@ export function LineWatchShell({
   const { accountState, setAccountState, userGeneration, userGenerationRef, authConfig } = accountSession;
 
   const [isActionBusy, setIsActionBusy] = useState(false);
+  const [accountActionError, setAccountActionError] = useState<string | null>(null);
   const accountBusy = accountSession.isSigningOut || isActionBusy;
 
   const [accountDialogRequest, setAccountDialogRequest] = useState<AccountDialogIntentOptions | null>(() => {
@@ -1424,18 +1425,20 @@ export function LineWatchShell({
 
   const handleDemoAccount = useCallback(async () => {
     setIsActionBusy(true);
+    setAccountActionError(null);
     try {
       await accountSession.loginDemo();
       setActiveView("commutes");
     } catch {
-      // No account surface shows this failure yet; the rider stays signed out.
+      setAccountActionError("The demo account is unavailable right now. Try again later.");
     } finally {
       setIsActionBusy(false);
     }
-  }, [accountSession, setActiveView, setIsActionBusy]);
+  }, [accountSession, setActiveView, setAccountActionError, setIsActionBusy]);
 
   const handleSignOut = useCallback(async () => {
     setIsActionBusy(true);
+    setAccountActionError(null);
     try {
       let pushEndpoint: string | null = null;
       try {
@@ -1448,19 +1451,21 @@ export function LineWatchShell({
       }
       await accountSession.signOut({ pushEndpoint });
     } catch {
-      // No account surface shows this failure yet; the session is left as it was.
+      // This device is already signed out; only the server's confirmation failed.
+      setAccountActionError("Signed out on this device, but the server didn't confirm it. Reload to check your account.");
     } finally {
       setIsActionBusy(false);
     }
-  }, [accountSession, pushSettings.supported, setIsActionBusy]);
+  }, [accountSession, pushSettings.supported, setAccountActionError, setIsActionBusy]);
 
   const handleAuthenticated = useCallback((nextState: AccountState) => {
+    setAccountActionError(null);
     setAccountState(nextState);
     const onEmailedLinkRoute = ["/verify-email", "/reset-password"].includes(window.location.pathname);
     closeAccountDialog();
     setActiveView("commutes");
     if (onEmailedLinkRoute) leaveEmailedLinkRoute();
-  }, [closeAccountDialog, setAccountState, setActiveView]);
+  }, [closeAccountDialog, setAccountActionError, setAccountState, setActiveView]);
 
 
   const handleShareLineWatchApp = useCallback(async () => {
@@ -1577,7 +1582,6 @@ export function LineWatchShell({
   const searchOriginRef = useRef<ActiveView>("status");
   const searchSessionActiveRef = useRef<boolean>(false);
   const suppressSearchReopenRef = useRef<boolean>(false);
-  const headerSearchBarRef = useRef<HTMLDivElement>(null);
   const stationKeyDownHandlerRef = useRef<((event: KeyboardEvent<HTMLInputElement>) => void) | null>(null);
   useEffect(() => {
     if (reducedMotionOverride) return;
@@ -1812,18 +1816,16 @@ export function LineWatchShell({
     navigateRoot("search");
   }, [captureSearchReturnContext, desktopSidebarCollapsed, isMobile, navigateRoot, setCommutePathPreview, setSelectedStationId, setSelection]);
 
-  // Dismiss search when clicking outside the header bar and the search panel
+  // Dismiss search when clicking outside the search panel and its entry points
   useEffect(() => {
     if (activeView !== "search") return;
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      const barEl = headerSearchBarRef.current;
       const panelEl = document.getElementById("station-search-panel");
       const sidebarEl = document.getElementById("desktop-sidebar-container");
       const railEl = document.querySelector(".desktop-nav-rail");
 
-      if (barEl?.contains(target)) return;
       if (panelEl?.contains(target)) return;
       if (sidebarEl?.contains(target)) return;
       if (railEl?.contains(target)) return;
@@ -2520,6 +2522,7 @@ export function LineWatchShell({
             onRequestCreateAccount={() => openAuthChoice("register")}
             onDemoAccount={handleDemoAccount}
             onSignOut={handleSignOut}
+            accountActionError={accountActionError}
             googleSignInAvailable={authConfig.googleSignInAvailable}
             onLinkGoogleAccount={openGoogleLinkDialog}
             onToggleHighContrast={handleToggleHighContrast}
@@ -2921,6 +2924,7 @@ export function LineWatchShell({
             onRequestCreateAccount={() => openAuthChoice("register")}
             onDemoAccount={handleDemoAccount}
             onSignOut={handleSignOut}
+            accountActionError={accountActionError}
             onToggleHighContrast={handleToggleHighContrast}
             onToggleReducedMotion={handleToggleReducedMotion}
             onToggleDotBackground={handleToggleDotBackground}
@@ -3171,62 +3175,6 @@ export function LineWatchShell({
       >
         {isMobile && (
         <div className="flex items-start gap-3 pointer-events-auto relative">
-          {/* Header station search input — replaces the old static button */}
-          <div
-            ref={headerSearchBarRef}
-            className="header-search-bar desktop-top-chrome panel relative flex items-center gap-2 px-3 h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] cursor-text outline-none"
-            data-active={activeView === "search" ? "true" : undefined}
-            onPointerDown={(event) => {
-              if (event.button !== 0) return;
-              if (activeView !== "search") handleOpenSearch();
-              if (event.target !== stationSearchInputRef.current) {
-                window.setTimeout(() => stationSearchInputRef.current?.focus(), 0);
-              }
-            }}
-            onClick={() => {
-              stationSearchInputRef.current?.focus();
-              if (activeView !== "search") handleOpenSearch();
-            }}
-            role="search"
-            aria-label="Global LineWatchTO search"
-          >
-            <Search
-              className={`shrink-0 transition-colors duration-200 ${
-                activeView === "search" ? "text-blue-500 dark:text-blue-400" : "text-slate-400 dark:text-slate-400"
-              }`}
-              size={21}
-            />
-            <input
-              ref={isMobile ? undefined : stationSearchInputRef}
-              type="search"
-              value={stationSearchQuery}
-              onChange={(e) => {
-                setStationSearchQuery(e.target.value);
-                if (activeView !== "search") setActiveView("search");
-              }}
-              onFocus={() => {
-                if (activeView !== "search") handleOpenSearch();
-              }}
-              onKeyDown={(e) => {
-                stationKeyDownHandlerRef.current?.(e);
-              }}
-              placeholder="Search all stations and alerts..."
-              aria-label="Station Search"
-              aria-controls="station-search-panel"
-              className="header-search-input min-w-0 flex-1 bg-transparent border-none outline-none text-sm font-semibold text-slate-700 dark:text-white placeholder:font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-400 focus:placeholder:text-transparent caret-blue-500"
-            />
-            {stationSearchQuery && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setStationSearchQuery(""); stationSearchInputRef.current?.focus(); }}
-                className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                aria-label="Clear search"
-              >
-                <X size={15} />
-              </button>
-            )}
-          </div>
-
           <StationSearchPanel
             open={activeView === "search" || isClosingSearch}
             isClosing={isClosingSearch}
