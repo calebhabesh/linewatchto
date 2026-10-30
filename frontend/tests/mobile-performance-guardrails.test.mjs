@@ -166,7 +166,7 @@ describe("mobile performance guardrails", () => {
     );
     assert.match(
       mapSource,
-      /usePanZoom\(\{\s*persistenceKey: "ttc",\s*persistenceBlocked: Boolean\(selection \|\| selectedStationId \|\| commutePathPreview\),\s*reducedMotion,\s*viewportOrientation,\s*disableProgrammaticMotion:\s*mobilePerformanceMode,\s*defaultFrame:\s*defaultMapFrame,\s*animateInitialEntrance,\s*cameraFollower:\s*overlapChooserFollower,\s*\}\)/s,
+      /usePanZoom\(\{\s*persistenceKey: "ttc",\s*persistenceBlocked: Boolean\(selection \|\| selectedStationId \|\| commutePathPreview\),\s*reducedMotion,\s*viewportOrientation,\s*disableProgrammaticMotion:\s*mobilePerformanceMode,\s*defaultFrame:\s*defaultMapFrame,\s*animateInitialEntrance,\s*cameraFollower:\s*overlapChooserFollower,\s*containerRef,\s*mapRef,/s,
     );
     assert.match(
       shellSource,

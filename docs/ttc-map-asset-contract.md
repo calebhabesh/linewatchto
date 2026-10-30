@@ -9,7 +9,10 @@ node scripts/prepare-ttc-map-asset.mjs \
   /path/to/TTC_Subway_Map_Custom_Edited.svg \
   frontend/public/assets/linewatch/ttc-subway-map-custom.svg
 npm --prefix frontend run generate:map-rasters
+npm --prefix frontend run prepare:map-geometry
 ```
+
+`prepare:map-geometry` lays out both maps' SVGs in Chromium with the label font and writes their geometry (station dots and shapes, segment anchors, track and route paths, guides, station-name boxes, badge obstacles) to `frontend/src/app/map-geometry/`, in root coordinates. The maps read only that data, never the live SVG's layout. Rerun it after any TTC or regional SVG change; `test:fast` fails while the data is stale, and `npm --prefix frontend run check:map-geometry` compares a fresh extraction.
 
 The source must keep the `0 0 8250 4000` view box and the six authored layers named `station-text`, `tracks`, `stations`, `transit-line-badges`, `connection-labels`, and `non-linear-guides-layer`. Station names must remain real SVG `<text>` elements. The preparation step assigns stable DOM ids, links each text element to its station, validates the 109 names and 110 visual anchors, and normalizes the four curved/nonlinear overlay guides.
 

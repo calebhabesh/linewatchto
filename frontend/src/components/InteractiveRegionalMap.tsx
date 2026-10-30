@@ -2,22 +2,17 @@
 import { CommuteRouteLabel } from "./CommuteRouteLabel";
 import { CardinalNorthIcon } from "./CardinalNorthIcon";
 
-import { useMapViewportPersistence } from "../hooks/useMapViewportPersistence";
-import { useMapGestureInterruption } from "../hooks/useMapGestureInterruption";
+import { usePanZoom } from "../hooks/usePanZoom";
 import {
   observeMobileMapFrame,
-  readMapStationCenterX,
-  readMobileMapFrameInsets,
   readCommutePreviewInset,
   readMobileImpactInspectorInset,
   readMobileImpactInspectorTop,
   readMobilePillBottom,
   readMobileStationSubmenuTop,
 } from "../hooks/mobileMapFrame";
-import { clearMapViewport } from "../app/map-viewport-preference";
 import { useRetainedHover } from "../hooks/useRetainedHover";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
-import { createPortal } from "react-dom";
 import {
   MapLineAlertHoverCopies,
   MapLineAlertHoverOutlines,
@@ -43,13 +38,6 @@ import { plannedAdvisoryStationImpacts } from "../app/map-alert-selector";
 import { regionalCommutePreview } from "../app/regional-commute-preview";
 import { MapCommuteEndpointFlashes, MapCommutePreviewRoute } from "./map-overlays/CommutePreviewOverlays";
 import type { MapCommutePreview } from "./map-overlays/commute-preview-model";
-import {
-  REGIONAL_DYNAMIC_COMMUTE_LAYER_ID,
-  REGIONAL_DYNAMIC_HOVER_LAYER_ID,
-  REGIONAL_DYNAMIC_SEGMENT_LAYER_ID,
-  REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID,
-  REGIONAL_DYNAMIC_TARGET_LAYER_ID,
-} from "../app/regional-map-asset";
 import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import { NetworkSelector } from "./NetworkSelector";
 import { SharedMapControlRail } from "./SharedMapControlRail";
@@ -79,34 +67,57 @@ import {
 
 export { preloadRegionalMapMarkup } from "../app/regional-map-asset";
 
+/** GO/UP's prepared geometry (scripts/prepare-map-geometry.mjs). */
+const REGIONAL_GEOMETRY = preparedRegionalGeometry as unknown as PreparedMapGeometry;
+const REGIONAL_OVERLAY_PLANE = regionalOverlayPlane(REGIONAL_GEOMETRY);
+const REGIONAL_STATION_ARTWORK = regionalStationArtwork(REGIONAL_GEOMETRY);
+const REGIONAL_STATION_LABEL_TARGETS = regionalStationLabelTargets(REGIONAL_GEOMETRY);
+const NO_STATION_ARTWORK: RegionalStationArtwork[] = [];
+const NO_STATION_LABEL_TARGETS: RegionalStationLabelTarget[] = [];
+
 import {
-  primeRegionalRouteSamples,
   regionalTrainMarkerFrame,
   regionalStationLabelHover,
-  regionalSvgScope,
   REGIONAL_OVERLAP_INDICATOR_SCALE,
   REGIONAL_OVERLAY_UNIT,
   type RegionalCollisionBox,
-  type RegionalSvgScope,
   type RegionalTrainMarkerFrame,
 } from "../app/regional-map-geometry";
+import type { PreparedMapGeometry } from "../app/map-geometry-data";
+import preparedRegionalGeometry from "../app/map-geometry/regional.json";
 import {
   regionalOverlapBadgeLayout,
   regionalOverlayContentSignature,
   regionalPointerImpactSelection,
   regionalOverlapMarker,
   regionalOverlapMarkerRestingRect,
-  regionalReferencedAlertCollisionBoxes,
   regionalOverlapChooserLayout,
+  REGIONAL_DYNAMIC_COMMUTE_LAYER_ID,
+  REGIONAL_DYNAMIC_HOVER_LAYER_ID,
+  REGIONAL_DYNAMIC_SEGMENT_LAYER_ID,
+  REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID,
+  REGIONAL_DYNAMIC_TARGET_LAYER_ID,
   REGIONAL_TOP_HOVER_LAYER_ID,
   REGIONAL_TOP_STATION_IMPACT_LAYER_ID,
   REGIONAL_TRAIN_MARKER_LAYER_ID,
   type RegionalOverlapBadge,
 } from "../app/regional-map-overlays";
 import {
-  applyRegionalStationSelection,
   installRegionalStationLabelHover,
+  regionalStationArtwork,
+  regionalStationLabelCutoutMarkup,
+  regionalStationLabelTargets,
+  type RegionalStationArtwork,
+  type RegionalStationLabelTarget,
 } from "../app/regional-station-interaction";
+import {
+  RegionalStationHoverIndicators,
+  RegionalStationLabelTargets,
+  RegionalStationSelection,
+  RegionalStationTargets,
+} from "./RegionalStationLayers";
+import { clearMapStationHover, setMapStationHovered } from "./map-overlays/station-hover";
+import { affectedOutlinesOnScreen } from "./map-overlays/overlap-badge-layout";
 import type { MapBounds, MapPoint } from "../app/map-geometry";
 
 type SvgPoint = MapPoint;
@@ -118,26 +129,15 @@ import {
   type MapOverlapChooserLayout,
 } from "./MapOverlapChooser";
 import { isMapWheelScrollRegionTarget, usePreventMapWheelDefault } from "./map-wheel-events";
+import { useCommittedCamera } from "./map-camera/camera-store";
+import { MapZoomSlider } from "./map-camera/MapZoomSlider";
 import {
-  cameraFromOrientedTransformMatrix,
   clampPanZoomScale,
   clientPointToLogicalViewportPoint,
   clientRectToLogicalViewportBounds,
   computeBoundedMapFrame,
-  computeDesktopMapFrame,
-  computeFittedCameraFlyInStart,
   computeInsetViewportFocus,
-  currentDevicePixelRatio,
-  distanceBetweenPoints,
-  exceedsMapTapMovement,
-  mapPointFromViewportPoint,
-  midpointBetweenPoints,
   logicalViewportSizeForOrientation,
-  orientedMapCameraTransform,
-  PAN_ZOOM_MAX_RELATIVE_SCALE,
-  PAN_ZOOM_MIN_RELATIVE_SCALE,
-  snapTransformToDevicePixels,
-  transformForMapPointAtViewportPoint,
   type MapContentBounds,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
@@ -167,7 +167,6 @@ import { observeMapChooserKeepouts, visibleMapChooserKeepouts } from "./map-choo
 const MAP_WIDTH = 4739.2821;
 const MAP_HEIGHT = 2616.8174;
 const REGIONAL_MAP_HORIZONTAL_INSET_RATIO = 0.025;
-const REGIONAL_MAP_MOBILE_INSET_RATIO = 0.025;
 // Custom regional map visible-art bounds, spanning from Kitchener/Stratford (x≈53.1px)
 // through x≈4673.5px to include Durham College Oshawa, VIA Rail badges, and the Cardinal North compass.
 const REGIONAL_MAP_CONTENT_BOUNDS: MapContentBounds = {
@@ -188,10 +187,8 @@ const REGIONAL_MAP_DESKTOP_FRAME_SCALE = 1;
 // close zoom because their fitted scale remains above that cap.
 const REGIONAL_SELECTION_FIT_COMFORT_RATIO = 0.82;
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
-const DEFAULT_CAMERA_MOTION_DURATION_MS = 800;
 // Frames to wait for a stage ease to land before solving the chooser anyway.
 const REGIONAL_CHOOSER_SETTLE_FRAME_LIMIT = 30;
-const DEFAULT_CAMERA_MOTION_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
 
 function setRegionalTrainMarkerTransform(group: SVGGElement, frame: RegionalTrainMarkerFrame) {
   group.setAttribute(
@@ -207,7 +204,7 @@ function setRegionalTrainMarkerMetadata(group: SVGGElement, marker: EstimatedTra
   group.dataset.trainMarkerTravelDirection = marker.travelDirection;
 }
 
-function appendRegionalTrainMarkerGlyph(documentNode: RegionalSvgScope, group: SVGGElement) {
+function appendRegionalTrainMarkerGlyph(documentNode: Document, group: SVGGElement) {
   for (const className of ["estimated-train-marker-outline", "estimated-train-marker-core"]) {
     const body = documentNode.createElementNS(SVG_NAMESPACE, "path");
     body.setAttribute("d", TRAIN_MARKER_BODY_PATH);
@@ -234,8 +231,6 @@ function appendRegionalTrainMarkerGlyph(documentNode: RegionalSvgScope, group: S
 
 
 
-
-type Camera = { x: number; y: number; scale: number };
 
 type RegionalOverlapChooserPlacement = {
   markerId: string;
@@ -268,41 +263,14 @@ function regionalChooserPlacementsMatch(
     && near(currentCamera?.y ?? 0, nextCamera?.y ?? 0)
     && Math.abs((currentCamera?.scale ?? 0) - (nextCamera?.scale ?? 0)) < 0.0001;
 }
-type CameraMotionOptions = {
-  durationMs?: number;
-  easing?: string;
-};
-
-/** The injected SVG layers the shared line-alert overlays render into. */
-type RegionalLineAlertPortals = {
-  segment: SVGGElement;
-  commute: SVGGElement;
-  selected: SVGGElement;
-  targets: SVGGElement;
-  hover: SVGGElement;
-};
-
-function regionalLineAlertPortals(viewport: HTMLElement): RegionalLineAlertPortals | null {
-  const layer = (id: string) => viewport.querySelector<SVGGElement>(`#${id}`);
-  const segment = layer(REGIONAL_DYNAMIC_SEGMENT_LAYER_ID);
-  const commute = layer(REGIONAL_DYNAMIC_COMMUTE_LAYER_ID);
-  const selected = layer(REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID);
-  const targets = layer(REGIONAL_DYNAMIC_TARGET_LAYER_ID);
-  const hover = layer(REGIONAL_DYNAMIC_HOVER_LAYER_ID);
-  return segment && commute && selected && targets && hover
-    ? { segment, commute, selected, targets, hover }
-    : null;
-}
-
+/** The authored SVG: artwork until the raster planes are ready, and a geometry source. */
 const RegionalSvgMarkup = memo(function RegionalSvgMarkup({ markup }: { markup: string }) {
   return <div dangerouslySetInnerHTML={{ __html: markup }} className="regional-live-svg raster-map-dynamic-plane absolute inset-0 w-full h-full" />;
 });
 
+/** The map's SVG planes share the authored SVG's view box. */
+const REGIONAL_PLANE_VIEWBOX = "-200 -200 17036.959 9031.6719";
 
-
-function snapCameraToDevicePixels(camera: Camera): Camera {
-  return snapTransformToDevicePixels(camera, currentDevicePixelRatio());
-}
 
 function InteractiveRegionalMapComponent({
   selection,
@@ -373,8 +341,6 @@ function InteractiveRegionalMapComponent({
   const viewportRef = useRef<HTMLDivElement>(null);
   const mapStageRef = useRef<HTMLDivElement>(null);
   const mapControlRailRef = useRef<HTMLDivElement>(null);
-  const cameraInitializedRef = useRef(false);
-  const cameraAdjustedByUserRef = useRef(false);
   const cameraCommandsEnabledRef = useRef(cameraCommandsEnabled);
   useEffect(() => {
     cameraCommandsEnabledRef.current = cameraCommandsEnabled;
@@ -386,23 +352,18 @@ function InteractiveRegionalMapComponent({
   const lastRecenterSignalRef = useRef(recenterSignal);
   const lastViewportOrientationRef = useRef(viewportOrientation);
   const automaticResizeRefitBlockedRef = useRef(false);
-  const isGestureActiveRef = useRef(false);
-  const dragRef = useRef<{ pointerId: number; x: number; y: number; camera: Camera } | null>(null);
-  const activePointersRef = useRef(new Map<number, { x: number; y: number }>());
-  const pinchGestureRef = useRef<{
-    startDistance: number;
-    startScale: number;
-    mapPointAtMidpoint: { x: number; y: number };
-  } | null>(null);
   const [svgMarkup, setSvgMarkup] = useState(() => getRegionalMapMarkup());
   const [readyRasterPlanes, setReadyRasterPlanes] = useState(() => new Set<string>());
   const [overlapBadges, setOverlapBadges] = useState<RegionalOverlapBadge[]>([]);
   // Line alerts, drawn with the shared overlay layer (components/map-overlays)
-  // into the layers prepareRegionalMapMarkup injects into the authored SVG.
+  // in the map's overlay and interaction planes, as on TTC.
   const [lineAlerts, setLineAlerts] = useState<MapLineAlert[]>([]);
   const [overlayPlane, setOverlayPlane] = useState<MapOverlayPlane | null>(null);
-  const [lineAlertPortals, setLineAlertPortals] = useState<RegionalLineAlertPortals | null>(null);
-  // Station alerts, drawn with the same shared layer in the top plane.
+  // Station targets, hover rings and selection, from the authored artwork.
+  // Station targets and rings appear with the overlays.
+  const stationArtwork = overlayPlane ? REGIONAL_STATION_ARTWORK : NO_STATION_ARTWORK;
+  const stationLabelTargets = overlayPlane ? REGIONAL_STATION_LABEL_TARGETS : NO_STATION_LABEL_TARGETS;
+  // Station alerts, drawn with the same shared layer in the interaction plane.
   const [stationAlerts, setStationAlerts] = useState<MapStationAlert[]>([]);
   const [stationDirectionGlyphs, setStationDirectionGlyphs] = useState<MapStationDirectionGlyph[]>([]);
   const [commutePreview, setCommutePreview] = useState<MapCommutePreview | null>(null);
@@ -432,11 +393,8 @@ function InteractiveRegionalMapComponent({
     overlapChooserPlacementRef.current = overlapChooserPlacement;
   }, [overlapChooserPlacement]);
   const [chooserKeepoutRevision, setChooserKeepoutRevision] = useState(0);
-  const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
-  const [recenterFeedbackKey, setRecenterFeedbackKey] = useState(0);
   const [cameraReady, setCameraReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
-  const [fitScale, setFitScale] = useState(0.35);
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(() => {
     if (typeof window === "undefined" || window.innerWidth < 768) return 0;
     const rail = document.querySelector<HTMLElement>(".desktop-map-control-rail");
@@ -490,20 +448,13 @@ function InteractiveRegionalMapComponent({
   useLayoutEffect(() => {
     automaticResizeRefitBlockedRef.current = Boolean(selection || selectedStationId || commutePathPreview);
   }, [commutePathPreview, selection, selectedStationId]);
-  const animTimeoutRef = useRef<number | null>(null);
-  const programmaticAnimationFrameRef = useRef<number | null>(null);
-  const dragAnimationFrameRef = useRef<number | null>(null);
-  const pendingDragPointRef = useRef<{ x: number; y: number } | null>(null);
   const trainMarkerMotionRef = useRef(new Map<string, RegionalTrainMarkerMotionRuntime>());
-  const dragMovedRef = useRef(false);
   const pointerActivationRef = useRef<
     { type: "station"; id: string }
     | { type: "impact"; selection: NonNullable<ImpactSelection> }
     | null
   >(null);
   const suppressNextClickRef = useRef(false);
-  const wheelCommitTimeoutRef = useRef<number | null>(null);
-  const cameraRef = useRef(camera);
   const selectionRef = useRef(selection);
   const selectedStationIdRef = useRef(selectedStationId);
   const hoverControllerRef = useRef<MapHoverController | null>(null);
@@ -511,178 +462,72 @@ function InteractiveRegionalMapComponent({
   const readyNotifiedRef = useRef(false);
   const lastOverlayInputsRef = useRef<unknown[] | null>(null);
   const entranceWasDeferredRef = useRef(false);
-  const activeContainerRectRef = useRef<DOMRect | null>(null);
   const lastFocusedTargetKeyRef = useRef<string | null>(null);
   const lastFocusLayoutKeyRef = useRef("");
-  const shouldAnimateProgrammaticTransform = !reducedMotion && !mobilePerformanceMode && pageVisible;
+
+  // The shared System Map camera (hooks/usePanZoom.ts), as on TTC. GO/UP
+  // supplies its framing as data and keeps its tap-to-select resolution.
+  const regionalDefaultFrame = useMemo(() => ({
+    bounds: REGIONAL_MAP_CONTENT_BOUNDS,
+    topInset: desktopMapTopInset,
+    bottomInset: desktopMapBottomInset,
+    horizontalInsetRatio: REGIONAL_MAP_HORIZONTAL_INSET_RATIO,
+    mobileZoom: REGIONAL_MAP_DEFAULT_FRAME_SCALE * 1.15,
+    mobileCenterStationId: "union",
+    desktopScaleMultiplier: REGIONAL_MAP_DESKTOP_FRAME_SCALE,
+  }), [desktopMapBottomInset, desktopMapTopInset]);
+  const cameraOwnedBySelection = Boolean(selection || selectedStationId || commutePathPreview);
+  const {
+    cameraStore,
+    fitScale,
+    readCamera,
+    isCameraInitialized,
+    activePointerCount,
+    clearCameraAdjustment,
+    isCameraInteracting,
+    recenterFeedbackKey,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handlePointerLeave,
+    handlePointerCancel,
+    handleLostPointerCapture,
+    handleWheel,
+    initializeCamera,
+    stageInitialEntrance,
+    completeStagedEntrance,
+    recenter,
+    recenterWithFeedback,
+    zoomIn,
+    zoomOut,
+    zoomToScale,
+    logicalViewportSize,
+    defaultTransformForViewport,
+    moveToDefaultCamera,
+    animateTransformTo,
+    currentRenderedTransform,
+    shouldSuppressMapClick,
+    refitIfCameraUntouched,
+  } = usePanZoom({
+    persistenceKey: "regional",
+    persistenceBlocked: cameraOwnedBySelection,
+    automaticRefitBlocked: cameraOwnedBySelection,
+    reducedMotion,
+    viewportOrientation,
+    disableProgrammaticMotion: mobilePerformanceMode || !pageVisible,
+    defaultFrame: regionalDefaultFrame,
+    animateInitialEntrance,
+    isMapActive,
+    cameraFollower: overlapChooserFollower,
+    containerRef: viewportRef,
+    mapRef: mapStageRef,
+    flagRootRef: regionalMapRef,
+    revealStageOnWrite: false,
+  });
   useLayoutEffect(() => {
     selectionRef.current = selection;
     selectedStationIdRef.current = selectedStationId;
   }, [selectedStationId, selection]);
-
-  const logicalViewportSize = useCallback(() => {
-    const viewport = viewportRef.current;
-    const mapSurface = viewport?.closest<HTMLElement>(".network-map-transition-surface");
-    const physicalWidth = viewport?.clientWidth || mapSurface?.clientWidth || 0;
-    const physicalHeight = viewport?.clientHeight || mapSurface?.clientHeight || 0;
-    return logicalViewportSizeForOrientation(
-      physicalWidth,
-      physicalHeight,
-      viewportOrientation,
-    );
-  }, [viewportOrientation]);
-
-  const writeMapTransform = useCallback((nextCamera: Camera) => {
-    if (mapStageRef.current) {
-      mapStageRef.current.style.transform = orientedMapCameraTransform(
-        nextCamera,
-        viewportOrientation,
-        viewportRef.current?.clientWidth ?? 0,
-      );
-    }
-    overlapChooserFollower.writeCamera(nextCamera);
-  }, [overlapChooserFollower, viewportOrientation]);
-
-  const setMapTransition = useCallback((transition: string) => {
-    if (mapStageRef.current) {
-      mapStageRef.current.style.transition = transition;
-    }
-    overlapChooserFollower.setCameraTransition(transition);
-  }, [overlapChooserFollower]);
-
-  const setCameraMotionActive = useCallback((active: boolean) => {
-    const root = regionalMapRef.current;
-    if (!root) return;
-    root.dataset.regionalMapCameraMoving = active ? "true" : "false";
-    // The shared overlay CSS reads the same flag on both maps.
-    root.dataset.mapCameraMoving = active ? "true" : "false";
-  }, []);
-
-  const beginCameraMotion = useCallback(() => {
-    setCameraMotionActive(true);
-  }, [setCameraMotionActive]);
-
-  const endCameraMotion = useCallback(() => {
-    setCameraMotionActive(false);
-  }, [setCameraMotionActive]);
-
-  const setUserZoomMotion = useCallback((active: boolean) => {
-    const root = regionalMapRef.current;
-    if (!root) return;
-    root.dataset.mapZoomActive = active ? "true" : "false";
-  }, []);
-
-  const setUserGestureMotion = useCallback((active: boolean) => {
-    isGestureActiveRef.current = active;
-    const root = regionalMapRef.current;
-    if (!root) return;
-    root.dataset.mapGestureActive = active ? "true" : "false";
-  }, []);
-
-  const clearProgrammaticAnimation = useCallback(() => {
-    if (programmaticAnimationFrameRef.current !== null) {
-      window.cancelAnimationFrame(programmaticAnimationFrameRef.current);
-      programmaticAnimationFrameRef.current = null;
-    }
-    if (animTimeoutRef.current !== null) {
-      window.clearTimeout(animTimeoutRef.current);
-      animTimeoutRef.current = null;
-    }
-    if (wheelCommitTimeoutRef.current !== null) {
-      window.clearTimeout(wheelCommitTimeoutRef.current);
-      wheelCommitTimeoutRef.current = null;
-    }
-  }, []);
-
-  const currentRenderedCamera = useCallback((): Camera | null => {
-    if (!mapStageRef.current) return null;
-    const computedTransform = window.getComputedStyle(mapStageRef.current).transform;
-    if (!computedTransform || computedTransform === "none") return null;
-    const matrix = new DOMMatrixReadOnly(computedTransform);
-    return snapCameraToDevicePixels(cameraFromOrientedTransformMatrix(
-      { a: matrix.a, b: matrix.b, e: matrix.e, f: matrix.f },
-      viewportOrientation,
-      viewportRef.current?.clientWidth ?? 0,
-    ));
-  }, [viewportOrientation]);
-
-  const cancelCameraAnimation = useCallback(() => {
-    const renderedCamera = currentRenderedCamera();
-    clearProgrammaticAnimation();
-    setUserZoomMotion(false);
-    setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
-    if (!renderedCamera) return;
-    cameraRef.current = renderedCamera;
-    writeMapTransform(renderedCamera);
-    setCamera(renderedCamera);
-  }, [clearProgrammaticAnimation, currentRenderedCamera, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
-
-  const animateCameraTo = useCallback((
-    targetCamera: Camera,
-    nextFitScale?: number,
-    motion: CameraMotionOptions = {},
-  ) => {
-    cameraRef.current = targetCamera;
-    clearProgrammaticAnimation();
-    setUserZoomMotion(false);
-
-    if (!mapStageRef.current || !shouldAnimateProgrammaticTransform) {
-      setMapTransition("none");
-      writeMapTransform(targetCamera);
-      if (nextFitScale !== undefined) setFitScale(nextFitScale);
-      setCamera(targetCamera);
-      endCameraMotion();
-      return;
-    }
-
-    const durationMs = motion.durationMs ?? DEFAULT_CAMERA_MOTION_DURATION_MS;
-    const easing = motion.easing ?? DEFAULT_CAMERA_MOTION_EASING;
-    beginCameraMotion();
-    setMapTransition(`transform ${durationMs}ms ${easing}`);
-    programmaticAnimationFrameRef.current = window.requestAnimationFrame(() => {
-      programmaticAnimationFrameRef.current = null;
-      writeMapTransform(targetCamera);
-      animTimeoutRef.current = window.setTimeout(() => {
-        animTimeoutRef.current = null;
-        setMapTransition("none");
-        if (nextFitScale !== undefined) setFitScale(nextFitScale);
-        setCamera({ ...cameraRef.current });
-        endCameraMotion();
-      }, durationMs + 50);
-    });
-  }, [beginCameraMotion, clearProgrammaticAnimation, endCameraMotion, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
-
-  const snapCameraToNetwork = useCallback((targetCamera: Camera, nextFitScale: number) => {
-    clearProgrammaticAnimation();
-    setUserZoomMotion(false);
-    setMapTransition("none");
-    cameraRef.current = targetCamera;
-    writeMapTransform(targetCamera);
-    setFitScale((current) => current === nextFitScale ? current : nextFitScale);
-    setCamera((current) => (
-      current.x === targetCamera.x
-      && current.y === targetCamera.y
-      && current.scale === targetCamera.scale
-        ? current
-        : targetCamera
-    ));
-    endCameraMotion();
-  }, [clearProgrammaticAnimation, endCameraMotion, setMapTransition, setUserZoomMotion, writeMapTransform]);
-
-  useEffect(() => {
-    return () => {
-      clearProgrammaticAnimation();
-      if (dragAnimationFrameRef.current !== null) {
-        window.cancelAnimationFrame(dragAnimationFrameRef.current);
-      }
-      if (wheelCommitTimeoutRef.current !== null) {
-        window.clearTimeout(wheelCommitTimeoutRef.current);
-      }
-      endCameraMotion();
-      setUserZoomMotion(false);
-      setUserGestureMotion(false);
-    };
-  }, [clearProgrammaticAnimation, endCameraMotion, setUserGestureMotion, setUserZoomMotion]);
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -711,160 +556,31 @@ function InteractiveRegionalMapComponent({
     };
   }, [mapChromeVisible]);
 
-  const fittedCamera = useCallback(() => {
-    const viewport = viewportRef.current;
-    if (!viewport) return null;
-    const { width, height } = logicalViewportSize();
-    if (width <= 0 || height <= 0) return null;
-    const mobileInsets = viewportOrientation === "standard"
-      ? readMobileMapFrameInsets(viewport) : null;
-    if (mobileInsets) {
-      const horizontalInset = Math.min(32, Math.max(12, width * REGIONAL_MAP_MOBILE_INSET_RATIO));
-      const insets = { left: horizontalInset, right: horizontalInset, ...mobileInsets };
-      const frame = computeBoundedMapFrame(
-        width,
-        height,
-        REGIONAL_MAP_CONTENT_BOUNDS,
-        insets,
-      );
-      const focus = computeInsetViewportFocus(width, height, insets);
-      const frameScale = REGIONAL_MAP_DEFAULT_FRAME_SCALE * 1.15;
-      const unionX = readMapStationCenterX(viewport, "union");
-      const defaultFrame = {
-        x: unionX !== null ? focus.focusX - unionX * frame.scale * frameScale
-          : focus.focusX - (focus.focusX - frame.x) * frameScale,
-        y: focus.focusY - (focus.focusY - frame.y) * frameScale,
-        scale: frame.scale * frameScale,
-      };
-      return {
-        camera: snapCameraToDevicePixels(defaultFrame),
-        scale: defaultFrame.scale,
-        focus: { x: focus.focusX, y: focus.focusY },
-      };
-    }
-
-    const desktopFrame = computeDesktopMapFrame({
-      viewportWidth: width,
-      viewportHeight: height,
-      bounds: REGIONAL_MAP_CONTENT_BOUNDS,
-      horizontalInsetRatio: REGIONAL_MAP_HORIZONTAL_INSET_RATIO,
-      minHorizontalInset: 32,
-      scaleMultiplier: REGIONAL_MAP_DESKTOP_FRAME_SCALE,
-    });
-    return {
-      camera: snapCameraToDevicePixels(desktopFrame),
-      scale: desktopFrame.scale,
-      focus: {
-        x: width / 2,
-        y: height / 2,
-      },
-    };
-  }, [logicalViewportSize, viewportOrientation]);
-
-  const fitNetwork = useCallback(() => {
-    const fitted = fittedCamera();
-    if (!fitted) return;
-    cameraInitializedRef.current = true;
-    animateCameraTo(fitted.camera, fitted.scale);
-  }, [animateCameraTo, fittedCamera]);
-
-  const refitUntouchedNetwork = useCallback(() => {
-    if (document.visibilityState === "hidden" || !isMapActiveRef.current) return;
-    if (!cameraInitializedRef.current || cameraAdjustedByUserRef.current) return;
-    const fitted = fittedCamera();
-    if (!fitted) return;
-    if (
-      Math.abs(cameraRef.current.x - fitted.camera.x) < 0.5 &&
-      Math.abs(cameraRef.current.y - fitted.camera.y) < 0.5 &&
-      Math.abs(cameraRef.current.scale - fitted.camera.scale) < 0.0001
-    ) {
-      setFitScale((current) => fitted.scale !== current ? fitted.scale : current);
-      return;
-    }
-    clearProgrammaticAnimation();
-    setMapTransition("none");
-    cameraRef.current = fitted.camera;
-    writeMapTransform(fitted.camera);
-    setFitScale(fitted.scale);
-    setCamera(fitted.camera);
-  }, [clearProgrammaticAnimation, fittedCamera, setMapTransition, writeMapTransform]);
-
+  // Desktop insets and the phone's open sheet reframe an untouched camera.
   useEffect(() => {
-    if (!cameraInitializedRef.current || cameraAdjustedByUserRef.current) return;
-    refitUntouchedNetwork();
-  }, [refitUntouchedNetwork]);
+    refitIfCameraUntouched();
+  }, [refitIfCameraUntouched]);
 
   useLayoutEffect(() => observeMobileMapFrame(viewportRef.current, () => {
     if (!isMapActive) return;
-    if (window.innerWidth < 768 && !automaticResizeRefitBlockedRef.current) refitUntouchedNetwork();
-  }), [isMapActive, refitUntouchedNetwork, mapChromeVisible]);
+    if (window.innerWidth < 768 && !automaticResizeRefitBlockedRef.current) refitIfCameraUntouched();
+  }), [isMapActive, refitIfCameraUntouched, mapChromeVisible]);
 
-  const resetNetworkCamera = useCallback(() => {
-    cameraAdjustedByUserRef.current = false;
-    const fitted = fittedCamera();
-    if (!fitted) return false;
-    cameraInitializedRef.current = true;
-    // Commit Center directly. Opacity-based fade layers can force Android
-    // Chromium to promote and retile the already transformed map at its fitted
-    // scale, so visual feedback is painted separately by the viewport wash.
-    snapCameraToNetwork(fitted.camera, fitted.scale);
-    return true;
-  }, [fittedCamera, snapCameraToNetwork]);
+  const fitNetwork = useCallback(() => moveToDefaultCamera(true, false), [moveToDefaultCamera]);
+  // Center: clears the saved viewport and snaps to the fitted camera; the
+  // viewport wash gives the feedback (no fade layers over the stage).
+  const handleFitNetwork = recenterWithFeedback;
 
-  const handleFitNetwork = useCallback(() => {
-    clearMapViewport("regional");
-    if (resetNetworkCamera() && !reducedMotion) {
-      setRecenterFeedbackKey((current) => current + 1);
-    }
-  }, [reducedMotion, resetNetworkCamera]);
-
-  const restoreViewport = useMapViewportPersistence("regional", camera, fitScale, logicalViewportSize,
-    () => cameraInitializedRef.current && cameraAdjustedByUserRef.current && !selection && !selectedStationId && !commutePathPreview && viewportOrientation === "standard");
-  const restoreSavedCamera = useCallback(() => {
-    if (selection || selectedStationId || commutePathPreview || viewportOrientation !== "standard") return false;
-    const fitted = fittedCamera();
-    if (!fitted) return false;
-    const saved = restoreViewport(fitted.scale);
-    if (!saved) return false;
-    cameraInitializedRef.current = true;
-    cameraAdjustedByUserRef.current = true;
-    setCameraReady(true);
-    snapCameraToNetwork(saved, fitted.scale);
-    return true;
-  }, [commutePathPreview, fittedCamera, restoreViewport, selectedStationId, selection, snapCameraToNetwork, viewportOrientation]);
-
-  const stageInitialEntrance = useCallback(() => {
+  const stageRegionalEntrance = useCallback(() => {
     if (!svgMarkup) return;
-    if (restoreSavedCamera()) return;
-    const fitted = fittedCamera();
-    if (!fitted) return;
-    const { width, height } = logicalViewportSize();
-    if (width <= 0 || height <= 0) return;
-    const entryCamera = animateInitialEntrance
-      ? snapCameraToDevicePixels(
-          computeFittedCameraFlyInStart(fitted.camera, width, height, fitted.focus),
-        )
-      : fitted.camera;
-
-    cameraInitializedRef.current = true;
     setCameraReady(true);
-    cameraRef.current = entryCamera;
-    setMapTransition("none");
-    writeMapTransform(entryCamera);
-    setFitScale(fitted.scale);
-    setCamera(entryCamera);
-  }, [animateInitialEntrance, fittedCamera, logicalViewportSize, setMapTransition, svgMarkup, writeMapTransform, restoreSavedCamera]);
+    stageInitialEntrance();
+  }, [stageInitialEntrance, svgMarkup]);
 
-  const completeStagedEntrance = useCallback(() => {
-    if (restoreSavedCamera()) return;
-    const fitted = fittedCamera();
-    if (!fitted) return;
-    if (animateInitialEntrance && shouldAnimateProgrammaticTransform) {
-      animateCameraTo(fitted.camera, fitted.scale);
-      return;
-    }
-    snapCameraToNetwork(fitted.camera, fitted.scale);
-  }, [animateCameraTo, animateInitialEntrance, fittedCamera, shouldAnimateProgrammaticTransform, snapCameraToNetwork, restoreSavedCamera]);
+  const completeRegionalEntrance = useCallback(() => {
+    setCameraReady(true);
+    completeStagedEntrance();
+  }, [completeStagedEntrance]);
 
   const focusTargetKey = useMemo(() => {
     if (selection) return `${selection.kind}:${selection.id}:${selectionAttentionGeneration}`;
@@ -890,46 +606,20 @@ function InteractiveRegionalMapComponent({
     if (lastHandledLayoutResetSignalRef.current === layoutResetSignal) return;
     lastHandledLayoutResetSignalRef.current = layoutResetSignal;
     if (focusTargetKey) return;
-    const resetTimer = window.setTimeout(() => resetNetworkCamera(), 320);
+    const resetTimer = window.setTimeout(() => recenter(), 320);
     return () => window.clearTimeout(resetTimer);
-  }, [focusTargetKey, resetNetworkCamera, layoutResetSignal, svgMarkup]);
+  }, [focusTargetKey, recenter, layoutResetSignal, svgMarkup]);
 
   const initializeMapCamera = useCallback(() => {
-    if (cameraInitializedRef.current || !svgMarkup) return;
-    if (restoreSavedCamera()) return;
-    const fitted = fittedCamera();
-    if (!fitted) return;
-    cameraInitializedRef.current = true;
+    if (isCameraInitialized() || !svgMarkup) return;
+    const { width, height } = logicalViewportSize();
+    if (width <= 0 || height <= 0) return;
     setCameraReady(true);
-    if (focusTargetKey) {
-      cameraRef.current = fitted.camera;
-      setMapTransition("none");
-      writeMapTransform(fitted.camera);
-      setFitScale(fitted.scale);
-      setCamera(fitted.camera);
-      return;
-    }
-    if (animateInitialEntrance && shouldAnimateProgrammaticTransform) {
-      const { width, height } = logicalViewportSize();
-      const entryCamera = snapCameraToDevicePixels(
-        computeFittedCameraFlyInStart(fitted.camera, width, height, fitted.focus),
-      );
-      cameraRef.current = entryCamera;
-      setMapTransition("none");
-      writeMapTransform(entryCamera);
-      setCamera(entryCamera);
-      programmaticAnimationFrameRef.current = window.requestAnimationFrame(() => {
-        programmaticAnimationFrameRef.current = null;
-        animateCameraTo(fitted.camera, fitted.scale);
-      });
-      return;
-    }
-    setMapTransition("none");
-    cameraRef.current = fitted.camera;
-    writeMapTransform(fitted.camera);
-    setFitScale(fitted.scale);
-    setCamera(fitted.camera);
-  }, [animateCameraTo, animateInitialEntrance, fittedCamera, focusTargetKey, logicalViewportSize, setMapTransition, shouldAnimateProgrammaticTransform, svgMarkup, writeMapTransform, restoreSavedCamera]);
+    // A selection about to be framed starts from the fitted camera, without
+    // the entrance flight.
+    if (focusTargetKey) moveToDefaultCamera(false, false);
+    else initializeCamera();
+  }, [focusTargetKey, initializeCamera, isCameraInitialized, logicalViewportSize, moveToDefaultCamera, svgMarkup]);
 
   useEffect(() => {
     let cancelled = false;
@@ -941,40 +631,6 @@ function InteractiveRegionalMapComponent({
     });
     return () => { cancelled = true; };
   }, []);
-
-  useEffect(() => {
-    if (!svgMarkup || isMapActive || !useMobileRendering
-      || typeof window.requestIdleCallback !== "function") return;
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-    const samples = primeRegionalRouteSamples(viewport);
-    let idleCallback: number | null = null;
-    let completed = false;
-    const run = (deadline: IdleDeadline) => {
-      idleCallback = null;
-      if (document.querySelector('[data-map-gesture-active="true"]')) return;
-      // Keep each batch short enough for new native touch input to interrupt.
-      const started = performance.now();
-      while (deadline.timeRemaining() > 4 && performance.now() - started < 4) {
-        if (samples.next().done) { completed = true; return; }
-      }
-      schedule();
-    };
-    const schedule = () => {
-      if (completed || idleCallback !== null
-        || document.querySelector('[data-map-gesture-active="true"]')) return;
-      idleCallback = window.requestIdleCallback(run);
-    };
-    const observer = new MutationObserver(schedule);
-    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ["data-map-gesture-active"] });
-    schedule();
-    return () => {
-      completed = true;
-      observer.disconnect();
-      if (idleCallback !== null) window.cancelIdleCallback(idleCallback);
-      samples.return(undefined);
-    };
-  }, [isMapActive, svgMarkup, useMobileRendering]);
 
   const overlayMotionPaused = mapEffectMotionPaused || useMobileRendering;
   // Each poll parses fresh arrays even when nothing changed; compare what the
@@ -992,19 +648,16 @@ function InteractiveRegionalMapComponent({
     // Motion, selection and hover are applied in place by their own effects,
     // so a reduced-motion toggle or a brief page-visibility flip never
     // rebuilds the overlays (TTC parity).
-    const inputs = [overlayContentSignature, mapLabelFontReady, svgMarkup];
+    const inputs = [overlayContentSignature, svgMarkup];
     if (lastOverlayInputsRef.current?.every((value, index) => value === inputs[index])) return;
 
-    const svg = viewport.querySelector<SVGSVGElement>('svg[aria-label="GO and UP regional rail schematic"]');
-    const plane = svg ? regionalOverlayPlane(svg) : null;
-    const portals = regionalLineAlertPortals(viewport);
-    if (!svg || !plane || !portals) return;
-    const nextLineAlerts = regionalLineAlerts(svg, { activeAlerts, networkSegments, stationNodeImpacts });
-    const nextStationOverlays = regionalStationAlerts(svg, {
+    // Geometry is prepared data (REGIONAL_GEOMETRY); nothing here reads the SVG.
+    const plane = REGIONAL_OVERLAY_PLANE;
+    const nextLineAlerts = regionalLineAlerts(REGIONAL_GEOMETRY, { activeAlerts, networkSegments, stationNodeImpacts });
+    const nextStationOverlays = regionalStationAlerts(REGIONAL_GEOMETRY, {
       activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts: stationAlertImpacts, stations,
     }, plane.unit);
-    const nextCommutePreview = regionalCommutePreview(svg, commutePathPreview, networkSegments);
-    // The shared overlay layer draws these through portals below.
+    const nextCommutePreview = regionalCommutePreview(REGIONAL_GEOMETRY, commutePathPreview, networkSegments);
     setLineAlerts((current) => (
       JSON.stringify(current) === JSON.stringify(nextLineAlerts) ? current : nextLineAlerts
     ));
@@ -1017,14 +670,9 @@ function InteractiveRegionalMapComponent({
     setCommutePreview((current) => (
       JSON.stringify(current) === JSON.stringify(nextCommutePreview) ? current : nextCommutePreview
     ));
-    setOverlayPlane((current) => (
-      JSON.stringify(current) === JSON.stringify(plane) ? current : plane
-    ));
-    setLineAlertPortals((current) => (
-      current?.segment === portals.segment ? current : portals
-    ));
+    setOverlayPlane(plane);
     // Badges are placed from the overlay model, before React draws it.
-    setOverlapBadges(regionalOverlapBadgeLayout(svg, {
+    setOverlapBadges(regionalOverlapBadgeLayout(REGIONAL_GEOMETRY, {
       networkSegments,
       stationNodeImpacts: stationAlertImpacts,
       stations,
@@ -1037,7 +685,6 @@ function InteractiveRegionalMapComponent({
     commutePathPreview,
     delays,
     isMapActive,
-    mapLabelFontReady,
     networkSegments,
     overlayContentSignature,
     plannedClosures,
@@ -1053,24 +700,28 @@ function InteractiveRegionalMapComponent({
     const viewport = viewportRef.current;
     if (!viewport || !svgMarkup) return;
     return installRegionalStationLabelHover(viewport, {
-      isPointerGestureActive: () => activePointersRef.current.size > 0,
+      isPointerGestureActive: () => activePointerCount() > 0,
       onHoverStationId: (stationId) => {
         setHoveredStationLabel((current) => {
           if (!mapLabelFontReady) return null;
           if (current?.stationId === stationId) return current;
-          const root = viewportRef.current;
-          return root ? regionalStationLabelHover(root, stationId) : null;
+          const hover = regionalStationLabelHover(REGIONAL_GEOMETRY, stationId);
+          const cutoutMarkup = stationId && viewportRef.current
+            ? regionalStationLabelCutoutMarkup(viewportRef.current, stationId)
+            : null;
+          return hover && cutoutMarkup ? { ...hover, cutoutMarkup } : null;
         });
       },
     });
-  }, [mapLabelFontReady, svgMarkup]);
+  }, [activePointerCount, mapLabelFontReady, svgMarkup]);
 
-  // The selected station's injected target and indicator, with its intro state.
-  useLayoutEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport || !svgMarkup) return;
-    applyRegionalStationSelection(viewport, selectedStationId ?? null, selectionIntroComplete);
-  }, [isMapActive, selectedStationId, selectionIntroComplete, svgMarkup]);
+  const setStationHovered = useCallback((stationId: string, hovered: boolean) => {
+    setMapStationHovered(viewportRef.current, stationId, hovered);
+  }, []);
+  const selectedStationArtwork = useMemo(
+    () => stationArtwork.find((station) => station.id === selectedStationId) ?? null,
+    [selectedStationId, stationArtwork],
+  );
 
   // A commute preview and a selected station pulse on one clock, as on TTC.
   useMapPulseSync(viewportRef, {
@@ -1085,14 +736,14 @@ function InteractiveRegionalMapComponent({
     if (!viewport) return;
     const controller = installMapHoverController(viewport, {
       previewOutlineLayer: () => previewOutlineLayerRef.current,
-      isPointerGestureActive: () => activePointersRef.current.size > 0,
+      isPointerGestureActive: () => activePointerCount() > 0,
     });
     hoverControllerRef.current = controller;
     return () => {
       controller.dispose();
       hoverControllerRef.current = null;
     };
-  }, []);
+  }, [activePointerCount]);
 
   useLayoutEffect(() => {
     hoverControllerRef.current?.setOutlineSource(overlayPlane, lineAlertPathsByImpact(lineAlerts));
@@ -1101,7 +752,7 @@ function InteractiveRegionalMapComponent({
   // Overlay nodes of changed alerts mount idle; reapply the current hover.
   useLayoutEffect(() => {
     hoverControllerRef.current?.restore();
-  }, [lineAlerts, lineAlertPortals, stationAlerts]);
+  }, [lineAlerts, stationAlerts]);
 
   useLayoutEffect(() => {
     const markerLayer = viewportRef.current?.querySelector<SVGGElement>(
@@ -1121,15 +772,13 @@ function InteractiveRegionalMapComponent({
       return;
     }
 
-    // The marker layer sits in the top plane; the corridor paths and station
-    // anchors it follows are in the live diagram SVG.
-    const liveSvg = viewportRef.current?.querySelector<SVGSVGElement>(".regional-live-svg svg");
-    if (!liveSvg) return;
-    const documentNode = regionalSvgScope(liveSvg);
+    // Markers follow the prepared corridors, in the top plane's (root) coordinates.
+    if (!svgMarkup) return;
+    const documentNode = markerLayer.ownerDocument;
     for (const marker of estimatedTrainMarkers) {
       const segment = networkSegments.find((item) => item.id === marker.segmentId);
       if (!segment) continue;
-      const frame = regionalTrainMarkerFrame(documentNode, segment, marker);
+      const frame = regionalTrainMarkerFrame(REGIONAL_GEOMETRY, segment, marker);
       if (!frame) continue;
       const markerKey = estimatedTrainMarkerRenderKey(marker);
       const existingGroup = existingMarkersByKey.get(markerKey);
@@ -1157,7 +806,7 @@ function InteractiveRegionalMapComponent({
         },
         marker,
         networkSegments,
-        documentNode,
+        REGIONAL_GEOMETRY,
         trainMarkerMotionRef.current,
         !mapEffectMotionPaused,
       );
@@ -1179,16 +828,16 @@ function InteractiveRegionalMapComponent({
     const frame = window.requestAnimationFrame(() => {
       if (deferInitialEntrance) {
         entranceWasDeferredRef.current = true;
-        stageInitialEntrance();
+        stageRegionalEntrance();
       } else if (entranceWasDeferredRef.current) {
         entranceWasDeferredRef.current = false;
-        completeStagedEntrance();
+        completeRegionalEntrance();
       } else {
         initializeMapCamera();
       }
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [completeStagedEntrance, deferInitialEntrance, initializeMapCamera, stageInitialEntrance]);
+  }, [completeRegionalEntrance, deferInitialEntrance, initializeMapCamera, stageRegionalEntrance]);
 
   useEffect(() => {
     if (
@@ -1233,116 +882,24 @@ function InteractiveRegionalMapComponent({
   useEffect(() => {
     if (lastViewportOrientationRef.current === viewportOrientation) return;
     lastViewportOrientationRef.current = viewportOrientation;
-    if (!cameraInitializedRef.current) return;
-    cameraAdjustedByUserRef.current = false;
+    if (!isCameraInitialized()) return;
+    clearCameraAdjustment();
     const frame = window.requestAnimationFrame(fitNetwork);
     return () => window.cancelAnimationFrame(frame);
-  }, [fitNetwork, viewportOrientation]);
+  }, [clearCameraAdjustment, fitNetwork, isCameraInitialized, viewportOrientation]);
 
-  const lastRegionalDimensionsRef = useRef<{ width: number; height: number }>({
-    width: 0,
-    height: 0,
-  });
-
-  const reconcileRegionalViewport = useCallback(() => {
-    if (document.visibilityState === "hidden") return;
-    const viewport = viewportRef.current;
-    if (!viewport || !isMapActiveRef.current || !cameraInitializedRef.current) return;
-    const physicalWidth = viewport.clientWidth;
-    const physicalHeight = viewport.clientHeight;
-    if (physicalWidth <= 0 || physicalHeight <= 0) return;
-
-    const { width, height } = logicalViewportSizeForOrientation(
-      physicalWidth,
-      physicalHeight,
-      viewportOrientation,
-    );
-
-    const prev = lastRegionalDimensionsRef.current;
-    const diffW = Math.abs(prev.width - width);
-    const diffH = Math.abs(prev.height - height);
-
-    if (diffW < 1 && diffH < 1) return;
-
-    // A focused selection owns the camera; refitting the whole network here
-    // would cancel its zoom/pan (e.g. the first click after a network swap).
-    const isUntouched = !cameraAdjustedByUserRef.current && !automaticResizeRefitBlockedRef.current;
-
-    if (prev.width <= 0 || prev.height <= 0) {
-      lastRegionalDimensionsRef.current = { width, height };
-      if (isUntouched) {
-        refitUntouchedNetwork();
-      }
-      return;
-    }
-
-    if (isUntouched) {
-      lastRegionalDimensionsRef.current = { width, height };
-      refitUntouchedNetwork();
-      return;
-    }
-
-    // Explored camera: preserve zoom and center current geographic focus in new usable rectangle
-    const prevCenterX = prev.width / 2;
-    const prevCenterY = prev.height / 2;
-    const mapPoint = mapPointFromViewportPoint(cameraRef.current, { x: prevCenterX, y: prevCenterY });
-    const nextCenterX = width / 2;
-    const nextCenterY = height / 2;
-    const nextCamera = transformForMapPointAtViewportPoint(
-      mapPoint,
-      { x: nextCenterX, y: nextCenterY },
-      cameraRef.current.scale,
-    );
-    const snapped = snapTransformToDevicePixels(nextCamera, currentDevicePixelRatio());
-    cameraRef.current = snapped;
-    writeMapTransform(snapped);
-    setCamera({ ...snapped });
-    lastRegionalDimensionsRef.current = { width, height };
-  }, [cameraInitializedRef, cameraAdjustedByUserRef, refitUntouchedNetwork, viewportOrientation, writeMapTransform]);
-
+  // The camera starts once the viewport has a size; usePanZoom reconciles
+  // later resizes.
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     const observer = new ResizeObserver(() => {
       if (document.visibilityState === "hidden" || !isMapActiveRef.current) return;
-      if (!cameraInitializedRef.current) {
-        initializeMapCamera();
-        return;
-      }
-      reconcileRegionalViewport();
+      if (!isCameraInitialized()) initializeMapCamera();
     });
     observer.observe(viewport);
-    const mapSurface = viewport.closest<HTMLElement>(".network-map-transition-surface");
-    if (mapSurface) observer.observe(mapSurface);
     return () => observer.disconnect();
-  }, [initializeMapCamera, reconcileRegionalViewport]);
-
-  useEffect(() => {
-    const handleWindowResize = () => {
-      if (automaticResizeRefitBlockedRef.current) return;
-      refitUntouchedNetwork();
-      reconcileRegionalViewport();
-    };
-    let resumeFrame: number | null = null;
-    const handleVisibilityChange = () => {
-      if (resumeFrame !== null) window.cancelAnimationFrame(resumeFrame);
-      resumeFrame = null;
-      if (document.visibilityState !== "visible") return;
-      // Reconcile a real window resize that happened while hidden. Unchanged
-      // dimensions leave the camera alone rather than fitting it again.
-      resumeFrame = window.requestAnimationFrame(() => {
-        resumeFrame = null;
-        reconcileRegionalViewport();
-      });
-    };
-    window.addEventListener("resize", handleWindowResize);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      window.removeEventListener("resize", handleWindowResize);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (resumeFrame !== null) window.cancelAnimationFrame(resumeFrame);
-    };
-  }, [reconcileRegionalViewport, refitUntouchedNetwork]);
+  }, [initializeMapCamera, isCameraInitialized]);
 
   const selectedMapElements = useCallback(() => {
     const root = viewportRef.current;
@@ -1445,7 +1002,7 @@ function InteractiveRegionalMapComponent({
       .filter((bounds): bounds is NonNullable<typeof bounds> => bounds !== null);
     if (visibleBounds.length === 0) return false;
 
-    const current = cameraRef.current;
+    const current = readCamera();
     const left = Math.min(...visibleBounds.map((bounds) => bounds.x));
     const right = Math.max(...visibleBounds.map((bounds) => bounds.x + bounds.width));
     const top = Math.min(...visibleBounds.map((bounds) => bounds.y));
@@ -1458,8 +1015,7 @@ function InteractiveRegionalMapComponent({
     if (logicalWidth <= 0 || logicalHeight <= 0) return false;
 
     const isMobile = typeof window !== "undefined" && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches;
-    const currentFitted = fittedCamera();
-    const effectiveFitScale = currentFitted?.scale ?? fitScale ?? 0.35;
+    const effectiveFitScale = defaultTransformForViewport(logicalWidth, logicalHeight).scale;
     const commutePreviewComfort = commutePathPreview && !selection && !selectedStationId ? 0.82 : 1;
     const preferredTargetScale = clampPanZoomScale(effectiveFitScale * (isMobile ? 3.8 : 1.8), effectiveFitScale);
     const { insets: focusInsets, topPillBottom, mobileStationTop } = readOccludedInsets(viewport, logicalHeight, isMobile);
@@ -1474,11 +1030,11 @@ function InteractiveRegionalMapComponent({
           ? (topPillBottom + mobileStationTop) / 2
           : (viewportOrientation === "rotated-landscape" ? logicalHeight * 0.34 : logicalHeight / 2);
 
-      animateCameraTo(snapCameraToDevicePixels({
+      animateTransformTo({
         x: focusX - mapX * targetScale,
         y: focusY - mapY * targetScale,
         scale: targetScale,
-      }), effectiveFitScale);
+      }, effectiveFitScale);
       return true;
     }
 
@@ -1509,17 +1065,16 @@ function InteractiveRegionalMapComponent({
         ? logicalHeight * 0.34
         : baseFocusY;
 
-    animateCameraTo(snapCameraToDevicePixels({
+    animateTransformTo({
       x: focusX - mapX * targetScale,
       y: focusY - mapY * targetScale,
       scale: targetScale,
-    }), effectiveFitScale);
+    }, effectiveFitScale);
     return true;
-  }, [
-    animateCameraTo,
+  }, [readCamera, 
+    animateTransformTo,
     commutePathPreview,
-    fitScale,
-    fittedCamera,
+    defaultTransformForViewport,
     logicalViewportSize,
     readOccludedInsets,
     selectedMapElements,
@@ -1541,16 +1096,16 @@ function InteractiveRegionalMapComponent({
     const { insets } = readOccludedInsets(viewport, height, isMobile);
     const offset = focusRevealTranslation(box, focusRevealSafeArea(width, height, insets));
     if (!offset) return;
-    const current = currentRenderedCamera() ?? cameraRef.current;
-    animateCameraTo(snapCameraToDevicePixels({
+    const current = currentRenderedTransform() ?? readCamera();
+    animateTransformTo({
       x: current.x + offset.dx,
       y: current.y + offset.dy,
       scale: current.scale,
-    }), undefined, { durationMs: FOCUS_REVEAL_DURATION_MS });
-  }, [animateCameraTo, cameraReady, currentRenderedCamera, logicalViewportSize, readOccludedInsets, viewportOrientation]);
+    }, undefined, true, FOCUS_REVEAL_DURATION_MS);
+  }, [animateTransformTo, cameraReady, currentRenderedTransform, logicalViewportSize, readCamera, readOccludedInsets, viewportOrientation]);
 
   useEffect(() => {
-    if (!cameraInitializedRef.current || !svgMarkup) return;
+    if (!isCameraInitialized() || !svgMarkup) return;
     const layoutKey = `${layoutResetSignal ?? 0}:${desktopMapTopInset}:${desktopMapBottomInset}:${viewportOrientation}`;
 
     if (!focusTargetKey) {
@@ -1588,7 +1143,7 @@ function InteractiveRegionalMapComponent({
       window.cancelAnimationFrame(frame);
       if (retryTimer !== null) window.clearTimeout(retryTimer);
     };
-  }, [
+  }, [isCameraInitialized, 
     desktopMapBottomInset,
     desktopMapTopInset,
     fitNetwork,
@@ -1601,83 +1156,21 @@ function InteractiveRegionalMapComponent({
     viewportOrientation,
   ]);
 
-  const scheduleCameraCommit = useCallback(() => {
-    if (wheelCommitTimeoutRef.current !== null) {
-      window.clearTimeout(wheelCommitTimeoutRef.current);
-    }
-    wheelCommitTimeoutRef.current = window.setTimeout(() => {
-      wheelCommitTimeoutRef.current = null;
-      setCamera({ ...cameraRef.current });
-      setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
-      setUserZoomMotion(false);
-    }, 140);
-  }, [setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform]);
-
-  const zoomAtCenter = useCallback((factor: number) => {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-    cameraAdjustedByUserRef.current = true;
-    clearProgrammaticAnimation();
-    endCameraMotion();
-    setUserZoomMotion(true);
-    setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
-    const { width, height } = logicalViewportSize();
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const current = cameraRef.current;
-    const nextScale = clampPanZoomScale(current.scale * factor, fitScale);
-    const ratio = current.scale > 0 ? nextScale / current.scale : 1;
-    const nextCamera = snapCameraToDevicePixels({
-      x: centerX - (centerX - current.x) * ratio,
-      y: centerY - (centerY - current.y) * ratio,
-      scale: nextScale,
-    });
-    cameraRef.current = nextCamera;
-    writeMapTransform(nextCamera);
-    setCamera(nextCamera);
-    scheduleCameraCommit();
-  }, [clearProgrammaticAnimation, endCameraMotion, fitScale, logicalViewportSize, scheduleCameraCommit, setCamera, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
-
   const lastZoomInSignalRef = useRef(zoomInSignal);
   useEffect(() => {
     if (zoomInSignal === undefined || zoomInSignal === lastZoomInSignalRef.current) return;
     lastZoomInSignalRef.current = zoomInSignal;
     if (!cameraCommandsEnabledRef.current) return;
-    zoomAtCenter(1.25);
-  }, [zoomAtCenter, zoomInSignal]);
+    zoomIn();
+  }, [zoomIn, zoomInSignal]);
 
   const lastZoomOutSignalRef = useRef(zoomOutSignal);
   useEffect(() => {
     if (zoomOutSignal === undefined || zoomOutSignal === lastZoomOutSignalRef.current) return;
     lastZoomOutSignalRef.current = zoomOutSignal;
     if (!cameraCommandsEnabledRef.current) return;
-    zoomAtCenter(1 / 1.25);
-  }, [zoomAtCenter, zoomOutSignal]);
-
-  const zoomToScale = useCallback((targetRelativeScale: number) => {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-    cameraAdjustedByUserRef.current = true;
-    clearProgrammaticAnimation();
-    endCameraMotion();
-    setUserZoomMotion(true);
-    setMapTransition("none");
-    const { width, height } = logicalViewportSize();
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const current = cameraRef.current;
-    const nextScale = clampPanZoomScale(targetRelativeScale * fitScale, fitScale);
-    const ratio = current.scale > 0 ? nextScale / current.scale : 1;
-    const nextCamera = snapCameraToDevicePixels({
-      x: centerX - (centerX - current.x) * ratio,
-      y: centerY - (centerY - current.y) * ratio,
-      scale: nextScale,
-    });
-    cameraRef.current = nextCamera;
-    writeMapTransform(nextCamera);
-    setCamera(nextCamera);
-    scheduleCameraCommit();
-  }, [clearProgrammaticAnimation, endCameraMotion, fitScale, logicalViewportSize, scheduleCameraCommit, setCamera, setMapTransition, setUserZoomMotion, writeMapTransform]);
+    zoomOut();
+  }, [zoomOut, zoomOutSignal]);
 
   // The browser's wheel action (page zoom on a trackpad pinch) stays off the map, as on TTC.
   usePreventMapWheelDefault(viewportRef);
@@ -1685,258 +1178,51 @@ function InteractiveRegionalMapComponent({
     if (isMapWheelScrollRegionTarget(event.target)) return;
     // A wheel ends the pointer hover (the hover controller ends alert hover).
     setHoveredStationLabel(null);
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-    cameraAdjustedByUserRef.current = true;
+    clearMapStationHover(viewportRef.current);
+    handleWheel(event);
+  }, [handleWheel]);
 
-    // Enter zoom mode once per wheel gesture, as TTC does. Re-entering it on
-    // every tick drops it between coarse wheel notches, which blinks the
-    // glows and auras that zoom mode hides. The short easing still lets
-    // coarse notches interpolate.
-    if (wheelCommitTimeoutRef.current === null) {
-      clearProgrammaticAnimation();
-      endCameraMotion();
-      setUserZoomMotion(true);
-      setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
-    }
-
-    const pointer = clientPointToLogicalViewportPoint(
-      { x: event.clientX, y: event.clientY },
-      viewport.getBoundingClientRect(),
-      viewportOrientation,
-    );
-    const pointerX = pointer.x;
-    const pointerY = pointer.y;
-    const current = cameraRef.current;
-    const delta = -event.deltaY * 0.001;
-    const nextScale = clampPanZoomScale(current.scale * (1 + delta), fitScale);
-    const scaleRatio = nextScale / current.scale;
-    const nextCamera = snapCameraToDevicePixels({
-      x: pointerX - (pointerX - current.x) * scaleRatio,
-      y: pointerY - (pointerY - current.y) * scaleRatio,
-      scale: nextScale,
-    });
-
-    cameraRef.current = nextCamera;
-    writeMapTransform(nextCamera);
-
-    if (wheelCommitTimeoutRef.current !== null) {
-      window.clearTimeout(wheelCommitTimeoutRef.current);
-    }
-    wheelCommitTimeoutRef.current = window.setTimeout(() => {
-      wheelCommitTimeoutRef.current = null;
-      setCamera({ ...cameraRef.current });
-      setUserZoomMotion(false);
-    }, 100);
-  }, [clearProgrammaticAnimation, endCameraMotion, fitScale, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, viewportOrientation, writeMapTransform]);
-
-  const applyActiveGesture = useCallback(() => {
-    const pointers = [...activePointersRef.current.values()];
-    const pinch = pinchGestureRef.current;
-    let nextCamera: Camera | null = null;
-
-    if (pinch && pointers.length >= 2) {
-      const [first, second] = pointers;
-      const distance = distanceBetweenPoints(first, second);
-      if (pinch.startDistance > 0) {
-        const midpoint = midpointBetweenPoints(first, second);
-        const nextScale = clampPanZoomScale(
-          pinch.startScale * (distance / pinch.startDistance),
-          fitScale,
-        );
-        nextCamera = snapCameraToDevicePixels(
-          transformForMapPointAtViewportPoint(pinch.mapPointAtMidpoint, midpoint, nextScale),
-        );
-      }
-    } else {
-      const drag = dragRef.current;
-      const point = pendingDragPointRef.current;
-      if (drag && point) {
-        nextCamera = snapCameraToDevicePixels({
-          ...drag.camera,
-          x: drag.camera.x + point.x - drag.x,
-          y: drag.camera.y + point.y - drag.y,
-        });
-      }
-    }
-
-    if (!nextCamera) return;
-    cameraRef.current = nextCamera;
-    writeMapTransform(nextCamera);
-  }, [fitScale, writeMapTransform]);
-
-  const interruptPointerInteraction = useCallback(() => {
-    if (!isGestureActiveRef.current) return;
-    if (dragAnimationFrameRef.current !== null) {
-      window.cancelAnimationFrame(dragAnimationFrameRef.current);
-      dragAnimationFrameRef.current = null;
-    }
-    const pointerIds = [...activePointersRef.current.keys()];
-    activePointersRef.current.clear();
-    pinchGestureRef.current = null;
-    pendingDragPointRef.current = null;
-    dragRef.current = null;
-    activeContainerRectRef.current = null;
-    pointerActivationRef.current = null;
-    dragMovedRef.current = true;
-    setUserGestureMotion(false);
-    setCamera({ ...cameraRef.current });
-    endCameraMotion();
-    for (const pointerId of pointerIds) {
-      try {
-        if (viewportRef.current?.hasPointerCapture(pointerId)) {
-          viewportRef.current.releasePointerCapture(pointerId);
-        }
-      } catch {
-        // The browser may already have released capture while suspending.
-      }
-    }
-  }, [endCameraMotion, setUserGestureMotion]);
-
-  useMapGestureInterruption(interruptPointerInteraction);
-
-  const onLostPointerCapture = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    // Ignore the child's implicit touch capture transferring to this viewport.
-    if (activePointersRef.current.has(event.pointerId) && !event.currentTarget.hasPointerCapture(event.pointerId)) {
-      interruptPointerInteraction();
-    }
-  }, [interruptPointerInteraction]);
-
+  // Gestures are the shared camera's. GO/UP resolves a tap on its injected
+  // targets at release, from what was under the press.
   const onPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
     // A press ends the pointer hover, keeping a label that is itself pressed.
     if (!(event.target instanceof Element && event.target.closest(".regional-station-label-hit-target"))) {
       setHoveredStationLabel(null);
     }
+    clearMapStationHover(viewportRef.current);
     if (event.pointerType === "mouse" && event.button !== 0) return;
-    cancelCameraAnimation();
-    // A direct drag follows the pointer with no transform easing. Easing each
-    // move kept the stage in a transform transition, and Chrome's redraw when
-    // it settled after release tore the map, overlays and sidebar.
-    setMapTransition("none");
-    // Direct manipulation uses the shared gesture-active paint contract. Do
-    // not apply the stronger programmatic-flight simplification, which removes
-    // alert glows while a rider is simply dragging the map.
-    endCameraMotion();
-    const rect = event.currentTarget.getBoundingClientRect();
-    activeContainerRectRef.current = rect;
-    const point = clientPointToLogicalViewportPoint(
-      { x: event.clientX, y: event.clientY },
-      rect,
-      viewportOrientation,
-    );
-
-    if (activePointersRef.current.size === 0) {
-      const target = event.target instanceof Element ? event.target : null;
-      const impact = target?.closest<SVGElement>("[data-map-impact-kind]");
-      const station = target?.closest<SVGElement>("[data-regional-station-id]");
-      const impactSelection = impact
-        ? regionalPointerImpactSelection(event.currentTarget, impact, event.clientX, event.clientY)
+    const firstPointer = activePointerCount() === 0;
+    handlePointerDown(event);
+    pointerActivationRef.current = null;
+    // A press that stops a glide only stops it (the camera suppresses its click).
+    if (!firstPointer || shouldSuppressMapClick()) return;
+    const target = event.target instanceof Element ? event.target : null;
+    const impact = target?.closest<SVGElement>("[data-map-impact-kind]");
+    const station = target?.closest<SVGElement>("[data-regional-station-id]");
+    const impactSelection = impact
+      ? regionalPointerImpactSelection(event.currentTarget, impact, event.clientX, event.clientY)
+      : null;
+    pointerActivationRef.current = impactSelection
+      ? { type: "impact", selection: impactSelection }
+      : station?.dataset.regionalStationId
+        ? { type: "station", id: station.dataset.regionalStationId }
         : null;
-      pointerActivationRef.current = impactSelection
-        ? { type: "impact", selection: impactSelection }
-        : station?.dataset.regionalStationId
-          ? { type: "station", id: station.dataset.regionalStationId }
-          : null;
-      dragMovedRef.current = false;
-      dragRef.current = { pointerId: event.pointerId, x: point.x, y: point.y, camera: cameraRef.current };
-    }
-
-    activePointersRef.current.set(event.pointerId, point);
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      // Capture can fail when the pointer has already been released. The
-      // map gesture state still needs to pause overlay motion.
-    }
-    pendingDragPointRef.current = point;
-
-    if (activePointersRef.current.size >= 2) {
-      cameraAdjustedByUserRef.current = true;
-      const [first, second] = [...activePointersRef.current.values()];
-      const midpoint = midpointBetweenPoints(first, second);
-      pinchGestureRef.current = {
-        startDistance: distanceBetweenPoints(first, second),
-        startScale: cameraRef.current.scale,
-        mapPointAtMidpoint: mapPointFromViewportPoint(cameraRef.current, midpoint),
-      };
-      dragRef.current = null;
-      pointerActivationRef.current = null;
-      dragMovedRef.current = true;
-    }
-    setUserGestureMotion(true);
-  }, [cancelCameraAnimation, endCameraMotion, setMapTransition, setUserGestureMotion, viewportOrientation]);
+  }, [activePointerCount, handlePointerDown, shouldSuppressMapClick]);
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    if (!activePointersRef.current.has(event.pointerId)) return;
-    if (event.pointerType === "mouse" && (event.buttons & 1) === 0) {
-      interruptPointerInteraction();
-      return;
-    }
-    const rect = activeContainerRectRef.current ?? event.currentTarget.getBoundingClientRect();
-    const point = clientPointToLogicalViewportPoint(
-      { x: event.clientX, y: event.clientY },
-      rect,
-      viewportOrientation,
-    );
-    activePointersRef.current.set(event.pointerId, point);
-    pendingDragPointRef.current = point;
+    handlePointerMove(event);
+    if (shouldSuppressMapClick()) pointerActivationRef.current = null;
+  }, [handlePointerMove, shouldSuppressMapClick]);
 
-    const drag = dragRef.current;
-    if (drag && drag.pointerId === event.pointerId && exceedsMapTapMovement(drag, point, 8)) {
-      cameraAdjustedByUserRef.current = true;
-      dragMovedRef.current = true;
-      pointerActivationRef.current = null;
-    }
-    if (dragAnimationFrameRef.current !== null) return;
-    dragAnimationFrameRef.current = window.requestAnimationFrame(() => {
-      dragAnimationFrameRef.current = null;
-      applyActiveGesture();
-    });
-  }, [applyActiveGesture, interruptPointerInteraction, viewportOrientation]);
-
-  const onPointerUp = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    if (!activePointersRef.current.has(event.pointerId)) return;
-    if (dragAnimationFrameRef.current !== null) {
-      window.cancelAnimationFrame(dragAnimationFrameRef.current);
-      dragAnimationFrameRef.current = null;
-    }
-    applyActiveGesture();
-    activePointersRef.current.delete(event.pointerId);
-    try {
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }
-    } catch {
-      // Pointer capture may already be released by the browser during cancellation.
-    }
-
-    const remainingPointers = [...activePointersRef.current.entries()];
-    if (remainingPointers.length === 1) {
-      const [pointerId, point] = remainingPointers[0];
-      pinchGestureRef.current = null;
-      pendingDragPointRef.current = point;
-      dragRef.current = { pointerId, x: point.x, y: point.y, camera: cameraRef.current };
-      return;
-    }
-    if (remainingPointers.length > 1) {
-      const [, first] = remainingPointers[0];
-      const [, second] = remainingPointers[1];
-      const midpoint = midpointBetweenPoints(first, second);
-      pinchGestureRef.current = {
-        startDistance: distanceBetweenPoints(first, second),
-        startScale: cameraRef.current.scale,
-        mapPointAtMidpoint: mapPointFromViewportPoint(cameraRef.current, midpoint),
-      };
-      return;
-    }
-
-    pinchGestureRef.current = null;
-    pendingDragPointRef.current = null;
-    dragRef.current = null;
-    activeContainerRectRef.current = null;
+  const finishPointer = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    if (activePointerCount() === 0) return;
+    if (event.type === "pointercancel") handlePointerCancel(event);
+    else handlePointerUp(event);
+    if (activePointerCount() > 0) return;
     const activation = pointerActivationRef.current;
     pointerActivationRef.current = null;
-    if (event.type === "pointerup" && !dragMovedRef.current && activation) {
+    if (event.type !== "pointerup" || shouldSuppressMapClick()) return;
+    if (activation) {
       suppressNextClickRef.current = true;
       window.setTimeout(() => {
         suppressNextClickRef.current = false;
@@ -1946,17 +1232,14 @@ function InteractiveRegionalMapComponent({
       } else {
         onSelectImpact(activation.selection);
       }
-    } else if (event.type === "pointerup" && !dragMovedRef.current && !activation) {
-      const target = event.target instanceof Element ? event.target : null;
-      if (!target?.closest(".overlap-indicator, [data-map-impact-kind], [data-regional-station-id], button, [role='button'], [data-map-chooser-keepout]")) {
-        onSelectImpact(null);
-        onSelectStationId(null);
-      }
+      return;
     }
-    setCamera({ ...cameraRef.current });
-    setUserGestureMotion(false);
-    endCameraMotion();
-  }, [applyActiveGesture, endCameraMotion, onSelectImpact, onSelectStationId, setUserGestureMotion]);
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target?.closest(".overlap-indicator, [data-map-impact-kind], [data-regional-station-id], button, [role='button'], [data-map-chooser-keepout]")) {
+      onSelectImpact(null);
+      onSelectStationId(null);
+    }
+  }, [activePointerCount, handlePointerCancel, handlePointerUp, onSelectImpact, onSelectStationId, shouldSuppressMapClick]);
 
   const activateTarget = useCallback((target: EventTarget | null) => {
     if (!(target instanceof Element)) return;
@@ -1996,18 +1279,14 @@ function InteractiveRegionalMapComponent({
     badge: RegionalOverlapBadge,
     opening = false,
   ) => {
-    if (!opening && (
-      isGestureActiveRef.current
-      || animTimeoutRef.current !== null
-      || programmaticAnimationFrameRef.current !== null
-    )) return false;
+    if (!opening && isCameraInteracting()) return false;
     const viewport = viewportRef.current;
     const marker = viewport ? regionalOverlapMarker(viewport, badge.markerId) : null;
     if (!viewport || !marker) return false;
     // DOM boxes are measured at the camera the stage is showing, which may
     // still be easing; project them to the camera it is easing to.
-    const targetCamera = cameraRef.current;
-    const renderedCamera = currentRenderedCamera() ?? targetCamera;
+    const targetCamera = readCamera();
+    const renderedCamera = currentRenderedTransform() ?? targetCamera;
     const toTargetCamera = (box: RegionalCollisionBox): RegionalCollisionBox => {
       const corner = projectPointToCamera(box, renderedCamera, targetCamera);
       const ratio = renderedCamera.scale > 0 ? targetCamera.scale / renderedCamera.scale : 1;
@@ -2040,27 +1319,26 @@ function InteractiveRegionalMapComponent({
         viewportOrientation,
       ))
       .filter((box): box is RegionalCollisionBox => Boolean(box));
-    const alertCollisionBoxes = regionalReferencedAlertCollisionBoxes(
-      viewport,
-      badge,
-      viewportRect,
-    ).map((box) => clientRectToLogicalViewportBounds({
-      left: viewportRect.left + box.x,
-      top: viewportRect.top + box.y,
-      right: viewportRect.left + box.x + box.width,
-      bottom: viewportRect.top + box.y + box.height,
-      width: box.width,
-      height: box.height,
-    }, viewportRect, viewportOrientation)).filter(
-      (box): box is RegionalCollisionBox => Boolean(box),
-    ).map(toTargetCamera);
+    // The badge's alerts as drawn (their hover outlines), on screen at the
+    // camera the stage is easing to.
+    const planeMatrix = viewport.querySelector<SVGSVGElement>(".regional-overlay-plane")?.getScreenCTM();
+    if (!planeMatrix) return false;
+    const cameraRatio = renderedCamera.scale > 0 ? targetCamera.scale / renderedCamera.scale : 1;
+    const affectedArea = affectedOutlinesOnScreen(
+      badge.affectedOutlines ?? [],
+      ({ x, y }) => projectPointToCamera(clientPointToLogicalViewportPoint({
+        x: planeMatrix.a * x + planeMatrix.c * y + planeMatrix.e,
+        y: planeMatrix.b * x + planeMatrix.d * y + planeMatrix.f,
+      }, viewportRect, viewportOrientation), renderedCamera, targetCamera),
+      Math.hypot(planeMatrix.a, planeMatrix.b) * cameraRatio,
+    );
     const current = overlapChooserPlacementRef.current;
     const placement = regionalOverlapChooserLayout({
       markerCenter,
       markerSize: logicalMarkerRect,
       chooserSize: { width, height },
       viewportSize: logicalViewportSize,
-      alertCollisionBoxes,
+      affectedArea,
       uiKeepoutBoxes,
       // Keep the open card's spot beside its badge while that spot is valid.
       preferred: !opening && current?.markerId === badge.markerId
@@ -2088,7 +1366,7 @@ function InteractiveRegionalMapComponent({
       return regionalChooserPlacementsMatch(current, next) ? current : next;
     });
     return true;
-  }, [currentRenderedCamera, viewportOrientation]);
+  }, [currentRenderedTransform, isCameraInteracting, readCamera, viewportOrientation]);
 
   const openRegionalOverlapChooser = useCallback((badge: RegionalOverlapBadge) => {
     if (!positionRegionalOverlapChooser(badge, true)) return;
@@ -2102,10 +1380,11 @@ function InteractiveRegionalMapComponent({
     activateTarget(event.target);
   }, [activateTarget]);
 
-  const relativeScale = camera.scale / (fitScale || 1);
   const expandedOverlapBadge = overlapBadges.find(
     (candidate) => candidate.markerId === expandedOverlapBadgeId,
   ) ?? null;
+  // Camera commits re-render this map only while a chooser is open.
+  const chooserCamera = useCommittedCamera(cameraStore, expandedOverlapBadge !== null);
   useLayoutEffect(() => {
     if (!expandedOverlapBadge) return;
     // Solve once the stage has finished easing to the committed camera. On a
@@ -2114,8 +1393,8 @@ function InteractiveRegionalMapComponent({
     let animationFrame = 0;
     let framesWaited = 0;
     const solveWhenStill = () => {
-      const target = cameraRef.current;
-      const rendered = currentRenderedCamera() ?? target;
+      const target = readCamera();
+      const rendered = currentRenderedTransform() ?? target;
       const easing = Math.abs(rendered.x - target.x) > 0.5
         || Math.abs(rendered.y - target.y) > 0.5
         || Math.abs(rendered.scale - target.scale) > 0.0001;
@@ -2129,11 +1408,12 @@ function InteractiveRegionalMapComponent({
     animationFrame = window.requestAnimationFrame(solveWhenStill);
     return () => window.cancelAnimationFrame(animationFrame);
   }, [
-    camera,
+    chooserCamera,
     chooserKeepoutRevision,
-    currentRenderedCamera,
+    currentRenderedTransform,
     expandedOverlapBadge,
     positionRegionalOverlapChooser,
+    readCamera,
     viewportOrientation,
   ]);
   // A hovered chooser row behaves like hovering that alert on the map; with no
@@ -2167,7 +1447,7 @@ function InteractiveRegionalMapComponent({
       className="regional-map"
       style={mapOverlayUnitStyle({ unit: REGIONAL_OVERLAY_UNIT })}
       data-map-gesture-active="false"
-      data-regional-map-camera-moving="false"
+      data-map-camera-moving="false"
       aria-label="Interactive GO and UP map"
     >
       <div
@@ -2177,16 +1457,17 @@ function InteractiveRegionalMapComponent({
         onWheel={onWheel}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        onLostPointerCapture={onLostPointerCapture}
+        onPointerUp={finishPointer}
+        onPointerCancel={finishPointer}
+        onPointerLeave={handlePointerLeave}
+        onLostPointerCapture={handleLostPointerCapture}
         onFocus={(event) => revealFocusedMapTarget(event.target)}
         onClick={(event) => {
           if (suppressNextClickRef.current) {
             suppressNextClickRef.current = false;
             return;
           }
-          if (dragMovedRef.current) return;
+          if (shouldSuppressMapClick()) return;
           activateTarget(event.target);
         }}
         onKeyDown={onKeyDown}
@@ -2205,6 +1486,7 @@ function InteractiveRegionalMapComponent({
             height: `${MAP_HEIGHT}px`,
             right: "auto",
             bottom: "auto",
+            // Hidden until the camera is placed (the camera leaves visibility to this map).
             visibility: svgMarkup && cameraReady ? "visible" : "hidden",
             transformOrigin: "0 0",
           }}
@@ -2217,42 +1499,46 @@ function InteractiveRegionalMapComponent({
             onReady={() => markRasterPlaneReady("background")}
           />
           <RegionalSvgMarkup markup={svgMarkup} />
-          {lineAlertPortals && overlayPlane && lineAlertPortals.segment.isConnected ? (
-            <>
-              {createPortal(
-                <MapLineAlertLayer
-                  alerts={commutePathPreview && selection
-                    // The commute focus copy repaints the selected alert.
-                    ? lineAlerts.filter((alert) => !isSelectedLineAlert(alert, selection))
-                    : lineAlerts}
-                  plane={overlayPlane}
-                  selection={selection}
-                />,
-                lineAlertPortals.segment,
-              )}
-              {createPortal(
-                <MapCommutePreviewRoute preview={commutePreview} />,
-                lineAlertPortals.commute,
-              )}
-              {createPortal(
-                <MapLineAlertSelection
-                  alerts={lineAlerts.filter((alert) => isSelectedLineAlert(alert, selection))}
-                  plane={overlayPlane}
-                  commutePreviewActive={Boolean(commutePathPreview)}
-                  introComplete={selectionIntroComplete}
-                />,
-                lineAlertPortals.selected,
-              )}
-              {createPortal(
-                <MapLineAlertTargets alerts={lineAlerts} />,
-                lineAlertPortals.targets,
-              )}
-              {createPortal(
-                <MapLineAlertHoverCopies alerts={lineAlerts} plane={overlayPlane} />,
-                lineAlertPortals.hover,
-              )}
-            </>
-          ) : null}
+          {/* Overlay plane: alert tubes, the commute route, selection
+              emphasis, hover copies and station hover rings, under the
+              station artwork (TTC's dynamic plane). React-owned; never
+              takes the pointer. */}
+          <svg
+            className="raster-map-dynamic-plane regional-overlay-plane absolute top-0 left-0 w-full h-full pointer-events-none"
+            viewBox={REGIONAL_PLANE_VIEWBOX}
+            preserveAspectRatio="xMidYMid meet"
+            aria-hidden="true"
+          >
+            {overlayPlane ? (
+              <g>
+                <g id={REGIONAL_DYNAMIC_SEGMENT_LAYER_ID}>
+                  <MapLineAlertLayer
+                    alerts={commutePathPreview && selection
+                      // The commute focus copy repaints the selected alert.
+                      ? lineAlerts.filter((alert) => !isSelectedLineAlert(alert, selection))
+                      : lineAlerts}
+                    plane={overlayPlane}
+                    selection={selection}
+                  />
+                </g>
+                <g id={REGIONAL_DYNAMIC_COMMUTE_LAYER_ID}>
+                  <MapCommutePreviewRoute preview={commutePreview} />
+                </g>
+                <g id={REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID} className="regional-selected-segment-layer">
+                  <MapLineAlertSelection
+                    alerts={lineAlerts.filter((alert) => isSelectedLineAlert(alert, selection))}
+                    plane={overlayPlane}
+                    commutePreviewActive={Boolean(commutePathPreview)}
+                    introComplete={selectionIntroComplete}
+                  />
+                </g>
+                <g id={REGIONAL_DYNAMIC_HOVER_LAYER_ID} className="regional-impact-hover-foreground-layer">
+                  <MapLineAlertHoverCopies alerts={lineAlerts} plane={overlayPlane} />
+                </g>
+                <RegionalStationHoverIndicators stations={stationArtwork} selectedStationId={selectedStationId} />
+              </g>
+            ) : null}
+          </svg>
           <RasterMapPlane
             network="regional"
             plane="foreground"
@@ -2269,51 +1555,12 @@ function InteractiveRegionalMapComponent({
             cutoutMarkup={hoveredStationLabel?.cutoutMarkup ?? null}
             onReady={() => markRasterPlaneReady("labels")}
           />
-          {/* Static North Compass fixed to regional map canvas */}
+          {/* Top plane: the hovered station name, train markers and the compass. */}
           <svg
             className="raster-map-top-plane absolute top-0 left-0 w-full h-full pointer-events-none"
-            viewBox="-200 -200 17036.959 9031.6719"
+            viewBox={REGIONAL_PLANE_VIEWBOX}
             preserveAspectRatio="xMidYMid meet"
           >
-            {overlayPlane ? <MapLineAlertHoverOutlines alerts={lineAlerts} plane={overlayPlane} /> : null}
-            <g
-              ref={previewOutlineLayerRef}
-              id={REGIONAL_TOP_HOVER_LAYER_ID}
-              className="regional-impact-top-hover-layer"
-              aria-hidden="true"
-              pointerEvents="none"
-            />
-            {/* Station alerts: the shared layer, in TTC's order (rings, then
-                arrows, then selection and hover highlights). Rings are the
-                alerts' targets; the viewport's pointer handlers select them. */}
-            {overlayPlane ? <MapCommuteEndpointFlashes preview={commutePreview} plane={overlayPlane} /> : null}
-            <g id={REGIONAL_TOP_STATION_IMPACT_LAYER_ID} aria-label="Station alerts">
-              {overlayPlane ? (
-                <MapStationAlertRings alerts={stationAlerts} plane={overlayPlane} selection={selection} />
-              ) : null}
-              {overlayPlane ? (
-                <MapStationDirectionGlyphs glyphs={stationDirectionGlyphs} plane={overlayPlane} />
-              ) : null}
-              <g aria-hidden="true" pointerEvents="none">
-                {selectedStationId ? (
-                  <use
-                    key={`station-selection:${selectedStationId}`}
-                    className={`regional-station-top-selection map-selection-attention${selectionIntroComplete ? " selection-intro-complete" : ""}`}
-                    data-regional-station-top-selected="true"
-                    href={`#regional-station-selection-source-${selectedStationId}`}
-                  />
-                ) : null}
-                {overlayPlane ? (
-                  <MapStationAlertForeground
-                    alerts={stationAlerts}
-                    plane={overlayPlane}
-                    selection={selection}
-                    commutePreviewActive={Boolean(commutePathPreview)}
-                    introComplete={selectionIntroComplete}
-                  />
-                ) : null}
-              </g>
-            </g>
             {hoveredStationLabel ? (
               <g
                 aria-hidden="true"
@@ -2395,6 +1642,68 @@ function InteractiveRegionalMapComponent({
             <g aria-label="Cardinal North Compass" transform="translate(14800, 5100)">
               <CardinalNorthIcon width={1000} height={1000} dark={isDark} />
             </g>
+          </svg>
+          {/* Interaction plane: hover outlines, targets (line alerts, then
+              stations), station alerts, station names, selection and badges,
+              in TTC's order. Only targets take the pointer; the viewport's
+              pointer handlers select from their identity. */}
+          <svg
+            className="raster-map-interaction-plane absolute top-0 left-0 w-full h-full pointer-events-none"
+            viewBox={REGIONAL_PLANE_VIEWBOX}
+            preserveAspectRatio="xMidYMid meet"
+          >
+            {overlayPlane ? <MapLineAlertHoverOutlines alerts={lineAlerts} plane={overlayPlane} /> : null}
+            <g
+              ref={previewOutlineLayerRef}
+              id={REGIONAL_TOP_HOVER_LAYER_ID}
+              className="regional-impact-top-hover-layer"
+              aria-hidden="true"
+              pointerEvents="none"
+            />
+            {overlayPlane ? (
+              <g>
+                <g id={REGIONAL_DYNAMIC_TARGET_LAYER_ID} aria-label="Disruption overlay interaction targets">
+                  <MapLineAlertTargets alerts={lineAlerts} />
+                </g>
+                <g aria-label="Station hit targets">
+                  <RegionalStationTargets
+                    stations={stationArtwork}
+                    selectedStationId={selectedStationId}
+                    onHoverChange={setStationHovered}
+                  />
+                </g>
+              </g>
+            ) : null}
+            {overlayPlane ? <MapCommuteEndpointFlashes preview={commutePreview} plane={overlayPlane} /> : null}
+            <g id={REGIONAL_TOP_STATION_IMPACT_LAYER_ID} aria-label="Station alerts">
+              {overlayPlane ? (
+                <MapStationAlertRings alerts={stationAlerts} plane={overlayPlane} selection={selection} />
+              ) : null}
+            </g>
+            <g aria-label="Station label hit targets">
+              <RegionalStationLabelTargets labels={stationLabelTargets} />
+            </g>
+            <MapStationDirectionGlyphs glyphs={stationDirectionGlyphs} />
+            <g aria-hidden="true" pointerEvents="none">
+              {overlayPlane ? (
+                <g>
+                  <RegionalStationSelection
+                    key={selectedStationId ?? "none"}
+                    station={selectedStationArtwork}
+                    introComplete={selectionIntroComplete}
+                  />
+                </g>
+              ) : null}
+              {overlayPlane ? (
+                <MapStationAlertForeground
+                  alerts={stationAlerts}
+                  plane={overlayPlane}
+                  selection={selection}
+                  commutePreviewActive={Boolean(commutePathPreview)}
+                  introComplete={selectionIntroComplete}
+                />
+              ) : null}
+            </g>
             <g aria-label="Overlapping alert badges">
               {overlapBadges.map((badge) => (
                 <MapOverlapIndicator
@@ -2410,7 +1719,7 @@ function InteractiveRegionalMapComponent({
                   connector={badge.connector}
                   visualScale={REGIONAL_OVERLAP_INDICATOR_SCALE}
                   isolatePointerDown
-                  shouldSuppressMapClick={() => dragMovedRef.current}
+                  shouldSuppressMapClick={shouldSuppressMapClick}
                   onActivate={() => {
                     if (expandedOverlapBadgeId === badge.markerId) {
                       closeRegionalOverlapChooser();
@@ -2496,7 +1805,7 @@ function InteractiveRegionalMapComponent({
 
           <button
             type="button"
-            onClick={() => zoomAtCenter(1 / 1.25)}
+            onClick={zoomOut}
             className="map-control-button group"
             title="Zoom out"
             aria-label="Zoom out"
@@ -2505,23 +1814,11 @@ function InteractiveRegionalMapComponent({
             <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Out</span>
           </button>
 
-          <div className="map-control-slider flex items-center justify-center mx-0.5 sm:mx-1">
-            <input
-              type="range"
-              min={PAN_ZOOM_MIN_RELATIVE_SCALE}
-              max={PAN_ZOOM_MAX_RELATIVE_SCALE}
-              step="0.05"
-              value={relativeScale}
-              onChange={(e) => zoomToScale(parseFloat(e.target.value))}
-              className="w-16 md:w-20 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer h-1.5 rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none"
-              title="Zoom level"
-              aria-label="Zoom level slider"
-            />
-          </div>
+          <MapZoomSlider cameraStore={cameraStore} fitScale={fitScale} onZoomToScale={zoomToScale} />
 
           <button
             type="button"
-            onClick={() => zoomAtCenter(1.25)}
+            onClick={zoomIn}
             className="map-control-button group"
             title="Zoom in"
             aria-label="Zoom in"

@@ -14,7 +14,7 @@ it("regional chooser narrows to clear side controls in a compact phone viewport"
   const { layout, size } = regionalOverlapChooserLayout({
     markerCenter: { x: 180, y: 280 }, markerSize: { width: 30, height: 30 },
     chooserSize: overlapChooserSize(3, viewportSize.width),
-    viewportSize, alertCollisionBoxes: [], uiKeepoutBoxes,
+    viewportSize, affectedArea: [], uiKeepoutBoxes,
   });
   assert.ok(size.width < overlapChooserSize(3, viewportSize.width).width);
   assert.ok(uiKeepoutBoxes.every(box => !(layout.left < box.x + box.width

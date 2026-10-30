@@ -221,71 +221,6 @@ export function pathMidpointFrame(pathD: string): PathFrame | null {
   return null;
 }
 
-export function transformBoundsToRootCoordinates(
-  bounds: MapBounds,
-  elementMatrix: MapMatrix | null | undefined,
-  rootMatrix?: MapMatrix | null,
-): MapBounds | null {
-  const points = transformBoundsToRootPolygon(bounds, elementMatrix, rootMatrix);
-  if (!points) return null;
-
-  const xs = points.map((point) => point.x);
-  const ys = points.map((point) => point.y);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-
-  return {
-    x: normalizeBoundsNumber(minX),
-    y: normalizeBoundsNumber(minY),
-    width: normalizeBoundsNumber(maxX - minX),
-    height: normalizeBoundsNumber(maxY - minY),
-  };
-}
-
-export function transformBoundsToRootPolygon(
-  bounds: MapBounds,
-  elementMatrix: MapMatrix | null | undefined,
-  rootMatrix?: MapMatrix | null,
-): MapPolygon | null {
-  const relativeMatrix = rootMatrix && elementMatrix
-    ? multiplyMatrix(invertMatrix(rootMatrix), elementMatrix)
-    : elementMatrix ?? identityMatrix();
-  if (!relativeMatrix) return null;
-
-  return [
-    transformPoint({ x: bounds.x, y: bounds.y }, relativeMatrix),
-    transformPoint({ x: bounds.x + bounds.width, y: bounds.y }, relativeMatrix),
-    transformPoint({ x: bounds.x + bounds.width, y: bounds.y + bounds.height }, relativeMatrix),
-    transformPoint({ x: bounds.x, y: bounds.y + bounds.height }, relativeMatrix),
-  ].map((point) => ({
-    x: normalizeBoundsNumber(point.x),
-    y: normalizeBoundsNumber(point.y),
-  })) as MapPolygon;
-}
-
-/**
- * Resolve an SVG graphics element into its owning root's viewBox coordinate
- * system without depending on browser-specific outermost getCTM() semantics.
- *
- * Chromium currently includes the root viewBox transform in root.getCTM(),
- * while Firefox reports an identity matrix for the same outermost SVG. Both
- * engines include the complete transform in getScreenCTM(), so cancelling the
- * two screen matrices gives us a stable element-to-root transform and also
- * removes the map stage's CSS camera transform.
- */
-export function svgElementMatrixToRootCoordinates(
-  element: SVGGraphicsElement,
-  root: SVGSVGElement,
-): MapMatrix | null {
-  const elementScreenMatrix = element.getScreenCTM();
-  const rootScreenMatrix = root.getScreenCTM();
-  if (!elementScreenMatrix || !rootScreenMatrix) return null;
-
-  return multiplyMatrix(invertMatrix(rootScreenMatrix), elementScreenMatrix);
-}
-
 export function composeNetworkSegmentPath(
   segments: ComposableNetworkSegment[],
   travelDirection: CorridorTravelDirection = "bidirectional",
@@ -563,7 +498,8 @@ function pointCollisionBox(point: MapPoint, radius: number): MapBounds {
   };
 }
 
-function densifyPolylinePoints(points: MapPoint[], spacing: number): MapPoint[] {
+/** Points along a polyline no more than `spacing` apart, keeping its vertices. */
+export function densifyPolylinePoints(points: MapPoint[], spacing: number): MapPoint[] {
   const sampled: MapPoint[] = [];
 
   for (let index = 1; index < points.length; index++) {
@@ -589,7 +525,7 @@ function reversePoints(points: MapPoint[]): MapPoint[] {
   return [...points].reverse();
 }
 
-function pointsToPath(points: MapPoint[]): string {
+export function pointsToPath(points: MapPoint[]): string {
   if (points.length === 0) return "";
   const [first, ...rest] = points;
   return [`M ${formatPathNumber(first.x)} ${formatPathNumber(first.y)}`]
@@ -601,11 +537,8 @@ function pointDistance(a: MapPoint, b: MapPoint): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-function identityMatrix(): MapMatrix {
-  return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
-}
 
-function invertMatrix(matrix: MapMatrix): MapMatrix | null {
+export function invertMatrix(matrix: MapMatrix): MapMatrix | null {
   const determinant = matrix.a * matrix.d - matrix.b * matrix.c;
   if (Math.abs(determinant) <= Number.EPSILON) return null;
 
@@ -619,7 +552,7 @@ function invertMatrix(matrix: MapMatrix): MapMatrix | null {
   };
 }
 
-function multiplyMatrix(a: MapMatrix | null, b: MapMatrix): MapMatrix | null {
+export function multiplyMatrix(a: MapMatrix | null, b: MapMatrix): MapMatrix | null {
   if (!a) return null;
 
   return {
@@ -639,10 +572,6 @@ export function transformPoint(point: MapPoint, matrix: MapMatrix): MapPoint {
   };
 }
 
-function normalizeBoundsNumber(value: number): number {
-  const rounded = Math.round(value * 1_000_000) / 1_000_000;
-  return Object.is(rounded, -0) ? 0 : rounded;
-}
 
 function formatPathNumber(value: number): string {
   const rounded = Math.round(value * 1000) / 1000;
@@ -687,58 +616,6 @@ export function resolveNetworkSegmentPath(
   return segment.pathD;
 }
 
-export function readSvgGeometry(
-  root: SVGSVGElement,
-  segments: NetworkSegment[],
-): {
-  anchorPoints: Map<string, MapPoint>;
-  guidePaths: Map<string, string>;
-} {
-  const anchorIds = new Set(
-    segments.flatMap((segment) =>
-      [segment.stationAAnchorId, segment.stationBAnchorId].filter(
-        (value): value is string => Boolean(value),
-      ),
-    ),
-  );
-  const anchorPoints = new Map<string, MapPoint>();
-  for (const anchorId of anchorIds) {
-    const element = root.querySelector<SVGGraphicsElement>(`#${CSS.escape(anchorId)}`);
-    if (!element) continue;
-    const box = element.getBBox();
-    const point = {
-      x: box.x + box.width / 2,
-      y: box.y + box.height / 2,
-    };
-    const relativeMatrix = svgElementMatrixToRootCoordinates(element, root);
-    let resolved = point;
-    if (relativeMatrix) {
-      resolved = transformPoint(point, relativeMatrix);
-    }
-    anchorPoints.set(anchorId, { x: resolved.x, y: resolved.y });
-  }
-
-  const guidePaths = new Map<string, string>();
-  const guideLayer = Array.from(root.querySelectorAll<SVGGElement>("g")).find(
-    (element) => element.getAttribute("inkscape:label") === "non-linear-guides-layer",
-  );
-  for (const path of guideLayer?.querySelectorAll<SVGPathElement>("path") ?? []) {
-    const label = path.getAttribute("inkscape:label");
-    const pathD = pathDataInRootCoordinates(path, root);
-    if (label && pathD) guidePaths.set(label, pathD);
-  }
-  // The authored tracks, one path per line, labelled with the line id.
-  const trackLayer = Array.from(root.querySelectorAll<SVGGElement>("g")).find(
-    (element) => element.getAttribute("inkscape:label") === "tracks",
-  );
-  for (const path of trackLayer?.querySelectorAll<SVGPathElement>("path") ?? []) {
-    const lineId = path.getAttribute("inkscape:label");
-    const points = lineId ? sampledPathInRootCoordinates(path, root, TRACK_SAMPLE_SPACING) : [];
-    if (lineId && points.length > 1) guidePaths.set(trackGuideKey(lineId), pointsToPath(dropCollinearPoints(points)));
-  }
-  return { anchorPoints, guidePaths };
-}
-
 /** Where a line's authored track (a root-coordinate polyline) is kept in `guidePaths`. */
 export function trackGuideKey(lineId: string): string {
   return `track:${lineId}`;
@@ -746,27 +623,6 @@ export function trackGuideKey(lineId: string): string {
 
 /** Farther than this from the track, a station anchor keeps the straight chord. */
 const TRACK_SNAP_DISTANCE = 60;
-const TRACK_SAMPLE_SPACING = 8;
-
-function sampledPathInRootCoordinates(path: SVGPathElement, root: SVGSVGElement, spacing: number): MapPoint[] {
-  try {
-    const length = path.getTotalLength();
-    const toRoot = svgElementMatrixToRootCoordinates(path, root);
-    if (length <= 0 || !toRoot) return [];
-    // Straight-edged tracks keep their exact corners; curves are sampled.
-    const authoredPathD = path.getAttribute("d") ?? "";
-    if (isLinearPathData(authoredPathD)) {
-      return dedupePoints(parsedPathPoints(authoredPathD).map((point) => transformPoint(point, toRoot)));
-    }
-    const count = Math.max(1, Math.ceil(length / spacing));
-    return dedupePoints(Array.from({ length: count + 1 }, (_unused, index) => {
-      const point = path.getPointAtLength((length * index) / count);
-      return transformPoint({ x: point.x, y: point.y }, toRoot);
-    }));
-  } catch {
-    return [];
-  }
-}
 
 const trackPointCache = new Map<string, MapPoint[]>();
 function trackPoints(pathD: string): MapPoint[] {
@@ -779,7 +635,7 @@ function trackPoints(pathD: string): MapPoint[] {
 }
 
 /** The nearest point of a polyline: its distance along the line and how far off it is. */
-function projectOntoPolyline(points: MapPoint[], target: MapPoint) {
+export function projectOntoPolyline(points: MapPoint[], target: MapPoint) {
   let best = { along: 0, gap: Infinity };
   let travelled = 0;
   for (let index = 1; index < points.length; index++) {
@@ -795,8 +651,15 @@ function projectOntoPolyline(points: MapPoint[], target: MapPoint) {
   return best;
 }
 
+/** A polyline's length. */
+export function polylineLength(points: MapPoint[]): number {
+  let length = 0;
+  for (let index = 1; index < points.length; index++) length += pointDistance(points[index - 1], points[index]);
+  return length;
+}
+
 /** The point a given distance along a polyline. */
-function pointAlongPolyline(points: MapPoint[], along: number): MapPoint {
+export function pointAlongPolyline(points: MapPoint[], along: number): MapPoint {
   let travelled = 0;
   for (let index = 1; index < points.length; index++) {
     const from = points[index - 1];
@@ -823,161 +686,22 @@ export function trackPathBetween(track: MapPoint[], a: MapPoint, b: MapPoint): s
   const end = projectOntoPolyline(track, b);
   if (start.gap > TRACK_SNAP_DISTANCE || end.gap > TRACK_SNAP_DISTANCE) return "";
   if (Math.abs(end.along - start.along) < 1) return "";
-  const forward = start.along < end.along;
-  const [low, high] = forward ? [start.along, end.along] : [end.along, start.along];
+  return pointsToPath(polylineStretch(track, start.along, end.along));
+}
+
+/**
+ * The part of a polyline between two distances along it, keeping its
+ * vertices, ordered from `from` to `to`.
+ */
+export function polylineStretch(points: MapPoint[], from: number, to: number): MapPoint[] {
+  const forward = from <= to;
+  const [low, high] = forward ? [from, to] : [to, from];
   const inner: MapPoint[] = [];
   let travelled = 0;
-  for (let index = 1; index < track.length; index++) {
-    travelled += pointDistance(track[index - 1], track[index]);
-    if (index < track.length - 1 && travelled > low && travelled < high) inner.push(track[index]);
+  for (let index = 1; index < points.length; index++) {
+    travelled += pointDistance(points[index - 1], points[index]);
+    if (index < points.length - 1 && travelled > low && travelled < high) inner.push(points[index]);
   }
-  const points = [pointAlongPolyline(track, low), ...inner, pointAlongPolyline(track, high)];
-  return pointsToPath(forward ? points : points.reverse());
-}
-
-/** Removes points that sit on the straight line through their neighbours. */
-function dropCollinearPoints(points: MapPoint[], tolerance = 0.05): MapPoint[] {
-  if (points.length <= 2) return points;
-  const kept = [points[0]];
-  for (let index = 1; index < points.length - 1; index++) {
-    const previous = kept[kept.length - 1];
-    const next = points[index + 1];
-    const point = points[index];
-    const chord = pointDistance(previous, next);
-    const offset = chord === 0 ? pointDistance(previous, point)
-      : Math.abs((next.x - previous.x) * (previous.y - point.y) - (previous.x - point.x) * (next.y - previous.y)) / chord;
-    if (offset > tolerance) kept.push(point);
-  }
-  kept.push(points[points.length - 1]);
-  return kept;
-}
-
-function pathDataInRootCoordinates(path: SVGPathElement, root: SVGSVGElement): string {
-  const authoredPathD = path.getAttribute("d") ?? "";
-  if (!authoredPathD) return "";
-
-  try {
-    const length = path.getTotalLength();
-    if (length <= 0) return authoredPathD;
-
-    const relativeMatrix = svgElementMatrixToRootCoordinates(path, root);
-    if (!relativeMatrix) return authoredPathD;
-
-    const points = isLinearPathData(authoredPathD)
-      ? parsedPathPoints(authoredPathD).map((point) => transformPoint(point, relativeMatrix))
-      : pathSamplingDistances(length, 24).map((distance) => {
-          const point = path.getPointAtLength(distance);
-          return transformPoint({ x: point.x, y: point.y }, relativeMatrix);
-        });
-    return pointsToPath(dedupePoints(points));
-  } catch {
-    return authoredPathD;
-  }
-}
-
-export function readSvgStationCenters(
-  root: SVGSVGElement,
-  stationIds: string[],
-): Map<string, MapPoint> {
-  const centers = new Map<string, MapPoint>();
-
-  for (const stationId of stationIds) {
-    const element = root.querySelector<SVGGraphicsElement>(`#${CSS.escape(`station-${stationId}`)}`);
-    if (!element) continue;
-
-    const box = element.getBBox();
-    const point = {
-      x: box.x + box.width / 2,
-      y: box.y + box.height / 2,
-    };
-
-    const relativeMatrix = svgElementMatrixToRootCoordinates(element, root);
-    let resolved = point;
-    if (relativeMatrix) {
-      resolved = transformPoint(point, relativeMatrix);
-    }
-
-    centers.set(stationId, { x: resolved.x, y: resolved.y });
-  }
-
-  return centers;
-}
-
-export interface StationLabelPolygonPadding {
-  leading?: number;
-  trailing?: number;
-  top?: number;
-  bottom?: number;
-  x?: number;
-  y?: number;
-}
-
-export function readSvgStationLabelPolygons(
-  root: SVGSVGElement,
-  stationIds: string[],
-  padding: number | StationLabelPolygonPadding = 0,
-): Map<string, MapPolygon> {
-  const padLeading = typeof padding === "number" ? padding : (padding.leading ?? padding.x ?? 0);
-  const defaultTrailing = typeof padding === "number" ? padding : (padding.trailing ?? padding.x ?? 0);
-  const padTop = typeof padding === "number" ? padding : (padding.top ?? padding.y ?? 0);
-  const padBottom = typeof padding === "number" ? padding : (padding.bottom ?? padding.y ?? 0);
-  const expectedIds = new Set(stationIds);
-  const polygonsByStationId = new Map<string, MapPolygon>();
-  const labelEntries: Array<{
-    stationId: string;
-    element: SVGGraphicsElement;
-    box: DOMRect;
-  }> = [];
-
-  for (const element of root.querySelectorAll<SVGGraphicsElement>(
-    "#ttc-station-labels-layer [data-station-label-for]",
-  )) {
-    const stationId = element.dataset.stationLabelFor;
-    if (!stationId || !expectedIds.has(stationId)) continue;
-
-    try {
-      const box = element.getBBox();
-      labelEntries.push({ stationId, element, box });
-    } catch {
-      // A temporarily hidden or not-yet-laid-out SVG label has no usable box.
-    }
-  }
-
-  for (const { stationId, element, box } of labelEntries) {
-    let allowedTrailing = defaultTrailing;
-
-    for (const other of labelEntries) {
-      if (other.stationId === stationId) continue;
-      const deltaX = other.box.x - (box.x + box.width);
-      const verticalOverlap = Math.max(
-        0,
-        Math.min(box.y + box.height, other.box.y + other.box.height) - Math.max(box.y, other.box.y),
-      );
-      const verticalDist = Math.abs((box.y + box.height / 2) - (other.box.y + other.box.height / 2));
-
-      if (deltaX >= -5 && deltaX < defaultTrailing + 30 && (verticalOverlap > 0 || verticalDist < 40)) {
-        const safeGap = Math.max(0, deltaX - 2);
-        allowedTrailing = Math.min(allowedTrailing, safeGap);
-      }
-    }
-
-    try {
-      const polygon = transformBoundsToRootPolygon(
-        {
-          x: box.x - padLeading,
-          y: box.y - padTop,
-          width: box.width + padLeading + allowedTrailing,
-          height: box.height + padTop + padBottom,
-        },
-        svgElementMatrixToRootCoordinates(element, root),
-      );
-      if (polygon) {
-        polygonsByStationId.set(stationId, polygon);
-      }
-    } catch {
-      // A temporarily hidden or not-yet-laid-out SVG label has no usable box.
-    }
-  }
-
-  return polygonsByStationId;
+  const stretch = [pointAlongPolyline(points, low), ...inner, pointAlongPolyline(points, high)];
+  return forward ? stretch : stretch.reverse();
 }

@@ -114,12 +114,12 @@ describe("stable raster map renderer", () => {
   });
 
   it("preserves authored label weights and theme-aware interchange leaders", async () => {
-    const [generator, ttc, regional, regionalAsset, regionalGeometry, css, mapLabelFontHook] = await Promise.all([
+    const [generator, ttc, regional, regionalAsset, regionalStationInteraction, css, mapLabelFontHook] = await Promise.all([
       readFile(`${frontendRoot}/scripts/generate-map-rasters.mjs`, "utf8"),
       readFile(`${frontendRoot}/src/components/InteractiveTtcMap.tsx`, "utf8"),
       readFile(`${frontendRoot}/src/components/InteractiveRegionalMap.tsx`, "utf8"),
       readFile(`${frontendRoot}/src/app/regional-map-asset.ts`, "utf8"),
-      readFile(`${frontendRoot}/src/app/regional-map-geometry.ts`, "utf8"),
+      readFile(`${frontendRoot}/src/app/regional-station-interaction.ts`, "utf8"),
       readAppStylesheet(),
       readFile(`${frontendRoot}/src/hooks/useMapLabelFontReady.ts`, "utf8"),
     ]);
@@ -159,10 +159,9 @@ describe("stable raster map renderer", () => {
     assert.match(regional, /<feMorphology in="SourceAlpha" operator="dilate" radius="6" result="expandedTargetAlpha" \/>/);
     assert.match(regional, /clipPath="url\(#regional-hovered-station-label-clip\)"/);
     assert.match(regional, /filter="url\(#regional-hovered-label-white-alpha\)"/);
-    assert.match(regionalGeometry, /removeDescendantIds\(isolatedCutoutSource\)/);
-    assert.match(regionalGeometry, /cutoutMarkup: isolatedCutoutSource\.outerHTML/);
+    // The hover label's glyph cutout is a copy of the authored name, without ids.
+    assert.match(regionalStationInteraction, /removeDescendantIds\(copy\)/);
     assert.doesNotMatch(regional, /regional-raster-station-label-live-copy/);
-    assert.match(regionalAsset, /labelSource\.classList\.add\("regional-station-label-source"\)/);
     assert.match(regionalAsset, /labelCutoutSources\.id = "regional-station-label-cutout-sources"/);
     assert.match(regionalAsset, /cutoutSource\.id = `regional-station-label-cutout-source-\$\{stationId\}`/);
     assert.doesNotMatch(regional, /cutoutMarkup: `<rect x=/);
@@ -171,10 +170,11 @@ describe("stable raster map renderer", () => {
       /cutoutMarkup=\{hoveredStationLabel\?\.cutoutMarkup \?\? null\}/,
     );
     assert.doesNotMatch(regional, /regional-raster-label-halo/);
-    // Hide authored labels the TTC way (visibility on each child, hit targets
-    // excepted). opacity: 0 on the layer gives Chromium ~55 GPU layers for
-    // invisible text, which tore the GO/UP map after a pan.
-    assert.match(css, /data-raster-map-ready="true"[^{]*#regional-station-labels-layer > :not\(\.regional-station-label-hit-target\)\s*\{[^}]*visibility:\s*hidden/s);
+    // Hide the authored SVG the TTC way, with visibility: opacity: 0 on its
+    // label layer gave Chromium ~55 GPU layers for invisible text, which tore
+    // the GO/UP map after a pan. Its targets are React elements elsewhere.
+    assert.match(css, /\.regional-map-stage\[data-raster-map-ready="true"\] \.regional-live-svg\s*\{[^}]*visibility:\s*hidden/s);
+    assert.match(css, /\.regional-live-svg\s*\{\s*pointer-events:\s*none;/s);
     assert.doesNotMatch(css, /data-raster-map-ready="true"\][^{,]*#regional-station-labels-layer\s*\{[^}]*opacity:\s*0/s);
     assert.doesNotMatch(css, /data-raster-map-ready="true"\][^{,]*\.regional-station-label-source\s*\{[^}]*opacity:\s*0/s);
     assert.doesNotMatch(css, /\.regional-raster-station-label-live-copy/);
@@ -187,7 +187,7 @@ describe("stable raster map renderer", () => {
     assert.match(mapLabelFontHook, /MAP_LABEL_FONT_SPECS\.map\(\(spec\) => document\.fonts\.load\(spec, MAP_LABEL_FONT_SAMPLE\)\)/);
     assert.match(mapLabelFontHook, /fontFaces\.every/);
     assert.match(mapLabelFontHook, /faces\.length > 0 && faces\.every\(\(face\) => face\.status === "loaded"\)/);
-    assert.match(ttc, /if \(!mapLabelFontReady \|\| loadState !== "ready" \|\| !mapSvgRef\.current\) return/);
+    assert.match(ttc, /const hoveredLabelPolygon = hoveredStationLabelId && mapLabelFontReady/);
     assert.match(regional, /if \(!mapLabelFontReady\) return null/);
     assert.match(ttc, /data-map-label-font-ready=\{mapLabelFontReady \? "true" : "false"\}/);
     assert.match(regional, /data-map-label-font-ready=\{mapLabelFontReady \? "true" : "false"\}/);

@@ -81,7 +81,7 @@ test("keeps TTC dynamic geometry in authored viewBox coordinates", async ({ page
   expect(Math.max(...yCoordinates)).toBeGreaterThan(3_500);
 });
 
-test("prepares regional map SVG with dynamic layers, planned station layer, and hit targets", async ({ page, request }) => {
+test("draws GO/UP through React planes over a non-interactive authored SVG", async ({ page, request }) => {
   test.setTimeout(90_000);
   await setStubMode(request, "seeded");
   await page.goto("/");
@@ -92,51 +92,36 @@ test("prepares regional map SVG with dynamic layers, planned station layer, and 
   const regionalMap = page.getByRole("region", { name: "Interactive GO and UP map" });
   // The regional component is loaded on demand and can mount slowly in WebKit.
   await expect(regionalMap).toBeVisible({ timeout: 30_000 });
-  const regionalSvg = regionalMap.locator('svg[aria-label="GO and UP regional rail schematic"]');
-  await expect(regionalSvg).toBeAttached({ timeout: 30_000 });
+  const stage = regionalMap.locator(".regional-map-stage");
+  await expect(stage.locator(".regional-live-svg svg")).toBeAttached({ timeout: 30_000 });
 
-  const layerInventory = await regionalSvg.evaluate((svg) => {
-
-    const plannedStationLayer = svg.querySelector("#regional-dynamic-planned-station-layer");
-    const segmentLayer = svg.querySelector("#regional-dynamic-segment-layer");
-    const selectedSegmentLayer = svg.querySelector("#regional-dynamic-selected-segment-layer");
-    const stationRingLayer = svg.querySelector("#regional-dynamic-station-ring-layer");
-    const hoverLayer = svg.querySelector("#regional-dynamic-hover-layer");
-    const effectsLayer = svg.querySelector("#regional-dynamic-effects-layer");
-    const selectionSources = svg.querySelector("defs#regional-station-selection-sources");
-    const labelCutoutSources = svg.querySelector("defs#regional-station-label-cutout-sources");
-
-    const unionHitTarget = svg.querySelector('.regional-station-hit-target[data-regional-station-id="union"]');
-    const unionLabelHitTarget = svg.querySelector('.regional-station-label-hit-target[data-regional-station-id="union"]');
-    const bloorJunctionSource = svg.querySelector("#regional-station-selection-source-bloor");
-
+  const inventory = await stage.evaluate((element) => {
+    const authored = element.querySelector(".regional-live-svg svg")!;
+    const overlayPlane = element.querySelector(".regional-overlay-plane");
+    const interactionPlane = element.querySelector(".raster-map-interaction-plane");
     return {
-      hasPlannedStationLayer: Boolean(plannedStationLayer),
-      hasSegmentLayer: Boolean(segmentLayer),
-      hasSelectedSegmentLayer: Boolean(selectedSegmentLayer),
-      hasStationRingLayer: Boolean(stationRingLayer),
-      hasHoverLayer: Boolean(hoverLayer),
-      hasEffectsLayer: Boolean(effectsLayer),
-      hasSelectionSources: Boolean(selectionSources),
-      hasLabelCutoutSources: Boolean(labelCutoutSources),
-      hasUnionHitTarget: Boolean(unionHitTarget),
-      hasUnionLabelHitTarget: Boolean(unionLabelHitTarget),
-      hasBloorJunctionSource: Boolean(bloorJunctionSource),
+      authoredHasOverlays: Boolean(authored.querySelector("[id^='regional-dynamic'], .regional-station-hit-target, .regional-station-label-hit-target")),
+      authoredHasLabelCutoutSources: Boolean(authored.querySelector("defs#regional-station-label-cutout-sources")),
+      authoredPointerEvents: getComputedStyle(authored).pointerEvents,
+      overlayLayers: ["segment", "commute", "selected-segment", "hover"]
+        .every((name) => Boolean(overlayPlane?.querySelector(`#regional-dynamic-${name}-layer`))),
+      hasTargetLayer: Boolean(interactionPlane?.querySelector("#regional-dynamic-target-layer")),
+      hasUnionHitTarget: Boolean(interactionPlane?.querySelector('.regional-station-hit-target[data-regional-station-id="union"]')),
+      hasUnionLabelHitTarget: Boolean(interactionPlane?.querySelector('.regional-station-label-hit-target[data-regional-station-id="union"]')),
+      hasBloorJunctionTarget: Boolean(interactionPlane?.querySelector('.regional-station-hit-target[data-regional-station-id="bloor"][transform]')),
     };
   });
 
-  expect(layerInventory).not.toBeNull();
-  expect(layerInventory!.hasPlannedStationLayer).toBe(true);
-  expect(layerInventory!.hasSegmentLayer).toBe(true);
-  expect(layerInventory!.hasSelectedSegmentLayer).toBe(true);
-  expect(layerInventory!.hasStationRingLayer).toBe(true);
-  expect(layerInventory!.hasHoverLayer).toBe(true);
-  expect(layerInventory!.hasEffectsLayer).toBe(true);
-  expect(layerInventory!.hasSelectionSources).toBe(true);
-  expect(layerInventory!.hasLabelCutoutSources).toBe(true);
-  expect(layerInventory!.hasUnionHitTarget).toBe(true);
-  expect(layerInventory!.hasUnionLabelHitTarget).toBe(true);
-  expect(layerInventory!.hasBloorJunctionSource).toBe(true);
+  expect(inventory).toEqual({
+    authoredHasOverlays: false,
+    authoredHasLabelCutoutSources: true,
+    authoredPointerEvents: "none",
+    overlayLayers: true,
+    hasTargetLayer: true,
+    hasUnionHitTarget: true,
+    hasUnionLabelHitTarget: true,
+    hasBloorJunctionTarget: true,
+  });
 });
 
 test("switches to GO/UP when WebKit animation frames stall", async ({ page, request, browserName }) => {

@@ -44,7 +44,9 @@ for (const network of ['ttc', 'regional']) {
   await page.mouse.down();
   await page.mouse.move(240, 350, { steps: 8 });
   await page.mouse.up();
-  await page.waitForTimeout(250);
+  // A release while moving glides on; the viewport is saved once the camera settles.
+  await expect.poll(()=>page.evaluate(()=>document.querySelector('[data-map-gesture-active="true"]')!==null)).toBe(false);
+  await page.waitForTimeout(400);
   const before=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!),key);
   await page.reload();
   if(network==='regional' && await page.locator('.linewatch-shell').getAttribute('data-network')!=='regional') {

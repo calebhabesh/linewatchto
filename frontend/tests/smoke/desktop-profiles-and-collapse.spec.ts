@@ -225,13 +225,13 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     const regionalMap = page.locator(".regional-map");
     const regionalStage = page.locator(".regional-map-stage");
     await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
-    await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
+    await expect(regionalMap).toHaveAttribute("data-map-camera-moving", "false");
     const regionalDefaultCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
     await page.getByRole("button", { name: "Zoom in", exact: true }).click();
     await expect.poll(() => regionalStage.evaluate((element) => (
       (element as HTMLElement).style.transform
     ))).not.toBe(regionalDefaultCamera);
-    await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
+    await expect(regionalMap).toHaveAttribute("data-map-camera-moving", "false");
     const regionalCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
 
     // Each network keeps the camera the rider left it at across a round trip.
@@ -244,7 +244,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     await sidebar.getByRole("button", { name: "GO/UP", exact: true }).click();
     await waitForNetworkTransition(page, "regional");
     await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
-    await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
+    await expect(regionalMap).toHaveAttribute("data-map-camera-moving", "false");
     expect(await regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(regionalCamera);
   });
 

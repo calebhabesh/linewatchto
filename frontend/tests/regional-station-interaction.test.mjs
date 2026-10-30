@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
 import {
-  applyRegionalStationSelection,
   installRegionalStationLabelHover,
+  regionalStationArtwork,
+  regionalStationHoverShapes,
+  regionalStationLabelTargets,
+  regionalStationSelectionShapes,
 } from "../src/app/regional-station-interaction.ts";
 
 // Just enough DOM: elements with data attributes, classes and `closest`.
@@ -32,21 +36,6 @@ class FakeElement {
   }
 }
 
-function fakeRoot(elements) {
-  const matching = (selector) => {
-    const attribute = selector.match(/^\[([\w-]+)(?:="([^"]*)")?\]$/);
-    return elements.filter((element) => (
-      attribute[2] === undefined
-        ? element.attributes.has(attribute[1])
-        : element.attributes.get(attribute[1]) === attribute[2]
-    ));
-  };
-  return {
-    querySelectorAll: (selector) => matching(selector),
-    querySelector: (selector) => matching(selector)[0] ?? null,
-  };
-}
-
 const originalGlobals = { CSS: globalThis.CSS, Element: globalThis.Element, window: globalThis.window };
 beforeEach(() => {
   globalThis.CSS = { escape: (value) => value };
@@ -55,29 +44,56 @@ beforeEach(() => {
 });
 afterEach(() => Object.assign(globalThis, originalGlobals));
 
-describe("GO/UP station selection", () => {
-  it("marks only the selected station's target and indicator, with its intro state", () => {
-    const unionTarget = new FakeElement({ "data-regional-station-id": "union" });
-    const unionIndicator = new FakeElement({ "data-regional-station-selection-id": "union" });
-    const bloorTarget = new FakeElement({ "data-regional-station-id": "bloor" });
-    const bloorIndicator = new FakeElement({ "data-regional-station-selection-id": "bloor" });
-    const root = fakeRoot([unionTarget, unionIndicator, bloorTarget, bloorIndicator]);
+const geometry = JSON.parse(readFileSync(new URL("../src/app/map-geometry/regional.json", import.meta.url), "utf8"));
 
-    applyRegionalStationSelection(root, "union", false);
-    assert.equal(unionTarget.attributes.get("data-regional-station-selected"), "true");
-    assert.equal(unionIndicator.attributes.get("data-regional-station-selected"), "true");
-    assert.equal(unionIndicator.classes.has("selection-intro-complete"), false);
+describe("GO/UP station artwork", () => {
+  const artwork = regionalStationArtwork(geometry);
+  const station = (id) => artwork.find((candidate) => candidate.id === id);
 
-    applyRegionalStationSelection(root, "union", true);
-    assert.equal(unionIndicator.classes.has("selection-intro-complete"), true);
+  it("reads each station's shapes from the prepared map, keeping a junction's authored transforms", () => {
+    // A junction's own dots are part of its group, never stations of their own.
+    assert.equal(artwork.length, geometry.labels.length);
+    assert.ok(!artwork.some((candidate) => /-(?:ki|up)$/.test(candidate.id)));
+    const pickering = station("pickering");
+    assert.equal(pickering.large, false);
+    assert.match(pickering.transform, /^matrix\(1 0 0 1 /);
+    assert.deepEqual(pickering.shapes.map((shape) => shape.tag), ["circle"]);
+    assert.equal(station("union").large, true);
+    // Bloor's group is rotated; its connector bars keep their own rotation.
+    const bloor = station("bloor");
+    assert.doesNotMatch(bloor.transform, /^matrix\(1 0 0 1 /);
+    assert.deepEqual(bloor.shapes.map((shape) => [shape.tag, Boolean(shape.transform), Boolean(shape.join)]), [
+      ["rect", true, true],
+      ["rect", true, true],
+      ["circle", false, false],
+      ["ellipse", false, false],
+    ]);
+  });
 
-    applyRegionalStationSelection(root, "bloor", false);
-    assert.equal(unionTarget.attributes.has("data-regional-station-selected"), false);
-    assert.equal(unionIndicator.classes.has("selection-intro-complete"), false);
-    assert.equal(bloorIndicator.attributes.get("data-regional-station-selected"), "true");
+  it("grows hover rings and selection markers from the dots, without junction bars", () => {
+    const pickering = station("pickering");
+    const union = station("union");
+    const bloor = station("bloor");
+    const [dot] = pickering.shapes;
+    assert.equal(regionalStationHoverShapes(pickering)[0].r, dot.r * 1.45);
+    assert.equal(regionalStationSelectionShapes(pickering)[0].r, dot.r * 1.2);
+    // Union's pill keeps a fixed 75-unit hover pad and its authored size when selected.
+    const [pill] = union.shapes;
+    const hover = regionalStationHoverShapes(union)[0];
+    assert.deepEqual([hover.x, hover.y, hover.width, hover.height, hover.rx], [
+      pill.x - 75, pill.y - 75, pill.width + 150, pill.height + 150, pill.rx + 75,
+    ]);
+    assert.deepEqual(regionalStationSelectionShapes(union)[0], pill);
+    assert.deepEqual(regionalStationHoverShapes(bloor).map((shape) => shape.tag), ["circle", "ellipse"]);
+    assert.deepEqual(regionalStationSelectionShapes(bloor).map((shape) => shape.tag), ["circle", "ellipse"]);
+  });
 
-    applyRegionalStationSelection(root, null, false);
-    assert.equal(bloorIndicator.attributes.has("data-regional-station-selected"), false);
+  it("targets every station name over its prepared box", () => {
+    const targets = regionalStationLabelTargets(geometry);
+    assert.equal(targets.length, geometry.labels.length);
+    const union = targets.find((target) => target.stationId === "union");
+    assert.equal(union.name, "Union");
+    assert.equal(union.points.length, 4);
   });
 });
 

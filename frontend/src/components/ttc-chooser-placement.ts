@@ -16,7 +16,7 @@ import {
   placeOverlapChooser,
   type OverlapChooserPreferredBox,
 } from "./overlap-chooser-placement.ts";
-import type { PlacementObstacle } from "./overlap-badge-placement.ts";
+import { affectedOutlinesOnScreen } from "./map-overlays/overlap-badge-layout.ts";
 
 export type SvgBounds = MapBounds;
 export type OverlapBadgeSize = MapOverlapIndicatorSize;
@@ -102,11 +102,7 @@ export function overlapChooserScreenLayout(
     y: mapTransform.y + point.y * scale,
   });
   const badgeCenter = toScreen(badge.position);
-  const affectedArea: PlacementObstacle[] = badge.affectedOutlines.map((outline) => (
-    "center" in outline
-      ? { polyline: [toScreen(outline.center)], radius: outline.radius * scale }
-      : { polyline: outline.polyline.map(toScreen), radius: outline.halfWidth * scale }
-  ));
+  const affectedArea = affectedOutlinesOnScreen(badge.affectedOutlines, toScreen, scale);
   const placement = placeOverlapChooser({
     viewportSize,
     badgeBox: {

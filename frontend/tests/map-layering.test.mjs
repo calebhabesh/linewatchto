@@ -35,7 +35,7 @@ const ttcTrainMarkerLayerSource = readFileSync(new URL("../src/components/TtcTra
 // The TTC renderer and the modules split out of it; absence checks cover all of them.
 const ttcMapRendererSource = [interactiveMapSource, ttcGlyphLanesSource, ttcMapObstaclesSource, ttcTrainMarkerLayerSource].join("\n");
 const interactiveRegionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
-const regionalGeometrySource = readFileSync(new URL("../src/app/regional-map-geometry.ts", import.meta.url), "utf8");
+const regionalStationLayersSource = readFileSync(new URL("../src/components/RegionalStationLayers.tsx", import.meta.url), "utf8");
 const regionalAssetSource = readFileSync(new URL("../src/app/regional-map-asset.ts", import.meta.url), "utf8");
 const regionalOverlaysSource = readFileSync(new URL("../src/app/regional-map-overlays.ts", import.meta.url), "utf8");
 const ttcChooserPlacementSource = readFileSync(new URL("../src/components/ttc-chooser-placement.ts", import.meta.url), "utf8");
@@ -44,6 +44,7 @@ const overlapChooserSource = readFileSync(new URL("../src/components/MapOverlapC
 const overlapIndicatorSource = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
 const overlapBadgesSource = readFileSync(new URL("../src/components/map-overlap-badges.ts", import.meta.url), "utf8");
 const overlapSvgSource = readFileSync(new URL("../src/components/map-overlap-svg.ts", import.meta.url), "utf8");
+const badgeLayoutSource = readFileSync(new URL("../src/components/map-overlays/overlap-badge-layout.ts", import.meta.url), "utf8");
 const chooserKeepoutsSource = readFileSync(new URL("../src/components/map-chooser-keepouts.ts", import.meta.url), "utf8");
 const plannedClosureIconSource = readFileSync(new URL("../src/components/PlannedClosureIcon.tsx", import.meta.url), "utf8");
 const mapImpactNormalizationSource = readFileSync(new URL("../src/components/map-impact-normalization.ts", import.meta.url), "utf8");
@@ -104,8 +105,8 @@ describe("asset-backed map layering", () => {
   });
 
   it("derives pointer targets from authored station text bounds", () => {
-    assert.match(interactiveMapSource, /readSvgStationLabelPolygons/);
-    assert.match(interactiveMapSource, /readSvgStationLabelPolygons\(mapSvgRef\.current, stations\.map\(\(station\) => station\.id\), \{[\s\S]*?leading:\s*0,[\s\S]*?trailing:\s*68,[\s\S]*?y:\s*8/);
+    // Name boxes are prepared data (src/app/ttc-map-geometry.ts), padded for TTC.
+    assert.match(interactiveMapSource, /ttcStationLabelPolygons\(TTC_GEOMETRY, stations\.map\(\(station\) => station\.id\)\)/);
     assert.match(interactiveMapSource, /data-station-label-id=\{station\.id\}/);
     assert.match(interactiveMapSource, /<polygon/);
     assert.match(interactiveMapSource, /points=\{labelPolygon\.map/);
@@ -146,13 +147,13 @@ describe("asset-backed map layering", () => {
     assert.match(regionalAssetSource, /dataset\.regionalStationLabelFor = stationId/);
     assert.match(interactiveRegionalMapSource, /raster-station-label-text-hover/);
     assert.doesNotMatch(interactiveRegionalMapSource, /regional-station-label-hover-clone/);
-    assert.match(regionalAssetSource, /dataset\.regionalStationId = stationId/);
+    assert.match(regionalStationLayersSource, /data-regional-station-id=\{label\.stationId\}/);
     assert.match(interactiveRegionalMapSource, /regionalStationLabelHover/);
     assert.doesNotMatch(interactiveRegionalMapSource, /regional-raster-label-halo/);
     assert.match(
       globalCss,
-      /\.regional-station-label-hit-target\s*\{[^}]*pointer-events:\s*bounding-box\s*!important;/s,
-      "regional station names should use their complete text bounds instead of individual glyph outlines",
+      /\.regional-station-label-hit-target\s*\{[^}]*fill:\s*transparent;[^}]*pointer-events:\s*all;/s,
+      "regional station names should be targets over their complete text box instead of individual glyph outlines",
     );
     assert.match(
       globalCss,
@@ -160,7 +161,6 @@ describe("asset-backed map layering", () => {
     );
     assert.match(globalCss, /\.station-label-hover-effect\s*\{[^}]*transition:\s*transform 120ms ease, filter 120ms ease;/s);
     assert.match(globalCss, /\.station-label-hover-effect-active,[\s\S]*?\{[^}]*transition-delay:\s*0ms;/s);
-    assert.match(regionalGeometrySource, /bounds:\s*\{[\s\S]*?Math\.min\(\.\.\.corners/);
     assert.match(interactiveRegionalMapSource, /x=\{hoveredStationLabel\.bounds\.x\}/);
     assert.doesNotMatch(globalCss, /@keyframes station-label-selection-(?:intro|breathe)/);
   });
@@ -192,7 +192,7 @@ describe("asset-backed map layering", () => {
       /const hoverRadius = hasMultipleVisualAnchors \? 42 : isLarge \? 78 : 46;/,
     );
     assert.match(interactiveMapSource, /className="station-hover-indicator"/);
-    assert.match(interactiveMapSource, /setTtcStationHovered\(mapRootRef\.current, station\.id, true\)/);
+    assert.match(interactiveMapSource, /setMapStationHovered\(mapRootRef\.current, station\.id, true\)/);
     assert.match(interactiveMapSource, /r=\{hoverRadius\}/);
     assert.match(
       globalCss,
@@ -283,10 +283,6 @@ describe("asset-backed map layering", () => {
     );
     assert.match(
       globalCss,
-      /\.planned-closure-map-icon\s*\{[^}]*filter:\s*drop-shadow\(0 0 1px var\(--planned-preview-glow\)\)[^}]*drop-shadow\(0 0 3px rgba\(0, 200, 255, 0\.14\)\);/s,
-    );
-    assert.match(
-      globalCss,
       /\.planned-closure-map-icon :is\(rect, path\)\s*\{[^}]*stroke:\s*var\(--planned-preview-ink\) !important;/s,
     );
     assert.match(
@@ -297,13 +293,10 @@ describe("asset-backed map layering", () => {
       globalCss,
       /\.linewatch-shell\.dark \.asset-alert-path-hover-boundary\.planned-preview\s*\{[^}]*stroke:\s*var\(--planned-preview-ink\);/s,
     );
-    assert.match(
-      globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.planned-closure-map-icon\s*\{[^}]*filter:\s*none;/s,
-    );
+    // Filtered icons re-filter on every zoom frame (map-renderer-parity.md rule 4).
     assert.doesNotMatch(
       cssBlockFor(".planned-closure-map-icon"),
-      /animation:/,
+      /animation:|filter:/,
     );
   });
 
@@ -340,7 +333,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /<pattern id="badge-suspension-hash"/);
     assert.match(ttcGlyphLanesSource, /className="rsz-chevron"/);
     assert.match(ttcGlyphLanesSource, /d="M -12 -10 L 8 0 L -12 10"/);
-    assert.match(interactiveMapSource, /mask=\{\`url\(#\$\{visualId\}-mask\)\`\}/);
+    assert.match(interactiveMapSource, /<HourglassGlyphLane/);
     assert.match(interactiveMapSource, /className="asset-alert-path delay-candy pointer-events-none"/);
     assert.match(interactiveMapSource, /style=\{\{\s*pointerEvents:\s*"none",\s*stroke:\s*RSZ_IMPACT_COLOR\s*\}\}/);
     assert.match(interactiveMapSource, /SuspensionNoEntryLane/);
@@ -353,13 +346,10 @@ describe("asset-backed map layering", () => {
 
     const mapGeometrySource = readFileSync(new URL("../src/app/map-geometry.ts", import.meta.url), "utf8");
 
-    assert.match(interactiveMapSource, /readSvgGeometry/);
+    assert.match(interactiveMapSource, /const TTC_GUIDE_PATHS = ttcGuidePaths\(TTC_GEOMETRY\)/);
     assert.match(interactiveMapSource, /resolveNetworkSegmentPath/);
     assert.match(mapGeometrySource, /segment\.travelDirection \?\? "bidirectional"/);
     assert.match(mapGeometrySource, /segment\.guidePathReversed/);
-    assert.match(mapGeometrySource, /getAttribute\("inkscape:label"\) === "non-linear-guides-layer"/);
-    assert.match(mapGeometrySource, /pathDataInRootCoordinates\(path, root\)/);
-    assert.match(mapGeometrySource, /svgElementMatrixToRootCoordinates\(path, root\)/);
     assert.match(interactiveMapSource, /travelDirection !== "reverse"/);
     assert.match(interactiveMapSource, /travelDirection !== "forward"/);
     assert.match(globalCss, /\.motion-paused \.asset-alert-path-glow/);
@@ -434,13 +424,17 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.asset-alert-path-glow:not\(\.map-selection-attention\):not\(\.interactive-glow\):not\(\.commute-path-preview-glow\)\s*\{[^}]*display:\s*none !important;[^}]*animation:\s*none !important;[^}]*filter:\s*none !important;/s);
   });
 
-  it("lifts glyph-lane masks while the map changes scale", () => {
-    // Corridor-length masks re-rastered at every zoom step overflowed tile
-    // memory on GO/UP (whole-line delays) and flickered the whole page.
-    assert.match(globalCss, /:is\(\[data-map-zoom-active="true"\], \[data-map-camera-moving="true"\]\) \.map-glyph-lane-clip\s*\{\s*mask:\s*none;/);
-    const maskedGroups = lineAlertOverlaysSource.match(/<g[^>]*mask=\{`url\(#\$\{visualId\}[^>]*>/g) ?? [];
-    assert.ok(maskedGroups.length >= 3);
-    for (const group of maskedGroups) assert.match(group, /className="map-glyph-lane-clip"/);
+  it("draws glyph lanes without a clip mask as long as the alert", () => {
+    // Corridor-length masks held most of GO/UP's drawing-layer area at rest
+    // and re-rastered at every zoom step (tile memory, page flicker). Glyphs
+    // sit centred inside the tube, so nothing needs clipping.
+    const tubeSource = lineAlertOverlaysSource.slice(
+      lineAlertOverlaysSource.indexOf("export function MapLineAlertTube"),
+      lineAlertOverlaysSource.indexOf("export function MapLineAlertLayer"),
+    );
+    assert.doesNotMatch(tubeSource, /<mask\b|\bmask=/);
+    assert.doesNotMatch(globalCss, /map-glyph-lane-clip|delay-hourglass-mask-path|suspension-mask-path/);
+    assert.equal((lineAlertOverlaysSource.match(/className="map-glyph-lane"/g) ?? []).length, 3);
   });
 
   it("leaves the pointer to alert targets: tubes and their hover copies never take it", () => {
@@ -470,7 +464,6 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveRegionalMapSource, /useMapPulseSync\(viewportRef, \{\s*paused: overlayMotionPaused/);
     assert.match(interactiveMapSource, /signature: `\$\{loadState\}::\$\{pulseSyncSignature\}`/);
     assert.doesNotMatch(globalCss, /\.asset-alert-path\.(?:delay-candy|suspension-candy|delay-static-base)\s*\{[^}]*map-overlay-rail-pulse/s);
-    assert.match(globalCss, /\.delay-hourglass-mask-path,\s*\.suspension-mask-path\s*\{[^}]*stroke-width:\s*calc\(var\(--map-alert-rail-width\) \* var\(--map-overlay-unit, 1\)\);/s);
     assert.doesNotMatch(globalCss, /@keyframes mask-size-pulse/);
   });
 
@@ -509,7 +502,6 @@ describe("asset-backed map layering", () => {
     assert.ok(suspensionStart > -1, "bidirectional suspension overlay branch must exist");
     assert.ok(suspensionEnd > suspensionStart, "bidirectional suspension branch should end before one-way branch");
     assert.match(suspensionBlock, /<SuspensionNoEntryLane/);
-    assert.match(suspensionBlock, /mask=\{`url\(#\$\{visualId\}-suspension-static-mask\)`\}/);
     assert.doesNotMatch(suspensionBlock, /stroke:\s*"url\(#suspension-hash\)"/);
     assert.doesNotMatch(suspensionBlock, /d="M -14 -14 L 10 0 L -14 14"/);
     assert.doesNotMatch(ttcMapRendererSource, /fixedStripePathDForPath/);
@@ -549,7 +541,7 @@ describe("asset-backed map layering", () => {
     assert.match(sharedOverlaySource, /function groupByLine[\s\S]*?lineAlertPaintOrder\(alerts\)/);
     const disruptionOverlaysStart = interactiveMapSource.indexOf('aria-label="Disruption overlays"');
     assert.ok(interactiveMapSource.indexOf("<MapLineAlertLayer", disruptionOverlaysStart) > -1, "TTC draws line alerts with the shared layer");
-    assert.match(interactiveRegionalMapSource, /createPortal\(\s*<MapLineAlertLayer/);
+    assert.match(interactiveRegionalMapSource, /<g id=\{REGIONAL_DYNAMIC_SEGMENT_LAYER_ID\}>\s*<MapLineAlertLayer/);
   });
 
   it("renders the selected disruption emphasis above every disruption corridor", () => {
@@ -645,46 +637,31 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(ttcMapRendererSource, /function (getUniqueImpactKinds|overlapBadgeSignature|activeImpactsForSegment|legacyImpactsForSegment)\b/);
     assert.match(interactiveMapSource, /getUniqueImpactKinds/);
     assert.doesNotMatch(ttcMapRendererSource, /if \(impactKinds\.length <= 1\) continue;/);
-    assert.match(interactiveMapSource, /const measuredGeometrySignatureRef = useRef<string \| null>\(null\)/);
-    assert.match(interactiveMapSource, /placeOverlapBadges\(/);
-    assert.match(interactiveMapSource, /siblingGap: OVERLAP_BADGE_SIBLING_CLEARANCE/);
-    assert.match(interactiveMapSource, /obstacleLayers: \[mapPlacementLayers\.artwork, unalertedLineObstacles, overlayPlacementObstacles\]/);
-    assert.match(interactiveMapSource, /collectMapPlacementObstacles/);
+    // Both maps place badges with one layout (map-overlays/overlap-badge-layout.ts).
+    assert.match(interactiveMapSource, /layoutMapOverlapBadges\(\{[\s\S]*?badgeScale: 1,/);
+    assert.match(regionalOverlaysSource, /layoutMapOverlapBadges\(\{[\s\S]*?badgeScale: REGIONAL_BADGE_SCALE,/);
+    assert.match(badgeLayoutSource, /placeOverlapBadges\(\{/);
+    assert.match(badgeLayoutSource, /siblingGap: OVERLAP_BADGE_SIBLING_CLEARANCE \* badgeScale/);
+    assert.match(badgeLayoutSource, /obstacleLayers: \[artwork\.obstacles, unalertedLines\(artwork, corridors\), alertObstacles\]/);
+    // Artwork obstacles are prepared from the authored SVG, not measured.
+    assert.match(interactiveMapSource, /const TTC_ARTWORK_OBSTACLES = ttcArtworkObstacles\(TTC_GEOMETRY\)/);
     assert.match(interactiveMapSource, /collectBaseRouteObstacles/);
-    assert.match(interactiveMapSource, /measuredGeometrySignatureRef\.current === measurementSignature/);
-    assert.match(interactiveMapSource, /font-ready:\$\{mapLabelFontReady\}/);
-    assert.match(ttcMapObstaclesSource, /element\.closest\("\.ttc-authored-svg-source"\)/);
-    assert.match(ttcMapObstaclesSource, /!authoredGeometrySource && \(style\.visibility === "hidden" \|\| style\.opacity === "0"\)/);
     assert.match(interactiveMapSource, /#non-linear-guides-layer \{[\s\S]*?display: inline !important;[\s\S]*?visibility: hidden;/);
-    assert.match(ttcMapObstaclesSource, /"#non-linear-guides-layer"/);
     assert.match(interactiveMapSource, /pathCorridorCollisionBoxes/);
     assert.match(interactiveMapSource, /pathMidpointFrame/);
     assert.match(interactiveMapSource, /const frame = pathMidpointFrame\(segment\.pathD\)/);
-    assert.match(interactiveMapSource, /OVERLAY_CORRIDOR_COLLISION_RADIUS/);
-    assert.match(ttcMapObstaclesSource, /const OVERLAY_CORRIDOR_COLLISION_RADIUS = 54;/);
     assert.match(overlapSvgSource, /export const OVERLAP_INDICATOR_SCALE = 1\.5;/);
     assert.match(overlapBadgesSource, /width: OVERLAP_BADGE_PILL_THICKNESS \* OVERLAP_INDICATOR_SCALE,/);
     assert.match(overlapBadgesSource, /\(totalItems - 1\) \* OVERLAP_BADGE_ITEM_SPACING \+ OVERLAP_BADGE_PILL_THICKNESS/);
     assert.match(overlapBadgesSource, /height: OVERLAP_BADGE_PILL_THICKNESS \* OVERLAP_INDICATOR_SCALE/);
     assert.match(overlapIndicatorSource, /<g transform=\{`scale\(\$\{OVERLAP_INDICATOR_SCALE\}\)`\}>/);
-    assert.match(interactiveMapSource, /overlayPlacementObstacles/);
-    assert.match(
-      interactiveMapSource,
-      /const collisionBoxesByImpact = useMemo[\s\S]*?stationOverlapProtectedBox\(anchor\.point\)/,
-    );
-    assert.match(ttcMapObstaclesSource, /transformedSvgBounds/);
-    assert.match(ttcMapObstaclesSource, /svgElementMatrixToRootCoordinates/);
-    assert.match(ttcMapObstaclesSource, /transformBoundsToRootCoordinates/);
-    assert.match(interactiveMapSource, /"path"/);
-    assert.match(ttcMapObstaclesSource, /isInjectedMapOverlayElement/);
+    assert.match(ttcMapObstaclesSource, /export function ttcArtworkObstacles\(geometry: PreparedMapGeometry\)/);
     assert.match(ttcMapObstaclesSource, /mapCollisionBoxesForElementBounds/);
     assert.match(ttcMapObstaclesSource, /BASE_ROUTE_COLLISION_RADIUS/);
     assert.match(ttcMapObstaclesSource, /isLargeMapComponentBounds/);
     assert.match(ttcMapObstaclesSource, /splitLargeMapComponentBounds/);
     assert.match(ttcMapObstaclesSource, /LARGE_MAP_COMPONENT_MAX_THICKNESS/);
     assert.doesNotMatch(ttcMapRendererSource, /if \(box\.width > 1200 \|\| box\.height > 1200\) return null;/);
-    assert.match(ttcMapObstaclesSource, /"text"/);
-    assert.match(ttcMapObstaclesSource, /"tspan"/);
     assert.doesNotMatch(ttcMapRendererSource, /const OVERLAP_BADGE_POSITION_CANDIDATES/);
     assert.match(globalCss, /\.overlap-indicator-pill/);
     assert.match(globalCss, /\.overlap-indicator-badge\.suspension/);
@@ -836,7 +813,7 @@ describe("asset-backed map layering", () => {
   it("uses resolved SVG station centers for station flashes and hit targets", () => {
     assert.match(interactiveMapSource, /stationCenterPoints/);
     assert.match(interactiveMapSource, /stationPointFor/);
-    assert.match(interactiveMapSource, /readSvgStationCenters/);
+    assert.match(interactiveMapSource, /ttcStationCenters\(TTC_GEOMETRY, stationVisualCenterIds\(stations\)\)/);
   });
 
   it("keeps alert and station selections on one smooth attention-to-breathing animation lifecycle", () => {
@@ -859,9 +836,9 @@ describe("asset-backed map layering", () => {
       globalCss,
       /\.map-gesture-active \.asset-alert-path\.map-selection-flash[^}]*animation:\s*none/s,
     );
-    // GO/UP's injected station indicator takes the same intro state.
-    assert.match(interactiveRegionalMapSource, /applyRegionalStationSelection\(viewport, selectedStationId \?\? null, selectionIntroComplete\)/);
-    assert.match(interactiveRegionalMapSource, /regional-station-top-selection map-selection-attention\$\{selectionIntroComplete \? " selection-intro-complete" : ""\}/);
+    // GO/UP's selected-station marker takes the same intro state.
+    assert.match(interactiveRegionalMapSource, /<RegionalStationSelection[\s\S]*?introComplete=\{selectionIntroComplete\}/);
+    assert.match(regionalStationLayersSource, /regional-station-top-selection map-selection-attention\$\{introComplete \? " selection-intro-complete" : ""\}/);
     assert.match(globalCss, /\.map-selection-attention\.selection-intro-complete\s*\{[^}]*animation-name:\s*var\(--selection-breathe-name\);/s);
     assert.match(interactiveMapSource, /aria-label="Station impact foreground highlights"/);
     assert.match(interactiveMapSource, /data-station-impact-selection-id=\{alert\.impactId\}/);
@@ -876,18 +853,7 @@ describe("asset-backed map layering", () => {
       globalCss,
       /\.linewatch-shell \.station-selected-indicator\.foreground-flash-active\s*\{[^}]*animation:\s*none !important;[^}]*opacity:\s*0 !important;/,
     );
-    assert.match(
-      regionalAssetSource,
-      /selectedIndicator\.classList\.add\([\s\S]*?"regional-station-selected-indicator",[\s\S]*?"foreground-flash-active"/,
-    );
-    assert.match(
-      regionalAssetSource,
-      /selectionArtworkIndicator\?\.classList\.remove\("foreground-flash-active"\);[\s\S]*?selectionArtworkIndicator\?\.classList\.add\("regional-station-selection-source-artwork"\)/,
-    );
-    assert.match(
-      globalCss,
-      /\.regional-station-selection-source-artwork\s*\{[^}]*animation:\s*none !important;[^}]*opacity:\s*1 !important;/,
-    );
+    assert.doesNotMatch(regionalAssetSource, /regional-station-selected-indicator|regional-station-selection-source/);
     assert.doesNotMatch(
       globalCss,
       /\.motion-paused \.station-selected-indicator(?::not\([^)]*\)|\.[\w-]+)*\.foreground-flash-active[^}]*opacity:\s*0\.55 !important/,

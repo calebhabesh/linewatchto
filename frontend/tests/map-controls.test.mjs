@@ -10,7 +10,9 @@ describe("map controls", () => {
   it("renders the zoom controls inside a readable control rail", () => {
     assert.match(mapSource, /map-control-rail/);
     assert.match(mapSource, /map-control-button/);
-    assert.match(mapSource, /map-control-slider/);
+    // Both maps render the shared slider (map-camera/MapZoomSlider.tsx).
+    assert.match(mapSource, /<MapZoomSlider cameraStore=\{cameraStore\}/);
+    assert.match(readFileSync(new URL("../src/components/map-camera/MapZoomSlider.tsx", import.meta.url), "utf8"), /map-control-slider/);
     assert.match(mapSource, /map-control-zoom-group/);
     assert.match(globalCss, /\.map-control-zoom-group/);
   });

@@ -162,7 +162,7 @@ test("regional station alerts keep severity fills and require explicit direction
   await closureCard.click();
   await expect(alertAnchor("bloor-up-closure").locator(".station-impact-ring")).toHaveClass(/\bselected\b/);
   await expect(page.locator('.regional-map [data-station-impact-selection-id="bloor-up-closure"]')).toBeAttached();
-  await expect(map).not.toHaveAttribute("data-regional-map-camera-moving", "true");
+  await expect(map).not.toHaveAttribute("data-map-camera-moving", "true");
   await expect(page.getByText(/UNKNOWN_CAUSE|Unknown Cause/i)).toHaveCount(0);
   await attachScreenshot("regional-station-alert-focused");
 });

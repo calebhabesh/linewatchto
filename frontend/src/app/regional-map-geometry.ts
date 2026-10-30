@@ -1,12 +1,26 @@
+/*
+ * GO/UP geometry from the prepared map data (map-geometry-data.ts): station
+ * dots, segment corridors along the authored routes, train-marker frames,
+ * badge anchors and station-name boxes. Everything is in the root SVG's
+ * coordinates, where GO/UP's overlays are drawn, and nothing reads the DOM.
+ */
 import type { NetworkSegment } from "./linewatch-data.ts";
 import {
+  pointAlongPolyline,
+  pointsToPath,
+  polylineLength,
+  polylineStretch,
+  projectOntoPolyline,
   type MapBounds,
   type MapPoint,
-  svgElementMatrixToRootCoordinates,
-  transformBoundsToRootCoordinates,
-  transformPoint,
 } from "./map-geometry.ts";
-import { SVG_NAMESPACE, removeDescendantIds } from "./regional-map-asset.ts";
+import {
+  preparedPoints,
+  stationLabelCenter,
+  stationLabelPolygon,
+  type PreparedMapGeometry,
+  type PreparedStation,
+} from "./map-geometry-data.ts";
 import {
   estimatedTrainMarkerLanePoint,
   orientedEstimatedTrainMarkerAngle,
@@ -14,35 +28,10 @@ import {
   type EstimatedTrainMarker,
 } from "./train-markers.ts";
 
-export type RegionalCoordinateSpace = "station-layer" | "root";
-
-/**
- * Element lookup bound to the regional diagram. The retained TTC diagram lives
- * in the same document and reuses station IDs such as `station-union` and
- * `station-downsview-park`, so `document.getElementById` can resolve a TTC
- * anchor and project regional overlays onto the wrong part of a corridor.
- */
-export type RegionalSvgScope = Pick<Document, "getElementById" | "createElementNS">;
-
-export function regionalSvgScope(svg: SVGSVGElement): RegionalSvgScope {
-  const documentNode = svg.ownerDocument;
-  return {
-    getElementById: (elementId: string) =>
-      elementId ? svg.querySelector<HTMLElement>(`#${CSS.escape(elementId)}`) : null,
-    createElementNS: documentNode.createElementNS.bind(documentNode) as Document["createElementNS"],
-  };
-}
-
 export type RegionalStationVisualAnchor = {
   id: string;
   point: MapPoint;
   radius: number;
-};
-
-export type RegionalRouteMetric = {
-  path: SVGPathElement;
-  length: number;
-  pointAt: (distance: number) => MapPoint;
 };
 
 export type RegionalTrainMarkerFrame = {
@@ -55,7 +44,6 @@ export type RegionalStationLabelHoverResult = {
   polygonPoints: string;
   center: MapPoint;
   bounds: MapBounds;
-  cutoutMarkup: string;
 };
 
 export type RegionalOverlapBadgePlacement = {
@@ -91,213 +79,90 @@ export function squaredPointDistance(a: MapPoint, b: MapPoint): number {
   return (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 }
 
-export function applySvgTransform(point: MapPoint, transform: string | null): MapPoint {
-  if (!transform) return point;
-  let next = point;
-  for (const match of transform.matchAll(/([a-zA-Z]+)\(([^)]*)\)/g)) {
-    const operation = match[1];
-    const values = match[2].trim().split(/[\s,]+/).filter(Boolean).map(Number);
-    if (operation === "translate") {
-      next = { x: next.x + (values[0] ?? 0), y: next.y + (values[1] ?? 0) };
-    } else if (operation === "scale") {
-      next = { x: next.x * (values[0] ?? 1), y: next.y * (values[1] ?? values[0] ?? 1) };
-    } else if (operation === "rotate") {
-      const radians = ((values[0] ?? 0) * Math.PI) / 180;
-      const centerX = values[1] ?? 0;
-      const centerY = values[2] ?? 0;
-      const offsetX = next.x - centerX;
-      const offsetY = next.y - centerY;
-      next = {
-        x: centerX + Math.cos(radians) * offsetX - Math.sin(radians) * offsetY,
-        y: centerY + Math.sin(radians) * offsetX + Math.cos(radians) * offsetY,
-      };
-    } else if (operation === "matrix" && values.length >= 6) {
-      const [a, b, c, d, e, f] = values;
-      next = { x: a * next.x + c * next.y + e, y: b * next.x + d * next.y + f };
+
+/** An SVG `transform` value for a prepared [a, b, c, d, e, f] matrix. */
+export function matrixTransform(matrix: readonly number[]): string {
+  return `matrix(${matrix.join(" ")})`;
+}
+
+type RegionalLookup = {
+  stations: Map<string, PreparedStation>;
+  shapes: Map<string, { station: PreparedStation; index: number }>;
+  routes: Map<string, MapPoint[]>;
+  corridors: Map<string, MapPoint[] | null>;
+};
+
+const lookups = new WeakMap<PreparedMapGeometry, RegionalLookup>();
+
+function lookup(geometry: PreparedMapGeometry): RegionalLookup {
+  let cached = lookups.get(geometry);
+  if (!cached) {
+    const shapes = new Map<string, { station: PreparedStation; index: number }>();
+    for (const station of geometry.stations) {
+      station.shapes.forEach((shape, index) => shapes.set(shape.id, { station, index }));
     }
-  }
-  return next;
-}
-
-export function pointInRegionalStationsLayer(element: SVGElement, point: MapPoint): MapPoint {
-  let next = point;
-  let current: SVGElement | null = element;
-  while (current && current.id !== "regional-stations-layer") {
-    next = applySvgTransform(next, current.getAttribute("transform"));
-    current = current.parentElement as SVGElement | null;
-  }
-  return next;
-}
-
-export function pointInSvgRootCoordinates(element: SVGElement, point: MapPoint): MapPoint {
-  let next = point;
-  let current: SVGElement | null = element;
-  while (current && current.tagName.toLowerCase() !== "svg") {
-    next = applySvgTransform(next, current.getAttribute("transform"));
-    current = current.parentElement as SVGElement | null;
-  }
-  return next;
-}
-
-export function pointFromSvgRootCoordinates(element: SVGElement, point: MapPoint): MapPoint | null {
-  const origin = pointInSvgRootCoordinates(element, { x: 0, y: 0 });
-  const xBasis = pointInSvgRootCoordinates(element, { x: 1, y: 0 });
-  const yBasis = pointInSvgRootCoordinates(element, { x: 0, y: 1 });
-  const a = xBasis.x - origin.x;
-  const b = xBasis.y - origin.y;
-  const c = yBasis.x - origin.x;
-  const d = yBasis.y - origin.y;
-  const determinant = a * d - b * c;
-  if (Math.abs(determinant) < 1e-9) return null;
-  const offsetX = point.x - origin.x;
-  const offsetY = point.y - origin.y;
-  return {
-    x: (d * offsetX - c * offsetY) / determinant,
-    y: (-b * offsetX + a * offsetY) / determinant,
-  };
-}
-
-export function pointInRegionalStationsCoordinates(
-  point: MapPoint,
-  source: SVGElement,
-  stationsLayer: SVGElement,
-): MapPoint | null {
-  return pointFromSvgRootCoordinates(
-    stationsLayer,
-    pointInSvgRootCoordinates(source, point),
-  );
-}
-
-export function readRegionalStationAnchorPoint(
-  documentNode: RegionalSvgScope,
-  anchorId: string | undefined,
-  space: RegionalCoordinateSpace = "station-layer",
-): MapPoint | null {
-  if (!anchorId) return null;
-  const anchor = documentNode.getElementById(anchorId) as SVGElement | null;
-  if (!anchor) return null;
-  let localCenter: MapPoint | null = null;
-  if (anchor.matches("circle, ellipse")) {
-    localCenter = {
-      x: Number(anchor.getAttribute("cx") ?? 0),
-      y: Number(anchor.getAttribute("cy") ?? 0),
+    cached = {
+      stations: new Map(geometry.stations.map((station) => [station.id, station])),
+      shapes,
+      routes: new Map(geometry.lines.map((line) => [line.id, preparedPoints(line.points)])),
+      corridors: new Map(),
     };
-  } else if (anchor.tagName.toLowerCase() === "rect") {
-    const x = Number(anchor.getAttribute("x") ?? 0);
-    const y = Number(anchor.getAttribute("y") ?? 0);
-    localCenter = {
-      x: x + Number(anchor.getAttribute("width") ?? 0) / 2,
-      y: y + Number(anchor.getAttribute("height") ?? 0) / 2,
-    };
+    lookups.set(geometry, cached);
   }
-  if (!localCenter) return null;
-  return space === "root"
-    ? pointInSvgRootCoordinates(anchor, localCenter)
-    : pointInRegionalStationsLayer(anchor, localCenter);
+  return cached;
 }
 
-export function svgAnchorPoint(
-  documentNode: RegionalSvgScope,
-  anchorId: string | undefined,
-): MapPoint | null {
-  return readRegionalStationAnchorPoint(documentNode, anchorId, "station-layer");
+/** The station drawn for `stationId` (`union`, not `station-union`). */
+export function regionalStation(geometry: PreparedMapGeometry, stationId: string): PreparedStation | null {
+  return lookup(geometry).stations.get(`station-${stationId}`) ?? null;
 }
 
-export function svgAnchorPointInRootCoordinates(
-  documentNode: RegionalSvgScope,
-  anchorId: string | undefined,
-): MapPoint | null {
-  return readRegionalStationAnchorPoint(documentNode, anchorId, "root");
+/** A segment endpoint: the centre of its station element. */
+export function regionalAnchorPoint(geometry: PreparedMapGeometry, anchorId: string | undefined): MapPoint | null {
+  return anchorId ? geometry.anchors[anchorId] ?? null : null;
 }
 
-export function regionalStationVisualAnchors(
-  stationVisual: SVGElement,
-  space: RegionalCoordinateSpace = "station-layer",
-): RegionalStationVisualAnchor[] {
-  const shapes = stationVisual.matches("circle, ellipse, rect")
-    ? [stationVisual]
-    : [...stationVisual.querySelectorAll<SVGElement>("circle, ellipse, rect")]
-        .filter((shape) => shape.getAttribute("inkscape:label") !== "join-rectangle");
-  return shapes.flatMap((shape) => {
-    if (shape.matches("circle, ellipse")) {
-      const center = {
-        x: Number(shape.getAttribute("cx") ?? 0),
-        y: Number(shape.getAttribute("cy") ?? 0),
-      };
-      const radiusX = Number(shape.getAttribute("r") ?? shape.getAttribute("rx") ?? 0);
-      const radiusY = Number(shape.getAttribute("r") ?? shape.getAttribute("ry") ?? 0);
-      const point = space === "root"
-        ? pointInSvgRootCoordinates(shape, center)
-        : pointInRegionalStationsLayer(shape, center);
-      const xEdge = space === "root"
-        ? pointInSvgRootCoordinates(shape, { x: center.x + radiusX, y: center.y })
-        : pointInRegionalStationsLayer(shape, { x: center.x + radiusX, y: center.y });
-      const yEdge = space === "root"
-        ? pointInSvgRootCoordinates(shape, { x: center.x, y: center.y + radiusY })
-        : pointInRegionalStationsLayer(shape, { x: center.x, y: center.y + radiusY });
-      return [{
-        id: shape.id || stationVisual.id,
-        point,
-        radius: Math.min(
-          Math.hypot(xEdge.x - point.x, xEdge.y - point.y),
-          Math.hypot(yEdge.x - point.x, yEdge.y - point.y),
-        ),
-      }];
-    }
-    if (shape.matches("rect")) {
-      const x = Number(shape.getAttribute("x") ?? 0);
-      const y = Number(shape.getAttribute("y") ?? 0);
-      const center = {
-        x: x + Number(shape.getAttribute("width") ?? 0) / 2,
-        y: y + Number(shape.getAttribute("height") ?? 0) / 2,
-      };
-      const point = space === "root"
-        ? pointInSvgRootCoordinates(shape, center)
-        : pointInRegionalStationsLayer(shape, center);
-      return [{
-        id: shape.id || stationVisual.id,
-        point,
-        radius: Math.min(
-          Number(shape.getAttribute("width") ?? 0),
-          Number(shape.getAttribute("height") ?? 0),
-        ) / 2,
-      }];
-    }
-    return [];
-  });
+/** A station's dots (not junction bars). */
+export function regionalStationVisualAnchors(station: PreparedStation): RegionalStationVisualAnchor[] {
+  return station.anchors.map(({ id, x, y, radius }) => ({ id, point: { x, y }, radius }));
 }
 
-/**
- * The stations-layer bounds of a rectangular (pill) station marker such as
- * Union, or null for round markers.
- */
-export function regionalStationPillBounds(stationVisual: SVGElement): { center: MapPoint; width: number; height: number } | null {
-  if (!stationVisual.matches("rect")) return null;
-  const x = Number(stationVisual.getAttribute("x") ?? 0);
-  const y = Number(stationVisual.getAttribute("y") ?? 0);
-  const a = pointInRegionalStationsLayer(stationVisual, { x, y });
-  const b = pointInRegionalStationsLayer(stationVisual, {
-    x: x + Number(stationVisual.getAttribute("width") ?? 0),
-    y: y + Number(stationVisual.getAttribute("height") ?? 0),
-  });
-  const width = Math.abs(b.x - a.x);
-  const height = Math.abs(b.y - a.y);
-  if (!(width > 0 && height > 0)) return null;
-  return { center: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, width, height };
-}
-
+/** The dots an alert on `lineId` sits on: that line's platform where a station has one per line. */
 export function regionalStationImpactAnchors(
-  stationVisual: SVGElement,
+  station: PreparedStation,
   lineId: string | null | undefined,
-  space: RegionalCoordinateSpace = "station-layer",
 ): RegionalStationVisualAnchor[] {
-  const anchors = regionalStationVisualAnchors(stationVisual, space);
+  const anchors = regionalStationVisualAnchors(station);
   const routeCode = lineId
     ? lineId.replace("regional-", "").toLowerCase()
     : null;
   if (!routeCode) return anchors;
   const matching = anchors.filter((anchor) => anchor.id.endsWith(`-${routeCode}`));
   return matching.length > 0 ? matching : anchors;
+}
+
+/** The dot a segment anchor names (Bloor's KI dot), or a junction group's first dot. */
+export function regionalAnchorDot(geometry: PreparedMapGeometry, anchorId: string): RegionalStationVisualAnchor | null {
+  const { shapes, stations } = lookup(geometry);
+  const owner = shapes.get(anchorId)?.station;
+  const dot = owner?.anchors.find((anchor) => anchor.id === anchorId) ?? stations.get(anchorId)?.anchors[0];
+  return dot ? { id: dot.id, point: { x: dot.x, y: dot.y }, radius: dot.radius } : null;
+}
+
+/** Every station dot on the map. */
+export function regionalStationDots(geometry: PreparedMapGeometry): RegionalStationVisualAnchor[] {
+  return geometry.stations.flatMap(regionalStationVisualAnchors);
+}
+
+/**
+ * A pill-shaped dot (Union) with its authored outline, or undefined for round
+ * dots.
+ */
+export function regionalStationPillShape(geometry: PreparedMapGeometry, anchorId: string) {
+  const found = lookup(geometry).shapes.get(anchorId);
+  const shape = found?.station.shapes[found.index];
+  if (!found || shape?.tag !== "rect" || shape.join || shape.transform) return undefined;
+  return { shape, matrix: found.station.transform };
 }
 
 export function regionalRoutePathIds(lineId: string): string[] {
@@ -311,288 +176,89 @@ export function regionalRoutePathIds(lineId: string): string[] {
   return [`regional-route-${routeCode}-path`];
 }
 
-export function regionalRouteMetric(
-  path: SVGPathElement,
-  stationsLayer: SVGGraphicsElement,
-): RegionalRouteMetric | null {
-  return createRegionalRouteMetric(path, point => pointInRegionalStationsCoordinates(point, path, stationsLayer) ?? point);
+function routePolylines(geometry: PreparedMapGeometry, lineId: string): MapPoint[][] {
+  const { routes } = lookup(geometry);
+  return regionalRoutePathIds(lineId)
+    .map((pathId) => routes.get(pathId))
+    .filter((points): points is MapPoint[] => Boolean(points && points.length > 1));
 }
 
-export function regionalRouteMetricInRoot(
-  path: SVGPathElement,
-): RegionalRouteMetric | null {
-  return createRegionalRouteMetric(path, point => pointInSvgRootCoordinates(path, point));
-}
-
-const routeSamples = new WeakMap<SVGPathElement, {
-  pathData: string | null;
-  length: number;
-  points: Map<number, MapPoint>;
-}>();
-
-/** Prime immutable route samples in small batches while the diagram is idle. */
-export function* primeRegionalRouteSamples(root: ParentNode): Generator<void> {
-  for (const path of root.querySelectorAll<SVGPathElement>('#regional-lines-layer path[id^="regional-route-"]')) {
-    const metric = regionalRouteMetricInRoot(path);
-    if (!metric) continue;
-    const count = Math.max(2, Math.ceil(metric.length / 24));
-    for (let index = 0; index <= count; index++) {
-      metric.pointAt(metric.length * index / count);
-      if (index % 20 === 0) yield;
-    }
-  }
-}
-
-function createRegionalRouteMetric(
-  path: SVGPathElement,
-  project: (point: MapPoint) => MapPoint,
-): RegionalRouteMetric | null {
-  try {
-    const pathData = path.getAttribute("d");
-    let samples = routeSamples.get(path);
-    if (!samples || samples.pathData !== pathData) {
-      samples = { pathData, length: path.getTotalLength(), points: new Map() };
-      routeSamples.set(path, samples);
-    }
-    const { length, points } = samples;
-    if (length <= 0) return null;
-    // Route scans sample hundreds of points for each station/segment. Resolve
-    // the authored affine transform once instead of reparsing its ancestors
-    // (and inverting the station transform) for every sample.
-    const origin = project({ x: 0, y: 0 });
-    const xBasis = project({ x: 1, y: 0 });
-    const yBasis = project({ x: 0, y: 1 });
-    const a = xBasis.x - origin.x;
-    const b = xBasis.y - origin.y;
-    const c = yBasis.x - origin.x;
-    const d = yBasis.y - origin.y;
-    return {
-      path,
-      length,
-      pointAt: (distance) => {
-        const clamped = Math.max(0, Math.min(length, distance));
-        let localPoint = points.get(clamped);
-        if (!localPoint) {
-          const point = path.getPointAtLength(clamped);
-          localPoint = { x: point.x, y: point.y };
-          // Moving train markers also sample routes; keep their changing
-          // distances from growing the retained diagram's cache indefinitely.
-          if (points.size >= 4096) points.delete(points.keys().next().value!);
-          points.set(clamped, localPoint);
-        }
-        return { x: origin.x + a * localPoint.x + c * localPoint.y,
-          y: origin.y + b * localPoint.x + d * localPoint.y };
-      },
-    };
-  } catch {
-    return null;
-  }
-}
-
-export function closestRouteDistance(
-  metric: RegionalRouteMetric,
-  target: MapPoint,
-): { distance: number; distanceSquared: number } {
-  const sampleCount = Math.max(2, Math.ceil(metric.length / 24));
-  let closestDistance = 0;
-  let closestDistanceSquared = Number.POSITIVE_INFINITY;
-  for (let index = 0; index <= sampleCount; index += 1) {
-    const distance = metric.length * index / sampleCount;
-    const distanceSquared = squaredPointDistance(metric.pointAt(distance), target);
-    if (distanceSquared < closestDistanceSquared) {
-      closestDistance = distance;
-      closestDistanceSquared = distanceSquared;
-    }
-  }
-
-  let step = metric.length / sampleCount;
-  for (let iteration = 0; iteration < 10; iteration += 1) {
-    const before = Math.max(0, closestDistance - step);
-    const after = Math.min(metric.length, closestDistance + step);
-    for (const candidate of [before, after]) {
-      const distanceSquared = squaredPointDistance(metric.pointAt(candidate), target);
-      if (distanceSquared < closestDistanceSquared) {
-        closestDistance = candidate;
-        closestDistanceSquared = distanceSquared;
-      }
-    }
-    step /= 2;
-  }
-  return { distance: closestDistance, distanceSquared: closestDistanceSquared };
-}
-
-export function routePointsBetween(
-  metric: RegionalRouteMetric,
-  start: number,
-  end: number,
-): MapPoint[] {
-  const sampleCount = Math.max(1, Math.ceil(Math.abs(end - start) / 24));
-  return Array.from({ length: sampleCount + 1 }, (_unused, index) =>
-    metric.pointAt(start + (end - start) * index / sampleCount));
-}
-
-export function pathDataForPoints(points: MapPoint[]): string | null {
-  if (points.length < 2) return null;
-  // Route sampling otherwise turns each straight authored rail into hundreds
-  // of SVG vertices, multiplied across its hit targets, masks and highlights.
-  // Preserve endpoints/bends within 0.01 SVG units (below a screen pixel even
-  // at maximum zoom), while letting the browser paint compact straight rails.
-  const keep = new Set([0, points.length - 1]);
-  const ranges = [[0, points.length - 1]];
-  while (ranges.length) {
-    const [start, end] = ranges.pop()!;
-    const from = points[start];
-    const to = points[end];
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-    const lengthSquared = dx * dx + dy * dy;
-    let farthest = -1;
-    let maxDistanceSquared = 0.01 ** 2;
-    for (let index = start + 1; index < end; index++) {
-      const point = points[index];
-      const progress = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1,
-        ((point.x - from.x) * dx + (point.y - from.y) * dy) / lengthSquared));
-      const distanceSquared = squaredPointDistance(point, { x: from.x + progress * dx, y: from.y + progress * dy });
-      if (distanceSquared > maxDistanceSquared) {
-        maxDistanceSquared = distanceSquared;
-        farthest = index;
-      }
-    }
-    if (farthest >= 0) {
-      keep.add(farthest);
-      ranges.push([start, farthest], [farthest, end]);
-    }
-  }
-  return [...keep].sort((a, b) => a - b)
-    .map((index, position) => `${position === 0 ? "M" : "L"} ${points[index].x},${points[index].y}`).join(" ");
-}
-
-export function fallbackSegmentPath(
-  documentNode: RegionalSvgScope,
-  stationAAnchorId: string | undefined,
-  stationBAnchorId: string | undefined,
-  space: RegionalCoordinateSpace = "station-layer",
-): string | null {
-  const start = readRegionalStationAnchorPoint(documentNode, stationAAnchorId, space);
-  const end = readRegionalStationAnchorPoint(documentNode, stationBAnchorId, space);
-  return start && end ? `M ${start.x},${start.y} L ${end.x},${end.y}` : null;
-}
-
-export function corridorSegmentPath(
-  documentNode: RegionalSvgScope,
-  segment: NetworkSegment,
-  space: RegionalCoordinateSpace = "station-layer",
-): string | null {
-  const stationsLayer = documentNode.getElementById("regional-stations-layer") as SVGGraphicsElement | null;
-  const start = readRegionalStationAnchorPoint(documentNode, segment.stationAAnchorId, space);
-  const end = readRegionalStationAnchorPoint(documentNode, segment.stationBAnchorId, space);
+function segmentCorridorPoints(geometry: PreparedMapGeometry, segment: NetworkSegment): MapPoint[] | null {
+  const start = regionalAnchorPoint(geometry, segment.stationAAnchorId);
+  const end = regionalAnchorPoint(geometry, segment.stationBAnchorId);
   if (!start || !end) return null;
-  if (space === "station-layer" && !stationsLayer) return null;
+  const routes = routePolylines(geometry, segment.lineId);
+  if (routes.length === 0) return null;
 
-  const rawPaths = regionalRoutePathIds(segment.lineId)
-    .map((pathId) => documentNode.getElementById(pathId) as SVGPathElement | null)
-    .filter((path): path is SVGPathElement => Boolean(path));
-
-  const metrics = rawPaths
-    .map((path) => (space === "root" ? regionalRouteMetricInRoot(path) : stationsLayer ? regionalRouteMetric(path, stationsLayer) : null))
-    .filter((metric): metric is RegionalRouteMetric => Boolean(metric));
-
-  if (metrics.length === 0) return null;
-
-  const startProjections = metrics.map((metric) => closestRouteDistance(metric, start));
-  const endProjections = metrics.map((metric) => closestRouteDistance(metric, end));
-  const startMetricIndex = startProjections.reduce(
-    (best, projection, index) =>
-      projection.distanceSquared < startProjections[best].distanceSquared ? index : best,
+  const startProjections = routes.map((route) => projectOntoPolyline(route, start));
+  const endProjections = routes.map((route) => projectOntoPolyline(route, end));
+  const nearest = (projections: { gap: number }[]) => projections.reduce(
+    (best, projection, index) => (projection.gap < projections[best].gap ? index : best),
     0,
   );
-  const endMetricIndex = endProjections.reduce(
-    (best, projection, index) =>
-      projection.distanceSquared < endProjections[best].distanceSquared ? index : best,
-    0,
-  );
+  const startIndex = nearest(startProjections);
+  const endIndex = nearest(endProjections);
 
-  if (startMetricIndex === endMetricIndex) {
-    return pathDataForPoints(routePointsBetween(
-      metrics[startMetricIndex],
-      startProjections[startMetricIndex].distance,
-      endProjections[endMetricIndex].distance,
-    ));
+  if (startIndex === endIndex) {
+    return polylineStretch(routes[startIndex], startProjections[startIndex].along, endProjections[endIndex].along);
   }
 
   // Split corridor artwork (currently Lakeshore West) is treated as one route
   // graph. Join paths only at the authored LW branch junction so all three
   // pairwise-adjacent Aldershot/West Harbour/Hamilton links follow the shared
   // T-shaped rail geometry instead of drawing station-centre chords.
-  const startMetric = metrics[startMetricIndex];
-  const endMetric = metrics[endMetricIndex];
-  const connections = [0, endMetric.length].map((endPathDistance) => {
-    const endPathPoint = endMetric.pointAt(endPathDistance);
-    const startPathProjection = closestRouteDistance(startMetric, endPathPoint);
-    return {
-      startPathDistance: startPathProjection.distance,
-      endPathDistance,
-      gapSquared: squaredPointDistance(
-        startMetric.pointAt(startPathProjection.distance),
-        endPathPoint,
-      ),
-    };
-  });
-  const connection = connections.reduce((best, candidate) =>
-    candidate.gapSquared < best.gapSquared ? candidate : best);
-  if (connection.gapSquared > 4) return null;
-
-  const firstPoints = routePointsBetween(
-    startMetric,
-    startProjections[startMetricIndex].distance,
-    connection.startPathDistance,
-  );
-  const secondPoints = routePointsBetween(
-    endMetric,
-    connection.endPathDistance,
-    endProjections[endMetricIndex].distance,
-  );
-  return pathDataForPoints([...firstPoints, ...secondPoints.slice(1)]);
+  const startRoute = routes[startIndex];
+  const endRoute = routes[endIndex];
+  const connection = [0, polylineLength(endRoute)]
+    .map((endAlong) => {
+      const endPoint = pointAlongPolyline(endRoute, endAlong);
+      const projection = projectOntoPolyline(startRoute, endPoint);
+      return { startAlong: projection.along, endAlong, gap: projection.gap };
+    })
+    .reduce((best, candidate) => (candidate.gap < best.gap ? candidate : best));
+  if (connection.gap > 2) return null;
+  const first = polylineStretch(startRoute, startProjections[startIndex].along, connection.startAlong);
+  const second = polylineStretch(endRoute, connection.endAlong, endProjections[endIndex].along);
+  return [...first, ...second.slice(1)];
 }
 
-export function corridorSegmentPathInRootCoordinates(
-  documentNode: RegionalSvgScope,
-  segment: NetworkSegment,
-): string | null {
-  return corridorSegmentPath(documentNode, segment, "root");
+function cachedSegmentCorridorPoints(geometry: PreparedMapGeometry, segment: NetworkSegment): MapPoint[] | null {
+  const { corridors } = lookup(geometry);
+  const key = [segment.lineId, segment.stationAAnchorId, segment.stationBAnchorId].join("|");
+  if (!corridors.has(key)) corridors.set(key, segmentCorridorPoints(geometry, segment));
+  return corridors.get(key) ?? null;
 }
 
-export function authoredRegionalCorridorPathData(
-  documentNode: RegionalSvgScope,
-  lineId: string,
-  space: RegionalCoordinateSpace = "station-layer",
-): string | null {
-  const stationsLayer = documentNode.getElementById("regional-stations-layer") as SVGGraphicsElement | null;
-  if (space === "station-layer" && !stationsLayer) return null;
-
-  const pathData = regionalRoutePathIds(lineId)
-    .map((pathId) => documentNode.getElementById(pathId) as SVGPathElement | null)
-    .filter((path): path is SVGPathElement => Boolean(path))
-    .map((path) => (space === "root" ? regionalRouteMetricInRoot(path) : stationsLayer ? regionalRouteMetric(path, stationsLayer) : null))
-    .filter((metric): metric is RegionalRouteMetric => Boolean(metric))
-    .map((metric) => pathDataForPoints(routePointsBetween(metric, 0, metric.length)))
-    .filter((pathD): pathD is string => Boolean(pathD));
-  return pathData.length > 0 ? pathData.join(" ") : null;
+/** A segment's path along its authored route, from station A to station B. */
+export function corridorSegmentPath(geometry: PreparedMapGeometry, segment: NetworkSegment): string | null {
+  const points = cachedSegmentCorridorPoints(geometry, segment);
+  return points && points.length > 1 ? pointsToPath(points) : null;
 }
 
-export function resolvedRegionalSegmentPath(
-  documentNode: RegionalSvgScope,
-  segment: NetworkSegment,
-  space: RegionalCoordinateSpace = "station-layer",
-): string | null {
-  const guide = documentNode.getElementById(segment.guidePathId ?? "") as SVGPathElement | null;
-  return guide?.getAttribute("d")
-    ?? corridorSegmentPath(documentNode, segment, space)
-    ?? fallbackSegmentPath(documentNode, segment.stationAAnchorId, segment.stationBAnchorId, space);
+function segmentPoints(geometry: PreparedMapGeometry, segment: NetworkSegment): MapPoint[] | null {
+  const guide = segment.guidePathId ? geometry.guides?.[segment.guidePathId] : undefined;
+  if (guide) return preparedPoints(guide);
+  const corridor = cachedSegmentCorridorPoints(geometry, segment);
+  if (corridor && corridor.length > 1) return corridor;
+  const start = regionalAnchorPoint(geometry, segment.stationAAnchorId);
+  const end = regionalAnchorPoint(geometry, segment.stationBAnchorId);
+  return start && end ? [start, end] : null;
+}
+
+/** A segment's path: its authored guide, else its route corridor, else the chord between its stations. */
+export function resolvedRegionalSegmentPath(geometry: PreparedMapGeometry, segment: NetworkSegment): string | null {
+  const points = segmentPoints(geometry, segment);
+  return points ? pointsToPath(points) : null;
+}
+
+/** A line's whole authored route, one subpath per route path. */
+export function authoredRegionalCorridorPathData(geometry: PreparedMapGeometry, lineId: string): string | null {
+  const paths = routePolylines(geometry, lineId).map(pointsToPath);
+  return paths.length > 0 ? paths.join(" ") : null;
 }
 
 export function continuousRegionalOverlayRunPath(
-  documentNode: RegionalSvgScope,
+  geometry: PreparedMapGeometry,
   run: { segments: NetworkSegment[]; pathD: string },
 ): string | null {
   if (run.segments.length === 1) return run.pathD;
@@ -626,7 +292,7 @@ export function continuousRegionalOverlayRunPath(
   const stationBAnchorId = endpointAnchor(endpointIds[1]);
   if (!stationAAnchorId || !stationBAnchorId) return null;
 
-  return corridorSegmentPath(documentNode, {
+  return corridorSegmentPath(geometry, {
     ...run.segments[0],
     stationAId: endpointIds[0],
     stationBId: endpointIds[1],
@@ -636,350 +302,124 @@ export function continuousRegionalOverlayRunPath(
   });
 }
 
-type TrainMarkerSegmentPath = { path: SVGPathElement; length: number } | null;
-
-/**
- * Measured corridor paths per diagram SVG (keyed by its stations layer) and
- * segment. Markers move every frame, and rebuilding a corridor path means
- * projecting both anchors onto the whole route; the authored geometry never
- * changes for a given SVG.
- */
-const trainMarkerSegmentPaths = new WeakMap<Element, Map<string, TrainMarkerSegmentPath>>();
-
-function trainMarkerSegmentPath(documentNode: RegionalSvgScope, segment: NetworkSegment): TrainMarkerSegmentPath {
-  const owner = documentNode.getElementById("regional-stations-layer");
-  const key = [segment.id, segment.lineId, segment.stationAAnchorId, segment.stationBAnchorId, segment.guidePathId ?? ""].join("|");
-  const cache = owner ? trainMarkerSegmentPaths.get(owner) ?? new Map<string, TrainMarkerSegmentPath>() : null;
-  if (owner && cache && !trainMarkerSegmentPaths.has(owner)) trainMarkerSegmentPaths.set(owner, cache);
-  if (cache?.has(key)) return cache.get(key) ?? null;
-  const pathD = corridorSegmentPathInRootCoordinates(documentNode, segment);
-  let measured: TrainMarkerSegmentPath = null;
-  if (pathD) {
-    const path = documentNode.createElementNS(SVG_NAMESPACE, "path");
-    path.setAttribute("d", pathD);
-    try {
-      const length = path.getTotalLength();
-      if (Number.isFinite(length) && length > 0) measured = { path, length };
-    } catch {
-      measured = null;
-    }
-  }
-  // Only cache once anchors resolve; a diagram still loading may resolve later.
-  if (cache && measured) cache.set(key, measured);
-  return measured;
-}
-
 export function regionalTrainMarkerFrame(
-  documentNode: RegionalSvgScope,
+  geometry: PreparedMapGeometry,
   segment: NetworkSegment,
   marker: EstimatedTrainMarker,
 ): RegionalTrainMarkerFrame | null {
   // Train markers must use authored corridor geometry. A straight anchor-to-anchor
   // fallback can visibly leave a bent track, so omit an unresolvable marker instead.
-  const measured = trainMarkerSegmentPath(documentNode, segment);
+  const points = cachedSegmentCorridorPoints(geometry, segment);
   const direction = resolveEstimatedTrainMarkerSegmentDirection(marker, segment);
-  if (!direction) return null;
-  const from = svgAnchorPointInRootCoordinates(documentNode, direction.fromAnchorId);
-  if (!measured || !from) return null;
+  if (!direction || !points || points.length < 2) return null;
+  const from = regionalAnchorPoint(geometry, direction.fromAnchorId);
+  const length = polylineLength(points);
+  if (!from || !(length > 0)) return null;
 
-  const { path: markerPath, length } = measured;
-  try {
-    const pathStart = markerPath.getPointAtLength(0);
-    const pathEnd = markerPath.getPointAtLength(length);
-    const pathStartsAtFrom = squaredPointDistance(pathStart, from)
-      <= squaredPointDistance(pathEnd, from);
-    const progress = Math.max(0, Math.min(1, marker.progress));
-    const pathProgress = pathStartsAtFrom ? progress : 1 - progress;
-    const distance = length * pathProgress;
-    const point = markerPath.getPointAtLength(distance);
-    const delta = Math.min(24, Math.max(2, length * 0.015));
-    const before = markerPath.getPointAtLength(Math.max(0, distance - delta));
-    const after = markerPath.getPointAtLength(Math.min(length, distance + delta));
-    const tangent = { x: after.x - before.x, y: after.y - before.y };
-    const pathAngle = Math.atan2(tangent.y, tangent.x) * 180 / Math.PI;
-    const pathTravelDirection = marker.travelDirection === "bidirectional"
-      ? "bidirectional"
-      : pathStartsAtFrom ? "forward" : "reverse";
-    return {
-      point: estimatedTrainMarkerLanePoint(
-        point,
-        tangent,
-        pathTravelDirection,
-        REGIONAL_TRAIN_MARKER_LANE_OFFSET,
-      ),
-      angle: orientedEstimatedTrainMarkerAngle(pathAngle, pathStartsAtFrom),
-    };
-  } catch {
-    return null;
-  }
-}
-
-export function regionalHoverMaskBounds(
-  source: SVGElement,
-  viewBox: MapBounds = REGIONAL_MAP_VIEWBOX,
-): MapBounds {
-  // Hover foregrounds live inside the translated stations layer. Mask bounds
-  // are therefore expressed in that layer's local coordinates, not in the
-  // root SVG viewBox coordinates. Using the root values directly clipped the
-  // west side of Lakeshore West's T-shaped corridor near West Harbour.
-  const rootCorners = [
-    { x: viewBox.x, y: viewBox.y },
-    { x: viewBox.x + viewBox.width, y: viewBox.y },
-    { x: viewBox.x, y: viewBox.y + viewBox.height },
-    {
-      x: viewBox.x + viewBox.width,
-      y: viewBox.y + viewBox.height,
-    },
-  ];
-  const localCorners = rootCorners
-    .map((point) => pointFromSvgRootCoordinates(source, point))
-    .filter((point): point is MapPoint => Boolean(point));
-  if (localCorners.length !== rootCorners.length) {
-    return {
-      x: viewBox.x - viewBox.width,
-      y: viewBox.y - viewBox.height,
-      width: viewBox.width * 3,
-      height: viewBox.height * 3,
-    };
-  }
-  const xValues = localCorners.map((point) => point.x);
-  const yValues = localCorners.map((point) => point.y);
-  const x = Math.min(...xValues);
-  const y = Math.min(...yValues);
+  const pathStartsAtFrom = squaredPointDistance(points[0], from)
+    <= squaredPointDistance(points[points.length - 1], from);
+  const progress = Math.max(0, Math.min(1, marker.progress));
+  const distance = length * (pathStartsAtFrom ? progress : 1 - progress);
+  const point = pointAlongPolyline(points, distance);
+  const delta = Math.min(24, Math.max(2, length * 0.015));
+  const before = pointAlongPolyline(points, Math.max(0, distance - delta));
+  const after = pointAlongPolyline(points, Math.min(length, distance + delta));
+  const tangent = { x: after.x - before.x, y: after.y - before.y };
+  const pathAngle = Math.atan2(tangent.y, tangent.x) * 180 / Math.PI;
+  const pathTravelDirection = marker.travelDirection === "bidirectional"
+    ? "bidirectional"
+    : pathStartsAtFrom ? "forward" : "reverse";
   return {
-    x,
-    y,
-    width: Math.max(...xValues) - x,
-    height: Math.max(...yValues) - y,
+    point: estimatedTrainMarkerLanePoint(point, tangent, pathTravelDirection, REGIONAL_TRAIN_MARKER_LANE_OFFSET),
+    angle: orientedEstimatedTrainMarkerAngle(pathAngle, pathStartsAtFrom),
   };
 }
 
+/** A station name's box in root coordinates, as four corners. */
+export function regionalStationLabelPolygon(geometry: PreparedMapGeometry, stationId: string): MapPoint[] | null {
+  return stationLabelPolygon(geometry.labels, stationId, { leading: 0, trailing: 0, y: 0 });
+}
+
+/**
+ * The hovered name's lifted box: the label plus trailing room up to the next
+ * name on its line, in root coordinates.
+ */
 export function regionalStationLabelHover(
-  root: ParentNode,
+  geometry: PreparedMapGeometry,
   stationId: string | null,
 ): RegionalStationLabelHoverResult | null {
   if (!stationId) return null;
-  const label = root.querySelector<SVGGraphicsElement>(
-    `#regional-station-labels-layer [data-regional-station-label-for="${CSS.escape(stationId)}"]`,
-  );
-  const svg = label?.ownerSVGElement;
-  const cutoutSource = root.querySelector<SVGGraphicsElement>(
-    `#regional-station-label-cutout-source-${CSS.escape(stationId)}`,
-  );
-  if (!label || !svg || !cutoutSource) return null;
-  const elementScreenMatrix = label.getScreenCTM();
-  const rootScreenMatrix = svg.getScreenCTM();
-  if (!elementScreenMatrix || !rootScreenMatrix) return null;
-  const relativeMatrix = rootScreenMatrix.inverse().multiply(elementScreenMatrix);
-  const localBox = label.getBBox();
-  const defaultTrailing = 80;
-  let allowedTrailing = defaultTrailing;
-  const otherLabels = root.querySelectorAll<SVGGraphicsElement>(
-    "#regional-station-labels-layer [data-regional-station-label-for]",
-  );
-  for (const other of otherLabels) {
-    if (other === label) continue;
-    const otherMatrix = other.getScreenCTM();
-    if (!otherMatrix) continue;
-    try {
-      const toLabelMatrix = elementScreenMatrix.inverse().multiply(otherMatrix);
-      const otherBox = other.getBBox();
-      const otherCorners = [
-        new DOMPoint(otherBox.x, otherBox.y),
-        new DOMPoint(otherBox.x + otherBox.width, otherBox.y),
-        new DOMPoint(otherBox.x + otherBox.width, otherBox.y + otherBox.height),
-        new DOMPoint(otherBox.x, otherBox.y + otherBox.height),
-      ].map((p) => p.matrixTransform(toLabelMatrix));
-
-      const minXInLabel = Math.min(...otherCorners.map((p) => p.x));
-      const minYInLabel = Math.min(...otherCorners.map((p) => p.y));
-      const maxYInLabel = Math.max(...otherCorners.map((p) => p.y));
-
-      const deltaX = minXInLabel - (localBox.x + localBox.width);
-      const verticalOverlap = Math.max(
-        0,
-        Math.min(localBox.y + localBox.height, maxYInLabel) - Math.max(localBox.y, minYInLabel),
-      );
-      const verticalDist = Math.abs((localBox.y + localBox.height / 2) - ((minYInLabel + maxYInLabel) / 2));
-
-      if (deltaX >= -5 && deltaX < defaultTrailing + 30 && (verticalOverlap > 0 || verticalDist < 40)) {
-        const safeGap = Math.max(0, deltaX - 2);
-        allowedTrailing = Math.min(allowedTrailing, safeGap);
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  const padLeading = 0;
-  const padY = 12;
-  const localBounds = {
-    x: localBox.x - padLeading,
-    y: localBox.y - padY,
-    width: localBox.width + padLeading + allowedTrailing,
-    height: localBox.height + padY * 2,
-  };
-  const corners = [
-    new DOMPoint(localBounds.x, localBounds.y),
-    new DOMPoint(localBounds.x + localBounds.width, localBounds.y),
-    new DOMPoint(localBounds.x + localBounds.width, localBounds.y + localBounds.height),
-    new DOMPoint(localBounds.x, localBounds.y + localBounds.height),
-  ].map((p) => p.matrixTransform(relativeMatrix));
-  const polygonPoints = corners.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
-
-  const centerPoint = new DOMPoint(
-    localBox.x + localBox.width / 2,
-    localBox.y + localBox.height / 2,
-  ).matrixTransform(relativeMatrix);
-
-  const isolatedCutoutSource = cutoutSource.cloneNode(true) as SVGGraphicsElement;
-  removeDescendantIds(isolatedCutoutSource);
+  const corners = stationLabelPolygon(geometry.labels, stationId, { leading: 0, trailing: 80, y: 12 });
+  const center = stationLabelCenter(geometry.labels, stationId);
+  if (!corners || !center) return null;
+  const xs = corners.map((point) => point.x);
+  const ys = corners.map((point) => point.y);
   return {
     stationId,
-    polygonPoints,
-    cutoutMarkup: isolatedCutoutSource.outerHTML,
+    polygonPoints: corners.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" "),
     bounds: {
-      x: Math.min(...corners.map((point) => point.x)) - 20,
-      y: Math.min(...corners.map((point) => point.y)) - 20,
-      width: Math.max(...corners.map((point) => point.x))
-        - Math.min(...corners.map((point) => point.x)) + 40,
-      height: Math.max(...corners.map((point) => point.y))
-        - Math.min(...corners.map((point) => point.y)) + 40,
+      x: Math.min(...xs) - 20,
+      y: Math.min(...ys) - 20,
+      width: Math.max(...xs) - Math.min(...xs) + 40,
+      height: Math.max(...ys) - Math.min(...ys) + 40,
     },
-    center: {
-      x: centerPoint.x,
-      y: centerPoint.y,
-    },
+    center,
   };
 }
 
+const MAP_CENTER = {
+  x: REGIONAL_MAP_VIEWBOX.x + REGIONAL_MAP_VIEWBOX.width / 2,
+  y: REGIONAL_MAP_VIEWBOX.y + REGIONAL_MAP_VIEWBOX.height / 2,
+};
+
+/**
+ * Where a segment's overlap badge starts: beside the middle of the segment,
+ * on the side toward the map's centre.
+ */
 export function regionalOverlapBadgeAnchor(
-  documentNode: RegionalSvgScope,
+  geometry: PreparedMapGeometry,
   segment: NetworkSegment,
   size: RegionalBadgeSize,
 ): RegionalOverlapBadgePlacement | null {
-  const stationsLayer = documentNode.getElementById("regional-stations-layer") as SVGElement | null;
-  const mapCenter = {
-    x: REGIONAL_MAP_VIEWBOX.x + REGIONAL_MAP_VIEWBOX.width / 2,
-    y: REGIONAL_MAP_VIEWBOX.y + REGIONAL_MAP_VIEWBOX.height / 2,
-  };
-  const pathD = resolvedRegionalSegmentPath(documentNode, segment);
-  if (pathD && stationsLayer) {
-    const path = documentNode.createElementNS(SVG_NAMESPACE, "path");
-    path.setAttribute("d", pathD);
-    try {
-      const length = path.getTotalLength();
-      const midpoint = path.getPointAtLength(length / 2);
-      const before = path.getPointAtLength(Math.max(0, length / 2 - 5));
-      const after = path.getPointAtLength(Math.min(length, length / 2 + 5));
-      const tangentLength = Math.hypot(after.x - before.x, after.y - before.y) || 1;
-      const normal = {
-        x: -(after.y - before.y) / tangentLength,
-        y: (after.x - before.x) / tangentLength,
-      };
-      const renderedBadgeHalfExtent = (
-        Math.abs(normal.x) * size.width / 2
-        + Math.abs(normal.y) * size.height / 2
-      ) * REGIONAL_OVERLAP_INDICATOR_SCALE;
-      const offset = REGIONAL_IMPACT_OVERLAY_WIDTH / 2
-        + renderedBadgeHalfExtent
-        + REGIONAL_OVERLAP_INDICATOR_EDGE_GAP;
-      const candidates = [1, -1].map((direction) => ({
+  const points = segmentPoints(geometry, segment);
+  if (!points) return null;
+  const length = polylineLength(points);
+  if (length > 0) {
+    const midpoint = pointAlongPolyline(points, length / 2);
+    const before = pointAlongPolyline(points, Math.max(0, length / 2 - 5));
+    const after = pointAlongPolyline(points, Math.min(length, length / 2 + 5));
+    const tangentLength = Math.hypot(after.x - before.x, after.y - before.y) || 1;
+    const normal = {
+      x: -(after.y - before.y) / tangentLength,
+      y: (after.x - before.x) / tangentLength,
+    };
+    const renderedBadgeHalfExtent = (
+      Math.abs(normal.x) * size.width / 2
+      + Math.abs(normal.y) * size.height / 2
+    ) * REGIONAL_OVERLAP_INDICATOR_SCALE;
+    const offset = REGIONAL_IMPACT_OVERLAY_WIDTH / 2
+      + renderedBadgeHalfExtent
+      + REGIONAL_OVERLAP_INDICATOR_EDGE_GAP;
+    const position = [1, -1]
+      .map((direction) => ({
         x: midpoint.x + normal.x * offset * direction,
         y: midpoint.y + normal.y * offset * direction,
-      }));
-      const position = candidates.sort((left, right) => {
-        const leftRoot = pointInSvgRootCoordinates(stationsLayer, left);
-        const rightRoot = pointInSvgRootCoordinates(stationsLayer, right);
-        return squaredPointDistance(leftRoot, mapCenter) - squaredPointDistance(rightRoot, mapCenter);
-      })[0];
-      return { anchor: midpoint, position };
-    } catch {
-      // Fall through to the authored station anchors.
-    }
+      }))
+      .sort((left, right) => squaredPointDistance(left, MAP_CENTER) - squaredPointDistance(right, MAP_CENTER))[0];
+    return { anchor: midpoint, position };
   }
-
-  const start = svgAnchorPoint(documentNode, segment.stationAAnchorId);
-  const end = svgAnchorPoint(documentNode, segment.stationBAnchorId);
-  if (!start || !end) return null;
-  const midpoint = {
-    x: (start.x + end.x) / 2,
-    y: (start.y + end.y) / 2,
+  const midpoint = points[0];
+  const distanceToCenter = Math.hypot(MAP_CENTER.x - midpoint.x, MAP_CENTER.y - midpoint.y) || 1;
+  const offset = REGIONAL_IMPACT_OVERLAY_WIDTH / 2
+    + Math.max(size.width, size.height) * REGIONAL_OVERLAP_INDICATOR_SCALE / 2
+    + REGIONAL_OVERLAP_INDICATOR_EDGE_GAP;
+  return {
+    anchor: midpoint,
+    position: {
+      x: midpoint.x + (MAP_CENTER.x - midpoint.x) / distanceToCenter * offset,
+      y: midpoint.y + (MAP_CENTER.y - midpoint.y) / distanceToCenter * offset,
+    },
   };
-  if (!stationsLayer) return { anchor: midpoint, position: midpoint };
-  const rootMidpoint = pointInSvgRootCoordinates(stationsLayer, midpoint);
-  const distanceToCenter = Math.hypot(
-    mapCenter.x - rootMidpoint.x,
-    mapCenter.y - rootMidpoint.y,
-  ) || 1;
-  const position = pointFromSvgRootCoordinates(stationsLayer, {
-    x: rootMidpoint.x
-      + (mapCenter.x - rootMidpoint.x) / distanceToCenter * (
-        REGIONAL_IMPACT_OVERLAY_WIDTH / 2
-        + Math.max(size.width, size.height) * REGIONAL_OVERLAP_INDICATOR_SCALE / 2
-        + REGIONAL_OVERLAP_INDICATOR_EDGE_GAP
-      ),
-    y: rootMidpoint.y
-      + (mapCenter.y - rootMidpoint.y) / distanceToCenter * (
-        REGIONAL_IMPACT_OVERLAY_WIDTH / 2
-        + Math.max(size.width, size.height) * REGIONAL_OVERLAP_INDICATOR_SCALE / 2
-        + REGIONAL_OVERLAP_INDICATOR_EDGE_GAP
-      ),
-  });
-  return position ? { anchor: midpoint, position } : null;
-}
-
-export function regionalCollisionBoxForElement(
-  svg: SVGSVGElement,
-  element: SVGGraphicsElement,
-): RegionalCollisionBox | null {
-  const relativeMatrix = svgElementMatrixToRootCoordinates(element, svg);
-  if (!relativeMatrix) return null;
-  const bounds = element.getBBox();
-  return transformBoundsToRootCoordinates(bounds, relativeMatrix);
-}
-
-export function regionalPointInSvgRoot(
-  svg: SVGSVGElement,
-  element: SVGGraphicsElement,
-  point: MapPoint,
-): MapPoint | null {
-  const relativeMatrix = svgElementMatrixToRootCoordinates(element, svg);
-  if (!relativeMatrix) return null;
-  return transformPoint(point, relativeMatrix);
-}
-
-/** Points along a rendered path in root SVG coordinates, roughly `spacing` apart. */
-export function regionalPathRootPoints(
-  svg: SVGSVGElement,
-  path: SVGPathElement,
-  spacing: number,
-): MapPoint[] {
-  try {
-    const length = path.getTotalLength();
-    if (length <= 0) return [];
-    const relativeMatrix = svgElementMatrixToRootCoordinates(path, svg);
-    if (!relativeMatrix) return [];
-    const sampleCount = Math.max(2, Math.ceil(length / spacing));
-    return Array.from({ length: sampleCount + 1 }, (_unused, index) => (
-      transformPoint(path.getPointAtLength(length * index / sampleCount), relativeMatrix)
-    ));
-  } catch {
-    return [];
-  }
-}
-
-export function regionalPathCorridorCollisionBoxes(
-  svg: SVGSVGElement,
-  path: SVGPathElement,
-  radius: number,
-): RegionalCollisionBox[] {
-  return regionalPathRootPoints(svg, path, Math.max(32, radius * 0.65)).map((point) => ({
-    x: point.x - radius,
-    y: point.y - radius,
-    width: radius * 2,
-    height: radius * 2,
-  }));
 }
 
 export function expandedRegionalCollisionBox(

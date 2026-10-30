@@ -151,8 +151,9 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(regionalMapSource, /width:\s*4620\.46/);
     assert.match(regionalMapSource, /height:\s*2395\.26/);
     assert.match(regionalMapSource, /const REGIONAL_MAP_DESKTOP_FRAME_SCALE = 1/);
-    assert.match(regionalMapSource, /const REGIONAL_MAP_MOBILE_INSET_RATIO = 0\.025/);
-    assert.match(regionalMapSource, /computeDesktopMapFrame/);
+    assert.match(regionalMapSource, /horizontalInsetRatio: REGIONAL_MAP_HORIZONTAL_INSET_RATIO/);
+    assert.match(regionalMapSource, /desktopScaleMultiplier: REGIONAL_MAP_DESKTOP_FRAME_SCALE/);
+    assert.match(hookSource, /computeDesktopMapFrame/);
   });
 
   it("centers desktop TTC artwork in the available workspace beside sidebar with balanced opposite gaps", () => {
@@ -206,7 +207,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.equal(PAN_ZOOM_MAX_RELATIVE_SCALE, 8);
     assert.equal(clampPanZoomScale(9, 1), 8);
     assert.equal(clampPanZoomScale(7.5, 1), 7.5);
-    assert.match(mapSource, /max=\{PAN_ZOOM_MAX_RELATIVE_SCALE\}/);
+    assert.match(readFileSync(new URL("../src/components/map-camera/MapZoomSlider.tsx", import.meta.url), "utf8"), /max=\{PAN_ZOOM_MAX_RELATIVE_SCALE\}/);
   });
 
   it("derives programmatic focus scale from the live viewport on initial deep links", () => {
@@ -302,31 +303,31 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /cancelAnimation\(\);.*startGestureInteraction\(e\.pointerType\)/s);
   });
 
-  it("continues wheel and button zoom from the rendered point of an interrupted camera flight", () => {
-    const wheelHandler = hookSource.match(
-      /const handleWheel = useCallback\(([\s\S]*?)\n  \}, \[[^\]]*\]\);/,
-    )?.[1] ?? "";
+  it("continues button zoom from the rendered point of an interrupted camera flight", () => {
     const zoomInHandler = hookSource.match(
       /const zoomIn = useCallback\(([\s\S]*?)\n  \}, \[[^\]]*\]\);/,
     )?.[1] ?? "";
-
-    assert.match(wheelHandler, /cancelAnimation\(\)/);
-    assert.match(wheelHandler, /const current = transformRef\.current/);
-    assert.match(wheelHandler, /commitTransformRef\(\{ x: newX, y: newY, scale: newScale \}\)/);
     assert.match(zoomInHandler, /cancelAnimation\(\)/);
     assert.match(zoomInHandler, /const current = transformRef\.current/);
   });
 
-  it("keeps continuous TTC wheel zoom DOM-owned with short notch smoothing", () => {
-    const wheelHandler = hookSource.match(
-      /const handleWheel = useCallback\(([\s\S]*?)\n  \}, \[[\s\S]*?\n  \]\);/,
-    )?.[1] ?? "";
-
-    assert.match(wheelHandler, /if \(wheelCommitTimeoutRef\.current === null\) \{[\s\S]*?cancelAnimation\(\)/);
-    assert.match(wheelHandler, /setMapTransition\(shouldAnimateProgrammaticTransform \? "transform 0\.1s ease-out" : "none"\)/);
-    assert.match(wheelHandler, /commitTransformRef\(\{ x: newX, y: newY, scale: newScale \}\)/);
-    assert.match(wheelHandler, /window\.setTimeout\(\(\) => \{[\s\S]*?setTransform\(\{ \.\.\.transformRef\.current \}\)/);
-    assert.doesNotMatch(wheelHandler, /commitTransform\(/);
+  // Wheel easing, momentum and their commits are covered by
+  // map-camera-motion.test.mjs; this guards that both maps use that engine.
+  it("drives wheel zoom and drag momentum on both maps through the shared camera motion", () => {
+    // Both maps use usePanZoom (GO/UP since plan 09 phase 1b), which owns the engine.
+    assert.match(hookSource, /useMapCameraMotion\(cameraMotionHostRef\)/);
+    assert.match(hookSource, /cameraMotion\.wheel\(e, .+, e\.timeStamp\);/);
+    assert.match(hookSource, /cameraMotion\.trackPointer\(point, e\.timeStamp\)/);
+    assert.match(hookSource, /&& cameraMotion\.release\(e\.timeStamp\)/);
+    // A wheel interrupts a camera flight from where it is drawn.
+    assert.match(hookSource, /onZoomStart: \(\) => \{[\s\S]*?cancelAnimation\(\)/);
+    // Any camera command ends a zoom or glide where it is drawn.
+    assert.match(hookSource, /const clearProgrammaticAnimation = useCallback\(\(\) => \{\s*\/\/[^\n]*\n\s*cameraMotion\.stop\(\);/);
+    assert.match(mapSource, /handleWheel\(event\)/);
+    assert.match(regionalMapSource, /handleWheel\(event\)/);
+    for (const source of [hookSource, regionalMapSource]) {
+      assert.doesNotMatch(source, /-e(?:vent)?\.deltaY \* (?:zoomSensitivity|0\.001)/);
+    }
   });
 
   it("lets overlap chooser content consume wheel scrolling before either map zooms", () => {
@@ -353,7 +354,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /function commitTransform|const commitTransform = useCallback/);
     assert.match(hookSource, /const snapped = snapTransform\(next\)/);
     assert.match(hookSource, /transformRef\.current = snapped/);
-    assert.match(hookSource, /setTransform\(snapped\)/);
+    assert.match(hookSource, /commitCamera\(snapped\)/);
   });
 
   it("snaps recenter with paint-only feedback instead of a compositor fade layer", () => {
@@ -381,7 +382,7 @@ describe("pan zoom behavior guardrails", () => {
     )?.[1] ?? "";
     assert.doesNotMatch(animateTransformHandler, /requestAnimationFrame/);
     assert.match(hookSource, /writeMapTransform\(snapped\)/);
-    assert.match(hookSource, /window\.setTimeout\(\(\) => \{[\s\S]*setTransform\(\{ \.\.\.transformRef\.current \}\)/);
+    assert.match(hookSource, /window\.setTimeout\(\(\) => \{[\s\S]*commitCamera\(\{ \.\.\.transformRef\.current \}\)/);
     assert.doesNotMatch(hookSource, /commitTransform\(\{ x, y, scale \}\);\s*setFitScale\(scale\);\s*startAnimation\(\);/);
   });
 
@@ -435,7 +436,11 @@ describe("pan zoom behavior guardrails", () => {
 
     assert.doesNotMatch(ttcStage, /transform:/);
     assert.doesNotMatch(ttcStage, /transition:/);
-    assert.match(hookSource, /useLayoutEffect\(\(\) => \{[\s\S]*writeMapTransform\(transform\)/);
+    // Commits write the stage directly and publish to the camera store; no
+    // camera React state re-renders the map (plan 09 phase 1c).
+    assert.match(hookSource, /const commitCamera = useCallback\(\(next: PanZoomTransform\) => \{\s*cameraStore\.set\(next\);[\s\S]*?writeMapTransform\(next\);/);
+    assert.match(hookSource, /writeMapTransform\(transformRef\.current\);\s*\}\s*\}, \[writeMapTransform\]\);/);
+    assert.doesNotMatch(hookSource, /useState\(\{ x: 0, y: 0, scale: 1 \}\)|setTransform\(/);
     assert.doesNotMatch(mapSource, /isAnimating/);
   });
 
@@ -455,11 +460,11 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(mapSource, /data-map-camera-moving="false"/);
     assert.match(mapSource, /data-map-gesture-active="false"/);
     assert.match(mapSource, /data-map-zoom-active="false"/);
-    assert.match(hookSource, /containerRef\.current\.dataset\.mapCameraMoving = active \? "true" : "false"/);
-    assert.match(hookSource, /containerRef\.current\.dataset\.mapGestureActive = active \? "true" : "false"/);
-    assert.match(hookSource, /containerRef\.current\.dataset\.mapZoomActive = active \? "true" : "false"/);
+    assert.match(hookSource, /writeMapFlag\(flagRootRef\?\.current \?\? containerRef\.current, "mapCameraMoving", active\)/);
+    assert.match(hookSource, /writeMapFlag\(flagRootRef\?\.current \?\? containerRef\.current, "mapGestureActive", active\)/);
+    assert.match(hookSource, /writeMapFlag\(flagRootRef\?\.current \?\? containerRef\.current, "mapZoomActive", active\)/);
     assert.match(hookSource, /setProgrammaticCameraMotion\(true\);[\s\S]*setMapTransition\(`transform \$\{durationMs\}ms \$\{easing\}`\)/);
-    assert.match(hookSource, /setTransform\(\{ \.\.\.transformRef\.current \}\);[\s\S]*setProgrammaticCameraMotion\(false\)/);
+    assert.match(hookSource, /commitCamera\(\{ \.\.\.transformRef\.current \}\);[\s\S]*setProgrammaticCameraMotion\(false\)/);
     assert.match(
       globalCss,
       /\[data-map-camera-moving="true"\] \.asset-alert-path-glow:not\(\.map-selection-attention\)[\s\S]*?animation-play-state:\s*paused\s*!important;[\s\S]*?transition:\s*none\s*!important;/s,
@@ -607,8 +612,9 @@ describe("pan zoom behavior guardrails", () => {
     assert.doesNotMatch(hookSource, /const \[isDragging, setIsDragging\] = useState\(false\)/);
     assert.match(hookSource, /const setUserGestureMotion = useCallback/);
     assert.match(hookSource, /const setPointerDragging = useCallback/);
-    assert.match(hookSource, /dataset\.mapGestureActive = active \? "true" : "false"/);
-    assert.match(hookSource, /dataset\.mapPointerDragging = active \? "true" : "false"/);
+    assert.match(hookSource, /writeMapFlag\([^)]*"mapGestureActive", active\)/);
+    assert.match(hookSource, /writeMapFlag\([^)]*"mapPointerDragging", active\)/);
+    assert.match(hookSource, /element\.dataset\[flag\] = active \? "true" : "false"/);
     assert.match(hookSource, /setUserGestureMotion\(true\)/);
     assert.match(hookSource, /setUserGestureMotion\(false\)/);
     assert.match(hookSource, /isGestureActive,/);
@@ -644,7 +650,8 @@ describe("pan zoom behavior guardrails", () => {
       { x: 20, y: -15, scale: 1.5 },
     );
     assert.match(hookSource, /orientedMapCameraTransform/);
-    assert.match(regionalMapSource, /orientedMapCameraTransform/);
+    // GO/UP orients through the same hook.
+    assert.match(regionalMapSource, /viewportOrientation,\n    disableProgrammaticMotion/);
   });
 
   it("biases rotated station and impact focus away from their preview cards", () => {
@@ -660,7 +667,7 @@ describe("pan zoom behavior guardrails", () => {
   });
 
   it("reliably pans to selected impact overlays during cross-network transitions with consistent focus zoom", () => {
-    assert.match(regionalMapSource, /if \(focusTargetKey\) \{[\s\S]*cameraRef\.current = fitted\.camera/);
+    assert.match(regionalMapSource, /if \(focusTargetKey\) moveToDefaultCamera\(false, false\);/);
     assert.match(regionalMapSource, /tryFocus = \(\) => \{[\s\S]*if \(focusSelectedMapElements\(\)\)/);
     assert.match(regionalMapSource, /rect\.left - viewportRect\.left/);
     assert.match(regionalMapSource, /preferredTargetScale = clampPanZoomScale\(effectiveFitScale \* \(isMobile \? 3\.8 : 1\.8\), effectiveFitScale\)/);
@@ -851,6 +858,7 @@ describe("pan zoom behavior guardrails", () => {
     // Easing each drag move kept the stage in a transform transition, and the
     // redraw when it settled after release tore the GO/UP map and sidebar.
     assert.match(hookSource, /const startGestureInteraction = useCallback\([\s\S]*?setMapTransition\("none"\);[\s\S]*?\}, \[/);
-    assert.match(regionalMapSource, /const onPointerDown = useCallback\([\s\S]*?cancelCameraAnimation\(\);[\s\S]*?setMapTransition\("none"\);/);
+    // GO/UP's press goes through the same hook handler.
+    assert.match(regionalMapSource, /const onPointerDown = useCallback\([\s\S]*?handlePointerDown\(event\);/);
   });
 });

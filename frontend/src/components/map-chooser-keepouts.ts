@@ -65,7 +65,6 @@ const MAP_CAMERA_FLAG_ATTRIBUTES = new Set([
   "data-map-zoom-active",
   "data-map-camera-moving",
   "data-map-pointer-dragging",
-  "data-regional-map-camera-moving",
 ]);
 
 function nodeContainsMapChooserKeepout(node: Node | EventTarget | null): boolean {

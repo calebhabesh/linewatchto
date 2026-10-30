@@ -70,7 +70,7 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   await expect(regionalMapStage).toHaveCSS("transition-duration", "0s");
   await expect(regionalMapStage).toHaveCSS("will-change", "auto");
   await expect(regionalMapStage.locator(".raster-map-plane")).toHaveCount(3);
-  await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
+  await expect(regionalMap).toHaveAttribute("data-map-camera-moving", "false");
 
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "TTC", exact: true })
@@ -225,7 +225,7 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
 
     const entranceDeadline = performance.now() + 1_500;
     while (
-      root.dataset.regionalMapCameraMoving === "true"
+      root.dataset.mapCameraMoving === "true"
       && performance.now() < entranceDeadline
     ) {
       await new Promise((resolve) => window.setTimeout(resolve, 16));

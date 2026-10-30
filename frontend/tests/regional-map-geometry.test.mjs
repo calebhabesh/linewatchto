@@ -1,720 +1,218 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
+import { pathPolylinePoints, polylineLength, projectOntoPolyline } from "../src/app/map-geometry.ts";
+import { preparedPoints } from "../src/app/map-geometry-data.ts";
+import { regionalDashboardData } from "../src/app/regional-data.ts";
 import {
-  REGIONAL_MAP_VIEWBOX,
   REGIONAL_IMPACT_OVERLAY_WIDTH,
-  REGIONAL_OVERLAP_INDICATOR_SCALE,
+  REGIONAL_MAP_VIEWBOX,
   REGIONAL_OVERLAP_INDICATOR_EDGE_GAP,
+  REGIONAL_OVERLAP_INDICATOR_SCALE,
+  REGIONAL_OVERLAY_UNIT,
   REGIONAL_TRAIN_MARKER_LANE_OFFSET,
-  squaredPointDistance,
-  applySvgTransform,
-  pointInRegionalStationsLayer,
-  pointInSvgRootCoordinates,
-  pointFromSvgRootCoordinates,
-  pointInRegionalStationsCoordinates,
-  readRegionalStationAnchorPoint,
-  svgAnchorPoint,
-  svgAnchorPointInRootCoordinates,
-  regionalStationVisualAnchors,
-  regionalStationImpactAnchors,
-  regionalRoutePathIds,
-  regionalRouteMetric,
-  regionalRouteMetricInRoot,
-  closestRouteDistance,
-  routePointsBetween,
-  pathDataForPoints,
-  corridorSegmentPath,
-  corridorSegmentPathInRootCoordinates,
   authoredRegionalCorridorPathData,
-  resolvedRegionalSegmentPath,
   continuousRegionalOverlayRunPath,
-  regionalTrainMarkerFrame,
-  regionalHoverMaskBounds,
+  corridorSegmentPath,
   expandedRegionalCollisionBox,
+  regionalAnchorDot,
+  regionalAnchorPoint,
   regionalCollisionIntersectionArea,
-  regionalSvgScope,
+  regionalOverlapBadgeAnchor,
+  regionalRoutePathIds,
+  regionalStation,
+  regionalStationImpactAnchors,
+  regionalStationLabelHover,
+  regionalStationLabelPolygon,
+  regionalStationPillShape,
+  regionalTrainMarkerFrame,
+  resolvedRegionalSegmentPath,
+  squaredPointDistance,
 } from "../src/app/regional-map-geometry.ts";
 
-function createMockSvgNode({
-  nodeName = "g",
-  id = "",
-  transform = null,
-  attributes = {},
-  dataset = {},
-  parent = null,
-  children = [],
-} = {}) {
-  const node = {
-    nodeName,
-    tagName: nodeName,
-    id,
-    dataset: { ...dataset },
-    parentElement: parent,
-    children: [],
-    getAttribute(name) {
-      if (name === "id") return this.id || null;
-      if (name === "transform") return this.transform;
-      return attributes[name] ?? null;
-    },
-    setAttribute(name, value) {
-      if (name === "id") this.id = String(value);
-      if (name === "transform") this.transform = String(value);
-      attributes[name] = String(value);
-    },
-    removeAttribute(name) {
-      delete attributes[name];
-      if (name === "id") this.id = "";
-      if (name === "transform") this.transform = null;
-    },
-    matches(selector) {
-      const parts = selector.split(",").map((s) => s.trim().toLowerCase());
-      return parts.includes(this.nodeName.toLowerCase());
-    },
-    cloneNode(deep) {
-      const cloned = createMockSvgNode({
-        nodeName: this.nodeName,
-        id: this.id,
-        transform: this.transform,
-        attributes: { ...attributes },
-        dataset: { ...this.dataset },
-      });
-      if (deep) {
-        for (const child of this.children) {
-          const childClone = child.cloneNode(true);
-          childClone.parentElement = cloned;
-          cloned.children.push(childClone);
-        }
-      }
-      return cloned;
-    },
-    querySelector(selector) {
-      for (const child of this.children) {
-        if (selector.startsWith("#") && child.id === selector.slice(1)) return child;
-        if (child.matches?.(selector)) return child;
-        const found = child.querySelector?.(selector);
-        if (found) return found;
-      }
-      return null;
-    },
-    querySelectorAll(selector) {
-      const results = [];
-      const parts = selector.split(",").map((s) => s.trim().toLowerCase());
-      const check = (n) => {
-        for (const child of n.children) {
-          if (parts.includes(child.nodeName.toLowerCase())) results.push(child);
-          else if (selector.startsWith("#") && child.id === selector.slice(1)) results.push(child);
-          check(child);
-        }
-      };
-      check(this);
-      return results;
-    },
-  };
-  node.transform = transform;
-  for (const child of children) {
-    child.parentElement = node;
-    node.children.push(child);
-  }
-  return node;
-}
-
-function parsePolylinePointsFromD(d) {
-  if (!d) return [];
-  const coords = d.match(/[-+]?\d*\.?\d+/g)?.map(Number) ?? [];
-  const points = [];
-  for (let i = 0; i + 1 < coords.length; i += 2) {
-    points.push({ x: coords[i], y: coords[i + 1] });
-  }
-  return points;
-}
-
-function createMockPath({
-  id = "",
-  points = [{ x: 0, y: 0 }, { x: 100, y: 0 }],
-  transform = null,
-  parent = null,
-} = {}) {
-  const node = createMockSvgNode({
-    nodeName: "path",
-    id,
-    transform,
-    parent,
-    attributes: { d: pathDataForPoints(points) },
-  });
-
-  const getPoints = () => {
-    const d = node.getAttribute("d");
-    const parsed = parsePolylinePointsFromD(d);
-    return parsed.length >= 2 ? parsed : points;
-  };
-
-  node.getTotalLength = () => {
-    const pts = getPoints();
-    let sum = 0;
-    for (let i = 1; i < pts.length; i++) {
-      sum += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
-    }
-    return sum;
-  };
-
-  node.getPointAtLength = (distance) => {
-    const pts = getPoints();
-    const lengths = pts.slice(1).map((pt, i) => Math.hypot(pt.x - pts[i].x, pt.y - pts[i].y));
-    const totalLength = lengths.reduce((sum, len) => sum + len, 0);
-    const target = Math.max(0, Math.min(totalLength, distance));
-    let walked = 0;
-    for (let i = 1; i < pts.length; i++) {
-      const segLen = lengths[i - 1];
-      if (walked + segLen >= target) {
-        const progress = segLen <= 0 ? 0 : (target - walked) / segLen;
-        return {
-          x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * progress,
-          y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * progress,
-        };
-      }
-      walked += segLen;
-    }
-    return pts[pts.length - 1];
-  };
-
-  return node;
-}
-
-function createMockDocument(elementsById = {}) {
-  return {
-    getElementById: (id) => elementsById[id] ?? null,
-    createElementNS: (_ns, tag) => {
-      if (tag === "path") {
-        return createMockPath();
-      }
-      return createMockSvgNode({ nodeName: tag });
-    },
-    querySelector: () => null,
-    querySelectorAll: () => [],
-  };
-}
+// The prepared GO/UP geometry the map ships with (scripts/prepare-map-geometry.mjs).
+const geometry = JSON.parse(readFileSync(new URL("../src/app/map-geometry/regional.json", import.meta.url), "utf8"));
+const segments = regionalDashboardData.networkSegments;
+const segment = (id) => segments.find((candidate) => candidate.id === id);
+const route = (pathId) => preparedPoints(geometry.lines.find((line) => line.id === pathId).points);
+const distance = (a, b) => Math.sqrt(squaredPointDistance(a, b));
 
 describe("regional map geometry", () => {
-  describe("constants and pure point math", () => {
-    it("exports standard regional dimensions and layout ratios", () => {
-      assert.equal(REGIONAL_MAP_VIEWBOX.width, 17036.959);
-      assert.equal(REGIONAL_MAP_VIEWBOX.height, 9031.6719);
-      assert.equal(REGIONAL_IMPACT_OVERLAY_WIDTH, 196);
-      assert.equal(REGIONAL_OVERLAP_INDICATOR_SCALE, 2);
-      assert.equal(REGIONAL_OVERLAP_INDICATOR_EDGE_GAP, 88);
-      assert.equal(REGIONAL_TRAIN_MARKER_LANE_OFFSET, 44);
+  it("draws GO/UP overlays at its rail's width, in the root view box", () => {
+    assert.equal(REGIONAL_OVERLAY_UNIT, 196 / 96);
+    assert.deepEqual(geometry.viewBox, REGIONAL_MAP_VIEWBOX);
+  });
+
+  describe("stations", () => {
+    it("finds a station's dots, and an alert's platform at a junction", () => {
+      const bloor = regionalStation(geometry, "bloor");
+      assert.deepEqual(bloor.anchors.map((anchor) => anchor.id), ["station-bloor-ki", "station-bloor-up"]);
+      assert.deepEqual(regionalStationImpactAnchors(bloor, "regional-up").map((anchor) => anchor.id), ["station-bloor-up"]);
+      // A line without a platform of its own keeps every dot.
+      assert.equal(regionalStationImpactAnchors(bloor, "regional-lw").length, 2);
+      assert.equal(regionalStation(geometry, "bloor-ki"), null);
     });
 
-    it("computes squared Euclidean distance accurately", () => {
-      assert.equal(squaredPointDistance({ x: 0, y: 0 }, { x: 3, y: 4 }), 25);
-      assert.equal(squaredPointDistance({ x: 10, y: 20 }, { x: 10, y: 20 }), 0);
-      assert.equal(squaredPointDistance({ x: -5, y: -2 }, { x: -2, y: 2 }), 25);
+    it("resolves segment anchors to dots, and a junction group to its first dot", () => {
+      const ki = regionalAnchorDot(geometry, "station-bloor-ki");
+      assert.equal(ki.id, "station-bloor-ki");
+      assert.deepEqual(regionalAnchorPoint(geometry, "station-bloor-ki"), { x: ki.point.x, y: ki.point.y });
+      assert.equal(regionalAnchorDot(geometry, "station-bloor").id, "station-bloor-ki");
+      assert.equal(regionalAnchorPoint(geometry, "station-missing"), null);
+    });
+
+    it("keeps Union's pill and its authored outline, and no other station's", () => {
+      const union = regionalStationPillShape(geometry, "station-union");
+      assert.equal(union.shape.tag, "rect");
+      assert.ok(union.shape.strokeWidth > 0);
+      assert.equal(regionalStationPillShape(geometry, "station-pickering"), undefined);
+      // Bloor's connector bars are rects, but not pills.
+      assert.equal(regionalStationPillShape(geometry, "rect6-2"), undefined);
     });
   });
 
-  describe("SVG transform parsing and point transformations", () => {
-    it("handles identity, null, and empty transforms", () => {
-      const origin = { x: 50, y: 75 };
-      assert.deepEqual(applySvgTransform(origin, null), origin);
-      assert.deepEqual(applySvgTransform(origin, ""), origin);
-      assert.deepEqual(applySvgTransform(origin, "unknown()"), origin);
+  describe("segment corridors", () => {
+    it("follows the authored route for every GO/UP segment, from station A to station B", () => {
+      for (const candidate of segments) {
+        const points = pathPolylinePoints(corridorSegmentPath(geometry, candidate) ?? "");
+        assert.ok(points.length > 1, `${candidate.id} has no corridor`);
+        const routes = regionalRoutePathIds(candidate.lineId).map(route);
+        const offRoute = (point) => Math.min(...routes.map((points) => projectOntoPolyline(points, point).gap));
+        assert.ok(points.every((point) => offRoute(point) < 0.01), `${candidate.id} leaves its route`);
+        const start = regionalAnchorPoint(geometry, candidate.stationAAnchorId);
+        const end = regionalAnchorPoint(geometry, candidate.stationBAnchorId);
+        assert.ok(distance(points[0], start) < distance(points.at(-1), start), `${candidate.id} runs backwards`);
+        assert.ok(distance(points.at(-1), end) < 150, `${candidate.id} stops short of ${candidate.stationBId}`);
+      }
     });
 
-    it("applies translate(x, y) and single-argument translate(x)", () => {
-      const pt = { x: 10, y: 20 };
-      assert.deepEqual(applySvgTransform(pt, "translate(15, 25)"), { x: 25, y: 45 });
-      assert.deepEqual(applySvgTransform(pt, "translate(30)"), { x: 40, y: 20 });
-      assert.deepEqual(applySvgTransform(pt, "translate(-5, -10)"), { x: 5, y: 10 });
-    });
-
-    it("applies scale(s) and scale(sx, sy)", () => {
-      const pt = { x: 10, y: 20 };
-      assert.deepEqual(applySvgTransform(pt, "scale(2)"), { x: 20, y: 40 });
-      assert.deepEqual(applySvgTransform(pt, "scale(3, 4)"), { x: 30, y: 80 });
-    });
-
-    it("applies rotate(deg) around origin and around a pivot point", () => {
-      const pt = { x: 10, y: 0 };
-      const rotated90 = applySvgTransform(pt, "rotate(90)");
-      assert.ok(Math.abs(rotated90.x - 0) < 1e-6);
-      assert.ok(Math.abs(rotated90.y - 10) < 1e-6);
-
-      const pivotPt = { x: 15, y: 10 };
-      const rotatedAroundPivot = applySvgTransform(pivotPt, "rotate(90, 10, 10)");
-      assert.ok(Math.abs(rotatedAroundPivot.x - 10) < 1e-6);
-      assert.ok(Math.abs(rotatedAroundPivot.y - 15) < 1e-6);
-    });
-
-    it("applies matrix(a, b, c, d, e, f)", () => {
-      const pt = { x: 10, y: 20 };
-      assert.deepEqual(applySvgTransform(pt, "matrix(1, 0, 0, 1, 5, 7)"), { x: 15, y: 27 });
-      assert.deepEqual(applySvgTransform(pt, "matrix(2, 0, 0, 2, 3, 4)"), { x: 23, y: 44 });
-    });
-
-    it("composes chained transforms in sequential order", () => {
-      const pt = { x: 10, y: 20 };
-      const transformed = applySvgTransform(pt, "translate(10, 10) scale(2)");
-      assert.deepEqual(transformed, { x: 40, y: 60 });
-    });
-  });
-
-  describe("DOM transform hierarchy and coordinate space conversions", () => {
-    it("maps point through ancestor transforms up to root SVG and into stations layer", () => {
-      const svgRoot = createMockSvgNode({ nodeName: "svg" });
-      const stationsLayer = createMockSvgNode({
-        nodeName: "g",
-        id: "regional-stations-layer",
-        transform: "translate(100, 200)",
-        parent: svgRoot,
-      });
-      const subLayer = createMockSvgNode({
-        nodeName: "g",
-        transform: "scale(2)",
-        parent: stationsLayer,
-      });
-      const element = createMockSvgNode({
-        nodeName: "g",
-        transform: "translate(10, 20)",
-        parent: subLayer,
-      });
-
-      const rootPoint = pointInSvgRootCoordinates(element, { x: 5, y: 5 });
-      assert.deepEqual(rootPoint, { x: 130, y: 250 });
-
-      const layerPoint = pointInRegionalStationsLayer(element, { x: 5, y: 5 });
-      // Stops at stationsLayer: in element: (15, 25), in subLayer: (30, 50)
-      assert.deepEqual(layerPoint, { x: 30, y: 50 });
-    });
-
-    it("inverts root coordinates back to local coordinates", () => {
-      const svgRoot = createMockSvgNode({ nodeName: "svg" });
-      const layer = createMockSvgNode({
-        nodeName: "g",
-        transform: "translate(500, 300)",
-        parent: svgRoot,
-      });
-
-      const localPoint = { x: 120, y: 80 };
-      const rootPoint = pointInSvgRootCoordinates(layer, localPoint);
-      assert.deepEqual(rootPoint, { x: 620, y: 380 });
-
-      const inverted = pointFromSvgRootCoordinates(layer, rootPoint);
-      assert.ok(Math.abs(inverted.x - localPoint.x) < 1e-4);
-      assert.ok(Math.abs(inverted.y - localPoint.y) < 1e-4);
-    });
-
-    it("converts points between arbitrary layers via root", () => {
-      const svgRoot = createMockSvgNode({ nodeName: "svg" });
-      const layerA = createMockSvgNode({
-        nodeName: "g",
-        transform: "translate(100, 100)",
-        parent: svgRoot,
-      });
-      const layerB = createMockSvgNode({
-        nodeName: "g",
-        transform: "translate(250, 400)",
-        parent: svgRoot,
-      });
-
-      const ptInA = { x: 50, y: 50 };
-      const ptInB = pointInRegionalStationsCoordinates(ptInA, layerA, layerB);
-      assert.ok(Math.abs(ptInB.x - (-100)) < 1e-4);
-      assert.ok(Math.abs(ptInB.y - (-250)) < 1e-4);
-    });
-  });
-
-  describe("station anchor resolution", () => {
-    it("reads circle and ellipse anchor coordinates including local transforms", () => {
-      const svgRoot = createMockSvgNode({ nodeName: "svg" });
-      const stationsLayer = createMockSvgNode({
-        nodeName: "g",
-        id: "regional-stations-layer",
-        parent: svgRoot,
-      });
-      const circle = createMockSvgNode({
-        nodeName: "circle",
-        id: "station-danforth-dot",
-        attributes: { cx: "200", cy: "300", r: "15" },
-        transform: "translate(10, -5)",
-        parent: stationsLayer,
-      });
-      stationsLayer.children.push(circle);
-      svgRoot.children.push(stationsLayer);
-
-      const mockDoc = createMockDocument({
-        "regional-stations-layer": stationsLayer,
-        "station-danforth-dot": circle,
-        "station-danforth": circle,
-      });
-
-      const anchor = readRegionalStationAnchorPoint(mockDoc, "station-danforth-dot");
-      assert.deepEqual(anchor, { x: 210, y: 295 });
-
-      const resolvedAnchor = svgAnchorPoint(mockDoc, "station-danforth-dot");
-      assert.deepEqual(resolvedAnchor, { x: 210, y: 295 });
-
-      const rootAnchor = svgAnchorPointInRootCoordinates(mockDoc, "station-danforth-dot");
-      assert.deepEqual(rootAnchor, { x: 210, y: 295 });
-    });
-
-    it("resolves route-specific anchors for multi-corridor interchanges", () => {
-      const svgRoot = createMockSvgNode({ nodeName: "svg" });
-      const stationsLayer = createMockSvgNode({
-        nodeName: "g",
-        id: "regional-stations-layer",
-        parent: svgRoot,
-      });
-      const stationGroup = createMockSvgNode({
-        nodeName: "g",
-        id: "station-bloor",
-        parent: stationsLayer,
-      });
-      const kiCircle = createMockSvgNode({
-        nodeName: "circle",
-        id: "station-bloor-ki",
-        attributes: { cx: "400", cy: "500", r: "12" },
-        parent: stationGroup,
-      });
-      const upCircle = createMockSvgNode({
-        nodeName: "circle",
-        id: "station-bloor-up",
-        attributes: { cx: "420", cy: "500", r: "12" },
-        parent: stationGroup,
-      });
-      stationGroup.children.push(kiCircle, upCircle);
-      stationsLayer.children.push(stationGroup);
-      svgRoot.children.push(stationsLayer);
-
-      const visualAnchors = regionalStationVisualAnchors(stationGroup);
-      assert.equal(visualAnchors.length, 2);
-
-      const kiAnchors = regionalStationImpactAnchors(stationGroup, "KI");
-      assert.equal(kiAnchors.length, 1);
-      assert.equal(kiAnchors[0].id, "station-bloor-ki");
-      assert.deepEqual(kiAnchors[0].point, { x: 400, y: 500 });
-
-      const upAnchors = regionalStationImpactAnchors(stationGroup, "regional-up");
-      assert.equal(upAnchors.length, 1);
-      assert.equal(upAnchors[0].id, "station-bloor-up");
-      assert.deepEqual(upAnchors[0].point, { x: 420, y: 500 });
-
-      // Unmatched line falls back to all anchors
-      const fallbackAnchors = regionalStationImpactAnchors(stationGroup, "LW");
-      assert.equal(fallbackAnchors.length, 2);
-    });
-  });
-
-  describe("route path mapping and corridor paths", () => {
-    it("compacts oversampled straight rails while preserving endpoints and bends", () => {
-      assert.equal(pathDataForPoints([{ x: 0, y: 0 }, { x: 25, y: 0 }, { x: 50, y: 0 }, { x: 100, y: 0 }]), "M 0,0 L 100,0");
-      assert.equal(pathDataForPoints([{ x: 0, y: 0 }, { x: 50, y: 0.05 }, { x: 100, y: 0 }]), "M 0,0 L 50,0.05 L 100,0");
-      assert.equal(pathDataForPoints([{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 50, y: 0 }]), "M 0,0 L 100,0 L 50,0");
-    });
-    it("maps line codes to their authored SVG path identifiers", () => {
-      assert.deepEqual(regionalRoutePathIds("LW"), [
-        "regional-route-lw-main-path",
-        "regional-route-lw-branch-path",
-      ]);
-      assert.deepEqual(regionalRoutePathIds("line-lw"), [
-        "regional-route-lw-main-path",
-        "regional-route-lw-branch-path",
-      ]);
-      assert.deepEqual(regionalRoutePathIds("UP"), [
-        "regional-route-up-path",
-        "regional-route-up-airport-path",
-      ]);
-      assert.deepEqual(regionalRoutePathIds("KI"), ["regional-route-ki-path"]);
-      assert.deepEqual(regionalRoutePathIds("LE"), ["regional-route-le-path"]);
-      assert.deepEqual(regionalRoutePathIds("MI"), ["regional-route-mi-path"]);
-      assert.deepEqual(regionalRoutePathIds("RH"), ["regional-route-rh-path"]);
-      assert.deepEqual(regionalRoutePathIds("BR"), ["regional-route-br-path"]);
-      assert.deepEqual(regionalRoutePathIds("ST"), ["regional-route-st-path"]);
-    });
-
-    it("samples points along a route metric and computes distances", () => {
-      const svgRoot = createMockSvgNode({ nodeName: "svg" });
-      const stationsLayer = createMockSvgNode({
-        nodeName: "g",
-        id: "regional-stations-layer",
-        parent: svgRoot,
-      });
-      const path = createMockPath({
-        points: [
-          { x: 0, y: 0 },
-          { x: 100, y: 0 },
-          { x: 100, y: 100 },
-        ],
-        parent: stationsLayer,
-      });
-      stationsLayer.children.push(path);
-      svgRoot.children.push(stationsLayer);
-
-      const metric = regionalRouteMetric(path, stationsLayer);
-      assert.notEqual(metric, null);
-      assert.equal(metric.length, 200);
-
-      const rootMetric = regionalRouteMetricInRoot(path);
-      assert.notEqual(rootMetric, null);
-      assert.equal(rootMetric.length, 200);
-
-      const closest = closestRouteDistance(metric, { x: 50, y: 2 });
-      assert.ok(Math.abs(closest.distance - 50) < 1);
-
-      const sampled = routePointsBetween(metric, 10, 90);
-      assert.ok(sampled.length >= 2);
-      assert.ok(Math.abs(sampled[0].x - 10) < 1);
-      assert.ok(Math.abs(sampled.at(-1).x - 90) < 1);
-    });
-
-    it("samples a transformed route without reparsing its ancestors for every point", () => {
-      const svg = createMockSvgNode({ nodeName: "svg" });
-      const stations = createMockSvgNode({ id: "regional-stations-layer", parent: svg, transform: "translate(30,40) scale(2)" });
-      const tracks = createMockSvgNode({ parent: svg, transform: "translate(100,200) rotate(25)" });
-      const path = createMockPath({ parent: tracks, transform: "matrix(1,0.2,0.1,1,10,20)", points: [{ x: 0, y: 0 }, { x: 1000, y: 0 }] });
-      let transformReads = 0;
-      for (const node of [path, tracks, stations]) {
-        const read = node.getAttribute.bind(node);
-        node.getAttribute = name => {
-          if (name === "transform") transformReads++;
-          return read(name);
+    it("joins Lakeshore West's main line and Hamilton branch at the junction", () => {
+      const toHamilton = pathPolylinePoints(corridorSegmentPath(geometry, segment("segment-lw-aldershot-hamilton")));
+      const main = route("regional-route-lw-main-path");
+      const branch = route("regional-route-lw-branch-path");
+      const onMain = toHamilton.filter((point) => projectOntoPolyline(main, point).gap < 0.01);
+      const onBranch = toHamilton.filter((point) => projectOntoPolyline(branch, point).gap < 0.01);
+      assert.ok(onMain.length > 0 && onBranch.length > 0);
+      // One continuous rail, not a chord between the stations.
+      for (let index = 1; index < toHamilton.length; index++) {
+        const midpoint = {
+          x: (toHamilton[index - 1].x + toHamilton[index].x) / 2,
+          y: (toHamilton[index - 1].y + toHamilton[index].y) / 2,
         };
+        assert.ok(Math.min(projectOntoPolyline(main, midpoint).gap, projectOntoPolyline(branch, midpoint).gap) < 0.01);
       }
-      const metric = regionalRouteMetric(path, stations);
-      const rootMetric = regionalRouteMetricInRoot(path);
-      for (const distance of [0, 50, 400, 1000]) {
-        const local = path.getPointAtLength(distance);
-        const expected = pointInRegionalStationsCoordinates(local, path, stations);
-        const expectedRoot = pointInSvgRootCoordinates(path, local);
-        assert.ok(Math.abs(metric.pointAt(distance).x - expected.x) < 1e-7);
-        assert.ok(Math.abs(metric.pointAt(distance).y - expected.y) < 1e-7);
-        assert.ok(Math.abs(rootMetric.pointAt(distance).x - expectedRoot.x) < 1e-7);
-        assert.ok(Math.abs(rootMetric.pointAt(distance).y - expectedRoot.y) < 1e-7);
+    });
+
+    it("falls back to the chord between stations when a line has no authored route", () => {
+      const chord = { ...segment("segment-ki-union-bloor"), lineId: "regional-zz", guidePathId: undefined };
+      assert.equal(corridorSegmentPath(geometry, chord), null);
+      const [start, end] = pathPolylinePoints(resolvedRegionalSegmentPath(geometry, chord));
+      assert.deepEqual(start, regionalAnchorPoint(geometry, "station-union"));
+      assert.deepEqual(end, regionalAnchorPoint(geometry, "station-bloor-ki"));
+    });
+
+    it("draws a whole line as one subpath per authored route path", () => {
+      assert.equal(authoredRegionalCorridorPathData(geometry, "regional-lw").match(/M/g).length, 2);
+      assert.equal(authoredRegionalCorridorPathData(geometry, "regional-up").match(/M/g).length, 2);
+      assert.equal(authoredRegionalCorridorPathData(geometry, "regional-zz"), null);
+    });
+
+    it("joins a linear run into one path between its end stations, and keeps a branching run's pieces", () => {
+      const run = ["segment-ki-union-bloor", "segment-ki-bloor-mount-dennis", "segment-ki-mount-dennis-weston"].map(segment);
+      const joined = continuousRegionalOverlayRunPath(geometry, { segments: run, pathD: "M 0 0" });
+      assert.equal(joined.match(/M/g).length, 1);
+      assert.equal(joined, corridorSegmentPath(geometry, {
+        ...run[0],
+        stationBId: "weston",
+        stationBAnchorId: "station-weston-ki",
+      }));
+      const branching = ["segment-lw-burlington-aldershot", "segment-lw-aldershot-west-harbour", "segment-lw-aldershot-hamilton"].map(segment);
+      assert.equal(continuousRegionalOverlayRunPath(geometry, { segments: branching, pathD: "M 0 0" }), null);
+    });
+  });
+
+  describe("train markers", () => {
+    const upSegment = segment("segment-up-mount-dennis-weston");
+    const marker = (overrides) => ({
+      segmentId: upSegment.id,
+      fromStationId: "mount-dennis",
+      toStationId: "weston",
+      nextStationId: "weston",
+      progress: 0.5,
+      travelDirection: "forward",
+      ...overrides,
+    });
+
+    it("places a marker beside its corridor, in its lane, facing its direction of travel", () => {
+      const corridor = pathPolylinePoints(corridorSegmentPath(geometry, upSegment));
+      const westbound = regionalTrainMarkerFrame(geometry, upSegment, marker());
+      const eastbound = regionalTrainMarkerFrame(geometry, upSegment, marker({
+        fromStationId: "weston", toStationId: "mount-dennis", nextStationId: "mount-dennis",
+      }));
+      const gap = (frame) => projectOntoPolyline(corridor, frame.point).gap;
+      assert.ok(Math.abs(gap(westbound) - REGIONAL_TRAIN_MARKER_LANE_OFFSET) < 1);
+      assert.ok(Math.abs(gap(eastbound) - REGIONAL_TRAIN_MARKER_LANE_OFFSET) < 1);
+      // Opposite directions take opposite lanes and headings.
+      assert.ok(distance(westbound.point, eastbound.point) > REGIONAL_TRAIN_MARKER_LANE_OFFSET);
+      assert.ok(Math.abs(Math.abs(westbound.angle - eastbound.angle) - 180) < 1);
+    });
+
+    it("moves from the departing station toward the next one", () => {
+      const corridor = pathPolylinePoints(corridorSegmentPath(geometry, upSegment));
+      const along = (progress) => projectOntoPolyline(corridor, regionalTrainMarkerFrame(geometry, upSegment, marker({ progress })).point).along;
+      assert.ok(along(0.1) < along(0.5) && along(0.5) < along(0.9));
+      assert.ok(Math.abs(along(0.5) - polylineLength(corridor) / 2) < 1);
+    });
+
+    it("draws no marker on a segment without a corridor", () => {
+      assert.equal(regionalTrainMarkerFrame(geometry, { ...upSegment, lineId: "regional-zz" }, marker()), null);
+    });
+  });
+
+  describe("station names", () => {
+    it("lifts a hovered name with room up to the next name, inside its bounds", () => {
+      const label = regionalStationLabelPolygon(geometry, "pickering");
+      const hover = regionalStationLabelHover(geometry, "pickering");
+      const corners = hover.polygonPoints.split(" ").map((pair) => pair.split(",").map(Number));
+      assert.equal(corners.length, 4);
+      for (const [x, y] of corners) {
+        assert.ok(x >= hover.bounds.x && x <= hover.bounds.x + hover.bounds.width);
+        assert.ok(y >= hover.bounds.y && y <= hover.bounds.y + hover.bounds.height);
       }
-      transformReads = 0;
-      closestRouteDistance(metric, { x: 200, y: 100 });
-      routePointsBetween(rootMetric, 0, 1000);
-      assert.equal(transformReads, 0, "route scans must reuse their coordinate transform");
-      // A new metric must pick up an authored transform change.
-      tracks.setAttribute("transform", "translate(500,600)");
-      assert.deepEqual(regionalRouteMetricInRoot(path).pointAt(0), { x: 510, y: 620 });
-    });
-
-    it("reuses route samples across overlay callers and invalidates them when the authored path changes", () => {
-      const svg = createMockSvgNode({ nodeName: "svg" });
-      const path = createMockPath({ parent: svg, points: [{ x: 0, y: 0 }, { x: 1000, y: 0 }] });
-      let nativeSamples = 0;
-      const sample = path.getPointAtLength;
-      path.getPointAtLength = distance => { nativeSamples++; return sample(distance); };
-      const target = { x: 300, y: 2 };
-      const first = closestRouteDistance(regionalRouteMetricInRoot(path), target);
-      nativeSamples = 0;
-      assert.deepEqual(closestRouteDistance(regionalRouteMetricInRoot(path), target), first);
-      assert.equal(nativeSamples, 0, "the same route scan from another overlay must reuse samples");
-      path.setAttribute("d", "M 0,0 L 0,500");
-      const changed = regionalRouteMetricInRoot(path);
-      assert.equal(changed.length, 500);
-      assert.deepEqual(changed.pointAt(300), { x: 0, y: 300 });
-      assert.equal(nativeSamples, 1);
-    });
-
-    it("resolves corridor segment paths in both layer and root spaces", () => {
-      const svgRoot = createMockSvgNode({ nodeName: "svg" });
-      const stationsLayer = createMockSvgNode({
-        nodeName: "g",
-        id: "regional-stations-layer",
-        parent: svgRoot,
-      });
-      const path = createMockPath({
-        id: "regional-route-le-path",
-        points: [{ x: 100, y: 100 }, { x: 500, y: 100 }],
-        parent: stationsLayer,
-      });
-      const danforthDot = createMockSvgNode({
-        nodeName: "circle",
-        id: "station-danforth",
-        attributes: { cx: "100", cy: "100", r: "10" },
-        parent: stationsLayer,
-      });
-      const scarboroughDot = createMockSvgNode({
-        nodeName: "circle",
-        id: "station-scarborough",
-        attributes: { cx: "500", cy: "100", r: "10" },
-        parent: stationsLayer,
-      });
-      stationsLayer.children.push(path, danforthDot, scarboroughDot);
-      svgRoot.children.push(stationsLayer);
-
-      const mockDoc = createMockDocument({
-        "regional-stations-layer": stationsLayer,
-        "regional-route-le-path": path,
-        "station-danforth": danforthDot,
-        "station-scarborough": scarboroughDot,
-      });
-
-      const segment = {
-        id: "le-danforth-scarborough",
-        lineId: "LE",
-        stationAId: "danforth",
-        stationBId: "scarborough",
-        stationAAnchorId: "station-danforth",
-        stationBAnchorId: "station-scarborough",
-        guidePathId: "regional-route-le-path",
+      const labelCenter = {
+        x: label.reduce((sum, point) => sum + point.x, 0) / 4,
+        y: label.reduce((sum, point) => sum + point.y, 0) / 4,
       };
-
-      const pathD = corridorSegmentPath(mockDoc, segment);
-      assert.notEqual(pathD, null);
-
-      const rootPathD = corridorSegmentPathInRootCoordinates(mockDoc, segment);
-      assert.notEqual(rootPathD, null);
-
-      const authoredD = authoredRegionalCorridorPathData(mockDoc, segment.lineId);
-      assert.notEqual(authoredD, null);
-
-      const resolvedD = resolvedRegionalSegmentPath(mockDoc, segment);
-      assert.notEqual(resolvedD, null);
-    });
-
-    it("joins continuous regional overlay runs and preserves authored path data", () => {
-      const mockDoc = createMockDocument();
-
-      const runSingle = {
-        segments: [{ id: "seg-1", stationAId: "A", stationBId: "B" }],
-        pathD: "M 0 0 L 100 0",
-      };
-      assert.equal(continuousRegionalOverlayRunPath(mockDoc, runSingle), "M 0 0 L 100 0");
-
-      const runCycle = {
-        segments: [
-          { id: "seg-1", stationAId: "A", stationBId: "B" },
-          { id: "seg-2", stationAId: "B", stationBId: "C" },
-          { id: "seg-3", stationAId: "C", stationBId: "A" },
-        ],
-        pathD: "M 0 0 L 100 0 M 100 0 L 100 100 M 100 100 L 0 0",
-      };
-      assert.equal(continuousRegionalOverlayRunPath(mockDoc, runCycle), null);
+      assert.ok(distance(hover.center, labelCenter) < 0.01);
+      assert.equal(regionalStationLabelHover(geometry, "missing"), null);
+      assert.equal(regionalStationLabelHover(geometry, null), null);
     });
   });
 
-  describe("train marker frames", () => {
-    it("calculates marker point and angle offset along corridor", () => {
-      const svgRoot = createMockSvgNode({ nodeName: "svg" });
-      const stationsLayer = createMockSvgNode({
-        nodeName: "g",
-        id: "regional-stations-layer",
-        parent: svgRoot,
-      });
-      const path = createMockPath({
-        id: "regional-route-le-path",
-        points: [{ x: 100, y: 100 }, { x: 500, y: 100 }],
-        parent: stationsLayer,
-      });
-      const danforthDot = createMockSvgNode({
-        nodeName: "circle",
-        id: "station-danforth",
-        attributes: { cx: "100", cy: "100", r: "10" },
-        parent: stationsLayer,
-      });
-      const scarboroughDot = createMockSvgNode({
-        nodeName: "circle",
-        id: "station-scarborough",
-        attributes: { cx: "500", cy: "100", r: "10" },
-        parent: stationsLayer,
-      });
-      stationsLayer.children.push(path, danforthDot, scarboroughDot);
-      svgRoot.children.push(stationsLayer);
-
-      const mockDoc = createMockDocument({
-        "regional-stations-layer": stationsLayer,
-        "regional-route-le-path": path,
-        "station-danforth": danforthDot,
-        "station-scarborough": scarboroughDot,
-      });
-
-      const segment = {
-        id: "le-danforth-scarborough",
-        lineId: "LE",
-        stationAId: "danforth",
-        stationBId: "scarborough",
-        stationAAnchorId: "station-danforth",
-        stationBAnchorId: "station-scarborough",
-        guidePathId: "regional-route-le-path",
+  describe("overlap badges", () => {
+    it("starts a segment's badge beside its middle, on the side toward the map's centre", () => {
+      const size = { width: 135, height: 135 };
+      const { anchor, position } = regionalOverlapBadgeAnchor(geometry, segment("segment-le-pickering-ajax"), size);
+      const center = {
+        x: REGIONAL_MAP_VIEWBOX.x + REGIONAL_MAP_VIEWBOX.width / 2,
+        y: REGIONAL_MAP_VIEWBOX.y + REGIONAL_MAP_VIEWBOX.height / 2,
       };
-
-      const marker = {
-        id: "marker-1",
-        lineId: "LE",
-        direction: "Eastbound",
-        travelDirection: "forward",
-        segmentId: segment.id,
-        fromStationId: "danforth",
-        toStationId: "scarborough",
-        nextStationId: "scarborough",
-        progress: 0.5,
-        segmentTravelSeconds: 300,
-        predictedAt: new Date().toISOString(),
-      };
-
-      const frame = regionalTrainMarkerFrame(mockDoc, segment, marker);
-      assert.notEqual(frame, null);
-      assert.ok(Math.abs(frame.point.x - 300) < 1);
-      assert.ok(Math.abs(Math.abs(frame.point.y - 100) - REGIONAL_TRAIN_MARKER_LANE_OFFSET) < 1e-3);
+      const mirrored = { x: 2 * anchor.x - position.x, y: 2 * anchor.y - position.y };
+      assert.ok(squaredPointDistance(position, center) < squaredPointDistance(mirrored, center));
+      const offset = distance(anchor, position);
+      assert.ok(offset >= REGIONAL_IMPACT_OVERLAY_WIDTH / 2 + REGIONAL_OVERLAP_INDICATOR_EDGE_GAP);
+      assert.ok(offset <= REGIONAL_IMPACT_OVERLAY_WIDTH / 2 + REGIONAL_OVERLAP_INDICATOR_EDGE_GAP
+        + Math.hypot(size.width, size.height) / 2 * REGIONAL_OVERLAP_INDICATOR_SCALE);
     });
-  });
 
-  describe("hover mask bounds", () => {
-    it("converts root viewBox into local layer coordinates", () => {
-      const svgRoot = createMockSvgNode({ nodeName: "svg" });
-      const layer = createMockSvgNode({
-        nodeName: "g",
-        transform: "translate(-1894.5755, 276.53711)",
-        parent: svgRoot,
-      });
-      svgRoot.children.push(layer);
-
-      const bounds = regionalHoverMaskBounds(layer, REGIONAL_MAP_VIEWBOX);
-      assert.ok(bounds.x > REGIONAL_MAP_VIEWBOX.x);
-      assert.ok(bounds.y < REGIONAL_MAP_VIEWBOX.y);
-      assert.ok(Math.abs(bounds.width - REGIONAL_MAP_VIEWBOX.width) < 1);
-      assert.ok(Math.abs(bounds.height - REGIONAL_MAP_VIEWBOX.height) < 1);
-    });
-  });
-
-  describe("overlap badge collision geometry", () => {
-    it("creates expanded collision boxes and checks intersection areas", () => {
-      const box = { x: 100, y: 100, width: 50, height: 50 };
-      const padded = expandedRegionalCollisionBox(box, 10);
-      assert.deepEqual(padded, { x: 90, y: 90, width: 70, height: 70 });
-
-      const disjointBox = { x: 200, y: 200, width: 50, height: 50 };
-      assert.equal(regionalCollisionIntersectionArea(box, disjointBox), 0);
-
-      const overlappingBox = { x: 120, y: 120, width: 50, height: 50 };
-      assert.equal(regionalCollisionIntersectionArea(box, overlappingBox), 900);
-    });
-  });
-
-  describe("regional SVG scope", () => {
-    it("resolves shared station IDs inside the regional diagram, not the retained TTC one", () => {
-      const originalCss = globalThis.CSS;
-      globalThis.CSS ??= { escape: (value) => value };
-      try {
-        const ttcUnion = createMockSvgNode({ nodeName: "circle", id: "station-union" });
-        const regionalUnion = createMockSvgNode({ nodeName: "rect", id: "station-union" });
-        const documentNode = createMockDocument({ "station-union": ttcUnion });
-        const svg = {
-          ownerDocument: documentNode,
-          querySelector: (selector) => (selector === "#station-union" ? regionalUnion : null),
-        };
-
-        const scope = regionalSvgScope(svg);
-        assert.equal(documentNode.getElementById("station-union"), ttcUnion);
-        assert.equal(scope.getElementById("station-union"), regionalUnion);
-        assert.equal(scope.getElementById("station-missing"), null);
-        assert.equal(scope.getElementById(""), null);
-      } finally {
-        globalThis.CSS = originalCss;
-      }
+    it("pads and intersects collision boxes", () => {
+      assert.deepEqual(
+        expandedRegionalCollisionBox({ x: 10, y: 20, width: 30, height: 40 }, { leading: 1, trailing: 2, y: 3 }),
+        { x: 9, y: 17, width: 33, height: 46 },
+      );
+      assert.equal(regionalCollisionIntersectionArea({ x: 0, y: 0, width: 10, height: 10 }, { x: 5, y: 5, width: 10, height: 10 }), 25);
+      assert.equal(regionalCollisionIntersectionArea({ x: 0, y: 0, width: 10, height: 10 }, { x: 20, y: 0, width: 10, height: 10 }), 0);
     });
   });
 });

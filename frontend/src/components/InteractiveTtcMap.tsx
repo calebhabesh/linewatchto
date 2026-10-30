@@ -10,17 +10,14 @@ import {
   composeNetworkSegmentPath,
   pathCorridorCollisionBoxes,
   pathMidpointFrame,
-  pathPolylinePoints,
-  readSvgGeometry,
-  readSvgStationLabelPolygons,
-  readSvgStationCenters,
   resolveNetworkSegmentPath,
   visualTravelDirection,
   type MapBounds,
   type MapPoint,
-  type MapPolygon,
 } from "../app/map-geometry";
 import { usePanZoom } from "../hooks/usePanZoom";
+import { useCommittedCamera } from "./map-camera/camera-store";
+import { MapZoomSlider } from "./map-camera/MapZoomSlider";
 import { useFollowedChooserPortal } from "./MapOverlapChooser";
 import {
   MapChooserFollower,
@@ -30,6 +27,7 @@ import {
 import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
 import { readDesktopLeftOcclusion, measureDesktopMapInsets } from "../app/desktop-sidebar-state";
 import {
+  FOCUS_REVEAL_DURATION_MS,
   focusRevealSafeArea,
   focusRevealTranslation,
   logicalBoxFromClientRect,
@@ -42,7 +40,6 @@ import {
   computeBoundedMapFrame,
   computeInsetViewportFocus,
   logicalViewportSizeForOrientation,
-  PAN_ZOOM_MAX_RELATIVE_SCALE,
   type MapContentBounds,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
@@ -79,30 +76,34 @@ import {
 import { installMapHoverController, type MapHoverController } from "./map-overlays/map-hover-controller";
 import type { MapOverlayPlane } from "./map-overlays/overlay-plane";
 import { mapSelectionIntroKey, useMapSelectionIntro } from "./map-overlays/selection-intro";
+import { clearMapStationHover, setMapStationHovered } from "./map-overlays/station-hover";
 import { useMapPulseSync } from "./map-overlays/pulse-sync";
 import { MapCommuteEndpointFlashes, MapCommutePreviewRoute } from "./map-overlays/CommutePreviewOverlays";
 import type { MapCommutePreview } from "./map-overlays/commute-preview-model";
 import { EstimatedTrainMarkerLayer } from "./TtcTrainMarkerLayer";
 import {
+  layoutMapOverlapBadges,
+  mapBadgeAlertCorridors,
+  overlapBadgeTargetsAlong,
+  type MapBadgeArtwork,
+} from "./map-overlays/overlap-badge-layout";
+import type { PreparedMapGeometry } from "../app/map-geometry-data";
+import preparedTtcGeometry from "../app/map-geometry/ttc.json";
+import {
+  ttcAnchorPoints,
+  ttcGuidePaths,
+  ttcStationCenters,
+  ttcStationLabelPolygons,
+} from "../app/ttc-map-geometry";
+import {
   CONNECTOR_STATION_CLEARANCE,
-  OVERLAP_BADGE_CONNECTOR_MIN_LENGTH,
-  OVERLAP_BADGE_SIBLING_CLEARANCE,
-  STATION_BADGE_TARGET_RADIUS,
-  lineAlertBadgeObstacleRadius,
-  lineAlertOutlineHalfWidth,
   stationAlertPlacementAnchors,
-  stationAlertPlacementObstacles,
 } from "./map-overlays/overlay-obstacles";
 import {
   MAP_VIEWBOX_BOUNDS,
-  OVERLAY_CORRIDOR_COLLISION_RADIUS,
   TRANSIT_LINE_HALF_WIDTH,
-  boxCenter,
   collectBaseRouteObstacles,
-  collectMapPlacementObstacles,
-  impactCollisionKey,
-  overlapBadgeTargetsForPath,
-  stationOverlapProtectedBox,
+  ttcArtworkObstacles,
 } from "./ttc-map-obstacles";
 import {
   MapOverlapIndicator,
@@ -133,21 +134,12 @@ import {
   overlapBadgeVisualItemCount,
   type MapOverlapIndicatorSize,
 } from "./map-overlap-badges";
-import {
-  placeOverlapBadges,
-  withoutAlertedStretches,
-  type PlacementObstacle,
-} from "./overlap-badge-placement";
-import {
-  OVERLAP_BADGE_CONNECTOR_DOT_RADIUS,
-  badgeConnectorKeepOut,
-  overlapBadgeConnector,
-  overlapBadgeConnectorSearch,
-  type ConnectorCrossing,
-  type ConnectorKeepOut,
-  type ConnectorOutline,
-  type OverlapBadgeConnector,
-  type OverlapBadgeConnectorOptions,
+import type { PlacementObstacle } from "./overlap-badge-placement";
+import type {
+  ConnectorCrossing,
+  ConnectorKeepOut,
+  ConnectorOutline,
+  OverlapBadgeConnector,
 } from "./overlap-badge-connector";
 import { getSelectedImpactDetails } from "./MobileImpactInspector";
 import { stationImpactDirectionForImpact } from "./station-impact-direction";
@@ -212,26 +204,17 @@ const TTC_OVERLAY_PLANE: MapOverlayPlane = {
   outlineCutouts: [],
 };
 
+/** TTC's prepared geometry (scripts/prepare-map-geometry.mjs). */
+const TTC_GEOMETRY = preparedTtcGeometry as unknown as PreparedMapGeometry;
+const TTC_ANCHOR_POINTS = ttcAnchorPoints(TTC_GEOMETRY);
+const TTC_GUIDE_PATHS = ttcGuidePaths(TTC_GEOMETRY);
+const TTC_ARTWORK_OBSTACLES = ttcArtworkObstacles(TTC_GEOMETRY);
+
 type RetainedLayer<T> = {
   key: string;
   item: T;
   exiting: boolean;
 };
-
-function clearTtcStationHover(root: HTMLElement | null) {
-  root?.querySelectorAll<SVGElement>(".station-hover-indicator.active")
-    .forEach((indicator) => indicator.classList.remove("active"));
-}
-
-function setTtcStationHovered(root: HTMLElement | null, stationId: string, hovered: boolean) {
-  if (!root) return;
-  root.querySelectorAll<SVGElement>(
-    `.station-hover-indicator[data-station-hover-id="${CSS.escape(stationId)}"]`,
-  ).forEach((indicator) => {
-    const stationSelected = indicator.dataset.stationHoverSelected === "true";
-    indicator.classList.toggle("active", hovered && !stationSelected);
-  });
-}
 
 import {
   preloadTtcMapMarkup,
@@ -425,7 +408,8 @@ function InteractiveTtcMapComponent({
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">(() => (
     ttcMapMarkupCache.has(mapAsset.src) ? "ready" : "loading"
   ));
-  const [geometryReady, setGeometryReady] = useState(false);
+  // Geometry is prepared data (TTC_GEOMETRY); the map is ready once its SVG is.
+  const geometryReady = loadState === "ready";
   const [activeHoveredStationLabelId, setHoveredStationLabelId] = useState<string | null>(null);
   const hoveredStationLabelId = useRetainedHover(activeHoveredStationLabelId);
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
@@ -487,12 +471,23 @@ function InteractiveTtcMapComponent({
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
   const desktopMapInsetsRef = useRef({ top: desktopMapTopInset, bottom: desktopMapBottomInset });
   const lastFittedInsetsRef = useRef<{ top: number; bottom: number } | null>(null);
-  const [anchorPoints, setAnchorPoints] = useState(new Map<string, MapPoint>());
-  const [guidePaths, setGuidePaths] = useState(new Map<string, string>());
-  const [stationCenterPoints, setStationCenterPoints] = useState(new Map<string, MapPoint>());
-  const [stationLabelPolygons, setStationLabelPolygons] = useState(new Map<string, MapPolygon>());
-  const [mapPlacementObstacles, setMapPlacementObstacles] = useState<PlacementObstacle[]>([]);
-  const hoveredLabelPolygon = hoveredStationLabelId
+  const anchorPoints = TTC_ANCHOR_POINTS;
+  const guidePaths = TTC_GUIDE_PATHS;
+  const stationCenterPoints = useMemo(
+    () => ttcStationCenters(TTC_GEOMETRY, stationVisualCenterIds(stations)),
+    [stations],
+  );
+  const stationLabelPolygons = useMemo(
+    () => ttcStationLabelPolygons(TTC_GEOMETRY, stations.map((station) => station.id)),
+    [stations],
+  );
+  const mapPlacementObstacles = useMemo<PlacementObstacle[]>(() => [
+    ...TTC_ARTWORK_OBSTACLES,
+    ...collectBaseRouteObstacles(networkSegments, mapStations, anchorPoints, guidePaths),
+  ], [anchorPoints, guidePaths, mapStations, networkSegments]);
+  // The lifted label is cut out of the live text, so it waits for the label
+  // font (as on GO/UP).
+  const hoveredLabelPolygon = hoveredStationLabelId && mapLabelFontReady
     ? stationLabelPolygons.get(hoveredStationLabelId) ?? null
     : null;
   const hoveredLabelPolygonPoints = hoveredLabelPolygon
@@ -510,62 +505,6 @@ function InteractiveTtcMapComponent({
     height: Math.max(...hoveredLabelPolygon.map((point) => point.y))
       - Math.min(...hoveredLabelPolygon.map((point) => point.y)) + 32,
   } : null;
-  const measuredGeometrySignatureRef = useRef<string | null>(null);
-  const measuredLabelGeometrySignatureRef = useRef<string | null>(null);
-  const geometryMeasurementSignature = [
-    mapAsset.src,
-    stations.map((station) => `${station.id}:${station.mapX}:${station.mapY}`).join("|"),
-    mapStations.map((station) => `${station.id}:${station.x}:${station.y}`).join("|"),
-    networkSegments.map((segment) => [
-      segment.id,
-      segment.stationAId,
-      segment.stationBId,
-      segment.stationAAnchorId,
-      segment.stationBAnchorId,
-      segment.guidePathId,
-      segment.guidePathReversed,
-      segment.pathD,
-    ].join(":"))
-      .join("|"),
-  ].join("::");
-
-  useLayoutEffect(() => {
-    if (loadState !== "ready" || !mapSvgRef.current) return;
-    const measurementSignature = `${geometryMeasurementSignature}::font-ready:${mapLabelFontReady}`;
-    if (measuredGeometrySignatureRef.current === measurementSignature) return;
-    const geometry = readSvgGeometry(mapSvgRef.current, networkSegments);
-    setAnchorPoints(geometry.anchorPoints);
-    setGuidePaths(geometry.guidePaths);
-    setStationCenterPoints(
-      readSvgStationCenters(mapSvgRef.current, stationVisualCenterIds(stations)),
-    );
-    setMapPlacementObstacles([
-      ...collectMapPlacementObstacles(mapSvgRef.current),
-      ...collectBaseRouteObstacles(
-        networkSegments,
-        mapStations,
-        geometry.anchorPoints,
-        geometry.guidePaths,
-      ),
-    ]);
-    measuredGeometrySignatureRef.current = measurementSignature;
-    setGeometryReady(true);
-  }, [geometryMeasurementSignature, loadState, mapLabelFontReady, mapStations, networkSegments, stations]);
-
-  useLayoutEffect(() => {
-    if (!mapLabelFontReady || loadState !== "ready" || !mapSvgRef.current) return;
-    if (measuredLabelGeometrySignatureRef.current === geometryMeasurementSignature) return;
-
-    setStationLabelPolygons(
-      readSvgStationLabelPolygons(mapSvgRef.current, stations.map((station) => station.id), {
-        leading: 0,
-        trailing: 68,
-        y: 8,
-      }),
-    );
-    measuredLabelGeometrySignatureRef.current = geometryMeasurementSignature;
-  }, [geometryMeasurementSignature, loadState, mapLabelFontReady, stations]);
-
   // The authored labels live inside dangerouslySetInnerHTML while estimated
   // markers are ordinary React children of the same SVG. Marker polling can
   // commit that sibling tree without changing the logical hover id, so always
@@ -611,14 +550,14 @@ function InteractiveTtcMapComponent({
   }), [desktopMapBottomInset, desktopMapTopInset]);
 
   const [overlapChooserFollower] = useState(() => new MapChooserFollower());
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
   const {
-    transform,
-    relativeScale,
+    cameraStore,
+    readCamera,
     isGestureActive,
     isCameraInteracting,
     recenterFeedbackKey,
-    containerRef,
-    mapRef,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
@@ -653,6 +592,9 @@ function InteractiveTtcMapComponent({
     defaultFrame: defaultMapFrame,
     animateInitialEntrance,
     cameraFollower: overlapChooserFollower,
+    containerRef,
+    mapRef,
+    automaticRefitBlocked: Boolean(selection || selectedStationId || commutePathPreview),
   });
   const [mapViewportSize, setMapViewportSize] = useState({ width: 392, height: 720 });
   const [chooserKeepoutBoxes, setChooserKeepoutBoxes] = useState<SvgBounds[]>([]);
@@ -1287,9 +1229,14 @@ function InteractiveTtcMapComponent({
     const { insets } = readOccludedInsets(viewport, height, isMobile);
     const offset = focusRevealTranslation(box, focusRevealSafeArea(width, height, insets));
     if (!offset) return;
-    const current = currentRenderedTransform() ?? transform;
-    animateTransformTo({ x: current.x + offset.dx, y: current.y + offset.dy, scale: current.scale });
-  }, [animateTransformTo, containerRef, currentRenderedTransform, loadState, logicalViewportSize, mapRef, readOccludedInsets, transform, viewportOrientation]);
+    const current = currentRenderedTransform() ?? readCamera();
+    animateTransformTo(
+      { x: current.x + offset.dx, y: current.y + offset.dy, scale: current.scale },
+      undefined,
+      true,
+      FOCUS_REVEAL_DURATION_MS,
+    );
+  }, [animateTransformTo, containerRef, currentRenderedTransform, loadState, logicalViewportSize, mapRef, readCamera, readOccludedInsets, viewportOrientation]);
 
   useEffect(() => {
     if (loadState !== "ready") return;
@@ -1747,83 +1694,32 @@ function InteractiveTtcMapComponent({
 
   useMapPulseSync(mapRootRef, { paused: mapEffectMotionPaused, signature: `${loadState}::${pulseSyncSignature}` });
 
-  const collisionBoxesByImpact = useMemo(() => {
-    const boxesByImpact = new Map<string, SvgBounds[]>();
-    const addBoxes = (kind: MapImpactKind, cardId: string, boxes: SvgBounds[]) => {
-      const key = impactCollisionKey(kind, cardId);
-      boxesByImpact.set(key, [...(boxesByImpact.get(key) ?? []), ...boxes]);
-    };
-    for (const { impact, segment } of renderedImpactLayers) {
-      addBoxes(
-        impact.kind,
-        impact.cardId,
-        pathCorridorCollisionBoxes(segment.pathD, OVERLAY_CORRIDOR_COLLISION_RADIUS),
-      );
-    }
-    for (const { closure, segment } of plannedPreviewLayers) {
-      addBoxes(
-        "planned-closure",
-        closure.id,
-        pathCorridorCollisionBoxes(segment.pathD, OVERLAY_CORRIDOR_COLLISION_RADIUS),
-      );
-    }
-    for (const impact of stationNodeImpacts) {
-      const station = stationBySummaryId.get(impact.stationId);
-      if (!station) continue;
-      addBoxes(
-        impact.kind,
-        impact.cardId,
-        stationImpactVisualAnchors(
-          station,
-          impact,
-          directionData,
-          stationCenterPoints,
-        ).map((anchor) => stationOverlapProtectedBox(anchor.point)),
-      );
-    }
-    return boxesByImpact;
-  }, [directionData, plannedPreviewLayers, renderedImpactLayers, stationBySummaryId, stationCenterPoints, stationNodeImpacts]);
-
-
-  // Same overlays as above, but as true corridors so badges can tuck in beside
-  // diagonal alert lines instead of being kept off their bounding squares.
-  const alertOverlayPolylines = useMemo(() => (
-    [...renderedImpactLayers, ...plannedPreviewLayers]
-      .map(({ segment }) => pathPolylinePoints(segment.pathD))
-      .filter((polyline) => polyline.length > 0)
-  ), [plannedPreviewLayers, renderedImpactLayers]);
-
   // Station alerts as drawn, sized for badges and connectors by the shared
   // overlay metrics (map-overlays/overlay-obstacles.ts), as on GO/UP.
   const stationAlertPlacement = useMemo(() => (
     stationAlertPlacementAnchors(stationAlerts, TTC_OVERLAY_PLANE.unit, 1)
   ), [stationAlerts]);
 
-  const overlayPlacementObstacles = useMemo<PlacementObstacle[]>(() => {
-    const corridors = alertOverlayPolylines.map((polyline) => ({
-      polyline,
-      radius: lineAlertBadgeObstacleRadius(TTC_OVERLAY_PLANE.unit, 1),
-    }));
-    return [...corridors, ...stationAlertPlacementObstacles(stationAlertPlacement)];
-  }, [alertOverlayPolylines, stationAlertPlacement]);
+  // Each line alert's corridor, for badge placement.
+  const badgeCorridors = useMemo(
+    () => mapBadgeAlertCorridors(lineAlerts, TTC_OVERLAY_PLANE.unit),
+    [lineAlerts],
+  );
 
-  // Track strokes keep badges at the wide transit-line gap only where no alert
-  // overlay covers them; alerted stretches use the overlay's own gap. The rest
-  // of the artwork stays one stable layer so its rasterization is reused.
-  const mapPlacementLayers = useMemo(() => ({
-    artwork: mapPlacementObstacles.filter((obstacle) => !("polyline" in obstacle)),
-    lines: mapPlacementObstacles.filter((obstacle) => "polyline" in obstacle),
-  }), [mapPlacementObstacles]);
-  const unalertedLineObstacles = useMemo(() => (
-    withoutAlertedStretches(mapPlacementLayers.lines, alertOverlayPolylines, TRANSIT_LINE_HALF_WIDTH)
-  ), [alertOverlayPolylines, mapPlacementLayers]);
-
-  // Station names connectors never pass through, and track strokes they avoid
-  // crossing. Same split as the GO/UP map (regionalArtwork).
-  const connectorArtwork = useMemo(() => ({
-    keepOut: mapPlacementObstacles.filter((obstacle): obstacle is ConnectorKeepOut & { polygon: MapPoint[] } => "polygon" in obstacle),
-    crossings: mapPlacementObstacles.filter((obstacle): obstacle is ConnectorCrossing => "polyline" in obstacle),
-  }), [mapPlacementObstacles]);
+  // The artwork badges keep clear of: track strokes and base routes as
+  // corridors (kept clear at the wide transit-line gap only where no alert
+  // covers them), everything else as one stable layer whose rasterization is
+  // reused; station names connectors never pass through.
+  const badgeArtwork = useMemo<MapBadgeArtwork>(() => {
+    const lines = mapPlacementObstacles.filter((obstacle) => "polyline" in obstacle);
+    return {
+      obstacles: mapPlacementObstacles.filter((obstacle) => !("polyline" in obstacle)),
+      transitLines: lines,
+      transitLineHalfWidth: TRANSIT_LINE_HALF_WIDTH,
+      connectorKeepOut: mapPlacementObstacles.filter((obstacle): obstacle is ConnectorKeepOut & { polygon: MapPoint[] } => "polygon" in obstacle),
+      connectorCrossings: lines as ConnectorCrossing[],
+    };
+  }, [mapPlacementObstacles]);
 
   // Station dots a connector should not end on, with room for their rings.
   const stationDotKeepouts = useMemo(() => stations.flatMap((station) => (
@@ -1832,31 +1728,6 @@ function InteractiveTtcMapComponent({
       radius: stationImpactRingRadius(isStationVisuallyLarge(station)) + CONNECTOR_STATION_CLEARANCE,
     }))
   )), [stations, visualAnchorsForStation]);
-
-  // The visible edge of each alert's overlay, for badge connectors.
-  const connectorOutlinesByImpact = useMemo(() => {
-    const outlines = new Map<string, ConnectorOutline[]>();
-    const add = (key: string, outline: ConnectorOutline) => {
-      outlines.set(key, [...(outlines.get(key) ?? []), outline]);
-    };
-    const halfWidth = lineAlertOutlineHalfWidth(TTC_OVERLAY_PLANE.unit);
-    for (const { impact, segment } of renderedImpactLayers) {
-      add(impactCollisionKey(impact.kind, impact.cardId), {
-        polyline: pathPolylinePoints(segment.pathD),
-        halfWidth,
-      });
-    }
-    for (const { closure, segment } of plannedPreviewLayers) {
-      add(impactCollisionKey("planned-closure", closure.id), {
-        polyline: pathPolylinePoints(segment.pathD),
-        halfWidth,
-      });
-    }
-    for (const { impactKey, center, outlineRadius } of stationAlertPlacement) {
-      add(impactKey, { center, radius: outlineRadius });
-    }
-    return outlines;
-  }, [plannedPreviewLayers, renderedImpactLayers, stationAlertPlacement]);
 
   const rawSegmentOverlapBadgeGroups = useMemo(() => {
     return groupOverlapBadgeSegments(renderedOverlaySegments, overlapPlannedClosures);
@@ -1899,7 +1770,7 @@ function InteractiveTtcMapComponent({
         // Sample each segment on its own: a composed path of disjoint segments
         // would otherwise add fake targets across the gaps between them.
         const placementTargets = group.segments.flatMap((source) => (
-          source.pathD ? overlapBadgeTargetsForPath(source.pathD) : []
+          source.pathD ? overlapBadgeTargetsAlong(source.pathD, 1) : []
         ));
 
         return {
@@ -1923,13 +1794,9 @@ function InteractiveTtcMapComponent({
         const station = stationBySummaryId.get(group.stationId);
         if (!station) return null;
 
+        // The badge explains where these alerts meet, so it aims for the
+        // station (and its own overlays beside it: the shared layout).
         const point = stationPointFor(station);
-        // The badge explains where these alerts meet, so aim for the station
-        // and the stretch of its own overlays right next to it.
-        const nearbyOverlayTargets = group.impacts
-          .flatMap((impact) => collisionBoxesByImpact.get(impactCollisionKey(impact.kind, impact.cardId)) ?? [])
-          .map(boxCenter)
-          .filter((target) => Math.hypot(target.x - point.x, target.y - point.y) <= STATION_BADGE_TARGET_RADIUS);
         return {
           segmentId: `station-${group.stationId}-${group.signature}`,
           layoutId: `station:${group.stationId}`,
@@ -1937,112 +1804,50 @@ function InteractiveTtcMapComponent({
           impactKinds: group.impactKinds,
           impacts: group.impacts,
           anchor: point,
-          placementTargets: [point, ...nearbyOverlayTargets],
+          placementTargets: [point],
           placementAnchor: point,
           position: { ...point, collisionAvoided: false },
           size: overlapBadgeSize(overlapBadgeVisualItemCount(overlapBadgeKindCounts(group.impacts))),
         };
       })
       .filter((badge): badge is OverlapBadgeSegment => Boolean(badge));
-  }, [
-    collisionBoxesByImpact,
-    stationBySummaryId,
-    stationOverlapBadgeGroups,
-    stationPointFor,
-  ]);
+  }, [stationBySummaryId, stationOverlapBadgeGroups, stationPointFor]);
 
-  // One set of connector rules for placement and for drawing: a badge's line
-  // crosses only open space, so it goes around station names, track strokes,
-  // station dots, and every other badge.
-  const connectorOptionsFor = useMemo(() => (
-    badge: OverlapBadgeSegment,
-    position: MapPoint,
-    others: { position: MapPoint; size: { width: number; height: number } }[],
-  ): OverlapBadgeConnectorOptions => ({
-    position,
-    size: badge.size,
-    outlines: badge.impacts.flatMap((impact) => (
-      connectorOutlinesByImpact.get(impactCollisionKey(impact.kind, impact.cardId)) ?? []
-    )),
-    minimumLength: OVERLAP_BADGE_CONNECTOR_MIN_LENGTH,
-    // A station badge points at its overlays right beside the station.
-    within: badge.placementAnchor
-      ? { center: badge.placementAnchor, radius: STATION_BADGE_TARGET_RADIUS }
-      : undefined,
-    avoid: stationDotKeepouts,
-    endRadius: OVERLAP_BADGE_CONNECTOR_DOT_RADIUS,
-    keepOut: [
-      ...connectorArtwork.keepOut,
-      ...others.map((other) => badgeConnectorKeepOut(other.position, other.size, OVERLAP_BADGE_CONNECTOR_DOT_RADIUS)),
-    ],
-    crossings: connectorArtwork.crossings,
-  }), [connectorArtwork, connectorOutlinesByImpact, stationDotKeepouts]);
+  // Placed by the shared layout (map-overlays/overlap-badge-layout.ts), as on GO/UP.
+  const overlapBadgeLayouts = useMemo(() => layoutMapOverlapBadges({
+    badges: [...overlapBadgeSegments, ...stationOverlapBadges].map((badge) => ({
+      id: badge.layoutId,
+      impacts: badge.impacts,
+      size: badge.size,
+      targets: badge.placementTargets,
+      stationPoint: badge.placementAnchor,
+    })),
+    artwork: badgeArtwork,
+    corridors: badgeCorridors,
+    stationAlerts: stationAlertPlacement,
+    stationDots: stationDotKeepouts,
+    mapBounds: MAP_VIEWBOX_BOUNDS,
+    unit: TTC_OVERLAY_PLANE.unit,
+    badgeScale: 1,
+  }), [badgeArtwork, badgeCorridors, overlapBadgeSegments, stationAlertPlacement, stationDotKeepouts, stationOverlapBadges]);
 
-  const overlapBadgePlacements = useMemo(() => {
-    const badges = [...overlapBadgeSegments, ...stationOverlapBadges];
-    const badgeById = new Map(badges.map((badge) => [badge.layoutId, badge]));
-    return new Map(placeOverlapBadges({
-      badges: badges.map((badge) => {
-        const ownImpactKeys = new Set(badge.impacts.map((impact) => impactCollisionKey(impact.kind, impact.cardId)));
-        return {
-          id: badge.layoutId,
-          size: badge.size,
-          targets: badge.placementTargets,
-          anchor: badge.placementAnchor,
-          foreignTargets: [...collisionBoxesByImpact.entries()]
-            .filter(([key]) => !ownImpactKeys.has(key))
-            .flatMap(([, boxes]) => boxes.map(boxCenter)),
-        };
-      }),
-      obstacleLayers: [mapPlacementLayers.artwork, unalertedLineObstacles, overlayPlacementObstacles],
-      mapBounds: MAP_VIEWBOX_BOUNDS,
-      siblingGap: OVERLAP_BADGE_SIBLING_CLEARANCE,
-      // Every badge gets a spot with a clear connector line when one exists.
-      connector: ({ id, position, placed }) => {
-        const badge = badgeById.get(id);
-        if (!badge) return { needed: false, line: null };
-        const { needed, connector } = overlapBadgeConnectorSearch(connectorOptionsFor(badge, position, placed));
-        return { needed, line: connector ? [connector.from, connector.to] : null };
-      },
-    }).map((placement) => [placement.id, placement]));
-  }, [
-    collisionBoxesByImpact,
-    connectorOptionsFor,
-    mapPlacementLayers,
-    overlayPlacementObstacles,
-    overlapBadgeSegments,
-    stationOverlapBadges,
-    unalertedLineObstacles,
-  ]);
-
-  const overlapBadges = useMemo<OverlapBadgeWithChooser[]>(() => {
-    const positionedBadges = [...overlapBadgeSegments, ...stationOverlapBadges].map((badge) => {
-      const placement = overlapBadgePlacements.get(badge.layoutId);
-      return placement
-        ? { ...badge, position: { ...placement.position, collisionAvoided: placement.collisionAvoided } }
-        : badge;
-    });
-    return positionedBadges.map((badge) => {
-      const options = connectorOptionsFor(
-        badge,
-        badge.position,
-        positionedBadges.filter((other) => other.layoutId !== badge.layoutId),
-      );
+  const overlapBadges = useMemo<OverlapBadgeWithChooser[]>(() => (
+    [...overlapBadgeSegments, ...stationOverlapBadges].map((badge) => {
+      const layout = overlapBadgeLayouts.get(badge.layoutId);
       return {
         ...badge,
-        affectedOutlines: options.outlines,
+        position: layout
+          ? { ...layout.position, collisionAvoided: layout.collisionAvoided }
+          : badge.position,
+        affectedOutlines: layout?.affectedOutlines ?? [],
         chooserSize: overlapChooserSize(badge.impacts.length, mapViewportSize.width),
-        connector: overlapBadgeConnector(options),
+        connector: layout?.connector ?? null,
       };
-    });
-  }, [
-    connectorOptionsFor,
-    mapViewportSize.width,
-    overlapBadgePlacements,
-    overlapBadgeSegments,
-    stationOverlapBadges,
-  ]);
+    })
+  ), [mapViewportSize.width, overlapBadgeLayouts, overlapBadgeSegments, stationOverlapBadges]);
   const expandedOverlapBadge = overlapBadges.find((badge) => badge.segmentId === expandedOverlapBadgeId) ?? null;
+  // Camera commits re-render this map only while a chooser is open.
+  const chooserCamera = useCommittedCamera(cameraStore, expandedOverlapBadge !== null);
   // Solve the chooser only at a committed camera. During a drag or a camera
   // flight the follower keeps the shown card on its badge. When the camera
   // settles, the card keeps its spot beside the badge while that spot is still
@@ -2061,9 +1866,10 @@ function InteractiveTtcMapComponent({
   );
   const solvedOverlapChooser = useMemo(() => {
     if (!expandedOverlapBadge) return null;
+    const camera = chooserCamera ?? readCamera();
     const layout = overlapChooserScreenLayout(
       expandedOverlapBadge,
-      transform,
+      camera,
       mapViewportSize,
       chooserKeepoutBoxes,
       shownOverlapChooserBadgeId === expandedOverlapBadge.segmentId ? preferredOverlapChooserBox : null,
@@ -2071,7 +1877,7 @@ function InteractiveTtcMapComponent({
     return {
       badgeId: expandedOverlapBadge.segmentId,
       layout,
-      followAnchor: { badge: layout.badgeCenter, camera: transform },
+      followAnchor: { badge: layout.badgeCenter, camera },
       badgeInView: chooserBadgeInView(layout.badgeCenter, mapViewportSize),
     };
   }, [
@@ -2079,8 +1885,9 @@ function InteractiveTtcMapComponent({
     expandedOverlapBadge,
     mapViewportSize,
     preferredOverlapChooserBox,
+    readCamera,
     shownOverlapChooserBadgeId,
-    transform,
+    chooserCamera,
   ]);
   let expandedOverlapChooser = shownOverlapChooser;
   const overlapChooserChanged = solvedOverlapChooser?.badgeId !== shownOverlapChooser?.badgeId
@@ -2132,7 +1939,7 @@ function InteractiveTtcMapComponent({
   // hover, this the station hover and label (keeping a label that is itself
   // pressed). Chooser and badge previews stay with their owners, as on GO/UP.
   const endMapPointerHover = useCallback((preserveStationLabel = false) => {
-    clearTtcStationHover(mapRootRef.current);
+    clearMapStationHover(mapRootRef.current);
     if (!preserveStationLabel) setHoveredStationLabelId(null);
   }, []);
 
@@ -2193,19 +2000,7 @@ function InteractiveTtcMapComponent({
             <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Out</span>
           </button>
 
-          <div className="map-control-slider flex items-center justify-center mx-0.5 sm:mx-1">
-            <input
-              type="range"
-              min="0.2"
-              max={PAN_ZOOM_MAX_RELATIVE_SCALE}
-              step="0.05"
-              value={relativeScale}
-              onChange={(e) => zoomToScale(parseFloat(e.target.value))}
-              className="w-16 md:w-20 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer h-1.5 rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none"
-              title="Zoom level"
-              aria-label="Zoom level slider"
-            />
-          </div>
+          <MapZoomSlider cameraStore={cameraStore} fitScale={fitScale} onZoomToScale={zoomToScale} />
 
           <button
             onClick={zoomIn}
@@ -2605,17 +2400,17 @@ function InteractiveTtcMapComponent({
                       key={station.id}
                       onPointerEnter={(event) => {
                         if (event.pointerType !== "mouse") return;
-                        setTtcStationHovered(mapRootRef.current, station.id, true);
+                        setMapStationHovered(mapRootRef.current, station.id, true);
                       }}
                       onPointerLeave={(event) => {
                         if (event.pointerType !== "mouse") return;
-                        setTtcStationHovered(mapRootRef.current, station.id, false);
+                        setMapStationHovered(mapRootRef.current, station.id, false);
                       }}
                       onFocus={() => {
-                        setTtcStationHovered(mapRootRef.current, station.id, true);
+                        setMapStationHovered(mapRootRef.current, station.id, true);
                       }}
                       onBlur={() => {
-                        setTtcStationHovered(mapRootRef.current, station.id, false);
+                        setMapStationHovered(mapRootRef.current, station.id, false);
                         setHoveredStationLabelId((current) => current === station.id ? null : current);
                       }}
                     >
@@ -2673,7 +2468,7 @@ function InteractiveTtcMapComponent({
                               if (shouldSuppressMapClick()) return;
                               suppressNextMapClick();
                               if (hasMultipleVisualAnchors) {
-                                setTtcStationHovered(mapRootRef.current, station.id, false);
+                                setMapStationHovered(mapRootRef.current, station.id, false);
                               }
                               onSelectStationId(station.id);
                             }}
@@ -2684,7 +2479,7 @@ function InteractiveTtcMapComponent({
                               event.stopPropagation();
                               if (event.detail !== 0 || shouldSuppressMapClick()) return;
                               if (hasMultipleVisualAnchors) {
-                                setTtcStationHovered(mapRootRef.current, station.id, false);
+                                setMapStationHovered(mapRootRef.current, station.id, false);
                               }
                               onSelectStationId(station.id);
                             }}
@@ -2693,7 +2488,7 @@ function InteractiveTtcMapComponent({
                               if (event.key === "Enter" || event.key === " ") {
                                 event.preventDefault();
                                 if (hasMultipleVisualAnchors) {
-                                  setTtcStationHovered(mapRootRef.current, station.id, false);
+                                  setMapStationHovered(mapRootRef.current, station.id, false);
                                 }
                                 onSelectStationId(station.id);
                               }
@@ -2740,7 +2535,7 @@ function InteractiveTtcMapComponent({
                       focusable="false"
                       onPointerEnter={(event) => {
                         if (event.pointerType !== "mouse") return;
-                        setTtcStationHovered(mapRootRef.current, station.id, false);
+                        setMapStationHovered(mapRootRef.current, station.id, false);
                         setHoveredStationLabelId(station.id);
                       }}
                       onPointerOver={(event) => {
@@ -2782,7 +2577,7 @@ function InteractiveTtcMapComponent({
                 })}
               </g>
               <g aria-label="Station impact direction glyphs">
-                <MapStationDirectionGlyphs glyphs={stationDirectionGlyphItems} plane={TTC_OVERLAY_PLANE} />
+                <MapStationDirectionGlyphs glyphs={stationDirectionGlyphItems} />
               </g>
               <g aria-label="Station impact foreground highlights" pointerEvents="none">
                 {stations.map((station) => {

@@ -22,10 +22,6 @@ const regionalAssetSource = readFileSync(
   new URL("../src/app/regional-map-asset.ts", import.meta.url),
   "utf8",
 );
-const regionalOverlaysSource = readFileSync(
-  new URL("../src/app/regional-map-overlays.ts", import.meta.url),
-  "utf8",
-);
 const ttcStationPanel = readFileSync(
   new URL("../src/components/StationDetailPanel.tsx", import.meta.url),
   "utf8",
@@ -133,7 +129,13 @@ describe("station connection metadata and map labels", () => {
 
   it("marks non-text connection artwork as collision keepouts", () => {
     assert.match(regionalAssetSource, /element\.classList\.add\("map-connection-label"\)/);
-    assert.match(regionalOverlaysSource, /querySelectorAll<SVGGraphicsElement>\("\.map-connection-label"\)/);
+    // Every VIA and airport connection mark is a prepared badge obstacle.
+    const geometry = JSON.parse(readFileSync(new URL("../src/app/map-geometry/regional.json", import.meta.url), "utf8"));
+    const connectionMarks = regionalMap.match(/inkscape:label="(?:via-rail-[^"]+|[^"]*airport-icon)"/g) ?? [];
+    assert.equal(
+      geometry.artwork.boxes.filter((box) => box.kind === "connection-label").length,
+      connectionMarks.length,
+    );
   });
 
   it("integrates connection badges into both station panels and both themes", () => {

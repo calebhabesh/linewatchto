@@ -104,9 +104,7 @@
   animation-fill-mode: both, none;
 }
 
-/* Chromium does not consistently resolve animation-name custom properties on
-   a cross-SVG <use> instance. Spell out the TTC station lifecycle on the
-   regional top-plane copy so its visible flash cannot fall back to `none`. */
+/* The GO/UP selected-station marker spells out TTC's station lifecycle. */
 .regional-station-top-selection.map-selection-attention {
   animation-name: map-selection-station-intro, map-selection-station-breathe;
   animation-duration: var(--selection-intro-duration), var(--selection-breathe-duration);
@@ -230,16 +228,6 @@
 .linewatch-shell .station-selected-indicator.foreground-flash-active {
   animation: none !important;
   opacity: 0 !important;
-}
-
-/* A regional top-plane <use> animates this referenced artwork as one unit.
-   The source retains selected-marker styling, but must not run the base
-   station pulse inside the parent's flash-to-breathe lifecycle. */
-.regional-station-selection-source-artwork {
-  animation: none !important;
-  opacity: 1 !important;
-  fill: var(--station-selection-accent) !important;
-  stroke: none !important;
 }
 
 .motion-paused .station-selection-flash,

@@ -20,9 +20,6 @@ export type { MapLineAlert, MapOverlayVisualState } from "./line-alert-model";
 export const RSZ_IMPACT_COLOR = "#F59E0B";
 const SUSPENSION_COLOR = "#ef4444";
 const DELAY_RAIL_COLOR = "#0ea5e9";
-/** Glyphs are clipped to the rail, drawn a little wider than it. */
-const GLYPH_MASK_WIDTH = 102;
-
 function lineAlertVisualId(plane: MapOverlayPlane, alert: MapLineAlert, suffix = "") {
   return mapOverlayId(plane, "overlay-visual", alert.key + suffix);
 }
@@ -42,25 +39,13 @@ function layerStateClass(exiting?: boolean) {
   return exiting ? "map-layer-exiting" : "map-layer-current";
 }
 
-function GlyphMask({ id, pathD, plane, className }: {
-  id: string;
-  pathD: string;
-  plane: MapOverlayPlane;
-  className: string;
-}) {
-  return (
-    <defs>
-      <mask id={id}>
-        <path
-          className={`${className} pointer-events-none`}
-          d={pathD}
-          style={{ pointerEvents: "none", stroke: "white", fill: "none" }}
-          strokeWidth={GLYPH_MASK_WIDTH * plane.unit}
-        />
-      </mask>
-    </defs>
-  );
-}
+/*
+ * Glyph lanes need no clip: every glyph is centred on the alert's path and
+ * fits within the rail's half-width, so the round-capped tube already contains
+ * it. A clip mask as long as the alert cost GPU memory in proportion to the
+ * corridor (most of GO/UP's drawing-layer area at rest) and re-rastered at
+ * every zoom step.
+ */
 
 /** One alert's tube and glyphs (the resting artwork, never animated). */
 export function MapLineAlertTube({
@@ -113,13 +98,12 @@ export function MapLineAlertTube({
 
       {visualState === "delay-static" ? (
         <>
-          <GlyphMask id={`${visualId}-mask`} pathD={pathD} plane={plane} className="delay-hourglass-mask-path" />
           <path
             className="asset-alert-path delay-static-base pointer-events-none"
             d={pathD}
             style={{ pointerEvents: "none", stroke: DELAY_RAIL_COLOR }}
           />
-          <g className="map-glyph-lane-clip" mask={`url(#${visualId}-mask)`} style={{ "--chevron-step": `${step}px` } as CSSProperties}>
+          <g className="map-glyph-lane">
             {travelDirection === "bidirectional" ? (
               // A directionless delay shows one row of hourglasses, no arrows.
               <HourglassGlyphLane
@@ -181,8 +165,7 @@ export function MapLineAlertTube({
               d={pathD}
               style={{ pointerEvents: "none", stroke: SUSPENSION_COLOR }}
             />
-            <GlyphMask id={`${visualId}-suspension-static-mask`} pathD={pathD} plane={plane} className="suspension-mask-path" />
-            <g className="map-glyph-lane-clip" mask={`url(#${visualId}-suspension-static-mask)`}>
+            <g className="map-glyph-lane">
               <SuspensionNoEntryLane pathD={pathD} step={88} unit={unit} />
             </g>
           </>
@@ -193,8 +176,7 @@ export function MapLineAlertTube({
               d={pathD}
               style={{ pointerEvents: "none", stroke: SUSPENSION_COLOR }}
             />
-            <GlyphMask id={`${visualId}-suspension-mask`} pathD={pathD} plane={plane} className="suspension-mask-path" />
-            <g className="map-glyph-lane-clip" mask={`url(#${visualId}-suspension-mask)`}>
+            <g className="map-glyph-lane">
               <SuspensionGlyphLane
                 pathD={pathD}
                 step={48}
@@ -399,7 +381,7 @@ export function MapHoverOutline({
  */
 export function MapLineAlertHoverOutlines({ alerts, plane }: { alerts: MapLineAlert[]; plane: MapOverlayPlane }) {
   return (
-    <g aria-hidden="true" className="map-impact-hover-foreground-layer" pointerEvents="none" transform={plane.topPlaneTransform}>
+    <g aria-hidden="true" className="map-impact-hover-foreground-layer" pointerEvents="none">
       {alerts.map((alert) => alert.exiting ? null : (
         <g key={alert.key} className="map-impact-hover-foreground" {...hoverIdentityAttributes(alert)}>
           <MapHoverOutline

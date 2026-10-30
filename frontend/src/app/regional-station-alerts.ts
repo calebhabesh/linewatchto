@@ -1,8 +1,11 @@
 import type { Station, StationNodeImpact } from "./linewatch-data.ts";
+import type { PreparedMapGeometry } from "./map-geometry-data.ts";
 import {
-  pointInRegionalStationsLayer,
+  matrixTransform,
+  regionalStation,
+  regionalStationDots,
   regionalStationImpactAnchors,
-  regionalStationVisualAnchors,
+  regionalStationPillShape,
 } from "./regional-map-geometry.ts";
 import {
   STATION_IMPACT_RING_SCALE,
@@ -38,67 +41,56 @@ const BEACON_GAP = 4;
 /** A dot's visible radius with its outline, over its authored radius. */
 const STATION_DOT_OUTLINE_RATIO = 1.15;
 
-/** Every station dot in the stations layer's space, where overlays are drawn. */
-function stationBeaconNeighbours(stationsLayer: SVGElement): StationBeaconNeighbour[] {
-  return [...stationsLayer.querySelectorAll<SVGElement>(':scope > [id^="station-"]')].flatMap((station) => (
-    regionalStationVisualAnchors(station).map((anchor) => ({
-      id: anchor.id,
-      center: anchor.point,
-      radius: anchor.radius * STATION_DOT_OUTLINE_RATIO,
-    }))
-  ));
+/** Every station dot, with its outline. */
+function stationBeaconNeighbours(geometry: PreparedMapGeometry): StationBeaconNeighbour[] {
+  return regionalStationDots(geometry).map((anchor) => ({
+    id: anchor.id,
+    center: anchor.point,
+    radius: anchor.radius * STATION_DOT_OUTLINE_RATIO,
+  }));
 }
 
-/** A pill-shaped marker (Union), with its authored outline, in overlay coordinates. */
-export function regionalStationPill(shape: SVGElement | null): MapStationPill | undefined {
-  if (!shape?.matches("rect")) return undefined;
-  const number = (name: string) => Number.parseFloat(shape.getAttribute(name) ?? "0") || 0;
-  const origin = pointInRegionalStationsLayer(shape, { x: 0, y: 0 });
-  const xBasis = pointInRegionalStationsLayer(shape, { x: 1, y: 0 });
-  const yBasis = pointInRegionalStationsLayer(shape, { x: 0, y: 1 });
-  const a = xBasis.x - origin.x;
-  const b = xBasis.y - origin.y;
-  const style = window.getComputedStyle(shape);
-  const rx = shape.hasAttribute("rx") ? number("rx") : number("ry");
-  const ry = shape.hasAttribute("ry") ? number("ry") : rx;
+/** A pill-shaped dot (Union), with its authored outline, in overlay coordinates. */
+export function regionalStationPill(geometry: PreparedMapGeometry, anchorId: string): MapStationPill | undefined {
+  const pill = regionalStationPillShape(geometry, anchorId);
+  if (!pill) return undefined;
+  const { shape, matrix } = pill;
   return {
-    x: number("x"),
-    y: number("y"),
-    width: number("width"),
-    height: number("height"),
-    rx,
-    ry,
-    transform: `matrix(${[a, b, yBasis.x - origin.x, yBasis.y - origin.y, origin.x, origin.y].join(" ")})`,
-    scale: Math.hypot(a, b),
-    stroke: style.stroke,
-    strokeWidth: style.strokeWidth,
+    x: shape.x,
+    y: shape.y,
+    width: shape.width,
+    height: shape.height,
+    rx: shape.rx,
+    ry: shape.ry,
+    transform: matrixTransform(matrix),
+    scale: Math.hypot(matrix[0], matrix[1]),
+    stroke: shape.stroke,
+    strokeWidth: `${shape.strokeWidth}px`,
   };
 }
 
 /**
- * Every GO/UP station alert, in the shared overlay model, drawn in the
- * stations layer's coordinates. An alert sits on the platform of its line
- * where the station has one per line (Bloor's UP and KI dots).
+ * Every GO/UP station alert, in the shared overlay model. An alert sits on
+ * the platform of its line where the station has one per line (Bloor's UP
+ * and KI dots).
  */
 export function regionalStationAlerts(
-  svg: SVGSVGElement,
+  geometry: PreparedMapGeometry,
   data: StationImpactDirectionData & {
     stationNodeImpacts: StationNodeImpact[];
     stations: Pick<Station, "id" | "name">[];
   },
   unit: number,
 ): { alerts: MapStationAlert[]; glyphs: MapStationDirectionGlyph[] } {
-  const stationsLayer = svg.querySelector<SVGElement>("#regional-stations-layer");
-  if (!stationsLayer) return { alerts: [], glyphs: [] };
   const stationNames = new Map(data.stations.map((station) => [station.id, station.name]));
 
   const placed = data.stationNodeImpacts.flatMap((impact) => {
-    const stationVisual = svg.querySelector<SVGElement>(`#station-${CSS.escape(impact.stationId)}`);
-    if (!stationVisual) return [];
+    const station = regionalStation(geometry, impact.stationId);
+    if (!station) return [];
     const lineId = stationImpactDirectionSource(impact, data)?.lineId;
-    return [{ impact, anchors: regionalStationImpactAnchors(stationVisual, lineId) }];
+    return [{ impact, anchors: regionalStationImpactAnchors(station, lineId) }];
   });
-  const neighbours = stationBeaconNeighbours(stationsLayer);
+  const neighbours = stationBeaconNeighbours(geometry);
   const alertedAnchorIds = new Set(placed.flatMap(({ anchors }) => anchors.map((anchor) => anchor.id)));
 
   const alerts = placed.map(({ impact, anchors }): MapStationAlert => {
@@ -125,7 +117,7 @@ export function regionalStationAlerts(
             alertedAnchorIds,
             BEACON_GAP * unit,
           ).radius,
-          pill: regionalStationPill(svg.querySelector<SVGElement>(`#${CSS.escape(anchor.id)}`)),
+          pill: regionalStationPill(geometry, anchor.id),
         };
       }),
     };

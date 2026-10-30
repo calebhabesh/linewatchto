@@ -33,21 +33,15 @@ describe("regional estimated train marker rendering", () => {
     assert.match(regionalMapSource, /estimated-train-marker-arrow/);
   });
 
+  // Behaviour on the prepared corridors: regional-map-geometry.test.mjs.
   it("projects regional markers onto the authored segment path in root coordinates", () => {
-    assert.match(regionalGeometrySource, /corridorSegmentPathInRootCoordinates\(documentNode, segment\)/);
     assert.match(regionalGeometrySource, /\["regional-route-up-path", "regional-route-up-airport-path"\]/);
-    assert.match(regionalGeometrySource, /getPointAtLength/);
-    assert.match(regionalGeometrySource, /getTotalLength/);
     assert.match(regionalGeometrySource, /estimatedTrainMarkerLanePoint/);
     assert.match(regionalGeometrySource, /REGIONAL_TRAIN_MARKER_LANE_OFFSET/);
     assert.match(regionalMapSource, /REGIONAL_TRAIN_MARKER_LAYER_ID/);
     assert.doesNotMatch(regionalMapSource, /const x = from\.x \+ \(to\.x - from\.x\) \* progress/);
     assert.doesNotMatch(regionalGeometrySource, /const x = from\.x \+ \(to\.x - from\.x\) \* progress/);
     assert.doesNotMatch(regionalMapSource, /documentNode\.documentElement\.append\(markerLayer\)/);
-    assert.doesNotMatch(
-      regionalGeometrySource,
-      /const pathD = corridorSegmentPathInRootCoordinates\(documentNode, segment\)\s*\?\?\s*fallbackSegmentPathInRootCoordinates/,
-    );
   });
 
   it("uses path-relative directional lanes on both map modes", () => {

@@ -15,12 +15,13 @@ test("GO/UP default map retains overlay interactions after a cold asset load and
   for (let load = 0; load < 2; load++) {
     if (load === 0) await page.goto("/");
     else await page.reload();
-    const stationId = isMobile ? "pearson-airport" : "bloomington";
+    // Danforth stays clear of the map toolbar and legend at the default desktop framing.
+    const stationId = isMobile ? "pearson-airport" : "danforth";
     const station = page.locator(`.regional-station-hit-target[data-regional-station-id="${stationId}"]`);
     await expect(station).toBeAttached();
     if (isMobile) {
       await station.tap({ force: true });
-      await expect(page.locator('.regional-station-selected-indicator[data-regional-station-selection-id="pearson-airport"]')).toHaveAttribute("data-regional-station-selected", "true");
+      await expect(page.locator('.regional-station-top-selection[data-regional-station-selection-id="pearson-airport"]')).toHaveAttribute("data-regional-station-selected", "true");
     } else {
       await station.hover({ force: true });
       await expect(page.locator(".raster-station-label-text-hover")).toHaveAttribute("data-hover-active", "true");

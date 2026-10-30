@@ -30,8 +30,8 @@ export type MapOverlayCutout = {
 };
 
 /**
- * Where one map draws its overlays. Both maps draw the same overlay design;
- * this says how large it is and how the map's planes relate.
+ * Where one map draws its overlays: in its root SVG's coordinates, at its
+ * own scale. Both maps draw the same overlay design.
  */
 export type MapOverlayPlane = {
   /** Prefix for SVG ids, unique per map. */
@@ -40,11 +40,6 @@ export type MapOverlayPlane = {
   unit: number;
   /** The drawing's extent in overlay coordinates, for map-wide masks. */
   maskBounds: MapBounds;
-  /**
-   * Overlay coordinates to the top SVG plane's coordinates, when they differ.
-   * GO/UP draws overlays inside its translated stations layer.
-   */
-  topPlaneTransform?: string;
   /** Station shapes the hover outline stops at instead of crossing. */
   outlineCutouts: MapOverlayCutout[];
 };

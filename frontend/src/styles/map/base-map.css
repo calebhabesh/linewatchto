@@ -182,30 +182,18 @@
   visibility: hidden;
 }
 
+/* Once the raster planes are ready the authored SVGs paint nothing: they stay
+   in the DOM as geometry sources only (visibility, never opacity: 0, which
+   gives hidden content its own GPU layers). GO/UP's authored SVG never takes
+   the pointer; its targets are React elements in the interaction plane, as
+   TTC's are. Hover glyphs use the separate mask-source clones in its defs. */
 .ttc-map-stage[data-raster-map-ready="true"] .ttc-authored-svg-source,
-.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg #regional-lines-layer,
-.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg .regional-station-visual,
-.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg #regional-route-labels-layer,
-.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg .map-connection-label {
+.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg {
   visibility: hidden;
 }
 
-/* Regional station names follow the TTC map's single-paint-source rule: once
-   the decoded label texture is available, no authored text in this layer may
-   paint beneath it. Hide it the TTC way, with visibility on each child (the
-   wrappers, so referenced text stays usable by <use>, plus any unmatched
-   text). Never put opacity: 0 on the layer itself: Chromium then gives the
-   hidden labels about 55 GPU layers, and repainting them after a pan made
-   GO/UP tear. Hit targets keep their own opacity: 0 so clicks and keyboard
-   focus still work. Hover glyphs use the separate mask-source clones in the
-   root defs. */
-.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg #regional-station-labels-layer > :not(.regional-station-label-hit-target) {
-  visibility: hidden;
-}
-
-.regional-live-svg .regional-station-hover-indicator.active,
-.regional-live-svg .regional-station-selected-indicator.active {
-  visibility: visible;
+.regional-live-svg {
+  pointer-events: none;
 }
 
 .raster-station-label-text-hover {
@@ -240,7 +228,7 @@
    Motion only pauses the small refresh-owned SVG effect layers; promoting and
    demoting those layers during every gesture would still create needless
    compositor churn. */
-.regional-map[data-regional-map-camera-moving="true"] .regional-map-stage :is(
+.regional-map[data-map-camera-moving="true"] .regional-map-stage :is(
   .station-impact-dot-red-glow,
   .commute-path-preview-glow,
   .commute-path-preview-path,
@@ -269,22 +257,13 @@
   pointer-events: none;
 }
 
-.regional-map-stage #regional-station-labels-layer [data-regional-station-label-for] {
-  pointer-events: none;
-}
-
-.regional-map-stage #regional-station-labels-layer .regional-station-label-hit-target {
+/* Station names are targets over their whole box, so the name and its
+   whitespace behave as one confident target. */
+.regional-map-stage .regional-station-label-hit-target {
   cursor: pointer;
-  opacity: 0;
+  fill: transparent;
   outline: none;
-  /* Text with `pointer-events: all` is hit-tested against individual glyphs,
-     which leaves dead seams inside and between letters. Use the full label box
-     so the complete name and its whitespace behave as one confident target. */
-  pointer-events: bounding-box !important;
-}
-
-.regional-map-stage #regional-station-labels-layer .regional-station-label-hit-target tspan {
-  pointer-events: bounding-box !important;
+  pointer-events: all;
 }
 
 .dark .regional-map-stage #regional-station-labels-layer :is(text, tspan)[style*="stroke:#000000"],
@@ -392,8 +371,6 @@
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.suspension-candy,
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.delay-static-base,
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.planned-preview,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .delay-hourglass-mask-path,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .suspension-mask-path,
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .delay-static-path,
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-ring:not(.map-selection-attention),
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-dot-red-glow,
@@ -445,8 +422,7 @@
 :is(
   [data-map-gesture-active="true"],
   [data-map-zoom-active="true"],
-  [data-map-camera-moving="true"],
-  [data-regional-map-camera-moving="true"]
+  [data-map-camera-moving="true"]
 ) :is(
   .map-impact-hover-foreground,
   .station-impact-hover-priority,
@@ -466,8 +442,7 @@
    stage flat (see above). */
 .linewatch-shell:not(.mobile-performance-mode) :is(
   [data-map-zoom-active="true"],
-  [data-map-camera-moving="true"],
-  [data-regional-map-camera-moving="true"]
+  [data-map-camera-moving="true"]
 ) :is(.ttc-map-stage, .regional-map-stage) {
   will-change: transform;
 }
@@ -481,8 +456,6 @@
 [data-map-camera-moving="true"] .asset-alert-path.suspension-candy,
 [data-map-camera-moving="true"] .asset-alert-path.delay-static-base,
 [data-map-camera-moving="true"] .asset-alert-path.planned-preview,
-[data-map-camera-moving="true"] .delay-hourglass-mask-path,
-[data-map-camera-moving="true"] .suspension-mask-path,
 [data-map-camera-moving="true"] .delay-static-path,
 [data-map-camera-moving="true"] .station-impact-ring:not(.map-selection-attention),
 [data-map-camera-moving="true"] .station-impact-dot-red-glow,
@@ -498,8 +471,7 @@
 :is(
   [data-map-gesture-active="true"],
   [data-map-zoom-active="true"],
-  [data-map-camera-moving="true"],
-  [data-regional-map-camera-moving="true"]
+  [data-map-camera-moving="true"]
 ) .raster-station-label-text-hover {
   filter: none;
 }

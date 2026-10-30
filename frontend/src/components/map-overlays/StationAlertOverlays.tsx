@@ -85,7 +85,7 @@ export function MapStationAlertRings({
   selection: ImpactSelection;
 }) {
   return (
-    <g transform={plane.topPlaneTransform}>
+    <g>
       {alerts.map((alert) => {
         const { exiting } = alert;
         const selected = isSelectedStationAlert(alert, selection);
@@ -194,9 +194,9 @@ export function MapStationAlertRings({
 }
 
 /** One arrow per alerted dot for one-way alerts; the same glyph on both maps. */
-export function MapStationDirectionGlyphs({ glyphs, plane }: { glyphs: MapStationDirectionGlyph[]; plane: MapOverlayPlane }) {
+export function MapStationDirectionGlyphs({ glyphs }: { glyphs: MapStationDirectionGlyph[] }) {
   return (
-    <g transform={plane.topPlaneTransform}>
+    <g>
       {glyphs.map((glyph) => (
         <g
           key={glyph.key}
@@ -239,7 +239,7 @@ export function MapStationAlertForeground({
   introComplete: boolean;
 }) {
   return (
-    <g transform={plane.topPlaneTransform}>
+    <g>
       {alerts.map((alert) => {
         if (alert.exiting) return null;
         const flashing = !commutePreviewActive && isSelectedStationAlert(alert, selection);

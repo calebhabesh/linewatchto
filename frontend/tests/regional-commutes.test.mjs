@@ -56,8 +56,8 @@ describe("regional My Commutes UI boundary", () => {
     // GO/UP draws the shared commute preview (map-overlays/CommutePreviewOverlays.tsx).
     const regionalCommuteSource = readFileSync(new URL("../src/app/regional-commute-preview.ts", import.meta.url), "utf8");
     assert.match(regionalCommuteSource, /preview\.segmentIds/);
-    assert.match(regionalCommuteSource, /pill: regionalStationPill\(anchorElement\)/);
-    assert.match(regionalMapSource, /<MapCommutePreviewRoute preview=\{commutePreview\} \/>,\s*lineAlertPortals\.commute/);
+    assert.match(regionalCommuteSource, /pill: regionalStationPill\(geometry, anchorId\)/);
+    assert.match(regionalMapSource, /<g id=\{REGIONAL_DYNAMIC_COMMUTE_LAYER_ID\}>\s*<MapCommutePreviewRoute preview=\{commutePreview\} \/>/);
     assert.match(regionalMapSource, /<MapCommuteEndpointFlashes preview=\{commutePreview\} plane=\{overlayPlane\} \/>/);
     assert.doesNotMatch(globalCss, /regional-commute/);
     assert.match(globalCss, /\.commute-path-preview-glow,\s*\.commute-path-preview-path\s*\{[^}]*stroke-linecap:\s*round;/s);

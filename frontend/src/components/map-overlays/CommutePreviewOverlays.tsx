@@ -57,7 +57,7 @@ export function MapCommuteEndpointFlashes({
 }) {
   if (!preview) return null;
   return (
-    <g aria-hidden="true" pointerEvents="none" transform={plane.topPlaneTransform}>
+    <g aria-hidden="true" pointerEvents="none">
       {preview.endpoints.map((endpoint) => (
         <CommuteEndpointFlash key={endpoint.key} endpoint={endpoint} unit={plane.unit} />
       ))}

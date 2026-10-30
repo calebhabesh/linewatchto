@@ -264,34 +264,6 @@ describe("map overlay geometry", () => {
     assert.ok(Math.abs(frame.tangent.x * frame.normal.x + frame.tangent.y * frame.normal.y) < 0.001);
   });
 
-  it("normalizes transformed SVG bounds back into root viewBox coordinates", () => {
-    assert.equal(typeof geometry.transformBoundsToRootCoordinates, "function");
-
-    const bounds = geometry.transformBoundsToRootCoordinates(
-      { x: 100, y: 100, width: 200, height: 80 },
-      { a: 0.54544921875, b: 0, c: 0, d: 0.54544921875, e: 545.4711914062501, f: 272.724609375 },
-      { a: 0.54544921875, b: 0, c: 0, d: 0.54544921875, e: 0.021972656250087288, f: 0 },
-    );
-
-    assert.deepEqual(bounds, { x: 1100, y: 600, width: 200, height: 80 });
-  });
-
-  it("preserves rotated SVG bounds as a four-corner interaction polygon", () => {
-    assert.equal(typeof geometry.transformBoundsToRootPolygon, "function");
-
-    const polygon = geometry.transformBoundsToRootPolygon(
-      { x: 0, y: 0, width: 100, height: 20 },
-      { a: 0, b: 1, c: -1, d: 0, e: 200, f: 300 },
-    );
-
-    assert.deepEqual(polygon, [
-      { x: 200, y: 300 },
-      { x: 200, y: 400 },
-      { x: 180, y: 400 },
-      { x: 180, y: 300 },
-    ]);
-  });
-
   it("composes adjacent links into one continuous corridor path", () => {
     const result = composeNetworkSegmentPath([
       {
@@ -338,25 +310,4 @@ describe("map overlay geometry", () => {
     assert.equal((result.pathD.match(/\bM\b/g) ?? []).length, 1);
   });
 
-  it("exposes SVG station center extraction for visual hit targets", async () => {
-    const { readFileSync } = await import("node:fs");
-    const mapGeometrySource = readFileSync(new URL("../src/app/map-geometry.ts", import.meta.url), "utf8");
-    assert.match(mapGeometrySource, /readSvgStationCenters/);
-    assert.match(mapGeometrySource, /station-\$\{stationId\}/);
-    assert.match(mapGeometrySource, /getBBox\(\)/);
-    assert.match(mapGeometrySource, /getScreenCTM\(\)/);
-  });
-
-  it("uses paired screen matrices for browser-independent SVG root coordinates", async () => {
-    const { readFileSync } = await import("node:fs");
-    const mapGeometrySource = readFileSync(new URL("../src/app/map-geometry.ts", import.meta.url), "utf8");
-
-    assert.match(mapGeometrySource, /function svgElementMatrixToRootCoordinates/);
-    assert.match(mapGeometrySource, /element\.getScreenCTM\(\)/);
-    assert.match(mapGeometrySource, /root\.getScreenCTM\(\)/);
-    assert.match(mapGeometrySource, /multiplyMatrix\(invertMatrix\(rootScreenMatrix\), elementScreenMatrix\)/);
-    assert.match(mapGeometrySource, /resolved = transformPoint\(point, relativeMatrix\)/);
-    assert.doesNotMatch(mapGeometrySource, /matrixTransform\(relativeMatrix\)/);
-    assert.doesNotMatch(mapGeometrySource, /const rootMatrix = root\.getCTM\(\)/);
-  });
 });

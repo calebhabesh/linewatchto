@@ -22,7 +22,6 @@
   --planned: #2563eb;
   --planned-preview-rail: #f1f5f9;
   --planned-preview-ink: #087fff;
-  --planned-preview-glow: rgba(0, 200, 255, 0.38);
   --shadow: 0 8px 30px rgba(15, 23, 42, 0.12);
   --map-canvas-bg: #f8fafc;
   --map-control-bg: #ffffff;
@@ -104,7 +103,6 @@
   --planned: #4aa3ff;
   --planned-preview-rail: #f1f5f9;
   --planned-preview-ink: #087fff;
-  --planned-preview-glow: rgba(0, 200, 255, 0.42);
   --shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
   --map-canvas-bg: #0e1622;
   --map-control-bg: #34363a;
@@ -220,7 +218,6 @@
   --planned: #4ab5ff;
   --planned-preview-rail: #ffffff;
   --planned-preview-ink: #087fff;
-  --planned-preview-glow: rgba(0, 220, 255, 0.55);
   /* Mobile theme-specific chrome styles (High Contrast) */
   --mobile-chrome-background: #000000;
   --mobile-chrome-border: #ffffff;

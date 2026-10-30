@@ -81,7 +81,6 @@ export function renderMapPreviewOutline(
     return group;
   };
   const outline = element("g", { class: "map-impact-preview-outline", "data-map-preview-impacts": keys.join(" ") });
-  if (plane.topPlaneTransform) outline.setAttribute("transform", plane.topPlaneTransform);
   outline.append(
     defs,
     strokes("map-impact-hover-outline-core", maskId, "rgba(15, 23, 42, 0.98)"),

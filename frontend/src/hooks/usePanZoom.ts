@@ -2,7 +2,7 @@ import { useMapViewportPersistence } from "./useMapViewportPersistence";
 import { useMapGestureInterruption } from "./useMapGestureInterruption";
 import { readMapStationCenterX, readMobileMapFrameInsets } from "./mobileMapFrame";
 import { clearMapViewport } from "../app/map-viewport-preference";
-import { useState, useCallback, useRef, useEffect, useLayoutEffect, type PointerEvent, type WheelEvent } from "react";
+import { useState, useCallback, useRef, useEffect, useLayoutEffect, type PointerEvent, type RefObject, type WheelEvent } from "react";
 import {
   clampPanZoomScale,
   cameraFromOrientedTransformMatrix,
@@ -31,6 +31,9 @@ import {
   type ViewportInsets,
 } from "./panZoomMath";
 import { isMapWheelScrollRegionTarget } from "../components/map-wheel-events";
+import { WHEEL_EASE_CURVE, type MapCameraMotionHost } from "../components/map-camera/camera-motion";
+import { useMapCameraMotion } from "../components/map-camera/useMapCameraMotion";
+import { createMapCameraStore } from "../components/map-camera/camera-store";
 import { MOBILE_VIEWPORT_QUERY } from "./useMobilePerformanceMode";
 
 type UsePanZoomOptions = {
@@ -47,11 +50,22 @@ type UsePanZoomOptions = {
     minHorizontalInset?: number;
     mobileZoom?: number;
     mobileCenterStationId?: string;
+    /** Scales the fitted desktop frame. */
+    desktopScaleMultiplier?: number;
   };
   animateInitialEntrance?: boolean;
   isMapActive?: boolean;
   /** Mirrors every stage transform and transition, e.g. to keep an open chooser on its badge. */
   cameraFollower?: MapCameraFollower;
+  /** The map's viewport (pointer and size source) and its camera stage. */
+  containerRef: RefObject<HTMLDivElement | null>;
+  mapRef: RefObject<HTMLDivElement | null>;
+  /** Where the gesture, zoom and camera-moving flags are written; the viewport by default. */
+  flagRootRef?: RefObject<HTMLElement | null>;
+  /** A selection or preview owns the camera: resizes keep it instead of refitting. */
+  automaticRefitBlocked?: boolean;
+  /** Each transform write also makes the stage visible; false when the map gates visibility itself. */
+  revealStageOnWrite?: boolean;
 };
 
 export type MapCameraFollower = {
@@ -66,6 +80,15 @@ type ZoomToPointOptions = {
 
 type ZoomToBoundsOptions = ZoomToPointOptions;
 
+/** Camera-state flags on the map root, read by the shared map CSS. */
+function writeMapFlag(
+  element: HTMLElement | null,
+  flag: "mapCameraMoving" | "mapZoomActive" | "mapGestureActive" | "mapPointerDragging",
+  active: boolean,
+) {
+  if (element) element.dataset[flag] = active ? "true" : "false";
+}
+
 const DEFAULT_CAMERA_MOTION_DURATION_MS = 800;
 const DEFAULT_CAMERA_MOTION_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
 
@@ -79,8 +102,16 @@ export function usePanZoom({
   animateInitialEntrance = true,
   isMapActive = true,
   cameraFollower,
-}: UsePanZoomOptions = {}) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  containerRef,
+  mapRef,
+  flagRootRef,
+  automaticRefitBlocked = false,
+  revealStageOnWrite = true,
+}: UsePanZoomOptions) {
+  const automaticRefitBlockedRef = useRef(automaticRefitBlocked);
+  useLayoutEffect(() => {
+    automaticRefitBlockedRef.current = automaticRefitBlocked;
+  }, [automaticRefitBlocked]);
   const isMapActiveRef = useRef(isMapActive);
   useEffect(() => {
     isMapActiveRef.current = isMapActive;
@@ -96,17 +127,18 @@ export function usePanZoom({
     if (shell.getAttribute("data-active-view") !== "map") return false;
     if (shell.querySelector(".mobile-app-topbar[data-searching='true']")) return false;
     return true;
-  }, []);
+  }, [containerRef, ]);
 
-  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  // The committed camera lives in a store, not React state, so a commit
+  // re-renders only its readers (map-camera/camera-store.ts).
+  const [cameraStore] = useState(() => createMapCameraStore({ x: 0, y: 0, scale: 1 }));
   const [fitScale, setFitScale] = useState(1);
   const [recenterFeedbackKey, setRecenterFeedbackKey] = useState(0);
   const animTimeoutRef = useRef<number | null>(null);
   const initialEntranceTimeoutRef = useRef<number | null>(null);
   const programmaticAnimationFrameRef = useRef<number | null>(null);
-  const wheelCommitTimeoutRef = useRef<number | null>(null);
+  const buttonZoomEndTimeoutRef = useRef<number | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
-  const mapRef = useRef<HTMLDivElement>(null);
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const dragRafRef = useRef<number | null>(null);
   const lastMoveEvent = useRef<{ clientX: number, clientY: number } | null>(null);
@@ -126,6 +158,9 @@ export function usePanZoom({
   const cameraInitializedRef = useRef(false);
   const cameraAdjustedByUserRef = useRef(false);
   const activeContainerRectRef = useRef<DOMRect | null>(null);
+  // Wheel zoom and drag momentum (components/map-camera), shared with GO/UP.
+  const cameraMotionHostRef = useRef<MapCameraMotionHost | null>(null);
+  const cameraMotion = useMapCameraMotion(cameraMotionHostRef);
 
   const shouldAnimateProgrammaticTransform = !reducedMotion && !disableProgrammaticMotion;
   useEffect(() => {
@@ -178,6 +213,7 @@ export function usePanZoom({
         bounds: defaultFrame.bounds,
         horizontalInsetRatio: defaultFrame.horizontalInsetRatio ?? 0.025,
         minHorizontalInset: defaultFrame.minHorizontalInset ?? 32,
+        scaleMultiplier: defaultFrame.desktopScaleMultiplier ?? 1,
       });
     }
 
@@ -190,7 +226,7 @@ export function usePanZoom({
       y: height / 2 - (mapHeight * 0.435) * scale,
       scale,
     };
-  }, [defaultFrame, viewportOrientation]);
+  }, [containerRef, defaultFrame, viewportOrientation]);
 
   const writeMapTransform = useCallback((next: PanZoomTransform) => {
     if (mapRef.current) {
@@ -199,44 +235,36 @@ export function usePanZoom({
         viewportOrientation,
         containerRef.current?.clientWidth ?? 0,
       );
-      mapRef.current.style.visibility = "visible";
+      if (revealStageOnWrite) mapRef.current.style.visibility = "visible";
     }
     cameraFollower?.writeCamera(next);
-  }, [cameraFollower, viewportOrientation]);
+  }, [containerRef, mapRef, cameraFollower, revealStageOnWrite, viewportOrientation]);
 
   const setMapTransition = useCallback((transition: string) => {
     if (mapRef.current) {
       mapRef.current.style.transition = transition;
     }
     cameraFollower?.setCameraTransition(transition);
-  }, [cameraFollower]);
+  }, [mapRef, cameraFollower]);
 
   const isProgrammaticCameraMotionRef = useRef(false);
   const setProgrammaticCameraMotion = useCallback((active: boolean) => {
     isProgrammaticCameraMotionRef.current = active;
-    if (containerRef.current) {
-      containerRef.current.dataset.mapCameraMoving = active ? "true" : "false";
-    }
-  }, []);
+    writeMapFlag(flagRootRef?.current ?? containerRef.current, "mapCameraMoving", active);
+  }, [containerRef, flagRootRef, ]);
 
   const setUserZoomMotion = useCallback((active: boolean) => {
-    if (containerRef.current) {
-      containerRef.current.dataset.mapZoomActive = active ? "true" : "false";
-    }
-  }, []);
+    writeMapFlag(flagRootRef?.current ?? containerRef.current, "mapZoomActive", active);
+  }, [containerRef, flagRootRef, ]);
 
   const setUserGestureMotion = useCallback((active: boolean) => {
     isGestureActiveRef.current = active;
-    if (containerRef.current) {
-      containerRef.current.dataset.mapGestureActive = active ? "true" : "false";
-    }
-  }, []);
+    writeMapFlag(flagRootRef?.current ?? containerRef.current, "mapGestureActive", active);
+  }, [containerRef, flagRootRef, ]);
 
   const setPointerDragging = useCallback((active: boolean) => {
-    if (containerRef.current) {
-      containerRef.current.dataset.mapPointerDragging = active ? "true" : "false";
-    }
-  }, []);
+    writeMapFlag(flagRootRef?.current ?? containerRef.current, "mapPointerDragging", active);
+  }, [containerRef, flagRootRef, ]);
 
   const isGestureActive = useCallback(() => isGestureActiveRef.current, []);
   // A drag, pinch, or camera flight is under way. Each ends by committing the
@@ -250,11 +278,21 @@ export function usePanZoom({
     setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
   }, [setMapTransition, shouldAnimateProgrammaticTransform]);
 
+  // Publishes the committed camera. At rest it is also written to the stage;
+  // during a gesture or flight the DOM already owns the in-between camera.
+  const commitCamera = useCallback((next: PanZoomTransform) => {
+    cameraStore.set(next);
+    if (!isGestureActiveRef.current && !isProgrammaticCameraMotionRef.current) {
+      transformRef.current = next;
+      writeMapTransform(next);
+    }
+  }, [cameraStore, writeMapTransform]);
+
   const commitTransform = useCallback((next: PanZoomTransform) => {
     const snapped = snapTransform(next);
     transformRef.current = snapped;
-    setTransform(snapped);
-  }, [snapTransform]);
+    commitCamera(snapped);
+  }, [commitCamera, snapTransform]);
 
   const commitTransformRef = useCallback((next: PanZoomTransform) => {
     const snapped = snapTransform(next);
@@ -277,9 +315,11 @@ export function usePanZoom({
       viewportOrientation,
       containerRef.current?.clientWidth ?? 0,
     ));
-  }, [snapTransform, viewportOrientation]);
+  }, [containerRef, mapRef, snapTransform, viewportOrientation]);
 
   const clearProgrammaticAnimation = useCallback(() => {
+    // Any camera command ends a wheel zoom or glide where it is drawn.
+    cameraMotion.stop();
     if (initialEntranceTimeoutRef.current !== null) {
       window.clearTimeout(initialEntranceTimeoutRef.current);
       initialEntranceTimeoutRef.current = null;
@@ -292,11 +332,11 @@ export function usePanZoom({
       window.clearTimeout(animTimeoutRef.current);
       animTimeoutRef.current = null;
     }
-    if (wheelCommitTimeoutRef.current !== null) {
-      window.clearTimeout(wheelCommitTimeoutRef.current);
-      wheelCommitTimeoutRef.current = null;
+    if (buttonZoomEndTimeoutRef.current !== null) {
+      window.clearTimeout(buttonZoomEndTimeoutRef.current);
+      buttonZoomEndTimeoutRef.current = null;
     }
-  }, []);
+  }, [cameraMotion]);
 
   const cancelAnimation = useCallback(() => {
     const renderedTransform = currentRenderedTransform();
@@ -315,7 +355,10 @@ export function usePanZoom({
     next: PanZoomTransform,
     nextFitScale?: number,
     animate = true,
+    durationMs = DEFAULT_CAMERA_MOTION_DURATION_MS,
   ) => {
+    // A glide holds the gesture flag; a camera command ends it.
+    cameraMotion.stopGlide();
     if (isGestureActiveRef.current) {
       return;
     }
@@ -356,7 +399,6 @@ export function usePanZoom({
       return;
     }
 
-    const durationMs = DEFAULT_CAMERA_MOTION_DURATION_MS;
     const easing = DEFAULT_CAMERA_MOTION_EASING;
     setProgrammaticCameraMotion(true);
     setMapTransition(`transform ${durationMs}ms ${easing}`);
@@ -372,10 +414,11 @@ export function usePanZoom({
       if (nextFitScale !== undefined) {
         setFitScale(nextFitScale);
       }
-      setTransform({ ...transformRef.current });
+      commitCamera({ ...transformRef.current });
       setProgrammaticCameraMotion(false);
     }, durationMs + 50);
-  }, [
+  }, [commitCamera, mapRef, 
+    cameraMotion,
     clearProgrammaticAnimation,
     commitTransform,
     shouldAnimateProgrammaticTransform,
@@ -391,6 +434,7 @@ export function usePanZoom({
     next: PanZoomTransform,
     nextFitScale?: number,
   ) => {
+    cameraMotion.stopGlide();
     if (isGestureActiveRef.current) return;
 
     const snapped = snapTransform(next);
@@ -407,6 +451,7 @@ export function usePanZoom({
     }
     commitTransform(snapped);
   }, [
+    cameraMotion,
     clearProgrammaticAnimation,
     commitTransform,
     setMapTransition,
@@ -416,16 +461,14 @@ export function usePanZoom({
     writeMapTransform,
   ]);
 
-  // State drives controls and button updates, while the DOM owns wheel gestures
-  // and in-flight camera animation. Writing only when the state itself changes
-  // prevents unrelated React renders from resetting a CSS interpolation to a
-  // stale transform partway through a station or impact focus.
+  // Commits write the stage themselves (commitCamera). Rewrite it only when the
+  // writer changes (mount, orientation); unrelated renders never reset a CSS
+  // interpolation partway through a station or impact focus.
   useLayoutEffect(() => {
     if (!isGestureActiveRef.current && !isProgrammaticCameraMotionRef.current) {
-      transformRef.current = transform;
-      writeMapTransform(transform);
+      writeMapTransform(transformRef.current);
     }
-  }, [transform, writeMapTransform]);
+  }, [writeMapTransform]);
 
   // Clean up animation frame on unmount
   useEffect(() => {
@@ -439,8 +482,8 @@ export function usePanZoom({
       if (programmaticAnimationFrameRef.current !== null) {
         cancelAnimationFrame(programmaticAnimationFrameRef.current);
       }
-      if (wheelCommitTimeoutRef.current !== null) {
-        window.clearTimeout(wheelCommitTimeoutRef.current);
+      if (buttonZoomEndTimeoutRef.current !== null) {
+        window.clearTimeout(buttonZoomEndTimeoutRef.current);
       }
       setProgrammaticCameraMotion(false);
       setUserZoomMotion(false);
@@ -473,6 +516,9 @@ export function usePanZoom({
 
       // Ignore subpixel variations to prevent layout feedback loops from layer promotion.
       if (diffW < 1 && diffH < 1) return;
+      // A resize reframes from the camera as drawn; a running zoom or glide
+      // would otherwise overwrite it.
+      cameraMotion.stop();
 
       const defaultTransform = defaultTransformForViewport(width, height);
       const newFit = defaultTransform.scale;
@@ -483,7 +529,11 @@ export function usePanZoom({
         || current.x !== 0
         || current.y !== 0;
 
-      const isUntouched = !cameraAdjustedByUserRef.current && !hasCustomCamera;
+      // An untouched camera refits; a camera the rider moved, or one a
+      // selection owns, keeps its zoom and centre.
+      const isUntouched = !cameraAdjustedByUserRef.current
+        && !automaticRefitBlockedRef.current
+        && !isProgrammaticCameraMotionRef.current;
 
       const next = previousViewport.width <= 0 || previousViewport.height <= 0
         ? (hasCustomCamera ? current : defaultTransform)
@@ -505,7 +555,7 @@ export function usePanZoom({
       fitScaleRef.current = newFit;
       transformRef.current = snapped;
       setFitScale(newFit);
-      setTransform(snapped);
+      commitCamera(snapped);
     };
 
     const observer = new ResizeObserver(() => {
@@ -528,7 +578,7 @@ export function usePanZoom({
       observer.disconnect();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [defaultTransformForViewport, isMapCurrentlyActive, viewportOrientation]);
+  }, [commitCamera, containerRef, cameraMotion, defaultTransformForViewport, isMapCurrentlyActive, viewportOrientation]);
 
   useEffect(() => {
     if (!isMapActive || document.visibilityState === "hidden") return;
@@ -545,6 +595,7 @@ export function usePanZoom({
     const diffW = Math.abs(lastDimensions.current.width - width);
     const diffH = Math.abs(lastDimensions.current.height - height);
     if (diffW >= 1 || diffH >= 1) {
+      cameraMotion.stop();
       const previousViewport = lastDimensions.current;
       const defaultTransform = defaultTransformForViewport(width, height);
       const newFit = defaultTransform.scale;
@@ -555,7 +606,11 @@ export function usePanZoom({
         || current.x !== 0
         || current.y !== 0;
 
-      const isUntouched = !cameraAdjustedByUserRef.current && !hasCustomCamera;
+      // An untouched camera refits; a camera the rider moved, or one a
+      // selection owns, keeps its zoom and centre.
+      const isUntouched = !cameraAdjustedByUserRef.current
+        && !automaticRefitBlockedRef.current
+        && !isProgrammaticCameraMotionRef.current;
 
       const next = previousViewport.width <= 0 || previousViewport.height <= 0
         ? (hasCustomCamera ? current : defaultTransform)
@@ -576,9 +631,9 @@ export function usePanZoom({
       fitScaleRef.current = newFit;
       transformRef.current = snapped;
       setFitScale(newFit);
-      setTransform(snapped);
+      commitCamera(snapped);
     }
-  }, [defaultTransformForViewport, isMapActive, viewportOrientation]);
+  }, [commitCamera, containerRef, cameraMotion, defaultTransformForViewport, isMapActive, viewportOrientation]);
 
   const logicalViewportSize = useCallback(() => {
     const element = containerRef.current;
@@ -588,7 +643,7 @@ export function usePanZoom({
       element.clientHeight,
       viewportOrientation,
     );
-  }, [viewportOrientation]);
+  }, [containerRef, viewportOrientation]);
 
   const pointFromClientPoint = useCallback((clientX: number, clientY: number): PanZoomPoint => {
     const rect = activeContainerRectRef.current ?? containerRef.current?.getBoundingClientRect();
@@ -601,7 +656,7 @@ export function usePanZoom({
       rect,
       viewportOrientation,
     );
-  }, [viewportOrientation]);
+  }, [containerRef, viewportOrientation]);
 
   const pointerPointFromEvent = useCallback((event: PointerEvent<HTMLDivElement>): PanZoomPoint => {
     return pointFromClientPoint(event.clientX, event.clientY);
@@ -649,7 +704,7 @@ export function usePanZoom({
     if (mapRef.current) {
       writeMapTransform(next);
     }
-  }, [pointersArray, snapTransform, writeMapTransform]);
+  }, [mapRef, pointersArray, snapTransform, writeMapTransform]);
 
   const startGestureInteraction = useCallback((pointerType: string) => {
     setUserGestureMotion(true);
@@ -675,6 +730,7 @@ export function usePanZoom({
 
   const interruptPointerInteraction = useCallback(() => {
     if (!isGestureActiveRef.current) return;
+    if (cameraMotion.stopGlide()) return;
     if (dragRafRef.current !== null) {
       cancelAnimationFrame(dragRafRef.current);
       dragRafRef.current = null;
@@ -692,7 +748,7 @@ export function usePanZoom({
     setPointerDragging(false);
     restoreIdleMapTransition();
     // Commit the last painted camera, discarding any queued pointer movement.
-    setTransform({ ...transformRef.current });
+    commitCamera({ ...transformRef.current });
     for (const pointerId of pointerIds) {
       try {
         if (containerRef.current?.hasPointerCapture(pointerId)) {
@@ -702,7 +758,7 @@ export function usePanZoom({
         // The browser may already have released capture while suspending.
       }
     }
-  }, [restoreIdleMapTransition, setPointerDragging, setUserGestureMotion]);
+  }, [commitCamera, containerRef, cameraMotion, restoreIdleMapTransition, setPointerDragging, setUserGestureMotion]);
 
   useMapGestureInterruption(interruptPointerInteraction);
 
@@ -715,6 +771,7 @@ export function usePanZoom({
 
   const handlePointerDown = useCallback((e: PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    const stoppedGlide = cameraMotion.isGliding();
 
     if (activePointersRef.current.size === 0) {
       gestureMovedRef.current = false;
@@ -723,6 +780,9 @@ export function usePanZoom({
     }
 
     cancelAnimation();
+    // A press that stops a glide only stops it; it selects nothing.
+    if (stoppedGlide) suppressMapClickRef.current = true;
+    cameraMotion.resetPointerTrack();
     startGestureInteraction(e.pointerType);
     const point = pointerPointFromEvent(e);
     activePointersRef.current.set(e.pointerId, point);
@@ -745,7 +805,7 @@ export function usePanZoom({
       x: point.x - transformRef.current.x,
       y: point.y - transformRef.current.y,
     };
-  }, [beginPinchGesture, cancelAnimation, captureActivePointers, pointerPointFromEvent, startGestureInteraction]);
+  }, [containerRef, beginPinchGesture, cameraMotion, cancelAnimation, captureActivePointers, pointerPointFromEvent, startGestureInteraction]);
 
   const handlePointerMove = useCallback((e: PointerEvent<HTMLDivElement>) => {
     if (!isGestureActiveRef.current) return;
@@ -784,6 +844,7 @@ export function usePanZoom({
     }
 
     lastMoveEvent.current = { clientX: point.x, clientY: point.y };
+    cameraMotion.trackPointer(point, e.timeStamp);
 
     if (dragRafRef.current === null) {
       dragRafRef.current = requestAnimationFrame(() => {
@@ -804,7 +865,7 @@ export function usePanZoom({
         dragRafRef.current = null;
       });
     }
-  }, [applyPinchGesture, captureActivePointers, interruptPointerInteraction, pointerPointFromEvent, setPointerDragging, writeMapTransform]);
+  }, [applyPinchGesture, cameraMotion, captureActivePointers, interruptPointerInteraction, pointerPointFromEvent, setPointerDragging, writeMapTransform]);
 
   const finishPointerInteraction = useCallback((e: PointerEvent<HTMLDivElement>) => {
     if (!activePointersRef.current.has(e.pointerId)) return;
@@ -814,6 +875,7 @@ export function usePanZoom({
     }
 
     const wasGestureActive = isGestureActiveRef.current;
+    const wasPinch = pinchGestureRef.current !== null;
     activePointersRef.current.delete(e.pointerId);
     pointerStartPointsRef.current.delete(e.pointerId);
 
@@ -846,19 +908,32 @@ export function usePanZoom({
         y: point.y - transformRef.current.y,
       };
       isGestureActiveRef.current = true;
+      cameraMotion.resetPointerTrack();
       return;
     }
 
     activeContainerRectRef.current = null;
-    setUserGestureMotion(false);
     setPointerDragging(false);
     activeDragPointerIdRef.current = null;
     activePointersRef.current.clear();
     pointerStartPointsRef.current.clear();
     dragPointerTypeRef.current = null;
+    // A drag released while moving glides on, still a gesture, and commits
+    // when the glide ends (onGlideEnd).
+    if (
+      e.type === "pointerup"
+      && wasGestureActive
+      && !wasPinch
+      && gestureMovedRef.current
+      && cameraMotion.release(e.timeStamp)
+    ) {
+      return;
+    }
+    cameraMotion.resetPointerTrack();
+    setUserGestureMotion(false);
     restoreIdleMapTransition();
-    setTransform({ ...transformRef.current });
-  }, [commitTransformRef, restoreIdleMapTransition, setPointerDragging, setUserGestureMotion]);
+    commitCamera({ ...transformRef.current });
+  }, [commitCamera, cameraMotion, commitTransformRef, restoreIdleMapTransition, setPointerDragging, setUserGestureMotion]);
 
   const handlePointerUp = useCallback((e: PointerEvent<HTMLDivElement>) => {
     finishPointerInteraction(e);
@@ -883,49 +958,35 @@ export function usePanZoom({
     // browser's own wheel action; React's onWheel is passive and cannot.
     if (isMapWheelScrollRegionTarget(e.target)) return;
     cameraAdjustedByUserRef.current = true;
+    cameraMotion.wheel(e, pointFromClientPoint(e.clientX, e.clientY), e.timeStamp);
+  }, [containerRef, cameraMotion, pointFromClientPoint]);
 
-    // Interrupt a camera flight once at the start of a wheel gesture. Reading
-    // the computed transform on every wheel tick forces synchronous style work
-    // on every tick makes zooming visibly lag behind the wheel. Keep the short
-    // transform easing, though, so coarse mouse-wheel notches interpolate rather
-    // than appearing as ratcheting jumps.
-    if (wheelCommitTimeoutRef.current === null) {
-      cancelAnimation();
-      setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
-      setUserZoomMotion(true);
-    }
-    
-    const { x: mouseX, y: mouseY } = pointFromClientPoint(e.clientX, e.clientY);
-
-    const zoomSensitivity = 0.001;
-    const delta = -e.deltaY * zoomSensitivity;
-    const current = transformRef.current;
-    const newScale = clampPanZoomScale(current.scale * (1 + delta), fitScale);
-    const scaleRatio = newScale / current.scale;
-    const newX = mouseX - (mouseX - current.x) * scaleRatio;
-    const newY = mouseY - (mouseY - current.y) * scaleRatio;
-
-    commitTransformRef({ x: newX, y: newY, scale: newScale });
-
-    if (wheelCommitTimeoutRef.current !== null) {
-      window.clearTimeout(wheelCommitTimeoutRef.current);
-    }
-    wheelCommitTimeoutRef.current = window.setTimeout(() => {
-      wheelCommitTimeoutRef.current = null;
-      setTransform({ ...transformRef.current });
-      restoreIdleMapTransition();
-      setUserZoomMotion(false);
-    }, 100);
-  }, [
-    cancelAnimation,
-    commitTransformRef,
-    fitScale,
-    pointFromClientPoint,
-    restoreIdleMapTransition,
-    setMapTransition,
-    setUserZoomMotion,
-    shouldAnimateProgrammaticTransform,
-  ]);
+  useLayoutEffect(() => {
+    cameraMotionHostRef.current = {
+      readCamera: () => transformRef.current,
+      writeCamera: (next) => { commitTransformRef(next); },
+      setCameraEase: (ms) => setMapTransition(ms > 0 ? `transform ${ms}ms ${WHEEL_EASE_CURVE}` : "none"),
+      clampScale: (scale) => clampPanZoomScale(scale, fitScaleRef.current),
+      easeWheelZoom: () => shouldAnimateProgrammaticTransform,
+      momentum: () => !reducedMotion,
+      onZoomStart: () => {
+        // Continue from the rendered point of an interrupted camera flight.
+        cancelAnimation();
+        setMapTransition("none");
+        setUserZoomMotion(true);
+      },
+      onZoomEnd: () => {
+        commitCamera({ ...transformRef.current });
+        restoreIdleMapTransition();
+        setUserZoomMotion(false);
+      },
+      onGlideEnd: () => {
+        setUserGestureMotion(false);
+        restoreIdleMapTransition();
+        commitCamera({ ...transformRef.current });
+      },
+    };
+  });
 
   const moveToDefaultCamera = useCallback((
     animate: boolean,
@@ -951,7 +1012,7 @@ export function usePanZoom({
       transformRef.current = entryTransform;
       setMapTransition("none");
       writeMapTransform(entryTransform);
-      setTransform(entryTransform);
+      commitCamera(entryTransform);
 
       if (entranceDelayMs > 0) {
         initialEntranceTimeoutRef.current = window.setTimeout(() => {
@@ -973,7 +1034,7 @@ export function usePanZoom({
     }
 
     animateTransformTo(next, scale, true);
-  }, [
+  }, [commitCamera, containerRef, 
     animateTransformTo,
     defaultTransformForViewport,
     logicalViewportSize,
@@ -983,7 +1044,7 @@ export function usePanZoom({
     writeMapTransform,
   ]);
 
-  const restoreViewport = useMapViewportPersistence(persistenceKey, transform, fitScale, logicalViewportSize,
+  const restoreViewport = useMapViewportPersistence(persistenceKey, cameraStore, fitScale, logicalViewportSize,
     () => cameraInitializedRef.current && cameraAdjustedByUserRef.current && !persistenceBlocked && viewportOrientation === "standard");
   const restoreSavedCamera = useCallback(() => {
     if (persistenceBlocked || viewportOrientation !== "standard") return false;
@@ -1015,8 +1076,8 @@ export function usePanZoom({
     transformRef.current = entryTransform;
     setMapTransition("none");
     writeMapTransform(entryTransform);
-    setTransform(entryTransform);
-  }, [animateInitialEntrance, defaultTransformForViewport, logicalViewportSize, setMapTransition, snapTransform, writeMapTransform, restoreSavedCamera]);
+    commitCamera(entryTransform);
+  }, [commitCamera, containerRef, animateInitialEntrance, defaultTransformForViewport, logicalViewportSize, setMapTransition, snapTransform, writeMapTransform, restoreSavedCamera]);
 
   const completeStagedEntrance = useCallback(() => {
     if (!restoreSavedCamera()) moveToDefaultCamera(animateInitialEntrance, false);
@@ -1031,7 +1092,7 @@ export function usePanZoom({
     cameraInitializedRef.current = true;
     snapTransformToDefault(next, next.scale);
     return true;
-  }, [defaultTransformForViewport, logicalViewportSize, snapTransformToDefault]);
+  }, [containerRef, defaultTransformForViewport, logicalViewportSize, snapTransformToDefault]);
 
   const recenterWithFeedback = useCallback(() => {
     if (persistenceKey) clearMapViewport(persistenceKey);
@@ -1053,12 +1114,12 @@ export function usePanZoom({
   }, [moveToDefaultCamera]);
 
   const scheduleUserZoomMotionEnd = useCallback(() => {
-    if (wheelCommitTimeoutRef.current !== null) {
-      window.clearTimeout(wheelCommitTimeoutRef.current);
+    if (buttonZoomEndTimeoutRef.current !== null) {
+      window.clearTimeout(buttonZoomEndTimeoutRef.current);
     }
     setUserZoomMotion(true);
-    wheelCommitTimeoutRef.current = window.setTimeout(() => {
-      wheelCommitTimeoutRef.current = null;
+    buttonZoomEndTimeoutRef.current = window.setTimeout(() => {
+      buttonZoomEndTimeoutRef.current = null;
       restoreIdleMapTransition();
       setUserZoomMotion(false);
     }, 140);
@@ -1080,7 +1141,7 @@ export function usePanZoom({
     const newY = centerY - (centerY - current.y) * scaleRatio;
     scheduleUserZoomMotionEnd();
     commitTransform({ x: newX, y: newY, scale: newScale });
-  }, [cancelAnimation, commitTransform, fitScale, logicalViewportSize, scheduleUserZoomMotionEnd]);
+  }, [containerRef, cancelAnimation, commitTransform, fitScale, logicalViewportSize, scheduleUserZoomMotionEnd]);
 
   const zoomOut = useCallback(() => {
     if (!containerRef.current) return;
@@ -1098,7 +1159,7 @@ export function usePanZoom({
     const newY = centerY - (centerY - current.y) * scaleRatio;
     scheduleUserZoomMotionEnd();
     commitTransform({ x: newX, y: newY, scale: newScale });
-  }, [cancelAnimation, commitTransform, fitScale, logicalViewportSize, scheduleUserZoomMotionEnd]);
+  }, [containerRef, cancelAnimation, commitTransform, fitScale, logicalViewportSize, scheduleUserZoomMotionEnd]);
 
   const zoomToScale = useCallback((relativeScale: number) => {
     if (!containerRef.current) return;
@@ -1118,8 +1179,8 @@ export function usePanZoom({
     const newY = centerY - (centerY - current.y) * scaleRatio;
     scheduleUserZoomMotionEnd();
     const next = commitTransformRef({ x: newX, y: newY, scale: clampedScale });
-    setTransform(next);
-  }, [
+    commitCamera(next);
+  }, [commitCamera, containerRef, 
     clearProgrammaticAnimation,
     commitTransformRef,
     fitScale,
@@ -1155,7 +1216,7 @@ export function usePanZoom({
     const newY = focusY - mapY * targetAbsoluteScale;
 
     animateTransformTo({ x: newX, y: newY, scale: targetAbsoluteScale }, currentFitScale);
-  }, [animateTransformTo, defaultTransformForViewport, logicalViewportSize]);
+  }, [containerRef, animateTransformTo, defaultTransformForViewport, logicalViewportSize]);
 
   const zoomToBounds = useCallback((
     bounds: MapContentBounds,
@@ -1203,14 +1264,24 @@ export function usePanZoom({
       y: focusY - mapCenterY * targetAbsoluteScale,
       scale: targetAbsoluteScale,
     }, currentFitScale);
-  }, [animateTransformTo, defaultTransformForViewport, logicalViewportSize]);
+  }, [containerRef, animateTransformTo, defaultTransformForViewport, logicalViewportSize]);
 
-  // Compute the current user-facing relative zoom level (e.g. 1.0 = 100%)
-  const relativeScale = transform.scale / (fitScale || 1);
+  /** The camera as last written to the stage (a flight's target while it eases). */
+  const readCamera = useCallback(() => transformRef.current, []);
+  const isCameraInitialized = useCallback(() => cameraInitializedRef.current, []);
+  /** Pointers currently pressed on the map. */
+  const activePointerCount = useCallback(() => activePointersRef.current.size, []);
+  /** Treats the camera as untouched again, so it refits with the map's layout. */
+  const clearCameraAdjustment = useCallback(() => {
+    cameraAdjustedByUserRef.current = false;
+  }, []);
 
   return {
-    transform,
-    relativeScale,
+    cameraStore,
+    readCamera,
+    isCameraInitialized,
+    activePointerCount,
+    clearCameraAdjustment,
     isGestureActive,
     isCameraInteracting,
     recenterFeedbackKey,

@@ -624,6 +624,8 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await regionalStage.hover();
   await page.mouse.wheel(0, -180);
   await expect.poll(() => regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).not.toBe(resizedCamera);
+  // Notches ease in; read the camera once the zoom has settled.
+  await expect(page.locator(".regional-map")).toHaveAttribute("data-map-zoom-active", "false");
   const adjustedCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
   await page.setViewportSize({
     width: Math.min(page.viewportSize()!.width + 40, initialViewport!.width),
@@ -726,7 +728,7 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   await expect(regionalStage.locator('[data-regional-station-label-for="kipling"]')).toHaveCSS("visibility", "hidden");
 });
 
-test("waits for the authored map font before measuring station label hover geometry", async ({ page, request, isMobile }) => {
+test("waits for the authored map font before lifting a hovered station label", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "desktop font-loading race coverage");
   await setStubMode(request, "unavailable");
 
@@ -748,17 +750,20 @@ test("waits for the authored map font before measuring station label hover geome
   try {
     await expect.poll(() => fontRequested).toBe(true);
     await expect(ttcStage).toHaveAttribute("data-map-label-font-ready", "false");
-    await expect(ttcStage.locator("[data-station-label-id]")).toHaveCount(0);
+    // Name boxes are prepared data, so every name is a target at once; the
+    // lifted label is cut from the live text, so it waits for the font.
+    await expect(ttcStage.locator("[data-station-label-id]")).toHaveCount(109);
+    await page.getByRole("button", { name: "Collapse sidebar" }).click();
+    await ttcStage.locator('[data-station-label-id="tobermory"]').hover();
+    await expect(ttcStage.locator("#ttc-hovered-station-target-mask")).toHaveCount(0);
   } finally {
     releaseFont();
   }
 
   await expect(ttcStage).toHaveAttribute("data-map-label-font-ready", "true");
-  await expect(ttcStage.locator("[data-station-label-id]")).toHaveCount(109);
   const tobermoryLabel = ttcStage.locator('[data-station-label-for="tobermory"]');
   await expect.poll(() => tobermoryLabel.evaluate((label: SVGGraphicsElement) => label.getBBox().width))
     .toBeGreaterThan(375);
-  await page.getByRole("button", { name: "Collapse sidebar" }).click();
   await ttcStage.locator('[data-station-label-id="tobermory"]').hover();
   await expect(ttcStage.locator("#ttc-hovered-station-target-mask")).toHaveCount(1);
 });
@@ -806,9 +811,9 @@ test("regional refresh, pan, zoom, and center preserve the authored SVG instance
   const regionalMap = page.locator(".regional-map");
   const regionalViewport = regionalMap.locator(".regional-map-viewport");
   const regionalStage = regionalMap.locator(".regional-map-stage");
-  const authoredSvg = regionalStage.locator('svg[aria-label="GO and UP regional rail schematic"]');
+  const authoredSvg = regionalStage.locator(".regional-live-svg svg");
   const authoredLines = authoredSvg.locator("#regional-lines-layer");
-  await expect(authoredSvg).toBeVisible();
+  await expect(authoredSvg).toBeAttached();
   await authoredSvg.evaluate((element) => element.setAttribute("data-smoke-stable", "regional-base"));
   await authoredLines.evaluate((element) => element.setAttribute("data-smoke-stable", "regional-lines"));
 
@@ -833,7 +838,7 @@ test("regional refresh, pan, zoom, and center preserve the authored SVG instance
   await page.mouse.wheel(0, -80);
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   await page.getByRole("button", { name: "Center map view" }).click();
-  await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false", { timeout: 2_000 });
+  await expect(regionalMap).toHaveAttribute("data-map-camera-moving", "false", { timeout: 2_000 });
 
   await expect(authoredSvg).toHaveAttribute("data-smoke-stable", "regional-base");
   await expect(authoredLines).toHaveAttribute("data-smoke-stable", "regional-lines");
@@ -1129,7 +1134,7 @@ test("regional segment selections flash quickly then breathe", async ({ page, re
   await expect(selectedDelayGlow).toBeAttached();
 
   await expect(page.locator(".regional-map")).toHaveAttribute(
-    "data-regional-map-camera-moving",
+    "data-map-camera-moving",
     "true",
   );
   await expect.poll(() => selectedDelayGlow.evaluate((element) => {
@@ -1297,7 +1302,8 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     .toHaveAttribute("transform", /scale\(2\.04\d*\)/);
   const authoredRouteGap = await suspensionOverlay.locator("> .asset-alert-path").evaluate((overlay) => {
     if (!(overlay instanceof SVGPathElement)) return Number.POSITIVE_INFINITY;
-    const route = overlay.ownerSVGElement?.querySelector<SVGPathElement>("#regional-route-ki-path");
+    // The route is in the authored SVG; the overlay plane shares its view box.
+    const route = overlay.closest(".regional-map-stage")?.querySelector<SVGPathElement>(".regional-live-svg #regional-route-ki-path");
     if (!route) return Number.POSITIVE_INFINITY;
     const overlayLength = overlay.getTotalLength();
     const routeLength = route.getTotalLength();
@@ -1338,8 +1344,9 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
       marker.querySelector(".overlap-indicator-pill") ?? marker
     ).getBoundingClientRect().toJSON()));
   const visibleMapTextBoxes = await page.locator(
-    'svg[aria-label="GO and UP regional rail schematic"] text:visible',
+    ".regional-map-stage .regional-station-label-hit-target",
   ).evaluateAll((labels) => labels.map((label) => label.getBoundingClientRect().toJSON()));
+  expect(visibleMapTextBoxes.length).toBeGreaterThan(0);
   // The map runs under the docked sidebar; only badges a rider can see must clear the labels.
   const sidebarBox = await page.locator("#desktop-sidebar-container").boundingBox();
   const underSidebar = (box: { x: number; width: number }) => Boolean(sidebarBox)
@@ -1527,14 +1534,14 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   expect(coreMaskWidths!.outline).toBeCloseTo(117.2 * 196 / 96, 3);
   expect(coreMaskWidths!.cutout).toBeCloseTo(196, 3);
   expect(edgeMaskWidths!.cutout).toBeCloseTo(108.2 * 196 / 96, 3);
-  // Hover copies paint below station artwork.
+  // Hover copies paint below station artwork (the foreground raster plane).
   expect(await delayHoverForeground.evaluate((foreground) => {
-    const hoverLayer = foreground.closest("#regional-dynamic-hover-layer");
-    const stationVisual = hoverLayer?.parentElement?.querySelector(".regional-station-visual");
+    const plane = foreground.closest(".regional-overlay-plane");
+    const stationArtwork = plane?.parentElement?.querySelector(".raster-map-plane--foreground");
     return Boolean(
-      hoverLayer
-      && stationVisual
-      && (hoverLayer.compareDocumentPosition(stationVisual) & Node.DOCUMENT_POSITION_FOLLOWING),
+      plane
+      && stationArtwork
+      && (plane.compareDocumentPosition(stationArtwork) & Node.DOCUMENT_POSITION_FOLLOWING),
     );
   })).toBe(true);
   await expect(delayEmphasis).not.toHaveAttribute("mask");
@@ -1761,21 +1768,16 @@ test("keeps transformed regional junction selection aligned with its station dot
   await expect(bloorTarget).toBeVisible();
   await bloorTarget.click();
 
-  const bloorSelection = page.locator(
-    '[data-regional-station-selection-id="bloor"][data-regional-station-selected="true"]',
-  );
-  await expect(bloorSelection).toBeVisible();
-  await expect(page.locator(".regional-map")).toHaveAttribute(
-    "data-regional-map-camera-moving",
-    "true",
-  );
-  await expect.poll(() => bloorSelection.evaluate(
-    (element) => getComputedStyle(element).animationName,
-  )).toBe("none");
+  // One React marker, above the station artwork, in the junction's authored transform.
   const bloorTopSelection = page.locator(
-    '.regional-station-top-selection[data-regional-station-top-selected="true"]',
+    '.regional-station-top-selection[data-regional-station-selection-id="bloor"][data-regional-station-selected="true"]',
   );
   await expect(bloorTopSelection).toBeVisible();
+  await expect(page.locator(".regional-station-top-selection")).toHaveCount(1);
+  await expect(page.locator(".regional-map")).toHaveAttribute(
+    "data-map-camera-moving",
+    "true",
+  );
   await expect.poll(() => bloorTopSelection.evaluate(
     (element) => getComputedStyle(element).animationName,
   )).toContain("map-selection-station-intro");
@@ -1786,7 +1788,7 @@ test("keeps transformed regional junction selection aligned with its station dot
       const bounds = shape.getBoundingClientRect();
       return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
     }).sort((left, right) => left.x - right.x)),
-    bloorSelection.locator(":scope > :is(circle, ellipse)").evaluateAll((shapes) => shapes.map((shape) => {
+    bloorTopSelection.locator(":scope > :is(circle, ellipse)").evaluateAll((shapes) => shapes.map((shape) => {
       const bounds = shape.getBoundingClientRect();
       return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
     }).sort((left, right) => left.x - right.x)),
@@ -1797,20 +1799,6 @@ test("keeps transformed regional junction selection aligned with its station dot
     expect(Math.abs(selectionCenters[index].x - dotCenters[index].x)).toBeLessThan(3);
     expect(Math.abs(selectionCenters[index].y - dotCenters[index].y)).toBeLessThan(3);
   }
-  const [sourceSelectionBox, topSelectionBox] = await Promise.all([
-    bloorSelection.boundingBox(),
-    bloorTopSelection.boundingBox(),
-  ]);
-  expect(sourceSelectionBox).not.toBeNull();
-  expect(topSelectionBox).not.toBeNull();
-  expect(Math.abs(
-    sourceSelectionBox!.x + sourceSelectionBox!.width / 2
-      - (topSelectionBox!.x + topSelectionBox!.width / 2),
-  )).toBeLessThan(3);
-  expect(Math.abs(
-    sourceSelectionBox!.y + sourceSelectionBox!.height / 2
-      - (topSelectionBox!.y + topSelectionBox!.height / 2),
-  )).toBeLessThan(3);
   await expect(bloorTopSelection).toHaveClass(/selection-intro-complete/, { timeout: 4_000 });
   await expect.poll(() => bloorTopSelection.evaluate(
     (element) => getComputedStyle(element).animationName,
@@ -1848,19 +1836,11 @@ test("uses one station selection animation in both map modes", async ({ page, re
   await waitForNetworkTransition(page, "regional");
   await page.locator('.regional-station-hit-target[data-regional-station-id="union"]').press("Enter");
 
-  const regionalUnderlay = page.locator(
-    '.regional-station-selected-indicator.foreground-flash-active[data-regional-station-selection-id="union"]',
-  );
   const regionalForeground = page.locator(
     '.regional-station-top-selection[data-regional-station-top-selected="true"]',
   );
-  await expect(regionalUnderlay).toBeAttached();
-  await expect.poll(() => regionalUnderlay.evaluate(
-    (element) => getComputedStyle(element).animationName,
-  )).toBe("none");
-  await expect.poll(() => regionalUnderlay.evaluate(
-    (element) => getComputedStyle(element).opacity,
-  )).toBe("0");
+  // GO/UP draws only the foreground marker; it has no hidden underlay copy.
+  await expect(page.locator(".regional-station-top-selection")).toHaveCount(1);
   await expect.poll(() => regionalForeground.evaluate(
     (element) => getComputedStyle(element).animationName,
   )).toContain("map-selection-station-intro");
@@ -2743,7 +2723,7 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
     isPrimary: true,
   });
   await expect(regionalMap).toHaveAttribute("data-map-gesture-active", "true");
-  await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
+  await expect(regionalMap).toHaveAttribute("data-map-camera-moving", "false");
   expect(await regionalGlow.evaluate((element) => getComputedStyle(element).filter)).toBe("none");
   expect(Number(await regionalGlow.evaluate((element) => getComputedStyle(element).opacity))).toBe(0);
   expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).transitionDuration)).toBe("0s");
@@ -2775,7 +2755,7 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
     if (!zoomGlow || !zoomPlannedPath) throw new Error("Missing regional zoom overlays");
     return {
       zoomActive: root.dataset.mapZoomActive,
-      cameraMoving: root.dataset.regionalMapCameraMoving,
+      cameraMoving: root.dataset.mapCameraMoving,
       glowFilter: getComputedStyle(zoomGlow).filter,
       glowOpacity: getComputedStyle(zoomGlow).opacity,
       plannedTransitionDuration: getComputedStyle(zoomPlannedPath).transitionDuration,
@@ -2819,7 +2799,7 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
     }
 
     return {
-      cameraMoving: root?.dataset.regionalMapCameraMoving,
+      cameraMoving: root?.dataset.mapCameraMoving,
       transitionDuration: stage ? getComputedStyle(stage).transitionDuration : null,
       stageWillChange: stage ? getComputedStyle(stage).willChange : null,
       recenterLayerCount: root?.querySelectorAll(".regional-map-recenter-veil").length ?? -1,
@@ -2850,7 +2830,7 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
   await expect(regionalAuthoredMap).toHaveCSS("shape-rendering", "geometricprecision");
   await expect(regionalAuthoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
   expect(Number(await regionalGlow.evaluate((element) => getComputedStyle(element).opacity))).toBeGreaterThan(0);
-  await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
+  await expect(regionalMap).toHaveAttribute("data-map-camera-moving", "false");
 });
 
 test("disruption rails stay static across TTC and regional maps", async ({ page, request, isMobile }) => {
@@ -2868,10 +2848,10 @@ test("disruption rails stay static across TTC and regional maps", async ({ page,
     const rsz = root.querySelector<SVGPathElement>(
       '[data-map-impact-kind="reduced-speed-zone"] .asset-alert-path.delay-candy',
     );
-    const closureMask = root.querySelector<SVGPathElement>(
-      '.overlay-segment-group[data-map-impact-id="stub-active-closure-child-line-1"] .suspension-mask-path',
+    const closureGroup = root.querySelector<SVGGElement>(
+      '.overlay-segment-group[data-map-impact-id="stub-active-closure-child-line-1"]',
     );
-    if (!planned || !plannedPreview || !rsz || !closureMask) {
+    if (!planned || !plannedPreview || !rsz || !closureGroup) {
       throw new Error("Missing overlapping TTC current closure, closure preview, and RSZ rails");
     }
     return {
@@ -2880,16 +2860,16 @@ test("disruption rails stay static across TTC and regional maps", async ({ page,
       plannedWidth: getComputedStyle(planned).strokeWidth,
       plannedPreviewWidth: getComputedStyle(plannedPreview).strokeWidth,
       rszWidth: getComputedStyle(rsz).strokeWidth,
-      closureMaskAnimation: getComputedStyle(closureMask).animationName,
-      closureMaskWidth: getComputedStyle(closureMask).strokeWidth,
+      // Glyph lanes sit inside the tube, unclipped.
+      closureMasks: closureGroup.querySelectorAll("mask, [mask]").length,
     };
   });
   expect(ttcPulse.animationCount).toBe(0);
   expect(ttcPulse.plannedWidth).toBe(ttcPulse.rszWidth);
   expect(ttcPulse.plannedPreviewWidth).toBe(ttcPulse.rszWidth);
-  expect(ttcPulse.closureMaskAnimation).toBe("none");
+  expect(ttcPulse.closureMasks).toBe(0);
   // TTC rails are a tube 8 units past each edge of the authored 80-unit line.
-  expect(ttcPulse.closureMaskWidth).toBe("96px");
+  expect(ttcPulse.plannedWidth).toBe("96px");
 
   const releaseNotesDismiss = page.getByRole("button", { name: "Close introduction" });
   if (await releaseNotesDismiss.isVisible()) {
@@ -3819,6 +3799,8 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
       await page.mouse.move(viewportBox.x + viewportBox.width * 0.72, viewportBox.y + viewportBox.height * 0.72);
       await page.mouse.down();
       await page.mouse.move(viewportBox.x + viewportBox.width * 0.64, viewportBox.y + viewportBox.height * 0.64, { steps: 4 });
+      // Hold still before releasing: a release while moving glides on.
+      await page.waitForTimeout(120);
       await page.mouse.up();
       await expect(overlapChooser).toBeVisible();
     }
@@ -4379,10 +4361,8 @@ test("mobile GO and UP map uses the rotated logical landscape viewport", async (
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
   await expect(mobileLegend).toBeVisible();
   await expect(page.locator(".mobile-legend-pill")).toHaveClass(/mobile-legend-pill--regional/);
-  await expect(page.locator(".regional-station-selected-indicator")).toHaveCount(72);
-  await expect.poll(() => page.locator(".regional-station-selected-indicator").evaluateAll((indicators) => (
-    indicators.every((indicator) => getComputedStyle(indicator).opacity === "0")
-  ))).toBe(true);
+  // No station is selected, so no selection marker is drawn.
+  await expect(page.locator(".regional-station-top-selection")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Rotate map" }).click();
   const shell = page.locator(".linewatch-shell");

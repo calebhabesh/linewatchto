@@ -4,9 +4,9 @@
  * writes each frame to an SVG group, the MapLibre renderer to a GeoJSON point.
  */
 import type { NetworkSegment } from "./linewatch-data.ts";
+import type { PreparedMapGeometry } from "./map-geometry-data.ts";
 import {
   regionalTrainMarkerFrame,
-  type RegionalSvgScope,
   type RegionalTrainMarkerFrame,
 } from "./regional-map-geometry.ts";
 import {
@@ -41,7 +41,7 @@ export function cancelRegionalTrainMarkerMotion(runtime: RegionalTrainMarkerMoti
 function regionalTrainMarkerMotionFrame(
   sample: ReturnType<typeof sampleEstimatedTrainMarkerMotion>,
   segmentById: Map<string, NetworkSegment>,
-  documentNode: RegionalSvgScope,
+  geometry: PreparedMapGeometry,
 ): { marker: EstimatedTrainMarker; frame: RegionalTrainMarkerFrame } | null {
   if (sample.from.segmentId === sample.to.segmentId
     && sample.from.fromStationId === sample.to.fromStationId
@@ -51,28 +51,27 @@ function regionalTrainMarkerMotionFrame(
       progress: sample.from.progress + (sample.to.progress - sample.from.progress) * sample.progress,
     };
     const segment = segmentById.get(marker.segmentId);
-    const frame = segment ? regionalTrainMarkerFrame(documentNode, segment, marker) : null;
+    const frame = segment ? regionalTrainMarkerFrame(geometry, segment, marker) : null;
     return frame ? { marker, frame } : null;
   }
   // Never interpolate coordinates between paths: that draws a chord through
   // empty map space. Invalid samples hold an authored-path endpoint instead.
   const marker = sample.progress < 1 ? sample.from : sample.to;
   const segment = segmentById.get(marker.segmentId);
-  const frame = segment ? regionalTrainMarkerFrame(documentNode, segment, marker) : null;
+  const frame = segment ? regionalTrainMarkerFrame(geometry, segment, marker) : null;
   return frame ? { marker, frame } : null;
 }
 
 /**
  * Places `marker`, or animates it from where its runtime last drew it.
  * Returns false when the marker's segment path can't be resolved (it is not
- * drawn). `documentNode` must reach the live diagram's corridor paths and
- * station anchors.
+ * drawn).
  */
 export function animateRegionalTrainMarker(
   sink: RegionalTrainMarkerSink,
   marker: EstimatedTrainMarker,
   segments: NetworkSegment[],
-  documentNode: RegionalSvgScope,
+  geometry: PreparedMapGeometry,
   runtimes: Map<string, RegionalTrainMarkerMotionRuntime>,
   animate: boolean,
 ): boolean {
@@ -80,7 +79,7 @@ export function animateRegionalTrainMarker(
   const segmentById = new Map(segments.map((segment) => [segment.id, segment]));
   const targetSegment = segmentById.get(marker.segmentId);
   const targetFrame = targetSegment
-    ? regionalTrainMarkerFrame(documentNode, targetSegment, marker)
+    ? regionalTrainMarkerFrame(geometry, targetSegment, marker)
     : null;
   if (!targetFrame) return false;
 
@@ -103,7 +102,7 @@ export function animateRegionalTrainMarker(
   const settledMarker = waypoints.at(-1) ?? current.marker;
   const settledSegment = segmentById.get(settledMarker.segmentId);
   const settledFrame = settledSegment
-    ? regionalTrainMarkerFrame(documentNode, settledSegment, settledMarker) ?? current.frame
+    ? regionalTrainMarkerFrame(geometry, settledSegment, settledMarker) ?? current.frame
     : current.frame;
   const transition = createEstimatedTrainMarkerTransition(waypoints);
   const runtime: RegionalTrainMarkerMotionRuntime = {
@@ -124,7 +123,7 @@ export function animateRegionalTrainMarker(
   };
   const update = (now: number) => {
     const { sample, opacity, done } = transition(now);
-    const motion = sample === previousSample ? previousMotion : regionalTrainMarkerMotionFrame(sample, segmentById, documentNode);
+    const motion = sample === previousSample ? previousMotion : regionalTrainMarkerMotionFrame(sample, segmentById, geometry);
     previousSample = sample;
     previousMotion = motion;
     if (!motion || done) {

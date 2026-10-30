@@ -4,18 +4,20 @@ import { regionalOverlapBadgeGroups, regionalOverlapBadges, regionalPlacedOverla
 import { REGIONAL_OVERLAP_INDICATOR_SCALE } from "../src/app/regional-map-geometry.ts";
 import { BADGE_FEATURE_GAPS, badgeObstacleReach } from "../src/components/overlap-badge-placement.ts";
 
-const identity = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
-// An unalerted transit line along y = 3000.
-const line = {
-  getScreenCTM: () => identity,
-  getTotalLength: () => 6000,
-  getPointAtLength: (distance) => ({ x: distance, y: 3000 }),
-};
-const svg = {
-  getScreenCTM: () => identity,
-  querySelector: () => null,
-  querySelectorAll: (selector) => selector.includes("#regional-lines-layer") ? [line] : [],
-};
+// Prepared geometry (map-geometry-data.ts) with an unalerted transit line along y = 3000.
+const preparedGeometry = (extra = {}) => ({
+  format: 1,
+  map: "regional",
+  source: { svg: "", sha256: "" },
+  viewBox: { x: -200, y: -200, width: 17036.959, height: 9031.6719 },
+  stations: [],
+  anchors: {},
+  labels: [],
+  lines: [{ id: "regional-route-test-path", points: [0, 3000, 6000, 3000] }],
+  artwork: { labels: [], boxes: [], strokes: [] },
+  ...extra,
+});
+const geometry = preparedGeometry();
 const corridor = (fromX, toX, y) => Array.from({ length: 21 }, (_unused, index) => ({
   x: fromX + ((toX - fromX) * index) / 20,
   y,
@@ -36,7 +38,7 @@ const renderedBox = ({ position, size }) => {
 };
 
 it("keeps regional badges beside their corridor and clear of transit lines", () => {
-  const [placed] = regionalPlacedOverlapBadges(svg, [badge("on-line", corridor(2000, 3000, 3000))]);
+  const [placed] = regionalPlacedOverlapBadges(geometry, [badge("on-line", corridor(2000, 3000, 3000))]);
   const box = renderedBox(placed);
   const lineGap = Math.max(box.y - 3000, 3000 - (box.y + box.height));
 
@@ -49,7 +51,7 @@ it("keeps regional badges beside their corridor and clear of transit lines", () 
 });
 
 it("aligns neighbouring regional badges with the scaled sibling gap", () => {
-  const placed = regionalPlacedOverlapBadges(svg, [
+  const placed = regionalPlacedOverlapBadges(geometry, [
     badge("west", corridor(2400, 2500, 3000)),
     badge("east", corridor(2500, 2600, 3000)),
   ]);
@@ -65,8 +67,8 @@ it("aligns neighbouring regional badges with the scaled sibling gap", () => {
 });
 
 it("does not carry previous badge positions into a new layout", () => {
-  const first = regionalPlacedOverlapBadges(svg, [badge("a", corridor(2000, 3000, 3000))]);
-  const moved = regionalPlacedOverlapBadges(svg, [{ ...badge("a", corridor(2000, 3000, 3000)), position: { x: 9000, y: 500 } }]);
+  const first = regionalPlacedOverlapBadges(geometry, [badge("a", corridor(2000, 3000, 3000))]);
+  const moved = regionalPlacedOverlapBadges(geometry, [{ ...badge("a", corridor(2000, 3000, 3000)), position: { x: 9000, y: 500 } }]);
   assert.deepEqual(moved[0].position, first[0].position);
 });
 
@@ -84,24 +86,19 @@ it("groups identical overlap sets once while preserving different closure pairs"
 });
 
 it("adds a station badge where regional alerts only meet at a station, like the TTC map", () => {
-  globalThis.CSS ??= { escape: (value) => value };
   const impact = (kind, cardId) => ({ kind, cardId, travelDirection: "bidirectional", sourceAlertIds: [cardId] });
-  const stationShape = {
-    id: "station-bramalea-ki",
-    tagName: "circle",
-    parentElement: { tagName: "svg", getAttribute: () => null },
-    matches: () => true,
-    getAttribute: (name) => ({ cx: "4000", cy: "2000", r: "40" })[name] ?? null,
-  };
-  const stationSvg = {
-    querySelector: (selector) => selector === "#station-bramalea" ? stationShape : null,
-  };
-  const documentNode = { getElementById: () => null, createElementNS: () => null };
-  const badges = regionalOverlapBadges(documentNode, [
+  const stationGeometry = preparedGeometry({
+    stations: [{
+      id: "station-bramalea",
+      transform: [1, 0, 0, 1, 0, 0],
+      shapes: [{ tag: "circle", id: "station-bramalea", cx: 4000, cy: 2000, r: 40 }],
+      anchors: [{ id: "station-bramalea", x: 4000, y: 2000, radius: 40 }],
+    }],
+  });
+  const badges = regionalOverlapBadges(stationGeometry, [
     { id: "ki-a", label: "A to Bramalea", stationAId: "brampton", stationBId: "bramalea", impacts: [impact("planned-closure", "closure-west")] },
     { id: "ki-b", label: "Bramalea to C", stationAId: "bramalea", stationBId: "malton", impacts: [impact("delay", "delay-east")] },
   ], {
-    svg: stationSvg,
     stationNodeImpacts: [],
     stations: [{ id: "bramalea", name: "Bramalea" }],
   });
@@ -112,26 +109,12 @@ it("adds a station badge where regional alerts only meet at a station, like the 
   assert.deepEqual(badges[0].impacts.map((item) => item.cardId).sort(), ["closure-west", "delay-east"]);
 });
 
-it("keeps regional badges off station markers but ignores injected hover masks", () => {
-  // A tall interchange hub (like Union) sits on the alert corridor, and an
-  // alert's full-map hover mask rect lives in the same stations layer.
-  const shape = (bbox, injected) => ({
-    getScreenCTM: () => identity,
-    getBBox: () => bbox,
-    closest: () => (injected ? {} : null),
-  });
-  const hub = shape({ x: 2400, y: 2700, width: 260, height: 800 }, false);
-  const hoverMask = shape({ x: -200, y: -200, width: 17000, height: 9000 }, true);
-  const stationSvg = {
-    getScreenCTM: () => identity,
-    querySelector: () => null,
-    querySelectorAll: (selector) => {
-      if (selector.includes("#regional-lines-layer")) return [line];
-      if (selector.includes("#regional-stations-layer")) return [hub, hoverMask];
-      return [];
-    },
-  };
-  const [placed] = regionalPlacedOverlapBadges(stationSvg, [{
+it("keeps regional badges off station markers", () => {
+  // A tall interchange hub (like Union) sits on the alert corridor.
+  const hub = { x: 2400, y: 2700, width: 260, height: 800 };
+  const [placed] = regionalPlacedOverlapBadges(preparedGeometry({
+    artwork: { labels: [], boxes: [{ kind: "artwork", ...hub }], strokes: [] },
+  }), [{
     ...badge("hub", [{ x: 2530, y: 3000 }]),
     stationPoint: { x: 2530, y: 3000 },
   }]);
@@ -139,8 +122,8 @@ it("keeps regional badges off station markers but ignores injected hover masks",
 
   assert.equal(placed.collisionAvoided, true);
   assert.ok(
-    box.x + box.width <= hub.getBBox().x || box.x >= hub.getBBox().x + hub.getBBox().width
-      || box.y + box.height <= hub.getBBox().y || box.y >= hub.getBBox().y + hub.getBBox().height,
+    box.x + box.width <= hub.x || box.x >= hub.x + hub.width
+      || box.y + box.height <= hub.y || box.y >= hub.y + hub.height,
     `badge overlaps the hub: ${JSON.stringify(box)}`,
   );
 });

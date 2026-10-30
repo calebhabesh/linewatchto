@@ -14,6 +14,8 @@
     "screenshots:onboarding": "node scripts/generate-onboarding-screenshots.mjs",
     "screenshots:readme": "node scripts/capture-readme-screenshots.mjs",
     "generate:map-rasters": "node scripts/generate-map-rasters.mjs",
+    "prepare:map-geometry": "node scripts/prepare-map-geometry.mjs",
+    "check:map-geometry": "node scripts/prepare-map-geometry.mjs --check",
     "generate:og-image": "node scripts/generate-og-image.mjs",
     "generate:geographic-catalog": "node ../scripts/generate-geographic-catalog.mjs",
     "metrics:css": "node scripts/measure-css.mjs",

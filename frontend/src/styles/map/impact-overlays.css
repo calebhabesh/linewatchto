@@ -3,8 +3,6 @@
 .linewatch-shell.mobile-performance-mode .asset-alert-path.delay-candy,
 .linewatch-shell.mobile-performance-mode .asset-alert-path.suspension-candy,
 .linewatch-shell.mobile-performance-mode .asset-alert-path.delay-static-base,
-.linewatch-shell.mobile-performance-mode .delay-hourglass-mask-path,
-.linewatch-shell.mobile-performance-mode .suspension-mask-path,
 .linewatch-shell.mobile-performance-mode .delay-static-path,
 .linewatch-shell.mobile-performance-mode .asset-alert-path.map-selection-flash,
 .linewatch-shell.mobile-performance-mode .station-selection-flash {
@@ -25,9 +23,7 @@
 
 /* The regional map owns additional SVG animation names, so explicitly give it
    the same static mobile rendering contract as the TTC map. */
-.linewatch-shell.mobile-performance-mode .regional-station-selected-indicator,
-.linewatch-shell.mobile-performance-mode .regional-station-top-selection,
-.linewatch-shell.mobile-performance-mode .regional-station-selection-source-artwork {
+.linewatch-shell.mobile-performance-mode .regional-station-top-selection {
   animation: none !important;
   filter: none !important;
   transition: none !important;
@@ -52,11 +48,6 @@
 .linewatch-shell.mobile-performance-mode .interactive-glow.selected {
   opacity: 0.52;
   stroke-width: calc(162px * var(--map-overlay-unit, 1));
-}
-
-.linewatch-shell.mobile-performance-mode .delay-hourglass-mask-path,
-.linewatch-shell.mobile-performance-mode .suspension-mask-path {
-  stroke-width: calc(108px * var(--map-overlay-unit, 1));
 }
 
 .linewatch-shell.mobile-performance-mode .delay-static-path {
@@ -87,13 +78,6 @@
 .linewatch-shell.mobile-performance-mode .station-selected-indicator {
   animation: none !important;
   filter: none !important;
-  opacity: 0.85;
-  transform: scale(1);
-}
-
-.linewatch-shell.mobile-performance-mode .regional-station-selected-indicator {
-  animation: none;
-  filter: none;
   opacity: 0.85;
   transform: scale(1);
 }
@@ -385,38 +369,6 @@
   stroke-dasharray: 2 5 11 3;
 }
 
-/* Glyph lanes are clipped to their tube by a mask as long as the alert.
-   Chromium re-rasters masked content at every new scale; on GO/UP, where a
-   whole-line delay's mask spans a corridor in its large SVG units, zooming
-   overflowed tile memory and the whole page flickered. While the scale
-   changes the glyphs drop the clip (they stay where they are); it returns
-   once the zoom or camera flight settles. Panning keeps it. */
-:is([data-map-zoom-active="true"], [data-map-camera-moving="true"]) .map-glyph-lane-clip {
-  mask: none;
-}
-
-.delay-hourglass-mask-path,
-.suspension-mask-path {
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: calc(var(--map-alert-rail-width) * var(--map-overlay-unit, 1));
-}
-
-.motion-paused .delay-hourglass-mask-path,
-.motion-paused .suspension-mask-path {
-  animation: none;
-  stroke-width: calc(102px * var(--map-overlay-unit, 1));
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .delay-hourglass-mask-path,
-  .suspension-mask-path {
-    animation: none;
-    stroke-width: calc(102px * var(--map-overlay-unit, 1));
-  }
-}
-
 .asset-alert-path.planned-preview {
   opacity: 1;
   stroke: var(--planned-preview-rail);
@@ -430,12 +382,14 @@
   pointer-events: none;
 }
 
+/* No filter: each icon is its own nested SVG, and a drop-shadow on every
+   icon of a corridor-length planned closure made Chromium re-filter them on
+   each zoom frame. On GO/UP that was most of its dropped frames while zooming
+   (frame p95 55 ms, 21 long animation frames per wheel burst; 6 ms and 4
+   without). Phones never drew the halo. */
 .planned-closure-map-icon {
   color: var(--planned-preview-ink);
   fill: none;
-  filter:
-    drop-shadow(0 0 1px var(--planned-preview-glow))
-    drop-shadow(0 0 3px rgba(0, 200, 255, 0.14));
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2.25;
@@ -451,10 +405,6 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 7;
-}
-
-.linewatch-shell.mobile-performance-mode .planned-closure-map-icon {
-  filter: none;
 }
 
 .asset-alert-path.planned-preview:hover,
@@ -568,8 +518,6 @@
   shape-rendering: geometricPrecision;
 }
 
-.delay-hourglass-mask-path,
-.suspension-mask-path,
 .suspension-no-entry-glyph,
 .planned-closure-map-icon,
 .rsz-chevron,

@@ -155,7 +155,7 @@ describe("regional map overlay utilities", () => {
       const uiKeepoutBoxes = [
         { x: 0, y: 0, width: 200, height: 200 },
       ];
-      const alertCollisionBoxes = [];
+      const affectedArea = [];
 
       const result = regionalOverlapChooserLayout({
         markerCenter,
@@ -163,7 +163,7 @@ describe("regional map overlay utilities", () => {
         alertAnchor,
         chooserSize,
         viewportSize,
-        alertCollisionBoxes,
+        affectedArea,
         uiKeepoutBoxes,
       });
 
