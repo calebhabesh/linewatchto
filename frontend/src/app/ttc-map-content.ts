@@ -1,15 +1,15 @@
 /*
  * TTC's content adapter: what the TTC System Map draws over its artwork
  * (`MapContent`, app/map-content.ts), from dashboard data. Corridors are
- * composed from the network's segments along the authored guide paths, and
- * station alerts take their size from TTC's station dots.
+ * composed from the network's segments along the authored guide paths; the
+ * overlay rules (timing, visual state, labels, badge grouping, station-alert
+ * sizes) are the shared ones in app/map-content-rules.ts.
  */
 import type {
   ActiveAlert,
   DelayAlert,
   ImpactSelection,
   MapImpact,
-  MapImpactKind,
   NetworkSegment,
   PlannedClosure,
   ReducedSpeedZone,
@@ -27,11 +27,30 @@ import {
   type MapPoint,
 } from "./map-geometry.ts";
 import { ttcAnchorPoints, ttcGuidePaths, ttcStationCenters } from "./ttc-map-geometry.ts";
-import { getImpactPriority, plannedAdvisoryStationImpacts } from "./map-alert-selector.ts";
+import { plannedAdvisoryStationImpacts } from "./map-alert-selector.ts";
+import {
+  currentSegmentImpacts,
+  lineAlertLabel,
+  lineAlertVisualState,
+  mapImpactContext,
+  mapPlannedPreviews,
+  overlapBadgeGroups,
+  overlapPreviewClosures,
+  overlapStretchLabel,
+  plannedPreviewLabel,
+  segmentsLabel,
+  stationAlertSizes,
+  type MapImpactContext,
+  type MapOverlapBadgeGroup,
+} from "./map-content-rules.ts";
 import type { MapContent, MapOverlapBadgeInput } from "./map-content.ts";
 import { estimatedTrainMarkerLanePoint, type EstimatedTrainMarker } from "./train-markers.ts";
 import type { MapTrainMarkerPlacement } from "../components/map-overlays/TrainMarkerLayer.tsx";
-import type { MapLineAlert, MapOverlayVisualState } from "../components/map-overlays/line-alert-model.ts";
+import {
+  lineAlertPathsByImpact,
+  lineAlertPaintOrder,
+  type MapLineAlert,
+} from "../components/map-overlays/line-alert-model.ts";
 import {
   interchangeLineImpacts,
   stationDirectionGlyphs,
@@ -47,26 +66,18 @@ import {
   ttcArtworkObstacles,
 } from "../components/ttc-map-obstacles.ts";
 import {
-  activeImpactsForSegment,
   buildStationOverlapBadgeGroups,
   coveredSegmentOverlapBadgeSignatures,
-  hasOverlappingImpacts,
   mapOverlapIndicatorSizeForKindCount,
   overlapBadgeKindCounts,
-  overlapBadgeSignature,
   overlapBadgeVisualItemCount,
 } from "../components/map-overlap-badges.ts";
 import { stationImpactDirectionForImpact } from "../components/station-impact-direction.ts";
 import {
   stationImpactVisualAnchors,
-  stationVisualAnchorIds,
   stationVisualAnchorsFor,
   stationVisualCenterIds,
 } from "../components/station-map-visuals.ts";
-import {
-  buildActiveClosureImpactCardIds,
-  normalizeActiveClosureMapImpact,
-} from "../components/map-impact-normalization.ts";
 import { stationImpactBeaconSize, type StationBeaconNeighbour } from "../components/station-impact-beacon.ts";
 
 export type TtcMapContentInput = {
@@ -93,50 +104,13 @@ type RenderedNetworkSegment = NetworkSegment & {
 };
 
 type RenderedImpactLayer = { segment: RenderedNetworkSegment; impact: MapImpact };
-type RenderedPlannedPreviewLayer = { segment: RenderedNetworkSegment; closure: PlannedClosure };
-
-type OverlapBadgeGroup = {
-  signature: string;
-  segments: RenderedNetworkSegment[];
-  impacts: MapImpact[];
-};
-
-const LARGE_TERMINAL_IDS = new Set([
-  "kipling",
-  "finch",
-  "vaughan-metropolitan-centre",
-  "don-mills",
-  "humber-college",
-  "mount-dennis",
-]);
-
-function isStationVisuallyLarge(station: { id: string; interchange: boolean }): boolean {
-  if (stationVisualAnchorIds(station.id).length > 1) return false;
-  if (LARGE_TERMINAL_IDS.has(station.id)) return true;
-  // Union is an interchange drawn with a regular-size dot.
-  if (station.id === "union") return false;
-  return station.interchange;
-}
-
-function stationImpactEffectRadius(isLargeStation: boolean): number {
-  return isLargeStation ? 48 : 26;
-}
-
-function stationImpactDirectionBadgeRadius(isLargeStation: boolean): number {
-  return isLargeStation ? 40 : 24;
-}
-
-/** A station dot's visible radius with its outline (authored r 32 or 59, stroke 8 or 15). */
-function stationDotOuterRadius(isLargeStation: boolean): number {
-  return isLargeStation ? 66 : 36;
-}
+type RenderedPlannedPreviewLayer = { segment: RenderedNetworkSegment; id: string; closure?: PlannedClosure };
 
 /** Clear space a station beacon keeps from a neighbouring dot or beacon. */
 const STATION_BEACON_GAP = 4;
 
-function stationImpactRingRadius(isLargeStation: boolean): number {
-  return isLargeStation ? 56 : 38;
-}
+/** A dot this much larger than the map's median dot is drawn as a large station (as map-station-artwork.ts). */
+const LARGE_DOT_RATIO = 1.5;
 
 /**
  * The last result of `compute`, while its arguments are the same objects:
@@ -159,15 +133,23 @@ const geometryCache = new WeakMap<PreparedMapGeometry, {
   anchorPoints: Map<string, MapPoint>;
   guidePaths: Map<string, string>;
   artworkObstacles: ReturnType<typeof ttcArtworkObstacles>;
+  dots: Map<string, number>;
+  medianDot: number;
 }>();
 
 function preparedTtc(geometry: PreparedMapGeometry) {
   let prepared = geometryCache.get(geometry);
   if (!prepared) {
+    const dots = new Map(geometry.stations.flatMap((station) => (
+      station.anchors.map(({ id, radius }) => [id.replace(/^station-/, ""), radius] as const)
+    )));
+    const sorted = [...dots.values()].sort((a, b) => a - b);
     prepared = {
       anchorPoints: ttcAnchorPoints(geometry),
       guidePaths: ttcGuidePaths(geometry),
       artworkObstacles: ttcArtworkObstacles(geometry),
+      dots,
+      medianDot: sorted[Math.floor(sorted.length / 2)] ?? 32,
     };
     geometryCache.set(geometry, prepared);
   }
@@ -185,9 +167,8 @@ const ttcCorridors = lastResult((
   plannedClosures: PlannedClosure[],
 ) => {
   const { anchorPoints, guidePaths } = preparedTtc(geometry);
-  const activeClosureImpactCardIds = buildActiveClosureImpactCardIds(activeAlerts, plannedClosures, delays);
   const stationById = new Map(mapStations.map((station) => [station.id, station]));
-  const renderedNetworkSegments = networkSegments
+  const resolvedSegments = networkSegments
     .map((segment) => {
       const stationA = segment.stationAId ? stationById.get(segment.stationAId) : undefined;
       const stationB = segment.stationBId ? stationById.get(segment.stationBId) : undefined;
@@ -209,9 +190,6 @@ const ttcCorridors = lastResult((
 
       return {
         ...segment,
-        impacts: segment.impacts?.map((impact) =>
-          normalizeActiveClosureMapImpact(impact, activeClosureImpactCardIds, plannedClosures)
-        ),
         pathD: resolveNetworkSegmentPath(segment, mapStations, anchorPoints, guidePaths),
         patternOriginX: originX,
         patternOriginY: originY,
@@ -219,6 +197,8 @@ const ttcCorridors = lastResult((
       } as RenderedNetworkSegment;
     })
     .filter((segment): segment is RenderedNetworkSegment => Boolean(segment.pathD));
+  const context = mapImpactContext(resolvedSegments, { activeAlerts, delays, plannedClosures });
+  const renderedNetworkSegments = context.segments;
 
   const plannedPreviewSegmentIds = new Set(plannedClosures.flatMap((closure) => closure.previewSegmentIds));
   const renderedOverlaySegments = renderedNetworkSegments.filter((segment) => (
@@ -227,7 +207,7 @@ const ttcCorridors = lastResult((
 
   const groups = new Map<string, { impact: MapImpact; segments: RenderedNetworkSegment[] }>();
   for (const segment of renderedOverlaySegments) {
-    for (const impact of activeImpactsForSegment(segment)) {
+    for (const impact of currentSegmentImpacts(segment, context)) {
       const key = impactLayerKey(impact);
       const group = groups.get(key);
       if (group) group.segments.push(segment);
@@ -250,32 +230,18 @@ const ttcCorridors = lastResult((
           corridor.pathD,
           corridor.travelDirection,
           corridor.segmentIds,
-          labelForSegments(orderedSegments),
+          segmentsLabel(orderedSegments),
         ),
       };
     })
-    .filter((layer): layer is RenderedImpactLayer => Boolean(layer))
-    .sort((a, b) => getImpactPriority(a.impact.kind) - getImpactPriority(b.impact.kind));
-
-  // Planned closures in effect now (or linked from a current alert) are
-  // current service, not previews, and get no preview badge.
-  const currentPlannedClosureIds = new Set([
-    ...[...activeAlerts, ...delays]
-      .map((alert) => alert.relatedPlannedClosureId)
-      .filter((id): id is string => Boolean(id)),
-    ...plannedClosures
-      .filter((closure) => closure.activeNow || closure.timingStatus === "active-now")
-      .map((closure) => closure.id),
-  ]);
-  const overlapPlannedClosures = plannedClosures.filter((closure) => !currentPlannedClosureIds.has(closure.id));
+    .filter((layer): layer is RenderedImpactLayer => Boolean(layer));
 
   return {
+    context,
     renderedNetworkSegments,
     renderedOverlaySegments,
     impactLayers,
-    currentPlannedClosureIds,
-    overlapPlannedClosures,
-    segmentOverlapGroups: groupOverlapBadgeSegments(renderedOverlaySegments, overlapPlannedClosures),
+    segmentOverlapGroups: overlapBadgeGroups(context),
   };
 });
 
@@ -327,72 +293,60 @@ export function ttcMapContent(geometry: PreparedMapGeometry, input: TtcMapConten
     ...plannedAdvisoryStationImpacts(plannedClosures, activeAlerts, delays, selection),
   ];
   const {
+    context,
     renderedNetworkSegments,
-    renderedOverlaySegments,
     impactLayers,
-    currentPlannedClosureIds,
-    overlapPlannedClosures,
     segmentOverlapGroups,
   } = ttcCorridors(geometry, networkSegments, mapStations, activeAlerts, delays, reducedSpeedZones, plannedClosures);
   const stationCenterPoints = ttcStationCenterPoints(geometry, stations);
+  const { dots, medianDot } = preparedTtc(geometry);
+  // A station placed where the artwork draws no dot is drawn as a regular one.
+  const dot = (anchorId: string) => dots.get(anchorId) ?? medianDot;
   const stationById = new Map(stations.map((station) => [station.id, station]));
   const visualAnchorsForStation = (station: Pick<StationSummary, "id" | "mapX" | "mapY">) => (
     stationVisualAnchorsFor(station, stationCenterPoints)
   );
 
   // Planned previews: upcoming closures, and a current one while selected.
-  const plannedPreviewLayers = plannedClosures
-    .filter((closure) => !currentPlannedClosureIds.has(closure.id)
-      || (selection?.kind === "planned-closure" && selection.id === closure.id))
-    .map((closure): RenderedPlannedPreviewLayer | null => {
-      const orderedSegments = orderSegmentsByIds(
-        renderedOverlaySegments.filter((segment) => shouldRenderPlannedPreviewLayer(segment, closure)),
-        closure.previewSegmentIds,
-      );
-      const corridor = composeNetworkSegmentPath(orderedSegments, closure.travelDirection ?? "bidirectional");
+  const plannedPreviewLayers = mapPlannedPreviews(context, selection)
+    .map((preview): RenderedPlannedPreviewLayer | null => {
+      const corridor = composeNetworkSegmentPath(preview.segments, preview.travelDirection);
       if (!corridor.pathD) return null;
       return {
         segment: compositeSegment(
-          `planned-preview-${closure.id}`,
-          orderedSegments,
+          `planned-preview-${preview.id}`,
+          preview.segments,
           corridor.pathD,
           corridor.travelDirection,
           corridor.segmentIds,
-          closure.location || closure.title,
+          plannedPreviewLabel(preview.closure, preview.segments),
         ),
-        closure,
+        id: preview.id,
+        closure: preview.closure,
       };
     })
     .filter((layer): layer is RenderedPlannedPreviewLayer => Boolean(layer));
 
-  const lineAlerts = [
-    ...plannedPreviewLayers.map(({ segment, closure }) => (
-      ttcLineAlert(`${segment.id}:${closure.id}`, segment, null, closure)
+  const lineAlerts = lineAlertPaintOrder([
+    ...plannedPreviewLayers.map(({ segment, id }) => (
+      ttcLineAlert(`${segment.id}:${id}`, segment, null, id)
     )),
     ...impactLayers.map(({ segment, impact }) => (
-      ttcLineAlert(`${segment.id}:${impact.kind}:${impact.cardId}:${impact.travelDirection}`, segment, impact, undefined)
+      ttcLineAlert(`${segment.id}:${impact.kind}:${impact.cardId}:${impact.travelDirection}`, segment, impact, impact.cardId)
     )),
-  ];
-
-  const outlinePathsByImpact = new Map<string, string[]>();
-  const addOutlinePath = (key: string, pathD: string) => {
-    const list = outlinePathsByImpact.get(key);
-    if (!list) outlinePathsByImpact.set(key, [pathD]);
-    else if (!list.includes(pathD)) list.push(pathD);
-  };
-  for (const { segment, closure } of plannedPreviewLayers) addOutlinePath(`planned-closure:${closure.id}`, segment.pathD);
-  for (const { segment, impact } of impactLayers) addOutlinePath(`${impact.kind}:${impact.cardId}`, segment.pathD);
+  ]);
+  const outlinePathsByImpact = lineAlertPathsByImpact(lineAlerts);
 
   const selectedLineAlerts: MapLineAlert[] = [];
   if (selection) {
     const activeLayer = impactLayers.find(({ impact }) => impact.kind === selection.kind && impact.cardId === selection.id);
     const previewLayer = !activeLayer && selection.kind === "planned-closure"
-      ? plannedPreviewLayers.find(({ closure }) => closure.id === selection.id)
+      ? plannedPreviewLayers.find(({ id }) => id === selection.id)
       : undefined;
     if (activeLayer) {
-      selectedLineAlerts.push(ttcLineAlert(`selected:${selection.id}`, activeLayer.segment, activeLayer.impact, undefined));
+      selectedLineAlerts.push(ttcLineAlert(`selected:${selection.id}`, activeLayer.segment, activeLayer.impact, selection.id));
     } else if (previewLayer) {
-      selectedLineAlerts.push(ttcLineAlert(`selected:${selection.id}`, previewLayer.segment, null, previewLayer.closure));
+      selectedLineAlerts.push(ttcLineAlert(`selected:${selection.id}`, previewLayer.segment, null, previewLayer.id));
     }
   }
 
@@ -404,7 +358,7 @@ export function ttcMapContent(geometry: PreparedMapGeometry, input: TtcMapConten
     visualAnchorsForStation(station).map((anchor) => ({
       id: anchor.id,
       center: anchor.point,
-      radius: stationDotOuterRadius(isStationVisuallyLarge(station)),
+      radius: stationAlertSizes(dot(anchor.id)).dotOuterRadius,
     }))
   ));
   const stationBeaconAnchorIds = new Set<string>();
@@ -419,8 +373,6 @@ export function ttcMapContent(geometry: PreparedMapGeometry, input: TtcMapConten
   const stationAlerts = stationNodeImpacts.flatMap((impact): MapStationAlert[] => {
     const station = stationById.get(impact.stationId);
     if (!station) return [];
-    const isLarge = isStationVisuallyLarge(station);
-    const coreRadius = stationImpactEffectRadius(isLarge);
     const impactDirection = stationImpactDirectionForImpact(impact, directionData);
     const directionLabel = impactDirection?.displayDirection ? ` (${impactDirection.displayDirection})` : "";
     return [{
@@ -429,19 +381,22 @@ export function ttcMapContent(geometry: PreparedMapGeometry, input: TtcMapConten
       impactId: impact.cardId,
       stationId: station.id,
       label: `${impact.title}: ${station.name}${directionLabel}`,
-      anchors: stationImpactVisualAnchors(station, impact, directionData, stationCenterPoints).map(({ id, point }) => ({
-        id,
-        center: point,
-        coreRadius,
-        ringRadius: stationImpactRingRadius(isLarge),
-        beaconRadius: stationImpactBeaconSize(
-          point,
+      anchors: stationImpactVisualAnchors(station, impact, directionData, stationCenterPoints).map(({ id, point }) => {
+        const { coreRadius, ringRadius } = stationAlertSizes(dot(id));
+        return {
+          id,
+          center: point,
           coreRadius,
-          stationBeaconNeighbours,
-          stationBeaconAnchorIds,
-          STATION_BEACON_GAP,
-        ).radius,
-      })),
+          ringRadius,
+          beaconRadius: stationImpactBeaconSize(
+            point,
+            coreRadius,
+            stationBeaconNeighbours,
+            stationBeaconAnchorIds,
+            STATION_BEACON_GAP,
+          ).radius,
+        };
+      }),
     }];
   });
 
@@ -453,10 +408,9 @@ export function ttcMapContent(geometry: PreparedMapGeometry, input: TtcMapConten
     ].flatMap((impact) => {
       const station = stationById.get(impact.stationId);
       if (!station) return [];
-      const badgeRadius = stationImpactDirectionBadgeRadius(isStationVisuallyLarge(station));
       return stationImpactVisualAnchors(station, impact, directionData, stationCenterPoints).map(({ id, point }) => ({
         impact,
-        anchor: { id, center: point, badgeRadius },
+        anchor: { id, center: point, badgeRadius: stationAlertSizes(dot(id)).directionBadgeRadius },
       }));
     }),
     directionData,
@@ -467,12 +421,18 @@ export function ttcMapContent(geometry: PreparedMapGeometry, input: TtcMapConten
     selectedLineAlerts,
     stationAlerts,
     stationDirectionGlyphs: glyphs,
-    commutePreview: ttcCommutePreview(commutePathPreview, renderedNetworkSegments, stations, visualAnchorsForStation),
+    commutePreview: ttcCommutePreview(
+      commutePathPreview,
+      renderedNetworkSegments,
+      stations,
+      visualAnchorsForStation,
+      (anchorId) => dot(anchorId) > medianDot * LARGE_DOT_RATIO,
+    ),
     outlinePathsByImpact,
     overlapBadges: ttcOverlapBadges(
       segmentOverlapGroups,
-      renderedOverlaySegments,
-      overlapPlannedClosures,
+      renderedNetworkSegments,
+      context,
       stationNodeImpacts,
       stationById,
       stationCenterPoints,
@@ -483,7 +443,7 @@ export function ttcMapContent(geometry: PreparedMapGeometry, input: TtcMapConten
       stationDots: stations.flatMap((station) => (
         visualAnchorsForStation(station).map((anchor) => ({
           center: anchor.point,
-          radius: stationImpactRingRadius(isStationVisuallyLarge(station)) + CONNECTOR_STATION_CLEARANCE,
+          radius: stationAlertSizes(dot(anchor.id)).ringRadius + CONNECTOR_STATION_CLEARANCE,
         }))
       )),
       badgeScale: 1,
@@ -513,6 +473,7 @@ function ttcCommutePreview(
   segments: RenderedNetworkSegment[],
   stations: StationSummary[],
   visualAnchorsForStation: (station: StationSummary) => { id: string; point: MapPoint }[],
+  isLargeDot: (anchorId: string) => boolean,
 ): MapCommutePreview | null {
   // Endpoints flash even when the route has no drawable path.
   if (!preview || preview.stationIds.length === 0) return null;
@@ -538,7 +499,7 @@ function ttcCommutePreview(
       const station = stationId ? stationById.get(stationId) : undefined;
       if (!station) return [];
       const anchors = visualAnchorsForStation(station);
-      const flashRadius = anchors.length > 1 ? 33 : isStationVisuallyLarge(station) ? 48 : 38;
+      const flashRadius = anchors.length > 1 ? 33 : isLargeDot(anchors[0].id) ? 48 : 38;
       return anchors.map((anchor) => ({
         key: `${role}:${station.id}:${anchor.id}`,
         stationId: station.id,
@@ -557,16 +518,16 @@ function ttcCommutePreview(
  * by a station badge is dropped.
  */
 function ttcOverlapBadges(
-  rawSegmentGroups: OverlapBadgeGroup[],
+  rawSegmentGroups: MapOverlapBadgeGroup<RenderedNetworkSegment>[],
   segments: RenderedNetworkSegment[],
-  plannedClosures: PlannedClosure[],
+  context: MapImpactContext<RenderedNetworkSegment>,
   stationNodeImpacts: StationNodeImpact[],
   stationById: Map<string, StationSummary>,
   stationCenterPoints: Map<string, MapPoint>,
 ): MapOverlapBadgeInput[] {
   const stationGroups = buildStationOverlapBadgeGroups({
     segments,
-    plannedClosures,
+    plannedClosures: overlapPreviewClosures(context),
     stationNodeImpacts,
     suppressedSignatures: new Set(rawSegmentGroups.map((group) => group.signature)),
   });
@@ -586,7 +547,7 @@ function ttcOverlapBadges(
       return {
         markerId: group.segments[0]?.id ?? `overlap-${group.signature}`,
         layoutId: `segment:${group.segments.map((source) => source.id).sort().join("|")}`,
-        label: labelForSegments(group.segments),
+        label: overlapStretchLabel(group.segments),
         impacts: group.impacts,
         anchor: frame.point,
         position: frame.point,
@@ -620,87 +581,24 @@ function overlapBadgeSize(impacts: MapImpact[]) {
   return mapOverlapIndicatorSizeForKindCount(overlapBadgeVisualItemCount(overlapBadgeKindCounts(impacts)));
 }
 
-function visualStateForImpactKind(kind: MapImpactKind): MapOverlayVisualState {
-  switch (kind) {
-    case "suspension":
-      return "suspension";
-    case "planned-closure":
-      return "suspension";
-    case "delay":
-      return "delay-static";
-    case "reduced-speed-zone":
-      return "reduced-speed-zone";
-  }
-}
-
 /** A TTC impact or planned-closure preview as the shared overlay layer draws it. */
 function ttcLineAlert(
   key: string,
   segment: RenderedNetworkSegment,
   impact: MapImpact | null,
-  closure: PlannedClosure | undefined,
+  impactId: string,
 ): MapLineAlert {
   return {
     key,
     kind: impact?.kind ?? "planned-closure",
-    impactId: impact?.cardId ?? closure?.id ?? "unknown",
+    impactId,
     lineId: segment.lineId,
     pathD: segment.pathD,
     travelDirection: visualTravelDirection(segment),
-    visualState: impact ? visualStateForImpactKind(impact.kind) : "planned-preview",
-    label: impact
-      ? `${impact.kind}: ${segment.label}`
-      : `${closure?.title ?? "Planned advisory"}: ${segment.label}`,
+    visualState: lineAlertVisualState(impact?.kind ?? "planned-closure", !impact),
+    label: impact ? lineAlertLabel(impact.kind, [segment]) : segment.label,
     segmentIds: segment.sourceSegmentIds ?? [segment.id],
   };
-}
-
-function plannedPreviewImpactsForSegment(
-  segment: RenderedNetworkSegment,
-  plannedClosures: PlannedClosure[],
-): MapImpact[] {
-  return plannedClosures
-    .filter((closure) => shouldRenderPlannedPreviewLayer(segment, closure))
-    .map((closure) => ({
-      kind: "planned-closure",
-      cardId: closure.id,
-      travelDirection: "bidirectional",
-      sourceAlertIds: [closure.id],
-    }));
-}
-
-function overlapBadgeImpactsForSegment(
-  segment: RenderedNetworkSegment,
-  plannedClosures: PlannedClosure[],
-): MapImpact[] {
-  const impactsByKey = new Map<string, MapImpact>();
-  for (const impact of [
-    ...activeImpactsForSegment(segment),
-    ...plannedPreviewImpactsForSegment(segment, plannedClosures),
-  ]) {
-    impactsByKey.set(`${impact.kind}:${impact.cardId}`, impact);
-  }
-  return Array.from(impactsByKey.values());
-}
-
-function groupOverlapBadgeSegments(
-  segments: RenderedNetworkSegment[],
-  plannedClosures: PlannedClosure[],
-): OverlapBadgeGroup[] {
-  const groups = new Map<string, OverlapBadgeGroup>();
-  for (const segment of segments) {
-    const impacts = overlapBadgeImpactsForSegment(segment, plannedClosures);
-    if (!hasOverlappingImpacts(impacts)) continue;
-    const signature = overlapBadgeSignature(impacts);
-    const group = groups.get(signature);
-    if (group) group.segments.push(segment);
-    else groups.set(signature, { signature, segments: [segment], impacts });
-  }
-  return Array.from(groups.values()).sort((a, b) => {
-    const aSegmentId = a.segments[0]?.id ?? "";
-    const bSegmentId = b.segments[0]?.id ?? "";
-    return aSegmentId.localeCompare(bSegmentId) || a.signature.localeCompare(b.signature);
-  });
 }
 
 function impactLayerKey(impact: MapImpact) {
@@ -761,21 +659,6 @@ function compositeSegment(
     travelDirection,
     sourceSegmentIds,
   };
-}
-
-function labelForSegments(segments: RenderedNetworkSegment[]): string {
-  if (segments.length === 0) return "Transit corridor";
-  if (segments.length === 1) return segments[0].label;
-  const first = segments[0];
-  const last = segments.at(-1) ?? first;
-  return `${first.label} through ${last.label}`;
-}
-
-function shouldRenderPlannedPreviewLayer(segment: RenderedNetworkSegment, selectedClosure: PlannedClosure) {
-  if (!selectedClosure.previewSegmentIds.includes(segment.id)) return false;
-  return !(segment.impacts ?? []).some(
-    (impact) => impact.kind === "planned-closure" && impact.cardId === selectedClosure.id,
-  );
 }
 
 const TTC_TRAIN_MARKER_LANE_OFFSET = 20;

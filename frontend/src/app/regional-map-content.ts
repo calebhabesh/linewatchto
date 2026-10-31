@@ -64,8 +64,11 @@ export function regionalMapContent(geometry: PreparedMapGeometry, input: Regiona
   const stationAlertImpacts = regionalStationAlertImpacts(input);
   const lineAlerts = regionalLineAlerts(geometry, {
     activeAlerts,
+    delays,
+    plannedClosures,
     networkSegments,
     stationNodeImpacts: input.stationNodeImpacts,
+    selection,
   });
   const station = regionalStationAlerts(geometry, {
     activeAlerts,
@@ -83,7 +86,12 @@ export function regionalMapContent(geometry: PreparedMapGeometry, input: Regiona
     stationDirectionGlyphs: station.glyphs,
     commutePreview: regionalCommutePreview(geometry, input.commutePathPreview ?? null, networkSegments),
     outlinePathsByImpact: lineAlertPathsByImpact(lineAlerts),
-    overlapBadges: regionalOverlapBadges(geometry, networkSegments, { stationNodeImpacts: stationAlertImpacts, stations }),
+    overlapBadges: regionalOverlapBadges(
+      geometry,
+      networkSegments,
+      { stationNodeImpacts: stationAlertImpacts, stations },
+      { activeAlerts, delays, plannedClosures },
+    ),
     badgePlacement: regionalBadgePlacement(geometry),
   };
 }

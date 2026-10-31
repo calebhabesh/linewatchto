@@ -273,3 +273,73 @@ full-spec runs; phone numbers are noisy). Build once and reuse it
     shows the 15 existing warnings. No browser suites: no application code
     changed (a test file and this plan only), so plan 10 phase 6's browser
     results still hold.
+- **Phase 2 done (2026-10-31): shared overlay rules.** One module,
+  `frontend/src/app/map-content-rules.ts`, holds the rules both content
+  adapters apply; `ttc-map-content.ts`, `regional-line-alerts.ts`,
+  `regional-map-overlays.ts` and `regional-station-alerts.ts` call it and keep
+  only their corridor composition and network facts.
+  - **Closure timing (item 1).** `mapImpactContext` decides from the closure's
+    timing, not the impact kind: a closure is current when `activeNow`,
+    `active-now`, itself a current planned alert or linked from a current
+    alert (`getEligiblePlannedClosures` plus `buildActiveClosureImpactCardIds`).
+    Current closures' segment impacts become their current effect
+    (`normalizeActiveClosureMapImpact`, now on both maps) and draw red;
+    an unnormalized current one still draws red. Every other closure is an
+    upcoming preview from `previewSegmentIds` or segment impacts, merged per
+    closure (`mapPlannedPreviews`), drawn blue on both maps. A selected
+    current closure also previews its planned extent in blue under its red
+    effect, and the selection emphasizes that preview (TTC's rule, now
+    GO/UP's too). `lineAlertVisualState(kind, preview)` is the one visual
+    state table; GO/UP's `regionalLineAlertVisualState` is gone. A GO/UP
+    line-wide alert with severity `planned` is a current alert and now draws
+    red (it drew blue).
+  - **Paint order (item 2).** One table, `getImpactPriority`, applied by
+    `lineAlertPaintOrder` in both adapters (the renderer already used it);
+    `regionalImpactPriority` and its unit test are gone. GO/UP keeps its
+    tie-break (impact id, key) before the stable priority sort.
+  - **Labels (item 6).** Current alerts `lineAlertLabel` ("<kind>: <first>
+    through <last>", unchanged on both). Previews `plannedPreviewLabel`:
+    "<closure title>: <location>", falling back to the segments' label
+    (fixes TTC's doubled title; GO/UP's "planned-closure: …" becomes the
+    closure's title). Stretch badges `overlapStretchLabel`: GO/UP's "Alder to
+    Cedar", falling back to the "through" form when the ends coincide.
+  - **Badge grouping (item 4).** `overlapBadgeGroups` counts current service
+    plus upcoming previews (either encoding) per segment; station badges get
+    the same previews (`overlapPreviewClosures`). GO/UP passed none before.
+  - **Station-alert sizing (item 5).** `stationAlertSizes(dotRadius)` from
+    each dot's prepared radius: core 26/32, ring 38/32, arrow badge 24/32,
+    outline 1.15. `LARGE_TERMINAL_IDS`, `isStationVisuallyLarge` and TTC's
+    fixed radii are retired. TTC reads radii from `geometry.stations`
+    anchors; a station the artwork does not draw (smoke stubs) gets the
+    median dot. Large TTC stations (r 58.84): core 48 (same), arrow badge 44
+    (was 40), ring 70 (was 56). The old 56 ring sat inside the dot (0.95 of
+    its radius) while regular dots' rings sit outside (1.18); at 70 every
+    dot's ring is 1.19 of its radius, so large stations now match regular
+    ones. Checked by geometry, not by screenshot: the smoke stub has no
+    large-station alert and an injected one is dropped by the stub's own
+    station list; the visual baselines show no difference. Owner: say if
+    the tighter inside ring was intended for large stations. TTC's outline
+    ratio was 1.125 and is now the shared 1.15, so beacons near a dot shrink
+    by at most about 1 unit. The commute flash (phase 3) still reads "large"
+    from the artwork (1.5 × the median dot, as `map-station-artwork.ts`),
+    which picks exactly the stations the retired list and interchange rule
+    did.
+  - **Tests.** The 10 phase 2 `todo` cases are plain cases; 4 phase 3 todos
+    remain (line-wide alert, commute route and endpoint sizes, train label).
+    The selected-current-closure case now also pins red plus blue and the
+    emphasized preview. `ttc-map-content.test.mjs`: Kipling and Eglinton
+    sizes by ratio (70/48), plus an upcoming closure named only by a
+    segment impact drawing blue. `regional-map-content.test.mjs` passes the
+    closure data. Source checks in `map-layering`, `regional-network` and the
+    map source helper (which now reads `map-content-rules.ts`) follow the
+    moved code. `dashboard.spec.ts` "regional overlay reconciliation" now
+    drops the closure from `plannedClosures` as well as segment impacts: GO/UP's
+    payload lists `regional-demo-planned` both ways, and previews now read
+    either.
+  - Checks: `test:fast` passes (parity 23 pass, 4 todo), typecheck clean,
+    lint 15 existing warnings. One build with `LINEWATCH_TEST_HARNESS=true`,
+    reused. `map-parity` 38 passed (38 per-project skips). The browser list
+    (dashboard by path) passed 358 and failed 3: the two known GO/UP mobile
+    cases (item 9) and the reconciliation case above, which passes after its
+    fix. `test:visual` 30 passed with no differences, so no baselines changed.
+    `test:map-zoom-memory` 2 passed, 0 tile-memory warnings on both maps.

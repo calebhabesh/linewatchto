@@ -1,7 +1,9 @@
 import type {
-  ImpactKind,
+  ActiveAlert,
+  DelayAlert,
   MapImpact,
   NetworkSegment,
+  PlannedClosure,
   Station,
   StationNodeImpact,
 } from "./linewatch-data.ts";
@@ -21,11 +23,16 @@ import {
 import {
   buildStationOverlapBadgeGroups,
   coveredSegmentOverlapBadgeSignatures,
-  hasOverlappingImpacts,
   mapOverlapIndicatorSize,
   type StationOverlapBadgeGroup,
-  overlapBadgeSignature,
 } from "../components/map-overlap-badges.ts";
+import {
+  mapImpactContext,
+  overlapBadgeGroups,
+  overlapPreviewClosures,
+  overlapStretchLabel,
+  stationAlertSizes,
+} from "./map-content-rules.ts";
 import {
   BADGE_FEATURE_GAPS,
   badgeObstacleReach,
@@ -43,7 +50,6 @@ import {
   type MapOverlapBadgeInput,
   type MapPlacedOverlapBadge,
 } from "./map-content.ts";
-import { regionalStationAlertRingRadius } from "./regional-station-alerts.ts";
 
 export const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
@@ -65,21 +71,6 @@ export type RegionalOverlayRun = {
   pathD: string;
 };
 
-
-export function regionalImpactPriority(kind: ImpactKind) {
-  switch (kind) {
-    case "planned-closure":
-      return 0;
-    case "reduced-speed-zone":
-      return 1;
-    case "delay":
-      return 2;
-    case "suspension":
-      return 3;
-    default:
-      return -1;
-  }
-}
 
 export function regionalSegmentsAreAdjacent(a: NetworkSegment, b: NetworkSegment) {
   return a.stationAId === b.stationAId
@@ -131,28 +122,18 @@ export function regionalOverlayRuns(pieces: RegionalOverlayPiece[]): RegionalOve
   return runs;
 }
 
-export function regionalOverlapBadgeGroups(segments: NetworkSegment[]) {
-  const groups = new Map<string, { segments: NetworkSegment[]; impacts: MapImpact[] }>();
-  for (const segment of segments) {
-    const impacts = [...new Map(
-      (segment.impacts ?? []).map((impact) => [`${impact.kind}:${impact.cardId}`, impact]),
-    ).values()];
-    if (!hasOverlappingImpacts(impacts)) continue;
-    const signature = overlapBadgeSignature(impacts);
-    const group = groups.get(signature);
-    if (group) {
-      group.segments.push(segment);
-    } else {
-      groups.set(signature, { segments: [segment], impacts });
-    }
-  }
-  return [...groups.entries()]
-    .map(([signature, group]) => ({ signature, ...group }))
-    .sort((a, b) => {
-      const aSegmentId = a.segments[0]?.id ?? "";
-      const bSegmentId = b.segments[0]?.id ?? "";
-      return aSegmentId.localeCompare(bSegmentId) || a.signature.localeCompare(b.signature);
-    });
+/** Planned closures and the alerts that decide their timing (map-content-rules.ts). */
+export type RegionalClosureData = {
+  activeAlerts: ActiveAlert[];
+  delays: DelayAlert[];
+  plannedClosures: PlannedClosure[];
+};
+
+const NO_CLOSURES: RegionalClosureData = { activeAlerts: [], delays: [], plannedClosures: [] };
+
+/** Segments whose alerts overlap, by the shared grouping (upcoming previews included). */
+export function regionalOverlapBadgeGroups(segments: NetworkSegment[], closures: RegionalClosureData = NO_CLOSURES) {
+  return overlapBadgeGroups(mapImpactContext(segments, closures));
 }
 
 export function regionalOverlapBadges(
@@ -162,14 +143,16 @@ export function regionalOverlapBadges(
     stationNodeImpacts: StationNodeImpact[];
     stations: Pick<Station, "id" | "name">[];
   },
+  closures: RegionalClosureData = NO_CLOSURES,
 ): MapOverlapBadgeInput[] {
-  const segmentGroups = regionalOverlapBadgeGroups(segments);
+  const context = mapImpactContext(segments, closures);
+  const segmentGroups = overlapBadgeGroups(context);
   // Same rules as the TTC map: alerts that only meet at a station get a station
   // badge, and a segment badge fully explained by a station badge is dropped.
   const stationGroups = stationContext
     ? buildStationOverlapBadgeGroups({
-        segments,
-        plannedClosures: [],
+        segments: context.segments,
+        plannedClosures: overlapPreviewClosures(context),
         stationNodeImpacts: stationContext.stationNodeImpacts,
         suppressedSignatures: new Set(segmentGroups.map((group) => group.signature)),
       })
@@ -191,15 +174,11 @@ export function regionalOverlapBadges(
       const pathD = resolvedRegionalSegmentPath(geometry, segment);
       return pathD ? overlapBadgeTargetsAlong(pathD, REGIONAL_BADGE_SCALE) : [];
     });
-    const firstSegment = group.segments[0];
-    const lastSegment = group.segments.at(-1) ?? firstSegment;
-    const startLabel = firstSegment.label.split(" to ")[0];
-    const endLabel = lastSegment.label.split(" to ").at(-1) ?? lastSegment.label;
     const markerId = `regional-overlap-${group.signature}`;
     return [{
       markerId,
       layoutId: markerId,
-      label: `${startLabel} to ${endLabel}`,
+      label: overlapStretchLabel(group.segments),
       impacts: group.impacts,
       anchor: placement.anchor,
       position: placement.position,
@@ -307,7 +286,7 @@ export function regionalBadgePlacement(geometry: PreparedMapGeometry): MapBadgeP
       artwork: regionalBadgeArtwork(geometry),
       stationDots: regionalStationDots(geometry).map((anchor) => ({
         center: anchor.point,
-        radius: regionalStationAlertRingRadius(anchor.radius) + CONNECTOR_STATION_CLEARANCE * REGIONAL_OVERLAY_UNIT,
+        radius: stationAlertSizes(anchor.radius).ringRadius + CONNECTOR_STATION_CLEARANCE * REGIONAL_OVERLAY_UNIT,
       })),
       badgeScale: REGIONAL_BADGE_SCALE,
     };

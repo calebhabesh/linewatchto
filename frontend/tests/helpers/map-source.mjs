@@ -10,6 +10,8 @@ const SHARED_MAP_SOURCE_FILES = [
   "../../src/components/system-map/system-map-registry.tsx",
   "../../src/app/map-manifests.ts",
   "../../src/app/map-content.ts",
+  // The overlay rules every content adapter applies (plan 11 phase 2).
+  "../../src/app/map-content-rules.ts",
   "../../src/components/map-overlays/useRetainedMapItems.ts",
 ];
 

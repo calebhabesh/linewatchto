@@ -80,14 +80,32 @@ describe("TTC map content", () => {
     assert.deepEqual(suspension.selectedLineAlerts.map((alert) => alert.key), ["selected:s1"]);
   });
 
-  it("sizes station alerts by TTC's dots and names their station", () => {
+  it("sizes station alerts from each dot's prepared radius and names their station", () => {
     const content = ttcMapContent(geometry, scenario());
     const kipling = content.stationAlerts.find((alert) => alert.stationId === "kipling");
+    const eglinton = content.stationAlerts.find((alert) => alert.stationId === "eglinton");
     assert.equal(kipling.key, "suspension:s1:kipling");
     assert.equal(kipling.label, "No service: Kipling");
-    // Kipling is a large terminal: its ring and core are TTC's large sizes.
-    assert.deepEqual(kipling.anchors.map(({ id, ringRadius, coreRadius }) => [id, ringRadius, coreRadius]), [["kipling", 56, 48]]);
+    // The shared ratios (map-content-rules.ts): core 26/32 of the dot, ring
+    // 38/32. Kipling and Eglinton are drawn large (r 58.84): the core stays
+    // at TTC's 48 and the ring now clears the dot as a regular dot's does
+    // (70, was 56 inside the dot's outline).
+    const sizes = (alert) => alert.anchors.map(({ id, ringRadius, coreRadius }) => [id, Math.round(ringRadius), Math.round(coreRadius)]);
+    assert.deepEqual(sizes(kipling), [["kipling", 70, 48]]);
+    assert.deepEqual(sizes(eglinton), [["eglinton", 70, 48]]);
     assert.deepEqual(kipling.anchors[0].center, geometry.anchors["station-kipling"]);
+  });
+
+  it("previews an upcoming closure that a segment impact names, in planned blue", () => {
+    const content = ttcMapContent(geometry, scenario({
+      networkSegments: networkSegments.map((segment) => segment.id === "line-2-kipling-jane"
+        ? { ...segment, overlay: "delay", impacts: [impact("planned-closure", "p1")] }
+        : segment),
+    }));
+    assert.deepEqual(
+      content.lineAlerts.filter((alert) => alert.impactId === "p1").map((alert) => [alert.visualState, alert.label]),
+      [["planned-preview", "Weekend closure: Kipling to Jane"]],
+    );
   });
 
   it("badges alerts that share a stretch of line", () => {

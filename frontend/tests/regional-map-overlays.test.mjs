@@ -1,26 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import {
-  regionalImpactPriority,
-  regionalOverlayRuns,
-} from "../src/app/regional-map-overlays.ts";
+import { regionalOverlayRuns } from "../src/app/regional-map-overlays.ts";
 
 describe("regional map overlay utilities", () => {
-  describe("regionalImpactPriority", () => {
-    it("orders disruption kinds by ascending severity", () => {
-      assert.equal(regionalImpactPriority("reduced-speed-zone"), 1);
-      assert.equal(regionalImpactPriority("planned-closure"), 0);
-      assert.equal(regionalImpactPriority("delay"), 2);
-      assert.equal(regionalImpactPriority("suspension"), 3);
-      assert.equal(regionalImpactPriority("unknown-kind"), -1);
-
-      const kinds = ["suspension", "reduced-speed-zone", "delay", "planned-closure"];
-      const sorted = [...kinds].sort((a, b) => regionalImpactPriority(a) - regionalImpactPriority(b));
-      assert.deepEqual(sorted, ["planned-closure", "reduced-speed-zone", "delay", "suspension"]);
-    });
-  });
-
   describe("regionalOverlayRuns", () => {
     it("returns an empty array when given no pieces", () => {
       assert.deepEqual(regionalOverlayRuns([]), []);

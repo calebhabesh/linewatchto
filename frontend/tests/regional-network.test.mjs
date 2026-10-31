@@ -547,8 +547,9 @@ describe("network-scoped regional dashboard", () => {
     }
     assert.doesNotMatch(regionalMapSource, /createPortal/);
     assert.match(regionalMapSource, /<MapLineAlertHoverOutlines alerts=\{lineAlerts\} plane=\{overlayPlane\} \/>/);
-    assert.match(regionalLineAlertsSource, /case "planned-closure":\s*return "planned-preview";/);
-    assert.match(regionalLineAlertsSource, /case "delay":\s*default:\s*return "delay-static";/);
+    // Visual state is the shared rule: previews blue, a current closure red.
+    assert.match(regionalMapSource, /if \(preview\) return "planned-preview";/);
+    assert.match(regionalLineAlertsSource, /visualState: lineAlertVisualState\(run\.impact\.kind, Boolean\(preview\)\)/);
     assert.match(regionalLineAlertsSource, /unit: REGIONAL_OVERLAY_UNIT/);
     assert.match(regionalGeometrySource, /REGIONAL_IMPACT_OVERLAY_WIDTH = 196/);
     assert.doesNotMatch(regionalOverlaysSource, /function regionalImpactGroup|GlyphLane\(/);
@@ -607,11 +608,12 @@ describe("network-scoped regional dashboard", () => {
   it("renders every layered segment impact instead of discarding overlaps", () => {
     assert.match(regionalLineAlertsSource, /for \(const \[impactIndex, impact\] of segment\.impacts\.entries\(\)\)/);
     assert.doesNotMatch(regionalLineAlertsSource, /const impact = segment\.impacts\?\.\[0\]/);
-    assert.match(regionalLineAlertsSource, /for \(const run of regionalOverlayRuns\(pieces\)\)/);
+    assert.match(regionalLineAlertsSource, /\.\.\.regionalOverlayRuns\(pieces\)\.map/);
     assert.match(regionalGeometrySource, /function continuousRegionalOverlayRunPath\(/);
     assert.match(regionalLineAlertsSource, /continuousRegionalOverlayRunPath\(geometry, run\) \?\? run\.pathD/);
-    assert.match(regionalLineAlertsSource, /regionalImpactPriority\(left\.kind\) - regionalImpactPriority\(right\.kind\)/);
-    assert.match(regionalOverlaysSource, /case "planned-closure":\s*return 0;[\s\S]*case "reduced-speed-zone":\s*return 1;[\s\S]*case "delay":\s*return 2;[\s\S]*case "suspension":\s*return 3;/);
+    // Paint order is the one shared table (getImpactPriority).
+    assert.match(regionalLineAlertsSource, /return lineAlertPaintOrder\(/);
+    assert.doesNotMatch(regionalOverlaysSource, /regionalImpactPriority/);
   });
 
   it("repaints completed regional selections while hover uses a non-interactive foreground copy", () => {
@@ -675,9 +677,10 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /<MapStationAlertRings alerts=\{stationAlerts\}/);
     assert.match(regionalMapSource, /<MapStationDirectionGlyphs glyphs=\{stationDirectionGlyphs\}/);
     assert.match(regionalMapSource, /<MapStationAlertForeground/);
-    // TTC's 26-unit core and 24-unit badge on its 32-unit dot.
-    assert.match(regionalStationAlertsSource, /const CORE_RATIO = 26 \/ TTC_STATION_DOT_RADIUS;/);
-    assert.match(regionalStationAlertsSource, /const DIRECTION_BADGE_RATIO = 24 \/ TTC_STATION_DOT_RADIUS;/);
+    // TTC's 26-unit core and 24-unit badge on its 32-unit dot, as ratios of each dot (shared rule).
+    assert.match(regionalMapSource, /const CORE_RATIO = 26 \/ DESIGN_DOT_RADIUS;/);
+    assert.match(regionalMapSource, /const DIRECTION_BADGE_RATIO = 24 \/ DESIGN_DOT_RADIUS;/);
+    assert.match(regionalStationAlertsSource, /stationAlertSizes\(anchor\.radius\)/);
     assert.match(regionalStationAlertsSource, /regionalStationImpactAnchors\(station, lineId\)/);
     // Union's pill keeps its filled outline in place of a ring and beacon.
     assert.match(regionalStationAlertsSource, /pill: regionalStationPill\(/);
@@ -718,9 +721,10 @@ describe("network-scoped regional dashboard", () => {
 
   it("reuses the TTC overlap indicator for regional same-type and mixed impacts", () => {
     assert.match(regionalGeometrySource, /const REGIONAL_OVERLAP_INDICATOR_SCALE = 2;/);
-    assert.match(regionalOverlaysSource, /function regionalOverlapBadgeGroups\(segments: NetworkSegment\[\]\)/);
-    assert.match(regionalOverlaysSource, /hasOverlappingImpacts\(impacts\)/);
-    assert.match(regionalOverlaysSource, /overlapBadgeSignature\(impacts\)/);
+    assert.match(regionalOverlaysSource, /function regionalOverlapBadgeGroups\(segments: NetworkSegment\[\], closures/);
+    assert.match(regionalOverlaysSource, /const segmentGroups = overlapBadgeGroups\(context\)/);
+    assert.match(regionalMapSource, /hasOverlappingImpacts\(impacts\)/);
+    assert.match(regionalMapSource, /overlapBadgeSignature\(impacts\)/);
     assert.match(regionalOverlaysSource, /mapOverlapIndicatorSize\(group\.impacts\)/);
     assert.match(regionalMapSource, /aria-label="Overlapping alert badges"/);
     assert.match(regionalMapSource, /<MapOverlapIndicator/);

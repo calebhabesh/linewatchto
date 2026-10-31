@@ -270,7 +270,7 @@ describe("asset-backed map layering", () => {
     assert.match(ttcGlyphLanesSource, /transform=\{`translate\(\$\{point\.chevronX\} \$\{point\.chevronY\}\) rotate\(\$\{staticAngle\}\)\$\{scaled\(unit\)\}`\}/);
     assert.match(ttcGlyphLanesSource, /x=\{-36\}[\s\S]*?y=\{-36\}[\s\S]*?width=\{72\}[\s\S]*?height=\{72\}/);
     assert.match(interactiveMapSource, /<PlannedClosureIconLane pathD=\{pathD\} travelDirection=\{travelDirection\} unit=\{unit\} \/>/);
-    assert.match(interactiveMapSource, /closure\.travelDirection \?\? "bidirectional"/);
+    assert.match(interactiveMapSource, /closure\?\.travelDirection \?\? segmentImpact\?\.travelDirection \?\? "bidirectional"/);
     assert.doesNotMatch(ttcMapRendererSource, /planned-preview-underlay/);
     assert.doesNotMatch(globalCss, /planned-preview-separator/);
     assert.match(globalCss, /--planned-preview-rail:\s*#f1f5f9;/);
@@ -363,12 +363,10 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /stationImpactDirectionForStationImpacts/);
     assert.match(interactiveMapSource, /aria-label="Station impact direction glyphs"/);
     assert.match(interactiveMapSource, /<MapStationDirectionGlyphs/);
-    assert.match(interactiveMapSource, /stationImpactEffectRadius\(isLarge\)/);
-    assert.match(interactiveMapSource, /return isLargeStation \? 48 : 26;/);
-    assert.match(interactiveMapSource, /stationImpactDirectionBadgeRadius\(isStationVisuallyLarge\(station\)\)/);
-    assert.match(interactiveMapSource, /return isLargeStation \? 40 : 24;/);
-    assert.match(interactiveMapSource, /stationImpactRingRadius\(isLarge\)/);
-    assert.match(interactiveMapSource, /return isLargeStation \? 56 : 38;/);
+    // Station alerts are sized from each dot's prepared radius, on every map.
+    assert.match(interactiveMapSource, /const \{ coreRadius, ringRadius \} = stationAlertSizes\(dot\(id\)\)/);
+    assert.match(interactiveMapSource, /badgeRadius: stationAlertSizes\(dot\(id\)\)\.directionBadgeRadius/);
+    assert.doesNotMatch(interactiveMapSource, /LARGE_TERMINAL_IDS|isStationVisuallyLarge/);
     assert.match(stationImpactDirectionSource, /extent: radius \* 0\.75/);
     assert.match(stationImpactDirectionSource, /centeredGlyphPath\(stationImpactDirectionStrokes/);
     assert.match(stationImpactDirectionSource, /arrowHead\(tip, part, metrics\)/);
@@ -460,10 +458,10 @@ describe("asset-backed map layering", () => {
   });
 
   it("does not render a selected planned closure twice when it is already an active impact", () => {
-    assert.match(interactiveMapSource, /shouldRenderPlannedPreviewLayer/);
+    // A selected current closure previews its planned extent once, beside its current effect.
     assert.match(
       interactiveMapSource,
-      /impact\.kind === "planned-closure" && impact\.cardId === selectedClosure\.id/,
+      /selection\?\.kind === "planned-closure" && context\.closureById\.has\(selection\.id\) && !ids\.includes\(selection\.id\)/,
     );
     assert.match(globalCss, /\.connected-corridor \.asset-alert-path/);
   });
@@ -520,13 +518,9 @@ describe("asset-backed map layering", () => {
     assert.ok(getImpactPriority("reduced-speed-zone") > getImpactPriority("planned-closure"));
     assert.ok(getImpactPriority("planned-closure") > getImpactPriority("clear"));
 
-    assert.match(interactiveMapSource, /import\s*\{[^}]*getImpactPriority[^}]*\}\s*from\s*"\.\/map-alert-selector\.ts"/);
     assert.match(overlapChooserSource, /import\s*\{[^}]*getImpactPriority[^}]*\}\s*from\s*"\.\.\/app\/map-alert-selector"/);
 
-    assert.match(
-      interactiveMapSource,
-      /\.sort\(\(a, b\) => getImpactPriority\(a\.impact\.kind\) - getImpactPriority\(b\.impact\.kind\)\)/
-    );
+    assert.match(interactiveMapSource, /const lineAlerts = lineAlertPaintOrder\(\[/);
 
     // One shared layer draws both maps' alerts: by kind priority, grouped by line.
     assert.match(sharedOverlaySource, /export function lineAlertPaintOrder[\s\S]*?getImpactPriority\(a\.kind\) - getImpactPriority\(b\.kind\)/);
@@ -583,7 +577,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /plannedClosures\.flatMap\(\(closure\) => closure\.previewSegmentIds\)/);
     assert.doesNotMatch(ttcMapRendererSource, /if \(!selectedClosure\) return \[\];/);
     assert.match(interactiveMapSource, /plannedPreviewSegmentIds/);
-    assert.match(interactiveMapSource, /shouldRenderPlannedPreviewLayer\(segment, closure\)/);
+    assert.match(interactiveMapSource, /mapPlannedPreviews\(context, selection\)/);
     assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*(?:0\.\d+|1(?:\.0)?);/s);
     assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-dasharray:\s*none;[^}]*stroke-width:\s*calc\(var\(--map-alert-rail-width\) \* var\(--map-overlay-unit, 1\)\);/s);
     assert.doesNotMatch(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*animation:/s);
@@ -593,13 +587,12 @@ describe("asset-backed map layering", () => {
 
   it("renders collision-aware floating badges for segments with overlapping alert types", () => {
     assert.match(interactiveMapSource, /function ttcOverlapBadges\(/);
-    assert.match(interactiveMapSource, /closure\.activeNow \|\| closure\.timingStatus === "active-now"/);
+    assert.match(interactiveMapSource, /getEligiblePlannedClosures\(plannedClosures, activeAlerts, null, delays\)\.currentPlannedClosureIds/);
     assert.match(interactiveMapSource, /normalizeActiveClosureMapImpact/);
-    assert.match(mapImpactNormalizationSource, /kind: "suspension"/);
-    assert.match(interactiveMapSource, /activeClosureImpactCardIds/);
-    assert.match(interactiveMapSource, /plannedPreviewImpactsForSegment\(segment, plannedClosures\)/);
-    assert.match(interactiveMapSource, /groupOverlapBadgeSegments\(renderedOverlaySegments, overlapPlannedClosures\)/);
-    assert.match(interactiveMapSource, /groupOverlapBadgeSegments/);
+    assert.match(mapImpactNormalizationSource, /normalizeActiveClosureMapImpact/);
+    assert.match(interactiveMapSource, /buildActiveClosureImpactCardIds/);
+    assert.match(interactiveMapSource, /context\.previewIdsBySegment\.get\(segment\.id\)/);
+    assert.match(interactiveMapSource, /segmentOverlapGroups: overlapBadgeGroups\(context\)/);
     assert.match(interactiveMapSource, /overlapBadgeSignature/);
     assert.match(interactiveMapSource, /kind: "planned-closure"/);
     assert.match(interactiveMapSource, /aria-label="Overlapping alert badges"/);

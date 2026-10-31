@@ -1,5 +1,13 @@
-import type { ActiveAlert, ImpactKind, NetworkSegment, StationNodeImpact } from "./linewatch-data.ts";
-import type { MapLineAlert, MapOverlayVisualState } from "../components/map-overlays/line-alert-model.ts";
+import type {
+  ActiveAlert,
+  DelayAlert,
+  ImpactKind,
+  ImpactSelection,
+  NetworkSegment,
+  PlannedClosure,
+  StationNodeImpact,
+} from "./linewatch-data.ts";
+import { lineAlertPaintOrder, type MapLineAlert } from "../components/map-overlays/line-alert-model.ts";
 import type { MapOverlayPlane } from "../components/map-overlays/overlay-plane.ts";
 import type { PreparedMapGeometry } from "./map-geometry-data.ts";
 import {
@@ -9,48 +17,38 @@ import {
   regionalStationPillShape,
   resolvedRegionalSegmentPath,
 } from "./regional-map-geometry.ts";
-import { regionalImpactPriority, regionalOverlayRuns, type RegionalOverlayPiece } from "./regional-map-overlays.ts";
+import { regionalOverlayRuns, type RegionalOverlayPiece } from "./regional-map-overlays.ts";
+import {
+  isPlannedPreviewImpact,
+  lineAlertLabel,
+  lineAlertVisualState,
+  mapImpactContext,
+  mapPlannedPreviews,
+  plannedPreviewLabel,
+} from "./map-content-rules.ts";
 
 /** Covers Union's authored border, so the outline disappears behind the pill. */
 const REGIONAL_UNION_OUTLINE_CUTOUT_STROKE_WIDTH = 96;
 
 
 /**
- * GO/UP planned-closure impacts are previews of upcoming work, drawn like
- * TTC's planned previews. (TTC draws an active closure in suspension red.)
+ * Every GO/UP line alert, in the shared overlay model, along the authored
+ * routes; current service and planned previews by the shared rules
+ * (map-content-rules.ts).
  */
-export function regionalLineAlertVisualState(kind: ImpactKind): MapOverlayVisualState {
-  switch (kind) {
-    case "suspension":
-      return "suspension";
-    case "planned-closure":
-      return "planned-preview";
-    case "reduced-speed-zone":
-      return "reduced-speed-zone";
-    case "delay":
-    default:
-      return "delay-static";
-  }
-}
-
-function segmentsLabel(segments: Pick<NetworkSegment, "label">[]): string {
-  if (segments.length === 0) return "Rail corridor";
-  if (segments.length === 1) return segments[0].label;
-  const first = segments[0];
-  const last = segments.at(-1) ?? first;
-  return `${first.label} through ${last.label}`;
-}
-
-/** Every GO/UP line alert, in the shared overlay model, along the authored routes. */
 export function regionalLineAlerts(
   geometry: PreparedMapGeometry,
   data: {
     activeAlerts: ActiveAlert[];
+    delays: DelayAlert[];
+    plannedClosures: PlannedClosure[];
     networkSegments: NetworkSegment[];
     stationNodeImpacts: Pick<StationNodeImpact, "cardId">[];
+    selection: ImpactSelection;
   },
 ): MapLineAlert[] {
   const alerts: MapLineAlert[] = [];
+  const context = mapImpactContext(data.networkSegments, data);
 
   // Alerts without listed segments cover their whole corridor.
   const stationOnlyImpactIds = new Set(data.stationNodeImpacts.map((impact) => impact.cardId));
@@ -67,7 +65,7 @@ export function regionalLineAlerts(
       lineId: alert.lineId,
       pathD,
       travelDirection: "bidirectional",
-      visualState: regionalLineAlertVisualState(kind),
+      visualState: lineAlertVisualState(kind, false),
       label: `${kind}: ${alert.lineNumber} ${alert.title}`,
       segmentIds: segments.map((segment) => segment.id),
     });
@@ -75,15 +73,35 @@ export function regionalLineAlerts(
 
   // Segment impacts join into one tube per connected run of segments.
   const pieces: RegionalOverlayPiece[] = [];
-  for (const segment of data.networkSegments) {
+  for (const segment of context.segments) {
     if (!segment.impacts?.length) continue;
     const pathD = resolvedRegionalSegmentPath(geometry, segment);
     if (!pathD) continue;
     for (const [impactIndex, impact] of segment.impacts.entries()) {
+      if (isPlannedPreviewImpact(impact, context)) continue;
       pieces.push({ segment, impact, impactIndex, pathD });
     }
   }
-  for (const run of regionalOverlayRuns(pieces)) {
+  // Planned previews, from either encoding, the same way.
+  const previewPieces: RegionalOverlayPiece[] = [];
+  const previews = new Map(mapPlannedPreviews(context, data.selection).map((preview) => [preview.id, preview]));
+  for (const preview of previews.values()) {
+    for (const segment of preview.segments) {
+      const pathD = resolvedRegionalSegmentPath(geometry, segment);
+      if (!pathD) continue;
+      const impact = {
+        kind: "planned-closure" as const,
+        cardId: preview.id,
+        travelDirection: preview.travelDirection,
+        sourceAlertIds: [preview.id],
+      };
+      previewPieces.push({ segment, impact, impactIndex: 0, pathD });
+    }
+  }
+  for (const [run, preview] of [
+    ...regionalOverlayRuns(pieces).map((run) => [run, undefined] as const),
+    ...regionalOverlayRuns(previewPieces).map((run) => [run, previews.get(run.impact.cardId)] as const),
+  ]) {
     const lineSegmentIds = data.networkSegments
       .filter((segment) => segment.lineId === run.lineId)
       .map((segment) => segment.id);
@@ -101,17 +119,15 @@ export function regionalLineAlerts(
       lineId: run.lineId,
       pathD,
       travelDirection: run.impact.travelDirection,
-      visualState: regionalLineAlertVisualState(run.impact.kind),
-      label: `${run.impact.kind}: ${segmentsLabel(run.segments)}`,
+      visualState: lineAlertVisualState(run.impact.kind, Boolean(preview)),
+      label: preview ? plannedPreviewLabel(preview.closure, run.segments) : lineAlertLabel(run.impact.kind, run.segments),
       segmentIds,
     });
   }
 
-  return alerts.sort((left, right) => (
-    regionalImpactPriority(left.kind) - regionalImpactPriority(right.kind)
-    || left.impactId.localeCompare(right.impactId)
-    || left.key.localeCompare(right.key)
-  ));
+  return lineAlertPaintOrder(alerts.sort((left, right) => (
+    left.impactId.localeCompare(right.impactId) || left.key.localeCompare(right.key)
+  )));
 }
 
 /**

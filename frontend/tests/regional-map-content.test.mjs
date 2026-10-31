@@ -51,15 +51,23 @@ describe("GO/UP map content", () => {
     const stationAlertImpacts = regionalStationAlertImpacts(input());
     assert.deepEqual(content.lineAlerts, regionalLineAlerts(geometry, {
       activeAlerts: data.activeAlerts,
+      delays: data.delays,
+      plannedClosures: data.plannedClosures,
       networkSegments: data.networkSegments,
       stationNodeImpacts: data.stationNodeImpacts,
+      selection: null,
     }));
     const station = regionalStationAlerts(geometry, { ...input(), stationNodeImpacts: stationAlertImpacts }, REGIONAL_OVERLAY_UNIT);
     assert.deepEqual(content.stationAlerts, station.alerts);
     assert.deepEqual(content.stationDirectionGlyphs, station.glyphs);
     assert.deepEqual(
       content.overlapBadges,
-      regionalOverlapBadges(geometry, data.networkSegments, { stationNodeImpacts: stationAlertImpacts, stations: data.stations }),
+      regionalOverlapBadges(
+        geometry,
+        data.networkSegments,
+        { stationNodeImpacts: stationAlertImpacts, stations: data.stations },
+        { activeAlerts: data.activeAlerts, delays: data.delays, plannedClosures: data.plannedClosures },
+      ),
     );
     assert.deepEqual([...content.outlinePathsByImpact.keys()].sort(), [...new Set(
       content.lineAlerts.map((alert) => `${alert.kind}:${alert.impactId}`),

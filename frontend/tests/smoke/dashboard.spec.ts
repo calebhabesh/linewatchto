@@ -860,6 +860,8 @@ test.describe("regional overlay reconciliation", () => {
       for (const segment of body.map.segments) {
         segment.impacts = (segment.impacts ?? []).filter((impact: { cardId: string }) => impact.cardId !== removedCardId);
       }
+      // A planned closure previews from either encoding (map-content-rules.ts), so drop both.
+      body.plannedClosures = (body.plannedClosures ?? []).filter((closure: { id: string }) => closure.id !== removedCardId);
       await route.fulfill({ response, json: body });
     });
     await page.goto("/");

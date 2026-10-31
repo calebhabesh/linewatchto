@@ -7,11 +7,8 @@ import {
   regionalStationImpactAnchors,
   regionalStationPillShape,
 } from "./regional-map-geometry.ts";
-import {
-  STATION_IMPACT_RING_SCALE,
-  stationImpactBeaconSize,
-  type StationBeaconNeighbour,
-} from "../components/station-impact-beacon.ts";
+import { stationImpactBeaconSize, type StationBeaconNeighbour } from "../components/station-impact-beacon.ts";
+import { stationAlertSizes } from "./map-content-rules.ts";
 import {
   stationImpactDirectionForImpact,
   stationImpactDirectionSource,
@@ -25,29 +22,15 @@ import {
   type MapStationPill,
 } from "../components/map-overlays/station-alert-model.ts";
 
-/*
- * TTC's station alert design measured against its regular station dot
- * (authored radius 32): a 26-unit core and a 24-unit direction badge. GO/UP
- * dots vary in size, so each alert takes these ratios of its own dot.
- */
-const TTC_STATION_DOT_RADIUS = 32;
-const CORE_RATIO = 26 / TTC_STATION_DOT_RADIUS;
-const DIRECTION_BADGE_RATIO = 24 / TTC_STATION_DOT_RADIUS;
-/** The idle ring an alert draws around a dot of this authored radius. */
-export function regionalStationAlertRingRadius(dotRadius: number): number {
-  return dotRadius * CORE_RATIO * STATION_IMPACT_RING_SCALE;
-}
 /** TTC's clear space between a beacon and a neighbouring dot, in overlay units. */
 const BEACON_GAP = 4;
-/** A dot's visible radius with its outline, over its authored radius. */
-const STATION_DOT_OUTLINE_RATIO = 1.15;
 
 /** Every station dot, with its outline. */
 function stationBeaconNeighbours(geometry: PreparedMapGeometry): StationBeaconNeighbour[] {
   return regionalStationDots(geometry).map((anchor) => ({
     id: anchor.id,
     center: anchor.point,
-    radius: anchor.radius * STATION_DOT_OUTLINE_RATIO,
+    radius: stationAlertSizes(anchor.radius).dotOuterRadius,
   }));
 }
 
@@ -110,12 +93,12 @@ export function regionalStationAlerts(
       stationId: impact.stationId,
       label: `${impact.title}: ${stationName}${directionLabel}`,
       anchors: anchors.map((anchor) => {
-        const coreRadius = anchor.radius * CORE_RATIO;
+        const { coreRadius, ringRadius } = stationAlertSizes(anchor.radius);
         return {
           id: anchor.id,
           center: anchor.point,
           coreRadius,
-          ringRadius: regionalStationAlertRingRadius(anchor.radius),
+          ringRadius,
           beaconRadius: stationImpactBeaconSize(
             anchor.point,
             coreRadius,
@@ -136,7 +119,7 @@ export function regionalStationAlerts(
       .filter(({ impact }) => !NO_DIRECTION_ARROW_STATION_IDS.has(impact.stationId))
       .flatMap(({ impact, anchors }) => anchors.map((anchor) => ({
         impact,
-        anchor: { id: anchor.id, center: anchor.point, badgeRadius: anchor.radius * DIRECTION_BADGE_RATIO },
+        anchor: { id: anchor.id, center: anchor.point, badgeRadius: stationAlertSizes(anchor.radius).directionBadgeRadius },
       }))),
     data,
   );

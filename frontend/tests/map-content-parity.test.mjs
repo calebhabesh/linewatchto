@@ -318,29 +318,30 @@ describe("map content parity: line alerts", () => {
   ));
   it("heads a directional alert the same way along its corridor", () => same(directional, travel));
 
-  it("draws a current planned closure as current service (red)", { todo: "item 1: GO/UP draws it planned-preview blue" }, () => {
+  it("draws a current planned closure as current service (red)", () => {
     same(currentPlanned, visualStates);
     assert.deepEqual(visualStates(ttc(currentPlanned())).map(([, , state]) => state), ["suspension"]);
   });
-  it("draws an upcoming planned closure listed only in planned closures as a blue preview", {
-    todo: "item 1: GO/UP draws previews only from segment impacts, so it draws nothing",
-  }, () => {
+  it("draws an upcoming planned closure listed only in planned closures as a blue preview", () => {
     same(upcomingPlanned({ segmentImpact: false }), visualStates);
   });
-  it("draws an upcoming planned closure listed in segment impacts as a blue preview", {
-    todo: "item 1: TTC treats any segment planned-closure impact as current and draws it red",
-  }, () => {
+  it("draws an upcoming planned closure listed in segment impacts as a blue preview", () => {
     same(upcomingPlanned({ segmentImpact: true }), visualStates);
     assert.ok(visualStates(ttc(upcomingPlanned({ segmentImpact: true }))).some(([kind, , state]) => (
       kind === "planned-closure" && state === "planned-preview"
     )));
   });
   it("paints a planned preview under current alerts", () => same(upcomingPlanned({ segmentImpact: true }), paintOrder));
-  it("labels a planned preview the same", { todo: "item 6: TTC names the closure, GO/UP the kind" }, () => {
+  it("labels a planned preview the same", () => {
     same(upcomingPlanned({ segmentImpact: false }), lineLabels);
   });
-  it("previews a selected current planned closure the same", { todo: "item 1: TTC adds a preview layer, GO/UP does not" }, () => {
-    same(currentPlanned({ selection: { kind: "planned-closure", id: "p2" } }), visualStates);
+  it("previews a selected current planned closure the same", () => {
+    const input = () => currentPlanned({ selection: { kind: "planned-closure", id: "p2" } });
+    same(input, visualStates);
+    same(input, selected);
+    // Its current effect stays red; its planned extent is previewed in blue and emphasized.
+    assert.deepEqual(visualStates(ttc(input())).map(([, , state]) => state).sort(), ["planned-preview", "suspension"]);
+    assert.deepEqual(selected(ttc(input())).map(({ impact }) => impact), ["planned-closure:p2"]);
   });
   it("draws a line-wide alert without listed segments over the same corridor", {
     todo: "item 3: GO/UP draws the authored route, TTC draws nothing",
@@ -356,18 +357,12 @@ describe("map content parity: overlap badges", () => {
     same(overlap, members);
     assert.equal(badges(ttc(overlap())).length, 1);
   });
-  it("labels a badge over several segments the same", {
-    todo: "item 6: TTC labels it 'Alder to Birch through Birch to Cedar', GO/UP 'Alder to Cedar'",
-  }, () => same(overlap, badges));
-  it("includes an upcoming planned preview in its stretch's badge", {
-    todo: "item 4: GO/UP groups segment impacts only",
-  }, () => {
+  it("labels a badge over several segments the same", () => same(overlap, badges));
+  it("includes an upcoming planned preview in its stretch's badge", () => {
     same(upcomingPlanned({ segmentImpact: false }), badges);
     assert.ok(badges(ttc(upcomingPlanned({ segmentImpact: false }))).some((badge) => badge.impacts.includes("planned-closure:p1")));
   });
-  it("keeps badge connectors off station dots by the same margin, relative to the dot", {
-    todo: "item 5: TTC uses fixed ring radii, GO/UP each dot's radius",
-  }, () => {
+  it("keeps badge connectors off station dots by the same margin, relative to the dot", () => {
     assert.deepEqual(badgeStationDots(regional(service()), REGIONAL_OVERLAY_UNIT), badgeStationDots(ttc(service()), 1));
   });
 });
@@ -375,14 +370,12 @@ describe("map content parity: overlap badges", () => {
 describe("map content parity: station alerts", () => {
   it("places station alerts on the same dots", () => same(service, stationAlertAnchors));
   it("labels station alerts the same", () => same(service, stationAlertLabels));
-  it("sizes station alerts the same relative to their dot", {
-    todo: "item 5: TTC uses fixed radii by LARGE_TERMINAL_IDS and interchange, GO/UP ratios of the dot",
-  }, () => same(service, stationAlertSizes));
+  it("sizes station alerts the same relative to their dot", () => same(service, stationAlertSizes));
   it("points station and interchange arrows the same ways", () => {
     same(service, glyphDirections);
     assert.equal(glyphDirections(ttc(service())).length, 2, "Alder's and Birch's arrows");
   });
-  it("sizes direction arrows the same relative to their dot", { todo: "item 5: fixed radii vs dot ratios" }, () => (
+  it("sizes direction arrows the same relative to their dot", () => (
     same(service, glyphSizes)
   ));
 });
