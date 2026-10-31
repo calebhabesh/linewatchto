@@ -533,3 +533,47 @@ Phase 0 still owes a checked-in version of this probe (extending
   most of the longest load task: TTC 59 ms desktop and 137 ms at 4×, GO/UP
   31 ms and 148 ms. That is the next main-thread cost to cut.
   Next: phase 4 (parity suite) or the rest of phase 0.
+- Phase 4 (parity suite): started 2026-10-30. `tests/smoke/map-parity.spec.ts`
+  runs each case on both maps (desktop and mobile Chromium) against shared
+  outcomes (overlay attributes, the chooser dialog, the station details panel,
+  the stage transform), finding targets on screen rather than by per-map ids:
+  line-alert hover and press, open-map press, station hover, name lift, press,
+  keyboard and tap, overlap badges and the chooser by pointer, keyboard and
+  tap, a wheel notch about the pointer and its inverse, trackpad pinch, drag,
+  momentum and a press during a glide (moved from `map-camera-motion.spec.ts`,
+  now removed), reduced motion, and commute previews. 34 cases, all passing.
+  Parity bugs it found, fixed: GO/UP station targets were named from their id
+  ("union station details", a bug from before plan 09); they now use the
+  station's name, as TTC's do. Hovering a station's dot lifted its name on
+  GO/UP but not on TTC; owner left the choice open, and both now lift it
+  (dot hover, and focus on fine pointers). Test findings, not bugs: Escape on
+  a chooser returns focus to its badge, which pans it clear of the controls
+  on both maps; a phone tap within a station target's touch-adjustment reach
+  selects the station on both maps. The smoke stub's TTC stations are
+  fixtures with no drawn names, so the name case adds the authored stations
+  through `/api/stations`.
+  Not yet in the suite: the phase 0 budgets on a real GPU with live-like
+  data (needs phase 0's checked-in probe). Remaining duplication seen while
+  writing it: TTC has its own `OverlapChooser` beside the shared
+  `MapOverlapChooser`, and both maps carry identical
+  `revealFocusedMapTarget` copies.
+  Owner-reported regressions, fixed the same day: suspension no-entry glyphs
+  were drawn one step past each end of their tube (beyond Pearson on the UP
+  closure). `samplePath` added those overrun points for the clip mask phase 2
+  removed; it now samples end to end only (`tests/map-geometry.test.mjs`).
+  Backend: Metrolinx reposted the Oct. 31-Nov. 1 Kitchener notice tagged to
+  Bloor with a body opening "Oct. 31-Nov. 1: Service adjustments" (the title
+  less "Kitchener line"), so it stayed a second event and the station copies
+  (Georgetown to Stratford, Bloor) matched two leads and did not fold; the map
+  showed duplicate station rings and badges. Republication now strips a
+  heading equal to the title with or without its line names, and "select GO
+  buses running between" names GO buses as the replacement
+  (`MetrolinxAlertNormalizerTest`, from the published notices).
+  Checks: test:fast, typecheck, lint (15 pre-existing warnings), backend
+  `mvn test`; parity suite and the plan's suites on desktop and mobile
+  Chromium pass apart from the known failures (offline-dashboard × 4, the two
+  GO/UP mobile cases) and network-fade's hover-timing case, which fails at
+  the same rate on a clean `567112e7` worktree (2 of 4 desktop runs);
+  `test:visual` 30/30.
+  Next: the phase 0 budget probe so phase 4 can add the budgets, then fold
+  TTC's chooser into `MapOverlapChooser`.

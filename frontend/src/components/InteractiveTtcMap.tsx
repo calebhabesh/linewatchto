@@ -2398,16 +2398,22 @@ function InteractiveTtcMapComponent({
                   return (
                     <g
                       key={station.id}
+                      // Hovering or focusing a station also lifts its name, as on GO/UP.
                       onPointerEnter={(event) => {
                         if (event.pointerType !== "mouse") return;
                         setMapStationHovered(mapRootRef.current, station.id, true);
+                        setHoveredStationLabelId(station.id);
                       }}
                       onPointerLeave={(event) => {
                         if (event.pointerType !== "mouse") return;
                         setMapStationHovered(mapRootRef.current, station.id, false);
+                        setHoveredStationLabelId((current) => current === station.id ? null : current);
                       }}
                       onFocus={() => {
                         setMapStationHovered(mapRootRef.current, station.id, true);
+                        if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+                          setHoveredStationLabelId(station.id);
+                        }
                       }}
                       onBlur={() => {
                         setMapStationHovered(mapRootRef.current, station.id, false);

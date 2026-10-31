@@ -63,21 +63,8 @@ export function samplePath(pathD: string, spacing: number = 56): SampledPath {
     const count = Math.max(1, Math.floor(length / spacing));
     const step = length / count;
 
-    // 1. Add extra point before start (at -step)
-    {
-      const pStart = path.getPointAtLength(0);
-      const pAhead = path.getPointAtLength(Math.min(length, 1));
-      const dx = pAhead.x - pStart.x;
-      const dy = pAhead.y - pStart.y;
-      const rad = Math.atan2(dy, dx);
-      points.push({
-        x: pStart.x - step * Math.cos(rad),
-        y: pStart.y - step * Math.sin(rad),
-        angle: rad * (180 / Math.PI),
-      });
-    }
-
-    // 2. Add standard points from 0 to length
+    // Glyphs run from end to end and stop there: lanes are not clipped, so
+    // nothing past an end may be drawn outside the alert's tube.
     for (let i = 0; i <= count; i++) {
       const dist = i * step;
       const p = path.getPointAtLength(dist);
@@ -91,20 +78,6 @@ export function samplePath(pathD: string, spacing: number = 56): SampledPath {
       const angle = Math.atan2(dy, dx) * (180 / Math.PI);
 
       points.push({ x: p.x, y: p.y, angle });
-    }
-
-    // 3. Add extra point after end (at length + step)
-    {
-      const pEnd = path.getPointAtLength(length);
-      const pBehind = path.getPointAtLength(Math.max(0, length - 1));
-      const dx = pEnd.x - pBehind.x;
-      const dy = pEnd.y - pBehind.y;
-      const rad = Math.atan2(dy, dx);
-      points.push({
-        x: pEnd.x + step * Math.cos(rad),
-        y: pEnd.y + step * Math.sin(rad),
-        angle: rad * (180 / Math.PI),
-      });
     }
 
     return { points, step };

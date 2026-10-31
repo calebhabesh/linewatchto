@@ -179,6 +179,28 @@ describe("map overlay geometry", () => {
     assert.equal(result.step, 56);
   });
 
+  it("keeps sampled glyphs on the path, with none past its ends", () => {
+    // Glyph lanes are not clipped to their alert's tube, so a glyph past an
+    // end (as at a terminus like Pearson) would be drawn off the line.
+    const line = polylinePath([{ x: 0, y: 0 }, { x: 224, y: 0 }]);
+    const previousDocument = globalThis.document;
+    globalThis.document = {
+      createElementNS: () => ({
+        setAttribute() {},
+        getTotalLength: () => line.length,
+        getPointAtLength: (distance) => line.getPointAtLength(distance),
+      }),
+    };
+    try {
+      const { points, step } = samplePath("M 0 0 L 224 0", 56);
+      assert.equal(step, 56);
+      assert.deepEqual(points.map((point) => point.x), [0, 56, 112, 168, 224]);
+    } finally {
+      if (previousDocument === undefined) delete globalThis.document;
+      else globalThis.document = previousDocument;
+    }
+  });
+
   it("continues moving glyph frames through both ends of a nonlinear guide", () => {
     const guide = polylinePath([
       { x: 0, y: 0 },

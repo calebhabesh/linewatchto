@@ -1,4 +1,5 @@
 import { memo, type SVGProps } from "react";
+import { stationName } from "../app/regional-data";
 import {
   regionalStationHoverShapes,
   regionalStationSelectionShapes,
@@ -34,10 +35,6 @@ function StationShape({ shape, ...props }: { shape: RegionalStationShape } & SVG
       transform={transform}
     />
   );
-}
-
-function stationName(stationId: string) {
-  return stationId.replaceAll("-", " ");
 }
 
 /**
