@@ -52,6 +52,7 @@ unused export, defect, or publication issue has been found.
 | [Unified map overlays](08-unified-map-overlays.md) | One shared overlay layer for the TTC and GO/UP System Maps (owner decision, 2026-10-30) |
 | [System Map engine](09-system-map-engine.md) | One camera, surface and geometry pipeline for any authored System Map; parity budgets and suite (owner decision, 2026-10-30) |
 | [One map engine](10-one-map-engine.md) | One `SystemMap` component for every authored map, content adapters per network, maps as data; a new SVG map is a drop-in (owner decision, 2026-10-31) |
+| [Full map parity](11-full-map-parity.md) | One set of overlay rules for both network adapters, GO/UP interaction cost at TTC's, both maps green; full TTC and GO/UP parity (owner decision, 2026-10-31) |
 
 Root and scoped `AGENTS.md` remain authoritative. Read
 [domain invariants](../domain-invariants.md) for the affected behavior and
