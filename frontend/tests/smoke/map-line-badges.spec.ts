@@ -13,19 +13,20 @@ test.beforeEach(async ({ page, request }, testInfo) => {
     : { width: 1440, height: 900 });
 });
 
-test("system-map badges fade independently at calibrated diagram scales", async ({ page }, testInfo) => {
+// System Map line badges stay fully visible at every scale (76926ed2 retired their fade).
+test("system-map badges stay visible at every diagram scale", async ({ page }, testInfo) => {
   await page.goto("/");
   const stage = page.locator("[data-system-map=ttc] .map-stage");
   await expect(stage).toHaveAttribute("data-raster-map-ready", "true", { timeout: 15_000 });
-  const badgePlane = page.locator(".raster-map-plane--badges");
-  const labelPlane = page.locator(".raster-map-plane--labels");
-  const foregroundPlane = page.locator(".raster-map-plane--foreground");
+  const badgePlane = page.locator("[data-system-map=ttc] .raster-map-plane--badges");
+  const labelPlane = page.locator("[data-system-map=ttc] .raster-map-plane--labels");
+  const foregroundPlane = page.locator("[data-system-map=ttc] .raster-map-plane--foreground");
   await expect(badgePlane).toHaveCSS("pointer-events", "none");
   const slider = page.locator('input[aria-label="Zoom level slider"]');
-  for (const [scale, expectedOpacity, suffix] of [
-    [1, 1, "overview"],
-    [1.7, 0.5, "intermediate"],
-    [2.5, 0, "detail"],
+  for (const [scale, suffix] of [
+    [1, "overview"],
+    [1.7, "intermediate"],
+    [2.5, "detail"],
   ] as const) {
     await slider.evaluate((element, value) => {
       const input = element as HTMLInputElement;
@@ -34,8 +35,8 @@ test("system-map badges fade independently at calibrated diagram scales", async 
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.dispatchEvent(new Event("change", { bubbles: true }));
     }, scale);
-    await expect.poll(async () => Number(await badgePlane.evaluate((element) => getComputedStyle(element).opacity)))
-      .toBeCloseTo(expectedOpacity, 2);
+    await expect.poll(async () => Number(await slider.inputValue())).toBeCloseTo(scale, 2);
+    await expect(badgePlane).toHaveCSS("opacity", "1");
     await expect(labelPlane).toHaveCSS("opacity", "1");
     await expect(foregroundPlane).toHaveCSS("opacity", "1");
     await page.screenshot({
@@ -75,6 +76,14 @@ test("TTC and regional geographic badges render from overview through their deta
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
   await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", "regional");
   await expect(map).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
+  // A network switch updates the transit layers and keeps the camera.
+  await expect(slider).toHaveValue("14");
+  await slider.evaluate((element) => {
+    const input = element as HTMLInputElement;
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, "9");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
   await expect(slider).toHaveValue("9");
   await page.screenshot({
     path: `${inspectionDirectory}/${testInfo.project.name}-geographic-regional-overview.png`,
