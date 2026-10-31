@@ -50,6 +50,13 @@ describe("chunk load recovery", () => {
     assert.equal(claimChunkRecovery(storage, "prod-new"), true);
   });
 
+  it("does not reload offline, and keeps the build's recovery for later", () => {
+    const storage = memoryStorage();
+    assert.equal(claimChunkRecovery(storage, "prod-old", false), false);
+    assert.equal(storage.values.has(CHUNK_RECOVERY_STORAGE_KEY), false);
+    assert.equal(claimChunkRecovery(storage, "prod-old", true), true);
+  });
+
   it("does not reload without a loop guard", () => {
     assert.equal(claimChunkRecovery(null, "prod-old"), false);
     assert.equal(

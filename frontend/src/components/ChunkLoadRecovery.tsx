@@ -16,7 +16,7 @@ export function ChunkLoadRecovery() {
       } catch {
         storage = null;
       }
-      if (claimChunkRecovery(storage, lineWatchBuildLabel)) {
+      if (claimChunkRecovery(storage, lineWatchBuildLabel, navigator.onLine)) {
         void reloadLineWatchAppInBackground();
       }
     };

@@ -28,7 +28,14 @@ export function isNextStaticResourceUrl(value: string | null | undefined, origin
 
 type RecoveryStorage = Pick<Storage, "getItem" | "setItem">;
 
-export function claimChunkRecovery(storage: RecoveryStorage | null, buildLabel: string) {
+/**
+ * Whether to reload into the current build. Offline, a chunk fails because the
+ * network is down, not because the build is stale, and a reload cannot fetch it
+ * either (riders saw the page reload itself on going offline), so it declines
+ * without spending the build's one recovery.
+ */
+export function claimChunkRecovery(storage: RecoveryStorage | null, buildLabel: string, online = true) {
+  if (!online) return false;
   try {
     if (!storage || storage.getItem(CHUNK_RECOVERY_STORAGE_KEY) === buildLabel) return false;
     storage.setItem(CHUNK_RECOVERY_STORAGE_KEY, buildLabel);
