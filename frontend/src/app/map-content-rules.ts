@@ -267,30 +267,32 @@ export function overlapPreviewClosures(
 
 /*
  * Station alerts are drawn to TTC's design for its regular dot (authored
- * radius 32): a 26-unit core, a ring 38/26 of it and a 24-unit direction
- * badge. Every dot takes these as ratios of its own prepared radius.
+ * radius 32): a 26-unit core and a ring 38/26 of it. Every dot takes these
+ * as ratios of its own prepared radius; the direction arrow's badge fills
+ * the dot's white, inside its outline.
  */
 const DESIGN_DOT_RADIUS = 32;
 const CORE_RATIO = 26 / DESIGN_DOT_RADIUS;
-const DIRECTION_BADGE_RATIO = 24 / DESIGN_DOT_RADIUS;
-/** A dot's visible radius with its outline, over its authored radius. */
-const STATION_DOT_OUTLINE_RATIO = 1.15;
+
+/** A prepared station dot: radius to the middle of its outline, and the outline's width. */
+export type StationDot = { radius: number; outline: number };
 
 export type StationAlertSizes = {
   coreRadius: number;
   ringRadius: number;
+  /** The dot's white: the arrow badge covers exactly this. */
   directionBadgeRadius: number;
   /** The dot with its outline: what a neighbouring beacon keeps clear of. */
   dotOuterRadius: number;
 };
 
-/** A station alert's sizes on a dot of this prepared radius. */
-export function stationAlertSizes(dotRadius: number): StationAlertSizes {
-  const coreRadius = dotRadius * CORE_RATIO;
+/** A station alert's sizes on this dot. */
+export function stationAlertSizes(dot: StationDot): StationAlertSizes {
+  const coreRadius = dot.radius * CORE_RATIO;
   return {
     coreRadius,
     ringRadius: coreRadius * STATION_IMPACT_RING_SCALE,
-    directionBadgeRadius: dotRadius * DIRECTION_BADGE_RATIO,
-    dotOuterRadius: dotRadius * STATION_DOT_OUTLINE_RATIO,
+    directionBadgeRadius: dot.radius - dot.outline / 2,
+    dotOuterRadius: dot.radius + dot.outline / 2,
   };
 }

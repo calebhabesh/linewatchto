@@ -1,11 +1,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createExpression } from "@maplibre/maplibre-gl-style-spec";
+import { createExpression, featureFilter } from "@maplibre/maplibre-gl-style-spec";
 
 import {
   EMPTY_GEOJSON_FEATURE_COLLECTION,
   ensureBadgeImages,
   lineBadgeOpacityExpression,
+  lineBreadcrumbOpacityExpression,
+  lineBreadcrumbSpriteExpression,
   updateGeographicDynamicSources,
   updateGeographicLineFilter,
   updateGeographicStationSelection,
@@ -509,7 +511,33 @@ describe("Geographic map operations", () => {
       assert.ok(addedLayers.find((l) => l.id === "transit-train-markers-halo"));
 
       const layerCount = addedLayers.length;
-      assert.equal(layerCount, 24, "Should install exactly 24 transit layers");
+      assert.equal(layerCount, 25, "Should install exactly 25 transit layers");
+
+      // Line breadcrumbs: each line's authored badge along it, under station markers.
+      const breadcrumbs = addedLayers.find((l) => l.id === "transit-line-breadcrumbs");
+      assert.equal(breadcrumbs.source, "transit-line-breadcrumbs");
+      assert.ok(addedSources["transit-line-breadcrumbs"]);
+      // Always drawn, so collisions never thin them unevenly.
+      assert.equal(breadcrumbs.layout["icon-allow-overlap"], true);
+      // Only the current zoom level's set shows.
+      const filter = featureFilter(breadcrumbs.filter, "layers[0].filter");
+      const showsLevel = (zoom, level) => filter.filter({ zoom }, { properties: { level } });
+      assert.equal(showsLevel(9.5, 0), true);
+      assert.equal(showsLevel(9.5, 1), false);
+      assert.equal(showsLevel(12.7, 3), true);
+      assert.equal(showsLevel(12.7, 2), false);
+      assert.equal(showsLevel(19, 8), true);
+      const sprite = (expression, lineId) => createExpression(expression, "layout.icon-image").value
+        .evaluateWithoutErrorHandling({ zoom: 12 }, { properties: { lineId } });
+      assert.equal(sprite(breadcrumbs.layout["icon-image"], "line-1"), "line-badge-1");
+      assert.equal(sprite(lineBreadcrumbSpriteExpression("regional"), "regional-ki"), "line-badge-KI");
+      // Dimmed with the other lines under a line filter (evaluated at zoom 13, fully faded in).
+      assert.equal(evaluateOpacity(lineBreadcrumbOpacityExpression("line-1"), { lineId: "line-2" }), 0.2);
+      assert.equal(evaluateOpacity(lineBreadcrumbOpacityExpression("line-1"), { lineId: "line-1" }), 1);
+
+      // Station names show sooner and larger (TTC from zoom 10.5).
+      const labels = addedLayers.find((l) => l.id === "transit-station-labels");
+      assert.equal(labels.minzoom, 10.5);
 
       // Verify idempotency on second call
       installTransitLayers(mockMap, mockCatalog, "ttc", false, false);

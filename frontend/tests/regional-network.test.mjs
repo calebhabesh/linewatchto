@@ -677,10 +677,11 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /<MapStationAlertRings alerts=\{stationAlerts\}/);
     assert.match(regionalMapSource, /<MapStationDirectionGlyphs glyphs=\{stationDirectionGlyphs\}/);
     assert.match(regionalMapSource, /<MapStationAlertForeground/);
-    // TTC's 26-unit core and 24-unit badge on its 32-unit dot, as ratios of each dot (shared rule).
+    // TTC's 26-unit core on its 32-unit dot as a ratio of each dot; the arrow
+    // badge fills the dot's white, inside its prepared outline (shared rule).
     assert.match(regionalMapSource, /const CORE_RATIO = 26 \/ DESIGN_DOT_RADIUS;/);
-    assert.match(regionalMapSource, /const DIRECTION_BADGE_RATIO = 24 \/ DESIGN_DOT_RADIUS;/);
-    assert.match(regionalStationAlertsSource, /stationAlertSizes\(anchor\.radius\)/);
+    assert.match(regionalMapSource, /directionBadgeRadius: dot\.radius - dot\.outline \/ 2/);
+    assert.match(regionalStationAlertsSource, /stationAlertSizes\(anchor\)/);
     assert.match(regionalStationAlertsSource, /regionalStationImpactAnchors\(station, lineId\)/);
     // Union's pill keeps its filled outline in place of a ring and beacon.
     assert.match(regionalStationAlertsSource, /pill: regionalStationPill\(/);

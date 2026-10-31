@@ -286,7 +286,7 @@ export function regionalBadgePlacement(geometry: PreparedMapGeometry): MapBadgeP
       artwork: regionalBadgeArtwork(geometry),
       stationDots: regionalStationDots(geometry).map((anchor) => ({
         center: anchor.point,
-        radius: stationAlertSizes(anchor.radius).ringRadius + CONNECTOR_STATION_CLEARANCE * REGIONAL_OVERLAY_UNIT,
+        radius: stationAlertSizes(anchor).ringRadius + CONNECTOR_STATION_CLEARANCE * REGIONAL_OVERLAY_UNIT,
       })),
       badgeScale: REGIONAL_BADGE_SCALE,
     };

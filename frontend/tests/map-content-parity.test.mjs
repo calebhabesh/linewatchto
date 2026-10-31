@@ -108,8 +108,8 @@ function scenario(overrides = {}) {
 }
 
 // Current service: a suspension over all of line A with a delay over the same
-// stretch, a southbound reduced speed zone on Dogwood to Birch (so Birch, an
-// interchange, points three ways), station-only delays at a regular dot
+// stretch, a southbound reduced speed zone on Dogwood to Birch (through Birch,
+// an interchange, which gets no arrow from it), station-only delays at a regular dot
 // (Alder) and a large interchange dot (Birch), and a commute from Alder to
 // Cedar. Station badges at Alder and Birch explain the shared stretch.
 const service = () => scenario({
@@ -371,9 +371,11 @@ describe("map content parity: station alerts", () => {
   it("places station alerts on the same dots", () => same(service, stationAlertAnchors));
   it("labels station alerts the same", () => same(service, stationAlertLabels));
   it("sizes station alerts the same relative to their dot", () => same(service, stationAlertSizes));
-  it("points station and interchange arrows the same ways", () => {
+  it("points station alert arrows the same ways, and none for line alerts through a station", () => {
     same(service, glyphDirections);
-    assert.equal(glyphDirections(ttc(service())).length, 2, "Alder's and Birch's arrows");
+    // Alder's own eastbound delay points; Birch's undirected delay does not,
+    // and the reduced speed zone through Birch adds no arrow there.
+    assert.deepEqual(glyphDirections(ttc(service())).map(([station]) => station), ["alder"]);
   });
   it("sizes direction arrows the same relative to their dot", () => (
     same(service, glyphSizes)

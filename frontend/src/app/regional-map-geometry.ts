@@ -30,6 +30,8 @@ export type RegionalStationVisualAnchor = {
   id: string;
   point: MapPoint;
   radius: number;
+  /** The dot's outline width (map-geometry-data.ts). */
+  outline: number;
 };
 
 export type RegionalTrainMarkerFrame = {
@@ -115,7 +117,7 @@ export function regionalAnchorPoint(geometry: PreparedMapGeometry, anchorId: str
 
 /** A station's dots (not junction bars). */
 export function regionalStationVisualAnchors(station: PreparedStation): RegionalStationVisualAnchor[] {
-  return station.anchors.map(({ id, x, y, radius }) => ({ id, point: { x, y }, radius }));
+  return station.anchors.map(({ id, x, y, radius, outline }) => ({ id, point: { x, y }, radius, outline }));
 }
 
 /** The dots an alert on `lineId` sits on: that line's platform where a station has one per line. */
@@ -137,7 +139,7 @@ export function regionalAnchorDot(geometry: PreparedMapGeometry, anchorId: strin
   const { shapes, stations } = lookup(geometry);
   const owner = shapes.get(anchorId)?.station;
   const dot = owner?.anchors.find((anchor) => anchor.id === anchorId) ?? stations.get(anchorId)?.anchors[0];
-  return dot ? { id: dot.id, point: { x: dot.x, y: dot.y }, radius: dot.radius } : null;
+  return dot ? { id: dot.id, point: { x: dot.x, y: dot.y }, radius: dot.radius, outline: dot.outline } : null;
 }
 
 /** Every station dot on the map. */

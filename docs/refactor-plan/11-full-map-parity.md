@@ -343,3 +343,40 @@ full-spec runs; phone numbers are noisy). Build once and reuse it
     cases (item 9) and the reconciliation case above, which passes after its
     fix. `test:visual` 30 passed with no differences, so no baselines changed.
     `test:map-zoom-memory` 2 passed, 0 tile-memory warnings on both maps.
+- **Owner edits after phase 2 (2026-10-31).**
+  - **Arrows for station alerts only.** Interchange line-disruption arrows
+    (commit 80f3189d, `interchangeLineImpacts`) are removed on both maps: a
+    line alert through a station, interchange or not, adds no arrow (it has
+    its own chevrons). Owner's pick: Cedarvale, Eglinton and Bloor-Yonge
+    showed arrows from Line 1 speed zones that read as station alerts.
+  - **Arrow badge fills the dot's white.** Prepared geometry now records
+    each dot's outline width (`PreparedStationAnchor.outline`,
+    `prepare-map-geometry.mjs`; TTC 8 and 15, GO/UP about 15 to 21, Union's
+    pill 75; both maps and the drop-in fixture regenerated, otherwise
+    byte-identical). `stationAlertSizes(dot)` sizes the badge to
+    `radius - outline / 2` and beacons' clearance to `radius + outline / 2`
+    (replacing the 24/32 and 1.15 ratios). The badge's red ring is 5 units
+    (was 2.5), set inside its edge so it meets the black outline with no
+    artwork white between (`STATION_DIRECTION_BADGE_RING_WIDTH`).
+  - **Map View station names** show from zoom 10.5 on TTC (was 12) and 9 on
+    GO/UP (was 10.5), at 14 to 21 px (was 9.5 to 13.5).
+  - **Map View line breadcrumbs.** Each line's authored badge sprite at even
+    distances along it (`transit-line-breadcrumbs`), from zoom 9.
+    `projectGeographicLineBreadcrumbs` (map-line-badges.ts) joins each
+    line's links into paths and places one point set per zoom level (240 px
+    apart as a level starts), so spacing stays even at every zoom; the layer
+    shows the current level's set and always draws (collisions thinned them
+    unevenly). UP's points sit half a spacing after KI's, so the two
+    alternate on the shared track, and each point is shifted as its line is
+    drawn (`GEOGRAPHIC_ROUTE_OFFSET_SIDES` and `_STOPS`, which the routes'
+    `line-offset` now also reads), so a badge sits on its own line.
+  - Checks: `test:fast` passes, typecheck clean, lint 15 existing warnings.
+    `map-parity`, `drop-in-map`, `dashboard.spec.ts`, `overlapping-count-badges`,
+    `mobile-station-tap-accuracy` and `geographic-map-lifecycle` pass on both
+    projects (the known GO/UP mobile `regional-station-alerts.spec.ts:6`
+    still fails). `test:visual` 30 passed, no differences. Open:
+    `map-line-badges.spec.ts` fails on both projects: the System Map badge
+    plane stays at opacity 1 at scale 1.7 (expected 0.5), and after
+    switching Map View to GO/UP the zoom slider reads 14 (expected 9).
+    Neither touches code changed here; not yet compared with a clean
+    `main` build.

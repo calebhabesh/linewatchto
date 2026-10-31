@@ -170,12 +170,15 @@ function extractGeometry(config) {
     } else return null;
     return shape;
   };
-  // A dot's centre and radius in root coordinates.
+  // A dot's centre, radius and outline width in root coordinates. The radius
+  // is to the middle of the outline; the dot's white is inside half of it.
   const anchorOf = (shape, element) => {
     const matrix = toRoot(element);
+    const scale = Math.hypot(matrix.a, matrix.b);
+    const outline = round((Number.parseFloat(getComputedStyle(element).strokeWidth) || 0) * scale);
     if (shape.tag === "rect") {
       const center = apply(matrix, shape.x + shape.width / 2, shape.y + shape.height / 2);
-      return { id: shape.id, x: round(center.x), y: round(center.y), radius: round(Math.min(shape.width, shape.height) / 2) };
+      return { id: shape.id, x: round(center.x), y: round(center.y), radius: round(Math.min(shape.width, shape.height) / 2), outline };
     }
     const radiusX = shape.r ?? shape.rx;
     const radiusY = shape.r ?? shape.ry;
@@ -187,6 +190,7 @@ function extractGeometry(config) {
       x: round(center.x),
       y: round(center.y),
       radius: round(Math.min(Math.hypot(xEdge.x - center.x, xEdge.y - center.y), Math.hypot(yEdge.x - center.x, yEdge.y - center.y))),
+      outline,
     };
   };
 

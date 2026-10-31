@@ -7,6 +7,7 @@ import {
   STATION_ALERT_HOVER_RING_GAP,
   STATION_ALERT_PILL_RING_GAP,
   STATION_ALERT_PILL_TARGET_WIDTH,
+  STATION_DIRECTION_BADGE_RING_WIDTH,
   isSelectedStationAlert,
   outsetStationPill,
   stationAlertColor,
@@ -156,8 +157,12 @@ export function MapStationAlertRings({
   );
 }
 
-/** One arrow per alerted dot for its affected directions; the same glyph on both maps. */
-export function MapStationDirectionGlyphs({ glyphs }: { glyphs: MapStationDirectionGlyph[] }) {
+/**
+ * One arrow per alerted dot for its affected directions; the same glyph on
+ * both maps. Its badge covers the dot's white, its ring inside the outline.
+ */
+export function MapStationDirectionGlyphs({ glyphs, plane }: { glyphs: MapStationDirectionGlyph[]; plane: MapOverlayPlane }) {
+  const ringWidth = STATION_DIRECTION_BADGE_RING_WIDTH * plane.unit;
   return (
     <g>
       {glyphs.map((glyph) => (
@@ -174,7 +179,11 @@ export function MapStationDirectionGlyphs({ glyphs }: { glyphs: MapStationDirect
             style={{ "--station-impact-direction-stroke": `${stationImpactDirectionStrokeWidth(glyph.radius)}px` } as CSSProperties}
             transform={`translate(${glyph.center.x} ${glyph.center.y})`}
           >
-            <circle className="station-impact-direction-badge" r={glyph.radius} />
+            <circle
+              className="station-impact-direction-badge"
+              r={Math.max(0, glyph.radius - ringWidth / 2)}
+              style={{ strokeWidth: ringWidth }}
+            />
             <path className="station-impact-direction-arrow" d={stationImpactDirectionPath(glyph.direction, glyph.radius)} />
           </g>
         </g>

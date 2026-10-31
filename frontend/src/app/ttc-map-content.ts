@@ -42,6 +42,7 @@ import {
   stationAlertSizes,
   type MapImpactContext,
   type MapOverlapBadgeGroup,
+  type StationDot,
 } from "./map-content-rules.ts";
 import type { MapContent, MapOverlapBadgeInput } from "./map-content.ts";
 import { estimatedTrainMarkerLanePoint, type EstimatedTrainMarker } from "./train-markers.ts";
@@ -52,7 +53,6 @@ import {
   type MapLineAlert,
 } from "../components/map-overlays/line-alert-model.ts";
 import {
-  interchangeLineImpacts,
   stationDirectionGlyphs,
   type MapStationAlert,
 } from "../components/map-overlays/station-alert-model.ts";
@@ -133,23 +133,23 @@ const geometryCache = new WeakMap<PreparedMapGeometry, {
   anchorPoints: Map<string, MapPoint>;
   guidePaths: Map<string, string>;
   artworkObstacles: ReturnType<typeof ttcArtworkObstacles>;
-  dots: Map<string, number>;
-  medianDot: number;
+  dots: Map<string, StationDot>;
+  medianDot: StationDot;
 }>();
 
 function preparedTtc(geometry: PreparedMapGeometry) {
   let prepared = geometryCache.get(geometry);
   if (!prepared) {
     const dots = new Map(geometry.stations.flatMap((station) => (
-      station.anchors.map(({ id, radius }) => [id.replace(/^station-/, ""), radius] as const)
+      station.anchors.map(({ id, radius, outline }) => [id.replace(/^station-/, ""), { radius, outline }] as const)
     )));
-    const sorted = [...dots.values()].sort((a, b) => a - b);
+    const sorted = [...dots.values()].sort((a, b) => a.radius - b.radius);
     prepared = {
       anchorPoints: ttcAnchorPoints(geometry),
       guidePaths: ttcGuidePaths(geometry),
       artworkObstacles: ttcArtworkObstacles(geometry),
       dots,
-      medianDot: sorted[Math.floor(sorted.length / 2)] ?? 32,
+      medianDot: sorted[Math.floor(sorted.length / 2)] ?? { radius: 32, outline: 8 },
     };
     geometryCache.set(geometry, prepared);
   }
@@ -400,12 +400,9 @@ export function ttcMapContent(geometry: PreparedMapGeometry, input: TtcMapConten
     }];
   });
 
-  const interchangeStationIds = new Set(mapStations.filter((station) => station.interchange).map((station) => station.id));
+  // Arrows mark a station's own alerts only; line alerts carry their own chevrons.
   const glyphs = stationDirectionGlyphs(
-    [
-      ...stationNodeImpacts,
-      ...interchangeLineImpacts(renderedNetworkSegments, interchangeStationIds),
-    ].flatMap((impact) => {
+    stationNodeImpacts.flatMap((impact) => {
       const station = stationById.get(impact.stationId);
       if (!station) return [];
       return stationImpactVisualAnchors(station, impact, directionData, stationCenterPoints).map(({ id, point }) => ({
@@ -426,7 +423,7 @@ export function ttcMapContent(geometry: PreparedMapGeometry, input: TtcMapConten
       renderedNetworkSegments,
       stations,
       visualAnchorsForStation,
-      (anchorId) => dot(anchorId) > medianDot * LARGE_DOT_RATIO,
+      (anchorId) => dot(anchorId).radius > medianDot.radius * LARGE_DOT_RATIO,
     ),
     outlinePathsByImpact,
     overlapBadges: ttcOverlapBadges(

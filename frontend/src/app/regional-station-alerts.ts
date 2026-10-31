@@ -1,4 +1,4 @@
-import type { NetworkSegment, Station, StationNodeImpact } from "./linewatch-data.ts";
+import type { Station, StationNodeImpact } from "./linewatch-data.ts";
 import type { PreparedMapGeometry } from "./map-geometry-data.ts";
 import {
   matrixTransform,
@@ -15,7 +15,6 @@ import {
   type StationImpactDirectionData,
 } from "../components/station-impact-direction.ts";
 import {
-  interchangeLineImpacts,
   stationDirectionGlyphs,
   type MapStationAlert,
   type MapStationDirectionGlyph,
@@ -30,7 +29,7 @@ function stationBeaconNeighbours(geometry: PreparedMapGeometry): StationBeaconNe
   return regionalStationDots(geometry).map((anchor) => ({
     id: anchor.id,
     center: anchor.point,
-    radius: stationAlertSizes(anchor.radius).dotOuterRadius,
+    radius: stationAlertSizes(anchor).dotOuterRadius,
   }));
 }
 
@@ -59,14 +58,13 @@ const NO_DIRECTION_ARROW_STATION_IDS = new Set(["union"]);
 /**
  * Every GO/UP station alert, in the shared overlay model. An alert sits on
  * the platform of its line where the station has one per line (Bloor's UP
- * and KI dots). Interchanges also point along their current line disruptions.
+ * and KI dots). Arrows mark a station's own alerts, not line alerts through it.
  */
 export function regionalStationAlerts(
   geometry: PreparedMapGeometry,
   data: StationImpactDirectionData & {
     stationNodeImpacts: StationNodeImpact[];
-    stations: Pick<Station, "id" | "name" | "interchange">[];
-    networkSegments: Pick<NetworkSegment, "stationAId" | "stationBId" | "impacts">[];
+    stations: Pick<Station, "id" | "name">[];
   },
   unit: number,
 ): { alerts: MapStationAlert[]; glyphs: MapStationDirectionGlyph[] } {
@@ -93,7 +91,7 @@ export function regionalStationAlerts(
       stationId: impact.stationId,
       label: `${impact.title}: ${stationName}${directionLabel}`,
       anchors: anchors.map((anchor) => {
-        const { coreRadius, ringRadius } = stationAlertSizes(anchor.radius);
+        const { coreRadius, ringRadius } = stationAlertSizes(anchor);
         return {
           id: anchor.id,
           center: anchor.point,
@@ -112,14 +110,13 @@ export function regionalStationAlerts(
     };
   });
 
-  const interchangeIds = new Set(data.stations.filter((station) => station.interchange).map((station) => station.id));
-  const lineImpacts = interchangeLineImpacts(data.networkSegments, interchangeIds).flatMap(place);
+  // Arrows mark a station's own alerts only; line alerts carry their own chevrons.
   const glyphs = stationDirectionGlyphs(
-    [...placed, ...lineImpacts]
+    placed
       .filter(({ impact }) => !NO_DIRECTION_ARROW_STATION_IDS.has(impact.stationId))
       .flatMap(({ impact, anchors }) => anchors.map((anchor) => ({
         impact,
-        anchor: { id: anchor.id, center: anchor.point, badgeRadius: stationAlertSizes(anchor.radius).directionBadgeRadius },
+        anchor: { id: anchor.id, center: anchor.point, badgeRadius: stationAlertSizes(anchor).directionBadgeRadius },
       }))),
     data,
   );

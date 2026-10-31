@@ -880,7 +880,7 @@ function SystemMapComponent({
                 target interleaved with them would steal hover from the text. */}
             <MapStationLabelTargets labels={stationLabelTargets} onHoverChange={onStationLabelHoverChange} />
             <g aria-label="Station impact direction glyphs">
-              <MapStationDirectionGlyphs glyphs={stationDirectionGlyphs} />
+              <MapStationDirectionGlyphs glyphs={stationDirectionGlyphs} plane={overlayPlane} />
             </g>
             <g aria-label="Station impact foreground highlights" pointerEvents="none">
               <MapStationSelection

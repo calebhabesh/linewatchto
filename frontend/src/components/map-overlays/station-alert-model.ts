@@ -1,4 +1,4 @@
-import type { ImpactSelection, MapImpactKind, NetworkSegment, StationNodeImpact } from "../../app/linewatch-data.ts";
+import type { ImpactSelection, MapImpactKind, StationNodeImpact } from "../../app/linewatch-data.ts";
 import type { MapPoint } from "../../app/map-geometry.ts";
 import {
   stationImpactDirectionForStationImpacts,
@@ -78,6 +78,12 @@ export function isSelectedStationAlert(alert: Pick<MapStationAlert, "kind" | "im
   return selection?.kind === alert.kind && selection.id === alert.impactId;
 }
 
+/**
+ * The arrow badge's ring, in TTC units. The badge fills the dot's white, so
+ * the ring sits just inside the dot's black outline with no white between.
+ */
+export const STATION_DIRECTION_BADGE_RING_WIDTH = 5;
+
 /** TTC's idle ring sits 12 units outside its 26-unit core; a pill keeps that gap. */
 export const STATION_ALERT_PILL_RING_GAP = 12;
 /** The hover priority ring sits this far outside the idle ring. */
@@ -118,29 +124,6 @@ export function stationDirectionGlyphs<I extends Pick<StationNodeImpact, "statio
     const direction = stationImpactDirectionForStationImpacts(impacts, directionData);
     return direction ? [{ key, anchorId, center, radius, direction: direction.arrow.direction }] : [];
   });
-}
-
-/**
- * The current line disruptions at each interchange, as station impacts there,
- * so its dot's arrow shows which directions are affected (Bloor-Yonge with
- * Line 2 both ways and Line 1 northbound points three ways). Every drawn
- * impact on a segment ending at an interchange counts; planned previews are
- * not current service and are left out.
- */
-export function interchangeLineImpacts(
-  segments: ReadonlyArray<Pick<NetworkSegment, "stationAId" | "stationBId" | "impacts">>,
-  interchangeIds: ReadonlySet<string>,
-): Array<Pick<StationNodeImpact, "stationId" | "kind" | "cardId">> {
-  const seen = new Set<string>();
-  return segments.flatMap((segment) => [segment.stationAId, segment.stationBId].flatMap((stationId) => {
-    if (!stationId || !interchangeIds.has(stationId)) return [];
-    return (segment.impacts ?? []).flatMap(({ kind, cardId }) => {
-      const key = `${stationId}:${kind}:${cardId}`;
-      if (kind === "planned-closure" || seen.has(key)) return [];
-      seen.add(key);
-      return [{ stationId, kind, cardId }];
-    });
-  }));
 }
 
 /** Half the idle ring's hovered stroke (8), in overlay units on TTC. */

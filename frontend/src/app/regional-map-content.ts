@@ -77,7 +77,6 @@ export function regionalMapContent(geometry: PreparedMapGeometry, input: Regiona
     plannedClosures,
     stationNodeImpacts: stationAlertImpacts,
     stations,
-    networkSegments,
   }, REGIONAL_OVERLAY_UNIT);
   return {
     lineAlerts,

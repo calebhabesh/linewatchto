@@ -43,7 +43,11 @@ export type PreparedStationShape =
     };
 
 /** One dot's centre and authored radius. */
-export type PreparedStationAnchor = MapPoint & { id: string; radius: number };
+/**
+ * A station dot: its centre, its radius to the middle of its outline, and the
+ * outline's width (the dot's white is `radius - outline / 2`).
+ */
+export type PreparedStationAnchor = MapPoint & { id: string; radius: number; outline: number };
 
 export type PreparedStation = {
   /** The authored element id (`station-…`). */

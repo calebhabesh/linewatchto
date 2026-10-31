@@ -14,6 +14,11 @@ import {
   GEOGRAPHIC_LINE_BADGE_HALF_ZOOM,
   GEOGRAPHIC_LINE_BADGE_HIDDEN_ZOOM,
   projectGeographicLineBadges,
+  GEOGRAPHIC_LINE_BREADCRUMB_BASE_ZOOM,
+  GEOGRAPHIC_LINE_BREADCRUMB_LEVELS,
+  GEOGRAPHIC_ROUTE_OFFSET_SIDES,
+  GEOGRAPHIC_ROUTE_OFFSET_STOPS,
+  projectGeographicLineBreadcrumbs,
 } from "../app/map-line-badges.ts";
 import { ALL_LINE_COLORS } from "../app/geographic-config.ts";
 import { REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data.ts";
@@ -187,6 +192,46 @@ function registerMapImages(map: MapLibreMap): void {
   }
 }
 
+/** Station names show from these zooms in Map View (TTC's stations sit closer together). */
+export const GEOGRAPHIC_STATION_LABEL_MIN_ZOOM = { ttc: 10.5, regional: 9 } as const;
+
+/** Line breadcrumbs fade in from here, as the overview line badges fade out. */
+export const GEOGRAPHIC_LINE_BREADCRUMB_MIN_ZOOM = 9;
+const GEOGRAPHIC_LINE_BREADCRUMB_FULL_ZOOM = 10;
+
+/** Only the breadcrumb set for the current zoom level (map-line-badges.ts). */
+export function lineBreadcrumbLevelFilter(): ExpressionSpecification {
+  return [
+    "==",
+    ["get", "level"],
+    ["min", GEOGRAPHIC_LINE_BREADCRUMB_LEVELS, ["max", 0, ["floor", ["-", ["zoom"], GEOGRAPHIC_LINE_BREADCRUMB_BASE_ZOOM]]]],
+  ] as unknown as ExpressionSpecification;
+}
+
+/** A route feature's authored line badge sprite (`line-badge-1`, `line-badge-KI`). */
+export function lineBreadcrumbSpriteExpression(network: "ttc" | "regional"): ExpressionSpecification {
+  const code = network === "regional"
+    ? ["upcase", ["slice", ["get", "lineId"], "regional-".length]]
+    : ["slice", ["get", "lineId"], "line-".length];
+  return ["concat", "line-badge-", code] as unknown as ExpressionSpecification;
+}
+
+/** Breadcrumbs fade in with zoom and dim with the other lines under a line filter. */
+export function lineBreadcrumbOpacityExpression(activeLine: string | null): ExpressionSpecification {
+  const zoomFade = [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    GEOGRAPHIC_LINE_BREADCRUMB_MIN_ZOOM,
+    0,
+    GEOGRAPHIC_LINE_BREADCRUMB_FULL_ZOOM,
+    1,
+  ];
+  return (activeLine
+    ? ["*", zoomFade, ["case", ["==", ["get", "lineId"], activeLine], 1, 0.2]]
+    : zoomFade) as unknown as ExpressionSpecification;
+}
+
 export function lineBadgeOpacityExpression(activeLine: string | null): ExpressionSpecification {
   const zoomFade = [
     "interpolate",
@@ -257,6 +302,14 @@ export function updateGeographicLineFilter(
       "transit-line-badges",
       "icon-opacity",
       lineBadgeOpacityExpression(activeFilteredLine),
+    );
+  }
+
+  if (map.getLayer("transit-line-breadcrumbs")) {
+    setTransitPaintProperty(map,
+      "transit-line-breadcrumbs",
+      "icon-opacity",
+      lineBreadcrumbOpacityExpression(activeFilteredLine),
     );
   }
 
@@ -548,6 +601,13 @@ export function installTransitLayers(
     map.addSource("transit-stations", { type: "geojson", data: stations });
   }
 
+  const lineBreadcrumbs = projectGeographicLineBreadcrumbs(activeCatalog);
+  if (map.getSource("transit-line-breadcrumbs")) {
+    (map.getSource("transit-line-breadcrumbs") as GeoJSONSource).setData(lineBreadcrumbs);
+  } else {
+    map.addSource("transit-line-breadcrumbs", { type: "geojson", data: lineBreadcrumbs });
+  }
+
   const lineBadges = projectGeographicLineBadges(activeCatalog);
   if (map.getSource("transit-line-badges")) {
     (map.getSource("transit-line-badges") as GeoJSONSource).setData(lineBadges);
@@ -607,19 +667,20 @@ export function installTransitLayers(
     "#475569",
   ] as unknown as ExpressionSpecification;
 
-  // Parallel offset expression to visually separate UP Express and Kitchener Line along shared tracks
+  // UP and KI drawn either side of their shared track (map-line-badges.ts),
+  // which their breadcrumbs follow.
   const routeOffsetExpr = (
     network === "regional"
       ? [
           "interpolate",
           ["linear"],
           ["zoom"],
-          10,
-          0,
-          13,
-          ["match", ["get", "lineId"], "regional-up", 3, "regional-ki", -3, 0],
-          16,
-          ["match", ["get", "lineId"], "regional-up", 5, "regional-ki", -5, 0],
+          ...GEOGRAPHIC_ROUTE_OFFSET_STOPS.flatMap(([zoom, pixels]) => [
+            zoom,
+            pixels === 0
+              ? 0
+              : ["match", ["get", "lineId"], ...Object.entries(GEOGRAPHIC_ROUTE_OFFSET_SIDES).flatMap(([lineId, side]) => [lineId, side * pixels]), 0],
+          ]),
         ]
       : 0
   ) as unknown as ExpressionSpecification;
@@ -1200,7 +1261,7 @@ export function installTransitLayers(
       id: "transit-station-labels",
       type: "symbol",
       source: "transit-stations",
-      minzoom: network === "regional" ? 10.5 : 12.0,
+      minzoom: GEOGRAPHIC_STATION_LABEL_MIN_ZOOM[network],
       layout: {
         "text-field": ["get", "name"],
         "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
@@ -1208,12 +1269,14 @@ export function installTransitLayers(
           "interpolate",
           ["linear"],
           ["zoom"],
-          10.5,
-          9.5,
-          13,
-          11.5,
+          9,
+          14,
+          12,
           16,
-          13.5,
+          14,
+          18,
+          16,
+          21,
         ],
         "text-offset": [0, 1.2],
         "text-anchor": "top",
@@ -1227,6 +1290,30 @@ export function installTransitLayers(
     // Under the train markers (as on the System Map), so a train at a
     // station is never hidden behind its name.
     }, map.getLayer("transit-train-markers-halo") ? "transit-train-markers-halo" : undefined);
+  }
+
+  // Line breadcrumbs: each line's badge at even distances along it, so a long
+  // line (or two side by side, as KI and UP) can be followed. The points are
+  // placed ahead of time, one set per zoom level (map-line-badges.ts), and
+  // always drawn, so collisions never thin them unevenly; they sit under the
+  // station markers and names.
+  if (!map.getLayer("transit-line-breadcrumbs")) {
+    map.addLayer({
+      id: "transit-line-breadcrumbs",
+      type: "symbol",
+      source: "transit-line-breadcrumbs",
+      minzoom: GEOGRAPHIC_LINE_BREADCRUMB_MIN_ZOOM,
+      filter: lineBreadcrumbLevelFilter(),
+      layout: {
+        "icon-image": lineBreadcrumbSpriteExpression(network),
+        "icon-size": 0.72,
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+      },
+      paint: {
+        "icon-opacity": lineBreadcrumbOpacityExpression(initialData?.activeFilteredLine ?? null),
+      },
+    }, map.getLayer("transit-stations-outer") ? "transit-stations-outer" : undefined);
   }
 
   // Decorative route identifiers

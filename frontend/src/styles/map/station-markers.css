@@ -154,10 +154,11 @@
   filter: drop-shadow(0 0 calc(5px * var(--map-overlay-unit, 1)) rgba(0, 0, 0, 0.55));
 }
 
+/* Script sets the ring's width with the badge's radius
+   (STATION_DIRECTION_BADGE_RING_WIDTH), so the ring meets the dot's outline. */
 .station-impact-direction-badge {
   fill: #ffffff;
   stroke: rgba(127, 29, 29, 0.9);
-  stroke-width: calc(2.5px * var(--map-overlay-unit, 1));
 }
 
 .station-impact-direction-arrow {
@@ -172,7 +173,6 @@
 .linewatch-shell.high-contrast .station-impact-direction-badge {
   fill: #ffffff;
   stroke: #000000;
-  stroke-width: calc(3px * var(--map-overlay-unit, 1));
 }
 
 .linewatch-shell.high-contrast .station-impact-direction-arrow {
