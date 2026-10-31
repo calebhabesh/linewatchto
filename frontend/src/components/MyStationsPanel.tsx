@@ -642,6 +642,8 @@ function SavedStationRow({
                                     && `To ${destinationName}`.toLowerCase() !== group.destinationLabel.trim().toLowerCase(),
                                   );
                                   const coachCountLabel = formatRegionalArrivalCoachCount(arrival);
+                                  // The three tiles mix platforms, so each names its own (as the station panel's headings do).
+                                  const platformLabel = arrival.platform.trim() ? `Platform ${arrival.platform.trim()}` : null;
                                   const arrivalTileClassName = [
                                     "relative flex flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 text-center transition-colors",
                                     coachCountLabel
@@ -707,6 +709,17 @@ function SavedStationRow({
                                           title={`To ${destinationName}`}
                                         >
                                           To {destinationName}
+                                        </span>
+                                      ) : null}
+                                      {platformLabel ? (
+                                        <span
+                                          data-regional-arrival-platform
+                                          className={[
+                                            "mt-0.5 max-w-full whitespace-normal break-words px-0.5 text-[9px] sm:text-[10px] font-semibold leading-tight tracking-tight",
+                                            due ? "text-red-100/75" : "text-slate-500 dark:text-slate-400",
+                                          ].join(" ")}
+                                        >
+                                          {platformLabel}
                                         </span>
                                       ) : null}
                                       {coachCountLabel ? (

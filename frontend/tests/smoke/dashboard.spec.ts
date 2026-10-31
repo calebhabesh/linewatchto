@@ -5305,6 +5305,8 @@ test("My Stations shows regional disruptions, accessibility outages, and arrival
   await expect(pickeringRow.getByText("7 min", { exact: true })).toBeVisible();
   await expect(pickeringRow.getByText("6 Min Late", { exact: true })).toBeVisible();
   await expect(pickeringRow.getByText("Coaches: 12", { exact: true })).toBeVisible();
+  // Tiles mix platforms, so each names its own.
+  await expect(pickeringRow.locator("[data-regional-arrival-platform]")).toHaveText("Platform 11");
   await pickeringRow.getByText("Active Disruptions", { exact: true }).click();
   await expect(pickeringRow.getByText(/Delay/).first()).toBeVisible();
 
