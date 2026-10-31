@@ -44,6 +44,6 @@ describe("desktop overlap badge hover", () => {
       overlapIndicatorSource,
       /if \(!open &&[^{}]*window\.matchMedia\("\(hover: hover\) and \(pointer: fine\)"\)\.matches/,
     );
-    assert.match(mapSource, /clearMapHover\(\);\s*setExpandedOverlapBadgeId\(badge\.segmentId\)/);
+    assert.match(mapSource, /clearMapHover\(\);\s*setExpandedOverlapBadgeId\(badge\.markerId\)/);
   });
 });

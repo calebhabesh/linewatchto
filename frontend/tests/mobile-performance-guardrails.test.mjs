@@ -194,7 +194,7 @@ describe("mobile performance guardrails", () => {
   });
 
   it("tracks two active pointers for custom pinch zoom", () => {
-    assert.match(mapSource, /onPointerCancel=\{handlePointerCancel\}/);
+    assert.match(mapSource, /useMapTaps\(\{\s*camera: \{[\s\S]*?handlePointerCancel,/);
     assert.match(mapSource, /touch-none/);
   });
 

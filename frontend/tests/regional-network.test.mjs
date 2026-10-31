@@ -34,6 +34,8 @@ const regionalLineAlertsSource = readFileSync(new URL("../src/app/regional-line-
 const stationInteractionSource = readFileSync(new URL("../src/app/regional-station-interaction.ts", import.meta.url), "utf8");
 const stationLayersSource = readFileSync(new URL("../src/components/MapStationLayers.tsx", import.meta.url), "utf8");
 const pulseSyncSource = readFileSync(new URL("../src/components/map-overlays/pulse-sync.ts", import.meta.url), "utf8");
+const regionalContentSource = readFileSync(new URL("../src/app/regional-map-content.ts", import.meta.url), "utf8");
+const tapsSource = readFileSync(new URL("../src/components/map-overlays/useMapTaps.ts", import.meta.url), "utf8");
 const hoverControllerSource = readFileSync(new URL("../src/components/map-overlays/map-hover-controller.ts", import.meta.url), "utf8");
 const regionalStationAlertsSource = readFileSync(new URL("../src/app/regional-station-alerts.ts", import.meta.url), "utf8");
 // The shared overlay layer both maps draw line alerts with.
@@ -436,7 +438,7 @@ describe("network-scoped regional dashboard", () => {
       });
     }
     // A tap on a junction's dot or bar selects its one station.
-    assert.match(regionalMapSource, /const stationId = mapStationIdAt\(target\);/);
+    assert.match(tapsSource, /const stationId = mapStationIdAt\(target\);/);
     assert.doesNotMatch(regionalMapSource, /data-regional-station-id/);
   });
 
@@ -684,7 +686,7 @@ describe("network-scoped regional dashboard", () => {
     // Union's pill keeps its filled outline in place of a ring and beacon.
     assert.match(regionalStationAlertsSource, /pill: regionalStationPill\(/);
     // Station-only planned closures are station alerts, by TTC's rule.
-    assert.match(regionalMapSource, /plannedAdvisoryStationImpacts\(plannedClosures, activeAlerts, delays, selection\)/);
+    assert.match(regionalContentSource, /plannedAdvisoryStationImpacts\(input\.plannedClosures, input\.activeAlerts, input\.delays, input\.selection\)/);
     assert.doesNotMatch(regionalOverlaysSource, /regional-station-impact-(?:beacon-group|fill|direction-glyph)/);
     assert.doesNotMatch(regionalAssetSource, /effectsLayer|stationRingLayer/);
   });
@@ -711,10 +713,11 @@ describe("network-scoped regional dashboard", () => {
   it("selects the regional alert under the pointer", () => {
     // A press picks the station ring under the pointer, else the line alert
     // target it landed on (the topmost, most severe one; TTC's order).
-    assert.match(regionalOverlaysSource, /function regionalPointerImpactSelection\(/);
-    assert.match(regionalOverlaysSource, /mapStationAlertAtClientPoint\(root, clientX, clientY\) \?\? mapImpactIdentityOf\(impact\)/);
+    // The shared tap path (useMapTaps.ts), on both maps.
+    assert.match(tapsSource, /export function mapTapTargetAt\(/);
+    assert.match(tapsSource, /mapStationAlertAtClientPoint\(root, clientX, clientY\) \?\? mapImpactIdentityOf\(impact\)/);
     assert.match(hoverControllerSource, /if \(!hit \|\| !ring\.classList\.contains\("selected"\)\) return hit;/);
-    assert.match(regionalMapSource, /regionalPointerImpactSelection\(event\.currentTarget, impact, event\.clientX, event\.clientY\)/);
+    assert.match(regionalMapSource, /useMapTaps\(\{/);
   });
 
   it("reuses the TTC overlap indicator for regional same-type and mixed impacts", () => {
@@ -745,7 +748,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalGeometrySource, /REGIONAL_IMPACT_OVERLAY_WIDTH \/ 2[\s\S]*renderedBadgeHalfExtent[\s\S]*REGIONAL_OVERLAP_INDICATOR_EDGE_GAP/);
     // Placement shares TTC's layout; behaviour is covered in regional-overlap-placement.test.mjs.
     assert.match(regionalOverlaysSource, /function regionalPlacedOverlapBadges\(/);
-    assert.match(regionalOverlaysSource, /layoutMapOverlapBadges\(\{/);
+    assert.match(regionalOverlaysSource, /return placeMapOverlapBadges\(\{/);
     assert.doesNotMatch(regionalOverlaysSource, /overlapBadgePositions/);
     assert.doesNotMatch(regionalMapSource, /badge\.position\.x \+ deltaX \* authoredUnitsPerPixel/);
     assert.match(overlapIndicatorSource, /<OverlapKindCountBadge count=\{count\}/);
@@ -759,8 +762,8 @@ describe("network-scoped regional dashboard", () => {
 
   it("supports pointer, wheel, fit-network, and keyboard map interactions", () => {
     assert.match(regionalMapSource, /onWheel=\{onWheel\}/);
-    assert.match(regionalMapSource, /onPointerDown=\{onPointerDown\}/);
-    assert.match(regionalMapSource, /event\.key !== "Enter" && event\.key !== " "/);
+    assert.match(regionalMapSource, /\{\.\.\.tapHandlers\}/);
+    assert.match(tapsSource, /event\.key !== "Enter" && event\.key !== " "/);
     assert.match(regionalMapSource, /aria-label="(?:Center map view|Fit regional network)"/);
     assert.match(globalsCss, /\.regional-map-viewport\s*\{[^}]*-webkit-user-select:\s*none;[^}]*user-select:\s*none;/s);
     assert.match(globalsCss, /\.regional-map-stage :is\(text, tspan\)[^{]*\{[^}]*user-select:\s*none;/s);
@@ -783,10 +786,10 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("preserves station activation across viewport pointer capture", () => {
-    assert.match(regionalMapSource, /pointerActivationRef/);
-    assert.match(regionalMapSource, /if \(event\.type !== "pointerup" \|\| shouldSuppressMapClick\(\)\) return;\s*if \(activation\)/);
-    assert.match(regionalMapSource, /onSelectStationId\(activation\.id\)/);
-    assert.doesNotMatch(regionalMapSource, /onSelectStationId\(selectedStationId === activation\.id \? null : activation\.id\)/);
+    assert.match(tapsSource, /const pressRef = useRef/);
+    assert.match(tapsSource, /if \(event\.type !== "pointerup" \|\| shouldSuppressMapClick\(\)\) return;\s*if \(pressed\)/);
+    assert.match(tapsSource, /if \(target\.type === "station"\) onSelectStationId\(target\.id\);/);
+    assert.doesNotMatch(tapsSource, /\? null : target\.id/);
   });
 
   it("applies the TTC mobile performance contract to the regional camera and overlays", () => {
@@ -844,7 +847,7 @@ describe("network-scoped regional dashboard", () => {
     // No second camera: no camera state, transform writer, wheel maths or pinch tracking.
     assert.doesNotMatch(regionalMapSource, /useState<Camera>|setCamera\(|const writeMapTransform|const animateCameraTo|pinchGestureRef|useMapCameraMotion/);
     assert.doesNotMatch(regionalMapSource, /data-regional-map-camera-moving|regionalMapCameraMoving/);
-    assert.match(regionalMapSource, /onPointerUp=\{finishPointer\}[\s\S]*onPointerLeave=\{handlePointerLeave\}[\s\S]*onLostPointerCapture=\{handleLostPointerCapture\}/);
+    assert.match(regionalMapSource, /\{\.\.\.tapHandlers\}[\s\S]*onPointerLeave=\{handlePointerLeave\}[\s\S]*onLostPointerCapture=\{handleLostPointerCapture\}/);
   });
 
   it("keeps the regional camera imperative while preserving TTC camera math", () => {

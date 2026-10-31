@@ -14,23 +14,24 @@ const regionalGeometrySource = readFileSync(
   new URL("../src/app/regional-map-geometry.ts", import.meta.url),
   "utf8",
 );
-// The marker motion runtime, shared by both System Map renderers.
-const regionalMotionSource = readFileSync(
-  new URL("../src/app/regional-train-marker-motion.ts", import.meta.url),
+// The train marker layer both System Maps draw markers with.
+const trainMarkerLayerSource = readFileSync(
+  new URL("../src/components/map-overlays/TrainMarkerLayer.tsx", import.meta.url),
   "utf8",
 );
-const ttcTrainMarkerLayerSource = readFileSync(
-  new URL("../src/components/TtcTrainMarkerLayer.tsx", import.meta.url),
+const regionalContentSource = readFileSync(
+  new URL("../src/app/regional-map-content.ts", import.meta.url),
   "utf8",
 );
 
 describe("regional estimated train marker rendering", () => {
-  it("uses the TTC vehicle glyph for regional corridor-coloured markers", () => {
-    assert.match(ttcTrainMarkerLayerSource, /TRAIN_MARKER_BODY_PATH/);
-    assert.match(regionalMapSource, /TRAIN_MARKER_BODY_PATH/);
-    assert.match(regionalMapSource, /estimated-train-marker-outline/);
-    assert.match(regionalMapSource, /estimated-train-marker-window/);
-    assert.match(regionalMapSource, /estimated-train-marker-arrow/);
+  it("draws GO/UP markers with the shared layer and the TTC vehicle glyph", () => {
+    assert.match(trainMarkerLayerSource, /TRAIN_MARKER_BODY_PATH/);
+    assert.match(trainMarkerLayerSource, /estimated-train-marker-outline/);
+    assert.match(trainMarkerLayerSource, /estimated-train-marker-window/);
+    assert.match(trainMarkerLayerSource, /estimated-train-marker-arrow/);
+    assert.match(regionalMapSource, /<MapTrainMarkerLayer[\s\S]*?placement=\{REGIONAL_TRAIN_MARKER_PLACEMENT\}/);
+    assert.match(regionalContentSource, /scale: 1\.8,/);
   });
 
   // Behaviour on the prepared corridors: regional-map-geometry.test.mjs.
@@ -38,37 +39,24 @@ describe("regional estimated train marker rendering", () => {
     assert.match(regionalGeometrySource, /\["regional-route-up-path", "regional-route-up-airport-path"\]/);
     assert.match(regionalGeometrySource, /estimatedTrainMarkerLanePoint/);
     assert.match(regionalGeometrySource, /REGIONAL_TRAIN_MARKER_LANE_OFFSET/);
+    assert.match(regionalContentSource, /regionalTrainMarkerFrame\(geometry, segment, marker\)/);
     assert.match(regionalMapSource, /REGIONAL_TRAIN_MARKER_LAYER_ID/);
-    assert.doesNotMatch(regionalMapSource, /const x = from\.x \+ \(to\.x - from\.x\) \* progress/);
     assert.doesNotMatch(regionalGeometrySource, /const x = from\.x \+ \(to\.x - from\.x\) \* progress/);
-    assert.doesNotMatch(regionalMapSource, /documentNode\.documentElement\.append\(markerLayer\)/);
   });
 
   it("uses path-relative directional lanes on both map modes", () => {
-    assert.match(ttcTrainMarkerLayerSource, /estimatedTrainMarkerLanePoint/);
-    assert.match(ttcTrainMarkerLayerSource, /TTC_TRAIN_MARKER_LANE_OFFSET/);
     assert.match(regionalGeometrySource, /pathStartsAtFrom \? "forward" : "reverse"/);
   });
 
-  it("updates regional markers without rebuilding the map or replaying marker motion", () => {
-    assert.match(regionalMapSource, /existingMarkersByKey/);
-    assert.match(regionalMapSource, /estimatedTrainMarkerRenderKey\(marker\)/);
-    assert.match(regionalMapSource, /existingMarkersByKey\.delete\(markerKey\)/);
-    assert.doesNotMatch(regionalMapSource, /markerLayer\.replaceChildren\(\)/);
-    assert.match(
-      regionalMapSource,
-      /\}, \[estimatedTrainMarkers, estimatedTrainsEnabled, mapEffectMotionPaused, networkSegments, svgMarkup\]\);/,
-    );
-    assert.match(regionalMapSource, /animateRegionalTrainMarker\(/);
-    assert.match(regionalMotionSource, /estimatedTrainMarkerMotionWaypoints/);
-    assert.match(regionalMotionSource, /targetObservationKey/);
-    assert.match(regionalMapSource, /!mapEffectMotionPaused,/);
-    assert.match(regionalMotionSource, /scheduleEstimatedTrainMarkerAnimation\(update\)/);
-    assert.doesNotMatch(regionalMotionSource, /requestAnimationFrame\(update\)/);
-    assert.doesNotMatch(
-      regionalMapSource,
-      /\}, \[activeAlerts, commutePathPreview, estimatedTrainMarkers, estimatedTrainsEnabled,/,
-    );
+  it("updates markers without rebuilding the map or replaying marker motion", () => {
+    // One React node per marker, keyed by its train: a new estimate glides on.
+    assert.match(trainMarkerLayerSource, /key=\{estimatedTrainMarkerRenderKey\(marker\)\}/);
+    assert.match(trainMarkerLayerSource, /estimatedTrainMarkerMotionWaypoints/);
+    assert.match(trainMarkerLayerSource, /if \(current\?\.targetObservationKey === targetObservationKey && animate\) return;/);
+    assert.match(trainMarkerLayerSource, /scheduleEstimatedTrainMarkerAnimation\(update\)/);
+    assert.doesNotMatch(trainMarkerLayerSource, /requestAnimationFrame\(update\)/);
+    assert.match(regionalMapSource, /animate=\{!mapEffectMotionPaused\}/);
+    assert.doesNotMatch(regionalMapSource, /existingMarkersByKey|appendRegionalTrainMarkerGlyph/);
   });
 
   it("orients an UP marker only from a validated adjacent station pair", () => {

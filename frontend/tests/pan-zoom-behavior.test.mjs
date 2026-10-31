@@ -28,6 +28,7 @@ import { readShellSource } from "./helpers/shell-source.mjs";
 const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const tapsSource = readFileSync(new URL("../src/components/map-overlays/useMapTaps.ts", import.meta.url), "utf8");
 const manifestSource = readFileSync(new URL("../src/app/map-manifests.ts", import.meta.url), "utf8");
 const framingSource = readFileSync(new URL("../src/components/map-camera/useMapFraming.ts", import.meta.url), "utf8");
 const wheelEventsSource = readFileSync(new URL("../src/components/map-wheel-events.ts", import.meta.url), "utf8");
@@ -849,7 +850,10 @@ describe("pan zoom behavior guardrails", () => {
     // Easing each drag move kept the stage in a transform transition, and the
     // redraw when it settled after release tore the GO/UP map and sidebar.
     assert.match(hookSource, /const startGestureInteraction = useCallback\([\s\S]*?setMapTransition\("none"\);[\s\S]*?\}, \[/);
-    // GO/UP's press goes through the same hook handler.
-    assert.match(regionalMapSource, /const onPointerDown = useCallback\([\s\S]*?handlePointerDown\(event\);/);
+    // Both maps' presses reach the hook through the shared tap path.
+    assert.match(tapsSource, /const onPointerDown = useCallback\([\s\S]*?handlePointerDown\(event\);/);
+    for (const source of [mapSource, regionalMapSource]) {
+      assert.match(source, /useMapTaps\(\{\s*camera: \{\s*handlePointerDown,/);
+    }
   });
 });

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 import { readShellSource } from "./helpers/shell-source.mjs";
+import { readTtcMapSource } from "./helpers/map-source.mjs";
 
 const panelSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const cardSource = readFileSync(new URL("../src/components/SavedCommuteCard.tsx", import.meta.url), "utf8");
@@ -37,8 +38,8 @@ describe("regional My Commutes UI boundary", () => {
     // repaints over it with no selection flash (the shared overlay layer).
     const lineAlertSource = readFileSync(new URL("../src/components/map-overlays/LineAlertOverlays.tsx", import.meta.url), "utf8");
     assert.match(lineAlertSource, /commutePreviewActive \? \(\s*<g key=\{`commute:\$\{alert\.key\}`\} data-selected-commute-impact-overlay=\{alert\.impactId\}>[\s\S]*?<MapLineAlertTube[\s\S]*?\) : \(\s*<path[\s\S]*?map-selection-flash/);
-    const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
-    assert.match(ttcMapSource, /commutePreviewActive=\{Boolean\(commutePreviewLayer\)\}/);
+    const ttcMapSource = readTtcMapSource();
+    assert.match(ttcMapSource, /commutePreviewActive=\{commutePreviewActive\}/);
     assert.match(regionalMapSource, /commutePreviewActive=\{Boolean\(commutePathPreview\)\}/);
     // Station alerts skip their selection flash under a commute preview too.
     const stationAlertSource = readFileSync(new URL("../src/components/map-overlays/StationAlertOverlays.tsx", import.meta.url), "utf8");

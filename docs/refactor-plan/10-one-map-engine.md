@@ -219,3 +219,70 @@ repeated parallel runs; cause unknown, watch it.
   phone tap INP TTC 208–248 ms (main 208), GO/UP 496–552 ms (main 472); one of
   five GO/UP desktop runs exceeded the wheel-burst frames-over-20 ms budget
   (the others 1–2 frames, as on main), not reproduced in three reruns.
+- **Phase 2 done (2026-10-31): one tap path.** Per-target `onClick` was not an
+  option: a camera commit or the details panel opening between press and click
+  can drop the synthesized click, and Android can retarget it (why TTC's targets
+  had already moved to `pointerup`). Both maps now take GO/UP's engine-owned
+  path, generalized as `components/map-overlays/useMapTaps.ts`: the viewport
+  resolves the press target when the press starts (`mapTapTargetAt`; on an
+  alert, the alert the hover outline shows, formerly GO/UP's
+  `regionalPointerImpactSelection`), selects it at release unless the camera's
+  `shouldSuppressMapClick` says the press moved, stopped a glide or became a
+  pinch, clears the selection on a release over open map, and consumes the
+  click that follows in the capture phase. Enter, Space and clicks with no
+  pointer (`detail === 0`) select the focused target. Station targets, station
+  names, line alert targets and station alert rings carry identity only: the
+  `select` and `interaction` props, `MapStationTargetSelect`, the alert targets'
+  `onSelect`/`shouldSuppressMapClick`/`suppressNextMapClick` props, TTC's
+  `suppressNextMapClick` flag and viewport `onClick`, and GO/UP's
+  `finishPointer`/`activateTarget` are gone. TTC's alert presses now pick the
+  hovered alert as GO/UP's did. Station-name hover stays per map until phase 4
+  (TTC passes `onHoverChange` to `MapStationLabelTargets`; GO/UP finds it from
+  the viewport).
+- Phase 2 checks: `test:fast`, typecheck and lint (15 warnings) pass; `map-parity`
+  passes on both projects (press, glide-press, open-map press, keyboard and the
+  touch cases). The plan's browser list (357 passed) fails only the known cases:
+  the two GO/UP mobile cases, offline-dashboard × 4 on desktop (pulled in by the
+  `dashboard.spec.ts` filter), and `desktop-profiles-and-collapse:150`, which
+  passed three repeats alone. `dashboard.spec.ts:1574` passed in this run.
+  `test:visual`, `test:map-zoom-memory` and `test:map-budgets` were not rerun:
+  no rendering changed.
+- **Phase 3 done (2026-10-31): content adapters.** `app/map-content.ts` defines
+  `MapContent` (line alerts, `selectedLineAlerts`, station alerts and direction
+  glyphs, commute preview, outline paths by impact, overlap badge inputs and
+  `badgePlacement`: artwork, station dots, badge scale) and the shared steps:
+  `placeMapOverlapBadges` (the shared layout, formerly two call sites) and
+  `reuseMapContent`/`mapContentReuser`, which keep each unchanged item's object
+  across rebuilds so memoized overlays skip it (GO/UP's whole-array
+  `JSON.stringify` comparisons are gone). `app/ttc-map-content.ts`
+  (`ttcMapContent`) holds what `InteractiveTtcMap.tsx` built inline (now 1,246
+  lines, from 2,262); corridors and badge artwork are cached by input identity,
+  so a selection reuses them and badge placement stays cached.
+  `app/regional-map-content.ts` (`regionalMapContent`) wraps the `regional-*`
+  adapters and owns the station-only planned advisories. Fade-out of alerts
+  that leave the data is a shared hook (`map-overlays/useRetainedMapItems.ts`);
+  only TTC uses it, as before (GO/UP has no exit fade yet: a phase 4 decision).
+  Train markers are one layer, `map-overlays/TrainMarkerLayer.tsx`
+  (`MapTrainMarkerLayer`, the shared motion), placed per map by a
+  `MapTrainMarkerPlacement` (`TTC_TRAIN_MARKER_PLACEMENT` measures a detached
+  path, `regionalTrainMarkerPlacement` reads prepared corridors at scale 1.8);
+  `TtcTrainMarkerLayer.tsx`, `app/regional-train-marker-motion.ts` and GO/UP's
+  imperative marker DOM are gone. Fixed on the way: GO/UP rebuilt its overlays
+  only when its content signature changed, which leaves out the selection, so
+  selecting a current planned closure never drew its station-only advisory
+  ring; it now rebuilds on a selection too (TTC already did). Badge layout now
+  avoids only current alerts, not ones still fading out. Unit tests:
+  `tests/ttc-map-content.test.mjs`, `tests/regional-map-content.test.mjs`
+  (against the `regional-*` adapters' own output); source checks read each map
+  with its adapter (`tests/helpers/map-source.mjs`).
+- Phase 3 checks: `test:fast`, typecheck and lint (15 warnings) pass;
+  `map-parity` passes on both projects (also after the adapters alone, before
+  train markers); `test:visual` 30 passed with no differences;
+  `test:map-zoom-memory` passes (0 tile warnings on both maps);
+  `test:map-budgets` passes: phone tap INP TTC 216 ms, GO/UP 504 ms (phase 1:
+  208–248 and 496–552), desktop wheel and drag p95 6.1 ms on both, GO/UP hover
+  sweep 43 frames over 20 ms (17–56 before). The plan's browser list fails only
+  the known cases plus `dashboard.spec.ts:1871` (timed GO/UP marker), which
+  restores the real clock and finds the train toggle disabled during GO/UP's
+  closed hours (run at 02:50); `dashboard.spec.ts:1911` failed until the shared
+  layer kept GO/UP's `data-marker-key`, then passed.

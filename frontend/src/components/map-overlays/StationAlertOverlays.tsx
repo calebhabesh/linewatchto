@@ -1,4 +1,4 @@
-import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent, ReactNode, SVGProps } from "react";
+import type { CSSProperties, ReactNode, SVGProps } from "react";
 import type { ImpactSelection } from "../../app/linewatch-data";
 import { stationImpactDirectionPath, stationImpactDirectionStrokeWidth } from "../station-impact-direction";
 import { STATION_IMPACT_BEACON_STROKE_RATIO } from "../station-impact-beacon";
@@ -59,27 +59,18 @@ function AnchorOutline({
   return <circle cx={anchor.center.x} cy={anchor.center.y} r={anchor.ringRadius + gap * unit} {...(props as SVGProps<SVGCircleElement>)} />;
 }
 
-type StationAlertTargetHandlers = {
-  /** TTC selects here; GO/UP leaves it out and selects from its viewport's pointer handlers. */
-  onSelect?: (selection: NonNullable<ImpactSelection>) => void;
-  shouldSuppressMapClick?: () => boolean;
-  suppressNextMapClick?: () => void;
-};
-
 /**
- * Every station alert's idle ring (also its pointer and keyboard target),
- * shaded beacon and still core, in its kind's colour. A pill hub draws its
- * filled outline instead of a ring and beacon. Nothing here animates
- * (map-renderer-parity.md, rule 12).
+ * Every station alert's idle ring (also its pointer and keyboard target; the
+ * map's viewport selects from its identity, useMapTaps.ts), shaded beacon and
+ * still core, in its kind's colour. A pill hub draws its filled outline
+ * instead of a ring and beacon. Nothing here animates (map-renderer-parity.md,
+ * rule 12).
  */
 export function MapStationAlertRings({
   alerts,
   plane,
   selection,
-  onSelect,
-  shouldSuppressMapClick = () => false,
-  suppressNextMapClick,
-}: StationAlertTargetHandlers & {
+}: {
   alerts: MapStationAlert[];
   plane: MapOverlayPlane;
   selection: ImpactSelection;
@@ -91,38 +82,10 @@ export function MapStationAlertRings({
         const selected = isSelectedStationAlert(alert, selection);
         const color = stationAlertColor(alert.kind);
         const glow = (radius: number) => `drop-shadow(0 0 ${radius * plane.unit}px ${color})`;
-        const select = () => onSelect?.({ kind: alert.kind, id: alert.impactId });
         const targetProps = {
           "aria-label": alert.label,
           className: `station-impact-ring ${alert.kind}${selected ? " selected" : ""}`,
           fill: "none",
-          onPointerDown: (event: PointerEvent<SVGElement>) => {
-            if (!onSelect || exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
-            try {
-              event.currentTarget.setPointerCapture(event.pointerId);
-            } catch {
-              // Pointer capture can fail if the browser ended the pointer first.
-            }
-          },
-          onPointerUp: (event: PointerEvent<SVGElement>) => {
-            if (!onSelect || exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
-            if (shouldSuppressMapClick()) return;
-            suppressNextMapClick?.();
-            select();
-          },
-          onClick: (event: MouseEvent<SVGElement>) => {
-            if (!onSelect) return;
-            event.stopPropagation();
-            // Pointer activation is handled on pointerup so a map-camera
-            // update cannot retarget the synthesized click to the station.
-            if (exiting || event.detail !== 0 || shouldSuppressMapClick()) return;
-            select();
-          },
-          onKeyDown: (event: KeyboardEvent<SVGElement>) => {
-            if (!onSelect || exiting || (event.key !== "Enter" && event.key !== " ")) return;
-            event.preventDefault();
-            select();
-          },
           pointerEvents: exiting ? "none" : "stroke",
           role: "button",
           tabIndex: exiting ? -1 : 0,

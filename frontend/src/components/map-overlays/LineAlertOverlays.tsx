@@ -394,25 +394,13 @@ export function MapLineAlertHoverOutlines({ alerts, plane }: { alerts: MapLineAl
 
 
 /**
- * An alert's pointer and keyboard target. TTC handles activation here; GO/UP
- * leaves `onSelect` out and activates from its viewport's pointer handlers,
- * which read the target's `data-map-impact-*` identity. Hover and focus are
- * found by the map's hover controller (map-hover-controller.ts).
+ * An alert's pointer and keyboard target. It selects nothing itself: the
+ * map's viewport selects from its `data-map-impact-*` identity
+ * (useMapTaps.ts). Hover and focus are found by the map's hover controller
+ * (map-hover-controller.ts).
  */
-export function MapLineAlertTarget({
-  alert,
-  onSelect,
-  shouldSuppressMapClick = () => false,
-  suppressNextMapClick,
-}: {
-  alert: MapLineAlert;
-  onSelect?: (selection: NonNullable<ImpactSelection>) => void;
-  shouldSuppressMapClick?: () => boolean;
-  suppressNextMapClick?: () => void;
-}) {
+export function MapLineAlertTarget({ alert }: { alert: MapLineAlert }) {
   const { exiting } = alert;
-  const select = () => onSelect?.({ kind: alert.kind, id: alert.impactId });
-
   return (
     <path
       aria-label={alert.label}
@@ -421,34 +409,6 @@ export function MapLineAlertTarget({
       data-map-impact-kind={alert.kind}
       data-map-impact-id={alert.impactId}
       data-overlay-interaction-target={`${alert.kind}:${alert.impactId}:${alert.key}`}
-      onClick={(event) => {
-        if (!onSelect) return;
-        // Pointer activation is owned by pointerup below. A map-camera commit or
-        // the desktop panel opening can otherwise retarget/drop the later
-        // synthesized click after the user has visibly pressed this path.
-        event.stopPropagation();
-        if (exiting || event.detail !== 0 || shouldSuppressMapClick()) return;
-        select();
-      }}
-      onKeyDown={(event) => {
-        if (!onSelect || exiting || (event.key !== "Enter" && event.key !== " ")) return;
-        event.preventDefault();
-        select();
-      }}
-      onPointerDown={(event) => {
-        if (!onSelect || exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
-        try {
-          event.currentTarget.setPointerCapture(event.pointerId);
-        } catch {
-          // Pointer capture can fail if the browser ended the pointer first.
-        }
-      }}
-      onPointerUp={(event) => {
-        if (!onSelect || exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
-        if (shouldSuppressMapClick()) return;
-        suppressNextMapClick?.();
-        select();
-      }}
       pointerEvents={exiting ? "none" : "stroke"}
       role="button"
       style={exiting ? { pointerEvents: "none" } : undefined}
@@ -459,11 +419,8 @@ export function MapLineAlertTarget({
 }
 
 /** Every alert's target, the most severe on top. */
-export function MapLineAlertTargets(props: Omit<Parameters<typeof MapLineAlertTarget>[0], "alert"> & {
-  alerts: MapLineAlert[];
-}) {
-  const { alerts, ...targetProps } = props;
+export function MapLineAlertTargets({ alerts }: { alerts: MapLineAlert[] }) {
   return lineAlertPaintOrder(alerts).map((alert) => (
-    <MapLineAlertTarget key={alert.key} alert={alert} {...targetProps} />
+    <MapLineAlertTarget key={alert.key} alert={alert} />
   ));
 }

@@ -6,6 +6,7 @@ import {
   STATION_IMPACT_BEACON_SCALE,
   stationImpactBeaconSize,
 } from "../src/components/station-impact-beacon.ts";
+import { readTtcMapSource } from "./helpers/map-source.mjs";
 
 const CORE = 26;
 const GAP = 4;
@@ -38,7 +39,7 @@ describe("station impact beacon", () => {
 });
 
 describe("station impact beacon parity", () => {
-  const ttc = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+  const ttc = readTtcMapSource();
   const regional = readFileSync(new URL("../src/app/regional-station-alerts.ts", import.meta.url), "utf8");
   const shared = readFileSync(new URL("../src/components/map-overlays/StationAlertOverlays.tsx", import.meta.url), "utf8");
   const regionalMap = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");

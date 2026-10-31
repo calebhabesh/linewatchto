@@ -5,7 +5,7 @@ import { CardinalNorthIcon } from "./CardinalNorthIcon";
 import { usePanZoom } from "../hooks/usePanZoom";
 import { observeMobileMapFrame } from "../hooks/mobileMapFrame";
 import { useRetainedHover } from "../hooks/useRetainedHover";
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 import {
   MapLineAlertHoverCopies,
   MapLineAlertHoverOutlines,
@@ -13,8 +13,7 @@ import {
   MapLineAlertSelection,
   MapLineAlertTargets,
 } from "./map-overlays/LineAlertOverlays";
-import { isSelectedLineAlert, lineAlertPathsByImpact, type MapLineAlert } from "./map-overlays/line-alert-model";
-import { mapImpactIdentityOf } from "./map-overlays/overlay-hover";
+import { isSelectedLineAlert, type MapLineAlert } from "./map-overlays/line-alert-model";
 import { installMapHoverController, type MapHoverController } from "./map-overlays/map-hover-controller";
 import { useMapPulseSync } from "./map-overlays/pulse-sync";
 import { mapSelectionIntroKey, useMapSelectionIntro } from "./map-overlays/selection-intro";
@@ -25,33 +24,20 @@ import {
   MapStationDirectionGlyphs,
 } from "./map-overlays/StationAlertOverlays";
 import type { MapStationAlert, MapStationDirectionGlyph } from "./map-overlays/station-alert-model";
-import { regionalLineAlerts, regionalOverlayPlane } from "../app/regional-line-alerts";
-import { regionalStationAlerts } from "../app/regional-station-alerts";
-import { plannedAdvisoryStationImpacts } from "../app/map-alert-selector";
-import { regionalCommutePreview } from "../app/regional-commute-preview";
+import { regionalOverlayPlane } from "../app/regional-line-alerts";
 import { MapCommuteEndpointFlashes, MapCommutePreviewRoute } from "./map-overlays/CommutePreviewOverlays";
-import type { MapCommutePreview } from "./map-overlays/commute-preview-model";
 import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import { NetworkSelector } from "./NetworkSelector";
 import { SharedMapControlRail } from "./SharedMapControlRail";
 import { MapViewSelector } from "./MapViewSelector";
 import type { NetworkId } from "../app/regional-data";
 import type { MapViewPreference } from "../app/visual-preferences";
-import type { ImpactSelection, MapImpact, StationNodeImpact } from "../app/linewatch-data";
+import type { ImpactSelection, MapImpact } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/commute-data";
 import {
-  estimatedTrainMarkerRenderKey,
-  TRAIN_MARKER_ARROW_PATH,
-  TRAIN_MARKER_BODY_PATH,
-  TRAIN_MARKER_WINDOWS,
   type EstimatedTrainMarker,
 } from "../app/train-markers";
 import { useDashboardData } from "../app/DataContext";
-import {
-  animateRegionalTrainMarker,
-  cancelRegionalTrainMarkerMotion,
-  type RegionalTrainMarkerMotionRuntime,
-} from "../app/regional-train-marker-motion";
 import {
   getRegionalMapMarkup,
   preloadRegionalMapMarkup,
@@ -66,20 +52,22 @@ const REGIONAL_STATION_ARTWORK = mapStationArtwork(REGIONAL_GEOMETRY, MAP_MANIFE
 const REGIONAL_STATION_LABEL_TARGETS = regionalStationLabelTargets(REGIONAL_GEOMETRY);
 const NO_STATION_PLACEMENTS: MapStationPlacement[] = [];
 const NO_STATION_LABEL_TARGETS: MapStationLabelTarget[] = [];
+const REGIONAL_TRAIN_MARKER_PLACEMENT = regionalTrainMarkerPlacement(REGIONAL_GEOMETRY);
+const NO_LINE_ALERTS: MapLineAlert[] = [];
+const NO_STATION_ALERTS: MapStationAlert[] = [];
+const NO_STATION_GLYPHS: MapStationDirectionGlyph[] = [];
+const NO_OVERLAP_BADGES: MapPlacedOverlapBadge[] = [];
 
 import {
-  regionalTrainMarkerFrame,
   regionalStationLabelHover,
+  REGIONAL_MAP_VIEWBOX,
   REGIONAL_OVERLAP_INDICATOR_SCALE,
   REGIONAL_OVERLAY_UNIT,
-  type RegionalTrainMarkerFrame,
 } from "../app/regional-map-geometry";
 import type { PreparedMapGeometry } from "../app/map-geometry-data";
 import preparedRegionalGeometry from "../app/map-geometry/regional.json";
 import {
-  regionalOverlapBadgeLayout,
   regionalOverlayContentSignature,
-  regionalPointerImpactSelection,
   regionalOverlapMarker,
   REGIONAL_DYNAMIC_COMMUTE_LAYER_ID,
   REGIONAL_DYNAMIC_HOVER_LAYER_ID,
@@ -89,7 +77,6 @@ import {
   REGIONAL_TOP_HOVER_LAYER_ID,
   REGIONAL_TOP_STATION_IMPACT_LAYER_ID,
   REGIONAL_TRAIN_MARKER_LAYER_ID,
-  type RegionalOverlapBadge,
 } from "../app/regional-map-overlays";
 import {
   installRegionalStationLabelHover,
@@ -108,7 +95,11 @@ import {
   MapStationSelection,
   MapStationTargets,
 } from "./MapStationLayers";
-import { clearMapStationHover, mapStationIdAt, setMapStationHovered } from "./map-overlays/station-hover";
+import { clearMapStationHover, setMapStationHovered } from "./map-overlays/station-hover";
+import { useMapTaps } from "./map-overlays/useMapTaps";
+import { mapContentReuser, placeMapOverlapBadges, type MapContent, type MapPlacedOverlapBadge } from "../app/map-content";
+import { regionalMapContent, regionalTrainMarkerPlacement } from "../app/regional-map-content";
+import { MapTrainMarkerLayer } from "./map-overlays/TrainMarkerLayer";
 import type { MapBounds, MapPoint } from "../app/map-geometry";
 
 type SvgPoint = MapPoint;
@@ -150,56 +141,7 @@ const REGIONAL_MAP_DESKTOP_FRAME_SCALE = 1;
 // station labels and the authored corridor shape do not crowd the visible map
 // space beside an open desktop panel. Short selections still use the preferred
 // close zoom because their fitted scale remains above that cap.
-const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 // Frames to wait for a stage ease to land before solving the chooser anyway.
-
-function setRegionalTrainMarkerTransform(group: SVGGElement, frame: RegionalTrainMarkerFrame) {
-  group.setAttribute(
-    "transform",
-    `translate(${frame.point.x} ${frame.point.y}) rotate(${frame.angle}) scale(1.8)`,
-  );
-}
-
-function setRegionalTrainMarkerMetadata(group: SVGGElement, marker: EstimatedTrainMarker) {
-  group.dataset.trainMarkerId = marker.id;
-  group.dataset.trainMarkerDirection = marker.direction;
-  group.dataset.trainMarkerSegmentId = marker.segmentId;
-  group.dataset.trainMarkerTravelDirection = marker.travelDirection;
-}
-
-function appendRegionalTrainMarkerGlyph(documentNode: Document, group: SVGGElement) {
-  for (const classNames of [
-    ["estimated-train-marker-shadow"],
-    ["estimated-train-marker-shadow", "estimated-train-marker-shadow-mid"],
-    ["estimated-train-marker-shadow", "estimated-train-marker-shadow-near"],
-    ["estimated-train-marker-outline"],
-    ["estimated-train-marker-core"],
-  ]) {
-    const body = documentNode.createElementNS(SVG_NAMESPACE, "path");
-    body.setAttribute("d", TRAIN_MARKER_BODY_PATH);
-    body.classList.add(...classNames);
-    group.append(body);
-  }
-  for (const window of TRAIN_MARKER_WINDOWS) {
-    const pane = documentNode.createElementNS(SVG_NAMESPACE, "rect");
-    pane.setAttribute("x", String(window.x));
-    pane.setAttribute("y", String(window.y));
-    pane.setAttribute("width", String(window.width));
-    pane.setAttribute("height", String(window.height));
-    pane.setAttribute("rx", String(window.rx));
-    pane.classList.add("estimated-train-marker-window");
-    group.append(pane);
-  }
-  const arrow = documentNode.createElementNS(SVG_NAMESPACE, "path");
-  arrow.setAttribute("d", TRAIN_MARKER_ARROW_PATH);
-  arrow.classList.add("estimated-train-marker-arrow");
-  group.append(arrow);
-}
-
-
-
-
-
 
 /** The authored SVG: artwork until the raster planes are ready, and a geometry source. */
 const RegionalSvgMarkup = memo(function RegionalSvgMarkup({ markup }: { markup: string }) {
@@ -298,10 +240,12 @@ function InteractiveRegionalMapComponent({
   const automaticResizeRefitBlockedRef = useRef(false);
   const [svgMarkup, setSvgMarkup] = useState(() => getRegionalMapMarkup());
   const [readyRasterPlanes, setReadyRasterPlanes] = useState(() => new Set<string>());
-  const [overlapBadges, setOverlapBadges] = useState<RegionalOverlapBadge[]>([]);
   // Line alerts, drawn with the shared overlay layer (components/map-overlays)
   // in the map's overlay and interaction planes, as on TTC.
-  const [lineAlerts, setLineAlerts] = useState<MapLineAlert[]>([]);
+  // What the map draws, from GO/UP's content adapter (app/regional-map-content.ts).
+  const [content, setContent] = useState<MapContent | null>(null);
+  const [reuseContent] = useState(mapContentReuser);
+  const lineAlerts = content?.lineAlerts ?? NO_LINE_ALERTS;
   const [overlayPlane, setOverlayPlane] = useState<MapOverlayPlane | null>(null);
   // Station targets, hover rings and selection, from the authored artwork.
   // Station targets and rings appear with the overlays.
@@ -311,23 +255,14 @@ function InteractiveRegionalMapComponent({
     : NO_STATION_PLACEMENTS), [overlayPlane, stations]);
   const stationLabelTargets = overlayPlane ? REGIONAL_STATION_LABEL_TARGETS : NO_STATION_LABEL_TARGETS;
   // Station alerts, drawn with the same shared layer in the interaction plane.
-  const [stationAlerts, setStationAlerts] = useState<MapStationAlert[]>([]);
-  const [stationDirectionGlyphs, setStationDirectionGlyphs] = useState<MapStationDirectionGlyph[]>([]);
-  const [commutePreview, setCommutePreview] = useState<MapCommutePreview | null>(null);
-  // Station-only planned advisories are drawn as station alerts, by TTC's
-  // rule: upcoming ones always, a current one only while selected.
-  const plannedStationImpacts = plannedAdvisoryStationImpacts(plannedClosures, activeAlerts, delays, selection);
-  const plannedStationImpactsKey = JSON.stringify(plannedStationImpacts);
-  const stationAlertImpacts = useMemo(() => {
-    const seen = new Set<string>();
-    const planned = JSON.parse(plannedStationImpactsKey) as StationNodeImpact[];
-    return [...stationNodeImpacts, ...planned].filter((impact) => {
-      const key = `${impact.kind}:${impact.cardId}:${impact.stationId}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }, [plannedStationImpactsKey, stationNodeImpacts]);
+  const stationAlerts = content?.stationAlerts ?? NO_STATION_ALERTS;
+  const stationDirectionGlyphs = content?.stationDirectionGlyphs ?? NO_STATION_GLYPHS;
+  const commutePreview = content?.commutePreview ?? null;
+  const selectedLineAlerts = content?.selectedLineAlerts ?? NO_LINE_ALERTS;
+  // Placed by the shared layout (map-overlays/overlap-badge-layout.ts), as on TTC.
+  const overlapBadges = useMemo(() => (content
+    ? placeMapOverlapBadges(content, { unit: REGIONAL_OVERLAY_UNIT, mapBounds: REGIONAL_MAP_VIEWBOX })
+    : NO_OVERLAP_BADGES), [content]);
   const linkedSelectionIds = useMemo(
     () => linkedCurrentImpactIds(selection, { activeAlerts, delays, plannedClosures }),
     [activeAlerts, delays, plannedClosures, selection],
@@ -372,13 +307,6 @@ function InteractiveRegionalMapComponent({
   useLayoutEffect(() => {
     automaticResizeRefitBlockedRef.current = Boolean(selection || selectedStationId || commutePathPreview);
   }, [commutePathPreview, selection, selectedStationId]);
-  const trainMarkerMotionRef = useRef(new Map<string, RegionalTrainMarkerMotionRuntime>());
-  const pointerActivationRef = useRef<
-    { type: "station"; id: string }
-    | { type: "impact"; selection: NonNullable<ImpactSelection> }
-    | null
-  >(null);
-  const suppressNextClickRef = useRef(false);
   const selectionRef = useRef(selection);
   const selectedStationIdRef = useRef(selectedStationId);
   const hoverControllerRef = useRef<MapHoverController | null>(null);
@@ -521,40 +449,26 @@ function InteractiveRegionalMapComponent({
     if (!svgMarkup || !isMapActive) return;
     const viewport = viewportRef.current;
     if (!viewport) return;
-    // Motion, selection and hover are applied in place by their own effects,
-    // so a reduced-motion toggle or a brief page-visibility flip never
-    // rebuilds the overlays (TTC parity).
-    const inputs = [overlayContentSignature, svgMarkup];
+    // Motion and hover are applied in place by their own effects, so a
+    // reduced-motion toggle or a brief page-visibility flip never rebuilds the
+    // overlays. A selection does (it can add a planned advisory and moves the
+    // emphasis), as on TTC; unchanged alerts keep their objects.
+    const inputs = [overlayContentSignature, svgMarkup, selection?.kind, selection?.id];
     if (lastOverlayInputsRef.current?.every((value, index) => value === inputs[index])) return;
 
     // Geometry is prepared data (REGIONAL_GEOMETRY); nothing here reads the SVG.
-    const plane = REGIONAL_OVERLAY_PLANE;
-    const nextLineAlerts = regionalLineAlerts(REGIONAL_GEOMETRY, { activeAlerts, networkSegments, stationNodeImpacts });
-    const nextStationOverlays = regionalStationAlerts(REGIONAL_GEOMETRY, {
-      activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts: stationAlertImpacts, stations, networkSegments,
-    }, plane.unit);
-    const nextCommutePreview = regionalCommutePreview(REGIONAL_GEOMETRY, commutePathPreview, networkSegments);
-    setLineAlerts((current) => (
-      JSON.stringify(current) === JSON.stringify(nextLineAlerts) ? current : nextLineAlerts
-    ));
-    setStationAlerts((current) => (
-      JSON.stringify(current) === JSON.stringify(nextStationOverlays.alerts) ? current : nextStationOverlays.alerts
-    ));
-    setStationDirectionGlyphs((current) => (
-      JSON.stringify(current) === JSON.stringify(nextStationOverlays.glyphs) ? current : nextStationOverlays.glyphs
-    ));
-    setCommutePreview((current) => (
-      JSON.stringify(current) === JSON.stringify(nextCommutePreview) ? current : nextCommutePreview
-    ));
-    setOverlayPlane(plane);
-    // Badges are placed from the overlay model, before React draws it.
-    setOverlapBadges(regionalOverlapBadgeLayout(REGIONAL_GEOMETRY, {
+    setContent(reuseContent(regionalMapContent(REGIONAL_GEOMETRY, {
       networkSegments,
-      stationNodeImpacts: stationAlertImpacts,
+      activeAlerts,
+      delays,
+      reducedSpeedZones,
+      plannedClosures,
+      stationNodeImpacts,
       stations,
-      lineAlerts: nextLineAlerts,
-      stationAlerts: nextStationOverlays.alerts,
-    }));
+      selection,
+      commutePathPreview,
+    })));
+    setOverlayPlane(REGIONAL_OVERLAY_PLANE);
     lastOverlayInputsRef.current = inputs;
   }, [
     activeAlerts,
@@ -565,7 +479,8 @@ function InteractiveRegionalMapComponent({
     overlayContentSignature,
     plannedClosures,
     reducedSpeedZones,
-    stationAlertImpacts,
+    reuseContent,
+    selection,
     stationNodeImpacts,
     stations,
     svgMarkup,
@@ -622,83 +537,13 @@ function InteractiveRegionalMapComponent({
   }, [activePointerCount]);
 
   useLayoutEffect(() => {
-    hoverControllerRef.current?.setOutlineSource(overlayPlane, lineAlertPathsByImpact(lineAlerts));
-  }, [lineAlerts, overlayPlane]);
+    hoverControllerRef.current?.setOutlineSource(overlayPlane, content?.outlinePathsByImpact ?? new Map());
+  }, [content, overlayPlane]);
 
   // Overlay nodes of changed alerts mount idle; reapply the current hover.
   useLayoutEffect(() => {
     hoverControllerRef.current?.restore();
   }, [lineAlerts, stationAlerts]);
-
-  useLayoutEffect(() => {
-    const markerLayer = viewportRef.current?.querySelector<SVGGElement>(
-      ".regional-estimated-train-marker-layer",
-    );
-    if (!markerLayer) return;
-    const existingMarkersByKey = new Map(
-      [...markerLayer.querySelectorAll<SVGGElement>(":scope > .estimated-train-marker")]
-        .map((group) => [group.dataset.markerKey ?? "", group]),
-    );
-    if (!estimatedTrainsEnabled) {
-      existingMarkersByKey.forEach((group, markerKey) => {
-        cancelRegionalTrainMarkerMotion(trainMarkerMotionRef.current.get(markerKey));
-        trainMarkerMotionRef.current.delete(markerKey);
-        group.remove();
-      });
-      return;
-    }
-
-    // Markers follow the prepared corridors, in the top plane's (root) coordinates.
-    if (!svgMarkup) return;
-    const documentNode = markerLayer.ownerDocument;
-    for (const marker of estimatedTrainMarkers) {
-      const segment = networkSegments.find((item) => item.id === marker.segmentId);
-      if (!segment) continue;
-      const frame = regionalTrainMarkerFrame(REGIONAL_GEOMETRY, segment, marker);
-      if (!frame) continue;
-      const markerKey = estimatedTrainMarkerRenderKey(marker);
-      const existingGroup = existingMarkersByKey.get(markerKey);
-      const group = existingGroup ?? documentNode.createElementNS(SVG_NAMESPACE, "g");
-      group.setAttribute("class", `estimated-train-marker estimated-train-marker-${marker.lineId}`);
-      group.setAttribute("data-marker-key", markerKey);
-      group.setAttribute("data-train-marker-id", marker.id);
-      group.setAttribute("data-train-marker-line-id", marker.lineId);
-      group.setAttribute("data-train-marker-direction", marker.direction);
-      group.setAttribute("data-train-marker-segment-id", marker.segmentId);
-      group.setAttribute("data-train-marker-travel-direction", marker.travelDirection);
-      const title = group.querySelector("title")
-        ?? documentNode.createElementNS(SVG_NAMESPACE, "title");
-      title.textContent = `${marker.lineId.replace("regional-", "").toUpperCase()} toward ${marker.direction}; schematic estimated position`;
-      if (!existingGroup) {
-        group.append(title);
-        appendRegionalTrainMarkerGlyph(documentNode, group);
-      }
-      markerLayer.append(group);
-      animateRegionalTrainMarker(
-        (frame, opacity, shown) => {
-          group.style.opacity = String(opacity);
-          setRegionalTrainMarkerTransform(group, frame);
-          setRegionalTrainMarkerMetadata(group, shown);
-        },
-        marker,
-        networkSegments,
-        REGIONAL_GEOMETRY,
-        trainMarkerMotionRef.current,
-        !mapEffectMotionPaused,
-      );
-      existingMarkersByKey.delete(markerKey);
-    }
-    existingMarkersByKey.forEach((group, markerKey) => {
-      cancelRegionalTrainMarkerMotion(trainMarkerMotionRef.current.get(markerKey));
-      trainMarkerMotionRef.current.delete(markerKey);
-      group.remove();
-    });
-  }, [estimatedTrainMarkers, estimatedTrainsEnabled, mapEffectMotionPaused, networkSegments, svgMarkup]);
-
-  useEffect(() => () => {
-    trainMarkerMotionRef.current.forEach(cancelRegionalTrainMarkerMotion);
-    trainMarkerMotionRef.current.clear();
-  }, []);
 
   useLayoutEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -813,77 +658,27 @@ function InteractiveRegionalMapComponent({
     handleWheel(event);
   }, [handleWheel]);
 
-  // Gestures are the shared camera's. GO/UP resolves a tap on its injected
-  // targets at release, from what was under the press.
-  const onPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
+  // Gestures are the shared camera's; taps the shared tap path's.
+  const endPointerHover = useCallback((event: PointerEvent<HTMLDivElement>) => {
     // A press ends the pointer hover, keeping a label that is itself pressed.
     if (!(event.target instanceof Element && event.target.closest(".station-label-hit-target"))) {
       setHoveredStationLabel(null);
     }
     clearMapStationHover(viewportRef.current);
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    const firstPointer = activePointerCount() === 0;
-    handlePointerDown(event);
-    pointerActivationRef.current = null;
-    // A press that stops a glide only stops it (the camera suppresses its click).
-    if (!firstPointer || shouldSuppressMapClick()) return;
-    const target = event.target instanceof Element ? event.target : null;
-    const impact = target?.closest<SVGElement>("[data-map-impact-kind]");
-    const stationId = mapStationIdAt(target);
-    const impactSelection = impact
-      ? regionalPointerImpactSelection(event.currentTarget, impact, event.clientX, event.clientY)
-      : null;
-    pointerActivationRef.current = impactSelection
-      ? { type: "impact", selection: impactSelection }
-      : stationId
-        ? { type: "station", id: stationId }
-        : null;
-  }, [activePointerCount, handlePointerDown, shouldSuppressMapClick]);
-
-  const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    handlePointerMove(event);
-    if (shouldSuppressMapClick()) pointerActivationRef.current = null;
-  }, [handlePointerMove, shouldSuppressMapClick]);
-
-  const finishPointer = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    if (activePointerCount() === 0) return;
-    if (event.type === "pointercancel") handlePointerCancel(event);
-    else handlePointerUp(event);
-    if (activePointerCount() > 0) return;
-    const activation = pointerActivationRef.current;
-    pointerActivationRef.current = null;
-    if (event.type !== "pointerup" || shouldSuppressMapClick()) return;
-    if (activation) {
-      suppressNextClickRef.current = true;
-      window.setTimeout(() => {
-        suppressNextClickRef.current = false;
-      }, 450);
-      if (activation.type === "station") {
-        onSelectStationId(activation.id);
-      } else {
-        onSelectImpact(activation.selection);
-      }
-      return;
-    }
-    const target = event.target instanceof Element ? event.target : null;
-    if (!target?.closest(".overlap-indicator, [data-map-impact-kind], [data-station-id], [data-station-label-id], button, [role='button'], [data-map-chooser-keepout]")) {
-      onSelectImpact(null);
-      onSelectStationId(null);
-    }
-  }, [activePointerCount, handlePointerCancel, handlePointerUp, onSelectImpact, onSelectStationId, shouldSuppressMapClick]);
-
-  const activateTarget = useCallback((target: EventTarget | null) => {
-    if (!(target instanceof Element)) return;
-    const impact = mapImpactIdentityOf(target);
-    if (impact) {
-      onSelectImpact(impact);
-      return;
-    }
-    const id = mapStationIdAt(target);
-    if (id) {
-      onSelectStationId(id);
-    }
-  }, [onSelectImpact, onSelectStationId]);
+  }, []);
+  const tapHandlers = useMapTaps({
+    camera: {
+      handlePointerDown,
+      handlePointerMove,
+      handlePointerUp,
+      handlePointerCancel,
+      activePointerCount,
+      shouldSuppressMapClick,
+    },
+    onSelectStationId,
+    onSelectImpact,
+    onPress: endPointerHover,
+  });
 
   const setRegionalOverlapImpactsHovered = useCallback((
     impacts: MapImpact[],
@@ -901,16 +696,10 @@ function InteractiveRegionalMapComponent({
     setExpandedOverlapBadgeId(null);
   }, [expandedOverlapBadgeId, overlapBadges, setRegionalOverlapImpactsHovered]);
 
-  const openRegionalOverlapChooser = useCallback((badge: RegionalOverlapBadge) => {
+  const openRegionalOverlapChooser = useCallback((badge: MapPlacedOverlapBadge) => {
     setExpandedOverlapBadgeId(badge.markerId);
     setRegionalOverlapImpactsHovered(badge.impacts, true);
   }, [setRegionalOverlapImpactsHovered]);
-
-  const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    event.preventDefault();
-    activateTarget(event.target);
-  }, [activateTarget]);
 
   const expandedOverlapBadge = overlapBadges.find(
     (candidate) => candidate.markerId === expandedOverlapBadgeId,
@@ -974,22 +763,10 @@ function InteractiveRegionalMapComponent({
         className="regional-map-viewport"
         data-map-viewport-orientation={viewportOrientation}
         onWheel={onWheel}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={finishPointer}
-        onPointerCancel={finishPointer}
+        {...tapHandlers}
         onPointerLeave={handlePointerLeave}
         onLostPointerCapture={handleLostPointerCapture}
         onFocus={(event) => revealFocusedMapTarget(event.target)}
-        onClick={(event) => {
-          if (suppressNextClickRef.current) {
-            suppressNextClickRef.current = false;
-            return;
-          }
-          if (shouldSuppressMapClick()) return;
-          activateTarget(event.target);
-        }}
-        onKeyDown={onKeyDown}
       >
         {loadError ? <p role="alert" className="regional-map-error">Regional map could not be loaded.</p> : null}
         <div className="map-attribution-notice" aria-label="Metrolinx derivative map attribution">
@@ -1049,7 +826,7 @@ function InteractiveRegionalMapComponent({
                 {/* The selected alert's flash stays above hover copies, so hovering never hides it. */}
                 <g id={REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID} className="regional-selected-segment-layer">
                   <MapLineAlertSelection
-                    alerts={lineAlerts.filter((alert) => isSelectedLineAlert(alert, selection))}
+                    alerts={selectedLineAlerts}
                     plane={overlayPlane}
                     commutePreviewActive={Boolean(commutePathPreview)}
                     introComplete={selectionIntroComplete}
@@ -1162,7 +939,16 @@ function InteractiveRegionalMapComponent({
               className="estimated-train-marker-layer regional-estimated-train-marker-layer"
               aria-label="Estimated regional train markers"
               pointerEvents="none"
-            />
+            >
+              {/* Markers follow the prepared corridors, in root coordinates. */}
+              <MapTrainMarkerLayer
+                enabled={estimatedTrainsEnabled && Boolean(svgMarkup)}
+                markers={estimatedTrainMarkers}
+                segments={networkSegments}
+                placement={REGIONAL_TRAIN_MARKER_PLACEMENT}
+                animate={!mapEffectMotionPaused}
+              />
+            </g>
             <g aria-label="Cardinal North Compass" transform="translate(14800, 5100)">
               <CardinalNorthIcon width={1000} height={1000} dark={isDark} />
             </g>

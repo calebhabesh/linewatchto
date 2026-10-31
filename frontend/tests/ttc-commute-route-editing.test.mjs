@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readTtcMapSource } from "./helpers/map-source.mjs";
 
 const panelSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const cardSource = readFileSync(new URL("../src/components/SavedCommuteCard.tsx", import.meta.url), "utf8");
-const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const ttcMapSource = readTtcMapSource();
 const commuteDataSource = readFileSync(new URL("../src/app/commute-data.ts", import.meta.url), "utf8");
 
 describe("TTC My Commutes route review and editing", () => {
@@ -30,6 +31,6 @@ describe("TTC My Commutes route review and editing", () => {
   it("keeps recalculated TTC paths reviewable on the authored map", () => {
     assert.match(cardSource, /onViewPath\(commute, selectedLeg\.id\)/);
     assert.match(ttcMapSource, /<MapCommutePreviewRoute preview=\{commutePreview\} \/>/);
-    assert.match(ttcMapSource, /commutePathPreview\.segmentIds/);
+    assert.match(ttcMapSource, /preview\.segmentIds/);
   });
 });

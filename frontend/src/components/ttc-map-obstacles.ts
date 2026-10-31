@@ -3,15 +3,15 @@ import {
   resolveNetworkSegmentPath,
   type MapBounds,
   type MapPoint,
-} from "../app/map-geometry";
-import { preparedPoints, type PreparedMapGeometry } from "../app/map-geometry-data";
+} from "../app/map-geometry.ts";
+import { preparedPoints, type PreparedMapGeometry } from "../app/map-geometry-data.ts";
 import type { NetworkSegment, Station } from "../app/linewatch-data";
 import {
   BADGE_FEATURE_GAPS,
   badgeObstacleReach,
   type PlacementObstacle,
-} from "./overlap-badge-placement";
-import { expandBox } from "./map-chooser-placement";
+} from "./overlap-badge-placement.ts";
+import { expandBox } from "./map-chooser-placement.ts";
 
 // Map-artwork obstacles for TTC overlap-badge placement.
 
