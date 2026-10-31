@@ -21,3 +21,10 @@ export function setMapStationHovered(root: ParentNode | null, stationId: string,
     indicator.classList.toggle("active", hovered && !stationSelected);
   });
 }
+
+/** The station whose target or name `target` is in, from `data-station-id` or `data-station-label-id`. */
+export function mapStationIdAt(target: EventTarget | null): string | null {
+  if (!(target instanceof Element)) return null;
+  const element = target.closest<SVGElement>("[data-station-id], [data-station-label-id]");
+  return element?.dataset.stationId ?? element?.dataset.stationLabelId ?? null;
+}

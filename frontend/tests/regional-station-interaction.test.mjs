@@ -4,10 +4,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 
 import {
   installRegionalStationLabelHover,
-  regionalStationArtwork,
-  regionalStationHoverShapes,
   regionalStationLabelTargets,
-  regionalStationSelectionShapes,
 } from "../src/app/regional-station-interaction.ts";
 
 // Just enough DOM: elements with data attributes, classes and `closest`.
@@ -22,12 +19,17 @@ class FakeElement {
     };
   }
   get dataset() {
-    return { regionalStationId: this.attributes.get("data-regional-station-id") };
+    return {
+      stationId: this.attributes.get("data-station-id"),
+      stationLabelId: this.attributes.get("data-station-label-id"),
+    };
   }
   setAttribute(name, value) { this.attributes.set(name, value); }
   removeAttribute(name) { this.attributes.delete(name); }
   matches(selector) {
-    if (selector === "[data-regional-station-id]") return this.attributes.has("data-regional-station-id");
+    if (selector === "[data-station-id], [data-station-label-id]") {
+      return this.attributes.has("data-station-id") || this.attributes.has("data-station-label-id");
+    }
     if (selector === ".overlap-indicator") return this.attributes.get("class") === "overlap-indicator";
     return false;
   }
@@ -46,48 +48,7 @@ afterEach(() => Object.assign(globalThis, originalGlobals));
 
 const geometry = JSON.parse(readFileSync(new URL("../src/app/map-geometry/regional.json", import.meta.url), "utf8"));
 
-describe("GO/UP station artwork", () => {
-  const artwork = regionalStationArtwork(geometry);
-  const station = (id) => artwork.find((candidate) => candidate.id === id);
-
-  it("reads each station's shapes from the prepared map, keeping a junction's authored transforms", () => {
-    // A junction's own dots are part of its group, never stations of their own.
-    assert.equal(artwork.length, geometry.labels.length);
-    assert.ok(!artwork.some((candidate) => /-(?:ki|up)$/.test(candidate.id)));
-    const pickering = station("pickering");
-    assert.equal(pickering.large, false);
-    assert.match(pickering.transform, /^matrix\(1 0 0 1 /);
-    assert.deepEqual(pickering.shapes.map((shape) => shape.tag), ["circle"]);
-    assert.equal(station("union").large, true);
-    // Bloor's group is rotated; its connector bars keep their own rotation.
-    const bloor = station("bloor");
-    assert.doesNotMatch(bloor.transform, /^matrix\(1 0 0 1 /);
-    assert.deepEqual(bloor.shapes.map((shape) => [shape.tag, Boolean(shape.transform), Boolean(shape.join)]), [
-      ["rect", true, true],
-      ["rect", true, true],
-      ["circle", false, false],
-      ["ellipse", false, false],
-    ]);
-  });
-
-  it("grows hover rings and selection markers from the dots, without junction bars", () => {
-    const pickering = station("pickering");
-    const union = station("union");
-    const bloor = station("bloor");
-    const [dot] = pickering.shapes;
-    assert.equal(regionalStationHoverShapes(pickering)[0].r, dot.r * 1.45);
-    assert.equal(regionalStationSelectionShapes(pickering)[0].r, dot.r * 1.2);
-    // Union's pill keeps a fixed 75-unit hover pad and its authored size when selected.
-    const [pill] = union.shapes;
-    const hover = regionalStationHoverShapes(union)[0];
-    assert.deepEqual([hover.x, hover.y, hover.width, hover.height, hover.rx], [
-      pill.x - 75, pill.y - 75, pill.width + 150, pill.height + 150, pill.rx + 75,
-    ]);
-    assert.deepEqual(regionalStationSelectionShapes(union)[0], pill);
-    assert.deepEqual(regionalStationHoverShapes(bloor).map((shape) => shape.tag), ["circle", "ellipse"]);
-    assert.deepEqual(regionalStationSelectionShapes(bloor).map((shape) => shape.tag), ["circle", "ellipse"]);
-  });
-
+describe("GO/UP station names", () => {
   it("targets every station name over its prepared box", () => {
     const targets = regionalStationLabelTargets(geometry);
     assert.equal(targets.length, geometry.labels.length);
@@ -114,7 +75,8 @@ describe("GO/UP station-label hover", () => {
     });
     return { listeners, hovered, dispose };
   }
-  const station = new FakeElement({ "data-regional-station-id": "union" });
+  const station = new FakeElement({ "data-station-id": "union" });
+  const name = new FakeElement({ "data-station-label-id": "union" });
   const dot = new FakeElement({}, station);
   const badge = new FakeElement({ class: "overlap-indicator" }, station);
 
@@ -123,8 +85,9 @@ describe("GO/UP station-label hover", () => {
     const move = listeners.get("pointermove");
     move({ pointerType: "mouse", target: dot });
     move({ pointerType: "mouse", target: badge });
+    move({ pointerType: "mouse", target: name });
     move({ pointerType: "touch", target: dot });
-    assert.deepEqual(hovered, ["union", null]);
+    assert.deepEqual(hovered, ["union", null, "union"]);
   });
 
   it("ignores the pointer during a drag or pinch", () => {

@@ -58,7 +58,7 @@ function stageFractionAt(page: Page, network: NetworkId, point: Point) {
   }, point);
 }
 
-const SKIP_TARGETS = "button, a, input, [role='button'], [data-map-impact-kind], [data-regional-station-id], [data-station-id], .overlap-indicator, .map-segment-hit-target, [data-overlay-interaction-target]";
+const SKIP_TARGETS = "button, a, input, [role='button'], [data-map-impact-kind], [data-station-id], [data-station-label-id], .overlap-indicator, .map-segment-hit-target, [data-overlay-interaction-target]";
 
 /** A point on open map, clear of targets and controls, with room around it. */
 function blankPoint(page: Page, network: NetworkId): Promise<Point> {
@@ -85,7 +85,7 @@ function alertPoint(page: Page, network: NetworkId, { horizontal = false, clearO
   return page.evaluate(({ selector, horizontal, clearOfStations }) => {
     const viewport = document.querySelector(selector)!;
     const box = viewport.getBoundingClientRect();
-    const stationBoxes = [...viewport.querySelectorAll(".station-hit-target, .regional-station-hit-target")]
+    const stationBoxes = [...viewport.querySelectorAll(".station-hit-target")]
       .map((target) => target.getBoundingClientRect());
     const nearStation = (point: { x: number; y: number }) => stationBoxes.some((rect) =>
       point.x > rect.left - 24 && point.x < rect.right + 24 && point.y > rect.top - 24 && point.y < rect.bottom + 24);
@@ -120,9 +120,7 @@ function stationPoint(page: Page, network: NetworkId, { named = false } = {}) {
   return page.evaluate(({ selector, named }) => {
     const viewport = document.querySelector(selector)!;
     const box = viewport.getBoundingClientRect();
-    const targets = viewport.querySelectorAll<SVGGraphicsElement>(
-      ".station-hit-target[data-station-primary-target='true'], .regional-station-hit-target",
-    );
+    const targets = viewport.querySelectorAll<SVGGraphicsElement>(".station-hit-target");
     for (const target of targets) {
       const rect = target.getBoundingClientRect();
       const point = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
@@ -130,10 +128,8 @@ function stationPoint(page: Page, network: NetworkId, { named = false } = {}) {
       if (point.x < box.left + mx || point.x > box.right - mx || point.y < box.top + my || point.y > box.bottom - my) continue;
       const hit = document.elementFromPoint(point.x, point.y);
       if (hit !== target && !target.contains(hit)) continue;
-      const id = target.dataset.stationId ?? target.dataset.regionalStationId ?? "";
-      if (named && !viewport.querySelector(
-        `[data-station-label-id="${CSS.escape(id)}"], [data-regional-station-label-id="${CSS.escape(id)}"]`,
-      )) continue;
+      const id = target.dataset.stationId ?? "";
+      if (named && !viewport.querySelector(`[data-station-label-id="${CSS.escape(id)}"]`)) continue;
       const name = (target.getAttribute("aria-label") ?? "").replace(/ station details$/, "");
       return { ...point, name };
     }
@@ -452,7 +448,7 @@ for (const network of MAPS) {
         test("hovering a station lifts its name", async ({ page }) => {
           if (network === "ttc") await withAuthoredTtcStations(page);
           await openMap(page, network);
-          await expect(page.locator(".station-label-hit-target, .regional-station-label-hit-target").first()).toBeAttached();
+          await expect(page.locator(".station-label-hit-target").first()).toBeAttached();
           const station = await stationPoint(page, network, { named: true });
           await page.mouse.move(station.x, station.y);
           await expect(page.locator(`${stageSelector(network)} .raster-station-label-text-hover`)).toHaveAttribute("data-hover-active", "true");

@@ -46,6 +46,11 @@ export type MapManifest = {
    * anchor (`station-spadina-2`) or a junction's line part (`station-union-up`).
    */
   stationPartSuffixes: readonly string[];
+  /**
+   * Room each station's target adds around its dots, in map units: for a
+   * mouse, and for touch (coarse pointers).
+   */
+  stationHitPadding: { readonly pointer: number; readonly touch: number };
   /** Line paths the overlays follow, by their id in `layers.lines`. */
   lineIds: readonly string[];
   /** Curved or non-linear segment guides, by their `inkscape:label`. */
@@ -78,6 +83,7 @@ export const MAP_MANIFESTS: Record<MapManifestId, MapManifest> = {
     },
     stationLabelLink: { kind: "attribute", attribute: "data-station-label-for" },
     stationPartSuffixes: ["-1", "-2"],
+    stationHitPadding: { pointer: 6, touch: 22 },
     lineIds: ["line-1", "line-2", "line-4", "line-5", "line-6"],
     guideIds: [
       "seg-line-1-st-andrew-union",
@@ -104,6 +110,7 @@ export const MAP_MANIFESTS: Record<MapManifestId, MapManifest> = {
     },
     stationLabelLink: { kind: "name" },
     stationPartSuffixes: ["-ki", "-up"],
+    stationHitPadding: { pointer: 60, touch: 60 },
     lineIds: [
       "regional-route-br-path",
       "regional-route-ki-path",

@@ -286,7 +286,7 @@ describe("station detail panel layout", () => {
 
   it("defines station marker and reduced motion styles", () => {
     assert.match(globalCss, /\.station-hit-target/);
-    assert.match(globalCss, /\.station-hit-target\.selected/);
+    assert.match(globalCss, /\.station-hover-indicator\.active/);
     assert.match(globalCss, /prefers-reduced-motion:\s*reduce/);
   });
 

@@ -100,15 +100,15 @@ test("draws GO/UP through React planes over a non-interactive authored SVG", asy
     const overlayPlane = element.querySelector(".regional-overlay-plane");
     const interactionPlane = element.querySelector(".raster-map-interaction-plane");
     return {
-      authoredHasOverlays: Boolean(authored.querySelector("[id^='regional-dynamic'], .regional-station-hit-target, .regional-station-label-hit-target")),
+      authoredHasOverlays: Boolean(authored.querySelector("[id^='regional-dynamic'], .station-hit-target, .station-label-hit-target")),
       authoredHasLabelCutoutSources: Boolean(authored.querySelector("defs#regional-station-label-cutout-sources")),
       authoredPointerEvents: getComputedStyle(authored).pointerEvents,
       overlayLayers: ["segment", "commute", "selected-segment", "hover"]
         .every((name) => Boolean(overlayPlane?.querySelector(`#regional-dynamic-${name}-layer`))),
       hasTargetLayer: Boolean(interactionPlane?.querySelector("#regional-dynamic-target-layer")),
-      hasUnionHitTarget: Boolean(interactionPlane?.querySelector('.regional-station-hit-target[data-regional-station-id="union"]')),
-      hasUnionLabelHitTarget: Boolean(interactionPlane?.querySelector('.regional-station-label-hit-target[data-regional-station-id="union"]')),
-      hasBloorJunctionTarget: Boolean(interactionPlane?.querySelector('.regional-station-hit-target[data-regional-station-id="bloor"][transform]')),
+      hasUnionHitTarget: Boolean(interactionPlane?.querySelector('.station-hit-target[data-station-id="union"]')),
+      hasUnionLabelHitTarget: Boolean(interactionPlane?.querySelector('.station-label-hit-target[data-station-label-id="union"]')),
+      hasBloorJunctionTarget: Boolean(interactionPlane?.querySelector('.station-hit-target[data-station-id="bloor"][transform]')),
     };
   });
 

@@ -32,7 +32,7 @@ const regionalAssetSource = readFileSync(new URL("../src/app/regional-map-asset.
 const regionalOverlaysSource = readFileSync(new URL("../src/app/regional-map-overlays.ts", import.meta.url), "utf8");
 const regionalLineAlertsSource = readFileSync(new URL("../src/app/regional-line-alerts.ts", import.meta.url), "utf8");
 const stationInteractionSource = readFileSync(new URL("../src/app/regional-station-interaction.ts", import.meta.url), "utf8");
-const stationLayersSource = readFileSync(new URL("../src/components/RegionalStationLayers.tsx", import.meta.url), "utf8");
+const stationLayersSource = readFileSync(new URL("../src/components/MapStationLayers.tsx", import.meta.url), "utf8");
 const pulseSyncSource = readFileSync(new URL("../src/components/map-overlays/pulse-sync.ts", import.meta.url), "utf8");
 const hoverControllerSource = readFileSync(new URL("../src/components/map-overlays/map-hover-controller.ts", import.meta.url), "utf8");
 const regionalStationAlertsSource = readFileSync(new URL("../src/app/regional-station-alerts.ts", import.meta.url), "utf8");
@@ -99,9 +99,9 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("draws a selection marker only for the selected regional station", () => {
-    assert.match(regionalMapSource, /stationArtwork\.find\(\(station\) => station\.id === selectedStationId\)/);
+    assert.match(regionalMapSource, /stationPlacements\.find\(\(\{ artwork \}\) => artwork\.id === selectedStationId\)/);
     assert.match(stationLayersSource, /if \(!station\) return null;/);
-    assert.match(stationLayersSource, /data-regional-station-selection-id=\{station\.id\}/);
+    assert.match(stationLayersSource, /data-map-selected-station-id=\{station\.id\}/);
     assert.doesNotMatch(regionalAssetSource, /regionalStationSelectionId|data-regional-station-selected/);
   });
 
@@ -435,8 +435,9 @@ describe("network-scoped regional dashboard", () => {
         UP: `station-${stationId}-up`,
       });
     }
-    assert.match(regionalMapSource, /closest\("\[data-regional-station-id\]"\)/);
-    assert.match(regionalMapSource, /data-regional-station-id/);
+    // A tap on a junction's dot or bar selects its one station.
+    assert.match(regionalMapSource, /const stationId = mapStationIdAt\(target\);/);
+    assert.doesNotMatch(regionalMapSource, /data-regional-station-id/);
   });
 
   it("keeps network-specific closed-hours behavior and enables regional train markers", () => {
@@ -508,12 +509,11 @@ describe("network-scoped regional dashboard", () => {
 
   it("adds visible hover, focus, and selection feedback to regional stations", () => {
     // Station hover rings are written by the shared helper, as on TTC.
-    assert.match(stationLayersSource, /onPointerEnter=\{\(event\) => \{\s*if \(event\.pointerType === "mouse"\) onHoverChange\(station\.id, true\);/);
-    assert.match(stationLayersSource, /onFocus=\{\(\) => onHoverChange\(station\.id, true\)\}/);
+    assert.match(stationLayersSource, /onPointerEnter=\{\(event\) => \{\s*if \(event\.pointerType === "mouse"\) onHoverChange\(station\.id, true, "pointer"\);/);
+    assert.match(stationLayersSource, /onFocus=\{\(\) => onHoverChange\(station\.id, true, "focus"\)\}/);
     assert.match(regionalMapSource, /setMapStationHovered\(viewportRef\.current, stationId, hovered\)/);
-    assert.match(globalsCss, /\.regional-station-hover-indicator\.active:not\(\[data-station-hover-selected="true"\]\) :is\(circle, rect, ellipse\)/);
-    assert.match(stationLayersSource, /station-hover-indicator regional-station-hover-indicator/);
-    assert.match(stationInteractionSource, /station\.id === "union" \? 75/);
+    assert.match(globalsCss, /\.station-hover-indicator\.active:not\(\[data-station-hover-selected="true"\]\) :is\(circle, rect, ellipse\)/);
+    assert.match(stationLayersSource, /className="station-hover-indicator"/);
     // Alert hover is the shared controller's, found by position on both maps:
     // a station ring first, else a line alert, even under a station target.
     assert.match(regionalMapSource, /installMapHoverController\(viewport, \{/);
@@ -532,13 +532,13 @@ describe("network-scoped regional dashboard", () => {
       globalsCss,
       /#regional-station-labels-layer :is\(text, tspan\)\s*\{[^}]*pointer-events:\s*none/s,
     );
-    assert.match(stationLayersSource, /<title>\{`\$\{stationName\(station\.id\)\} station`\}<\/title>/);
+    assert.match(stationLayersSource, /aria-label=\{`\$\{name\} station details`\}/);
     assert.match(globalsCss, /\.map-selection-attention\s*\{[^}]*--selection-intro-name:\s*none/s);
     // The selected station's marker is a React element placed by its
     // station's prepared transform (junctions keep their authored rotation).
-    assert.match(stationLayersSource, /className=\{`regional-station-top-selection map-selection-attention\$\{introComplete \? " selection-intro-complete" : ""\}`\}/);
-    assert.match(stationLayersSource, /<g transform=\{station\.transform\}>/);
-    assert.match(regionalMapSource, /<RegionalStationSelection\s+key=\{selectedStationId \?\? "none"\}/);
+    assert.match(stationLayersSource, /className=\{`station-selection-flash map-selection-attention\$\{introComplete \? " selection-intro-complete" : ""\}`\}/);
+    assert.match(stationLayersSource, /<g transform=\{station\.transform \|\| undefined\} pointerEvents="none">/);
+    assert.match(regionalMapSource, /<MapStationSelection\s+key=\{selectedStationId \?\? "none"\}/);
   });
 
   it("uses TTC-derived disruption artwork and selection emphasis at regional map scale", () => {
@@ -587,7 +587,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /<MapLineAlertSelection[\s\S]*?introComplete=\{selectionIntroComplete\}/);
     assert.match(regionalMapSource, /<MapStationAlertForeground[\s\S]*?introComplete=\{selectionIntroComplete\}/);
     assert.match(globalsCss, /\.map-selection-attention\s*\{[^}]*animation-delay:\s*0s,\s*var\(--selection-intro-duration\)/s);
-    assert.match(globalsCss, /\.regional-station-top-selection\s*\{[^}]*--selection-intro-name:\s*map-selection-station-intro;[^}]*--selection-breathe-name:\s*map-selection-station-breathe;/s);
+    assert.match(globalsCss, /\.station-selection-flash\s*\{[^}]*--selection-intro-name:\s*map-selection-station-intro;[^}]*--selection-breathe-name:\s*map-selection-station-breathe;/s);
     assert.match(
       globalsCss,
       /\.asset-alert-path-glow:not\(\.map-selection-attention\):not\(\.interactive-glow\):not\(\.commute-path-preview-glow\)/,
@@ -598,14 +598,11 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("fits terminal selections to their authored shape and slightly enlarges regular station dots", () => {
-    assert.match(stationInteractionSource, /const factor = station\.large \? 1 : 1\.2;/);
+    // Sizes: tests/map-station-artwork.test.mjs.
+    assert.match(globalsCss, /\.station-selection-flash\s*\{[^}]*fill:\s*var\(--station-selection-accent\);[^}]*stroke:\s*none;/s);
     assert.match(
       globalsCss,
-      /\.regional-station-top-selection :is\(circle, rect, ellipse\)\s*\{[^}]*fill:\s*var\(--station-selection-accent\)\s*!important;[^}]*stroke:\s*none\s*!important;/s,
-    );
-    assert.match(
-      globalsCss,
-      /\.linewatch-shell\.mobile-performance-mode \.regional-station-top-selection\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*none\s*!important;[^}]*opacity:\s*0\.7;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.station-selection-flash\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*none\s*!important;[^}]*opacity:\s*0\.7;[^}]*\}/s,
     );
   });
 
@@ -634,7 +631,7 @@ describe("network-scoped regional dashboard", () => {
     // Hover copies sit in the overlay plane under the station artwork; targets
     // are in the interaction plane, line alerts under stations.
     assert.match(regionalMapSource, /<g id=\{REGIONAL_DYNAMIC_HOVER_LAYER_ID\}[^>]*>\s*<MapLineAlertHoverCopies/);
-    assert.match(regionalMapSource, /<MapLineAlertTargets alerts=\{lineAlerts\} \/>[\s\S]*?<RegionalStationTargets/);
+    assert.match(regionalMapSource, /<MapLineAlertTargets alerts=\{lineAlerts\} \/>[\s\S]*?<MapStationTargets/);
     assert.match(regionalMapSource, /id=\{REGIONAL_TOP_HOVER_LAYER_ID\}/);
     // A station alert's hover lights its shared hover priority ring, as on TTC.
     assert.match(regionalMapSource, /hoverControllerRef\.current\?\.setGroupPreview\(/);
@@ -801,7 +798,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /data-map-gesture-active="false"/);
     assert.match(
       globalsCss,
-      /\.linewatch-shell\.mobile-performance-mode \.regional-station-top-selection\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*none\s*!important;[^}]*transition:\s*none\s*!important;/s,
+      /\.linewatch-shell\.mobile-performance-mode \.station-selection-flash\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*none\s*!important;[^}]*transition:\s*none\s*!important;/s,
     );
   });
 

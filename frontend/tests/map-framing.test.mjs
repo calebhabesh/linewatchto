@@ -81,8 +81,9 @@ describe("System Map selection framing", () => {
       assert.doesNotMatch(mapSource, /focusSelectedMapElements|readOccludedInsets = useCallback|measureDesktopMapInsets/);
       assert.doesNotMatch(mapSource, /lastRecenterSignalRef|lastZoomInSignalRef|lastFocusedTargetKeyRef/);
     }
-    assert.match(source("../src/components/RegionalStationLayers.tsx"), /data-map-selected-station-id=\{station\.id\}/);
-    assert.match(source("../src/components/TtcStationTarget.tsx"), /data-map-selected-station-id=\{selected \? station\.id : undefined\}/);
+    // Both maps draw the selected station's marker with the shared layer.
+    assert.match(source("../src/components/MapStationLayers.tsx"), /data-map-selected-station-id=\{station\.id\}/);
+    for (const mapSource of [ttcMapSource, regionalMapSource]) assert.match(mapSource, /<MapStationSelection/);
   });
 
   it("frames one way on every map", () => {
@@ -106,14 +107,13 @@ describe("System Map selection framing", () => {
 
 describe("System Map station names", () => {
   it("are pointer-only targets on both maps; the station target is the keyboard stop", () => {
-    const regionalLayers = source("../src/components/RegionalStationLayers.tsx");
-    const ttcTargets = source("../src/components/TtcStationTarget.tsx");
-    const ttcNameTarget = ttcTargets.slice(ttcTargets.indexOf('key={`station-label-target:'));
-    const regionalNameTarget = regionalLayers.slice(regionalLayers.indexOf("export const RegionalStationLabelTargets"));
-    for (const target of [ttcNameTarget, regionalNameTarget]) {
-      assert.match(target.slice(0, 600), /aria-hidden="true"[\s\S]*focusable="false"/);
-      assert.doesNotMatch(target.slice(0, 600), /tabIndex=\{0\}/);
-    }
+    const layers = source("../src/components/MapStationLayers.tsx");
+    const nameTarget = layers.slice(layers.indexOf("export const MapStationLabelTargets"));
+    assert.match(nameTarget.slice(0, 900), /aria-hidden="true"[\s\S]*focusable="false"/);
+    assert.doesNotMatch(nameTarget, /tabIndex=/);
+    const stationTarget = layers.slice(layers.indexOf("const StationTarget = memo"), layers.indexOf("export const MapStationTargets"));
+    assert.match(stationTarget, /role="button"[\s\S]*tabIndex=\{0\}/);
+    for (const mapSource of [ttcMapSource, regionalMapSource]) assert.match(mapSource, /<MapStationLabelTargets/);
   });
 });
 

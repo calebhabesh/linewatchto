@@ -222,13 +222,13 @@ describe("stylesheet-graph helper", () => {
     assert.match(stationMarkersContent, /\.station-label-hit-target/);
     assert.match(stationMarkersContent, /\.station-label-hover-effect/);
     assert.match(stationMarkersContent, /\.station-hover-indicator/);
-    assert.match(stationMarkersContent, /\.station-selected-indicator/);
+    // One selection marker on both maps; the old hidden underlay is gone.
+    assert.doesNotMatch(stationMarkersContent, /\.station-selected-indicator/);
     assert.match(stationMarkersContent, /\.station-impact-ring/);
     assert.match(stationMarkersContent, /\.station-impact-hover-priority/);
     assert.match(stationMarkersContent, /\.station-impact-dot-red-glow/);
     assert.match(stationMarkersContent, /\.station-impact-dot-red-beacon/);
     assert.match(stationMarkersContent, /\.station-impact-direction-glyph/);
-    assert.match(stationMarkersContent, /@keyframes station-selected-pulse/);
     // Station alerts never animate, so their pulses are gone.
     assert.doesNotMatch(stationMarkersContent, /@keyframes (?:gold-ring-pulse|station-radar-core|station-radar-ping)\b/);
   });
@@ -251,7 +251,8 @@ describe("stylesheet-graph helper", () => {
     const files = getAppStylesheetGraphFiles();
     assert.ok(files.some(f => f.endsWith("regional-map.css")), "regional-map.css must be in graph files");
     const regionalMapContent = readStylesheet(new URL("../src/styles/map/regional-map.css", import.meta.url));
-    assert.match(regionalMapContent, /\.regional-station-hit-target/);
+    // Station targets, hover rings and selection use the shared station-markers.css rules.
+    assert.doesNotMatch(regionalMapContent, /\.regional-station-(?:hit-target|hover-indicator|top-selection)/);
     // Planned station closures are shared station alerts now.
     assert.doesNotMatch(regionalMapContent, /\.regional-planned-station-marker/);
     // Station alerts use the shared station-markers.css rules on both maps.
@@ -270,7 +271,7 @@ describe("stylesheet-graph helper", () => {
     assert.match(mapSelectionContent, /@keyframes map-selection-station-intro/);
     assert.match(mapSelectionContent, /\.asset-alert-path\.map-selection-flash/);
     assert.match(mapSelectionContent, /\.station-selection-flash/);
-    assert.match(mapSelectionContent, /\.station-selected-indicator\.foreground-flash-active/);
+    assert.match(mapSelectionContent, /\.station-selection-flash\.map-selection-attention/);
   });
 
   it("resolves the extracted map/overlap-chooser.css in the application stylesheet graph", () => {

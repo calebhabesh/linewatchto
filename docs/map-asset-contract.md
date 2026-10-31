@@ -17,6 +17,7 @@ Every System Map is an authored Inkscape SVG plus a manifest. A new map gets the
 | `layers` | CSS selectors for the layers the app reads: `stations`, `stationLabels`, `lines`, and `guides` when segments follow curves. |
 | `stationLabelLink` | How a station name finds its station: an attribute the preparation step writes (`attribute`), or by matching the name to the station id (`name`). |
 | `stationPartSuffixes` | Id suffixes of shapes drawn for a station rather than being one, such as a second anchor (`-2`) or a junction's line part (`-up`). |
+| `stationHitPadding` | Room each station target adds around its dots, in map units: `pointer` for a mouse, `touch` for coarse pointers. Targets, hover rings and the selection marker take the dots' own shapes (`app/map-station-artwork.ts`). |
 | `lineIds` | The line paths overlays follow, by `id` or `inkscape:label` in the lines layer. |
 | `guideIds` | Curved segment guides, by `inkscape:label`. |
 

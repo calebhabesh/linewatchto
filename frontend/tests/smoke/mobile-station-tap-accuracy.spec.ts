@@ -32,12 +32,13 @@ test("native Android finger taps select the touched dots after repeated sheet cl
   test.setTimeout(60000);
   const session = await page.context().newCDPSession(page);
   for (let attempt = 0; attempt < 16; attempt++) {
-    const targets = await page.locator(".station-hit-target").evaluateAll(elements => elements.flatMap(element => {
+    // Each dot of every station target, tapped at its centre.
+    const targets = await page.locator(".station-hit-target circle").evaluateAll(elements => elements.flatMap(element => {
       const dot = element as SVGCircleElement;
       const point = new DOMPoint(dot.cx.baseVal.value, dot.cy.baseVal.value).matrixTransform(dot.getScreenCTM()!);
       if (document.elementFromPoint(point.x, point.y) !== dot || point.x < 65 || point.x > 295 || point.y < 160 || point.y > 490) return [];
-      const primary = document.querySelector(`[data-station-id="${dot.dataset.stationId}"][aria-label]`)!;
-      return [{ x: point.x, y: point.y, name: primary.getAttribute("aria-label")!.replace(/ station details$/, "") }];
+      const station = dot.closest(".station-hit-target")!;
+      return [{ x: point.x, y: point.y, name: station.getAttribute("aria-label")!.replace(/ station details$/, "") }];
     }));
     expect(targets.length).toBeGreaterThan(0);
     const target = targets[attempt % targets.length];

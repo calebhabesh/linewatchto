@@ -186,4 +186,36 @@ repeated parallel runs; cause unknown, watch it.
 
 ## Progress
 
-- Not started.
+- **Phase 1 done (2026-10-31): one station layer.** `app/map-station-artwork.ts`
+  builds every map's stations from prepared geometry (`mapStationArtwork`):
+  elements named with a manifest `stationPartSuffixes` suffix fold into one
+  station (Spadina's two dots), and "large" is read from the artwork (a dot
+  over 1.5× the map's median radius), replacing TTC's hard-coded list and
+  `REGIONAL_LARGE_TERMINAL_IDS` (Kitchener is now regular-sized, as drawn).
+  Hover rings grow the dots ×1.45 (large ×1.35), selection ×1.2 (large ×1),
+  capped so two dots of one station never grow into each other (Spadina), which
+  matches TTC's old radii within a unit; pills grow by one margin on every side
+  (Union's former fixed 75-unit pad is now 81). `components/MapStationLayers.tsx`
+  draws targets, hover rings, the selected-station marker and station-name
+  targets on both maps; `TtcStationTarget.tsx` and `RegionalStationLayers.tsx`
+  are gone. Decisions: targets only for stations with data (`placeMapStations`);
+  TTC still places a station its artwork lacks at its data position, which the
+  smoke stub's fixture stations need; hit padding is manifest data
+  (`stationHitPadding`: TTC 6, touch 22; GO/UP 60); TTC's hover ring moved under
+  the station artwork as on GO/UP, with a 10-unit stroke scaled by
+  `--map-overlay-unit`; one selection marker (`.station-selection-flash`) on
+  both maps, retiring TTC's always-hidden `station-selected-indicator` underlay
+  and its pulse keyframes. Attributes are now shared (`data-station-id`,
+  `data-station-label-id`, `.station-hit-target`, `.station-label-hit-target`);
+  the `data-regional-station-*` and `regional-station-*` names are gone. Until
+  phase 2, TTC's targets select themselves (`select` prop) and GO/UP's viewport
+  selects from those attributes at release.
+- Phase 1 checks: `test:fast`, typecheck and lint (15 warnings) pass; `map-parity`
+  passes on both projects; `test:visual` (visual-baselines and
+  desktop-visual-acceptance) passes with no differences. The plan's browser list
+  passes except the two known GO/UP mobile cases and
+  `dashboard.spec.ts:1574` (regional corridor hover), which also fails on clean
+  `main` (5 of 16 runs at its mouse-hover step). `test:map-budgets` passes;
+  phone tap INP TTC 208–248 ms (main 208), GO/UP 496–552 ms (main 472); one of
+  five GO/UP desktop runs exceeded the wheel-burst frames-over-20 ms budget
+  (the others 1–2 frames, as on main), not reproduced in three reruns.

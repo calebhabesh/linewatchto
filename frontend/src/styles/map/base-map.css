@@ -257,15 +257,6 @@
   pointer-events: none;
 }
 
-/* Station names are targets over their whole box, so the name and its
-   whitespace behave as one confident target. */
-.regional-map-stage .regional-station-label-hit-target {
-  cursor: pointer;
-  fill: transparent;
-  outline: none;
-  pointer-events: all;
-}
-
 .dark .regional-map-stage #regional-station-labels-layer :is(text, tspan)[style*="stroke:#000000"],
 .high-contrast .regional-map-stage #regional-station-labels-layer :is(text, tspan)[style*="stroke:#000000"] {
   stroke: #ffffff !important;
@@ -397,11 +388,9 @@
   .station-impact-ring,
   .station-impact-dot-red-glow,
   .station-impact-dot-red-beacon,
-  .station-selected-indicator,
   .station-selection-flash,
   .station-commute-green-flash,
-  .commute-path-preview-glow,
-  .regional-station-top-selection
+  .commute-path-preview-glow
 ) {
   filter: none !important;
 }
@@ -420,8 +409,7 @@
 ) :is(
   .map-impact-hover-foreground,
   .station-impact-hover-priority,
-  .station-hover-indicator,
-  .regional-station-hover-indicator
+  .station-hover-indicator
 ) {
   opacity: 0 !important;
   visibility: hidden !important;
@@ -471,7 +459,7 @@
 }
 
 .ttc-map-stage:has(.station-label-hit-target:active) .raster-station-label-text-hover,
-.regional-map-stage:has(.regional-station-label-hit-target:active) .raster-station-label-text-hover {
+.regional-map-stage:has(.station-label-hit-target:active) .raster-station-label-text-hover {
   transform: scale(0.985);
   transition-duration: 70ms;
 }

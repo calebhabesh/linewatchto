@@ -264,7 +264,7 @@ for (const network of ["ttc", "regional"] as const) {
 
     // Interaction to next paint on a station tap.
     const station = await page.evaluate((network) => {
-      const selector = network === "ttc" ? "[data-station-id]" : "[data-regional-station-id].regional-station-hit-target";
+      const selector = network === "ttc" ? "[data-station-id]" : ".station-hit-target[data-station-id]";
       const viewport = document.querySelector(network === "ttc" ? "[data-map-pan-zoom-viewport]" : ".regional-map-viewport")!.getBoundingClientRect();
       for (const element of document.querySelectorAll(selector)) {
         const rect = element.getBoundingClientRect();

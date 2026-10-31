@@ -404,7 +404,7 @@ test("TTC keeps an alert hovered while the pointer crosses a station on top of i
       if (x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) continue;
       const stack = document.elementsFromPoint(x, y);
       const alert = stack.find((element) => element.classList.contains("map-segment-hit-target"));
-      if (stack[0] === station && alert) {
+      if (station.contains(stack[0]) && alert) {
         return { x, y, kind: alert.getAttribute("data-map-impact-kind")!, id: alert.getAttribute("data-map-impact-id")! };
       }
     }
@@ -596,7 +596,7 @@ for (const network of ["TTC", "GO/UP"] as const) {
     }
     const target = network === "TTC"
       ? page.locator('.map-segment-hit-target').first()
-      : page.locator('.regional-station-hit-target[data-regional-station-id="weston"]');
+      : page.locator('.station-hit-target[data-station-id="weston"]');
     await target.press("Enter");
     await expect(chooser).toHaveCount(0);
   });

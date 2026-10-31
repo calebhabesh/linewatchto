@@ -1,14 +1,24 @@
 /* ============================================================
    Section 1: Station Hit Targets & Touch Targets
    ============================================================ */
+/* A station's target is its dots grown by the map's hit padding
+   (MapStationTargets sets it from the manifest's stationHitPadding). */
 .station-hit-target {
   cursor: pointer;
-  fill: transparent;
   outline: none;
-  pointer-events: auto;
+}
+
+.station-hit-target :is(circle, ellipse, rect) {
+  fill: transparent;
+  pointer-events: all;
   stroke: transparent;
-  stroke-width: 0;
-  transition: all 0.2s ease-in-out;
+  stroke-width: calc(2 * var(--station-hit-padding, 0px));
+}
+
+@media (pointer: coarse) {
+  .station-hit-target :is(circle, ellipse, rect) {
+    stroke-width: calc(2 * var(--station-touch-hit-padding, 0px));
+  }
 }
 
 .station-label-hit-target {
@@ -62,78 +72,26 @@
   }
 }
 
-.station-hit-target:hover,
-.station-hit-target:focus-visible {
-  fill: transparent;
-  stroke: transparent;
-  stroke-width: 0;
-}
-
-@media (pointer: coarse) {
-  .station-hit-target,
-  .station-hit-target:hover,
-  .station-hit-target:focus-visible {
-    /* Balanced station touch target without drowning out adjacent disruption corridors. */
-    stroke-width: 32px;
-  }
-}
-
 /* ============================================================
-   Section 2: Station Hover & Selection Indicators
+   Section 2: Station Hover Rings
    ============================================================ */
-.station-hover-indicator {
+/* Hover rings sit under the station artwork; hover is written to them
+   (`setMapStationHovered`), and a selected station shows none. */
+.station-hover-indicator :is(circle, rect, ellipse) {
   fill: transparent;
-  pointer-events: none;
   stroke: transparent;
   stroke-width: 0;
   transition: fill 70ms ease-out, stroke 70ms ease-out, stroke-width 70ms ease-out;
 }
 
-.station-hover-indicator.active {
+.station-hover-indicator.active:not([data-station-hover-selected="true"]) :is(circle, rect, ellipse) {
   fill: rgb(var(--station-selection-accent-rgb) / 30%);
   stroke: var(--station-selection-accent);
-  stroke-width: 10;
+  stroke-width: calc(10px * var(--map-overlay-unit, 1));
 }
 
-.station-hover-indicator[data-station-hover-selected="true"] {
-  fill: transparent;
-  stroke: transparent;
-  stroke-width: 0;
-}
-
-.station-hit-target.multi-anchor:hover,
-.station-hit-target.multi-anchor:focus-visible {
-  fill: transparent;
-  stroke: transparent;
-}
-
-.station-hit-target.selected {
-  fill: transparent;
-  stroke: transparent;
-}
-
-.station-selected-indicator {
-  fill: var(--station-selection-accent);
-  transform-origin: center;
-  transform-box: fill-box;
-  stroke: none;
-  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 85%));
-  animation: station-selected-pulse 2.4s ease-in-out infinite;
-  animation-delay: var(--map-pulse-offset);
-  transition: opacity 0.2s ease-in-out;
-}
-
-/* For multi-anchor stations where it is always in the DOM */
-.station-selected-indicator.multi-anchor {
-  opacity: 0;
-  pointer-events: none;
-  animation: none;
-}
-
-.station-selected-indicator.multi-anchor.active {
-  opacity: 1;
-  animation: station-selected-pulse 2.4s ease-in-out infinite;
-  animation-delay: var(--map-pulse-offset);
+.motion-paused .station-hover-indicator :is(circle, rect, ellipse) {
+  transition: none;
 }
 
 /* ============================================================
@@ -251,31 +209,8 @@
 /* ============================================================
    Section 6: Keyframe Animations & Reduced Motion Overrides
    ============================================================ */
-@keyframes station-selected-pulse {
-  0%,
-  100% {
-    transform: scale(0.9);
-    opacity: 1;
-    filter: drop-shadow(0 0 4px rgb(var(--station-selection-accent-rgb) / 55%));
-  }
-
-  50% {
-    transform: scale(1.05);
-    opacity: 1;
-    filter: drop-shadow(0 0 10px rgb(var(--station-selection-accent-rgb) / 95%));
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .station-hit-target.selected,
-  .station-selected-indicator,
   .station-selection-flash {
     animation: none;
-  }
-
-  .station-selected-indicator:not(.multi-anchor),
-  .station-selected-indicator.multi-anchor.active {
-    opacity: 0.55;
-    transform: scale(1);
   }
 }

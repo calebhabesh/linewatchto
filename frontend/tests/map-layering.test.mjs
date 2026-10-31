@@ -27,8 +27,8 @@ const sharedOverlaySource = [
 // TTC's renderer together with the shared layer it renders overlays with.
 const interactiveMapSource = [
   readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8"),
-  // TTC's per-station targets, memoized per station.
-  readFileSync(new URL("../src/components/TtcStationTarget.tsx", import.meta.url), "utf8"),
+  // The shared station layer, memoized per station.
+  readFileSync(new URL("../src/components/MapStationLayers.tsx", import.meta.url), "utf8"),
   sharedOverlaySource,
 ].join("\n");
 const ttcGlyphLanesSource = readFileSync(new URL("../src/components/map-overlays/GlyphLanes.tsx", import.meta.url), "utf8");
@@ -37,7 +37,7 @@ const ttcTrainMarkerLayerSource = readFileSync(new URL("../src/components/TtcTra
 // The TTC renderer and the modules split out of it; absence checks cover all of them.
 const ttcMapRendererSource = [interactiveMapSource, ttcGlyphLanesSource, ttcMapObstaclesSource, ttcTrainMarkerLayerSource].join("\n");
 const interactiveRegionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
-const regionalStationLayersSource = readFileSync(new URL("../src/components/RegionalStationLayers.tsx", import.meta.url), "utf8");
+const regionalStationLayersSource = readFileSync(new URL("../src/components/MapStationLayers.tsx", import.meta.url), "utf8");
 const regionalAssetSource = readFileSync(new URL("../src/app/regional-map-asset.ts", import.meta.url), "utf8");
 const regionalOverlaysSource = readFileSync(new URL("../src/app/regional-map-overlays.ts", import.meta.url), "utf8");
 const ttcChooserPlacementSource = readFileSync(new URL("../src/components/map-chooser-placement.ts", import.meta.url), "utf8");
@@ -65,11 +65,13 @@ function cssBlockFor(selector) {
 
 describe("asset-backed map layering", () => {
   it("keeps station-dot activation idempotent so repeated clicks cannot dismiss details", () => {
-    assert.match(interactiveMapSource, /onSelectStationId\(station\.id\)/);
+    // TTC's targets select themselves (MapStationLayers.tsx `select`).
+    assert.match(interactiveMapSource, /select\.onSelectStationId\(station\.id\)/);
     assert.doesNotMatch(ttcMapRendererSource, /onSelectStationId\(selected \? null : station\.id\)/);
-    assert.match(interactiveMapSource, /onPointerDown=\{\(event\) => \{[\s\S]*setPointerCapture\(event\.pointerId\)/);
-    assert.match(interactiveMapSource, /onPointerUp=\{\(event\) => \{[\s\S]*shouldSuppressMapClick\(\)[\s\S]*onSelectStationId\(station\.id\)/);
-    assert.match(interactiveMapSource, /if \(event\.detail !== 0 \|\| shouldSuppressMapClick\(\)\) return/);
+    assert.match(interactiveMapSource, /function capturePointer[\s\S]*setPointerCapture\(event\.pointerId\)/);
+    assert.match(interactiveMapSource, /onPointerUp: \(event[^)]*\) => \{[\s\S]*select\.shouldSuppressMapClick\(\)[\s\S]*select\.onSelectStationId\(station\.id\)/);
+    assert.match(interactiveMapSource, /if \(event\.detail !== 0 \|\| select\.shouldSuppressMapClick\(\)\) return/);
+    assert.match(interactiveMapSource, /<MapStationTargets[\s\S]*?select=\{stationTargetSelect\}/);
   });
 
   it("renders a station and label layer above alert overlays", () => {
@@ -97,11 +99,11 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /onSelectStationId/);
     assert.ok(
       interactiveMapSource.indexOf('aria-label="Disruption overlay interaction targets"') <
-        interactiveMapSource.indexOf('aria-label="Station hit targets"'),
+        interactiveMapSource.indexOf("<MapStationTargets"),
       "station targets must receive pointer hits above disruption corridors",
     );
     assert.ok(
-      interactiveMapSource.indexOf('aria-label="Station hit targets"') <
+      interactiveMapSource.indexOf("<MapStationTargets") <
         interactiveMapSource.indexOf('aria-label="Station impact rings"'),
       "station rings must render after station hit targets so ring strokes remain clickable",
     );
@@ -110,12 +112,13 @@ describe("asset-backed map layering", () => {
   it("derives pointer targets from authored station text bounds", () => {
     // Name boxes are prepared data (src/app/ttc-map-geometry.ts), padded for TTC.
     assert.match(interactiveMapSource, /ttcStationLabelPolygons\(TTC_GEOMETRY, stations\.map\(\(station\) => station\.id\)\)/);
-    assert.match(interactiveMapSource, /data-station-label-id=\{station\.id\}/);
+    assert.match(interactiveMapSource, /data-station-label-id=\{stationId\}/);
     assert.match(interactiveMapSource, /<polygon/);
-    assert.match(interactiveMapSource, /points=\{labelPolygon\.map/);
+    assert.match(interactiveMapSource, /points=\{labelPoints\(points\)\}/);
     assert.match(interactiveMapSource, /className="station-label-hit-target"/);
     assert.match(interactiveMapSource, /focusable="false"/);
-    assert.match(interactiveMapSource, /onPointerUp=\{\(event\) => \{[\s\S]*?onSelectStationId\(station\.id\)/);
+    assert.match(interactiveMapSource, /onClick: \(event[^)]*\) => \{[\s\S]*?interaction\.onSelectStationId\(stationId\)/);
+    assert.match(interactiveMapSource, /<MapStationLabelTargets labels=\{stationLabelTargets\} interaction=\{stationLabelInteraction\} \/>/);
     assert.match(globalCss, /\.station-label-hit-target\s*\{[^}]*cursor:\s*pointer;[^}]*fill:\s*transparent;[^}]*outline:\s*none;[^}]*stroke:\s*transparent;/s);
     assert.match(interactiveMapSource, /station-label-hovered/);
     assert.match(interactiveMapSource, /station-label-hover-effect/);
@@ -126,7 +129,7 @@ describe("asset-backed map layering", () => {
     );
     assert.ok(
       interactiveMapSource.indexOf('aria-label="Station impact rings"') <
-        interactiveMapSource.indexOf('aria-label="Station label hit targets"'),
+        interactiveMapSource.indexOf("<MapStationLabelTargets"),
       "station-name targets must remain above station dots and impact rings",
     );
     assert.doesNotMatch(ttcMapRendererSource, /station-label-hover-clone/);
@@ -150,12 +153,14 @@ describe("asset-backed map layering", () => {
     assert.match(regionalAssetSource, /dataset\.regionalStationLabelFor = stationId/);
     assert.match(interactiveRegionalMapSource, /raster-station-label-text-hover/);
     assert.doesNotMatch(interactiveRegionalMapSource, /regional-station-label-hover-clone/);
-    assert.match(regionalStationLayersSource, /data-regional-station-id=\{label\.stationId\}/);
+    // GO/UP's names share the station-name targets; its viewport handles their hover and taps.
+    assert.match(interactiveRegionalMapSource, /<MapStationLabelTargets labels=\{stationLabelTargets\} \/>/);
+    assert.match(regionalStationLayersSource, /data-station-label-id=\{stationId\}/);
     assert.match(interactiveRegionalMapSource, /regionalStationLabelHover/);
     assert.doesNotMatch(interactiveRegionalMapSource, /regional-raster-label-halo/);
     assert.match(
       globalCss,
-      /\.regional-station-label-hit-target\s*\{[^}]*fill:\s*transparent;[^}]*pointer-events:\s*all;/s,
+      /\.station-label-hit-target\s*\{[^}]*fill:\s*transparent;[^}]*pointer-events:\s*all;/s,
       "regional station names should be targets over their complete text box instead of individual glyph outlines",
     );
     assert.match(
@@ -170,42 +175,39 @@ describe("asset-backed map layering", () => {
 
   it("uses explicit SVG hit testing for station touch targets", () => {
     assert.match(
-      interactiveMapSource,
-      /className=\{`station-hit-target[\s\S]*?pointerEvents="all"[\s\S]*?role="button"[\s\S]*?vectorEffect="non-scaling-stroke"/,
-      "transparent station circles must remain tappable in mobile SVG implementations",
+      globalCss,
+      /\.station-hit-target :is\(circle, ellipse, rect\)\s*\{[^}]*fill:\s*transparent;[^}]*pointer-events:\s*all;[^}]*stroke-width:\s*calc\(2 \* var\(--station-hit-padding, 0px\)\);/s,
+      "transparent station shapes must remain tappable in mobile SVG implementations",
     );
     assert.match(
       globalCss,
-      /@media \(pointer:\s*coarse\) \{[\s\S]*?\.station-hit-target,[\s\S]*?stroke-width:\s*32px;/,
-      "touch pointers should balance station targets without drowning out adjacent disruption corridors",
+      /@media \(pointer:\s*coarse\) \{\s*\.station-hit-target :is\(circle, ellipse, rect\)\s*\{\s*stroke-width:\s*calc\(2 \* var\(--station-touch-hit-padding, 0px\)\);/,
+      "touch pointers get the map's touch padding around each station",
     );
   });
 
-  it("pins station hit targets to the authored station-dot outlines", () => {
-    assert.match(
-      interactiveMapSource,
-      /const hitRadius = hasMultipleVisualAnchors \? 34 : isLarge \? 67 : 37;/,
-    );
-    assert.doesNotMatch(ttcMapRendererSource, /const hitRadius = selection/);
-  });
-
-  it("pads the station-dot hover halo beyond its clickable outline", () => {
-    assert.match(
-      interactiveMapSource,
-      /const hoverRadius = hasMultipleVisualAnchors \? 42 : isLarge \? 78 : 46;/,
+  it("draws station targets, hover rings and selection from the artwork on both maps", () => {
+    // Sizes are the artwork's (tests/map-station-artwork.test.mjs); the padding is manifest data.
+    for (const mapSource of [interactiveMapSource, interactiveRegionalMapSource]) {
+      assert.match(mapSource, /mapStationArtwork\((?:TTC|REGIONAL)_GEOMETRY/);
+      assert.match(mapSource, /<MapStationHoverIndicators/);
+      assert.match(mapSource, /hitPadding=\{(?:TTC|REGIONAL)_MANIFEST\.stationHitPadding\}/);
+    }
+    assert.doesNotMatch(ttcMapRendererSource, /const hitRadius|const hoverRadius/);
+    // Hover rings sit under the station artwork, as on GO/UP.
+    assert.ok(
+      interactiveMapSource.indexOf("<MapStationHoverIndicators") <
+        interactiveMapSource.indexOf("dangerouslySetInnerHTML={{ __html: svgParts?.part2"),
     );
     assert.match(interactiveMapSource, /className="station-hover-indicator"/);
-    assert.match(interactiveMapSource, /setMapStationHovered\(mapRootRef\.current, station\.id, true\)/);
-    assert.match(interactiveMapSource, /r=\{hoverRadius\}/);
+    assert.match(interactiveMapSource, /setMapStationHovered\(mapRootRef\.current, stationId, hovered\)/);
     assert.match(
       globalCss,
-      /\.station-hover-indicator\.active\s*\{[^}]*fill:\s*rgb\(var\(--station-selection-accent-rgb\)\s*\/\s*30%\);[^}]*stroke:\s*var\(--station-selection-accent\);[^}]*stroke-width:\s*10;/s,
+      /\.station-hover-indicator\.active:not\(\[data-station-hover-selected="true"\]\) :is\(circle, rect, ellipse\)\s*\{[^}]*fill:\s*rgb\(var\(--station-selection-accent-rgb\)\s*\/\s*30%\);[^}]*stroke:\s*var\(--station-selection-accent\);[^}]*stroke-width:\s*calc\(10px \* var\(--map-overlay-unit, 1\)\);/s,
     );
     assert.match(globalCss, /--station-selection-accent:\s*var\(--color-logo-blue\);/);
     assert.match(globalCss, /--station-selection-accent-rgb:\s*129 201 255;/);
-    assert.match(globalCss, /\.station-selected-indicator\s*\{[^}]*fill:\s*var\(--station-selection-accent\);/s);
     assert.match(globalCss, /\.station-impact-hover-priority\s*\{[^}]*stroke:\s*var\(--station-selection-accent\);/s);
-    assert.match(globalCss, /@keyframes station-selected-pulse\s*\{[\s\S]*?0%,[\s\S]*?opacity:\s*1;[\s\S]*?50%\s*\{[^}]*opacity:\s*1;/s);
     assert.match(globalCss, /\.station-selection-flash\s*\{[^}]*fill:\s*var\(--station-selection-accent\);/s);
   });
 
@@ -333,7 +335,6 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /style=\{\{\s*pointerEvents:\s*"none",\s*stroke:\s*RSZ_IMPACT_COLOR\s*\}\}/);
     assert.match(interactiveMapSource, /SuspensionNoEntryLane/);
     assert.match(interactiveMapSource, /className="asset-alert-path suspension-candy suspension-solid pointer-events-none"/);
-    assert.match(globalCss, /@keyframes station-selected-pulse/);
     assert.match(globalCss, /@keyframes aura-pulse/);
     assert.doesNotMatch(globalCss, /\.asset-alert-path-glow\.(?:suspension|delay|reduced-speed-zone|delay-static)\s*\{[^}]*animation:(?!\s*none)/s);
     assert.doesNotMatch(globalCss, /\.delay-static-path\s*\{[^}]*animation:(?!\s*none)/s);
@@ -769,7 +770,7 @@ describe("asset-backed map layering", () => {
       /className: `station-impact-ring[\s\S]*?onPointerUp: \(event[^)]*\) => \{[\s\S]*?suppressNextMapClick\?\.\(\);\s*select\(\);/,
     );
     assert.match(interactiveMapSource, /<MapStationAlertRings[\s\S]*?onSelect=\{onSelectImpact\}/);
-    assert.match(interactiveMapSource, /if \(event\.detail !== 0 \|\| shouldSuppressMapClick\(\)\) return;/);
+    assert.match(interactiveMapSource, /if \(exiting \|\| event\.detail !== 0 \|\| shouldSuppressMapClick\(\)\) return;/);
   });
 
   it("owns segment-overlay pointer activation before the first panel opening can retarget the click", () => {
@@ -790,7 +791,6 @@ describe("asset-backed map layering", () => {
   it("keeps selected alert hover corridors continuous above map artwork", () => {
     assert.match(interactiveMapSource, /function MapLineAlertTarget/);
     assert.match(interactiveMapSource, /aria-label="Disruption overlay interaction targets"/);
-    assert.match(interactiveMapSource, /const hitRadius = hasMultipleVisualAnchors/);
     assert.match(interactiveMapSource, /<MapLineAlertTargets/);
   });
 
@@ -811,7 +811,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /data-map-highlight-id=\{alert\.impactId\}/);
     assert.match(interactiveMapSource, /data-map-highlight-id=\{station\.id\}/);
     assert.match(interactiveMapSource, /className=\{`asset-alert-path map-selection-flash map-selection-attention pointer-events-none\$\{introComplete \? " selection-intro-complete" : ""\}`\}/);
-    assert.match(interactiveMapSource, /className=\{`station-selection-flash map-selection-attention\$\{selectionIntroComplete \? " selection-intro-complete" : ""\}`\}/);
+    assert.match(interactiveMapSource, /className=\{`station-selection-flash map-selection-attention\$\{introComplete \? " selection-intro-complete" : ""\}`\}/);
     assert.doesNotMatch(ttcMapRendererSource, /isSelectionFastFlashing|isStationFastFlashing/);
     assert.match(globalCss, /\.map-selection-attention\s*\{[^}]*animation-name:\s*var\(--selection-intro-name\),\s*var\(--selection-breathe-name\)/s);
     assert.match(globalCss, /animation-delay:\s*0s,\s*var\(--selection-intro-duration\)/);
@@ -827,28 +827,19 @@ describe("asset-backed map layering", () => {
       globalCss,
       /\.map-gesture-active \.asset-alert-path\.map-selection-flash[^}]*animation:\s*none/s,
     );
-    // GO/UP's selected-station marker takes the same intro state.
-    assert.match(interactiveRegionalMapSource, /<RegionalStationSelection[\s\S]*?introComplete=\{selectionIntroComplete\}/);
-    assert.match(regionalStationLayersSource, /regional-station-top-selection map-selection-attention\$\{introComplete \? " selection-intro-complete" : ""\}/);
+    // Both maps draw the selected-station marker with the same intro state.
+    for (const mapSource of [interactiveMapSource, interactiveRegionalMapSource]) {
+      assert.match(mapSource, /<MapStationSelection[\s\S]*?introComplete=\{selectionIntroComplete\}/);
+    }
     assert.match(globalCss, /\.map-selection-attention\.selection-intro-complete\s*\{[^}]*animation-name:\s*var\(--selection-breathe-name\);/s);
     assert.match(interactiveMapSource, /aria-label="Station impact foreground highlights"/);
     assert.match(interactiveMapSource, /data-station-impact-selection-id=\{alert\.impactId\}/);
     assert.match(interactiveMapSource, /setMapImpactHovered\(root, owner \?\? impact, Boolean\(owner\)\)/);
     assert.match(interactiveMapSource, /data-station-selection-foreground=\{station\.id\}/);
     assert.match(interactiveMapSource, /station-impact-hover-priority/);
-    assert.match(
-      interactiveMapSource,
-      /station-selected-indicator[\s\S]*?foreground-flash-active/,
-    );
-    assert.match(
-      globalCss,
-      /\.linewatch-shell \.station-selected-indicator\.foreground-flash-active\s*\{[^}]*animation:\s*none !important;[^}]*opacity:\s*0 !important;/,
-    );
+    // One selected-station marker: no hidden underlay competing with it.
+    assert.doesNotMatch(ttcMapRendererSource + globalCss, /station-selected-indicator|foreground-flash-active/);
     assert.doesNotMatch(regionalAssetSource, /regional-station-selected-indicator|regional-station-selection-source/);
-    assert.doesNotMatch(
-      globalCss,
-      /\.motion-paused \.station-selected-indicator(?::not\([^)]*\)|\.[\w-]+)*\.foreground-flash-active[^}]*opacity:\s*0\.55 !important/,
-    );
     const impactRingsIndex = interactiveMapSource.indexOf('aria-label="Station impact rings"');
     const foregroundHighlightsIndex = interactiveMapSource.indexOf('aria-label="Station impact foreground highlights"');
     const directionGlyphsIndex = interactiveMapSource.indexOf('aria-label="Station impact direction glyphs"');
@@ -958,24 +949,15 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.linewatch-shell\.high-contrast \.map-attribution-notice/);
   });
 
-  it("renders Spadina as two synchronized visual anchors for one station control", () => {
-    assert.match(interactiveMapSource, /stationVisualCenterIds/);
-    assert.match(interactiveMapSource, /stationVisualAnchorsFor/);
+  it("renders Spadina as one station control over both its dots", () => {
+    // The manifest's part suffixes fold station-spadina-1 and -2 into one station.
+    assert.match(interactiveMapSource, /mapStationArtwork\(TTC_GEOMETRY, TTC_MANIFEST\.stationPartSuffixes\)/);
     assert.match(interactiveMapSource, /data-station-id=\{station\.id\}/);
-    assert.match(interactiveMapSource, /data-station-anchor-id=\{anchorId\}/);
-    assert.match(interactiveMapSource, /data-station-primary-target=\{anchorIndex === 0 \? "true" : "false"\}/);
+    assert.match(interactiveMapSource, /data-station-anchor-id=\{mapStationShapeAnchorId\(shape\) \?\? undefined\}/);
     assert.match(interactiveMapSource, /data-station-hover-id=\{station\.id\}/);
-    assert.match(interactiveMapSource, /data-station-selected-id=\{station\.id\}/);
-    assert.match(interactiveMapSource, /tabIndex=\{anchorIndex === 0 \? 0 : -1\}/);
-    assert.match(interactiveMapSource, /event\.pointerType !== "mouse"/);
-    assert.match(globalCss, /\.station-hover-indicator/);
-    assert.match(globalCss, /\.station-hit-target\.multi-anchor:hover/);
-  });
-
-  it("renders separate non-intersecting hover highlights over Spadina's two visual anchors", () => {
-    assert.match(interactiveMapSource, /const hitRadius = hasMultipleVisualAnchors \? 34/);
-    assert.match(interactiveMapSource, /const hoverRadius = hasMultipleVisualAnchors \? 42/);
-    assert.doesNotMatch(ttcMapRendererSource, /data-station-hover-capsule-id/);
+    assert.match(interactiveMapSource, /role="button"\s*tabIndex=\{0\}/);
+    assert.match(interactiveMapSource, /event\.pointerType === "mouse"/);
+    assert.doesNotMatch(ttcMapRendererSource, /data-station-hover-capsule-id|data-station-primary-target/);
   });
 
   it("keeps estimated train markers opt-in and suppresses them while the selected rail network is closed", () => {

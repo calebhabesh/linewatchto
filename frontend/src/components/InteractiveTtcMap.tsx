@@ -14,7 +14,16 @@ import {
 import { usePanZoom } from "../hooks/usePanZoom";
 import { MapZoomSlider } from "./map-camera/MapZoomSlider";
 import { MapOverlapChooser } from "./MapOverlapChooser";
-import { TtcStationLabelTargets, TtcStationTarget } from "./TtcStationTarget";
+import {
+  MapStationHoverIndicators,
+  MapStationLabelTargets,
+  MapStationSelection,
+  MapStationTargets,
+  type MapStationHoverChange,
+  type MapStationLabelInteraction,
+  type MapStationTargetSelect,
+} from "./MapStationLayers";
+import { mapStationArtwork, placeMapStations } from "../app/map-station-artwork";
 import { useMapOverlapChooser, useMapViewportSize } from "./map-overlays/useMapOverlapChooser";
 import {
   MapChooserFollower,
@@ -56,7 +65,7 @@ import {
 import { installMapHoverController, type MapHoverController } from "./map-overlays/map-hover-controller";
 import type { MapOverlayPlane } from "./map-overlays/overlay-plane";
 import { mapSelectionIntroKey, useMapSelectionIntro } from "./map-overlays/selection-intro";
-import { clearMapStationHover } from "./map-overlays/station-hover";
+import { clearMapStationHover, setMapStationHovered } from "./map-overlays/station-hover";
 import { useMapPulseSync } from "./map-overlays/pulse-sync";
 import { MapCommuteEndpointFlashes, MapCommutePreviewRoute } from "./map-overlays/CommutePreviewOverlays";
 import type { MapCommutePreview } from "./map-overlays/commute-preview-model";
@@ -172,6 +181,7 @@ const TTC_GEOMETRY = preparedTtcGeometry as unknown as PreparedMapGeometry;
 const TTC_ANCHOR_POINTS = ttcAnchorPoints(TTC_GEOMETRY);
 const TTC_GUIDE_PATHS = ttcGuidePaths(TTC_GEOMETRY);
 const TTC_ARTWORK_OBSTACLES = ttcArtworkObstacles(TTC_GEOMETRY);
+const TTC_STATION_ARTWORK = mapStationArtwork(TTC_GEOMETRY, TTC_MANIFEST.stationPartSuffixes);
 
 type RetainedLayer<T> = {
   key: string;
@@ -730,13 +740,47 @@ function InteractiveTtcMapComponent({
     zoomOutSignal,
   });
 
-  // Each station's target inputs, kept stable while the stations do, so a
-  // selection re-renders only the stations it changes (TtcStationTarget).
-  const stationTargets = useMemo(() => stations.map((station) => ({
-    station,
-    anchors: visualAnchorsForStation(station),
-    isLarge: isStationVisuallyLarge(station),
-  })), [stations, visualAnchorsForStation]);
+  // Station targets take their dots' shapes from the artwork; a station the
+  // artwork lacks is placed at its data position.
+  const stationPlacements = useMemo(() => placeMapStations(TTC_STATION_ARTWORK, stations.map((station) => ({
+    id: station.id,
+    name: station.name,
+    fallbackPoint: { x: station.mapX, y: station.mapY },
+  }))), [stations]);
+  const selectedStationArtwork = useMemo(
+    () => stationPlacements.find(({ artwork }) => artwork.id === selectedStationId)?.artwork ?? null,
+    [selectedStationId, stationPlacements],
+  );
+  const stationLabelTargets = useMemo(
+    () => [...stationLabelPolygons].map(([stationId, points]) => ({ stationId, points })),
+    [stationLabelPolygons],
+  );
+  // Hovering or focusing a station also lifts its name, as on GO/UP.
+  const onStationHoverChange = useCallback<MapStationHoverChange>((stationId, hovered, via) => {
+    setMapStationHovered(mapRootRef.current, stationId, hovered);
+    if (!hovered) {
+      setHoveredStationLabelId((current) => current === stationId ? null : current);
+    } else if (via === "pointer" || window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      setHoveredStationLabelId(stationId);
+    }
+  }, []);
+  const stationTargetSelect = useMemo<MapStationTargetSelect>(() => ({
+    onSelectStationId,
+    shouldSuppressMapClick,
+    suppressNextMapClick,
+  }), [onSelectStationId, shouldSuppressMapClick, suppressNextMapClick]);
+  const stationLabelInteraction = useMemo<MapStationLabelInteraction>(() => ({
+    ...stationTargetSelect,
+    // Hovering a name lifts it without ringing the dot.
+    onLabelHoverChange: (stationId, hovered) => {
+      if (hovered) {
+        setMapStationHovered(mapRootRef.current, stationId, false);
+        setHoveredStationLabelId(stationId);
+      } else {
+        setHoveredStationLabelId((current) => current === stationId ? null : current);
+      }
+    },
+  }), [stationTargetSelect]);
 
   const stationBySummaryId = useMemo(() => {
     return new Map(stations.map((station) => [station.id, station]));
@@ -1641,6 +1685,12 @@ function InteractiveTtcMapComponent({
                   />
                 </g>
 
+                <MapStationHoverIndicators
+                  stations={stationPlacements}
+                  selectedStationId={selectedStationId}
+                  overlayUnit={TTC_OVERLAY_PLANE.unit}
+                />
+
                 {/* Top Layer: custom-map station labels, dots, and connections */}
                 <g className="ttc-authored-svg-source" dangerouslySetInnerHTML={{ __html: svgParts?.part2 ?? "" }} />
               </svg>
@@ -1777,22 +1827,13 @@ function InteractiveTtcMapComponent({
                   suppressNextMapClick={suppressNextMapClick}
                 />
               </g>
-              <g aria-label="Station hit targets">
-                {stationTargets.map(({ station, anchors, isLarge }) => (
-                  <TtcStationTarget
-                    key={station.id}
-                    station={station}
-                    anchors={anchors}
-                    isLarge={isLarge}
-                    selected={selectedStationId === station.id}
-                    mapRootRef={mapRootRef}
-                    setHoveredStationLabelId={setHoveredStationLabelId}
-                    shouldSuppressMapClick={shouldSuppressMapClick}
-                    suppressNextMapClick={suppressNextMapClick}
-                    onSelectStationId={onSelectStationId}
-                  />
-                ))}
-              </g>
+              <MapStationTargets
+                stations={stationPlacements}
+                selectedStationId={selectedStationId}
+                hitPadding={TTC_MANIFEST.stationHitPadding}
+                onHoverChange={onStationHoverChange}
+                select={stationTargetSelect}
+              />
               <g aria-label="Commute endpoint highlights">
                 <MapCommuteEndpointFlashes preview={commutePreview} plane={TTC_OVERLAY_PLANE} />
               </g>
@@ -1809,44 +1850,16 @@ function InteractiveTtcMapComponent({
               {/* Keep names in one foreground interaction plane. When label targets
                   are interleaved with station dots, a later invisible dot or impact
                   corridor can steal hover from part of the rendered text. */}
-              <g aria-label="Station label hit targets">
-                <TtcStationLabelTargets
-                  stations={stations}
-                  labelPolygons={stationLabelPolygons}
-                  mapRootRef={mapRootRef}
-                  setHoveredStationLabelId={setHoveredStationLabelId}
-                  shouldSuppressMapClick={shouldSuppressMapClick}
-                  suppressNextMapClick={suppressNextMapClick}
-                  onSelectStationId={onSelectStationId}
-                />
-              </g>
+              <MapStationLabelTargets labels={stationLabelTargets} interaction={stationLabelInteraction} />
               <g aria-label="Station impact direction glyphs">
                 <MapStationDirectionGlyphs glyphs={stationDirectionGlyphItems} />
               </g>
               <g aria-label="Station impact foreground highlights" pointerEvents="none">
-                {stations.map((station) => {
-                  if (selectedStationId !== station.id) return null;
-                  const visualAnchors = visualAnchorsForStation(station);
-                  const isLarge = isStationVisuallyLarge(station);
-                  const highlightRadius = stationImpactRingRadius(isLarge);
-
-                  return (
-                    <g key={`station-selection-foreground:${station.id}`}>
-                      {visualAnchors.map(({ id: anchorId, point }) => (
-                        <circle
-                          key={`${station.id}:${anchorId}`}
-                          data-map-highlight-id={station.id}
-                          data-station-selection-foreground={station.id}
-                          data-station-anchor-id={anchorId}
-                          className={`station-selection-flash map-selection-attention${selectionIntroComplete ? " selection-intro-complete" : ""}`}
-                          cx={point.x}
-                          cy={point.y}
-                          r={highlightRadius}
-                        />
-                      ))}
-                    </g>
-                  );
-                })}
+                <MapStationSelection
+                  key={selectedStationId ?? "none"}
+                  station={selectedStationArtwork}
+                  introComplete={selectionIntroComplete}
+                />
                 <MapStationAlertForeground
                   alerts={stationAlerts}
                   plane={TTC_OVERLAY_PLANE}

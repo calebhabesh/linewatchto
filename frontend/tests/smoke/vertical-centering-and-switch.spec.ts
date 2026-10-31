@@ -153,8 +153,8 @@ test.describe("vertical centering and mode switch stability", () => {
 
     const regionalStage = page.locator(".regional-map-stage");
     await expect(regionalStage).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator(".regional-station-hit-target[data-regional-station-id='allandale-waterfront']")).toBeAttached({ timeout: 10_000 });
-    await expect(page.locator(".regional-station-hit-target[data-regional-station-id='hamilton']")).toBeAttached({ timeout: 10_000 });
+    await expect(page.locator(".station-hit-target[data-station-id='allandale-waterfront']")).toBeAttached({ timeout: 10_000 });
+    await expect(page.locator(".station-hit-target[data-station-id='hamilton']")).toBeAttached({ timeout: 10_000 });
     await page.waitForTimeout(1000);
 
     const regionalInitialTransform = await regionalStage.evaluate((el) => el.style.transform);

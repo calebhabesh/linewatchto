@@ -62,10 +62,10 @@ export { preloadRegionalMapMarkup } from "../app/regional-map-asset";
 /** GO/UP's prepared geometry (scripts/prepare-map-geometry.mjs). */
 const REGIONAL_GEOMETRY = preparedRegionalGeometry as unknown as PreparedMapGeometry;
 const REGIONAL_OVERLAY_PLANE = regionalOverlayPlane(REGIONAL_GEOMETRY);
-const REGIONAL_STATION_ARTWORK = regionalStationArtwork(REGIONAL_GEOMETRY);
+const REGIONAL_STATION_ARTWORK = mapStationArtwork(REGIONAL_GEOMETRY, MAP_MANIFESTS.regional.stationPartSuffixes);
 const REGIONAL_STATION_LABEL_TARGETS = regionalStationLabelTargets(REGIONAL_GEOMETRY);
-const NO_STATION_ARTWORK: RegionalStationArtwork[] = [];
-const NO_STATION_LABEL_TARGETS: RegionalStationLabelTarget[] = [];
+const NO_STATION_PLACEMENTS: MapStationPlacement[] = [];
+const NO_STATION_LABEL_TARGETS: MapStationLabelTarget[] = [];
 
 import {
   regionalTrainMarkerFrame,
@@ -93,19 +93,22 @@ import {
 } from "../app/regional-map-overlays";
 import {
   installRegionalStationLabelHover,
-  regionalStationArtwork,
   regionalStationLabelCutoutMarkup,
   regionalStationLabelTargets,
-  type RegionalStationArtwork,
-  type RegionalStationLabelTarget,
 } from "../app/regional-station-interaction";
 import {
-  RegionalStationHoverIndicators,
-  RegionalStationLabelTargets,
-  RegionalStationSelection,
-  RegionalStationTargets,
-} from "./RegionalStationLayers";
-import { clearMapStationHover, setMapStationHovered } from "./map-overlays/station-hover";
+  mapStationArtwork,
+  placeMapStations,
+  type MapStationLabelTarget,
+  type MapStationPlacement,
+} from "../app/map-station-artwork";
+import {
+  MapStationHoverIndicators,
+  MapStationLabelTargets,
+  MapStationSelection,
+  MapStationTargets,
+} from "./MapStationLayers";
+import { clearMapStationHover, mapStationIdAt, setMapStationHovered } from "./map-overlays/station-hover";
 import type { MapBounds, MapPoint } from "../app/map-geometry";
 
 type SvgPoint = MapPoint;
@@ -302,7 +305,10 @@ function InteractiveRegionalMapComponent({
   const [overlayPlane, setOverlayPlane] = useState<MapOverlayPlane | null>(null);
   // Station targets, hover rings and selection, from the authored artwork.
   // Station targets and rings appear with the overlays.
-  const stationArtwork = overlayPlane ? REGIONAL_STATION_ARTWORK : NO_STATION_ARTWORK;
+  // Only stations with data get targets.
+  const stationPlacements = useMemo(() => (overlayPlane
+    ? placeMapStations(REGIONAL_STATION_ARTWORK, stations.map(({ id, name }) => ({ id, name })))
+    : NO_STATION_PLACEMENTS), [overlayPlane, stations]);
   const stationLabelTargets = overlayPlane ? REGIONAL_STATION_LABEL_TARGETS : NO_STATION_LABEL_TARGETS;
   // Station alerts, drawn with the same shared layer in the interaction plane.
   const [stationAlerts, setStationAlerts] = useState<MapStationAlert[]>([]);
@@ -589,8 +595,8 @@ function InteractiveRegionalMapComponent({
     setMapStationHovered(viewportRef.current, stationId, hovered);
   }, []);
   const selectedStationArtwork = useMemo(
-    () => stationArtwork.find((station) => station.id === selectedStationId) ?? null,
-    [selectedStationId, stationArtwork],
+    () => stationPlacements.find(({ artwork }) => artwork.id === selectedStationId)?.artwork ?? null,
+    [selectedStationId, stationPlacements],
   );
 
   // A commute preview and a selected station pulse on one clock, as on TTC.
@@ -811,7 +817,7 @@ function InteractiveRegionalMapComponent({
   // targets at release, from what was under the press.
   const onPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
     // A press ends the pointer hover, keeping a label that is itself pressed.
-    if (!(event.target instanceof Element && event.target.closest(".regional-station-label-hit-target"))) {
+    if (!(event.target instanceof Element && event.target.closest(".station-label-hit-target"))) {
       setHoveredStationLabel(null);
     }
     clearMapStationHover(viewportRef.current);
@@ -823,14 +829,14 @@ function InteractiveRegionalMapComponent({
     if (!firstPointer || shouldSuppressMapClick()) return;
     const target = event.target instanceof Element ? event.target : null;
     const impact = target?.closest<SVGElement>("[data-map-impact-kind]");
-    const station = target?.closest<SVGElement>("[data-regional-station-id]");
+    const stationId = mapStationIdAt(target);
     const impactSelection = impact
       ? regionalPointerImpactSelection(event.currentTarget, impact, event.clientX, event.clientY)
       : null;
     pointerActivationRef.current = impactSelection
       ? { type: "impact", selection: impactSelection }
-      : station?.dataset.regionalStationId
-        ? { type: "station", id: station.dataset.regionalStationId }
+      : stationId
+        ? { type: "station", id: stationId }
         : null;
   }, [activePointerCount, handlePointerDown, shouldSuppressMapClick]);
 
@@ -860,7 +866,7 @@ function InteractiveRegionalMapComponent({
       return;
     }
     const target = event.target instanceof Element ? event.target : null;
-    if (!target?.closest(".overlap-indicator, [data-map-impact-kind], [data-regional-station-id], button, [role='button'], [data-map-chooser-keepout]")) {
+    if (!target?.closest(".overlap-indicator, [data-map-impact-kind], [data-station-id], [data-station-label-id], button, [role='button'], [data-map-chooser-keepout]")) {
       onSelectImpact(null);
       onSelectStationId(null);
     }
@@ -873,9 +879,8 @@ function InteractiveRegionalMapComponent({
       onSelectImpact(impact);
       return;
     }
-    const station = target.closest("[data-regional-station-id]") as SVGElement | null;
-    if (station?.dataset.regionalStationId) {
-      const id = station.dataset.regionalStationId;
+    const id = mapStationIdAt(target);
+    if (id) {
       onSelectStationId(id);
     }
   }, [onSelectImpact, onSelectStationId]);
@@ -1050,7 +1055,11 @@ function InteractiveRegionalMapComponent({
                     introComplete={selectionIntroComplete}
                   />
                 </g>
-                <RegionalStationHoverIndicators stations={stationArtwork} selectedStationId={selectedStationId} />
+                <MapStationHoverIndicators
+                  stations={stationPlacements}
+                  selectedStationId={selectedStationId}
+                  overlayUnit={overlayPlane.unit}
+                />
               </g>
             ) : null}
           </svg>
@@ -1180,13 +1189,12 @@ function InteractiveRegionalMapComponent({
                 <g id={REGIONAL_DYNAMIC_TARGET_LAYER_ID} aria-label="Disruption overlay interaction targets">
                   <MapLineAlertTargets alerts={lineAlerts} />
                 </g>
-                <g aria-label="Station hit targets">
-                  <RegionalStationTargets
-                    stations={stationArtwork}
-                    selectedStationId={selectedStationId}
-                    onHoverChange={setStationHovered}
-                  />
-                </g>
+                <MapStationTargets
+                  stations={stationPlacements}
+                  selectedStationId={selectedStationId}
+                  hitPadding={REGIONAL_MANIFEST.stationHitPadding}
+                  onHoverChange={setStationHovered}
+                />
               </g>
             ) : null}
             {overlayPlane ? <MapCommuteEndpointFlashes preview={commutePreview} plane={overlayPlane} /> : null}
@@ -1195,14 +1203,12 @@ function InteractiveRegionalMapComponent({
                 <MapStationAlertRings alerts={stationAlerts} plane={overlayPlane} selection={selection} />
               ) : null}
             </g>
-            <g aria-label="Station label hit targets">
-              <RegionalStationLabelTargets labels={stationLabelTargets} />
-            </g>
+            <MapStationLabelTargets labels={stationLabelTargets} />
             <MapStationDirectionGlyphs glyphs={stationDirectionGlyphs} />
             <g aria-hidden="true" pointerEvents="none">
               {overlayPlane ? (
                 <g>
-                  <RegionalStationSelection
+                  <MapStationSelection
                     key={selectedStationId ?? "none"}
                     station={selectedStationArtwork}
                     introComplete={selectionIntroComplete}

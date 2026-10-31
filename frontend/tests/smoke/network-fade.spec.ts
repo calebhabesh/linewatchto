@@ -386,20 +386,17 @@ test.describe('network artwork fades', () => {
           requestAnimationFrame(tick);
         });
         const layer = document.querySelector<HTMLElement>(`.network-diagram-layer[data-network-map-layer="${network}"]:not([data-preparing])`)!;
-        const targetSelector = network === 'ttc' ? '.station-hit-target' : '.regional-station-hit-target';
-        const station = Array.from(layer.querySelectorAll<SVGElement>(targetSelector)).find(station => {
+        const station = Array.from(layer.querySelectorAll<SVGElement>('.station-hit-target')).find(station => {
           const bounds = station.getBoundingClientRect();
           const hit = document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
           return hit && station.contains(hit);
         });
         if (!station) throw new Error(`No reachable ${network} station after fade`);
-        const stationId = station.dataset.stationId ?? station.dataset.regionalStationId;
+        const stationId = station.dataset.stationId;
         const bounds = station.getBoundingClientRect();
         await window.__linewatchPhysicalToggleTap!(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
         await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-        const selected = network === 'ttc' ? station.classList.contains('selected')
-          : station.dataset.regionalStationSelected === 'true';
-        if (!selected) throw new Error(`The first ${network} station tap after fade was ignored`);
+        if (!station.classList.contains('selected')) throw new Error(`The first ${network} station tap after fade was ignored`);
         selections.push(`${network}:${stationId}`);
         if (mobile) {
           const close = await new Promise<HTMLButtonElement>((resolve, reject) => {

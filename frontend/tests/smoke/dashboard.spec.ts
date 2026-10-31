@@ -640,7 +640,7 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   const resizedAdjustedScale = Number(resizedAdjustedCamera.match(/scale\(([^)]+)\)/)?.[1]);
   expect(resizedAdjustedScale).toBeCloseTo(adjustedScale, 6);
 
-  const weston = page.locator('.regional-station-hit-target[data-regional-station-id="weston"]');
+  const weston = page.locator('.station-hit-target[data-station-id="weston"]');
   await expect(weston).toHaveAttribute("tabindex", "0");
   await weston.press("Enter");
   const westonPanel = page.getByRole("complementary", { name: "Weston regional station details" });
@@ -710,7 +710,7 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   await expect(regionalStage.locator("#regional-lines-layer")).toHaveCSS("visibility", "hidden");
   await expect(regionalStage.locator("#regional-stations-layer")).toHaveCount(1);
   await page.getByRole("button", { name: "Collapse sidebar" }).click();
-  const regionalLabelTarget = regionalStage.locator('.regional-station-label-hit-target[data-regional-station-id="kipling"]');
+  const regionalLabelTarget = regionalStage.locator('.station-label-hit-target[data-station-label-id="kipling"]');
   await regionalLabelTarget.hover();
   const regionalRasterLabelHover = regionalStage.locator(".raster-station-label-text-hover");
   await expect(regionalRasterLabelHover).toHaveCount(1);
@@ -913,7 +913,7 @@ test("regional station names share the TTC raster hover glow and station selecti
   await page.getByRole("button", { name: "Collapse sidebar" }).click();
 
   const authoredLabel = page.locator('[data-regional-station-label-for="kipling"]');
-  const labelTarget = page.locator('[data-regional-station-label-id="kipling"]');
+  const labelTarget = page.locator('[data-station-label-id="kipling"]');
   await expect(authoredLabel).toHaveCount(1);
   await expect(labelTarget).toHaveCount(1);
 
@@ -965,7 +965,7 @@ test("mobile preserves status and station interaction language across network sw
   const moreSheet = page.getByRole("region", { name: "More LineWatchTO options" });
   await expect(moreSheet.getByRole("button", { name: /My Commutes/ })).toBeVisible();
   await moreSheet.getByRole("button", { name: "Close more options" }).click();
-  const weston = page.locator('.regional-station-hit-target[data-regional-station-id="weston"]');
+  const weston = page.locator('.station-hit-target[data-station-id="weston"]');
   await weston.press("Enter");
   const stationPanel = page.getByRole("complementary", { name: "Weston regional station details" });
   await expect(stationPanel.getByRole("button", { name: "Save Weston to My Stations" })).toBeVisible();
@@ -1344,7 +1344,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
       marker.querySelector(".overlap-indicator-pill") ?? marker
     ).getBoundingClientRect().toJSON()));
   const visibleMapTextBoxes = await page.locator(
-    ".regional-map-stage .regional-station-label-hit-target",
+    ".regional-map-stage .station-label-hit-target",
   ).evaluateAll((labels) => labels.map((label) => label.getBoundingClientRect().toJSON()));
   expect(visibleMapTextBoxes.length).toBeGreaterThan(0);
   // The map runs under the docked sidebar; only badges a rider can see must clear the labels.
@@ -1374,8 +1374,8 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   // Measure the visible badge; the marker's box also spans its anchor dot on the line.
   const [lwMarkerBox, applebyBox, burlingtonBox] = await Promise.all([
     lwOverlapMarker.locator(".overlap-indicator-pill").boundingBox(),
-    page.locator('.regional-station-hit-target[data-regional-station-id="appleby"]').boundingBox(),
-    page.locator('.regional-station-hit-target[data-regional-station-id="burlington"]').boundingBox(),
+    page.locator('.station-hit-target[data-station-id="appleby"]').boundingBox(),
+    page.locator('.station-hit-target[data-station-id="burlington"]').boundingBox(),
   ]);
   expect(lwMarkerBox).not.toBeNull();
   expect(applebyBox).not.toBeNull();
@@ -1550,7 +1550,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
 
   // Station hit targets sit above the authored rails. Crossing one must keep
   // the whole impact highlight on instead of briefly switching it off.
-  const whitbyBox = await page.locator('.regional-station-hit-target[data-regional-station-id="whitby"]').boundingBox();
+  const whitbyBox = await page.locator('.station-hit-target[data-station-id="whitby"]').boundingBox();
   expect(whitbyBox).not.toBeNull();
   await page.mouse.move(
     whitbyBox!.x + whitbyBox!.width / 2,
@@ -1558,7 +1558,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   );
   await expect(delayHoverForeground).toHaveAttribute("data-map-impact-hovered", "true");
 
-  const pickeringStation = page.locator('.regional-station-hit-target[data-regional-station-id="pickering"]');
+  const pickeringStation = page.locator('.station-hit-target[data-station-id="pickering"]');
   await pickeringStation.press("Enter");
   const stationPanel = page.getByRole("complementary", { name: "Pickering regional station details" });
   await expect(stationPanel).toBeVisible();
@@ -1673,12 +1673,12 @@ test("selecting a hovered regional station preserves distinct overlays", async (
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true }).click();
   await waitForNetworkTransition(page, "regional");
-  const station = page.locator('.regional-station-hit-target[data-regional-station-id="pickering"]');
+  const station = page.locator('.station-hit-target[data-station-id="pickering"]');
   await station.focus();
   await expect(page.locator('.regional-map-stage .raster-station-label-text-hover')).toHaveCount(1);
   await station.press("Enter");
   await expect(page.getByRole("complementary", { name: "Pickering regional station details" })).toBeVisible();
-  await expect(page.locator('.regional-station-top-selection')).toHaveCount(1);
+  await expect(page.locator('.station-selection-flash[data-map-selected-station-id]')).toHaveCount(1);
   expect(duplicateKeys).toEqual([]);
 });
 
@@ -1710,7 +1710,7 @@ test.describe("regional planned station impacts", () => {
     await page.getByRole("group", { name: "Select transit network" })
       .getByRole("button", { name: "GO/UP", exact: true }).click();
     await waitForNetworkTransition(page, "regional");
-    await page.locator('.regional-station-hit-target[data-regional-station-id="pickering"]').press("Enter");
+    await page.locator('.station-hit-target[data-station-id="pickering"]').press("Enter");
     const panel = page.getByRole("complementary", { name: "Pickering regional station details" });
     const impacts = panel.locator('[data-station-section="station-impacts"]');
     await expect(impacts.getByText("Pickering station construction", { exact: true })).toBeVisible();
@@ -1766,16 +1766,16 @@ test("keeps transformed regional junction selection aligned with its station dot
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
 
-  const bloorTarget = page.locator('.regional-station-hit-target[data-regional-station-id="bloor"]');
+  const bloorTarget = page.locator('.station-hit-target[data-station-id="bloor"]');
   await expect(bloorTarget).toBeVisible();
   await bloorTarget.click();
 
   // One React marker, above the station artwork, in the junction's authored transform.
   const bloorTopSelection = page.locator(
-    '.regional-station-top-selection[data-regional-station-selection-id="bloor"][data-regional-station-selected="true"]',
+    '.station-selection-flash[data-map-selected-station-id="bloor"]',
   );
   await expect(bloorTopSelection).toBeVisible();
-  await expect(page.locator(".regional-station-top-selection")).toHaveCount(1);
+  await expect(page.locator(".station-selection-flash[data-map-selected-station-id]")).toHaveCount(1);
   await expect(page.locator(".regional-map")).toHaveAttribute(
     "data-map-camera-moving",
     "true",
@@ -1814,19 +1814,11 @@ test("uses one station selection animation in both map modes", async ({ page, re
   await page.goto("/");
   await page.getByRole("button", { name: "Stub Station station details" }).press("Enter");
 
-  const ttcUnderlay = page.locator(
-    '.station-selected-indicator.foreground-flash-active[data-station-selected-id="stub-station"]',
-  );
+  // One marker per selected station; no underlay competes with it.
   const ttcForeground = page.locator(
     '.station-selection-flash[data-station-selection-foreground="stub-station"]',
   );
-  await expect(ttcUnderlay).toBeAttached();
-  await expect.poll(() => ttcUnderlay.evaluate(
-    (element) => getComputedStyle(element).animationName,
-  )).toBe("none");
-  await expect.poll(() => ttcUnderlay.evaluate(
-    (element) => getComputedStyle(element).opacity,
-  )).toBe("0");
+  await expect(page.locator(".station-selected-indicator")).toHaveCount(0);
   await expect.poll(() => ttcForeground.evaluate(
     (element) => getComputedStyle(element).animationName,
   )).toContain("map-selection-station-intro");
@@ -1836,13 +1828,13 @@ test("uses one station selection animation in both map modes", async ({ page, re
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
   await waitForNetworkTransition(page, "regional");
-  await page.locator('.regional-station-hit-target[data-regional-station-id="union"]').press("Enter");
+  await page.locator('.station-hit-target[data-station-id="union"]').press("Enter");
 
   const regionalForeground = page.locator(
-    '.regional-station-top-selection[data-regional-station-top-selected="true"]',
+    '.station-selection-flash[data-map-selected-station-id]',
   );
   // GO/UP draws only the foreground marker; it has no hidden underlay copy.
-  await expect(page.locator(".regional-station-top-selection")).toHaveCount(1);
+  await expect(page.locator(".station-selection-flash[data-map-selected-station-id]")).toHaveCount(1);
   await expect.poll(() => regionalForeground.evaluate(
     (element) => getComputedStyle(element).animationName,
   )).toContain("map-selection-station-intro");
@@ -2360,7 +2352,8 @@ test("affected segment targets distinguish dragging from selection", async ({ pa
   // Selection draws its own emphasis; hit targets keep their width (f5ffcd35).
   await expect(page.locator("[data-selected-impact-emphasis]").first()).toBeAttached();
   await expect(target).toHaveCSS("stroke-width", isMobile ? "144px" : "96px");
-  await expect(page.locator('[data-station-id="stub-station"]')).toHaveAttribute("r", "37");
+  // Station targets keep the manifest's hit padding (TTC: 6 units, 22 for touch).
+  await expect(page.locator('[data-station-id="stub-station"] circle')).toHaveCSS("stroke-width", isMobile ? "44px" : "12px");
   if (isMobile) {
     await expect(page.locator('[data-mobile-impact-inspector]')).toBeVisible();
   } else {
@@ -2393,7 +2386,6 @@ test("mobile keeps lightweight map focus flashes and menu transitions", async ({
   await page.locator('[data-mobile-impact-inspector]').getByRole("button", { name: "Unfocus impact" }).click();
   await page.getByRole("button", { name: "Stub Station station details" }).press("Enter");
 
-  await expect(page.locator('[data-station-selected-id="stub-station"]')).toHaveCSS("fill", "rgb(129, 201, 255)");
   const stationFlash = page.locator('[data-map-highlight-id="stub-station"]').first();
   await expect(stationFlash).toBeAttached();
   await expect(stationFlash).toHaveAttribute("data-station-selection-foreground", "stub-station");
@@ -3994,49 +3986,30 @@ test("Spadina uses two visual dots for one station selection", async ({ page, re
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  const spadinaTargets = page.locator('[data-station-id="spadina"]');
-  const line1Target = page.locator(
-    '[data-station-id="spadina"][data-station-anchor-id="spadina-1"]',
-  );
-  const line2Target = page.locator(
-    '[data-station-id="spadina"][data-station-anchor-id="spadina-2"]',
-  );
-
-  await expect(spadinaTargets).toHaveCount(2);
-  await expect(line1Target).toHaveCount(1);
-  await expect(line2Target).toHaveCount(1);
+  // One target over both dots.
+  const spadinaTarget = page.locator('[data-station-id="spadina"]');
+  await expect(spadinaTarget).toHaveCount(1);
+  await expect(spadinaTarget.locator("circle")).toHaveCount(2);
   await expect(
     page.getByRole("button", { name: "Spadina station details" }),
   ).toHaveCount(1);
+  await expect(page.locator('[data-station-hover-id="spadina"] [data-station-anchor-id]')).toHaveCount(2);
 
-  const selectedIndicators = page.locator('[data-station-selected-id="spadina"]');
-  await expect(selectedIndicators).toHaveCount(2);
-  if (isMobile) {
-    await expect(selectedIndicators.nth(0)).toHaveCSS("opacity", "0");
-    await expect(selectedIndicators.nth(1)).toHaveCSS("opacity", "0");
-  }
-
-  await line1Target.dispatchEvent("pointerover");
-  await expect(page.locator('[data-station-hover-id="spadina"]')).toHaveCount(2);
-
-  await line2Target.dispatchEvent("click");
-  await expect(selectedIndicators).toHaveCount(2);
-  const selectionForegrounds = page.locator('[data-station-selection-foreground="spadina"]');
-  await expect(selectionForegrounds).toHaveCount(2);
-  await expect(selectionForegrounds.nth(0)).toBeVisible();
-  await expect(selectionForegrounds.nth(1)).toBeVisible();
+  await spadinaTarget.dispatchEvent("click");
+  const selectionDots = page.locator('[data-station-selection-foreground="spadina"] [data-station-anchor-id]');
+  await expect(selectionDots).toHaveCount(2);
+  await expect(selectionDots.nth(0)).toBeVisible();
+  await expect(selectionDots.nth(1)).toBeVisible();
   await expect(
     page.getByRole("complementary", { name: "Spadina station details" }),
   ).toBeVisible();
 
   if (isMobile) {
     await page.getByRole("button", { name: "Close station details" }).click();
-    const hoverIndicators = page.locator('[data-station-hover-id="spadina"]');
-    await expect(hoverIndicators).toHaveCount(2);
-    await expect(hoverIndicators.nth(0)).not.toHaveClass(/active/);
-    await expect(hoverIndicators.nth(1)).not.toHaveClass(/active/);
-    await expect(hoverIndicators.nth(0)).toHaveCSS("fill", "rgba(0, 0, 0, 0)");
-    await expect(hoverIndicators.nth(1)).toHaveCSS("fill", "rgba(0, 0, 0, 0)");
+    const hoverIndicator = page.locator('[data-station-hover-id="spadina"]');
+    await expect(hoverIndicator).not.toHaveClass(/active/);
+    await expect(hoverIndicator.locator("circle").nth(0)).toHaveCSS("fill", "rgba(0, 0, 0, 0)");
+    await expect(hoverIndicator.locator("circle").nth(1)).toHaveCSS("fill", "rgba(0, 0, 0, 0)");
   }
 });
 
@@ -4046,7 +4019,7 @@ test("station names share hover and selection behavior with station dots", async
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
   await expect(page.locator("[data-station-label-id]")).toHaveCount(109);
-  await expect(page.locator("[data-station-id]")).toHaveCount(110);
+  await expect(page.locator("[data-station-id]")).toHaveCount(109);
   const labelTarget = page.locator('[data-station-label-id="kipling"]');
   await expect(labelTarget).toHaveCount(1);
 
@@ -4364,7 +4337,7 @@ test("mobile GO and UP map uses the rotated logical landscape viewport", async (
   await expect(mobileLegend).toBeVisible();
   await expect(page.locator(".mobile-legend-pill")).toHaveClass(/mobile-legend-pill--regional/);
   // No station is selected, so no selection marker is drawn.
-  await expect(page.locator(".regional-station-top-selection")).toHaveCount(0);
+  await expect(page.locator(".station-selection-flash[data-map-selected-station-id]")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Rotate map" }).click();
   const shell = page.locator(".linewatch-shell");
@@ -5290,7 +5263,7 @@ test("My Stations shows regional disruptions, accessibility outages, and arrival
     .click();
   await waitForNetworkTransition(page, "regional");
 
-  await page.locator('.regional-station-hit-target[data-regional-station-id="pickering"]').press("Enter");
+  await page.locator('.station-hit-target[data-station-id="pickering"]').press("Enter");
   const stationPanel = page.getByRole("complementary", { name: "Pickering regional station details" });
   await expect(stationPanel.getByText("6 Min Late", { exact: true })).toBeVisible();
   await expect(stationPanel.getByText("Coaches: 12", { exact: true })).toBeVisible();

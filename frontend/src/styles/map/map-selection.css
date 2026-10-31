@@ -104,8 +104,8 @@
   animation-fill-mode: both, none;
 }
 
-/* The GO/UP selected-station marker spells out TTC's station lifecycle. */
-.regional-station-top-selection.map-selection-attention {
+/* The selected-station marker spells out the station lifecycle. */
+.station-selection-flash.map-selection-attention {
   animation-name: map-selection-station-intro, map-selection-station-breathe;
   animation-duration: var(--selection-intro-duration), var(--selection-breathe-duration);
   animation-delay: 0s, var(--selection-intro-duration);
@@ -128,7 +128,7 @@
   animation-fill-mode: none;
 }
 
-.regional-station-top-selection.map-selection-attention.selection-intro-complete {
+.station-selection-flash.map-selection-attention.selection-intro-complete {
   animation-name: map-selection-station-breathe;
 }
 
@@ -222,38 +222,19 @@
   filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 85%));
 }
 
-/* The foreground selection owns the complete attention lifecycle. Keep its
-   selected-dot underlay inert and hidden in both map modes and at every
-   viewport size so two coincident station animations cannot compete. */
-.linewatch-shell .station-selected-indicator.foreground-flash-active {
-  animation: none !important;
-  opacity: 0 !important;
-}
-
-.motion-paused .station-selection-flash,
-.motion-paused .regional-station-top-selection {
+.motion-paused .station-selection-flash {
   animation: none;
   opacity: 0.95;
 }
 
-.motion-paused .station-selected-indicator:not(.multi-anchor):not(.foreground-flash-active),
-.motion-paused .station-selected-indicator.multi-anchor.active:not(.foreground-flash-active) {
-  animation: none !important;
-  opacity: 0.55 !important;
-  transform: scale(1) !important;
-}
-
 .motion-paused.linewatch-shell.mobile-performance-mode .asset-alert-path-glow,
 .motion-paused.linewatch-shell.mobile-performance-mode .interactive-glow,
-.motion-paused.linewatch-shell.mobile-performance-mode .station-selected-indicator,
 .motion-paused.linewatch-shell.mobile-performance-mode .station-selection-flash,
-.motion-paused.linewatch-shell.mobile-performance-mode .regional-station-top-selection,
 .motion-paused.linewatch-shell.mobile-performance-mode .asset-alert-path.map-selection-flash {
   animation: none;
 }
 
 /* Match the non-animated mobile selection treatment without making it more saturated. */
-.motion-paused.linewatch-shell.mobile-performance-mode .regional-station-top-selection,
 .motion-paused.linewatch-shell.mobile-performance-mode .station-selection-flash,
 .motion-paused.linewatch-shell.mobile-performance-mode .asset-alert-path.map-selection-flash {
   opacity: 0.7;
