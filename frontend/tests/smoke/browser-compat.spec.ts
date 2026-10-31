@@ -11,7 +11,7 @@ test("keeps TTC dynamic geometry in authored viewBox coordinates", async ({ page
   await setStubMode(request, "unavailable");
   await page.goto("/");
 
-  const stage = page.locator(".ttc-map-stage");
+  const stage = page.locator("[data-system-map=ttc] .map-stage");
   await expect(stage).toHaveAttribute("data-map-label-font-ready", "true", { timeout: 15_000 });
   await expect(stage).toHaveAttribute("data-raster-map-ready", "true", { timeout: 15_000 });
 
@@ -92,11 +92,11 @@ test("draws GO/UP through React planes over a non-interactive authored SVG", asy
   const regionalMap = page.getByRole("region", { name: "Interactive GO and UP map" });
   // The regional component is loaded on demand and can mount slowly in WebKit.
   await expect(regionalMap).toBeVisible({ timeout: 30_000 });
-  const stage = regionalMap.locator(".regional-map-stage");
-  await expect(stage.locator(".regional-live-svg svg")).toBeAttached({ timeout: 30_000 });
+  const stage = regionalMap.locator(".map-stage");
+  await expect(stage.locator(".map-authored-svg svg")).toBeAttached({ timeout: 30_000 });
 
   const inventory = await stage.evaluate((element) => {
-    const authored = element.querySelector(".regional-live-svg svg")!;
+    const authored = element.querySelector(".map-authored-svg svg")!;
     const overlayPlane = element.querySelector(".regional-overlay-plane");
     const interactionPlane = element.querySelector(".raster-map-interaction-plane");
     return {
@@ -138,7 +138,7 @@ test("switches to GO/UP when WebKit animation frames stall", async ({ page, requ
   const mapNetworkSwitcher = page.getByRole("group", { name: "Map network switcher" });
   const regionalButton = mapNetworkSwitcher.getByRole("button", { name: "GO/UP" });
   await expect(regionalButton).toBeVisible();
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await page.evaluate(() => {
     window.requestAnimationFrame = () => 1;
   });

@@ -16,6 +16,7 @@ import {
 import { defaultVisualPreferences } from "../src/app/visual-preferences.ts";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 import { readShellSource } from "./helpers/shell-source.mjs";
+import { readRegionalMapSource, readTtcMapSource } from "./helpers/map-source.mjs";
 
 const shellSource = readShellSource();
 const networkSelectorSource = readFileSync(new URL("../src/components/NetworkSelector.tsx", import.meta.url), "utf8");
@@ -24,14 +25,13 @@ const mobileMoreSource = readFileSync(new URL("../src/components/MobileMoreSheet
 const mobileLegendSource = readFileSync(new URL("../src/components/MobileLegend.tsx", import.meta.url), "utf8");
 const networkMapSource = readFileSync(new URL("../src/components/NetworkMap.tsx", import.meta.url), "utf8");
 const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
-const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const regionalMapSource = readRegionalMapSource();
 const overlayHoverSource = readFileSync(new URL("../src/components/map-overlays/overlay-hover.ts", import.meta.url), "utf8");
 const framingSource = readFileSync(new URL("../src/components/map-camera/useMapFraming.ts", import.meta.url), "utf8");
 const regionalGeometrySource = readFileSync(new URL("../src/app/regional-map-geometry.ts", import.meta.url), "utf8");
 const regionalAssetSource = readFileSync(new URL("../src/app/regional-map-asset.ts", import.meta.url), "utf8");
 const regionalOverlaysSource = readFileSync(new URL("../src/app/regional-map-overlays.ts", import.meta.url), "utf8");
 const regionalLineAlertsSource = readFileSync(new URL("../src/app/regional-line-alerts.ts", import.meta.url), "utf8");
-const stationInteractionSource = readFileSync(new URL("../src/app/regional-station-interaction.ts", import.meta.url), "utf8");
 const stationLayersSource = readFileSync(new URL("../src/components/MapStationLayers.tsx", import.meta.url), "utf8");
 const pulseSyncSource = readFileSync(new URL("../src/components/map-overlays/pulse-sync.ts", import.meta.url), "utf8");
 const regionalContentSource = readFileSync(new URL("../src/app/regional-map-content.ts", import.meta.url), "utf8");
@@ -42,7 +42,7 @@ const regionalStationAlertsSource = readFileSync(new URL("../src/app/regional-st
 const sharedOverlaySource = ["LineAlertOverlays.tsx", "GlyphLanes.tsx", "line-alert-model.ts", "overlay-hover.ts", "overlay-plane.ts"]
   .map((name) => readFileSync(new URL(`../src/components/map-overlays/${name}`, import.meta.url), "utf8"))
   .join("\n");
-const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const ttcMapSource = readTtcMapSource();
 const overlapIndicatorSource = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
 const overlapChooserSource = readFileSync(new URL("../src/components/MapOverlapChooser.tsx", import.meta.url), "utf8");
 const regionalStationDetailSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
@@ -101,7 +101,7 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("draws a selection marker only for the selected regional station", () => {
-    assert.match(regionalMapSource, /stationPlacements\.find\(\(\{ artwork \}\) => artwork\.id === selectedStationId\)/);
+    assert.match(regionalMapSource, /stationPlacements\.find\(\(\{ artwork: station \}\) => station\.id === selectedStationId\)/);
     assert.match(stationLayersSource, /if \(!station\) return null;/);
     assert.match(stationLayersSource, /data-map-selected-station-id=\{station\.id\}/);
     assert.doesNotMatch(regionalAssetSource, /regionalStationSelectionId|data-regional-station-selected/);
@@ -119,7 +119,7 @@ describe("network-scoped regional dashboard", () => {
     // Mobile simplification sizes overlays in overlay units, so GO/UP keeps its
     // full-width rails (unit 196 / 96).
     assert.match(globalsCss, /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow\s*\{[^}]*calc\(132px \* var\(--map-overlay-unit, 1\)\)/s);
-    assert.match(regionalMapSource, /style=\{mapOverlayUnitStyle\(\{ unit: REGIONAL_OVERLAY_UNIT \}\)\}/);
+    assert.match(regionalMapSource, /style=\{mapOverlayUnitStyle\(\{ unit: overlayPlane\.unit \}\)\}/);
     assert.match(regionalGeometrySource, /REGIONAL_OVERLAY_UNIT = REGIONAL_IMPACT_OVERLAY_WIDTH \/ 96/);
   });
 
@@ -185,7 +185,6 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(networkMapSource, /key=\{network\}/);
     assert.doesNotMatch(regionalMapSource, /startInitialFlyIn/);
     assert.equal((shellSource.match(/animateInitialEntrance=\{false\}/g) ?? []).length, 2);
-    assert.match(regionalMapSource, /const initializeMapCamera = useCallback/);
     assert.match(regionalMapSource, /if \(focusTargetKey\) moveToDefaultCamera\(false, false\);\s*else initializeCamera\(\);/);
     assert.match(
       networkMapSource,
@@ -209,10 +208,9 @@ describe("network-scoped regional dashboard", () => {
       /const initializeCamera = useCallback\(\(\) => \{\s*if \(!restoreSavedCamera\(\)\) moveToDefaultCamera\(animateInitialEntrance, animateInitialEntrance\)/,
     );
     assert.match(networkMapSource, /deferInitialEntrance=\{preparing \? false : props\.deferInitialEntrance\}/);
-    assert.match(regionalMapSource, /const stageRegionalEntrance = useCallback[\s\S]*?stageInitialEntrance\(\)/);
-    assert.match(regionalMapSource, /const completeRegionalEntrance = useCallback[\s\S]*?completeStagedEntrance\(\)/);
-    assert.match(regionalMapSource, /useLayoutEffect\(\(\) => \{[\s\S]*?stageRegionalEntrance\(\)[\s\S]*?initializeMapCamera\(\)/);
-    assert.match(regionalMapSource, /visibility: svgMarkup && cameraReady \? "visible" : "hidden"/);
+    // One entrance for every map: staged while covered, then completed.
+    assert.match(regionalMapSource, /const placeCamera = useCallback[\s\S]*?stageInitialEntrance\(\)[\s\S]*?completeStagedEntrance\(\)[\s\S]*?initializeCamera\(\)/);
+    assert.match(regionalMapSource, /visibility: artwork && cameraPlaced \? "visible" : "hidden"/);
     assert.doesNotMatch(regionalMapSource, /transition: shouldAnimateProgrammaticTransform && !isGestureActive/);
     assert.match(shellSource, /selectedNetwork === "regional" && regionalRailOperatingState\.status === "closed" && !closedScreenAcknowledged/);
     assert.match(panZoomSource, /computeFittedCameraFlyInStart\(next, width, height\)/);
@@ -445,7 +443,7 @@ describe("network-scoped regional dashboard", () => {
   it("keeps network-specific closed-hours behavior and enables regional train markers", () => {
     assert.match(shellSource, /selectedNetwork === "ttc" && subwayOperatingState\.status/);
     assert.match(shellSource, /getEstimatedTrainMarkers\(\{ network: selectedNetwork \}\)/);
-    assert.match(regionalMapSource, /Estimated regional train markers/);
+    assert.match(regionalMapSource, /aria-label="Estimated train markers"/);
   });
 
   it("does not invent current disruptions in regional fallback mode", () => {
@@ -513,20 +511,17 @@ describe("network-scoped regional dashboard", () => {
     // Station hover rings are written by the shared helper, as on TTC.
     assert.match(stationLayersSource, /onPointerEnter=\{\(event\) => \{\s*if \(event\.pointerType === "mouse"\) onHoverChange\(station\.id, true, "pointer"\);/);
     assert.match(stationLayersSource, /onFocus=\{\(\) => onHoverChange\(station\.id, true, "focus"\)\}/);
-    assert.match(regionalMapSource, /setMapStationHovered\(viewportRef\.current, stationId, hovered\)/);
+    assert.match(regionalMapSource, /setMapStationHovered\(rootRef\.current, stationId, hovered\)/);
     assert.match(globalsCss, /\.station-hover-indicator\.active:not\(\[data-station-hover-selected="true"\]\) :is\(circle, rect, ellipse\)/);
     assert.match(stationLayersSource, /className="station-hover-indicator"/);
     // Alert hover is the shared controller's, found by position on both maps:
     // a station ring first, else a line alert, even under a station target.
-    assert.match(regionalMapSource, /installMapHoverController\(viewport, \{/);
+    assert.match(regionalMapSource, /installMapHoverController\(root, \{/);
     assert.match(hoverControllerSource, /mapStationAlertAtClientPoint\(root, clientX, clientY\) \?\? mapLineAlertAtClientPoint\(root, clientX, clientY\)/);
     assert.match(hoverControllerSource, /ring\.isPointInStroke\(point\.matrixTransform\(screenMatrix\.inverse\(\)\)\)/);
     assert.match(hoverControllerSource, /root\.ownerDocument\.addEventListener\("pointermove", handlePointerMove\)/);
-    // Station-label hover follows the pointer from one document listener.
-    assert.match(regionalMapSource, /installRegionalStationLabelHover\(viewport, \{/);
-    assert.match(stationInteractionSource, /documentNode\.addEventListener\("pointermove", handlePointerMove\)/);
-    assert.doesNotMatch(stationInteractionSource, /addEventListener\("pointerover"/);
-    assert.doesNotMatch(stationInteractionSource, /addEventListener\("pointerout"/);
+    // Station-name hover comes from the station and name targets themselves.
+    assert.match(regionalMapSource, /<MapStationLabelTargets labels=\{stationLabelTargets\} onHoverChange=\{onStationLabelHoverChange\} \/>/);
     assert.doesNotMatch(regionalOverlaysSource, /onLinkedImpactPointerOver/);
     assert.doesNotMatch(regionalOverlaysSource, /onLinkedImpactPointerOut/);
     assert.match(globalsCss, /\.map-impact-hover-foreground\[data-map-impact-hovered="true"\]\s*\{[^}]*display:\s*inline/s);
@@ -621,7 +616,7 @@ describe("network-scoped regional dashboard", () => {
   it("repaints completed regional selections while hover uses a non-interactive foreground copy", () => {
     // Line alerts draw their selection in the shared layer's emphasis portal;
     // station alerts flash in the shared station-alert foreground.
-    assert.match(regionalMapSource, /<g id=\{REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID\}[^>]*>\s*<MapLineAlertSelection/);
+    assert.match(regionalMapSource, /<g id=\{layerId\("dynamic-selected-segment"\)\} aria-label="Selected disruption emphasis">\s*<MapLineAlertSelection/);
     // Hover copies are <use> references to the alert's artwork, under station
     // artwork; the outline is drawn in the top plane, stopping at Union's pill.
     // A hover copy names its alert; its <use> exists only while hovered (setMapImpactHovered).
@@ -632,9 +627,9 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalLineAlertsSource, /regionalStationPillShape\(geometry, "station-union"\)/);
     // Hover copies sit in the overlay plane under the station artwork; targets
     // are in the interaction plane, line alerts under stations.
-    assert.match(regionalMapSource, /<g id=\{REGIONAL_DYNAMIC_HOVER_LAYER_ID\}[^>]*>\s*<MapLineAlertHoverCopies/);
+    assert.match(regionalMapSource, /className=\{`raster-map-dynamic-plane map-overlay-plane[\s\S]*?<MapLineAlertHoverCopies alerts=\{lineAlerts\} plane=\{overlayPlane\} \/>[\s\S]*?\{renderRasterPlane\("foreground"\)\}/);
     assert.match(regionalMapSource, /<MapLineAlertTargets alerts=\{lineAlerts\} \/>[\s\S]*?<MapStationTargets/);
-    assert.match(regionalMapSource, /id=\{REGIONAL_TOP_HOVER_LAYER_ID\}/);
+    assert.match(regionalMapSource, /<g ref=\{previewOutlineLayerRef\} id=\{layerId\("top-hover"\)\} className="map-impact-preview-outline-layer" \/>/);
     // A station alert's hover lights its shared hover priority ring, as on TTC.
     assert.match(regionalMapSource, /hoverControllerRef\.current\?\.setGroupPreview\(/);
     assert.doesNotMatch(regionalOverlaysSource, /setRegionalStationImpactHover|setMapImpactHovered/);
@@ -661,13 +656,13 @@ describe("network-scoped regional dashboard", () => {
     assert.ok(css.includes(
       ':is([data-map-zoom-active="true"], [data-map-camera-moving="true"]) :is( .map-impact-preview-outline, .map-impact-hover-foreground g[mask] ) { display: none; }',
     ));
-    assert.match(regionalMapSource, /flagRootRef: regionalMapRef/);
+    assert.match(regionalMapSource, /flagRootRef: rootRef,/);
   });
 
   it("scales the existing map raster while zooming instead of re-rastering each step", () => {
     const css = globalsCss.replace(/\s+/g, " ");
     assert.ok(css.includes(
-      '.linewatch-shell:not(.mobile-performance-mode) :is( [data-map-zoom-active="true"], [data-map-camera-moving="true"] ) :is(.ttc-map-stage, .regional-map-stage) { will-change: transform; }',
+      '.linewatch-shell:not(.mobile-performance-mode) :is( [data-map-zoom-active="true"], [data-map-camera-moving="true"] ) .map-stage { will-change: transform; }',
     ));
     // Drags do not change scale and must not gain a transient layer.
     assert.doesNotMatch(css, /data-map-gesture-active="true"\][^{]*\{ will-change: transform/);
@@ -694,7 +689,7 @@ describe("network-scoped regional dashboard", () => {
   it("keeps regional disruption rails static while synchronizing remaining effects", () => {
     assert.doesNotMatch(regionalOverlaysSource, /layerIndex \* 0\.4/);
     // GO/UP's remaining pulses run on TTC's shared clock.
-    assert.match(regionalMapSource, /useMapPulseSync\(viewportRef, \{/);
+    assert.match(regionalMapSource, /useMapPulseSync\(rootRef, \{/);
     assert.match(pulseSyncSource, /SYNCHRONIZED_OVERLAY_PULSE_NAMES/);
     assert.match(pulseSyncSource, /animation\.currentTime = pulsePhaseMs/);
     assert.match(pulseSyncSource, /animation\.startTime = pulseCycleStartMs/);
@@ -728,17 +723,16 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalOverlaysSource, /mapOverlapIndicatorSize\(group\.impacts\)/);
     assert.match(regionalMapSource, /aria-label="Overlapping alert badges"/);
     assert.match(regionalMapSource, /<MapOverlapIndicator/);
-    assert.match(regionalMapSource, /visualScale=\{REGIONAL_OVERLAP_INDICATOR_SCALE\}/);
+    assert.match(regionalMapSource, /visualScale=\{badgeScale\}/);
     assert.match(regionalMapSource, /isolatePointerDown/);
-    assert.match(regionalMapSource, /openRegionalOverlapChooser\(badge\)/);
-    assert.match(regionalOverlaysSource, /candidate\.dataset\.overlapSegmentId === markerId/);
+    assert.match(regionalMapSource, /setExpandedOverlapBadgeId\(badge\.markerId === expandedOverlapBadgeId \? null : badge\.markerId\)/);
     // The card is placed from data by the shared hook, as on TTC: no DOM measuring,
     // and it keeps the badge's alerts (their hover outlines) uncovered.
-    assert.match(regionalMapSource, /useMapOverlapChooser\(\{[\s\S]*?affectedOutlines: expandedOverlapBadge\.affectedOutlines \?\? \[\],[\s\S]*?stage: REGIONAL_STAGE,/);
+    assert.match(regionalMapSource, /useMapOverlapChooser\(\{[\s\S]*?affectedOutlines: expandedOverlapBadge\.affectedOutlines,[\s\S]*?stage,/);
     assert.doesNotMatch(regionalMapSource, /getScreenCTM|regionalOverlapMarkerRestingRect|solveWhenStill/);
-    assert.match(regionalMapSource, /setRegionalOverlapImpactsHovered\(badge\.impacts, hovered\)/);
+    assert.match(regionalMapSource, /setGroupHovered\(badge\.impacts, hovered\)/);
     assert.match(regionalMapSource, /<MapOverlapChooser/);
-    assert.match(regionalMapSource, /onHoverImpact=\{hoverRegionalChooserImpact\}/);
+    assert.match(regionalMapSource, /onHoverImpact=\{hoverChooserImpact\}/);
     assert.match(regionalOverlaysSource, /anchor: placement\.anchor/);
     assert.match(regionalOverlaysSource, /position: placement\.position/);
     assert.doesNotMatch(regionalOverlaysSource, /overlapLayerTransform/);
@@ -765,8 +759,8 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /\{\.\.\.tapHandlers\}/);
     assert.match(tapsSource, /event\.key !== "Enter" && event\.key !== " "/);
     assert.match(regionalMapSource, /aria-label="(?:Center map view|Fit regional network)"/);
-    assert.match(globalsCss, /\.regional-map-viewport\s*\{[^}]*-webkit-user-select:\s*none;[^}]*user-select:\s*none;/s);
-    assert.match(globalsCss, /\.regional-map-stage :is\(text, tspan\)[^{]*\{[^}]*user-select:\s*none;/s);
+    assert.match(globalsCss, /\.system-map-viewport\s*\{[^}]*-webkit-user-select:\s*none;[^}]*user-select:\s*none;/s);
+    assert.match(globalsCss, /\.map-stage :is\(text, tspan\)[^{]*\{[^}]*user-select:\s*none;/s);
   });
 
   it("focuses the regional camera on station and impact selections from every UI entry point", () => {
@@ -797,7 +791,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /mobilePerformanceMode\?:\s*boolean/);
     assert.match(regionalMapSource, /disableProgrammaticMotion: mobilePerformanceMode \|\| !pageVisible/);
     assert.doesNotMatch(regionalMapSource, /const \[isGestureActive, setIsGestureActive\] = useState/);
-    assert.match(regionalMapSource, /flagRootRef: regionalMapRef/);
+    assert.match(regionalMapSource, /flagRootRef: rootRef,/);
     assert.match(regionalMapSource, /data-map-gesture-active="false"/);
     assert.match(
       globalsCss,
@@ -806,26 +800,23 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("centers the largest fitted default desktop network frame in the stable map workspace", () => {
-    assert.match(regionalMapSource, /useDesktopMapInsets\(viewportRef, mapControlRailRef, mapChromeVisible\)/);
+    assert.match(regionalMapSource, /useDesktopMapInsets\(viewportRef, railRef, mapChromeVisible\)/);
     assert.match(framingSource, /measureDesktopMapInsets\(viewport, rail\)/);
     assert.match(sidebarStateSource, /\.desktop-map-legend/);
-    assert.match(regionalMapSource, /desktopScaleMultiplier: REGIONAL_MAP_DESKTOP_FRAME_SCALE/);
-    assert.match(regionalMapSource, /defaultFrame: regionalDefaultFrame/);
+    assert.match(regionalMapSource, /defaultFrame,/);
     assert.match(
       globalsCss,
-      /\.regional-map-stage > div > svg\s*\{[^}]*display:\s*block;[^}]*width:\s*100%;[^}]*height:\s*100%;/s,
+      /\.map-stage > div > svg\s*\{[^}]*display:\s*block;[^}]*width:\s*100%;[^}]*height:\s*100%;/s,
     );
-    assert.match(regionalMapSource, /const REGIONAL_MAP_HORIZONTAL_INSET_RATIO = 0\.025/);
-    assert.match(regionalMapSource, /const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 0\.95/);
-    assert.match(regionalMapSource, /const REGIONAL_MAP_DESKTOP_FRAME_SCALE = 1/);
+    assert.match(regionalMapSource, /mobileZoom: 0\.95 \* 1\.15,/);
     assert.doesNotMatch(regionalMapSource, /REGIONAL_MAP_DESKTOP_VERTICAL_OPTICAL_OFFSET_RATIO/);
   });
 
   it("matches the TTC map fitted zoom range and button increments", () => {
     // The shared slider spans the shared zoom range on both maps.
-    assert.match(regionalMapSource, /<MapZoomSlider cameraStore=\{cameraStore\} fitScale=\{fitScale\} onZoomToScale=\{zoomToScale\} \/>/);
-    assert.match(regionalMapSource, /onClick=\{zoomIn\}/);
-    assert.match(regionalMapSource, /onClick=\{zoomOut\}/);
+    assert.match(regionalMapSource, /<MapZoomSlider cameraStore=\{cameraStore\} fitScale=\{fitScale\} onZoomToScale=\{onZoomToScale\} \/>/);
+    assert.match(regionalMapSource, /onClick=\{onZoomIn\}/);
+    assert.match(regionalMapSource, /onClick=\{onZoomOut\}/);
   });
 
   // Plan 09 phase 1b: one camera for every System Map. GO/UP supplies its
@@ -834,14 +825,13 @@ describe("network-scoped regional dashboard", () => {
   it("drives the GO/UP camera with the shared System Map camera, not its own", () => {
     const options = regionalMapSource.match(/\} = usePanZoom\(\{([\s\S]*?)\n  \}\);/)?.[1] ?? "";
     for (const option of [
-      'persistenceKey: "regional"',
+      "persistenceKey: manifest.id",
       "persistenceBlocked: cameraOwnedBySelection",
       "automaticRefitBlocked: cameraOwnedBySelection",
-      "defaultFrame: regionalDefaultFrame",
-      "cameraFollower: overlapChooserFollower",
+      "defaultFrame,",
+      "cameraFollower: chooserFollower",
       "containerRef: viewportRef",
-      "mapRef: mapStageRef",
-      "flagRootRef: regionalMapRef",
+      "mapRef: stageRef",
     ]) assert.ok(options.includes(option), option);
     assert.match(regionalMapSource, /mobileCenterStationId: "union"/);
     // No second camera: no camera state, transform writer, wheel maths or pinch tracking.
@@ -859,8 +849,8 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("keeps the serialized regional SVG mounted while camera state commits", () => {
-    assert.match(regionalMapSource, /const RegionalSvgMarkup = memo\(function RegionalSvgMarkup/);
-    assert.match(regionalMapSource, /<RegionalSvgMarkup markup=\{svgMarkup\}\s*\/>/);
+    assert.match(regionalMapSource, /const AuthoredArtwork = memo\(function AuthoredArtwork/);
+    assert.match(regionalMapSource, /<AuthoredArtwork markup=\{artwork\} \/>/);
     assert.doesNotMatch(
       regionalMapSource,
       /<div dangerouslySetInnerHTML=\{\{ __html: svgMarkup \}\}/,
@@ -873,12 +863,12 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(globalsCss, /regional-map-recenter-fade-in|data-regional-recenter-transition|view-transition-name:\s*regional-map-recenter/);
     assert.doesNotMatch(globalsCss, /map-recenter-veil|data-map-recenter-effect/);
     // Center is the shared camera's snap with feedback (usePanZoom recenterWithFeedback).
-    assert.match(regionalMapSource, /const handleFitNetwork = recenterWithFeedback;/);
+    assert.match(regionalMapSource, /onRecenter=\{recenterWithFeedback\}/);
     assert.match(panZoomSource, /if \(recenter\(\) && !reducedMotion\) \{\s*setRecenterFeedbackKey/);
-    assert.match(regionalMapSource, /className="map-center-feedback"[\s\S]*data-map-center-feedback="regional"/);
+    assert.match(regionalMapSource, /className="map-center-feedback"[\s\S]*data-map-center-feedback=\{manifest\.id\}/);
     assert.match(globalsCss, /\.map-center-feedback\s*\{[^}]*background-color:\s*transparent;[^}]*animation:\s*map-center-feedback-fade/s);
     assert.doesNotMatch(globalsCss, /\.map-center-feedback\s*\{[^}]*(?:opacity|will-change):/s);
-    assert.match(globalsCss, /mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\)\s*\{[^}]*will-change:\s*auto/s);
+    assert.match(globalsCss, /mobile-performance-mode \.map-stage\s*\{[^}]*will-change:\s*auto/s);
     assert.doesNotMatch(globalsCss, /\.regional-map-stage\s*\{[^}]*will-change:\s*opacity/s);
     assert.doesNotMatch(regionalMapSource, /className="regional-map-scene"/);
     assert.doesNotMatch(regionalMapSource, /RECENTER_CAMERA_MOTION/);
@@ -890,26 +880,26 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("preserves regional overlay glows while user zoom is active", () => {
-    assert.match(regionalMapSource, /flagRootRef: regionalMapRef/);
+    assert.match(regionalMapSource, /flagRootRef: rootRef,/);
     assert.match(globalsCss, /\[data-map-zoom-active="true"\]/);
   });
 
   it("keeps animated regional alert artwork stable while the camera is moving", () => {
-    assert.match(regionalMapSource, /const regionalMapRef = useRef<HTMLElement>\(null\)/);
+    assert.match(regionalMapSource, /const rootRef = useRef<HTMLElement>\(null\)/);
     assert.doesNotMatch(regionalMapSource, /root\.classList\.toggle\("regional-map-camera-moving", active\)/);
     assert.doesNotMatch(regionalMapSource, /\.pauseAnimations\(\)/);
     assert.doesNotMatch(regionalMapSource, /\.unpauseAnimations\(\)/);
     assert.match(
       globalsCss,
-      /\.regional-map\[data-map-camera-moving="true"\] \.regional-map-stage :is\([\s\S]*?\.station-impact-dot-red-glow[\s\S]*?animation-play-state:\s*paused\s*!important;[\s\S]*?transition:\s*none\s*!important;/s,
+      /\[data-map-camera-moving="true"\] \.map-stage :is\([\s\S]*?\.station-impact-dot-red-glow[\s\S]*?animation-play-state:\s*paused\s*!important;[\s\S]*?transition:\s*none\s*!important;/s,
     );
     // Shared line alerts pause through the shared camera-moving flag.
-    assert.match(regionalMapSource, /flagRootRef: regionalMapRef/);
+    assert.match(regionalMapSource, /flagRootRef: rootRef,/);
     assert.match(globalsCss, /\[data-map-camera-moving="true"\] \.asset-alert-path\.delay-candy/);
     assert.doesNotMatch(globalsCss, /\.regional-map-camera-moving \.regional-map-stage \*/);
     const cameraMotionSimplification = globalsCss.slice(
-      globalsCss.indexOf('.regional-map[data-map-camera-moving="true"] .regional-map-stage :is('),
-      globalsCss.indexOf(".regional-map-stage > svg,"),
+      globalsCss.indexOf('[data-map-camera-moving="true"] .map-stage :is('),
+      globalsCss.indexOf(".map-stage > svg,"),
     );
     assert.doesNotMatch(cameraMotionSimplification, /regional-impact-interactive-glow/);
     assert.doesNotMatch(
@@ -922,14 +912,10 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("keeps the authored regional SVG mounted while refreshing isolated dynamic layers", () => {
-    assert.equal((regionalMapSource.match(/setSvgMarkup\(/g) ?? []).length, 1);
-    assert.match(regionalMapSource, /preloadRegionalMapMarkup\(\)[\s\S]*?setSvgMarkup\(markup\)[\s\S]*?\n  \}, \[\]\);/s);
-    assert.match(regionalAssetSource, /const url = `\$\{source\}\$\{separator\}v=\$\{encodeURIComponent\(lineWatchBuildLabel\)\}`;/);
-    assert.match(regionalAssetSource, /fetch\(url\)/);
-    assert.match(regionalOverlaysSource, /REGIONAL_DYNAMIC_SEGMENT_LAYER_ID = "regional-dynamic-segment-layer"/);
-    assert.match(regionalOverlaysSource, /REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID = "regional-dynamic-selected-segment-layer"/);
-    assert.match(regionalOverlaysSource, /REGIONAL_DYNAMIC_COMMUTE_LAYER_ID = "regional-dynamic-commute-layer"/);
-    assert.match(regionalOverlaysSource, /REGIONAL_DYNAMIC_HOVER_LAYER_ID = "regional-dynamic-hover-layer"/);
+    assert.equal((regionalMapSource.match(/setArtwork\(/g) ?? []).length, 1);
+    // The artwork loads once (app/map-artwork.ts); overlays are React layers beside it.
+    assert.match(regionalMapSource, /preloadMapArtwork\(map\.artwork\)\.then\(\(markup\) => \{\s*if \(!cancelled && markup\) setArtwork\(markup\);/);
+    assert.match(regionalAssetSource, /preloadMapArtwork\(\{ url: source, prepare: prepareRegionalMapMarkup \}\)/);
     assert.doesNotMatch(regionalOverlaysSource, /Layer\.replaceChildren\(\)/);
     assert.doesNotMatch(regionalMapSource, /mapStageRef\.current\.replaceChildren/);
     assert.match(regionalAssetSource, /element\.style\.removeProperty\("shape-rendering"\)/);
@@ -939,28 +925,21 @@ describe("network-scoped regional dashboard", () => {
 
   it("keeps React from overwriting the imperative regional camera transform", () => {
     const stageBlock = regionalMapSource.match(
-      /ref=\{mapStageRef\}[\s\S]*?<RegionalSvgMarkup markup=\{svgMarkup\}/,
+      /ref=\{stageRef\}[\s\S]*?<AuthoredArtwork markup=\{artwork\}/,
     )?.[0] ?? "";
     assert.doesNotMatch(stageBlock, /transform:\s*`translate\(\$\{camera\.x\}/);
-    assert.match(regionalMapSource, /mapRef: mapStageRef/);
+    assert.match(regionalMapSource, /mapRef: stageRef/);
   });
 
   it("does not run regional SVG hover geometry hit-testing during drag or pinch", () => {
-    assert.match(
-      regionalMapSource,
-      /isPointerGestureActive:\s*\(\)\s*=>\s*activePointerCount\(\)\s*>\s*0/,
-    );
-    assert.match(
-      stationInteractionSource,
-      /const handlePointerMove = \(event: PointerEvent\) => \{\s*if \(isPointerGestureActive\(\) \|\| event\.pointerType !== "mouse"\) return;/s,
-    );
+    assert.match(regionalMapSource, /isPointerGestureActive: isGestureActive,/);
   });
 
   it("refits an untouched camera on resize and preserves a user-adjusted camera", () => {
-    // GO/UP's own observer only starts the camera; usePanZoom reconciles
+    // The map's own observer only places the camera; usePanZoom reconciles
     // resizes, refitting only a camera no rider or selection has moved.
     const resizeObserverBody = regionalMapSource.match(/const observer = new ResizeObserver\(\(\) => \{([\s\S]*?)\n    \}\);/)?.[1] ?? "";
-    assert.match(resizeObserverBody, /if \(!isCameraInitialized\(\)\) initializeMapCamera\(\)/);
+    assert.match(resizeObserverBody, /placeCamera\(\)/);
     assert.match(regionalMapSource, /automaticRefitBlocked: cameraOwnedBySelection/);
     assert.match(panZoomSource, /const isUntouched = !cameraAdjustedByUserRef\.current\s*&& !automaticRefitBlockedRef\.current/);
   });
@@ -974,7 +953,8 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("does not refit an initialized camera when refreshed dashboard data updates dynamic layers", () => {
-    assert.match(regionalMapSource, /if \(isCameraInitialized\(\) \|\| !svgMarkup\) return/);
+    assert.match(regionalMapSource, /if \(!artwork \|\| readyNotifiedRef\.current\) return;/);
+    assert.match(regionalMapSource, /\} else if \(!isCameraInitialized\(\)\) \{/);
   });
 
   it("renders regional transit line colors across the top accent strip in GO/UP mode", () => {

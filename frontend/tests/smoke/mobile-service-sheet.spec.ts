@@ -126,13 +126,13 @@ test("service sheet expands by tap, keyboard and drag without moving the map", a
   await expect(sheet).toHaveAttribute("data-expanded", "false");
   const navBox = (await nav.boundingBox())!;
   expect(Math.abs(navBox.y + navBox.height - page.viewportSize()!.height)).toBeLessThan(2);
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await page.waitForTimeout(500);
   const overviewHeight = await sheet.locator(".mobile-service-sheet-minimum").evaluate(node => node.getBoundingClientRect().height);
   expect(navBox.y - (await sheet.boundingBox())!.y).toBeCloseTo(overviewHeight, 0);
   await expect(page.locator("#mobile-service-sheet-details")).toHaveAttribute("inert");
   await page.screenshot({ path: "/tmp/linewatch-console-peek.png" });
-  const camera = page.locator(".ttc-map-stage");
+  const camera = page.locator("[data-system-map=ttc] .map-stage");
   const before = await camera.getAttribute("style");
   await page.getByRole("button", { name: "Expand service sheet" }).click();
   await expect(sheet).toHaveAttribute("data-snap", "halfway");

@@ -8,8 +8,8 @@ test("GO/UP default map retains overlay interactions after a cold asset load and
   await page.emulateMedia({ reducedMotion: "reduce" });
   // Make the SVG arrive after the other initialization effects have settled.
   await page.route("**/regional-rail-map.svg*", async (route) => {
-    await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-map-label-font-ready", "true");
-    await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(page.locator("[data-system-map=regional] .map-stage")).toHaveAttribute("data-map-label-font-ready", "true");
+    await expect(page.locator("[data-system-map=regional] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
     await route.continue();
   });
   for (let load = 0; load < 2; load++) {
@@ -35,9 +35,9 @@ test("GO/UP overlap badges stay clear of authored transit lines", async ({ page,
   await page.addInitScript(() => localStorage.setItem("linewatch-default-network-v1", "regional"));
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
-  await expect(page.locator(".regional-map-stage .overlap-indicator").first()).toBeAttached();
-  const collisions = await page.locator(".regional-map-stage").evaluate((stage) => {
+  await expect(page.locator("[data-system-map=regional] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=regional] .map-stage .overlap-indicator").first()).toBeAttached();
+  const collisions = await page.locator("[data-system-map=regional] .map-stage").evaluate((stage) => {
     const badges = [...stage.querySelectorAll<SVGGraphicsElement>(".overlap-indicator")];
     const paths = [...stage.querySelectorAll<SVGPathElement>('#regional-lines-layer path[id^="regional-route-"]')];
     if (paths.length === 0) throw new Error("Missing authored transit lines");

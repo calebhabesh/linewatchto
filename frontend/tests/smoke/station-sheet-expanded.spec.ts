@@ -12,7 +12,7 @@ for (const network of ["ttc", "regional"] as const) {
       await page.locator(".mobile-map-network-switch").getByRole("button", { name: "GO/UP", exact: true }).click();
       await waitForNetworkTransition(page, "regional");
       await expect(page.locator('[data-network-map-layer="regional"]')).toHaveAttribute("data-map-ready", "true");
-      await page.locator('.regional-map [role="button"][aria-label$="station details"]').first().dispatchEvent("click");
+      await page.locator('[data-system-map=regional] [role="button"][aria-label$="station details"]').first().dispatchEvent("click");
     } else {
       await page.getByRole("button", { name: "Stub Station station details", exact: true }).dispatchEvent("click");
     }

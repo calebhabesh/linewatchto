@@ -1,4 +1,4 @@
-import { lineWatchBuildLabel } from "./app-build.ts";
+import { cachedMapArtwork, clearMapArtworkCache, mapArtworkCache, preloadMapArtwork } from "./map-artwork.ts";
 
 export const DEFAULT_REGIONAL_MAP_SOURCE = "/assets/linewatch/regional-rail-map.svg";
 
@@ -44,7 +44,7 @@ export function normalizedRegionalStationLabel(value: string): string {
  * names are tagged with their station and given glyph-shaped cutout sources
  * for the hover label; connection labels are tagged for badge placement.
  * Overlays, station targets and selection markers are React elements in the
- * map's own planes (InteractiveRegionalMap.tsx).
+ * map's own planes (components/SystemMap.tsx).
  */
 export function prepareRegionalMapMarkup(source: string): string {
   if (typeof DOMParser === "undefined") {
@@ -124,55 +124,18 @@ export function prepareRegionalMapMarkup(source: string): string {
   return new XMLSerializer().serializeToString(root);
 }
 
-export const regionalMapMarkupCache = new Map<string, string>();
-const regionalMapMarkupPromises = new Map<string, Promise<string>>();
+/** The prepared GO/UP artwork's cache, shared by every map (map-artwork.ts). */
+export const regionalMapMarkupCache = mapArtworkCache;
 
 export function getRegionalMapMarkup(source: string = DEFAULT_REGIONAL_MAP_SOURCE): string {
-  return regionalMapMarkupCache.get(source) ?? "";
+  return cachedMapArtwork(source) ?? "";
 }
 
-export function clearRegionalMapMarkupCache(): void {
-  regionalMapMarkupCache.clear();
-  regionalMapMarkupPromises.clear();
-}
+export const clearRegionalMapMarkupCache = clearMapArtworkCache;
 
-/**
- * Preloads and parses the regional map SVG asset.
- *
- * Concurrent calls for the same asset URL share an in-flight promise and parse once.
- * Successful parsing populates the memory cache for subsequent instant access.
- * Failed requests or parsing errors clear the in-flight promise, allowing immediate retry.
- */
+/** Loads and prepares the GO/UP SVG once (map-artwork.ts). */
 export function preloadRegionalMapMarkup(
   source: string = DEFAULT_REGIONAL_MAP_SOURCE,
 ): Promise<string> {
-  if (typeof window === "undefined") {
-    return Promise.resolve("");
-  }
-
-  const cached = regionalMapMarkupCache.get(source);
-  if (cached) return Promise.resolve(cached);
-
-  const existing = regionalMapMarkupPromises.get(source);
-  if (existing) return existing;
-
-  const separator = source.includes("?") ? "&" : "?";
-  const url = `${source}${separator}v=${encodeURIComponent(lineWatchBuildLabel)}`;
-
-  const load = fetch(url)
-    .then((response) => {
-      if (!response.ok) throw new Error("Regional map unavailable");
-      return response.text();
-    })
-    .then((text) => {
-      const markup = prepareRegionalMapMarkup(text);
-      regionalMapMarkupCache.set(source, markup);
-      return markup;
-    })
-    .finally(() => {
-      regionalMapMarkupPromises.delete(source);
-    });
-
-  regionalMapMarkupPromises.set(source, load);
-  return load;
+  return preloadMapArtwork({ url: source, prepare: prepareRegionalMapMarkup });
 }

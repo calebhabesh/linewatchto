@@ -30,6 +30,7 @@ import {
   REGIONAL_MAJOR_STATIONS,
   getGeographicAttribution,
 } from "../src/app/geographic-config.ts";
+import { readTtcMapSource } from "./helpers/map-source.mjs";
 
 const manifestUrl = new URL("../public/assets/linewatch/geographic/manifest.json", import.meta.url);
 const ttcCatalogUrl = new URL("../public/assets/linewatch/geographic/ttc-catalog.json", import.meta.url);
@@ -367,7 +368,7 @@ describe("geographic bundle isolation", () => {
     const globalsCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
     assert.equal(globalsCss.includes("maplibre-gl"), false);
 
-    const ttcMap = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+    const ttcMap = readTtcMapSource();
     assert.equal(ttcMap.includes('from "maplibre-gl"'), false);
     assert.equal(ttcMap.includes('import("maplibre-gl")'), false);
 

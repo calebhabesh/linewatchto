@@ -1689,7 +1689,7 @@ export function LineWatchShell({
         const theme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
         const density = mobileMapPerformanceMode ? "mobile" : "balanced";
         if (!geographic && surface.querySelector(
-          `.network-diagram-layer[data-network-map-layer="${network}"][data-map-ready="true"][data-map-variant="${theme}:${density}"] :is(.ttc-map-stage, .regional-map-stage)[data-raster-map-ready="true"]`,
+          `.network-diagram-layer[data-network-map-layer="${network}"][data-map-ready="true"][data-map-variant="${theme}:${density}"] .map-stage[data-raster-map-ready="true"]`,
         )) {
           await statusReady;
           return;

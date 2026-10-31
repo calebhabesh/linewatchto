@@ -15,7 +15,7 @@ test.beforeEach(async ({ page, request }, testInfo) => {
 
 test("system-map badges fade independently at calibrated diagram scales", async ({ page }, testInfo) => {
   await page.goto("/");
-  const stage = page.locator(".ttc-map-stage");
+  const stage = page.locator("[data-system-map=ttc] .map-stage");
   await expect(stage).toHaveAttribute("data-raster-map-ready", "true", { timeout: 15_000 });
   const badgePlane = page.locator(".raster-map-plane--badges");
   const labelPlane = page.locator(".raster-map-plane--labels");

@@ -8,9 +8,9 @@ test.beforeEach(async ({ page, request, isMobile }) => {
 });
 
 async function expectTrackFocused(page: Page, id: string) {
-  const viewport = page.locator("[data-map-pan-zoom-viewport]");
+  const viewport = page.locator("[data-system-map=ttc] .system-map-viewport");
   await expect(page.locator(`[data-map-highlight-id="${id}"]`).first()).toBeAttached();
-  await expect(viewport).toHaveAttribute("data-map-camera-moving", "false");
+  await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute("data-map-camera-moving", "false");
   const track = page.locator(`[data-map-impact-id="${id}"] > .asset-alert-path`).first();
   await expect.poll(async () => {
     const [trackBox, viewBox] = await Promise.all([track.boundingBox(), viewport.boundingBox()]);
@@ -47,7 +47,7 @@ for (const corridor of corridors) {
   test(`selecting ${corridor.label} (${corridor.id}) centers its affected track`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.goto("/");
-    await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
     await page.getByRole("button", { name: corridor.label, exact: true })
       .and(page.locator(`[data-overlay-interaction-target*="${corridor.id}:"]`)).press("Enter");
     await expectTrackFocused(page, corridor.id);
@@ -56,7 +56,7 @@ for (const corridor of corridors) {
 
 test("a planned advisory Map button centers its preview track", async ({ page }) => {
   await page.goto("/?panel=closures");
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   const id = "stub-upcoming-closure-line-1";
   await page.locator(`[data-impact-card-id="${id}"] .impact-card-map-btn`).click();
   await expectTrackFocused(page, id);
@@ -65,7 +65,7 @@ test("a planned advisory Map button centers its preview track", async ({ page })
 test("reduced-motion speed zone focus stays correct when selecting another corridor", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   for (const corridor of [corridors[0], corridors[1], corridors[0]]) {
     await page.getByRole("button", { name: corridor.label, exact: true }).press("Enter");
     await expectTrackFocused(page, corridor.id);
@@ -75,7 +75,7 @@ test("reduced-motion speed zone focus stays correct when selecting another corri
 test("mobile rotated speed zone selection keeps its affected track in view", async ({ page, isMobile }) => {
   test.skip(!isMobile, "rotated phone map");
   await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await page.getByRole("button", { name: /^Rotate map$/i }).click();
   await expect(page.locator(".linewatch-shell")).toHaveClass(/mobile-map-rotated/);
   for (const corridor of corridors.slice(0, 2)) {
@@ -95,10 +95,10 @@ test("saved commute preview leaves room around its route", async ({ page, isMobi
   await card.locator(".commute-route-map-button").click();
   const route = page.locator(".commute-path-preview-path");
   await expect(route).toBeVisible();
-  await expect(page.locator("[data-map-pan-zoom-viewport]")).toHaveAttribute("data-map-camera-moving", "false");
+  await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute("data-map-camera-moving", "false");
   await expect.poll(async () => {
     const bounds = await route.boundingBox();
-    const viewport = await page.locator("[data-map-pan-zoom-viewport]").boundingBox();
+    const viewport = await page.locator("[data-system-map=ttc] .system-map-viewport").boundingBox();
     if (!bounds || !viewport) return Infinity;
     return Math.max(bounds.width / viewport.width, bounds.height / viewport.height);
   }, { message: "The route should leave visible context around its longest dimension" }).toBeLessThan(0.8);
@@ -110,13 +110,13 @@ test("saved commute preview leaves room around its route", async ({ page, isMobi
     await expect.poll(async () => {
       const bannerBox = (await banner.boundingBox())!;
       const sidebar = (await page.locator("#desktop-sidebar-container").boundingBox())!;
-      const viewport = (await page.locator("[data-map-pan-zoom-viewport]").boundingBox())!;
+      const viewport = (await page.locator("[data-system-map=ttc] .system-map-viewport").boundingBox())!;
       return Math.abs(bannerBox.x + bannerBox.width / 2 - (sidebar.x + sidebar.width + viewport.x + viewport.width) / 2);
     }).toBeLessThan(2);
     await page.getByRole("button", { name: "Collapse sidebar", exact: true }).click();
     await expect.poll(async () => {
       const bannerBox = (await banner.boundingBox())!;
-      const viewport = (await page.locator("[data-map-pan-zoom-viewport]").boundingBox())!;
+      const viewport = (await page.locator("[data-system-map=ttc] .system-map-viewport").boundingBox())!;
       return Math.abs(bannerBox.x + bannerBox.width / 2 - viewport.x - viewport.width / 2);
     }).toBeLessThan(2);
     await page.getByRole("button", { name: "Expand sidebar", exact: true }).click();

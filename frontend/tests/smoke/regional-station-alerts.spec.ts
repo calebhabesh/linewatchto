@@ -80,14 +80,14 @@ test("regional station alerts keep severity fills and require explicit direction
     : page.getByRole("group", { name: "Select transit network" });
   await switcher.getByRole("button", { name: "GO/UP", exact: true }).click();
   await waitForNetworkTransition(page, "regional");
-  await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=regional] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
 
   // The shared station-alert layer (TTC's design): each alert sits on its own
   // line's platform at Bloor, with TTC's colours.
   const alertAnchor = (id: string) => page.locator(
-    `.regional-map .map-station-alert[data-map-impact-id="${id}"] .map-station-alert-anchor`,
+    `[data-system-map=regional] .map-station-alert[data-map-impact-id="${id}"] .map-station-alert-anchor`,
   );
-  await expect(page.locator(".regional-map .map-station-alert")).toHaveCount(2);
+  await expect(page.locator("[data-system-map=regional] .map-station-alert")).toHaveCount(2);
   await expect(alertAnchor("bloor-up-closure")).toHaveAttribute("data-map-station-anchor-id", "station-bloor-up");
   await expect(alertAnchor("bloor-ki-delay")).toHaveAttribute("data-map-station-anchor-id", "station-bloor-ki");
   const closureCore = alertAnchor("bloor-up-closure").locator(".station-impact-dot-red-glow");
@@ -99,11 +99,11 @@ test("regional station alerts keep severity fills and require explicit direction
   // Drawn in the top plane, above the raster station artwork.
   expect(await closureCore.evaluate(element => {
     const foreground = element.closest("svg")!;
-    const artwork = element.closest(".regional-map-stage")!
+    const artwork = element.closest("[data-system-map=regional] .map-stage")!
       .querySelector(".raster-map-plane--foreground")!;
     return Number(getComputedStyle(foreground).zIndex) > Number(getComputedStyle(artwork).zIndex);
   })).toBe(true);
-  const glyph = page.locator(".regional-map .station-impact-direction-glyph");
+  const glyph = page.locator("[data-system-map=regional] .station-impact-direction-glyph");
   await expect(glyph).toHaveCount(1);
   await expect(glyph).toHaveAttribute("data-map-station-anchor-id", "station-bloor-ki");
 
@@ -132,7 +132,7 @@ test("regional station alerts keep severity fills and require explicit direction
     expect(await core.evaluate(element => element.getAnimations().length)).toBe(0);
   }
 
-  const map = page.locator(".regional-map");
+  const map = page.locator("[data-system-map=regional]");
   await map.evaluate(element => element.setAttribute("data-map-gesture-active", "true"));
   await expect(closureCore).toBeVisible();
   await map.evaluate(element => element.removeAttribute("data-map-gesture-active"));
@@ -146,7 +146,7 @@ test("regional station alerts keep severity fills and require explicit direction
     : page.getByRole("button", { name: "Toggle theme", exact: true }).filter({ visible: true }).first();
   await themeToggle.click();
   await expect(page.locator(".linewatch-shell")).not.toHaveClass(/\bdark\b/);
-  await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=regional] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await expect(closureCore).toHaveCSS("fill", "rgb(255, 59, 48)");
   await expect(delayCore).toHaveCSS("fill", "rgb(245, 158, 11)");
   await attachScreenshot("regional-station-alerts-light");
@@ -161,7 +161,7 @@ test("regional station alerts keep severity fills and require explicit direction
     : '.desktop-status-incident-row[data-impact-kind="suspension"]');
   await closureCard.click();
   await expect(alertAnchor("bloor-up-closure").locator(".station-impact-ring")).toHaveClass(/\bselected\b/);
-  await expect(page.locator('.regional-map [data-station-impact-selection-id="bloor-up-closure"]')).toBeAttached();
+  await expect(page.locator('[data-system-map=regional] [data-station-impact-selection-id="bloor-up-closure"]')).toBeAttached();
   await expect(map).not.toHaveAttribute("data-map-camera-moving", "true");
   await expect(page.getByText(/UNKNOWN_CAUSE|Unknown Cause/i)).toHaveCount(0);
   await attachScreenshot("regional-station-alert-focused");

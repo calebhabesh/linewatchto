@@ -44,7 +44,7 @@ for (const network of ["regional", "ttc"] as const) {
       localStorage.setItem("linewatch-map-view-v1", "diagram");
     }, network);
     await page.goto("/");
-    await expect(page.locator(`.${network}-map-stage`)).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(page.locator(`[data-system-map=${network}] .map-stage`)).toHaveAttribute("data-raster-map-ready", "true");
     await page.waitForTimeout(800);
     await openOverlapChooser(page, network);
     await page.waitForTimeout(500);

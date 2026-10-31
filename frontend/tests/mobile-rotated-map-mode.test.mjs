@@ -12,10 +12,11 @@ import {
 import { computeRotatedScrollDelta } from "../src/hooks/useRotatedListDragScroll.ts";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 import { readShellSource } from "./helpers/shell-source.mjs";
+import { readTtcMapSource } from "./helpers/map-source.mjs";
 
 const shellSource = readShellSource();
 const controlsSource = readFileSync(new URL("../src/components/MobileMapControls.tsx", import.meta.url), "utf8");
-const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const mapSource = readTtcMapSource();
 const overlapChooserSource = readFileSync(new URL("../src/components/MapOverlapChooser.tsx", import.meta.url), "utf8");
 const chooserHookSource = readFileSync(new URL("../src/components/map-overlays/useMapOverlapChooser.ts", import.meta.url), "utf8");
 const chooserKeepoutsSource = readFileSync(new URL("../src/components/map-chooser-keepouts.ts", import.meta.url), "utf8");
@@ -116,7 +117,7 @@ describe("mobile rotated map mode", () => {
       /\.linewatch-shell\.mobile-map-rotated > main\s*\{(?=[^}]*contain:\s*layout paint size;)(?=[^}]*transform:\s*none;)[^}]*\}/s,
     );
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.rotated-map-ui-surface\s*\{[^}]*transform:\s*translate\(-50%, -50%\) rotate\(90deg\);/s);
-    assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\) \.raster-map-plane\s*\{[^}]*backface-visibility:\s*visible;[^}]*transform:\s*none;/s);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.map-stage \.raster-map-plane\s*\{[^}]*backface-visibility:\s*visible;[^}]*transform:\s*none;/s);
     assert.match(shellSource, /className="rotated-map-ui-surface"/);
     assert.doesNotMatch(globalCss, /\.linewatch-shell\.mobile-map-rotated > main\s*\{[^}]*rotate\(90deg\)/s);
     assert.match(hookSource, /orientedMapCameraTransform/);
@@ -257,10 +258,10 @@ describe("mobile rotated map mode", () => {
 
   it("passes viewport orientation into the pan zoom hook without rotating map data", () => {
     assert.match(mapSource, /viewportOrientation/);
-    assert.match(mapSource, /usePanZoom\(\{\s*persistenceKey: "ttc",\s*persistenceBlocked: Boolean\(selection \|\| selectedStationId \|\| commutePathPreview\),\s*reducedMotion,\s*viewportOrientation,\s*disableProgrammaticMotion:\s*mobilePerformanceMode,\s*defaultFrame:\s*defaultMapFrame,\s*animateInitialEntrance,\s*cameraFollower:\s*overlapChooserFollower,\s*containerRef,\s*mapRef,/s);
+    assert.match(mapSource, /usePanZoom\(\{[\s\S]*?reducedMotion,\s*viewportOrientation,\s*disableProgrammaticMotion:/);
     assert.match(hookSource, /viewportOrientation = "standard"/);
     assert.match(hookSource, /clientPointToLogicalViewportPoint/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated > main/);
-    assert.doesNotMatch(mapSource, /rotate\(90deg\).*ttc-svg-container/s);
+    assert.doesNotMatch(mapSource, /rotate\(90deg\)/);
   });
 });

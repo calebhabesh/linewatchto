@@ -69,7 +69,7 @@ test.describe('network artwork fades', () => {
       Element.prototype.animate = function (keyframes, options) {
         if (this.closest('.network-map-transition-surface') && Array.isArray(keyframes)
           && keyframes.some(frame => frame.opacity !== undefined)) {
-          window.__linewatchMapFadeProbe!.push({ target: this.classList.contains('ttc-map-stage') || this.classList.contains('regional-map-stage') ? 'artwork' : 'other',
+          window.__linewatchMapFadeProbe!.push({ target: this.classList.contains('map-stage') ? 'artwork' : 'other',
             duration: typeof options === 'number' ? options : Number(options?.duration),
             started: performance.now(),
             network: this.closest<HTMLElement>('[data-network-map-layer]')?.dataset.networkMapLayer,
@@ -77,7 +77,7 @@ test.describe('network artwork fades', () => {
         }
         const animation = animate.call(this, keyframes, options);
         if (window.__linewatchPauseMapFadeIn && Array.isArray(keyframes) && keyframes[0]?.opacity === 0
-          && this.matches('.ttc-map-stage, .regional-map-stage')) animation.pause();
+          && this.matches('[data-system-map=ttc] .map-stage, [data-system-map=regional] .map-stage')) animation.pause();
         return animation;
       };
     });
@@ -85,13 +85,13 @@ test.describe('network artwork fades', () => {
 
   test('both directions fade only artwork with equal timing and keep the selector moving independently', async ({ page, isMobile }) => {
     await page.goto(previewUrl);
-    await expect(page.locator('.ttc-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
+    await expect(page.locator('[data-system-map=ttc] .map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
     await prepareBothDiagrams(page, isMobile);
     if (!isMobile) {
       await expect(page.locator('.map-control-rail .network-selector')).toHaveCount(1);
       await expect(page.locator('.map-control-rail .network-selector')).toHaveAttribute('data-network', 'ttc');
     }
-    const ttcStations = await page.locator('.ttc-map-stage .station-hit-target').count();
+    const ttcStations = await page.locator('[data-system-map=ttc] .map-stage .station-hit-target').count();
     expect(ttcStations).toBeGreaterThan(0);
     const taps: number[] = [];
     for (const network of ['regional', 'ttc', 'regional', 'ttc']) {
@@ -108,7 +108,7 @@ test.describe('network artwork fades', () => {
       await expect(activeDiagram(page, network)).toBeVisible();
       const other = activeDiagram(page, network === 'ttc' ? 'regional' : 'ttc');
       await expect(other).toHaveCount(0);
-      await expect(page.locator('.ttc-map-stage .station-hit-target')).toHaveCount(ttcStations);
+      await expect(page.locator('[data-system-map=ttc] .map-stage .station-hit-target')).toHaveCount(ttcStations);
       const stableUi = await page.locator('.map-control-rail:visible, .network-map-legend:visible, .mobile-bottom-nav:visible').evaluateAll(elements => elements.every(element => {
         for (let current: Element | null = element; current; current = current.parentElement) {
           if (Number(getComputedStyle(current).opacity) !== 1) return false;
@@ -144,7 +144,7 @@ test.describe('network artwork fades', () => {
       await settled(page, 'ttc');
       await expect(page.locator('.network-selector:visible').first()).toHaveAttribute('data-network', 'ttc');
       await expect(activeDiagram(page, 'ttc')).toBeVisible();
-      expect(await page.locator('.ttc-map-stage').evaluate(stage => getComputedStyle(stage).opacity)).toBe('1');
+      expect(await page.locator('[data-system-map=ttc] .map-stage').evaluate(stage => getComputedStyle(stage).opacity)).toBe('1');
     }
   });
 
@@ -435,7 +435,7 @@ test.describe('network artwork fades', () => {
       for (const network of ['regional', 'ttc']) {
         await networkButton(page, isMobile, network).click();
         await expect(page.locator('.network-map-transition-surface')).toHaveAttribute('data-map-surface-transition', 'entering');
-        curves.push(await activeDiagram(page, network).locator('.ttc-map-stage, .regional-map-stage').evaluate(stage => {
+        curves.push(await activeDiagram(page, network).locator('[data-system-map=ttc] .map-stage, [data-system-map=regional] .map-stage').evaluate(stage => {
           const animation = stage.getAnimations().find(animation => animation.effect instanceof KeyframeEffect
             && animation.effect.getKeyframes()[0]?.opacity === '0')!;
           if (getComputedStyle(stage).pointerEvents === 'none' || stage.closest('[inert]')) {
@@ -468,18 +468,18 @@ test.describe('network artwork fades', () => {
     await page.route(/\/regional-rail-map\.svg/, async route => { await gate; await route.continue(); });
     try {
       await page.goto(previewUrl);
-      await expect(page.locator('.ttc-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
+      await expect(page.locator('[data-system-map=ttc] .map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
       await networkButton(page, isMobile, 'regional').click();
       await expect(page.locator('.linewatch-shell')).toHaveAttribute('data-network-switch-target', 'regional');
       await expect(page.locator('.network-switch-notice')).toHaveCount(0);
       await expect(page.locator('.linewatch-shell')).toHaveAttribute('data-network', 'ttc');
       await expect(activeDiagram(page, 'ttc')).toBeVisible();
-      expect(await page.locator('.ttc-map-stage').evaluate(element => getComputedStyle(element).opacity)).toBe('1');
+      expect(await page.locator('[data-system-map=ttc] .map-stage').evaluate(element => getComputedStyle(element).opacity)).toBe('1');
       await expect(page.locator('.network-selector:visible').first()).toHaveAttribute('data-network', 'regional');
       await networkButton(page, isMobile, 'ttc').click();
       await settled(page, 'ttc');
       release();
-      if (!isMobile) await expect(page.locator('.regional-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
+      if (!isMobile) await expect(page.locator('[data-system-map=regional] .map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
       await expect(page.locator('.linewatch-shell')).toHaveAttribute('data-network', 'ttc');
       await networkButton(page, isMobile, 'regional').click();
       await settled(page, 'regional');
@@ -491,7 +491,7 @@ test.describe('network artwork fades', () => {
     await page.route(/\/regional-rail-map\.svg/, route => fail
       ? route.fulfill({ status: 503, body: 'unavailable' }) : route.continue());
     await page.goto(previewUrl);
-    await expect(page.locator('.ttc-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
+    await expect(page.locator('[data-system-map=ttc] .map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
     await networkButton(page, isMobile, 'regional').click();
     const retry = page.locator('.network-switch-notice').getByRole('button', { name: 'Retry' });
     await expect(retry).toBeVisible();
@@ -505,7 +505,7 @@ test.describe('network artwork fades', () => {
   test('reduced motion switches a ready map without fades', async ({ page, isMobile }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto(previewUrl);
-    await expect(page.locator('.ttc-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
+    await expect(page.locator('[data-system-map=ttc] .map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
     await networkButton(page, isMobile, 'regional').click();
     await settled(page, 'regional');
     expect(await page.evaluate(() => window.__linewatchMapFadeProbe ?? [])).toEqual([]);

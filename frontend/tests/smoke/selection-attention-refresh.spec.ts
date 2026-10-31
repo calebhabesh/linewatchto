@@ -30,10 +30,10 @@ test("GO/UP diagram selection keeps breathing after a dashboard refresh", async 
     .getByRole("button", { name: "GO/UP", exact: true }).click();
   await waitForNetworkTransition(page, "regional");
 
-  await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=regional] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
 
   const target = page.locator(
-    '.regional-map .map-segment-hit-target[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-delay"]',
+    '[data-system-map=regional] .map-segment-hit-target[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-delay"]',
   );
   await expect(target).toHaveCount(1);
   await target.dispatchEvent("click");

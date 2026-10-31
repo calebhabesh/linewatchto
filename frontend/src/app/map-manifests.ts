@@ -5,6 +5,7 @@
  * Pure data, read by the maps, the geometry extractor and the validator.
  */
 import type { MapBounds } from "./map-geometry.ts";
+import type { StationLabelPadding } from "./map-geometry-data.ts";
 import {
   RASTER_MAP_PLANES_BY_NETWORK,
   RASTER_MAP_RENDERED_SIZES,
@@ -51,6 +52,32 @@ export type MapManifest = {
    * mouse, and for touch (coarse pointers).
    */
   stationHitPadding: { readonly pointer: number; readonly touch: number };
+  /**
+   * Station names. `targetPadding` is the room a name's pointer target adds
+   * around its box, `hoverPadding` the room its lifted hover copy takes, both
+   * in the label's own units. The hover copy cuts the name's glyphs out of the
+   * label texture with an element of the prepared artwork, by id prefix plus
+   * station id: the label itself (`use`), or a prepared glyph copy (`copy`) when
+   * the label sits in a transformed layer, which `<use>` would drop. `dilate`
+   * widens the glyph mask, in map units.
+   */
+  stationLabels: {
+    targetPadding: StationLabelPadding;
+    hoverPadding: StationLabelPadding;
+    cutout: { kind: "use" | "copy"; idPrefix: string; dilate: number };
+  };
+  /** The default camera frame: phones zoom on a station; side insets as a share of the width. */
+  framing: {
+    mobileZoom: number;
+    mobileCenterStationId: string;
+    horizontalInsetRatio: number;
+  };
+  /** The north compass, in view box units. */
+  compass: MapBounds;
+  /** Whose map the drawing re-creates, for the attribution notice. */
+  attributionSource: string;
+  /** The map's accessible name. */
+  label: string;
   /** Line paths the overlays follow, by their id in `layers.lines`. */
   lineIds: readonly string[];
   /** Curved or non-linear segment guides, by their `inkscape:label`. */
@@ -84,6 +111,19 @@ export const MAP_MANIFESTS: Record<MapManifestId, MapManifest> = {
     stationLabelLink: { kind: "attribute", attribute: "data-station-label-for" },
     stationPartSuffixes: ["-1", "-2"],
     stationHitPadding: { pointer: 6, touch: 22 },
+    stationLabels: {
+      targetPadding: { leading: 0, trailing: 68, y: 8 },
+      hoverPadding: { leading: 0, trailing: 68, y: 8 },
+      cutout: { kind: "use", idPrefix: "station-label-", dilate: 4 },
+    },
+    framing: {
+      mobileZoom: 1.65,
+      mobileCenterStationId: "union",
+      horizontalInsetRatio: 0.025,
+    },
+    compass: { x: 7600, y: 2300, width: 300, height: 400 },
+    attributionSource: "TTC",
+    label: "Interactive TTC subway map",
     lineIds: ["line-1", "line-2", "line-4", "line-5", "line-6"],
     guideIds: [
       "seg-line-1-st-andrew-union",
@@ -111,6 +151,20 @@ export const MAP_MANIFESTS: Record<MapManifestId, MapManifest> = {
     stationLabelLink: { kind: "name" },
     stationPartSuffixes: ["-ki", "-up"],
     stationHitPadding: { pointer: 60, touch: 60 },
+    stationLabels: {
+      targetPadding: { leading: 0, trailing: 0, y: 0 },
+      hoverPadding: { leading: 0, trailing: 80, y: 12 },
+      cutout: { kind: "copy", idPrefix: "regional-station-label-cutout-source-", dilate: 6 },
+    },
+    framing: {
+      // A little under the fitted network, so Allandale Waterfront and Hamilton clear the chrome.
+      mobileZoom: 0.95 * 1.15,
+      mobileCenterStationId: "union",
+      horizontalInsetRatio: 0.025,
+    },
+    compass: { x: 14800, y: 5100, width: 1000, height: 1000 },
+    attributionSource: "Metrolinx",
+    label: "Interactive GO and UP map",
     lineIds: [
       "regional-route-br-path",
       "regional-route-ki-path",

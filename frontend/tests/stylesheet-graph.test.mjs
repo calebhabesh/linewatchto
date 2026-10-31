@@ -201,12 +201,12 @@ describe("stylesheet-graph helper", () => {
     const files = getAppStylesheetGraphFiles();
     assert.ok(files.some(f => f.endsWith("base-map.css")), "base-map.css must be in graph files");
     const baseMapContent = readStylesheet(new URL("../src/styles/map/base-map.css", import.meta.url));
-    assert.match(baseMapContent, /\.regional-map,\s*\.regional-map-viewport/);
+    assert.match(baseMapContent, /\.system-map,\s*\.system-map-viewport/);
     assert.match(baseMapContent, /\.raster-map-plane\s*\{[^}]*transform:\s*translateZ\(0\);/);
     assert.match(baseMapContent, /\.ttc-map-entrance-reveal/);
     assert.match(baseMapContent, /\.map-center-feedback/);
-    assert.match(baseMapContent, /\.ttc-map-stage\[data-raster-map-ready="true"\]\s*\.ttc-authored-svg-source/);
-    assert.match(baseMapContent, /\.linewatch-shell\.mobile-performance-mode\s*:is\(\.ttc-map-stage,\s*\.regional-map-stage\)/);
+    assert.match(baseMapContent, /\.map-stage\[data-raster-map-ready="true"\]\s*\.map-authored-svg/);
+    assert.match(baseMapContent, /\.linewatch-shell\.mobile-performance-mode\s*\.map-stage/);
     assert.match(baseMapContent, /\.map-layer-current/);
     assert.match(baseMapContent, /\.map-attribution-notice/);
     assert.match(baseMapContent, /:is\(\.map-gesture-active,\s*\[data-map-gesture-active="true"\],\s*\[data-map-zoom-active="true"\]\)/);
@@ -220,7 +220,8 @@ describe("stylesheet-graph helper", () => {
     const stationMarkersContent = readStylesheet(new URL("../src/styles/map/station-markers.css", import.meta.url));
     assert.match(stationMarkersContent, /\.station-hit-target/);
     assert.match(stationMarkersContent, /\.station-label-hit-target/);
-    assert.match(stationMarkersContent, /\.station-label-hover-effect/);
+    // The lifted name is the raster copy (base-map.css), not the authored label.
+    assert.doesNotMatch(stationMarkersContent, /\.station-label-hover-effect/);
     assert.match(stationMarkersContent, /\.station-hover-indicator/);
     // One selection marker on both maps; the old hidden underlay is gone.
     assert.doesNotMatch(stationMarkersContent, /\.station-selected-indicator/);
@@ -393,7 +394,6 @@ describe("stylesheet-graph helper", () => {
     assert.match(mapControlsContent, /\.map-control-rail/);
     assert.match(mapControlsContent, /\.map-control-button/);
     assert.match(mapControlsContent, /\.map-control-slider/);
-    assert.match(mapControlsContent, /\.regional-map-control-rail/);
     assert.match(mapControlsContent, /\.map-control-zoom-group/);
     assert.match(mapControlsContent, /\.map-control-recenter-container/);
     assert.match(mapControlsContent, /\.map-control-recenter-mobile-label/);

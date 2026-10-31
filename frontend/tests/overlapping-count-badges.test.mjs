@@ -3,13 +3,14 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 import { countBadgeInkOffset } from "../src/components/overlapping-count-ink.ts";
+import { readRegionalMapSource, readTtcMapSource } from "./helpers/map-source.mjs";
 
 const css = readAppStylesheet();
 const badge = readFileSync(new URL("../src/components/OverlappingCountBadge.tsx", import.meta.url), "utf8");
 const mapBadge = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
 const mapBadgeSvg = readFileSync(new URL("../src/components/map-overlap-svg.ts", import.meta.url), "utf8");
-const regionalMap = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
-const ttcMap = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const regionalMap = readRegionalMapSource();
+const ttcMap = readTtcMapSource();
 const mobileNav = readFileSync(new URL("../src/components/MobileBottomNav.tsx", import.meta.url), "utf8");
 const stationOutageBadge = readFileSync(new URL("../src/components/StationOutageBadge.tsx", import.meta.url), "utf8");
 const stationDetail = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");

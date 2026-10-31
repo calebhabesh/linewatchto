@@ -23,7 +23,7 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     expect(await page.evaluate(() => window.__linewatchGeographicMapLifecycle?.constructors ?? 0)).toBe(0);
 
     await errorOverlay.getByRole("button", { name: "Use Diagram" }).click();
-    await expect(page.locator(".ttc-map-stage")).toBeVisible();
+    await expect(page.locator("[data-system-map=ttc] .map-stage")).toBeVisible();
     await expect(geoMap).toHaveCount(0);
   });
 
@@ -608,6 +608,6 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     await useDiagramBtn.click();
 
     // Verify diagram map stage becomes active
-    await expect(page.locator(".ttc-map-stage")).toBeVisible();
+    await expect(page.locator("[data-system-map=ttc] .map-stage")).toBeVisible();
   });
 });

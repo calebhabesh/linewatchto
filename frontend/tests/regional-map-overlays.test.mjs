@@ -2,27 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  REGIONAL_DYNAMIC_SEGMENT_LAYER_ID,
-  REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID,
-  REGIONAL_DYNAMIC_COMMUTE_LAYER_ID,
-  REGIONAL_DYNAMIC_HOVER_LAYER_ID,
-  REGIONAL_TOP_HOVER_LAYER_ID,
   regionalImpactPriority,
   regionalOverlayRuns,
-  regionalOverlayContentSignature,
 } from "../src/app/regional-map-overlays.ts";
 
 describe("regional map overlay utilities", () => {
-  describe("dynamic layer constants", () => {
-    it("exports all dynamic layer IDs per contract", () => {
-      assert.equal(REGIONAL_DYNAMIC_SEGMENT_LAYER_ID, "regional-dynamic-segment-layer");
-      assert.equal(REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID, "regional-dynamic-selected-segment-layer");
-      assert.equal(REGIONAL_DYNAMIC_COMMUTE_LAYER_ID, "regional-dynamic-commute-layer");
-      assert.equal(REGIONAL_DYNAMIC_HOVER_LAYER_ID, "regional-dynamic-hover-layer");
-      assert.equal(REGIONAL_TOP_HOVER_LAYER_ID, "regional-top-hover-layer");
-    });
-  });
-
   describe("regionalImpactPriority", () => {
     it("orders disruption kinds by ascending severity", () => {
       assert.equal(regionalImpactPriority("reduced-speed-zone"), 1);
@@ -142,32 +126,5 @@ describe("regional map overlay utilities", () => {
       assert.equal(runs[0].impact.kind, "delay");
       assert.equal(runs[1].impact.kind, "suspension");
     });
-  });
-});
-
-describe("regionalOverlayContentSignature", () => {
-  const snapshot = (updatedAt, closureTitle = "Weekend service adjustments") => ({
-    activeAlerts: [{ id: "alert-1", severity: "delay", lineId: "regional-lw", affectedSegmentIds: [], updatedAt }],
-    delays: [],
-    reducedSpeedZones: [],
-    plannedClosures: [{ id: "closure-1", lineId: "regional-lw", title: closureTitle, previewSegmentIds: [], previewStationIds: ["oakville"], updatedAt }],
-    networkSegments: [{ id: "segment-lw-a-b", lineId: "regional-lw", impacts: [] }],
-    stationNodeImpacts: [],
-    stations: [{ id: "oakville", name: "Oakville" }],
-    commutePathPreview: null,
-  });
-
-  it("keeps overlays in place when a poll only returns fresh copies with new run timestamps", () => {
-    assert.equal(
-      regionalOverlayContentSignature(snapshot("2026-10-23T21:03:36Z")),
-      regionalOverlayContentSignature(snapshot("2026-10-23T21:07:37Z")),
-    );
-  });
-
-  it("rebuilds overlays when drawn content changes", () => {
-    assert.notEqual(
-      regionalOverlayContentSignature(snapshot("2026-10-23T21:03:36Z")),
-      regionalOverlayContentSignature(snapshot("2026-10-23T21:03:36Z", "Line closed")),
-    );
   });
 });

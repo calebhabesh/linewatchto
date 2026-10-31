@@ -8,6 +8,7 @@ import {
   RASTER_MAP_WIDTHS,
   listAllRasterMapVariants,
 } from "../src/app/map-raster-manifest.ts";
+import { readSystemMapSource } from "./helpers/map-source.mjs";
 
 const frontendRoot = fileURLToPath(new URL("..", import.meta.url));
 const assetRoot = `${frontendRoot}/public/assets/linewatch/raster-maps`;
@@ -50,76 +51,66 @@ describe("stable raster map renderer", () => {
   });
 
   it("keeps mobile hydration on compact artwork planes flattened into one camera surface", async () => {
-    const [ttc, regional, plane, mobileHook, css] = await Promise.all([
-      readFile(`${frontendRoot}/src/components/InteractiveTtcMap.tsx`, "utf8"),
-      readFile(`${frontendRoot}/src/components/InteractiveRegionalMap.tsx`, "utf8"),
+    const [map, plane, mobileHook, css] = await Promise.all([
+      Promise.resolve(readSystemMapSource()),
       readFile(`${frontendRoot}/src/components/RasterMapPlane.tsx`, "utf8"),
       readFile(`${frontendRoot}/src/hooks/useMobilePerformanceMode.ts`, "utf8"),
       readAppStylesheet(),
     ]);
 
+    // One engine renders every map's planes.
     assert.match(mobileHook, /export function mobilePerformanceModeMatches\(\)/);
-    assert.match(ttc, /mobilePerformanceMode \|\| mobilePerformanceModeMatches\(\)/);
-    assert.match(regional, /mobilePerformanceMode \|\| mobilePerformanceModeMatches\(\)/);
-    assert.match(ttc, /useMobileRendering\s*\?\s*"mobile"\s*:\s*"balanced"/);
-    assert.match(regional, /useMobileRendering\s*\?\s*"mobile"\s*:\s*"balanced"/);
+    assert.match(map, /mobilePerformanceMode \|\| mobilePerformanceModeMatches\(\)/);
+    assert.match(map, /useMobileRendering\s*\?\s*"mobile"\s*:\s*"balanced"/);
     assert.match(
       await readFile(`${frontendRoot}/src/app/map-raster-manifest.ts`, "utf8"),
       /"mobile" \| "balanced" \| "desktop"/,
     );
-    assert.match(ttc, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
-    assert.match(regional, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
-    assert.match(ttc, /animate=\{!mapEffectMotionPaused\}/);
-    assert.match(regional, /overlayMotionPaused = mapEffectMotionPaused \|\| useMobileRendering/);
-    assert.match(regional, /useMapPulseSync\(viewportRef, \{\s*paused: overlayMotionPaused/);
-    assert.match(regional, /!mapEffectMotionPaused/);
-    assert.match(ttc, /readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:labels`\)/);
-    assert.match(regional, /readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:labels`\)/);
-    assert.match(ttc, /<RasterMapPlane[\s\S]*?plane="labels"/);
-    assert.match(regional, /<RasterMapPlane[\s\S]*?plane="labels"/);
-    assert.doesNotMatch(ttc, /rasterDensity === "desktop" \? \([\s\S]*?plane="labels"/);
-    assert.doesNotMatch(regional, /rasterDensity === "desktop" \? \([\s\S]*?plane="labels"/);
+    assert.match(map, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
+    assert.match(map, /animate=\{!mapEffectMotionPaused\}/);
+    assert.match(map, /useMapPulseSync\(rootRef, \{\s*paused: mapEffectMotionPaused/);
+    // Ready once every plane the manifest lists has decoded (TTC also has line badges).
+    assert.match(map, /manifest\.rasterPlanes\.every\(\(plane\) => readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:\$\{plane\}`\)\)/);
+    assert.match(map, /\{renderRasterPlane\("labels"\)\}/);
+    assert.doesNotMatch(map, /rasterDensity === "desktop"/);
     assert.doesNotMatch(plane, /density === "mobile" && svgViewBox/);
-    assert.match(css, /\.linewatch-shell\.mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\)\s*\{[^}]*will-change:\s*auto/s);
+    assert.match(css, /\.linewatch-shell\.mobile-performance-mode \.map-stage\s*\{[^}]*will-change:\s*auto/s);
     assert.match(
       css,
-      /\.linewatch-shell\.mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\) \.raster-map-plane\s*\{[^}]*backface-visibility:\s*visible;[^}]*transform:\s*none;/s,
+      /\.linewatch-shell\.mobile-performance-mode \.map-stage \.raster-map-plane\s*\{[^}]*backface-visibility:\s*visible;[^}]*transform:\s*none;/s,
     );
     assert.match(css, /\.raster-map-plane\s*\{[^}]*transform:\s*translateZ\(0\);[^}]*backface-visibility:\s*hidden/s);
   });
 
   it("sandwiches live overlays between raster artwork and keeps interaction planes on top", async () => {
-    const [ttc, regional, css] = await Promise.all([
-      readFile(`${frontendRoot}/src/components/InteractiveTtcMap.tsx`, "utf8"),
-      readFile(`${frontendRoot}/src/components/InteractiveRegionalMap.tsx`, "utf8"),
+    const [map, css] = await Promise.all([
+      Promise.resolve(readSystemMapSource()),
       readAppStylesheet(),
     ]);
 
-    const ttcBackground = ttc.indexOf('plane="background"');
-    const ttcDynamic = ttc.indexOf("raster-map-dynamic-plane", ttcBackground);
-    const ttcForeground = ttc.indexOf('plane="foreground"', ttcDynamic);
-    const ttcLabels = ttc.indexOf('plane="labels"', ttcForeground);
-    assert.ok(ttcBackground > -1 && ttcDynamic > ttcBackground && ttcForeground > ttcDynamic && ttcLabels > ttcForeground);
-
-    const regionalBackground = regional.indexOf('plane="background"');
-    const regionalDynamic = regional.indexOf("<RegionalSvgMarkup", regionalBackground);
-    const regionalForeground = regional.indexOf('plane="foreground"', regionalDynamic);
-    const regionalLabels = regional.indexOf('plane="labels"', regionalForeground);
-    assert.ok(regionalBackground > -1 && regionalDynamic > regionalBackground && regionalForeground > regionalDynamic && regionalLabels > regionalForeground);
-    assert.match(ttc, /raster-map-top-plane[\s\S]*raster-map-interaction-plane/);
-    assert.match(regional, /data-raster-map-ready=\{rasterMapReady/);
+    const under = map.indexOf("{underPlanes.map(renderRasterPlane)}");
+    const artwork = map.indexOf("<AuthoredArtwork", under);
+    const overlays = map.indexOf("raster-map-dynamic-plane map-overlay-plane", artwork);
+    const foreground = map.indexOf('{renderRasterPlane("foreground")}', overlays);
+    const labels = map.indexOf('{renderRasterPlane("labels")}', foreground);
+    const top = map.indexOf("raster-map-top-plane", labels);
+    const interaction = map.indexOf("raster-map-interaction-plane", top);
+    assert.ok(under > -1 && artwork > under && overlays > artwork && foreground > overlays && labels > foreground);
+    assert.ok(top > labels && interaction > top);
+    assert.match(map, /const UNDER_PLANES: readonly RasterMapPlaneName\[\] = \["background", "badges"\];/);
+    assert.match(map, /data-raster-map-ready=\{rasterMapReady/);
     assert.match(css, /\.raster-map-plane--background \{ z-index: 0; \}/);
     assert.match(css, /\.raster-map-interaction-plane \{ z-index: 4; \}/);
-    assert.match(css, /data-raster-map-ready="true"[\s\S]*\.ttc-authored-svg-source/);
+    assert.match(css, /\.map-stage\[data-raster-map-ready="true"\] \.map-authored-svg\s*\{[^}]*visibility:\s*hidden/s);
   });
 
   it("preserves authored label weights and theme-aware interchange leaders", async () => {
-    const [generator, ttc, regional, regionalAsset, regionalStationInteraction, css, mapLabelFontHook] = await Promise.all([
+    const [generator, map, stationLayers, regionalAsset, manifests, css, mapLabelFontHook] = await Promise.all([
       readFile(`${frontendRoot}/scripts/generate-map-rasters.mjs`, "utf8"),
-      readFile(`${frontendRoot}/src/components/InteractiveTtcMap.tsx`, "utf8"),
-      readFile(`${frontendRoot}/src/components/InteractiveRegionalMap.tsx`, "utf8"),
+      Promise.resolve(readSystemMapSource()),
+      readFile(`${frontendRoot}/src/components/MapStationLayers.tsx`, "utf8"),
       readFile(`${frontendRoot}/src/app/regional-map-asset.ts`, "utf8"),
-      readFile(`${frontendRoot}/src/app/regional-station-interaction.ts`, "utf8"),
+      readFile(`${frontendRoot}/src/app/map-manifests.ts`, "utf8"),
       readAppStylesheet(),
       readFile(`${frontendRoot}/src/hooks/useMapLabelFontReady.ts`, "utf8"),
     ]);
@@ -132,64 +123,47 @@ describe("stable raster map renderer", () => {
     assert.doesNotMatch(generator, /mobileForegroundCss/);
     assert.match(generator, /map\.id === "regional" && plane === "labels" && theme !== "light"[\s\S]*?source\.replaceAll\("stroke:#000000", "stroke:#ffffff"\)/);
     assert.match(generator, /#polygon771-7,[\s\S]*?#polygon771-7-4-1-5 \{ fill: #f1f5f9 !important; \}/);
-    assert.match(ttc, /className="raster-station-label-text-hover"/);
+    // The hovered name: one copy for every map, masked to its glyphs, lifted
+    // over the label texture, which cuts the same glyphs out underneath.
+    assert.match(stationLayers, /className="raster-station-label-text-hover"/);
     assert.match(css, /scale\(1\.035\)/);
-    assert.match(
-      ttc,
-      /cutoutElementHref=\{hoveredStationLabelId[\s\S]*?`#station-label-\$\{hoveredStationLabelId\}`[\s\S]*?: null\}/,
-    );
-    assert.match(ttc, /rasterMapSource\("ttc", "labels", rasterTheme, rasterDensity\)/);
-    assert.match(ttc, /mask="url\(#ttc-hovered-station-label-mask\)"/);
-    assert.match(ttc, /id="ttc-hovered-station-target-mask"/);
-    assert.match(ttc, /mask="url\(#ttc-hovered-station-target-mask\)"/);
-    assert.match(ttc, /<feMorphology in="SourceAlpha" operator="dilate" radius="4" result="expandedTargetAlpha" \/>/);
+    assert.match(stationLayers, /targetMask: `\$\{idPrefix\}-hovered-station-target-mask`/);
+    assert.match(stationLayers, /<mask id=\{ids\.labelMask\} maskUnits="userSpaceOnUse" \{\.\.\.bounds\}>\s*<g mask=\{`url\(#\$\{ids\.targetMask\}\)`\}>/);
+    assert.match(stationLayers, /<feMorphology in="SourceAlpha" operator="dilate" radius=\{dilate\} result="expandedTargetAlpha" \/>/);
+    assert.match(stationLayers, /clipPath=\{`url\(#\$\{ids\.clip\}\)`\} filter=\{`url\(#\$\{ids\.whiteAlpha\}\)`\}/);
+    assert.match(map, /labelsSource=\{rasterMapSource\(map\.network, "labels", rasterTheme, rasterDensity\)\}/);
+    assert.match(map, /cutoutElementHref: labelCutout && "href" in labelCutout \? labelCutout\.href : null,/);
+    assert.match(map, /cutoutMarkup: labelCutout && "markup" in labelCutout \? labelCutout\.markup : null,/);
     assert.match(
       await readFile(`${frontendRoot}/src/components/RasterMapPlane.tsx`, "utf8"),
       /<feMorphology[\s\S]*?result="expandedAlpha"/,
     );
-    assert.match(ttc, /clipPath="url\(#ttc-hovered-station-label-clip\)"/);
+    // TTC cuts with its authored label; GO/UP, whose names sit in a
+    // transformed layer, with a prepared glyph copy, without ids.
+    assert.match(manifests, /cutout: \{ kind: "use", idPrefix: "station-label-", dilate: 4 \}/);
+    assert.match(manifests, /cutout: \{ kind: "copy", idPrefix: "regional-station-label-cutout-source-", dilate: 6 \}/);
+    assert.match(map, /removeDescendantIds\(copy\)/);
+    assert.match(regionalAsset, /labelCutoutSources\.id = "regional-station-label-cutout-sources"/);
+    assert.match(regionalAsset, /cutoutSource\.id = `regional-station-label-cutout-source-\$\{stationId\}`/);
     assert.match(
       generator,
       /labelsRenderedSize:\s*(?:RASTER_MAP_RENDERED_SIZES\.regionalLabels|\{ width: 17036\.959, height: 9031\.6719 \})/,
     );
     assert.deepEqual(RASTER_MAP_RENDERED_SIZES.regionalLabels, { width: 17036.959, height: 9031.6719 });
-    assert.match(regional, /mask="url\(#regional-hovered-station-label-mask\)"/);
-    assert.match(regional, /id="regional-hovered-station-target-mask"/);
-    assert.match(regional, /mask="url\(#regional-hovered-station-target-mask\)"/);
-    assert.match(regional, /<feMorphology in="SourceAlpha" operator="dilate" radius="6" result="expandedTargetAlpha" \/>/);
-    assert.match(regional, /clipPath="url\(#regional-hovered-station-label-clip\)"/);
-    assert.match(regional, /filter="url\(#regional-hovered-label-white-alpha\)"/);
-    // The hover label's glyph cutout is a copy of the authored name, without ids.
-    assert.match(regionalStationInteraction, /removeDescendantIds\(copy\)/);
-    assert.doesNotMatch(regional, /regional-raster-station-label-live-copy/);
-    assert.match(regionalAsset, /labelCutoutSources\.id = "regional-station-label-cutout-sources"/);
-    assert.match(regionalAsset, /cutoutSource\.id = `regional-station-label-cutout-source-\$\{stationId\}`/);
-    assert.doesNotMatch(regional, /cutoutMarkup: `<rect x=/);
-    assert.match(
-      regional,
-      /cutoutMarkup=\{hoveredStationLabel\?\.cutoutMarkup \?\? null\}/,
-    );
-    assert.doesNotMatch(regional, /regional-raster-label-halo/);
-    // Hide the authored SVG the TTC way, with visibility: opacity: 0 on its
-    // label layer gave Chromium ~55 GPU layers for invisible text, which tore
-    // the GO/UP map after a pan. Its targets are React elements elsewhere.
-    assert.match(css, /\.regional-map-stage\[data-raster-map-ready="true"\] \.regional-live-svg\s*\{[^}]*visibility:\s*hidden/s);
-    assert.match(css, /\.regional-live-svg\s*\{\s*pointer-events:\s*none;/s);
+    // Hide the authored SVG with visibility: opacity: 0 on its label layer gave
+    // Chromium ~55 GPU layers for invisible text, which tore the GO/UP map
+    // after a pan. Its targets are React elements elsewhere.
+    assert.match(css, /\.map-authored-svg\s*\{\s*pointer-events:\s*none;/s);
     assert.doesNotMatch(css, /data-raster-map-ready="true"\][^{,]*#regional-station-labels-layer\s*\{[^}]*opacity:\s*0/s);
-    assert.doesNotMatch(css, /data-raster-map-ready="true"\][^{,]*\.regional-station-label-source\s*\{[^}]*opacity:\s*0/s);
     assert.doesNotMatch(css, /\.regional-raster-station-label-live-copy/);
-    assert.doesNotMatch(
-      css,
-      /data-raster-map-ready="true"[^}]*#regional-station-labels-layer \[data-regional-station-label-for\][^}]*visibility:\s*hidden/s,
-    );
-    assert.doesNotMatch(css, /\.ttc-authored-svg-source \.station-label-hover-effect-active[\s\S]*visibility:\s*visible/);
+    assert.doesNotMatch(css, /\.station-label-hover-effect/);
     assert.match(css, /\.raster-station-label-text-hover\s*\{[^}]*filter:\s*drop-shadow/s);
     assert.match(mapLabelFontHook, /MAP_LABEL_FONT_SPECS\.map\(\(spec\) => document\.fonts\.load\(spec, MAP_LABEL_FONT_SAMPLE\)\)/);
     assert.match(mapLabelFontHook, /fontFaces\.every/);
     assert.match(mapLabelFontHook, /faces\.length > 0 && faces\.every\(\(face\) => face\.status === "loaded"\)/);
-    assert.match(ttc, /const hoveredLabelPolygon = hoveredStationLabelId && mapLabelFontReady/);
-    assert.match(regional, /if \(!mapLabelFontReady\) return null/);
-    assert.match(ttc, /data-map-label-font-ready=\{mapLabelFontReady \? "true" : "false"\}/);
-    assert.match(regional, /data-map-label-font-ready=\{mapLabelFontReady \? "true" : "false"\}/);
+    // The name lifts, and its glyphs are cut, only once the label font is ready.
+    assert.match(map, /const labelHover = useMemo\(\(\) => \(hoveredLabel && mapLabelFontReady/);
+    assert.match(map, /const labelCutout = labelHover \? hoveredLabel\?\.cutout \?\? null : null;/);
+    assert.match(map, /data-map-label-font-ready=\{mapLabelFontReady \? "true" : "false"\}/);
   });
 });

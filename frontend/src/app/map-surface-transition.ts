@@ -39,7 +39,7 @@ export function startMapSurfaceTransition(
     } else {
       const previous = animation.current;
       const artwork = surface.querySelector<HTMLElement>(
-        '.network-diagram-layer:not([data-preparing]) :is(.ttc-map-stage, .regional-map-stage)',
+        '.network-diagram-layer:not([data-preparing]) .map-stage',
       );
       if (!artwork) return;
       animation.current = artwork.animate([{ opacity: 1 - opacity }, { opacity }], {

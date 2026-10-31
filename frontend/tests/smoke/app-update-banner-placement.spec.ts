@@ -49,7 +49,7 @@ test("the update banner sits above the service sheet and follows it", async ({ p
     releaseNote: { version: "9.9.0", title: "A test update", summary: "Placement check for the update banner.", sections: [] },
   } }));
   await page.goto("/");
-  await expect(page.locator(".network-diagram-layer[data-network-map-layer=\"ttc\"] .ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator(".network-diagram-layer[data-network-map-layer=\"ttc\"] [data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await expect(page.locator(".app-update-banner")).toBeVisible();
 
   const handle = page.locator(".mobile-service-sheet-handle");

@@ -15,8 +15,8 @@ import { installDismissedTransientUi, setStubMode } from "./test-support";
 const MAPS = ["ttc", "regional"] as const;
 
 const viewportSelector = (network: NetworkId) =>
-  network === "ttc" ? "[data-map-pan-zoom-viewport]" : ".regional-map-viewport";
-const stageSelector = (network: NetworkId) => `.${network}-map-stage`;
+  network === "ttc" ? "[data-system-map=ttc] .system-map-viewport" : "[data-system-map=regional] .system-map-viewport";
+const stageSelector = (network: NetworkId) => `[data-system-map=${network}] .map-stage`;
 
 type Point = { x: number; y: number };
 

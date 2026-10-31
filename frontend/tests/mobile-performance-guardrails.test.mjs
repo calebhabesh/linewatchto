@@ -3,9 +3,10 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 import { readShellSource } from "./helpers/shell-source.mjs";
+import { readTtcMapSource } from "./helpers/map-source.mjs";
 
 const shellSource = readShellSource();
-const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const mapSource = readTtcMapSource();
 const panZoomSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const backgroundSource = readFileSync(new URL("../src/components/DynamicBackground.tsx", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
@@ -13,9 +14,9 @@ const globalCss = readAppStylesheet();
 describe("mobile performance guardrails", () => {
   it("keeps the expensive SVG map behind a memoized boundary", () => {
     assert.match(mapSource, /import\s+\{[^}]*memo[^}]*\}\s+from "react"/);
-    assert.match(mapSource, /function InteractiveTtcMapComponent\(/);
-    assert.match(mapSource, /export const InteractiveTtcMap = memo\(InteractiveTtcMapComponent\)/);
-    assert.match(mapSource, /InteractiveTtcMap\.displayName = "InteractiveTtcMap"/);
+    assert.match(mapSource, /function SystemMapComponent\(/);
+    assert.match(mapSource, /export const SystemMap = memo\(SystemMapComponent\)/);
+    assert.match(mapSource, /export const InteractiveTtcMap = memo\(function InteractiveTtcMap/);
   });
 
   it("passes stable handlers into the memoized map", () => {
@@ -151,7 +152,7 @@ describe("mobile performance guardrails", () => {
     );
     assert.match(
       mapSource,
-      /usePanZoom\(\{\s*persistenceKey: "ttc",\s*persistenceBlocked: Boolean\(selection \|\| selectedStationId \|\| commutePathPreview\),\s*reducedMotion,\s*viewportOrientation,\s*disableProgrammaticMotion:\s*mobilePerformanceMode,\s*defaultFrame:\s*defaultMapFrame,\s*animateInitialEntrance,\s*cameraFollower:\s*overlapChooserFollower,\s*containerRef,\s*mapRef,/s,
+      /usePanZoom\(\{\s*persistenceKey: manifest\.id,\s*persistenceBlocked: cameraOwnedBySelection,\s*automaticRefitBlocked: cameraOwnedBySelection,\s*reducedMotion,\s*viewportOrientation,\s*disableProgrammaticMotion:\s*mobilePerformanceMode \|\| !pageVisible,\s*defaultFrame,\s*animateInitialEntrance,/s,
     );
     assert.match(
       shellSource,
@@ -195,7 +196,7 @@ describe("mobile performance guardrails", () => {
 
   it("tracks two active pointers for custom pinch zoom", () => {
     assert.match(mapSource, /useMapTaps\(\{\s*camera: \{[\s\S]*?handlePointerCancel,/);
-    assert.match(mapSource, /touch-none/);
+    assert.match(globalCss, /\.system-map-viewport\s*\{[^}]*touch-action:\s*none;/s);
   });
 
   it("keeps the fixed app viewport stable while a map camera gesture is active", () => {
@@ -207,7 +208,7 @@ describe("mobile performance guardrails", () => {
     assert.match(shellSource, /window\.addEventListener\("pointerup", flushPendingViewportUpdate\)/);
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\) \.raster-map-plane\s*\{[^}]*backface-visibility:\s*visible;[^}]*transform:\s*none;/s,
+      /\.linewatch-shell\.mobile-performance-mode \.map-stage \.raster-map-plane\s*\{[^}]*backface-visibility:\s*visible;[^}]*transform:\s*none;/s,
     );
   });
 

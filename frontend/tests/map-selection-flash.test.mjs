@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readRegionalMapSource, readTtcMapSource } from "./helpers/map-source.mjs";
 
 const source = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const introSource = source("../src/components/map-overlays/selection-intro.ts");
 const shellSource = source("../src/components/LineWatchShell.tsx");
 const maps = {
-  ttc: source("../src/components/InteractiveTtcMap.tsx"),
-  regional: source("../src/components/InteractiveRegionalMap.tsx"),
+  ttc: readTtcMapSource(),
+  regional: readRegionalMapSource(),
 };
 
 describe("map selection flash", () => {
@@ -24,8 +25,7 @@ describe("map selection flash", () => {
     assert.match(introSource, /Promise\.all\(intros\.map\(\(animation\) => animation\.finished\)\)\.then\(complete, complete\)/);
     // With nothing animating (reduced motion, phones), a timer ends it.
     assert.match(introSource, /let timer = window\.setTimeout\(complete, MAP_SELECTION_INTRO_MS\);/);
-    assert.match(maps.ttc, /useMapSelectionIntro\([\s\S]*?\}\), mapRootRef\);/);
-    assert.match(maps.regional, /useMapSelectionIntro\(selectionIntroKey, regionalMapRef\)/);
+    assert.match(maps.ttc, /useMapSelectionIntro\([\s\S]*?\}\), rootRef\);/);
   });
 
   it("keeps the flash and camera when the selected alert is pressed again on the map", () => {

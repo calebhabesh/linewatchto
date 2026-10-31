@@ -9,10 +9,10 @@ for (const network of ['ttc', 'regional'] as const) {
     if (network === 'regional') {
       await page.locator('.mobile-map-network-switch').getByRole('button', { name: 'GO/UP', exact: true }).click();
     }
-    await expect(page.locator(`.${network}-map-stage[data-raster-map-ready="true"]`)).toBeVisible();
+    await expect(page.locator(`[data-system-map=${network}] .map-stage[data-raster-map-ready="true"]`)).toBeVisible();
     await expect(page.locator('.network-map-transition-surface')).not.toHaveAttribute('data-map-surface-transition');
 
-    const stage = page.locator(`.${network}-map-stage`);
+    const stage = page.locator(`[data-system-map=${network}] .map-stage`);
     
     // Wait for camera to settle
     await page.waitForTimeout(500);

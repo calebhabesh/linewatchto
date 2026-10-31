@@ -5,11 +5,9 @@ import {
   orientedEstimatedTrainMarkerAngle,
   resolveEstimatedTrainMarkerSegmentDirection,
 } from "../src/app/train-markers.ts";
+import { readRegionalMapSource } from "./helpers/map-source.mjs";
 
-const regionalMapSource = readFileSync(
-  new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url),
-  "utf8",
-);
+const regionalMapSource = readRegionalMapSource();
 const regionalGeometrySource = readFileSync(
   new URL("../src/app/regional-map-geometry.ts", import.meta.url),
   "utf8",
@@ -30,7 +28,8 @@ describe("regional estimated train marker rendering", () => {
     assert.match(trainMarkerLayerSource, /estimated-train-marker-outline/);
     assert.match(trainMarkerLayerSource, /estimated-train-marker-window/);
     assert.match(trainMarkerLayerSource, /estimated-train-marker-arrow/);
-    assert.match(regionalMapSource, /<MapTrainMarkerLayer[\s\S]*?placement=\{REGIONAL_TRAIN_MARKER_PLACEMENT\}/);
+    assert.match(regionalMapSource, /<MapTrainMarkerLayer[\s\S]*?placement=\{map\.trainMarkers\.placement\}/);
+    assert.match(regionalMapSource, /placement: regionalTrainMarkerPlacement\(geometry\),/);
     assert.match(regionalContentSource, /scale: 1\.8,/);
   });
 
@@ -40,7 +39,7 @@ describe("regional estimated train marker rendering", () => {
     assert.match(regionalGeometrySource, /estimatedTrainMarkerLanePoint/);
     assert.match(regionalGeometrySource, /REGIONAL_TRAIN_MARKER_LANE_OFFSET/);
     assert.match(regionalContentSource, /regionalTrainMarkerFrame\(geometry, segment, marker\)/);
-    assert.match(regionalMapSource, /REGIONAL_TRAIN_MARKER_LAYER_ID/);
+    assert.match(regionalMapSource, /className="estimated-train-marker-layer"/);
     assert.doesNotMatch(regionalGeometrySource, /const x = from\.x \+ \(to\.x - from\.x\) \* progress/);
   });
 

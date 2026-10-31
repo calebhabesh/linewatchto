@@ -52,19 +52,19 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   await expect(centerMapButton).toHaveCSS("height", "45px");
   await expect(centerMapButton.locator("svg")).toHaveCSS("width", "22px");
   await expect(centerMapButton.locator("span")).toHaveClass(/sr-only/);
-  const mobileMapStage = page.locator(".ttc-map-stage");
+  const mobileMapStage = page.locator("[data-system-map=ttc] .map-stage");
   await centerMapButton.click();
   await expect(mobileMapStage).toHaveCSS("opacity", "1");
   await expect(mobileMapStage).toHaveCSS("will-change", "auto");
   await expect(mobileMapStage).toHaveCSS("transition-duration", "0s");
   await expect(mobileMapStage.locator(".raster-map-plane")).toHaveCount(3);
-  await expect(page.locator("[data-map-pan-zoom-viewport]")).toHaveAttribute("data-map-camera-moving", "false");
+  await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute("data-map-camera-moving", "false");
 
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
-  const regionalMap = page.locator(".regional-map");
-  const regionalMapStage = regionalMap.locator(".regional-map-stage");
+  const regionalMap = page.locator("[data-system-map=regional]");
+  const regionalMapStage = regionalMap.locator(".map-stage");
   await expect(regionalMap).toBeVisible();
   await page.getByRole("button", { name: "Center map view" }).click();
   await expect(regionalMapStage).toHaveCSS("transition-duration", "0s");
@@ -75,7 +75,7 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "TTC", exact: true })
     .click();
-  const returnedTtcStage = page.locator(".ttc-map-stage");
+  const returnedTtcStage = page.locator("[data-system-map=ttc] .map-stage");
   await expect(returnedTtcStage).toHaveAttribute("data-raster-map-ready", "true");
   await expect(returnedTtcStage).toHaveCSS("opacity", "1");
 
@@ -110,15 +110,15 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
   });
   await page.goto(openMapPreviewUrl);
 
-  const stage = page.locator(".ttc-map-stage");
+  const stage = page.locator("[data-system-map=ttc] .map-stage");
   await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
   await expect(stage.locator(".raster-map-plane")).toHaveCount(3);
   await expect(stage.locator(".raster-map-plane--labels")).toHaveCount(1);
   await expect(stage.locator(".overlay-segment-group").first()).toBeAttached();
   const cycleResults = await page.evaluate(async () => {
-    const viewport = document.querySelector<HTMLElement>("[data-map-pan-zoom-viewport]");
-    const originalStage = viewport?.querySelector<HTMLElement>(".ttc-map-stage");
-    const originalSvg = originalStage?.querySelector<SVGSVGElement>(".ttc-svg-container > svg");
+    const viewport = document.querySelector<HTMLElement>("[data-system-map=ttc] .system-map-viewport");
+    const originalStage = viewport?.querySelector<HTMLElement>("[data-system-map=ttc] .map-stage");
+    const originalSvg = originalStage?.querySelector<SVGSVGElement>(".map-authored-svg > svg");
     const originalOverlay = originalStage?.querySelector<SVGGElement>(".overlay-segment-group");
     const recenter = document.querySelector<HTMLButtonElement>('button[aria-label="Center map view"]');
     const zoomIn = document.querySelector<HTMLButtonElement>('button[aria-label="Zoom in"]');
@@ -128,7 +128,7 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
 
     const entranceDeadline = performance.now() + 1_500;
     while (
-      viewport.dataset.mapCameraMoving === "true"
+      viewport.closest<HTMLElement>(".system-map")!.dataset.mapCameraMoving === "true"
       && performance.now() < entranceDeadline
     ) {
       await new Promise((resolve) => window.setTimeout(resolve, 16));
@@ -181,8 +181,8 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
 
     return {
       cycles,
-      stagePreserved: viewport.querySelector(".ttc-map-stage") === originalStage,
-      svgPreserved: originalStage.querySelector(".ttc-svg-container > svg") === originalSvg,
+      stagePreserved: viewport.querySelector("[data-system-map=ttc] .map-stage") === originalStage,
+      svgPreserved: originalStage.querySelector(".map-authored-svg > svg") === originalSvg,
       overlayPreserved: originalStage.querySelector(".overlay-segment-group") === originalOverlay,
       rasterPlanesPreserved: Array.from(originalStage.querySelectorAll(".raster-map-plane"))
         .every((plane, index) => plane === rasterPlanes[index]),
@@ -211,11 +211,11 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
-  const regionalStage = page.locator(".regional-map-stage");
+  const regionalStage = page.locator("[data-system-map=regional] .map-stage");
   await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
   await expect(regionalStage.locator(".raster-map-plane")).toHaveCount(3);
   const regionalCycles = await regionalStage.evaluate(async (originalStage) => {
-    const root = originalStage.closest<HTMLElement>(".regional-map");
+    const root = originalStage.closest<HTMLElement>("[data-system-map=regional]");
     const recenter = root?.querySelector<HTMLButtonElement>('button[aria-label="Fit regional network"]');
     const zoomIn = root?.querySelector<HTMLButtonElement>('button[aria-label="Zoom in"]');
     const rasterPlanes = Array.from(originalStage.querySelectorAll(".raster-map-plane"));
@@ -291,17 +291,17 @@ test("fixed mobile pinch zoom keeps one stable camera surface across both networ
 
   const exerciseFixedPinch = async (network: "ttc" | "regional") => {
     const stage = network === "ttc"
-      ? page.locator(".ttc-map-stage")
-      : page.locator(".regional-map-stage");
+      ? page.locator("[data-system-map=ttc] .map-stage")
+      : page.locator("[data-system-map=regional] .map-stage");
     await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
     await expect(stage.locator(".raster-map-plane")).toHaveCount(3);
 
     const result = await page.evaluate(async ({ activeNetwork }) => {
       const gestureTarget = activeNetwork === "ttc"
-        ? document.querySelector<HTMLElement>("[data-map-pan-zoom-viewport]")
-        : document.querySelector<HTMLElement>(".regional-map-viewport");
+        ? document.querySelector<HTMLElement>("[data-system-map=ttc] .system-map-viewport")
+        : document.querySelector<HTMLElement>("[data-system-map=regional] .system-map-viewport");
       const mapStage = gestureTarget?.querySelector<HTMLElement>(
-        activeNetwork === "ttc" ? ".ttc-map-stage" : ".regional-map-stage",
+        activeNetwork === "ttc" ? "[data-system-map=ttc] .map-stage" : "[data-system-map=regional] .map-stage",
       );
       if (!gestureTarget || !mapStage) throw new Error(`Missing ${activeNetwork} fixed map`);
 
@@ -345,9 +345,7 @@ test("fixed mobile pinch zoom keeps one stable camera surface across both networ
 
         cycles.push({
           cameraChanged: mapStage.style.transform !== beforeTransform,
-          gestureActive: activeNetwork === "ttc"
-            ? gestureTarget.dataset.mapGestureActive
-            : gestureTarget.closest<HTMLElement>(".regional-map")?.dataset.mapGestureActive,
+          gestureActive: gestureTarget.closest<HTMLElement>(".system-map")?.dataset.mapGestureActive,
           heightStable: gestureTarget.clientHeight === viewportSize.height,
           stageOpacity: getComputedStyle(mapStage).opacity,
           stageTransitionDuration: getComputedStyle(mapStage).transitionDuration,
@@ -364,7 +362,7 @@ test("fixed mobile pinch zoom keeps one stable camera surface across both networ
         mapChildrenPreserved: Array.from(mapStage.children)
           .every((child, index) => child === originalChildren[index]),
         mapStagePreserved: gestureTarget.querySelector(
-          activeNetwork === "ttc" ? ".ttc-map-stage" : ".regional-map-stage",
+          activeNetwork === "ttc" ? "[data-system-map=ttc] .map-stage" : "[data-system-map=regional] .map-stage",
         ) === mapStage,
         rasterPlanesPreserved: Array.from(mapStage.querySelectorAll(".raster-map-plane"))
           .every((plane, index) => plane === rasterPlanes[index]),
@@ -389,7 +387,7 @@ test("fixed mobile pinch zoom keeps one stable camera surface across both networ
   };
 
   await exerciseFixedPinch("ttc");
-  const ttcStage = page.locator(".ttc-map-stage");
+  const ttcStage = page.locator("[data-system-map=ttc] .map-stage");
   await ttcStage.evaluate((stage) => {
     stage.dataset.fixedPinchStageProbe = "preserved";
   });
@@ -438,8 +436,8 @@ test("rotated mobile pinch zoom keeps one oriented map camera across both networ
     await expect(shell).toHaveClass(/mobile-map-rotated/);
 
     const stage = network === "ttc"
-      ? page.locator(".ttc-map-stage")
-      : page.locator(".regional-map-stage");
+      ? page.locator("[data-system-map=ttc] .map-stage")
+      : page.locator("[data-system-map=regional] .map-stage");
     await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
     await expect(stage.locator(".raster-map-plane")).toHaveCount(3);
 
@@ -448,10 +446,10 @@ test("rotated mobile pinch zoom keeps one oriented map camera across both networ
       const main = shellElement?.querySelector<HTMLElement>(":scope > main");
       const uiSurface = main?.querySelector<HTMLElement>(".rotated-map-ui-surface");
       const gestureTarget = activeNetwork === "ttc"
-        ? document.querySelector<HTMLElement>("[data-map-pan-zoom-viewport]")
-        : document.querySelector<HTMLElement>(".regional-map-viewport");
+        ? document.querySelector<HTMLElement>("[data-system-map=ttc] .system-map-viewport")
+        : document.querySelector<HTMLElement>("[data-system-map=regional] .system-map-viewport");
       const mapStage = gestureTarget?.querySelector<HTMLElement>(
-        activeNetwork === "ttc" ? ".ttc-map-stage" : ".regional-map-stage",
+        activeNetwork === "ttc" ? "[data-system-map=ttc] .map-stage" : "[data-system-map=regional] .map-stage",
       );
       if (!shellElement || !main || !uiSurface || !gestureTarget || !mapStage) {
         throw new Error(`Missing ${activeNetwork} rotated pinch elements`);
@@ -509,9 +507,7 @@ test("rotated mobile pinch zoom keeps one oriented map camera across both networ
 
         cycles.push({
           cameraChanged: mapStage.style.transform !== beforeTransform,
-          gestureActive: activeNetwork === "ttc"
-            ? gestureTarget.dataset.mapGestureActive
-            : gestureTarget.closest<HTMLElement>(".regional-map")?.dataset.mapGestureActive,
+          gestureActive: gestureTarget.closest<HTMLElement>(".system-map")?.dataset.mapGestureActive,
           heightStable: gestureTarget.clientHeight === logicalSize.height,
           widthStable: gestureTarget.clientWidth === logicalSize.width,
           stageOpacity: getComputedStyle(mapStage).opacity,
@@ -580,7 +576,7 @@ test("rotated mobile pinch zoom keeps one oriented map camera across both networ
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
-  await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=regional] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await exerciseRotatedPinch("regional");
 });
 
@@ -834,7 +830,7 @@ for (const { width, height } of [{ width: 375, height: 667 }, { width: 320, heig
         await switcher.getByRole("button", { name: "GO/UP", exact: true }).click();
         await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", "regional", { timeout: 15_000 });
       }
-      await expect(page.locator(network === "ttc" ? ".ttc-map-stage" : ".regional-map-stage")).toBeVisible({ timeout: 15_000 });
+      await expect(page.locator(network === "ttc" ? "[data-system-map=ttc] .map-stage" : "[data-system-map=regional] .map-stage")).toBeVisible({ timeout: 15_000 });
       const notice = page.locator(".mobile-service-sheet-notice-row");
       await expect(notice).toBeVisible({ timeout: 10_000 });
 

@@ -36,40 +36,13 @@
   stroke: transparent;
 }
 
-.ttc-svg-container #ttc-station-labels-layer [data-station-label-for] {
+[data-system-map="ttc"] .map-stage #ttc-station-labels-layer [data-station-label-for] {
   stroke: #000000 !important;
   stroke-width: 2px !important;
 }
 
-.dark .ttc-svg-container #ttc-station-labels-layer [data-station-label-for] {
+.dark [data-system-map="ttc"] .map-stage #ttc-station-labels-layer [data-station-label-for] {
   stroke: #ffffff !important;
-}
-
-.station-label-hover-effect {
-  pointer-events: none;
-  transform-box: fill-box;
-  transform-origin: center;
-  transition: transform 120ms ease, filter 120ms ease;
-}
-
-.station-label-hover-effect-active,
-.station-label-hover-effect:has(.station-label-hovered),
-.station-label-hover-effect:has(.regional-station-label-hovered) {
-  filter: drop-shadow(0 0 7px rgb(var(--station-selection-accent-rgb) / 78%));
-  transform: scale(1.035);
-  transition-delay: 0ms;
-}
-
-.motion-paused .station-label-hover-effect {
-  animation: none;
-  transition: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .station-label-hover-effect {
-    animation: none;
-    transition: none;
-  }
 }
 
 /* ============================================================

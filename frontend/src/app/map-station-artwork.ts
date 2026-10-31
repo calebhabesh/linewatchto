@@ -4,8 +4,14 @@
  * React elements in their own planes (components/MapStationLayers.tsx), never
  * inside the authored SVG, so a station's target has the shape of its dot.
  */
-import type { MapPoint } from "./map-geometry.ts";
-import type { PreparedMapGeometry, PreparedStationShape } from "./map-geometry-data.ts";
+import type { MapBounds, MapPoint } from "./map-geometry.ts";
+import {
+  stationLabelCenter,
+  stationLabelPolygon,
+  type PreparedMapGeometry,
+  type PreparedStationShape,
+  type StationLabelPadding,
+} from "./map-geometry-data.ts";
 import { matrixTransform } from "./regional-map-geometry.ts";
 
 export type MapStationShape = PreparedStationShape;
@@ -168,4 +174,53 @@ export function mapStationSelectionShapes(station: MapStationArtwork): MapStatio
 /** A dot shape's station anchor id (`spadina-1`), or null for a junction bar. */
 export function mapStationShapeAnchorId(shape: MapStationShape): string | null {
   return shape.tag === "rect" && shape.join ? null : shape.id.replace(/^station-/, "");
+}
+
+/** Each listed station's name target, padded by the map's `stationLabels.targetPadding`. */
+export function mapStationLabelTargets(
+  geometry: PreparedMapGeometry,
+  stationIds: readonly string[],
+  padding: StationLabelPadding,
+): MapStationLabelTarget[] {
+  return stationIds.flatMap((stationId) => {
+    const points = stationLabelPolygon(geometry.labels, stationId, padding);
+    return points ? [{ stationId, points }] : [];
+  });
+}
+
+/** A hovered station name's lifted copy: its box, centre and mask bounds, in root coordinates. */
+export type MapStationLabelHover = {
+  stationId: string;
+  points: MapPoint[];
+  center: MapPoint;
+  bounds: MapBounds;
+};
+
+/** Room around the lifted name that its masks keep, in map units. */
+const LABEL_HOVER_MASK_MARGIN = 20;
+
+/** The lifted copy of a station's name, padded by the map's `stationLabels.hoverPadding`. */
+export function mapStationLabelHover(
+  geometry: PreparedMapGeometry,
+  stationId: string,
+  padding: StationLabelPadding,
+): MapStationLabelHover | null {
+  const points = stationLabelPolygon(geometry.labels, stationId, padding);
+  const center = stationLabelCenter(geometry.labels, stationId);
+  if (!points || !center) return null;
+  const xs = points.map((point) => point.x);
+  const ys = points.map((point) => point.y);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  return {
+    stationId,
+    points,
+    center,
+    bounds: {
+      x: minX - LABEL_HOVER_MASK_MARGIN,
+      y: minY - LABEL_HOVER_MASK_MARGIN,
+      width: Math.max(...xs) - minX + LABEL_HOVER_MASK_MARGIN * 2,
+      height: Math.max(...ys) - minY + LABEL_HOVER_MASK_MARGIN * 2,
+    },
+  };
 }

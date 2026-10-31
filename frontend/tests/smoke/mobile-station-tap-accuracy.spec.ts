@@ -7,7 +7,7 @@ test.beforeEach(async ({ page, request, isMobile }) => {
   await setStubMode(request, "unavailable");
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/");
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await expect(page.locator(".ttc-map-entrance-reveal--ready")).toBeAttached();
 });
 

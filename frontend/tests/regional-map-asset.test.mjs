@@ -162,7 +162,7 @@ describe("regional map asset loader and lifecycle", () => {
       // First attempt fails
       await assert.rejects(
         () => preloadRegionalMapMarkup("/assets/fail-first.svg"),
-        /Regional map unavailable/,
+        /Map artwork unavailable/,
       );
 
       assert.equal(attempts, 1);

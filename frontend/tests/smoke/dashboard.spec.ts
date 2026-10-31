@@ -69,7 +69,7 @@ async function expectStaticMobileMapEffects(page: Page) {
   await expect(mapFlash).toHaveCSS("animation-name", "none");
   await expect(mapFlash).toHaveCSS("filter", "none");
 
-  const mapLayer = page.locator(".ttc-svg-container").locator("xpath=..").first();
+  const mapLayer = page.locator("[data-system-map=ttc] .map-stage").first();
   await expect(mapLayer).toHaveCSS("transition-property", "none");
 }
 
@@ -148,7 +148,7 @@ async function expectRegionalChooserToClearReferencedAlerts(page: Page) {
         .map((choice) => choice.dataset.overlapChoiceId),
     );
     return [...document.querySelectorAll<SVGPathElement>(
-      ".regional-map .overlay-segment-group > .asset-alert-path",
+      "[data-system-map=regional] .overlay-segment-group > .asset-alert-path",
     )].some((path) => {
       const group = path.closest<SVGElement>(".overlay-segment-group");
       if (!group?.dataset.mapImpactId || !impactIds.has(group.dataset.mapImpactId)) return false;
@@ -586,14 +586,14 @@ test("switches the complete dashboard to the fixture-backed regional network", a
     mapSurface.locator(`[data-network-map-layer="${network}"]:not([data-preparing])`);
   await expect(networkSelector.getByRole("button", { name: "TTC", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(mapLegend.getByText("Line 1 Yonge-University", { exact: true })).toBeVisible();
-  await expect(activeLayer("ttc").locator(".ttc-svg-container")).toHaveCount(1);
+  await expect(activeLayer("ttc").locator("[data-system-map=ttc] .map-stage .map-authored-svg")).toHaveCount(1);
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
 
   // Both diagrams stay mounted; the switch makes the GO/UP layer the active one.
   await waitForNetworkTransition(page, "regional");
-  await expect(activeLayer("regional").locator(".regional-map")).toHaveCount(1);
+  await expect(activeLayer("regional").locator("[data-system-map=regional]")).toHaveCount(1);
   await expect(mapSurface.locator('[data-network-map-layer="ttc"]')).toHaveAttribute("data-preparing", "true");
-  await expect(mapSurface.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(mapSurface.locator("[data-system-map=regional] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
   await expect.poll(async () => {
     const box = await mapLegend.boundingBox();
@@ -604,7 +604,7 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(page.getByRole("switch", { name: /Toggle estimated train markers/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toHaveCount(0);
 
-  const regionalStage = page.locator(".regional-map-stage");
+  const regionalStage = page.locator("[data-system-map=regional] .map-stage");
   const initialCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
   const regionalTopPlane = regionalStage.locator(":scope > .raster-map-top-plane");
   const initialViewBox = await regionalTopPlane.getAttribute("viewBox");
@@ -625,7 +625,7 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await page.mouse.wheel(0, -180);
   await expect.poll(() => regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).not.toBe(resizedCamera);
   // Notches ease in; read the camera once the zoom has settled.
-  await expect(page.locator(".regional-map")).toHaveAttribute("data-map-zoom-active", "false");
+  await expect(page.locator("[data-system-map=regional]")).toHaveAttribute("data-map-zoom-active", "false");
   const adjustedCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
   await page.setViewportSize({
     width: Math.min(page.viewportSize()!.width + 40, initialViewport!.width),
@@ -654,10 +654,10 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   // The fade itself is covered by network-fade.spec.ts.
   await networkSelector.getByRole("button", { name: "TTC", exact: true }).click();
   await waitForNetworkTransition(page, "ttc");
-  await expect(activeLayer("ttc").locator(".ttc-svg-container")).toHaveCount(1);
+  await expect(activeLayer("ttc").locator("[data-system-map=ttc] .map-stage .map-authored-svg")).toHaveCount(1);
   await expect(mapSurface.locator('[data-network-map-layer="regional"]')).toHaveAttribute("data-preparing", "true");
-  await expect(mapSurface.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
-  await expect(mapSurface.locator(".ttc-map-stage")).not.toHaveAttribute("data-map-recenter-effect");
+  await expect(mapSurface.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(mapSurface.locator("[data-system-map=ttc] .map-stage")).not.toHaveAttribute("data-map-recenter-effect");
   await expect.poll(async () => {
     const box = await mapLegend.boundingBox();
     return box ? box.x + box.width <= page.viewportSize()!.width + 1 : false;
@@ -674,11 +674,11 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   await setStubMode(request, "unavailable");
   await page.goto("/");
 
-  const ttcStage = page.locator(".ttc-map-stage");
+  const ttcStage = page.locator("[data-system-map=ttc] .map-stage");
   await expect(ttcStage).toHaveAttribute("data-raster-map-ready", "true");
   await expect(page.locator(".ttc-map-entrance-reveal")).toHaveCount(0);
   await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(4);
-  await expect(ttcStage.locator(".ttc-authored-svg-source").first()).toHaveCSS("visibility", "hidden");
+  await expect(ttcStage.locator(".map-authored-svg")).toHaveCSS("visibility", "hidden");
   await page.getByRole("button", { name: "Collapse sidebar" }).click();
   await ttcStage.locator('[data-station-label-id="kipling"]').hover();
   const rasterLabelHover = ttcStage.locator(".raster-station-label-text-hover");
@@ -704,7 +704,7 @@ test("uses decoded raster artwork while preserving live map geometry in both net
     .getByRole("group", { name: "Select transit network" });
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
   await waitForNetworkTransition(page, "regional");
-  const regionalStage = page.locator(".regional-map-stage");
+  const regionalStage = page.locator("[data-system-map=regional] .map-stage");
   await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
   await expect(regionalStage.locator(".raster-map-plane")).toHaveCount(3);
   await expect(regionalStage.locator("#regional-lines-layer")).toHaveCSS("visibility", "hidden");
@@ -744,7 +744,7 @@ test("waits for the authored map font before lifting a hovered station label", a
   });
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  const ttcStage = page.locator(".ttc-map-stage");
+  const ttcStage = page.locator("[data-system-map=ttc] .map-stage");
   await expect(ttcStage).toBeVisible();
 
   try {
@@ -779,7 +779,7 @@ test("mobile loads compact independent label textures for both maps", async ({ p
   await setStubMode(request, "unavailable");
   await page.goto("/");
 
-  const ttcStage = page.locator(".ttc-map-stage");
+  const ttcStage = page.locator("[data-system-map=ttc] .map-stage");
   await expect(ttcStage).toHaveAttribute("data-raster-map-ready", "true");
   await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(4);
   await expect(ttcStage.locator(".raster-map-plane--labels")).toHaveCount(1);
@@ -788,7 +788,7 @@ test("mobile loads compact independent label textures for both maps", async ({ p
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
-  const regionalStage = page.locator(".regional-map-stage");
+  const regionalStage = page.locator("[data-system-map=regional] .map-stage");
   await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
   await expect(regionalStage.locator(".raster-map-plane")).toHaveCount(3);
   await expect(regionalStage.locator(".raster-map-plane--labels")).toHaveCount(1);
@@ -808,10 +808,10 @@ test("regional refresh, pan, zoom, and center preserve the authored SVG instance
     .click();
   await page.getByRole("button", { name: "Collapse sidebar" }).click();
 
-  const regionalMap = page.locator(".regional-map");
-  const regionalViewport = regionalMap.locator(".regional-map-viewport");
-  const regionalStage = regionalMap.locator(".regional-map-stage");
-  const authoredSvg = regionalStage.locator(".regional-live-svg svg");
+  const regionalMap = page.locator("[data-system-map=regional]");
+  const regionalViewport = regionalMap.locator(".system-map-viewport");
+  const regionalStage = regionalMap.locator(".map-stage");
+  const authoredSvg = regionalStage.locator(".map-authored-svg svg");
   const authoredLines = authoredSvg.locator("#regional-lines-layer");
   await expect(authoredSvg).toBeAttached();
   await authoredSvg.evaluate((element) => element.setAttribute("data-smoke-stable", "regional-base"));
@@ -822,7 +822,7 @@ test("regional refresh, pan, zoom, and center preserve the authored SVG instance
   await setStubMode(request, "regional-live");
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
   await expect(page.locator(
-    '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-delay"]',
+    '[data-system-map=regional] .overlay-segment-group[data-map-impact-id="regional-demo-delay"]',
   )).toBeAttached();
   await expect(authoredSvg).toHaveAttribute("data-smoke-stable", "regional-base");
   await expect(authoredLines).toHaveAttribute("data-smoke-stable", "regional-lines");
@@ -867,14 +867,14 @@ test.describe("regional overlay reconciliation", () => {
       .getByRole("button", { name: "GO/UP", exact: true })
       .click();
 
-    const removed = page.locator('.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-planned"]');
+    const removed = page.locator('[data-system-map=regional] .overlay-segment-group[data-map-impact-id="regional-demo-planned"]');
     await expect(removed).toBeAttached();
     const overlayNodes = [
       "#regional-dynamic-segment-layer .overlay-segment-group",
       "#regional-dynamic-hover-layer .map-impact-hover-foreground",
-      ".regional-map .map-impact-hover-foreground-layer .map-impact-hover-foreground",
-      ".regional-map .map-station-alert",
-      ".regional-map .map-station-alert-anchor > *",
+      "[data-system-map=regional] .map-impact-hover-foreground-layer .map-impact-hover-foreground",
+      "[data-system-map=regional] .map-station-alert",
+      "[data-system-map=regional] .map-station-alert-anchor > *",
     ].join(", ");
     const markMounted = () => page.evaluate((selector) => {
       document.querySelectorAll<SVGElement>(selector).forEach((node) => {
@@ -918,7 +918,7 @@ test("regional station names share the TTC raster hover glow and station selecti
   await expect(labelTarget).toHaveCount(1);
 
   await labelTarget.hover();
-  const rasterLabelHover = page.locator(".regional-map-stage .raster-station-label-text-hover");
+  const rasterLabelHover = page.locator("[data-system-map=regional] .map-stage .raster-station-label-text-hover");
   await expect(rasterLabelHover).toHaveCount(1);
   await expect(rasterLabelHover).toHaveCSS("transform", /matrix\(1\.035, 0, 0, 1\.035, 0, 0\)/);
   await expect(rasterLabelHover.locator("#regional-hovered-station-target-mask")).toHaveCount(1);
@@ -1124,7 +1124,7 @@ test("regional segment selections flash quickly then breathe", async ({ page, re
   // GO/UP draws TTC's selection emphasis (the shared overlay layer) in its
   // selected-alert layer, above every alert and below station artwork.
   const delayHitTarget = page.locator(
-    '.regional-map .map-segment-hit-target[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-delay"]',
+    '[data-system-map=regional] .map-segment-hit-target[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-delay"]',
   );
   await expect(delayHitTarget).toHaveCount(1);
   await delayHitTarget.dispatchEvent("click");
@@ -1133,7 +1133,7 @@ test("regional segment selections flash quickly then breathe", async ({ page, re
   ).first();
   await expect(selectedDelayGlow).toBeAttached();
 
-  await expect(page.locator(".regional-map")).toHaveAttribute(
+  await expect(page.locator("[data-system-map=regional]")).toHaveAttribute(
     "data-map-camera-moving",
     "true",
   );
@@ -1204,7 +1204,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(page.getByRole("button", { name: /^delay: .*Ajax to Whitby/ })).toBeAttached();
 
   const delayOverlay = page.locator(
-    '.regional-map .overlay-segment-group[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-delay"]',
+    '[data-system-map=regional] .overlay-segment-group[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-delay"]',
   );
   await expect(delayOverlay).toHaveCount(1);
   // Within each line, alerts paint by priority (the shared overlay layer).
@@ -1231,23 +1231,23 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(delayOverlay.locator('[data-glyph-lane] path[d="M -12 -10 L 8 0 L -12 10"]').first()).toBeAttached();
   // Station alerts come from the shared layer (TTC's design) in the top plane.
   const bloorAlert = page.locator(
-    '.regional-map .map-station-alert[data-map-impact-id="regional-demo-bloor-station-delay"]',
+    '[data-system-map=regional] .map-station-alert[data-map-impact-id="regional-demo-bloor-station-delay"]',
   );
   // Upcoming station-only planned closures also show (TTC's rule); count the rest.
-  await expect(page.locator('.regional-map .map-station-alert:not([data-map-impact-kind="planned-closure"])')).toHaveCount(1);
-  await expect(page.locator(".regional-map .station-impact-direction-glyph")).toHaveCount(1);
+  await expect(page.locator('[data-system-map=regional] .map-station-alert:not([data-map-impact-kind="planned-closure"])')).toHaveCount(1);
+  await expect(page.locator("[data-system-map=regional] .station-impact-direction-glyph")).toHaveCount(1);
   const bloorBeacon = bloorAlert.locator(
     '.map-station-alert-anchor[data-map-station-anchor-id="station-bloor-up"] .station-impact-dot-red-beacon',
   );
   await expect(bloorBeacon).toBeVisible();
   await expect(
-    page.locator(".regional-map .station-impact-direction-glyph .station-impact-direction-arrow"),
+    page.locator("[data-system-map=regional] .station-impact-direction-glyph .station-impact-direction-arrow"),
   ).toBeAttached();
   const [bloorDotBox, bloorBeaconBox, bloorArrowBox] = await Promise.all([
     page.locator("#station-bloor-up").boundingBox(),
     bloorBeacon.boundingBox(),
     page.locator(
-      '.regional-map .station-impact-direction-glyph[data-map-station-anchor-id="station-bloor-up"]',
+      '[data-system-map=regional] .station-impact-direction-glyph[data-map-station-anchor-id="station-bloor-up"]',
     ).boundingBox(),
   ]);
   expect(bloorDotBox).not.toBeNull();
@@ -1278,21 +1278,21 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await page.mouse.move(bloorImpactPoint.x, bloorImpactPoint.y);
   if (!isMobile) {
     const bloorHover = page.locator(
-      '.regional-map .station-impact-hover-priority[data-map-hover-impact-id="regional-demo-bloor-station-delay"]',
+      '[data-system-map=regional] .station-impact-hover-priority[data-map-hover-impact-id="regional-demo-bloor-station-delay"]',
     );
     await expect(bloorHover).toHaveAttribute("data-map-impact-hovered", "true");
     await expect(bloorHover).toHaveCSS("opacity", "1");
   }
 
   const plannedOverlay = page.locator(
-    '.regional-map .overlay-segment-group[data-map-impact-kind="planned-closure"][data-map-impact-id="regional-demo-planned"]',
+    '[data-system-map=regional] .overlay-segment-group[data-map-impact-kind="planned-closure"][data-map-impact-id="regional-demo-planned"]',
   );
   await expect(plannedOverlay).toHaveCount(1);
   // GO/UP draws the shared design at its rail's width: 196 units, TTC's 96 scaled.
   await expect(plannedOverlay.locator(".asset-alert-path.planned-preview")).toHaveCSS("stroke-width", "196px");
   await expect(delayOverlay.locator(".delay-static-base")).toHaveCSS("stroke-width", "196px");
   const suspensionOverlay = page.locator(
-    '.regional-map .overlay-segment-group[data-map-impact-kind="suspension"][data-map-impact-id="regional-demo-suspension"]',
+    '[data-system-map=regional] .overlay-segment-group[data-map-impact-kind="suspension"][data-map-impact-id="regional-demo-suspension"]',
   );
   await expect(suspensionOverlay).toHaveCount(1);
   // Glyph art is TTC's, scaled by GO/UP's overlay unit.
@@ -1303,7 +1303,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   const authoredRouteGap = await suspensionOverlay.locator("> .asset-alert-path").evaluate((overlay) => {
     if (!(overlay instanceof SVGPathElement)) return Number.POSITIVE_INFINITY;
     // The route is in the authored SVG; the overlay plane shares its view box.
-    const route = overlay.closest(".regional-map-stage")?.querySelector<SVGPathElement>(".regional-live-svg #regional-route-ki-path");
+    const route = overlay.closest("[data-system-map=regional] .map-stage")?.querySelector<SVGPathElement>(".map-authored-svg #regional-route-ki-path");
     if (!route) return Number.POSITIVE_INFINITY;
     const overlayLength = overlay.getTotalLength();
     const routeLength = route.getTotalLength();
@@ -1344,7 +1344,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
       marker.querySelector(".overlap-indicator-pill") ?? marker
     ).getBoundingClientRect().toJSON()));
   const visibleMapTextBoxes = await page.locator(
-    ".regional-map-stage .station-label-hit-target",
+    "[data-system-map=regional] .map-stage .station-label-hit-target",
   ).evaluateAll((labels) => labels.map((label) => label.getBoundingClientRect().toJSON()));
   expect(visibleMapTextBoxes.length).toBeGreaterThan(0);
   // The map runs under the docked sidebar; only badges a rider can see must clear the labels.
@@ -1421,11 +1421,11 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     '#regional-dynamic-hover-layer .map-impact-hover-foreground[data-map-hover-impact-id="regional-demo-planned"]',
   );
   const delayTopHoverForeground = page.locator(
-    '.regional-map .map-impact-hover-foreground-layer .map-impact-hover-foreground[data-map-hover-impact-id="regional-demo-delay"]',
+    '[data-system-map=regional] .map-impact-hover-foreground-layer .map-impact-hover-foreground[data-map-hover-impact-id="regional-demo-delay"]',
   );
   // Hovering an overlap badge outlines its whole group (fad18679) instead of
   // marking each alert hovered.
-  const groupPreview = page.locator(".regional-map .map-impact-preview-outline");
+  const groupPreview = page.locator("[data-system-map=regional] .map-impact-preview-outline");
   await expect(groupPreview).toHaveAttribute("data-map-preview-impacts", /delay:regional-demo-delay/);
   await expect(groupPreview).toHaveAttribute("data-map-preview-impacts", /planned-closure:regional-demo-planned/);
   await expect(page.locator("#regional-dynamic-hover-layer .map-segment-hit-target")).toHaveCount(0);
@@ -1465,7 +1465,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(delayEmphasis).toBeAttached();
   await expect(delayOverlay.locator(".interactive-glow.selected")).toHaveCount(1);
 
-  const delayTarget = page.locator('.regional-map .map-segment-hit-target[data-map-impact-id="regional-demo-delay"]');
+  const delayTarget = page.locator('[data-system-map=regional] .map-segment-hit-target[data-map-impact-id="regional-demo-delay"]');
   await delayTarget.dispatchEvent("click");
   await expect(delayEmphasis).toBeAttached();
   expect(await delayOverlay.evaluate((delay, plannedSelector) => {
@@ -1473,10 +1473,10 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     return planned
       ? Boolean(planned.compareDocumentPosition(delay) & Node.DOCUMENT_POSITION_FOLLOWING)
       : false;
-  }, '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-planned"]')).toBe(true);
+  }, '[data-system-map=regional] .overlay-segment-group[data-map-impact-id="regional-demo-planned"]')).toBe(true);
 
   const lwCorridorOverlay = page.locator(
-    '.regional-map .overlay-segment-group[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-lw-corridor-delay"]',
+    '[data-system-map=regional] .overlay-segment-group[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-lw-corridor-delay"]',
   );
   await expect(lwCorridorOverlay).toHaveCount(1);
   await expect(lwCorridorOverlay).toHaveClass(/connected-corridor/);
@@ -1488,7 +1488,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   expect((lwCorridorPaths[0].match(/\bM\b/g) ?? []).length).toBe(2);
   // Outline masks extend past the corridor's west end at West Harbour.
   const lwHoverMaskX = await page.locator(
-    '.regional-map .map-impact-hover-foreground[data-map-hover-impact-id="regional-demo-lw-corridor-delay"] mask',
+    '[data-system-map=regional] .map-impact-hover-foreground[data-map-hover-impact-id="regional-demo-lw-corridor-delay"] mask',
   ).first().getAttribute("x");
   expect(Number(lwHoverMaskX)).toBeLessThan(-330);
   const delayHoverPoint = await delayTarget.evaluate((path) => {
@@ -1583,7 +1583,7 @@ test("regional corridor hover encloses the entire referenced impact", async ({ p
 
   // One target covers the whole corridor alert (TTC's model); focus, hover
   // and selection all outline the entire alert.
-  const target = page.locator('.regional-map .map-segment-hit-target[data-map-impact-id="regional-demo-lw-corridor-delay"]');
+  const target = page.locator('[data-system-map=regional] .map-segment-hit-target[data-map-impact-id="regional-demo-lw-corridor-delay"]');
   const hoverForeground = page.locator(
     '#regional-dynamic-hover-layer .map-impact-hover-foreground[data-map-hover-impact-id="regional-demo-lw-corridor-delay"]',
   );
@@ -1627,9 +1627,9 @@ test("a press on a GO/UP line alert reaches its target and selects it", async ({
 
   // A visible point on any line alert, where that alert's target is on top.
   const pressPoint = await page.evaluate(() => {
-    const viewport = document.querySelector(".regional-map-viewport")!;
+    const viewport = document.querySelector("[data-system-map=regional] .system-map-viewport")!;
     // Planned closures first: their tubes are the ones riders press most.
-    const targets = [...document.querySelectorAll<SVGPathElement>(".regional-map .map-segment-hit-target")]
+    const targets = [...document.querySelectorAll<SVGPathElement>("[data-system-map=regional] .map-segment-hit-target")]
       .sort((a, b) => Number(b.dataset.mapImpactKind === "planned-closure") - Number(a.dataset.mapImpactKind === "planned-closure"));
     for (const path of targets) {
       for (let step = 1; step < 20; step += 1) {
@@ -1675,7 +1675,7 @@ test("selecting a hovered regional station preserves distinct overlays", async (
   await waitForNetworkTransition(page, "regional");
   const station = page.locator('.station-hit-target[data-station-id="pickering"]');
   await station.focus();
-  await expect(page.locator('.regional-map-stage .raster-station-label-text-hover')).toHaveCount(1);
+  await expect(page.locator('[data-system-map=regional] .map-stage .raster-station-label-text-hover')).toHaveCount(1);
   await station.press("Enter");
   await expect(page.getByRole("complementary", { name: "Pickering regional station details" })).toBeVisible();
   await expect(page.locator('.station-selection-flash[data-map-selected-station-id]')).toHaveCount(1);
@@ -1732,14 +1732,14 @@ test("focuses a station-only regional planned closure on the map", async ({ page
   await page.locator('[data-dest="closures"]').click();
 
   const card = page.locator('[data-impact-card-id="regional-station-only-planned"]');
-  const mapStage = page.locator(".regional-map-stage");
+  const mapStage = page.locator("[data-system-map=regional] .map-stage");
   const initialTransform = await mapStage.getAttribute("style");
   const mapButton = card.getByRole("button", { name: "View Pickering station construction on map" });
   await mapButton.click();
 
   // A station-only planned closure is a shared station alert (TTC's design).
   const marker = page.locator(
-    '.regional-map .map-station-alert[data-map-impact-kind="planned-closure"][data-map-impact-id="regional-station-only-planned"][data-map-station-id="pickering"] .station-impact-ring',
+    '[data-system-map=regional] .map-station-alert[data-map-impact-kind="planned-closure"][data-map-impact-id="regional-station-only-planned"][data-map-station-id="pickering"] .station-impact-ring',
   );
   await expect(marker).toHaveClass(/\bselected\b/);
   await expect(marker).toBeVisible();
@@ -1751,7 +1751,7 @@ test("focuses a station-only regional planned closure on the map", async ({ page
   if (await expandSidebar.isVisible()) await expandSidebar.click();
   await expect(marker).toHaveClass(/\bselected\b/);
 
-  const viewport = page.locator(".regional-map-viewport");
+  const viewport = page.locator("[data-system-map=regional] .system-map-viewport");
   await viewport.dispatchEvent("pointerdown", { pointerId: 91, pointerType: "mouse", button: 0, clientX: 12, clientY: 12 });
   await viewport.dispatchEvent("pointerup", { pointerId: 91, pointerType: "mouse", button: 0, clientX: 12, clientY: 12 });
   await expect(marker).not.toHaveClass(/\bselected\b/);
@@ -1776,7 +1776,7 @@ test("keeps transformed regional junction selection aligned with its station dot
   );
   await expect(bloorTopSelection).toBeVisible();
   await expect(page.locator(".station-selection-flash[data-map-selected-station-id]")).toHaveCount(1);
-  await expect(page.locator(".regional-map")).toHaveAttribute(
+  await expect(page.locator("[data-system-map=regional]")).toHaveAttribute(
     "data-map-camera-moving",
     "true",
   );
@@ -1891,7 +1891,7 @@ test("advances a timed regional marker toward its next station between polls", a
     const [, x, y] = /translate\((-?[\d.]+)\s+(-?[\d.]+)\)/.exec(transform) ?? [];
     // Screen distance to Weston, the station it is heading for.
     const toWeston = await marker.evaluate((node) => {
-      const station = document.querySelector(".regional-live-svg #station-weston");
+      const station = document.querySelector("[data-system-map=regional] .map-stage .map-authored-svg #station-weston");
       if (!station) return Number.NaN;
       const a = node.getBoundingClientRect();
       const b = station.getBoundingClientRect();
@@ -1914,12 +1914,12 @@ test("renders regional estimated train markers from the network-scoped endpoint"
   const networkSelector = page.getByRole("group", { name: "Select transit network" });
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
-  await expect(page.locator(".regional-estimated-train-marker-layer")).toBeAttached();
-  await expect(page.locator(".regional-estimated-train-marker-layer .estimated-train-marker")).toHaveCount(0);
+  await expect(page.locator("#regional-train-marker-layer")).toBeAttached();
+  await expect(page.locator("#regional-train-marker-layer .estimated-train-marker")).toHaveCount(0);
 
   await estimatedTrainToggle(page).click();
 
-  await expect(page.locator(".regional-estimated-train-marker-layer")).toBeAttached();
+  await expect(page.locator("#regional-train-marker-layer")).toBeAttached();
   const marker = page.locator('[data-marker-key="regional-ki:vehicle:cab-3775"]');
   await expect(page.locator(".estimated-train-marker-regional-ki")).toHaveCount(1);
   await expect(marker).toBeAttached();
@@ -1940,7 +1940,7 @@ test("renders regional estimated train markers from the network-scoped endpoint"
   const upMarkers = page.locator('[data-train-marker-line-id="regional-up"]');
   await expect(upMarkers).toHaveCount(4);
   const regionalMarkerCenterlineDeviations = await page.locator(
-    '.regional-estimated-train-marker-layer .estimated-train-marker',
+    '#regional-train-marker-layer .estimated-train-marker',
   ).evaluateAll((markers) => {
     const airportSegments = new Set([
       "segment-up-mount-dennis-weston",
@@ -2010,7 +2010,7 @@ test("renders regional estimated train markers from the network-scoped endpoint"
     ).toBeLessThan(1);
   }
 
-  const disruptionOverlay = page.locator(".regional-map .overlay-segment-group").first();
+  const disruptionOverlay = page.locator("[data-system-map=regional] .overlay-segment-group").first();
   await expect(disruptionOverlay).toBeAttached();
   const originalDisruptionOverlay = await disruptionOverlay.elementHandle();
   expect(originalDisruptionOverlay).not.toBeNull();
@@ -2297,7 +2297,7 @@ test("affected segment targets distinguish dragging from selection", async ({ pa
   await expect(target).toHaveCSS("stroke-width", isMobile ? "144px" : "96px");
   await page.waitForTimeout(900);
 
-  const mapElement = page.locator(".ttc-map-stage").first();
+  const mapElement = page.locator("[data-system-map=ttc] .map-stage").first();
   const initialTransform = await mapElement.evaluate((element) => element.style.transform);
   const start = await target.evaluate((element) => {
     const path = element as SVGPathElement;
@@ -2311,7 +2311,7 @@ test("affected segment targets distinguish dragging from selection", async ({ pa
   });
 
   if (isMobile) {
-    const viewport = page.locator(".touch-none").first();
+    const viewport = page.locator("[data-system-map=ttc] .system-map-viewport");
     await target.dispatchEvent("pointerdown", {
       pointerId: 1,
       pointerType: "touch",
@@ -2465,7 +2465,7 @@ test("mobile closing station details preserves the focused map camera", async ({
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  const mapLayer = page.locator(".ttc-map-stage").first();
+  const mapLayer = page.locator("[data-system-map=ttc] .map-stage").first();
   const defaultTransform = await mapLayer.evaluate((element) => element.style.transform);
 
   await page.getByRole("button", { name: "Stub Station station details" }).press("Enter");
@@ -2492,9 +2492,9 @@ test("desktop TTC station focus keeps one camera target while the SVG settles", 
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  const viewport = page.locator("[data-map-pan-zoom-viewport]");
-  const mapStage = viewport.locator(".ttc-map-stage");
-  const authoredMap = mapStage.locator(".ttc-svg-container > svg");
+  const viewport = page.locator("[data-system-map=ttc] .system-map-viewport");
+  const mapStage = viewport.locator(".map-stage");
+  const authoredMap = mapStage.locator(".map-authored-svg > svg");
   await expect(mapStage).toHaveCSS("width", "4500px");
   await expect(mapStage).toHaveCSS("height", "2181.8px");
   await authoredMap.evaluate((element) => {
@@ -2506,7 +2506,7 @@ test("desktop TTC station focus keeps one camera target while the SVG settles", 
   const zoomedTransform = await mapStage.evaluate((element) => (element as HTMLElement).style.transform);
 
   await page.getByRole("button", { name: "Stub Station station details" }).dispatchEvent("click");
-  await expect(viewport).toHaveAttribute("data-map-camera-moving", "true");
+  await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute("data-map-camera-moving", "true");
   await expect.poll(
     () => mapStage.evaluate((element) => (element as HTMLElement).style.transform),
   ).not.toBe(zoomedTransform);
@@ -2528,7 +2528,7 @@ test("desktop TTC station focus keeps one camera target while the SVG settles", 
 
   await page.waitForTimeout(160);
   expect(await mapStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(focusTarget);
-  await expect(viewport).toHaveAttribute("data-map-camera-moving", "false", { timeout: 2_000 });
+  await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute("data-map-camera-moving", "false", { timeout: 2_000 });
   expect(await mapStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(focusTarget);
   await expect(authoredMap).toHaveAttribute("data-camera-test-identity", "stable-authored-map");
   await expect(authoredMap).toHaveCSS("shape-rendering", "geometricprecision");
@@ -2541,14 +2541,14 @@ test("desktop TTC overlay press arms the camera before the next frame", async ({
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  const viewport = page.locator("[data-map-pan-zoom-viewport]");
+  const viewport = page.locator("[data-system-map=ttc] .system-map-viewport");
   const target = page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" });
   await expect(target).toBeVisible();
-  await expect(viewport).toHaveAttribute("data-map-camera-moving", "false", { timeout: 2_000 });
+  await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute("data-map-camera-moving", "false", { timeout: 2_000 });
 
   await page.evaluate(() => {
-    const viewportElement = document.querySelector<HTMLElement>("[data-map-pan-zoom-viewport]");
-    const mapStage = document.querySelector<HTMLElement>(".ttc-map-stage");
+    const viewportElement = document.querySelector<HTMLElement>("[data-system-map=ttc] .system-map-viewport");
+    const mapStage = document.querySelector<HTMLElement>("[data-system-map=ttc] .map-stage");
     const overlayTarget = document.querySelector<SVGPathElement>(
       '[aria-label="delay: Sheppard-Yonge to Don Mills"]',
     );
@@ -2574,7 +2574,7 @@ test("desktop TTC overlay press arms the camera before the next frame", async ({
 
   await target.dispatchEvent("click");
   await expect(viewport).toHaveAttribute("data-camera-armed-before-next-frame", "true");
-  await expect(viewport).toHaveAttribute("data-map-camera-moving", "true");
+  await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute("data-map-camera-moving", "true");
   const selectedOverlay = page.locator('[data-selected-impact-emphasis="stub-delay-line-4"]');
   await expect(selectedOverlay).toBeAttached();
   expect(await selectedOverlay.evaluate(
@@ -2592,8 +2592,8 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
   await page.waitForTimeout(900);
 
-  const viewport = page.locator("[data-map-pan-zoom-viewport]");
-  const authoredMap = viewport.locator(".ttc-svg-container > svg");
+  const viewport = page.locator("[data-system-map=ttc] .system-map-viewport");
+  const authoredMap = viewport.locator(".map-authored-svg > svg");
   const authoredTrack = viewport.locator("#ttc-tracks-layer path").first();
   const stationGlow = page.locator(".station-impact-dot-red-glow").first();
   const plannedPath = page.locator(".overlay-segment-group .asset-alert-path.planned-preview").first();
@@ -2641,8 +2641,8 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
     );
     if (!zoomGlow) throw new Error("Missing TTC station glow");
     return {
-      zoomActive: root.dataset.mapZoomActive,
-      cameraMoving: root.dataset.mapCameraMoving,
+      zoomActive: root.closest<HTMLElement>(".system-map")!.dataset.mapZoomActive,
+      cameraMoving: root.closest<HTMLElement>(".system-map")!.dataset.mapCameraMoving,
       glowFilter: getComputedStyle(zoomGlow).filter,
     };
   });
@@ -2651,15 +2651,15 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
     cameraMoving: "false",
     glowFilter: "none",
   });
-  await expect(viewport).toHaveAttribute("data-map-zoom-active", "false");
+  await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute("data-map-zoom-active", "false");
   expect(await stationGlow.evaluate((element) => getComputedStyle(element).filter)).toContain("drop-shadow");
 
   const ttcRecenterPaint = await page.getByRole("button", { name: "Center map view" }).evaluate((button) => {
     (button as HTMLElement).click();
-    const root = document.querySelector<HTMLElement>("[data-map-pan-zoom-viewport]");
-    const stage = root?.querySelector<HTMLElement>(".ttc-map-stage");
+    const root = document.querySelector<HTMLElement>("[data-system-map=ttc] .system-map-viewport");
+    const stage = root?.querySelector<HTMLElement>("[data-system-map=ttc] .map-stage");
     return {
-      cameraMoving: root?.dataset.mapCameraMoving,
+      cameraMoving: root?.closest<HTMLElement>(".system-map")?.dataset.mapCameraMoving,
       transitionDuration: stage ? getComputedStyle(stage).transitionDuration : null,
       stageOpacity: stage ? getComputedStyle(stage).opacity : null,
       stageWillChange: stage ? getComputedStyle(stage).willChange : null,
@@ -2678,7 +2678,7 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
   await expect(authoredMap).toHaveCSS("shape-rendering", "geometricprecision");
   await expect(authoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
   expect(await stationGlow.evaluate((element) => getComputedStyle(element).filter)).toContain("drop-shadow");
-  await expect(viewport).toHaveAttribute("data-map-camera-moving", "false");
+  await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute("data-map-camera-moving", "false");
   expect(await stationGlow.evaluate((element) => getComputedStyle(element).filter)).toContain("drop-shadow");
 
   await setStubMode(request, "regional-live");
@@ -2686,9 +2686,9 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
 
-  const regionalMap = page.locator(".regional-map");
-  const regionalViewport = regionalMap.locator(".regional-map-viewport");
-  const regionalMapStage = regionalMap.locator(".regional-map-stage");
+  const regionalMap = page.locator("[data-system-map=regional]");
+  const regionalViewport = regionalMap.locator(".system-map-viewport");
+  const regionalMapStage = regionalMap.locator(".map-stage");
   const regionalAuthoredMap = regionalMapStage.locator(":scope > div > svg");
   const regionalAuthoredTrack = regionalMapStage.locator("#regional-route-lw-main-path");
   const regionalGlow = regionalMap.locator(
@@ -2741,10 +2741,10 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   const regionalZoomPaint = await regionalMap.evaluate((root) => {
     const zoomGlow = root.querySelector<SVGElement>(
-      '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-delay"] .asset-alert-path-glow:not(.interactive-glow)',
+      '[data-system-map=regional] .overlay-segment-group[data-map-impact-id="regional-demo-delay"] .asset-alert-path-glow:not(.interactive-glow)',
     );
     const zoomPlannedPath = root.querySelector<SVGElement>(
-      '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-planned"] > .asset-alert-path',
+      '[data-system-map=regional] .overlay-segment-group[data-map-impact-id="regional-demo-planned"] > .asset-alert-path',
     );
     if (!zoomGlow || !zoomPlannedPath) throw new Error("Missing regional zoom overlays");
     return {
@@ -2766,10 +2766,10 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
   expect(Number(await regionalGlow.evaluate((element) => getComputedStyle(element).opacity))).toBeGreaterThan(0);
 
   const regionalRecenterPaint = await page.getByRole("button", { name: "Center map view" }).evaluate(async (button) => {
-    const root = document.querySelector<HTMLElement>(".regional-map");
-    const stage = root?.querySelector<HTMLElement>(".regional-map-stage");
+    const root = document.querySelector<HTMLElement>("[data-system-map=regional]");
+    const stage = root?.querySelector<HTMLElement>("[data-system-map=regional] .map-stage");
     // The toolbar renders through the shared rail, outside the map root.
-    const zoomIn = document.querySelector<HTMLButtonElement>('.regional-map-control-rail button[aria-label="Zoom in"]');
+    const zoomIn = document.querySelector<HTMLButtonElement>('.map-control-rail button[aria-label="Zoom in"]');
     if (!stage || !zoomIn) throw new Error("Missing regional Center regression controls");
 
     const cycles: Array<{
@@ -2793,7 +2793,7 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
     }
 
     return {
-      cameraMoving: root?.dataset.mapCameraMoving,
+      cameraMoving: root?.closest<HTMLElement>(".system-map")?.dataset.mapCameraMoving,
       transitionDuration: stage ? getComputedStyle(stage).transitionDuration : null,
       stageWillChange: stage ? getComputedStyle(stage).willChange : null,
       recenterLayerCount: root?.querySelectorAll(".regional-map-recenter-veil").length ?? -1,
@@ -2834,7 +2834,7 @@ test("disruption rails stay static across TTC and regional maps", async ({ page,
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
   await page.waitForTimeout(900);
 
-  const ttcPulse = await page.locator('g[aria-label="Disruption overlays"]').evaluate((root) => {
+  const ttcPulse = await page.locator('#ttc-dynamic-segment-layer').evaluate((root) => {
     const planned = root.querySelector<SVGPathElement>(
       '.overlay-segment-group[data-map-impact-id="stub-active-closure-child-line-1"] .asset-alert-path.suspension-candy',
     );
@@ -2877,12 +2877,12 @@ test("disruption rails stay static across TTC and regional maps", async ({ page,
     .click();
   await waitForNetworkTransition(page, "regional");
 
-  const regionalRails = await page.locator(".regional-map").evaluate((root) => {
+  const regionalRails = await page.locator("[data-system-map=regional]").evaluate((root) => {
     const delay = root.querySelector<SVGPathElement>(
-      '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-delay"] > .asset-alert-path',
+      '[data-system-map=regional] .overlay-segment-group[data-map-impact-id="regional-demo-delay"] > .asset-alert-path',
     );
     const planned = root.querySelector<SVGPathElement>(
-      '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-planned"] > .asset-alert-path',
+      '[data-system-map=regional] .overlay-segment-group[data-map-impact-id="regional-demo-planned"] > .asset-alert-path',
     );
     if (!delay || !planned) throw new Error("Missing overlapping regional delay and planned-closure rails");
     return {
@@ -2902,9 +2902,9 @@ test("paints current delays above planned closures on both maps", async ({ page,
   test.skip(isMobile, "desktop SVG painter-order verification");
   await setStubMode(request, "map-authoritative-overlap");
   await page.goto("/");
-  await expect(page.getByTitle("Center view")).toBeVisible();
+  await expect(page.getByTitle("Center map view")).toBeVisible();
 
-  const ttcOverlays = page.locator('g[aria-label="Disruption overlays"]');
+  const ttcOverlays = page.locator('#ttc-dynamic-segment-layer');
   await expect(ttcOverlays.locator('.overlay-segment-group[data-map-impact-id="stub-upcoming-closure-line-1"]'))
     .toHaveCount(1);
   await expect(ttcOverlays.locator('.overlay-segment-group[data-map-impact-id="stub-delay-line-1-overlap"]'))
@@ -2925,7 +2925,7 @@ test("paints current delays above planned closures on both maps", async ({ page,
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
 
-  const regionalMap = page.locator(".regional-map");
+  const regionalMap = page.locator("[data-system-map=regional]");
   await expect(regionalMap.locator(
     '.overlay-segment-group[data-map-impact-id="regional-demo-planned"]',
   )).toHaveCount(1);
@@ -2934,10 +2934,10 @@ test("paints current delays above planned closures on both maps", async ({ page,
   )).toHaveCount(1);
   const regionalDelayPaintsAfterPlanned = await regionalMap.evaluate((root) => {
     const planned = root.querySelector(
-      '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-planned"]',
+      '[data-system-map=regional] .overlay-segment-group[data-map-impact-id="regional-demo-planned"]',
     );
     const delay = root.querySelector(
-      '.regional-map .overlay-segment-group[data-map-impact-id="regional-demo-delay"]',
+      '[data-system-map=regional] .overlay-segment-group[data-map-impact-id="regional-demo-delay"]',
     );
     if (!planned || !delay) return false;
     return Boolean(planned.compareDocumentPosition(delay) & Node.DOCUMENT_POSITION_FOLLOWING);
@@ -2949,13 +2949,13 @@ test("mobile View on Map from a delay submenu centers the affected section", asy
   test.skip(!isMobile, "mobile-only submenu camera behavior");
   await setStubMode(request, "seeded");
   await page.goto("/");
-  await expect(page.locator('.ttc-map-stage[data-raster-map-ready="true"]')).toBeVisible();
+  await expect(page.locator('[data-system-map=ttc] .map-stage[data-raster-map-ready="true"]')).toBeVisible();
   await openServiceCategory(page, isMobile, /^Delays/);
   await page.locator('.alert-card').filter({ hasText: 'Sheppard-Yonge' })
     .getByRole('button', { name: /^View .* on map$/ }).click();
   await expect(page.locator('[data-mobile-impact-inspector]')).toBeVisible();
   await page.waitForTimeout(700);
-  const geometry = await page.locator('[data-map-pan-zoom-viewport]').evaluate((viewport) => {
+  const geometry = await page.locator('[data-system-map=ttc] .system-map-viewport').evaluate((viewport) => {
     const target = viewport.querySelector('[data-selected-impact-emphasis]');
     if (!target) throw new Error('Missing selected impact');
     // Phones frame the selection in the map left visible between the top
@@ -2986,7 +2986,7 @@ test("mobile closing impact details preserves the focused map camera", async ({ 
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  const mapLayer = page.locator(".ttc-map-stage").first();
+  const mapLayer = page.locator("[data-system-map=ttc] .map-stage").first();
   const defaultTransform = await mapLayer.evaluate((element) => element.style.transform);
 
   await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" }).dispatchEvent("click");
@@ -2996,7 +2996,7 @@ test("mobile closing impact details preserves the focused map camera", async ({ 
     .poll(async () => mapLayer.evaluate((element) => element.style.transform))
     .not.toBe(defaultTransform);
 
-  await expect(page.locator("[data-map-pan-zoom-viewport]"))
+  await expect(page.locator("[data-system-map=ttc]"))
     .toHaveAttribute("data-map-camera-moving", "false");
 
   const focusedTransform = await mapLayer.evaluate((element) => element.style.transform);
@@ -3033,7 +3033,7 @@ test("desktop closing station details preserves the focused map camera", async (
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  const mapLayer = page.locator(".ttc-map-stage").first();
+  const mapLayer = page.locator("[data-system-map=ttc] .map-stage").first();
   const defaultTransform = await mapLayer.evaluate((element) => element.style.transform);
 
   await page.getByRole("button", { name: "Stub Station station details" }).press("Enter");
@@ -3059,7 +3059,7 @@ test("desktop closing impact details preserves the focused map camera", async ({
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  const mapLayer = page.locator(".ttc-map-stage").first();
+  const mapLayer = page.locator("[data-system-map=ttc] .map-stage").first();
   const defaultTransform = await mapLayer.evaluate((element) => element.style.transform);
 
   await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" }).click();
@@ -3103,7 +3103,7 @@ test("mobile rotated map mode keeps station and impact selections in the rotated
   expect(mainDimensions.clientHeight).toBeGreaterThan(mainDimensions.clientWidth);
   expect(mainDimensions.visualHeight).toBeGreaterThan(mainDimensions.visualWidth);
   expect(mainDimensions.transform).toBe("none");
-  const rotatedStageMatrix = await page.locator(".ttc-map-stage").evaluate((element) => {
+  const rotatedStageMatrix = await page.locator("[data-system-map=ttc] .map-stage").evaluate((element) => {
     const matrix = new DOMMatrixReadOnly(getComputedStyle(element).transform);
     return { a: matrix.a, b: matrix.b };
   });
@@ -3134,7 +3134,7 @@ test("mobile rotated map mode keeps station and impact selections in the rotated
   await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Selected Service Impact");
   await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Sheppard-Yonge");
 
-  const rotatedMapLayer = page.locator(".ttc-map-stage").first();
+  const rotatedMapLayer = page.locator("[data-system-map=ttc] .map-stage").first();
   const rotatedFocusedTransform = await rotatedMapLayer.evaluate((element) => element.style.transform);
   await page.locator("[data-rotated-map-selection-card]").getByRole("button", { name: "Clear selected map item" }).click();
   await expect(page.locator("[data-rotated-map-selection-card]")).toHaveCount(0);
@@ -3786,7 +3786,7 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   }
   await expectChooserToClearUiKeepouts(page);
   if (!isMobile) {
-    const viewport = page.locator("[data-map-pan-zoom-viewport]");
+    const viewport = page.locator("[data-system-map=ttc] .system-map-viewport");
     const viewportBox = await viewport.boundingBox();
     expect(viewportBox).not.toBeNull();
     if (viewportBox) {
@@ -3867,7 +3867,7 @@ test("opens the overlap chooser after completed and cancelled map gestures", asy
 
   const overlapMarker = page.locator('[data-overlap-segment-id="stub-line-1-segment"]');
   const overlapChooser = page.locator("[data-overlap-chooser]");
-  const viewport = page.locator("[data-map-pan-zoom-viewport]");
+  const viewport = page.locator("[data-system-map=ttc] .system-map-viewport");
   await expect(overlapMarker).toBeVisible();
   await expect(viewport).toBeVisible();
 
@@ -4020,45 +4020,45 @@ test("station names share hover and selection behavior with station dots", async
 
   await expect(page.locator("[data-station-label-id]")).toHaveCount(109);
   await expect(page.locator("[data-station-id]")).toHaveCount(109);
-  const labelTarget = page.locator('[data-station-label-id="kipling"]');
+  // GO/UP also has a Kipling; these are TTC's.
+  const labelTarget = page.locator('[data-system-map=ttc] .map-stage [data-station-label-id="kipling"]');
   await expect(labelTarget).toHaveCount(1);
 
   if (!isMobile) {
     // Kipling sits under the docked sidebar; collapsing it leaves the camera alone.
     await page.getByRole("button", { name: "Collapse sidebar" }).click();
     await expect(page.locator("#desktop-sidebar-container")).toHaveClass(/desktop-sidebar-container--collapsed/);
+    // The lifted name is a raster copy over the map, masked by its authored
+    // label; the authored labels themselves never change.
     const authoredLabel = page.locator('[data-station-label-for="kipling"]');
-    const hoverEffect = authoredLabel.locator("..");
     await expect.poll(async () => authoredLabel.evaluate((element) => getComputedStyle(element).fontSize))
       .not.toBe("");
     const authoredFontSize = await authoredLabel.evaluate((element) => getComputedStyle(element).fontSize);
+    const hoverCopy = page.locator("[data-system-map=ttc] .map-stage .raster-station-label-text-hover");
     // The label sits in an animated map layer, so skip the stability wait.
     await labelTarget.hover({ force: true });
-    await expect(authoredLabel).toHaveClass(/station-label-hovered/);
-    const pressedLabel = page.locator(".ttc-map-stage .raster-station-label-text-hover");
+    await expect(hoverCopy).toHaveAttribute("data-hover-active", "true");
+    await expect(hoverCopy.locator("use")).toHaveAttribute("href", "#station-label-kipling");
     await page.mouse.down();
-    await expect(pressedLabel).toBeVisible();
-    await expect(pressedLabel).toHaveCSS("transform", /matrix\(0\.985, 0, 0, 0\.985, 0, 0\)/);
+    await expect(hoverCopy).toBeVisible();
+    await expect(hoverCopy).toHaveCSS("transform", /matrix\(0\.985, 0, 0, 0\.985, 0, 0\)/);
     await page.mouse.up();
     await labelTarget.hover({ force: true });
 
-    await expect(hoverEffect).toHaveCSS("transition-duration", "0.12s, 0.12s");
-    await expect(hoverEffect).toHaveCSS("transition-delay", "0s, 0s");
-    await expect(hoverEffect).toHaveCSS("animation-name", "none");
+    await expect(hoverCopy).toHaveCSS("transition-duration", "0.12s, 0.12s");
     await expect(authoredLabel).toHaveCSS("font-size", authoredFontSize);
-    await expect(page.locator('[data-station-hover-id="kipling"]')).not.toHaveClass(/active/);
+    await expect(authoredLabel).not.toHaveClass(/station-label-hovered/);
+    await expect(page.locator('[data-system-map=ttc] .map-stage [data-station-hover-id="kipling"]')).not.toHaveClass(/active/);
     await expect(labelTarget).toHaveCSS("outline-style", "none");
 
     const angledLabel = page.locator('[data-station-label-for="islington"]');
-    const angledLabelTarget = page.locator('[data-station-label-id="islington"]');
+    const angledLabelTarget = page.locator('[data-system-map=ttc] .map-stage [data-station-label-id="islington"]');
     const authoredAngledTransform = await angledLabel.getAttribute("transform");
     await angledLabelTarget.hover();
-    await expect(angledLabel).toHaveClass(/station-label-hovered/);
+    await expect(hoverCopy.locator("use")).toHaveAttribute("href", "#station-label-islington");
     await expect(angledLabel).toHaveAttribute("transform", authoredAngledTransform ?? "");
-    await page.locator('[data-station-label-id="royal-york"]').hover();
-    await expect(authoredLabel).not.toHaveClass(/station-label-hovered/);
-    await expect(hoverEffect).toHaveCSS("animation-name", "none");
-    await expect(hoverEffect).toHaveCSS("opacity", "1");
+    await page.locator('[data-system-map=ttc] .map-stage [data-station-label-id="royal-york"]').hover();
+    await expect(hoverCopy.locator("use")).toHaveAttribute("href", "#station-label-royal-york");
   }
 
   // Kipling starts off screen on phones, so dispatch the tap there.
@@ -4341,7 +4341,7 @@ test("mobile GO and UP map uses the rotated logical landscape viewport", async (
 
   await page.getByRole("button", { name: "Rotate map" }).click();
   const shell = page.locator(".linewatch-shell");
-  const regionalViewport = page.locator(".regional-map-viewport");
+  const regionalViewport = page.locator("[data-system-map=regional] .system-map-viewport");
   await expect(shell).toHaveClass(/mobile-map-rotated/);
   await expect(regionalViewport).toHaveAttribute("data-map-viewport-orientation", "rotated-landscape");
   await expect(page.getByRole("button", { name: "Exit rotated map" })).toBeVisible();
@@ -4355,7 +4355,7 @@ test("mobile GO and UP map uses the rotated logical landscape viewport", async (
   }));
   expect(dimensions.clientHeight).toBeGreaterThan(dimensions.clientWidth);
   expect(dimensions.visualHeight).toBeGreaterThan(dimensions.visualWidth);
-  const rotatedStageMatrix = await page.locator(".regional-map-stage").evaluate((element) => {
+  const rotatedStageMatrix = await page.locator("[data-system-map=regional] .map-stage").evaluate((element) => {
     const matrix = new DOMMatrixReadOnly(getComputedStyle(element).transform);
     return { a: matrix.a, b: matrix.b };
   });
@@ -4531,13 +4531,13 @@ test("drag after focus zoom cancels animation and retains transform", async ({ p
   await page.waitForTimeout(100); // let it start animating
 
   // Locate the map wrapper
-  const mapElement = page.locator(".ttc-map-stage").first();
+  const mapElement = page.locator("[data-system-map=ttc] .map-stage").first();
 
   // Get initial transform style
   const initialTransform = await mapElement.evaluate((el) => el.style.transform);
 
   // Drag the map slightly
-  const viewport = page.locator("[data-map-pan-zoom-viewport]").first();
+  const viewport = page.locator("[data-system-map=ttc] .system-map-viewport").first();
   const dragBox = await viewport.boundingBox();
   expect(dragBox).not.toBeNull();
 
@@ -4563,13 +4563,13 @@ test("desktop wheel zoom keeps the main-map compositor topology and updates smoo
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
   const mapSurface = page.locator(".network-map-transition-surface");
-  const mapElement = mapSurface.locator(".ttc-map-stage");
-  const viewport = mapSurface.locator(".cursor-grab").first();
+  const mapElement = mapSurface.locator("[data-system-map=ttc] .map-stage");
+  const viewport = mapSurface.locator(".system-map-viewport").first();
   const viewportBox = await viewport.boundingBox();
   expect(viewportBox).not.toBeNull();
 
-  await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(1);
-  await expect(mapSurface.locator(".regional-map")).toHaveCount(0);
+  await expect(mapSurface.locator("[data-system-map=ttc] .map-stage .map-authored-svg")).toHaveCount(1);
+  await expect(mapSurface.locator("[data-system-map=regional]")).toHaveCount(0);
   await expect(mapSurface).toHaveCSS("view-transition-name", "none");
 
   await page.mouse.move(
@@ -4777,7 +4777,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
       return Boolean(routePath && (routePath.compareDocumentPosition(overlay) & Node.DOCUMENT_POSITION_FOLLOWING));
     }),
   ).toBe(true);
-  await expect(page.locator("[data-map-pan-zoom-viewport]")).toHaveAttribute(
+  await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute(
     "data-map-camera-moving",
     "false",
     { timeout: 2_000 },
@@ -5040,7 +5040,7 @@ test("saved commute View on Map transitions cleanly across network modes and pan
     await page.goto("/");
     await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
     await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
-    await expect(page.locator(".regional-map-stage")).toBeVisible();
+    await expect(page.locator("[data-system-map=regional] .map-stage")).toBeVisible();
     await page.getByRole("button", { name: "More", exact: true }).click();
     await page.getByRole("button", { name: "Demo Account" }).click();
     await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
@@ -5048,7 +5048,7 @@ test("saved commute View on Map transitions cleanly across network modes and pan
     await page.goto("/");
     await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
     await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
-    await expect(page.locator(".regional-map-stage")).toBeVisible();
+    await expect(page.locator("[data-system-map=regional] .map-stage")).toBeVisible();
     await openDashboardMenu(page, isMobile);
     await signInDesktopDemoAccount(page);
     await openDesktopDestination(page, "commutes");
@@ -5062,19 +5062,19 @@ test("saved commute View on Map transitions cleanly across network modes and pan
   await viewImpactBtn.click();
 
   // Verify transition to TTC network
-  await expect(page.locator(".ttc-map-stage")).toBeVisible();
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toBeVisible();
   await expect(page.locator("[data-commute-path-preview]")).toBeVisible();
   const selectedImpactOverlay = page.locator('[data-selected-commute-impact-overlay="stub-alert-line-1"]');
   await expect(selectedImpactOverlay).toBeAttached();
   await expect(selectedImpactOverlay.locator(".suspension-candy")).toBeVisible();
 
   // Verify camera animated and zoomed in on the disruption
-  await expect(page.locator("[data-map-pan-zoom-viewport]")).toHaveAttribute(
+  await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute(
     "data-map-camera-moving",
     "false",
     { timeout: 3_000 },
   );
-  const mapTransform = await page.locator(".ttc-map-stage").evaluate((el) => {
+  const mapTransform = await page.locator("[data-system-map=ttc] .map-stage").evaluate((el) => {
     return el.style.transform;
   });
   expect(mapTransform).toContain("scale(");
@@ -5149,15 +5149,15 @@ test.describe("GO/UP commute preview", () => {
     await openDesktopDestination(page, "commutes");
 
     await page.getByRole("button", { name: "View on map for Lakeshore commute" }).click();
-    const preview = page.locator('.regional-map [data-commute-path-preview]');
+    const preview = page.locator('[data-system-map=regional] [data-commute-path-preview]');
     await expect(preview).toBeAttached();
     // One route path through the commute's segments, under station artwork.
     const routeD = await preview.locator(".commute-path-preview-path").getAttribute("d");
     expect(routeD?.match(/M/g)?.length ?? 0).toBeGreaterThanOrEqual(segmentIds.length);
     await expect(preview.locator(".commute-path-preview-endpoint")).toHaveCount(2);
     // Green flashes above the artwork; Union's takes its pill shape.
-    await expect(page.locator('.regional-map .station-commute-green-flash--pill[data-commute-path-endpoint="origin"]')).toHaveCount(1);
-    await expect(page.locator('.regional-map circle.station-commute-green-flash[data-commute-path-endpoint="destination"]')).toHaveCount(1);
+    await expect(page.locator('[data-system-map=regional] .station-commute-green-flash--pill[data-commute-path-endpoint="origin"]')).toHaveCount(1);
+    await expect(page.locator('[data-system-map=regional] circle.station-commute-green-flash[data-commute-path-endpoint="destination"]')).toHaveCount(1);
   });
 });
 

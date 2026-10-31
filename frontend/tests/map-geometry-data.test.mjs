@@ -13,8 +13,9 @@ import { trackGuideKey } from "../src/app/map-geometry.ts";
 import {
   ttcGuidePaths,
   ttcStationCenters,
-  ttcStationLabelPolygons,
 } from "../src/app/ttc-map-geometry.ts";
+import { mapStationLabelTargets } from "../src/app/map-station-artwork.ts";
+import { MAP_MANIFESTS } from "../src/app/map-manifests.ts";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url));
 
@@ -82,8 +83,8 @@ describe("TTC prepared geometry", () => {
   it("finds station centres and every station name's box", () => {
     assert.deepEqual(ttcStationCenters(geometry, ["union", "missing"]), new Map([["union", geometry.anchors["station-union"]]]));
     const stationIds = geometry.labels.map((label) => label.stationId);
-    const polygons = ttcStationLabelPolygons(geometry, stationIds);
-    assert.equal(polygons.size, stationIds.length);
-    assert.ok([...polygons.values()].every((polygon) => polygon.length === 4));
+    const targets = mapStationLabelTargets(geometry, stationIds, MAP_MANIFESTS.ttc.stationLabels.targetPadding);
+    assert.equal(targets.length, stationIds.length);
+    assert.ok(targets.every(({ points }) => points.length === 4));
   });
 });

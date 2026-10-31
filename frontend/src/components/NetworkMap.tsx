@@ -5,6 +5,7 @@ import type { MapFadeController } from "../app/map-surface-transition";
 import { loadGeographicCatalog } from "../app/geographic-catalog-loader";
 import { preloadTtcMapMarkup } from "../app/map-preload";
 import { preloadRegionalMapMarkup } from "../app/regional-map-asset";
+import { MAP_MANIFESTS } from "../app/map-manifests";
 import { preloadRasterMapSource, rasterMapSource, type RasterMapTheme, type RasterMapDensity } from "./RasterMapPlane";
 import dynamic from "next/dynamic";
 import type { NetworkId } from "../app/regional-data";
@@ -33,13 +34,10 @@ export async function prepareNetworkMap(network: NetworkId, view: "diagram" | "g
     await Promise.all([loadGeographicMap(), loadGeographicCatalog(network)]);
     return;
   }
-  const planes = network === "ttc"
-    ? ["background", "foreground", "labels", "badges"] as const
-    : ["background", "foreground", "labels"] as const;
   await Promise.all([
     network === "regional" ? loadRegionalMap() : Promise.resolve(),
-    network === "regional" ? preloadRegionalMapMarkup() : preloadTtcMapMarkup("/assets/linewatch/ttc-subway-map-custom.svg"),
-    ...planes.map(plane => preloadRasterMapSource(rasterMapSource(network, plane, theme, density))),
+    network === "regional" ? preloadRegionalMapMarkup() : preloadTtcMapMarkup(),
+    ...MAP_MANIFESTS[network].rasterPlanes.map(plane => preloadRasterMapSource(rasterMapSource(network, plane, theme, density))),
   ]);
 }
 

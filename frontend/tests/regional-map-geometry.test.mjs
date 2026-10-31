@@ -23,13 +23,13 @@ import {
   regionalRoutePathIds,
   regionalStation,
   regionalStationImpactAnchors,
-  regionalStationLabelHover,
-  regionalStationLabelPolygon,
   regionalStationPillShape,
   regionalTrainMarkerFrame,
   resolvedRegionalSegmentPath,
   squaredPointDistance,
 } from "../src/app/regional-map-geometry.ts";
+import { mapStationLabelHover, mapStationLabelTargets } from "../src/app/map-station-artwork.ts";
+import { MAP_MANIFESTS } from "../src/app/map-manifests.ts";
 
 // The prepared GO/UP geometry the map ships with (scripts/prepare-map-geometry.mjs).
 const geometry = JSON.parse(readFileSync(new URL("../src/app/map-geometry/regional.json", import.meta.url), "utf8"));
@@ -172,11 +172,11 @@ describe("regional map geometry", () => {
 
   describe("station names", () => {
     it("lifts a hovered name with room up to the next name, inside its bounds", () => {
-      const label = regionalStationLabelPolygon(geometry, "pickering");
-      const hover = regionalStationLabelHover(geometry, "pickering");
-      const corners = hover.polygonPoints.split(" ").map((pair) => pair.split(",").map(Number));
-      assert.equal(corners.length, 4);
-      for (const [x, y] of corners) {
+      const { targetPadding, hoverPadding } = MAP_MANIFESTS.regional.stationLabels;
+      const [{ points: label }] = mapStationLabelTargets(geometry, ["pickering"], targetPadding);
+      const hover = mapStationLabelHover(geometry, "pickering", hoverPadding);
+      assert.equal(hover.points.length, 4);
+      for (const { x, y } of hover.points) {
         assert.ok(x >= hover.bounds.x && x <= hover.bounds.x + hover.bounds.width);
         assert.ok(y >= hover.bounds.y && y <= hover.bounds.y + hover.bounds.height);
       }
@@ -185,8 +185,7 @@ describe("regional map geometry", () => {
         y: label.reduce((sum, point) => sum + point.y, 0) / 4,
       };
       assert.ok(distance(hover.center, labelCenter) < 0.01);
-      assert.equal(regionalStationLabelHover(geometry, "missing"), null);
-      assert.equal(regionalStationLabelHover(geometry, null), null);
+      assert.equal(mapStationLabelHover(geometry, "missing", hoverPadding), null);
     });
   });
 

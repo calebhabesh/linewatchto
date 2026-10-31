@@ -3,11 +3,12 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 import { readShellSource } from "./helpers/shell-source.mjs";
+import { readTtcMapSource } from "./helpers/map-source.mjs";
 
 const moreSource = readFileSync(new URL("../src/components/DesktopMorePanel.tsx", import.meta.url), "utf8");
 const overviewSource = readFileSync(new URL("../src/components/DesktopStatusOverview.tsx", import.meta.url), "utf8");
 const shellSource = readShellSource();
-const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const mapSource = readTtcMapSource();
 const globalCss = readAppStylesheet();
 
 describe("desktop status and map chrome relocation", () => {
@@ -24,7 +25,8 @@ describe("desktop status and map chrome relocation", () => {
   it("moves desktop map controls upward into top area for both networks", () => {
     assert.match(mapSource, /desktop-map-control-rail/);
     assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[\s\S]*\.desktop-map-control-rail\s*\{[\s\S]*top:\s*var\(--desktop-rail-top,\s*20px\)\s*!important/);
-    assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[\s\S]*\.regional-map-control-rail\s*\{[\s\S]*top:\s*20px/);
+    // One toolbar class for both maps.
+    assert.doesNotMatch(globalCss, /\.regional-map-control-rail/);
   });
 });
 

@@ -186,7 +186,7 @@ async function openMap(network: NetworkId, baseURL: string | undefined, request:
   }, network);
   await page.goto("/");
   await expect(page.locator(`[data-network-map-layer=${network}][data-map-ready=true]`)).toBeAttached({ timeout: 60_000 });
-  await expect(page.locator(`.${network}-map-stage`)).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator(`[data-system-map=${network}] .map-stage`)).toHaveAttribute("data-raster-map-ready", "true");
   await page.waitForTimeout(1500);
   return { context, page };
 }
@@ -265,7 +265,7 @@ for (const network of ["ttc", "regional"] as const) {
     // Interaction to next paint on a station tap.
     const station = await page.evaluate((network) => {
       const selector = network === "ttc" ? "[data-station-id]" : ".station-hit-target[data-station-id]";
-      const viewport = document.querySelector(network === "ttc" ? "[data-map-pan-zoom-viewport]" : ".regional-map-viewport")!.getBoundingClientRect();
+      const viewport = document.querySelector(network === "ttc" ? "[data-system-map=ttc] .system-map-viewport" : "[data-system-map=regional] .system-map-viewport")!.getBoundingClientRect();
       for (const element of document.querySelectorAll(selector)) {
         const rect = element.getBoundingClientRect();
         const x = rect.x + rect.width / 2;
@@ -300,7 +300,7 @@ for (const network of ["ttc", "regional"] as const) {
 
     // Drawing layers in the middle of a pinch.
     const viewportBox = await page.evaluate((network) => {
-      const box = document.querySelector(network === "ttc" ? "[data-map-pan-zoom-viewport]" : ".regional-map-viewport")!.getBoundingClientRect();
+      const box = document.querySelector(network === "ttc" ? "[data-system-map=ttc] .system-map-viewport" : "[data-system-map=regional] .system-map-viewport")!.getBoundingClientRect();
       return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
     }, network);
     const pinch = cdp.send("Input.synthesizePinchGesture", {

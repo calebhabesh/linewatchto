@@ -6,11 +6,11 @@ test("map camera transforms do not remeasure unrelated sheet scrolling", async (
   await installDismissedTransientUi(page);
   await setStubMode(request, "seeded");
   await page.goto("/");
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await page.waitForTimeout(500);
   const reads = await page.evaluate(async () => {
     const sheet = document.querySelector(".mobile-service-sheet-details")!;
-    const stage = document.querySelector<HTMLElement>(".ttc-map-stage")!;
+    const stage = document.querySelector<HTMLElement>("[data-system-map=ttc] .map-stage")!;
     const original = Object.getOwnPropertyDescriptor(Element.prototype, "clientHeight")!;
     let count = 0;
     Object.defineProperty(sheet, "clientHeight", { configurable: true, get() { count++; return original.get!.call(this); } });

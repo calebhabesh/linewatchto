@@ -1,100 +1,45 @@
-import { lineWatchBuildLabel } from "./app-build";
+/*
+ * TTC's authored SVG, prepared as artwork only, as GO/UP's is
+ * (regional-map-asset.ts): the map mounts it whole under its overlay plane,
+ * where it paints until the raster planes are ready and then stays as the
+ * source of the hovered station name's cutout (`#station-label-…`).
+ */
+import { preloadMapArtwork } from "./map-artwork.ts";
 
-export type TtcMapMarkupParts = {
-  part1: string;
-  part2: string;
-  badges: string;
-};
+export const DEFAULT_TTC_MAP_SOURCE = "/assets/linewatch/ttc-subway-map-custom.svg";
 
-function parseTtcMapMarkup(text: string): TtcMapMarkupParts {
+const REQUIRED_TTC_LAYER_IDS = [
+  "ttc-tracks-layer",
+  "ttc-station-labels-layer",
+  "ttc-stations-layer",
+  "ttc-line-badges-layer",
+  "ttc-connection-labels-layer",
+] as const;
+
+export function prepareTtcMapMarkup(text: string): string {
+  if (typeof DOMParser === "undefined") {
+    throw new Error("DOMParser is unavailable in this environment");
+  }
   const documentNode = new DOMParser().parseFromString(text, "image/svg+xml");
   if (documentNode.querySelector("parsererror")) {
     throw new Error("Invalid TTC map SVG");
   }
 
-  const svg = documentNode.documentElement;
-  const mapRoot = svg.querySelector<SVGGElement>("#ttc-map-root");
+  const root = documentNode.documentElement;
+  const mapRoot = root.querySelector<SVGGElement>("#ttc-map-root");
   if (!mapRoot) throw new Error("Missing TTC map root");
-
-  const requiredLayerIds = [
-    "ttc-tracks-layer",
-    "non-linear-guides-layer",
-    "ttc-station-labels-layer",
-    "ttc-stations-layer",
-    "ttc-line-badges-layer",
-    "ttc-connection-labels-layer",
-  ] as const;
-  const layers = new Map(requiredLayerIds.map((id) => {
-    const layer = mapRoot.querySelector<SVGGElement>(`:scope > #${id}`);
-    if (!layer) throw new Error(`Missing TTC map layer ${id}`);
-    return [id, layer] as const;
-  }));
-  const stationLabelsLayer = layers.get("ttc-station-labels-layer")!;
-  for (const label of stationLabelsLayer.querySelectorAll<SVGGraphicsElement>("[data-station-label-for]")) {
-    const stationId = label.dataset.stationLabelFor;
-    if (!stationId) continue;
-
-    const hoverEffect = documentNode.createElementNS("http://www.w3.org/2000/svg", "g");
-    hoverEffect.classList.add("station-label-hover-effect");
-    label.before(hoverEffect);
-    hoverEffect.append(label);
+  for (const id of REQUIRED_TTC_LAYER_IDS) {
+    if (!mapRoot.querySelector(`:scope > #${id}`)) throw new Error(`Missing TTC map layer ${id}`);
   }
-  const serializer = new XMLSerializer();
-  const sharedMarkup = Array.from(svg.children)
-    .filter((element) => element.localName === "defs" || element.localName === "style")
-    .map((element) => serializer.serializeToString(element))
-    .join("");
 
-  const serializeLayers = (id: string, layerIds: readonly (typeof requiredLayerIds)[number][]) => {
-    const wrapper = documentNode.createElementNS("http://www.w3.org/2000/svg", "g");
-    wrapper.setAttribute("id", id);
-    for (const layerId of layerIds) {
-      wrapper.append(layers.get(layerId)!.cloneNode(true));
-    }
-    return serializer.serializeToString(wrapper);
-  };
-
-  return {
-    part1: sharedMarkup + serializeLayers("ttc-map-base-root", [
-      "ttc-tracks-layer",
-      "non-linear-guides-layer",
-    ]),
-    part2: serializeLayers("ttc-map-foreground-root", [
-      "ttc-station-labels-layer",
-      "ttc-stations-layer",
-      "ttc-connection-labels-layer",
-    ]),
-    badges: serializeLayers("ttc-map-line-badges-root", [
-      "ttc-line-badges-layer",
-    ]),
-  };
+  root.removeAttribute("width");
+  root.removeAttribute("height");
+  root.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  root.setAttribute("aria-hidden", "true");
+  return new XMLSerializer().serializeToString(root);
 }
 
-export const ttcMapMarkupCache = new Map<string, TtcMapMarkupParts>();
-const ttcMapMarkupPromises = new Map<string, Promise<TtcMapMarkupParts>>();
-
-export function preloadTtcMapMarkup(source: string): Promise<TtcMapMarkupParts> {
-  const cached = ttcMapMarkupCache.get(source);
-  if (cached) return Promise.resolve(cached);
-
-  const existing = ttcMapMarkupPromises.get(source);
-  if (existing) return existing;
-
-  const separator = source.includes("?") ? "&" : "?";
-  const load = fetch(`${source}${separator}v=${lineWatchBuildLabel}`)
-    .then((response) => {
-      if (!response.ok) throw new Error("Map load failed");
-      return response.text();
-    })
-    .then((text) => {
-      const parts = parseTtcMapMarkup(text);
-      ttcMapMarkupCache.set(source, parts);
-      return parts;
-    })
-    .finally(() => {
-      ttcMapMarkupPromises.delete(source);
-    });
-
-  ttcMapMarkupPromises.set(source, load);
-  return load;
+/** Loads and prepares the TTC SVG once (map-artwork.ts). */
+export function preloadTtcMapMarkup(source: string = DEFAULT_TTC_MAP_SOURCE): Promise<string> {
+  return preloadMapArtwork({ url: source, prepare: prepareTtcMapMarkup });
 }

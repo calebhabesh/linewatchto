@@ -10,11 +10,11 @@ test("GO/UP raster labels stay aligned with their SVG hover layer through a pan"
   await page.emulateMedia({ reducedMotion: "reduce" });
   await setStubMode(request, "seeded");
   await page.goto("/");
-  await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=regional] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
 
   // Moving the map changes the camera transform, but both paint paths must
   // still map every row of label pixels to the same screen position.
-  const viewport = page.locator(".regional-map-viewport");
+  const viewport = page.locator("[data-system-map=regional] .system-map-viewport");
   const bounds = await viewport.boundingBox();
   expect(bounds).not.toBeNull();
   await page.mouse.move(bounds!.x + bounds!.width * 0.7, bounds!.y + bounds!.height * 0.6);
@@ -23,7 +23,7 @@ test("GO/UP raster labels stay aligned with their SVG hover layer through a pan"
   await page.mouse.up();
 
   const verticalOffset = await page.evaluate(() => {
-    const stage = document.querySelector(".regional-map-stage");
+    const stage = document.querySelector("[data-system-map=regional] .map-stage");
     const labels = stage?.querySelector<HTMLImageElement>("img.raster-map-plane--labels");
     const hoverSvg = stage?.querySelector<SVGSVGElement>("svg.raster-map-top-plane");
     if (!labels || !hoverSvg || !hoverSvg.viewBox.baseVal) return null;

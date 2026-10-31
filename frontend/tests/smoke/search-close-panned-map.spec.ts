@@ -9,14 +9,14 @@ for (const network of ['ttc', 'regional'] as const) {
     if (network === 'regional') {
       await page.locator('.mobile-map-network-switch').getByRole('button', { name: 'GO/UP', exact: true }).click();
     }
-    await expect(page.locator(`.${network}-map-stage[data-raster-map-ready="true"]`)).toBeVisible();
+    await expect(page.locator(`[data-system-map=${network}] .map-stage[data-raster-map-ready="true"]`)).toBeVisible();
     await expect(page.locator('.network-map-transition-surface')).not.toHaveAttribute('data-map-surface-transition');
 
-    const stage = page.locator(`.${network}-map-stage`);
+    const stage = page.locator(`[data-system-map=${network}] .map-stage`);
     await page.waitForTimeout(500);
 
     // Pan the map slightly
-    const viewport = page.locator(network === 'ttc' ? '[data-map-pan-zoom-viewport]' : '.regional-map-viewport');
+    const viewport = page.locator(network === 'ttc' ? '[data-system-map=ttc] .system-map-viewport' : '[data-system-map=regional] .system-map-viewport');
     await viewport.dispatchEvent('pointerdown', { clientX: 200, clientY: 300, pointerId: 1, isPrimary: true, button: 0 });
     await viewport.dispatchEvent('pointermove', { clientX: 250, clientY: 350, pointerId: 1, isPrimary: true, button: 0 });
     await viewport.dispatchEvent('pointerup', { clientX: 250, clientY: 350, pointerId: 1, isPrimary: true, button: 0 });

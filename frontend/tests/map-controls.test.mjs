@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { readTtcMapSource } from "./helpers/map-source.mjs";
 
-const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const mapSource = readTtcMapSource();
 const globalCss = readAppStylesheet();
 
 describe("map controls", () => {

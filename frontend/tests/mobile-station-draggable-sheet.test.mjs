@@ -19,13 +19,14 @@ import {
 } from "../src/hooks/panZoomMath.ts";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 import { readShellSource } from "./helpers/shell-source.mjs";
+import { readRegionalMapSource, readTtcMapSource } from "./helpers/map-source.mjs";
 
 const panelSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 const regionalPanelSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
 const handleSource = readFileSync(new URL("../src/components/MobileSheetDragHandle.tsx", import.meta.url), "utf8");
 const hookSource = readFileSync(new URL("../src/hooks/useMobileDraggableSheet.ts", import.meta.url), "utf8");
-const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
-const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const ttcMapSource = readTtcMapSource();
+const regionalMapSource = readRegionalMapSource();
 const framingSource = readFileSync(new URL("../src/components/map-camera/useMapFraming.ts", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 const shellSource = readShellSource();

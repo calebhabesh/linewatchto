@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-// TTC's renderer with the shared station-alert layer it draws with.
+// The System Map engine with the shared station-alert layer it draws with.
 const mapSource = [
-  "../src/components/InteractiveTtcMap.tsx",
+  "../src/components/system-map/SystemMap.tsx",
   "../src/components/map-overlays/StationAlertOverlays.tsx",
   "../src/components/map-overlays/map-hover-controller.ts",
 ].map((path) => readFileSync(new URL(path, import.meta.url), "utf8")).join("\n");
@@ -15,7 +15,7 @@ const overlapIndicatorSource = readFileSync(
 
 describe("desktop overlap badge hover", () => {
   it("emphasizes every segment and station impact represented by the hovered badge", () => {
-    assert.match(mapSource, /const setExternalImpactsHovered = useCallback/);
+    assert.match(mapSource, /const setGroupHovered = useCallback/);
     assert.match(mapSource, /hoverControllerRef\.current\?\.setGroupPreview\(/);
     // Previews outline the alerts and light their station rings; they never
     // raise alert artwork the way a direct overlay hover does.
@@ -44,6 +44,6 @@ describe("desktop overlap badge hover", () => {
       overlapIndicatorSource,
       /if \(!open &&[^{}]*window\.matchMedia\("\(hover: hover\) and \(pointer: fine\)"\)\.matches/,
     );
-    assert.match(mapSource, /clearMapHover\(\);\s*setExpandedOverlapBadgeId\(badge\.markerId\)/);
+    assert.match(mapSource, /clearMapHover\(\);\s*setExpandedOverlapBadgeId\(badge\.markerId === expandedOverlapBadgeId \? null : badge\.markerId\)/);
   });
 });

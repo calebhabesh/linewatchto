@@ -37,13 +37,6 @@
     box-sizing: border-box;
   }
 
-  .regional-map-control-rail {
-    top: 20px;
-    height: 56px;
-    border-radius: 12px;
-    box-sizing: border-box;
-  }
-
   .map-control-rail .map-control-button,
   .map-control-rail .map-view-toggle-btn {
     gap: 4px;

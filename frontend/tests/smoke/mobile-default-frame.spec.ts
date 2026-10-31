@@ -9,15 +9,15 @@ for (const network of ['ttc', 'regional'] as const) {
     await page.goto(`/?previewTime=2026-08-14T${closedLaunch ? "07" : "16"}:00:00.000Z`);
     if (closedLaunch) await expect(page.locator(".subway-closed-screen")).toHaveCount(0);
     if (network === 'regional') await page.locator('.mobile-map-network-switch').getByRole('button', { name: 'GO/UP', exact: true }).click();
-    await expect(page.locator(`.${network}-map-stage[data-raster-map-ready="true"]`)).toBeVisible();
+    await expect(page.locator(`[data-system-map=${network}] .map-stage[data-raster-map-ready="true"]`)).toBeVisible();
     await expect(page.locator(".network-map-transition-surface")).not.toHaveAttribute("data-map-surface-transition");
-    await expect.poll(() => page.locator(`.${network}-map-stage svg #station-union`).first().evaluate(el => {
+    await expect.poll(() => page.locator(`[data-system-map=${network}] .map-stage svg #station-union`).first().evaluate(el => {
       const rect = el.getBoundingClientRect();
       return Math.abs((rect.left + rect.right) / 2 - innerWidth / 2);
     })).toBeLessThan(2);
     await expect.poll(() => page.evaluate((mode) => {
-      const stage = document.querySelector<HTMLElement>(`.${mode}-map-stage`)!;
-      const viewport = document.querySelector<HTMLElement>(mode === 'ttc' ? '[data-map-pan-zoom-viewport]' : '.regional-map-viewport')!;
+      const stage = document.querySelector<HTMLElement>(`[data-system-map=${mode}] .map-stage`)!;
+      const viewport = document.querySelector<HTMLElement>(mode === 'ttc' ? '[data-system-map=ttc] .system-map-viewport' : '[data-system-map=regional] .system-map-viewport')!;
       const matrix = new DOMMatrix(getComputedStyle(stage).transform);
       const centerY = mode === 'ttc' ? (120 + 3840) / 2 * (4500 / 8250) : 110.78 + 2395.26 / 2;
       const actual = viewport.getBoundingClientRect().top + matrix.f + centerY * matrix.d;
@@ -28,7 +28,7 @@ for (const network of ['ttc', 'regional'] as const) {
       return Math.abs(actual - (chips.bottom + bottom) / 2);
     }, network)).toBeLessThan(2);
     if (network === 'ttc') {
-      const stage = page.locator('.ttc-map-stage');
+      const stage = page.locator('[data-system-map=ttc] .map-stage');
       const openingScale = await stage.evaluate(el => new DOMMatrix(getComputedStyle(el).transform).a);
       // The opening should enlarge stations beyond whole-network fit.
       expect(openingScale * (7925 - 65) * (4500 / 8250)).toBeGreaterThan(page.viewportSize()!.width * 1.4);

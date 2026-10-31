@@ -11,6 +11,7 @@ import {
   TTC_GEOGRAPHIC_LINE_BADGE_ANCHORS,
   projectGeographicLineBadges,
 } from "../src/app/map-line-badges.ts";
+import { readTtcMapSource } from "./helpers/map-source.mjs";
 
 const frontendRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -91,19 +92,17 @@ describe("map line badges", () => {
   it("separates authored badges from labels, stations, and track artwork without fading them", async () => {
     const [preload, map, generator] = await Promise.all([
       readFile(`${frontendRoot}/src/app/map-preload.ts`, "utf8"),
-      readFile(`${frontendRoot}/src/components/InteractiveTtcMap.tsx`, "utf8"),
+      Promise.resolve(readTtcMapSource()),
       readFile(`${frontendRoot}/scripts/generate-map-rasters.mjs`, "utf8"),
     ]);
-    assert.match(preload, /badges: serializeLayers\("ttc-map-line-badges-root", \[\s*"ttc-line-badges-layer"/);
-    assert.doesNotMatch(
-      preload.match(/part2: serializeLayers[\s\S]*?\]\),/)?.[0] ?? "",
-      /ttc-line-badges-layer/,
-    );
+    // The authored badges are a layer of the artwork; once the rasters are
+    // ready they paint from their own plane, under the live overlays.
+    assert.match(preload, /"ttc-line-badges-layer",/);
     assert.match(generator, /foregroundCss:[\s\S]*?#ttc-line-badges-layer/);
     assert.match(generator, /badgesCss:[\s\S]*?#ttc-stations-layer,[\s\S]*?opacity: 0 !important/);
     assert.match(generator, /plane === "badges" \|\| theme === "light"/);
-    assert.match(map, /plane="badges"/);
+    assert.match(map, /const UNDER_PLANES: readonly RasterMapPlaneName\[\] = \["background", "badges"\];/);
+    assert.match(map, /\{underPlanes\.map\(renderRasterPlane\)\}[\s\S]*?<AuthoredArtwork[\s\S]*?className=\{`raster-map-dynamic-plane map-overlay-plane/);
     assert.doesNotMatch(map, /systemLineBadgeOpacity|lineBadgeOpacity/);
-    assert.match(map, /pointerEvents="none"[\s\S]*?svgParts\?\.badges/);
   });
 });

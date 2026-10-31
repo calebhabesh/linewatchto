@@ -16,8 +16,6 @@ import {
 } from "./map-geometry.ts";
 import {
   preparedPoints,
-  stationLabelCenter,
-  stationLabelPolygon,
   type PreparedMapGeometry,
   type PreparedStation,
 } from "./map-geometry-data.ts";
@@ -37,13 +35,6 @@ export type RegionalStationVisualAnchor = {
 export type RegionalTrainMarkerFrame = {
   point: MapPoint;
   angle: number;
-};
-
-export type RegionalStationLabelHoverResult = {
-  stationId: string;
-  polygonPoints: string;
-  center: MapPoint;
-  bounds: MapBounds;
 };
 
 export type RegionalOverlapBadgePlacement = {
@@ -332,38 +323,6 @@ export function regionalTrainMarkerFrame(
   return {
     point: estimatedTrainMarkerLanePoint(point, tangent, pathTravelDirection, REGIONAL_TRAIN_MARKER_LANE_OFFSET),
     angle: orientedEstimatedTrainMarkerAngle(pathAngle, pathStartsAtFrom),
-  };
-}
-
-/** A station name's box in root coordinates, as four corners. */
-export function regionalStationLabelPolygon(geometry: PreparedMapGeometry, stationId: string): MapPoint[] | null {
-  return stationLabelPolygon(geometry.labels, stationId, { leading: 0, trailing: 0, y: 0 });
-}
-
-/**
- * The hovered name's lifted box: the label plus trailing room up to the next
- * name on its line, in root coordinates.
- */
-export function regionalStationLabelHover(
-  geometry: PreparedMapGeometry,
-  stationId: string | null,
-): RegionalStationLabelHoverResult | null {
-  if (!stationId) return null;
-  const corners = stationLabelPolygon(geometry.labels, stationId, { leading: 0, trailing: 80, y: 12 });
-  const center = stationLabelCenter(geometry.labels, stationId);
-  if (!corners || !center) return null;
-  const xs = corners.map((point) => point.x);
-  const ys = corners.map((point) => point.y);
-  return {
-    stationId,
-    polygonPoints: corners.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" "),
-    bounds: {
-      x: Math.min(...xs) - 20,
-      y: Math.min(...ys) - 20,
-      width: Math.max(...xs) - Math.min(...xs) + 40,
-      height: Math.max(...ys) - Math.min(...ys) + 40,
-    },
-    center,
   };
 }
 

@@ -24,7 +24,7 @@ test.describe("vertical centering and mode switch stability", () => {
   test("mobile preloads artwork and keeps shared controls live across network switches", async ({ page, isMobile }) => {
     test.skip(!isMobile, "mobile project only");
     await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
-    await expect(page.locator('.ttc-map-stage[data-raster-map-ready="true"]')).toBeVisible();
+    await expect(page.locator('[data-system-map=ttc] .map-stage[data-raster-map-ready="true"]')).toBeVisible();
     await expect.poll(() => page.evaluate(() =>
       performance.getEntriesByType("resource").filter((entry) =>
         entry.name.includes("regional-") && entry.name.includes("mobile.png")).length,
@@ -50,7 +50,7 @@ test.describe("vertical centering and mode switch stability", () => {
     const surface = page.locator(".network-map-transition-surface");
     for (const network of ["regional", "ttc", "regional", "ttc"]) {
       await page.locator(`.mobile-map-network-switch .network-btn-${network}`).click();
-      await expect(page.locator(`.${network}-map-stage[data-raster-map-ready="true"]`)).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator(`[data-system-map=${network}] .map-stage[data-raster-map-ready="true"]`)).toBeVisible({ timeout: 10_000 });
       expect(await page.evaluate(() => document.documentElement.dataset.unexpectedDocumentTransition)).toBeUndefined();
       for (const control of controls) {
         expect(await control.evaluate((node) => node instanceof Element && node.isConnected && getComputedStyle(node).opacity === "1")).toBe(true);
@@ -72,18 +72,18 @@ test.describe("vertical centering and mode switch stability", () => {
     });
     try {
       await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
-      await expect(page.locator('.ttc-map-stage[data-raster-map-ready="true"]')).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('[data-system-map=ttc] .map-stage[data-raster-map-ready="true"]')).toBeVisible({ timeout: 10_000 });
       await page.locator(".mobile-map-network-switch .network-btn-regional").click();
       const surface = page.locator(".network-map-transition-surface");
       await expect(surface).toHaveAttribute("data-map-surface-transition", "loading");
       await expect(page.getByRole("button", { name: "Rotate Map", exact: true })).toBeVisible();
       await expect(page.locator(".mobile-bottom-nav")).toBeVisible();
       expect(await surface.evaluate((node) => getComputedStyle(node).opacity)).toBe("1");
-      await expect(page.locator('.ttc-map-stage[data-raster-map-ready="true"]')).toBeVisible();
+      await expect(page.locator('[data-system-map=ttc] .map-stage[data-raster-map-ready="true"]')).toBeVisible();
       await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", "ttc");
       releaseAsset();
       await expect.poll(() => surface.getAttribute("data-map-surface-transition"), { intervals: [16] }).toBe("entering");
-      await expect(page.locator('.regional-map-stage[data-raster-map-ready="true"]')).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('[data-system-map=regional] .map-stage[data-raster-map-ready="true"]')).toBeVisible({ timeout: 10_000 });
       await expect(surface).not.toHaveAttribute("data-map-surface-transition");
     } finally {
       releaseAsset();
@@ -100,7 +100,7 @@ test.describe("vertical centering and mode switch stability", () => {
     // -------------------------------------------------------------
     // 1. VERIFY TTC MAP VERTICAL CENTERING ON INITIAL LOAD
     // -------------------------------------------------------------
-    const ttcStage = page.locator(".ttc-map-stage");
+    const ttcStage = page.locator("[data-system-map=ttc] .map-stage");
     await expect(ttcStage).toBeVisible({ timeout: 10_000 });
     await expect(page.locator(".map-control-rail:visible")).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(1000);
@@ -109,7 +109,7 @@ test.describe("vertical centering and mode switch stability", () => {
     console.log("TTC INITIAL TRANSFORM:", ttcInitialTransform);
 
     const ttcMetrics = await page.evaluate(() => {
-      const stage = document.querySelector<HTMLElement>(".ttc-map-stage");
+      const stage = document.querySelector<HTMLElement>("[data-system-map=ttc] .map-stage");
       const container = stage?.closest<HTMLElement>(".network-map-transition-surface")
         ?? stage?.closest<HTMLElement>(".ttc-map-container");
       const viewportHeight = container?.clientHeight ?? window.innerHeight;
@@ -151,7 +151,7 @@ test.describe("vertical centering and mode switch stability", () => {
     const regionalBtn = page.getByLabel("Current Service status").getByRole("button", { name: "GO/UP" });
     await regionalBtn.click();
 
-    const regionalStage = page.locator(".regional-map-stage");
+    const regionalStage = page.locator("[data-system-map=regional] .map-stage");
     await expect(regionalStage).toBeVisible({ timeout: 10_000 });
     await expect(page.locator(".station-hit-target[data-station-id='allandale-waterfront']")).toBeAttached({ timeout: 10_000 });
     await expect(page.locator(".station-hit-target[data-station-id='hamilton']")).toBeAttached({ timeout: 10_000 });
@@ -161,7 +161,7 @@ test.describe("vertical centering and mode switch stability", () => {
     console.log("REGIONAL AFTER SWITCH TRANSFORM:", regionalInitialTransform);
 
     const regionalMetrics = await page.evaluate(() => {
-      const stage = document.querySelector<HTMLElement>(".regional-map-stage");
+      const stage = document.querySelector<HTMLElement>("[data-system-map=regional] .map-stage");
       const container = stage?.closest<HTMLElement>(".network-map-transition-surface")
         ?? stage?.closest<HTMLElement>(".regional-map-container");
       const viewportHeight = container?.clientHeight ?? window.innerHeight;
@@ -201,7 +201,7 @@ test.describe("vertical centering and mode switch stability", () => {
     // 3. VERIFY STABILITY ACROSS MAP MODE SWITCHES (NO SHIFT)
     // -------------------------------------------------------------
     // Regional Center button check
-    const regionalCenterBtn = page.locator(".regional-map-control-rail .map-control-button").first();
+    const regionalCenterBtn = page.locator(".map-control-rail .map-control-button").first();
     await regionalCenterBtn.click();
     await page.waitForTimeout(400);
     const regionalAfterCenter = await regionalStage.evaluate((el) => el.style.transform);

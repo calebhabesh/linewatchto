@@ -3,10 +3,11 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import { mapFocusTargetKey, selectedMapElements } from "../src/app/map-selection-framing.ts";
+import { readRegionalMapSource, readTtcMapSource } from "./helpers/map-source.mjs";
 
 const source = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-const ttcMapSource = source("../src/components/InteractiveTtcMap.tsx");
-const regionalMapSource = source("../src/components/InteractiveRegionalMap.tsx");
+const ttcMapSource = readTtcMapSource();
+const regionalMapSource = readRegionalMapSource();
 const framingSource = source("../src/components/map-camera/useMapFraming.ts");
 
 globalThis.CSS ??= { escape: (value) => String(value) };

@@ -93,8 +93,8 @@ async function prepareVisualBaselinePage(page: Page, options: PrepareOptions = {
 
   // Wait for map readiness
   const mapStage = network === "regional"
-    ? page.locator(".regional-map-stage")
-    : page.locator(".ttc-map-stage");
+    ? page.locator("[data-system-map=regional] .map-stage")
+    : page.locator("[data-system-map=ttc] .map-stage");
   await expect(mapStage).toHaveAttribute("data-raster-map-ready", "true");
   // The map is ready only once its live overlays and the dashboard data
   // behind the legend have landed; a shot taken earlier can catch the
@@ -116,7 +116,7 @@ test.describe("Visual Regression Baselines", () => {
     });
 
     await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
-    await expect(page.locator(".ttc-svg-container")).toBeVisible();
+    await expect(page.locator("[data-system-map=ttc] .map-stage")).toBeVisible();
     await expect(page).toHaveScreenshot("ttc-desktop-map-light.png");
   });
 
@@ -130,7 +130,7 @@ test.describe("Visual Regression Baselines", () => {
     });
 
     await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
-    await expect(page.locator(".ttc-svg-container")).toBeVisible();
+    await expect(page.locator("[data-system-map=ttc] .map-stage")).toBeVisible();
     await expect(page).toHaveScreenshot("ttc-desktop-map-dark.png");
   });
 
@@ -144,7 +144,7 @@ test.describe("Visual Regression Baselines", () => {
     });
 
     await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
-    await expect(page.locator(".regional-map-stage")).toBeVisible();
+    await expect(page.locator("[data-system-map=regional] .map-stage")).toBeVisible();
     await expect(page).toHaveScreenshot("regional-desktop-map.png");
   });
 

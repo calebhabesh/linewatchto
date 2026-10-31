@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-// The TTC renderer plus the shared overlay layer both maps draw alerts with.
-const ttc = ["InteractiveTtcMap.tsx", "map-overlays/GlyphLanes.tsx", "map-overlays/LineAlertOverlays.tsx"]
+// The System Map engine plus the shared overlay layer both maps draw alerts with.
+const ttc = ["system-map/SystemMap.tsx", "map-overlays/GlyphLanes.tsx", "map-overlays/LineAlertOverlays.tsx"]
   .map((name) => read(`../src/components/${name}`))
   .join("\n");
 const regional = read("../src/app/regional-map-overlays.ts");

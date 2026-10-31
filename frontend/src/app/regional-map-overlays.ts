@@ -1,15 +1,10 @@
 import type {
-  ActiveAlert,
-  DelayAlert,
   ImpactKind,
   MapImpact,
   NetworkSegment,
-  PlannedClosure,
-  ReducedSpeedZone,
   Station,
   StationNodeImpact,
 } from "./linewatch-data.ts";
-import type { AccountCommutePathPreview } from "./commute-data.ts";
 import type { MapBounds } from "./map-geometry.ts";
 import { preparedPoints, type PreparedMapGeometry } from "./map-geometry-data.ts";
 import {
@@ -51,16 +46,6 @@ import {
 import { regionalStationAlertRingRadius } from "./regional-station-alerts.ts";
 
 export const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
-
-export const REGIONAL_DYNAMIC_SEGMENT_LAYER_ID = "regional-dynamic-segment-layer";
-export const REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID = "regional-dynamic-selected-segment-layer";
-export const REGIONAL_DYNAMIC_COMMUTE_LAYER_ID = "regional-dynamic-commute-layer";
-export const REGIONAL_DYNAMIC_HOVER_LAYER_ID = "regional-dynamic-hover-layer";
-/** Line alert pointer and keyboard targets, under station targets. */
-export const REGIONAL_DYNAMIC_TARGET_LAYER_ID = "regional-dynamic-target-layer";
-export const REGIONAL_TOP_HOVER_LAYER_ID = "regional-top-hover-layer";
-export const REGIONAL_TOP_STATION_IMPACT_LAYER_ID = "regional-top-station-impact-layer";
-export const REGIONAL_TRAIN_MARKER_LAYER_ID = "regional-train-marker-layer";
 
 /** A GO/UP overlap badge before placement; its layout id is its marker id. */
 export type RegionalOverlapBadge = Omit<MapOverlapBadgeInput, "layoutId"> & { layoutId?: string };
@@ -344,52 +329,4 @@ export function regionalPlacedOverlapBadges(
     overlapBadges: badges.map((badge) => ({ ...badge, layoutId: badge.layoutId ?? badge.markerId })),
     badgePlacement: regionalBadgePlacement(geometry),
   }, { unit: REGIONAL_OVERLAY_UNIT, mapBounds: REGIONAL_MAP_VIEWBOX });
-}
-
-export function regionalOverlapMarker(
-  root: ParentNode,
-  markerId: string,
-): SVGGElement | null {
-  const markerGroup = Array.from(
-    root.querySelectorAll<SVGGElement>("[data-overlap-segment-id]"),
-  ).find((candidate) => candidate.dataset.overlapSegmentId === markerId);
-  return markerGroup?.querySelector<SVGGElement>(".overlap-indicator") ?? null;
-}
-
-
-/**
- * GO/UP chooser placement, using the shared placer so both maps behave the
- * same. Inputs are in logical viewport pixels; `affectedArea` is the badge's
- * alerts as drawn (affectedOutlinesOnScreen), which the card avoids covering.
- */
-
-/** What GO/UP's overlays draw, for `regionalOverlayContentSignature`. */
-export type RegionalOverlayContent = {
-  activeAlerts: ActiveAlert[];
-  delays: DelayAlert[];
-  reducedSpeedZones: ReducedSpeedZone[];
-  plannedClosures: PlannedClosure[];
-  networkSegments: NetworkSegment[];
-  stationNodeImpacts: StationNodeImpact[];
-  stations: Station[];
-  commutePathPreview?: AccountCommutePathPreview | null;
-};
-
-// Each poll parses fresh arrays even when the feed is unchanged, and every
-// ingestion run restamps `updatedAt`. Rebuilding the overlay layers restarts
-// their animations, so compare what the overlays draw rather than identity.
-// TTC gets the same stability from React keeping unchanged nodes mounted.
-export function regionalOverlayContentSignature(
-  data: RegionalOverlayContent,
-): string {
-  return JSON.stringify([
-    data.activeAlerts,
-    data.delays,
-    data.reducedSpeedZones,
-    data.plannedClosures,
-    data.networkSegments,
-    data.stationNodeImpacts,
-    data.stations,
-    data.commutePathPreview ?? null,
-  ], (key, value) => (key === "updatedAt" ? undefined : value));
 }

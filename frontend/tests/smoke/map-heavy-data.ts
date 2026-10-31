@@ -33,7 +33,7 @@ export async function openOverlapChooser(page: Page, network: NetworkId) {
 /** A point over open map, clear of controls and the chooser. */
 export async function mapPointAwayFromControls(page: Page, network: NetworkId) {
   return page.evaluate((network) => {
-    const viewport = document.querySelector(network === "ttc" ? "[data-map-pan-zoom-viewport]" : ".regional-map-viewport");
+    const viewport = document.querySelector(network === "ttc" ? "[data-system-map=ttc] .system-map-viewport" : "[data-system-map=regional] .system-map-viewport");
     if (!viewport) throw new Error("map viewport missing");
     const box = viewport.getBoundingClientRect();
     for (const fy of [0.5, 0.4, 0.6, 0.3, 0.7]) {

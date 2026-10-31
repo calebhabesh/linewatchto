@@ -20,7 +20,7 @@
   animation-play-state: paused !important;
 }
 
-.network-map-transition-surface[data-map-surface-transition="leaving"] :is(.ttc-map-stage, .regional-map-stage, .geographic-network-map > [role="region"]) {
+.network-map-transition-surface[data-map-surface-transition="leaving"] :is(.map-stage, .geographic-network-map > [role="region"]) {
   pointer-events: none;
 }
 

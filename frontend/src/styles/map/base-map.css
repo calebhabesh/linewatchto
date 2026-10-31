@@ -4,14 +4,15 @@
   touch-action: none;
 }
 
-.regional-map,
-.regional-map-viewport {
+/* Every System Map: its root, viewport and camera stage (components/system-map/SystemMap.tsx). */
+.system-map,
+.system-map-viewport {
   position: absolute;
   inset: 0;
   overflow: hidden;
 }
 
-.regional-map-viewport {
+.system-map-viewport {
   cursor: grab;
   touch-action: none;
   -webkit-touch-callout: none;
@@ -19,18 +20,20 @@
   user-select: none;
 }
 
-.regional-map-stage,
-.regional-map-stage svg,
-.regional-map-stage :is(text, tspan) {
+.map-stage,
+.map-stage svg,
+.map-stage :is(text, tspan) {
   -webkit-user-select: none;
   user-select: none;
 }
 
-.regional-map-viewport:active { cursor: grabbing; }
+.system-map-viewport:active { cursor: grabbing; }
 
-.regional-map-stage {
+/* Every System Map's camera stage, at its drawing's full size (inline). */
+.map-stage {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
 }
 
 /* Center commits the camera atomically, then briefly repaints this lightweight
@@ -141,7 +144,7 @@
   backface-visibility: hidden;
 }
 
-[data-map-pan-zoom-viewport][data-map-pointer-dragging="true"] {
+[data-map-pointer-dragging="true"] .system-map-viewport {
   cursor: grabbing;
 }
 
@@ -156,13 +159,13 @@
 /* Regional label PNGs use the SVG label viewBox, whose aspect ratio differs
    from the full map stage. Match the hover SVG's centered meet projection so
    switching between the two paint paths cannot move station names. */
-.regional-map-stage img.raster-map-plane--labels {
+.map-stage img.raster-map-plane--labels {
   object-fit: contain;
 }
 
 /* The camera stage owns movement; it must not gain a transient will-change
    layer when Center or a direct gesture starts. */
-.linewatch-shell.mobile-performance-mode :is(.ttc-map-stage, .regional-map-stage) {
+.linewatch-shell.mobile-performance-mode .map-stage {
   will-change: auto;
 }
 
@@ -172,27 +175,24 @@
    like the map and its badges are flickering or sliding apart. Rotated mode
    already uses this flattened model; using it for the fixed portrait maps
    makes both presentations follow the same durable composition contract. */
-.linewatch-shell.mobile-performance-mode :is(.ttc-map-stage, .regional-map-stage) .raster-map-plane {
+.linewatch-shell.mobile-performance-mode .map-stage .raster-map-plane {
   backface-visibility: visible;
   transform: none;
 }
 
-.ttc-map-stage:not([data-raster-map-ready="true"]) .raster-map-plane,
-.regional-map-stage:not([data-raster-map-ready="true"]) .raster-map-plane {
+.map-stage:not([data-raster-map-ready="true"]) .raster-map-plane {
   visibility: hidden;
 }
 
-/* Once the raster planes are ready the authored SVGs paint nothing: they stay
-   in the DOM as geometry sources only (visibility, never opacity: 0, which
-   gives hidden content its own GPU layers). GO/UP's authored SVG never takes
-   the pointer; its targets are React elements in the interaction plane, as
-   TTC's are. Hover glyphs use the separate mask-source clones in its defs. */
-.ttc-map-stage[data-raster-map-ready="true"] .ttc-authored-svg-source,
-.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg {
+/* Once the raster planes are ready the authored SVG paints nothing: it stays
+   in the DOM as the hovered name's glyph source only (visibility, never
+   opacity: 0, which gives hidden content its own GPU layers). It never takes
+   the pointer; targets are React elements in the interaction plane. */
+.map-stage[data-raster-map-ready="true"] .map-authored-svg {
   visibility: hidden;
 }
 
-.regional-live-svg {
+.map-authored-svg {
   pointer-events: none;
 }
 
@@ -228,7 +228,7 @@
    Motion only pauses the small refresh-owned SVG effect layers; promoting and
    demoting those layers during every gesture would still create needless
    compositor churn. */
-.regional-map[data-map-camera-moving="true"] .regional-map-stage :is(
+[data-map-camera-moving="true"] .map-stage :is(
   .station-impact-dot-red-glow,
   .commute-path-preview-glow,
   .commute-path-preview-path,
@@ -238,8 +238,8 @@
   transition: none !important;
 }
 
-.regional-map-stage > svg,
-.regional-map-stage > div > svg {
+.map-stage > svg,
+.map-stage > div > svg {
   display: block;
   width: 100%;
   height: 100%;
@@ -247,50 +247,67 @@
   text-rendering: geometricPrecision;
 }
 
-.regional-map-stage #regional-station-labels-layer :is(text, tspan) {
+[data-system-map="regional"] .map-stage #regional-station-labels-layer :is(text, tspan) {
   font-family: "TeX Gyre Heros", Arial, Helvetica, sans-serif !important;
   pointer-events: none;
 }
 
-.regional-map-stage .regional-station-label-cutout-source :is(text, tspan) {
+[data-system-map="regional"] .map-stage .regional-station-label-cutout-source :is(text, tspan) {
   font-family: "TeX Gyre Heros", Arial, Helvetica, sans-serif !important;
   pointer-events: none;
 }
 
-.dark .regional-map-stage #regional-station-labels-layer :is(text, tspan)[style*="stroke:#000000"],
-.high-contrast .regional-map-stage #regional-station-labels-layer :is(text, tspan)[style*="stroke:#000000"] {
+.dark [data-system-map="regional"] .map-stage #regional-station-labels-layer :is(text, tspan)[style*="stroke:#000000"],
+.high-contrast [data-system-map="regional"] .map-stage #regional-station-labels-layer :is(text, tspan)[style*="stroke:#000000"] {
   stroke: #ffffff !important;
 }
 
-.dark .regional-map-stage #regional-station-labels-layer :is(text, tspan),
-.high-contrast .regional-map-stage #regional-station-labels-layer :is(text, tspan) {
+.dark [data-system-map="regional"] .map-stage #regional-station-labels-layer :is(text, tspan),
+.high-contrast [data-system-map="regional"] .map-stage #regional-station-labels-layer :is(text, tspan) {
   fill: #f8fafc !important;
 }
 
-.regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]) {
+[data-system-map="regional"] .map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]) {
   stroke: #f8fafc !important;
 }
 
-.linewatch-backdrop--plain-light ~ main .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]),
-.linewatch-backdrop--plain-light .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]) {
+.linewatch-backdrop--plain-light ~ main [data-system-map="regional"] .map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]),
+.linewatch-backdrop--plain-light [data-system-map="regional"] .map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]) {
   stroke: #f8fafc !important;
 }
 
-.linewatch-backdrop--plain-dark ~ main .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]),
-.linewatch-backdrop--plain-dark .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]),
-.dark .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]) {
+.linewatch-backdrop--plain-dark ~ main [data-system-map="regional"] .map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]),
+.linewatch-backdrop--plain-dark [data-system-map="regional"] .map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]),
+.dark [data-system-map="regional"] .map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]) {
   stroke: #0e1622 !important;
 }
 
-.high-contrast .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]) {
+.high-contrast [data-system-map="regional"] .map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]) {
   stroke: #000000 !important;
 }
 
-.regional-map-stage #regional-route-labels-layer rect {
+/* TTC's authored artwork, while it paints (before the raster planes are
+   ready): black art turns light in the dark theme, station interiors and
+   Spadina's connector stay black, and the white outline behind line numbers is
+   hidden. The authored art sets fills inline, hence !important (these rules
+   moved here from the component's inline style). */
+.dark [data-system-map="ttc"] .map-stage .map-authored-svg svg :is(.fil6, .fil1, [fill="black"], [fill="#000000"], [style*="fill:#000000"], [style*="fill:black"]) {
+  fill: #f1f5f9 !important;
+}
+
+.dark [data-system-map="ttc"] .map-stage .map-authored-svg svg #ttc-stations-layer :is([inkscape\:label="inner-pill"], [fill="#000000"], [style*="fill:#000000"], [style*="fill:black"]) {
+  fill: #000000 !important;
+}
+
+[data-system-map="ttc"] .map-stage .map-authored-svg svg :is(.fil3:has(+ .fil0), .fil3:has(+ .fil2), .fil3:has(+ .fil4), .fil3:has(+ .fil5), .fil3:has(+ .fil8)) {
+  display: none;
+}
+
+[data-system-map="regional"] .map-stage #regional-route-labels-layer rect {
   stroke: none !important;
 }
 
-.ttc-svg-container svg :is(
+[data-system-map="ttc"] .map-stage .map-authored-svg svg :is(
   [inkscape\:label="union-up"],
   [inkscape\:label="dundas-west-up"],
   [inkscape\:label="mount-dennis-up"]
@@ -425,7 +442,7 @@
 .linewatch-shell:not(.mobile-performance-mode) :is(
   [data-map-zoom-active="true"],
   [data-map-camera-moving="true"]
-) :is(.ttc-map-stage, .regional-map-stage) {
+) .map-stage {
   will-change: transform;
 }
 
@@ -458,8 +475,7 @@
   filter: none;
 }
 
-.ttc-map-stage:has(.station-label-hit-target:active) .raster-station-label-text-hover,
-.regional-map-stage:has(.station-label-hit-target:active) .raster-station-label-text-hover {
+.map-stage:has(.station-label-hit-target:active) .raster-station-label-text-hover {
   transform: scale(0.985);
   transition-duration: 70ms;
 }

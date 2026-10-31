@@ -24,10 +24,11 @@ import {
 } from "../src/hooks/panZoomMath.ts";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 import { readShellSource } from "./helpers/shell-source.mjs";
+import { readRegionalMapSource, readTtcMapSource } from "./helpers/map-source.mjs";
 
 const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
-const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
-const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const mapSource = readTtcMapSource();
+const regionalMapSource = readRegionalMapSource();
 const tapsSource = readFileSync(new URL("../src/components/map-overlays/useMapTaps.ts", import.meta.url), "utf8");
 const manifestSource = readFileSync(new URL("../src/app/map-manifests.ts", import.meta.url), "utf8");
 const framingSource = readFileSync(new URL("../src/components/map-camera/useMapFraming.ts", import.meta.url), "utf8");
@@ -151,10 +152,9 @@ describe("pan zoom behavior guardrails", () => {
 
     // The map frames the content bounds its manifest declares.
     assert.match(manifestSource, /contentBounds: \{ x: 53\.08, y: 110\.78, width: 4620\.46, height: 2395\.26 \}/);
-    assert.match(regionalMapSource, /REGIONAL_MANIFEST\.contentBounds/);
-    assert.match(regionalMapSource, /const REGIONAL_MAP_DESKTOP_FRAME_SCALE = 1/);
-    assert.match(regionalMapSource, /horizontalInsetRatio: REGIONAL_MAP_HORIZONTAL_INSET_RATIO/);
-    assert.match(regionalMapSource, /desktopScaleMultiplier: REGIONAL_MAP_DESKTOP_FRAME_SCALE/);
+    assert.match(regionalMapSource, /bounds: manifest\.contentBounds/);
+    assert.match(regionalMapSource, /horizontalInsetRatio: framing\.horizontalInsetRatio/);
+    assert.match(manifestSource, /horizontalInsetRatio: 0\.025,/);
     assert.match(hookSource, /computeDesktopMapFrame/);
   });
 
@@ -201,7 +201,7 @@ describe("pan zoom behavior guardrails", () => {
   it("keeps the cardinal north marker inside the transformed map layer", () => {
     assert.match(
       mapSource,
-      /ref=\{mapRef\}[\s\S]*aria-label="Cardinal North Compass"/,
+      /ref=\{stageRef\}[\s\S]*aria-label="Cardinal North Compass"/,
     );
   });
 
@@ -343,8 +343,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.doesNotMatch(regionalWheelHandler, /preventDefault/);
     assert.match(wheelEventsSource, /const preventDefault = \(event: WheelEvent\) => \{[\s\S]*isMapWheelScrollRegionTarget\(event\.target\)[\s\S]*event\.preventDefault\(\)/);
     assert.match(wheelEventsSource, /addEventListener\("wheel", preventDefault, \{ passive: false \}\)/);
-    assert.match(mapSource, /usePreventMapWheelDefault\(containerRef\)/);
-    assert.match(regionalMapSource, /usePreventMapWheelDefault\(viewportRef\)/);
+    assert.match(mapSource, /usePreventMapWheelDefault\(viewportRef\)/);
   });
 
   it("commits programmatic transforms to the ref synchronously", () => {
@@ -363,16 +362,17 @@ describe("pan zoom behavior guardrails", () => {
     assert.doesNotMatch(mapSource, /map-recenter-veil/);
     assert.doesNotMatch(globalCss, /map-recenter-veil|data-map-recenter-effect/);
     assert.match(hookSource, /const recenterWithFeedback[\s\S]*recenter\(\) && !reducedMotion[\s\S]*setRecenterFeedbackKey/);
-    assert.match(mapSource, /onClick=\{recenterWithFeedback\}/);
+    assert.match(mapSource, /onRecenter=\{recenterWithFeedback\}/);
+    assert.match(mapSource, /onClick=\{onRecenter\}/);
     assert.match(framingSource, /useCameraCommand\(recenterSignal, ready, cameraCommandsEnabled, recenterWithFeedback\)/);
-    assert.match(mapSource, /className="map-center-feedback"[\s\S]*data-map-center-feedback="ttc"/);
+    assert.match(mapSource, /className="map-center-feedback"[\s\S]*data-map-center-feedback=\{manifest\.id\}/);
     assert.match(globalCss, /\.map-center-feedback\s*\{[^}]*background-color:\s*transparent;[^}]*animation:\s*map-center-feedback-fade/s);
     assert.match(globalCss, /animation:\s*map-center-feedback-fade 420ms cubic-bezier\(0\.16, 1, 0\.3, 1\)/);
     assert.match(globalCss, /@keyframes map-center-feedback-fade\s*\{[^}]*background-color:[^}]*rgb\([^}]*\}[^}]*background-color:\s*transparent/s);
     assert.doesNotMatch(globalCss, /\.map-center-feedback\s*\{[^}]*(?:opacity|will-change):/s);
     assert.match(globalCss, /\.motion-paused \.map-center-feedback,[\s\S]*animation:\s*none/);
-    assert.match(globalCss, /mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\)\s*\{[^}]*will-change:\s*auto/s);
-    assert.doesNotMatch(globalCss, /mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\)\s*\{[^}]*will-change:\s*transform/s);
+    assert.match(globalCss, /mobile-performance-mode \.map-stage\s*\{[^}]*will-change:\s*auto/s);
+    assert.doesNotMatch(globalCss, /mobile-performance-mode \.map-stage\s*\{[^}]*will-change:\s*transform/s);
     assert.doesNotMatch(hookSource, /RECENTER_CAMERA_MOTION/);
     const animateTransformHandler = hookSource.match(
       /const animateTransformTo = useCallback\(([\s\S]*?)\n  \}, \[/,
@@ -411,7 +411,8 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /const cameraAdjustedByUserRef = useRef\(false\)/);
     assert.match(hookSource, /const refitIfCameraUntouched = useCallback/);
     assert.match(hookSource, /if \(!cameraInitializedRef\.current \|\| cameraAdjustedByUserRef\.current\) return/);
-    assert.match(mapSource, /automaticResizeRefitBlockedRef\.current = Boolean\(selection \|\| selectedStationId \|\| commutePathPreview\)/);
+    assert.match(mapSource, /const cameraOwnedBySelection = Boolean\(selection \|\| selectedStationId \|\| commutePathPreview\)/);
+    assert.match(mapSource, /automaticResizeRefitBlockedRef\.current = cameraOwnedBySelection/);
     // Resizes refit an untouched camera in usePanZoom, the same for both maps.
     assert.doesNotMatch(mapSource, /const handleWindowResize/);
     assert.match(hookSource, /const handleWheel[\s\S]*?cameraAdjustedByUserRef\.current = true/);
@@ -423,13 +424,13 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /animateInitialEntrance[\s\S]*computeFittedCameraFlyInStart\(fittedTransform, width, height\)[\s\S]*snapTransform\(fittedTransform\)/);
     assert.match(hookSource, /const completeStagedEntrance = useCallback/);
     assert.match(hookSource, /moveToDefaultCamera\(animateInitialEntrance, false\)/);
-    assert.match(mapSource, /focusTargetKey === null[\s\S]*animateInitialEntrance[\s\S]*!geometryReady \|\| !rasterMapReady/);
-    assert.match(mapSource, /initialCameraPositionedRef\.current[\s\S]*focusTargetKey === null/);
+    assert.match(mapSource, /const entranceCovered = deferInitialEntrance\s*\|\| \(focusTargetKey === null && animateInitialEntrance && !rasterMapReady\);/);
+    assert.match(mapSource, /if \(entranceCovered\) \{[\s\S]*?stageInitialEntrance\(\);[\s\S]*?\} else if \(entranceStagedRef\.current\) \{[\s\S]*?completeStagedEntrance\(\);/);
   });
 
   it("keeps the TTC camera transform outside React render reconciliation", () => {
     const ttcStage = mapSource.match(
-      /className="ttc-map-stage[\s\S]*?style=\{\{([\s\S]*?)\}\}/,
+      /className="map-stage"[\s\S]*?style=\{\{([\s\S]*?)\}\}/,
     )?.[1] ?? "";
 
     assert.doesNotMatch(ttcStage, /transform:/);
@@ -442,16 +443,15 @@ describe("pan zoom behavior guardrails", () => {
     assert.doesNotMatch(mapSource, /isAnimating/);
   });
 
-  it("sizes the transformed TTC stage to the authored canvas like the regional map", () => {
-    const ttcStage = mapSource.match(
-      /className="ttc-map-stage([^\"]*)"[\s\S]*?style=\{\{([\s\S]*?)\}\}/,
+  it("sizes every map's transformed stage to its authored canvas", () => {
+    const stage = mapSource.match(
+      /className="map-stage"[\s\S]*?style=\{\{([\s\S]*?)\}\}/,
     );
 
-    assert.ok(ttcStage);
-    assert.doesNotMatch(ttcStage[1], /\bw-full\b|\bh-full\b/);
-    assert.match(ttcStage[2], /width:\s*"4500px"/);
-    assert.match(ttcStage[2], /height:\s*"2181\.8px"/);
-    assert.match(regionalMapSource, /className="regional-map-stage relative"[\s\S]*?width:\s*`\$\{MAP_WIDTH\}px`[\s\S]*?height:\s*`\$\{MAP_HEIGHT\}px`/);
+    assert.ok(stage);
+    assert.match(stage[1], /width:\s*`\$\{manifest\.stage\.width\}px`/);
+    assert.match(stage[1], /height:\s*`\$\{manifest\.stage\.height\}px`/);
+    assert.match(manifestSource, /stage: RASTER_MAP_RENDERED_SIZES\.ttc,/);
   });
 
   it("pauses TTC effects during camera flights and removes expensive direct-input paint", () => {
@@ -522,7 +522,7 @@ describe("pan zoom behavior guardrails", () => {
   });
 
   it("keeps inline SVG map and overlay edges on geometric precision rendering", () => {
-    assert.match(globalCss, /\.ttc-svg-container svg\s*\{[^}]*shape-rendering:\s*geometricPrecision;/s);
+    assert.match(globalCss, /\.map-stage > svg\s*\{[^}]*shape-rendering:\s*geometricPrecision;/s);
     assert.match(globalCss, /\.asset-alert-path,\s*\.asset-alert-path-glow\s*\{[^}]*shape-rendering:\s*geometricPrecision;/s);
   });
 
@@ -662,8 +662,7 @@ describe("pan zoom behavior guardrails", () => {
   });
 
   it("reliably pans to selected impact overlays during cross-network transitions with consistent focus zoom", () => {
-    assert.match(regionalMapSource, /if \(focusTargetKey\) moveToDefaultCamera\(false, false\);/);
-    assert.match(mapSource, /else if \(focusTargetKey === null\) \{[\s\S]*initializeCamera\(\)[\s\S]*else \{[\s\S]*moveToDefaultCamera\(false, false\);/);
+    assert.match(mapSource, /if \(focusTargetKey\) moveToDefaultCamera\(false, false\);\s*else initializeCamera\(\);/);
     assert.match(framingSource, /tryFocus = \(\) => \{[\s\S]*if \(focusSelection\(\)\)/);
     assert.match(framingSource, /x: rect\.left - viewportRect\.left/);
     assert.match(framingSource, /const fitScale = defaultTransformForViewport\(logicalWidth, logicalHeight\)\.scale \|\| 1;/);

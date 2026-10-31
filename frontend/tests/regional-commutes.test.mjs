@@ -3,13 +3,13 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 import { readShellSource } from "./helpers/shell-source.mjs";
-import { readTtcMapSource } from "./helpers/map-source.mjs";
+import { readRegionalMapSource, readTtcMapSource } from "./helpers/map-source.mjs";
 
 const panelSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const cardSource = readFileSync(new URL("../src/components/SavedCommuteCard.tsx", import.meta.url), "utf8");
 const draftEditorSource = readFileSync(new URL("../src/components/SavedCommuteRouteDraftEditor.tsx", import.meta.url), "utf8");
 const shellSource = readShellSource();
-const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const regionalMapSource = readRegionalMapSource();
 const accountDataSource = readFileSync(new URL("../src/app/commute-data.ts", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 
@@ -40,7 +40,7 @@ describe("regional My Commutes UI boundary", () => {
     assert.match(lineAlertSource, /commutePreviewActive \? \(\s*<g key=\{`commute:\$\{alert\.key\}`\} data-selected-commute-impact-overlay=\{alert\.impactId\}>[\s\S]*?<MapLineAlertTube[\s\S]*?\) : \(\s*<path[\s\S]*?map-selection-flash/);
     const ttcMapSource = readTtcMapSource();
     assert.match(ttcMapSource, /commutePreviewActive=\{commutePreviewActive\}/);
-    assert.match(regionalMapSource, /commutePreviewActive=\{Boolean\(commutePathPreview\)\}/);
+
     // Station alerts skip their selection flash under a commute preview too.
     const stationAlertSource = readFileSync(new URL("../src/components/map-overlays/StationAlertOverlays.tsx", import.meta.url), "utf8");
     assert.match(stationAlertSource, /const flashing = !commutePreviewActive && isSelectedStationAlert\(alert, selection\);/);
@@ -58,7 +58,7 @@ describe("regional My Commutes UI boundary", () => {
     const regionalCommuteSource = readFileSync(new URL("../src/app/regional-commute-preview.ts", import.meta.url), "utf8");
     assert.match(regionalCommuteSource, /preview\.segmentIds/);
     assert.match(regionalCommuteSource, /pill: regionalStationPill\(geometry, anchorId\)/);
-    assert.match(regionalMapSource, /<g id=\{REGIONAL_DYNAMIC_COMMUTE_LAYER_ID\}>\s*<MapCommutePreviewRoute preview=\{commutePreview\} \/>/);
+    assert.match(regionalMapSource, /<g id=\{layerId\("dynamic-commute"\)\} aria-label="Commute route preview">\s*<MapCommutePreviewRoute preview=\{commutePreview\} \/>/);
     assert.match(regionalMapSource, /<MapCommuteEndpointFlashes preview=\{commutePreview\} plane=\{overlayPlane\} \/>/);
     assert.doesNotMatch(globalCss, /regional-commute/);
     assert.match(globalCss, /\.commute-path-preview-glow,\s*\.commute-path-preview-path\s*\{[^}]*stroke-linecap:\s*round;/s);

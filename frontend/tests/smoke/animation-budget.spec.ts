@@ -50,10 +50,10 @@ test.beforeEach(async ({ page, request, isMobile }) => {
 
 test("diagram keeps every alert symbol at rest, selected or not, at the same glyph density", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await expect(page.locator("[data-glyph-lane] > g").first()).toBeAttached();
-  await expect(page.locator(".ttc-map-stage animateMotion")).toHaveCount(0);
-  await expect.poll(() => page.locator(".ttc-map-stage").evaluate(element => element.getAnimations({ subtree: true })
+  await expect(page.locator("[data-system-map=ttc] .map-stage animateMotion")).toHaveCount(0);
+  await expect.poll(() => page.locator("[data-system-map=ttc] .map-stage").evaluate(element => element.getAnimations({ subtree: true })
     .filter(animation => animation.playState === "running" && animation.effect?.getTiming().iterations === Infinity).length))
     .toBe(0);
   const corridor = page.locator('.overlay-segment-group[data-map-impact-id="reduced-speed-zone-stub-union-curve"]');
@@ -64,7 +64,7 @@ test("diagram keeps every alert symbol at rest, selected or not, at the same gly
   // Selecting an alert highlights it; its glyphs stay where they are.
   await page.getByRole("button", { name: "reduced-speed-zone: King to Union" }).press("Enter");
   await expect(glyphs).toHaveCount(count);
-  await expect(page.locator(".ttc-map-stage animateMotion")).toHaveCount(0);
+  await expect(page.locator("[data-system-map=ttc] .map-stage animateMotion")).toHaveCount(0);
   expectSameGlyphFrames(await glyphFrames(glyphs), resting);
 });
 
@@ -139,7 +139,7 @@ test("incident borders draw once at idle, animate on focus, and honor app Reduce
 
 test("canvas motion is paced and stops during sheet gestures and page suspension", async ({ page, isMobile }) => {
   await page.goto("/");
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   const frames = () => page.evaluate(() => (window as Window & { backgroundFrames?: number[] }).backgroundFrames ?? []);
   await expect.poll(async () => (await frames()).length).toBeGreaterThan(0);
   await page.evaluate(() => { (window as Window & { backgroundFrames?: number[] }).backgroundFrames = []; });

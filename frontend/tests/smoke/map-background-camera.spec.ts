@@ -11,7 +11,7 @@ for (const network of ['ttc', 'regional'] as const) {
       await page.addInitScript(value => localStorage.setItem('linewatch-default-network-v1', value), network);
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.goto('/');
-      const stage = page.locator(`.${network}-map-stage`);
+      const stage = page.locator(`[data-system-map=${network}] .map-stage`);
       await expect(stage).toHaveAttribute('data-raster-map-ready', 'true');
       await page.getByRole('button', { name: 'Center map view', exact: true }).click();
       const viewport = stage.locator('..');
@@ -36,7 +36,7 @@ for (const network of ['ttc', 'regional'] as const) {
           }));
         }
       }, interruption);
-      await expect(page.locator(network === 'ttc' ? '[data-map-pan-zoom-viewport]' : '.regional-map'))
+      await expect(page.locator(`[data-system-map=${network}]`))
         .toHaveAttribute('data-map-gesture-active', 'false');
       // The release occurs outside this page. Late movement must not continue
       // the old drag, either while hidden or when the pointer returns.
@@ -50,7 +50,7 @@ for (const network of ['ttc', 'regional'] as const) {
       });
       await viewport.dispatchEvent('pointermove', { ...pointer, buttons: 0, clientX: 350, clientY: 420 });
       await expect.poll(() => stage.evaluate(element => element.style.transform)).toBe(before);
-      await expect(page.locator(network === 'ttc' ? '[data-map-pan-zoom-viewport]' : '.regional-map'))
+      await expect(page.locator(`[data-system-map=${network}]`))
         .toHaveAttribute('data-map-gesture-active', 'false');
       // A new gesture should still work after the interrupted one is discarded.
       await viewport.dispatchEvent('pointerdown', { ...pointer, clientX: 200, clientY: 250 });
@@ -70,7 +70,7 @@ for (const network of ['ttc', 'regional'] as const) {
       await page.addInitScript(value => localStorage.setItem('linewatch-default-network-v1', value), network);
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.goto('/');
-      const stage = page.locator(`.${network}-map-stage`);
+      const stage = page.locator(`[data-system-map=${network}] .map-stage`);
       await expect(stage).toHaveAttribute('data-raster-map-ready', 'true');
       await page.getByRole('button', { name: 'Center map view', exact: true }).click();
       const before = await stage.evaluate(element => element.style.transform);
@@ -111,7 +111,7 @@ for (const network of ['ttc', 'regional'] as const) {
       await installDismissedTransientUi(page);
       await page.addInitScript(value => localStorage.setItem('linewatch-default-network-v1', value), network);
       await page.goto('/');
-      const stage = page.locator(`.${network}-map-stage`);
+      const stage = page.locator(`[data-system-map=${network}] .map-stage`);
       await expect(stage).toHaveAttribute('data-raster-map-ready', 'true');
       await expect(stage).toBeVisible();
       await page.evaluate(() => document.fonts.ready.then(() => undefined));
@@ -177,7 +177,7 @@ for (const network of ['ttc', 'regional'] as const) {
       await installDismissedTransientUi(page);
       await page.addInitScript(value => localStorage.setItem('linewatch-default-network-v1', value), network);
       await page.goto('/');
-      const stage = page.locator(`.${network}-map-stage`);
+      const stage = page.locator(`[data-system-map=${network}] .map-stage`);
       await expect(stage).toHaveAttribute('data-raster-map-ready', 'true');
       await page.evaluate(() => document.fonts.ready.then(() => undefined));
       await page.getByRole('button', { name: 'Center map view', exact: true }).click();

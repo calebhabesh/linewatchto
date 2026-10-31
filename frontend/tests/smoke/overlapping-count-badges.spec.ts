@@ -12,7 +12,7 @@ for (const network of ["ttc", "regional"] as const) {
     await page.setViewportSize(isMobile ? { width: 360, height: 800 } : { width: 1440, height: 900 });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
-    const stage = page.locator(`.${network}-map-stage`);
+    const stage = page.locator(`[data-system-map=${network}] .map-stage`);
     await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
     const marker = network === "ttc"
       ? page.locator('[data-overlap-segment-id="stub-line-1-segment"]')
@@ -58,7 +58,7 @@ test("default map hierarchy preserves effect priority without extra outlines", a
     await setStubMode(request, "regional-live");
     await page.getByRole("group", { name: "Select transit network" })
       .getByRole("button", { name: "GO/UP", exact: true }).click();
-    await expect(page.locator(".regional-map .overlay-segment-group").first()).toBeAttached();
+    await expect(page.locator("[data-system-map=regional] .overlay-segment-group").first()).toBeAttached();
     await expect(page.locator("[data-secondary-overlap-kind]")).toHaveCount(0);
     await page.screenshot({ path: "/tmp/linewatch-hierarchy-regional.png" });
   }
@@ -381,7 +381,7 @@ test("TTC hover repaints overlay artwork above default-priority corridors", asyn
       ordered,
     };
   })).toEqual({ artwork: true, aboveOverlays: true, ordered: true });
-  const viewportBox = await page.locator("[data-map-pan-zoom-viewport]").first().boundingBox();
+  const viewportBox = await page.locator("[data-system-map=ttc] .system-map-viewport").first().boundingBox();
   await page.mouse.move(viewportBox!.x + 4, viewportBox!.y + viewportBox!.height - 4);
   await expect(visual).toHaveCount(0);
 });
@@ -578,8 +578,8 @@ for (const network of ["TTC", "GO/UP"] as const) {
     await expect(chooser).toBeVisible();
     await expect(outsideControl).toBeFocused();
 
-    const viewport = page.locator(network === "TTC" ? '[data-map-pan-zoom-viewport]' : '.regional-map-viewport');
-    const stage = viewport.locator(network === "TTC" ? '.ttc-map-stage' : '.regional-map-stage');
+    const viewport = page.locator(network === "TTC" ? '[data-system-map=ttc] .system-map-viewport' : '[data-system-map=regional] .system-map-viewport');
+    const stage = viewport.locator('.map-stage');
     const before = await stage.getAttribute("style");
     await viewport.dispatchEvent("pointerdown", { pointerId: 45, pointerType: "mouse", button: 0, clientX: 200, clientY: 200 });
     await viewport.dispatchEvent("pointermove", { pointerId: 45, pointerType: "mouse", buttons: 1, clientX: 240, clientY: 230 });

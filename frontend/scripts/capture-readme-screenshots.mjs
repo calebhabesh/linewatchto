@@ -68,7 +68,7 @@ async function openDashboard(browser, network, viewport, isMobile = false) {
   ), { timeout: 30_000 }).then((response) => response.json()).catch(() => null);
   await page.goto(`${origin}/?network=${network}`, { waitUntil: "networkidle" });
   await page.evaluate(() => document.fonts.ready);
-  const stage = network === "ttc" ? ".ttc-map-stage" : ".regional-map-stage";
+  const stage = network === "ttc" ? "[data-system-map=ttc] .map-stage" : "[data-system-map=regional] .map-stage";
   await page.locator(`${stage}[data-raster-map-ready="true"]`).first().waitFor({ timeout: 30_000 });
   // Let the camera settle after its entrance and any layout re-fit.
   await page.waitForTimeout(2500);

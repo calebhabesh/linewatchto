@@ -5,8 +5,8 @@ import { installDismissedTransientUi, setStubMode, waitForNetworkTransition } fr
 // must reach only the map the rider is looking at.
 
 const cameras = (page: Page) => page.evaluate(() => ({
-  ttc: document.querySelector<HTMLElement>(".ttc-map-stage")?.style.transform ?? null,
-  regional: document.querySelector<HTMLElement>(".regional-map-stage")?.style.transform ?? null,
+  ttc: document.querySelector<HTMLElement>("[data-system-map=ttc] .map-stage")?.style.transform ?? null,
+  regional: document.querySelector<HTMLElement>("[data-system-map=regional] .map-stage")?.style.transform ?? null,
 }));
 
 const networkSwitch = (page: Page, isMobile: boolean) => isMobile
@@ -20,10 +20,10 @@ test.beforeEach(async ({ page, request }) => {
 
 test("zooming one network leaves the hidden network's camera alone", async ({ page, isMobile }) => {
   await page.goto("/");
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await networkSwitch(page, isMobile).getByRole("button", { name: "GO/UP", exact: true }).click();
   await waitForNetworkTransition(page, "regional");
-  await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=regional] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   // Leave GO/UP away from its fitted view so a stray Center would show too.
   const fitted = await cameras(page);
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
@@ -42,7 +42,7 @@ test("zooming one network leaves the hidden network's camera alone", async ({ pa
 
 test("map controls pressed during a network switch move neither map", async ({ page, isMobile }) => {
   await page.goto("/");
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await networkSwitch(page, isMobile).getByRole("button", { name: "GO/UP", exact: true }).click();
   await waitForNetworkTransition(page, "regional");
   await networkSwitch(page, isMobile).getByRole("button", { name: "TTC", exact: true }).click();

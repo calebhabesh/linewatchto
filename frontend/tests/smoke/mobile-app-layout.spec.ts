@@ -13,7 +13,7 @@ test("mobile search, service shortcuts and Saved share the app shell", async ({ 
   await expect(nav.getByRole("button")).toHaveCount(4);
   const search = page.getByRole("searchbox", { name: "Station Search" });
   await expect(search).toBeVisible();
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await page.waitForTimeout(700);
   await page.screenshot({ path: "/tmp/linewatch-app-map.png", scale: "css" });
   await search.click();

@@ -80,8 +80,8 @@ async function prepareDesktopPage(page: import("@playwright/test").Page, options
 
   await page.evaluate(() => document.fonts.ready);
   const mapStage = network === "regional"
-    ? page.locator(".regional-map-stage")
-    : page.locator(".ttc-map-stage");
+    ? page.locator("[data-system-map=regional] .map-stage")
+    : page.locator("[data-system-map=ttc] .map-stage");
   await expect(mapStage).toHaveAttribute("data-raster-map-ready", "true");
   await page.waitForTimeout(300);
 }

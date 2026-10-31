@@ -29,7 +29,7 @@ test("first GO/UP switch checks destination service before showing its legend", 
     await route.continue();
   });
   await page.goto("/");
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   const observation = await page.evaluateHandle(() => {
     const result = { sawUnknown: false };
     const observer = new MutationObserver(() => {
@@ -53,7 +53,7 @@ test("pinching mobile map chrome keeps the app viewport at its original scale", 
   await installDismissedTransientUi(page);
   await setStubMode(request, "regional-live");
   await page.goto("/");
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   const legend = await page.locator(".mobile-legend-pill").boundingBox();
   expect(legend).not.toBeNull();
   await pinch(page, { x: legend!.x + legend!.width / 2, y: legend!.y + legend!.height / 2 });
@@ -71,7 +71,7 @@ test("a slow GO/UP source switches with unknown status and remains usable", asyn
     await route.continue();
   });
   await page.goto("/");
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await page.locator(".mobile-map-network-switch").getByRole("button", { name: "GO/UP", exact: true }).tap();
   await waitForNetworkTransition(page, "regional");
   await expect(page.locator(".mobile-legend-pill--regional .mobile-legend-compact-row.service-tone-unknown")).toHaveCount(8);
@@ -103,14 +103,14 @@ for (const { gesture, cpuRate } of [
       await route.continue();
     });
     await page.goto("/");
-    await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true", { timeout: 15_000 });
+    await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true", { timeout: 15_000 });
     const entering = page.evaluate(() => new Promise<{ x: number; y: number; transform: string; mapReady: string | null; rasterReady: string | null }>(resolve => {
       const surface = document.querySelector(".network-map-transition-surface")!;
       const observer = new MutationObserver(() => {
         if (surface.getAttribute("data-map-surface-transition") !== "entering") return;
         observer.disconnect();
-        const viewport = surface.querySelector(".regional-map-viewport")!;
-        const stage = viewport.querySelector<HTMLElement>(".regional-map-stage")!;
+        const viewport = surface.querySelector("[data-system-map=regional] .system-map-viewport")!;
+        const stage = viewport.querySelector<HTMLElement>("[data-system-map=regional] .map-stage")!;
         const rect = viewport.getBoundingClientRect();
         resolve({ x: rect.left + rect.width * 0.6, y: rect.top + rect.height * 0.55, transform: stage.style.transform,
           mapReady: viewport.closest(".network-diagram-layer")!.getAttribute("data-map-ready"),
@@ -134,7 +134,7 @@ for (const { gesture, cpuRate } of [
       await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
       await session.detach();
     }
-    const afterGesture = await page.locator(".regional-map-stage").evaluate(stage => (stage as HTMLElement).style.transform);
+    const afterGesture = await page.locator("[data-system-map=regional] .map-stage").evaluate(stage => (stage as HTMLElement).style.transform);
     const movement = await page.evaluate(({ before, after }) => {
       const initial = new DOMMatrixReadOnly(before);
       const final = new DOMMatrixReadOnly(after);
@@ -145,7 +145,7 @@ for (const { gesture, cpuRate } of [
     expect(await page.evaluate(() => window.visualViewport!.scale)).toBe(1);
     await waitForNetworkTransition(page, "regional");
     // Observe the subsequent frames to catch a deferred entrance/refit replacing the gesture.
-    const transforms = await page.locator(".regional-map-stage").evaluate(async stage => {
+    const transforms = await page.locator("[data-system-map=regional] .map-stage").evaluate(async stage => {
       const samples: string[] = [];
       for (let frame = 0; frame < 40; frame++) {
         await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));

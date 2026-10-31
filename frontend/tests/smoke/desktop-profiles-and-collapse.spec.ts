@@ -13,7 +13,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     // 1. Check docked mode at 1440x900
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
-    await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
 
     const sidebar = page.locator("#desktop-sidebar-container");
     // Initial status overview targets 420px
@@ -77,7 +77,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
-    await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
 
     const sidebar = page.locator("#desktop-sidebar-container");
     const initialBox = await sidebar.boundingBox();
@@ -110,7 +110,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
-    await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
 
     const sidebar = page.locator("#desktop-sidebar-container");
     const toggle = page.getByRole("button", { name: "Collapse sidebar" });
@@ -153,7 +153,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
-    await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
 
     const sidebar = page.locator("#desktop-sidebar-container");
     const ttcBox = await sidebar.boundingBox();
@@ -161,7 +161,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
 
     // Switch to GO/UP
     await sidebar.getByRole("button", { name: "GO/UP", exact: true }).click();
-    await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(page.locator("[data-system-map=regional] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
     const goUpBox = await sidebar.boundingBox();
     expect(goUpBox?.width).toBe(420);
 
@@ -180,7 +180,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     // Switch back to TTC
     await page.locator('[data-dest="status"]').click();
     await sidebar.getByRole("button", { name: "TTC", exact: true }).click();
-    await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
     const finalTtcBox = await sidebar.boundingBox();
     expect(finalTtcBox?.width).toBe(420);
   });
@@ -193,10 +193,10 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
 
     const sidebar = page.locator("#desktop-sidebar-container");
     const workspace = page.locator(".desktop-map-workspace");
-    const ttcViewport = page.locator("[data-map-pan-zoom-viewport]");
-    const ttcStage = page.locator(".ttc-map-stage");
+    const ttcMap = page.locator("[data-system-map=ttc]");
+    const ttcStage = page.locator("[data-system-map=ttc] .map-stage");
     await expect(ttcStage).toHaveAttribute("data-raster-map-ready", "true");
-    await expect(ttcViewport).toHaveAttribute("data-map-camera-moving", "false");
+    await expect(ttcMap).toHaveAttribute("data-map-camera-moving", "false");
 
     const workspaceBefore = await workspace.boundingBox();
     const ttcDefaultCamera = await ttcStage.evaluate((element) => (element as HTMLElement).style.transform);
@@ -204,7 +204,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     await expect.poll(() => ttcStage.evaluate((element) => (
       (element as HTMLElement).style.transform
     ))).not.toBe(ttcDefaultCamera);
-    await expect(ttcViewport).toHaveAttribute("data-map-camera-moving", "false");
+    await expect(ttcMap).toHaveAttribute("data-map-camera-moving", "false");
     const ttcCamera = await ttcStage.evaluate((element) => (element as HTMLElement).style.transform);
 
     await page.locator('[data-dest="source-status"]').click();
@@ -222,8 +222,8 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     await page.locator('[data-dest="status"]').click();
     await sidebar.getByRole("button", { name: "GO/UP", exact: true }).click();
     await waitForNetworkTransition(page, "regional");
-    const regionalMap = page.locator(".regional-map");
-    const regionalStage = page.locator(".regional-map-stage");
+    const regionalMap = page.locator("[data-system-map=regional]");
+    const regionalStage = page.locator("[data-system-map=regional] .map-stage");
     await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
     await expect(regionalMap).toHaveAttribute("data-map-camera-moving", "false");
     const regionalDefaultCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
@@ -238,7 +238,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     await sidebar.getByRole("button", { name: "TTC", exact: true }).click();
     await waitForNetworkTransition(page, "ttc");
     await expect(ttcStage).toHaveAttribute("data-raster-map-ready", "true");
-    await expect(ttcViewport).toHaveAttribute("data-map-camera-moving", "false");
+    await expect(ttcMap).toHaveAttribute("data-map-camera-moving", "false");
     expect(await ttcStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(ttcCamera);
 
     await sidebar.getByRole("button", { name: "GO/UP", exact: true }).click();
@@ -325,7 +325,7 @@ test("desktop rail exposes network-specific impact shortcuts above the data divi
 
   await page.locator('[data-dest="status"]').click();
   await page.locator("#desktop-sidebar-container").getByRole("button", { name: "GO/UP", exact: true }).click();
-  await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=regional] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await expect.poll(() => shortcuts.evaluateAll((elements) => elements.map((element) => element.getAttribute("data-alert-kind")))).toEqual([
     "alerts",
     "delays",

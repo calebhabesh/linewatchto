@@ -27,8 +27,8 @@ for (const touchDelay of [0, 200]) {
       const result = new Promise(resolve => {
         const observer = new MutationObserver(() => {
           if (!document.querySelector(".ttc-map-entrance-reveal--ready")) return;
-          const viewport = document.querySelector<HTMLElement>("[data-network-map-layer='ttc'] [data-map-pan-zoom-viewport]")!;
-          const stage = viewport.querySelector<HTMLElement>(".ttc-map-stage")!;
+          const viewport = document.querySelector<HTMLElement>("[data-network-map-layer='ttc'] [data-system-map=ttc] .system-map-viewport")!;
+          const stage = viewport.querySelector<HTMLElement>("[data-system-map=ttc] .map-stage")!;
           const rect = viewport.getBoundingClientRect();
           const point = { x: rect.left + rect.width * 0.6, y: rect.top + rect.height * 0.4 };
           observer.disconnect();
@@ -57,12 +57,12 @@ test("a TTC pan starting on an impact ring reaches the map gesture handler", asy
   await installDismissedTransientUi(page);
   await setStubMode(request, "regional-live");
   await page.goto("/");
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   const ring = page.locator(".station-impact-ring[role='button']").first();
   await expect(ring).toBeAttached();
   const movement = await ring.evaluate(async target => {
-    const viewport = target.closest("[data-map-pan-zoom-viewport]")!;
-    const stage = viewport.querySelector<HTMLElement>(".ttc-map-stage")!;
+    const viewport = target.closest("[data-system-map=ttc] .system-map-viewport")!;
+    const stage = viewport.querySelector<HTMLElement>("[data-system-map=ttc] .map-stage")!;
     const initial = new DOMMatrixReadOnly(stage.style.transform);
     for (const [type, offset] of [["pointerdown", 0], ["pointermove", 60], ["pointerup", 60]] as const) {
       target.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType: "touch", pointerId: 45,
@@ -76,7 +76,7 @@ test("a TTC pan starting on an impact ring reaches the map gesture handler", asy
   await ring.dispatchEvent("pointerdown", { pointerType: "touch", pointerId: 46, clientX: 260, clientY: 320 });
   await ring.dispatchEvent("pointerup", { pointerType: "touch", pointerId: 46, clientX: 260, clientY: 320 });
   await expect(ring).toHaveClass(/selected/);
-  await expect(page.locator("[data-map-pan-zoom-viewport]")).toHaveAttribute("data-map-gesture-active", "false");
+  await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute("data-map-gesture-active", "false");
 });
 
 for (const network of ["ttc", "regional"] as const) {
@@ -92,8 +92,8 @@ for (const network of ["ttc", "regional"] as const) {
       const firstPan = new Promise(resolve => {
         const observer = new MutationObserver(() => {
           const layer = document.querySelector(`[data-network-map-layer='${network}']:not([data-preparing])`);
-          const stage = layer?.querySelector<HTMLElement>(".ttc-map-stage, .regional-map-stage");
-          const viewport = stage?.closest<HTMLElement>("[data-map-pan-zoom-viewport], .regional-map-viewport");
+          const stage = layer?.querySelector<HTMLElement>("[data-system-map=ttc] .map-stage, [data-system-map=regional] .map-stage");
+          const viewport = stage?.closest<HTMLElement>("[data-system-map=ttc] .system-map-viewport, [data-system-map=regional] .system-map-viewport");
           if (!stage || !viewport || stage.style.visibility !== "visible") return;
           if (network === "ttc" && !document.querySelector(".ttc-map-entrance-reveal--ready")) return;
           observer.disconnect();
@@ -107,7 +107,7 @@ for (const network of ["ttc", "regional"] as const) {
             await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
             const firstTransform = stage.style.transform;
             const deltaX = new DOMMatrixReadOnly(firstTransform).e - initial.e;
-            const activeWhileHeld = (viewport.closest<HTMLElement>(".regional-map") ?? viewport).dataset.mapGestureActive;
+            const activeWhileHeld = viewport.closest<HTMLElement>("[data-system-map]")!.dataset.mapGestureActive;
             const transforms = new Set<string>();
             for (let frame = 0; frame < 40; frame++) {
               await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
@@ -148,7 +148,7 @@ for (const network of ["ttc", "regional"] as const) {
       const layer = page.locator(`[data-network-map-layer='${network}']`);
       await expect(layer).toHaveAttribute("data-map-ready", "true");
       const badge = layer.locator(".overlap-indicator[role='button']").first();
-      const stage = layer.locator(".ttc-map-stage, .regional-map-stage");
+      const stage = layer.locator("[data-system-map=ttc] .map-stage, [data-system-map=regional] .map-stage");
       const before = await stage.evaluate(stage => (stage as HTMLElement).style.transform);
       const box = await badge.boundingBox();
       expect(box).not.toBeNull();

@@ -7,7 +7,7 @@ import { regionalLineAlerts } from "../src/app/regional-line-alerts.ts";
 import { regionalStationAlerts } from "../src/app/regional-station-alerts.ts";
 import { regionalOverlapBadges, regionalPlacedOverlapBadges } from "../src/app/regional-map-overlays.ts";
 import { REGIONAL_MAP_VIEWBOX, REGIONAL_OVERLAY_UNIT } from "../src/app/regional-map-geometry.ts";
-import { placeMapOverlapBadges } from "../src/app/map-content.ts";
+import { placeMapOverlapBadges, reuseMapContent } from "../src/app/map-content.ts";
 
 const data = regionalDashboardDataForScenario("all-impact-types");
 const input = (overrides = {}) => ({
@@ -23,7 +23,29 @@ const input = (overrides = {}) => ({
   ...overrides,
 });
 
+// A poll returns fresh copies, and every ingestion run restamps `updatedAt`.
+const restamped = (items, updatedAt) => items.map((item) => ({ ...item, updatedAt }));
+const polled = (updatedAt) => input({
+  activeAlerts: restamped(data.activeAlerts, updatedAt),
+  delays: restamped(data.delays, updatedAt),
+  reducedSpeedZones: restamped(data.reducedSpeedZones, updatedAt),
+  plannedClosures: restamped(data.plannedClosures, updatedAt),
+  networkSegments: data.networkSegments.map((segment) => ({ ...segment })),
+});
+
 describe("GO/UP map content", () => {
+  it("keeps what it draws when a poll only restamps the data", () => {
+    const before = regionalMapContent(geometry, polled("2026-10-23T21:03:36Z"));
+    const after = regionalMapContent(geometry, polled("2026-10-23T21:07:37Z"));
+    assert.equal(reuseMapContent(before, after), before);
+  });
+
+  it("redraws when what it draws changes", () => {
+    const before = regionalMapContent(geometry, polled("2026-10-23T21:03:36Z"));
+    const after = regionalMapContent(geometry, input({ stationNodeImpacts: [] }));
+    assert.notEqual(reuseMapContent(before, after), before);
+  });
+
   it("draws what the regional adapters build", () => {
     const content = regionalMapContent(geometry, input());
     const stationAlertImpacts = regionalStationAlertImpacts(input());

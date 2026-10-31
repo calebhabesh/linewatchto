@@ -286,3 +286,60 @@ repeated parallel runs; cause unknown, watch it.
   restores the real clock and finds the train toggle disabled during GO/UP's
   closed hours (run at 02:50); `dashboard.spec.ts:1911` failed until the shared
   layer kept GO/UP's `data-marker-key`, then passed.
+- **Phase 4 done (2026-10-31): one engine.** `components/system-map/SystemMap.tsx`
+  owns every map's orchestration: artwork and raster loading, the entrance and
+  camera, the plane stack, station targets and names, the tap path, hover, train
+  markers, badges and the chooser. A map is a `SystemMapDefinition`
+  (`system-map/ttc-system-map.ts`, `regional-system-map.ts`): manifest, prepared
+  geometry, `prepareArtwork`, content adapter, train marker segments and
+  placement. `InteractiveTtcMap.tsx` and `InteractiveRegionalMap.tsx` are
+  one-line wrappers (GO/UP's stays code-split); they go with phase 5's registry.
+  New manifest data: `stationLabels` (target and hover padding, glyph cutout:
+  TTC `use` of its authored label, GO/UP a prepared glyph copy, mask dilation),
+  `framing`, `compass`, `attributionSource`, `label`. Both maps' SVGs load
+  through `app/map-artwork.ts` and mount whole as artwork under the overlay plane
+  (TTC's three-part split is gone, with its unused `delay-static-filter` and
+  `badge-suspension-hash` defs and the authored-label hover classes); the lifted
+  station name is one `MapStationLabelHoverCopy`; station-name hover comes from
+  the targets on both maps (`installRegionalStationLabelHover`,
+  `regional-station-interaction.ts` and `regionalOverlayContentSignature` are
+  gone). Plane groups have map-prefixed ids (`ttc-dynamic-segment-layer`).
+  Decisions (owner): GO/UP gets the exit fade; content is built per render on
+  both maps (poll-only restamps are caught by `reuseMapContent`, now unit-tested).
+  Unified behaviour, formerly one map's: the entrance waits for the rasters
+  (TTC's), the stage shows once the camera is placed (GO/UP's), turning the
+  phone refits (GO/UP's), programmatic motion stops while the page is hidden and
+  the camera reconciles resizes only while active (GO/UP's), hover pauses on
+  `isGestureActive` and pulses sync on phones too (TTC's), side insets follow the
+  camera's width rule (TTC's desktop-with-hidden-chrome inset is now 32, was 12),
+  the chooser sits in the viewport and the toolbar comes first (TTC's), GO/UP
+  station names get targets only for stations with data, the name cutout waits
+  for the label font on TTC too, and TTC's Center button is titled "Center map
+  view". One set of element hooks: the root `.system-map` with
+  `data-system-map="ttc|regional"` (camera flags on it for both maps), the
+  viewport `.system-map-viewport` and the stage `.map-stage`; the per-map classes
+  (`.ttc-map-stage`, `.regional-map`, `.regional-map-viewport`,
+  `.regional-map-stage`, `.regional-map-control-rail`) and TTC's
+  `data-map-pan-zoom-viewport` are gone, specs select a map by
+  `[data-system-map=…]`, and the only per-map CSS left is artwork theming. The
+  `!important` ceiling went from 446 to 448: TTC's inline artwork theming moved into `base-map.css`.
+- Phase 4 checks (before the element hooks were unified; rerun after, below): `test:fast`, typecheck and lint (15 warnings) pass;
+  `map-parity` passes on both projects. The plan's browser list (354 passed)
+  fails only the known cases: the two GO/UP mobile cases, offline-dashboard × 4
+  on desktop, and `dashboard.spec.ts:1871` (run at 03:00, GO/UP closed); two
+  unscoped locators (`dashboard.spec.ts:2830`, `:4016`), which matched GO/UP's
+  identical groups and Kipling, are scoped to TTC and pass. `test:visual` 30
+  passed with no differences; `test:map-zoom-memory` 0 warnings on both maps;
+  `test:map-budgets` passes: phone tap INP TTC 200 ms, GO/UP 528 ms; desktop
+  wheel and drag p95 6.1 ms on both; GO/UP hover sweep 45 frames over 20 ms
+  (phase 3: 43).
+- Phase 4 checks after unifying the element hooks: `test:fast`, typecheck and
+  lint (15 warnings) pass; the plan's browser list with `map-parity` (380
+  passed) fails only the known cases (the two GO/UP mobile cases,
+  offline-dashboard × 4 on desktop, `dashboard.spec.ts:1871` overnight); the
+  specs the rename broke (nested locators that repeated the map scope, flag
+  checks on TTC's viewport, two `.regional-map-control-rail` lookups) were
+  fixed and pass. `test:visual` 30 passed with no differences. `compact-mobile`
+  (not in the list) fails the same 18 cases on `e38b29a2` as here.
+- Next: phase 5 (maps as data: `MapId`, the registry, `NetworkMap` looking maps
+  up by network; the two wrappers go).

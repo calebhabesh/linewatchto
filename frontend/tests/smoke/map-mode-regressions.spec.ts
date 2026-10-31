@@ -26,7 +26,7 @@ async function openMap(page: Page, request: APIRequestContext, network: NetworkI
   if (mode === "geographic") {
     await expect(page.locator(".geographic-network-map")).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
   } else {
-    await expect(page.locator(`.${network}-map-stage`)).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(page.locator(`[data-system-map=${network}] .map-stage`)).toHaveAttribute("data-raster-map-ready", "true");
   }
   if (mode === "rotated diagram") {
     await page.getByRole("button", { name: /^Rotate map$/i }).click();
@@ -39,11 +39,11 @@ async function openMap(page: Page, request: APIRequestContext, network: NetworkI
 function mapViewport(page: Page, network: NetworkId, mode: MapMode) {
   return mode === "geographic"
     ? page.getByRole("region", { name: network === "ttc" ? "TTC Geographic Map" : "Regional Rail Geographic Map", exact: true })
-    : page.locator(network === "ttc" ? "[data-map-pan-zoom-viewport]" : ".regional-map-viewport");
+    : page.locator(network === "ttc" ? "[data-system-map=ttc] .system-map-viewport" : "[data-system-map=regional] .system-map-viewport");
 }
 
 async function camera(page: Page, network: NetworkId, mode: MapMode) {
-  if (mode !== "geographic") return page.locator(`.${network}-map-stage`).evaluate(el => el.style.transform);
+  if (mode !== "geographic") return page.locator(`[data-system-map=${network}] .map-stage`).evaluate(el => el.style.transform);
   return page.evaluate(() => {
     const value = window.__linewatchGeographicMapLifecycle?.getCamera();
     if (!value) return null;
@@ -175,7 +175,7 @@ async function chooserAndBadgeCenters(page: Page, network: NetworkId, mode: MapM
     } else {
       badge = center(network === "ttc"
         ? document.querySelector('[data-overlap-segment-id="stub-line-1-segment"]')
-        : document.querySelector(".regional-map-stage .overlap-indicator.open"));
+        : document.querySelector("[data-system-map=regional] .map-stage .overlap-indicator.open"));
     }
     return { card, badge };
   }, { network, mode, key: `segment:${segmentId}` });
@@ -366,7 +366,7 @@ for (const network of ["ttc", "regional"] as const) {
       if (mode === "geographic") {
         await expect(page.locator(".geographic-network-map")).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
       } else {
-        await expect(page.locator(`.${network}-map-stage`)).toHaveAttribute("data-raster-map-ready", "true");
+        await expect(page.locator(`[data-system-map=${network}] .map-stage`)).toHaveAttribute("data-raster-map-ready", "true");
       }
       await centerMap(page, mode);
       const before = await camera(page, network, mode);
@@ -403,7 +403,7 @@ test("the first GO/UP overlay click after a network swap keeps its focus", async
   await page.goto("/");
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true }).click();
-  const stage = page.locator(".regional-map-stage");
+  const stage = page.locator("[data-system-map=regional] .map-stage");
   await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
   const scale = () => stage.evaluate(el => new DOMMatrixReadOnly(getComputedStyle(el).transform).a);
   await expect.poll(scale).toBeGreaterThan(0);
@@ -411,7 +411,7 @@ test("the first GO/UP overlay click after a network swap keeps its focus", async
   const fitted = await scale();
 
   const target = page.locator(
-    '.regional-map .map-segment-hit-target[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-delay"]',
+    '[data-system-map=regional] .map-segment-hit-target[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-delay"]',
   );
   await target.dispatchEvent("click");
   await expect.poll(scale, { timeout: 3_000 }).toBeGreaterThan(fitted * 1.2);

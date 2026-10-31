@@ -76,7 +76,7 @@ for (const back of ["back", "close", "browser"] as const) {
     const controls = inspector.getByRole("group", { name: "Impact navigation" });
     await expect(controls.getByRole("button", { name: "Back to Map", exact: true })).toBeVisible();
     await expect(controls.getByRole("button", { name: "Unfocus impact" })).toBeVisible();
-    const mapBox = await page.locator('[data-map-pan-zoom-viewport]').first().boundingBox();
+    const mapBox = await page.locator('[data-system-map=ttc] .system-map-viewport').first().boundingBox();
     const inspectorBox = await inspector.boundingBox();
     expect(mapBox && inspectorBox && inspectorBox.y > mapBox.y + 100).toBeTruthy();
     if (back === "back") await page.screenshot({ path: "/tmp/linewatch-mobile-service-split.png" });
@@ -180,8 +180,8 @@ for (const view of ["cards", "list"] as const) {
     await expect(mapAction).toContainText("Back");
     await expect(page.locator(`[data-map-highlight-id="${id}"]`).first()).toBeAttached();
     await expect(card).toHaveClass(/is-active/);
-    const camera = page.locator(".ttc-map-stage");
-    await expect(page.locator("[data-map-pan-zoom-viewport]")).toHaveAttribute("data-map-camera-moving", "false");
+    const camera = page.locator("[data-system-map=ttc] .map-stage");
+    await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute("data-map-camera-moving", "false");
     const focusedCamera = await camera.getAttribute("style");
     await mapAction.click();
     await expect(mapAction).toContainText("View");

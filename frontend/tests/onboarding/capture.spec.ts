@@ -30,7 +30,7 @@ async function prepare(page: Page) {
   }]);
   await page.goto(`/?previewTime=${encodeURIComponent(captureTime)}`);
   await page.evaluate(() => document.fonts.ready);
-  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await page.addStyleTag({ content: `
     *, *::before, *::after { animation: none !important; transition: none !important; caret-color: transparent !important; }
     nextjs-portal { display: none !important; }
@@ -42,7 +42,7 @@ async function capture(page: Page, name: string, target?: Locator, ratio?: numbe
   await page.mouse.move(0, 0);
   // Wait for the actual map camera and two browser frames, not network-idle
   // (the dashboard deliberately polls in the background).
-  await expect(page.locator("[data-map-pan-zoom-viewport]")).toHaveAttribute("data-map-camera-moving", "false");
+  await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute("data-map-camera-moving", "false");
   await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   const box = target ? await target.boundingBox() : { x: 0, y: 0, ...page.viewportSize()! };
   expect(box).not.toBeNull();
@@ -76,7 +76,7 @@ for (const feature of ["map-guide", "impact-details", "my-commutes", "my-station
     await prepare(page);
     const name = `${testInfo.project.name}-${feature}${feature.startsWith("my-") ? "-v3" : ""}`;
     if (feature === "map-guide") {
-      await capture(page, name, page.locator(".ttc-map-stage"), isMobile ? 4 / 3 : 16 / 9);
+      await capture(page, name, page.locator("[data-system-map=ttc] .map-stage"), isMobile ? 4 / 3 : 16 / 9);
     } else if (feature === "impact-details") {
       await page.getByRole("button", { name: "reduced-speed-zone: Eglinton to Davisville", exact: true }).dispatchEvent("click");
       await expect(page.getByText("Track issue").first()).toBeVisible();

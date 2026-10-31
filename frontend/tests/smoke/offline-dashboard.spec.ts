@@ -13,21 +13,21 @@ test('saved dashboard reopens offline and recovers on reconnect', async ({ page,
   await expect.poll(() => page.evaluate(() => Boolean(localStorage.getItem('linewatch-dashboard-snapshot-v1:ttc')))).toBe(true);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await expect.poll(() => page.evaluate(async () => Boolean(await caches.match('/offline')))).toBe(true);
-  await expect(page.locator('.ttc-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
+  await expect(page.locator('[data-system-map=ttc] .map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
   const before = await page.evaluate(() => JSON.parse(localStorage.getItem('linewatch-dashboard-snapshot-v1:ttc')!).savedAt);
   await context.setOffline(true);
   await expect(page.locator('.dashboard-availability-notice')).toContainText('Offline');
   await page.reload();
   await expect(page.locator('.linewatch-shell')).toBeVisible();
   await expect(page.locator('.dashboard-availability-notice')).toContainText('Saved');
-  await expect(page.locator('.ttc-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
+  await expect(page.locator('[data-system-map=ttc] .map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
   if (!test.info().project.name.startsWith("mobile")) {
     await expect(page.locator(".mobile-service-sheet-recessed-badge")).toHaveText(/Cached/i);
   }
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('linewatch-dashboard-snapshot-v1:ttc')!).savedAt)).toBe(before);
   await expect(page.locator('.estimated-train-marker')).toHaveCount(0);
   await expect(page.locator('.service-tone-good')).toHaveCount(0);
-  await expect(page.locator('.ttc-map-stage')).toHaveCSS('opacity', '1');
+  await expect(page.locator('[data-system-map=ttc] .map-stage')).toHaveCSS('opacity', '1');
   await page.getByRole('button', {name:'Center map view'}).first().click();
   await expect.poll(() => page.locator('img').evaluateAll((images: HTMLImageElement[]) => images.filter(image => {
     if (!image.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) return false;
@@ -71,11 +71,11 @@ test('offline shell without a snapshot shows an unknown state and usable map', a
   await page.evaluate(() => { localStorage.removeItem('linewatch-dashboard-snapshot-v1:ttc'); localStorage.removeItem('linewatch-dashboard-snapshot-v1:regional'); });
   await page.reload();
   await expect(page.locator('.dashboard-availability-notice')).toContainText('No saved dashboard');
-  await expect(page.locator('.ttc-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
+  await expect(page.locator('[data-system-map=ttc] .map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
   await expect(page.locator('.asset-alert-path')).toHaveCount(0);
   await page.getByRole('group', {name: 'Select transit network'}).getByRole('button', {name:'GO/UP', exact:true}).click();
   await waitForNetworkTransition(page, 'regional');
-  await expect(page.locator('.regional-map-stage')).toHaveAttribute('data-raster-map-ready','true');
+  await expect(page.locator('[data-system-map=regional] .map-stage')).toHaveAttribute('data-raster-map-ready','true');
   await expect(page.locator('.dashboard-availability-notice')).toContainText('No saved dashboard');
 });
 
@@ -93,11 +93,11 @@ test('offline shell without a snapshot shows an unknown state and usable map', a
    await expect(page.locator('.dashboard-availability-notice')).toContainText('Saved');
    await selector.getByRole('button', {name:'GO/UP',exact:true}).click();
    await waitForNetworkTransition(page,'regional');
-   await expect(page.locator('.regional-map-stage')).toHaveAttribute('data-raster-map-ready','true');
+   await expect(page.locator('[data-system-map=regional] .map-stage')).toHaveAttribute('data-raster-map-ready','true');
    await expect(page.locator('.dashboard-availability-notice')).toContainText('Saved');
    await selector.getByRole('button', {name:'TTC',exact:true}).click();
    await waitForNetworkTransition(page,'ttc');
-   await expect(page.locator('.ttc-map-stage')).toHaveAttribute('data-raster-map-ready','true');
+   await expect(page.locator('[data-system-map=ttc] .map-stage')).toHaveAttribute('data-raster-map-ready','true');
  });
 
 test('installed launches open the cached start page rendered with current preferences', async ({ page, context }) => {
@@ -116,7 +116,7 @@ test('installed launches open the cached start page rendered with current prefer
   await context.setOffline(false);
   await page.reload();
   await expect(page.locator('.linewatch-shell')).toBeVisible();
-  await expect(page.locator('.ttc-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
+  await expect(page.locator('[data-system-map=ttc] .map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
   await expect(page.locator('.dashboard-availability-notice')).toHaveCount(0);
   expect(await page.evaluate(() => performance.getEntriesByType('navigation')[0] instanceof PerformanceNavigationTiming
     && (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming).workerStart > 0)).toBe(true);

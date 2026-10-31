@@ -4,6 +4,7 @@ import { desktopRailDestinationForView } from "../src/app/desktop-sidebar-state.
 
 import { readFileSync } from "node:fs";
 import { readShellSource } from "./helpers/shell-source.mjs";
+import { readRegionalMapSource, readTtcMapSource } from "./helpers/map-source.mjs";
 
 const railSource = readFileSync(new URL("../src/components/DesktopNavRail.tsx", import.meta.url), "utf8");
 
@@ -78,15 +79,17 @@ describe("desktop navigation destinations", () => {
   });
 
   it("places NetworkSelector inside desktop center map control console in TTC and regional maps", () => {
-    const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
-    const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+    const ttcMapSource = readTtcMapSource();
+    const regionalMapSource = readRegionalMapSource();
     const mapControlsCss = readFileSync(new URL("../src/styles/shell/map-controls.css", import.meta.url), "utf8");
 
     assert.match(ttcMapSource, /className="desktop-map-control-network-group hidden md:flex items-center"/);
-    assert.match(ttcMapSource, /<NetworkSelector network="ttc" onChange=\{onNetworkChange\} ariaLabel="Map network switcher" \/>/);
+    // One rail for every map, naming the map's network.
+    assert.match(ttcMapSource, /<NetworkSelector network=\{network\} onChange=\{onNetworkChange\} ariaLabel="Map network switcher" \/>/);
+    assert.match(ttcMapSource, /network=\{map\.network\}/);
 
     assert.match(regionalMapSource, /className="desktop-map-control-network-group hidden md:flex items-center"/);
-    assert.match(regionalMapSource, /<NetworkSelector network="regional" onChange=\{onNetworkChange\} ariaLabel="Map network switcher" \/>/);
+    assert.match(regionalMapSource, /network: "regional",/);
 
     assert.match(mapControlsCss, /\.desktop-map-control-network-group\s*\{[^}]*gap:\s*21px;/s);
     assert.match(mapControlsCss, /\.map-control-rail\s+\.network-selector\s*\{[^}]*margin:\s*0 7px 0 0;/s);

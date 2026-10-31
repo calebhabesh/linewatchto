@@ -53,8 +53,7 @@ export function visibleMapChooserKeepouts(root: ParentNode = document): HTMLElem
 // Checking these on each mutation or transition event is pure per-frame cost
 // while a map moves with the chooser open.
 const MAP_CHOOSER_KEEPOUT_IGNORED_SUBTREES = [
-  ".ttc-map-stage",
-  ".regional-map-stage",
+  ".map-stage",
   ".maplibregl-canvas-container",
   ".overlap-chooser-portal",
 ].join(",");

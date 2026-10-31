@@ -16,7 +16,7 @@ for (const network of ['ttc', 'regional'] as const) {
     }, network);
     await page.goto('/');
     await expect(page.locator('.linewatch-shell')).toHaveAttribute('data-network', network);
-    const stage = page.locator(network === 'ttc' ? '.ttc-map-stage' : '.regional-map-stage');
+    const stage = page.locator(network === 'ttc' ? '[data-system-map=ttc] .map-stage' : '[data-system-map=regional] .map-stage');
     await expect(stage).toHaveAttribute('data-raster-map-ready', 'true');
     await expect(stage).toBeVisible();
     const opening = await stage.evaluate((element) => getComputedStyle(element).transform);
