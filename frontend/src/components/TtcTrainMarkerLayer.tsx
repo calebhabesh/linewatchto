@@ -152,6 +152,9 @@ function AnimatedTtcTrainMarker({
 function TrainMarkerGlyph() {
   return (
     <>
+      <path className="estimated-train-marker-shadow" d={TRAIN_MARKER_BODY_PATH} />
+      <path className="estimated-train-marker-shadow estimated-train-marker-shadow-mid" d={TRAIN_MARKER_BODY_PATH} />
+      <path className="estimated-train-marker-shadow estimated-train-marker-shadow-near" d={TRAIN_MARKER_BODY_PATH} />
       <path
         className="estimated-train-marker-outline"
         d={TRAIN_MARKER_BODY_PATH}

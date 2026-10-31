@@ -51,6 +51,7 @@ export function readTrainMarkerPaint(
     group.append(element);
     return element;
   };
+  const shadow = part("path", "estimated-train-marker-shadow");
   const outline = part("path", "estimated-train-marker-outline");
   const core = part("path", "estimated-train-marker-core");
   const pane = part("rect", "estimated-train-marker-window");
@@ -76,7 +77,7 @@ export function readTrainMarkerPaint(
       arrowFill: style(arrow).fill,
       arrowStroke: style(arrow).stroke,
       arrowWidth: width(style(arrow).strokeWidth),
-      shadow: style(group).filter !== "none",
+      shadow: style(shadow).display !== "none",
     };
     return { colors, paint };
   } finally {

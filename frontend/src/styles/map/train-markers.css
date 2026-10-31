@@ -11,15 +11,31 @@
 
 .estimated-train-marker {
   color: #111827;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
   /* Markers are opt-in and continuously transform. Keep their SVG paint work
      independently compositable on phones instead of repainting at the cadence
      of the much larger authored map plane. */
   will-change: transform;
 }
 
-.estimated-train-marker-halo {
-  /* Unused: Halo removed to eliminate shadow glow */
+/* The marker's shadow is three wide translucent strokes of the body drawn under
+   the outline, matching the old drop-shadow(0 2px 4px) falloff. Plain vector
+   paint costs no filter rasterization, so it stays on while the camera moves
+   instead of switching off with the gesture-time filter removal in base-map.css. */
+.estimated-train-marker-shadow {
+  fill: none;
+  stroke: rgb(0 0 0 / 7%);
+  stroke-width: 18;
+  stroke-linejoin: round;
+}
+
+.estimated-train-marker-shadow-mid {
+  stroke: rgb(0 0 0 / 10%);
+  stroke-width: 14;
+}
+
+.estimated-train-marker-shadow-near {
+  stroke: rgb(0 0 0 / 16%);
+  stroke-width: 10.5;
 }
 
 .estimated-train-marker-outline {
@@ -96,10 +112,6 @@
 .estimated-train-marker-regional-st { color: #774111; }
 .estimated-train-marker-regional-up { color: #4084cd; }
 
-.high-contrast .estimated-train-marker-halo {
-  /* Unused: Halo removed to eliminate shadow glow */
-}
-
 .high-contrast .estimated-train-marker-outline {
   stroke: #000000; /* Extra contrast black outline */
   stroke-width: 7.5;
@@ -127,9 +139,8 @@
   transition: none;
 }
 
-.motion-paused .estimated-train-marker,
-.linewatch-shell.mobile-performance-mode .estimated-train-marker {
-  filter: none !important;
+.linewatch-shell.mobile-performance-mode .estimated-train-marker-shadow {
+  display: none;
 }
 
 .linewatch-shell.mobile-performance-mode .estimated-train-marker-outline {
@@ -148,10 +159,6 @@
 
 .linewatch-shell.mobile-performance-mode:not(.dark) .estimated-train-marker-core {
   stroke: #090d16;
-}
-
-.linewatch-shell.mobile-performance-mode .estimated-train-marker-halo {
-  display: none;
 }
 
 /* ============================================================

@@ -1034,7 +1034,6 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.estimated-train-marker-layer\s*\{[^}]*pointer-events:\s*none\s*!important;/s);
     assert.match(globalCss, /\.estimated-train-marker-layer \*,[\s\S]*?\.estimated-train-marker\s*\{[^}]*pointer-events:\s*none\s*!important;/s);
     assert.match(ttcTrainMarkerLayerSource, /data-train-marker-travel-direction=\{visualDirection\}[\s\S]*?pointerEvents="none"/);
-    assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-halo/);
     assert.match(ttcTrainMarkerLayerSource, /pathMetricCache/);
     assert.match(interactiveMapSource, /animate=\{!mapEffectMotionPaused\}/);
     assert.match(interactiveMapSource, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
@@ -1043,7 +1042,7 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(ttcMapRendererSource, /runtime\.animationFrame = window\.requestAnimationFrame\(update\)/);
     assert.doesNotMatch(ttcMapRendererSource, /estimated-train-marker-mobile-dot/);
     assert.match(ttcTrainMarkerLayerSource, /<TrainMarkerGlyph \/>/);
-    assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker\s*\{[^}]*filter:\s*none\s*!important;/s);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-shadow\s*\{[^}]*display:\s*none;/s);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-outline\s*\{[^}]*stroke:\s*#090d16;[^}]*stroke-width:\s*7\.5;/s);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-core\s*\{[^}]*stroke:\s*#ffffff;[^}]*stroke-width:\s*4;/s);
     assert.doesNotMatch(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-(?:arrow|window)\s*\{/);

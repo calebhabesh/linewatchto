@@ -406,8 +406,7 @@
   .station-selection-flash,
   .station-commute-green-flash,
   .commute-path-preview-glow,
-  .regional-station-top-selection,
-  .estimated-train-marker
+  .regional-station-top-selection
 ) {
   filter: none !important;
 }

@@ -205,10 +205,16 @@ function setRegionalTrainMarkerMetadata(group: SVGGElement, marker: EstimatedTra
 }
 
 function appendRegionalTrainMarkerGlyph(documentNode: Document, group: SVGGElement) {
-  for (const className of ["estimated-train-marker-outline", "estimated-train-marker-core"]) {
+  for (const classNames of [
+    ["estimated-train-marker-shadow"],
+    ["estimated-train-marker-shadow", "estimated-train-marker-shadow-mid"],
+    ["estimated-train-marker-shadow", "estimated-train-marker-shadow-near"],
+    ["estimated-train-marker-outline"],
+    ["estimated-train-marker-core"],
+  ]) {
     const body = documentNode.createElementNS(SVG_NAMESPACE, "path");
     body.setAttribute("d", TRAIN_MARKER_BODY_PATH);
-    body.classList.add(className);
+    body.classList.add(...classNames);
     group.append(body);
   }
   for (const window of TRAIN_MARKER_WINDOWS) {
