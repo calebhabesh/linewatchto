@@ -187,14 +187,20 @@ final class MetrolinxNoticeConsolidator {
         List<RegionalAlertTextDateParser.DateRange> dates = RegionalAlertTextDateParser.ranges(title, event.publishedAt());
         dates.stream().sorted(Comparator.comparingInt(RegionalAlertTextDateParser.DateRange::from).reversed())
             .forEach(date -> topic.replace(date.from(), Math.min(date.to(), topic.length()), " "));
-        String text = topic.toString().toLowerCase(Locale.CANADA);
-        for (String lineId : event.lineIds()) {
+        String text = withoutLineNames(topic.toString().toLowerCase(Locale.CANADA), event.lineIds());
+        return text.replaceAll("[^\\p{L}\\p{N}]+", " ").strip();
+    }
+
+    /** Lower-case text without the given lines' names: "kitchener line service adjustments" -> " service adjustments". */
+    private static String withoutLineNames(String lowerCaseText, List<String> lineIds) {
+        String text = lowerCaseText;
+        for (String lineId : lineIds) {
             RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(lineId).orElse(null);
             if (route == null) continue;
             String name = Pattern.quote(route.name().toLowerCase(Locale.CANADA));
             text = text.replaceAll("\\b" + name + "(?:\\s+(?:line|corridor))?\\b", " ");
         }
-        return text.replaceAll("[^\\p{L}\\p{N}]+", " ").strip();
+        return text;
     }
 
     /** A "Top Red Banner" restates a current notice in its own words over the same span and dates. */
@@ -327,7 +333,8 @@ final class MetrolinxNoticeConsolidator {
             return new RepublicationKey(
                 classification.lineIds(), classification.tripNumbers(), classification.serviceEffect(),
                 classification.scope(), comparableText(classification.title()).toLowerCase(Locale.CANADA),
-                comparableBody(classification.title(), classification.description()).toLowerCase(Locale.CANADA),
+                comparableBody(classification.title(), classification.description(), classification.lineIds())
+                    .toLowerCase(Locale.CANADA),
                 classification.activePeriodStart(),
                 classification.activePeriodEnd(), classification.spanStationIds(),
                 classification.impacts().stream().map(impact -> new RegionalAlertClassification.Impact(
@@ -346,12 +353,19 @@ final class MetrolinxNoticeConsolidator {
                 .replaceAll("[.!?\\s]+$", "");
         }
 
-        /** Some reposts repeat the title as the opening words of the body. */
-        static String comparableBody(String title, String description) {
+        /**
+         * Some reposts repeat the title as the opening words of the body, sometimes without its line
+         * name ("Oct. 31-Nov. 1: Service adjustments" for "Oct. 31-Nov. 1: Kitchener line service
+         * adjustments").
+         */
+        static String comparableBody(String title, String description, List<String> lineIds) {
             String body = comparableText(description);
-            String heading = comparableText(title);
-            if (!heading.isEmpty() && body.regionMatches(true, 0, heading, 0, heading.length())) {
-                body = body.substring(heading.length()).replaceFirst("^[\\s:.\\-–—]+", "");
+            String fullTitle = comparableText(title);
+            String shortTitle = comparableText(withoutLineNames(fullTitle.toLowerCase(Locale.CANADA), lineIds));
+            for (String heading : List.of(fullTitle, shortTitle)) {
+                if (!heading.isEmpty() && body.regionMatches(true, 0, heading, 0, heading.length())) {
+                    return body.substring(heading.length()).replaceFirst("^[\\s:.\\-–—]+", "");
+                }
             }
             return body;
         }

@@ -849,7 +849,9 @@ public class MetrolinxAlertNormalizer {
     private String replacementService(String searchable) {
         if (searchable.contains("go buses replace") || searchable.contains("go bus service will replace")
             || searchable.contains("go buses will replace") || searchable.contains("go buses will run")
-            || searchable.contains("go buses will serve")) return "go-bus";
+            || searchable.contains("go buses will serve")
+            // "There will be select GO buses running between Stratford or Kitchener GO and ..."
+            || searchable.contains("go buses running between")) return "go-bus";
         if (searchable.contains("buses replace trains") || searchable.contains("bus service replaces train")) return "bus";
         return null;
     }

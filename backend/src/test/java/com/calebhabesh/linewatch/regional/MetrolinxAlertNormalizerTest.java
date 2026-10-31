@@ -323,6 +323,35 @@ class MetrolinxAlertNormalizerTest {
     }
 
     @Test
+    void mergesAStationTaggedRepostWhoseBodyOpensWithTheTitleLessItsLineName() throws Exception {
+        // Metrolinx's Oct. 31-Nov. 1 Kitchener notices, as published (English text only).
+        String body = "On Saturday, Oct. 31 and Sunday, Nov. 1, GO trains will run between Mount Pleasant and "
+            + "Mount Dennis GO. There will be select GO buses running between Stratford or Kitchener GO and Hwy 407 "
+            + "Bus Terminal. There will be no GO Transit service at Bloor GO. Service will be adjusted on Friday, "
+            + "Oct. 30. Learn more about this and upcoming construction on the Kitchener line.";
+        String title = "Oct. 31-Nov. 1: Kitchener line service adjustments";
+        var line = kitchenerNotice("M0000529156", title, body, true);
+        // The repost tags Bloor and opens its body with the title, less "Kitchener line".
+        var repost = kitchenerNotice("M0000529157", title, "Oct. 31-Nov. 1: Service adjustments " + body, true, "BL");
+        var outer = kitchenerNotice("M0000529386", "Kitchener Line Service Adjustments Oct. 31-Nov. 1",
+            "No GO train service at this station due to planned construction. Sign up for On the GO alerts.",
+            false, "GE", "AC", "GL", "KI", "SF");
+        var bloor = kitchenerNotice("M0000529388", "Kitchener Line Service Adjustments Oct. 31-Nov. 1",
+            "No GO Transit service at this station due to planned construction. Sign up for On the GO alerts.",
+            false, "BL");
+
+        // One event: the repost merges, so each station copy has one notice to fold into.
+        assertThat(normalizer.classify(feed(line, repost, outer, bloor))).singleElement().satisfies(event -> {
+            assertThat(event.canonicalEventId()).isEqualTo("go-529156");
+            assertThat(event.sources()).extracting(RegionalAlertClassification.SourceReference::sourceId)
+                .containsExactlyInAnyOrder("M0000529156", "M0000529157", "M0000529386", "M0000529388");
+            assertThat(event.spanStationIds()).containsExactly("union", "mount-dennis", "mount-pleasant", "stratford");
+            // "Select GO buses running between ..." names GO buses as the replacement.
+            assertThat(event.replacementService()).isEqualTo("go-bus");
+        });
+    }
+
+    @Test
     void keepsEveryNoServiceBetweenClauseAsItsOwnSection() throws Exception {
         MetrolinxFetchedRecord notice = serviceAlert("""
             {
