@@ -84,10 +84,17 @@ Harness in [Measuring](#measuring).
 | GO/UP after phase 0 fix | 6 ms | 7 | 4 (max 61 ms) | 80, 201 Mpx | 0 |
 | GO/UP after phase 2 | 19 ms* | 0–2 | 0–1 (max 55 ms) | 70, 57 Mpx | 0 |
 | TTC after phase 2 | 19 ms* | 1–3 | 1 (max 59 ms) | 64, 65 Mpx | 0 |
+| TTC, budget probe 2026-10-31 † | 6 ms | 0–1 | 0 | 59, 71 Mpx | 0 |
+| GO/UP, budget probe 2026-10-31 † | 6–18 ms | 1–2 | 1 (max 67 ms) | 67, 65 Mpx | 0 |
 
 \* The phase 2 runs (3 per map, same recipe) read about 18.8 ms p95 on both
 maps alike, below the two-frame budget; the earlier 6 ms rows came from a
 faster display refresh, so compare rows within one session only.
+
+† `npm --prefix frontend run test:map-budgets`: production build, heavy stub
+data (GO/UP's overlaps spread across the network), the same wheel burst,
+several runs. GO/UP's p95 follows the display's rate in that run (6.1 or
+17.1 ms frames); both are within two frames.
 
 Bisection (injected CSS hiding one suspect per run, GO/UP):
 
@@ -110,10 +117,11 @@ Bisection (injected CSS hiding one suspect per run, GO/UP):
   `svg#svg1475`) matches the filtered icons: Chromium reports a filter under a
   changing transform as a filter animation even when
   `document.getAnimations()` is empty.
-- Lead, not yet confirmed: removing the hover boundary's `drop-shadow`
+- Lead, closed 2026-10-31: removing the hover boundary's `drop-shadow`
   (`.asset-alert-path-hover-boundary`) on TTC once gave p95 6 ms and 11 frames
   over 20 ms against 12 ms and 21; later TTC runs without the change gave the
-  same. Recheck before acting.
+  same, and the budget probe's TTC hover sweep reads p95 6.1 ms with at most
+  2 frames over 20 ms with it in place. Kept.
 
 **Order chosen: phase 1 before phase 2.** The prompt for this plan expected
 GO/UP's surface to be the main GPU cost. Measurement narrowed it to one shared
@@ -153,8 +161,11 @@ Each phase is shippable on its own and keeps both maps working.
     commit takes about 50 ms today).
   Phones: measure a low-end Android device once (INP on tap, long tasks
   during a live refresh, layer count during a pinch) and record budgets then.
-- Done in this phase so far: the planned-closure icon halo filter is removed
-  (see Measurements).
+- Done 2026-10-31 (see Progress): the planned-closure icon halo filter is
+  removed, the contract (`docs/map-asset-contract.md`) has a manifest per map
+  and a validator, the budgets are a command (`test:map-budgets`), and the
+  phone pass runs emulated with provisional guards. Open: the low-end Android
+  measurement, which needs the owner's device.
 
 ### 1. One camera engine
 
@@ -214,8 +225,9 @@ SVG becomes non-interactive artwork and a geometry source only, as TTC's is.
 - Glyph-lane clipping without corridor-length masks (for example clipping
   per segment, or drawing glyphs only inside the tube so no clip is needed),
   then measure layer area at rest against the budget on both maps.
-- Done 2026-10-30 (see Progress); one lead remains: GO/UP's style
-  recalculation per camera-flag toggle (about 9 ms against TTC's 2).
+- Done 2026-10-30 (see Progress). Its lead, GO/UP's style recalculation per
+  camera-flag toggle (about 9 ms against TTC's 2), closed 2026-10-31: each
+  hover copy's `<use>` clone was restyled on every toggle even while hidden.
 
 ### 3. Prepared geometry
 
@@ -283,8 +295,11 @@ stop stray stubs with `pgrep -f "[a]pi-stub.mjs" | xargs -r kill`.
    class or property per run. Live data reproduces problems the stub fixture
    misses.
 
-Phase 0 still owes a checked-in version of this probe (extending
-`test:map-zoom-memory`), so the budgets are a command rather than a recipe.
+The checked-in probe is `npm --prefix frontend run test:map-budgets`
+(`tests/smoke/map-budgets.spec.ts`, sharing `tests/smoke/real-chrome.ts` and
+`map-heavy-data.ts` with `test:map-zoom-memory`). It opens a visible Chrome
+window on the GPU, so it is not part of CI or the release gate; set
+`LINEWATCH_MAP_BUDGET_URL=http://localhost:3000` to measure live data.
 
 ## Progress
 
@@ -577,3 +592,82 @@ Phase 0 still owes a checked-in version of this probe (extending
   `test:visual` 30/30.
   Next: the phase 0 budget probe so phase 4 can add the budgets, then fold
   TTC's chooser into `MapOverlapChooser`.
+- Plan 09 finished 2026-10-31, pending review. The remaining duplication and
+  phase 0 work, with the owner's two requests:
+  - Framing (phase 1b follow-up): selection framing, keyboard focus reveal,
+    desktop toolbar and legend insets, and the toolbar's zoom and Center
+    commands are one hook for both maps, `map-camera/useMapFraming.ts` (with
+    `app/map-selection-framing.ts`), replacing two copies that had drifted.
+    Unified: the comfort ratio is 0.82 on both maps, the top inset gains 16 px
+    and both keep clear of the legend, left padding is 24 px, reselecting an
+    alert from a card frames it again, clearing a selection flies back to the
+    fitted map and marks the camera untouched, and framing waits for a
+    gesture to end. Stations frame by `data-map-selected-station-id` on both.
+  - Chooser (phase 3 follow-up): TTC's own `OverlapChooser` is gone; both
+    maps open `MapOverlapChooser`, placed from data by
+    `map-overlays/useMapOverlapChooser.ts` through the map's stage transform
+    (`map-chooser-placement.ts`, formerly `ttc-chooser-placement.ts`, adds
+    `meetStageTransform`). GO/UP's DOM measuring for the chooser
+    (`getScreenCTM`, resting rect, waiting for stillness) is gone. The
+    geographic view only adopts the new layout type; its placement is still
+    its own (outside this plan).
+  - Station names: GO/UP's name targets are pointer only, as TTC's are; the
+    station target is the keyboard stop on both maps.
+  - Contract (phase 0): `docs/map-asset-contract.md` generalizes the TTC
+    contract to any map; `src/app/map-manifests.ts` holds each map's manifest
+    (view box, content bounds, default framing, overlay unit, raster planes,
+    lines), read by both maps and the geometry extractor; and
+    `npm --prefix frontend run validate:map-asset -- <ttc|regional>`
+    (`scripts/validate-map-asset.mjs`, `scripts/lib/svg-scan.mjs`, tests in
+    `scripts/tests/validate-map-asset.test.mjs`) checks an SVG against it.
+    Both maps pass.
+  - Budgets (phases 0 and 4): `test:map-budgets` measures every map against
+    the desktop budgets above and runs the phone pass. Desktop passes on both
+    maps (Measurements). Phone (412 × 915, 4× CPU throttling, emulated, not a
+    device), median of three station taps: tap INP TTC 216–240 ms, GO/UP
+    568–624 ms; longest frame during a live refresh TTC 93–117 ms, GO/UP
+    136–196 ms; 25–30 drawing layers mid-pinch. A single tap varied by
+    hundreds of milliseconds between runs, hence the median. The guards are
+    provisional (tap 800 ms, refresh 250 ms, pinch 40 layers) and the goal is
+    a 200 ms tap; profiling GO/UP's tap shows most of it is React rendering
+    the station details panel, not the map. A low-end Android measurement
+    still needs the owner's device.
+  - Speed: an equal badge layout request returns the previous layout (repeat
+    runs 0 ms); each hover copy's `<use>` exists only while hovered, so the
+    camera flags' style work per gesture fell from 5.4 to 1.3 ms on GO/UP and
+    2.3 to 1.3 ms on TTC (phase 2's lead); the hidden map no longer re-renders
+    (`FrozenWhileHidden` in `NetworkMap.tsx`); the control rail re-subscribes
+    only when its element changes; TTC's station and name targets are
+    memoized (`TtcStationTarget.tsx`), as is each alert tube
+    (`MapLineAlertTube`), so a station tap no longer re-renders every glyph
+    lane. Outside the map, found while profiling the phone tap:
+    `ScrollOverflowAffordances` no longer forces a layout as a panel mounts
+    (a new list is measured by its resize observer), and arrival and alert
+    timestamps reuse their date formatters.
+  - Owner requests: the selection flash is predictable (the intro ends on its
+    CSS animation's end, so a gesture delays rather than cuts it; the flash
+    draws above hover copies; pressing the already selected alert does
+    nothing). Alert glows on hover and selection are removed
+    (`.interactive-glow { display: none }`). A pressed alert no longer shows
+    its hover outline after the cursor leaves it, flash included: the press
+    focused its target and the hover controller treated any focus as hover;
+    now only `:focus-visible` does.
+  - Tests: `tests/map-framing.test.mjs`, `tests/map-selection-flash.test.mjs`,
+    `tests/map-chooser-placement.test.mjs` (replacing the TTC and GO/UP
+    chooser placement tests); the parity suite gains the pressed-alert and
+    keyboard-focus hover cases; the duplicate diagram drag case in
+    `map-pan-motion.spec.ts` is retired (the parity suite covers it).
+  Checks: test:fast, typecheck, lint (15 pre-existing warnings), test:scripts
+  41/41; the plan's browser suites plus the parity, camera, chooser, fit,
+  persistence, compatibility, cold-launch and tap-accuracy suites on desktop
+  and mobile Chromium, final build: 392 passed. Failures: the known
+  offline-dashboard ×5 and two GO/UP mobile cases; `desktop-profiles-and-collapse:150`
+  (flaky, passed on rerun); `dashboard.spec.ts:1574`, which focused an alert
+  by script after a mouse click and so no longer hovered it (it now presses a
+  key first, and passes); and `browser-compat` mobile TTC, which timed out
+  waiting for the raster planes in both full runs this session but passed
+  alone and in 26 repeated runs under parallel load, cause not found.
+  `test:map-zoom-memory` 0 warnings on both maps; `test:visual` 30/30;
+  `test:map-budgets` passes on both maps (one run failed GO/UP's desktop
+  budgets while the display ran at 36 Hz and passed on rerun). Lead: GO/UP's
+  hover sweep has 17–56 frames over 20 ms (TTC 1–2), within its p95 budget.
