@@ -4,7 +4,7 @@
  * draws the same overlays on every map: which planned closures are current
  * service and which are previews, each alert's visual state and label, what
  * an overlap badge groups and how it is labelled, and station-alert sizes as
- * ratios of the dot they sit on. Paint order is one table,
+ * ratios of the dot they sit on (commute endpoints too). Paint order is one table,
  * `getImpactPriority` (map-alert-selector.ts), applied by
  * `lineAlertPaintOrder`. Adapters keep only network facts and how their
  * corridors are composed.
@@ -32,6 +32,10 @@ import {
   type OverlapBadgeSourceSegment,
 } from "../components/map-overlap-badges.ts";
 import { STATION_IMPACT_RING_SCALE } from "../components/station-impact-beacon.ts";
+import {
+  COMMUTE_ENDPOINT_DOT_RATIO,
+  COMMUTE_ENDPOINT_FLASH_RATIO,
+} from "../components/map-overlays/commute-preview-model.ts";
 
 type ClosureData = {
   activeAlerts: ActiveAlert[];
@@ -193,6 +197,11 @@ export function lineAlertLabel(kind: MapImpactKind, segments: Pick<NetworkSegmen
   return `${kind}: ${segmentsLabel(segments)}`;
 }
 
+/** A line-wide alert's accessible name (it lists no segments): the line and the alert. */
+export function lineWideAlertLabel(kind: MapImpactKind, alert: Pick<ActiveAlert, "lineNumber" | "title">): string {
+  return `${kind}: ${alert.lineNumber} ${alert.title}`;
+}
+
 /** A planned preview's accessible name: the closure and where it is. */
 export function plannedPreviewLabel(
   closure: Pick<PlannedClosure, "title" | "location"> | undefined,
@@ -294,5 +303,13 @@ export function stationAlertSizes(dot: StationDot): StationAlertSizes {
     ringRadius: coreRadius * STATION_IMPACT_RING_SCALE,
     directionBadgeRadius: dot.radius - dot.outline / 2,
     dotOuterRadius: dot.radius + dot.outline / 2,
+  };
+}
+
+/** A commute endpoint's sizes on this dot: TTC's 34-unit dot and 38-unit flash on its 32-unit dot, as ratios. */
+export function commuteEndpointSizes(dot: StationDot): { dotRadius: number; flashRadius: number } {
+  return {
+    dotRadius: dot.radius * COMMUTE_ENDPOINT_DOT_RATIO,
+    flashRadius: dot.radius * COMMUTE_ENDPOINT_FLASH_RATIO,
   };
 }

@@ -3,10 +3,11 @@ import { describe, it } from "node:test";
 import geometry from "../src/app/map-geometry/regional.json" with { type: "json" };
 import { regionalDashboardDataForScenario } from "../src/app/regional-data.ts";
 import { regionalMapContent, regionalStationAlertImpacts } from "../src/app/regional-map-content.ts";
-import { regionalLineAlerts } from "../src/app/regional-line-alerts.ts";
+import { mapLineAlerts } from "../src/app/map-corridors.ts";
+import { mapImpactContext } from "../src/app/map-content-rules.ts";
 import { regionalStationAlerts } from "../src/app/regional-station-alerts.ts";
 import { regionalOverlapBadges, regionalPlacedOverlapBadges } from "../src/app/regional-map-overlays.ts";
-import { REGIONAL_MAP_VIEWBOX, REGIONAL_OVERLAY_UNIT } from "../src/app/regional-map-geometry.ts";
+import { REGIONAL_MAP_VIEWBOX, REGIONAL_OVERLAY_UNIT, regionalDrawnSegments } from "../src/app/regional-map-geometry.ts";
 import { placeMapOverlapBadges, reuseMapContent } from "../src/app/map-content.ts";
 
 const data = regionalDashboardDataForScenario("all-impact-types");
@@ -46,17 +47,15 @@ describe("GO/UP map content", () => {
     assert.notEqual(reuseMapContent(before, after), before);
   });
 
-  it("draws what the regional adapters build", () => {
+  it("draws what the shared builders and the regional adapters build", () => {
     const content = regionalMapContent(geometry, input());
     const stationAlertImpacts = regionalStationAlertImpacts(input());
-    assert.deepEqual(content.lineAlerts, regionalLineAlerts(geometry, {
+    const context = mapImpactContext(regionalDrawnSegments(geometry, data.networkSegments), data);
+    assert.deepEqual(content.lineAlerts, mapLineAlerts(context, {
       activeAlerts: data.activeAlerts,
-      delays: data.delays,
-      plannedClosures: data.plannedClosures,
-      networkSegments: data.networkSegments,
       stationNodeImpacts: data.stationNodeImpacts,
       selection: null,
-    }));
+    }).lineAlerts);
     const station = regionalStationAlerts(geometry, { ...input(), stationNodeImpacts: stationAlertImpacts }, REGIONAL_OVERLAY_UNIT);
     assert.deepEqual(content.stationAlerts, station.alerts);
     assert.deepEqual(content.stationDirectionGlyphs, station.glyphs);

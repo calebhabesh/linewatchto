@@ -12,6 +12,10 @@ const SHARED_MAP_SOURCE_FILES = [
   "../../src/app/map-content.ts",
   // The overlay rules every content adapter applies (plan 11 phase 2).
   "../../src/app/map-content-rules.ts",
+  // The builders every adapter composes with (plan 11 phase 3).
+  "../../src/app/map-corridors.ts",
+  "../../src/app/map-badge-artwork.ts",
+  "../../src/app/train-marker-placement.ts",
   "../../src/components/map-overlays/useRetainedMapItems.ts",
 ];
 

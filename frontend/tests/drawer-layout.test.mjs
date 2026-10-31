@@ -450,16 +450,10 @@ describe("floating menu layout", () => {
   });
 
   it("routes active planned closures through active alerts instead of upcoming closures", () => {
-    const impactActiveAlertIndex = interactiveMapSource.indexOf(
-      "activeAlerts.find((alert) => alert.id === impact.cardId)?.affectedSegmentIds"
-    );
-    const impactPlannedClosureIndex = interactiveMapSource.indexOf(
-      "plannedClosures.find((closure) => closure.id === impact.cardId)?.previewSegmentIds"
-    );
-
-    assert.notEqual(impactActiveAlertIndex, -1);
-    assert.notEqual(impactPlannedClosureIndex, -1);
-    assert.ok(impactActiveAlertIndex < impactPlannedClosureIndex);
+    // A current closure's segment impacts take the current alert's effect
+    // (map-content-rules.ts, on every map), not the upcoming closure's preview.
+    assert.match(interactiveMapSource, /normalizeActiveClosureMapImpact\(impact, activeCardIds, plannedClosures\)/);
+    assert.match(interactiveMapSource, /if \(isCurrentClosure\(closure\.id\)\) continue;/);
     assert.match(activeAlertsSource, /function impactKindForAlert/);
     assert.match(activeAlertsSource, /function impactKindForAlert\(alert: ActiveAlert\): ImpactKind/);
     assert.doesNotMatch(activeAlertsSource, /case "planned":\s*return "planned-closure"/);
@@ -468,7 +462,6 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /nextSelection\.kind === "planned-closure"/);
     assert.match(shellSource, /activeAlerts\.some\(\(alert\) => alert\.id === nextSelection\.id\)/);
     assert.match(shellSource, /handleSelectImpactDetails\(nextSelection\)/);
-    assert.match(interactiveMapSource, /activeAlerts\.find\(\(alert\) => alert\.id === impact\.cardId\)\?\.affectedSegmentIds/);
   });
 
   it("defines a closed-hours screen with schedule, resume copy, and map peek action", () => {

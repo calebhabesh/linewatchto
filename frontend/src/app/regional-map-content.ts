@@ -1,7 +1,10 @@
 /*
  * GO/UP's content adapter: what the GO/UP System Map draws over its artwork
- * (`MapContent`, app/map-content.ts), from dashboard data, built by the
- * `regional-*` adapters over GO/UP's prepared geometry.
+ * (`MapContent`, app/map-content.ts), from dashboard data. It holds GO/UP's
+ * facts only (how a segment is drawn along the authored routes, where its
+ * stations, dots and Union's pill are, its line codes); corridors, the
+ * commute preview, badge artwork and train-marker placement are the shared
+ * builders over the shared rules, as on TTC.
  */
 import type {
   ActiveAlert,
@@ -17,13 +20,22 @@ import type { AccountCommutePathPreview } from "./commute-data.ts";
 import type { PreparedMapGeometry } from "./map-geometry-data.ts";
 import type { MapContent } from "./map-content.ts";
 import { plannedAdvisoryStationImpacts } from "./map-alert-selector.ts";
-import { regionalLineAlerts } from "./regional-line-alerts.ts";
-import { regionalStationAlerts } from "./regional-station-alerts.ts";
-import { regionalCommutePreview } from "./regional-commute-preview.ts";
+import { regionalStationAlerts, regionalStationPill } from "./regional-station-alerts.ts";
 import { regionalBadgePlacement, regionalOverlapBadges } from "./regional-map-overlays.ts";
-import { REGIONAL_OVERLAY_UNIT, regionalTrainMarkerFrame } from "./regional-map-geometry.ts";
+import {
+  REGIONAL_OVERLAY_UNIT,
+  regionalAnchorDot,
+  regionalDrawnSegments,
+  regionalSegmentCorridorPoints,
+  regionalStation,
+  regionalStationVisualAnchors,
+  type RegionalStationVisualAnchor,
+} from "./regional-map-geometry.ts";
+import { mapImpactContext } from "./map-content-rules.ts";
+import { mapCommutePreview, mapLineAlerts, type MapCommuteEndpointDot } from "./map-corridors.ts";
+import { mapTrainMarkerPlacement } from "./train-marker-placement.ts";
 import type { MapTrainMarkerPlacement } from "../components/map-overlays/TrainMarkerLayer.tsx";
-import { isSelectedLineAlert, lineAlertPathsByImpact } from "../components/map-overlays/line-alert-model.ts";
+import { lineAlertPathsByImpact } from "../components/map-overlays/line-alert-model.ts";
 
 export type RegionalMapContentInput = {
   networkSegments: NetworkSegment[];
@@ -62,14 +74,11 @@ export function regionalStationAlertImpacts(
 export function regionalMapContent(geometry: PreparedMapGeometry, input: RegionalMapContentInput): MapContent {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stations, selection } = input;
   const stationAlertImpacts = regionalStationAlertImpacts(input);
-  const lineAlerts = regionalLineAlerts(geometry, {
-    activeAlerts,
-    delays,
-    plannedClosures,
-    networkSegments,
-    stationNodeImpacts: input.stationNodeImpacts,
-    selection,
-  });
+  const drawnSegments = regionalDrawnSegments(geometry, networkSegments);
+  const { lineAlerts, selectedLineAlerts } = mapLineAlerts(
+    mapImpactContext(drawnSegments, { activeAlerts, delays, plannedClosures }),
+    { activeAlerts, stationNodeImpacts: input.stationNodeImpacts, selection },
+  );
   const station = regionalStationAlerts(geometry, {
     activeAlerts,
     delays,
@@ -80,10 +89,16 @@ export function regionalMapContent(geometry: PreparedMapGeometry, input: Regiona
   }, REGIONAL_OVERLAY_UNIT);
   return {
     lineAlerts,
-    selectedLineAlerts: lineAlerts.filter((alert) => isSelectedLineAlert(alert, selection)),
+    selectedLineAlerts,
     stationAlerts: station.alerts,
     stationDirectionGlyphs: station.glyphs,
-    commutePreview: regionalCommutePreview(geometry, input.commutePathPreview ?? null, networkSegments),
+    // A commute ends on the dot its route uses there, else every dot of the station.
+    commutePreview: mapCommutePreview(input.commutePathPreview, drawnSegments, (stationId, routeAnchorId) => {
+      const routeDot = routeAnchorId ? regionalAnchorDot(geometry, routeAnchorId) : null;
+      const station = regionalStation(geometry, stationId);
+      const dots = routeDot ? [routeDot] : station ? regionalStationVisualAnchors(station) : [];
+      return dots.map((dot) => regionalEndpointDot(geometry, dot));
+    }),
     outlinePathsByImpact: lineAlertPathsByImpact(lineAlerts),
     overlapBadges: regionalOverlapBadges(
       geometry,
@@ -95,15 +110,19 @@ export function regionalMapContent(geometry: PreparedMapGeometry, input: Regiona
   };
 }
 
-/** GO/UP's train markers, along each segment's prepared corridor, at GO/UP's larger size. */
+function regionalEndpointDot(geometry: PreparedMapGeometry, dot: RegionalStationVisualAnchor): MapCommuteEndpointDot {
+  const pill = regionalStationPill(geometry, dot.id);
+  return { id: dot.id, center: dot.point, dot, ...(pill ? { pill } : {}) };
+}
+
+/** GO/UP's train markers, along each segment's authored corridor, at GO/UP's larger size. */
 export function regionalTrainMarkerPlacement(geometry: PreparedMapGeometry): MapTrainMarkerPlacement {
-  return {
-    frame(marker, segmentById) {
-      const segment = segmentById.get(marker.segmentId);
-      return segment ? regionalTrainMarkerFrame(geometry, segment, marker) : null;
-    },
-    travelDirection: (marker) => marker.travelDirection,
-    label: (marker) => `${marker.lineId.replace("regional-", "").toUpperCase()} toward ${marker.direction}; schematic estimated position`,
+  return mapTrainMarkerPlacement({
+    unit: REGIONAL_OVERLAY_UNIT,
     scale: 1.8,
-  };
+    // Corridors only: a chord between stations can leave a bent track, so
+    // a segment without one draws no marker.
+    path: (segment) => regionalSegmentCorridorPoints(geometry, segment),
+    lineLabel: (lineId) => lineId.replace(/^regional-/, "").toUpperCase(),
+  });
 }

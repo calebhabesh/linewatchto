@@ -1,6 +1,7 @@
 /*
  * GO/UP geometry from the prepared map data (map-geometry-data.ts): station
- * dots, segment corridors along the authored routes, train-marker frames,
+ * dots, segment corridors along the authored routes (the paths alerts,
+ * commutes and train markers are drawn along),
  * badge anchors and station-name boxes. Everything is in the root SVG's
  * coordinates, where GO/UP's overlays are drawn, and nothing reads the DOM.
  */
@@ -19,12 +20,6 @@ import {
   type PreparedMapGeometry,
   type PreparedStation,
 } from "./map-geometry-data.ts";
-import {
-  estimatedTrainMarkerLanePoint,
-  orientedEstimatedTrainMarkerAngle,
-  resolveEstimatedTrainMarkerSegmentDirection,
-  type EstimatedTrainMarker,
-} from "./train-markers.ts";
 
 export type RegionalStationVisualAnchor = {
   id: string;
@@ -32,11 +27,6 @@ export type RegionalStationVisualAnchor = {
   radius: number;
   /** The dot's outline width (map-geometry-data.ts). */
   outline: number;
-};
-
-export type RegionalTrainMarkerFrame = {
-  point: MapPoint;
-  angle: number;
 };
 
 export type RegionalOverlapBadgePlacement = {
@@ -66,7 +56,6 @@ export const REGIONAL_IMPACT_OVERLAY_WIDTH = 196;
 export const REGIONAL_OVERLAY_UNIT = REGIONAL_IMPACT_OVERLAY_WIDTH / 96;
 export const REGIONAL_OVERLAP_INDICATOR_SCALE = 2;
 export const REGIONAL_OVERLAP_INDICATOR_EDGE_GAP = 88;
-export const REGIONAL_TRAIN_MARKER_LANE_OFFSET = 44;
 
 export function squaredPointDistance(a: MapPoint, b: MapPoint): number {
   return (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
@@ -244,88 +233,25 @@ export function resolvedRegionalSegmentPath(geometry: PreparedMapGeometry, segme
   return points ? pointsToPath(points) : null;
 }
 
-/** A line's whole authored route, one subpath per route path. */
-export function authoredRegionalCorridorPathData(geometry: PreparedMapGeometry, lineId: string): string | null {
-  const paths = routePolylines(geometry, lineId).map(pointsToPath);
-  return paths.length > 0 ? paths.join(" ") : null;
-}
-
-export function continuousRegionalOverlayRunPath(
-  geometry: PreparedMapGeometry,
-  run: { segments: NetworkSegment[]; pathD: string },
-): string | null {
-  if (run.segments.length === 1) return run.pathD;
-
-  const stationDegree = new Map<string, number>();
-  for (const segment of run.segments) {
-    if (!segment.stationAId || !segment.stationBId) return null;
-    stationDegree.set(segment.stationAId, (stationDegree.get(segment.stationAId) ?? 0) + 1);
-    stationDegree.set(segment.stationBId, (stationDegree.get(segment.stationBId) ?? 0) + 1);
-  }
-  // A linear run has exactly two endpoints. Branches and cycles retain their
-  // reviewed edge subpaths because no single SVG path can represent them
-  // without retracing or inventing geometry.
-  const endpointIds = [...stationDegree.entries()]
-    .filter(([, degree]) => degree === 1)
-    .map(([stationId]) => stationId);
-  if (endpointIds.length !== 2 || [...stationDegree.values()].some((degree) => degree > 2)) {
-    return null;
-  }
-
-  const endpointAnchor = (stationId: string) => {
-    const segment = run.segments.find((candidate) => (
-      candidate.stationAId === stationId || candidate.stationBId === stationId
-    ));
-    if (!segment) return null;
-    return segment.stationAId === stationId
-      ? segment.stationAAnchorId ?? null
-      : segment.stationBAnchorId ?? null;
-  };
-  const stationAAnchorId = endpointAnchor(endpointIds[0]);
-  const stationBAnchorId = endpointAnchor(endpointIds[1]);
-  if (!stationAAnchorId || !stationBAnchorId) return null;
-
-  return corridorSegmentPath(geometry, {
-    ...run.segments[0],
-    stationAId: endpointIds[0],
-    stationBId: endpointIds[1],
-    stationAAnchorId,
-    stationBAnchorId,
-    guidePathId: undefined,
-  });
-}
-
-export function regionalTrainMarkerFrame(
-  geometry: PreparedMapGeometry,
-  segment: NetworkSegment,
-  marker: EstimatedTrainMarker,
-): RegionalTrainMarkerFrame | null {
-  // Train markers must use authored corridor geometry. A straight anchor-to-anchor
-  // fallback can visibly leave a bent track, so omit an unresolvable marker instead.
+/** A segment's corridor along its authored route as points, from station A to B; null when it has none. */
+export function regionalSegmentCorridorPoints(geometry: PreparedMapGeometry, segment: NetworkSegment): MapPoint[] | null {
   const points = cachedSegmentCorridorPoints(geometry, segment);
-  const direction = resolveEstimatedTrainMarkerSegmentDirection(marker, segment);
-  if (!direction || !points || points.length < 2) return null;
-  const from = regionalAnchorPoint(geometry, direction.fromAnchorId);
-  const length = polylineLength(points);
-  if (!from || !(length > 0)) return null;
+  return points && points.length > 1 ? points : null;
+}
 
-  const pathStartsAtFrom = squaredPointDistance(points[0], from)
-    <= squaredPointDistance(points[points.length - 1], from);
-  const progress = Math.max(0, Math.min(1, marker.progress));
-  const distance = length * (pathStartsAtFrom ? progress : 1 - progress);
-  const point = pointAlongPolyline(points, distance);
-  const delta = Math.min(24, Math.max(2, length * 0.015));
-  const before = pointAlongPolyline(points, Math.max(0, distance - delta));
-  const after = pointAlongPolyline(points, Math.min(length, distance + delta));
-  const tangent = { x: after.x - before.x, y: after.y - before.y };
-  const pathAngle = Math.atan2(tangent.y, tangent.x) * 180 / Math.PI;
-  const pathTravelDirection = marker.travelDirection === "bidirectional"
-    ? "bidirectional"
-    : pathStartsAtFrom ? "forward" : "reverse";
-  return {
-    point: estimatedTrainMarkerLanePoint(point, tangent, pathTravelDirection, REGIONAL_TRAIN_MARKER_LANE_OFFSET),
-    angle: orientedEstimatedTrainMarkerAngle(pathAngle, pathStartsAtFrom),
-  };
+const drawnSegmentsCache = new WeakMap<PreparedMapGeometry, { segments: NetworkSegment[]; drawn: NetworkSegment[] }>();
+
+/** Each segment with the path GO/UP draws it along (from station A to B), the ones it can draw. */
+export function regionalDrawnSegments(geometry: PreparedMapGeometry, segments: NetworkSegment[]): NetworkSegment[] {
+  const cached = drawnSegmentsCache.get(geometry);
+  if (cached?.segments === segments) return cached.drawn;
+  const drawn = segments.flatMap((segment) => {
+    const pathD = resolvedRegionalSegmentPath(geometry, segment);
+    const guided = Boolean(segment.guidePathId && geometry.guides?.[segment.guidePathId]);
+    return pathD ? [{ ...segment, pathD, guidePathReversed: guided ? segment.guidePathReversed : false }] : [];
+  });
+  drawnSegmentsCache.set(geometry, { segments, drawn });
+  return drawn;
 }
 
 const MAP_CENTER = {

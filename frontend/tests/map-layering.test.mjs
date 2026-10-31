@@ -34,11 +34,11 @@ const interactiveMapSource = [
   sharedOverlaySource,
 ].join("\n");
 const ttcGlyphLanesSource = readFileSync(new URL("../src/components/map-overlays/GlyphLanes.tsx", import.meta.url), "utf8");
-const ttcMapObstaclesSource = readFileSync(new URL("../src/components/ttc-map-obstacles.ts", import.meta.url), "utf8");
+const badgeArtworkSource = readFileSync(new URL("../src/app/map-badge-artwork.ts", import.meta.url), "utf8");
 // The shared train marker layer both maps draw markers with.
 const ttcTrainMarkerLayerSource = readFileSync(new URL("../src/components/map-overlays/TrainMarkerLayer.tsx", import.meta.url), "utf8");
 // The TTC renderer and the modules split out of it; absence checks cover all of them.
-const ttcMapRendererSource = [interactiveMapSource, ttcGlyphLanesSource, ttcMapObstaclesSource, ttcTrainMarkerLayerSource].join("\n");
+const ttcMapRendererSource = [interactiveMapSource, ttcGlyphLanesSource, badgeArtworkSource, ttcTrainMarkerLayerSource].join("\n");
 const interactiveRegionalMapSource = readRegionalMapSource();
 const regionalStationLayersSource = readFileSync(new URL("../src/components/MapStationLayers.tsx", import.meta.url), "utf8");
 const regionalAssetSource = readFileSync(new URL("../src/app/regional-map-asset.ts", import.meta.url), "utf8");
@@ -520,7 +520,9 @@ describe("asset-backed map layering", () => {
 
     assert.match(overlapChooserSource, /import\s*\{[^}]*getImpactPriority[^}]*\}\s*from\s*"\.\.\/app\/map-alert-selector"/);
 
-    assert.match(interactiveMapSource, /const lineAlerts = lineAlertPaintOrder\(\[/);
+    // Every map's line alerts come from one builder (map-corridors.ts), painted by the one priority.
+    assert.match(interactiveMapSource, /const \{ lineAlerts, selectedLineAlerts \} = mapLineAlerts\(context, \{/);
+    assert.match(interactiveMapSource, /const lineAlerts = lineAlertPaintOrder\(alerts\.sort/);
 
     // One shared layer draws both maps' alerts: by kind priority, grouped by line.
     assert.match(sharedOverlaySource, /export function lineAlertPaintOrder[\s\S]*?getImpactPriority\(a\.kind\) - getImpactPriority\(b\.kind\)/);
@@ -574,10 +576,10 @@ describe("asset-backed map layering", () => {
   });
 
   it("keeps upcoming closure previews persistent and static", () => {
-    assert.match(interactiveMapSource, /plannedClosures\.flatMap\(\(closure\) => closure\.previewSegmentIds\)/);
+    // Upcoming closures preview from `previewSegmentIds` whether selected or not.
+    assert.match(interactiveMapSource, /for \(const segmentId of closure\.previewSegmentIds\) addPreview\(segmentId, closure\.id\);/);
     assert.doesNotMatch(ttcMapRendererSource, /if \(!selectedClosure\) return \[\];/);
-    assert.match(interactiveMapSource, /plannedPreviewSegmentIds/);
-    assert.match(interactiveMapSource, /mapPlannedPreviews\(context, selection\)/);
+    assert.match(interactiveMapSource, /mapPlannedPreviews\(context, data\.selection\)/);
     assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*(?:0\.\d+|1(?:\.0)?);/s);
     assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-dasharray:\s*none;[^}]*stroke-width:\s*calc\(var\(--map-alert-rail-width\) \* var\(--map-overlay-unit, 1\)\);/s);
     assert.doesNotMatch(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*animation:/s);
@@ -628,9 +630,10 @@ describe("asset-backed map layering", () => {
     assert.match(badgeLayoutSource, /placeOverlapBadges\(\{/);
     assert.match(badgeLayoutSource, /siblingGap: OVERLAP_BADGE_SIBLING_CLEARANCE \* badgeScale/);
     assert.match(badgeLayoutSource, /obstacleLayers: \[artwork\.obstacles, unalertedLines\(artwork, corridors\), alertObstacles\]/);
-    // Artwork obstacles are prepared from the authored SVG, not measured.
-    assert.match(interactiveMapSource, /artworkObstacles: ttcArtworkObstacles\(geometry\)/);
-    assert.match(interactiveMapSource, /collectBaseRouteObstacles/);
+    // Artwork obstacles are prepared from the authored SVG, not measured, by
+    // one builder for every map (map-badge-artwork.ts): artwork and base routes.
+    assert.match(interactiveMapSource, /artwork: mapBadgeArtwork\(geometry, TTC_BADGE_ARTWORK_SCALE\)/);
+    assert.match(regionalOverlaysSource, /artwork: mapBadgeArtwork\(geometry, REGIONAL_BADGE_ARTWORK_SCALE\)/);
     assert.match(interactiveMapSource, /pathMidpointFrame/);
     assert.match(interactiveMapSource, /const frame = pathMidpointFrame\(corridor\.pathD\)/);
     assert.match(overlapSvgSource, /export const OVERLAP_INDICATOR_SCALE = 1\.5;/);
@@ -638,12 +641,10 @@ describe("asset-backed map layering", () => {
     assert.match(overlapBadgesSource, /\(totalItems - 1\) \* OVERLAP_BADGE_ITEM_SPACING \+ OVERLAP_BADGE_PILL_THICKNESS/);
     assert.match(overlapBadgesSource, /height: OVERLAP_BADGE_PILL_THICKNESS \* OVERLAP_INDICATOR_SCALE/);
     assert.match(overlapIndicatorSource, /<g transform=\{`scale\(\$\{OVERLAP_INDICATOR_SCALE\}\)`\}>/);
-    assert.match(ttcMapObstaclesSource, /export function ttcArtworkObstacles\(geometry: PreparedMapGeometry\)/);
-    assert.match(ttcMapObstaclesSource, /mapCollisionBoxesForElementBounds/);
-    assert.match(ttcMapObstaclesSource, /BASE_ROUTE_COLLISION_RADIUS/);
-    assert.match(ttcMapObstaclesSource, /isLargeMapComponentBounds/);
-    assert.match(ttcMapObstaclesSource, /splitLargeMapComponentBounds/);
-    assert.match(ttcMapObstaclesSource, /LARGE_MAP_COMPONENT_MAX_THICKNESS/);
+    assert.match(badgeArtworkSource, /export function mapBadgeArtwork\(geometry: PreparedMapGeometry, scale: MapBadgeArtworkScale\)/);
+    assert.match(badgeArtworkSource, /const routes = geometry\.lines\.map/);
+    assert.match(badgeArtworkSource, /function componentTiles\(box: MapBounds, unit: number\)/);
+    assert.match(badgeArtworkSource, /LARGE_COMPONENT_MAX_THICKNESS \* unit/);
     assert.doesNotMatch(ttcMapRendererSource, /if \(box\.width > 1200 \|\| box\.height > 1200\) return null;/);
     assert.doesNotMatch(ttcMapRendererSource, /const OVERLAP_BADGE_POSITION_CANDIDATES/);
     assert.match(globalCss, /\.overlap-indicator-pill/);
@@ -952,7 +953,11 @@ describe("asset-backed map layering", () => {
   it("renders estimated train markers above station dots with directional high-contrast styling", () => {
     assert.match(interactiveMapSource, /aria-label="Estimated train markers"/);
     assert.match(ttcTrainMarkerLayerSource, /export const MapTrainMarkerLayer = memo\(/);
-    assert.match(interactiveMapSource, /visualTravelDirection\(\{ \.\.\.segment, travelDirection: marker\.travelDirection \}\)/);
+    // One pure placement for every map (train-marker-placement.ts), no DOM.
+    assert.match(interactiveMapSource, /export const TTC_TRAIN_MARKER_PLACEMENT = mapTrainMarkerPlacement\(\{/);
+    for (const file of ["../src/app/ttc-map-content.ts", "../src/app/train-marker-placement.ts"]) {
+      assert.doesNotMatch(readFileSync(new URL(file, import.meta.url), "utf8"), /getPointAtLength|createElementNS|document\./);
+    }
     assert.match(interactiveMapSource, /placement=\{map\.trainMarkers\.placement\}/);
     assert.match(interactiveMapSource, /placement: TTC_TRAIN_MARKER_PLACEMENT,/);
     assert.match(ttcTrainMarkerLayerSource, /estimatedTrainMarkerRenderKey\(marker\)/);
@@ -968,7 +973,6 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.estimated-train-marker-layer\s*\{[^}]*pointer-events:\s*none\s*!important;/s);
     assert.match(globalCss, /\.estimated-train-marker-layer \*,[\s\S]*?\.estimated-train-marker\s*\{[^}]*pointer-events:\s*none\s*!important;/s);
     assert.match(ttcTrainMarkerLayerSource, /data-train-marker-travel-direction=\{placement\.travelDirection\(marker, segmentById\)\}[\s\S]*?pointerEvents="none"/);
-    assert.match(interactiveMapSource, /const trainMarkerPathMetrics = new Map/);
     assert.match(interactiveMapSource, /animate=\{!mapEffectMotionPaused\}/);
     assert.match(interactiveMapSource, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
     assert.match(ttcTrainMarkerLayerSource, /scheduleEstimatedTrainMarkerAnimation\(update\)/);

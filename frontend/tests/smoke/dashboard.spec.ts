@@ -5153,9 +5153,11 @@ test.describe("GO/UP commute preview", () => {
     await page.getByRole("button", { name: "View on map for Lakeshore commute" }).click();
     const preview = page.locator('[data-system-map=regional] [data-commute-path-preview]');
     await expect(preview).toBeAttached();
-    // One route path through the commute's segments, under station artwork.
+    // One route path through the commute's segments in its order (the shared
+    // builder, as on TTC), under station artwork.
     const routeD = await preview.locator(".commute-path-preview-path").getAttribute("d");
-    expect(routeD?.match(/M/g)?.length ?? 0).toBeGreaterThanOrEqual(segmentIds.length);
+    expect(segmentIds.length).toBeGreaterThan(1);
+    expect(routeD?.match(/M/g)?.length ?? 0).toBe(1);
     await expect(preview.locator(".commute-path-preview-endpoint")).toHaveCount(2);
     // Green flashes above the artwork; Union's takes its pill shape.
     await expect(page.locator('[data-system-map=regional] .station-commute-green-flash--pill[data-commute-path-endpoint="origin"]')).toHaveCount(1);

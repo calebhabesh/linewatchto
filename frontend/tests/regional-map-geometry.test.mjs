@@ -11,9 +11,6 @@ import {
   REGIONAL_OVERLAP_INDICATOR_EDGE_GAP,
   REGIONAL_OVERLAP_INDICATOR_SCALE,
   REGIONAL_OVERLAY_UNIT,
-  REGIONAL_TRAIN_MARKER_LANE_OFFSET,
-  authoredRegionalCorridorPathData,
-  continuousRegionalOverlayRunPath,
   corridorSegmentPath,
   expandedRegionalCollisionBox,
   regionalAnchorDot,
@@ -23,13 +20,16 @@ import {
   regionalRoutePathIds,
   regionalStation,
   regionalStationImpactAnchors,
+  regionalDrawnSegments,
   regionalStationPillShape,
-  regionalTrainMarkerFrame,
   resolvedRegionalSegmentPath,
   squaredPointDistance,
 } from "../src/app/regional-map-geometry.ts";
 import { mapStationLabelHover, mapStationLabelTargets } from "../src/app/map-station-artwork.ts";
 import { MAP_MANIFESTS } from "../src/app/map-manifests.ts";
+import { mapCorridors } from "../src/app/map-corridors.ts";
+import { regionalTrainMarkerPlacement } from "../src/app/regional-map-content.ts";
+import { TRAIN_MARKER_LANE_OFFSET } from "../src/app/train-marker-placement.ts";
 
 // The prepared GO/UP geometry the map ships with (scripts/prepare-map-geometry.mjs).
 const geometry = JSON.parse(readFileSync(new URL("../src/app/map-geometry/regional.json", import.meta.url), "utf8"));
@@ -112,28 +112,35 @@ describe("regional map geometry", () => {
       assert.deepEqual(end, regionalAnchorPoint(geometry, "station-bloor-ki"));
     });
 
-    it("draws a whole line as one subpath per authored route path", () => {
-      assert.equal(authoredRegionalCorridorPathData(geometry, "regional-lw").match(/M/g).length, 2);
-      assert.equal(authoredRegionalCorridorPathData(geometry, "regional-up").match(/M/g).length, 2);
-      assert.equal(authoredRegionalCorridorPathData(geometry, "regional-zz"), null);
-    });
-
-    it("joins a linear run into one path between its end stations, and keeps a branching run's pieces", () => {
-      const run = ["segment-ki-union-bloor", "segment-ki-bloor-mount-dennis", "segment-ki-mount-dennis-weston"].map(segment);
-      const joined = continuousRegionalOverlayRunPath(geometry, { segments: run, pathD: "M 0 0" });
-      assert.equal(joined.match(/M/g).length, 1);
-      assert.equal(joined, corridorSegmentPath(geometry, {
+    it("draws a linear run as one path along the route between its end stations (shared corridors)", () => {
+      const run = regionalDrawnSegments(geometry, ["segment-ki-union-bloor", "segment-ki-bloor-mount-dennis", "segment-ki-mount-dennis-weston"].map(segment));
+      const [corridor, ...rest] = mapCorridors(run, "bidirectional");
+      assert.deepEqual(rest, []);
+      assert.equal(corridor.pathD.match(/M/g).length, 1);
+      const along = pathPolylinePoints(corridorSegmentPath(geometry, {
         ...run[0],
         stationBId: "weston",
         stationBAnchorId: "station-weston-ki",
       }));
-      const branching = ["segment-lw-burlington-aldershot", "segment-lw-aldershot-west-harbour", "segment-lw-aldershot-hamilton"].map(segment);
-      assert.equal(continuousRegionalOverlayRunPath(geometry, { segments: branching, pathD: "M 0 0" }), null);
+      for (const point of pathPolylinePoints(corridor.pathD)) {
+        assert.ok(projectOntoPolyline(along, point).gap < 0.01);
+      }
+    });
+
+    it("draws a branching run as one corridor, the branch as its own subpath", () => {
+      const branching = regionalDrawnSegments(geometry, ["segment-lw-burlington-aldershot", "segment-lw-aldershot-west-harbour", "segment-lw-aldershot-hamilton"].map(segment));
+      const corridors = mapCorridors(branching, "bidirectional");
+      assert.deepEqual(corridors.map((corridor) => corridor.segments.length), [3]);
+      assert.equal(corridors[0].pathD.match(/M/g).length, 2);
     });
   });
 
   describe("train markers", () => {
     const upSegment = segment("segment-up-mount-dennis-weston");
+    // The shared placement (train-marker-placement.ts): its lane is 20 overlay units.
+    const placement = regionalTrainMarkerPlacement(geometry);
+    const frame = (input) => placement.frame(input, new Map([[upSegment.id, upSegment]]));
+    const lane = TRAIN_MARKER_LANE_OFFSET * REGIONAL_OVERLAY_UNIT;
     const marker = (overrides) => ({
       segmentId: upSegment.id,
       fromStationId: "mount-dennis",
@@ -146,27 +153,28 @@ describe("regional map geometry", () => {
 
     it("places a marker beside its corridor, in its lane, facing its direction of travel", () => {
       const corridor = pathPolylinePoints(corridorSegmentPath(geometry, upSegment));
-      const westbound = regionalTrainMarkerFrame(geometry, upSegment, marker());
-      const eastbound = regionalTrainMarkerFrame(geometry, upSegment, marker({
+      const westbound = frame(marker());
+      const eastbound = frame(marker({
         fromStationId: "weston", toStationId: "mount-dennis", nextStationId: "mount-dennis",
       }));
       const gap = (frame) => projectOntoPolyline(corridor, frame.point).gap;
-      assert.ok(Math.abs(gap(westbound) - REGIONAL_TRAIN_MARKER_LANE_OFFSET) < 1);
-      assert.ok(Math.abs(gap(eastbound) - REGIONAL_TRAIN_MARKER_LANE_OFFSET) < 1);
+      assert.ok(Math.abs(gap(westbound) - lane) < 1);
+      assert.ok(Math.abs(gap(eastbound) - lane) < 1);
       // Opposite directions take opposite lanes and headings.
-      assert.ok(distance(westbound.point, eastbound.point) > REGIONAL_TRAIN_MARKER_LANE_OFFSET);
+      assert.ok(distance(westbound.point, eastbound.point) > lane);
       assert.ok(Math.abs(Math.abs(westbound.angle - eastbound.angle) - 180) < 1);
     });
 
     it("moves from the departing station toward the next one", () => {
       const corridor = pathPolylinePoints(corridorSegmentPath(geometry, upSegment));
-      const along = (progress) => projectOntoPolyline(corridor, regionalTrainMarkerFrame(geometry, upSegment, marker({ progress })).point).along;
+      const along = (progress) => projectOntoPolyline(corridor, frame(marker({ progress })).point).along;
       assert.ok(along(0.1) < along(0.5) && along(0.5) < along(0.9));
       assert.ok(Math.abs(along(0.5) - polylineLength(corridor) / 2) < 1);
     });
 
     it("draws no marker on a segment without a corridor", () => {
-      assert.equal(regionalTrainMarkerFrame(geometry, { ...upSegment, lineId: "regional-zz" }, marker()), null);
+      const nowhere = { ...upSegment, lineId: "regional-zz" };
+      assert.equal(placement.frame(marker(), new Map([[nowhere.id, nowhere]])), null);
     });
   });
 

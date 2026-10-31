@@ -5,16 +5,17 @@
  * artwork does (`regional-route-<code>-path`), so its corridor rules run.
  * Outputs are normalised to what a rider sees (visual state, order, corridor
  * shape, badge members, sizes relative to the dot, labels), not keys or
- * formatting. A case marked `todo` is a known divergence, named by its audit
- * item in docs/refactor-plan/11-full-map-parity.md; later phases turn them
- * into plain cases.
+ * formatting. Every case is a plain case since plan 11 phase 3: the
+ * divergences the phase 1 audit found (docs/refactor-plan/11-full-map-parity.md)
+ * are shared rules and builders now.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import dropInGeometry from "./fixtures/drop-in-map/drop-in-map.json" with { type: "json" };
-import { ttcMapContent, TTC_TRAIN_MARKER_PLACEMENT } from "../src/app/ttc-map-content.ts";
+import { ttcMapContent, ttcRenderedNetworkSegments, TTC_TRAIN_MARKER_PLACEMENT } from "../src/app/ttc-map-content.ts";
 import { regionalMapContent, regionalTrainMarkerPlacement } from "../src/app/regional-map-content.ts";
 import { REGIONAL_OVERLAY_UNIT } from "../src/app/regional-map-geometry.ts";
+import { projectOntoPolyline } from "../src/app/map-geometry.ts";
 import { CONNECTOR_STATION_CLEARANCE } from "../src/components/map-overlays/overlay-obstacles.ts";
 
 const ttcGeometry = dropInGeometry;
@@ -343,10 +344,11 @@ describe("map content parity: line alerts", () => {
     assert.deepEqual(visualStates(ttc(input())).map(([, , state]) => state).sort(), ["planned-preview", "suspension"]);
     assert.deepEqual(selected(ttc(input())).map(({ impact }) => impact), ["planned-closure:p2"]);
   });
-  it("draws a line-wide alert without listed segments over the same corridor", {
-    todo: "item 3: GO/UP draws the authored route, TTC draws nothing",
-  }, () => {
+  it("draws a line-wide alert without listed segments over the line's whole route", () => {
     same(lineWide, corridors);
+    same(lineWide, lineLabels);
+    // Line B bends at Birch, so its route is one corridor through both segments.
+    assert.deepEqual(corridors(ttc(lineWide())).map(({ segmentIds }) => segmentIds), [[B2, B1]]);
   });
 });
 
@@ -384,22 +386,57 @@ describe("map content parity: station alerts", () => {
 
 describe("map content parity: commute preview", () => {
   it("previews the same commute ends", () => same(service, commuteEnds));
-  it("draws the commute route as one path", {
-    todo: "item 3: TTC composes one path, GO/UP joins one subpath per segment",
-  }, () => same(service, commuteRoute));
-  it("sizes the endpoints the same relative to their dot", {
-    todo: "item 7: TTC uses fixed radii (34, 38/48/33), GO/UP ratios of the dot",
-  }, () => same(service, commuteSizes));
+  it("draws the commute route as one path", () => {
+    same(service, commuteRoute);
+    assert.equal(commuteRoute(ttc(service())).length, 1);
+  });
+  it("sizes the endpoints the same relative to their dot", () => same(service, commuteSizes));
 });
 
 describe("map content parity: train markers", () => {
-  const marker = {
-    id: "t1", lineId: "line-a", segmentId: A1, direction: "Eastbound", nextStationId: "birch",
-    progress: 0.5, travelDirection: "forward",
+  const marker = (overrides = {}) => ({
+    id: "t1", lineId: "line-a", segmentId: A1, direction: "Eastbound", fromStationId: "alder", toStationId: "birch",
+    nextStationId: "birch", progress: 0.25, travelDirection: "forward", ...overrides,
+  });
+  const ttcSegments = new Map(ttcRenderedNetworkSegments(ttcGeometry, scenario()).map((segment) => [segment.id, segment]));
+  const regionalSegments = new Map(networkSegments().map((segment) => [segment.id, segment]));
+  const regionalPlacement = regionalTrainMarkerPlacement(regionalGeometry);
+  const line = [{ x: 200, y: 600 }, { x: 1800, y: 600 }];
+  /** Where a marker sits: how far along the line, its lane beside it in overlay units, and its heading. */
+  const frame = (placement, segments, unit, input) => {
+    const { point, angle } = placement.frame(input, segments);
+    const projection = projectOntoPolyline(line, point);
+    return {
+      along: round(projection.along),
+      lane: round(Math.sign(point.y - 600) * projection.gap / unit),
+      heading: round(((angle % 360) + 360) % 360),
+      travel: placement.travelDirection(input, segments),
+    };
   };
-  it("labels an estimated train the same way", {
-    todo: "item 7: per-network label formats (TTC 'Line 1 … estimated train near …', GO/UP '… toward …; schematic …')",
-  }, () => {
-    assert.equal(regionalTrainMarkerPlacement(regionalGeometry).label(marker), TTC_TRAIN_MARKER_PLACEMENT.label(marker));
+  const both = (input) => [
+    frame(regionalPlacement, regionalSegments, REGIONAL_OVERLAY_UNIT, input),
+    frame(TTC_TRAIN_MARKER_PLACEMENT, ttcSegments, 1, input),
+  ];
+
+  it("places a marker the same: as far along, in the same lane in overlay units, heading its way", () => {
+    for (const input of [
+      marker(),
+      marker({ fromStationId: "birch", toStationId: "alder", nextStationId: "alder", direction: "Westbound", travelDirection: "reverse" }),
+    ]) {
+      const [regional, ttc] = both(input);
+      assert.deepEqual(regional, ttc);
+    }
+    const [, eastbound] = both(marker());
+    assert.deepEqual(eastbound, { along: 200, lane: 20, heading: 0, travel: "forward" });
+  });
+  it("labels an estimated train the same way, with the network's line name and the station's name", () => {
+    const names = (stationId) => stationById.get(stationId)?.name;
+    const label = (placement) => placement.label(marker(), names);
+    assert.equal(label(TTC_TRAIN_MARKER_PLACEMENT), "Train Eastbound train near Birch; schematic estimated position");
+    assert.equal(label(regionalPlacement), "LINE-A Eastbound train near Birch; schematic estimated position");
+    assert.equal(
+      TTC_TRAIN_MARKER_PLACEMENT.label({ ...marker(), lineId: "line-1" }, names),
+      "Line 1 Eastbound train near Birch; schematic estimated position",
+    );
   });
 });

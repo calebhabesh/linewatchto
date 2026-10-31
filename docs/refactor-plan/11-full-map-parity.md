@@ -380,3 +380,110 @@ full-spec runs; phone numbers are noisy). Build once and reuse it
     switching Map View to GO/UP the zoom slider reads 14 (expected 9).
     Neither touches code changed here; not yet compared with a clean
     `main` build.
+  - **Resolved (2026-10-31, `bcc9b4c4`):** `map-line-badges.spec.ts` failed
+    the same way on the phase 2 commit (`a4e5603f`, built in a worktree with
+    its own `npm ci`), so the owner edits did not cause it. The spec was
+    stale: System Map line badges stopped fading in `76926ed2` (a unit test
+    asserts the fade stays gone), and a Map View network switch keeps the
+    camera since `94485466`. The spec now expects full opacity at every
+    scale and the kept zoom, and names the TTC map's raster planes (both
+    maps mount, so the bare plane locators matched two elements). It passes
+    on both projects.
+- **Committed:** phase 2 as `a4e5603f`, the owner edits as `60e8c1f0`
+  (split by hunk; the phase 2 commit passes `test:fast`, typecheck and lint
+  on its own).
+- **Phase 3 done (2026-10-31): one corridor and preview model.** The
+  adapters now hold network facts only: how a segment is drawn (TTC's guides
+  and tracks, GO/UP's route corridors), where stations, dots and Union's pill
+  are, and line names. Everything they compose goes through shared builders
+  over `map-content-rules.ts`.
+  - **Corridors (item 3).** `mapLineAlerts` and `mapCorridors`
+    (`app/map-corridors.ts`) replace `ttcCorridors`'s per-impact
+    `composeNetworkSegmentPath` and GO/UP's `regionalOverlayRuns`,
+    `continuousRegionalOverlayRunPath` and authored-route special case. Each
+    alert's segments are grouped per line and joined where they meet at a
+    station into one alert (one target and hover outline per stretch). A
+    linear stretch is one path; a branching one (GO/UP's Lakeshore West at
+    Aldershot) is one subpath per trail, the line running on through the
+    branch point and the branch starting its own subpath (GO/UP's main and
+    branch, as its authored route drew it). A trail drawn against the alert
+    is reversed, so chevrons head the alert's way on every subpath. GO/UP's
+    one-subpath-per-segment runs are gone, and TTC no longer draws a chord
+    across a gap between an alert's disjoint segments (each stretch is its
+    own alert). Selection is
+    one rule (the drawn alerts the selection names), so TTC's
+    `selected:<id>` copies are gone. Keys are one format,
+    `<kind>:<id>:<direction>:<segment ids>`, and the paint-order tie-break
+    is GO/UP's (impact id, key).
+  - **Line-wide alerts (decision, plan default).** An active alert with no
+    listed segments that is not a station's own draws over its line's whole
+    route on both maps, through the same builder. GO/UP drew the authored
+    route paths; TTC drew nothing. The label is shared
+    (`lineWideAlertLabel`: "<kind>: <line> <title>"). On TTC this is
+    reachable when the backend matches no segments for a route alert with
+    no single station (`AlertDashboardService.affectedSegmentIds` empty).
+    Live data had none at the time of checking. Owner: say if a TTC alert the
+    matcher could not place should stay off the map instead.
+  - **Commute preview (item 7).** `mapCommutePreview` replaces
+    `ttcCommutePreview` and `regional-commute-preview.ts` (deleted). The
+    route is one path in the commute's order. Each end sits on the dot the
+    route uses there (the first or last segment's anchor), else on every dot
+    of the station. Sizes come from that dot (`commuteEndpointSizes`: TTC's
+    34 and 38 on its 32-unit dot, as ratios). TTC's large-dot check
+    (`LARGE_DOT_RATIO`) and its fixed 34, 48 and 33 are retired. At TTC's
+    large stations (r 58.84) the endpoint dot is now 63 and the flash 70
+    (were 34 and 48); at interchanges the flash is on the route's own
+    platform dot rather than 33 on every dot.
+  - **Train markers (item 7).** `mapTrainMarkerPlacement`
+    (`app/train-marker-placement.ts`) is one pure placement: a map gives its
+    unit, marker scale, a segment's drawn points (A to B) and its line
+    labels. The marker's from and next stations decide its direction;
+    a marker that does not name its segment's ends goes by its travel
+    direction. All 55 live TTC markers resolved, and their travel direction
+    agreed. The lane is `TRAIN_MARKER_LANE_OFFSET` = 20 overlay units, so
+    GO/UP's is 40.8 (was 44). TTC no longer measures a detached SVG path
+    (`trainMarkerPathMetrics` is gone). `data-train-marker-travel-direction`
+    is relative to A to B on both maps. Titles are one format with the
+    network's line name and the next station's name ("Line 1 Northbound
+    train near College; schematic estimated position"); TTC's named the
+    station id, GO/UP's "LW toward Eastbound". The layer takes the map
+    data's stations for the names. GO/UP's marker scale (1.8, against a unit
+    of 2.04) stays map data.
+  - **Badge artwork (item 4).** `mapBadgeArtwork` (`app/map-badge-artwork.ts`)
+    replaces `ttcBadgeArtwork` with `ttc-map-obstacles.ts` (deleted) and
+    `regionalBadgeArtwork`. It builds labels, element boxes (TTC's
+    large-box tiling, scaled by the unit), artwork strokes and base routes
+    from `geometry.lines`, at the map's badge scale and line half-width.
+    TTC's base routes came from its resolved segment paths and are now its
+    prepared tracks, so its badge artwork no longer depends on dashboard
+    data. Connectors keep out of connection labels and line badges on both
+    maps (TTC has none of either).
+  - **Browser fixes.** The first browser run split Lakeshore West's
+    whole-corridor delay into three alerts at Aldershot
+    (`dashboard.spec.ts:1195`, `:1576`), which led to the one-alert-per-
+    stretch rule above. `dashboard.spec.ts:5090` asserted GO/UP's old
+    one-subpath-per-segment commute route and now expects one path.
+  - **Tests.** The parity suite runs 28 cases with no `todo`: the 4 phase 3
+    divergences are plain cases, plus the train marker case, which compares
+    where a marker sits along the line, its lane in overlay units and its
+    heading for both directions. New `tests/map-corridors.test.mjs` (shared
+    corridors and commute preview) replaces
+    `tests/regional-map-overlays.test.mjs`. `ttc-map-content.test.mjs` covers
+    the new keys, selection, commute sizes and a TTC line-wide alert.
+    `regional-map-content.test.mjs` and `regional-map-geometry.test.mjs` use
+    the shared builders. Source checks (`map-layering`, `regional-network`,
+    `regional-train-markers`, `regional-commutes`, `drawer-layout`) follow
+    the moved code, and the map source helper reads the three new modules.
+  - Checks: `test:fast` passes (parity 28 pass, 0 todo), typecheck clean,
+    lint 15 existing warnings. One build with `LINEWATCH_TEST_HARNESS=true`,
+    rebuilt once after the corridor fix and reused. `map-parity` 38 passed
+    (38 per-project skips). The browser list (dashboard by path, plus
+    `map-line-badges`) passed 363 and failed only the two known GO/UP mobile
+    cases (item 9, phase 5). `test:visual` 30 passed with no differences, so
+    no baselines changed. `test:map-zoom-memory` 2 passed, 0 tile-memory
+    warnings on both maps. `test:map-budgets` 4 passed: desktop wheel and
+    drag p95 6.1 ms on both maps; TTC hover sweep (13 alerts) p95 6.1 ms, 1
+    frame over 20 ms; GO/UP hover sweep (44 alerts) p95 18.3 ms, 29 frames
+    over 20 ms, 1 long frame (55 ms); phone station tap INP TTC 192 ms, GO/UP
+    472 ms (median of 472, 272, 520). About the same as the starting figures;
+    phase 4 owns the GO/UP gap.

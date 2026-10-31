@@ -1,14 +1,14 @@
 import type {
   ActiveAlert,
   DelayAlert,
-  MapImpact,
   NetworkSegment,
   PlannedClosure,
   Station,
   StationNodeImpact,
 } from "./linewatch-data.ts";
-import type { MapBounds } from "./map-geometry.ts";
-import { preparedPoints, type PreparedMapGeometry } from "./map-geometry-data.ts";
+import type { PreparedMapGeometry } from "./map-geometry-data.ts";
+import type { MapOverlayPlane } from "../components/map-overlays/overlay-plane.ts";
+import { mapBadgeArtwork } from "./map-badge-artwork.ts";
 import {
   REGIONAL_OVERLAP_INDICATOR_SCALE,
   REGIONAL_OVERLAY_UNIT,
@@ -17,7 +17,7 @@ import {
   regionalStationVisualAnchors,
   resolvedRegionalSegmentPath,
   regionalOverlapBadgeAnchor,
-  expandedRegionalCollisionBox,
+  regionalStationPillShape,
   REGIONAL_MAP_VIEWBOX,
 } from "./regional-map-geometry.ts";
 import {
@@ -33,15 +33,8 @@ import {
   overlapStretchLabel,
   stationAlertSizes,
 } from "./map-content-rules.ts";
-import {
-  BADGE_FEATURE_GAPS,
-  badgeObstacleReach,
-} from "../components/overlap-badge-placement.ts";
 import type { MapLineAlert } from "../components/map-overlays/line-alert-model.ts";
-import {
-  overlapBadgeTargetsAlong,
-  type MapBadgeArtwork,
-} from "../components/map-overlays/overlap-badge-layout.ts";
+import { overlapBadgeTargetsAlong } from "../components/map-overlays/overlap-badge-layout.ts";
 import type { MapStationAlert } from "../components/map-overlays/station-alert-model.ts";
 import { CONNECTOR_STATION_CLEARANCE } from "../components/map-overlays/overlay-obstacles.ts";
 import {
@@ -55,72 +48,6 @@ export const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
 /** A GO/UP overlap badge before placement; its layout id is its marker id. */
 export type RegionalOverlapBadge = Omit<MapOverlapBadgeInput, "layoutId"> & { layoutId?: string };
-
-export type RegionalOverlayPiece = {
-  segment: NetworkSegment;
-  impact: MapImpact;
-  impactIndex: number;
-  pathD: string;
-};
-
-export type RegionalOverlayRun = {
-  impact: MapImpact;
-  impactIndex: number;
-  lineId: string;
-  segments: NetworkSegment[];
-  pathD: string;
-};
-
-
-export function regionalSegmentsAreAdjacent(a: NetworkSegment, b: NetworkSegment) {
-  return a.stationAId === b.stationAId
-    || a.stationAId === b.stationBId
-    || a.stationBId === b.stationAId
-    || a.stationBId === b.stationBId;
-}
-
-export function regionalOverlayRuns(pieces: RegionalOverlayPiece[]): RegionalOverlayRun[] {
-  const grouped = new Map<string, RegionalOverlayPiece[]>();
-  for (const piece of pieces) {
-    const key = [
-      piece.segment.lineId,
-      piece.impact.kind,
-      piece.impact.cardId,
-      piece.impact.travelDirection,
-    ].join(":");
-    grouped.set(key, [...(grouped.get(key) ?? []), piece]);
-  }
-
-  const runs: RegionalOverlayRun[] = [];
-  for (const groupPieces of grouped.values()) {
-    const remaining = new Set(groupPieces);
-    while (remaining.size > 0) {
-      const firstPiece = remaining.values().next().value as RegionalOverlayPiece;
-      const componentPieces: RegionalOverlayPiece[] = [];
-      const pending = [firstPiece];
-      remaining.delete(firstPiece);
-      while (pending.length > 0) {
-        const current = pending.shift()!;
-        componentPieces.push(current);
-        for (const candidate of remaining) {
-          if (!regionalSegmentsAreAdjacent(current.segment, candidate.segment)) continue;
-          remaining.delete(candidate);
-          pending.push(candidate);
-        }
-      }
-      runs.push({
-        impact: firstPiece.impact,
-        impactIndex: Math.min(...componentPieces.map((piece) => piece.impactIndex)),
-        lineId: firstPiece.segment.lineId,
-        segments: componentPieces.map((piece) => piece.segment),
-        // Keep one subpath per graph edge. This preserves a single interactive
-        // overlay group even when the connected component branches or cycles.
-        pathD: componentPieces.map((piece) => piece.pathD.trim()).join(" "),
-      });
-    }
-  }
-  return runs;
-}
 
 /** Planned closures and the alerts that decide their timing (map-content-rules.ts). */
 export type RegionalClosureData = {
@@ -219,62 +146,15 @@ function regionalStationOverlapBadges(
 }
 
 // GO/UP draws overlap badges at twice TTC's size, so badge spacing doubles
-// too. Overlay sizes come from the shared metrics at GO/UP's overlay unit
-// (map-overlays/overlay-obstacles.ts), as on TTC.
+// too (map-badge-artwork.ts). Overlay sizes come from the shared metrics at
+// GO/UP's overlay unit (map-overlays/overlay-obstacles.ts), as on TTC.
 const REGIONAL_BADGE_SCALE = REGIONAL_OVERLAP_INDICATOR_SCALE;
-// Regional route strokes are 175 units wide.
-const REGIONAL_TRANSIT_LINE_HALF_WIDTH = 87.5;
-// Shared spacing (see BADGE_FEATURE_GAPS) so GO/UP badges sit as far from
-// labels, lines, and alerts as TTC badges do, relative to badge size.
-const REGIONAL_LABEL_PADDING = badgeObstacleReach(0, BADGE_FEATURE_GAPS.label, REGIONAL_BADGE_SCALE);
-const REGIONAL_ARTWORK_PADDING = badgeObstacleReach(0, BADGE_FEATURE_GAPS.artwork, REGIONAL_BADGE_SCALE);
-const REGIONAL_TRANSIT_LINE_RADIUS = badgeObstacleReach(
-  REGIONAL_TRANSIT_LINE_HALF_WIDTH,
-  BADGE_FEATURE_GAPS.transitLine,
-  REGIONAL_BADGE_SCALE,
-);
-
-const artworkCache = new WeakMap<PreparedMapGeometry, MapBadgeArtwork>();
-
-/**
- * GO/UP's artwork as badge obstacles, once per map: station names and
- * connection marks, station dots and line badges, and the routes as
- * corridors. Returning the same arrays also lets the placement engine reuse
- * its rasterization.
- */
-function regionalBadgeArtwork(geometry: PreparedMapGeometry): MapBadgeArtwork {
-  const cached = artworkCache.get(geometry);
-  if (cached) return cached;
-  const labels = geometry.artwork.labels.map((corners) => ({
-    polygon: preparedPoints(corners),
-    padding: REGIONAL_LABEL_PADDING,
-  }));
-  const connectionLabels: MapBounds[] = [];
-  const lineBadges: MapBounds[] = [];
-  const artwork: MapBounds[] = [];
-  for (const { kind, ...box } of geometry.artwork.boxes) {
-    if (kind === "connection-label") connectionLabels.push(expandedRegionalCollisionBox(box, REGIONAL_LABEL_PADDING));
-    else {
-      const expanded = expandedRegionalCollisionBox(box, REGIONAL_ARTWORK_PADDING);
-      artwork.push(expanded);
-      if (kind === "line-badge") lineBadges.push(expanded);
-    }
-  }
-  const transitLines = geometry.lines.map((line) => ({
-    polyline: preparedPoints(line.points),
-    radius: REGIONAL_TRANSIT_LINE_RADIUS,
-  }));
-  const badgeArtwork: MapBadgeArtwork = {
-    obstacles: [...labels, ...connectionLabels, ...artwork],
-    transitLines,
-    transitLineHalfWidth: REGIONAL_TRANSIT_LINE_HALF_WIDTH,
-    // Station dots stay out: station-alert connectors have to land beside them.
-    connectorKeepOut: [...labels, ...connectionLabels, ...lineBadges],
-    connectorCrossings: transitLines,
-  };
-  artworkCache.set(geometry, badgeArtwork);
-  return badgeArtwork;
-}
+// GO/UP's route strokes are 175 units wide.
+const REGIONAL_BADGE_ARTWORK_SCALE = {
+  unit: REGIONAL_OVERLAY_UNIT,
+  badgeScale: REGIONAL_BADGE_SCALE,
+  lineHalfWidth: 87.5,
+};
 
 const badgePlacementCache = new WeakMap<PreparedMapGeometry, MapBadgePlacement>();
 
@@ -283,7 +163,7 @@ export function regionalBadgePlacement(geometry: PreparedMapGeometry): MapBadgeP
   let placement = badgePlacementCache.get(geometry);
   if (!placement) {
     placement = {
-      artwork: regionalBadgeArtwork(geometry),
+      artwork: mapBadgeArtwork(geometry, REGIONAL_BADGE_ARTWORK_SCALE),
       stationDots: regionalStationDots(geometry).map((anchor) => ({
         center: anchor.point,
         radius: stationAlertSizes(anchor).ringRadius + CONNECTOR_STATION_CLEARANCE * REGIONAL_OVERLAY_UNIT,
@@ -308,4 +188,42 @@ export function regionalPlacedOverlapBadges(
     overlapBadges: badges.map((badge) => ({ ...badge, layoutId: badge.layoutId ?? badge.markerId })),
     badgePlacement: regionalBadgePlacement(geometry),
   }, { unit: REGIONAL_OVERLAY_UNIT, mapBounds: REGIONAL_MAP_VIEWBOX });
+}
+
+/** Covers Union's authored border, so the outline disappears behind the pill. */
+const REGIONAL_UNION_OUTLINE_CUTOUT_STROKE_WIDTH = 96;
+
+/**
+ * Where GO/UP draws overlays: the root SVG's coordinates, at its rail's
+ * scale. The hover outline stops at Union's pill instead of crossing it.
+ */
+export function regionalOverlayPlane(geometry: PreparedMapGeometry): MapOverlayPlane {
+  // The view box with a margin, so outlines near the edge are not clipped.
+  const { viewBox } = geometry;
+  const maskBounds = {
+    x: viewBox.x - viewBox.width,
+    y: viewBox.y - viewBox.height,
+    width: viewBox.width * 3,
+    height: viewBox.height * 3,
+  };
+  const union = regionalStationPillShape(geometry, "station-union");
+  // Cutouts are plain rectangles: Union's pill is only translated.
+  const [a, b, c, d, e, f] = union?.matrix ?? [];
+  const outlineCutouts = union && a === 1 && b === 0 && c === 0 && d === 1
+    ? [{
+        x: union.shape.x + e,
+        y: union.shape.y + f,
+        width: union.shape.width,
+        height: union.shape.height,
+        rx: union.shape.rx,
+        ry: union.shape.ry,
+        strokeWidth: REGIONAL_UNION_OUTLINE_CUTOUT_STROKE_WIDTH,
+      }]
+    : [];
+  return {
+    idPrefix: "regional",
+    unit: REGIONAL_OVERLAY_UNIT,
+    maskBounds,
+    outlineCutouts,
+  };
 }

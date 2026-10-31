@@ -36,15 +36,17 @@ describe("regional estimated train marker rendering", () => {
   // Behaviour on the prepared corridors: regional-map-geometry.test.mjs.
   it("projects regional markers onto the authored segment path in root coordinates", () => {
     assert.match(regionalGeometrySource, /\["regional-route-up-path", "regional-route-up-airport-path"\]/);
-    assert.match(regionalGeometrySource, /estimatedTrainMarkerLanePoint/);
-    assert.match(regionalGeometrySource, /REGIONAL_TRAIN_MARKER_LANE_OFFSET/);
-    assert.match(regionalContentSource, /regionalTrainMarkerFrame\(geometry, segment, marker\)/);
+    // One placement for every map (train-marker-placement.ts), along GO/UP's corridors.
+    assert.match(regionalContentSource, /path: \(segment\) => regionalSegmentCorridorPoints\(geometry, segment\)/);
+    assert.match(regionalContentSource, /unit: REGIONAL_OVERLAY_UNIT,/);
     assert.match(regionalMapSource, /className="estimated-train-marker-layer"/);
     assert.doesNotMatch(regionalGeometrySource, /const x = from\.x \+ \(to\.x - from\.x\) \* progress/);
   });
 
   it("uses path-relative directional lanes on both map modes", () => {
-    assert.match(regionalGeometrySource, /pathStartsAtFrom \? "forward" : "reverse"/);
+    const placementSource = readFileSync(new URL("../src/app/train-marker-placement.ts", import.meta.url), "utf8");
+    assert.match(placementSource, /return fromA \? "forward" : "reverse";/);
+    assert.match(placementSource, /TRAIN_MARKER_LANE_OFFSET \* unit/);
   });
 
   it("updates markers without rebuilding the map or replaying marker motion", () => {

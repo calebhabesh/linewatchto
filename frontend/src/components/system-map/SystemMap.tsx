@@ -840,6 +840,7 @@ function SystemMapComponent({
                 markers={estimatedTrainMarkers}
                 segments={trainMarkerSegments}
                 placement={map.trainMarkers.placement}
+                stations={dataStations}
                 animate={!mapEffectMotionPaused}
               />
             </g>

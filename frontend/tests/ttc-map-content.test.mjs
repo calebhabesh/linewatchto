@@ -62,9 +62,9 @@ describe("TTC map content", () => {
   it("draws upcoming planned previews under current alerts, the most severe last", () => {
     const content = ttcMapContent(geometry, scenario());
     assert.deepEqual(content.lineAlerts.map((alert) => [alert.key, alert.visualState, alert.label]), [
-      ["planned-preview-p1:p1", "planned-preview", "Weekend closure: Kipling to Jane"],
-      ["delay-d1-bidirectional:delay:d1:bidirectional", "delay-static", "delay: Finch to Eglinton"],
-      ["suspension-s1-bidirectional:suspension:s1:bidirectional", "suspension", "suspension: Finch to Eglinton"],
+      ["planned-closure:p1:bidirectional:line-2-kipling-jane", "planned-preview", "Weekend closure: Kipling to Jane"],
+      ["delay:d1:bidirectional:line-1-finch-eglinton", "delay-static", "delay: Finch to Eglinton"],
+      ["suspension:s1:bidirectional:line-1-finch-eglinton", "suspension", "suspension: Finch to Eglinton"],
     ]);
     assert.deepEqual([...content.outlinePathsByImpact.keys()], ["planned-closure:p1", "delay:d1", "suspension:s1"]);
     assert.deepEqual(content.selectedLineAlerts, []);
@@ -72,12 +72,14 @@ describe("TTC map content", () => {
 
   it("previews a current planned closure only while it is selected, and emphasizes the selection", () => {
     const content = ttcMapContent(geometry, scenario({ selection: { kind: "planned-closure", id: "p2" } }));
-    assert.ok(content.lineAlerts.some((alert) => alert.key === "planned-preview-p2:p2"));
+    const preview = "planned-closure:p2:bidirectional:line-2-jane-ossington";
+    assert.ok(content.lineAlerts.some((alert) => alert.key === preview));
+    // The selection emphasizes the drawn alerts it names (one list for every map).
     assert.deepEqual(content.selectedLineAlerts.map((alert) => [alert.key, alert.kind, alert.impactId]), [
-      ["selected:p2", "planned-closure", "p2"],
+      [preview, "planned-closure", "p2"],
     ]);
     const suspension = ttcMapContent(geometry, scenario({ selection: { kind: "suspension", id: "s1" } }));
-    assert.deepEqual(suspension.selectedLineAlerts.map((alert) => alert.key), ["selected:s1"]);
+    assert.deepEqual(suspension.selectedLineAlerts.map((alert) => alert.key), ["suspension:s1:bidirectional:line-1-finch-eglinton"]);
   });
 
   it("sizes station alerts from each dot's prepared radius and names their station", () => {
@@ -119,14 +121,34 @@ describe("TTC map content", () => {
     assert.ok(placed.connector, "a placed badge points back at its alerts");
   });
 
-  it("previews a commute's route and flashes both ends", () => {
+  it("previews a commute's route and flashes both ends, sized from each dot", () => {
     const { commutePreview } = ttcMapContent(geometry, scenario());
     assert.equal(commutePreview.label, "Line 1");
     assert.match(commutePreview.pathD, /^M 4547 1808/);
-    assert.deepEqual(commutePreview.endpoints.map(({ key, role }) => [key, role]), [
-      ["origin:finch:finch", "origin"],
-      ["destination:eglinton:eglinton", "destination"],
+    // TTC's 34-unit dot and 38-unit flash on its 32-unit dot, as ratios of
+    // each dot (map-content-rules.ts). Finch and Eglinton are drawn large
+    // (r 58.84), so their ends grow with the dot (the flash was 48).
+    assert.deepEqual(commutePreview.endpoints.map(({ key, role, dotRadius, flashRadius }) => (
+      [key, role, Math.round(dotRadius), Math.round(flashRadius)]
+    )), [
+      ["origin:finch:finch", "origin", 63, 70],
+      ["destination:eglinton:eglinton", "destination", 63, 70],
     ]);
+  });
+
+  it("draws a line-wide alert with no listed segments over its line's route", () => {
+    const content = ttcMapContent(geometry, scenario({
+      activeAlerts: [{
+        id: "w4", lineId: "line-4", lineNumber: "4", title: "No service on Line 4", severity: "suspension", location: "",
+        description: "", affectedSegmentIds: [], shuttle: true, source: "TTC",
+      }],
+    }));
+    const lineWide = content.lineAlerts.filter((alert) => alert.impactId === "w4");
+    assert.deepEqual(lineWide.map((alert) => [alert.kind, alert.lineId, alert.visualState, alert.label]), [
+      ["suspension", "line-4", "suspension", "suspension: 4 No service on Line 4"],
+    ]);
+    const line4 = networkSegments.filter((segment) => segment.lineId === "line-4").map((segment) => segment.id).sort();
+    assert.deepEqual([...lineWide[0].segmentIds].sort(), line4);
   });
 
   it("keeps corridors and badge artwork across a selection, so badge placement stays cached", () => {

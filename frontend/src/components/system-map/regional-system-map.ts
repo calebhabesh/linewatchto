@@ -3,7 +3,7 @@ import { MAP_MANIFESTS } from "../../app/map-manifests";
 import type { PreparedMapGeometry } from "../../app/map-geometry-data";
 import preparedRegionalGeometry from "../../app/map-geometry/regional.json";
 import { REGIONAL_MAP_ARTWORK } from "../../app/regional-map-asset";
-import { regionalOverlayPlane } from "../../app/regional-line-alerts";
+import { regionalOverlayPlane } from "../../app/regional-map-overlays";
 import { regionalMapContent, regionalTrainMarkerPlacement } from "../../app/regional-map-content";
 import { defineSystemMap, type SystemMapNetworkAdapter } from "./system-map-definition";
 

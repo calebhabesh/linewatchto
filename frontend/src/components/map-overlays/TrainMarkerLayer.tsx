@@ -32,8 +32,8 @@ export type MapTrainMarkerPlacement = {
   frame: (marker: EstimatedTrainMarker, segmentById: ReadonlyMap<string, NetworkSegment>) => MapTrainMarkerFrame | null;
   /** The way the marker travels along its drawn path, for `data-train-marker-travel-direction`. */
   travelDirection: (marker: EstimatedTrainMarker, segmentById: ReadonlyMap<string, NetworkSegment>) => string;
-  /** The marker's accessible title. */
-  label: (marker: EstimatedTrainMarker) => string;
+  /** The marker's accessible title, with the network's station names. */
+  label: (marker: EstimatedTrainMarker, stationName: (stationId: string) => string | undefined) => string;
   /** How much larger than TTC's this map draws its markers. */
   scale: number;
 };
@@ -50,6 +50,7 @@ export const MapTrainMarkerLayer = memo(function MapTrainMarkerLayer({
   markers,
   segments,
   placement,
+  stations,
   animate,
 }: {
   enabled: boolean;
@@ -57,9 +58,15 @@ export const MapTrainMarkerLayer = memo(function MapTrainMarkerLayer({
   /** The map's segments with their drawn paths; markers move along them. */
   segments: NetworkSegment[];
   placement: MapTrainMarkerPlacement;
+  /** The network's stations, which markers name. */
+  stations: ReadonlyArray<{ id: string; name: string }>;
   animate: boolean;
 }) {
   const segmentById = useMemo(() => new Map(segments.map((segment) => [segment.id, segment])), [segments]);
+  const stationName = useMemo(() => {
+    const names = new Map(stations.map((station) => [station.id, station.name]));
+    return (stationId: string) => names.get(stationId);
+  }, [stations]);
   if (!enabled) return null;
   const drawn = markers.filter((marker) => placement.frame(marker, segmentById));
   if (drawn.length === 0) return null;
@@ -72,6 +79,7 @@ export const MapTrainMarkerLayer = memo(function MapTrainMarkerLayer({
           segments={segments}
           segmentById={segmentById}
           placement={placement}
+          stationName={stationName}
           animate={animate}
         />
       ))}
@@ -84,12 +92,14 @@ function AnimatedTrainMarker({
   segments,
   segmentById,
   placement,
+  stationName,
   animate,
 }: {
   marker: EstimatedTrainMarker;
   segments: NetworkSegment[];
   segmentById: ReadonlyMap<string, NetworkSegment>;
   placement: MapTrainMarkerPlacement;
+  stationName: (stationId: string) => string | undefined;
   animate: boolean;
 }) {
   const groupRef = useRef<SVGGElement>(null);
@@ -170,7 +180,7 @@ function AnimatedTrainMarker({
       data-train-marker-travel-direction={placement.travelDirection(marker, segmentById)}
       pointerEvents="none"
     >
-      <title>{placement.label(marker)}</title>
+      <title>{placement.label(marker, stationName)}</title>
       <path className="estimated-train-marker-shadow" d={TRAIN_MARKER_BODY_PATH} />
       <path className="estimated-train-marker-shadow estimated-train-marker-shadow-mid" d={TRAIN_MARKER_BODY_PATH} />
       <path className="estimated-train-marker-shadow estimated-train-marker-shadow-near" d={TRAIN_MARKER_BODY_PATH} />

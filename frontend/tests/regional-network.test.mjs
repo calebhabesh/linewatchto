@@ -31,7 +31,10 @@ const framingSource = readFileSync(new URL("../src/components/map-camera/useMapF
 const regionalGeometrySource = readFileSync(new URL("../src/app/regional-map-geometry.ts", import.meta.url), "utf8");
 const regionalAssetSource = readFileSync(new URL("../src/app/regional-map-asset.ts", import.meta.url), "utf8");
 const regionalOverlaysSource = readFileSync(new URL("../src/app/regional-map-overlays.ts", import.meta.url), "utf8");
-const regionalLineAlertsSource = readFileSync(new URL("../src/app/regional-line-alerts.ts", import.meta.url), "utf8");
+// GO/UP's line alerts: the shared builder (map-corridors.ts) over GO/UP's drawn segments.
+const regionalLineAlertsSource = ["../src/app/map-corridors.ts", "../src/app/regional-map-content.ts", "../src/app/regional-map-overlays.ts"]
+  .map((path) => readFileSync(new URL(path, import.meta.url), "utf8"))
+  .join("\n");
 const stationLayersSource = readFileSync(new URL("../src/components/MapStationLayers.tsx", import.meta.url), "utf8");
 const pulseSyncSource = readFileSync(new URL("../src/components/map-overlays/pulse-sync.ts", import.meta.url), "utf8");
 const regionalContentSource = readFileSync(new URL("../src/app/regional-map-content.ts", import.meta.url), "utf8");
@@ -456,8 +459,8 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("retains route-wide, station-node, and explicit segment overlay plumbing", () => {
-    assert.match(regionalLineAlertsSource, /const stationOnlyImpactIds = new Set\(data\.stationNodeImpacts\.map\(\(impact\) => impact\.cardId\)\)/);
-    assert.match(regionalLineAlertsSource, /alert\.affectedSegmentIds\.length > 0 \|\| stationOnlyImpactIds\.has\(alert\.id\)/);
+    assert.match(regionalLineAlertsSource, /const stationOnlyIds = new Set\(data\.stationNodeImpacts\.map\(\(impact\) => impact\.cardId\)\)/);
+    assert.match(regionalLineAlertsSource, /alert\.affectedSegmentIds\.length > 0 \|\| stationOnlyIds\.has\(alert\.id\)/);
     assert.match(regionalGeometrySource, /segment\.guidePathId/);
     assert.match(regionalMapSource, /stationNodeImpacts/);
     assert.match(regionalGeometrySource, /routePolylines\(geometry, segment\.lineId\)/);
@@ -465,11 +468,11 @@ describe("network-scoped regional dashboard", () => {
     // Geometry is prepared data; no map code reads the live SVG's layout.
     assert.doesNotMatch(regionalMapSource, /getCTM\(\)|getBBox\(\)|getTotalLength\(\)|getPointAtLength\(/);
     assert.doesNotMatch(regionalGeometrySource, /getCTM\(\)|getScreenCTM\(\)|getBBox\(\)|getTotalLength\(\)|querySelector/);
-    assert.match(regionalLineAlertsSource, /resolvedRegionalSegmentPath\(geometry, segment\)/);
-    assert.match(regionalLineAlertsSource, /regionalOverlayRuns\(pieces\)/);
-    assert.match(regionalOverlaysSource, /regionalSegmentsAreAdjacent/);
-    assert.match(regionalOverlaysSource, /componentPieces\.map\(\(piece\) => piece\.pathD\.trim\(\)\)\.join\(" "\)/);
-    assert.match(regionalLineAlertsSource, /authoredRegionalCorridorPathData/);
+    // Segments are drawn along GO/UP's routes, then composed by the shared
+    // builder (map-corridors.ts): a line-wide alert covers its line's segments.
+    assert.match(regionalGeometrySource, /const pathD = resolvedRegionalSegmentPath\(geometry, segment\);/);
+    assert.match(regionalLineAlertsSource, /const drawnSegments = regionalDrawnSegments\(geometry, networkSegments\);/);
+    assert.match(regionalLineAlertsSource, /if \(segment\.lineId !== alert\.lineId\) continue;/);
   });
 
   it("keeps the shared KI and UP corridor in geographic order through Mount Dennis", () => {
@@ -549,7 +552,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /<MapLineAlertHoverOutlines alerts=\{lineAlerts\} plane=\{overlayPlane\} \/>/);
     // Visual state is the shared rule: previews blue, a current closure red.
     assert.match(regionalMapSource, /if \(preview\) return "planned-preview";/);
-    assert.match(regionalLineAlertsSource, /visualState: lineAlertVisualState\(run\.impact\.kind, Boolean\(preview\)\)/);
+    assert.match(regionalLineAlertsSource, /visualState: lineAlertVisualState\(group\.kind, Boolean\(group\.preview\)\)/);
     assert.match(regionalLineAlertsSource, /unit: REGIONAL_OVERLAY_UNIT/);
     assert.match(regionalGeometrySource, /REGIONAL_IMPACT_OVERLAY_WIDTH = 196/);
     assert.doesNotMatch(regionalOverlaysSource, /function regionalImpactGroup|GlyphLane\(/);
@@ -577,7 +580,7 @@ describe("network-scoped regional dashboard", () => {
       2,
     );
     // A one-way delay draws TTC's hourglass and arrow lane in its direction.
-    assert.match(regionalLineAlertsSource, /travelDirection: run\.impact\.travelDirection/);
+    assert.match(regionalLineAlertsSource, /travelDirection: corridor\.travelDirection/);
     assert.match(sharedOverlaySource, /renderForwardLane \? \(\s*<HourglassGlyphLane/);
   });
 
@@ -606,13 +609,11 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("renders every layered segment impact instead of discarding overlaps", () => {
-    assert.match(regionalLineAlertsSource, /for \(const \[impactIndex, impact\] of segment\.impacts\.entries\(\)\)/);
+    assert.match(regionalLineAlertsSource, /for \(const impact of currentSegmentImpacts\(segment, context\)\)/);
     assert.doesNotMatch(regionalLineAlertsSource, /const impact = segment\.impacts\?\.\[0\]/);
-    assert.match(regionalLineAlertsSource, /\.\.\.regionalOverlayRuns\(pieces\)\.map/);
-    assert.match(regionalGeometrySource, /function continuousRegionalOverlayRunPath\(/);
-    assert.match(regionalLineAlertsSource, /continuousRegionalOverlayRunPath\(geometry, run\) \?\? run\.pathD/);
+    assert.match(regionalLineAlertsSource, /mapCorridors\(group\.segments, group\.travelDirection\)/);
     // Paint order is the one shared table (getImpactPriority).
-    assert.match(regionalLineAlertsSource, /return lineAlertPaintOrder\(/);
+    assert.match(regionalLineAlertsSource, /const lineAlerts = lineAlertPaintOrder\(/);
     assert.doesNotMatch(regionalOverlaysSource, /regionalImpactPriority/);
   });
 
@@ -702,9 +703,8 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("draws the shared commute preview, with Union's endpoints in its pill shape", () => {
-    const regionalCommuteSource = readFileSync(new URL("../src/app/regional-commute-preview.ts", import.meta.url), "utf8");
     const commuteOverlaySource = readFileSync(new URL("../src/components/map-overlays/CommutePreviewOverlays.tsx", import.meta.url), "utf8");
-    assert.match(regionalCommuteSource, /pill: regionalStationPill\(geometry, anchorId\)/);
+    assert.match(regionalLineAlertsSource, /const pill = regionalStationPill\(geometry, dot\.id\);/);
     // A pill's flash swells its outline instead of scaling the whole pill.
     assert.match(commuteOverlaySource, /station-commute-green-flash station-commute-green-flash--pill/);
     assert.match(globalsCss, /@keyframes map-commute-pill-flash/);

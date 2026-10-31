@@ -55,9 +55,12 @@ describe("regional My Commutes UI boundary", () => {
 
   it("renders regional path previews and regional route notification controls", () => {
     // GO/UP draws the shared commute preview (map-overlays/CommutePreviewOverlays.tsx).
-    const regionalCommuteSource = readFileSync(new URL("../src/app/regional-commute-preview.ts", import.meta.url), "utf8");
-    assert.match(regionalCommuteSource, /preview\.segmentIds/);
-    assert.match(regionalCommuteSource, /pill: regionalStationPill\(geometry, anchorId\)/);
+    // One builder for every map's commute preview (map-corridors.ts); GO/UP gives it its dots and Union's pill.
+    const commuteBuilderSource = readFileSync(new URL("../src/app/map-corridors.ts", import.meta.url), "utf8");
+    const regionalContentSource = readFileSync(new URL("../src/app/regional-map-content.ts", import.meta.url), "utf8");
+    assert.match(commuteBuilderSource, /preview\.segmentIds/);
+    assert.match(regionalContentSource, /commutePreview: mapCommutePreview\(input\.commutePathPreview, drawnSegments,/);
+    assert.match(regionalContentSource, /const pill = regionalStationPill\(geometry, dot\.id\);/);
     assert.match(regionalMapSource, /<g id=\{layerId\("dynamic-commute"\)\} aria-label="Commute route preview">\s*<MapCommutePreviewRoute preview=\{commutePreview\} \/>/);
     assert.match(regionalMapSource, /<MapCommuteEndpointFlashes preview=\{commutePreview\} plane=\{overlayPlane\} \/>/);
     assert.doesNotMatch(globalCss, /regional-commute/);
