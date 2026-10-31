@@ -1355,7 +1355,6 @@ export function RegionalStationDetailPanel({
                           <span className="flex items-center leading-none">{impact.classification}</span>
                           <StationImpactTags
                             lineId={impact.lineId}
-                            showLine={routes.length > 1}
                             replacement={impact.replacement}
                           />
                         </div>

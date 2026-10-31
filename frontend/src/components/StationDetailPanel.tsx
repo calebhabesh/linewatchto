@@ -1284,7 +1284,6 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	                        <span data-station-impact-classification={classificationLabel} className="leading-none flex items-center">{classificationLabel}</span>
 	                        <StationImpactTags
 	                          lineId={impactCard?.lineId}
-	                          showLine={(station?.lines.length ?? 0) > 1}
 	                          replacement={impactCard && "shuttle" in impactCard && impactCard.shuttle ? "bus" : null}
 	                        />
 	                      </div>

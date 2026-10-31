@@ -2,9 +2,8 @@ import { Bus } from "lucide-react";
 import { TransitLineBadge } from "./TransitLineBadge";
 
 type StationImpactTagsProps = {
-  /** The affected line; shown only when the station serves more than one line. */
+  /** The affected line, shown at every station as a quick visual cue. */
   lineId?: string | null;
-  showLine: boolean;
   /** Replacement service stated by the source. */
   replacement?: "go-bus" | "bus" | null;
 };
@@ -14,9 +13,9 @@ export function replacementTagLabel(replacement: StationImpactTagsProps["replace
 }
 
 /** Line badge and replacement-bus chip at the end of a station impact card's heading row. */
-export function StationImpactTags({ lineId, showLine, replacement }: StationImpactTagsProps) {
+export function StationImpactTags({ lineId, replacement }: StationImpactTagsProps) {
   const busLabel = replacementTagLabel(replacement);
-  if (!(showLine && lineId) && !busLabel) return null;
+  if (!lineId && !busLabel) return null;
   return (
     <span className="station-impact-tags ml-auto flex shrink-0 items-center gap-1.5" data-station-impact-tags>
       {busLabel ? (
@@ -28,7 +27,7 @@ export function StationImpactTags({ lineId, showLine, replacement }: StationImpa
           <span>{busLabel}</span>
         </span>
       ) : null}
-      {showLine && lineId ? (
+      {lineId ? (
         <span className="inline-flex" data-station-impact-line={lineId}>
           <TransitLineBadge lineId={lineId} size={24} className="station-impact-line-badge shrink-0" />
         </span>
