@@ -12,22 +12,17 @@ import {
   type MapMatrix,
   type MapPoint,
 } from "./map-geometry.ts";
+import { MAP_MANIFESTS, type MapManifestId } from "./map-manifests.ts";
 
-export type PreparedMapId = "ttc" | "regional";
+export type PreparedMapId = MapManifestId;
 
 /** Bumped when the file layout changes, so stale files fail the check. */
 export const MAP_GEOMETRY_FORMAT = 1;
 
-/** Each map's authored SVG and its prepared geometry, relative to `frontend/`. */
+/** Each map's authored SVG and its prepared geometry, relative to `frontend/`, from its manifest. */
 export const MAP_GEOMETRY_SOURCES: Record<PreparedMapId, { svg: string; geometry: string }> = {
-  ttc: {
-    svg: "public/assets/linewatch/ttc-subway-map-custom.svg",
-    geometry: "src/app/map-geometry/ttc.json",
-  },
-  regional: {
-    svg: "public/assets/linewatch/regional-rail-map.svg",
-    geometry: "src/app/map-geometry/regional.json",
-  },
+  ttc: { svg: MAP_MANIFESTS.ttc.svg, geometry: MAP_MANIFESTS.ttc.geometry },
+  regional: { svg: MAP_MANIFESTS.regional.svg, geometry: MAP_MANIFESTS.regional.geometry },
 };
 
 export type PreparedStationShape =

@@ -1,5 +1,7 @@
 # TTC custom map asset contract
 
+TTC's notes on the shared [System Map asset contract](map-asset-contract.md), which every map meets; its manifest is `ttc` in `frontend/src/app/map-manifests.ts`.
+
 The authored source is an independent derivative replica re-created by the LineWatchTO developer in Inkscape, using the [TTC Line 1 route-page map](https://www.ttc.ca/routes-and-schedules/1/0) as a direct visual reference. It is structured for optimized app rendering and data referencing/formatting; it is not a downloaded TTC map file. TTC names, marks, line colors, and the referenced map design remain the property of TTC or their respective owners.
 
 LineWatchTO prepares the authored Inkscape file before serving it. Run:
@@ -8,6 +10,7 @@ LineWatchTO prepares the authored Inkscape file before serving it. Run:
 node scripts/prepare-ttc-map-asset.mjs \
   /path/to/TTC_Subway_Map_Custom_Edited.svg \
   frontend/public/assets/linewatch/ttc-subway-map-custom.svg
+npm --prefix frontend run validate:map-asset -- ttc
 npm --prefix frontend run generate:map-rasters
 npm --prefix frontend run prepare:map-geometry
 ```
