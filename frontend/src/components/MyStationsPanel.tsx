@@ -699,10 +699,10 @@ function SavedStationRow({
                                         <span
                                           className={
                                             due
-                                              ? "mt-0.5 max-w-full truncate px-0.5 text-[9px] sm:text-[10px] font-bold tracking-tight text-red-100/90"
+                                              ? "mt-0.5 max-w-full whitespace-normal break-words px-0.5 leading-tight [text-wrap:balance] text-[9px] sm:text-[10px] font-bold tracking-tight text-red-100/90"
                                               : soon
-                                                ? "mt-0.5 max-w-full truncate px-0.5 text-[9px] sm:text-[10px] font-bold tracking-tight text-emerald-800 dark:text-emerald-200"
-                                                : "mt-0.5 max-w-full truncate px-0.5 text-[9px] sm:text-[10px] font-bold tracking-tight text-slate-600 dark:text-slate-300"
+                                                ? "mt-0.5 max-w-full whitespace-normal break-words px-0.5 leading-tight [text-wrap:balance] text-[9px] sm:text-[10px] font-bold tracking-tight text-emerald-800 dark:text-emerald-200"
+                                                : "mt-0.5 max-w-full whitespace-normal break-words px-0.5 leading-tight [text-wrap:balance] text-[9px] sm:text-[10px] font-bold tracking-tight text-slate-600 dark:text-slate-300"
                                           }
                                           title={`To ${destinationName}`}
                                         >
