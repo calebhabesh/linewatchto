@@ -27,8 +27,8 @@ type BaseRasterMapPlaneProps = {
 };
 
 type RasterMapPlaneProps = BaseRasterMapPlaneProps & (
-  | { network: "ttc"; plane: TtcRasterMapPlane }
-  | { network: "regional"; plane: RegionalRasterMapPlane }
+  | { map: "ttc"; plane: TtcRasterMapPlane }
+  | { map: "regional"; plane: RegionalRasterMapPlane }
 );
 
 const decodedRasterSources = new Set<string>();
@@ -69,7 +69,7 @@ function rasterMapSourceIsDecoded(source: string): boolean {
 }
 
 export function RasterMapPlane({
-  network,
+  map,
   plane,
   theme,
   density,
@@ -81,8 +81,8 @@ export function RasterMapPlane({
   onReady,
 }: RasterMapPlaneProps) {
   const desiredSource = useMemo(
-    () => rasterMapSource(network, plane, theme, density),
-    [density, network, plane, theme],
+    () => rasterMapSource(map, plane, theme, density),
+    [density, map, plane, theme],
   );
   const [displayedSource, setDisplayedSource] = useState<string | null>(() => (
     rasterMapSourceIsDecoded(desiredSource) ? desiredSource : null
@@ -109,7 +109,7 @@ export function RasterMapPlane({
   const hasCutout = Boolean(cutoutMarkup || cutoutElementHref);
   if (svgViewBox && hasCutout) {
     const [viewBoxX = "0", viewBoxY = "0", viewBoxWidth = "0", viewBoxHeight = "0"] = svgViewBox.split(/\s+/);
-    const maskId = `${network}-${plane}-raster-mask`;
+    const maskId = `${map}-${plane}-raster-mask`;
     return (
       <svg
         aria-hidden="true"
@@ -123,7 +123,7 @@ export function RasterMapPlane({
             <feMorphology
               in="SourceAlpha"
               operator="dilate"
-              radius={network === "regional" ? "4" : "3"}
+              radius={map === "regional" ? "4" : "3"}
               result="expandedAlpha"
             />
             <feColorMatrix

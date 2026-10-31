@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 
 import {
   RASTER_MAP_DENSITIES,
-  RASTER_MAP_PLANES_BY_NETWORK,
+  RASTER_MAP_PLANES_BY_MAP,
   RASTER_MAP_RENDERED_SIZES,
   RASTER_MAP_THEMES,
   RASTER_MAP_WIDTHS,
@@ -164,7 +164,7 @@ async function main() {
     await mkdir(outputDirectory, { recursive: true });
     for (const map of maps) {
       const source = await readFile(map.source, "utf8");
-      const planes = RASTER_MAP_PLANES_BY_NETWORK[map.id];
+      const planes = RASTER_MAP_PLANES_BY_MAP[map.id];
       for (const plane of planes) {
         for (const theme of themes) {
           const themeCss = plane === "badges" || theme === "light"

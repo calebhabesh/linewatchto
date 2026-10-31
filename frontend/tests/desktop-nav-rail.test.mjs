@@ -86,7 +86,7 @@ describe("desktop navigation destinations", () => {
     assert.match(ttcMapSource, /className="desktop-map-control-network-group hidden md:flex items-center"/);
     // One rail for every map, naming the map's network.
     assert.match(ttcMapSource, /<NetworkSelector network=\{network\} onChange=\{onNetworkChange\} ariaLabel="Map network switcher" \/>/);
-    assert.match(ttcMapSource, /network=\{map\.network\}/);
+    assert.match(ttcMapSource, /network=\{manifest\.network\}/);
 
     assert.match(regionalMapSource, /className="desktop-map-control-network-group hidden md:flex items-center"/);
     assert.match(regionalMapSource, /network: "regional",/);

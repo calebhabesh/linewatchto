@@ -27,10 +27,10 @@ describe("stable raster map renderer", () => {
     const variants = listAllRasterMapVariants();
     assert.equal(variants.length, 63, "must advertise exactly 63 static raster variants (36 TTC + 27 Regional)");
 
-    for (const { network, density, filename } of variants) {
+    for (const { map, density, filename } of variants) {
       const buffer = await readFile(`${assetRoot}/${filename}`);
       const dimensions = pngDimensions(buffer);
-      assert.equal(dimensions.width, RASTER_MAP_WIDTHS[network][density]);
+      assert.equal(dimensions.width, RASTER_MAP_WIDTHS[map][density]);
       assert.ok(dimensions.height > 1000);
       assert.ok(buffer.byteLength > 10_000, `raster plane ${filename} must contain rendered artwork`);
     }
@@ -131,7 +131,7 @@ describe("stable raster map renderer", () => {
     assert.match(stationLayers, /<mask id=\{ids\.labelMask\} maskUnits="userSpaceOnUse" \{\.\.\.bounds\}>\s*<g mask=\{`url\(#\$\{ids\.targetMask\}\)`\}>/);
     assert.match(stationLayers, /<feMorphology in="SourceAlpha" operator="dilate" radius=\{dilate\} result="expandedTargetAlpha" \/>/);
     assert.match(stationLayers, /clipPath=\{`url\(#\$\{ids\.clip\}\)`\} filter=\{`url\(#\$\{ids\.whiteAlpha\}\)`\}/);
-    assert.match(map, /labelsSource=\{rasterMapSource\(map\.network, "labels", rasterTheme, rasterDensity\)\}/);
+    assert.match(map, /labelsSource=\{rasterMapSource\(manifest\.id, "labels", rasterTheme, rasterDensity\)\}/);
     assert.match(map, /cutoutElementHref: labelCutout && "href" in labelCutout \? labelCutout\.href : null,/);
     assert.match(map, /cutoutMarkup: labelCutout && "markup" in labelCutout \? labelCutout\.markup : null,/);
     assert.match(

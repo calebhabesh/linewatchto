@@ -2,18 +2,18 @@
  * What the System Map engine (SystemMap.tsx) needs from one map: its manifest
  * and prepared data, how to prepare its SVG, and its network's content
  * adapter. Everything else is the engine's. Built once per map, at module
- * load, by the map's definition module (ttc-system-map.ts, regional-system-map.ts).
+ * load, by the map's definition module (ttc-system-map.ts, regional-system-map.ts),
+ * which the map registry (system-map-registry.tsx) loads.
  */
 import type { MapManifest } from "../../app/map-manifests";
 import type { PreparedMapGeometry } from "../../app/map-geometry-data";
 import type { MapArtworkSource } from "../../app/map-artwork";
 import type { MapContent } from "../../app/map-content";
-import type { MapStationArtwork } from "../../app/map-station-artwork";
+import { mapStationArtwork, type MapStationArtwork } from "../../app/map-station-artwork";
 import type { DashboardData } from "../../app/DataContext";
 import type { ImpactSelection, NetworkSegment } from "../../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../../app/commute-data";
 import type { StationSummary } from "../../app/station-data";
-import type { NetworkId } from "../../app/regional-data";
 import type { MapOverlayPlane } from "../map-overlays/overlay-plane";
 import type { MapTrainMarkerPlacement } from "../map-overlays/TrainMarkerLayer";
 
@@ -31,14 +31,20 @@ export type SystemMapContentInput = SystemMapData & {
 };
 
 export type SystemMapDefinition = {
+  /** The map's manifest: its id, network and authored SVG's facts. */
   manifest: MapManifest;
-  /** The network whose data the map shows and whose raster planes it uses. */
-  network: NetworkId;
+  /** Its prepared geometry (`prepare:map-geometry`). */
   geometry: PreparedMapGeometry;
   stationArtwork: readonly MapStationArtwork[];
   overlayPlane: MapOverlayPlane;
   /** The authored SVG, prepared as artwork only. */
   artwork: MapArtworkSource;
+  /**
+   * Whether the map places the shell's station list (`SystemMap`'s `stations`)
+   * rather than its data's stations, so a listed station the artwork lacks
+   * still gets a target (TTC's smoke fixtures need it).
+   */
+  usesStationList: boolean;
   /** The network's content adapter: what the map draws over its artwork. */
   content: (input: SystemMapContentInput) => MapContent;
   trainMarkers: {
@@ -47,3 +53,18 @@ export type SystemMapDefinition = {
     placement: MapTrainMarkerPlacement;
   };
 };
+
+/**
+ * A map's definition from its parts, with the station artwork read from its
+ * prepared geometry. The geometry must be the manifest map's, prepared from
+ * the same view box.
+ */
+export function defineSystemMap(
+  definition: Omit<SystemMapDefinition, "stationArtwork">,
+): SystemMapDefinition {
+  const { manifest, geometry } = definition;
+  if (geometry.map !== manifest.id) {
+    throw new Error(`Prepared geometry for map "${geometry.map}" given to map "${manifest.id}"`);
+  }
+  return { ...definition, stationArtwork: mapStationArtwork(geometry, manifest.stationPartSuffixes) };
+}

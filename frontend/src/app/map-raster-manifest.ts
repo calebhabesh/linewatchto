@@ -1,5 +1,8 @@
-const RASTER_MAP_NETWORKS = ["ttc", "regional"] as const;
-export type RasterMapNetwork = "ttc" | "regional";
+import type { MapId } from "./map-manifests.ts";
+
+/** Raster planes are generated per map (scripts/generate-map-rasters.mjs) and named by its id. */
+const RASTER_MAP_IDS = ["ttc", "regional"] as const satisfies readonly MapId[];
+export type RasterMapId = MapId;
 
 export const RASTER_MAP_THEMES = ["light", "dark", "high-contrast"] as const;
 export type RasterMapTheme = "light" | "dark" | "high-contrast";
@@ -15,12 +18,12 @@ export type RegionalRasterMapPlane = "background" | "foreground" | "labels";
 
 export type RasterMapPlane = TtcRasterMapPlane;
 
-export const RASTER_MAP_PLANES_BY_NETWORK = {
+export const RASTER_MAP_PLANES_BY_MAP = {
   ttc: TTC_RASTER_MAP_PLANES,
   regional: REGIONAL_RASTER_MAP_PLANES,
 } as const;
 
-type RasterMapPlaneFor<N extends RasterMapNetwork> =
+type RasterMapPlaneFor<N extends RasterMapId> =
   N extends "ttc" ? TtcRasterMapPlane : RegionalRasterMapPlane;
 
 export const RASTER_MAP_WIDTHS = {
@@ -35,7 +38,7 @@ export const RASTER_MAP_RENDERED_SIZES = {
 } as const;
 
 interface RasterMapVariantDescriptor {
-  network: RasterMapNetwork;
+  map: RasterMapId;
   plane: RasterMapPlane;
   theme: RasterMapTheme;
   density: RasterMapDensity;
@@ -44,16 +47,16 @@ interface RasterMapVariantDescriptor {
 
 export function listAllRasterMapVariants(): RasterMapVariantDescriptor[] {
   const variants: RasterMapVariantDescriptor[] = [];
-  for (const network of RASTER_MAP_NETWORKS) {
-    for (const plane of RASTER_MAP_PLANES_BY_NETWORK[network]) {
+  for (const map of RASTER_MAP_IDS) {
+    for (const plane of RASTER_MAP_PLANES_BY_MAP[map]) {
       for (const theme of RASTER_MAP_THEMES) {
         for (const density of RASTER_MAP_DENSITIES) {
           variants.push({
-            network,
+            map,
             plane,
             theme,
             density,
-            filename: `${network}-${plane}-${theme}-${density}.png`,
+            filename: `${map}-${plane}-${theme}-${density}.png`,
           });
         }
       }
@@ -62,10 +65,10 @@ export function listAllRasterMapVariants(): RasterMapVariantDescriptor[] {
   return variants;
 }
 
-export function isRasterMapPlaneForNetwork<N extends RasterMapNetwork>(
-  network: N,
+export function isRasterMapPlaneForMap<N extends RasterMapId>(
+  map: N,
   plane: string,
 ): plane is RasterMapPlaneFor<N> {
-  const planes = RASTER_MAP_PLANES_BY_NETWORK[network] as readonly string[];
+  const planes = RASTER_MAP_PLANES_BY_MAP[map] as readonly string[];
   return planes.includes(plane);
 }

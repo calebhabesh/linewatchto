@@ -53,12 +53,12 @@ const regionalSvg = readFileSync(new URL("../public/assets/linewatch/regional-ra
 const globalsCss = readAppStylesheet();
 
 describe("network-scoped regional dashboard", () => {
-  it("keeps TTC as the default and dispatches to separate map implementations", () => {
+  it("keeps TTC as the default and renders each network's registered map", () => {
     assert.equal(DEFAULT_NETWORK_ID, "ttc");
     assert.equal(defaultVisualPreferences.defaultNetwork, DEFAULT_NETWORK_ID);
     assert.match(shellSource, /useState<NetworkId>\(initialVisualPreferences\.defaultNetwork\)/);
-    assert.match(networkMapSource, /<InteractiveRegionalMap/);
-    assert.match(networkMapSource, /<InteractiveTtcMap/);
+    assert.match(networkMapSource, /<RegisteredSystemMap\s+mapId=\{NETWORK_MAPS\[diagramNetwork\]\}/);
+    assert.doesNotMatch(networkMapSource, /diagramNetwork === "regional"/);
   });
 
   it("lets riders persist a default map below My Stations in the mobile More sheet", () => {
@@ -168,7 +168,8 @@ describe("network-scoped regional dashboard", () => {
     );
     assert.match(shellSource, /<button[\s\S]{0,400}className="rotate-map-btn/);
     assert.match(globalsCss, /--mobile-regional-announcement-chip-height:\s*var\(--mobile-top-action-button-size\)/);
-    assert.match(networkMapSource, /viewportOrientation=\{props\.viewportOrientation\}/);
+    // Every map gets the shell's props, viewportOrientation among them.
+    assert.match(networkMapSource, /<RegisteredSystemMap\s+mapId=\{NETWORK_MAPS\[diagramNetwork\]\}\s+\{\.\.\.props\}/);
     assert.match(regionalMapSource, /viewportOrientation = "standard"/);
     assert.match(regionalMapSource, /viewportOrientation,\n    disableProgrammaticMotion/);
     assert.match(regionalMapSource, /useMapViewportSize\(viewportRef, viewportOrientation\)/);
@@ -188,7 +189,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /if \(focusTargetKey\) moveToDefaultCamera\(false, false\);\s*else initializeCamera\(\);/);
     assert.match(
       networkMapSource,
-      /<InteractiveTtcMap[\s\S]*\{\.\.\.props\}[\s\S]*onReady=\{ready\}/,
+      /<RegisteredSystemMap[\s\S]*\{\.\.\.props\}[\s\S]*onReady=\{readyCallbacks\[diagramNetwork\]\}/,
     );
   });
 
@@ -764,7 +765,9 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("focuses the regional camera on station and impact selections from every UI entry point", () => {
-    assert.match(networkMapSource, /preserveCameraOnSelectionClear=\{props\.preserveCameraOnSelectionClear\}/);
+    // preserveCameraOnSelectionClear reaches every map through the shell's props.
+    assert.match(networkMapSource, /<RegisteredSystemMap\s+mapId=\{NETWORK_MAPS\[diagramNetwork\]\}\s+\{\.\.\.props\}/);
+    assert.doesNotMatch(networkMapSource, /preserveCameraOnSelectionClear=/);
     // GO/UP frames through the shared framing, as TTC does.
     assert.match(regionalMapSource, /useMapFraming\(\{/);
     assert.match(stationLayersSource, /data-map-selected-station-id=\{station\.id\}/);

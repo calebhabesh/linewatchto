@@ -1,28 +1,20 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode, type RefObject } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { DataProvider, type DashboardData } from "../app/DataContext";
 import { isRepeatMapSelection } from "../app/map-repeat-selection";
 import type { MapFadeController } from "../app/map-surface-transition";
 import { loadGeographicCatalog } from "../app/geographic-catalog-loader";
-import { preloadTtcMapMarkup } from "../app/map-preload";
-import { preloadRegionalMapMarkup } from "../app/regional-map-asset";
-import { MAP_MANIFESTS } from "../app/map-manifests";
+import { MAP_MANIFESTS, NETWORK_MAPS } from "../app/map-manifests";
 import { preloadRasterMapSource, rasterMapSource, type RasterMapTheme, type RasterMapDensity } from "./RasterMapPlane";
 import dynamic from "next/dynamic";
 import type { NetworkId } from "../app/regional-data";
-import { InteractiveTtcMap } from "./InteractiveTtcMap";
+import { prepareSystemMap, RegisteredSystemMap, type RegisteredSystemMapProps } from "./system-map/system-map-registry";
 import { NetworkMapLegend, type NetworkMapLegendProps } from "./NetworkMapLegends";
 import { SharedMapControlRailProvider } from "./SharedMapControlRail";
 import { useAdvancedTrainMarkers } from "../hooks/useAdvancedTrainMarkers";
 
-const EMPTY_MARKERS: NonNullable<ComponentProps<typeof InteractiveTtcMap>["estimatedTrainMarkers"]> = [];
+const EMPTY_MARKERS: NonNullable<RegisteredSystemMapProps["estimatedTrainMarkers"]> = [];
 
-const loadRegionalMap = () => import("./InteractiveRegionalMap");
 const loadGeographicMap = () => import("./GeographicNetworkMap");
-
-const InteractiveRegionalMap = dynamic(
-  () => loadRegionalMap().then((mod) => mod.InteractiveRegionalMap),
-  { ssr: false },
-);
 
 const GeographicNetworkMap = dynamic(
   () => loadGeographicMap().then((mod) => mod.GeographicNetworkMap),
@@ -34,14 +26,14 @@ export async function prepareNetworkMap(network: NetworkId, view: "diagram" | "g
     await Promise.all([loadGeographicMap(), loadGeographicCatalog(network)]);
     return;
   }
+  const mapId = NETWORK_MAPS[network];
   await Promise.all([
-    network === "regional" ? loadRegionalMap() : Promise.resolve(),
-    network === "regional" ? preloadRegionalMapMarkup() : preloadTtcMapMarkup(),
-    ...MAP_MANIFESTS[network].rasterPlanes.map(plane => preloadRasterMapSource(rasterMapSource(network, plane, theme, density))),
+    prepareSystemMap(mapId),
+    ...MAP_MANIFESTS[mapId].rasterPlanes.map(plane => preloadRasterMapSource(rasterMapSource(mapId, plane, theme, density))),
   ]);
 }
 
-type TtcMapProps = ComponentProps<typeof InteractiveTtcMap>;
+type SystemMapShellProps = RegisteredSystemMapProps;
 
 /**
  * A hidden (preparing or warming) map keeps its last render: the shell's
@@ -56,7 +48,7 @@ const FrozenWhileHidden = memo(
   },
   (previous, next) => previous.hidden && next.hidden,
 );
-type NetworkMapProps = TtcMapProps & {
+type NetworkMapProps = SystemMapShellProps & {
   network: NetworkId;
   mobileAnnouncementVisible: boolean;
   onMapReady?: () => void;
@@ -65,7 +57,7 @@ type NetworkMapProps = TtcMapProps & {
   selectionIntroKey?: string | null;
   preparingNetwork?: NetworkId | null;
   diagramData: Record<NetworkId, DashboardData>;
-  diagramStations: Record<NetworkId, TtcMapProps["stations"]>;
+  diagramStations: Record<NetworkId, SystemMapShellProps["stations"]>;
   warmingNetwork?: NetworkId | null;
   onPreparedMapReady?: () => void;
   geographicFadeRef?: RefObject<MapFadeController | null>;
@@ -152,10 +144,10 @@ function DiagramNetworkMaps({ network, preparingNetwork, warmingNetwork, diagram
   preparingNetwork?: NetworkId | null;
   warmingNetwork?: NetworkId | null;
   diagramData: Record<NetworkId, DashboardData>;
-  diagramStations: Record<NetworkId, TtcMapProps["stations"]>;
+  diagramStations: Record<NetworkId, SystemMapShellProps["stations"]>;
   onMapReady?: () => void;
   onPreparedMapReady?: () => void;
-  props: TtcMapProps;
+  props: SystemMapShellProps;
 }) {
   const [mountedNetworks, setMountedNetworks] = useState<NetworkId[]>([network]);
   const networks = Array.from(new Set([...mountedNetworks, network,
@@ -166,73 +158,42 @@ function DiagramNetworkMaps({ network, preparingNetwork, warmingNetwork, diagram
   // motion in CSS; changing reducedMotion here would rebuild the SVG overlays.
   const callbacks = useRef(props);
   useLayoutEffect(() => { callbacks.current = props; });
-  const selectImpact = useCallback<TtcMapProps["onSelectImpact"]>((selection) => {
+  const selectImpact = useCallback<SystemMapShellProps["onSelectImpact"]>((selection) => {
     if (!isRepeatMapSelection(callbacks.current, selection)) callbacks.current.onSelectImpact(selection);
   }, []);
-  const selectStation = useCallback<TtcMapProps["onSelectStationId"]>(station => callbacks.current.onSelectStationId(station), []);
+  const selectStation = useCallback<SystemMapShellProps["onSelectStationId"]>(station => callbacks.current.onSelectStationId(station), []);
   const changeNetwork = useCallback((next: NetworkId) => callbacks.current.onNetworkChange?.(next), []);
-  const changeView = useCallback<NonNullable<TtcMapProps["onMapViewChange"]>>(view => callbacks.current.onMapViewChange?.(view), []);
+  const changeView = useCallback<NonNullable<SystemMapShellProps["onMapViewChange"]>>(view => callbacks.current.onMapViewChange?.(view), []);
   const clearCommute = useCallback(() => callbacks.current.onClearCommutePathPreview?.(), []);
-  const ttcReady = useCallback(() => setReadyNetworks(current => current.ttc ? current : { ...current, ttc: true }), []);
-  const regionalReady = useCallback(() => setReadyNetworks(current => current.regional ? current : { ...current, regional: true }), []);
+  const markReady = useCallback((ready: NetworkId) =>
+    setReadyNetworks(current => current[ready] ? current : { ...current, [ready]: true }), []);
+  const readyCallbacks = useMemo(() => ({ ttc: () => markReady("ttc"), regional: () => markReady("regional") }), [markReady]);
   const isMapActive = props.isMapActive ?? props.mapChromeVisible;
   useEffect(() => {
     if (readyNetworks[network]) onMapReady?.();
     if (preparingNetwork && readyNetworks[preparingNetwork]) onPreparedMapReady?.();
   }, [readyNetworks, network, preparingNetwork, onMapReady, onPreparedMapReady]);
-  const renderDiagram = (diagramNetwork: NetworkId, ready: (() => void) | undefined, preparing: boolean) =>
-    diagramNetwork === "regional" ? (
-        <InteractiveRegionalMap
-          isMapActive={!preparing && isMapActive}
-          cameraCommandsEnabled={!preparing}
-          selection={preparing ? null : props.selection}
-          onSelectImpact={selectImpact}
-          selectedStationId={preparing ? null : props.selectedStationId}
-          onSelectStationId={selectStation}
-          reducedMotion={props.reducedMotion}
-          mobilePerformanceMode={props.mobilePerformanceMode}
-          layoutResetSignal={props.layoutResetSignal}
-          recenterSignal={props.recenterSignal}
-          zoomInSignal={props.zoomInSignal}
-          zoomOutSignal={props.zoomOutSignal}
-          isDark={props.isDark}
-          highContrast={props.highContrast}
-          animateInitialEntrance={props.animateInitialEntrance}
-          deferInitialEntrance={preparing ? false : props.deferInitialEntrance}
-          mapChromeVisible={props.mapChromeVisible}
-          preserveCameraOnSelectionClear={props.preserveCameraOnSelectionClear}
-          viewportOrientation={props.viewportOrientation}
-          onReady={ready}
-          estimatedTrainsEnabled={props.estimatedTrainsEnabled}
-          estimatedTrainMarkers={props.estimatedTrainsEnabled ? props.estimatedTrainMarkers : EMPTY_MARKERS}
-          commutePathPreview={preparing ? null : props.commutePathPreview}
-          onClearCommutePathPreview={clearCommute}
-          onNetworkChange={props.onNetworkChange ? changeNetwork : undefined}
-          mapView={props.mapView}
-          onMapViewChange={props.onMapViewChange ? changeView : undefined}
-          selectionAttentionGeneration={props.selectionAttentionGeneration}
-          selectionIntroKey={props.selectionIntroKey}
-        />
-      ) : (
-        <InteractiveTtcMap
-          {...props}
-          stations={diagramStations.ttc}
-          onSelectImpact={selectImpact}
-          onSelectStationId={selectStation}
-          onClearCommutePathPreview={clearCommute}
-          onNetworkChange={props.onNetworkChange ? changeNetwork : undefined}
-          onMapViewChange={props.onMapViewChange ? changeView : undefined}
-          estimatedTrainMarkers={props.estimatedTrainsEnabled ? props.estimatedTrainMarkers : EMPTY_MARKERS}
-          reducedMotion={props.reducedMotion}
-          selection={preparing ? null : props.selection}
-          selectedStationId={preparing ? null : props.selectedStationId}
-          commutePathPreview={preparing ? null : props.commutePathPreview}
-          deferInitialEntrance={preparing ? false : props.deferInitialEntrance}
-          isMapActive={!preparing && isMapActive}
-          cameraCommandsEnabled={!preparing}
-          onReady={ready}
-        />
-      );
+  // Each network's map from the registry; a hidden (preparing) one keeps no selection.
+  const renderDiagram = (diagramNetwork: NetworkId, preparing: boolean) => (
+    <RegisteredSystemMap
+      mapId={NETWORK_MAPS[diagramNetwork]}
+      {...props}
+      stations={diagramStations[diagramNetwork]}
+      onSelectImpact={selectImpact}
+      onSelectStationId={selectStation}
+      onClearCommutePathPreview={clearCommute}
+      onNetworkChange={props.onNetworkChange ? changeNetwork : undefined}
+      onMapViewChange={props.onMapViewChange ? changeView : undefined}
+      estimatedTrainMarkers={props.estimatedTrainsEnabled ? props.estimatedTrainMarkers : EMPTY_MARKERS}
+      selection={preparing ? null : props.selection}
+      selectedStationId={preparing ? null : props.selectedStationId}
+      commutePathPreview={preparing ? null : props.commutePathPreview}
+      deferInitialEntrance={preparing ? false : props.deferInitialEntrance}
+      isMapActive={!preparing && isMapActive}
+      cameraCommandsEnabled={!preparing}
+      onReady={readyCallbacks[diagramNetwork]}
+    />
+  );
 
   return networks.map(diagramNetwork => {
     const preparing = diagramNetwork !== network;
@@ -243,7 +204,7 @@ function DiagramNetworkMaps({ network, preparingNetwork, warmingNetwork, diagram
         data-preparing={preparing ? "true" : undefined} aria-hidden={preparing || undefined} inert={preparing}>
         <DataProvider data={diagramData[diagramNetwork]}>
           <FrozenWhileHidden hidden={preparing}>
-            {renderDiagram(diagramNetwork, diagramNetwork === "ttc" ? ttcReady : regionalReady, preparing)}
+            {renderDiagram(diagramNetwork, preparing)}
           </FrozenWhileHidden>
         </DataProvider>
       </div>

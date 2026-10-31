@@ -1,6 +1,7 @@
-import { cachedMapArtwork, clearMapArtworkCache, mapArtworkCache, preloadMapArtwork } from "./map-artwork.ts";
+import { cachedMapArtwork, clearMapArtworkCache, mapArtworkCache, preloadMapArtwork, type MapArtworkSource } from "./map-artwork.ts";
+import { MAP_MANIFESTS, mapArtworkUrl } from "./map-manifests.ts";
 
-export const DEFAULT_REGIONAL_MAP_SOURCE = "/assets/linewatch/regional-rail-map.svg";
+export const DEFAULT_REGIONAL_MAP_SOURCE = mapArtworkUrl(MAP_MANIFESTS.regional);
 
 export const REGIONAL_LARGE_TERMINAL_IDS = new Set([
   "union",
@@ -132,6 +133,9 @@ export function getRegionalMapMarkup(source: string = DEFAULT_REGIONAL_MAP_SOURC
 }
 
 export const clearRegionalMapMarkupCache = clearMapArtworkCache;
+
+/** The GO/UP map's artwork, for its definition and the map registry's preload. */
+export const REGIONAL_MAP_ARTWORK: MapArtworkSource = { url: DEFAULT_REGIONAL_MAP_SOURCE, prepare: prepareRegionalMapMarkup };
 
 /** Loads and prepares the GO/UP SVG once (map-artwork.ts). */
 export function preloadRegionalMapMarkup(

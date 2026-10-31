@@ -1,4 +1,5 @@
 import { rasterMapSource } from "./map-assets";
+import { MAP_MANIFESTS, NETWORK_MAPS, mapArtworkUrl } from "./map-manifests";
 import { lineWatchBuildLabel } from "./app-build";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
@@ -24,15 +25,16 @@ export default async function Home() {
   const initialData = initialVisualPreferences.defaultNetwork === "regional"
     ? regionalDashboardData
     : fallbackDashboardData();
+  const initialMap = MAP_MANIFESTS[NETWORK_MAPS[initialVisualPreferences.defaultNetwork]];
 
   return (
     <>
       <link rel="preload" as="fetch" crossOrigin="anonymous"
-        href={`/assets/linewatch/${initialVisualPreferences.defaultNetwork === "regional" ? "regional-rail-map" : "ttc-subway-map-custom"}.svg?v=${lineWatchBuildLabel}`} />
+        href={`${mapArtworkUrl(initialMap)}?v=${lineWatchBuildLabel}`} />
       {(["background", "foreground", "labels"] as const).map((plane) => (
         <link key={plane} rel="preload" as="image"
           media="(max-width: 767px), (pointer: coarse)"
-          href={rasterMapSource(initialVisualPreferences.defaultNetwork, plane,
+          href={rasterMapSource(initialMap.id, plane,
             initialVisualPreferences.highContrast ? "high-contrast" : initialVisualPreferences.theme, "mobile")} />
       ))}
       <link rel="preload" as="font" type="font/woff2" crossOrigin="anonymous" href="/assets/fonts/texgyreheros-regular.woff2" />

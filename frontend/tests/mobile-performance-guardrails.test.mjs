@@ -16,7 +16,7 @@ describe("mobile performance guardrails", () => {
     assert.match(mapSource, /import\s+\{[^}]*memo[^}]*\}\s+from "react"/);
     assert.match(mapSource, /function SystemMapComponent\(/);
     assert.match(mapSource, /export const SystemMap = memo\(SystemMapComponent\)/);
-    assert.match(mapSource, /export const InteractiveTtcMap = memo\(function InteractiveTtcMap/);
+    assert.match(mapSource, /const Map = memo\(function RegisteredMap\(props: RegisteredSystemMapProps\)/);
   });
 
   it("passes stable handlers into the memoized map", () => {

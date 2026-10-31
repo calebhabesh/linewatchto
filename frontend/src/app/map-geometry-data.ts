@@ -12,18 +12,15 @@ import {
   type MapMatrix,
   type MapPoint,
 } from "./map-geometry.ts";
-import { MAP_MANIFESTS, type MapManifestId } from "./map-manifests.ts";
-
-export type PreparedMapId = MapManifestId;
+import { MAP_MANIFESTS, type MapId } from "./map-manifests.ts";
 
 /** Bumped when the file layout changes, so stale files fail the check. */
 export const MAP_GEOMETRY_FORMAT = 1;
 
 /** Each map's authored SVG and its prepared geometry, relative to `frontend/`, from its manifest. */
-export const MAP_GEOMETRY_SOURCES: Record<PreparedMapId, { svg: string; geometry: string }> = {
-  ttc: { svg: MAP_MANIFESTS.ttc.svg, geometry: MAP_MANIFESTS.ttc.geometry },
-  regional: { svg: MAP_MANIFESTS.regional.svg, geometry: MAP_MANIFESTS.regional.geometry },
-};
+export const MAP_GEOMETRY_SOURCES = Object.fromEntries(
+  Object.values(MAP_MANIFESTS).map(({ id, svg, geometry }) => [id, { svg, geometry }]),
+) as Record<MapId, { svg: string; geometry: string }>;
 
 export type PreparedStationShape =
   | { tag: "circle"; id: string; cx: number; cy: number; r: number; transform?: string }
@@ -70,7 +67,7 @@ export type PreparedStationLabel = {
 
 export type PreparedMapGeometry = {
   format: number;
-  map: PreparedMapId;
+  map: MapId;
   source: { svg: string; sha256: string };
   viewBox: MapBounds;
   stations: PreparedStation[];

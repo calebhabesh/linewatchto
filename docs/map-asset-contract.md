@@ -8,6 +8,8 @@ Every System Map is an authored Inkscape SVG plus a manifest. A new map gets the
 
 | Field | What it is |
 | --- | --- |
+| `id` | The map's `MapId`. It names the map's element hooks (`data-system-map`), plane group ids, raster files and saved camera, so it stays stable once a map ships. |
+| `network` | The network whose data the map shows. Several maps can share a network; `NETWORK_MAPS` names the one each network shows. |
 | `svg`, `geometry` | The served SVG and its prepared geometry file, relative to `frontend/`. |
 | `viewBox` | The root SVG's view box. Every prepared coordinate, overlay and badge is in this space. |
 | `stage` | The camera stage in CSS pixels. Each SVG plane fills it with `xMidYMid meet`, so map coordinates reach the stage through `meetStageTransform(viewBox, stage)`. |
@@ -37,7 +39,7 @@ Network content (which alerts exist, trip changes, arrivals, sources and freshne
 2. Validate: `npm --prefix frontend run validate:map-asset -- <map> [path/to.svg]` (`scripts/validate-map-asset.mjs`). It checks the view box, layers, station ids and parts, name links, line and guide paths, and the raster files, and exits non-zero on any error.
 3. Generate the raster planes: `npm --prefix frontend run generate:map-rasters`.
 4. Prepare the geometry: `npm --prefix frontend run prepare:map-geometry`. `test:fast` fails while it is stale (`check:map-geometry` compares a fresh run).
-5. Render the map through the shared plane stack, camera (`usePanZoom`), framing (`useMapFraming`), chooser (`useMapOverlapChooser`) and overlay components, passing the manifest's stage transform and content bounds.
+5. Write its definition (`frontend/src/components/system-map/<map>-system-map.ts`, built with `defineSystemMap`: manifest, prepared geometry, overlay plane, artwork preparation, its network's content adapter and train marker placement) and add one line to the registry (`system-map/system-map-registry.tsx`; load it on demand unless it is the default map). The engine, `SystemMap`, needs no edits. To show it, point its network at it in `NETWORK_MAPS`.
 6. Add the map to `tests/smoke/map-parity.spec.ts` and run `npm --prefix frontend run test:map-budgets` on a desktop GPU.
 
 The validator runs in `npm --prefix frontend run test:scripts` against both served maps (`scripts/tests/validate-map-asset.test.mjs`).

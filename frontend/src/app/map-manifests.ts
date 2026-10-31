@@ -6,16 +6,25 @@
  */
 import type { MapBounds } from "./map-geometry.ts";
 import type { StationLabelPadding } from "./map-geometry-data.ts";
+import type { NetworkId } from "./dashboard-contract.ts";
 import {
-  RASTER_MAP_PLANES_BY_NETWORK,
+  RASTER_MAP_PLANES_BY_MAP,
   RASTER_MAP_RENDERED_SIZES,
   type RasterMapPlane,
 } from "./map-raster-manifest.ts";
 
-export type MapManifestId = "ttc" | "regional";
+/**
+ * A System Map, apart from the network whose data it shows: a future TTC
+ * streetcar map (`ttc-streetcar`) would be a second map of network `ttc`.
+ * The id names the map's element hooks (`data-system-map`), plane group ids,
+ * raster files and saved camera, so it stays stable once a map ships.
+ */
+export type MapId = "ttc" | "regional";
 
 export type MapManifest = {
-  id: MapManifestId;
+  id: MapId;
+  /** The network whose data the map shows (and whose content adapter draws it). */
+  network: NetworkId;
   /** The served SVG, relative to `frontend/`. */
   svg: string;
   /** Its prepared geometry, relative to `frontend/` (scripts/prepare-map-geometry.mjs). */
@@ -86,9 +95,10 @@ export type MapManifest = {
 
 const TTC_SCALE = RASTER_MAP_RENDERED_SIZES.ttc.width / 8250;
 
-export const MAP_MANIFESTS: Record<MapManifestId, MapManifest> = {
+export const MAP_MANIFESTS: Record<MapId, MapManifest> = {
   ttc: {
     id: "ttc",
+    network: "ttc",
     svg: "public/assets/linewatch/ttc-subway-map-custom.svg",
     geometry: "src/app/map-geometry/ttc.json",
     viewBox: { x: 0, y: 0, width: 8250, height: 4000 },
@@ -101,7 +111,7 @@ export const MAP_MANIFESTS: Record<MapManifestId, MapManifest> = {
       width: (7925 - 65) * TTC_SCALE,
       height: (3840 - 120) * TTC_SCALE,
     },
-    rasterPlanes: RASTER_MAP_PLANES_BY_NETWORK.ttc,
+    rasterPlanes: RASTER_MAP_PLANES_BY_MAP.ttc,
     layers: {
       stations: "#ttc-stations-layer",
       stationLabels: "#ttc-station-labels-layer",
@@ -134,6 +144,7 @@ export const MAP_MANIFESTS: Record<MapManifestId, MapManifest> = {
   },
   regional: {
     id: "regional",
+    network: "regional",
     svg: "public/assets/linewatch/regional-rail-map.svg",
     geometry: "src/app/map-geometry/regional.json",
     viewBox: { x: -200, y: -200, width: 17036.959, height: 9031.6719 },
@@ -142,7 +153,7 @@ export const MAP_MANIFESTS: Record<MapManifestId, MapManifest> = {
     overlayUnit: 196 / 96,
     // From Kitchener and Stratford to Durham College Oshawa, the VIA badges and the compass.
     contentBounds: { x: 53.08, y: 110.78, width: 4620.46, height: 2395.26 },
-    rasterPlanes: RASTER_MAP_PLANES_BY_NETWORK.regional,
+    rasterPlanes: RASTER_MAP_PLANES_BY_MAP.regional,
     layers: {
       stations: "#regional-stations-layer",
       stationLabels: "#regional-station-labels-layer",
@@ -179,4 +190,19 @@ export const MAP_MANIFESTS: Record<MapManifestId, MapManifest> = {
       "regional-route-up-path",
     ],
   },
+};
+
+/** The served URL of a map's SVG. */
+export function mapArtworkUrl({ svg }: Pick<MapManifest, "svg">): string {
+  return svg.replace(/^public\//, "/");
+}
+
+/**
+ * The map each network shows. The shell stays two-network; a network with
+ * several maps would need a switcher (an open owner question), so each names
+ * one map here.
+ */
+export const NETWORK_MAPS: Record<NetworkId, MapId> = {
+  ttc: "ttc",
+  regional: "regional",
 };

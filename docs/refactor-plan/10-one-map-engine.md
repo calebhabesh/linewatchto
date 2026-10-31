@@ -341,5 +341,45 @@ repeated parallel runs; cause unknown, watch it.
   checks on TTC's viewport, two `.regional-map-control-rail` lookups) were
   fixed and pass. `test:visual` 30 passed with no differences. `compact-mobile`
   (not in the list) fails the same 18 cases on `e38b29a2` as here.
-- Next: phase 5 (maps as data: `MapId`, the registry, `NetworkMap` looking maps
-  up by network; the two wrappers go).
+- **Phase 5 done (2026-10-31): maps as data.** Maps have their own id,
+  `MapId` (`app/map-manifests.ts`, replacing `MapManifestId` and
+  `PreparedMapId`), and each manifest names its `network`; `NETWORK_MAPS`
+  names the map each network shows. Decision: `MapId` keeps today's values
+  (`ttc`, `regional`), so `data-system-map` is now the map id with no change to
+  specs, CSS, plane ids, raster file names or saved cameras (`persistenceKey`);
+  a TTC streetcar map would be `ttc-streetcar` with network `ttc`. Prepared
+  geometry sources come from the manifests (`MAP_GEOMETRY_SOURCES`), and a
+  definition is built with `defineSystemMap`, which reads the station artwork
+  and rejects geometry prepared for another map. Raster planes are keyed by map
+  (`RASTER_MAP_PLANES_BY_MAP`, `RasterMapId`, `rasterMapSource(mapId, …)`,
+  `RasterMapPlane`'s `map` prop); the definition's `network` field is gone
+  (`manifest.network`), and a map's SVG URL comes from its manifest
+  (`mapArtworkUrl`, also the home page's preload). The registry,
+  `components/system-map/system-map-registry.tsx`, holds each map's definition:
+  TTC's bundled, GO/UP's loaded on demand through `next/dynamic` (client only,
+  as before) with its artwork listed so `prepareSystemMap` loads both at once.
+  `NetworkMap` renders `RegisteredSystemMap` with `NETWORK_MAPS[network]` and
+  the same props for every map; `InteractiveTtcMap.tsx` and
+  `InteractiveRegionalMap.tsx` are gone. GO/UP now gets the shell's props
+  spread as TTC did (it had an explicit list; the only props it lacked were
+  `stations` and `entranceSignal`, which the shell does not pass). The shell's
+  station list is read only by a map whose definition `usesStationList` (TTC):
+  GO/UP's summaries have no map positions. No map switcher (owner question
+  still open, default kept).
+- Phase 5 checks: `test:fast` (new `tests/map-registry.test.mjs`), typecheck,
+  lint (15 warnings), `test:scripts`, `prepare:map-geometry --check` and
+  `validate:map-asset` for both maps pass. `map-parity` passes on both projects
+  before and after. The build keeps GO/UP's definition out of the page's
+  chunks (its 64 KB geometry chunk loads on demand; TTC's is in the page
+  manifest). The plan's browser list (350 passed) fails only the known cases:
+  the two GO/UP mobile cases and `dashboard.spec.ts:1871` × 2 (run at 04:50,
+  GO/UP closed; the `tests/smoke/dashboard.spec.ts` path left out
+  offline-dashboard). `test:visual` 30 passed with no differences;
+  `test:map-zoom-memory` 0 warnings on both maps; `test:map-budgets` passes:
+  phone tap INP TTC 200 ms, GO/UP 528 ms (phase 4: 200, 528); desktop wheel and
+  drag p95 6.1 ms on both; GO/UP hover sweep 35 frames over 20 ms (phase 4: 45).
+- Next: phase 6 (drop-in proof: a fixture SVG, manifest and adapter rendered by
+  `SystemMap` in a browser test; rewrite the asset contract's checklist from
+  what it needed). The fixture map needs a `MapId` and a registry entry, which
+  are typed as a closed union today; phase 6 decides whether tests register a
+  map or render `SystemMap` with a definition directly.

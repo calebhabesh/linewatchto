@@ -88,9 +88,9 @@ export type SystemMapProps = {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
   /**
-   * The shell's station list for this map. Without one, the map shows its
-   * network data's stations; with one, a listed station its artwork does not
-   * draw is placed at its listed position.
+   * The shell's station list for this map's network, read only by a map
+   * that `usesStationList`: a listed station its artwork does not draw is
+   * placed at its listed position. Other maps show their data's stations.
    */
   stations?: StationSummary[];
   selectedStationId: string | null;
@@ -162,7 +162,7 @@ function SystemMapComponent({
   map,
   selection,
   onSelectImpact,
-  stations: stationList,
+  stations: shellStationList,
   selectedStationId,
   onSelectStationId,
   isDark,
@@ -193,6 +193,7 @@ function SystemMapComponent({
   selectionIntroKey: linkedSelectionIntroKey = null,
 }: SystemMapProps) {
   const { manifest, geometry, overlayPlane } = map;
+  const stationList = map.usesStationList ? shellStationList : undefined;
   const {
     networkSegments,
     activeAlerts,
@@ -672,7 +673,7 @@ function SystemMapComponent({
   const renderRasterPlane = (plane: RasterMapPlaneName) => (
     <RasterMapPlane
       key={plane}
-      {...({ network: map.network, plane } as { network: "ttc"; plane: RasterMapPlaneName })}
+      {...({ map: manifest.id, plane } as { map: "ttc"; plane: RasterMapPlaneName })}
       theme={rasterTheme}
       density={rasterDensity}
       onReady={() => markRasterPlaneReady(plane)}
@@ -700,7 +701,7 @@ function SystemMapComponent({
       data-map-zoom-active="false"
     >
       <SystemMapControls
-        network={map.network}
+        network={manifest.network}
         railRef={railRef}
         cameraStore={cameraStore}
         fitScale={fitScale}
@@ -805,7 +806,7 @@ function SystemMapComponent({
                 cutout={labelCutout}
                 dilate={manifest.stationLabels.cutout.dilate}
                 active={activeHoveredLabel !== null}
-                labelsSource={rasterMapSource(map.network, "labels", rasterTheme, rasterDensity)}
+                labelsSource={rasterMapSource(manifest.id, "labels", rasterTheme, rasterDensity)}
                 viewBox={viewBox}
               />
             ) : null}

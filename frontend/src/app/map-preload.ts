@@ -4,9 +4,10 @@
  * where it paints until the raster planes are ready and then stays as the
  * source of the hovered station name's cutout (`#station-label-…`).
  */
-import { preloadMapArtwork } from "./map-artwork.ts";
+import type { MapArtworkSource } from "./map-artwork.ts";
+import { MAP_MANIFESTS, mapArtworkUrl } from "./map-manifests.ts";
 
-export const DEFAULT_TTC_MAP_SOURCE = "/assets/linewatch/ttc-subway-map-custom.svg";
+export const DEFAULT_TTC_MAP_SOURCE = mapArtworkUrl(MAP_MANIFESTS.ttc);
 
 const REQUIRED_TTC_LAYER_IDS = [
   "ttc-tracks-layer",
@@ -39,7 +40,5 @@ export function prepareTtcMapMarkup(text: string): string {
   return new XMLSerializer().serializeToString(root);
 }
 
-/** Loads and prepares the TTC SVG once (map-artwork.ts). */
-export function preloadTtcMapMarkup(source: string = DEFAULT_TTC_MAP_SOURCE): Promise<string> {
-  return preloadMapArtwork({ url: source, prepare: prepareTtcMapMarkup });
-}
+/** The TTC map's artwork, for its definition and the map registry's preload. */
+export const TTC_MAP_ARTWORK: MapArtworkSource = { url: DEFAULT_TTC_MAP_SOURCE, prepare: prepareTtcMapMarkup };

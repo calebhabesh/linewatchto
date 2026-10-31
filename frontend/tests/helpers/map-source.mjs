@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 const SHARED_MAP_SOURCE_FILES = [
   "../../src/components/system-map/SystemMap.tsx",
   "../../src/components/system-map/system-map-definition.ts",
+  "../../src/components/system-map/system-map-registry.tsx",
   "../../src/app/map-manifests.ts",
   "../../src/app/map-content.ts",
   "../../src/components/map-overlays/useRetainedMapItems.ts",
@@ -14,14 +15,12 @@ const SHARED_MAP_SOURCE_FILES = [
 
 export const TTC_MAP_SOURCE_FILES = [
   "../../src/components/system-map/ttc-system-map.ts",
-  "../../src/components/InteractiveTtcMap.tsx",
   "../../src/app/ttc-map-content.ts",
   ...SHARED_MAP_SOURCE_FILES,
 ];
 
 export const REGIONAL_MAP_SOURCE_FILES = [
   "../../src/components/system-map/regional-system-map.ts",
-  "../../src/components/InteractiveRegionalMap.tsx",
   "../../src/app/regional-map-content.ts",
   ...SHARED_MAP_SOURCE_FILES,
 ];
