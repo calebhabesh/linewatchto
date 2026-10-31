@@ -67,7 +67,8 @@ export type PreparedStationLabel = {
 
 export type PreparedMapGeometry = {
   format: number;
-  map: MapId;
+  /** The map's id (`MapId`, or a fixture's). */
+  map: string;
   source: { svg: string; sha256: string };
   viewBox: MapBounds;
   stations: PreparedStation[];

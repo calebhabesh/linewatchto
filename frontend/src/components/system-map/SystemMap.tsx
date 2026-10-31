@@ -67,11 +67,11 @@ import { mobilePerformanceModeMatches } from "../../hooks/useMobilePerformanceMo
 import { useMapLabelFontReady } from "../../hooks/useMapLabelFontReady";
 import { usePageVisibility } from "../../hooks/usePageVisibility";
 import { useDashboardData } from "../../app/DataContext";
-import { cachedMapArtwork, preloadMapArtwork } from "../../app/map-artwork";
+import { cachedMapArtwork, preloadMapArtwork, splitMapArtwork } from "../../app/map-artwork";
 import { mapContentReuser, placeMapOverlapBadges, type MapPlacedOverlapBadge } from "../../app/map-content";
 import { mapStationLabelHover, mapStationLabelTargets, placeMapStations } from "../../app/map-station-artwork";
 import type { MapManifest } from "../../app/map-manifests";
-import type { RasterMapPlane as RasterMapPlaneName } from "../../app/map-raster-manifest";
+import type { RasterMapId, RasterMapPlane as RasterMapPlaneName } from "../../app/map-raster-manifest";
 import { removeDescendantIds } from "../../app/regional-map-asset";
 import { linkedCurrentImpactIds } from "../../app/selection-attention-key";
 import type { ImpactSelection, MapImpact } from "../../app/linewatch-data";
@@ -128,10 +128,18 @@ export type SystemMapProps = {
 
 const NO_TRAIN_MARKERS: EstimatedTrainMarker[] = [];
 
-/** Raster planes under the artwork and overlays, in paint order; the rest paint over them. */
+/**
+ * Raster planes under the artwork and overlays, in paint order; the rest of a
+ * manifest's planes paint over them. A map may list none: its authored SVG
+ * then paints, and the hovered name lifts its authored glyphs.
+ */
 const UNDER_PLANES: readonly RasterMapPlaneName[] = ["background", "badges"];
 
-/** The authored SVG, mounted whole as artwork: it paints until the raster planes are ready. */
+/**
+ * The authored SVG, mounted whole as artwork: it paints until the raster
+ * planes are ready. A map with no raster planes mounts it in two parts
+ * (`splitMapArtwork`), its stations and names over the overlays.
+ */
 const AuthoredArtwork = memo(function AuthoredArtwork({ markup }: { markup: string }) {
   return (
     <div
@@ -226,6 +234,15 @@ function SystemMapComponent({
       cancelled = true;
     };
   }, [artwork, map.artwork]);
+
+  // A map without raster planes paints its authored stations and names over
+  // the overlays, as the foreground and labels planes do.
+  const { stations: stationsLayer, stationLabels: stationLabelsLayer } = manifest.layers;
+  const rasterless = manifest.rasterPlanes.length === 0;
+  const artworkParts = useMemo(() => {
+    if (!artwork) return null;
+    return rasterless ? splitMapArtwork(artwork, [stationsLayer, stationLabelsLayer]) : { under: artwork, over: null };
+  }, [artwork, rasterless, stationLabelsLayer, stationsLayer]);
 
   // Raster planes. A phone picks its textures on the first client render, so
   // it never starts decoding the much larger desktop planes.
@@ -687,6 +704,10 @@ function SystemMapComponent({
     />
   );
   const underPlanes = UNDER_PLANES.filter((plane) => manifest.rasterPlanes.includes(plane));
+  const overPlanes = manifest.rasterPlanes.filter((plane) => !UNDER_PLANES.includes(plane));
+  const labelsSource = manifest.rasterPlanes.includes("labels")
+    ? rasterMapSource(manifest.id as RasterMapId, "labels", rasterTheme, rasterDensity)
+    : null;
 
   return (
     <section
@@ -733,6 +754,8 @@ function SystemMapComponent({
           ref={stageRef}
           data-map-label-font-ready={mapLabelFontReady ? "true" : "false"}
           data-raster-map-ready={rasterMapReady ? "true" : "false"}
+          // Without raster planes the authored SVG paints (base-map.css).
+          data-raster-planes={rasterless ? "none" : undefined}
           className="map-stage"
           style={{
             // The stage has the drawing's full size: a viewport-sized parent
@@ -745,7 +768,7 @@ function SystemMapComponent({
           }}
         >
           {underPlanes.map(renderRasterPlane)}
-          {artwork ? <AuthoredArtwork markup={artwork} /> : null}
+          {artworkParts ? <AuthoredArtwork markup={artworkParts.under} /> : null}
 
           {/* Overlay plane: alert tubes, the commute route, selection emphasis,
               hover copies and station hover rings, under the station artwork.
@@ -789,8 +812,8 @@ function SystemMapComponent({
             />
           </svg>
 
-          {renderRasterPlane("foreground")}
-          {renderRasterPlane("labels")}
+          {overPlanes.map(renderRasterPlane)}
+          {artworkParts?.over ? <AuthoredArtwork markup={artworkParts.over} /> : null}
 
           {/* Top plane: the hovered station name, train markers and the compass. */}
           <svg
@@ -806,7 +829,7 @@ function SystemMapComponent({
                 cutout={labelCutout}
                 dilate={manifest.stationLabels.cutout.dilate}
                 active={activeHoveredLabel !== null}
-                labelsSource={rasterMapSource(manifest.id, "labels", rasterTheme, rasterDensity)}
+                labelsSource={labelsSource}
                 viewBox={viewBox}
               />
             ) : null}

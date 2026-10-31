@@ -5,17 +5,22 @@
  * Everything is in the root SVG's coordinates. Label boxes depend on the
  * label font, so the SVG is laid out in Chromium with the app's font.
  *
- *   node scripts/prepare-map-geometry.mjs [--check] [--out <dir>]
+ *   node scripts/prepare-map-geometry.mjs [--check] [--out <dir>] [--manifest <module>]
  *
- * --check exits non-zero when a geometry file is stale.
+ * Every map in MAP_MANIFESTS, or with --manifest only the manifest that module
+ * exports by default (a map not shipped yet, or a test fixture). What it reads
+ * comes from the manifest (map-manifests.ts): its layers, line ids, guides,
+ * station name link and badge obstacles. --check exits non-zero when a
+ * geometry file is stale.
  */
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { chromium } from "@playwright/test";
 
-import { MAP_GEOMETRY_FORMAT, MAP_GEOMETRY_SOURCES } from "../src/app/map-geometry-data.ts";
+import { MAP_GEOMETRY_FORMAT } from "../src/app/map-geometry-data.ts";
+import { MAP_MANIFESTS, mapBadgeObstacles } from "../src/app/map-manifests.ts";
 
 const frontendDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const publicDirectory = join(frontendDirectory, "public");
@@ -23,6 +28,10 @@ const argumentsList = process.argv.slice(2);
 const checkOnly = argumentsList.includes("--check");
 const outIndex = argumentsList.indexOf("--out");
 const outputDirectory = outIndex >= 0 ? resolve(argumentsList[outIndex + 1]) : null;
+const manifestIndex = argumentsList.indexOf("--manifest");
+const manifests = manifestIndex >= 0
+  ? [(await import(pathToFileURL(resolve(argumentsList[manifestIndex + 1])).href)).default]
+  : Object.values(MAP_MANIFESTS);
 
 const FONT_CSS = ["regular", "bold"].map((weight) => `
   @font-face {
@@ -217,8 +226,8 @@ function extractGeometry(config) {
     anchors[element.id] = { x: round(center.x), y: round(center.y) };
   }
 
-  const labels = [...svg.querySelectorAll(config.labels)].flatMap((label) => {
-    const stationId = label.dataset.stationLabelFor ?? label.dataset.regionalStationLabelFor;
+  const labels = [...svg.querySelectorAll(`${config.stationLabelsLayer} [${config.labelAttribute}]`)].flatMap((label) => {
+    const stationId = label.getAttribute(config.labelAttribute);
     const box = label.getBBox();
     if (!stationId || !(box.width > 0 && box.height > 0)) return [];
     return [{
@@ -229,31 +238,34 @@ function extractGeometry(config) {
     }];
   });
 
-  const lines = [...svg.querySelectorAll(config.lines)].map((path) => ({
-    id: config.lineIdAttribute === "label" ? labelOf(path) : path.id,
-    points: polylineOf(path, config.lineSampleSpacing),
+  // The manifest's line paths, named by id or Inkscape label.
+  const lineIds = new Set(config.lineIds);
+  const lines = [...svg.querySelectorAll(`${config.linesLayer} path`)].map((path) => ({
+    id: lineIds.has(path.id) ? path.id : lineIds.has(labelOf(path)) ? labelOf(path) : "",
+    points: polylineOf(path, 8),
   })).filter((line) => line.id && line.points.length > 2);
 
   const guides = {};
-  for (const path of config.guides ? svg.querySelectorAll(config.guides) : []) {
+  for (const path of config.guidesLayer ? svg.querySelectorAll(`${config.guidesLayer} path`) : []) {
     const label = labelOf(path);
     if (label) guides[label] = polylineOf(path, 24);
   }
 
   // Badge placement obstacles: names, artwork boxes and stroked lines.
-  const ignored = config.obstacleIgnore ? (element) => Boolean(element.closest(config.obstacleIgnore)) : () => false;
+  const { obstacles } = config;
+  const ignored = obstacles.ignore ? (element) => Boolean(element.closest(obstacles.ignore)) : () => false;
   const artwork = { labels: [], boxes: [], strokes: [] };
-  for (const element of svg.querySelectorAll(config.obstacleLabels)) {
+  for (const element of svg.querySelectorAll(obstacles.text)) {
     if (ignored(element)) continue;
     const polygon = polygonOf(element);
     if (polygon) artwork.labels.push(polygon);
   }
-  for (const [kind, selector] of Object.entries(config.obstacleBoxes)) {
+  for (const [kind, selector] of Object.entries(obstacles.boxes)) {
     for (const element of svg.querySelectorAll(selector)) {
       if (ignored(element)) continue;
       const style = getComputedStyle(element);
       if (style.display === "none") continue;
-      if (config.obstacleStrokes && (element instanceof SVGPathElement || element instanceof SVGPolylineElement)) {
+      if (obstacles.strokes && (element instanceof SVGPathElement || element instanceof SVGPolylineElement)) {
         const transparent = (paint) => paint === "none" || paint === "transparent" || /rgba\([^)]*,\s*0\)$/.test(paint);
         if (transparent(style.fill) && !transparent(style.stroke)) {
           const matrix = toRoot(element);
@@ -276,60 +288,46 @@ function extractGeometry(config) {
     anchors,
     labels,
     lines,
-    ...(config.guides ? { guides } : {}),
+    ...(config.guidesLayer ? { guides } : {}),
     artwork,
   };
 }
 
-/** Runs in the page: tags GO/UP station names with their station, as prepareRegionalMapMarkup does. */
-function tagRegionalLabels() {
+/** The attribute that links a station name to its station, once linked. */
+const NAME_LINK_ATTRIBUTE = "data-station-label-for";
+
+/**
+ * Runs in the page: links station names to stations by name, for a manifest
+ * whose `stationLabelLink` is `name` (GO/UP), as the map's artwork preparation
+ * does at runtime.
+ */
+function linkStationNames({ stationsLayer, stationLabelsLayer, partSuffixes, attribute }) {
   const normalized = (value) => value.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
   const stationIds = new Map();
-  for (const element of document.querySelectorAll("[id^='station-']")) {
-    if (element.id.endsWith("-ki") || element.id.endsWith("-up")) continue;
+  for (const element of document.querySelectorAll(`${stationsLayer} [id^='station-']`)) {
+    if (partSuffixes.some((suffix) => element.id.endsWith(suffix))) continue;
     const stationId = element.id.replace(/^station-/, "");
     stationIds.set(normalized(stationId), stationId);
   }
-  for (const label of document.querySelectorAll("#regional-station-labels-layer > text")) {
+  for (const label of document.querySelectorAll(`${stationLabelsLayer} text`)) {
     const stationId = stationIds.get(normalized(label.textContent ?? ""));
-    if (stationId) label.dataset.regionalStationLabelFor = stationId;
-  }
-  for (const element of document.querySelectorAll("g")) {
-    const label = element.getAttribute("inkscape:label") ?? "";
-    if (label.startsWith("via-rail-") || label.endsWith("airport-icon")) element.classList.add("map-connection-label");
+    if (stationId) label.setAttribute(attribute, stationId);
   }
 }
 
-const EXTRACTION = {
-  ttc: {
-    stationsLayer: "#ttc-stations-layer",
-    labels: "#ttc-station-labels-layer [data-station-label-for]",
-    lines: "[inkscape\\:label='tracks'] path, #ttc-tracks-layer path",
-    lineIdAttribute: "label",
-    lineSampleSpacing: 8,
-    guides: "#non-linear-guides-layer path",
-    obstacleIgnore: "#non-linear-guides-layer, defs",
-    obstacleLabels: "text, tspan",
-    // Every other drawn element; stroke-only paths become corridors.
-    obstacleBoxes: { artwork: "path, rect, circle, ellipse, polygon, polyline, image, use" },
-    obstacleStrokes: true,
-  },
-  regional: {
-    stationsLayer: "#regional-stations-layer",
-    labels: "#regional-station-labels-layer [data-regional-station-label-for]",
-    lines: "#regional-lines-layer path[id^='regional-route-']",
-    lineIdAttribute: "id",
-    lineSampleSpacing: 8,
-    obstacleIgnore: "defs",
-    obstacleLabels: "text",
-    obstacleBoxes: {
-      "connection-label": ".map-connection-label",
-      artwork: "#regional-stations-layer :is(rect, circle, ellipse)",
-      "line-badge": "#regional-route-labels-layer :is(rect, path, image, use)",
-    },
-    obstacleStrokes: false,
-  },
-};
+/** What the extractor reads from a map's SVG, from its manifest. */
+function extractionConfig(manifest) {
+  const link = manifest.stationLabelLink;
+  return {
+    stationsLayer: manifest.layers.stations,
+    stationLabelsLayer: manifest.layers.stationLabels,
+    labelAttribute: link.kind === "attribute" ? link.attribute : NAME_LINK_ATTRIBUTE,
+    linesLayer: manifest.layers.lines,
+    lineIds: manifest.lineIds,
+    guidesLayer: manifest.layers.guides ?? null,
+    obstacles: mapBadgeObstacles(manifest),
+  };
+}
 
 async function sha256(path) {
   return createHash("sha256").update(await readFile(path)).digest("hex");
@@ -345,11 +343,12 @@ async function main() {
       if (path === "/") await route.fulfill({ contentType: "text/html", body: "<!doctype html>" });
       else await route.fulfill({ body: await readFile(join(publicDirectory, path)) });
     });
-    for (const [map, source] of Object.entries(MAP_GEOMETRY_SOURCES)) {
-      const svgPath = join(frontendDirectory, source.svg);
+    for (const manifest of manifests) {
+      const { id: map, svg, geometry: geometryFile } = manifest;
+      const svgPath = join(frontendDirectory, svg);
       const geometryPath = outputDirectory
-        ? join(outputDirectory, source.geometry.split("/").at(-1))
-        : join(frontendDirectory, source.geometry);
+        ? join(outputDirectory, geometryFile.split("/").at(-1))
+        : join(frontendDirectory, geometryFile);
       const hash = await sha256(svgPath);
       const markup = await readFile(svgPath, "utf8");
       await page.goto("http://map.local/");
@@ -363,14 +362,22 @@ async function main() {
         await Promise.all(['400 80px "TeX Gyre Heros"', '700 100px "TeX Gyre Heros"'].map((spec) => document.fonts.load(spec)));
         await document.fonts.ready;
       });
-      if (map === "regional") await page.evaluate(tagRegionalLabels);
-      const geometry = await page.evaluate(extractGeometry, EXTRACTION[map]);
-      const output = `${JSON.stringify({ format: MAP_GEOMETRY_FORMAT, map, source: { svg: source.svg, sha256: hash }, ...geometry })}\n`;
+      const config = extractionConfig(manifest);
+      if (manifest.stationLabelLink.kind === "name") {
+        await page.evaluate(linkStationNames, {
+          stationsLayer: config.stationsLayer,
+          stationLabelsLayer: config.stationLabelsLayer,
+          partSuffixes: manifest.stationPartSuffixes,
+          attribute: config.labelAttribute,
+        });
+      }
+      const geometry = await page.evaluate(extractGeometry, config);
+      const output = `${JSON.stringify({ format: MAP_GEOMETRY_FORMAT, map, source: { svg, sha256: hash }, ...geometry })}\n`;
       if (checkOnly) {
         const current = await readFile(geometryPath, "utf8").catch(() => "");
         if (current !== output) {
           stale = true;
-          console.error(`${source.geometry} is stale; run npm --prefix frontend run prepare:map-geometry`);
+          console.error(`${geometryFile} is stale; run npm --prefix frontend run prepare:map-geometry`);
         }
         continue;
       }

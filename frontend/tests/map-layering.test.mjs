@@ -98,11 +98,11 @@ describe("asset-backed map layering", () => {
       interactiveMapSource.indexOf("{underPlanes.map(renderRasterPlane)}") <
         interactiveMapSource.indexOf('aria-label="Disruption overlays"') &&
       interactiveMapSource.indexOf('aria-label="Disruption overlays"') <
-        interactiveMapSource.indexOf('{renderRasterPlane("foreground")}') &&
-      interactiveMapSource.indexOf('{renderRasterPlane("foreground")}') <
-        interactiveMapSource.indexOf('{renderRasterPlane("labels")}'),
+        interactiveMapSource.indexOf("{overPlanes.map(renderRasterPlane)}"),
       "raster planes must stack badges underneath disruption overlays, with foreground stations and labels above",
     );
+    // Foreground, then labels: the manifest's order of the planes over the overlays.
+    assert.match(interactiveMapSource, /const overPlanes = manifest\.rasterPlanes\.filter\(\(plane\) => !UNDER_PLANES\.includes\(plane\)\);/);
   });
 
   it("renders station hit targets above disruption overlays", () => {
@@ -202,7 +202,7 @@ describe("asset-backed map layering", () => {
     // Hover rings sit under the station artwork (the foreground plane).
     assert.ok(
       interactiveMapSource.indexOf("<MapStationHoverIndicators") <
-        interactiveMapSource.indexOf('{renderRasterPlane("foreground")}'),
+        interactiveMapSource.indexOf('{overPlanes.map(renderRasterPlane)}'),
     );
     assert.match(interactiveMapSource, /className="station-hover-indicator"/);
     assert.match(interactiveMapSource, /setMapStationHovered\(rootRef\.current, stationId, hovered\)/);
@@ -544,7 +544,7 @@ describe("asset-backed map layering", () => {
       disruptionOverlaysStart,
     );
     const stationLayerIndex = interactiveMapSource.indexOf(
-      '{renderRasterPlane("foreground")}',
+      '{overPlanes.map(renderRasterPlane)}',
       disruptionOverlaysStart,
     );
 
@@ -876,7 +876,7 @@ describe("asset-backed map layering", () => {
     const impactLayerIndex = interactiveMapSource.indexOf("retainedImpactLayers.map");
     const previewGroupIndex = interactiveMapSource.indexOf('aria-label="Commute route preview"', impactLayerIndex);
     const selectedImpactIndex = interactiveMapSource.indexOf('aria-label="Selected disruption emphasis"', previewGroupIndex);
-    const stationLayerIndex = interactiveMapSource.indexOf('{renderRasterPlane("foreground")}', selectedImpactIndex);
+    const stationLayerIndex = interactiveMapSource.indexOf('{overPlanes.map(renderRasterPlane)}', selectedImpactIndex);
 
     assert.ok(previewGroupIndex > -1, "saved commute preview group must exist");
     assert.ok(
@@ -991,7 +991,7 @@ describe("asset-backed map layering", () => {
     const overlayIndex = interactiveMapSource.indexOf('aria-label="Disruption overlays"');
     const trainIndex = interactiveMapSource.indexOf('aria-label="Estimated train markers"');
     const authoredLineBadgeIndex = interactiveMapSource.indexOf("{underPlanes.map(renderRasterPlane)}");
-    const stationLayerIndex = interactiveMapSource.indexOf('{renderRasterPlane("foreground")}');
+    const stationLayerIndex = interactiveMapSource.indexOf('{overPlanes.map(renderRasterPlane)}');
     const badgeIndex = interactiveMapSource.indexOf('aria-label="Overlapping alert badges"');
 
     assert.ok(authoredLineBadgeIndex > -1 && authoredLineBadgeIndex < overlayIndex);

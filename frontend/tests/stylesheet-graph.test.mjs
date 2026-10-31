@@ -205,7 +205,7 @@ describe("stylesheet-graph helper", () => {
     assert.match(baseMapContent, /\.raster-map-plane\s*\{[^}]*transform:\s*translateZ\(0\);/);
     assert.match(baseMapContent, /\.ttc-map-entrance-reveal/);
     assert.match(baseMapContent, /\.map-center-feedback/);
-    assert.match(baseMapContent, /\.map-stage\[data-raster-map-ready="true"\]\s*\.map-authored-svg/);
+    assert.match(baseMapContent, /\.map-stage\[data-raster-map-ready="true"\]:not\(\[data-raster-planes="none"\]\)\s*\.map-authored-svg/);
     assert.match(baseMapContent, /\.linewatch-shell\.mobile-performance-mode\s*\.map-stage/);
     assert.match(baseMapContent, /\.map-layer-current/);
     assert.match(baseMapContent, /\.map-attribution-notice/);

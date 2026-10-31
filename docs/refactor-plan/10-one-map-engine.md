@@ -1,5 +1,8 @@
 # F — One System Map engine component, maps as data
 
+**Status: complete (2026-10-31).** Phases 1–6 are done; see Progress. The
+owner question on a per-network map switcher stays open (default kept: none).
+
 Owner decision, 2026-10-31: one engine for every authored System Map, with no
 per-map code. Maps differ only in content (station names, map shape, which
 alerts exist: GO/UP has trip changes, TTC does not). Adding a map, such as
@@ -378,8 +381,77 @@ repeated parallel runs; cause unknown, watch it.
   `test:map-zoom-memory` 0 warnings on both maps; `test:map-budgets` passes:
   phone tap INP TTC 200 ms, GO/UP 528 ms (phase 4: 200, 528); desktop wheel and
   drag p95 6.1 ms on both; GO/UP hover sweep 35 frames over 20 ms (phase 4: 45).
-- Next: phase 6 (drop-in proof: a fixture SVG, manifest and adapter rendered by
-  `SystemMap` in a browser test; rewrite the asset contract's checklist from
-  what it needed). The fixture map needs a `MapId` and a registry entry, which
-  are typed as a closed union today; phase 6 decides whether tests register a
-  map or render `SystemMap` with a definition directly.
+- **Phase 6 done (2026-10-31): drop-in proof.** A fixture map,
+  `frontend/tests/fixtures/drop-in-map/` (two lines, five stations, no raster
+  planes), is an SVG, a manifest module (`MapManifest<"drop-in">`, not in
+  `MAP_MANIFESTS` or `NETWORK_MAPS`), geometry from `prepare:map-geometry
+  --manifest`, a clean `validate:map-asset --manifest`, and a three-line
+  definition: `defineSystemMap({ manifest, geometry,
+  ...ttcSystemMapAdapter(geometry) })`, TTC's adapter as a second TTC map (a
+  streetcar map's shape) over fixture data. `tests/smoke/drop-in-map.spec.ts`
+  renders it with `SystemMap` and checks the artwork, targets and layering,
+  camera fit, wheel zoom, drag and Center, station hover and the lifted name,
+  alert hover, presses on stations, alerts and open map, the chooser, and
+  touch taps. Decisions: `MapId` stays a closed union and the fixture skips the
+  registry (`RegisteredSystemMap` is `SystemMap` plus a lookup); it mounts on a
+  harness route, `src/app/test-harness/drop-in-map/page.harness.tsx`, a page
+  only when `LINEWATCH_TEST_HARNESS=true` (`next.config.ts`
+  `pageExtensions`), which `scripts/start-playwright-app.mjs` sets and records
+  in its build stamp. A build without it has no harness route and no fixture
+  code; the spec serves the fixture SVG at its manifest URL. Findings, each a
+  per-map assumption the fixture hit, fixed as data:
+  - **Tools.** `prepare-map-geometry.mjs` had a per-map `EXTRACTION` record and
+    GO/UP-only label tagging; it now reads the manifest (layers, `lineIds` by
+    id or Inkscape label, guides, `stationLabelLink` with
+    `stationPartSuffixes`) plus an optional `badgeObstacles` field (TTC's and
+    GO/UP's rules moved there; GO/UP's connection-label tagging is a selector;
+    default: text and station dots). Both maps' geometry is byte-identical
+    (`--check`). Both tools take `--manifest <module>`.
+  - **Raster planes.** The engine drew the foreground and labels planes
+    whatever the manifest listed; it draws only the listed planes now. With
+    none, the authored SVG was hidden as soon as "every plane" was ready, and
+    once shown it painted wholly under the overlays, so alert tubes covered
+    station dots: a rasterless stage is `data-raster-planes="none"` (the SVG
+    keeps painting) and mounts its artwork in two parts (`splitMapArtwork`),
+    the manifest's `stations` and `stationLabels` layers over the overlays
+    where the foreground and label planes would be, every id kept once. The
+    lifted name needed the label texture; without one it lifts the authored
+    glyphs.
+  - **Asset rule.** A `use` cutout copies the name out of its layer, so a
+    name styled by its layer group lifted at the default font; names set their
+    own font, which `validate:map-asset` now checks (TTC's pass).
+  - **Types and defaults.** `MapOverlayPlane.idPrefix` was `"ttc" |
+    "regional"`, `PreparedMapGeometry.map` and the definition's manifest were
+    `MapId`; manifests are `MapManifest<Id>` (default `MapId`). Definitions
+    repeated their wiring: the overlay plane and SVG preparation now default
+    from the manifest (`manifestOverlayPlane`, `mapArtworkSource` with the
+    shared `prepareMapArtworkMarkup`; GO/UP keeps its own for Union's cutout
+    and glyph copies), and each network's adapter is one export
+    (`ttcSystemMapAdapter`, `regionalSystemMapAdapter`). `mapArtworkUrl` made
+    a relative URL for an SVG outside `public/`; it is root-relative.
+  Left per map, with reasons: raster generation (`generate-map-rasters.mjs`
+  plane and theme CSS, `RASTER_MAP_WIDTHS`, `RASTER_MAP_RENDERED_SIZES` and the
+  plane types), because how a drawing splits into planes is artwork styling
+  that would otherwise ship in the client manifest, and a map can launch
+  without rasters; a second map of one network receives that network's
+  station list (`usesStationList`, one list per network in `NetworkMap`),
+  which waits on the switcher question; the engine still imports
+  `removeDescendantIds` from `regional-map-asset.ts` (shared code in a
+  network-named module). `docs/map-asset-contract.md`'s manifest table and
+  checklist are rewritten from these steps.
+- Phase 6 checks: `test:fast` (new fixture geometry check), `test:scripts`
+  (validator: the fixture, the name-font rule), typecheck, lint (15 warnings),
+  `check:map-geometry` and `validate:map-asset` for both maps pass.
+  `map-parity` passes on both projects before and after (38 passed each).
+  `drop-in-map.spec.ts` passes (7 cases across both projects). The plan's
+  browser list with both specs (395 passed) fails only the known cases: the
+  two GO/UP mobile cases and `dashboard.spec.ts:1871` × 2 (run at 05:50, GO/UP
+  closed). A build without `LINEWATCH_TEST_HARNESS` has no harness route and
+  no fixture code in any output; in the harness build the fixture is its own
+  chunk, outside the home page's, and GO/UP's 64 KB geometry chunk is still
+  outside the page's chunks (TTC's is in). `test:map-budgets` passes: phone
+  tap INP TTC 192 ms, GO/UP 504 ms (phase 5: 200, 528); desktop wheel and drag
+  p95 6.1 ms (GO/UP drag 6.2); GO/UP hover sweep 54 frames over 20 ms (phase
+  5: 35, earlier 17–56). `test:visual` and `test:map-zoom-memory` were not
+  rerun: TTC's and GO/UP's planes and markup are unchanged (the same planes in
+  the same order; the split applies only to rasterless maps).

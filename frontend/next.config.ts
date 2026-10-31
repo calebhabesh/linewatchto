@@ -48,6 +48,12 @@ const nextConfig: NextConfig = {
   // Keep the development badge from covering mobile search/account controls.
   devIndicators: false,
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // Test harness routes (`*.harness.tsx`, such as the drop-in map's) exist only
+  // in test builds; scripts/start-playwright-app.mjs sets the flag.
+  pageExtensions: [
+    "tsx", "ts", "jsx", "js",
+    ...(process.env.LINEWATCH_TEST_HARNESS === "true" ? ["harness.tsx"] : []),
+  ],
   env: {
     NEXT_PUBLIC_LINEWATCH_APP_VERSION:
       process.env.NEXT_PUBLIC_LINEWATCH_APP_VERSION ||

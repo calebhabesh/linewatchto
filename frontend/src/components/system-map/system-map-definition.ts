@@ -7,7 +7,7 @@
  */
 import type { MapManifest } from "../../app/map-manifests";
 import type { PreparedMapGeometry } from "../../app/map-geometry-data";
-import type { MapArtworkSource } from "../../app/map-artwork";
+import { mapArtworkSource, type MapArtworkSource } from "../../app/map-artwork";
 import type { MapContent } from "../../app/map-content";
 import { mapStationArtwork, type MapStationArtwork } from "../../app/map-station-artwork";
 import type { DashboardData } from "../../app/DataContext";
@@ -32,7 +32,7 @@ export type SystemMapContentInput = SystemMapData & {
 
 export type SystemMapDefinition = {
   /** The map's manifest: its id, network and authored SVG's facts. */
-  manifest: MapManifest;
+  manifest: MapManifest<string>;
   /** Its prepared geometry (`prepare:map-geometry`). */
   geometry: PreparedMapGeometry;
   stationArtwork: readonly MapStationArtwork[];
@@ -54,17 +54,32 @@ export type SystemMapDefinition = {
   };
 };
 
+/** What a network's content adapter gives each of its maps, from the map's prepared geometry. */
+export type SystemMapNetworkAdapter = Pick<SystemMapDefinition, "usesStationList" | "content" | "trainMarkers">;
+
+/** The overlay plane a map gets from its manifest alone: no outline cutouts. */
+export function manifestOverlayPlane(manifest: MapManifest<string>): MapOverlayPlane {
+  return { idPrefix: manifest.id, unit: manifest.overlayUnit, maskBounds: manifest.viewBox, outlineCutouts: [] };
+}
+
 /**
  * A map's definition from its parts, with the station artwork read from its
  * prepared geometry. The geometry must be the manifest map's, prepared from
- * the same view box.
+ * the same view box. Without an overlay plane or artwork, the map gets its
+ * manifest's (`manifestOverlayPlane`, `mapArtworkSource`).
  */
 export function defineSystemMap(
-  definition: Omit<SystemMapDefinition, "stationArtwork">,
+  definition: Omit<SystemMapDefinition, "stationArtwork" | "overlayPlane" | "artwork">
+    & Partial<Pick<SystemMapDefinition, "overlayPlane" | "artwork">>,
 ): SystemMapDefinition {
   const { manifest, geometry } = definition;
   if (geometry.map !== manifest.id) {
     throw new Error(`Prepared geometry for map "${geometry.map}" given to map "${manifest.id}"`);
   }
-  return { ...definition, stationArtwork: mapStationArtwork(geometry, manifest.stationPartSuffixes) };
+  return {
+    ...definition,
+    overlayPlane: definition.overlayPlane ?? manifestOverlayPlane(manifest),
+    artwork: definition.artwork ?? mapArtworkSource(manifest),
+    stationArtwork: mapStationArtwork(geometry, manifest.stationPartSuffixes),
+  };
 }

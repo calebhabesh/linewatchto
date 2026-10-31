@@ -77,6 +77,7 @@ test build already exists, skip the rebuild explicitly:
 ```bash
 BACKEND_URL=http://127.0.0.1:4174 \
 NEXT_PUBLIC_LINEWATCH_API_BASE_URL=http://127.0.0.1:4174 \
+LINEWATCH_TEST_HARNESS=true \
 npm --prefix frontend run build
 
 LINEWATCH_PLAYWRIGHT_REUSE_BUILD=true \
@@ -85,7 +86,10 @@ npm --prefix frontend run test:smoke
 
 Only reuse a build compiled with the API base URL shown above. CI uses this
 path so its build validation, smoke gate, and compatibility check share one
-artifact.
+artifact. `LINEWATCH_TEST_HARNESS=true` adds the test harness routes
+(`*.harness.tsx` under `frontend/src/app/test-harness/`), which only
+`tests/smoke/drop-in-map.spec.ts` needs; Playwright's own build sets it, and
+builds without it (CI's and production's) have no harness routes.
 
 ## Local browser support
 

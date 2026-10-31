@@ -34,8 +34,8 @@ export type MapOverlayCutout = {
  * own scale. Both maps draw the same overlay design.
  */
 export type MapOverlayPlane = {
-  /** Prefix for SVG ids, unique per map. */
-  idPrefix: "ttc" | "regional";
+  /** Prefix for SVG ids, unique per map: its map id. */
+  idPrefix: string;
   /** Map units per TTC overlay unit: 1 on TTC; GO/UP's rail width over TTC's. */
   unit: number;
   /** The drawing's extent in overlay coordinates, for map-wide masks. */

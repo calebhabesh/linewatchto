@@ -4,29 +4,32 @@ import type { PreparedMapGeometry } from "../../app/map-geometry-data";
 import preparedTtcGeometry from "../../app/map-geometry/ttc.json";
 import { TTC_MAP_ARTWORK } from "../../app/map-preload";
 import { TTC_TRAIN_MARKER_PLACEMENT, ttcMapContent, ttcRenderedNetworkSegments } from "../../app/ttc-map-content";
-import { defineSystemMap } from "./system-map-definition";
+import { defineSystemMap, type SystemMapNetworkAdapter } from "./system-map-definition";
 
-const manifest = MAP_MANIFESTS.ttc;
+/**
+ * The TTC network's adapter for one of its maps: TTC content over that map's
+ * prepared geometry, placed at the shell's TTC station list.
+ */
+export function ttcSystemMapAdapter(geometry: PreparedMapGeometry): SystemMapNetworkAdapter {
+  return {
+    usesStationList: true,
+    content: ({ stations, stationList, ...input }) => ttcMapContent(geometry, {
+      ...input,
+      mapStations: stations,
+      stations: stationList ?? [],
+    }),
+    trainMarkers: {
+      segments: ({ stations, ...data }) => ttcRenderedNetworkSegments(geometry, { ...data, mapStations: stations }),
+      placement: TTC_TRAIN_MARKER_PLACEMENT,
+    },
+  };
+}
+
 const geometry = preparedTtcGeometry as unknown as PreparedMapGeometry;
 
 export const TTC_SYSTEM_MAP = defineSystemMap({
-  manifest,
+  manifest: MAP_MANIFESTS.ttc,
   geometry,
-  overlayPlane: {
-    idPrefix: "ttc",
-    unit: manifest.overlayUnit,
-    maskBounds: manifest.viewBox,
-    outlineCutouts: [],
-  },
   artwork: TTC_MAP_ARTWORK,
-  usesStationList: true,
-  content: ({ stations, stationList, ...input }) => ttcMapContent(geometry, {
-    ...input,
-    mapStations: stations,
-    stations: stationList ?? [],
-  }),
-  trainMarkers: {
-    segments: ({ stations, ...data }) => ttcRenderedNetworkSegments(geometry, { ...data, mapStations: stations }),
-    placement: TTC_TRAIN_MARKER_PLACEMENT,
-  },
+  ...ttcSystemMapAdapter(geometry),
 });

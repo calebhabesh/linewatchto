@@ -12,6 +12,8 @@ const testEnvironment = {
   BACKEND_URL: process.env.BACKEND_URL ?? "http://127.0.0.1:4174",
   NEXT_PUBLIC_LINEWATCH_API_BASE_URL:
     process.env.NEXT_PUBLIC_LINEWATCH_API_BASE_URL ?? "http://127.0.0.1:4174",
+  // Test harness routes (next.config.ts), such as the drop-in map's.
+  LINEWATCH_TEST_HARNESS: process.env.LINEWATCH_TEST_HARNESS ?? "true",
 };
 
 async function hasBuildOutput() {
@@ -46,6 +48,9 @@ async function isBuildFresh() {
   try {
     const stampContent = JSON.parse(await readFile(stampPath, "utf8"));
     if (stampContent.apiUrl !== testEnvironment.NEXT_PUBLIC_LINEWATCH_API_BASE_URL) {
+      return false;
+    }
+    if (stampContent.testHarness !== testEnvironment.LINEWATCH_TEST_HARNESS) {
       return false;
     }
     const stampStat = await stat(stampPath);
@@ -87,6 +92,7 @@ if (!(await isBuildFresh())) {
       JSON.stringify({
         builtAt: Date.now(),
         apiUrl: testEnvironment.NEXT_PUBLIC_LINEWATCH_API_BASE_URL,
+        testHarness: testEnvironment.LINEWATCH_TEST_HARNESS,
       }),
       "utf8",
     );

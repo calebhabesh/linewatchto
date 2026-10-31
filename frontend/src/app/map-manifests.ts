@@ -21,8 +21,12 @@ import {
  */
 export type MapId = "ttc" | "regional";
 
-export type MapManifest = {
-  id: MapId;
+/**
+ * A map's manifest. Shipped maps are `MapManifest` (keyed by `MapId`); a test
+ * fixture names its own id (`MapManifest<"drop-in">`).
+ */
+export type MapManifest<Id extends string = MapId> = {
+  id: Id;
   /** The network whose data the map shows (and whose content adapter draws it). */
   network: NetworkId;
   /** The served SVG, relative to `frontend/`. */
@@ -87,11 +91,40 @@ export type MapManifest = {
   attributionSource: string;
   /** The map's accessible name. */
   label: string;
-  /** Line paths the overlays follow, by their id in `layers.lines`. */
+  /**
+   * Line paths the overlays follow, by their `id` or `inkscape:label` in
+   * `layers.lines`: the paths the geometry extractor keeps.
+   */
   lineIds: readonly string[];
   /** Curved or non-linear segment guides, by their `inkscape:label`. */
   guideIds?: readonly string[];
+  /**
+   * The artwork overlap badges keep clear of, as CSS selectors on the root
+   * SVG (read by `prepare:map-geometry`). Defaults to `mapBadgeObstacles`'s.
+   */
+  badgeObstacles?: MapBadgeObstacles;
 };
+
+export type MapBadgeObstacles = {
+  /** Elements badges never avoid, with their contents (definitions, guides). */
+  ignore: string;
+  /** Text, kept clear as rotated boxes. */
+  text: string;
+  /** Other artwork, kept clear as boxes, by kind. */
+  boxes: Partial<Record<"artwork" | "connection-label" | "line-badge", string>>;
+  /** Whether stroke-only paths among `boxes` become corridors rather than boxes. */
+  strokes: boolean;
+};
+
+/** A map's badge obstacles: its manifest's, or its text and station dots. */
+export function mapBadgeObstacles(manifest: Pick<MapManifest<string>, "badgeObstacles" | "layers">): MapBadgeObstacles {
+  return manifest.badgeObstacles ?? {
+    ignore: "defs",
+    text: "text",
+    boxes: { artwork: `${manifest.layers.stations} :is(rect, circle, ellipse)` },
+    strokes: false,
+  };
+}
 
 const TTC_SCALE = RASTER_MAP_RENDERED_SIZES.ttc.width / 8250;
 
@@ -141,6 +174,13 @@ export const MAP_MANIFESTS: Record<MapId, MapManifest> = {
       "seg-line-1-st-george-spadina",
       "seg-line-6-humber-college-westmore",
     ],
+    badgeObstacles: {
+      ignore: "#non-linear-guides-layer, defs",
+      text: "text, tspan",
+      // Every other drawn element; stroke-only paths become corridors.
+      boxes: { artwork: "path, rect, circle, ellipse, polygon, polyline, image, use" },
+      strokes: true,
+    },
   },
   regional: {
     id: "regional",
@@ -189,12 +229,22 @@ export const MAP_MANIFESTS: Record<MapId, MapManifest> = {
       "regional-route-up-airport-path",
       "regional-route-up-path",
     ],
+    badgeObstacles: {
+      ignore: "defs",
+      text: "text",
+      boxes: {
+        "connection-label": "g:is([inkscape\\:label^='via-rail-'], [inkscape\\:label$='airport-icon'])",
+        artwork: "#regional-stations-layer :is(rect, circle, ellipse)",
+        "line-badge": "#regional-route-labels-layer :is(rect, path, image, use)",
+      },
+      strokes: false,
+    },
   },
 };
 
-/** The served URL of a map's SVG. */
-export function mapArtworkUrl({ svg }: Pick<MapManifest, "svg">): string {
-  return svg.replace(/^public\//, "/");
+/** The served URL of a map's SVG: its path under `public/`, from the site root. */
+export function mapArtworkUrl({ svg }: Pick<MapManifest<string>, "svg">): string {
+  return `/${svg.replace(/^public\//, "")}`;
 }
 
 /**

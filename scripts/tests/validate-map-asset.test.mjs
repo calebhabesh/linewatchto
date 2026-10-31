@@ -46,6 +46,20 @@ describe("map asset validator", () => {
     });
   }
 
+  it("passes the drop-in fixture map, which ships no raster planes", async () => {
+    const { default: fixture } = await import("../../frontend/tests/fixtures/drop-in-map/drop-in-map-manifest.ts");
+    const result = validateMapAsset(fixture, readFileSync(join(frontend, fixture.svg), "utf8"), () => false);
+    assert.deepEqual(result, { errors: [], warnings: [] });
+  });
+
+  it("rejects a name that a use cutout would lift without its layer's font", () => {
+    const lifted = { ...manifest, stationLabelLink: { kind: "name" }, stationLabels: { cutout: { kind: "use" } } };
+    const styled = '<text style="font-size:80px;font-family:Heros">Union</text><text font-size="80" font-family="Heros"><tspan>Bloor</tspan></text>';
+    assert.deepEqual(validateMapAsset(lifted, svg({ labels: styled })).errors, []);
+    const { errors } = validateMapAsset(lifted, svg());
+    assert.match(errors[0], /Station name "Union" does not set its own font-size and font-family/);
+  });
+
   it("passes a map that meets its manifest", () => {
     assert.deepEqual(validateMapAsset(manifest, svg()), { errors: [], warnings: [] });
   });

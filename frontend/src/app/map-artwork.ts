@@ -5,6 +5,7 @@
  * next load retries; a success is cached for instant reuse.
  */
 import { lineWatchBuildLabel } from "./app-build.ts";
+import { mapArtworkUrl, type MapManifest } from "./map-manifests.ts";
 
 export type MapArtworkSource = {
   /** The served SVG. */
@@ -12,6 +13,62 @@ export type MapArtworkSource = {
   /** Turns the fetched SVG into the markup the map mounts. */
   prepare: (svg: string) => string;
 };
+
+/**
+ * The plain artwork preparation: the authored SVG scaled to its plane (no
+ * size of its own, `xMidYMid meet`) and hidden from assistive technology. A
+ * map whose SVG needs more (GO/UP links names and cuts glyph copies) brings
+ * its own.
+ */
+export function prepareMapArtworkMarkup(text: string): string {
+  if (typeof DOMParser === "undefined") {
+    throw new Error("DOMParser is unavailable in this environment");
+  }
+  const documentNode = new DOMParser().parseFromString(text, "image/svg+xml");
+  if (documentNode.querySelector("parsererror")) throw new Error("Invalid map SVG");
+  const root = documentNode.documentElement;
+  root.removeAttribute("width");
+  root.removeAttribute("height");
+  root.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  root.setAttribute("aria-hidden", "true");
+  return new XMLSerializer().serializeToString(root);
+}
+
+/** A map's served SVG with the plain preparation. */
+export function mapArtworkSource(manifest: Pick<MapManifest<string>, "svg">): MapArtworkSource {
+  return { url: mapArtworkUrl(manifest), prepare: prepareMapArtworkMarkup };
+}
+
+/**
+ * Prepared artwork in two parts, as a map's raster planes split it: what
+ * paints under the overlays (lines and other art), and the station and name
+ * layers (`overLayers`, CSS selectors) that paint over them. For a map with no
+ * raster planes. Every id stays in exactly one part: the over part drops its
+ * definitions (references resolve to the under part's) and its wrappers' ids.
+ */
+export function splitMapArtwork(markup: string, overLayers: readonly string[]): { under: string; over: string } {
+  const parser = new DOMParser();
+  const serializer = new XMLSerializer();
+  const selector = overLayers.join(", ");
+  const under = parser.parseFromString(markup, "image/svg+xml").documentElement;
+  under.querySelectorAll(selector).forEach((layer) => layer.remove());
+  const over = parser.parseFromString(markup, "image/svg+xml").documentElement;
+  const kept = [...over.querySelectorAll(selector)];
+  const prune = (parent: Element) => {
+    for (const child of [...parent.children]) {
+      if (kept.includes(child)) continue;
+      if (kept.some((layer) => child.contains(layer))) {
+        child.removeAttribute("id");
+        prune(child);
+      } else {
+        child.remove();
+      }
+    }
+  };
+  over.removeAttribute("id");
+  prune(over);
+  return { under: serializer.serializeToString(under), over: serializer.serializeToString(over) };
+}
 
 export const mapArtworkCache = new Map<string, string>();
 const pendingLoads = new Map<string, Promise<string>>();

@@ -186,9 +186,10 @@
 
 /* Once the raster planes are ready the authored SVG paints nothing: it stays
    in the DOM as the hovered name's glyph source only (visibility, never
-   opacity: 0, which gives hidden content its own GPU layers). It never takes
-   the pointer; targets are React elements in the interaction plane. */
-.map-stage[data-raster-map-ready="true"] .map-authored-svg {
+   opacity: 0, which gives hidden content its own GPU layers). A map with no
+   raster planes keeps painting it. It never takes the pointer; targets are
+   React elements in the interaction plane. */
+.map-stage[data-raster-map-ready="true"]:not([data-raster-planes="none"]) .map-authored-svg {
   visibility: hidden;
 }
 

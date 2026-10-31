@@ -71,7 +71,7 @@ describe("stable raster map renderer", () => {
     assert.match(map, /useMapPulseSync\(rootRef, \{\s*paused: mapEffectMotionPaused/);
     // Ready once every plane the manifest lists has decoded (TTC also has line badges).
     assert.match(map, /manifest\.rasterPlanes\.every\(\(plane\) => readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:\$\{plane\}`\)\)/);
-    assert.match(map, /\{renderRasterPlane\("labels"\)\}/);
+    assert.match(map, /\{overPlanes\.map\(renderRasterPlane\)\}/);
     assert.doesNotMatch(map, /rasterDensity === "desktop"/);
     assert.doesNotMatch(plane, /density === "mobile" && svgViewBox/);
     assert.match(css, /\.linewatch-shell\.mobile-performance-mode \.map-stage\s*\{[^}]*will-change:\s*auto/s);
@@ -91,17 +91,21 @@ describe("stable raster map renderer", () => {
     const under = map.indexOf("{underPlanes.map(renderRasterPlane)}");
     const artwork = map.indexOf("<AuthoredArtwork", under);
     const overlays = map.indexOf("raster-map-dynamic-plane map-overlay-plane", artwork);
-    const foreground = map.indexOf('{renderRasterPlane("foreground")}', overlays);
-    const labels = map.indexOf('{renderRasterPlane("labels")}', foreground);
-    const top = map.indexOf("raster-map-top-plane", labels);
+    const over = map.indexOf("{overPlanes.map(renderRasterPlane)}", overlays);
+    const top = map.indexOf("raster-map-top-plane", over);
     const interaction = map.indexOf("raster-map-interaction-plane", top);
-    assert.ok(under > -1 && artwork > under && overlays > artwork && foreground > overlays && labels > foreground);
-    assert.ok(top > labels && interaction > top);
+    assert.ok(under > -1 && artwork > under && overlays > artwork && over > overlays);
+    assert.ok(top > over && interaction > top);
     assert.match(map, /const UNDER_PLANES: readonly RasterMapPlaneName\[\] = \["background", "badges"\];/);
     assert.match(map, /data-raster-map-ready=\{rasterMapReady/);
     assert.match(css, /\.raster-map-plane--background \{ z-index: 0; \}/);
     assert.match(css, /\.raster-map-interaction-plane \{ z-index: 4; \}/);
-    assert.match(css, /\.map-stage\[data-raster-map-ready="true"\] \.map-authored-svg\s*\{[^}]*visibility:\s*hidden/s);
+    // A map with no raster planes keeps painting its authored SVG.
+    assert.match(css, /\.map-stage\[data-raster-map-ready="true"\]:not\(\[data-raster-planes="none"\]\) \.map-authored-svg\s*\{[^}]*visibility:\s*hidden/s);
+    assert.match(map, /data-raster-planes=\{rasterless \? "none" : undefined\}/);
+    // and paints its authored stations and names over the overlays, as the raster planes do.
+    assert.match(map, /rasterless \? splitMapArtwork\(artwork, \[stationsLayer, stationLabelsLayer\]\)/);
+    assert.ok(map.indexOf("{artworkParts?.over ? <AuthoredArtwork") > map.indexOf("{overPlanes.map(renderRasterPlane)}"));
   });
 
   it("preserves authored label weights and theme-aware interchange leaders", async () => {
@@ -131,7 +135,8 @@ describe("stable raster map renderer", () => {
     assert.match(stationLayers, /<mask id=\{ids\.labelMask\} maskUnits="userSpaceOnUse" \{\.\.\.bounds\}>\s*<g mask=\{`url\(#\$\{ids\.targetMask\}\)`\}>/);
     assert.match(stationLayers, /<feMorphology in="SourceAlpha" operator="dilate" radius=\{dilate\} result="expandedTargetAlpha" \/>/);
     assert.match(stationLayers, /clipPath=\{`url\(#\$\{ids\.clip\}\)`\} filter=\{`url\(#\$\{ids\.whiteAlpha\}\)`\}/);
-    assert.match(map, /labelsSource=\{rasterMapSource\(manifest\.id, "labels", rasterTheme, rasterDensity\)\}/);
+    assert.match(map, /labelsSource = manifest\.rasterPlanes\.includes\("labels"\)\s*\? rasterMapSource\(manifest\.id as RasterMapId, "labels", rasterTheme, rasterDensity\)\s*: null;/);
+    assert.match(map, /labelsSource=\{labelsSource\}/);
     assert.match(map, /cutoutElementHref: labelCutout && "href" in labelCutout \? labelCutout\.href : null,/);
     assert.match(map, /cutoutMarkup: labelCutout && "markup" in labelCutout \? labelCutout\.markup : null,/);
     assert.match(

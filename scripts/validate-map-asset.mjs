@@ -4,14 +4,17 @@
  * (frontend/src/app/map-manifests.ts) before it replaces the served asset.
  * The contract is docs/map-asset-contract.md.
  *
- *   node scripts/validate-map-asset.mjs <ttc|regional> [path/to/map.svg]
+ *   node scripts/validate-map-asset.mjs <map id> [path/to/map.svg]
+ *   node scripts/validate-map-asset.mjs --manifest <module> [path/to/map.svg]
  *
- * Without a path it checks the served SVG. Exits 1 when the SVG breaks the
+ * A map id names a manifest in MAP_MANIFESTS; --manifest takes the manifest a
+ * module exports by default (a map not shipped yet, or a test fixture).
+ * Without a path it checks the manifest's SVG. Exits 1 when the SVG breaks the
  * contract; warnings alone exit 0.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { MAP_MANIFESTS } from "../frontend/src/app/map-manifests.ts";
 import { RASTER_MAP_DENSITIES, RASTER_MAP_THEMES } from "../frontend/src/app/map-raster-manifest.ts";
@@ -102,6 +105,19 @@ export function validateMapAsset(manifest, markup, rasterFileExists = null) {
       if (labelled.has(stationId)) errors.push(`${stationId} has two names: "${labelled.get(stationId)}" and "${name}".`);
       labelled.set(stationId, name);
     }
+    // A name lifted with a `use` cutout is drawn out of its layer, so it must
+    // set its own font: a `<use>` copy does not inherit the layer's styles.
+    if (manifest.stationLabels?.cutout.kind === "use") {
+      const fontOf = (element) => ["font-size", "font-family"].filter((property) => (
+        element.attributes[property] !== undefined || new RegExp(`(^|;)\\s*${property}\\s*:`).test(element.attributes.style ?? "")
+      ));
+      for (const label of labels) {
+        const tspans = [...descendants(label)].filter((element) => element.tag === "tspan");
+        const missing = ["font-size", "font-family"].filter((property) => !fontOf(label).includes(property)
+          && !(tspans.length > 0 && tspans.every((tspan) => fontOf(tspan).includes(property))));
+        if (missing.length > 0) errors.push(`Station name "${textContent(label)}" does not set its own ${missing.join(" and ")}; its lifted copy would lose the layer's.`);
+      }
+    }
     const unnamed = stations.filter((id) => !labelled.has(id));
     if (unnamed.length > 0) warnings.push(`Stations without a drawn name: ${unnamed.join(", ")}.`);
   }
@@ -128,11 +144,16 @@ export function validateMapAsset(manifest, markup, rasterFileExists = null) {
   return { errors, warnings };
 }
 
-function main() {
-  const [mapId, svgPath] = process.argv.slice(2);
-  const manifest = MAP_MANIFESTS[mapId];
+async function main() {
+  const args = process.argv.slice(2);
+  const fromModule = args[0] === "--manifest" && args[1];
+  const manifest = fromModule
+    ? (await import(pathToFileURL(resolve(args[1])).href)).default
+    : MAP_MANIFESTS[args[0]];
+  const svgPath = args[fromModule ? 2 : 1];
   if (!manifest) {
     console.error(`Usage: validate-map-asset.mjs <${Object.keys(MAP_MANIFESTS).join("|")}> [map.svg]`);
+    console.error("       validate-map-asset.mjs --manifest <module> [map.svg]");
     process.exit(2);
   }
   const frontend = resolve(dirname(fileURLToPath(import.meta.url)), "../frontend");
@@ -149,4 +170,4 @@ function main() {
   if (errors.length > 0) process.exit(1);
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

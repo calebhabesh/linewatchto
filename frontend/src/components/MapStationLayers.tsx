@@ -240,7 +240,8 @@ const WHITE_ALPHA = "0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0";
 /**
  * The hovered station name, lifted above the map: the label texture's pixels
  * inside the name's box, masked to its glyphs so a neighbouring name never
- * enters the copy. The label plane cuts the same glyphs out underneath it.
+ * enters the copy. The label plane cuts the same glyphs out underneath it. A
+ * map without a label texture lifts the authored glyphs themselves.
  */
 export function MapStationLabelHoverCopy({
   idPrefix,
@@ -258,8 +259,8 @@ export function MapStationLabelHoverCopy({
   dilate: number;
   /** False while the copy lingers after the hover ends. */
   active: boolean;
-  /** The label texture's URL. */
-  labelsSource: string;
+  /** The label texture's URL, or null when the map has none. */
+  labelsSource: string | null;
   viewBox: MapBounds;
 }) {
   const ids = {
@@ -270,6 +271,16 @@ export function MapStationLabelHoverCopy({
     labelMask: `${idPrefix}-hovered-station-label-mask`,
   };
   const { bounds, center } = hover;
+  const style = { transformOrigin: `${center.x - viewBox.x}px ${center.y - viewBox.y}px` };
+  if (!labelsSource) {
+    return (
+      <g aria-hidden="true" className="raster-station-label-text-hover" data-hover-active={active} style={style}>
+        {"href" in cutout
+          ? <use href={cutout.href} visibility="visible" />
+          : <g dangerouslySetInnerHTML={{ __html: cutout.markup }} />}
+      </g>
+    );
+  }
   const image = {
     href: labelsSource,
     x: viewBox.x,
@@ -284,7 +295,7 @@ export function MapStationLabelHoverCopy({
       className="raster-station-label-text-hover"
       data-hover-active={active}
       // transform-box: view-box measures from the view box's origin.
-      style={{ transformOrigin: `${center.x - viewBox.x}px ${center.y - viewBox.y}px` }}
+      style={style}
     >
       <defs>
         <clipPath id={ids.clip} clipPathUnits="userSpaceOnUse">

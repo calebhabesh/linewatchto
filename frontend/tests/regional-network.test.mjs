@@ -628,7 +628,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalLineAlertsSource, /regionalStationPillShape\(geometry, "station-union"\)/);
     // Hover copies sit in the overlay plane under the station artwork; targets
     // are in the interaction plane, line alerts under stations.
-    assert.match(regionalMapSource, /className=\{`raster-map-dynamic-plane map-overlay-plane[\s\S]*?<MapLineAlertHoverCopies alerts=\{lineAlerts\} plane=\{overlayPlane\} \/>[\s\S]*?\{renderRasterPlane\("foreground"\)\}/);
+    assert.match(regionalMapSource, /className=\{`raster-map-dynamic-plane map-overlay-plane[\s\S]*?<MapLineAlertHoverCopies alerts=\{lineAlerts\} plane=\{overlayPlane\} \/>[\s\S]*?\{overPlanes\.map\(renderRasterPlane\)\}/);
     assert.match(regionalMapSource, /<MapLineAlertTargets alerts=\{lineAlerts\} \/>[\s\S]*?<MapStationTargets/);
     assert.match(regionalMapSource, /<g ref=\{previewOutlineLayerRef\} id=\{layerId\("top-hover"\)\} className="map-impact-preview-outline-layer" \/>/);
     // A station alert's hover lights its shared hover priority ring, as on TTC.
@@ -853,7 +853,7 @@ describe("network-scoped regional dashboard", () => {
 
   it("keeps the serialized regional SVG mounted while camera state commits", () => {
     assert.match(regionalMapSource, /const AuthoredArtwork = memo\(function AuthoredArtwork/);
-    assert.match(regionalMapSource, /<AuthoredArtwork markup=\{artwork\} \/>/);
+    assert.match(regionalMapSource, /<AuthoredArtwork markup=\{artworkParts\.under\} \/>/);
     assert.doesNotMatch(
       regionalMapSource,
       /<div dangerouslySetInnerHTML=\{\{ __html: svgMarkup \}\}/,

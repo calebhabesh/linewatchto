@@ -29,6 +29,14 @@ describe("prepared System Map geometry", () => {
     });
   }
 
+  it("the drop-in fixture map's geometry matches its SVG (prepare:map-geometry --manifest after changing it)", async () => {
+    const { default: fixture } = await import("./fixtures/drop-in-map/drop-in-map-manifest.ts");
+    const geometry = JSON.parse(read(fixture.geometry).toString("utf8"));
+    assert.equal(geometry.format, MAP_GEOMETRY_FORMAT);
+    assert.equal(geometry.map, fixture.id);
+    assert.equal(geometry.source.sha256, createHash("sha256").update(read(fixture.svg)).digest("hex"));
+  });
+
   it("holds every station's dots, name and the routes in both maps", () => {
     for (const source of Object.values(MAP_GEOMETRY_SOURCES)) {
       const geometry = JSON.parse(read(source.geometry).toString("utf8"));
