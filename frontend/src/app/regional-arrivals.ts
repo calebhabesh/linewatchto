@@ -621,31 +621,34 @@ export function groupRegionalStationArrivals(
     });
 }
 
+// Built once: a station panel formats two clock times per arrival row, and
+// constructing a formatter costs far more than using one.
+const ARRIVAL_CLOCK_FORMAT = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/Toronto",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+const ARRIVAL_DATE_KEY_FORMAT = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Toronto",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+const ARRIVAL_WEEKDAY_FORMAT = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/Toronto",
+  weekday: "short",
+});
+
 export function formatRegionalArrivalClockTime(value: string, now: Date | number = Date.now()) {
   if (!value) return "";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "";
-  const time = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Toronto",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(parsed);
-  const dateKey = (date: Date) => new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Toronto",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
+  const time = ARRIVAL_CLOCK_FORMAT.format(parsed);
   const current = new Date(now);
-  const todayKey = dateKey(current);
-  const arrivalKey = dateKey(parsed);
-  if (arrivalKey === todayKey) return time;
+  const arrivalKey = ARRIVAL_DATE_KEY_FORMAT.format(parsed);
+  if (arrivalKey === ARRIVAL_DATE_KEY_FORMAT.format(current)) return time;
   const tomorrow = new Date(current.getTime() + 86_400_000);
-  if (arrivalKey === dateKey(tomorrow)) return `Tomorrow, ${time}`;
-  const day = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Toronto",
-    weekday: "short",
-  }).format(parsed);
-  return `${day}, ${time}`;
+  if (arrivalKey === ARRIVAL_DATE_KEY_FORMAT.format(tomorrow)) return `Tomorrow, ${time}`;
+  return `${ARRIVAL_WEEKDAY_FORMAT.format(parsed)}, ${time}`;
 }

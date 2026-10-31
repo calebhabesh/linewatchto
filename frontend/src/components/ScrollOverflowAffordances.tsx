@@ -80,11 +80,14 @@ export function ScrollOverflowAffordances() {
         entries.forEach((entry) => updateOverflowAffordance(entry.target as HTMLElement));
       });
 
+    // A new list is measured by the resize observer's first callback, which
+    // runs after the browser's own layout. Reading its size here instead would
+    // force a layout of the whole page while a panel is still mounting.
     const registerElement = (element: HTMLElement) => {
       if (trackedElements.has(element)) return;
       trackedElements.add(element);
-      resizeObserver?.observe(element);
-      updateOverflowAffordance(element);
+      if (resizeObserver) resizeObserver.observe(element);
+      else updateOverflowAffordance(element);
     };
     const unregisterElement = (element: HTMLElement) => {
       if (!trackedElements.delete(element)) return;
@@ -106,6 +109,20 @@ export function ScrollOverflowAffordances() {
       }
     };
     const handleResize = () => trackedElements.forEach(updateOverflowAffordance);
+    // Lists whose content changed, measured together in the next frame.
+    const changedLists = new Set<HTMLElement>();
+    let pendingListFrame: number | null = null;
+    const scheduleListUpdate = (list: HTMLElement) => {
+      changedLists.add(list);
+      if (pendingListFrame !== null) return;
+      pendingListFrame = window.requestAnimationFrame(() => {
+        pendingListFrame = null;
+        changedLists.forEach((element) => {
+          if (trackedElements.has(element)) updateOverflowAffordance(element);
+        });
+        changedLists.clear();
+      });
+    };
     let pendingAnimationFrame: number | null = null;
     const scheduleUpdate = () => {
       if (pendingAnimationFrame !== null) return;
@@ -129,7 +146,7 @@ export function ScrollOverflowAffordances() {
               ? target
               : target.closest<HTMLElement>(SCROLL_LIST_SELECTOR);
             if (owningList && trackedElements.has(owningList)) {
-              updateOverflowAffordance(owningList);
+              scheduleListUpdate(owningList);
             }
           }
         } else if (mutation.type === "attributes") {
@@ -143,7 +160,7 @@ export function ScrollOverflowAffordances() {
                 ? target
                 : target.closest<HTMLElement>(SCROLL_LIST_SELECTOR);
               if (owningList && trackedElements.has(owningList)) {
-                updateOverflowAffordance(owningList);
+                scheduleListUpdate(owningList);
               }
             }
           }
@@ -171,6 +188,7 @@ export function ScrollOverflowAffordances() {
       mutationObserver.disconnect();
       resizeObserver?.disconnect();
       if (pendingAnimationFrame !== null) window.cancelAnimationFrame(pendingAnimationFrame);
+      if (pendingListFrame !== null) window.cancelAnimationFrame(pendingListFrame);
       trackedElements.forEach((element) => {
         element.removeAttribute(MORE_BELOW_ATTRIBUTE);
         element.removeAttribute("data-scroll-more-right");

@@ -20,8 +20,22 @@ function normalizeIntlSpacing(value: string): string {
   return value.replace(/\u202f/g, " ").replace(/\s+/g, " ").trim();
 }
 
+// Constructing a formatter costs far more than using one, and panels format
+// many timestamps per render, so formatters are reused per locale and options.
+const dateTimeFormats = new Map<string, Intl.DateTimeFormat>();
+
+function dateTimeFormat(locale: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = `${locale}|${JSON.stringify(options)}`;
+  let format = dateTimeFormats.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat(locale, options);
+    dateTimeFormats.set(key, format);
+  }
+  return format;
+}
+
 function zonedDateParts(date: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
+  const parts = dateTimeFormat("en-CA", {
     day: "2-digit",
     month: "2-digit",
     timeZone,
@@ -48,7 +62,7 @@ function isSameZonedYear(a: Date, b: Date, timeZone: string): boolean {
 
 function formatClockTime(date: Date, timeZone: string): string {
   return normalizeIntlSpacing(
-    new Intl.DateTimeFormat("en-US", {
+    dateTimeFormat("en-US", {
       hour: "numeric",
       hour12: true,
       minute: "2-digit",
@@ -62,7 +76,7 @@ function formatDateAnchor(date: Date, now: Date, timeZone: string): string {
     ? { day: "numeric", month: "short", timeZone }
     : { day: "numeric", month: "short", timeZone, year: "numeric" };
 
-  return normalizeIntlSpacing(new Intl.DateTimeFormat("en-US", options).format(date));
+  return normalizeIntlSpacing(dateTimeFormat("en-US", options).format(date));
 }
 
 function formatCompactAge(timestamp: Date, now: Date): string {
@@ -169,7 +183,7 @@ export function formatFullImpactTimestamp(
   if (!date) return timestamp;
 
   return normalizeIntlSpacing(
-    new Intl.DateTimeFormat("en-US", {
+    dateTimeFormat("en-US", {
       day: "numeric",
       hour: "numeric",
       hour12: true,
