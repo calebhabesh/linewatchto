@@ -3,14 +3,7 @@ import { CommuteRouteLabel } from "./CommuteRouteLabel";
 import { CardinalNorthIcon } from "./CardinalNorthIcon";
 
 import { usePanZoom } from "../hooks/usePanZoom";
-import {
-  observeMobileMapFrame,
-  readCommutePreviewInset,
-  readMobileImpactInspectorInset,
-  readMobileImpactInspectorTop,
-  readMobilePillBottom,
-  readMobileStationSubmenuTop,
-} from "../hooks/mobileMapFrame";
+import { observeMobileMapFrame } from "../hooks/mobileMapFrame";
 import { useRetainedHover } from "../hooks/useRetainedHover";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import {
@@ -59,7 +52,6 @@ import {
   cancelRegionalTrainMarkerMotion,
   type RegionalTrainMarkerMotionRuntime,
 } from "../app/regional-train-marker-motion";
-import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
 import {
   getRegionalMapMarkup,
   preloadRegionalMapMarkup,
@@ -80,7 +72,6 @@ import {
   regionalStationLabelHover,
   REGIONAL_OVERLAP_INDICATOR_SCALE,
   REGIONAL_OVERLAY_UNIT,
-  type RegionalCollisionBox,
   type RegionalTrainMarkerFrame,
 } from "../app/regional-map-geometry";
 import type { PreparedMapGeometry } from "../app/map-geometry-data";
@@ -90,8 +81,6 @@ import {
   regionalOverlayContentSignature,
   regionalPointerImpactSelection,
   regionalOverlapMarker,
-  regionalOverlapMarkerRestingRect,
-  regionalOverlapChooserLayout,
   REGIONAL_DYNAMIC_COMMUTE_LAYER_ID,
   REGIONAL_DYNAMIC_HOVER_LAYER_ID,
   REGIONAL_DYNAMIC_SEGMENT_LAYER_ID,
@@ -117,64 +106,37 @@ import {
   RegionalStationTargets,
 } from "./RegionalStationLayers";
 import { clearMapStationHover, setMapStationHovered } from "./map-overlays/station-hover";
-import { affectedOutlinesOnScreen } from "./map-overlays/overlap-badge-layout";
 import type { MapBounds, MapPoint } from "../app/map-geometry";
 
 type SvgPoint = MapPoint;
 type SvgBounds = MapBounds;
 
 import { MapOverlapIndicator, restoreMapOverlapIndicatorFocus } from "./MapOverlapIndicator";
-import {
-  MapOverlapChooser,
-  type MapOverlapChooserLayout,
-} from "./MapOverlapChooser";
+import { MapOverlapChooser } from "./MapOverlapChooser";
 import { isMapWheelScrollRegionTarget, usePreventMapWheelDefault } from "./map-wheel-events";
-import { useCommittedCamera } from "./map-camera/camera-store";
 import { MapZoomSlider } from "./map-camera/MapZoomSlider";
 import {
-  clampPanZoomScale,
-  clientPointToLogicalViewportPoint,
-  clientRectToLogicalViewportBounds,
-  computeBoundedMapFrame,
-  computeInsetViewportFocus,
-  logicalViewportSizeForOrientation,
   type MapContentBounds,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
-import { readDesktopLeftOcclusion, measureDesktopMapInsets } from "../app/desktop-sidebar-state";
-import {
-  FOCUS_REVEAL_DURATION_MS,
-  focusRevealSafeArea,
-  focusRevealTranslation,
-  logicalBoxFromClientRect,
-  shouldRevealFocusedMapTarget,
-  type MapEdgeInsets,
-} from "../app/map-focus-reveal";
+import { mapFocusTargetKey, useDesktopMapInsets, useMapFraming } from "./map-camera/useMapFraming";
+import { useMapOverlapChooser, useMapViewportSize } from "./map-overlays/useMapOverlapChooser";
+import { meetStageTransform } from "./map-chooser-placement";
+import { MAP_MANIFESTS } from "../app/map-manifests";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
 import { useMapLabelFontReady } from "../hooks/useMapLabelFontReady";
 import { usePageVisibility } from "../hooks/usePageVisibility";
 import { linkedCurrentImpactIds } from "../app/selection-attention-key";
-import { overlapChooserSize as mapOverlapChooserSize } from "./map-chooser-layout";
 import {
   MapChooserFollower,
-  chooserBadgeInView,
-  projectPointToCamera,
-  type ChooserFollowAnchor,
 } from "./map-chooser-follow";
-import { observeMapChooserKeepouts, visibleMapChooserKeepouts } from "./map-chooser-keepouts";
 
-const MAP_WIDTH = 4739.2821;
-const MAP_HEIGHT = 2616.8174;
+const REGIONAL_MANIFEST = MAP_MANIFESTS.regional;
+const MAP_WIDTH = REGIONAL_MANIFEST.stage.width;
+const MAP_HEIGHT = REGIONAL_MANIFEST.stage.height;
 const REGIONAL_MAP_HORIZONTAL_INSET_RATIO = 0.025;
-// Custom regional map visible-art bounds, spanning from Kitchener/Stratford (x≈53.1px)
-// through x≈4673.5px to include Durham College Oshawa, VIA Rail badges, and the Cardinal North compass.
-const REGIONAL_MAP_CONTENT_BOUNDS: MapContentBounds = {
-  x: 53.08,
-  y: 110.78,
-  width: 4620.46,
-  height: 2395.26,
-};
+const REGIONAL_MAP_CONTENT_BOUNDS: MapContentBounds = REGIONAL_MANIFEST.contentBounds;
 
 // Default desktop regional frame zoomed out a smidgen to provide comfortable
 // breathing room around Allandale Waterfront text below the top console and
@@ -185,10 +147,8 @@ const REGIONAL_MAP_DESKTOP_FRAME_SCALE = 1;
 // station labels and the authored corridor shape do not crowd the visible map
 // space beside an open desktop panel. Short selections still use the preferred
 // close zoom because their fitted scale remains above that cap.
-const REGIONAL_SELECTION_FIT_COMFORT_RATIO = 0.82;
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 // Frames to wait for a stage ease to land before solving the chooser anyway.
-const REGIONAL_CHOOSER_SETTLE_FRAME_LIMIT = 30;
 
 function setRegionalTrainMarkerTransform(group: SVGGElement, frame: RegionalTrainMarkerFrame) {
   group.setAttribute(
@@ -238,44 +198,20 @@ function appendRegionalTrainMarkerGlyph(documentNode: Document, group: SVGGEleme
 
 
 
-type RegionalOverlapChooserPlacement = {
-  markerId: string;
-  layout: MapOverlapChooserLayout;
-  size: { width: number; height: number };
-  viewportSize: { width: number; height: number };
-  followAnchor: ChooserFollowAnchor;
-  coversAffectedArea: boolean;
-};
-
-function regionalChooserPlacementsMatch(
-  current: RegionalOverlapChooserPlacement,
-  next: RegionalOverlapChooserPlacement,
-): boolean {
-  const near = (first: number, second: number) => Math.abs(first - second) < 0.5;
-  const currentCamera = current.followAnchor.camera;
-  const nextCamera = next.followAnchor.camera;
-  return near(current.layout.left, next.layout.left)
-    && near(current.layout.top, next.layout.top)
-    && near(current.layout.anchorOffsetX, next.layout.anchorOffsetX)
-    && near(current.layout.anchorOffsetY, next.layout.anchorOffsetY)
-    && current.size.width === next.size.width
-    && current.size.height === next.size.height
-    && current.viewportSize.width === next.viewportSize.width
-    && current.viewportSize.height === next.viewportSize.height
-    && current.coversAffectedArea === next.coversAffectedArea
-    && near(current.followAnchor.badge.x, next.followAnchor.badge.x)
-    && near(current.followAnchor.badge.y, next.followAnchor.badge.y)
-    && near(currentCamera?.x ?? 0, nextCamera?.x ?? 0)
-    && near(currentCamera?.y ?? 0, nextCamera?.y ?? 0)
-    && Math.abs((currentCamera?.scale ?? 0) - (nextCamera?.scale ?? 0)) < 0.0001;
-}
 /** The authored SVG: artwork until the raster planes are ready, and a geometry source. */
 const RegionalSvgMarkup = memo(function RegionalSvgMarkup({ markup }: { markup: string }) {
   return <div dangerouslySetInnerHTML={{ __html: markup }} className="regional-live-svg raster-map-dynamic-plane absolute inset-0 w-full h-full" />;
 });
 
 /** The map's SVG planes share the authored SVG's view box. */
-const REGIONAL_PLANE_VIEWBOX = "-200 -200 17036.959 9031.6719";
+const REGIONAL_PLANE_VIEWBOX = [
+  REGIONAL_MANIFEST.viewBox.x,
+  REGIONAL_MANIFEST.viewBox.y,
+  REGIONAL_MANIFEST.viewBox.width,
+  REGIONAL_MANIFEST.viewBox.height,
+].join(" ");
+/** Each plane fills the stage with xMidYMid meet. */
+const REGIONAL_STAGE = meetStageTransform(REGIONAL_MANIFEST.viewBox, MAP_WIDTH, MAP_HEIGHT);
 
 
 function InteractiveRegionalMapComponent({
@@ -347,15 +283,14 @@ function InteractiveRegionalMapComponent({
   const viewportRef = useRef<HTMLDivElement>(null);
   const mapStageRef = useRef<HTMLDivElement>(null);
   const mapControlRailRef = useRef<HTMLDivElement>(null);
-  const cameraCommandsEnabledRef = useRef(cameraCommandsEnabled);
-  useEffect(() => {
-    cameraCommandsEnabledRef.current = cameraCommandsEnabled;
-  }, [cameraCommandsEnabled]);
+  const mapViewportSize = useMapViewportSize(viewportRef, viewportOrientation);
+  const desktopInsets = useDesktopMapInsets(viewportRef, mapControlRailRef, mapChromeVisible);
+  const desktopMapTopInset = desktopInsets.top;
+  const desktopMapBottomInset = desktopInsets.bottom;
   const isMapActiveRef = useRef(isMapActive);
   useEffect(() => {
     isMapActiveRef.current = isMapActive;
   }, [isMapActive]);
-  const lastRecenterSignalRef = useRef(recenterSignal);
   const lastViewportOrientationRef = useRef(viewportOrientation);
   const automaticResizeRefitBlockedRef = useRef(false);
   const [svgMarkup, setSvgMarkup] = useState(() => getRegionalMapMarkup());
@@ -392,29 +327,9 @@ function InteractiveRegionalMapComponent({
     [activeAlerts, delays, plannedClosures, selection],
   );
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
-  const [overlapChooserPlacement, setOverlapChooserPlacement] = useState<RegionalOverlapChooserPlacement | null>(null);
   const [overlapChooserFollower] = useState(() => new MapChooserFollower());
-  const overlapChooserPlacementRef = useRef<RegionalOverlapChooserPlacement | null>(null);
-  useLayoutEffect(() => {
-    overlapChooserPlacementRef.current = overlapChooserPlacement;
-  }, [overlapChooserPlacement]);
-  const [chooserKeepoutRevision, setChooserKeepoutRevision] = useState(0);
   const [cameraReady, setCameraReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
-  const [desktopMapTopInset, setDesktopMapTopInset] = useState(() => {
-    if (typeof window === "undefined" || window.innerWidth < 768) return 0;
-    const rail = document.querySelector<HTMLElement>(".desktop-map-control-rail");
-    const root = document.querySelector<HTMLElement>(".regional-map-container")
-      ?? document.querySelector<HTMLElement>(".network-map-transition-surface");
-    return measureDesktopMapInsets(root, rail).top;
-  });
-  const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(() => {
-    if (typeof window === "undefined" || window.innerWidth < 768) return 0;
-    const rail = document.querySelector<HTMLElement>(".desktop-map-control-rail");
-    const root = document.querySelector<HTMLElement>(".regional-map-container")
-      ?? document.querySelector<HTMLElement>(".network-map-transition-surface");
-    return measureDesktopMapInsets(root, rail).bottom;
-  });
   const [activeHoveredStationLabel, setHoveredStationLabel] = useState<{
     stationId: string;
     polygonPoints: string;
@@ -428,9 +343,6 @@ function InteractiveRegionalMapComponent({
   const useMobileRendering = mobilePerformanceMode || mobilePerformanceModeMatches();
   const mapEffectMotionPaused = reducedMotion || !pageVisible;
 
-  useLayoutEffect(() => observeMapChooserKeepouts(() => {
-    setChooserKeepoutRevision((revision) => revision + 1);
-  }), []);
   const rasterTheme: RasterMapTheme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
   // Select the mobile textures on the first client render. Waiting for the
   // shell effect would start decoding all three desktop planes on phones.
@@ -468,8 +380,6 @@ function InteractiveRegionalMapComponent({
   const readyNotifiedRef = useRef(false);
   const lastOverlayInputsRef = useRef<unknown[] | null>(null);
   const entranceWasDeferredRef = useRef(false);
-  const lastFocusedTargetKeyRef = useRef<string | null>(null);
-  const lastFocusLayoutKeyRef = useRef("");
 
   // The shared System Map camera (hooks/usePanZoom.ts), as on TTC. GO/UP
   // supplies its framing as data and keeps its tap-to-select resolution.
@@ -514,6 +424,7 @@ function InteractiveRegionalMapComponent({
     currentRenderedTransform,
     shouldSuppressMapClick,
     refitIfCameraUntouched,
+    isGestureActive,
   } = usePanZoom({
     persistenceKey: "regional",
     persistenceBlocked: cameraOwnedBySelection,
@@ -534,38 +445,6 @@ function InteractiveRegionalMapComponent({
     selectionRef.current = selection;
     selectedStationIdRef.current = selectedStationId;
   }, [selectedStationId, selection]);
-
-  useLayoutEffect(() => {
-    const viewport = viewportRef.current;
-    const mapSurface = viewport?.closest<HTMLElement>(".network-map-transition-surface");
-    const shell = viewport?.closest<HTMLElement>(".linewatch-shell");
-    const rail = mapControlRailRef.current ?? shell?.querySelector<HTMLElement>(".desktop-map-control-rail");
-    if (!viewport || !mapSurface) return;
-
-    const measureDesktopInsets = () => {
-      const insets = measureDesktopMapInsets(viewport, rail);
-      setDesktopMapTopInset((current) => current === insets.top ? current : insets.top);
-      setDesktopMapBottomInset((current) => current === insets.bottom ? current : insets.bottom);
-    };
-
-    measureDesktopInsets();
-    const observer = new ResizeObserver(measureDesktopInsets);
-    observer.observe(viewport);
-    observer.observe(mapSurface);
-    if (rail) observer.observe(rail);
-    const legend = document.querySelector<HTMLElement>(".desktop-map-legend");
-    if (legend) observer.observe(legend);
-    window.addEventListener("resize", measureDesktopInsets);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", measureDesktopInsets);
-    };
-  }, [mapChromeVisible]);
-
-  // Desktop insets and the phone's open sheet reframe an untouched camera.
-  useEffect(() => {
-    refitIfCameraUntouched();
-  }, [refitIfCameraUntouched]);
 
   useLayoutEffect(() => observeMobileMapFrame(viewportRef.current, () => {
     if (!isMapActive) return;
@@ -588,12 +467,10 @@ function InteractiveRegionalMapComponent({
     completeStagedEntrance();
   }, [completeStagedEntrance]);
 
-  const focusTargetKey = useMemo(() => {
-    if (selection) return `${selection.kind}:${selection.id}:${selectionAttentionGeneration}`;
-    if (selectedStationId) return `station:${selectedStationId}`;
-    if (commutePathPreview) return `commute:${commutePathPreview.id}:${commutePathPreview.legId}`;
-    return null;
-  }, [commutePathPreview, selection, selectedStationId, selectionAttentionGeneration]);
+  const focusTargetKey = useMemo(
+    () => mapFocusTargetKey({ selection, selectedStationId, commutePathPreview }, selectionAttentionGeneration),
+    [commutePathPreview, selection, selectedStationId, selectionAttentionGeneration],
+  );
   const selectionIntroKey = mapSelectionIntroKey({
     selection,
     linkedSelectionIntroKey,
@@ -601,20 +478,7 @@ function InteractiveRegionalMapComponent({
     commutePreviewKey: commutePathPreview ? `${commutePathPreview.id}:${commutePathPreview.legId}` : null,
     generation: selectionAttentionGeneration,
   });
-  const selectionIntroComplete = useMapSelectionIntro(selectionIntroKey);
-
-  // The mounted map already fits its current layout. Only new commands
-  // should reset it; replaying a stored command interrupts network entry.
-  const lastHandledLayoutResetSignalRef = useRef(layoutResetSignal ?? 0);
-
-  useEffect(() => {
-    if (!layoutResetSignal || !svgMarkup) return;
-    if (lastHandledLayoutResetSignalRef.current === layoutResetSignal) return;
-    lastHandledLayoutResetSignalRef.current = layoutResetSignal;
-    if (focusTargetKey) return;
-    const resetTimer = window.setTimeout(() => recenter(), 320);
-    return () => window.clearTimeout(resetTimer);
-  }, [focusTargetKey, recenter, layoutResetSignal, svgMarkup]);
+  const selectionIntroComplete = useMapSelectionIntro(selectionIntroKey, regionalMapRef);
 
   const initializeMapCamera = useCallback(() => {
     if (isCameraInitialized() || !svgMarkup) return;
@@ -877,15 +741,6 @@ function InteractiveRegionalMapComponent({
   }, [cameraReady, deferInitialEntrance, onReady, rasterMapReady, svgMarkup]);
 
   useEffect(() => {
-    // Treat this as an edge-triggered command. A remount or data refresh must
-    // never replay an old Center request that is still stored by the shell.
-    if (recenterSignal === undefined || recenterSignal === lastRecenterSignalRef.current) return;
-    lastRecenterSignalRef.current = recenterSignal;
-    if (!cameraCommandsEnabledRef.current) return;
-    handleFitNetwork();
-  }, [handleFitNetwork, recenterSignal]);
-
-  useEffect(() => {
     if (lastViewportOrientationRef.current === viewportOrientation) return;
     lastViewportOrientationRef.current = viewportOrientation;
     if (!isCameraInitialized()) return;
@@ -907,276 +762,40 @@ function InteractiveRegionalMapComponent({
     return () => observer.disconnect();
   }, [initializeMapCamera, isCameraInitialized]);
 
-  const selectedMapElements = useCallback(() => {
-    const root = viewportRef.current;
-    if (!root) return [];
-    if (commutePathPreview && selection) {
-      return [
-        ...root.querySelectorAll<SVGGraphicsElement>(
-          `[data-selected-commute-impact-overlay="${CSS.escape(selection.id)}"], [data-selected-impact-emphasis="${CSS.escape(selection.id)}"], [data-map-impact-id="${CSS.escape(selection.id)}"], [data-regional-station-selection-id="${CSS.escape(selection.id)}"]`,
-        ),
-      ];
-    }
-    if (commutePathPreview) {
-      const preview = root.querySelector<SVGGraphicsElement>(
-        `[data-commute-path-preview="${CSS.escape(commutePathPreview.id)}"]`,
-      );
-      return preview ? [preview] : [];
-    }
-    if (selection) {
-      return [...root.querySelectorAll<SVGGraphicsElement>(
-        `[data-map-impact-kind="${selection.kind}"][data-map-impact-id="${CSS.escape(selection.id)}"]`,
-      )];
-    }
-    if (selectedStationId) {
-      const station = root.querySelector<SVGGraphicsElement>(
-        `[data-regional-station-selection-id="${CSS.escape(selectedStationId)}"]`,
-      );
-      return station ? [station] : [];
-    }
-    return [];
-  }, [commutePathPreview, selectedStationId, selection]);
-
-  /**
-   * Logical-viewport edges covered by the pill, sheets, rail, sidebar, or a
-   * commute preview. Selection framing and keyboard focus keep clear of them.
-   */
-  const readOccludedInsets = useCallback((viewport: HTMLElement, logicalHeight: number, isMobile: boolean) => {
-    const focusPadding = isMobile ? 24 : 40;
-    const topPillBottom = isMobile ? readMobilePillBottom(viewport) : 0;
-    const mobileStationTop = isMobile && selectedStationId
-      ? readMobileStationSubmenuTop(viewport, logicalHeight)
-      : logicalHeight;
-    const mobileImpactTop = isMobile && selection
-      ? readMobileImpactInspectorTop(viewport, logicalHeight)
-      : logicalHeight;
-
-    const insets: MapEdgeInsets = {
-      left: focusPadding,
-      right: focusPadding,
-      top: isMobile
-        ? Math.max(focusPadding, topPillBottom)
-        : Math.max(desktopMapTopInset, focusPadding),
-      bottom: isMobile
-        ? (selectedStationId
-            ? Math.max(focusPadding, logicalHeight - mobileStationTop)
-            : Math.max(focusPadding, logicalHeight - mobileImpactTop))
-        : Math.max(desktopMapBottomInset, focusPadding, readMobileImpactInspectorInset(viewport) + focusPadding),
-    };
-
-    if (commutePathPreview && !selection && !selectedStationId) {
-      insets.bottom = Math.max(insets.bottom, readCommutePreviewInset(viewport));
-    }
-
-    if (!isMobile) {
-      const leftOcclusion = readDesktopLeftOcclusion(viewport, 16);
-      if (leftOcclusion > 0) {
-        insets.left = Math.max(insets.left, leftOcclusion);
-      }
-    }
-
-    return { insets, topPillBottom, mobileStationTop };
-  }, [commutePathPreview, desktopMapBottomInset, desktopMapTopInset, selectedStationId, selection]);
-
-  const focusSelectedMapElements = useCallback(() => {
-    const viewport = viewportRef.current;
-    const elements = selectedMapElements();
-    if (!viewport || elements.length === 0) return false;
-
-    const viewportRect = viewport.getBoundingClientRect();
-    if (viewportRect.width <= 0 || viewportRect.height <= 0) return false;
-
-    const visibleBounds = elements
-      .map((element) => {
-        const rect = element.getBoundingClientRect();
-        if (rect.width <= 0 && rect.height <= 0) return null;
-        if (viewportOrientation === "rotated-landscape") {
-          return {
-            x: rect.top - viewportRect.top,
-            y: viewportRect.width - (rect.right - viewportRect.left),
-            width: rect.height,
-            height: rect.width,
-          };
-        }
-        return {
-          x: rect.left - viewportRect.left,
-          y: rect.top - viewportRect.top,
-          width: rect.width,
-          height: rect.height,
-        };
-      })
-      .filter((bounds): bounds is NonNullable<typeof bounds> => bounds !== null);
-    if (visibleBounds.length === 0) return false;
-
-    const current = readCamera();
-    const left = Math.min(...visibleBounds.map((bounds) => bounds.x));
-    const right = Math.max(...visibleBounds.map((bounds) => bounds.x + bounds.width));
-    const top = Math.min(...visibleBounds.map((bounds) => bounds.y));
-    const bottom = Math.max(...visibleBounds.map((bounds) => bounds.y + bounds.height));
-    const renderedCenterX = (left + right) / 2;
-    const renderedCenterY = (top + bottom) / 2;
-    const mapX = (renderedCenterX - current.x) / current.scale;
-    const mapY = (renderedCenterY - current.y) / current.scale;
-    const { width: logicalWidth, height: logicalHeight } = logicalViewportSize();
-    if (logicalWidth <= 0 || logicalHeight <= 0) return false;
-
-    const isMobile = typeof window !== "undefined" && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches;
-    const effectiveFitScale = defaultTransformForViewport(logicalWidth, logicalHeight).scale;
-    const commutePreviewComfort = commutePathPreview && !selection && !selectedStationId ? 0.82 : 1;
-    const preferredTargetScale = clampPanZoomScale(effectiveFitScale * (isMobile ? 3.8 : 1.8), effectiveFitScale);
-    const { insets: focusInsets, topPillBottom, mobileStationTop } = readOccludedInsets(viewport, logicalHeight, isMobile);
-
-    if (selectedStationId) {
-      const targetScale = preferredTargetScale;
-      const focusX = isMobile
-        ? logicalWidth / 2
-        : (logicalWidth + focusInsets.left - focusInsets.right) / 2;
-      const focusY =
-        isMobile && viewportOrientation !== "rotated-landscape"
-          ? (topPillBottom + mobileStationTop) / 2
-          : (viewportOrientation === "rotated-landscape" ? logicalHeight * 0.34 : logicalHeight / 2);
-
-      animateTransformTo({
-        x: focusX - mapX * targetScale,
-        y: focusY - mapY * targetScale,
-        scale: targetScale,
-      }, effectiveFitScale);
-      return true;
-    }
-
-    const mapBounds = {
-      x: (left - current.x) / current.scale,
-      y: (top - current.y) / current.scale,
-      width: Math.max((right - left) / current.scale, 1),
-      height: Math.max((bottom - top) / current.scale, 1),
-    };
-    const selectionFit = computeBoundedMapFrame(
-      logicalWidth,
-      logicalHeight,
-      mapBounds,
-      focusInsets,
-    );
-    const targetScale = Math.min(
-      clampPanZoomScale(preferredTargetScale, effectiveFitScale),
-      selectionFit.scale * REGIONAL_SELECTION_FIT_COMFORT_RATIO,
-    ) * commutePreviewComfort;
-    const { focusX: baseFocusX, focusY: baseFocusY } = computeInsetViewportFocus(
-      logicalWidth,
-      logicalHeight,
-      focusInsets,
-    );
-    const focusX = baseFocusX;
-    const focusY =
-      viewportOrientation === "rotated-landscape"
-        ? logicalHeight * 0.34
-        : baseFocusY;
-
-    animateTransformTo({
-      x: focusX - mapX * targetScale,
-      y: focusY - mapY * targetScale,
-      scale: targetScale,
-    }, effectiveFitScale);
-    return true;
-  }, [readCamera, 
-    animateTransformTo,
-    commutePathPreview,
-    defaultTransformForViewport,
-    logicalViewportSize,
-    readOccludedInsets,
-    selectedMapElements,
-    selectedStationId,
-    selection,
-    viewportOrientation,
-  ]);
-
-  /** Pans a keyboard-focused target out from under the panels and controls. */
-  const revealFocusedMapTarget = useCallback((target: EventTarget | null) => {
-    const viewport = viewportRef.current;
-    if (!viewport || !cameraReady || !shouldRevealFocusedMapTarget(target, mapStageRef.current)) return;
-    const { width, height } = logicalViewportSize();
-    if (width <= 0 || height <= 0) return;
-    const rect = target.getBoundingClientRect();
-    if (rect.width <= 0 && rect.height <= 0) return;
-    const isMobile = window.matchMedia(MOBILE_VIEWPORT_QUERY).matches;
-    const box = logicalBoxFromClientRect(rect, viewport.getBoundingClientRect(), viewportOrientation);
-    const { insets } = readOccludedInsets(viewport, height, isMobile);
-    const offset = focusRevealTranslation(box, focusRevealSafeArea(width, height, insets));
-    if (!offset) return;
-    const current = currentRenderedTransform() ?? readCamera();
-    animateTransformTo({
-      x: current.x + offset.dx,
-      y: current.y + offset.dy,
-      scale: current.scale,
-    }, undefined, true, FOCUS_REVEAL_DURATION_MS);
-  }, [animateTransformTo, cameraReady, currentRenderedTransform, logicalViewportSize, readCamera, readOccludedInsets, viewportOrientation]);
-
-  useEffect(() => {
-    if (!isCameraInitialized() || !svgMarkup) return;
-    const layoutKey = `${layoutResetSignal ?? 0}:${desktopMapTopInset}:${desktopMapBottomInset}:${viewportOrientation}`;
-
-    if (!focusTargetKey) {
-      if (lastFocusedTargetKeyRef.current !== null) {
-        lastFocusedTargetKeyRef.current = null;
-        lastFocusLayoutKeyRef.current = layoutKey;
-        if (!preserveCameraOnSelectionClear) {
-          const recenterFrame = window.requestAnimationFrame(fitNetwork);
-          return () => window.cancelAnimationFrame(recenterFrame);
-        }
-      }
-      return;
-    }
-    if (
-      lastFocusedTargetKeyRef.current === focusTargetKey
-      && lastFocusLayoutKeyRef.current === layoutKey
-    ) {
-      return;
-    }
-
-    let retryTimer: number | null = null;
-    let attempts = 0;
-    const tryFocus = () => {
-      if (focusSelectedMapElements()) {
-        lastFocusedTargetKeyRef.current = focusTargetKey;
-        lastFocusLayoutKeyRef.current = layoutKey;
-      } else if (attempts < 12) {
-        attempts++;
-        retryTimer = window.setTimeout(tryFocus, 50);
-      }
-    };
-
-    const frame = window.requestAnimationFrame(tryFocus);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      if (retryTimer !== null) window.clearTimeout(retryTimer);
-    };
-  }, [isCameraInitialized, 
-    desktopMapBottomInset,
-    desktopMapTopInset,
-    fitNetwork,
-    focusSelectedMapElements,
+  const { revealFocusedMapTarget } = useMapFraming({
+    camera: {
+      containerRef: viewportRef,
+      mapRef: mapStageRef,
+      readCamera,
+      currentRenderedTransform,
+      logicalViewportSize,
+      defaultTransformForViewport,
+      animateTransformTo,
+      moveToDefaultCamera,
+      clearCameraAdjustment,
+      isGestureActive,
+      recenter,
+      recenterWithFeedback,
+      refitIfCameraUntouched,
+      zoomIn,
+      zoomOut,
+    },
+    ready: cameraReady && Boolean(svgMarkup),
+    contentKey: String(rasterMapReady),
     focusTargetKey,
-    layoutResetSignal,
-    preserveCameraOnSelectionClear,
-    selectedStationId,
-    svgMarkup,
+    desktopInsets,
     viewportOrientation,
-  ]);
-
-  const lastZoomInSignalRef = useRef(zoomInSignal);
-  useEffect(() => {
-    if (zoomInSignal === undefined || zoomInSignal === lastZoomInSignalRef.current) return;
-    lastZoomInSignalRef.current = zoomInSignal;
-    if (!cameraCommandsEnabledRef.current) return;
-    zoomIn();
-  }, [zoomIn, zoomInSignal]);
-
-  const lastZoomOutSignalRef = useRef(zoomOutSignal);
-  useEffect(() => {
-    if (zoomOutSignal === undefined || zoomOutSignal === lastZoomOutSignalRef.current) return;
-    lastZoomOutSignalRef.current = zoomOutSignal;
-    if (!cameraCommandsEnabledRef.current) return;
-    zoomOut();
-  }, [zoomOut, zoomOutSignal]);
+    mobilePerformanceMode,
+    selection,
+    selectedStationId,
+    commutePathPreview,
+    preserveCameraOnSelectionClear,
+    cameraCommandsEnabled,
+    layoutResetSignal,
+    recenterSignal,
+    zoomInSignal,
+    zoomOutSignal,
+  });
 
   // The browser's wheel action (page zoom on a trackpad pinch) stays off the map, as on TTC.
   usePreventMapWheelDefault(viewportRef);
@@ -1275,110 +894,12 @@ function InteractiveRegionalMapComponent({
     const badge = overlapBadges.find((candidate) => candidate.markerId === expandedOverlapBadgeId);
     if (badge) setRegionalOverlapImpactsHovered(badge.impacts, false);
     setExpandedOverlapBadgeId(null);
-    setOverlapChooserPlacement(null);
   }, [expandedOverlapBadgeId, overlapBadges, setRegionalOverlapImpactsHovered]);
 
-  // Solve the chooser only while the camera is at rest. During a drag or a
-  // camera flight the follower keeps the card on its badge; the solve that
-  // runs when the camera commits glides it to its new spot.
-  const positionRegionalOverlapChooser = useCallback((
-    badge: RegionalOverlapBadge,
-    opening = false,
-  ) => {
-    if (!opening && isCameraInteracting()) return false;
-    const viewport = viewportRef.current;
-    const marker = viewport ? regionalOverlapMarker(viewport, badge.markerId) : null;
-    if (!viewport || !marker) return false;
-    // DOM boxes are measured at the camera the stage is showing, which may
-    // still be easing; project them to the camera it is easing to.
-    const targetCamera = readCamera();
-    const renderedCamera = currentRenderedTransform() ?? targetCamera;
-    const toTargetCamera = (box: RegionalCollisionBox): RegionalCollisionBox => {
-      const corner = projectPointToCamera(box, renderedCamera, targetCamera);
-      const ratio = renderedCamera.scale > 0 ? targetCamera.scale / renderedCamera.scale : 1;
-      return { x: corner.x, y: corner.y, width: box.width * ratio, height: box.height * ratio };
-    };
-    const viewportRect = viewport.getBoundingClientRect();
-    const markerRect = regionalOverlapMarkerRestingRect(marker);
-    const logicalViewportSize = logicalViewportSizeForOrientation(
-      viewportRect.width,
-      viewportRect.height,
-      viewportOrientation,
-    );
-    const measuredMarkerRect = clientRectToLogicalViewportBounds(
-      markerRect,
-      viewportRect,
-      viewportOrientation,
-    );
-    if (!measuredMarkerRect) return false;
-    const logicalMarkerRect = toTargetCamera(measuredMarkerRect);
-    const { width, height } = mapOverlapChooserSize(badge.impacts.length, logicalViewportSize.width);
-    const markerCenter = {
-      x: logicalMarkerRect.x + logicalMarkerRect.width / 2,
-      y: logicalMarkerRect.y + logicalMarkerRect.height / 2,
-    };
-    const badgeInView = chooserBadgeInView(markerCenter, logicalViewportSize);
-    const uiKeepoutBoxes = visibleMapChooserKeepouts()
-      .map((element) => clientRectToLogicalViewportBounds(
-        element.getBoundingClientRect(),
-        viewportRect,
-        viewportOrientation,
-      ))
-      .filter((box): box is RegionalCollisionBox => Boolean(box));
-    // The badge's alerts as drawn (their hover outlines), on screen at the
-    // camera the stage is easing to.
-    const planeMatrix = viewport.querySelector<SVGSVGElement>(".regional-overlay-plane")?.getScreenCTM();
-    if (!planeMatrix) return false;
-    const cameraRatio = renderedCamera.scale > 0 ? targetCamera.scale / renderedCamera.scale : 1;
-    const affectedArea = affectedOutlinesOnScreen(
-      badge.affectedOutlines ?? [],
-      ({ x, y }) => projectPointToCamera(clientPointToLogicalViewportPoint({
-        x: planeMatrix.a * x + planeMatrix.c * y + planeMatrix.e,
-        y: planeMatrix.b * x + planeMatrix.d * y + planeMatrix.f,
-      }, viewportRect, viewportOrientation), renderedCamera, targetCamera),
-      Math.hypot(planeMatrix.a, planeMatrix.b) * cameraRatio,
-    );
-    const current = overlapChooserPlacementRef.current;
-    const placement = regionalOverlapChooserLayout({
-      markerCenter,
-      markerSize: logicalMarkerRect,
-      chooserSize: { width, height },
-      viewportSize: logicalViewportSize,
-      affectedArea,
-      uiKeepoutBoxes,
-      // Keep the open card's spot beside its badge while that spot is valid.
-      preferred: !opening && current?.markerId === badge.markerId
-        ? {
-            offsetX: current.layout.left - current.followAnchor.badge.x,
-            offsetY: current.layout.top - current.followAnchor.badge.y,
-            width: current.size.width,
-            height: current.size.height,
-            coversAffectedArea: current.coversAffectedArea,
-          }
-        : null,
-    });
-    const next: RegionalOverlapChooserPlacement = {
-      markerId: badge.markerId,
-      layout: placement.layout,
-      size: placement.size,
-      viewportSize: logicalViewportSize,
-      followAnchor: { badge: markerCenter, camera: { ...targetCamera } },
-      coversAffectedArea: placement.coversAffectedArea,
-    };
-    setOverlapChooserPlacement((current) => {
-      if (!current || current.markerId !== next.markerId) return next;
-      // A badge panned off screen keeps its card attached to it.
-      if (!badgeInView) return current;
-      return regionalChooserPlacementsMatch(current, next) ? current : next;
-    });
-    return true;
-  }, [currentRenderedTransform, isCameraInteracting, readCamera, viewportOrientation]);
-
   const openRegionalOverlapChooser = useCallback((badge: RegionalOverlapBadge) => {
-    if (!positionRegionalOverlapChooser(badge, true)) return;
     setExpandedOverlapBadgeId(badge.markerId);
     setRegionalOverlapImpactsHovered(badge.impacts, true);
-  }, [positionRegionalOverlapChooser, setRegionalOverlapImpactsHovered]);
+  }, [setRegionalOverlapImpactsHovered]);
 
   const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Enter" && event.key !== " ") return;
@@ -1389,39 +910,26 @@ function InteractiveRegionalMapComponent({
   const expandedOverlapBadge = overlapBadges.find(
     (candidate) => candidate.markerId === expandedOverlapBadgeId,
   ) ?? null;
-  // Camera commits re-render this map only while a chooser is open.
-  const chooserCamera = useCommittedCamera(cameraStore, expandedOverlapBadge !== null);
-  useLayoutEffect(() => {
-    if (!expandedOverlapBadge) return;
-    // Solve once the stage has finished easing to the committed camera. On a
-    // busy main thread the short zoom ease can still be running here, and a
-    // card placed early would jump ahead of its badge.
-    let animationFrame = 0;
-    let framesWaited = 0;
-    const solveWhenStill = () => {
-      const target = readCamera();
-      const rendered = currentRenderedTransform() ?? target;
-      const easing = Math.abs(rendered.x - target.x) > 0.5
-        || Math.abs(rendered.y - target.y) > 0.5
-        || Math.abs(rendered.scale - target.scale) > 0.0001;
-      if (easing && framesWaited < REGIONAL_CHOOSER_SETTLE_FRAME_LIMIT) {
-        framesWaited += 1;
-        animationFrame = window.requestAnimationFrame(solveWhenStill);
-        return;
-      }
-      positionRegionalOverlapChooser(expandedOverlapBadge);
-    };
-    animationFrame = window.requestAnimationFrame(solveWhenStill);
-    return () => window.cancelAnimationFrame(animationFrame);
-  }, [
-    chooserCamera,
-    chooserKeepoutRevision,
-    currentRenderedTransform,
-    expandedOverlapBadge,
-    positionRegionalOverlapChooser,
+  const expandedOverlapChooser = useMapOverlapChooser({
+    badge: expandedOverlapBadge && {
+      id: expandedOverlapBadge.markerId,
+      position: expandedOverlapBadge.position,
+      // Badges draw at twice their layout size (MapOverlapIndicator's visualScale).
+      size: {
+        width: expandedOverlapBadge.size.width * REGIONAL_OVERLAP_INDICATOR_SCALE,
+        height: expandedOverlapBadge.size.height * REGIONAL_OVERLAP_INDICATOR_SCALE,
+      },
+      impactCount: expandedOverlapBadge.impacts.length,
+      affectedOutlines: expandedOverlapBadge.affectedOutlines ?? [],
+    },
+    stage: REGIONAL_STAGE,
+    cameraStore,
     readCamera,
+    isCameraInteracting,
+    viewportRef,
+    viewportSize: mapViewportSize,
     viewportOrientation,
-  ]);
+  });
   // A hovered chooser row behaves like hovering that alert on the map; with no
   // row hovered, the chooser previews its whole group as one outline.
   const hoverRegionalChooserImpact = useCallback((impact: MapImpact | null) => {
@@ -1530,6 +1038,10 @@ function InteractiveRegionalMapComponent({
                 <g id={REGIONAL_DYNAMIC_COMMUTE_LAYER_ID}>
                   <MapCommutePreviewRoute preview={commutePreview} />
                 </g>
+                <g id={REGIONAL_DYNAMIC_HOVER_LAYER_ID} className="regional-impact-hover-foreground-layer">
+                  <MapLineAlertHoverCopies alerts={lineAlerts} plane={overlayPlane} />
+                </g>
+                {/* The selected alert's flash stays above hover copies, so hovering never hides it. */}
                 <g id={REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID} className="regional-selected-segment-layer">
                   <MapLineAlertSelection
                     alerts={lineAlerts.filter((alert) => isSelectedLineAlert(alert, selection))}
@@ -1537,9 +1049,6 @@ function InteractiveRegionalMapComponent({
                     commutePreviewActive={Boolean(commutePathPreview)}
                     introComplete={selectionIntroComplete}
                   />
-                </g>
-                <g id={REGIONAL_DYNAMIC_HOVER_LAYER_ID} className="regional-impact-hover-foreground-layer">
-                  <MapLineAlertHoverCopies alerts={lineAlerts} plane={overlayPlane} />
                 </g>
                 <RegionalStationHoverIndicators stations={stationArtwork} selectedStationId={selectedStationId} />
               </g>
@@ -1752,25 +1261,22 @@ function InteractiveRegionalMapComponent({
           />
         ) : null}
       </div>
-      {expandedOverlapBadge && overlapChooserPlacement?.markerId === expandedOverlapBadge.markerId ? (
+      {expandedOverlapBadge && expandedOverlapChooser ? (
         <MapOverlapChooser
           key={expandedOverlapBadge.markerId}
           selectionKey={focusTargetKey}
           markerId={expandedOverlapBadge.markerId}
           label={expandedOverlapBadge.label}
           impacts={expandedOverlapBadge.impacts}
-          chooserSize={overlapChooserPlacement.size}
-          collisionAvoided
-          layout={overlapChooserPlacement.layout}
+          layout={expandedOverlapChooser.layout}
           follower={overlapChooserFollower}
-          followAnchor={overlapChooserPlacement.followAnchor}
+          followAnchor={expandedOverlapChooser.followAnchor}
           onSelectImpact={onSelectImpact}
           onHoverImpact={hoverRegionalChooserImpact}
           onClose={closeRegionalChooserWithFocus}
           reducedMotion={reducedMotion}
-          compactMotion={overlapChooserPlacement.size.width <= 280}
           viewportOrientation={viewportOrientation}
-          viewportSize={overlapChooserPlacement.viewportSize}
+          viewportSize={mapViewportSize}
         />
       ) : null}
       {commutePathPreview && !selection ? (

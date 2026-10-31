@@ -26,6 +26,7 @@ const handleSource = readFileSync(new URL("../src/components/MobileSheetDragHand
 const hookSource = readFileSync(new URL("../src/hooks/useMobileDraggableSheet.ts", import.meta.url), "utf8");
 const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const framingSource = readFileSync(new URL("../src/components/map-camera/useMapFraming.ts", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 const shellSource = readShellSource();
 
@@ -207,8 +208,10 @@ describe("mobile station draggable sheet UX", () => {
     assert.match(shellSource, /readStoredSheetHeightRatio\(window\.localStorage\)/);
     assert.match(shellSource, /"--mobile-station-sheet-height":\s*`\$\{Math\.round\(stationSheetRatio\s*\*\s*100\)\}dvh`/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-inspector-station > main,\s*\.linewatch-shell\.mobile-map-inspector-station\[data-network="regional"\] > main\s*\{[^}]*bottom:\s*0\s*!important;/s);
-    assert.match(ttcMapSource, /\(topPillBottom\s*\+\s*mobileStationTop\)\s*\/\s*2/);
-    assert.match(regionalMapSource, /\(topPillBottom\s*\+\s*mobileStationTop\)\s*\/\s*2/);
+    // Both maps frame through the shared camera framing.
+    assert.match(framingSource, /\(topPillBottom\s*\+\s*mobileStationTop\)\s*\/\s*2/);
+    assert.match(ttcMapSource, /useMapFraming\(/);
+    assert.match(regionalMapSource, /useMapFraming\(/);
   });
 
   it("dynamically adjusts the map viewport focus and bounding box to the remaining area above the sheet", () => {
@@ -341,12 +344,10 @@ describe("mobile station draggable sheet UX", () => {
   });
 
   it("vertically centers map view split between the pill entries below search bar and the station submenu top", () => {
-    assert.match(ttcMapSource, /topPillBottom\s*=\s*isMobile\s*\?\s*readMobilePillBottom\(viewport\)\s*:\s*0/);
-    assert.match(ttcMapSource, /mobileStationTop\s*=\s*isMobile\s*&&\s*selectedStationId/);
-    assert.match(ttcMapSource, /focusY\s*=\s*isMobile\s*&&\s*viewportOrientation\s*!==\s*"rotated-landscape"\s*\?\s*\(topPillBottom\s*\+\s*mobileStationTop\)\s*\/\s*2/);
-    assert.match(regionalMapSource, /topPillBottom\s*=\s*isMobile\s*\?\s*readMobilePillBottom\(viewport\)\s*:\s*0/);
-    assert.match(regionalMapSource, /mobileStationTop\s*=\s*isMobile\s*&&\s*selectedStationId/);
-    assert.match(regionalMapSource, /focusY\s*=\s*isMobile\s*&&\s*viewportOrientation\s*!==\s*"rotated-landscape"\s*\?\s*\(topPillBottom\s*\+\s*mobileStationTop\)\s*\/\s*2/);
+    assert.match(framingSource, /topPillBottom\s*=\s*isMobile\s*\?\s*readMobilePillBottom\(viewport\)\s*:\s*0/);
+    assert.match(framingSource, /mobileStationTop\s*=\s*isMobile\s*&&\s*selectedStationId/);
+    // A rotated map frames a third of the way down; otherwise a phone centres between the pill and the sheet.
+    assert.match(framingSource, /focusY = rotated\s*\?\s*logicalHeight \* ROTATED_FOCUS_Y_RATIO\s*:\s*isMobile \? \(topPillBottom \+ mobileStationTop\) \/ 2/);
 
     const topBoundary = 104;
     const bottomBoundary = 400;
@@ -356,8 +357,7 @@ describe("mobile station draggable sheet UX", () => {
   });
 
   it("vertically centers UI alert overlay split description/map view between pill entries and overlay top", () => {
-    assert.match(ttcMapSource, /mobileImpactTop\s*=\s*isMobile\s*&&\s*selection/);
-    assert.match(regionalMapSource, /mobileImpactTop\s*=\s*isMobile\s*&&\s*selection/);
+    assert.match(framingSource, /mobileImpactTop\s*=\s*isMobile\s*&&\s*selection/);
 
     const topBoundary = 104;
     const alertTop = 540;

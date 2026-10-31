@@ -23,7 +23,6 @@ import {
   regionalOverlapBadgeAnchor,
   expandedRegionalCollisionBox,
   REGIONAL_MAP_VIEWBOX,
-  type RegionalCollisionBox,
 } from "./regional-map-geometry.ts";
 import {
   buildStationOverlapBadgeGroups,
@@ -32,18 +31,12 @@ import {
   mapOverlapIndicatorSize,
   type StationOverlapBadgeGroup,
   overlapBadgeSignature,
-  type MapOverlapChooserLayout,
   type MapOverlapIndicatorSize,
 } from "../components/map-overlap-badges.ts";
 import {
   BADGE_FEATURE_GAPS,
   badgeObstacleReach,
-  type PlacementObstacle,
 } from "../components/overlap-badge-placement.ts";
-import {
-  placeOverlapChooser,
-  type OverlapChooserPreferredBox,
-} from "../components/overlap-chooser-placement.ts";
 import type { ConnectorOutline, OverlapBadgeConnector } from "../components/overlap-badge-connector.ts";
 import type { MapLineAlert } from "../components/map-overlays/line-alert-model.ts";
 import {
@@ -64,7 +57,6 @@ import {
 import { regionalStationAlertRingRadius } from "./regional-station-alerts.ts";
 
 export const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
-export const REGIONAL_OVERLAP_CHOOSER_GAP = 24;
 
 export const REGIONAL_DYNAMIC_SEGMENT_LAYER_ID = "regional-dynamic-segment-layer";
 export const REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID = "regional-dynamic-selected-segment-layer";
@@ -416,81 +408,12 @@ export function regionalOverlapMarker(
   return markerGroup?.querySelector<SVGGElement>(".overlap-indicator") ?? null;
 }
 
-/**
- * The marker's screen box at rest. Opening the chooser shrinks the marker with
- * a CSS scale transition, so its live client rect changes for 120 ms; placing
- * the chooser from it made the chooser jump between frames. The marker's own
- * box mapped through its positioned parent ignores that scale.
- */
-export function regionalOverlapMarkerRestingRect(
-  marker: SVGGElement,
-): { left: number; top: number; right: number; bottom: number; width: number; height: number } {
-  const parent = marker.parentElement as SVGGraphicsElement | null;
-  const matrix = typeof parent?.getScreenCTM === "function" ? parent.getScreenCTM() : null;
-  if (!matrix) return marker.getBoundingClientRect();
-  const box = marker.getBBox();
-  const corners = [
-    [box.x, box.y],
-    [box.x + box.width, box.y],
-    [box.x, box.y + box.height],
-    [box.x + box.width, box.y + box.height],
-  ].map(([x, y]) => ({
-    x: matrix.a * x + matrix.c * y + matrix.e,
-    y: matrix.b * x + matrix.d * y + matrix.f,
-  }));
-  const left = Math.min(...corners.map((point) => point.x));
-  const right = Math.max(...corners.map((point) => point.x));
-  const top = Math.min(...corners.map((point) => point.y));
-  const bottom = Math.max(...corners.map((point) => point.y));
-  return { left, top, right, bottom, width: right - left, height: bottom - top };
-}
 
 /**
  * GO/UP chooser placement, using the shared placer so both maps behave the
  * same. Inputs are in logical viewport pixels; `affectedArea` is the badge's
  * alerts as drawn (affectedOutlinesOnScreen), which the card avoids covering.
  */
-export function regionalOverlapChooserLayout({
-  markerCenter,
-  markerSize,
-  chooserSize,
-  viewportSize,
-  affectedArea,
-  uiKeepoutBoxes,
-  preferred = null,
-}: {
-  markerCenter: { x: number; y: number };
-  markerSize: { width: number; height: number };
-  chooserSize: { width: number; height: number };
-  viewportSize: { width: number; height: number };
-  affectedArea: PlacementObstacle[];
-  uiKeepoutBoxes: RegionalCollisionBox[];
-  preferred?: OverlapChooserPreferredBox | null;
-}): { layout: MapOverlapChooserLayout; size: { width: number; height: number }; coversAffectedArea: boolean } {
-  const placement = placeOverlapChooser({
-    viewportSize,
-    badgeBox: {
-      x: markerCenter.x - markerSize.width / 2,
-      y: markerCenter.y - markerSize.height / 2,
-      width: markerSize.width,
-      height: markerSize.height,
-    },
-    affectedArea,
-    keepouts: uiKeepoutBoxes,
-    requestedSize: chooserSize,
-    preferred,
-  });
-  return {
-    coversAffectedArea: placement.coversAffectedArea,
-    layout: {
-      left: placement.left,
-      top: placement.top,
-      anchorOffsetX: placement.anchorOffsetX,
-      anchorOffsetY: placement.anchorOffsetY,
-    },
-    size: { width: placement.width, height: placement.height },
-  };
-}
 
 /** What GO/UP's overlays draw, for `regionalOverlayContentSignature`. */
 export type RegionalOverlayContent = {

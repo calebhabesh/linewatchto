@@ -311,6 +311,19 @@ for (const network of MAPS) {
         await expect(selectedEmphasis(page)).toHaveCount(0);
       });
 
+      test("a pressed line alert shows no hover outline once the cursor leaves it", async ({ page }) => {
+        await openMap(page, network);
+        const alert = await alertPoint(page, network);
+        await page.mouse.click(alert.x, alert.y);
+        await expect(selectedEmphasis(page, alert.id).first()).toBeAttached();
+        // The press focused the alert's target; that focus is not a hover,
+        // so leaving the alert ends its outline while the selection flashes.
+        await settle(page);
+        const blank = await blankPoint(page, network);
+        await page.mouse.move(blank.x, blank.y, { steps: 6 });
+        await expect(page.locator('[data-map-impact-hovered="true"]')).toHaveCount(0);
+      });
+
       test("hovering a station rings it; pressing it opens its details", async ({ page }) => {
         await openMap(page, network);
         const station = await stationPoint(page, network);
@@ -457,6 +470,15 @@ for (const network of MAPS) {
         await expect(target).toBeFocused();
         await page.keyboard.press("Enter");
         await expect(stationDetails(page, station.name)).toBeVisible();
+      });
+
+      test("keyboard focus on a line alert lights its hover copy", async ({ page }) => {
+        await openMap(page, network);
+        const alert = await alertPoint(page, network);
+        // A key press first, so the focus that follows is keyboard focus.
+        await page.keyboard.press("Shift");
+        await page.locator(`${stageSelector(network)} .map-segment-hit-target[data-map-impact-id="${alert.id}"]`).first().focus();
+        await expect(page.locator(`[data-map-hover-impact-id="${alert.id}"][data-map-impact-hovered="true"]`).first()).toBeAttached();
       });
 
       test("an overlap badge opens its chooser with Enter, and Escape returns focus to it", async ({ page }) => {

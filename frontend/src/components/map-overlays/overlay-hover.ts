@@ -9,6 +9,21 @@ export type MapImpactHoverIdentity = {
 };
 
 const HOVER_TARGETS = "[data-map-hover-impact-kind][data-map-hover-impact-id]";
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+
+/** A hover copy draws its alert through a `<use>` that exists only while hovered. */
+function setHoverCopy(element: SVGElement, hovered: boolean) {
+  const href = element.dataset.mapHoverCopyHref;
+  if (!href) return;
+  const existing = element.querySelector(":scope > use");
+  if (hovered && !existing) {
+    const use = element.ownerDocument.createElementNS(SVG_NAMESPACE, "use");
+    use.setAttribute("href", href);
+    element.append(use);
+  } else if (!hovered) {
+    existing?.remove();
+  }
+}
 const STATION_RING_HOVER_TARGETS = `.station-impact-hover-priority${HOVER_TARGETS}`;
 
 /**
@@ -32,6 +47,7 @@ export function setMapImpactHovered(
         element.removeAttribute("data-map-impact-hovered");
         element.removeAttribute("data-map-hover-owner");
       }
+      setHoverCopy(element, hovered);
     });
 }
 
@@ -40,6 +56,7 @@ export function clearMapImpactHover(root: ParentNode) {
   root.querySelectorAll<SVGElement>("[data-map-impact-hovered]").forEach((element) => {
     element.removeAttribute("data-map-impact-hovered");
     element.removeAttribute("data-map-hover-owner");
+    setHoverCopy(element, false);
   });
 }
 

@@ -11,7 +11,7 @@ import {
   badgeObstacleReach,
   type PlacementObstacle,
 } from "./overlap-badge-placement";
-import { expandBox } from "./ttc-chooser-placement";
+import { expandBox } from "./map-chooser-placement";
 
 // Map-artwork obstacles for TTC overlap-badge placement.
 

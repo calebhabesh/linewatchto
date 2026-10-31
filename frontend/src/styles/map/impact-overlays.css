@@ -39,17 +39,6 @@
   stroke-width: calc(162px * var(--map-overlay-unit, 1));
 }
 
-.linewatch-shell.mobile-performance-mode .interactive-glow {
-  display: block;
-  filter: none !important;
-  opacity: 0;
-}
-
-.linewatch-shell.mobile-performance-mode .interactive-glow.selected {
-  opacity: 0.52;
-  stroke-width: calc(162px * var(--map-overlay-unit, 1));
-}
-
 .linewatch-shell.mobile-performance-mode .delay-static-path {
   opacity: 0.92;
   stroke-dasharray: 7 7;
@@ -257,10 +246,11 @@
   animation: none;
 }
 
-/* An unselected interactive glow is never visible. Keep it out of rendering
-   so gestures and pans never repaint its blur (map-renderer-parity.md
-   rule 4); GO/UP's corridor-length glows made that costly. */
-.interactive-glow:not(.selected) {
+/* No alert glows on hover or selection: hover draws the outline and a
+   selection flashes, and a blurred halo in the alert's colour beside them
+   only distracts. Out of rendering, it never repaints during gestures
+   (map-renderer-parity.md rule 4). */
+.interactive-glow {
   display: none;
 }
 
@@ -281,13 +271,6 @@
 
 .linewatch-shell.dark .asset-alert-path-hover-boundary.planned-preview {
   stroke: var(--planned-preview-ink);
-}
-
-.overlay-segment-group:has(.map-segment-hit-target:hover) .interactive-glow,
-.overlay-segment-group:has(.map-segment-hit-target:focus-visible) .interactive-glow,
-.overlay-segment-group:has(.map-segment-hit-target:active) .interactive-glow,
-.interactive-glow.selected {
-  opacity: 0.55;
 }
 
 @media (max-width: 767px) {
@@ -419,23 +402,6 @@
     opacity: 0.94;
   }
 
-  .asset-alert-path-glow.interactive-glow.planned-preview {
-    display: block;
-    filter: blur(calc(10px * var(--map-overlay-unit, 1)));
-    opacity: 0;
-    stroke: var(--planned);
-    stroke-width: calc(190px * var(--map-overlay-unit, 1));
-    transition:
-      filter 300ms ease-out,
-      opacity 240ms ease-out;
-  }
-
-  .overlay-segment-group:has(.map-segment-hit-target:hover) .asset-alert-path-glow.interactive-glow.planned-preview,
-  .overlay-segment-group:has(.map-segment-hit-target:focus-visible) .asset-alert-path-glow.interactive-glow.planned-preview {
-    filter: blur(calc(18px * var(--map-overlay-unit, 1)));
-    opacity: 0.55;
-  }
-
   .asset-alert-path.planned-preview {
     transition: opacity 240ms ease-out;
   }
@@ -443,8 +409,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .asset-alert-path.planned-preview,
-  .asset-alert-path-hover-boundary,
-  .asset-alert-path-glow.interactive-glow.planned-preview {
+  .asset-alert-path-hover-boundary {
     animation: none;
     transition: none;
   }

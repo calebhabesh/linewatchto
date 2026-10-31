@@ -16,6 +16,8 @@ import { readShellSource } from "./helpers/shell-source.mjs";
 const shellSource = readShellSource();
 const controlsSource = readFileSync(new URL("../src/components/MobileMapControls.tsx", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const overlapChooserSource = readFileSync(new URL("../src/components/MapOverlapChooser.tsx", import.meta.url), "utf8");
+const chooserHookSource = readFileSync(new URL("../src/components/map-overlays/useMapOverlapChooser.ts", import.meta.url), "utf8");
 const chooserKeepoutsSource = readFileSync(new URL("../src/components/map-chooser-keepouts.ts", import.meta.url), "utf8");
 const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
@@ -67,7 +69,7 @@ describe("mobile rotated map mode", () => {
       clientRectToLogicalViewportBounds(visualHud, visualViewport, "rotated-landscape"),
       { x: 10, y: 10, width: 824, height: 42 },
     );
-    assert.match(mapSource, /clientRectToLogicalViewportBounds\([\s\S]*?viewportOrientation/);
+    assert.match(chooserHookSource, /clientRectToLogicalViewportBounds\([\s\S]*?viewportOrientation/);
     assert.match(chooserKeepoutsSource, /\.rotated-map-hud/);
   });
 
@@ -146,9 +148,10 @@ describe("mobile rotated map mode", () => {
   });
 
   it("uses the same in-map overlap chooser in standard and rotated modes", () => {
-    assert.match(mapSource, /data-overlap-chooser/);
-    assert.match(mapSource, /Choose Alert/);
-    assert.match(mapSource, /onSelectImpact\(\{ kind: impact\.kind, id: impact\.cardId \}\)/);
+    assert.match(mapSource, /<MapOverlapChooser/);
+    assert.match(overlapChooserSource, /data-overlap-chooser/);
+    assert.match(overlapChooserSource, /Choose Alert/);
+    assert.match(overlapChooserSource, /onSelectImpact\(\{ kind: impact\.kind, id: impact\.cardId \}\)/);
     assert.match(shellSource, /<NetworkMap[\s\S]*onSelectImpact=\{handleMapSelectImpact\}/);
     assert.doesNotMatch(shellSource, /onSelectOverlap=\{rotatedMapMode/);
   });
@@ -158,8 +161,8 @@ describe("mobile rotated map mode", () => {
     assert.equal(computeRotatedScrollDelta(-20, 5), -20);
     assert.equal(computeRotatedScrollDelta(5, -20), 20);
     assert.equal(computeRotatedScrollDelta(5, 20), -20);
-    assert.match(mapSource, /useRotatedListDragScroll/);
-    assert.match(mapSource, /<div className="overlap-chooser-list" \{\.\.\.scrollContainerProps\}/);
+    assert.match(overlapChooserSource, /useRotatedListDragScroll/);
+    assert.match(overlapChooserSource, /<div className="overlap-chooser-list" \{\.\.\.scrollContainerProps\}/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.overlap-chooser-list\s*\{[^}]*touch-action:\s*none;/s);
   });
 

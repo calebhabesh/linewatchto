@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type RefObject } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode, type RefObject } from "react";
 import { DataProvider, type DashboardData } from "../app/DataContext";
 import { isRepeatMapSelection } from "../app/map-repeat-selection";
 import type { MapFadeController } from "../app/map-surface-transition";
@@ -44,6 +44,20 @@ export async function prepareNetworkMap(network: NetworkId, view: "diagram" | "g
 }
 
 type TtcMapProps = ComponentProps<typeof InteractiveTtcMap>;
+
+/**
+ * A hidden (preparing or warming) map keeps its last render: the shell's
+ * selection, sheets and panels change on every interaction, and re-rendering
+ * the map the rider cannot see cost a third of a phone station tap. Its
+ * dashboard data still arrives through context; the rest catches up when it
+ * is shown.
+ */
+const FrozenWhileHidden = memo(
+  function FrozenWhileHidden({ children }: { hidden: boolean; children: ReactNode }) {
+    return children;
+  },
+  (previous, next) => previous.hidden && next.hidden,
+);
 type NetworkMapProps = TtcMapProps & {
   network: NetworkId;
   mobileAnnouncementVisible: boolean;
@@ -230,7 +244,9 @@ function DiagramNetworkMaps({ network, preparingNetwork, warmingNetwork, diagram
         data-map-variant={`${props.highContrast ? "high-contrast" : props.isDark ? "dark" : "light"}:${props.mobilePerformanceMode ? "mobile" : "balanced"}`}
         data-preparing={preparing ? "true" : undefined} aria-hidden={preparing || undefined} inert={preparing}>
         <DataProvider data={diagramData[diagramNetwork]}>
-          {renderDiagram(diagramNetwork, diagramNetwork === "ttc" ? ttcReady : regionalReady, preparing)}
+          <FrozenWhileHidden hidden={preparing}>
+            {renderDiagram(diagramNetwork, diagramNetwork === "ttc" ? ttcReady : regionalReady, preparing)}
+          </FrozenWhileHidden>
         </DataProvider>
       </div>
     );

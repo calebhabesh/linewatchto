@@ -26,13 +26,8 @@ import {
 } from "../app/regional-data";
 import { transitLineName } from "./TransitLineBadge";
 import type { ChooserFollowAnchor, MapChooserFollower } from "./map-chooser-follow";
-
-export type MapOverlapChooserLayout = {
-  left: number;
-  top: number;
-  anchorOffsetX: number;
-  anchorOffsetY: number;
-};
+import { OVERLAP_CHOOSER_MOBILE_BREAKPOINT } from "./map-chooser-layout";
+import type { OverlapChooserScreenLayout } from "./map-chooser-placement";
 
 /**
  * Positions a chooser portal at its solved layout and hands it to the map's
@@ -127,41 +122,39 @@ function typeLabel(
   return details?.categoryLabel ?? "Planned Advisory";
 }
 
+/** The alert chooser of an overlap badge, on every System Map. */
 export function MapOverlapChooser({
   markerId,
   selectionKey,
   label,
   impacts,
-  chooserSize,
-  collisionAvoided,
   layout,
   onSelectImpact,
   onHoverImpact,
   onClose,
   reducedMotion,
-  compactMotion,
-  viewportOrientation = "standard",
+  viewportOrientation,
   viewportSize,
   follower,
   followAnchor,
 }: {
   markerId: string;
-  selectionKey?: string | null;
+  selectionKey: string | null;
   label: string;
   impacts: MapImpact[];
-  chooserSize: { width: number; height: number };
-  collisionAvoided: boolean;
-  layout: MapOverlapChooserLayout;
+  /** From `useMapOverlapChooser`. */
+  layout: OverlapChooserScreenLayout;
   onSelectImpact: (selection: ImpactSelection) => void;
   onHoverImpact: (impact: MapImpact | null) => void;
   onClose: (restoreFocus: boolean) => void;
   reducedMotion: boolean;
-  compactMotion: boolean;
-  viewportOrientation?: MapViewportOrientation;
-  viewportSize?: { width: number; height: number };
+  viewportOrientation: MapViewportOrientation;
+  viewportSize: { width: number; height: number };
   follower: MapChooserFollower;
   followAnchor: ChooserFollowAnchor;
 }) {
+  const compactMotion = viewportSize.width <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT;
+  const chooserSize = { width: layout.width, height: layout.height };
   const data = useDashboardData();
   const surfaceRef = useRef<HTMLDivElement>(null);
   useAlertChooserDismissal(selectionKey, onClose);
@@ -233,7 +226,7 @@ export function MapOverlapChooser({
       ref={attachPortal}
       className="overlap-chooser-portal overlap-chooser-object open"
       style={portalStyle}
-      data-overlap-chooser-collision-avoided={collisionAvoided ? "true" : "false"}
+      data-overlap-chooser-covers-affected-area={layout.coversAffectedArea ? "true" : "false"}
     >
       <div
         ref={surfaceRef}

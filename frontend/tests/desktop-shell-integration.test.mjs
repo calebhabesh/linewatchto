@@ -9,6 +9,7 @@ const navSource = readFileSync(new URL("../src/hooks/useNavigationTransitions.ts
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const panZoomSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
+const framingSource = readFileSync(new URL("../src/components/map-camera/useMapFraming.ts", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 
 describe("desktop shell layout & geometry integration (Session 1)", () => {
@@ -56,20 +57,18 @@ describe("desktop shell layout & geometry integration (Session 1)", () => {
 
   it("keeps default camera fitting independent from the sidebar and uses its inset only for focused targets", () => {
     assert.doesNotMatch(panZoomSource, /readDesktopOverlayInsets|readDesktopLeftOcclusion/);
-    assert.match(ttcMapSource, /readDesktopLeftOcclusion/);
-    assert.match(regionalMapSource, /readDesktopLeftOcclusion/);
+    // Both maps keep focused targets clear of the sidebar through the shared framing.
+    assert.match(framingSource, /readDesktopLeftOcclusion/);
+    assert.match(ttcMapSource, /useMapFraming\(/);
+    assert.match(regionalMapSource, /useMapFraming\(/);
     assert.doesNotMatch(regionalMapSource, /observer\.observe\(sidebar\)/);
     assert.doesNotMatch(panZoomSource, /observer\.observe\(sidebar\)/);
   });
 
   it("centers selected station in unoccluded viewport area on desktop", () => {
     assert.match(
-      ttcMapSource,
-      /const focusX = isMobile\s*\?\s*logicalWidth \/ 2\s*:\s*\(logicalWidth \+ selectionFocusInsets\.left - selectionFocusInsets\.right\) \/ 2;/,
-    );
-    assert.match(
-      regionalMapSource,
-      /const focusX = isMobile\s*\?\s*logicalWidth \/ 2\s*:\s*\(logicalWidth \+ focusInsets\.left - focusInsets\.right\) \/ 2;/,
+      framingSource,
+      /focusX = isMobile \? logicalWidth \/ 2 : \(logicalWidth \+ insets\.left - insets\.right\) \/ 2;/,
     );
   });
 

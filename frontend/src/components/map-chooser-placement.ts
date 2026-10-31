@@ -1,12 +1,10 @@
 /**
- * TTC Overlap Chooser Placement
+ * Overlap chooser placement for every System Map.
  *
- * Converts a TTC overlap badge and the overlays of its alerts from map
- * coordinates to viewport pixels, then places the chooser with the shared
- * screen-space placer (also used by the GO/UP map).
- *
- * No DOM queries or React dependencies. Actual DOM measurements remain
- * with the DOM owner.
+ * Converts an overlap badge and the overlays of its alerts from map
+ * coordinates to viewport pixels through the map's stage transform and the
+ * camera, then places the chooser with the screen-space placer. Pure: the
+ * badge and its alerts come from prepared data, never the live DOM.
  */
 
 import type { MapBounds, MapPoint } from "../app/map-geometry.ts";
@@ -21,8 +19,25 @@ import { affectedOutlinesOnScreen } from "./map-overlays/overlap-badge-layout.ts
 export type SvgBounds = MapBounds;
 export type OverlapBadgeSize = MapOverlapIndicatorSize;
 
+/** TTC's authored view box and its scale onto the 4500 px stage. */
 export const MAP_VIEWBOX_BOUNDS: SvgBounds = { x: 0, y: 0, width: 8250, height: 4000 };
 export const MAP_SVG_TO_CSS_SCALE = 4500 / MAP_VIEWBOX_BOUNDS.width;
+
+/**
+ * Where a map's overlay coordinates land on its stage, in stage CSS pixels:
+ * `stage = point × scale + offset`. The camera then moves the stage.
+ */
+export type MapStageTransform = { scale: number; x: number; y: number };
+
+/** The stage transform of an SVG plane that fills a `width × height` stage with `xMidYMid meet`. */
+export function meetStageTransform(viewBox: SvgBounds, width: number, height: number): MapStageTransform {
+  const scale = Math.min(width / viewBox.width, height / viewBox.height);
+  return {
+    scale,
+    x: (width - viewBox.width * scale) / 2 - viewBox.x * scale,
+    y: (height - viewBox.height * scale) / 2 - viewBox.y * scale,
+  };
+}
 export {
   overlapChooserSize,
   OVERLAP_CHOOSER_WIDTH,
@@ -92,14 +107,15 @@ export function boundsContainingBoxes(boxes: SvgBounds[]): SvgBounds | null {
 export function overlapChooserScreenLayout(
   badge: OverlapChooserScreenBadgeTarget,
   mapTransform: { x: number; y: number; scale: number },
+  stage: MapStageTransform,
   viewportSize: { width: number; height: number },
   screenKeepoutBoxes: SvgBounds[] = [],
   preferred: OverlapChooserPreferredBox | null = null,
 ): OverlapChooserScreenLayout {
-  const scale = mapTransform.scale * MAP_SVG_TO_CSS_SCALE;
+  const scale = mapTransform.scale * stage.scale;
   const toScreen = (point: MapPoint): MapPoint => ({
-    x: mapTransform.x + point.x * scale,
-    y: mapTransform.y + point.y * scale,
+    x: mapTransform.x + (point.x * stage.scale + stage.x) * mapTransform.scale,
+    y: mapTransform.y + (point.y * stage.scale + stage.y) * mapTransform.scale,
   });
   const badgeCenter = toScreen(badge.position);
   const affectedArea = affectedOutlinesOnScreen(badge.affectedOutlines, toScreen, scale);

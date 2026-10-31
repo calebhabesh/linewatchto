@@ -121,12 +121,52 @@ function unalertedLines(artwork: MapBadgeArtwork, corridors: readonly MapBadgeAl
   return lines;
 }
 
+type LayoutRequest = Parameters<typeof computeMapOverlapBadgeLayout>[0];
+
+const roundedPoints = (points: readonly MapPoint[]) => points.map((point) => `${Math.round(point.x)},${Math.round(point.y)}`).join(" ");
+
+/** Everything the layout reads, as text: equal requests place badges identically. */
+function layoutRequestSignature(request: LayoutRequest): string {
+  return JSON.stringify([
+    request.badges.map((badge) => [
+      badge.id,
+      badge.impacts.map(impactKeyOf),
+      badge.size.width,
+      badge.size.height,
+      roundedPoints(badge.targets),
+      badge.stationPoint ? roundedPoints([badge.stationPoint]) : null,
+    ]),
+    request.corridors.map((corridor) => [corridor.impactKey, roundedPoints(corridor.polyline)]),
+    request.stationAlerts.map((alert) => [alert.impactKey, roundedPoints([alert.center]), alert.obstacleRadius, alert.outlineRadius]),
+    request.stationDots.map((dot) => [roundedPoints([dot.center]), dot.radius]),
+    request.mapBounds,
+    request.unit,
+    request.badgeScale,
+  ]);
+}
+
+const layoutCache = new WeakMap<MapBadgeArtwork, { signature: string; layout: Map<string, MapOverlapBadgeLayout> }>();
+
 /**
  * Places a map's overlap badges as close as possible to the overlays they
  * explain, clear of artwork, alerts and each other, aligned with their
  * neighbours, each with a connector line through open space when it needs one.
+ *
+ * A map re-renders with fresh arrays of the same badges and alerts on every
+ * poll and layout pass; an equal request returns the previous layout instead
+ * of searching again.
  */
-export function layoutMapOverlapBadges({
+export function layoutMapOverlapBadges(request: LayoutRequest): Map<string, MapOverlapBadgeLayout> {
+  if (request.badges.length === 0) return new Map();
+  const signature = layoutRequestSignature(request);
+  const cached = layoutCache.get(request.artwork);
+  if (cached?.signature === signature) return cached.layout;
+  const layout = computeMapOverlapBadgeLayout(request);
+  layoutCache.set(request.artwork, { signature, layout });
+  return layout;
+}
+
+function computeMapOverlapBadgeLayout({
   badges,
   artwork,
   corridors,

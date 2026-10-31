@@ -1589,6 +1589,8 @@ test("regional corridor hover encloses the entire referenced impact", async ({ p
   );
   await expect(target).toHaveCount(1);
 
+  // Keyboard focus hovers; a key press first, since the network was chosen by mouse.
+  await page.keyboard.press("Shift");
   await target.focus();
   await expect(hoverForeground).toHaveAttribute("data-map-impact-hovered", "true");
   await expect(hoverForeground).not.toHaveAttribute("mask");

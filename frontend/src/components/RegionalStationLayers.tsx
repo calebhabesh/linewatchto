@@ -114,7 +114,10 @@ export const RegionalStationTargets = memo(function RegionalStationTargets({
   ));
 });
 
-/** Each station name's target, in root SVG coordinates. */
+/**
+ * Each station name's target, in root SVG coordinates. Pointer only, as on
+ * TTC: the station's own target is its keyboard stop and accessible button.
+ */
 export const RegionalStationLabelTargets = memo(function RegionalStationLabelTargets({
   labels,
 }: {
@@ -127,9 +130,8 @@ export const RegionalStationLabelTargets = memo(function RegionalStationLabelTar
       data-regional-station-id={label.stationId}
       data-regional-station-label-id={label.stationId}
       points={label.points.map((point) => `${point.x},${point.y}`).join(" ")}
-      role="button"
-      tabIndex={0}
-      aria-label={`${label.name} station details`}
+      aria-hidden="true"
+      focusable="false"
     />
   ));
 });
@@ -149,6 +151,7 @@ export function RegionalStationSelection({
         className={`regional-station-top-selection map-selection-attention${introComplete ? " selection-intro-complete" : ""}`}
         data-regional-station-top-selected="true"
         data-regional-station-selection-id={station.id}
+        data-map-selected-station-id={station.id}
         data-regional-station-selected="true"
       >
         {regionalStationSelectionShapes(station).map((shape, index) => (

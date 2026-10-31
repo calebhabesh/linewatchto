@@ -28,6 +28,8 @@ import { readShellSource } from "./helpers/shell-source.mjs";
 const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const manifestSource = readFileSync(new URL("../src/app/map-manifests.ts", import.meta.url), "utf8");
+const framingSource = readFileSync(new URL("../src/components/map-camera/useMapFraming.ts", import.meta.url), "utf8");
 const wheelEventsSource = readFileSync(new URL("../src/components/map-wheel-events.ts", import.meta.url), "utf8");
 const shellSource = readShellSource();
 const sidebarStateSource = readFileSync(new URL("../src/app/desktop-sidebar-state.ts", import.meta.url), "utf8");
@@ -146,10 +148,9 @@ describe("pan zoom behavior guardrails", () => {
     const bottomGap = desktopHeight - (frame.y + (regionalBounds.y + regionalBounds.height) * frame.scale);
     assert.ok(Math.abs(topGap - bottomGap) < 1e-9);
 
-    assert.match(regionalMapSource, /x:\s*53\.08/);
-    assert.match(regionalMapSource, /y:\s*110\.78/);
-    assert.match(regionalMapSource, /width:\s*4620\.46/);
-    assert.match(regionalMapSource, /height:\s*2395\.26/);
+    // The map frames the content bounds its manifest declares.
+    assert.match(manifestSource, /contentBounds: \{ x: 53\.08, y: 110\.78, width: 4620\.46, height: 2395\.26 \}/);
+    assert.match(regionalMapSource, /REGIONAL_MANIFEST\.contentBounds/);
     assert.match(regionalMapSource, /const REGIONAL_MAP_DESKTOP_FRAME_SCALE = 1/);
     assert.match(regionalMapSource, /horizontalInsetRatio: REGIONAL_MAP_HORIZONTAL_INSET_RATIO/);
     assert.match(regionalMapSource, /desktopScaleMultiplier: REGIONAL_MAP_DESKTOP_FRAME_SCALE/);
@@ -223,23 +224,18 @@ describe("pan zoom behavior guardrails", () => {
       computeInsetViewportFocus(1536, 864, { left: 720 }),
       { focusX: 1128, focusY: 432 },
     );
-    assert.match(mapSource, /readDesktopLeftOcclusion\(viewport, /);
     assert.match(sidebarStateSource, /\.floating-panel-shell/);
-    assert.match(
-      mapSource,
-      /insets\.left = Math\.max\(insets\.left, leftOcclusion\)/,
-    );
-    assert.match(mapSource, /viewportInsets: selectionFocusInsets/);
+    assert.match(framingSource, /insets\.left = Math\.max\(insets\.left, readDesktopLeftOcclusion\(viewport, 24\)\)/);
+    assert.match(framingSource, /computeInsetViewportFocus\(logicalWidth, logicalHeight, insets\)/);
   });
 
   it("fits the complete selected overlay within the unobscured viewport", () => {
     assert.match(hookSource, /const zoomToBounds = useCallback/);
     assert.match(hookSource, /targetAbsoluteScale = Math\.min\([\s\S]*clampPanZoomScale\(preferredAbsoluteScale[\s\S]*fittingScale/);
-    assert.match(mapSource, /pathCorridorCollisionBoxes\(pathD, 80\)/);
-    assert.match(mapSource, /zoomToBounds\(\{/);
-    assert.match(regionalMapSource, /const selectionFit = computeBoundedMapFrame/);
-    assert.match(regionalMapSource, /REGIONAL_SELECTION_FIT_COMFORT_RATIO = 0\.82/);
-    assert.match(regionalMapSource, /targetScale = Math\.min\([\s\S]*clampPanZoomScale\(preferredTargetScale[\s\S]*selectionFit\.scale \* REGIONAL_SELECTION_FIT_COMFORT_RATIO/);
+    // Both maps fit a selection inside the uncovered viewport through the shared framing.
+    assert.match(framingSource, /const selectionFit = computeBoundedMapFrame/);
+    assert.match(framingSource, /SELECTION_FIT_COMFORT_RATIO = 0\.82/);
+    assert.match(framingSource, /scale = Math\.min\(stationScale, selectionFit\.scale \* SELECTION_FIT_COMFORT_RATIO\)/);
   });
 
   it("keeps small pointer jitter as a tap and promotes deliberate movement to navigation", () => {
@@ -367,7 +363,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.doesNotMatch(globalCss, /map-recenter-veil|data-map-recenter-effect/);
     assert.match(hookSource, /const recenterWithFeedback[\s\S]*recenter\(\) && !reducedMotion[\s\S]*setRecenterFeedbackKey/);
     assert.match(mapSource, /onClick=\{recenterWithFeedback\}/);
-    assert.match(mapSource, /recenterSignal[\s\S]*recenterWithFeedback\(\)/);
+    assert.match(framingSource, /useCameraCommand\(recenterSignal, ready, cameraCommandsEnabled, recenterWithFeedback\)/);
     assert.match(mapSource, /className="map-center-feedback"[\s\S]*data-map-center-feedback="ttc"/);
     assert.match(globalCss, /\.map-center-feedback\s*\{[^}]*background-color:\s*transparent;[^}]*animation:\s*map-center-feedback-fade/s);
     assert.match(globalCss, /animation:\s*map-center-feedback-fade 420ms cubic-bezier\(0\.16, 1, 0\.3, 1\)/);
@@ -415,7 +411,8 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /const refitIfCameraUntouched = useCallback/);
     assert.match(hookSource, /if \(!cameraInitializedRef\.current \|\| cameraAdjustedByUserRef\.current\) return/);
     assert.match(mapSource, /automaticResizeRefitBlockedRef\.current = Boolean\(selection \|\| selectedStationId \|\| commutePathPreview\)/);
-    assert.match(mapSource, /const handleWindowResize = \(\) => \{[\s\S]*?!automaticResizeRefitBlockedRef\.current[\s\S]*?refitIfCameraUntouched\(\)/);
+    // Resizes refit an untouched camera in usePanZoom, the same for both maps.
+    assert.doesNotMatch(mapSource, /const handleWindowResize/);
     assert.match(hookSource, /const handleWheel[\s\S]*?cameraAdjustedByUserRef\.current = true/);
     assert.match(hookSource, /const recenter[\s\S]*?cameraAdjustedByUserRef\.current = false/);
   });
@@ -529,21 +526,20 @@ describe("pan zoom behavior guardrails", () => {
   });
 
   it("guards focus zoom by selected target key instead of every data refresh", () => {
-    assert.match(mapSource, /useLayoutEffect\(\(\) => \{[\s\S]*const currentLayoutKey =/);
-    assert.match(mapSource, /const focusBoxesBySegmentId = useMemo/);
-    assert.match(mapSource, /lastFocusedTargetKeyRef/);
+    assert.match(framingSource, /const layoutKey = \[/);
+    assert.match(framingSource, /lastFocusedTargetKeyRef/);
     assert.match(mapSource, /focusTargetKey/);
-    assert.match(mapSource, /lastFocusedTargetKeyRef\.current === focusTargetKey/);
+    assert.match(framingSource, /lastFocusedTargetKeyRef\.current === focusTargetKey/);
   });
 
   it("preserves the camera when the selected focus target is cleared", () => {
-    const noTargetBranch = mapSource.match(
+    const noTargetBranch = framingSource.match(
       /if \(!focusTargetKey\) \{([\s\S]*?)\n    \}/,
     )?.[1] ?? "";
 
     assert.match(noTargetBranch, /lastFocusedTargetKeyRef\.current = null/);
     assert.match(mapSource, /preserveCameraOnSelectionClear/);
-    assert.match(noTargetBranch, /if \(!preserveCameraOnSelectionClear\) \{[\s\S]*recenter\(\)/);
+    assert.match(noTargetBranch, /if \(preserveCameraOnSelectionClear\) return;[\s\S]*moveToDefaultCamera\(true, false\)/);
     assert.match(shellSource, /preserveCameraOnSelectionClear\s/);
   });
 
@@ -623,7 +619,7 @@ describe("pan zoom behavior guardrails", () => {
   });
 
   it("defers programmatic selected-target focus while the user is gesturing", () => {
-    assert.match(mapSource, /if \(isGestureActive\(\)\) return/);
+    assert.match(framingSource, /if \(!ready \|\| isGestureActive\(\)\) return/);
     assert.match(mapSource, /isGestureActive,/);
     assert.match(hookSource, /if \(isGestureActiveRef\.current\) \{\s*return;\s*\}/s);
   });
@@ -659,24 +655,19 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /viewportFocusRatio/);
     assert.match(hookSource, /focusX = options\?\.viewportFocusRatio[\s\S]*width \* options\.viewportFocusRatio\.x[\s\S]*insetViewport\.focusX/);
     assert.match(hookSource, /focusY = options\?\.viewportFocusRatio[\s\S]*height \* options\.viewportFocusRatio\.y[\s\S]*insetViewport\.focusY/);
-    assert.match(mapSource, /const rotatedPreviewFocusRatio/);
-    assert.match(mapSource, /viewportOrientation === "rotated-landscape"/);
-    assert.ok(
-      Array.from(mapSource.matchAll(/\}, targetScale, focusViewportOptions\)/g)).length >= 3,
-    );
+    // A rotated map frames stations and alerts a third of the way down, clear of the preview card.
+    assert.match(framingSource, /const ROTATED_FOCUS_Y_RATIO = 0\.34;/);
+    assert.ok(Array.from(framingSource.matchAll(/logicalHeight \* ROTATED_FOCUS_Y_RATIO/g)).length >= 2);
   });
 
   it("reliably pans to selected impact overlays during cross-network transitions with consistent focus zoom", () => {
     assert.match(regionalMapSource, /if \(focusTargetKey\) moveToDefaultCamera\(false, false\);/);
-    assert.match(regionalMapSource, /tryFocus = \(\) => \{[\s\S]*if \(focusSelectedMapElements\(\)\)/);
-    assert.match(regionalMapSource, /rect\.left - viewportRect\.left/);
-    assert.match(regionalMapSource, /preferredTargetScale = clampPanZoomScale\(effectiveFitScale \* \(isMobile \? 3\.8 : 1\.8\), effectiveFitScale\)/);
     assert.match(mapSource, /else if \(focusTargetKey === null\) \{[\s\S]*initializeCamera\(\)[\s\S]*else \{[\s\S]*moveToDefaultCamera\(false, false\);/);
-    assert.match(mapSource, /tryFocus = \(\) => \{[\s\S]*if \(focusSelectedMapElements\(\)\)/);
-    assert.match(mapSource, /const liveFittedTransform = defaultTransformForViewport\(logicalWidth, logicalHeight\);/);
-    assert.match(mapSource, /const effectiveFitScale = liveFittedTransform\.scale \|\| fitScale \|\| 1;/);
-    assert.match(mapSource, /preferredTargetScale = clampPanZoomScale\(effectiveFitScale \* \(isMobile \? 3\.8 : 1\.8\), effectiveFitScale\)/);
-    assert.match(mapSource, /animateTransformTo\(\{[\s\S]*scale: targetScale,[\s\S]*\}, effectiveFitScale\);/);
+    assert.match(framingSource, /tryFocus = \(\) => \{[\s\S]*if \(focusSelection\(\)\)/);
+    assert.match(framingSource, /x: rect\.left - viewportRect\.left/);
+    assert.match(framingSource, /const fitScale = defaultTransformForViewport\(logicalWidth, logicalHeight\)\.scale \|\| 1;/);
+    assert.match(framingSource, /const SELECTED_STATION_ZOOM = \{ mobile: 3\.8, desktop: 1\.8 \} as const;/);
+    assert.match(framingSource, /animateTransformTo\(\{ x: focusX - mapX \* scale, y: focusY - mapY \* scale, scale \}, fitScale\);/);
     assert.match(hookSource, /animateTransformTo\(\{ x: newX, y: newY, scale: targetAbsoluteScale \}, currentFitScale\);/);
     assert.match(hookSource, /animateTransformTo\(\{[\s\S]*scale: targetAbsoluteScale,[\s\S]*\}, currentFitScale\);/);
   });

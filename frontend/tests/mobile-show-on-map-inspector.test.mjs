@@ -10,6 +10,7 @@ const inspectorSource = readFileSync(new URL("../src/components/MobileImpactInsp
 const overlapRefsSource = readFileSync(new URL("../src/components/ImpactOverlapRefs.tsx", import.meta.url), "utf8");
 const selectedCardScrollSource = readFileSync(new URL("../src/hooks/useScrollSelectedImpactCard.ts", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const framingSource = readFileSync(new URL("../src/components/map-camera/useMapFraming.ts", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 
 describe("mobile Show on Map inspector", () => {
@@ -170,9 +171,9 @@ describe("mobile Show on Map inspector", () => {
   it("resizes the actual mobile map viewport while preserving focused selection", () => {
     assert.match(shellSource, /mapLayoutSignal/);
     assert.match(shellSource, /layoutResetSignal=\{mapLayoutSignal\}/);
-    assert.match(mapSource, /lastFocusLayoutKeyRef/);
-    assert.match(mapSource, /layoutResetSignal \?\? 0/);
-    assert.match(mapSource, /lastFocusLayoutKeyRef\.current === currentLayoutKey/);
+    assert.match(framingSource, /lastFocusLayoutKeyRef/);
+    assert.match(framingSource, /layoutResetSignal \?\? 0/);
+    assert.match(framingSource, /lastFocusLayoutKeyRef\.current === layoutKey/);
     assert.match(mapSource, /focusTargetKey/);
   });
 

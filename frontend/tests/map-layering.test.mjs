@@ -27,6 +27,8 @@ const sharedOverlaySource = [
 // TTC's renderer together with the shared layer it renders overlays with.
 const interactiveMapSource = [
   readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8"),
+  // TTC's per-station targets, memoized per station.
+  readFileSync(new URL("../src/components/TtcStationTarget.tsx", import.meta.url), "utf8"),
   sharedOverlaySource,
 ].join("\n");
 const ttcGlyphLanesSource = readFileSync(new URL("../src/components/map-overlays/GlyphLanes.tsx", import.meta.url), "utf8");
@@ -38,7 +40,8 @@ const interactiveRegionalMapSource = readFileSync(new URL("../src/components/Int
 const regionalStationLayersSource = readFileSync(new URL("../src/components/RegionalStationLayers.tsx", import.meta.url), "utf8");
 const regionalAssetSource = readFileSync(new URL("../src/app/regional-map-asset.ts", import.meta.url), "utf8");
 const regionalOverlaysSource = readFileSync(new URL("../src/app/regional-map-overlays.ts", import.meta.url), "utf8");
-const ttcChooserPlacementSource = readFileSync(new URL("../src/components/ttc-chooser-placement.ts", import.meta.url), "utf8");
+const ttcChooserPlacementSource = readFileSync(new URL("../src/components/map-chooser-placement.ts", import.meta.url), "utf8");
+const chooserHookSource = readFileSync(new URL("../src/components/map-overlays/useMapOverlapChooser.ts", import.meta.url), "utf8");
 const geographicMapSource = readFileSync(new URL("../src/components/GeographicNetworkMap.tsx", import.meta.url), "utf8");
 const overlapChooserSource = readFileSync(new URL("../src/components/MapOverlapChooser.tsx", import.meta.url), "utf8");
 const overlapIndicatorSource = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
@@ -232,10 +235,8 @@ describe("asset-backed map layering", () => {
       globalCss,
       /\.asset-alert-path-hover-boundary\s*\{[^}]*stroke-width:\s*calc\(122\.5px \* var\(--map-overlay-unit, 1\)\);[\s\S]*?\.overlay-segment-group:has\(\.map-segment-hit-target:hover\) \.asset-alert-path-hover-boundary,[\s\S]*?opacity:\s*0\.94;/,
     );
-    assert.match(
-      globalCss,
-      /\.asset-alert-path-glow\.interactive-glow\.planned-preview\s*\{[^}]*display:\s*block;[^}]*transition:/s,
-    );
+    // No glow on hover or selection: the outline and the flash mark them.
+    assert.doesNotMatch(globalCss, /\.interactive-glow[^{,]*\{[^}]*display:\s*block/s);
   });
 
   it("draws TTC alert rails as tubes wider than the line", () => {
@@ -352,7 +353,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /composeNetworkSegmentPath/);
     assert.match(interactiveMapSource, /stationNodeImpacts/);
     assert.match(interactiveMapSource, /pointerEvents=\{exiting \? "none" : "stroke"\}/);
-    assert.match(interactiveMapSource, /onSelectImpact\(\{ kind: impact\.kind, id: impact\.cardId \}\)/);
+    assert.match(overlapChooserSource, /onSelectImpact\(\{ kind: impact\.kind, id: impact\.cardId \}\)/);
     assert.match(interactiveMapSource, /stationImpactDirectionForImpact/);
     assert.match(interactiveMapSource, /stationImpactDirectionForStationImpacts/);
     assert.match(interactiveMapSource, /aria-label="Station impact direction glyphs"/);
@@ -641,7 +642,6 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /const TTC_ARTWORK_OBSTACLES = ttcArtworkObstacles\(TTC_GEOMETRY\)/);
     assert.match(interactiveMapSource, /collectBaseRouteObstacles/);
     assert.match(interactiveMapSource, /#non-linear-guides-layer \{[\s\S]*?display: inline !important;[\s\S]*?visibility: hidden;/);
-    assert.match(interactiveMapSource, /pathCorridorCollisionBoxes/);
     assert.match(interactiveMapSource, /pathMidpointFrame/);
     assert.match(interactiveMapSource, /const frame = pathMidpointFrame\(segment\.pathD\)/);
     assert.match(overlapSvgSource, /export const OVERLAP_INDICATOR_SCALE = 1\.5;/);
@@ -682,26 +682,23 @@ describe("asset-backed map layering", () => {
 
   it("expands every overlap badge into an explicit in-map impact chooser", () => {
     assert.match(interactiveMapSource, /expandedOverlapBadgeId/);
-    assert.match(interactiveMapSource, /data-overlap-chooser/);
-    assert.match(interactiveMapSource, /data-map-wheel-scroll-region/);
+    // TTC renders the shared chooser, placed by the shared hook, as GO/UP does.
+    assert.match(interactiveMapSource, /<MapOverlapChooser/);
+    assert.doesNotMatch(interactiveMapSource, /function OverlapChooser\(/);
+    assert.match(overlapChooserSource, /data-overlap-chooser/);
     assert.match(overlapChooserSource, /data-map-wheel-scroll-region/);
-    assert.match(interactiveMapSource, /data-overlap-choice-kind=\{impact\.kind\}/);
-    assert.match(interactiveMapSource, /data-overlap-choice-id=\{impact\.cardId\}/);
+    assert.match(overlapChooserSource, /data-overlap-choice-kind=\{impact\.kind\}/);
+    assert.match(overlapChooserSource, /data-overlap-choice-id=\{impact\.cardId\}/);
     assert.match(overlapIndicatorSource, /aria-expanded=\{isOpen\}/);
-    assert.match(interactiveMapSource, /Choose Alert/);
-    assert.match(interactiveMapSource, /getSelectedImpactDetails/);
+    assert.match(overlapChooserSource, /Choose Alert/);
+    assert.match(overlapChooserSource, /getSelectedImpactDetails/);
     assert.match(ttcChooserPlacementSource, /MAP_SVG_TO_CSS_SCALE/);
-    // Placement behaviour is covered in overlap-chooser-placement.test.mjs.
+    // Placement behaviour is covered in map-chooser-placement.test.mjs.
     assert.match(ttcChooserPlacementSource, /placeOverlapChooser\(/);
-    assert.match(interactiveMapSource, /import\s*\{[^}]*overlapChooserScreenLayout[^}]*\}\s*from\s*"\.\/ttc-chooser-placement"/);
-    assert.match(interactiveMapSource, /overlapChooserScreenLayout/);
-    assert.match(
-      interactiveMapSource,
-      /overlapChooserScreenLayout\([\s\S]*?chooserKeepoutBoxes,/,
-    );
-    assert.match(interactiveMapSource, /visibleMapChooserKeepouts/);
-    assert.match(interactiveMapSource, /chooserKeepoutBoxes/);
-    assert.match(interactiveMapSource, /observeMapChooserKeepouts\(updateKeepoutBoxes\)/);
+    assert.match(interactiveMapSource, /useMapOverlapChooser\(\{/);
+    assert.match(chooserHookSource, /overlapChooserScreenLayout\([\s\S]*?keepouts,/);
+    assert.match(chooserHookSource, /visibleMapChooserKeepouts/);
+    assert.match(chooserHookSource, /observeMapChooserKeepouts\(update\)/);
     assert.match(chooserKeepoutsSource, /mutationChangesMapChooserKeepouts/);
     assert.match(chooserKeepoutsSource, /element\.checkVisibility/);
     assert.match(chooserKeepoutsSource, /for \(let current: Element \| null = element; current; current = current\.parentElement\)/);
@@ -715,7 +712,7 @@ describe("asset-backed map layering", () => {
     assert.match(chooserKeepoutsSource, /\.mobile-legend-pill/);
     assert.match(chooserKeepoutsSource, /\.mobile-my-stations-shortcut/);
     assert.doesNotMatch(ttcMapRendererSource, /mapViewportSize\.width > OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
-    assert.match(interactiveMapSource, /useFollowedChooserPortal\(\{[\s\S]*?size:\s*layout,/);
+    assert.match(overlapChooserSource, /useFollowedChooserPortal\(\{[\s\S]*?size: chooserSize,/);
     assert.match(overlapChooserSource, /width:\s*size\.width,[\s\S]*?height:\s*size\.height/);
     assert.doesNotMatch(ttcChooserPlacementSource, /for \(let y = minimumY; y <= maximumY; y \+= step\)/);
     assert.match(interactiveMapSource, /onHoverImpact/);
@@ -728,20 +725,20 @@ describe("asset-backed map layering", () => {
     assert.match(ttcChooserPlacementSource, /OVERLAP_CHOOSER_MOBILE_WIDTH/);
     assert.match(globalCss, /@media \(max-width: 640px\)[\s\S]*?\.overlap-chooser-list\s*\{[^}]*grid-auto-rows:\s*max-content;/);
     assert.match(globalCss, /@media \(max-width: 640px\)[\s\S]*?\.overlap-chooser-choice\s*\{[^}]*min-height:\s*82px;/);
-    assert.match(interactiveMapSource, /overlap-chooser-portal/);
-    assert.match(interactiveMapSource, /formatOverlapChooserLocation/);
-    assert.match(interactiveMapSource, /overlap-chooser-header-count/);
-    assert.match(interactiveMapSource, /badge\.impacts\.length/);
-    assert.match(interactiveMapSource, /transformOrigin:/);
-    assert.match(interactiveMapSource, /surfaceRef\.current\?\.animate/);
-    assert.match(interactiveMapSource, /<OverlapChooser[\s\S]*?key=\{expandedOverlapBadge\.segmentId\}/);
-    assert.match(interactiveMapSource, /compactMotion/);
-    assert.match(interactiveMapSource, /const close = async/);
-    assert.match(interactiveMapSource, /animation\?\.finished/);
-    assert.match(interactiveMapSource, /details\.displayDirection/);
-    assert.match(interactiveMapSource, /return "Planned Advisory"/);
-    assert.match(interactiveMapSource, /details\?\.closureDateLabel/);
-    assert.match(interactiveMapSource, /overlap-chooser-choice-date/);
+    assert.match(overlapChooserSource, /overlap-chooser-portal/);
+    assert.match(overlapChooserSource, /function formatLocation\(/);
+    assert.match(overlapChooserSource, /overlap-chooser-header-count/);
+    assert.match(overlapChooserSource, /impacts\.length/);
+    assert.match(overlapChooserSource, /transformOrigin:/);
+    assert.match(overlapChooserSource, /surfaceRef\.current\?\.animate/);
+    assert.match(interactiveMapSource, /<MapOverlapChooser[\s\S]*?key=\{expandedOverlapBadge\.segmentId\}/);
+    assert.match(overlapChooserSource, /const compactMotion = viewportSize\.width <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT;/);
+    assert.match(overlapChooserSource, /const close = async/);
+    assert.match(overlapChooserSource, /animation\?\.finished/);
+    assert.match(overlapChooserSource, /details\?\.displayDirection/);
+    assert.match(overlapChooserSource, /return "Planned Advisory"/);
+    assert.match(overlapChooserSource, /details\?\.closureDateLabel/);
+    assert.match(overlapChooserSource, /overlap-chooser-choice-date/);
     assert.match(globalCss, /\.overlap-chooser-choice-date\s*\{[^}]*color:\s*#3b82f6;[^}]*font-size:\s*12px;/s);
     assert.doesNotMatch(ttcMapRendererSource, /overlap-chooser-choice-action/);
     assert.doesNotMatch(ttcMapRendererSource, /details\?\.title \?\? labelForImpactKind/);

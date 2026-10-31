@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, type ComponentPropsWithRef, type ReactNode, type SyntheticEvent } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentPropsWithRef, type ReactNode, type SyntheticEvent } from "react";
 import { observeDesktopControlRail } from "../app/desktop-sidebar-state";
 import type { NetworkId } from "../app/regional-data";
 import { NetworkSwitchContext } from "./NetworkSelector";
@@ -35,9 +35,19 @@ export function SharedMapControlRailProvider({ network, children }: { network: N
     event.preventDefault();
     event.stopPropagation();
   }, [switching]);
-  useLayoutEffect(() => observeDesktopControlRail(
-    anchorRef.current?.querySelector<HTMLElement>(".desktop-map-control-rail") ?? null,
-  ), [activeRail]);
+  // Observe the rail element, not each render's rail: every map render
+  // publishes a new rail node, and re-subscribing read layout mid-commit.
+  const observedRailRef = useRef<{ element: HTMLElement | null; stop: () => void } | null>(null);
+  useLayoutEffect(() => {
+    const element = anchorRef.current?.querySelector<HTMLElement>(".desktop-map-control-rail") ?? null;
+    if (observedRailRef.current && observedRailRef.current.element === element) return;
+    observedRailRef.current?.stop();
+    observedRailRef.current = { element, stop: observeDesktopControlRail(element) };
+  }, [activeRail]);
+  useEffect(() => () => {
+    observedRailRef.current?.stop();
+    observedRailRef.current = null;
+  }, []);
   return (
     <RailContext.Provider value={context}>
       {children}

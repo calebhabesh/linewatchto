@@ -9,7 +9,6 @@ import {
   REGIONAL_TOP_HOVER_LAYER_ID,
   regionalImpactPriority,
   regionalOverlayRuns,
-  regionalOverlapChooserLayout,
   regionalOverlayContentSignature,
 } from "../src/app/regional-map-overlays.ts";
 
@@ -142,39 +141,6 @@ describe("regional map overlay utilities", () => {
       assert.equal(runs.length, 2);
       assert.equal(runs[0].impact.kind, "delay");
       assert.equal(runs[1].impact.kind, "suspension");
-    });
-  });
-
-  describe("regionalOverlapChooserLayout", () => {
-    it("calculates layout position avoiding collisions", () => {
-      const markerCenter = { x: 500, y: 500 };
-      const markerSize = { width: 44, height: 44 };
-      const alertAnchor = { x: 500, y: 520 };
-      const chooserSize = { width: 120, height: 80 };
-      const viewportSize = { width: 1000, height: 1000 };
-      const uiKeepoutBoxes = [
-        { x: 0, y: 0, width: 200, height: 200 },
-      ];
-      const affectedArea = [];
-
-      const result = regionalOverlapChooserLayout({
-        markerCenter,
-        markerSize,
-        alertAnchor,
-        chooserSize,
-        viewportSize,
-        affectedArea,
-        uiKeepoutBoxes,
-      });
-
-      assert.ok(result, "must return a layout result");
-      assert.ok(result.layout, "must contain layout");
-      assert.ok(typeof result.layout.left === "number");
-      assert.ok(typeof result.layout.top === "number");
-      assert.ok(typeof result.layout.anchorOffsetX === "number");
-      assert.ok(typeof result.layout.anchorOffsetY === "number");
-      assert.ok(result.size.width > 0);
-      assert.ok(result.size.height > 0);
     });
   });
 });

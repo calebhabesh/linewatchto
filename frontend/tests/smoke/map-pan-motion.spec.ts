@@ -2,34 +2,8 @@ import { expect, test } from "@playwright/test";
 import { installDismissedTransientUi, setStubMode } from "./test-support";
 
 for (const network of ["ttc", "regional"] as const) {
-  test(`${network} diagram follows the same eased desktop drag`, async ({ page, request, isMobile }) => {
-    test.skip(isMobile, "Desktop drag motion is checked at a desktop viewport.");
-    await installDismissedTransientUi(page);
-    await page.addInitScript((networkValue) => {
-      localStorage.setItem("linewatch-default-network-v1", networkValue);
-    }, network);
-    await setStubMode(request, "seeded");
-    await page.goto("/");
-
-    const stage = page.locator(network === "ttc" ? ".ttc-map-stage" : ".regional-map-stage");
-    const viewport = page.locator(network === "ttc" ? "[data-map-pan-zoom-viewport]" : ".regional-map-viewport");
-    await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
-    const bounds = await viewport.boundingBox();
-    expect(bounds).not.toBeNull();
-    const start = { x: bounds!.x + bounds!.width * 0.75, y: bounds!.y + bounds!.height * 0.55 };
-
-    await page.mouse.move(start.x, start.y);
-    await page.mouse.down();
-    await expect.poll(() => stage.evaluate((element) => ({
-      property: getComputedStyle(element).transitionProperty,
-      duration: getComputedStyle(element).transitionDuration,
-    }))).toEqual({ property: "transform", duration: "0.1s" });
-    const before = await stage.evaluate((element) => element.style.transform);
-    await page.mouse.move(start.x + 50, start.y + 30, { steps: 6 });
-    await expect.poll(() => stage.evaluate((element) => element.style.transform)).not.toBe(before);
-    await page.mouse.up();
-  });
-
+  // Diagram drags are covered for both maps by map-parity.spec.ts (exact pan
+  // distance, momentum, a press during a glide).
   test(`${network} geographic view still pans with its shared map handler`, async ({ page, request, isMobile }) => {
     test.skip(isMobile, "Desktop pointer drag is checked at a desktop viewport.");
     await installDismissedTransientUi(page);

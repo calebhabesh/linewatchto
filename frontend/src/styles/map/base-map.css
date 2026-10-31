@@ -388,11 +388,6 @@
   transition: none !important;
 }
 
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .interactive-glow.selected {
-  opacity: 0.36;
-  stroke-width: calc(138px * var(--map-overlay-unit, 1));
-}
-
 /* Camera input takes priority over decorative paint. Removing blur/drop-shadow
    sampling and transient hover planes while the stage moves keeps Chromium's
    compositor work bounded without hiding the service-impact rails themselves. */

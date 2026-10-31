@@ -60,6 +60,15 @@ export function mapHoverTargetAtClientPoint(root: Element, clientX: number, clie
   return mapStationAlertAtClientPoint(root, clientX, clientY) ?? mapLineAlertAtClientPoint(root, clientX, clientY);
 }
 
+function isFocusVisible(target: EventTarget | null) {
+  if (!(target instanceof Element)) return false;
+  try {
+    return target.matches(":focus-visible");
+  } catch {
+    return true;
+  }
+}
+
 export type MapHoverControllerOptions = {
   /** The layer group previews draw their outline into. */
   previewOutlineLayer: () => SVGGElement | null;
@@ -152,8 +161,10 @@ export function installMapHoverController(root: HTMLElement, options: MapHoverCo
     if (!(target instanceof Element) || target.closest(".overlap-indicator, [data-overlap-chooser]")) return null;
     return mapImpactIdentityOf(target);
   };
+  // Only keyboard focus hovers: a click also focuses its target, and that
+  // focus must not keep the outline on once the cursor leaves.
   const handleFocusIn = (event: FocusEvent) => {
-    if (!finePointer()) return;
+    if (!finePointer() || !isFocusVisible(event.target)) return;
     setMapOwners(pointerImpact, hoverTargetOf(event.target));
   };
   const handleFocusOut = (event: FocusEvent) => {

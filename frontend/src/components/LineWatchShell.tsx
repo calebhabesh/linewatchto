@@ -705,6 +705,12 @@ export function LineWatchShell({
     nextSelection: ImpactSelection,
     { focusOnMap = true, related = false }: { focusOnMap?: boolean; related?: boolean } = {},
   ) => {
+    // Pressing the alert that is already selected keeps its flash, breathing
+    // and camera as they are; only a new selection starts them again.
+    if (nextSelection && selection && nextSelection.kind === selection.kind && nextSelection.id === selection.id) {
+      if (isMobile) setMobileInspectorDetent("details-focus");
+      return;
+    }
     if (!isMobile) {
       setDesktopMapFocus(nextSelection && focusOnMap ? {
         selection: nextSelection,
@@ -716,7 +722,7 @@ export function LineWatchShell({
       setMobileInspectorDetent("details-focus");
     }
     navMapSelectImpact(nextSelection, { related });
-  }, [isMobile, navMapSelectImpact, selectedNetwork, selectionAttentionGeneration, setMobileInspectorDetent]);
+  }, [isMobile, navMapSelectImpact, selectedNetwork, selection, selectionAttentionGeneration, setMobileInspectorDetent]);
 
   const handleSelectStationId = useCallback((id: string | null) => {
     navSelectStationId(id);

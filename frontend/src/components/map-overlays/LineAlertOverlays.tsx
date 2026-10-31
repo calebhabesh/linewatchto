@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties, type ReactNode } from "react";
+import { memo, useMemo, type CSSProperties, type ReactNode } from "react";
 import type { ImpactSelection } from "../../app/linewatch-data";
 import { samplePath } from "../../app/map-geometry";
 import {
@@ -47,8 +47,12 @@ function layerStateClass(exiting?: boolean) {
  * every zoom step.
  */
 
-/** One alert's tube and glyphs (the resting artwork, never animated). */
-export function MapLineAlertTube({
+/**
+ * One alert's tube and glyphs (the resting artwork, never animated). Memoized:
+ * a map re-renders on every selection, and only a tube whose alert or
+ * selected state changed needs to redraw its glyph lanes.
+ */
+export const MapLineAlertTube = memo(function MapLineAlertTube({
   alert,
   plane,
   selected,
@@ -190,7 +194,7 @@ export function MapLineAlertTube({
       ) : null}
     </g>
   );
-}
+});
 
 /** Every line alert's tube, grouped by line. */
 export function MapLineAlertLayer({
@@ -265,16 +269,21 @@ function hoverIdentityAttributes(alert: MapLineAlert) {
 
 /**
  * A hover copy of each alert's artwork, shown only while that alert is
- * hovered so it paints above the others. Idle copies stay out of rendering
- * (map-renderer-parity.md rule 5).
+ * hovered so it paints above the others. Each copy's `<use>` exists only
+ * while hovered (`setMapImpactHovered` adds it): Chrome keeps every `<use>`
+ * clone in step with its alert even when hidden, and the camera flags restyle
+ * the alerts on every gesture (map-renderer-parity.md rule 5).
  */
 export function MapLineAlertHoverCopies({ alerts, plane }: { alerts: MapLineAlert[]; plane: MapOverlayPlane }) {
   return (
     <g aria-hidden="true" pointerEvents="none">
       {alerts.map((alert) => alert.exiting ? null : (
-        <g key={alert.key} className="map-impact-hover-foreground" {...hoverIdentityAttributes(alert)}>
-          <use href={`#${lineAlertVisualId(plane, alert)}`} />
-        </g>
+        <g
+          key={alert.key}
+          className="map-impact-hover-foreground"
+          {...hoverIdentityAttributes(alert)}
+          data-map-hover-copy-href={`#${lineAlertVisualId(plane, alert)}`}
+        />
       ))}
     </g>
   );

@@ -8,6 +8,7 @@ const shellSource = readShellSource();
 const navSource = readFileSync(new URL("../src/hooks/useNavigationTransitions.ts", import.meta.url), "utf8");
 const transitionsSource = readFileSync(new URL("../src/app/navigation-transitions.ts", import.meta.url), "utf8");
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const overlapChooserSource = readFileSync(new URL("../src/components/MapOverlapChooser.tsx", import.meta.url), "utf8");
 const lineStatusSource = readFileSync(new URL("../src/components/LineStatusPanel.tsx", import.meta.url), "utf8");
 const activeAlertsSource = readFileSync(new URL("../src/components/ActiveAlertsPanel.tsx", import.meta.url), "utf8");
 const delaysPanelSource = readFileSync(new URL("../src/components/DelaysPanel.tsx", import.meta.url), "utf8");
@@ -252,8 +253,8 @@ describe("floating menu layout", () => {
     assert.match(impactCardFieldsSource, /label === PLANNED_WINDOW_LABEL \? "is-planned-closure-row"/);
     assert.match(globalCss, /\.related-planned-closure-button\s*\{[^}]*background:\s*#2563eb;[^}]*border-radius:\s*6px;[^}]*color:\s*#ffffff;[^}]*font-size:\s*11px;[^}]*min-height:\s*24px/s);
     assert.match(globalCss, /\.planned-closure-status-button\s*\{[^}]*border-radius:\s*6px;[^}]*font-size:\s*11px;[^}]*min-height:\s*24px/s);
-    assert.match(interactiveMapSource, /kind === "suspension"/);
-    assert.match(interactiveMapSource, /details\?\.categoryLabel \?\? "Suspension"/);
+    // The shared chooser labels a suspension or delay by its category, as the cards do.
+    assert.match(overlapChooserSource, /if \(kind === "suspension" \|\| kind === "delay"\) return details\?\.categoryLabel \?\? impactKindLabel\(kind\);/);
     assert.match(plannedClosuresSource, /alert\.relatedPlannedClosureId === closure\.id/);
     assert.match(plannedClosuresSource, /closure\.activeNow && alert\.id === closure\.id/);
     assert.doesNotMatch(plannedClosuresSource, /label: "Status"/);
@@ -448,12 +449,6 @@ describe("floating menu layout", () => {
   });
 
   it("routes active planned closures through active alerts instead of upcoming closures", () => {
-    const selectedActiveAlertIndex = interactiveMapSource.indexOf(
-      "activeAlerts.find((alert) => alert.id === selection.id)?.affectedSegmentIds"
-    );
-    const selectedPlannedClosureIndex = interactiveMapSource.indexOf(
-      "plannedClosures.find((closure) => closure.id === selection.id)?.previewSegmentIds"
-    );
     const impactActiveAlertIndex = interactiveMapSource.indexOf(
       "activeAlerts.find((alert) => alert.id === impact.cardId)?.affectedSegmentIds"
     );
@@ -461,11 +456,8 @@ describe("floating menu layout", () => {
       "plannedClosures.find((closure) => closure.id === impact.cardId)?.previewSegmentIds"
     );
 
-    assert.notEqual(selectedActiveAlertIndex, -1);
-    assert.notEqual(selectedPlannedClosureIndex, -1);
     assert.notEqual(impactActiveAlertIndex, -1);
     assert.notEqual(impactPlannedClosureIndex, -1);
-    assert.ok(selectedActiveAlertIndex < selectedPlannedClosureIndex);
     assert.ok(impactActiveAlertIndex < impactPlannedClosureIndex);
     assert.match(activeAlertsSource, /function impactKindForAlert/);
     assert.match(activeAlertsSource, /function impactKindForAlert\(alert: ActiveAlert\): ImpactKind/);
@@ -475,7 +467,6 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /nextSelection\.kind === "planned-closure"/);
     assert.match(shellSource, /activeAlerts\.some\(\(alert\) => alert\.id === nextSelection\.id\)/);
     assert.match(shellSource, /handleSelectImpactDetails\(nextSelection\)/);
-    assert.match(interactiveMapSource, /activeAlerts\.find\(\(alert\) => alert\.id === selection\.id\)\?\.affectedSegmentIds/);
     assert.match(interactiveMapSource, /activeAlerts\.find\(\(alert\) => alert\.id === impact\.cardId\)\?\.affectedSegmentIds/);
   });
 

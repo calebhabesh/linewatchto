@@ -1,5 +1,5 @@
 /** Screen-space alert chooser placement for the MapLibre geographic map. */
-import type { MapOverlapChooserLayout } from "./MapOverlapChooser";
+import type { OverlapChooserScreenLayout } from "./map-chooser-placement";
 import { chooserWidthCandidates } from "./map-chooser-layout.ts";
 
 type GeographicChooserKeepout = {
@@ -11,7 +11,7 @@ type GeographicChooserKeepout = {
 
 export type GeographicOverlapChooserLayout = {
   chooserSize: { width: number; height: number };
-  layout: MapOverlapChooserLayout;
+  layout: OverlapChooserScreenLayout;
   viewportSize: { width: number; height: number };
 };
 
@@ -105,7 +105,16 @@ export function chooseGeographicChooserLayout({
 
   const result = (width: number, height: number, left: number, top: number): GeographicOverlapChooserLayout => ({
     chooserSize: { width, height },
-    layout: { left, top, anchorOffsetX: anchor.x - left, anchorOffsetY: anchor.y - top },
+    layout: {
+      left,
+      top,
+      width,
+      height,
+      anchorOffsetX: anchor.x - left,
+      anchorOffsetY: anchor.y - top,
+      coversAffectedArea: false,
+      badgeCenter: anchor,
+    },
     viewportSize,
   });
 

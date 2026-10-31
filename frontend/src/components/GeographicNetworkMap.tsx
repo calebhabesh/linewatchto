@@ -1770,8 +1770,6 @@ export function GeographicNetworkMap({
           markerId={overlapChooser.markerId}
           label={overlapChooser.label}
           impacts={overlapChooser.impacts}
-          chooserSize={overlapChooserLayout.chooserSize}
-          collisionAvoided
           layout={overlapChooserLayout.layout}
           follower={overlapChooserFollower}
           followAnchor={overlapChooserLayout.followAnchor}
@@ -1783,7 +1781,7 @@ export function GeographicNetworkMap({
             if (restoreFocus) containerRef.current?.focus({ preventScroll: true });
           }}
           reducedMotion={reducedMotion}
-          compactMotion={overlapChooserLayout.viewportSize.width <= 640}
+          viewportOrientation="standard"
           viewportSize={overlapChooserLayout.viewportSize}
         />
       ) : null}

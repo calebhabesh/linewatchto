@@ -11,11 +11,14 @@ import {
   boundsListsMatch,
   boundsContainingBoxes,
   overlapChooserSize,
+  meetStageTransform,
   overlapChooserScreenLayout,
-} from "../src/components/ttc-chooser-placement.ts";
+} from "../src/components/map-chooser-placement.ts";
 import { getImpactPriority } from "../src/app/map-alert-selector.ts";
 
-describe("TTC Chooser Placement - Sizing and Priority", () => {
+const ttcStage = { scale: MAP_SVG_TO_CSS_SCALE, x: 0, y: 0 };
+
+describe("Map chooser placement - Sizing and Priority", () => {
   it("maintains layout constants contract", () => {
     assert.deepEqual(MAP_VIEWBOX_BOUNDS, { x: 0, y: 0, width: 8250, height: 4000 });
     assert.equal(MAP_SVG_TO_CSS_SCALE, 4500 / 8250);
@@ -59,7 +62,7 @@ describe("TTC Chooser Placement - Sizing and Priority", () => {
   });
 });
 
-describe("TTC Chooser Placement - Bounding Box and Geometry Helpers", () => {
+describe("Map chooser placement - Bounding Box and Geometry Helpers", () => {
   it("expands boxes symmetrically by padding", () => {
     const box = { x: 10, y: 20, width: 30, height: 40 };
     const expanded = expandBox(box, 5);
@@ -98,7 +101,7 @@ function intersects(a, b) {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
-describe("TTC Chooser Placement - Screen Layout", () => {
+describe("Map chooser placement - Screen Layout", () => {
   // Identity-ish transform: one map unit is MAP_SVG_TO_CSS_SCALE pixels.
   const transform = { x: 0, y: 0, scale: 1 / MAP_SVG_TO_CSS_SCALE };
 
@@ -109,7 +112,7 @@ describe("TTC Chooser Placement - Screen Layout", () => {
       size: { width: 60, height: 60 },
       chooserSize: { width: 360, height: 244 },
       affectedOutlines: [],
-    }, transform, viewport, []);
+    }, transform, ttcStage, viewport, []);
     const badge = { x: 570, y: 420, width: 60, height: 60 };
     const card = { x: layout.left, y: layout.top, width: layout.width, height: layout.height };
     const gap = Math.max(card.x - (badge.x + badge.width), badge.x - (card.x + card.width), card.y - (badge.y + badge.height), badge.y - (card.y + card.height));
@@ -129,7 +132,7 @@ describe("TTC Chooser Placement - Screen Layout", () => {
       size: { width: 60, height: 60 },
       chooserSize: { width: 360, height: 244 },
       affectedOutlines: [{ polyline: [{ x: 100, y: 380 }, { x: 1100, y: 380 }], halfWidth: 20 }],
-    }, transform, viewport, []);
+    }, transform, ttcStage, viewport, []);
 
     assert.ok(layout.top >= 400, `card should open below the overlay, got top ${layout.top}`);
     assert.equal(layout.coversAffectedArea, false);
@@ -143,7 +146,7 @@ describe("TTC Chooser Placement - Screen Layout", () => {
       size: { width: 60, height: 60 },
       chooserSize: { width: 360, height: 244 },
       affectedOutlines: [],
-    }, transform, viewport, keepouts);
+    }, transform, ttcStage, viewport, keepouts);
     const card = { x: layout.left, y: layout.top, width: layout.width, height: layout.height };
 
     assert.ok(layout.left >= 16 && layout.top >= 16);
@@ -172,9 +175,36 @@ describe("compact mobile chooser keepouts", () => {
       size: { width: 30, height: 30 },
       chooserSize: overlapChooserSize(3, viewport.width),
       affectedOutlines: [],
-    }, { x: 0, y: 0, scale: 1 / MAP_SVG_TO_CSS_SCALE }, viewport, keepouts);
+    }, { x: 0, y: 0, scale: 1 / MAP_SVG_TO_CSS_SCALE }, ttcStage, viewport, keepouts);
     const bounds = { x: layout.left, y: layout.top, width: layout.width, height: layout.height };
     assert.equal(layout.width, 240);
     assert.ok(keepouts.every((box) => !intersects(bounds, expandBox(box, 8))));
+  });
+});
+
+describe("map stage transforms", () => {
+  it("fits a plane into its stage like an SVG with xMidYMid meet", () => {
+    // TTC: the view box fills the 4500 px stage at the origin.
+    const ttc = meetStageTransform(MAP_VIEWBOX_BOUNDS, 4500, 4000 * MAP_SVG_TO_CSS_SCALE);
+    for (const key of ["scale", "x", "y"]) assert.ok(Math.abs(ttc[key] - ttcStage[key]) < 1e-9, key);
+    // GO/UP: a margin around the view box, and a stage taller than the view box's aspect.
+    const stage = meetStageTransform({ x: -200, y: -200, width: 17036.959, height: 9031.6719 }, 4739.2821, 2616.8174);
+    assert.ok(Math.abs(stage.scale - 4739.2821 / 17036.959) < 1e-9);
+    assert.ok(Math.abs(stage.x - 200 * stage.scale) < 1e-6);
+    assert.ok(Math.abs(stage.y - ((2616.8174 - 9031.6719 * stage.scale) / 2 + 200 * stage.scale)) < 1e-6);
+  });
+
+  it("places a badge through its map's stage offset", () => {
+    const viewport = { width: 1200, height: 900 };
+    const badge = {
+      position: { x: 500, y: 400 },
+      size: { width: 60, height: 60 },
+      chooserSize: { width: 360, height: 244 },
+      affectedOutlines: [],
+    };
+    const camera = { x: 10, y: 20, scale: 2 };
+    const layout = overlapChooserScreenLayout(badge, camera, { scale: 0.5, x: 30, y: 40 }, viewport, []);
+    // stage = 500 × 0.5 + 30 = 280, then the camera: 10 + 280 × 2 = 570 (and 20 + 240 × 2 = 500).
+    assert.deepEqual(layout.badgeCenter, { x: 570, y: 500 });
   });
 });
