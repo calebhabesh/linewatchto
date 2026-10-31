@@ -1,4 +1,4 @@
-import type { ImpactSelection, MapImpactKind, StationNodeImpact } from "../../app/linewatch-data.ts";
+import type { ImpactSelection, MapImpactKind, NetworkSegment, StationNodeImpact } from "../../app/linewatch-data.ts";
 import type { MapPoint } from "../../app/map-geometry.ts";
 import {
   stationImpactDirectionForStationImpacts,
@@ -54,7 +54,7 @@ export type MapStationAlert = {
   exiting?: boolean;
 };
 
-/** The arrow over a station dot for every one-way alert on it. */
+/** The arrow over a station dot for the directions its alerts affect. */
 export type MapStationDirectionGlyph = {
   key: string;
   anchorId: string;
@@ -100,8 +100,8 @@ export function outsetStationPill(pill: MapStationPill, distance: number): MapSt
 }
 
 /**
- * One arrow per alerted anchor, combining every one-way alert on it (two
- * opposite alerts draw a two-headed arrow).
+ * One arrow per alerted anchor, combining the directions of every alert on
+ * it: one way, both ways along a line, or three or four ways at a junction.
  */
 export function stationDirectionGlyphs<I extends Pick<StationNodeImpact, "stationId" | "kind" | "cardId">>(
   placements: Array<{ impact: I; anchor: { id: string; center: MapPoint; badgeRadius: number } }>,
@@ -118,6 +118,29 @@ export function stationDirectionGlyphs<I extends Pick<StationNodeImpact, "statio
     const direction = stationImpactDirectionForStationImpacts(impacts, directionData);
     return direction ? [{ key, anchorId, center, radius, direction: direction.arrow.direction }] : [];
   });
+}
+
+/**
+ * The current line disruptions at each interchange, as station impacts there,
+ * so its dot's arrow shows which directions are affected (Bloor-Yonge with
+ * Line 2 both ways and Line 1 northbound points three ways). Every drawn
+ * impact on a segment ending at an interchange counts; planned previews are
+ * not current service and are left out.
+ */
+export function interchangeLineImpacts(
+  segments: ReadonlyArray<Pick<NetworkSegment, "stationAId" | "stationBId" | "impacts">>,
+  interchangeIds: ReadonlySet<string>,
+): Array<Pick<StationNodeImpact, "stationId" | "kind" | "cardId">> {
+  const seen = new Set<string>();
+  return segments.flatMap((segment) => [segment.stationAId, segment.stationBId].flatMap((stationId) => {
+    if (!stationId || !interchangeIds.has(stationId)) return [];
+    return (segment.impacts ?? []).flatMap(({ kind, cardId }) => {
+      const key = `${stationId}:${kind}:${cardId}`;
+      if (kind === "planned-closure" || seen.has(key)) return [];
+      seen.add(key);
+      return [{ stationId, kind, cardId }];
+    });
+  }));
 }
 
 /** Half the idle ring's hovered stroke (8), in overlay units on TTC. */

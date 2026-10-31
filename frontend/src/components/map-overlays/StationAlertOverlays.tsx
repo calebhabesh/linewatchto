@@ -1,6 +1,6 @@
 import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent, ReactNode, SVGProps } from "react";
 import type { ImpactSelection } from "../../app/linewatch-data";
-import { stationImpactDirectionPath } from "../station-impact-direction";
+import { stationImpactDirectionPath, stationImpactDirectionStrokeWidth } from "../station-impact-direction";
 import { STATION_IMPACT_BEACON_STROKE_RATIO } from "../station-impact-beacon";
 import type { MapOverlayPlane } from "./overlay-plane";
 import {
@@ -193,7 +193,7 @@ export function MapStationAlertRings({
   );
 }
 
-/** One arrow per alerted dot for one-way alerts; the same glyph on both maps. */
+/** One arrow per alerted dot for its affected directions; the same glyph on both maps. */
 export function MapStationDirectionGlyphs({ glyphs }: { glyphs: MapStationDirectionGlyph[] }) {
   return (
     <g>
@@ -208,6 +208,7 @@ export function MapStationDirectionGlyphs({ glyphs }: { glyphs: MapStationDirect
             className="station-impact-direction-glyph"
             data-map-station-anchor-id={glyph.anchorId}
             pointerEvents="none"
+            style={{ "--station-impact-direction-stroke": `${stationImpactDirectionStrokeWidth(glyph.radius)}px` } as CSSProperties}
             transform={`translate(${glyph.center.x} ${glyph.center.y})`}
           >
             <circle className="station-impact-direction-badge" r={glyph.radius} />

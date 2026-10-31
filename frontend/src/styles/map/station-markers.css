@@ -192,7 +192,8 @@
   stroke: #111827;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: calc(6px * var(--map-overlay-unit, 1));
+  /* Scales with the badge (stationImpactDirectionStrokeWidth). */
+  stroke-width: var(--station-impact-direction-stroke, calc(6px * var(--map-overlay-unit, 1)));
 }
 
 .linewatch-shell.high-contrast .station-impact-direction-badge {
@@ -203,7 +204,7 @@
 
 .linewatch-shell.high-contrast .station-impact-direction-arrow {
   stroke: #000000;
-  stroke-width: calc(7px * var(--map-overlay-unit, 1));
+  stroke-width: calc(var(--station-impact-direction-stroke, calc(6px * var(--map-overlay-unit, 1))) * 7 / 6);
 }
 
 /* ============================================================

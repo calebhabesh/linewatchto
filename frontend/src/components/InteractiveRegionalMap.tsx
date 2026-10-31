@@ -531,7 +531,7 @@ function InteractiveRegionalMapComponent({
     const plane = REGIONAL_OVERLAY_PLANE;
     const nextLineAlerts = regionalLineAlerts(REGIONAL_GEOMETRY, { activeAlerts, networkSegments, stationNodeImpacts });
     const nextStationOverlays = regionalStationAlerts(REGIONAL_GEOMETRY, {
-      activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts: stationAlertImpacts, stations,
+      activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts: stationAlertImpacts, stations, networkSegments,
     }, plane.unit);
     const nextCommutePreview = regionalCommutePreview(REGIONAL_GEOMETRY, commutePathPreview, networkSegments);
     setLineAlerts((current) => (

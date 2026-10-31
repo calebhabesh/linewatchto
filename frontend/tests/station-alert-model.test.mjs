@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+
+import { regionalStationAlerts } from "../src/app/regional-station-alerts.ts";
 
 import {
   STATION_ALERT_PILL_RING_GAP,
@@ -7,6 +10,7 @@ import {
   outsetStationPill,
   stationAlertAnchorReach,
   stationAlertColor,
+  interchangeLineImpacts,
   stationDirectionGlyphs,
 } from "../src/components/map-overlays/station-alert-model.ts";
 
@@ -65,5 +69,49 @@ describe("shared station alert model", () => {
       { impact: { stationId: "x", kind: "suspension", cardId: "a" }, anchor: { id: "dot", center: { x: 0, y: 0 }, badgeRadius: 24 } },
     ], noDirections);
     assert.deepEqual(glyphs, []);
+  });
+
+  it("points an interchange along its line disruptions: Bloor-Yonge with Line 2 both ways and Line 1 northbound", () => {
+    const data = {
+      ...noDirections,
+      activeAlerts: [{ id: "l2", lineId: "line-2", displayDirection: "Eastbound & Westbound" }],
+      reducedSpeedZones: [{ id: "rsz", lineId: "line-1", displayDirection: "Northbound" }],
+      plannedClosures: [{ id: "later", lineId: "line-1", displayDirection: "Southbound" }],
+    };
+    const segments = [
+      { stationAId: "bay", stationBId: "bloor-yonge", impacts: [{ kind: "suspension", cardId: "l2" }] },
+      { stationAId: "bloor-yonge", stationBId: "sherbourne", impacts: [{ kind: "suspension", cardId: "l2" }] },
+      { stationAId: "rosedale", stationBId: "bloor-yonge", impacts: [{ kind: "reduced-speed-zone", cardId: "rsz" }] },
+      // An upcoming closure is a planned preview, not current service.
+      { stationAId: "bloor-yonge", stationBId: "wellesley", impacts: [{ kind: "planned-closure", cardId: "later" }] },
+    ];
+    const impacts = interchangeLineImpacts(segments, new Set(["bloor-yonge"]));
+    assert.deepEqual(impacts, [
+      { stationId: "bloor-yonge", kind: "suspension", cardId: "l2" },
+      { stationId: "bloor-yonge", kind: "reduced-speed-zone", cardId: "rsz" },
+    ]);
+    const anchor = { id: "bloor-yonge", center: { x: 0, y: 0 }, badgeRadius: 40 };
+    const glyphs = stationDirectionGlyphs(impacts.map((impact) => ({ impact, anchor })), data);
+    assert.equal(glyphs.length, 1);
+    assert.equal(glyphs[0].direction, "three-way-no-down");
+  });
+
+  it("gives GO/UP interchanges arrows, but leaves Union's hub without one", () => {
+    const geometry = JSON.parse(readFileSync(new URL("../src/app/map-geometry/regional.json", import.meta.url), "utf8"));
+    const data = {
+      ...noDirections,
+      activeAlerts: [{ id: "ki", lineId: "regional-ki", displayDirection: "bidirectional" }],
+      stationNodeImpacts: [{ stationId: "union", kind: "suspension", cardId: "ki", title: "Union" }],
+      stations: [
+        { id: "union", name: "Union Station", interchange: true },
+        { id: "bloor", name: "Bloor", interchange: true },
+      ],
+      networkSegments: [
+        { stationAId: "union", stationBId: "bloor", impacts: [{ kind: "suspension", cardId: "ki" }] },
+      ],
+    };
+    const { alerts, glyphs } = regionalStationAlerts(geometry, data, 1);
+    assert.equal(alerts.length, 1, "Union keeps its station alert");
+    assert.deepEqual(glyphs.map((glyph) => [glyph.anchorId, glyph.direction]), [["station-bloor-ki", "horizontal-bidirectional"]]);
   });
 });

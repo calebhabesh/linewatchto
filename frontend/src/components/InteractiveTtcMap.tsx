@@ -129,6 +129,7 @@ import {
   MapStationDirectionGlyphs,
 } from "./map-overlays/StationAlertOverlays";
 import {
+  interchangeLineImpacts,
   stationDirectionGlyphs,
   type MapStationAlert,
   type MapStationDirectionGlyph,
@@ -1076,8 +1077,15 @@ function InteractiveTtcMapComponent({
     stationCenterPoints,
   ]);
 
+  const interchangeStationIds = useMemo(
+    () => new Set(mapStations.filter((station) => station.interchange).map((station) => station.id)),
+    [mapStations],
+  );
   const stationDirectionGlyphLayers = useMemo<MapStationDirectionGlyph[]>(() => stationDirectionGlyphs(
-    stationNodeImpacts.flatMap((impact) => {
+    [
+      ...stationNodeImpacts,
+      ...interchangeLineImpacts(renderedNetworkSegments, interchangeStationIds),
+    ].flatMap((impact) => {
       const station = stationBySummaryId.get(impact.stationId);
       if (!station) return [];
       const badgeRadius = stationImpactDirectionBadgeRadius(isStationVisuallyLarge(station));
@@ -1087,7 +1095,14 @@ function InteractiveTtcMapComponent({
       }));
     }),
     directionData,
-  ), [directionData, stationBySummaryId, stationCenterPoints, stationNodeImpacts]);
+  ), [
+    directionData,
+    interchangeStationIds,
+    renderedNetworkSegments,
+    stationBySummaryId,
+    stationCenterPoints,
+    stationNodeImpacts,
+  ]);
 
   const retainedStationDirectionGlyphs = useRetainedMapLayers(
     stationDirectionGlyphLayers,

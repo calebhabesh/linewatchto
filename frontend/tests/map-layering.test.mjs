@@ -365,15 +365,9 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /return isLargeStation \? 40 : 24;/);
     assert.match(interactiveMapSource, /stationImpactRingRadius\(isLarge\)/);
     assert.match(interactiveMapSource, /return isLargeStation \? 56 : 38;/);
-    assert.match(stationImpactDirectionSource, /FOUR_WAY_STATION_IMPACT_ARROW_SCALE = 0\.94/);
-    assert.match(stationImpactDirectionSource, /direction === "four-way" \? radius \* FOUR_WAY_STATION_IMPACT_ARROW_SCALE : radius/);
-    assert.match(stationImpactDirectionSource, /stationImpactDirectionMetrics\(pathMetricsRadius\)/);
-    assert.match(stationImpactDirectionSource, /Math\.round\(radius \* 0\.75\)/);
-    assert.match(stationImpactDirectionSource, /stationImpactDirectionCenteredPartPath/);
-    assert.match(stationImpactDirectionSource, /stationImpactDirectionSpokePartPath/);
-    assert.match(stationImpactDirectionSource, /metrics\.extent/);
-    assert.match(stationImpactDirectionSource, /metrics\.headInset/);
-    assert.match(stationImpactDirectionSource, /direction === "four-way"/);
+    assert.match(stationImpactDirectionSource, /extent: radius \* 0\.75/);
+    assert.match(stationImpactDirectionSource, /centeredGlyphPath\(stationImpactDirectionStrokes/);
+    assert.match(stationImpactDirectionSource, /arrowHead\(tip, part, metrics\)/);
     assert.match(globalCss, /\.station-impact-direction-badge/);
     assert.match(globalCss, /\.station-impact-direction-arrow/);
     assert.match(interactiveMapSource, /feTurbulence/);

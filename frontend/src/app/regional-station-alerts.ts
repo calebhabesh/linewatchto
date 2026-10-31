@@ -1,4 +1,4 @@
-import type { Station, StationNodeImpact } from "./linewatch-data.ts";
+import type { NetworkSegment, Station, StationNodeImpact } from "./linewatch-data.ts";
 import type { PreparedMapGeometry } from "./map-geometry-data.ts";
 import {
   matrixTransform,
@@ -18,6 +18,7 @@ import {
   type StationImpactDirectionData,
 } from "../components/station-impact-direction.ts";
 import {
+  interchangeLineImpacts,
   stationDirectionGlyphs,
   type MapStationAlert,
   type MapStationDirectionGlyph,
@@ -69,27 +70,32 @@ export function regionalStationPill(geometry: PreparedMapGeometry, anchorId: str
   };
 }
 
+/** Union's pill hub keeps its filled alert outline alone; arrows do not fit its many lines. */
+const NO_DIRECTION_ARROW_STATION_IDS = new Set(["union"]);
+
 /**
  * Every GO/UP station alert, in the shared overlay model. An alert sits on
  * the platform of its line where the station has one per line (Bloor's UP
- * and KI dots).
+ * and KI dots). Interchanges also point along their current line disruptions.
  */
 export function regionalStationAlerts(
   geometry: PreparedMapGeometry,
   data: StationImpactDirectionData & {
     stationNodeImpacts: StationNodeImpact[];
-    stations: Pick<Station, "id" | "name">[];
+    stations: Pick<Station, "id" | "name" | "interchange">[];
+    networkSegments: Pick<NetworkSegment, "stationAId" | "stationBId" | "impacts">[];
   },
   unit: number,
 ): { alerts: MapStationAlert[]; glyphs: MapStationDirectionGlyph[] } {
   const stationNames = new Map(data.stations.map((station) => [station.id, station.name]));
 
-  const placed = data.stationNodeImpacts.flatMap((impact) => {
+  const place = <I extends Pick<StationNodeImpact, "stationId" | "kind" | "cardId">>(impact: I) => {
     const station = regionalStation(geometry, impact.stationId);
     if (!station) return [];
     const lineId = stationImpactDirectionSource(impact, data)?.lineId;
     return [{ impact, anchors: regionalStationImpactAnchors(station, lineId) }];
-  });
+  };
+  const placed = data.stationNodeImpacts.flatMap(place);
   const neighbours = stationBeaconNeighbours(geometry);
   const alertedAnchorIds = new Set(placed.flatMap(({ anchors }) => anchors.map((anchor) => anchor.id)));
 
@@ -123,11 +129,15 @@ export function regionalStationAlerts(
     };
   });
 
+  const interchangeIds = new Set(data.stations.filter((station) => station.interchange).map((station) => station.id));
+  const lineImpacts = interchangeLineImpacts(data.networkSegments, interchangeIds).flatMap(place);
   const glyphs = stationDirectionGlyphs(
-    placed.flatMap(({ impact, anchors }) => anchors.map((anchor) => ({
-      impact,
-      anchor: { id: anchor.id, center: anchor.point, badgeRadius: anchor.radius * DIRECTION_BADGE_RATIO },
-    }))),
+    [...placed, ...lineImpacts]
+      .filter(({ impact }) => !NO_DIRECTION_ARROW_STATION_IDS.has(impact.stationId))
+      .flatMap(({ impact, anchors }) => anchors.map((anchor) => ({
+        impact,
+        anchor: { id: anchor.id, center: anchor.point, badgeRadius: anchor.radius * DIRECTION_BADGE_RATIO },
+      }))),
     data,
   );
   return { alerts, glyphs };

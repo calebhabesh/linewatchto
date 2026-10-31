@@ -403,162 +403,122 @@ function arrow(
   };
 }
 
-const FOUR_WAY_STATION_IMPACT_ARROW_SCALE = 0.94;
+type GlyphPoint = [number, number];
 
+const UNIT_VECTOR: Record<CardinalDirection, GlyphPoint> = {
+  left: [-1, 0],
+  right: [1, 0],
+  up: [0, -1],
+  down: [0, 1],
+};
+
+/**
+ * The arrow's line weight in a badge of this radius. The whole glyph scales
+ * with its badge, so a small dot's arrow is the large one shrunk and its
+ * heads never run together.
+ */
+export function stationImpactDirectionStrokeWidth(radius: number): number {
+  return glyphNumber(radius * 0.15);
+}
+
+/**
+ * The arrow drawn in a station dot's direction badge, as a path around the
+ * badge's centre, optically centred in the dot (see `centeredGlyphPath`).
+ */
 export function stationImpactDirectionPath(direction: StationImpactArrowDirection, radius: number): string {
-  const parts = stationImpactDirectionParts(direction);
-  const pathMetricsRadius =
-    direction === "four-way" ? radius * FOUR_WAY_STATION_IMPACT_ARROW_SCALE : radius;
-  const metrics = stationImpactDirectionMetrics(pathMetricsRadius);
+  return centeredGlyphPath(stationImpactDirectionStrokes(direction, radius), isCornerArrow(direction));
+}
 
-  if (parts.length === 1) {
-    return stationImpactDirectionCenteredPartPath(parts[0], metrics);
-  }
-
-  if (
-    direction === "up-right" ||
+function isCornerArrow(direction: StationImpactArrowDirection): boolean {
+  return direction === "up-right" ||
     direction === "up-left" ||
     direction === "down-right" ||
-    direction === "down-left"
-  ) {
-    const cx = Math.round(pathMetricsRadius * 0.52);
-    const cy = Math.round(pathMetricsRadius * 0.52);
-    const offX = Math.round(metrics.headHalf * 0.38);
-    const offY = Math.round(metrics.headHalf * 0.38);
+    direction === "down-left";
+}
 
-    const isUp = direction === "up-right" || direction === "up-left";
-    const isRight = direction === "up-right" || direction === "down-right";
+function stationImpactDirectionStrokes(direction: StationImpactArrowDirection, radius: number): GlyphPoint[][] {
+  const metrics = stationImpactDirectionMetrics(radius);
+  const parts = stationImpactDirectionParts(direction);
 
-    const cornerX = (isRight ? -cx : cx) + (isRight ? offX : -offX);
-    const cornerY = (isUp ? cy : -cy) + (isUp ? -offY : offY);
-
-    const verticalTipY = (isUp ? -cy : cy) + (isUp ? -offY : offY);
-    const horizontalTipX = (isRight ? cx : -cx) + (isRight ? offX : -offX);
-
-    const headInset = metrics.headInset;
-    const headHalf = metrics.headHalf;
-
-    const upDownHeadDir = isUp ? -1 : 1;
-    const rightLeftHeadDir = isRight ? 1 : -1;
-
+  if (isCornerArrow(direction)) {
+    const reach = radius * 1.04;
+    const vertical: CardinalDirection = direction.startsWith("up") ? "up" : "down";
+    const horizontal: CardinalDirection = direction.endsWith("right") ? "right" : "left";
+    // The two arms meet at the corner opposite the way they point.
+    const corner = scale(add(UNIT_VECTOR[vertical], UNIT_VECTOR[horizontal]), -reach / 2);
+    const verticalTip = add(corner, scale(UNIT_VECTOR[vertical], reach));
+    const horizontalTip = add(corner, scale(UNIT_VECTOR[horizontal], reach));
     return [
-      `M ${cornerX} ${cornerY} V ${verticalTipY}`,
-      `M ${cornerX - headHalf} ${verticalTipY - upDownHeadDir * headInset} L ${cornerX} ${verticalTipY} L ${cornerX + headHalf} ${verticalTipY - upDownHeadDir * headInset}`,
-      `M ${cornerX} ${cornerY} H ${horizontalTipX}`,
-      `M ${horizontalTipX - rightLeftHeadDir * headInset} ${cornerY - headHalf} L ${horizontalTipX} ${cornerY} L ${horizontalTipX - rightLeftHeadDir * headInset} ${cornerY + headHalf}`,
-    ].join(" ");
+      [corner, verticalTip],
+      arrowHead(verticalTip, vertical, metrics),
+      [corner, horizontalTip],
+      arrowHead(horizontalTip, horizontal, metrics),
+    ];
   }
 
-  if (direction === "horizontal-bidirectional") {
-    return [
-      `M -${metrics.extent} 0 H ${metrics.extent}`,
-      `M -${metrics.extent - metrics.headInset} -${metrics.headHalf} L -${metrics.extent} 0 L -${metrics.extent - metrics.headInset} ${metrics.headHalf}`,
-      `M ${metrics.extent - metrics.headInset} -${metrics.headHalf} L ${metrics.extent} 0 L ${metrics.extent - metrics.headInset} ${metrics.headHalf}`,
-    ].join(" ");
-  }
+  // A spoke from the centre per direction; a lone arrow runs right through it.
+  return parts.flatMap((part) => {
+    const tip = scale(UNIT_VECTOR[part], metrics.extent);
+    const tail: GlyphPoint = parts.length === 1 ? scale(tip, -1) : [0, 0];
+    return [[tail, tip], arrowHead(tip, part, metrics)];
+  });
+}
 
-  if (direction === "vertical-bidirectional") {
-    return [
-      `M 0 -${metrics.extent} V ${metrics.extent}`,
-      `M -${metrics.headHalf} -${metrics.extent - metrics.headInset} L 0 -${metrics.extent} L ${metrics.headHalf} -${metrics.extent - metrics.headInset}`,
-      `M -${metrics.headHalf} ${metrics.extent - metrics.headInset} L 0 ${metrics.extent} L ${metrics.headHalf} ${metrics.extent - metrics.headInset}`,
-    ].join(" ");
-  }
+function arrowHead(
+  tip: GlyphPoint,
+  direction: CardinalDirection,
+  metrics: ReturnType<typeof stationImpactDirectionMetrics>,
+): GlyphPoint[] {
+  const [ux, uy] = UNIT_VECTOR[direction];
+  const back = add(tip, scale([ux, uy], -metrics.headInset));
+  const side: GlyphPoint = [-uy * metrics.headHalf, ux * metrics.headHalf];
+  return [add(back, side), tip, add(back, scale(side, -1))];
+}
 
-  if (direction === "four-way") {
-    return [
-      `M -${metrics.extent} 0 H ${metrics.extent}`,
-      `M 0 -${metrics.extent} V ${metrics.extent}`,
-      `M -${metrics.extent - metrics.headInset} -${metrics.headHalf} L -${metrics.extent} 0 L -${metrics.extent - metrics.headInset} ${metrics.headHalf}`,
-      `M ${metrics.extent - metrics.headInset} -${metrics.headHalf} L ${metrics.extent} 0 L ${metrics.extent - metrics.headInset} ${metrics.headHalf}`,
-      `M -${metrics.headHalf} -${metrics.extent - metrics.headInset} L 0 -${metrics.extent} L ${metrics.headHalf} -${metrics.extent - metrics.headInset}`,
-      `M -${metrics.headHalf} ${metrics.extent - metrics.headInset} L 0 ${metrics.extent} L ${metrics.headHalf} ${metrics.extent - metrics.headInset}`,
-    ].join(" ");
-  }
-
-  return parts
-    .map((part) => stationImpactDirectionSpokePartPath(part, metrics))
+/**
+ * The strokes as one path, centred in the dot. A corner centres its bounding
+ * box. Spokes from a junction (three ways) move halfway from the junction to
+ * their bounding box's centre: either extreme looks off-centre, since a T's
+ * bar outweighs its stem. Symmetric arrows land on the centre either way.
+ */
+function centeredGlyphPath(strokes: GlyphPoint[][], centreBox: boolean): string {
+  const points = strokes.flat();
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  const share = centreBox ? 1 : 0.5;
+  const dx = -share * (Math.min(...xs) + Math.max(...xs)) / 2;
+  const dy = -share * (Math.min(...ys) + Math.max(...ys)) / 2;
+  return strokes
+    .map((stroke) => stroke
+      .map(([x, y], index) => `${index === 0 ? "M" : "L"} ${glyphNumber(x + dx)} ${glyphNumber(y + dy)}`)
+      .join(" "))
     .join(" ");
 }
 
-function stationImpactDirectionParts(direction: StationImpactArrowDirection): Array<"left" | "right" | "up" | "down"> {
-  switch (direction) {
-    case "left":
-      return ["left"];
-    case "right":
-      return ["right"];
-    case "up":
-      return ["up"];
-    case "down":
-      return ["down"];
-    case "up-left":
-      return ["left", "up"];
-    case "up-right":
-      return ["right", "up"];
-    case "down-left":
-      return ["left", "down"];
-    case "down-right":
-      return ["right", "down"];
-    case "horizontal-bidirectional":
-      return ["left", "right"];
-    case "vertical-bidirectional":
-      return ["up", "down"];
-    case "three-way-no-left":
-      return ["right", "up", "down"];
-    case "three-way-no-right":
-      return ["left", "up", "down"];
-    case "three-way-no-up":
-      return ["left", "right", "down"];
-    case "three-way-no-down":
-      return ["left", "right", "up"];
-    case "four-way":
-      return ["left", "right", "up", "down"];
-  }
+function glyphNumber(value: number): number {
+  return Math.round(value * 100) / 100 + 0;
+}
+
+function add([ax, ay]: GlyphPoint, [bx, by]: GlyphPoint): GlyphPoint {
+  return [ax + bx, ay + by];
+}
+
+function scale([x, y]: GlyphPoint, factor: number): GlyphPoint {
+  return [x * factor, y * factor];
+}
+
+function stationImpactDirectionParts(direction: StationImpactArrowDirection): CardinalDirection[] {
+  return cardinalDirectionsForArrow(direction);
 }
 
 function stationImpactDirectionMetrics(radius: number): {
   extent: number;
-  gap: number;
   headInset: number;
   headHalf: number;
 } {
-  const extent = Math.round(radius * 0.75);
   return {
-    extent,
-    gap: Math.max(4, Math.round(radius * 0.17)),
-    headInset: Math.max(8, Math.round(extent * 0.42)),
-    headHalf: Math.max(8, Math.round(radius * 0.25)),
+    extent: radius * 0.75,
+    headInset: radius * 0.3,
+    headHalf: radius * 0.25,
   };
-}
-
-function stationImpactDirectionCenteredPartPath(
-  direction: "left" | "right" | "up" | "down",
-  metrics: ReturnType<typeof stationImpactDirectionMetrics>,
-): string {
-  switch (direction) {
-    case "left":
-      return `M ${metrics.extent} 0 H -${metrics.extent} M -${metrics.extent - metrics.headInset} -${metrics.headHalf} L -${metrics.extent} 0 L -${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
-    case "right":
-      return `M -${metrics.extent} 0 H ${metrics.extent} M ${metrics.extent - metrics.headInset} -${metrics.headHalf} L ${metrics.extent} 0 L ${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
-    case "up":
-      return `M 0 ${metrics.extent} V -${metrics.extent} M -${metrics.headHalf} -${metrics.extent - metrics.headInset} L 0 -${metrics.extent} L ${metrics.headHalf} -${metrics.extent - metrics.headInset}`;
-    case "down":
-      return `M 0 -${metrics.extent} V ${metrics.extent} M -${metrics.headHalf} ${metrics.extent - metrics.headInset} L 0 ${metrics.extent} L ${metrics.headHalf} ${metrics.extent - metrics.headInset}`;
-  }
-}
-
-function stationImpactDirectionSpokePartPath(
-  direction: "left" | "right" | "up" | "down",
-  metrics: ReturnType<typeof stationImpactDirectionMetrics>,
-): string {
-  switch (direction) {
-    case "left":
-      return `M 0 0 H -${metrics.extent} M -${metrics.extent - metrics.headInset} -${metrics.headHalf} L -${metrics.extent} 0 L -${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
-    case "right":
-      return `M 0 0 H ${metrics.extent} M ${metrics.extent - metrics.headInset} -${metrics.headHalf} L ${metrics.extent} 0 L ${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
-    case "up":
-      return `M 0 0 V -${metrics.extent} M -${metrics.headHalf} -${metrics.extent - metrics.headInset} L 0 -${metrics.extent} L ${metrics.headHalf} -${metrics.extent - metrics.headInset}`;
-    case "down":
-      return `M 0 0 V ${metrics.extent} M -${metrics.headHalf} ${metrics.extent - metrics.headInset} L 0 ${metrics.extent} L ${metrics.headHalf} ${metrics.extent - metrics.headInset}`;
-  }
 }

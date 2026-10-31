@@ -5,7 +5,25 @@ import {
   stationImpactDirectionArrow,
   stationImpactDirectionForImpact,
   stationImpactDirectionForStationImpacts,
+  stationImpactDirectionPath,
+  stationImpactDirectionStrokeWidth,
 } from "../src/components/station-impact-direction.ts";
+
+const ARROW_DIRECTIONS = [
+  "left", "right", "up", "down",
+  "up-left", "up-right", "down-left", "down-right",
+  "horizontal-bidirectional", "vertical-bidirectional",
+  "three-way-no-left", "three-way-no-right", "three-way-no-up", "three-way-no-down",
+  "four-way",
+];
+
+/** A glyph path's strokes as point lists (it uses only M and L). */
+function pathStrokes(d) {
+  return d.split("M").slice(1).map((stroke) => {
+    const numbers = stroke.replaceAll("L", " ").trim().split(/\s+/).map(Number);
+    return Array.from({ length: numbers.length / 2 }, (_, index) => [numbers[2 * index], numbers[2 * index + 1]]);
+  });
+}
 
 describe("station impact map direction arrows", () => {
   it("maps Line 2 cardinal directions to horizontal station-dot arrows", () => {
@@ -332,5 +350,41 @@ describe("GO/UP trip direction arrows", () => {
     assert.equal(directionAt("union", "regional-ki", "Towards Union Station"), null);
     // A destination off the alerted line cannot be placed.
     assert.equal(directionAt("weston", "regional-ki", "Towards Pickering"), null);
+  });
+
+  it("centres every arrow configuration in its station dot, three-way arrows optically", () => {
+    // TTC's regular and large badges, and a GO/UP badge scaled from its dot.
+    for (const radius of [24, 40, 17.25]) {
+      for (const direction of ARROW_DIRECTIONS) {
+        const strokes = pathStrokes(stationImpactDirectionPath(direction, radius));
+        const points = strokes.flat();
+        const xs = points.map(([x]) => x);
+        const ys = points.map(([, y]) => y);
+        const box = [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
+        if (direction.startsWith("three-way")) {
+          // Halfway between the junction and the bounding box's centre.
+          const junction = strokes[0][0];
+          assert.ok(Math.abs(junction[0] + box[0]) <= 0.02 && Math.abs(junction[1] + box[1]) <= 0.02, `${direction} at r${radius}: junction ${junction}, box ${box}`);
+          assert.ok(Math.hypot(...box) > 0, `${direction} at r${radius} is shifted from its box`);
+        } else {
+          assert.ok(Math.abs(box[0]) <= 0.01 && Math.abs(box[1]) <= 0.01, `${direction} at r${radius} centres at ${box}`);
+        }
+      }
+    }
+  });
+
+  it("keeps every arrowhead clear of the others at large and small sizes", () => {
+    for (const radius of [24, 40, 17.25]) {
+      const strokeWidth = stationImpactDirectionStrokeWidth(radius);
+      for (const direction of ARROW_DIRECTIONS) {
+        const heads = pathStrokes(stationImpactDirectionPath(direction, radius)).filter((stroke) => stroke.length === 3);
+        for (let a = 0; a < heads.length; a += 1) {
+          for (let b = a + 1; b < heads.length; b += 1) {
+            const gap = Math.min(...heads[a].flatMap((p) => heads[b].map((q) => Math.hypot(p[0] - q[0], p[1] - q[1]))));
+            assert.ok(gap >= strokeWidth * 1.5, `${direction} at r${radius}: heads ${gap.toFixed(1)} apart, stroke ${strokeWidth}`);
+          }
+        }
+      }
+    }
   });
 });
