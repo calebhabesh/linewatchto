@@ -17,12 +17,9 @@
   --map-overlay-rail-pulse-width: 114px;
   /* TTC alert rails are a tube 8 units past each edge of the authored 80-unit
      line, so an alert reads apart from a line of a similar colour (GO/UP's
-     196-unit rails do the same on its 175-unit corridors). A casing in the
-     map's background colour, 2 units more per side, leaves a thin gap where
-     two lines' tubes touch, such as Lines 1 and 2 at St George.
+     196-unit rails do the same on its 175-unit corridors).
      ttc-map-obstacles.ts mirrors the rail width. */
   --map-alert-rail-width: 96px;
-  --map-alert-rail-casing-width: 100px;
   --color-logo-blue: #81c9ff;
   --logo-blue: var(--color-logo-blue, #81c9ff);
   --station-selection-accent: var(--color-logo-blue);

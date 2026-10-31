@@ -192,11 +192,7 @@ export function MapLineAlertTube({
   );
 }
 
-/**
- * Every line alert's tube, grouped by line. One casing per line sits under all
- * of that line's tubes: a line's own segments join without seams, and a tube
- * drawn edge to edge with another line's tube keeps a thin gap from it.
- */
+/** Every line alert's tube, grouped by line. */
 export function MapLineAlertLayer({
   alerts,
   plane,
@@ -210,15 +206,6 @@ export function MapLineAlertLayer({
     <>
       {groupByLine(alerts).map(([lineId, lineAlerts]) => (
         <g key={lineId} data-map-alert-line={lineId}>
-          <g className="asset-alert-path-casings" aria-hidden="true">
-            {lineAlerts.map((alert) => (
-              <path
-                key={alert.key}
-                className={`asset-alert-path-casing ${layerStateClass(alert.exiting)}`}
-                d={alert.pathD}
-              />
-            ))}
-          </g>
           {lineAlerts.map((alert) => (
             <MapLineAlertTube
               key={alert.key}

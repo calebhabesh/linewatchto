@@ -239,17 +239,11 @@ describe("asset-backed map layering", () => {
   });
 
   it("draws TTC alert rails as tubes wider than the line", () => {
-    // TTC's 80-unit line shows a tube 8 units past each edge. A background-
-    // coloured casing, drawn once per line under all of that line's tubes,
-    // keeps a thin gap between lines drawn edge to edge (St George) without
-    // outlining tubes on open map or seaming a line's own segment joins.
+    // TTC's 80-unit line shows a tube 8 units past each edge. Tubes have no
+    // casing, so lines drawn edge to edge (St George) meet without a gap.
     assert.match(globalCss, /--map-alert-rail-width:\s*96px;/);
-    assert.match(globalCss, /--map-alert-rail-casing-width:\s*100px;/);
-    assert.match(globalCss, /\.asset-alert-path-casing\s*\{[^}]*stroke:\s*var\(--map-canvas-bg\);[^}]*stroke-linecap:\s*butt;/s);
-    assert.match(
-      interactiveMapSource,
-      /export function MapLineAlertLayer[\s\S]*?className="asset-alert-path-casings"[\s\S]*?<MapLineAlertTube/,
-    );
+    assert.doesNotMatch(globalCss, /asset-alert-path-casing/);
+    assert.doesNotMatch(interactiveMapSource, /asset-alert-path-casing/);
   });
 
   it("renders direction-aware planned closures with still calendar icons", () => {
