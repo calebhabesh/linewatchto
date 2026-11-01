@@ -50,3 +50,19 @@ export function lineAlertPathsByImpact(alerts: MapLineAlert[]): Map<string, stri
   }
   return paths;
 }
+
+/**
+ * Each alert's drawn stretches, grouped for its one hover outline (hover
+ * raises every stretch of an alert together), in the order given.
+ */
+export function lineAlertHoverOutlineGroups(alerts: MapLineAlert[]) {
+  const groups = new Map<string, MapLineAlert[]>();
+  for (const alert of alerts) {
+    if (alert.exiting || !alert.pathD) continue;
+    const key = `${alert.kind}:${alert.impactId}`;
+    const group = groups.get(key);
+    if (group) group.push(alert);
+    else groups.set(key, [alert]);
+  }
+  return [...groups].map(([key, stretches]) => ({ key, stretches }));
+}

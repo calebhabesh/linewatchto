@@ -487,3 +487,90 @@ full-spec runs; phone numbers are noisy). Build once and reuse it
     over 20 ms, 1 long frame (55 ms); phone station tap INP TTC 192 ms, GO/UP
     472 ms (median of 472, 272, 520). About the same as the starting figures;
     phase 4 owns the GO/UP gap.
+- **Phase 4 done (2026-10-31): GO/UP performance.** Measured on the
+  Playwright production build (one build with `LINEWATCH_TEST_HARNESS=true`,
+  reused), with temporary CDP-trace and Long Animation Frame probes (deleted).
+  - **Hover: what GO/UP repainted per alert.** Neither map re-renders React
+    on hover (the hover controller writes the DOM), and GO/UP's cost per
+    restyled element is at or below TTC's. The budget sweep was not like for
+    like: GO/UP's heavy data puts two alerts on every corridor, so each hover
+    lights up the whole network, and the sweep also counted the hidden TTC
+    map's targets (both maps mount). The cost per hover tracked the hovered
+    artwork. The largest share was the hover outline: one outline, with two
+    map-wide masks and the edge's drop-shadow, per stretch. One alert drawn
+    over 8 lines meant 16 masks. Hiding outlines took the heavy sweep from 41
+    to 22 frames over 20 ms. Hiding hover copies took it to 31. Hiding the
+    edge filter alone took it to 36.
+  - **Fix: one hover outline per alert** around the union of its stretches
+    (`lineAlertHoverOutlineGroups`, `line-alert-model.ts`; group previews
+    already did this). Same probe, heavy GO/UP: 40–41 frames over 20 ms to
+    22–25, longest frame 97–115 ms to 48–61 ms. TTC is unchanged, since its
+    alerts are one stretch each. What remains scales with the hovered
+    artwork (hover copies clone glyph lanes). Plain GO/UP data hovers like
+    TTC: 0 frames over 20 ms, worst frame per hover 9–10 ms against 8.7.
+  - **Phone tap: not the panel render.** The opening tap's React render
+    and commit of the GO/UP station panel is about 50 ms. The cost was
+    whole-map style recalcs, in proportion to document size. GO/UP's
+    document is 8,000 elements on plain data and 10,300 on heavy data,
+    against TTC's 3,400. GO/UP's overlay plane alone is 3,800 and 5,800,
+    95% glyph-lane artwork, against TTC's 400.
+    1. `.system-map-viewport:active { cursor: grabbing }`. `cursor` is
+       inherited, so every press and release restyled the viewport's
+       subtree: about 7,046 elements per change on GO/UP, 1,031 on TTC.
+       **Fix:** the grab cursor (press and drag) applies to fine pointers
+       only (`base-map.css`). Style time in an opening tap (traced):
+       GO/UP 406 to 250 ms, TTC 134 to 105 ms.
+    2. **Open, not fixed.** The first station open restyles nearly the whole
+       document once on both maps (GO/UP 9,505 elements, TTC 2,737); later
+       opens restyle about 550. A `MutationObserver` on the shell
+       (`mobileMapFrame`) forces it during the `pointerup` commit. These did
+       not change it: pinning the shell's state-dependent custom properties on
+       `.map-stage`, blocking their inline writes, dropping all 78 `:has()`
+       rules, dropping every `.linewatch-shell` and `mobile-map-inspector`
+       rule, warming a `<details>`, and fonts and stylesheets (none change).
+       Two levers would cut GO/UP's share: `content-visibility: hidden` on
+       the hidden map (TTC first open 208 to 160 ms, GO/UP about 600 to
+       530), and drawing each glyph lane as a few paths instead of up to 11
+       elements per glyph (removing glyph lanes entirely measured about
+       −100 ms). Neither ships here: the first changes the warm map switch,
+       the second the glyph artwork and its tests. Owner: pick if wanted.
+  - **The budget's tap was not measuring what it said.** Opening a station
+    flies the camera to it, and Escape does not close the mobile inspector,
+    so taps 2 and 3 landed on whatever had moved under the point. The spec
+    now finds the station again before each tap, closes it by tapping the
+    open station, and reports the first open (budget 800 ms) and later
+    opens (new budget 300 ms) separately. The hover sweep now finds targets
+    in the shown map only (GO/UP heavy: 30 alerts, was 44 with TTC's).
+  - **Parity budget (new test in `test:map-budgets`).** Both maps on plain
+    stub data, the same 10 alerts each, three sweeps. Metric: the worst
+    frame each hover produces, mean over the alerts, median of the sweeps.
+    Margin: GO/UP within one display frame of TTC (plus 1 ms of timer
+    noise), and at most 2 more frames over 20 ms. Measured TTC 6.2 ms (one
+    frame), GO/UP 8.6 ms at a 6.1 ms display, 0 frames over 20 ms on both.
+    One run read TTC 19 ms (noise). A ratio margin (1.5×) was too tight
+    against a one-frame baseline (GO/UP read 1.39×).
+  - **Live refresh (looked at, open).** GO/UP's longest frame is one React
+    render of about 150–240 ms at 4× throttling; TTC's is 0. It is the same
+    with and without the outline change (201, 212, 244 ms before; 191, 250,
+    240 ms after), so not a regression. It is not the map: a restamped poll
+    reuses the content, and GO/UP's adapter takes about 1 ms per build even
+    on heavy data. Naming the shell component needs a dev-build profile. It
+    sits at the 250 ms budget (249 in one run).
+  - **Budgets, `test:map-budgets` full-spec runs.**
+    - Before (old spec): TTC hover (13 alerts) p95 6.2 ms, 1 frame over
+      20 ms. GO/UP hover (44 targets) p95 24.2 ms, 33 frames over 20 ms,
+      2 long frames (max 83 ms). Phone tap INP TTC 192 ms, GO/UP 488 ms
+      (mixed open, re-tap and close). GO/UP refresh 191 ms.
+    - After (four runs; Chrome closed mid-run once, display 17.8 ms in
+      parts of two): wheel and drag p95 6.1 ms on both maps at 6.1 ms.
+      TTC hover p95 6.1–6.2 ms, 0–1 frames over 20 ms. GO/UP heavy hover
+      (30 alerts) p95 18.3–24.2 ms at 6.1 ms, 20–28 frames over 20 ms, at
+      most 1 long frame (52–62 ms). Phone first open TTC 128–208 ms
+      (median 192), GO/UP 392–456 ms (median 416). Later opens TTC
+      96–112 ms, GO/UP 136–176 ms. GO/UP refresh 229–249 ms.
+  - Checks: `test:fast` passes (new hover outline groups case in
+    `map-corridors.test.mjs`), typecheck clean, lint 15 existing warnings.
+    `map-parity` 38 passed (38 per-project skips). The browser list
+    (dashboard by path, plus `map-line-badges`) passed 363 and failed only
+    the two known GO/UP mobile cases (item 9, phase 5). `test:visual` 30
+    passed with no differences, so no baselines changed.

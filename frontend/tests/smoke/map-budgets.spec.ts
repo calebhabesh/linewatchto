@@ -45,15 +45,37 @@ const BUDGET = {
  */
 const PHONE_BUDGET = {
   /**
-   * Interaction to next paint on a station tap, median of three. Measured
-   * TTC 216–240 ms, GO/UP 568–624 ms; most of GO/UP's is rendering its
-   * station details panel, not the map. The goal is 200 ms (INP "good").
+   * Interaction to next paint on the tap that first opens a station, which
+   * costs most. Plan 11 phase 4 measured TTC 168–216 ms, GO/UP 480–600 ms:
+   * on both maps that tap restyles nearly the whole document once (about
+   * 10,000 elements on GO/UP's heavy data, 2,700 on TTC), so GO/UP pays for
+   * its larger overlay. The panel's own render is about 50 ms. The goal is
+   * 200 ms (INP "good").
    */
   tapInpMs: 800,
+  /** A later open of the same station: TTC 80–112 ms, GO/UP 112–168 ms. */
+  repeatTapInpMs: 300,
   /** The longest task while a live refresh replaces the overlays. */
   refreshLongestTaskMs: 250,
   /** Drawing layers during a pinch. */
   pinchLayers: 40,
+};
+
+/**
+ * GO/UP against TTC at the same alert count (plan 11 phase 4): both maps on
+ * their plain stub data, hovering the same number of alerts, compared by the
+ * worst frame each hover produces (mean over the hovered alerts, median of
+ * three sweeps). Measured TTC 6.2 ms (one frame), GO/UP 8.6 ms at a 6.1 ms
+ * display. GO/UP's network-wide heavy alerts are held to the absolute budgets
+ * above instead: their cost scales with the artwork they cover.
+ */
+const PARITY_BUDGET = {
+  alerts: 10,
+  sweeps: 3,
+  /** GO/UP's mean worst frame per hover may exceed TTC's by this many display frames. */
+  worstFrameMarginFrames: 1,
+  /** Frames over 20 ms across a sweep, beyond TTC's. */
+  extraFramesOver20Ms: 2,
 };
 
 const chrome = registerRealChrome({
@@ -166,7 +188,12 @@ async function measure(page: Page, gesture: string, frameMs: number, run: () => 
   return result;
 }
 
-async function openMap(network: NetworkId, baseURL: string | undefined, request: Parameters<typeof setStubMode>[0], mobile = false) {
+async function openMap(
+  network: NetworkId,
+  baseURL: string | undefined,
+  request: Parameters<typeof setStubMode>[0],
+  { mobile = false, heavy = true }: { mobile?: boolean; heavy?: boolean } = {},
+) {
   if (!LIVE_URL) await setStubMode(request, "regional-live");
   const context = await chrome.browser().newContext({
     baseURL: LIVE_URL ?? baseURL,
@@ -178,7 +205,7 @@ async function openMap(network: NetworkId, baseURL: string | undefined, request:
   const page = await context.newPage();
   await installDismissedTransientUi(page);
   await page.addInitScript(installRecorder);
-  if (!LIVE_URL && network === "regional") await spreadRegionalOverlapAcrossNetwork(page);
+  if (!LIVE_URL && heavy && network === "regional") await spreadRegionalOverlapAcrossNetwork(page);
   await page.addInitScript((network) => {
     localStorage.setItem("linewatch-default-network-v1", network);
     localStorage.setItem("linewatch-map-view-v1", "diagram");
@@ -189,6 +216,19 @@ async function openMap(network: NetworkId, baseURL: string | undefined, request:
   await expect(page.locator(`[data-system-map=${network}] .map-stage`)).toHaveAttribute("data-raster-map-ready", "true");
   await page.waitForTimeout(1500);
   return { context, page };
+}
+
+/**
+ * The centre of every alert target on screen in this network's map (both
+ * maps mount, so an unscoped query also finds the hidden map's targets).
+ */
+function alertTargets(page: Page, network: NetworkId, limit = 80) {
+  return page.evaluate(({ network, limit }) => [...document.querySelectorAll(`[data-system-map=${network}] [data-map-impact-id]`)]
+    .map((element) => element.getBoundingClientRect())
+    .filter((rect) => rect.width > 0 && rect.height > 0 && rect.x >= 0 && rect.y >= 0
+      && rect.right <= window.innerWidth && rect.bottom <= window.innerHeight)
+    .map((rect) => ({ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }))
+    .slice(0, limit), { network, limit });
 }
 
 for (const network of ["ttc", "regional"] as const) {
@@ -227,12 +267,7 @@ for (const network of ["ttc", "regional"] as const) {
     });
 
     // Hover across every line and station alert on screen.
-    const targets = await page.evaluate(() => [...document.querySelectorAll("[data-map-impact-id]")]
-      .map((element) => element.getBoundingClientRect())
-      .filter((rect) => rect.width > 0 && rect.height > 0 && rect.x >= 0 && rect.y >= 0
-        && rect.right <= window.innerWidth && rect.bottom <= window.innerHeight)
-      .map((rect) => ({ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }))
-      .slice(0, 80));
+    const targets = await alertTargets(page, network);
     const hover = await measure(page, `hover sweep (${targets.length} alerts)`, frameMs, async () => {
       for (const target of targets) {
         await page.mouse.move(target.x, target.y, { steps: 4 });
@@ -257,38 +292,50 @@ for (const network of ["ttc", "regional"] as const) {
   test(`${network} System Map meets the phone budgets at 4× CPU throttling`, async ({ request, baseURL }, testInfo) => {
     test.skip(testInfo.project.name !== MEASURED_PROJECT, `Measured in ${MEASURED_PROJECT} only.`);
     test.setTimeout(180_000);
-    const { context, page } = await openMap(network, baseURL, request, true);
+    const { context, page } = await openMap(network, baseURL, request, { mobile: true });
     const cdp = await context.newCDPSession(page);
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
     console.log(`${network} phone (4× CPU, ${LIVE_URL ? "live" : "heavy stub"}):`);
 
-    // Interaction to next paint on a station tap.
-    const station = await page.evaluate((network) => {
+    // Interaction to next paint on a station tap. Opening a station flies the
+    // camera to it, so each tap finds the station again, and a tap on the open
+    // station closes it.
+    const findStation = (wanted?: string) => page.evaluate(({ network, wanted }) => {
       const selector = network === "ttc" ? "[data-station-id]" : ".station-hit-target[data-station-id]";
-      const viewport = document.querySelector(network === "ttc" ? "[data-system-map=ttc] .system-map-viewport" : "[data-system-map=regional] .system-map-viewport")!.getBoundingClientRect();
-      for (const element of document.querySelectorAll(selector)) {
+      const map = document.querySelector(`[data-system-map=${network}]`)!;
+      const viewport = map.querySelector(".system-map-viewport")!.getBoundingClientRect();
+      for (const element of map.querySelectorAll<HTMLElement>(selector)) {
+        if (wanted && element.dataset.stationId !== wanted) continue;
         const rect = element.getBoundingClientRect();
         const x = rect.x + rect.width / 2;
         const y = rect.y + rect.height / 2;
         if (x > viewport.left + 40 && x < viewport.right - 40 && y > viewport.top + 160 && y < viewport.bottom - 240
-          && element.contains(document.elementFromPoint(x, y))) return { x, y };
+          && element.contains(document.elementFromPoint(x, y))) return { x, y, id: element.dataset.stationId };
       }
       return null;
-    }, network);
-    expect(station, "a tappable station on screen").not.toBeNull();
-    // One tap varies by hundreds of milliseconds between runs; take the median of three.
+    }, { network, wanted });
+    const stationOpen = () => page.evaluate(() => Boolean(document.querySelector(".linewatch-shell.mobile-map-inspector-station")));
+    const first = await findStation();
+    expect(first, "a tappable station on screen").not.toBeNull();
     const taps: number[] = [];
     for (let attempt = 0; attempt < 3; attempt += 1) {
+      const station = (await findStation(first!.id)) ?? first!;
       await start(page);
-      await page.touchscreen.tap(station!.x, station!.y);
+      await page.touchscreen.tap(station.x, station.y);
       await page.waitForTimeout(1500);
       const tap = await stop(page);
       taps.push(Math.round(Math.max(0, ...tap.events.filter((event) => /pointer|click|touch/.test(event.name)).map((event) => event.duration))));
-      await page.keyboard.press("Escape");
-      await page.waitForTimeout(800);
+      expect(await stationOpen(), `tap ${attempt + 1} opens the station`).toBe(true);
+      for (let close = 0; close < 3 && await stationOpen(); close += 1) {
+        const open = (await findStation(first!.id)) ?? station;
+        await page.touchscreen.tap(open.x, open.y);
+        await page.waitForTimeout(900);
+      }
+      await page.waitForTimeout(600);
     }
-    const tapInp = [...taps].sort((a, b) => a - b)[1];
-    console.log(`  station tap: INP ${tapInp} ms (median of ${taps.join(", ")})`);
+    const [firstTapInp, ...repeats] = taps;
+    const repeatTapInp = Math.max(...repeats);
+    console.log(`  station tap: INP ${firstTapInp} ms on first open, ${repeats.join(", ")} ms on later opens (${first!.id})`);
 
     // The longest task while a live refresh replaces the overlays.
     await start(page);
@@ -316,8 +363,58 @@ for (const network of ["ttc", "regional"] as const) {
     console.log(`  pinch: ${during.count} drawing layers (${during.areaMpx} Mpx)`);
     await context.close();
 
-    expect.soft(tapInp, "station tap INP").toBeLessThanOrEqual(PHONE_BUDGET.tapInpMs);
+    expect.soft(firstTapInp, "station tap INP, first open").toBeLessThanOrEqual(PHONE_BUDGET.tapInpMs);
+    expect.soft(repeatTapInp, "station tap INP, later opens").toBeLessThanOrEqual(PHONE_BUDGET.repeatTapInpMs);
     expect.soft(refreshLongest, "longest frame during a live refresh").toBeLessThanOrEqual(PHONE_BUDGET.refreshLongestTaskMs);
     expect.soft(during.count, "drawing layers during a pinch").toBeLessThanOrEqual(PHONE_BUDGET.pinchLayers);
   });
 }
+
+/** Mean worst frame per hovered alert, and frames over 20 ms, for one sweep. */
+async function hoverSweepPerAlert(page: Page, targets: { x: number; y: number }[], rest: { x: number; y: number }) {
+  const worst: number[] = [];
+  let over20 = 0;
+  for (const target of targets) {
+    await start(page);
+    await page.mouse.move(target.x, target.y, { steps: 4 });
+    await page.waitForTimeout(120);
+    const { frames } = await stop(page);
+    worst.push(Math.max(0, ...frames));
+    over20 += frames.filter((frame) => frame > 20).length;
+  }
+  await page.mouse.move(rest.x, rest.y);
+  await page.waitForTimeout(300);
+  return { worst: worst.reduce((sum, value) => sum + value, 0) / Math.max(1, worst.length), over20 };
+}
+
+test("GO/UP hover stays within the parity margin of TTC at the same alert count", async ({ request, baseURL }, testInfo) => {
+  test.skip(testInfo.project.name !== MEASURED_PROJECT, `Measured in ${MEASURED_PROJECT} only.`);
+  test.skip(Boolean(LIVE_URL), "Compares the stub's own alerts on both maps.");
+  test.setTimeout(240_000);
+  const results = {} as Record<NetworkId, { worst: number; over20: number }>;
+  const alerts = PARITY_BUDGET.alerts;
+  let frameMs = 0;
+  for (const network of ["ttc", "regional"] as const) {
+    const { context, page } = await openMap(network, baseURL, request, { heavy: false });
+    frameMs = Math.max(frameMs, await displayFrameMs(page));
+    const rest = await mapPointAwayFromControls(page, network);
+    await page.mouse.move(rest.x, rest.y);
+    await page.waitForTimeout(300);
+    const targets = (await alertTargets(page, network)).slice(0, alerts);
+    expect(targets.length, `${network}: alerts on screen`).toBe(alerts);
+    const sweeps = [];
+    for (let sweep = 0; sweep < PARITY_BUDGET.sweeps; sweep += 1) sweeps.push(await hoverSweepPerAlert(page, targets, rest));
+    const middle = Math.floor(sweeps.length / 2);
+    results[network] = {
+      worst: Math.round([...sweeps].sort((a, b) => a.worst - b.worst)[middle].worst * 10) / 10,
+      over20: [...sweeps].sort((a, b) => a.over20 - b.over20)[middle].over20,
+    };
+    await context.close();
+  }
+  console.log(`hover parity (${alerts} alerts each, display ${frameMs.toFixed(1)} ms): worst frame per hover TTC ${results.ttc.worst} ms, `
+    + `GO/UP ${results.regional.worst} ms; frames over 20 ms TTC ${results.ttc.over20}, GO/UP ${results.regional.over20}`);
+  expect.soft(results.regional.worst, "GO/UP worst frame per hover against TTC's")
+    .toBeLessThanOrEqual(Math.max(results.ttc.worst, frameMs) + PARITY_BUDGET.worstFrameMarginFrames * frameMs + 1);
+  expect.soft(results.regional.over20, "GO/UP frames over 20 ms against TTC's")
+    .toBeLessThanOrEqual(results.ttc.over20 + PARITY_BUDGET.extraFramesOver20Ms);
+});

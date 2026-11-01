@@ -10,6 +10,7 @@ import {
 } from "./GlyphLanes";
 import {
   isSelectedLineAlert,
+  lineAlertHoverOutlineGroups,
   lineAlertPaintOrder,
   type MapLineAlert,
 } from "./line-alert-model";
@@ -373,21 +374,36 @@ export function MapHoverOutline({
 
 /**
  * Each alert's hover outline, drawn in the top plane above station artwork
- * and shown with its hover copy.
+ * and shown with its hover copies. An alert drawn as several stretches (one
+ * per line it crosses) gets one outline around their union: hover raises every
+ * stretch together, and one pair of masks per alert instead of one per
+ * stretch kept a network-wide alert's hover within a frame on GO/UP (plan 11
+ * phase 4).
  */
 export function MapLineAlertHoverOutlines({ alerts, plane }: { alerts: MapLineAlert[]; plane: MapOverlayPlane }) {
+  const groups = useMemo(() => lineAlertHoverOutlineGroups(alerts), [alerts]);
   return (
     <g aria-hidden="true" className="map-impact-hover-foreground-layer" pointerEvents="none">
-      {alerts.map((alert) => alert.exiting ? null : (
-        <g key={alert.key} className="map-impact-hover-foreground" {...hoverIdentityAttributes(alert)}>
-          <MapHoverOutline
-            maskId={mapOverlayId(plane, "impact-hover-outline", alert.key)}
-            paths={[alert.pathD]}
-            plane={plane}
-            visualState={alert.visualState}
-          />
-        </g>
-      ))}
+      {groups.map(({ key, stretches }) => {
+        const [first] = stretches;
+        const visualState = stretches.every((alert) => alert.visualState === first.visualState) ? first.visualState : "";
+        return (
+          <g
+            key={key}
+            className="map-impact-hover-foreground"
+            data-map-hover-impact-kind={first.kind}
+            data-map-hover-impact-id={first.impactId}
+            data-map-hover-key={stretches.map((alert) => alert.key).join(" ")}
+          >
+            <MapHoverOutline
+              maskId={mapOverlayId(plane, "impact-hover-outline", key)}
+              paths={stretches.map((alert) => alert.pathD)}
+              plane={plane}
+              visualState={visualState}
+            />
+          </g>
+        );
+      })}
     </g>
   );
 }

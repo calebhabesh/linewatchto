@@ -88,3 +88,27 @@ describe("shared commute preview", () => {
     assert.equal(mapCommutePreview(null, [s1], dots), null);
   });
 });
+
+describe("hover outline groups", () => {
+  it("outlines each alert once, around all of its stretches", async () => {
+    const { lineAlertHoverOutlineGroups } = await import("../src/components/map-overlays/line-alert-model.ts");
+    const alert = (key, kind, impactId, lineId, extra = {}) => ({
+      key, kind, impactId, lineId, pathD: `M 0 0 L ${key.length} 0`, travelDirection: "forward",
+      visualState: "delay-static", label: key, segmentIds: [], ...extra,
+    });
+    const groups = lineAlertHoverOutlineGroups([
+      alert("a-lw", "delay", "a", "lw"),
+      alert("b-lw", "suspension", "b", "lw"),
+      alert("a-ki", "delay", "a", "ki"),
+      // The same id as another kind (a closure's current effect and its preview) is its own alert.
+      alert("b-preview", "planned-closure", "b", "lw", { visualState: "planned-preview" }),
+      alert("a-gone", "delay", "a", "le", { exiting: true }),
+      alert("a-empty", "delay", "a", "mi", { pathD: "" }),
+    ]);
+    assert.deepEqual(groups.map(({ key, stretches }) => [key, stretches.map((item) => item.key)]), [
+      ["delay:a", ["a-lw", "a-ki"]],
+      ["suspension:b", ["b-lw"]],
+      ["planned-closure:b", ["b-preview"]],
+    ]);
+  });
+});

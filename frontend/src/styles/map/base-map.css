@@ -27,7 +27,12 @@
   user-select: none;
 }
 
-.system-map-viewport:active { cursor: grabbing; }
+/* `cursor` is inherited: changing it on the viewport restyles every artwork
+   and overlay element under it (about 7,000 on GO/UP), so a touch press, which
+   shows no cursor, leaves it alone. */
+@media (hover: hover) and (pointer: fine) {
+  .system-map-viewport:active { cursor: grabbing; }
+}
 
 /* Every System Map's camera stage, at its drawing's full size (inline). */
 .map-stage {
@@ -144,8 +149,10 @@
   backface-visibility: hidden;
 }
 
-[data-map-pointer-dragging="true"] .system-map-viewport {
-  cursor: grabbing;
+@media (hover: hover) and (pointer: fine) {
+  [data-map-pointer-dragging="true"] .system-map-viewport {
+    cursor: grabbing;
+  }
 }
 
 .raster-map-plane--background { z-index: 0; }
