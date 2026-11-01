@@ -49,6 +49,26 @@ describe("prepared System Map geometry", () => {
       assert.ok(geometry.artwork.labels.length > 0 && geometry.artwork.boxes.length > 0);
     }
   });
+
+  it("keeps badges clear of a name's inked letters, not its font box, so the gaps between names stay usable", () => {
+    const geometry = JSON.parse(read(MAP_GEOMETRY_SOURCES.ttc.geometry).toString("utf8"));
+    const obstacleOf = (stationId) => {
+      const { box } = geometry.labels.find((label) => label.stationId === stationId);
+      const polygons = geometry.artwork.labels.map((corners) => {
+        const xs = corners.filter((_value, index) => index % 2 === 0);
+        const ys = corners.filter((_value, index) => index % 2 === 1);
+        return { top: Math.min(...ys), bottom: Math.max(...ys), left: Math.min(...xs), right: Math.max(...xs) };
+      });
+      return polygons.find((polygon) => polygon.left >= box.x - 10 && polygon.right <= box.x + box.width + 10
+        && polygon.top >= box.y && polygon.bottom <= box.y + box.height);
+    };
+    const yorkMills = obstacleOf("york-mills");
+    const lawrence = obstacleOf("lawrence");
+    // "York Mills" has no descenders: its ink ends at the baseline, well inside its 115-unit font box.
+    assert.ok(yorkMills.bottom - yorkMills.top < 80, JSON.stringify(yorkMills));
+    // The nook between the two names fits a two-icon badge (135 tall) with the label gap (22) on each side.
+    assert.ok(lawrence.top - yorkMills.bottom >= 135 + 2 * 22, `${lawrence.top - yorkMills.bottom}`);
+  });
 });
 
 describe("station name boxes", () => {

@@ -70,6 +70,33 @@ function extractGeometry(config) {
     return flat([[box.x, box.y], [box.x + box.width, box.y], [box.x + box.width, box.y + box.height], [box.x, box.y + box.height]]
       .map(([x, y]) => apply(matrix, x, y)));
   };
+  // Text's inked area rather than its font box: getBBox spans the font's full
+  // ascent and descent (115 units for TTC's 80-unit names), so a name without
+  // tall or descending letters would keep badges far out of the gaps beside it.
+  const measure = document.createElement("canvas").getContext("2d");
+  const inkPolygonOf = (element) => {
+    const count = element.getNumberOfChars?.() ?? 0;
+    const characters = [...(element.textContent ?? "").replace(/\s+/g, " ").trim()];
+    if (count === 0 || characters.length !== count) return polygonOf(element);
+    const style = getComputedStyle(element);
+    measure.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    let left = Infinity;
+    let top = Infinity;
+    let right = -Infinity;
+    let bottom = -Infinity;
+    characters.forEach((character, index) => {
+      if (!character.trim()) return;
+      const metrics = measure.measureText(character);
+      const start = element.getStartPositionOfChar(index);
+      left = Math.min(left, start.x - metrics.actualBoundingBoxLeft);
+      right = Math.max(right, start.x + metrics.actualBoundingBoxRight);
+      top = Math.min(top, start.y - metrics.actualBoundingBoxAscent);
+      bottom = Math.max(bottom, start.y + metrics.actualBoundingBoxDescent);
+    });
+    if (!(right > left && bottom > top)) return polygonOf(element);
+    const matrix = toRoot(element);
+    return flat([[left, top], [right, top], [right, bottom], [left, bottom]].map(([x, y]) => apply(matrix, x, y)));
+  };
   // A straight-edged path's vertices (M, L, H, V and Z only), or null.
   const linearVertices = (pathD) => {
     if (/[aAcCqQsStT]/.test(pathD)) return null;
@@ -261,7 +288,7 @@ function extractGeometry(config) {
   const artwork = { labels: [], boxes: [], strokes: [] };
   for (const element of svg.querySelectorAll(obstacles.text)) {
     if (ignored(element)) continue;
-    const polygon = polygonOf(element);
+    const polygon = inkPolygonOf(element);
     if (polygon) artwork.labels.push(polygon);
   }
   for (const [kind, selector] of Object.entries(obstacles.boxes)) {
