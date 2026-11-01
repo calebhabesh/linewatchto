@@ -85,11 +85,14 @@ npm --prefix frontend run test:smoke
 ```
 
 Only reuse a build compiled with the API base URL shown above. CI uses this
-path so its build validation, smoke gate, and compatibility check share one
-artifact. `LINEWATCH_TEST_HARNESS=true` adds the test harness routes
-(`*.harness.tsx` under `frontend/src/app/test-harness/`), which only
-`tests/smoke/drop-in-map.spec.ts` needs; Playwright's own build sets it, and
-builds without it (CI's and production's) have no harness routes.
+path so its build validation, smoke gate, compatibility check and drop-in map
+proof (`test:drop-in-map`) share one artifact. `LINEWATCH_TEST_HARNESS=true`
+adds the test harness routes (`*.harness.tsx` under
+`frontend/src/app/test-harness/`), which only `tests/smoke/drop-in-map.spec.ts`
+needs. Playwright's own build and CI's test build set it. Production images
+are built separately, in the publish job's `frontend/Dockerfile` from a
+context without `.next` and with no harness flag, so they have no harness
+routes.
 
 ## Local browser support
 

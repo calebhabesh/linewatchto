@@ -1,5 +1,9 @@
 # G — Full System Map parity
 
+**Status: complete (2026-11-01).** Phases 1–6 are done; see Progress. The
+overlay rules and the function that owns each are in
+[map renderer parity](../map-renderer-parity.md#rule-owners).
+
 Owner decision, 2026-10-31: full parity between the TTC and GO/UP System
 Maps. [Plan 10](10-one-map-engine.md) made the engine one component and maps
 data, so drift can now live in only two places: a map's manifest and its
@@ -709,3 +713,55 @@ full-spec runs; phone numbers are noisy). Build once and reuse it
     rerun (flaky; `:1576` is likely the plan's flaky `:1574`, shifted). The
     two item 9 cases pass, so the list has no per-map failures.
     `test:visual` passed 30 with no differences.
+- **Phase 6 done (2026-11-01): coverage and close. Plan complete.**
+  - **Content parity suite.** `tests/map-content-parity.test.mjs` is in
+    `test:fast` by its glob (`tests/*.test.mjs`) and has no `todo` left:
+    every case in the phase 1 matrix is a plain case.
+  - **`drop-in-map.spec.ts` in CI.** Finding: CI's build did not set
+    `LINEWATCH_TEST_HARNESS` (the plan assumed it did), so the harness route
+    was missing from CI's artifact. The frontend job's Build step now sets
+    `LINEWATCH_TEST_HARNESS=true`, and a new step runs
+    `npm --prefix frontend run test:drop-in-map` (desktop-chrome and
+    mobile-chromium) on the reused build. The production image is built
+    separately and without the flag: the `publish` job (and
+    `scripts/prod-publish-release.sh` through `prod-build-push.sh`) builds
+    `frontend/Dockerfile` with `docker buildx`, from a context whose
+    `.dockerignore` drops `.next`; neither the Dockerfile nor its build args
+    set the flag, and `deploy-production.yml` only deploys the digests that
+    job recorded. No deploy config changed. `docs/testing.md` "Build reuse"
+    and the asset contract say so.
+  - **`map-parity` gained three cases, each on both maps:** every station
+    in the network's catalog gets a target (TTC's catalog is the stations
+    API, with the authored stations added so drawn and undrawn stations are
+    both covered; GO/UP's is `regionalStationSummaries`); a hovered alert's
+    outline masks cut out exactly the manifest's `outlineCutouts`, centred
+    on their stations (GO/UP's Union pill; none on TTC); and on phones a
+    status row opens the impact inspector, then "View in List" its card
+    (phase 5, item 9). The row's heading is a status phrase ("No Service",
+    "Planned Closure · In Effect") that the inspector does not repeat, so the
+    case matches the stretch's first station, which the row, inspector and
+    card all name.
+  - **Parity doc.** `map-renderer-parity.md` has a "Rule owners" table: each
+    overlay rule and the one shared function that owns it, checked against
+    the code (`map-content-rules.ts`, `map-corridors.ts`,
+    `map-badge-artwork.ts`, `train-marker-placement.ts`, `line-alert-model.ts`,
+    `mapOverlayPlane`, `prepareMapArtworkMarkup`, `placeMapStations`). Stale
+    text updated: `defineSystemMap` derives the plane and preparation,
+    station targets come from the catalog (`placesUndrawnStations`), and the
+    parity suite's case list.
+  - **Finding, outside this plan: `dashboard.spec.ts:1195` desktop fails on
+    `main` since `7ba7faab`** (badge obstacles from glyph ink boxes). It
+    checks that no visible GO/UP overlap badge overlaps a
+    `.station-label-hit-target` box (the padded font box), and badges may
+    now sit inside that box. It failed 4 of 4 runs on HEAD and passed with
+    only the two geometry files restored to `3720c4d3`. Either the test
+    should compare against ink boxes or the obstacle change needs a
+    margin; that is the owner's (or that change's) call, not this plan's.
+  - Checks: `test:fast` passes, typecheck clean, lint 15 existing warnings.
+    Browser checks ran on a worktree of `458fad04` plus this phase (one
+    build with `LINEWATCH_TEST_HARNESS=true`, reused). `map-parity` passed
+    46 (42 skipped by project). The browser list (dashboard by path, plus
+    `map-line-badges` and `drop-in-map`) on desktop-chrome and
+    mobile-chromium passed 364 and failed only `dashboard.spec.ts:1195`
+    (above). `dashboard.spec.ts:1871`, `:1117` and `:1576` did not fail this run.
+    `test:visual` not run: nothing visible changed.

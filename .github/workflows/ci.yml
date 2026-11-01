@@ -70,11 +70,15 @@ jobs:
       - name: Lint
         run: npm --prefix frontend run lint
 
+      # A test build: the browser steps below reuse it. The harness routes are
+      # for drop-in-map.spec.ts; production images build separately, without
+      # them (frontend/Dockerfile, scripts/prod-build-push.sh).
       - name: Build
         run: npm --prefix frontend run build
         env:
           BACKEND_URL: http://127.0.0.1:4174
           NEXT_PUBLIC_LINEWATCH_API_BASE_URL: http://127.0.0.1:4174
+          LINEWATCH_TEST_HARNESS: "true"
 
       - name: Install cross-browser Playwright runtimes
         working-directory: frontend
@@ -97,6 +101,11 @@ jobs:
 
       - name: Map chooser and background camera regressions
         run: npm --prefix frontend run test:map-interactions
+        env:
+          LINEWATCH_PLAYWRIGHT_REUSE_BUILD: "true"
+
+      - name: Drop-in System Map proof
+        run: npm --prefix frontend run test:drop-in-map
         env:
           LINEWATCH_PLAYWRIGHT_REUSE_BUILD: "true"
 

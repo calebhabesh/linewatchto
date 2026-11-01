@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import type { NetworkId } from "../../src/app/dashboard-contract";
+import { MAP_MANIFESTS, NETWORK_MAPS } from "../../src/app/map-manifests";
+import { regionalStationSummaries } from "../../src/app/regional-data";
 import { installDismissedTransientUi, setStubMode } from "./test-support";
 
 /*
@@ -275,6 +277,39 @@ async function withMapCommute(page: Page, network: NetworkId) {
 const selectedEmphasis = (page: Page, id?: string) =>
   page.locator(id ? `[data-selected-impact-emphasis="${id}"]` : "[data-selected-impact-emphasis]");
 
+/** The ids of the stations the map's viewport has targets for. */
+function stationTargetIds(page: Page, network: NetworkId) {
+  return page.evaluate((selector) => [...new Set(
+    [...document.querySelectorAll<SVGElement>(`${selector} .station-hit-target`)].map((target) => target.dataset.stationId ?? ""),
+  )].sort(), viewportSelector(network));
+}
+
+/**
+ * The hovered alert's outline cutouts, as the screen centres of each mask's
+ * cutout rectangles, with the screen centres of the stations they belong to.
+ */
+function hoveredOutlineCutouts(page: Page, network: NetworkId, impactId: string, stationIds: readonly string[]) {
+  return page.evaluate(({ selector, impactId, stationIds }) => {
+    const viewport = document.querySelector(selector)!;
+    const outline = viewport.querySelector<SVGGraphicsElement>(
+      `.map-impact-hover-foreground[data-map-hover-impact-id="${CSS.escape(impactId)}"]:has(mask)`,
+    )!;
+    const toScreen = outline.getScreenCTM()!;
+    const masks = [...outline.querySelectorAll("mask")].map((mask) => (
+      [...mask.querySelectorAll<SVGRectElement>(".map-impact-hover-outline-cutout")].map((rect) => {
+        const box = rect.getBBox();
+        const point = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2).matrixTransform(toScreen);
+        return { x: point.x, y: point.y };
+      })
+    ));
+    const stations = stationIds.map((stationId) => {
+      const rect = viewport.querySelector(`.station-hit-target[data-station-id="${CSS.escape(stationId)}"]`)!.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    });
+    return { masks, stations };
+  }, { selector: viewportSelector(network), impactId, stationIds });
+}
+
 for (const network of MAPS) {
   test.describe(`${network} System Map parity`, () => {
     test.beforeEach(async ({ request }) => {
@@ -294,6 +329,24 @@ for (const network of MAPS) {
         const blank = await blankPoint(page, network);
         await page.mouse.move(blank.x, blank.y);
         await expect(page.locator('[data-map-impact-hovered="true"]')).toHaveCount(0);
+      });
+
+      test("a hovered alert's outline stops at the manifest's outline cutouts, over their stations", async ({ page }) => {
+        // GO/UP cuts out Union's pill; TTC names none, so its outlines have none.
+        const stationIds = MAP_MANIFESTS[NETWORK_MAPS[network]].outlineCutouts?.stationIds ?? [];
+        await openMap(page, network);
+        const alert = await alertPoint(page, network);
+        await page.mouse.move(alert.x, alert.y);
+        await expect(page.locator(`[data-map-hover-impact-id="${alert.id}"][data-map-impact-hovered="true"]`).first()).toBeAttached();
+        const { masks, stations } = await hoveredOutlineCutouts(page, network, alert.id, stationIds);
+        // The outline's two masks (core and edge) each cut out every named station.
+        expect(masks).toHaveLength(2);
+        for (const cutouts of masks) {
+          expect(cutouts).toHaveLength(stationIds.length);
+          cutouts.forEach((cutout, index) => {
+            expect(Math.hypot(cutout.x - stations[index].x, cutout.y - stations[index].y)).toBeLessThan(4);
+          });
+        }
       });
 
       test("pressing a line alert selects it; pressing open map clears it", async ({ page }) => {
@@ -455,6 +508,27 @@ for (const network of MAPS) {
         });
     });
 
+    test.describe("station catalog", () => {
+      // The service worker would answer the station requests before the route.
+      test.use({ serviceWorkers: "block" });
+
+      test("every station in the network's catalog gets a target", async ({ page }) => {
+        // TTC's catalog is the stations API (the stub's undrawn fixtures plus
+        // its authored stations); GO/UP's is bundled with the app.
+        let catalog = regionalStationSummaries.stations.map(({ id }) => id);
+        if (network === "ttc") {
+          await withAuthoredTtcStations(page);
+          const stations = page.waitForResponse("**/api/stations");
+          await openMap(page, network);
+          catalog = ((await (await stations).json()) as { stations: { id: string }[] }).stations.map(({ id }) => id);
+        } else {
+          await openMap(page, network);
+        }
+        expect(catalog.length).toBeGreaterThan(10);
+        await expect.poll(() => stationTargetIds(page, network)).toEqual([...new Set(catalog)].sort());
+      });
+    });
+
     test.describe("keyboard", () => {
       test.skip(({ isMobile }) => isMobile, "desktop keyboard");
 
@@ -532,6 +606,22 @@ for (const network of MAPS) {
         const station = await stationPoint(page, network);
         await page.touchscreen.tap(station.x, station.y);
         await expect(stationDetails(page, station.name)).toBeVisible();
+      });
+
+      test("tapping a line alert's status row opens the impact inspector, and View in List its card", async ({ page }) => {
+        await openMap(page, network);
+        await page.locator(".mobile-service-sheet-handle").press("End");
+        const row = page.locator('.current-service-impact:is([data-impact-kind="suspension"], [data-impact-kind="delay"])').first();
+        // The stretch's first station: the row, the inspector and the card all name it.
+        const from = (await row.locator(".current-service-impact-location > span > span").first().innerText()).trim();
+        expect(from).not.toBe("");
+        await row.click();
+        const inspector = page.getByRole("complementary", { name: "Selected map impact details" });
+        await expect(inspector).toBeVisible();
+        await expect(inspector).toContainText(from);
+        await expect(selectedEmphasis(page).first()).toBeAttached();
+        await inspector.getByRole("button", { name: "View in List", exact: true }).click();
+        await expect(page.locator(".alert-card.is-active")).toContainText(from);
       });
 
       test("tapping an overlap badge opens the chooser", async ({ page }) => {
