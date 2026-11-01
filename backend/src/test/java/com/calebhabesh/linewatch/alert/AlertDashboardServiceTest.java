@@ -504,6 +504,39 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void reducedSpeedZonesUseSourceTitleWhenTtcLiveAlertDescriptionIsEmpty() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        OffsetDateTime rszUpdatedAt = OffsetDateTime.parse("2026-08-31T10:18:00-04:00");
+        String ttcSentence = "Subway trains will move slower than usual northbound from Davisville to Eglinton stations while we work on track issues.";
+        AlertEntity rsz = withLine(alert(
+            "ttc-route-rsz-davisville-eglinton",
+            "active-alert",
+            "delay",
+            ttcSentence,
+            "",
+            "davisville",
+            "eglinton",
+            rszUpdatedAt,
+            null
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(rsz, "direction", "northbound");
+        ReflectionTestUtils.setField(rsz, "impactKind", "reduced-speed-zone");
+
+        when(alertRepository.findByActiveTrueAndType("active-alert")).thenReturn(List.of(rsz));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-1-eglinton-davisville", "line-1", "eglinton", "davisville", 10, "southbound")
+        ));
+
+        assertThat(service.reducedSpeedZones()).singleElement().satisfies(dto -> {
+            assertThat(dto.title()).isEqualTo("Reduced Speed Zone");
+            assertThat(dto.description()).isEqualTo(ttcSentence);
+            assertThat(dto.directionalDetails()).singleElement()
+                .extracting(AlertDashboardService.DirectionalDetailDto::description)
+                .isEqualTo(ttcSentence);
+        });
+    }
+
+    @Test
     void delayCardsPreserveSourceActivePeriodStartWhenItIsOlderThanUpdate() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         OffsetDateTime sourceUpdatedAt = OffsetDateTime.parse("2026-06-01T22:15:00Z");

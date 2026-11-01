@@ -202,7 +202,7 @@ export function getSelectedImpactDetails(
       icon: <Construction size={16} className="rsz-tone" />,
       lineId: zone.lineId,
       lineNumber: zone.lineNumber,
-      title: zone.title,
+      title: zone.description?.trim() ? zone.description : zone.title,
       location: zone.location,
       displayDirection: zone.displayDirection,
       description: zone.description,

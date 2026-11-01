@@ -1,12 +1,12 @@
 # README screenshots
 
-Captured and reviewed: September 30, 2026 at 19:23 EDT.
+Captured and reviewed: November 1, 2026 at 06:41 EST.
 
 Every image in the README is a screenshot of the public production application at [linewatchto.ca](https://linewatchto.ca), using actual source-backed data. They are historical snapshots of a running product, not current service information or evidence of user counts or performance. Source labels distinguish live predictions from scheduled departures.
 
 | Image | Framing and resolution |
 | --- | --- |
-| `ttc-desktop.png` | Full TTC dashboard and network overview; 1600 × 1000 viewport, captured at 2× resolution (3200 × 2000 PNG) |
+| `ttc-desktop.png` | Full TTC dashboard and network overview; 2560 × 1440 viewport, captured at 2× resolution (5120 × 2880 PNG) |
 | `regional-desktop.png` | Full GO/UP dashboard and network overview; same viewport and resolution |
 | `ttc-mobile.png` | Natural phone dashboard framing; 412 × 915 viewport, 824 × 1830 PNG |
 | `station-details.png` | Deliberate close-up of the Union station panel after opening its Train Arrivals section; captured at 2× resolution |
@@ -15,12 +15,12 @@ The desktop map cameras were zoomed out and panned through ordinary controls so 
 
 All captures used a new signed-out browser context. No personal account, saved commute, provider key, raw upstream response, or authentication state is included. The station detail replaces the earlier demo-account image so the README gallery uses production views throughout. Application onboarding assets continue to use their existing synthetic examples.
 
-Source freshness was verified separately for TTC and regional public dashboard responses: each reported `availability: available` and `status.generatedAt.live: true`. Union's public station response provided TTC GTFS-RT subway predictions, with the LIVE source labels visible in the panel. [Capture provenance](capture-provenance.json) records only public source identifiers, timestamps, viewport dimensions, and framing.
+Source freshness was verified separately for TTC and regional public dashboard responses: each reported `availability: available` and `status.generatedAt.live: true`. Union's public station response shows explicit source labels (`LIVE` during subway operating hours or `SCHEDULED` before service starts). [Capture provenance](capture-provenance.json) records only public source identifiers, timestamps, viewport dimensions, and framing.
 
 ## Refreshing the images
 
-Run `npm --prefix frontend run screenshots:readme` (`--help` lists options). It uses a clean, signed-out browser context against the public application, a full-screen desktop browser tab (1920 × 1080) and a 412 × 915 phone, 2× pixel density, dark mode, reduced motion, and the real clock. It dismisses first-visit guidance through normal preferences, waits for a successful dashboard response, fonts, raster-map readiness, and a settled camera, then captures the rendered UI. It writes nothing unless every capture succeeds and each network's dashboard reports a live source.
+Run `npm --prefix frontend run screenshots:readme` (`--help` lists options). It uses a clean, signed-out browser context against the public application, a full-screen desktop browser tab (2560 × 1440) and a 412 × 915 phone, 2× pixel density, dark mode, reduced motion, and the real clock. It dismisses first-visit guidance through normal preferences, waits for a successful dashboard response, fonts, raster-map readiness, and a settled camera, frames the desktop network beside the status panel, then captures the rendered UI. It writes nothing unless every capture succeeds and each network's dashboard reports a live source.
 
-The desktop images use the default camera. The station close-up opens Union from search and jumps to its arrivals. Do not use a fixed example clock, response interception, API fixtures, or a synthetic account for these README images. Keep source labels visible and do not label an unavailable or stale source as live.
+The station close-up opens Union from search and jumps to its arrivals. Do not use a fixed example clock, response interception, API fixtures, or a synthetic account for these README images. Keep source labels visible and do not label an unavailable or stale source as live.
 
 If a source is not fresh, defer its replacement or explicitly caption the actual state. Inspect all images for clipped endpoints, legends, loading placeholders, account details, and operational identifiers. Update capture provenance and README timestamps together. Normal application builds do not require screenshot regeneration, and refreshing README images does not require updating application onboarding assets or browser-test baselines.

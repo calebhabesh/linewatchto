@@ -58,7 +58,7 @@ public class ReducedSpeedZoneProjector {
                 String displayLocation = StationSpanFormatter.ttc(matcher, lineSegments, group.lineId,
                     alert.getStartStationId(), alert.getEndStationId(), dir, this::stationLabel);
                 directionalDetails.add(new DirectionalDetail(
-                    alert.getId(), detailDir, location, alert.getDescription(), displayLocation));
+                    alert.getId(), detailDir, location, sourceDescription(alert), displayLocation));
 
                 for (String segmentId : source.segmentIds()) {
                     LineSegmentEntity segment = lineSegments.stream().filter(s -> s.getId().equals(segmentId)).findFirst().orElseThrow();
@@ -187,6 +187,23 @@ public class ReducedSpeedZoneProjector {
 
     private String stationLabel(String stationId) {
         return StationDisplayNameFormatter.fromStationId(stationId);
+    }
+
+    static String sourceDescription(AlertEntity alert) {
+        String description = alert.getDescription();
+        if (description != null && !description.isBlank()) {
+            return description;
+        }
+        String title = alert.getTitle();
+        if (title != null && !title.isBlank()) {
+            String trimmed = title.trim();
+            if (!trimmed.equalsIgnoreCase("Reduced Speed Zone")
+                && !trimmed.equalsIgnoreCase("Reduced speed")
+                && !trimmed.equalsIgnoreCase("TTC service alert")) {
+                return title;
+            }
+        }
+        return description;
     }
 
     private static final class GroupBuilder {

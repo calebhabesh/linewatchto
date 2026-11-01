@@ -1539,10 +1539,19 @@
   --highlight-ring: 2px;
   --highlight-strength: 50%;
   --highlight-glow: transparent;
-  animation: station-impact-card-highlight-pulse 1.6s ease-in-out 1 forwards;
+  position: relative;
 }
 
-.motion-paused .station-impact-card-highlight-soft {
+.station-impact-card-highlight-soft::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: station-impact-card-highlight-pulse 1.6s ease-in-out 180ms 1 both;
+}
+
+.motion-paused .station-impact-card-highlight-soft::after {
   animation: none;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--highlight-color, rgba(245, 158, 11, 0.9)) 50%, transparent);
 }

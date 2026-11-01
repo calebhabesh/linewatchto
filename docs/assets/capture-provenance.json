@@ -4,95 +4,63 @@
   "captures": [
     {
       "network": "ttc",
-      "sourceSystems": [
-        "ttc-live-alerts",
-        "ttc-scheduled-service"
-      ],
+      "file": "ttc-desktop.png",
+      "viewport": "2560x1440",
+      "pixelRatio": 2,
+      "framing": "Full viewport; fitted desktop network beside status panel",
       "sourceStatus": {
-        "time": "7:23 PM",
-        "date": "Sep 30, 2026",
+        "availability": "available",
         "live": true,
+        "time": "6:42 AM",
+        "date": "Nov 1, 2026",
         "lastPoll": "succeeded just now"
       },
-      "capturedAt": "2026-09-30T23:23:21.339Z",
-      "viewport": "1600x1000",
-      "pixelRatio": 2,
-      "file": "ttc-desktop.png",
-      "imagePixels": [
-        3200,
-        2000
-      ],
-      "framing": "Full viewport; fitted desktop network"
+      "capturedAt": "2026-11-01T11:42:46.695Z"
     },
     {
       "network": "ttc",
-      "sourceSystems": [
-        "ttc-live-alerts",
-        "ttc-scheduled-service"
-      ],
+      "file": "station-details.png",
+      "viewport": "1920x1000",
+      "pixelRatio": 2,
+      "framing": "Union station panel / Train Arrivals section",
       "sourceStatus": {
-        "time": "7:23 PM",
-        "date": "Sep 30, 2026",
+        "availability": "available",
         "live": true,
+        "time": "6:42 AM",
+        "date": "Nov 1, 2026",
         "lastPoll": "succeeded just now"
       },
-      "capturedAt": "2026-09-30T23:23:21.971Z",
-      "viewport": "1600x1000",
-      "pixelRatio": 2,
-      "file": "station-details.png",
-      "imagePixels": [
-        1120,
-        1792
-      ],
-      "framing": "Union station panel / Train Arrivals section",
-      "arrivalsSource": "TTC GTFS-RT subway trip updates"
+      "capturedAt": "2026-11-01T11:42:49.128Z"
     },
     {
       "network": "regional",
-      "sourceSystems": [
-        "metrolinx-go-service-alerts",
-        "metrolinx-go-information-alerts",
-        "metrolinx-go-marketing-alerts",
-        "metrolinx-go-gtfs-alerts",
-        "metrolinx-up-gtfs-alerts"
-      ],
-      "sourceStatus": {
-        "time": "7:23 p.m.",
-        "date": "Sep 30, 2026",
-        "live": true,
-        "lastPoll": "succeeded just now"
-      },
-      "capturedAt": "2026-09-30T23:23:24.041Z",
-      "viewport": "1600x1000",
-      "pixelRatio": 2,
       "file": "regional-desktop.png",
-      "imagePixels": [
-        3200,
-        2000
-      ],
-      "framing": "Full viewport; fitted desktop network"
+      "viewport": "2560x1440",
+      "pixelRatio": 2,
+      "framing": "Full viewport; fitted desktop network beside status panel",
+      "sourceStatus": {
+        "availability": "available",
+        "live": true,
+        "time": "6:41 a.m.",
+        "date": "Nov 1, 2026",
+        "lastPoll": "succeeded 1 min ago"
+      },
+      "capturedAt": "2026-11-01T11:42:54.829Z"
     },
     {
       "network": "ttc",
-      "sourceSystems": [
-        "ttc-live-alerts",
-        "ttc-scheduled-service"
-      ],
-      "sourceStatus": {
-        "time": "7:23 PM",
-        "date": "Sep 30, 2026",
-        "live": true,
-        "lastPoll": "succeeded just now"
-      },
-      "capturedAt": "2026-09-30T23:23:25.200Z",
+      "file": "ttc-mobile.png",
       "viewport": "412x915",
       "pixelRatio": 2,
-      "file": "ttc-mobile.png",
-      "imagePixels": [
-        824,
-        1830
-      ],
-      "framing": "Full viewport; natural phone framing"
+      "framing": "Natural phone dashboard framing",
+      "sourceStatus": {
+        "availability": "available",
+        "live": true,
+        "time": "6:42 AM",
+        "date": "Nov 1, 2026",
+        "lastPoll": "succeeded just now"
+      },
+      "capturedAt": "2026-11-01T11:42:58.622Z"
     }
   ]
 }

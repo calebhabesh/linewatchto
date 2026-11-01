@@ -54,6 +54,7 @@ describe("mobile Show on Map inspector", () => {
   it("matches desktop cards: title narrative, limited-service badge, and shuttle badge", () => {
     assert.match(inspectorSource, /<strong className="impact-card-title">\{details\.title\}<\/strong>/);
     assert.match(inspectorSource, /details\.description && details\.description !== details\.title/);
+    assert.match(inspectorSource, /title:\s*zone\.description\?\.trim\(\)\s*\?\s*zone\.description\s*:\s*zone\.title/);
     assert.match(inspectorSource, /details\.serviceEffect === "limited-service" && selection\.kind === "planned-closure"/);
     assert.match(inspectorSource, /className="impact-card-service-badge shuttle"/);
   });

@@ -781,7 +781,7 @@ public class AlertDashboardService {
             groupedLocation(zone),
             zone.displayDirection(),
             zone.sourceAlerts().size() == 1
-                ? first.getDescription()
+                ? ReducedSpeedZoneProjector.sourceDescription(first)
                 : "TTC reports reduced speeds on this corridor.",
             earliestStartedAt(zone.sourceAlerts()),
             latestUpdatedAt(zone.sourceAlerts()),

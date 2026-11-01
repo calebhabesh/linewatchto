@@ -108,7 +108,7 @@ type RegionalStationImpact = {
 const REGIONAL_ARRIVAL_REFRESH_MS = 15_000;
 
 function stationImpactCardClassName(tone: RegionalStationImpact["tone"]) {
-  const base = "station-impact-card flex flex-col gap-2.5 rounded-lg p-3 text-sm transition-all";
+  const base = "station-impact-card flex flex-col gap-2.5 rounded-lg p-3 text-sm transition-colors";
   if (tone === "active") {
     return `${base} suspension-card-border`;
   }

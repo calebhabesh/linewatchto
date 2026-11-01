@@ -16,13 +16,14 @@ const option = (name, fallback) => {
 if (args.includes("--help")) {
   console.log(`Capture the README screenshots from the public LineWatchTO application.
 
-node frontend/scripts/capture-readme-screenshots.mjs [--origin URL] [--out DIR] [--allow-stale]
+node frontend/scripts/capture-readme-screenshots.mjs [--origin URL] [--out DIR] [--desktop WIDTHxHEIGHT] [--allow-stale]
 
   --origin       Application to capture (default https://linewatchto.ca).
   --out          Destination folder (default docs/assets).
+  --desktop      Desktop viewport size (default 2560x1440, e.g. 1920x1080).
   --allow-stale  Write images even when a source is not live; caption them yourself.
 
-Desktop views use a full-screen browser tab (1920x1080), the phone view 412x915, both at 2x,
+Desktop views use a full-screen browser tab (default 2560x1440), the phone view 412x915, both at 2x,
 dark mode, reduced motion, the real clock, and a new signed-out context. Images are written
 only when every capture succeeds and each network's dashboard reports a live source.
 Review every image before committing; see docs/assets/README.md.`);
@@ -32,7 +33,12 @@ Review every image before committing; see docs/assets/README.md.`);
 const origin = option("origin", "https://linewatchto.ca").replace(/\/$/, "");
 const outDir = path.resolve(option("out", path.join(frontend, "../docs/assets")));
 const allowStale = args.includes("--allow-stale");
-const DESKTOP = { width: 1920, height: 1080 };
+const parseViewport = (spec, fallback) => {
+  const match = /^(\d+)x(\d+)$/i.exec(spec ?? "");
+  return match ? { width: Number(match[1]), height: Number(match[2]) } : fallback;
+};
+const DESKTOP = parseViewport(option("desktop", "2560x1440"), { width: 2560, height: 1440 });
+const STATION_DETAIL_VIEWPORT = { width: 1920, height: 1000 };
 // A stale "seen" version opens What's New over the map, so mark the live one as seen.
 const releaseVersion = (await (await fetch(`${origin}/version.json`)).json()).releaseNote?.version ?? "";
 const PHONE = { width: 412, height: 915 };
@@ -86,6 +92,22 @@ function sourceStatus(dashboard) {
   };
 }
 
+async function frameDesktopOverview(page, network, viewport) {
+  const workspaceWidth = Math.max(1, viewport.width - 80);
+  const rawZoom = (workspaceWidth - 420) / workspaceWidth - (network === "regional" ? 0.1 : 0);
+  const zoomStep = Math.round(Math.min(0.85, Math.max(0.6, rawZoom)) * 20) / 20;
+  await page.getByLabel("Zoom level slider").first().fill(String(zoomStep));
+  await page.waitForTimeout(300);
+  const startX = Math.round(viewport.width * 0.52);
+  const startY = Math.round(viewport.height * 0.5);
+  const deltaY = network === "regional" ? -110 : -20;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + 210, startY + deltaY, { steps: 10 });
+  await page.mouse.up();
+  await page.waitForTimeout(600);
+}
+
 const staging = await mkdtemp(path.join(tmpdir(), "linewatch-readme-"));
 const captures = [];
 const browser = await chromium.launch();
@@ -94,21 +116,29 @@ try {
     const { context, page, dashboard } = await openDashboard(browser, network, DESKTOP);
     const status = sourceStatus(dashboard);
     if (!status.live && !allowStale) throw new Error(`${network} source is not live (${status.availability}); nothing was written.`);
+    await frameDesktopOverview(page, network, DESKTOP);
     const file = `${network === "ttc" ? "ttc" : "regional"}-desktop.png`;
     await page.screenshot({ path: path.join(staging, file) });
     captures.push({ network, file, viewport: `${DESKTOP.width}x${DESKTOP.height}`, pixelRatio: 2,
-      framing: "Full viewport; default desktop frame", sourceStatus: status, capturedAt: new Date().toISOString() });
+      framing: "Full viewport; fitted desktop network beside status panel", sourceStatus: status, capturedAt: new Date().toISOString() });
 
     if (network === "ttc") {
+      await page.setViewportSize(STATION_DETAIL_VIEWPORT);
       await page.getByPlaceholder(/Search all stations/i).first().click();
       await page.getByPlaceholder(/Search all stations/i).first().fill("Union");
       await page.getByRole("button", { name: /^Union TTC station search result/ }).first().click();
       const panel = page.getByRole("complementary", { name: "Union station details" });
       await panel.waitFor({ timeout: 15_000 });
-      await panel.getByRole("button", { name: /^(Trains|LRT)$/ }).first().click().catch(() => {});
       await page.waitForTimeout(1500);
-      await page.locator("#desktop-sidebar-container").screenshot({ path: path.join(staging, "station-details.png") });
-      captures.push({ network, file: "station-details.png", viewport: `${DESKTOP.width}x${DESKTOP.height}`, pixelRatio: 2,
+      await panel.evaluate((el) => {
+        for (const details of el.querySelectorAll(".station-detail-scroll details")) {
+          if (details instanceof HTMLDetailsElement) details.open = true;
+        }
+        el.querySelector('[data-station-section="train-arrivals"]')?.scrollIntoView({ block: "start" });
+      });
+      await page.waitForTimeout(300);
+      await panel.screenshot({ path: path.join(staging, "station-details.png") });
+      captures.push({ network, file: "station-details.png", viewport: `${STATION_DETAIL_VIEWPORT.width}x${STATION_DETAIL_VIEWPORT.height}`, pixelRatio: 2,
         framing: "Union station panel / Train Arrivals section", sourceStatus: status, capturedAt: new Date().toISOString() });
     }
     await context.close();

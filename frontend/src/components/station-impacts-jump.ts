@@ -1,5 +1,6 @@
 const SECTION_HIGHLIGHT_CLASS = "station-impact-card-highlight-soft";
 const SECTION_HIGHLIGHT_MS = 1800;
+const highlightTimers = new WeakMap<HTMLElement, number>();
 
 /**
  * Scrolls the station panel body to its Station Impacts section and briefly
@@ -11,6 +12,15 @@ export function jumpToStationImpactsSection(origin: HTMLElement, reducedMotion?:
   if (!scroller || !section) return;
 
   section.open = true;
+  const cards = [...section.querySelectorAll<HTMLElement>(".station-impact-card")];
+  if (cards.some((card) => card.classList.contains(SECTION_HIGHLIGHT_CLASS))) {
+    for (const card of cards) card.classList.remove(SECTION_HIGHLIGHT_CLASS);
+    void section.offsetWidth;
+  }
+  for (const card of cards) {
+    card.classList.add(SECTION_HIGHLIGHT_CLASS);
+  }
+
   // Scroll only the panel body, leaving its header and section controls fixed.
   const top = scroller.scrollTop
     + section.getBoundingClientRect().top
@@ -22,13 +32,15 @@ export function jumpToStationImpactsSection(origin: HTMLElement, reducedMotion?:
     behavior: reducedMotion ? "instant" : "smooth",
   });
 
-  const cards = [...section.querySelectorAll<HTMLElement>(".station-impact-card")];
-  for (const card of cards) {
-    card.classList.remove(SECTION_HIGHLIGHT_CLASS);
-    void card.offsetWidth;
-    card.classList.add(SECTION_HIGHLIGHT_CLASS);
+  const existingTimer = highlightTimers.get(section);
+  if (existingTimer !== undefined) {
+    window.clearTimeout(existingTimer);
   }
-  window.setTimeout(() => {
-    for (const card of cards) card.classList.remove(SECTION_HIGHLIGHT_CLASS);
-  }, SECTION_HIGHLIGHT_MS);
+  highlightTimers.set(
+    section,
+    window.setTimeout(() => {
+      highlightTimers.delete(section);
+      for (const card of cards) card.classList.remove(SECTION_HIGHLIGHT_CLASS);
+    }, SECTION_HIGHLIGHT_MS),
+  );
 }

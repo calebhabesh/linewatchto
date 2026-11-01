@@ -8,7 +8,7 @@ LineWatchTO is an unofficial transit dashboard for Toronto's TTC subway/LRT and 
 
 [![TTC desktop dashboard with live service status and the full subway/LRT network in view](docs/assets/ttc-desktop.png)](docs/assets/ttc-desktop.png)
 
-*Captured from [linewatchto.ca](https://linewatchto.ca) on September 30, 2026 at 7:23 p.m. EDT, with fresh TTC service data. Screenshots are dated snapshots; open the dashboard for current conditions. Click any image to view it at full resolution.*
+*Captured from [linewatchto.ca](https://linewatchto.ca) on November 1, 2026 at 6:42 a.m. EST, with fresh TTC service data. Screenshots are dated snapshots; open the dashboard for current conditions. Click any image to view it at full resolution.*
 
 ## What riders can do
 
@@ -23,11 +23,11 @@ LineWatchTO is an unofficial transit dashboard for Toronto's TTC subway/LRT and 
 <table>
   <tr>
     <th>Phone dashboard</th>
-    <th>Union station and live arrivals</th>
+    <th>Union station and arrivals</th>
   </tr>
   <tr>
     <td><a href="docs/assets/ttc-mobile.png"><img src="docs/assets/ttc-mobile.png" width="260" alt="Live TTC phone dashboard showing the map, current impact categories, and bottom navigation"></a></td>
-    <td><a href="docs/assets/station-details.png"><img src="docs/assets/station-details.png" width="440" alt="Union station details with source-labeled live TTC subway arrival predictions and surface connections"></a></td>
+    <td><a href="docs/assets/station-details.png"><img src="docs/assets/station-details.png" width="440" alt="Union station details with source-labeled TTC subway arrivals and surface connections"></a></td>
   </tr>
 </table>
 
@@ -38,7 +38,7 @@ LineWatchTO is an unofficial transit dashboard for Toronto's TTC subway/LRT and 
 
 [![GO and UP regional dashboard with the full rail network and live network-specific status](docs/assets/regional-desktop.png)](docs/assets/regional-desktop.png)
 
-*Captured at 7:23 p.m. EDT with fresh regional service data. TTC and regional source availability were checked independently.*
+*Captured at 6:42 a.m. EST with fresh regional service data. TTC and regional source availability were checked independently.*
 
 </details>
 
