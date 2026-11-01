@@ -11,6 +11,7 @@ const surfaceConnectionsSource = readFileSync(new URL("../src/components/Surface
 const stationConnectionsSource = readFileSync(new URL("../src/components/StationConnectionBadges.tsx", import.meta.url), "utf8");
 const arrivalPinSource = readFileSync(new URL("../src/components/ArrivalLinePinButton.tsx", import.meta.url), "utf8");
 const disruptionSummarySource = readFileSync(new URL("../src/components/StationDisruptionSummary.tsx", import.meta.url), "utf8");
+const stationImpactsJumpSource = readFileSync(new URL("../src/components/station-impacts-jump.ts", import.meta.url), "utf8");
 const navButtonsSource = readFileSync(new URL("../src/components/StationSubmenuNavButtons.tsx", import.meta.url), "utf8");
 const stationHeaderSource = readFileSync(new URL("../src/components/StationDetailHeader.tsx", import.meta.url), "utf8");
 const shellSource = readShellSource();
@@ -80,6 +81,10 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /data-arrivals-disrupted/);
     assert.match(panelSource, /arrivalContext\.scheduleMayBeDisrupted/);
     assert.match(panelSource, /onJump=\{\(origin\) => jumpToStationImpactsSection\(origin, reducedMotion\)\}/);
+    assert.match(stationImpactsJumpSource, /scroller\.addEventListener\("scrollend", startHighlight, \{ once: true \}\)/);
+    assert.match(globalCss, /\.station-impact-card::after\s*\{[^}]*box-shadow:\s*0 0 0 2px color-mix\([^}]*opacity:\s*0;/s);
+    assert.match(globalCss, /\.station-impact-card-highlight-soft::after\s*\{[^}]*animation:\s*highlight-glow 1\.6s ease-in-out 1 both;/s);
+    assert.doesNotMatch(globalCss, /\.station-impact-card-highlight-soft::after\s*\{[^}]*station-impact-card-highlight-pulse/s);
     assert.match(disruptionSummarySource, /<OverlappingCountBadge className="station-access-outage-count station-disruption-count"/);
     assert.match(panelSource, /data-station-impact-tone=\{impactTone\}/);
     assert.match(globalCss, /--highlight-color:\s*rgba\(239,\s*68,\s*68/);

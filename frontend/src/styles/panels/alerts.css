@@ -1534,26 +1534,30 @@
   border-color: var(--highlight-color, rgba(245, 158, 11, 0.9)) !important;
 }
 
-/* Softer pulse applied to every card when the disruption banner jumps to the whole section */
-.station-impact-card-highlight-soft {
-  --highlight-ring: 2px;
-  --highlight-strength: 50%;
-  --highlight-glow: transparent;
+/* Softer pulse applied to every card when the disruption banner jumps to the whole section.
+   The ring is drawn once on ::after and only its opacity animates via highlight-glow, so the
+   compositor runs it without repainting the cards or their scrolling container. */
+.station-impact-card {
   position: relative;
 }
 
-.station-impact-card-highlight-soft::after {
+.station-impact-card::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  animation: station-impact-card-highlight-pulse 1.6s ease-in-out 180ms 1 both;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--highlight-color, rgba(245, 158, 11, 0.9)) 50%, transparent);
+  opacity: 0;
+}
+
+.station-impact-card-highlight-soft::after {
+  animation: highlight-glow 1.6s ease-in-out 1 both;
 }
 
 .motion-paused .station-impact-card-highlight-soft::after {
   animation: none;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--highlight-color, rgba(245, 158, 11, 0.9)) 50%, transparent);
+  opacity: 1;
 }
 
 @media (max-width: 767px) {
