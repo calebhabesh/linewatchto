@@ -31,6 +31,8 @@ public class PushNotificationDeliveryEntity {
     private Instant createdAt;
     @Column(name = "displayed_at")
     private Instant displayedAt;
+    @Column(name = "catch_up")
+    private boolean catchUp;
 
     protected PushNotificationDeliveryEntity() {}
 
@@ -59,6 +61,19 @@ public class PushNotificationDeliveryEntity {
         Instant now
     ) {
         return new PushNotificationDeliveryEntity(id, event, subscription, result, now);
+    }
+
+    /** A delivery of a still-active alert to a replacement endpoint that its dead predecessor missed. */
+    public static PushNotificationDeliveryEntity catchUp(
+        String id,
+        PushNotificationEventEntity event,
+        PushSubscriptionEntity subscription,
+        PushDeliveryResult result,
+        Instant now
+    ) {
+        PushNotificationDeliveryEntity delivery = new PushNotificationDeliveryEntity(id, event, subscription, result, now);
+        delivery.catchUp = true;
+        return delivery;
     }
 
     public boolean shouldRetryDelivery(Instant now, Duration retryDelay) {
@@ -115,4 +130,5 @@ public class PushNotificationDeliveryEntity {
     public int getAttemptCount() { return attemptCount; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getDisplayedAt() { return displayedAt; }
+    public boolean isCatchUp() { return catchUp; }
 }

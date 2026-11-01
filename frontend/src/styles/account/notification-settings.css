@@ -17,16 +17,15 @@
  * (.notification-event-type-grid, .notification-event-type-header, .notification-settings-control-grid,
  * .notification-settings-icon-label, .notification-settings-muted-warning,
  * .notification-settings-row-actions), dark and high-contrast theme overrides, and Web Push
- * delivery diagnostics panel, device lists, attempt history, recipient logs, and client events
+ * Notification Diagnostics panel: devices with reachability, per-alert outcomes, and technical details
  * (.push-diagnostics-details, .push-diagnostics-summary, .push-diagnostics-summary-copy,
  * .push-diagnostics-status, .push-diagnostics-chevron, .push-diagnostics-panel, .push-diagnostics-header,
- * .push-diagnostics-note, .push-devices-section, .push-devices-header, .push-devices-list,
- * .push-device-row, .push-device-details, .push-device-main, .push-device-hash, .push-device-health,
+ * .push-diagnostics-note, .push-devices-section, .push-devices-list,
+ * .push-device-row, .push-device-details, .push-device-main, .push-device-tag, .push-device-health,
  * .push-device-meta, .push-device-actions, .push-device-disable, .push-device-test,
- * .push-diagnostics-scroll, .push-diagnostics-filter, .push-diagnostics-archive-toggle,
- * .push-diagnostics-item, .push-diagnostics-item-heading, .push-diagnostics-meta,
- * .push-diagnostics-source, .push-diagnostics-attempts, .push-diagnostics-attempt,
- * .push-diagnostics-recipient, .push-diagnostics-events, .push-diagnostics-empty-events).
+ * .push-diagnostics-scroll, .push-diagnostics-section-title, .push-diagnostics-item,
+ * .push-diagnostics-item-heading, .push-diagnostics-outcomes, .push-diagnostics-technical,
+ * .push-diagnostics-technical-body, .push-diagnostics-lifecycle).
  */
 
 .notification-settings-toggle {
@@ -426,14 +425,13 @@
 .push-diagnostics-summary-copy,
 .push-diagnostics-header div,
 .push-devices-section,
-.push-devices-header,
 .push-devices-list,
 .push-device-details,
 .push-diagnostics-scroll,
 .push-diagnostics-item,
-.push-diagnostics-attempts,
-.push-diagnostics-attempt,
-.push-diagnostics-events {
+.push-diagnostics-outcomes,
+.push-diagnostics-technical-body,
+.push-diagnostics-lifecycle {
   display: flex;
   flex-direction: column;
 }
@@ -502,8 +500,7 @@
 .dark .push-diagnostics-panel,
 .dark .push-devices-section,
 .dark .push-device-row,
-.dark .push-diagnostics-item,
-.dark .push-diagnostics-attempt {
+.dark .push-diagnostics-item {
   border: none;
 }
 
@@ -564,31 +561,8 @@
   border-color: #ffffff;
 }
 
-.push-devices-header {
-  gap: 2px;
-  min-width: 0;
-}
-
-.push-devices-header strong {
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 900;
-  line-height: 1.2;
-}
-
-.push-devices-header span {
-  color: var(--quiet);
-  font-size: 11px;
-  font-weight: 650;
-  line-height: 1.3;
-}
-
 .push-devices-list {
   gap: 8px;
-  max-height: min(30vh, 280px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 2px;
 }
 
 .push-device-row {
@@ -597,8 +571,9 @@
   border-radius: 8px;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px 12px;
   min-width: 0;
   padding: 10px 12px;
 }
@@ -607,12 +582,13 @@
   background: rgba(2, 6, 23, 0.3);
 }
 
-.push-device-row.stale {
+.push-device-row[data-status="unreachable"] {
   border-color: rgba(245, 158, 11, 0.48);
 }
 
 .push-device-details {
-  flex: 1;
+  /* Buttons wrap below the details on a compact phone. */
+  flex: 1 1 260px;
   gap: 5px;
   min-width: 0;
 }
@@ -632,17 +608,24 @@
   line-height: 1.2;
 }
 
-.push-device-hash {
+.push-device-tag {
   background: rgba(15, 23, 42, 0.05);
   border-radius: 4px;
   color: var(--quiet);
-  font-family: monospace;
   font-size: 10px;
-  padding: 1px 4.5px;
+  font-weight: 850;
+  padding: 1px 5px;
+  white-space: nowrap;
 }
 
-.dark .push-device-hash {
+.dark .push-device-tag {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.high-contrast .push-device-tag {
+  background: #000000;
+  border: 1px solid #ffffff;
+  color: #ffffff;
 }
 
 .push-device-main .push-device-health {
@@ -657,20 +640,36 @@
   white-space: nowrap;
 }
 
-.push-device-row.stale .push-device-health {
+.push-device-row[data-status="unreachable"] .push-device-health {
   background: rgba(245, 158, 11, 0.16);
   border-color: rgba(245, 158, 11, 0.34);
+}
+
+.push-device-row[data-status="off"] .push-device-health {
+  background: rgba(100, 116, 139, 0.12);
+  border-color: rgba(100, 116, 139, 0.26);
+}
+
+.high-contrast .push-device-main .push-device-health {
+  background: #000000;
+  border-color: #ffffff;
+  color: #ffffff;
 }
 
 .push-device-meta {
   color: var(--quiet);
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   font-size: 11px;
   font-weight: 650;
-  gap: 4px 8px;
+  gap: 3px;
   line-height: 1.3;
   min-width: 0;
+}
+
+.push-device-meta b {
+  color: var(--text);
+  font-weight: 900;
 }
 
 .push-device-actions {
@@ -772,62 +771,19 @@
   opacity: 0.6;
 }
 
+.push-diagnostics-section-title {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
 .push-diagnostics-scroll {
   gap: 8px;
   max-height: min(52vh, 560px);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 2px;
-}
-
-.push-diagnostics-filter {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.push-diagnostics-archive-toggle {
-  align-items: center;
-  color: var(--quiet);
-  display: inline-flex;
-  font-size: 11px;
-  font-weight: 850;
-  gap: 7px;
-  line-height: 1.2;
-  margin: 0;
-}
-
-.push-diagnostics-archive-toggle input {
-  accent-color: #0ea5e9;
-  height: 14px;
-  margin: 0;
-  width: 14px;
-}
-
-.push-diagnostics-filter button {
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 8px;
-  color: var(--quiet);
-  font-size: 11px;
-  font-weight: 850;
-  min-height: 30px;
-  padding: 0 9px;
-}
-
-.dark .push-diagnostics-filter button {
-  background: rgba(15, 23, 42, 0.54);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-.push-diagnostics-filter button.active {
-  background: #f8fafc;
-  border-color: rgba(14, 165, 233, 0.42);
-  color: var(--text);
-}
-
-.dark .push-diagnostics-filter button.active {
-  background: rgba(15, 23, 42, 0.92);
 }
 
 .push-diagnostics-item {
@@ -885,72 +841,101 @@
   line-height: 1.2;
 }
 
-.push-diagnostics-meta {
+.push-diagnostics-outcomes {
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.push-diagnostics-outcomes li {
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
   color: var(--quiet);
   display: flex;
   flex-wrap: wrap;
   font-size: 11px;
   font-weight: 650;
-  gap: 4px 9px;
-  line-height: 1.25;
-}
-
-.push-diagnostics-source {
-  color: var(--quiet);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.25;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.push-diagnostics-attempts {
-  gap: 7px;
-}
-
-.push-diagnostics-attempt {
-  border-top: 1px solid rgba(15, 23, 42, 0.08);
-  gap: 5px;
-  padding-top: 7px;
-}
-
-.push-diagnostics-recipient.not-attempted .push-diagnostics-meta span:nth-child(3) {
-  color: #b45309;
-  font-weight: 900;
-}
-
-.dark .push-diagnostics-recipient.not-attempted .push-diagnostics-meta span:nth-child(3) {
-  color: #fbbf24;
-}
-
-.push-diagnostics-events {
-  color: var(--quiet);
-  font-size: 11px;
-  gap: 4px;
-  line-height: 1.25;
-  margin: 0;
-  padding: 0;
-}
-
-.push-diagnostics-events li {
-  display: flex;
-  gap: 8px;
+  gap: 2px 8px;
   justify-content: space-between;
+  line-height: 1.3;
+  padding-top: 4px;
 }
 
-.push-diagnostics-events li span:first-child {
+.dark .push-diagnostics-outcomes li {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.high-contrast .push-diagnostics-outcomes li {
+  border-color: #ffffff;
+}
+
+.push-diagnostics-outcomes li span:first-child {
   color: var(--text);
   font-weight: 800;
 }
 
-.push-diagnostics-events li span:last-child {
-  flex-shrink: 0;
-  text-align: right;
+.push-diagnostics-outcomes li[data-outcome="missed"] span:last-child,
+.push-diagnostics-outcomes li[data-outcome="not-sent"] span:last-child {
+  color: #b45309;
+  font-weight: 850;
 }
 
-.push-diagnostics-empty-events {
+.dark .push-diagnostics-outcomes li[data-outcome="missed"] span:last-child,
+.dark .push-diagnostics-outcomes li[data-outcome="not-sent"] span:last-child {
+  color: #fbbf24;
+}
+
+.high-contrast .push-diagnostics-outcomes li span:last-child,
+.high-contrast .push-diagnostics-outcomes li[data-outcome="missed"] span:last-child,
+.high-contrast .push-diagnostics-outcomes li[data-outcome="not-sent"] span:last-child {
+  color: #ffffff;
+}
+
+.push-diagnostics-technical > summary {
+  align-items: center;
+  color: var(--quiet);
+  cursor: pointer;
+  display: flex;
+  font-size: 11px;
+  font-weight: 850;
+  min-height: 32px;
+}
+
+.push-diagnostics-technical-body {
   color: var(--quiet);
   font-size: 11px;
   font-weight: 650;
+  gap: 6px;
+  line-height: 1.35;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.push-diagnostics-technical-body p {
   margin: 0;
+}
+
+.push-diagnostics-technical-body b {
+  color: var(--text);
+}
+
+.push-diagnostics-technical-body code {
+  font-family: monospace;
+  font-size: 10px;
+}
+
+.push-diagnostics-lifecycle {
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  max-height: min(30vh, 260px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0;
+}
+
+.push-diagnostics-lifecycle li {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: max-content minmax(0, 1fr);
 }

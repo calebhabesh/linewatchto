@@ -32,6 +32,8 @@ public class PushNotificationDispatchService {
     private static final String ACTIVE_STATE = "ACTIVE";
     private static final String CLEARED_STATE = "CLEARED";
     private static final Duration FAILED_DELIVERY_RETRY_DELAY = Duration.ofSeconds(30);
+    // Catch-up runs on each evaluation for endpoints registered within this window.
+    private static final Duration CATCH_UP_WINDOW = Duration.ofHours(24);
     private static final Duration CLEARED_DELIVERY_RETRY_WINDOW = Duration.ofHours(24);
     private static final int CLEARED_DELIVERY_RETRY_LIMIT = 25;
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
@@ -261,6 +263,7 @@ public class PushNotificationDispatchService {
             for (PushNotificationCandidate candidate : sendableCandidates) {
                 sendIfNew(candidate);
             }
+            catchUpReplacementSubscriptions(accountId, allowedCandidates);
 
             sendClearedNotifications(
                 accountId,
@@ -1085,6 +1088,71 @@ public class PushNotificationDispatchService {
         subscription.disable(now, reason);
         subscriptionRepository.save(subscription);
         lifecycleService.record(subscription, "disabled", reason, now);
+    }
+
+    /**
+     * Sends a replacement endpoint the still-active alerts its dead predecessor
+     * missed. Only endpoints that continue an installation's enablement (a
+     * browser rotation or a push-service 404/410, never a rider's enable)
+     * qualify; eligibility is judged from the installation's enablement, an
+     * alert already shown on that installation is never sent again, and each
+     * alert goes to a replacement once (the delivery row is the dedupe).
+     */
+    void catchUpReplacementSubscriptions(String accountId, List<PushNotificationCandidate> allowedCandidates) {
+        Instant now = clock.instant();
+        List<PushSubscriptionEntity> replacements = subscriptionRepository.findByAccountIdAndEnabledTrue(accountId)
+            .stream()
+            .filter(PushSubscriptionEntity::isInstallationReplacement)
+            .filter(subscription -> subscription.getInstallationId() != null)
+            .filter(subscription -> subscription.getEnabledAt().isAfter(now.minus(CATCH_UP_WINDOW)))
+            .toList();
+        if (replacements.isEmpty()) {
+            return;
+        }
+        Set<String> notificationKeys = new java.util.LinkedHashSet<>();
+        for (PushNotificationCandidate candidate : allowedCandidates) {
+            if (candidate.deliveryAllowed()) {
+                notificationKeys.add(candidate.notificationKey());
+            }
+        }
+        Set<String> unreachable = new java.util.HashSet<>();
+        for (String notificationKey : notificationKeys) {
+            Optional<PushNotificationEventEntity> latest = latestEvent(accountId, notificationKey, ACTIVE_STATE);
+            if (latest.isEmpty() || !latest.get().isDeliveryAllowed() || clearedSince(latest.get())) {
+                continue;
+            }
+            PushNotificationEventEntity event = latest.get();
+            for (PushSubscriptionEntity subscription : replacements) {
+                if (unreachable.contains(subscription.getId())
+                    || !catchUpEligible(subscription, event)
+                    || deliveryRepository.findByEventIdAndSubscriptionId(event.getId(), subscription.getId()).isPresent()
+                    || deliveryRepository.existsDisplayedForInstallation(event.getId(), accountId, subscription.getInstallationId())) {
+                    continue;
+                }
+                String deliveryId = nextId("push_delivery");
+                PushDeliveryResult result = webPushClient.send(
+                    subscription,
+                    topicFor(PushNotificationDisplayTags.forEvent(event)),
+                    WebPushPayload.fromDelivery(event, deliveryId, subscription, receiptTokenService, now, pushProperties)
+                        .asCatchUp()
+                );
+                deliveryRepository.save(PushNotificationDeliveryEntity.catchUp(deliveryId, event, subscription, result, now));
+                if (result.invalidSubscription()) {
+                    disableHardInvalidSubscription(subscription, result, now);
+                    unreachable.add(subscription.getId());
+                }
+            }
+        }
+    }
+
+    /** Eligible by the installation's enablement, and missed only because this endpoint came later. */
+    static boolean catchUpEligible(PushSubscriptionEntity subscription, PushNotificationEventEntity event) {
+        Instant eligibleAt = event.deliveryEligibilityAt();
+        if (eligibleAt == null || subscription.getEnabledAt() == null) {
+            return false;
+        }
+        return !eligibleAt.isBefore(subscription.getInstallationEnabledAt())
+            && eligibleAt.isBefore(subscription.getEnabledAt());
     }
 
     private boolean subscriptionEnabledForEvent(PushSubscriptionEntity subscription, PushNotificationEventEntity event) {

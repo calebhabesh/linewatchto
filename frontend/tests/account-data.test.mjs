@@ -31,8 +31,7 @@ import {
   disablePushDevice,
   disablePushSubscription,
   getLatestPushNotificationForSubscription,
-  getPushDeliveryDiagnostics,
-  getPushDevices,
+  getPushDiagnostics,
   getPushNotificationConfig,
   savePushSubscription,
   sendPushDeviceTestNotification,
@@ -753,7 +752,7 @@ describe("account data adapter", () => {
           auth: "auth-secret",
         },
         userAgent: "Mobile Safari",
-        reason: "app-refresh",
+        reason: "refreshed",
         installationId: "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324",
       },
       {
@@ -865,137 +864,44 @@ describe("account data adapter", () => {
     assert.equal(requests[3].init.method, "POST");
   });
 
-  it("loads per-device push delivery diagnostics", async () => {
+  it("loads installation-centred push diagnostics", async () => {
     const requests = [];
-    const result = await getPushDeliveryDiagnostics({
+    const result = await getPushDiagnostics({
       fetcher: async (input, init) => {
         requests.push({ input, init });
         return new Response(
           JSON.stringify({
-            notifications: [
-              {
-                id: "push_event_1",
-                title: "Line 2 Bloor-Danforth Suspension",
-                tag: "line-current|line-2|alert-1|active",
-                notificationKey: "line-current|line-2|suspension|ttc-route-70610",
-                sourceIncidentKey: "line-current|line-2|ttc-route-70610",
-                notificationState: "ACTIVE",
-                category: "line-current",
-                eventType: "SUSPENSION",
-                lineId: "line-2",
-                lineNumber: "2",
-                eventCreatedAt: "2026-07-01T14:00:00Z",
-                attempts: [
-                  {
-                    id: "delivery_1",
-                    title: "Line 2 Bloor-Danforth Suspension",
-                    tag: "line-current|line-2|alert-1|active",
-                    notificationState: "ACTIVE",
-                    category: "line-current",
-                    eventType: "SUSPENSION",
-                    lineId: "line-2",
-                    lineNumber: "2",
-                    eventCreatedAt: "2026-07-01T14:00:00Z",
-                    deviceLabel: "Android Chrome",
-                    userAgent: "Mozilla/5.0 Android Chrome",
-                    endpointHashPrefix: "abc12345",
-                    subscriptionEnabled: true,
-                    deliveryStatus: "ACCEPTED",
-                    httpStatus: 201,
-                    deliveryMessage: "Created",
-                    lastAttemptAt: "2026-07-01T14:01:00Z",
-                    displayedAt: null,
-                    attemptCount: 2,
-                    clientEvents: [
-                      {
-                        stage: "push_received",
-                        message: null,
-                        occurredAt: "2026-07-01T14:01:05Z",
-                      },
-                    ],
-                  },
-                ],
-                recipients: [
-                  {
-                    subscriptionId: "push_subscription_android",
-                    deviceLabel: "Android Chrome",
-                    userAgent: "Mozilla/5.0 Android Chrome",
-                    endpointHashPrefix: "abc12345",
-                    subscriptionEnabled: true,
-                    enabledAt: "2026-07-01T13:00:00Z",
-                    disabledAt: null,
-                    status: "attempted",
-                    reasonCode: "attempted",
-                    reason: "Delivery was attempted for this device.",
-                    delivery: {
-                      id: "delivery_1",
-                      title: "Line 2 Bloor-Danforth Suspension",
-                      tag: "line-current|line-2|alert-1|active",
-                      notificationState: "ACTIVE",
-                      category: "line-current",
-                      eventType: "SUSPENSION",
-                      lineId: "line-2",
-                      lineNumber: "2",
-                      eventCreatedAt: "2026-07-01T14:00:00Z",
-                      deviceLabel: "Android Chrome",
-                      userAgent: "Mozilla/5.0 Android Chrome",
-                      endpointHashPrefix: "abc12345",
-                      subscriptionEnabled: true,
-                      deliveryStatus: "ACCEPTED",
-                      httpStatus: 201,
-                      deliveryMessage: "Created",
-                      lastAttemptAt: "2026-07-01T14:01:00Z",
-                      displayedAt: null,
-                      attemptCount: 2,
-                      clientEvents: [],
-                    },
-                  },
-                  {
-                    subscriptionId: "push_subscription_ios",
-                    deviceLabel: "iOS Safari",
-                    userAgent: "Mobile Safari iPhone",
-                    endpointHashPrefix: "def67890",
-                    subscriptionEnabled: true,
-                    enabledAt: "2026-07-01T15:00:00Z",
-                    disabledAt: null,
-                    status: "not-attempted",
-                    reasonCode: "subscription-registered-after-event",
-                    reason: "Device was registered after this notification was created.",
-                    delivery: null,
-                  },
-                ],
-              },
-            ],
-            deliveries: [
-              {
-                id: "delivery_1",
-                title: "Line 2 Bloor-Danforth Suspension",
-                tag: "line-current|line-2|alert-1|active",
-                notificationState: "ACTIVE",
-                category: "line-current",
-                eventType: "SUSPENSION",
-                lineId: "line-2",
-                lineNumber: "2",
-                eventCreatedAt: "2026-07-01T14:00:00Z",
-                deviceLabel: "Android Chrome",
-                userAgent: "Mozilla/5.0 Android Chrome",
-                endpointHashPrefix: "abc12345",
-                subscriptionEnabled: true,
-                deliveryStatus: "ACCEPTED",
-                httpStatus: 201,
-                deliveryMessage: "Created",
-                lastAttemptAt: "2026-07-01T14:01:00Z",
-                displayedAt: null,
-                attemptCount: 2,
-                clientEvents: [
-                  {
-                    stage: "push_received",
-                    message: null,
-                    occurredAt: "2026-07-01T14:01:05Z",
-                  },
-                ],
-              },
-            ],
+            windowStart: "2026-10-24T22:00:00Z",
+            devices: [{
+              key: "installation-ce9b4149",
+              label: "Android Chrome",
+              status: "unreachable",
+              statusSince: "2026-10-29T10:05:00Z",
+              currentSubscriptionId: null,
+              shown: 79,
+              sentWhileReachable: 99,
+              missedWhileUnreachable: 372,
+              lastShownAt: "2026-10-31T01:57:00Z",
+              lastShownTitle: "Line 1 Delay",
+              replacements: 4,
+              browserMajorVersion: 156,
+              displayMode: "standalone",
+              installationIdPrefix: "ce9b4149",
+              endpointHashPrefix: "bd587945a7e4",
+              registrationReason: "endpoint-replaced",
+              endpointCount: 46,
+            }],
+            alerts: [{
+              id: "push_event_1",
+              title: "Line 1 Delay",
+              notificationState: "ACTIVE",
+              category: "line-current",
+              lineId: "line-1",
+              lineNumber: "1",
+              createdAt: "2026-10-30T13:00:00Z",
+              outcomes: [{ deviceKey: "installation-ce9b4149", outcome: "missed", at: null, reason: null, catchUp: false, technical: null }],
+            }],
+            technical: { vapidKeyFingerprint: "15060e1f2db1", lifecycle: [] },
           }),
           { status: 200, headers: { "content-type": "application/json" } }
         );
@@ -1003,97 +909,30 @@ describe("account data adapter", () => {
     });
 
     assert.equal(result.source, "backend");
-    assert.equal(result.notifications.length, 1);
-    assert.equal(result.notifications[0].sourceIncidentKey, "line-current|line-2|ttc-route-70610");
-    assert.equal(result.notifications[0].attempts[0].deviceLabel, "Android Chrome");
-    assert.equal(result.notifications[0].recipients.length, 2);
-    assert.equal(result.notifications[0].recipients[1].status, "not-attempted");
-    assert.equal(result.notifications[0].recipients[1].reasonCode, "subscription-registered-after-event");
-    assert.equal(result.deliveries.length, 1);
-    assert.equal(result.deliveries[0].deviceLabel, "Android Chrome");
-    assert.equal(result.deliveries[0].attemptCount, 2);
-    assert.equal(result.deliveries[0].clientEvents[0].stage, "push_received");
+    assert.equal(result.devices[0].status, "unreachable");
+    assert.equal(result.alerts[0].outcomes[0].outcome, "missed");
+    assert.equal(result.vapidKeyFingerprint, "15060e1f2db1");
     assert.equal(requests[0].input, "/api/account/push/diagnostics");
-    assert.equal(requests[0].init.method, "GET");
     assert.equal(requests[0].init.credentials, "include");
   });
 
-  it("sends a manual push test notification to a registered device", async () => {
+  it("reports diagnostics as unavailable when the request fails", async () => {
+    const result = await getPushDiagnostics({ fetcher: async () => new Response("{}", { status: 500 }) });
+    assert.equal(result.source, "unavailable");
+    assert.deepEqual(result.devices, []);
+  });
+
+  it("sends a manual push test notification and disables a device by subscription id", async () => {
     const requests = [];
     const result = await sendPushDeviceTestNotification("push_subscription_android", {
       fetcher: async (input, init) => {
         requests.push({ input, init });
-        return new Response(
-          JSON.stringify({
-            delivery: {
-              id: "push_delivery_test",
-              title: "LineWatchTO test notification",
-              tag: "diagnostic-test|push_subscription_android|123|active",
-              notificationState: "ACTIVE",
-              category: "diagnostic-test",
-              eventType: "test",
-              lineId: null,
-              lineNumber: null,
-              eventCreatedAt: "2026-07-01T14:00:00Z",
-              deviceLabel: "Android Chrome",
-              userAgent: "Mozilla/5.0 Android Chrome",
-              endpointHashPrefix: "abc12345",
-              subscriptionEnabled: true,
-              deliveryStatus: "accepted",
-              httpStatus: 201,
-              deliveryMessage: "Created",
-              lastAttemptAt: "2026-07-01T14:00:00Z",
-              displayedAt: null,
-              attemptCount: 1,
-              clientEvents: [],
-            },
-          }),
-          { status: 200, headers: { "content-type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ deliveryStatus: "accepted", httpStatus: 201 }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
       },
     });
-
-    assert.equal(result.delivery.deviceLabel, "Android Chrome");
-    assert.equal(result.delivery.deliveryStatus, "accepted");
-    assert.equal(requests[0].input, "/api/account/push/devices/push_subscription_android/test");
-    assert.equal(requests[0].init.method, "POST");
-    assert.equal(requests[0].init.credentials, "include");
-  });
-
-  it("loads and disables account push devices by subscription id", async () => {
-    const requests = [];
-    const result = await getPushDevices({
-      fetcher: async (input, init) => {
-        requests.push({ input, init });
-        return new Response(
-          JSON.stringify({
-            vapidKeyFingerprint: "15060e1f2db1",
-            devices: [
-              {
-                id: "push_subscription_ios",
-                deviceLabel: "iOS Safari",
-                userAgent: "Mobile Safari iPhone",
-                endpointHashPrefix: "606a0b3ed936",
-                enabled: true,
-                registrationInceptionAt: "2026-06-15T09:30:00Z",
-                createdAt: "2026-07-01T12:00:00Z",
-                updatedAt: "2026-07-01T12:00:00Z",
-                lastSeenAt: "2026-07-01T12:00:00Z",
-                disabledAt: null,
-                lastAttemptAt: "2026-07-02T04:17:00Z",
-                lastAcceptedAt: "2026-07-02T04:17:00Z",
-                lastDisplayedAt: null,
-                acceptedWithoutDisplayCount: 3,
-                deliveryHealth: "accepted-no-display",
-                staleCandidate: true,
-              },
-            ],
-          }),
-          { status: 200, headers: { "content-type": "application/json" } }
-        );
-      },
-    });
-
     await disablePushDevice("push_subscription_ios", {
       fetcher: async (input, init) => {
         requests.push({ input, init });
@@ -1101,21 +940,12 @@ describe("account data adapter", () => {
       },
     });
 
-    assert.equal(result.source, "backend");
-    assert.equal(result.vapidKeyFingerprint, "15060e1f2db1");
-    assert.equal(result.devices.length, 1);
-    assert.equal(result.devices[0].deviceLabel, "iOS Safari");
-    assert.equal(result.devices[0].endpointHashPrefix, "606a0b3ed936");
-    assert.equal(result.devices[0].registrationInceptionAt, "2026-06-15T09:30:00Z");
-    assert.equal(result.devices[0].createdAt, "2026-07-01T12:00:00Z");
-    assert.equal(result.devices[0].deliveryHealth, "accepted-no-display");
-    assert.equal(result.devices[0].staleCandidate, true);
-    assert.equal(requests[0].input, "/api/account/push/devices");
-    assert.equal(requests[0].init.method, "GET");
-    assert.equal(requests[0].init.credentials, "include");
+    assert.equal(result.deliveryStatus, "accepted");
+    assert.equal(result.httpStatus, 201);
+    assert.equal(requests[0].input, "/api/account/push/devices/push_subscription_android/test");
+    assert.equal(requests[0].init.method, "POST");
     assert.equal(requests[1].input, "/api/account/push/devices/push_subscription_ios/disable");
     assert.equal(requests[1].init.method, "POST");
-    assert.equal(requests[1].init.credentials, "include");
   });
 
   it("loads auth configuration", async () => {

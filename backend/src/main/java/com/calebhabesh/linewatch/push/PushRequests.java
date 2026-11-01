@@ -10,7 +10,10 @@ public final class PushRequests {
         PushSubscriptionKeys keys,
         String userAgent,
         String reason,
-        String installationId
+        String installationId,
+        String previousEndpointHash,
+        Integer browserMajorVersion,
+        String displayMode
     ) {
         public SaveSubscriptionRequest(String endpoint, PushSubscriptionKeys keys, String userAgent) {
             this(endpoint, keys, userAgent, null, null);
@@ -19,7 +22,20 @@ public final class PushRequests {
         public SaveSubscriptionRequest(String endpoint, PushSubscriptionKeys keys, String userAgent, String reason) {
             this(endpoint, keys, userAgent, reason, null);
         }
+
+        public SaveSubscriptionRequest(
+            String endpoint,
+            PushSubscriptionKeys keys,
+            String userAgent,
+            String reason,
+            String installationId
+        ) {
+            this(endpoint, keys, userAgent, reason, installationId, null, null, null);
+        }
     }
+
+    /** A service-worker stage report; the endpoint, when present, is only hashed. */
+    public record WorkerStageRequest(String stage, String message, String endpoint) {}
 
     public record SubscriptionEndpointRequest(String endpoint, String reason) {
         public SubscriptionEndpointRequest(String endpoint) { this(endpoint, null); }

@@ -9,6 +9,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface PushNotificationEventRepository extends JpaRepository<PushNotificationEventEntity, String> {
     boolean existsByDedupeKey(String dedupeKey);
 
+    List<PushNotificationEventEntity> findByAccountIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+        String accountId,
+        java.time.Instant createdAtFrom
+    );
+
     Optional<PushNotificationEventEntity> findByDedupeKey(String dedupeKey);
 
     Optional<PushNotificationEventEntity> findFirstByAccountIdAndNotificationKeyAndReminderBucketOrderByCreatedAtDesc(

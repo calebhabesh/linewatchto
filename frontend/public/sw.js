@@ -21,6 +21,13 @@ const PUSH_IDENTITY_CACHE = "linewatch-push-identity-v1";
 const PUSH_IDENTITY_CACHE_KEY = "/__linewatch/push-installation-id";
 
 const isDev = new URL(self.location.href).searchParams.get("env") === "dev";
+const SUBSCRIPTION_CHECK_SYNC_TAG = "linewatch-subscription-check";
+
+// Shared subscription check (also mirrored for the page). importScripts always
+// exists in a worker; the guard keeps unit-test contexts that omit it working.
+if (typeof importScripts === "function") {
+  importScripts("/push-subscription-check.js");
+}
 
 const APP_SHELL_URLS = [
   OFFLINE_URL,
@@ -83,6 +90,8 @@ self.addEventListener("activate", (event) => {
     }
 
     await self.clients.claim();
+    // A worker wake is a chance to notice a replaced subscription.
+    await checkPushSubscription("worker-wake");
   })());
 });
 
@@ -126,11 +135,23 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  event.waitUntil(showPendingPushNotification(event));
+  event.waitUntil((async () => {
+    await showPendingPushNotification(event);
+    // Devices that still receive some pushes report a replacement here.
+    await checkPushSubscription("push");
+  })());
 });
 
 self.addEventListener("pushsubscriptionchange", (event) => {
   event.waitUntil(handlePushSubscriptionChange(event));
+});
+
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag !== SUBSCRIPTION_CHECK_SYNC_TAG) return;
+  event.waitUntil((async () => {
+    await reportWorkerStage("periodic-sync-fired");
+    await checkPushSubscription("periodic-sync");
+  })());
 });
 
 self.addEventListener("message", (event) => {
@@ -423,6 +444,7 @@ function normalizePayloadNotification(body) {
     expiresAt: typeof body.expiresAt === "string" ? body.expiresAt : "",
     deliveryId: typeof body.deliveryId === "string" ? body.deliveryId : "",
     receiptToken: typeof body.receiptToken === "string" ? body.receiptToken : "",
+    catchUp: body.catchUp === true,
   };
 }
 
@@ -434,12 +456,15 @@ function shouldSkipExpiredNotification(notification) {
 
 async function showPushNotification(notification) {
   const notificationState = notificationStateFor(notification);
+  // A catch-up alert the tray already holds (shown before the old endpoint
+  // died, report lost) is refreshed in place instead of alerting again.
+  const alreadyShown = notification.catchUp === true && await trayHasTag(notification.tag);
   const options = {
     body: notification.body,
     tag: notification.tag,
     icon: NOTIFICATION_ICON_URL,
     badge: NOTIFICATION_BADGE_URL,
-    renotify: true,
+    renotify: !alreadyShown,
     requireInteraction: true,
     silent: false,
     data: {
@@ -458,6 +483,16 @@ async function showPushNotification(notification) {
   }
 
   await self.registration.showNotification(notification.title, options);
+}
+
+async function trayHasTag(tag) {
+  try {
+    if (typeof self.registration.getNotifications !== "function") return false;
+    const shown = await self.registration.getNotifications({ tag });
+    return shown.some((notification) => notification.tag === tag);
+  } catch {
+    return false;
+  }
 }
 
 async function showTrackedPushNotification(notification) {
@@ -594,37 +629,122 @@ async function showExpiredPushNotificationFallback(notification) {
   ]);
 }
 
+// Each stage is reported, so a production record shows whether Chrome fires
+// the event and where the repair fails.
 async function handlePushSubscriptionChange(event) {
+  const oldEndpoint = event.oldSubscription?.endpoint || "";
+  await reportWorkerStage("subscription-change-fired", oldEndpoint ? "old subscription present" : "no old subscription", oldEndpoint);
   try {
-    if (event.oldSubscription?.endpoint) {
-      await disableChangedPushSubscription(event.oldSubscription.endpoint);
+    const subscription = event.newSubscription || await self.registration.pushManager.getSubscription();
+    const outcome = subscription
+      ? await saveCheckedSubscription(subscription, null, oldEndpoint)
+      : await restoreDroppedSubscription(oldEndpoint);
+    if (outcome.saved) {
+      await reportWorkerStage("subscription-change-saved", outcome.reason, outcome.endpoint);
+    } else {
+      await reportWorkerStage("subscription-change-failed", outcome.detail, outcome.endpoint || oldEndpoint);
     }
+  } catch (error) {
+    await reportWorkerStage("subscription-change-failed", clientEventErrorMessage(error), oldEndpoint);
+  }
+}
 
-    let subscription = event.newSubscription || await self.registration.pushManager.getSubscription();
-    if (!subscription) {
-      const config = await fetchPushConfigForSubscriptionRepair();
-      if (!config?.webPushAvailable || typeof config.vapidPublicKey !== "string" || config.vapidPublicKey.length === 0) {
-        return;
-      }
-      subscription = await self.registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: base64UrlToUint8Array(config.vapidPublicKey),
-      });
+// The background subscription check (worker wake, push received, periodic
+// sync): save only when the browser's endpoint differs from the one this
+// device last saved, or restore one the browser dropped.
+async function checkPushSubscription(trigger) {
+  const check = self.LineWatchPushSubscriptionCheck;
+  if (isDev || !check || !self.registration?.pushManager) return;
+  try {
+    const saved = await check.readSavedSubscriptionState();
+    const subscription = await self.registration.pushManager.getSubscription();
+    const currentEndpointHash = subscription ? await check.endpointHash(subscription.endpoint) : null;
+    const action = check.subscriptionCheckAction({
+      hasSubscription: Boolean(subscription),
+      savedEndpointHash: saved?.endpointHash,
+      currentEndpointHash,
+    });
+    if (action === "none") return;
+    const outcome = action === "save"
+      ? await saveCheckedSubscription(subscription, saved, "")
+      : await restoreDroppedSubscription("");
+    if (outcome.saved) {
+      await reportWorkerStage(action === "save" ? "check-replaced" : "check-restored", `${trigger}: ${outcome.reason}`, outcome.endpoint);
+    } else if (outcome.detail !== "not-restorable") {
+      await reportWorkerStage("check-failed", `${trigger}: ${outcome.detail}`, outcome.endpoint);
     }
+  } catch (error) {
+    await reportWorkerStage("check-failed", `${trigger}: ${clientEventErrorMessage(error)}`);
+  }
+}
 
-    const saveResult = await saveChangedPushSubscription(subscription, "subscription-change");
-    if (saveResult === "rejected") {
-      await subscription.unsubscribe();
-      const replacementConfig = await fetchPushConfigForSubscriptionRepair();
-      if (!replacementConfig?.webPushAvailable || !replacementConfig.vapidPublicKey) return;
-      subscription = await self.registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: base64UrlToUint8Array(replacementConfig.vapidPublicKey),
-      });
-      await saveChangedPushSubscription(subscription, "invalid-endpoint-replacement");
+async function restoreDroppedSubscription(oldEndpoint) {
+  const check = self.LineWatchPushSubscriptionCheck;
+  const saved = check ? await check.readSavedSubscriptionState() : null;
+  // Restore only what this device had saved, and only with permission.
+  if (!saved?.endpointHash || (self.Notification && self.Notification.permission !== "granted")) {
+    return { saved: false, detail: "not-restorable" };
+  }
+  const config = await fetchPushConfigForSubscriptionRepair();
+  if (!config?.webPushAvailable || typeof config.vapidPublicKey !== "string" || config.vapidPublicKey.length === 0) {
+    return { saved: false, detail: "push config unavailable" };
+  }
+  const subscription = await self.registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: base64UrlToUint8Array(config.vapidPublicKey),
+  });
+  return saveCheckedSubscription(subscription, saved, oldEndpoint, true);
+}
+
+async function saveCheckedSubscription(subscription, savedState, oldEndpoint, subscribedAnew = false) {
+  const check = self.LineWatchPushSubscriptionCheck;
+  const saved = savedState || (check ? await check.readSavedSubscriptionState() : null);
+  const currentHash = check ? await check.endpointHash(subscription.endpoint) : "";
+  const previousEndpointHash = saved?.endpointHash && saved.endpointHash !== currentHash
+    ? saved.endpointHash
+    : (oldEndpoint && check ? await check.endpointHash(oldEndpoint) : undefined);
+  const reason = check
+    ? check.registrationReasonFor({ savedEndpointHash: previousEndpointHash, currentEndpointHash: currentHash, subscribedAnew })
+    : "endpoint-replaced";
+  let result = await saveChangedPushSubscription(subscription, reason, previousEndpointHash, saved?.displayMode);
+  let savedSubscription = subscription;
+  if (result.status === "rejected") {
+    await subscription.unsubscribe();
+    const config = await fetchPushConfigForSubscriptionRepair();
+    if (!config?.webPushAvailable || !config.vapidPublicKey) {
+      return { saved: false, detail: "rejected; push config unavailable", endpoint: subscription.endpoint };
     }
+    savedSubscription = await self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: base64UrlToUint8Array(config.vapidPublicKey),
+    });
+    result = await saveChangedPushSubscription(savedSubscription, "invalid-endpoint-replacement", currentHash, saved?.displayMode);
+  }
+  if (result.status !== "saved") {
+    return { saved: false, detail: result.detail, endpoint: savedSubscription.endpoint };
+  }
+  if (check) {
+    await check.writeSavedSubscriptionState({
+      endpointHash: await check.endpointHash(savedSubscription.endpoint),
+      savedAt: new Date().toISOString(),
+    });
+  }
+  return { saved: true, reason, endpoint: savedSubscription.endpoint };
+}
+
+async function reportWorkerStage(stage, message, endpoint) {
+  try {
+    const body = { stage };
+    if (typeof message === "string" && message.trim().length > 0) body.message = message.trim().slice(0, 255);
+    if (typeof endpoint === "string" && endpoint.length > 0) body.endpoint = endpoint;
+    await fetch("/api/account/push/subscription/worker-stage", {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
   } catch {
-    // Browsers fire pushsubscriptionchange inconsistently. App-open subscription refresh remains the fallback.
+    // Stage reports are diagnostics; they never block the repair itself.
   }
 }
 
@@ -641,38 +761,32 @@ async function fetchPushConfigForSubscriptionRepair() {
   return await response.json();
 }
 
-async function saveChangedPushSubscription(subscription, reason) {
-  if (!subscription?.endpoint) return "failed";
+async function saveChangedPushSubscription(subscription, reason, previousEndpointHash, displayMode) {
+  if (!subscription?.endpoint) return { status: "failed", detail: "no endpoint" };
   const installationId = await getOrCreatePushInstallationId();
+  const check = self.LineWatchPushSubscriptionCheck;
+  const body = {
+    endpoint: subscription.endpoint,
+    keys: pushSubscriptionKeys(subscription),
+    userAgent: serviceWorkerUserAgent(),
+    reason: typeof reason === "string" && reason.length > 0 ? reason : "endpoint-replaced",
+    installationId,
+  };
+  if (previousEndpointHash) body.previousEndpointHash = previousEndpointHash;
+  const browserMajorVersion = check?.browserMajorVersion(serviceWorkerUserAgent(), self.navigator?.userAgentData);
+  if (browserMajorVersion) body.browserMajorVersion = browserMajorVersion;
+  if (displayMode === "standalone" || displayMode === "browser") body.displayMode = displayMode;
   const response = await fetch("/api/account/push/subscription", {
     method: "PUT",
     credentials: "include",
     headers: {
       "content-type": "application/json",
     },
-    body: JSON.stringify({
-      endpoint: subscription.endpoint,
-      keys: pushSubscriptionKeys(subscription),
-      userAgent: serviceWorkerUserAgent(),
-      reason: typeof reason === "string" && reason.length > 0 ? reason : "service-worker-refresh",
-      installationId,
-    }),
+    body: JSON.stringify(body),
   });
-  if (!response.ok) return "failed";
-  const body = await response.json();
-  return body?.enabled === false ? "rejected" : "saved";
-}
-
-async function disableChangedPushSubscription(endpoint) {
-  if (typeof endpoint !== "string" || endpoint.length === 0) return;
-  await fetch("/api/account/push/subscription/disable", {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ endpoint, reason: "subscription-change" }),
-  });
+  if (!response.ok) return { status: "failed", detail: `save failed with ${response.status}` };
+  const result = await response.json();
+  return result?.enabled === false ? { status: "rejected", detail: "endpoint rejected" } : { status: "saved" };
 }
 
 function pushSubscriptionKeys(subscription) {

@@ -15,7 +15,8 @@ public record WebPushPayload(
     String expiresAt,
     String deliveryId,
     String receiptToken,
-    long ttlSeconds
+    long ttlSeconds,
+    boolean catchUp
 ) {
     private static final long DEFAULT_ACTIVE_TTL_SECONDS = 10 * 60;
     private static final long DEFAULT_CLEARED_TTL_SECONDS = 24 * 60 * 60;
@@ -28,7 +29,7 @@ public record WebPushPayload(
         String state,
         String timestamp
     ) {
-        this(title, body, url, tag, state, timestamp, null, timestamp, null, null, null, defaultTtlSeconds(state));
+        this(title, body, url, tag, state, timestamp, null, timestamp, null, null, null, defaultTtlSeconds(state), false);
     }
 
     public WebPushPayload(
@@ -41,7 +42,7 @@ public record WebPushPayload(
         String deliveryId,
         String receiptToken
     ) {
-        this(title, body, url, tag, state, timestamp, null, timestamp, null, deliveryId, receiptToken, defaultTtlSeconds(state));
+        this(title, body, url, tag, state, timestamp, null, timestamp, null, deliveryId, receiptToken, defaultTtlSeconds(state), false);
     }
 
     public static WebPushPayload fromEvent(PushNotificationEventEntity event) {
@@ -57,7 +58,8 @@ public record WebPushPayload(
             null,
             null,
             null,
-            defaultTtlSeconds(event.getNotificationState())
+            defaultTtlSeconds(event.getNotificationState()),
+            false
         );
     }
 
@@ -88,7 +90,8 @@ public record WebPushPayload(
             safeSentAt == null ? null : safeSentAt.plus(displayTtl).toString(),
             deliveryId,
             receiptTokenService.tokenFor(deliveryId, subscription, event),
-            transportTtl.toSeconds()
+            transportTtl.toSeconds(),
+            false
         );
     }
 
@@ -99,6 +102,12 @@ public record WebPushPayload(
         PushReceiptTokenService receiptTokenService
     ) {
         return fromDelivery(event, deliveryId, subscription, receiptTokenService, event.getCreatedAt(), null);
+    }
+
+    /** Marks a catch-up delivery: the worker replaces a tray entry with the same tag without alerting again. */
+    public WebPushPayload asCatchUp() {
+        return new WebPushPayload(title, body, url, tag, state, timestamp, sourceEventAt, sentAt, expiresAt,
+            deliveryId, receiptToken, ttlSeconds, true);
     }
 
     public String toJson() {
@@ -114,6 +123,7 @@ public record WebPushPayload(
             + ",\"expiresAt\":" + jsonString(expiresAt)
             + ",\"deliveryId\":" + jsonString(deliveryId)
             + ",\"receiptToken\":" + jsonString(receiptToken)
+            + (catchUp ? ",\"catchUp\":true" : "")
             + "}";
     }
 

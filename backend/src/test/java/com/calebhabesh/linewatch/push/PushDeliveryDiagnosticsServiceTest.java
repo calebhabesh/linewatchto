@@ -1,7 +1,6 @@
 package com.calebhabesh.linewatch.push;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -10,464 +9,206 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.calebhabesh.linewatch.account.AccountEntity;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.PageRequest;
 
+/** Plan 12: diagnostics shaped by installation, one plain outcome per alert per device. */
 class PushDeliveryDiagnosticsServiceTest {
+    private static final String ANDROID_INSTALLATION = "ce9b4149-0000-4000-8000-000000000001";
+    private static final String IPHONE_INSTALLATION = "a1b2c3d4-0000-4000-8000-000000000002";
+    private static final String ANDROID_UA = "Mozilla/5.0 (Linux; Android 10; K) Chrome/156.0.0.0 Mobile Safari/537.36";
+    private static final String IPHONE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) Version/18.6 Mobile/15E148 Safari/604.1";
 
     private final PushNotificationDeliveryRepository deliveryRepository = mock(PushNotificationDeliveryRepository.class);
-    private final PushNotificationClientEventRepository clientEventRepository = mock(PushNotificationClientEventRepository.class);
+    private final PushNotificationEventRepository eventRepository = mock(PushNotificationEventRepository.class);
     private final PushSubscriptionRepository subscriptionRepository = mock(PushSubscriptionRepository.class);
-
-    private PushDeliveryDiagnosticsService service;
-
-    private final AccountEntity account1 = AccountEntity.create(
-        "user_1",
-        "rider1@example.com",
-        "Rider One",
-        "$2a$hash",
-        false,
-        Instant.parse("2026-06-05T14:00:00Z")
+    private final PushSubscriptionLifecycleEventRepository lifecycleRepository = mock(PushSubscriptionLifecycleEventRepository.class);
+    private final PushProperties properties = new PushProperties();
+    private final Clock clock = Clock.fixed(Instant.parse("2026-10-31T22:00:00Z"), ZoneOffset.UTC);
+    private final PushDeliveryDiagnosticsService service = new PushDeliveryDiagnosticsService(
+        deliveryRepository, eventRepository, subscriptionRepository, lifecycleRepository, properties, clock
+    );
+    private final AccountEntity account = AccountEntity.create(
+        "user_1", "rider@example.com", "Rider", "$2a$hash", false, Instant.parse("2026-06-01T00:00:00Z")
     );
 
-    private final AccountEntity account2 = AccountEntity.create(
-        "user_2",
-        "rider2@example.com",
-        "Rider Two",
-        "$2a$hash",
-        false,
-        Instant.parse("2026-06-05T14:00:00Z")
-    );
+    private final List<PushSubscriptionEntity> subscriptions = new ArrayList<>();
+    private final List<PushNotificationEventEntity> events = new ArrayList<>();
+    private final List<PushNotificationDeliveryEntity> deliveries = new ArrayList<>();
 
     @BeforeEach
     void setUp() {
-        service = new PushDeliveryDiagnosticsService(
-            deliveryRepository,
-            clientEventRepository,
-            subscriptionRepository
-        );
+        properties.setVapidPublicKey("BExampleVapidPublicKey");
+        when(subscriptionRepository.findByAccountIdOrderByUpdatedAtDesc("user_1")).thenReturn(subscriptions);
+        when(eventRepository.findByAccountIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(eq("user_1"), any(Instant.class)))
+            .thenReturn(events);
+        when(deliveryRepository.findDeliveriesForAccountSince(eq("user_1"), any(Instant.class))).thenReturn(deliveries);
+        when(lifecycleRepository.findByAccountIdOrderByOccurredAtDesc(eq("user_1"), any())).thenReturn(List.of());
     }
 
-    @Test
-    void constructorRequiresNonNullCollaborators() {
-        assertThatThrownBy(() -> new PushDeliveryDiagnosticsService(null, clientEventRepository, subscriptionRepository))
-            .isInstanceOf(NullPointerException.class)
-            .hasMessageContaining("deliveryRepository");
-
-        assertThatThrownBy(() -> new PushDeliveryDiagnosticsService(deliveryRepository, null, subscriptionRepository))
-            .isInstanceOf(NullPointerException.class)
-            .hasMessageContaining("clientEventRepository");
-
-        assertThatThrownBy(() -> new PushDeliveryDiagnosticsService(deliveryRepository, clientEventRepository, null))
-            .isInstanceOf(NullPointerException.class)
-            .hasMessageContaining("subscriptionRepository");
-    }
-
-    @Test
-    void forAccountReturnsEmptyWhenDeliveriesEmpty() {
-        when(deliveryRepository.findRecentDeliveriesForAccount("user_1", PageRequest.of(0, 50)))
-            .thenReturn(List.of());
-
-        PushResponses.PushDeliveryDiagnosticsResponse response = service.forAccount("user_1");
-
-        assertThat(response.deliveries()).isEmpty();
-        assertThat(response.notifications()).isEmpty();
-        verify(clientEventRepository, never()).findByDeliveryIds(any());
-        verify(subscriptionRepository, never()).findByAccountIdOrderByUpdatedAtDesc(any());
-    }
-
-    @Test
-    void forAccountReturnsEmptyForNullOrBlankAccountId() {
-        assertThat(service.forAccount((String) null).deliveries()).isEmpty();
-        assertThat(service.forAccount("   ").deliveries()).isEmpty();
-        assertThat(service.forAccount((AccountEntity) null).deliveries()).isEmpty();
-
-        verify(deliveryRepository, never()).findRecentDeliveriesForAccount(any(), any());
-    }
-
-    @Test
-    void forAccountEnforcesMaxFiftyDeliveriesCap() {
-        when(deliveryRepository.findRecentDeliveriesForAccount(eq("user_1"), any(PageRequest.class)))
-            .thenReturn(List.of());
-
-        service.forAccount("user_1");
-
-        verify(deliveryRepository).findRecentDeliveriesForAccount("user_1", PageRequest.of(0, 50));
-    }
-
-    @Test
-    void forAccountCannotReadRecordsFromDifferentAccount() {
-        // Setup records for user_1
-        PushNotificationEventEntity event = PushNotificationEventEntity.create(
-            "push_event_1",
-            candidate("line-1", "1", "delay", "on-change", "St Andrew", Instant.parse("2026-06-05T14:50:00Z")),
-            Instant.parse("2026-06-05T15:00:00Z")
-        );
-        PushSubscriptionEntity sub1 = PushSubscriptionEntity.create(
-            "sub_user_1",
-            account1,
-            "https://fcm.googleapis.com/fcm/send/user1",
-            PushNotificationService.hashEndpoint("https://fcm.googleapis.com/fcm/send/user1"),
-            "p256dh",
-            "auth",
-            "Pixel",
-            Instant.parse("2026-06-05T14:45:00Z")
-        );
-        PushNotificationDeliveryEntity delivery1 = PushNotificationDeliveryEntity.create(
-            "delivery_1",
-            event,
-            sub1,
-            PushDeliveryResult.accepted(202),
-            Instant.parse("2026-06-05T15:00:05Z")
-        );
-
-        when(deliveryRepository.findRecentDeliveriesForAccount("user_1", PageRequest.of(0, 50)))
-            .thenReturn(List.of(delivery1));
-        when(deliveryRepository.findRecentDeliveriesForAccount("user_2", PageRequest.of(0, 50)))
-            .thenReturn(List.of());
-
-        // Account 2 queries diagnostics
-        PushResponses.PushDeliveryDiagnosticsResponse response2 = service.forAccount("user_2");
-        assertThat(response2.deliveries()).isEmpty();
-        assertThat(response2.notifications()).isEmpty();
-
-        // Account 1 queries diagnostics
-        when(clientEventRepository.findByDeliveryIds(List.of("delivery_1"))).thenReturn(List.of());
-        when(subscriptionRepository.findByAccountIdOrderByUpdatedAtDesc("user_1")).thenReturn(List.of(sub1));
-
-        PushResponses.PushDeliveryDiagnosticsResponse response1 = service.forAccount(account1);
-        assertThat(response1.deliveries()).hasSize(1);
-        assertThat(response1.deliveries().getFirst().id()).isEqualTo("delivery_1");
-        assertThat(response1.notifications().getFirst().recipients().getFirst().subscriptionId()).isEqualTo("sub_user_1");
-
-        // Verify account isolation at repository boundary
-        verify(deliveryRepository).findRecentDeliveriesForAccount("user_2", PageRequest.of(0, 50));
-        verify(deliveryRepository).findRecentDeliveriesForAccount("user_1", PageRequest.of(0, 50));
-        verify(subscriptionRepository, never()).findByAccountIdOrderByUpdatedAtDesc("user_2");
-    }
-
-    @Test
-    void forAccountReturnsRecentPerDeviceDeliveryTimeline() {
-        String endpoint = "https://fcm.googleapis.com/fcm/send/android";
-        String endpointHash = PushNotificationService.hashEndpoint(endpoint);
-        PushNotificationEventEntity event = PushNotificationEventEntity.create(
-            "push_event_1",
-            candidate("line-2", "2", "suspension", "on-change", "Victoria Park to Kennedy", Instant.parse("2026-06-05T14:50:00Z")),
-            Instant.parse("2026-06-05T15:00:00Z")
-        );
+    private PushSubscriptionEntity endpoint(String id, String installationId, String userAgent, String enabledAt) {
+        String url = "https://fcm.googleapis.com/fcm/send/" + id;
         PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
-            "push_subscription_android",
-            account1,
-            endpoint,
-            endpointHash,
-            "p256dh-key",
-            "auth-secret",
-            "Chrome Android Pixel 6a",
-            Instant.parse("2026-06-05T14:45:00Z")
+            id, account, url, PushNotificationService.hashEndpoint(url), "p256dh", "auth", userAgent,
+            installationId, "refreshed", Instant.parse(enabledAt)
         );
-        PushNotificationDeliveryEntity delivery = PushNotificationDeliveryEntity.create(
-            "push_delivery_1",
-            event,
-            subscription,
-            PushDeliveryResult.accepted(202),
-            Instant.parse("2026-06-05T15:00:05Z")
-        );
-        PushNotificationClientEventEntity received = PushNotificationClientEventEntity.create(
-            "push_client_event_1",
-            account1.getId(),
-            subscription,
-            delivery,
-            endpointHash,
-            "line-current|line-2|suspension|ttc-route-70610",
-            "ACTIVE",
-            "push_received",
-            null,
-            Instant.parse("2026-06-05T15:00:07Z"),
-            Instant.parse("2026-06-05T15:00:08Z")
-        );
-        PushNotificationClientEventEntity displayed = PushNotificationClientEventEntity.create(
-            "push_client_event_2",
-            account1.getId(),
-            subscription,
-            delivery,
-            endpointHash,
-            "line-current|line-2|suspension|ttc-route-70610",
-            "ACTIVE",
-            "displayed_acknowledged",
-            null,
-            Instant.parse("2026-06-05T15:00:09Z"),
-            Instant.parse("2026-06-05T15:00:10Z")
-        );
-
-        when(deliveryRepository.findRecentDeliveriesForAccount("user_1", PageRequest.of(0, 50)))
-            .thenReturn(List.of(delivery));
-        when(clientEventRepository.findByDeliveryIds(List.of("push_delivery_1")))
-            .thenReturn(List.of(displayed, received)); // passed unordered to test sorting
-        when(subscriptionRepository.findByAccountIdOrderByUpdatedAtDesc("user_1"))
-            .thenReturn(List.of(subscription));
-
-        PushResponses.PushDeliveryDiagnosticsResponse response = service.forAccount("user_1");
-
-        assertThat(response.deliveries()).hasSize(1);
-        PushResponses.PushDeliveryDiagnosticResponse diagnostic = response.deliveries().getFirst();
-        assertThat(diagnostic.id()).isEqualTo("push_delivery_1");
-        assertThat(diagnostic.deviceLabel()).isEqualTo("Android Chrome");
-        assertThat(diagnostic.endpointHashPrefix()).isEqualTo(endpointHash.substring(0, 12));
-        assertThat(diagnostic.tag()).isEqualTo("line-current|line-2|suspension|ttc-route-70610|active");
-        assertThat(diagnostic.deliveryStatus()).isEqualTo("accepted");
-        assertThat(diagnostic.httpStatus()).isEqualTo(202);
-        assertThat(diagnostic.displayedAt()).isNull();
-        assertThat(diagnostic.attemptCount()).isEqualTo(1);
-        assertThat(diagnostic.clientEvents())
-            .extracting(PushResponses.PushClientEventResponse::stage)
-            .containsExactly("push_received", "displayed_acknowledged");
+        subscriptions.add(subscription);
+        return subscription;
     }
 
-    @Test
-    void forAccountReturnsGroupedNotificationAttempts() {
-        String androidEndpoint = "https://fcm.googleapis.com/fcm/send/android";
-        String androidEndpointHash = PushNotificationService.hashEndpoint(androidEndpoint);
-        String iosEndpoint = "https://webpush.push.apple.com/ios";
-        String iosEndpointHash = PushNotificationService.hashEndpoint(iosEndpoint);
-        PushNotificationEventEntity event = PushNotificationEventEntity.create(
-            "push_event_1",
-            candidate("line-2", "2", "suspension", "on-change", "Victoria Park to Kennedy", Instant.parse("2026-06-05T14:50:00Z")),
-            Instant.parse("2026-06-05T15:00:00Z")
-        );
-        PushSubscriptionEntity androidSubscription = PushSubscriptionEntity.create(
-            "push_subscription_android",
-            account1,
-            androidEndpoint,
-            androidEndpointHash,
-            "p256dh-key",
-            "auth-secret",
-            "Chrome Android Pixel 6a",
-            Instant.parse("2026-06-05T14:45:00Z")
-        );
-        PushSubscriptionEntity iosSubscription = PushSubscriptionEntity.create(
-            "push_subscription_ios",
-            account1,
-            iosEndpoint,
-            iosEndpointHash,
-            "p256dh-key",
-            "auth-secret",
-            "Mobile Safari iPhone",
-            Instant.parse("2026-06-05T14:45:00Z")
-        );
-        PushNotificationDeliveryEntity androidDelivery = PushNotificationDeliveryEntity.create(
-            "push_delivery_android",
-            event,
-            androidSubscription,
-            PushDeliveryResult.accepted(202),
-            Instant.parse("2026-06-05T15:00:05Z")
-        );
-        PushNotificationDeliveryEntity iosDelivery = PushNotificationDeliveryEntity.create(
-            "push_delivery_ios",
-            event,
-            iosSubscription,
-            PushDeliveryResult.accepted(201),
-            Instant.parse("2026-06-05T15:00:06Z")
-        );
-
-        when(deliveryRepository.findRecentDeliveriesForAccount("user_1", PageRequest.of(0, 50)))
-            .thenReturn(List.of(iosDelivery, androidDelivery));
-        when(clientEventRepository.findByDeliveryIds(List.of("push_delivery_ios", "push_delivery_android")))
-            .thenReturn(List.of());
-        when(subscriptionRepository.findByAccountIdOrderByUpdatedAtDesc("user_1"))
-            .thenReturn(List.of(androidSubscription, iosSubscription));
-
-        PushResponses.PushDeliveryDiagnosticsResponse response = service.forAccount("user_1");
-
-        assertThat(response.deliveries()).hasSize(2);
-        assertThat(response.notifications()).hasSize(1);
-        PushResponses.PushNotificationDiagnosticGroupResponse notification = response.notifications().getFirst();
-        assertThat(notification.id()).isEqualTo("push_event_1");
-        assertThat(notification.notificationKey()).isEqualTo("line-current|line-2|suspension|ttc-route-70610");
-        assertThat(notification.sourceIncidentKey()).isEqualTo("line-current|line-2|ttc-route-70610");
-        assertThat(notification.attempts())
-            .extracting(PushResponses.PushDeliveryDiagnosticResponse::deviceLabel)
-            .containsExactly("iOS Safari", "Android Chrome");
-        assertThat(notification.attempts())
-            .extracting(PushResponses.PushDeliveryDiagnosticResponse::endpointHashPrefix)
-            .containsExactly(iosEndpointHash.substring(0, 12), androidEndpointHash.substring(0, 12));
-    }
-
-    @Test
-    void forAccountIncludesRecipientsThatWereNotAttempted() {
-        String iosEndpoint = "https://webpush.push.apple.com/ios";
-        String iosEndpointHash = PushNotificationService.hashEndpoint(iosEndpoint);
-        String androidEndpoint = "https://fcm.googleapis.com/fcm/send/android";
-        String androidEndpointHash = PushNotificationService.hashEndpoint(androidEndpoint);
-        PushNotificationEventEntity event = PushNotificationEventEntity.create(
-            "push_event_1",
-            candidate("line-1", "1", "delay", "on-change", "St Andrew station", Instant.parse("2026-06-05T14:50:00Z")),
-            Instant.parse("2026-06-05T15:00:00Z")
-        );
-        PushSubscriptionEntity iosSubscription = PushSubscriptionEntity.create(
-            "push_subscription_ios",
-            account1,
-            iosEndpoint,
-            iosEndpointHash,
-            "p256dh-key",
-            "auth-secret",
-            "Mobile Safari iPhone",
-            Instant.parse("2026-06-05T14:00:00Z")
-        );
-        PushSubscriptionEntity androidSubscription = PushSubscriptionEntity.create(
-            "push_subscription_android",
-            account1,
-            androidEndpoint,
-            androidEndpointHash,
-            "p256dh-key",
-            "auth-secret",
-            "Chrome Android Pixel 6a",
-            Instant.parse("2026-06-05T20:30:00Z")
-        );
-        PushNotificationDeliveryEntity iosDelivery = PushNotificationDeliveryEntity.create(
-            "push_delivery_ios",
-            event,
-            iosSubscription,
-            PushDeliveryResult.accepted(201),
-            Instant.parse("2026-06-05T15:00:05Z")
-        );
-
-        when(deliveryRepository.findRecentDeliveriesForAccount("user_1", PageRequest.of(0, 50)))
-            .thenReturn(List.of(iosDelivery));
-        when(clientEventRepository.findByDeliveryIds(List.of("push_delivery_ios")))
-            .thenReturn(List.of());
-        when(subscriptionRepository.findByAccountIdOrderByUpdatedAtDesc("user_1"))
-            .thenReturn(List.of(androidSubscription, iosSubscription));
-
-        PushResponses.PushDeliveryDiagnosticsResponse response = service.forAccount("user_1");
-
-        PushResponses.PushNotificationDiagnosticGroupResponse notification = response.notifications().getFirst();
-        assertThat(notification.recipients())
-            .extracting(PushResponses.PushRecipientDiagnosticResponse::deviceLabel)
-            .containsExactly("Android Chrome", "iOS Safari");
-        PushResponses.PushRecipientDiagnosticResponse androidRecipient = notification.recipients().getFirst();
-        assertThat(androidRecipient.status()).isEqualTo("not-attempted");
-        assertThat(androidRecipient.reasonCode()).isEqualTo("subscription-registered-after-event");
-        assertThat(androidRecipient.reason()).isEqualTo("Device was enabled after this notification became eligible.");
-        assertThat(androidRecipient.delivery()).isNull();
-        PushResponses.PushRecipientDiagnosticResponse iosRecipient = notification.recipients().get(1);
-        assertThat(iosRecipient.status()).isEqualTo("attempted");
-        assertThat(iosRecipient.delivery().id()).isEqualTo("push_delivery_ios");
-    }
-
-    @Test
-    void forAccountIdentifiesDisabledSubscriptionsAndReasonCodes() {
-        String endpoint = "https://fcm.googleapis.com/fcm/send/disabled-device";
-        String endpointHash = PushNotificationService.hashEndpoint(endpoint);
-        PushNotificationEventEntity event = PushNotificationEventEntity.create(
-            "push_event_1",
-            candidate("line-1", "1", "delay", "on-change", "St Andrew station", Instant.parse("2026-06-05T15:00:00Z")),
-            Instant.parse("2026-06-05T15:00:00Z")
-        );
-        PushSubscriptionEntity activeSub = PushSubscriptionEntity.create(
-            "sub_active", account1, "https://fcm.googleapis.com/fcm/send/active", "active-hash", "p256", "auth", "Android", Instant.parse("2026-06-05T14:00:00Z")
-        );
-        PushSubscriptionEntity disabledBeforeSub = PushSubscriptionEntity.create(
-            "sub_disabled_before", account1, endpoint, endpointHash, "p256", "auth", "Android", Instant.parse("2026-06-05T12:00:00Z")
-        );
-        disabledBeforeSub.disable(Instant.parse("2026-06-05T14:30:00Z"), "user-disabled");
-
-        PushSubscriptionEntity disabledAfterSub = PushSubscriptionEntity.create(
-            "sub_disabled_after", account1, "https://fcm.googleapis.com/fcm/send/other", "other-hash", "p256", "auth", "iOS", Instant.parse("2026-06-05T12:00:00Z")
-        );
-        disabledAfterSub.disable(Instant.parse("2026-06-05T16:00:00Z"), "user-disabled");
-
-        PushNotificationDeliveryEntity delivery = PushNotificationDeliveryEntity.create(
-            "delivery_active", event, activeSub, PushDeliveryResult.accepted(202), Instant.parse("2026-06-05T15:00:05Z")
-        );
-
-        when(deliveryRepository.findRecentDeliveriesForAccount("user_1", PageRequest.of(0, 50)))
-            .thenReturn(List.of(delivery));
-        when(clientEventRepository.findByDeliveryIds(List.of("delivery_active"))).thenReturn(List.of());
-        when(subscriptionRepository.findByAccountIdOrderByUpdatedAtDesc("user_1"))
-            .thenReturn(List.of(activeSub, disabledBeforeSub, disabledAfterSub));
-
-        PushResponses.PushDeliveryDiagnosticsResponse response = service.forAccount("user_1");
-
-        PushResponses.PushNotificationDiagnosticGroupResponse group = response.notifications().getFirst();
-        List<PushResponses.PushRecipientDiagnosticResponse> recipients = group.recipients();
-        assertThat(recipients).hasSize(3);
-
-        PushResponses.PushRecipientDiagnosticResponse beforeRecipient = recipients.stream()
-            .filter(r -> r.subscriptionId().equals("sub_disabled_before"))
-            .findFirst()
-            .orElseThrow();
-        assertThat(beforeRecipient.status()).isEqualTo("not-attempted");
-        assertThat(beforeRecipient.reasonCode()).isEqualTo("subscription-disabled-before-event");
-
-        PushResponses.PushRecipientDiagnosticResponse afterRecipient = recipients.stream()
-            .filter(r -> r.subscriptionId().equals("sub_disabled_after"))
-            .findFirst()
-            .orElseThrow();
-        assertThat(afterRecipient.status()).isEqualTo("not-attempted");
-        assertThat(afterRecipient.reasonCode()).isEqualTo("subscription-disabled");
-    }
-
-    @Test
-    void toDiagnosticResponseFormatsEventAndDeliveryFields() {
-        PushNotificationEventEntity event = PushNotificationEventEntity.create(
-            "push_event_1",
-            candidate("line-4", "4", "delay", "on-change", "Bessarion", Instant.parse("2026-06-05T15:00:00Z")),
-            Instant.parse("2026-06-05T15:00:00Z")
-        );
-        PushSubscriptionEntity sub = PushSubscriptionEntity.create(
-            "sub_1", account1, "https://fcm.googleapis.com/fcm/send/test", "hash12345678901234", "p256", "auth", "Android Firefox", Instant.parse("2026-06-05T14:00:00Z")
-        );
-        PushNotificationDeliveryEntity delivery = PushNotificationDeliveryEntity.create(
-            "delivery_1", event, sub, PushDeliveryResult.accepted(202), Instant.parse("2026-06-05T15:00:05Z")
-        );
-
-        PushResponses.PushDeliveryDiagnosticResponse response = service.toDiagnosticResponse(delivery, List.of());
-
-        assertThat(response.id()).isEqualTo("delivery_1");
-        assertThat(response.lineId()).isEqualTo("line-4");
-        assertThat(response.lineNumber()).isEqualTo("4");
-        assertThat(response.deviceLabel()).isEqualTo("Android Firefox");
-        assertThat(response.endpointHashPrefix()).isEqualTo("hash12345678");
-        assertThat(response.deliveryStatus()).isEqualTo("accepted");
-        assertThat(response.httpStatus()).isEqualTo(202);
-        assertThat(response.clientEvents()).isEmpty();
-    }
-
-    private static PushNotificationCandidate candidate(
-        String lineId,
-        String lineNumber,
-        String impactKind,
-        String alertPhase,
-        String scope,
-        Instant sourceUpdatedAt
-    ) {
-        String key = "line-current|" + lineId + "|" + impactKind + "|ttc-route-70610";
+    private PushNotificationEventEntity event(String id, String createdAt) {
         FormattedPushNotification notification = new FormattedPushNotification(
-            "Line " + lineNumber + " alert",
-            "Alert description",
-            "Subject",
-            scope,
-            "Direction",
-            "TTC Line",
-            sourceUpdatedAt
+            "Line 1 Delay " + id, "Alert description", "Subject", "Finch to Union", "Direction", "TTC Line",
+            Instant.parse(createdAt)
         );
-        return new PushNotificationCandidate(
-            "user_1",
-            null,
-            null,
-            lineId,
-            lineNumber,
-            "line-current",
-            impactKind,
-            alertPhase,
-            "line-current|" + lineId + "|ttc-route-70610",
-            key,
-            "dedupe|" + lineId,
-            notification,
-            "/?panel=alerts"
+        PushNotificationCandidate candidate = new PushNotificationCandidate(
+            "user_1", null, null, "line-1", "1", "line-current", "delay", "on-change",
+            "line-current|line-1|" + id, "line-current|line-1|delay|" + id, "dedupe|" + id, notification, "/?panel=alerts"
         );
+        PushNotificationEventEntity event = PushNotificationEventEntity.create(id, candidate, Instant.parse(createdAt));
+        events.add(0, event);
+        return event;
+    }
+
+    private PushNotificationDeliveryEntity delivery(
+        PushNotificationEventEntity event,
+        PushSubscriptionEntity subscription,
+        PushDeliveryResult result,
+        String displayedAt
+    ) {
+        PushNotificationDeliveryEntity delivery = PushNotificationDeliveryEntity.create(
+            "delivery_" + event.getId() + "_" + subscription.getId(), event, subscription, result, event.getCreatedAt()
+        );
+        if (displayedAt != null) delivery.markDisplayed(Instant.parse(displayedAt));
+        deliveries.add(delivery);
+        return delivery;
+    }
+
+    private PushResponses.PushAlertOutcomeResponse outcome(PushResponses.PushDiagnosticsResponse response, String eventId, String deviceKey) {
+        return response.alerts().stream()
+            .filter(alert -> alert.id().equals(eventId))
+            .findFirst().orElseThrow()
+            .outcomes().stream()
+            .filter(candidate -> candidate.deviceKey().equals(deviceKey))
+            .findFirst().orElse(null);
+    }
+
+    @Test
+    void groupsRotatedEndpointsIntoOneDeviceAndExplainsEachAlert() {
+        PushSubscriptionEntity iphone = endpoint("iphone", IPHONE_INSTALLATION, IPHONE_UA, "2026-10-20T17:30:00Z");
+        PushSubscriptionEntity firstAndroid = endpoint("android-1", ANDROID_INSTALLATION, ANDROID_UA, "2026-10-29T10:00:00Z");
+        firstAndroid.disable(Instant.parse("2026-10-29T12:00:00Z"), "push-service-410");
+        PushSubscriptionEntity secondAndroid = endpoint("android-2", ANDROID_INSTALLATION, ANDROID_UA, "2026-10-31T18:49:00Z");
+        secondAndroid.continueInstallation(Instant.parse("2026-10-29T10:00:00Z"));
+
+        PushNotificationEventEntity shownBoth = event("shown", "2026-10-29T11:00:00Z");
+        delivery(shownBoth, iphone, PushDeliveryResult.accepted(201), "2026-10-29T11:00:05Z");
+        delivery(shownBoth, firstAndroid, PushDeliveryResult.accepted(201), "2026-10-29T11:00:09Z");
+
+        PushNotificationEventEntity acceptedNoReport = event("accepted", "2026-10-29T11:30:00Z");
+        delivery(acceptedNoReport, iphone, PushDeliveryResult.accepted(201), "2026-10-29T11:30:05Z");
+        delivery(acceptedNoReport, firstAndroid, PushDeliveryResult.accepted(201), null);
+
+        PushNotificationEventEntity gone = event("gone", "2026-10-29T12:00:00Z");
+        delivery(gone, iphone, PushDeliveryResult.accepted(201), "2026-10-29T12:00:05Z");
+        delivery(gone, firstAndroid, PushDeliveryResult.gone(410), null);
+
+        PushNotificationEventEntity whileUnreachable = event("gap", "2026-10-30T09:00:00Z");
+        delivery(whileUnreachable, iphone, PushDeliveryResult.accepted(201), "2026-10-30T09:00:05Z");
+
+        PushNotificationEventEntity caughtUp = event("caught-up", "2026-10-31T18:00:00Z");
+        delivery(caughtUp, iphone, PushDeliveryResult.accepted(201), "2026-10-31T18:00:05Z");
+        PushNotificationDeliveryEntity catchUp = PushNotificationDeliveryEntity.catchUp(
+            "delivery_catch_up", caughtUp, secondAndroid, PushDeliveryResult.accepted(201), Instant.parse("2026-10-31T18:50:00Z")
+        );
+        catchUp.markDisplayed(Instant.parse("2026-10-31T18:50:04Z"));
+        deliveries.add(catchUp);
+
+        PushResponses.PushDiagnosticsResponse response = service.forAccount("user_1");
+
+        assertThat(response.devices()).hasSize(2);
+        String androidKey = "installation-ce9b4149";
+        String iphoneKey = "installation-a1b2c3d4";
+        PushResponses.PushDeviceDiagnosticResponse android = response.devices().stream()
+            .filter(device -> device.key().equals(androidKey)).findFirst().orElseThrow();
+        assertThat(android.label()).isEqualTo("Android Chrome");
+        assertThat(android.status()).isEqualTo("reachable");
+        assertThat(android.currentSubscriptionId()).isEqualTo("android-2");
+        assertThat(android.endpointCount()).isEqualTo(2);
+        assertThat(android.replacements()).isEqualTo(1);
+        assertThat(android.shown()).isEqualTo(2);
+        assertThat(android.sentWhileReachable()).isEqualTo(3);
+        assertThat(android.missedWhileUnreachable()).isEqualTo(2);
+        assertThat(android.lastShownTitle()).isEqualTo("Line 1 Delay caught-up");
+
+        assertThat(outcome(response, "shown", androidKey).outcome()).isEqualTo("shown");
+        assertThat(outcome(response, "accepted", androidKey).outcome()).isEqualTo("sent");
+        assertThat(outcome(response, "gone", androidKey).outcome()).isEqualTo("missed");
+        assertThat(outcome(response, "gap", androidKey).outcome()).isEqualTo("missed");
+        assertThat(outcome(response, "gap", androidKey).reason()).isNull();
+        PushResponses.PushAlertOutcomeResponse caught = outcome(response, "caught-up", androidKey);
+        assertThat(caught.outcome()).isEqualTo("shown");
+        assertThat(caught.catchUp()).isTrue();
+        assertThat(caught.technical()).contains("catch-up");
+        assertThat(outcome(response, "gap", iphoneKey).outcome()).isEqualTo("shown");
+
+        // Hash prefixes only: no raw endpoint anywhere in the response.
+        assertThat(response.toString()).doesNotContain("fcm.googleapis.com");
+        assertThat(response.technical().vapidKeyFingerprint()).hasSize(12);
+    }
+
+    @Test
+    void reportsUnreachableAndOffDevicesInPlainOutcomes() {
+        PushSubscriptionEntity android = endpoint("android", ANDROID_INSTALLATION, ANDROID_UA, "2026-10-28T10:00:00Z");
+        android.disable(Instant.parse("2026-10-29T06:05:00Z"), "push-service-410");
+        PushSubscriptionEntity iphone = endpoint("iphone", IPHONE_INSTALLATION, IPHONE_UA, "2026-10-28T10:00:00Z");
+        iphone.disable(Instant.parse("2026-10-29T06:00:00Z"), "user-disabled");
+        PushNotificationEventEntity later = event("later", "2026-10-30T09:00:00Z");
+        PushNotificationEventEntity before = event("before", "2026-10-25T09:00:00Z");
+
+        PushResponses.PushDiagnosticsResponse response = service.forAccount("user_1");
+
+        PushResponses.PushDeviceDiagnosticResponse androidDevice = response.devices().stream()
+            .filter(device -> device.key().equals("installation-ce9b4149")).findFirst().orElseThrow();
+        assertThat(androidDevice.status()).isEqualTo("unreachable");
+        assertThat(androidDevice.statusSince()).isEqualTo("2026-10-29T06:05:00Z");
+        assertThat(androidDevice.currentSubscriptionId()).isNull();
+        PushResponses.PushDeviceDiagnosticResponse iphoneDevice = response.devices().stream()
+            .filter(device -> device.key().equals("installation-a1b2c3d4")).findFirst().orElseThrow();
+        assertThat(iphoneDevice.status()).isEqualTo("off");
+
+        assertThat(outcome(response, "later", "installation-ce9b4149").outcome()).isEqualTo("missed");
+        PushResponses.PushAlertOutcomeResponse off = outcome(response, "later", "installation-a1b2c3d4");
+        assertThat(off.outcome()).isEqualTo("not-sent");
+        assertThat(off.reason()).isEqualTo("notifications were off on this device");
+        // A device set up after an alert has no line for it.
+        assertThat(response.alerts().stream().filter(alert -> alert.id().equals("before")).toList()).isEmpty();
+    }
+
+    @Test
+    void groupsEndpointsWithoutAnInstallationAsEarlierDevices() {
+        PushSubscriptionEntity legacy = endpoint("legacy", null, ANDROID_UA, "2026-10-28T10:00:00Z");
+        legacy.disable(Instant.parse("2026-10-29T06:05:00Z"), "historical-push-service-gone");
+
+        PushResponses.PushDiagnosticsResponse response = service.forAccount("user_1");
+
+        assertThat(response.devices()).singleElement().satisfies(device -> {
+            assertThat(device.key()).isEqualTo("earlier");
+            assertThat(device.label()).isEqualTo("Earlier Devices");
+        });
+    }
+
+    @Test
+    void returnsNothingForBlankAccountAndNeverQueriesAnotherAccount() {
+        PushResponses.PushDiagnosticsResponse response = service.forAccount(" ");
+
+        assertThat(response.devices()).isEmpty();
+        assertThat(response.alerts()).isEmpty();
+        verify(subscriptionRepository, never()).findByAccountIdOrderByUpdatedAtDesc(any());
     }
 }

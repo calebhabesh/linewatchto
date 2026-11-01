@@ -36,6 +36,26 @@ public class PushNotificationService {
         "line-current"
     );
 
+    static final String USER_ENABLED = "user-enabled";
+    static final String ENDPOINT_REPLACED = "endpoint-replaced";
+    private static final java.util.Set<String> REPLACEMENT_DISABLE_REASONS = java.util.Set.of(
+        "superseded-by-installation",
+        ENDPOINT_REPLACED,
+        "subscription-change",
+        "historical-push-service-gone",
+        "vapid-key-changed"
+    );
+    static final java.util.Set<String> WORKER_STAGES = java.util.Set.of(
+        "subscription-change-fired",
+        "subscription-change-saved",
+        "subscription-change-failed",
+        "check-replaced",
+        "check-restored",
+        "check-failed",
+        "periodic-sync-fired"
+    );
+    private static final int MAX_WORKER_STAGES_PER_HOUR = 60;
+
     private final PushProperties properties;
     private final PushSubscriptionRepository subscriptionRepository;
     private final PushNotificationDeliveryRepository deliveryRepository;
@@ -49,7 +69,6 @@ public class PushNotificationService {
     private final IngestionFreshness ingestionFreshness;
     private final RegionalIngestionFreshness regionalIngestionFreshness;
     private final PushSubscriptionLifecycleService lifecycleService;
-    private final PushDeliveryDiagnosticsService diagnosticsService;
     private final PushEndpointPolicy endpointPolicy;
     private final Clock clock;
 
@@ -67,8 +86,7 @@ public class PushNotificationService {
         PushReceiptTokenService receiptTokenService,
         IngestionFreshness ingestionFreshness,
         RegionalIngestionFreshness regionalIngestionFreshness,
-        PushSubscriptionLifecycleService lifecycleService,
-        PushDeliveryDiagnosticsService diagnosticsService
+        PushSubscriptionLifecycleService lifecycleService
     ) {
         this(
             properties,
@@ -84,8 +102,7 @@ public class PushNotificationService {
             regionalIngestionFreshness,
             receiptTokenService,
             Clock.systemUTC(),
-            lifecycleService,
-            diagnosticsService
+            lifecycleService
         );
     }
 
@@ -103,8 +120,7 @@ public class PushNotificationService {
         RegionalIngestionFreshness regionalIngestionFreshness,
         PushReceiptTokenService receiptTokenService,
         Clock clock,
-        PushSubscriptionLifecycleService lifecycleService,
-        PushDeliveryDiagnosticsService diagnosticsService
+        PushSubscriptionLifecycleService lifecycleService
     ) {
         this.properties = Objects.requireNonNull(properties, "properties");
         this.subscriptionRepository = Objects.requireNonNull(subscriptionRepository, "subscriptionRepository");
@@ -120,7 +136,6 @@ public class PushNotificationService {
         this.receiptTokenService = Objects.requireNonNull(receiptTokenService, "receiptTokenService");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.lifecycleService = Objects.requireNonNull(lifecycleService, "lifecycleService");
-        this.diagnosticsService = Objects.requireNonNull(diagnosticsService, "diagnosticsService");
         this.endpointPolicy = new PushEndpointPolicy();
     }
 
@@ -155,6 +170,9 @@ public class PushNotificationService {
         String endpointHash = hashEndpoint(endpoint);
         String installationId = normalizeInstallationId(request.installationId());
         String registrationReason = normalizeRegistrationReason(request.reason());
+        String previousEndpointHash = normalizeEndpointHash(request.previousEndpointHash());
+        Integer browserMajorVersion = normalizeBrowserMajorVersion(request.browserMajorVersion());
+        String displayMode = normalizeDisplayMode(request.displayMode());
         Instant now = clock.instant();
 
         Optional<PushSubscriptionEntity> existing = subscriptionRepository
@@ -166,15 +184,36 @@ public class PushNotificationService {
             recordLifecycle(existing.get(), "refresh-rejected", "hard-invalid-endpoint");
             return toResponse(existing.get());
         }
+        boolean newlyEnabled = existing.map(current -> !current.isEnabled()).orElse(true);
+
+        // The endpoints this registration replaces: the device's previously saved
+        // endpoint, and any other enabled endpoint of the same installation.
+        Map<String, PushSubscriptionEntity> replaced = new LinkedHashMap<>();
+        if (previousEndpointHash != null && !previousEndpointHash.equals(endpointHash)) {
+            subscriptionRepository.findByAccountIdAndEndpointHash(account.getId(), previousEndpointHash)
+                .filter(PushSubscriptionEntity::isEnabled)
+                .ifPresent(previous -> replaced.put(previous.getId(), previous));
+        }
+        if (installationId != null) {
+            subscriptionRepository.findByAccountIdAndInstallationIdAndEnabledTrue(account.getId(), installationId)
+                .stream()
+                .filter(previous -> !endpointHash.equals(previous.getEndpointHash()))
+                .forEach(previous -> replaced.putIfAbsent(previous.getId(), previous));
+        }
 
         if (existing.isEmpty()
-            && subscriptionRepository.countByAccountIdAndEnabledTrue(account.getId()) >= properties.getMaxEnabledSubscriptionsPerAccount()) {
+            && subscriptionRepository.countByAccountIdAndEnabledTrue(account.getId()) - replaced.size()
+                >= properties.getMaxEnabledSubscriptionsPerAccount()) {
             throw new AccountException(
                 HttpStatus.CONFLICT,
                 "push_device_limit_reached",
                 "Disable an existing push device before adding another."
             );
         }
+
+        Instant continuedInstallationEnabledAt = continuedInstallationEnabledAt(
+            account.getId(), installationId, endpointHash, previousEndpointHash, registrationReason
+        );
 
         subscriptionRepository.findByEndpointHashAndEnabledTrue(endpointHash)
             .stream()
@@ -185,16 +224,11 @@ public class PushNotificationService {
                 recordLifecycle(previous, "superseded", "account-switch");
             });
 
-        if (installationId != null) {
-            subscriptionRepository.findByAccountIdAndInstallationIdAndEnabledTrue(account.getId(), installationId)
-                .stream()
-                .filter(previous -> !endpointHash.equals(previous.getEndpointHash()))
-                .forEach(previous -> {
-                    previous.disable(now, "superseded-by-installation");
-                    subscriptionRepository.save(previous);
-                    recordLifecycle(previous, "superseded", registrationReason);
-                });
-        }
+        replaced.values().forEach(previous -> {
+            previous.disable(now, ENDPOINT_REPLACED.equals(registrationReason) ? ENDPOINT_REPLACED : "superseded-by-installation");
+            subscriptionRepository.save(previous);
+            recordLifecycle(previous, "superseded", registrationReason);
+        });
 
         PushSubscriptionEntity subscription = existing
             .map(current -> {
@@ -226,10 +260,87 @@ public class PushNotificationService {
                 registrationReason,
                 now
             ));
+        subscription.recordClient(browserMajorVersion, displayMode);
+        if (USER_ENABLED.equals(registrationReason)) {
+            // A rider's explicit enable starts a new installation enablement.
+            subscription.continueInstallation(subscription.getEnabledAt());
+        } else if (newlyEnabled && continuedInstallationEnabledAt != null) {
+            subscription.continueInstallation(continuedInstallationEnabledAt);
+        }
 
         PushSubscriptionEntity saved = subscriptionRepository.save(subscription);
-        recordLifecycle(saved, existingSubscription ? "refreshed" : "registered", registrationReason);
+        lifecycleService.record(
+            saved,
+            existingSubscription ? "refreshed" : "registered",
+            registrationReason,
+            previousEndpointHash,
+            null,
+            now
+        );
         return toResponse(saved);
+    }
+
+    /**
+     * The installation enablement a new endpoint continues, or null when it
+     * starts afresh. It continues only when the previous endpoint of the same
+     * installation is still enabled or was lost to replacement (push service
+     * 404/410, browser rotation), never when the rider turned it off.
+     */
+    private Instant continuedInstallationEnabledAt(
+        String accountId,
+        String installationId,
+        String endpointHash,
+        String previousEndpointHash,
+        String registrationReason
+    ) {
+        if (USER_ENABLED.equals(registrationReason)) return null;
+        Optional<PushSubscriptionEntity> previous = Optional.empty();
+        if (previousEndpointHash != null && !previousEndpointHash.equals(endpointHash)) {
+            previous = subscriptionRepository.findByAccountIdAndEndpointHash(accountId, previousEndpointHash)
+                .filter(candidate -> installationId == null || installationId.equals(candidate.getInstallationId()));
+        }
+        if (previous.isEmpty() && installationId != null) {
+            previous = subscriptionRepository.findFirstByAccountIdAndInstallationIdAndEndpointHashNotOrderByCreatedAtDesc(
+                accountId, installationId, endpointHash
+            );
+        }
+        return previous
+            .filter(candidate -> candidate.isEnabled() || isReplacementDisableReason(candidate.getDisabledReason()))
+            .map(PushSubscriptionEntity::getInstallationEnabledAt)
+            .orElse(null);
+    }
+
+    static boolean isReplacementDisableReason(String reason) {
+        if (reason == null) return false;
+        return reason.startsWith("push-service-")
+            || REPLACEMENT_DISABLE_REASONS.contains(reason);
+    }
+
+    @Transactional
+    public void recordWorkerStage(AccountEntity account, PushRequests.WorkerStageRequest request) {
+        String stage = required(request.stage(), "missing_stage", "Worker stage is required.");
+        if (!WORKER_STAGES.contains(stage)) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_stage", "Worker stage is not supported.");
+        }
+        Instant now = clock.instant();
+        // Diagnostics only: a misbehaving worker must not flood the table.
+        if (lifecycleService.recentWorkerStageCount(account.getId(), now.minus(Duration.ofHours(1))) >= MAX_WORKER_STAGES_PER_HOUR) {
+            return;
+        }
+        String endpointHash = request.endpoint() == null || request.endpoint().isBlank()
+            ? null
+            : hashEndpoint(endpointPolicy.requireAllowed(request.endpoint()));
+        PushSubscriptionEntity subscription = endpointHash == null
+            ? null
+            : subscriptionRepository.findByAccountIdAndEndpointHash(account.getId(), endpointHash).orElse(null);
+        lifecycleService.recordWorkerStage(
+            account.getId(),
+            subscription,
+            endpointHash,
+            stage,
+            normalizeClientEventMessage(request.message()),
+            now
+        );
     }
 
     @Transactional
@@ -342,11 +453,6 @@ public class PushNotificationService {
         );
     }
 
-    @Transactional(readOnly = true)
-    public PushResponses.PushDeliveryDiagnosticsResponse deliveryDiagnostics(AccountEntity account) {
-        return diagnosticsService.forAccount(account);
-    }
-
     @Transactional
     public PushResponses.PushDeviceTestResponse testDevice(AccountEntity account, String subscriptionId) {
         String id = required(subscriptionId, "missing_subscription_id", "Push device subscription id is required.");
@@ -395,17 +501,7 @@ public class PushNotificationService {
             result,
             now
         ));
-        return new PushResponses.PushDeviceTestResponse(diagnosticsService.toDiagnosticResponse(delivery, List.of()));
-    }
-
-    @Transactional(readOnly = true)
-    public PushResponses.PushDevicesResponse devices(AccountEntity account) {
-        List<PushResponses.PushDeviceResponse> devices = subscriptionRepository
-            .findByAccountIdAndEnabledTrueOrderByUpdatedAtDesc(account.getId())
-            .stream()
-            .map(this::toDeviceResponse)
-            .toList();
-        return new PushResponses.PushDevicesResponse(devices, vapidKeyFingerprint(properties.getVapidPublicKey()));
+        return new PushResponses.PushDeviceTestResponse(delivery.getStatus(), delivery.getHttpStatus());
     }
 
     @Transactional
@@ -625,26 +721,6 @@ public class PushNotificationService {
         return normalized.substring(0, Math.min(8, normalized.length()));
     }
 
-    private int previousEndpointCount(PushSubscriptionEntity subscription) {
-        String installationId = subscription.getInstallationId();
-        if (installationId == null || installationId.isBlank()) return 0;
-        long count = Math.max(0, subscriptionRepository.countByAccountIdAndInstallationId(
-            subscription.getAccount().getId(), installationId
-        ) - 1);
-        return count > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) count;
-    }
-
-    private Instant registrationInceptionAt(PushSubscriptionEntity subscription) {
-        String installationId = subscription.getInstallationId();
-        if (installationId == null || installationId.isBlank()) {
-            return subscription.getCreatedAt();
-        }
-        return subscriptionRepository.findTopByAccountIdAndInstallationIdOrderByCreatedAtAsc(
-            subscription.getAccount().getId(),
-            installationId
-        ).map(PushSubscriptionEntity::getCreatedAt).orElse(subscription.getCreatedAt());
-    }
-
     private String normalizeInstallationId(String installationId) {
         if (installationId == null || installationId.isBlank()) return null;
         String normalized = installationId.trim();
@@ -664,6 +740,25 @@ public class PushNotificationService {
         return normalized.substring(0, Math.min(80, normalized.length()));
     }
 
+    private static String normalizeEndpointHash(String value) {
+        if (value == null) return null;
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        return normalized.matches("[0-9a-f]{64}") ? normalized : null;
+    }
+
+    private static Integer normalizeBrowserMajorVersion(Integer value) {
+        return value == null || value < 1 || value > 999 ? null : value;
+    }
+
+    private static String normalizeDisplayMode(String value) {
+        if (value == null) return null;
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "standalone", "browser", "minimal-ui", "fullscreen" -> normalized;
+            default -> null;
+        };
+    }
+
     private boolean isHardInvalidReason(String reason) {
         return reason != null && reason.startsWith("push-service-");
     }
@@ -676,94 +771,6 @@ public class PushNotificationService {
         if (subscription == null) return;
         String normalizedReason = reason == null || reason.isBlank() ? "unspecified" : reason.trim().substring(0, Math.min(80, reason.trim().length()));
         lifecycleService.record(subscription, eventType, normalizedReason, clock.instant());
-    }
-
-    private PushResponses.PushDeviceResponse toDeviceResponse(PushSubscriptionEntity subscription) {
-        Optional<PushNotificationDeliveryEntity> latestDelivery =
-            deliveryRepository.findTopBySubscription_IdOrderByCreatedAtDesc(subscription.getId());
-        Optional<PushNotificationDeliveryEntity> latestAcceptedDelivery =
-            deliveryRepository.findTopBySubscription_IdAndStatusOrderByCreatedAtDesc(subscription.getId(), "accepted");
-        Optional<PushNotificationDeliveryEntity> latestDisplayedDelivery =
-            deliveryRepository.findTopBySubscription_IdAndDisplayedAtIsNotNullOrderByDisplayedAtDesc(subscription.getId());
-        Instant latestDisplayedAt = latestDisplayedDelivery
-            .map(PushNotificationDeliveryEntity::getDisplayedAt)
-            .orElse(null);
-        Instant latestAcceptedAt = latestAcceptedDelivery
-            .map(PushNotificationDeliveryEntity::getCreatedAt)
-            .orElse(null);
-        int safeAcceptedWithoutDisplayCount = acceptedWithoutDisplayCount(subscription.getId(), latestDisplayedAt);
-        int previousEndpointCount = previousEndpointCount(subscription);
-        String deliveryHealth = deviceDeliveryHealth(
-            subscription,
-            latestDelivery.orElse(null),
-            latestAcceptedAt,
-            latestDisplayedAt,
-            safeAcceptedWithoutDisplayCount
-        );
-        boolean staleCandidate = subscription.isEnabled()
-            && safeAcceptedWithoutDisplayCount > 0
-            && acceptedAfterLastDisplay(latestAcceptedAt, latestDisplayedAt);
-
-        return new PushResponses.PushDeviceResponse(
-            subscription.getId(),
-            deviceLabel(subscription),
-            subscription.getUserAgent(),
-            endpointHashPrefix(subscription.getEndpointHash()),
-            installationIdPrefix(subscription.getInstallationId()),
-            subscription.getRegistrationReason(),
-            previousEndpointCount,
-            subscription.isEnabled(),
-            instantString(registrationInceptionAt(subscription)),
-            instantString(subscription.getCreatedAt()),
-            instantString(subscription.getUpdatedAt()),
-            instantString(subscription.getLastSeenAt()),
-            instantString(subscription.getDisabledAt()),
-            latestDelivery.map(PushNotificationDeliveryEntity::getCreatedAt).map(this::instantString).orElse(null),
-            instantString(latestAcceptedAt),
-            instantString(latestDisplayedAt),
-            safeAcceptedWithoutDisplayCount,
-            deliveryHealth,
-            staleCandidate
-        );
-    }
-
-    private String deviceDeliveryHealth(
-        PushSubscriptionEntity subscription,
-        PushNotificationDeliveryEntity latestDelivery,
-        Instant latestAcceptedAt,
-        Instant latestDisplayedAt,
-        int acceptedWithoutDisplayCount
-    ) {
-        if (!subscription.isEnabled()) {
-            return "disabled";
-        }
-        if (acceptedWithoutDisplayCount > 0 && acceptedAfterLastDisplay(latestAcceptedAt, latestDisplayedAt)) {
-            return "accepted-no-display";
-        }
-        if (latestDisplayedAt != null) {
-            return "displayed";
-        }
-        if (latestDelivery != null) {
-            return "sent-no-display";
-        }
-        return "registered";
-    }
-
-    private boolean acceptedAfterLastDisplay(Instant latestAcceptedAt, Instant latestDisplayedAt) {
-        return latestDisplayedAt == null
-            || latestAcceptedAt == null
-            || latestAcceptedAt.isAfter(latestDisplayedAt);
-    }
-
-    private int acceptedWithoutDisplayCount(String subscriptionId, Instant latestDisplayedAt) {
-        long count = latestDisplayedAt == null
-            ? deliveryRepository.countBySubscription_IdAndStatusAndDisplayedAtIsNull(subscriptionId, "accepted")
-            : deliveryRepository.countBySubscription_IdAndStatusAndDisplayedAtIsNullAndCreatedAtAfter(
-                subscriptionId,
-                "accepted",
-                latestDisplayedAt
-            );
-        return count > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) count;
     }
 
     private String instantString(Instant instant) {

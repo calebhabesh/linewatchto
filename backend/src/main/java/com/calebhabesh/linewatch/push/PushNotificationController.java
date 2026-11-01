@@ -54,6 +54,16 @@ public class PushNotificationController {
         return pushNotificationService.saveSubscription(account, request);
     }
 
+    @PostMapping("/subscription/worker-stage")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void recordWorkerStage(
+        @SessionToken String rawSessionToken,
+        @RequestBody PushRequests.WorkerStageRequest request
+    ) {
+        AccountEntity account = accountService.requireAccount(rawSessionToken);
+        pushNotificationService.recordWorkerStage(account, request);
+    }
+
     @PutMapping("/preferences")
     public PushResponses.PushPreferencesResponse updatePreferences(
         @SessionToken String rawSessionToken,
@@ -82,19 +92,11 @@ public class PushNotificationController {
     }
 
     @GetMapping("/diagnostics")
-    public PushResponses.PushDeliveryDiagnosticsResponse diagnostics(
+    public PushResponses.PushDiagnosticsResponse diagnostics(
         @SessionToken String rawSessionToken
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
         return pushDeliveryDiagnosticsService.forAccount(account.getId());
-    }
-
-    @GetMapping("/devices")
-    public PushResponses.PushDevicesResponse devices(
-        @SessionToken String rawSessionToken
-    ) {
-        AccountEntity account = accountService.requireAccount(rawSessionToken);
-        return pushNotificationService.devices(account);
     }
 
     @PostMapping("/devices/{subscriptionId}/disable")

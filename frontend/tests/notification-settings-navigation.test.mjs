@@ -82,32 +82,15 @@ describe("notification settings navigation", () => {
     assert.match(moreSheetSource, /PushDeliveryDiagnosticsPanel/);
     assert.doesNotMatch(moreSheetSource, /currentNetwork === "ttc" \? <div className="mobile-more-section">[\s\S]*?<PushDeliveryDiagnosticsPanel/);
     assert.match(diagnosticsPanelSource, /Notification Diagnostics/);
-    assert.match(diagnosticsPanelSource, /getPushDeliveryDiagnostics/);
-    assert.match(diagnosticsPanelSource, /getPushDevices/);
+    // Plan 12: one installation-centred response; endpoint hashes and the VAPID
+    // fingerprint live behind Technical Details, with no endpoint filter state.
+    assert.match(diagnosticsPanelSource, /getPushDiagnostics/);
     assert.match(diagnosticsPanelSource, /disablePushDevice/);
     assert.match(diagnosticsPanelSource, /sendPushDeviceTestNotification/);
-    assert.match(diagnosticsPanelSource, /Recent Push Attempts/);
-    assert.match(diagnosticsPanelSource, /Active Browser Installations/);
-    assert.match(diagnosticsPanelSource, /Endpoint expired/);
-    assert.match(diagnosticsPanelSource, /Replaced expired endpoint/);
-    assert.match(diagnosticsPanelSource, /earlier .*endpoint/);
-    assert.match(diagnosticsPanelSource, /acceptedWithoutDisplayCount/);
-    assert.match(diagnosticsPanelSource, /Endpoint \{device\.endpointHashPrefix\}/);
-    assert.match(diagnosticsPanelSource, /Installation \{device\.installationIdPrefix/);
-    assert.match(diagnosticsPanelSource, /Endpoint hashes can rotate/);
-    assert.match(diagnosticsPanelSource, /Installation first registered/);
-    assert.match(diagnosticsPanelSource, /Current endpoint registered/);
-    assert.match(diagnosticsPanelSource, /VAPID key/);
-    assert.match(diagnosticsPanelSource, /Service worker reported display/);
-    assert.match(diagnosticsPanelSource, /staleCandidate/);
-    assert.match(diagnosticsPanelSource, /selectedDeviceKey/);
-    assert.match(diagnosticsPanelSource, /diagnosticDeviceOptions/);
-    assert.match(diagnosticsPanelSource, /notification\.recipients/);
-    assert.match(diagnosticsPanelSource, /recipient\.reason/);
-    assert.match(diagnosticsPanelSource, /showArchivedDevices/);
-    assert.match(diagnosticsPanelSource, /Show Archived Devices/);
-    assert.match(diagnosticsStateSource, /Current and Delivered Endpoints/);
-    assert.match(diagnosticsPanelSource, /sourceIncidentKey/);
+    assert.match(diagnosticsPanelSource, /Technical Details/);
+    assert.match(diagnosticsPanelSource, /<details className="push-diagnostics-technical">[\s\S]*VAPID key/);
+    assert.doesNotMatch(diagnosticsPanelSource, /selectedDeviceKey|showArchivedDevices|getPushDevices/);
+    assert.doesNotMatch(diagnosticsStateSource, /diagnosticDeviceOptions|Current and Delivered Endpoints/);
     assert.doesNotMatch(notificationPanelSource, /getPushDeliveryDiagnostics/);
     assert.doesNotMatch(notificationPanelSource, /Delivery Diagnostics/);
     assert.match(globalCss, /\.push-diagnostics-scroll/);
@@ -120,8 +103,8 @@ describe("notification settings navigation", () => {
     assert.match(globalCss, /\.push-device-meta/);
     assert.match(globalCss, /\.push-device-disable/);
     assert.match(globalCss, /\.push-device-test/);
-    assert.match(globalCss, /\.push-diagnostics-recipient/);
-    assert.match(globalCss, /\.push-diagnostics-archive-toggle/);
+    assert.match(globalCss, /\.push-diagnostics-outcomes/);
+    assert.match(globalCss, /\.push-diagnostics-technical/);
   });
 
   it("offers Android battery guidance without promising reliable delivery", () => {
@@ -129,10 +112,10 @@ describe("notification settings navigation", () => {
     assert.match(moreSheetSource, /Unrestricted/);
     assert.match(moreSheetSource, /Chrome/);
     assert.match(moreSheetSource, /more battery/);
-    assert.match(moreSheetSource, /cannot guarantee immediate delivery/);
-    assert.match(moreSheetSource, /android-notification-steps/);
-    assert.match(moreSheetSource, /Remove the battery restriction/);
-    assert.match(moreSheetSource, /Allow visible alerts/);
+    assert.match(moreSheetSource, /can still delay or drop alerts/);
+    // One line of battery steps (plan 12: subscription loss, not battery, is the main cause).
+    assert.match(moreSheetSource, /android-notification-path/);
+    assert.match(moreSheetSource, /App battery usage/);
     assert.match(globalCss, /\.android-notification-caution/);
   });
 });

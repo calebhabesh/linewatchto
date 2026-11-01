@@ -140,33 +140,6 @@ public final class PushResponses {
         boolean plannedClosureNotificationsEnabled
     ) {}
 
-    public record PushDeviceResponse(
-        String id,
-        String deviceLabel,
-        String userAgent,
-        String endpointHashPrefix,
-        String installationIdPrefix,
-        String registrationReason,
-        int previousEndpointCount,
-        boolean enabled,
-        String registrationInceptionAt,
-        String createdAt,
-        String updatedAt,
-        String lastSeenAt,
-        String disabledAt,
-        String lastAttemptAt,
-        String lastAcceptedAt,
-        String lastDisplayedAt,
-        int acceptedWithoutDisplayCount,
-        String deliveryHealth,
-        boolean staleCandidate
-    ) {}
-
-    public record PushDevicesResponse(
-        List<PushDeviceResponse> devices,
-        String vapidKeyFingerprint
-    ) {}
-
     public record PendingPushNotification(
         String title,
         String body,
@@ -228,79 +201,81 @@ public final class PushResponses {
         }
     }
 
-    public record PushClientEventResponse(
-        String stage,
-        String message,
-        String occurredAt
+    /**
+     * Notification diagnostics shaped by browser installation (plan 12). Hash
+     * and installation prefixes only; never endpoints, keys or provider payloads.
+     */
+    public record PushDiagnosticsResponse(
+        String windowStart,
+        List<PushDeviceDiagnosticResponse> devices,
+        List<PushAlertDiagnosticResponse> alerts,
+        PushDiagnosticsTechnicalResponse technical
     ) {}
 
-    public record PushDeliveryDiagnosticResponse(
-        String id,
-        String title,
-        String tag,
-        String notificationState,
-        String category,
-        String eventType,
-        String lineId,
-        String lineNumber,
-        String eventCreatedAt,
-        String deviceLabel,
-        String userAgent,
-        String endpointHashPrefix,
-        String installationIdPrefix,
-        String registrationReason,
-        boolean subscriptionEnabled,
-        String deliveryStatus,
-        Integer httpStatus,
-        String deliveryMessage,
-        String lastAttemptAt,
-        String displayedAt,
-        int attemptCount,
-        List<PushClientEventResponse> clientEvents
-    ) {}
-
-    public record PushRecipientDiagnosticResponse(
-        String subscriptionId,
-        String deviceLabel,
-        String userAgent,
-        String endpointHashPrefix,
-        String installationIdPrefix,
-        String registrationReason,
-        boolean subscriptionEnabled,
-        String enabledAt,
-        String disabledAt,
+    public record PushDeviceDiagnosticResponse(
+        String key,
+        String label,
+        // reachable | unreachable | off
         String status,
-        String reasonCode,
-        String reason,
-        PushDeliveryDiagnosticResponse delivery
+        String statusSince,
+        // The enabled subscription to test or turn off; null when none.
+        String currentSubscriptionId,
+        int shown,
+        int sentWhileReachable,
+        int missedWhileUnreachable,
+        String lastShownAt,
+        String lastShownTitle,
+        int replacements,
+        Integer browserMajorVersion,
+        String displayMode,
+        String installationIdPrefix,
+        String endpointHashPrefix,
+        String registrationReason,
+        int endpointCount
     ) {}
 
-    public record PushNotificationDiagnosticGroupResponse(
+    public record PushAlertDiagnosticResponse(
         String id,
         String title,
-        String tag,
-        String notificationKey,
-        String sourceIncidentKey,
         String notificationState,
         String category,
-        String eventType,
         String lineId,
         String lineNumber,
-        String eventCreatedAt,
-        List<PushDeliveryDiagnosticResponse> attempts,
-        List<PushRecipientDiagnosticResponse> recipients
+        String createdAt,
+        List<PushAlertOutcomeResponse> outcomes
     ) {}
 
-    public record PushDeliveryDiagnosticsResponse(
-        List<PushNotificationDiagnosticGroupResponse> notifications,
-        List<PushDeliveryDiagnosticResponse> deliveries
-    ) {
-        public PushDeliveryDiagnosticsResponse(List<PushDeliveryDiagnosticResponse> deliveries) {
-            this(List.of(), deliveries);
-        }
-    }
+    public record PushAlertOutcomeResponse(
+        String deviceKey,
+        // shown | sent | missed | not-sent
+        String outcome,
+        String at,
+        // Plain words for not-sent and missed; null otherwise.
+        String reason,
+        boolean catchUp,
+        // Technical detail: push service status, attempts, endpoint hash prefix.
+        String technical
+    ) {}
+
+    public record PushDiagnosticsTechnicalResponse(
+        String vapidKeyFingerprint,
+        List<PushLifecycleRecordResponse> lifecycle
+    ) {}
+
+    public record PushLifecycleRecordResponse(
+        String occurredAt,
+        String deviceKey,
+        String eventType,
+        String reason,
+        String endpointHashPrefix,
+        String previousEndpointHashPrefix,
+        Integer browserMajorVersion,
+        String displayMode,
+        String detail
+    ) {}
 
     public record PushDeviceTestResponse(
-        PushDeliveryDiagnosticResponse delivery
+        String deliveryStatus,
+        Integer httpStatus
     ) {}
 }

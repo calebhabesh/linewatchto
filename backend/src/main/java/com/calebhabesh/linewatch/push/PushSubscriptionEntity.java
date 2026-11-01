@@ -49,6 +49,12 @@ public class PushSubscriptionEntity {
     private Instant disabledAt;
     @Column(name = "enabled_at")
     private Instant enabledAt;
+    @Column(name = "installation_enabled_at")
+    private Instant installationEnabledAt;
+    @Column(name = "browser_major_version")
+    private Integer browserMajorVersion;
+    @Column(name = "display_mode")
+    private String displayMode;
 
     protected PushSubscriptionEntity() {}
 
@@ -77,6 +83,7 @@ public class PushSubscriptionEntity {
         this.updatedAt = now;
         this.lastSeenAt = now;
         this.enabledAt = now;
+        this.installationEnabledAt = now;
     }
 
     public static PushSubscriptionEntity create(
@@ -138,6 +145,29 @@ public class PushSubscriptionEntity {
         if (wasDisabled || this.enabledAt == null) {
             this.enabledAt = now;
         }
+        if (wasDisabled || this.installationEnabledAt == null) {
+            this.installationEnabledAt = this.enabledAt;
+        }
+    }
+
+    /**
+     * A replacement endpoint of the same browser installation keeps the
+     * installation's enablement time, so alerts the dead endpoint missed stay
+     * eligible for catch-up. Never later than this endpoint's own enablement.
+     */
+    public void continueInstallation(Instant installationEnabledAt) {
+        if (installationEnabledAt == null || enabledAt == null || installationEnabledAt.isAfter(enabledAt)) return;
+        this.installationEnabledAt = installationEnabledAt;
+    }
+
+    public void recordClient(Integer browserMajorVersion, String displayMode) {
+        if (browserMajorVersion != null) this.browserMajorVersion = browserMajorVersion;
+        if (displayMode != null) this.displayMode = displayMode;
+    }
+
+    /** True when this endpoint replaced an earlier endpoint of the same enabled installation. */
+    public boolean isInstallationReplacement() {
+        return installationEnabledAt != null && enabledAt != null && installationEnabledAt.isBefore(enabledAt);
     }
 
     public void disable(Instant now) {
@@ -176,4 +206,7 @@ public class PushSubscriptionEntity {
     public Instant getLastSeenAt() { return lastSeenAt; }
     public Instant getDisabledAt() { return disabledAt; }
     public Instant getEnabledAt() { return enabledAt; }
+    public Instant getInstallationEnabledAt() { return installationEnabledAt == null ? enabledAt : installationEnabledAt; }
+    public Integer getBrowserMajorVersion() { return browserMajorVersion; }
+    public String getDisplayMode() { return displayMode; }
 }

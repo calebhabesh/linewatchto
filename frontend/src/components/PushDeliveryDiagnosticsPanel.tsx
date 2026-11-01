@@ -5,31 +5,25 @@ import { Activity, ChevronDown, Loader2, RefreshCw } from "lucide-react";
 import type { AccountState } from "../app/auth-data";
 import {
   disablePushDevice,
-  getPushDeliveryDiagnostics,
-  getPushDevices,
+  getPushDiagnostics,
   sendPushDeviceTestNotification,
-  type PushDeliveryDiagnostic,
-  type PushDevice,
-  type PushNotificationDiagnosticGroup,
+  type PushDiagnosticsResult,
 } from "../app/push-data";
 import {
-  diagnosticDeviceKey,
-  diagnosticDeviceOptions,
-  recipientsForNotification,
-  visibleRecipientsForNotification,
+  deviceModeLabel,
+  deviceNames,
+  deviceReplacementSummary,
+  deviceShownRate,
+  deviceShownSummary,
+  deviceStatusDetail,
+  deviceStatusLabel,
+  endpointHashPrefixForEndpoint,
+  formatDiagnosticTime,
+  isCurrentDevice,
+  outcomeLabel,
 } from "../app/push-diagnostics-state";
+import { getCurrentPushSubscription } from "../app/push-browser-state";
 import { TransitLineBadge } from "./TransitLineBadge";
-
-const DIAGNOSTIC_STAGE_LABELS: Record<string, string> = {
-  push_received: "Service worker reported display",
-  displayed_acknowledged: "Display report confirmed",
-  ack_failed: "Ack failed",
-  show_failed: "Display failed",
-  notification_click: "Clicked",
-  notification_close: "Closed",
-  pending_skipped: "Skipped stale",
-  fallback_shown: "Fallback shown",
-};
 
 type DiagnosticsLoadState = "idle" | "loading" | "backend" | "unavailable";
 
@@ -37,169 +31,80 @@ type Props = {
   accountState: AccountState;
 };
 
-function formatDiagnosticTimestamp(value?: string | null) {
-  if (!value) return "Not recorded";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Not recorded";
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Toronto",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
-}
+const EMPTY_DIAGNOSTICS: PushDiagnosticsResult = {
+  source: "unavailable",
+  windowStart: null,
+  devices: [],
+  alerts: [],
+  vapidKeyFingerprint: null,
+  lifecycle: [],
+};
 
-function formatRegistrationTimestamp(value?: string | null) {
-  if (!value) return "Not recorded";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Not recorded";
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Toronto",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
-}
-
-function diagnosticStageLabel(stage: string) {
-  return DIAGNOSTIC_STAGE_LABELS[stage] ?? stage.replaceAll("_", " ");
-}
-
-function diagnosticOutcome(delivery: PushDeliveryDiagnostic) {
-  if (delivery.displayedAt) return "Display reported";
-  if (delivery.deliveryStatus?.toLowerCase() === "gone" || delivery.httpStatus === 404 || delivery.httpStatus === 410) {
-    return "Invalid subscription";
-  }
-  if (delivery.clientEvents.some((event) => event.stage === "show_failed")) return "Display failed";
-  if (delivery.clientEvents.some((event) => event.stage === "ack_failed")) return "Ack failed";
-  if (delivery.clientEvents.some((event) => event.stage === "fallback_shown")) return "Fallback displayed";
-  if (delivery.clientEvents.some((event) => event.stage === "push_received")) return "Service worker reported display";
-  if (delivery.deliveryStatus?.toLowerCase() === "accepted") return "Push service accepted; no browser report";
-  return delivery.deliveryStatus || "Queued";
-}
-
-function displayEvidenceLabel(delivery: PushDeliveryDiagnostic) {
-  if (delivery.displayedAt) return `Display reported ${formatDiagnosticTimestamp(delivery.displayedAt)}`;
-  if (delivery.deliveryStatus?.toLowerCase() === "gone" || delivery.httpStatus === 404 || delivery.httpStatus === 410) {
-    return "Endpoint expired";
-  }
-  if (delivery.clientEvents.some((event) => event.stage === "push_received")) {
-    return "Service worker reported display; confirmation incomplete";
-  }
-  if (delivery.deliveryStatus?.toLowerCase() === "accepted") return "Accepted by push service; browser report unavailable";
-  return "No display report";
-}
-
-function registrationReasonLabel(reason?: string | null) {
-  switch (reason) {
-    case "app-refresh": return "Refreshed when app opened";
-    case "subscription-change": return "Rotated by browser";
-    case "invalid-endpoint-replacement": return "Replaced expired endpoint";
-    case "user-enabled": return "Enabled by user";
-    case "legacy": return "Registered before lifecycle tracking";
-    default: return reason ? reason.replaceAll("-", " ") : "Registration source not recorded";
-  }
-}
-
-function deviceHealthLabel(device: PushDevice) {
-  if (device.staleCandidate) {
-    return "No display report";
-  }
-  switch (device.deliveryHealth) {
-    case "displayed":
-      return "Display reported";
-    case "accepted-no-display":
-      return "Accepted, no browser report";
-    case "sent-no-display":
-      return "Sent, no browser report";
-    case "registered":
-      return "Registered";
-    case "disabled":
-      return "Disabled";
-    default:
-      return device.deliveryHealth || "Unknown";
+async function currentEndpointHashPrefix(): Promise<string | null> {
+  try {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return null;
+    const subscription = await getCurrentPushSubscription(navigator.serviceWorker, { readyTimeoutMs: 1_000 });
+    return subscription ? await endpointHashPrefixForEndpoint(subscription.endpoint) : null;
+  } catch {
+    return null;
   }
 }
 
 export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
   const [open, setOpen] = useState(false);
-  const [diagnosticNotifications, setDiagnosticNotifications] = useState<PushNotificationDiagnosticGroup[]>([]);
-  const [pushDevices, setPushDevices] = useState<PushDevice[]>([]);
-  const [vapidKeyFingerprint, setVapidKeyFingerprint] = useState<string | null>(null);
-  const [selectedDeviceKey, setSelectedDeviceKey] = useState("all");
-  const [showArchivedDevices, setShowArchivedDevices] = useState(false);
-  const [diagnosticsState, setDiagnosticsState] = useState<DiagnosticsLoadState>("idle");
-  const [diagnosticsMessage, setDiagnosticsMessage] = useState<string | null>(null);
+  const [diagnostics, setDiagnostics] = useState<PushDiagnosticsResult>(EMPTY_DIAGNOSTICS);
+  const [currentPrefix, setCurrentPrefix] = useState<string | null>(null);
+  const [loadState, setLoadState] = useState<DiagnosticsLoadState>("idle");
   const [deviceActionId, setDeviceActionId] = useState<string | null>(null);
   const [deviceActionType, setDeviceActionType] = useState<"disable" | "test" | null>(null);
   const [deviceActionMessage, setDeviceActionMessage] = useState<string | null>(null);
 
   const loadDiagnostics = useCallback(async () => {
     if (!accountState.authenticated) {
-      setDiagnosticNotifications([]);
-      setPushDevices([]);
-      setVapidKeyFingerprint(null);
-      setSelectedDeviceKey("all");
-      setShowArchivedDevices(false);
-      setDiagnosticsState("idle");
-      setDiagnosticsMessage(null);
+      setDiagnostics(EMPTY_DIAGNOSTICS);
+      setLoadState("idle");
       setDeviceActionMessage(null);
       return;
     }
-
-    setDiagnosticsState("loading");
-    const [diagnosticsResult, devicesResult] = await Promise.all([
-      getPushDeliveryDiagnostics(),
-      getPushDevices(),
-    ]);
-    setDiagnosticNotifications(diagnosticsResult.notifications);
-    setPushDevices(devicesResult.devices);
-    setVapidKeyFingerprint(devicesResult.vapidKeyFingerprint);
-    // Start with the full recipient timeline. Selecting only the current
-    // endpoint hides the device that actually received an older push after a
-    // browser rotates its subscription.
-    setSelectedDeviceKey("all");
-    setDiagnosticsState(diagnosticsResult.source === "backend" || devicesResult.source === "backend" ? "backend" : "unavailable");
-    setDiagnosticsMessage(diagnosticsResult.message ?? devicesResult.message ?? null);
+    setLoadState("loading");
+    const [result, prefix] = await Promise.all([getPushDiagnostics(), currentEndpointHashPrefix()]);
+    setDiagnostics(result);
+    setCurrentPrefix(prefix);
+    setLoadState(result.source === "backend" ? "backend" : "unavailable");
   }, [accountState.authenticated]);
 
-  const handleDisableDevice = useCallback(async (subscriptionId: string, isDisplaying: boolean) => {
-    if (isDisplaying) {
-      if (!window.confirm("Are you sure?")) {
-        return;
-      }
-    }
+  const handleDisableDevice = useCallback(async (subscriptionId: string, name: string) => {
+    if (!window.confirm(`Turn off notifications on ${name}?`)) return;
     setDeviceActionId(subscriptionId);
     setDeviceActionType("disable");
     setDeviceActionMessage(null);
     try {
       await disablePushDevice(subscriptionId);
-      setDeviceActionMessage("Device endpoint disabled.");
+      setDeviceActionMessage(`Notifications turned off on ${name}.`);
       await loadDiagnostics();
     } catch {
-      setDeviceActionMessage("Could not disable this endpoint.");
+      setDeviceActionMessage(`Could not turn off notifications on ${name}.`);
     } finally {
       setDeviceActionId(null);
       setDeviceActionType(null);
     }
   }, [loadDiagnostics]);
 
-  const handleTestDevice = useCallback(async (subscriptionId: string) => {
+  const handleTestDevice = useCallback(async (subscriptionId: string, name: string) => {
     setDeviceActionId(subscriptionId);
     setDeviceActionType("test");
     setDeviceActionMessage(null);
     try {
       const result = await sendPushDeviceTestNotification(subscriptionId);
-      const status = result.delivery.httpStatus
-        ? `${result.delivery.deliveryStatus} ${result.delivery.httpStatus}`
-        : result.delivery.deliveryStatus;
-      setDeviceActionMessage(`Test notification sent: ${status}.`);
+      const gone = result.httpStatus === 404 || result.httpStatus === 410;
+      setDeviceActionMessage(gone
+        ? `${name} is unreachable. Open LineWatchTO on it to reconnect.`
+        : result.deliveryStatus === "accepted"
+          ? `Test sent to ${name}. It should appear within a minute.`
+          : `The push service did not accept the test for ${name}.`);
       await loadDiagnostics();
     } catch {
-      setDeviceActionMessage("Could not send a test notification to this endpoint.");
+      setDeviceActionMessage(`Could not send a test notification to ${name}.`);
     } finally {
       setDeviceActionId(null);
       setDeviceActionType(null);
@@ -209,244 +114,213 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
   const handleToggle = useCallback((event: SyntheticEvent<HTMLDetailsElement>) => {
     const nextOpen = event.currentTarget.open;
     setOpen(nextOpen);
-    if (nextOpen && diagnosticsState === "idle") {
+    if (nextOpen && loadState === "idle") {
       void loadDiagnostics();
     }
-  }, [diagnosticsState, loadDiagnostics]);
+  }, [loadState, loadDiagnostics]);
 
-  const diagnosticDeviceOptionsForView = useMemo(
-    () => diagnosticDeviceOptions(diagnosticNotifications, showArchivedDevices),
-    [diagnosticNotifications, showArchivedDevices]
-  );
+  const names = useMemo(() => deviceNames(diagnostics.devices), [diagnostics.devices]);
 
-  const archivedRecipientCount = useMemo(() => diagnosticNotifications
-    .flatMap(recipientsForNotification)
-    .filter((recipient) => !recipient.subscriptionEnabled)
-    .length, [diagnosticNotifications]);
-
-  const visibleNotifications = useMemo(() => diagnosticNotifications
-    .map((notification) => {
-      const recipients = visibleRecipientsForNotification(notification, showArchivedDevices);
-      return {
-        ...notification,
-        recipients: selectedDeviceKey === "all"
-          ? recipients
-          : recipients.filter((recipient) => diagnosticDeviceKey(recipient) === selectedDeviceKey),
-      };
-    })
-    .filter((notification) => notification.recipients.length > 0), [diagnosticNotifications, selectedDeviceKey, showArchivedDevices]);
-
-  const diagnosticsStatusLabel = useMemo(() => {
+  const statusLabel = useMemo(() => {
     if (!accountState.authenticated) return "Sign In";
-    if (diagnosticsState === "loading") return "Loading";
-    if (diagnosticsState === "unavailable") return "Unavailable";
-    if (diagnosticNotifications.length > 0) return `${diagnosticNotifications.length} Recent`;
-    if (pushDevices.length > 0) return `${pushDevices.length} Devices`;
-    return "No Records";
-  }, [accountState.authenticated, diagnosticNotifications.length, diagnosticsState, pushDevices.length]);
+    if (loadState === "loading") return "Loading";
+    if (loadState === "unavailable") return "Unavailable";
+    if (loadState === "idle") return "";
+    const unreachable = diagnostics.devices.filter((device) => device.status === "unreachable").length;
+    if (unreachable > 0) return `${unreachable} Unreachable`;
+    const count = diagnostics.devices.length;
+    return count === 0 ? "No Devices" : `${count} ${count === 1 ? "Device" : "Devices"}`;
+  }, [accountState.authenticated, diagnostics.devices, loadState]);
 
   return (
-    <details
-      className="push-diagnostics-details"
-      open={open}
-      onToggle={handleToggle}
-    >
+    <details className="push-diagnostics-details" open={open} onToggle={handleToggle}>
       <summary className="mobile-more-row push-diagnostics-summary">
         <Activity size={18} className="text-sky-600 dark:text-sky-400" aria-hidden="true" />
         <span className="push-diagnostics-summary-copy">
           <span>Notification Diagnostics</span>
-          <span>Recent Push Attempts by Device</span>
+          <span>Delivery by Device, Last 7 Days</span>
         </span>
-        <span className="push-diagnostics-status">{diagnosticsStatusLabel}</span>
+        <span className="push-diagnostics-status">{statusLabel}</span>
         <ChevronDown size={16} className="push-diagnostics-chevron" aria-hidden="true" />
       </summary>
 
       <div className="push-diagnostics-panel">
         {!accountState.authenticated ? (
           <p className="push-diagnostics-note" role="status">
-            Sign in to view recent push attempts for this account.
+            Sign in to see how notifications reach your devices.
           </p>
         ) : (
           <>
             <div className="push-diagnostics-header">
               <div>
-                <strong>Recent Push Attempts</strong>
-                <span>Accepted deliveries, service-worker receipt, display ack, and lifecycle events.</span>
+                <strong>Your Devices</strong>
+                <span>Whether each device can receive alerts now, and what it showed.</span>
               </div>
               <button
                 type="button"
                 onClick={() => void loadDiagnostics()}
-                disabled={diagnosticsState === "loading"}
-                aria-label="Refresh delivery diagnostics"
+                disabled={loadState === "loading"}
+                aria-label="Refresh notification diagnostics"
               >
-                <RefreshCw size={15} className={diagnosticsState === "loading" ? "animate-spin" : ""} aria-hidden="true" />
+                <RefreshCw size={15} className={loadState === "loading" ? "animate-spin" : ""} aria-hidden="true" />
               </button>
             </div>
 
-            {diagnosticsState !== "loading" && diagnosticsState !== "unavailable" ? (
-              <section className="push-devices-section" aria-label="Active Browser Installations">
-                <div className="push-devices-header">
-                  <strong>Active Browser Installations</strong>
-                  <span>Endpoint hashes can rotate when a browser replaces a subscription; the installation prefix groups that history.</span>
-                  {vapidKeyFingerprint ? <span>VAPID key <code>{vapidKeyFingerprint}</code> should remain stable across deployments.</span> : null}
-                </div>
-                {deviceActionMessage ? (
-                  <p className="push-diagnostics-note" role="status">{deviceActionMessage}</p>
-                ) : null}
-                {pushDevices.length === 0 ? (
-                  <p className="push-diagnostics-note">No enabled push devices registered.</p>
-                ) : (
-                  <div className="push-devices-list">
-                    {pushDevices.map((device) => (
-                      <div className={`push-device-row${device.staleCandidate ? " stale" : ""}`} key={device.id}>
-                        <div className="push-device-details">
-                          <div className="push-device-main">
-                            <strong>{device.deviceLabel}</strong>
-                            <code className="push-device-hash">Endpoint {device.endpointHashPrefix}</code>
-                            {device.installationIdPrefix ? <code className="push-device-hash">Installation {device.installationIdPrefix}</code> : null}
-                            <span className="push-device-health">{deviceHealthLabel(device)}</span>
-                          </div>
-                          <div className="push-device-meta">
-                            <span>Installation first registered {formatRegistrationTimestamp(device.registrationInceptionAt ?? device.createdAt)}</span>
-                            <span>Current endpoint registered {formatRegistrationTimestamp(device.createdAt)}</span>
-                            <span>Last seen {formatDiagnosticTimestamp(device.lastSeenAt)}</span>
-                            <span>Last display report {formatDiagnosticTimestamp(device.lastDisplayedAt)}</span>
-                            <span>{device.acceptedWithoutDisplayCount} accepted without a display report</span>
-                            <span>{registrationReasonLabel(device.registrationReason)}</span>
-                            {(device.previousEndpointCount ?? 0) > 0 ? (
-                              <span>{device.previousEndpointCount} earlier {device.previousEndpointCount === 1 ? "endpoint" : "endpoints"} archived</span>
+            {loadState === "loading" ? (
+              <p className="push-diagnostics-note" role="status">
+                <Loader2 size={13} className="animate-spin" aria-hidden="true" /> Loading notification diagnostics...
+              </p>
+            ) : loadState === "unavailable" ? (
+              <p className="push-diagnostics-note" role="status">
+                {diagnostics.message ?? "Notification diagnostics are unavailable."}
+              </p>
+            ) : loadState === "backend" ? (
+              <>
+                <section className="push-devices-section" aria-label="Your Devices">
+                  {deviceActionMessage ? (
+                    <p className="push-diagnostics-note" role="status">{deviceActionMessage}</p>
+                  ) : null}
+                  {diagnostics.devices.length === 0 ? (
+                    <p className="push-diagnostics-note">No devices have notifications on for this account.</p>
+                  ) : (
+                    <div className="push-devices-list">
+                      {diagnostics.devices.map((device) => {
+                        const name = names.get(device.key) ?? device.label;
+                        const rate = deviceShownRate(device);
+                        const mode = deviceModeLabel(device);
+                        const replacements = deviceReplacementSummary(device);
+                        const lastShown = formatDiagnosticTime(device.lastShownAt);
+                        const busy = deviceActionId !== null && deviceActionId === device.currentSubscriptionId;
+                        return (
+                          <div className="push-device-row" data-status={device.status} key={device.key}>
+                            <div className="push-device-details">
+                              <div className="push-device-main">
+                                <strong>{name}</strong>
+                                {isCurrentDevice(device, currentPrefix) ? <span className="push-device-tag">This Device</span> : null}
+                                {mode ? <span className="push-device-tag">{mode}</span> : null}
+                                <span className="push-device-health">{deviceStatusLabel(device)}</span>
+                              </div>
+                              <div className="push-device-meta">
+                                <span>{deviceStatusDetail(device)}</span>
+                                <span>
+                                  {rate !== null ? <b>{rate}% Shown. </b> : null}
+                                  {deviceShownSummary(device)}
+                                </span>
+                                {lastShown ? (
+                                  <span>Last shown {lastShown}{device.lastShownTitle ? `: ${device.lastShownTitle}` : ""}</span>
+                                ) : null}
+                                {replacements ? <span>{replacements}</span> : null}
+                              </div>
+                            </div>
+                            {device.currentSubscriptionId ? (
+                              <div className="push-device-actions">
+                                <button
+                                  type="button"
+                                  className="push-device-test"
+                                  disabled={busy}
+                                  aria-label={`Send a test notification to ${name}`}
+                                  onClick={() => void handleTestDevice(device.currentSubscriptionId!, name)}
+                                >
+                                  {busy && deviceActionType === "test" ? "Testing" : "Test"}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="push-device-disable"
+                                  disabled={busy}
+                                  aria-label={`Turn off notifications on ${name}`}
+                                  onClick={() => void handleDisableDevice(device.currentSubscriptionId!, name)}
+                                >
+                                  {busy && deviceActionType === "disable" ? "Turning Off" : "Turn Off"}
+                                </button>
+                              </div>
                             ) : null}
                           </div>
-                        </div>
-                        <div className="push-device-actions">
-                          <button
-                            type="button"
-                            className="push-device-test"
-                            disabled={!device.enabled || deviceActionId === device.id}
-                            onClick={() => void handleTestDevice(device.id)}
-                          >
-                            {deviceActionId === device.id && deviceActionType === "test" ? "Testing" : "Test"}
-                          </button>
-                          <button
-                            type="button"
-                            className="push-device-disable"
-                            disabled={!device.enabled || deviceActionId === device.id}
-                            onClick={() => {
-                              const isDisplaying = device.deliveryHealth === "displayed" && !device.staleCandidate;
-                              void handleDisableDevice(device.id, isDisplaying);
-                            }}
-                          >
-                            {deviceActionId === device.id && deviceActionType === "disable" ? "Disabling" : "Disable"}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-            ) : null}
-
-            {diagnosticsState === "loading" ? (
-              <p className="push-diagnostics-note" role="status">
-                <Loader2 size={13} className="animate-spin" aria-hidden="true" /> Loading delivery diagnostics...
-              </p>
-            ) : diagnosticsState === "unavailable" ? (
-              <p className="push-diagnostics-note" role="status">
-                {diagnosticsMessage ?? "Push delivery diagnostics are unavailable."}
-              </p>
-            ) : diagnosticNotifications.length === 0 ? (
-              <p className="push-diagnostics-note">No recent push attempts recorded.</p>
-            ) : (
-              <div className="push-diagnostics-scroll" aria-label="Recent Push Attempts">
-                {archivedRecipientCount > 0 ? (
-                  <label className="push-diagnostics-archive-toggle">
-                    <input
-                      type="checkbox"
-                      checked={showArchivedDevices}
-                      onChange={(event) => {
-                        const nextShowArchived = event.currentTarget.checked;
-                        setShowArchivedDevices(nextShowArchived);
-                        if (!nextShowArchived) {
-                          const currentOptions = diagnosticDeviceOptions(diagnosticNotifications, false);
-                          if (!currentOptions.some((option) => option.key === selectedDeviceKey)) {
-                            setSelectedDeviceKey("all");
-                          }
-                        }
-                      }}
-                    />
-                    <span>Show Archived Devices</span>
-                  </label>
-                ) : null}
-                {diagnosticDeviceOptionsForView.length > 2 ? (
-                  <div className="push-diagnostics-filter" role="group" aria-label="Filter notification diagnostics by device">
-                    {diagnosticDeviceOptionsForView.map((option) => (
-                      <button
-                        type="button"
-                        key={option.key}
-                        className={selectedDeviceKey === option.key ? "active" : ""}
-                        onClick={() => setSelectedDeviceKey(option.key)}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-                {visibleNotifications.map((notification) => {
-                  return (
-                    <div className="push-diagnostics-item" key={notification.id}>
-                      <div className="push-diagnostics-item-heading">
-                        <div>
-                          {notification.lineNumber && notification.lineId ? (
-                            <TransitLineBadge lineId={notification.lineId} lineNumber={notification.lineNumber} size={26} className="notification-line-badge" />
-                          ) : null}
-                          <strong>{notification.title}</strong>
-                        </div>
-                        <span>{notification.recipients.length} {notification.recipients.length === 1 ? "device" : "devices"}</span>
-                      </div>
-                      <p className="push-diagnostics-source">
-                        Incident: {notification.sourceIncidentKey ?? "Not recorded"}
-                      </p>
-                      <div className="push-diagnostics-attempts">
-                        {notification.recipients.map((recipient) => {
-                          const delivery = recipient.delivery;
-                          const recentEvents = delivery?.clientEvents.slice(-3) ?? [];
-                          return (
-                            <div className={`push-diagnostics-attempt push-diagnostics-recipient ${recipient.status}`} key={`${notification.id}-${recipient.subscriptionId}-${recipient.endpointHashPrefix}`}>
-                              <div className="push-diagnostics-meta">
-                                <span>{recipient.deviceLabel}</span>
-                                <span>{recipient.endpointHashPrefix}</span>
-                                <span>{delivery ? `${delivery.deliveryStatus}${delivery.httpStatus ? ` ${delivery.httpStatus}` : ""}` : "Not attempted"}</span>
-                                {delivery ? (
-                                  <span>{delivery.attemptCount} {delivery.attemptCount === 1 ? "attempt" : "attempts"}</span>
-                                ) : null}
-                                {delivery ? (
-                                  <span>{displayEvidenceLabel(delivery)}</span>
-                                ) : null}
-                                <span>{delivery ? diagnosticOutcome(delivery) : recipient.reason}</span>
-                              </div>
-                              {!delivery ? (
-                                <p className="push-diagnostics-empty-events">{recipient.reason}</p>
-                              ) : recentEvents.length > 0 ? (
-                                <ol className="push-diagnostics-events">
-                                  {recentEvents.map((event) => (
-                                    <li key={`${delivery.id}-${event.stage}-${event.occurredAt}`}>
-                                      <span>{diagnosticStageLabel(event.stage)}</span>
-                                      <span>{formatDiagnosticTimestamp(event.occurredAt)}</span>
-                                    </li>
-                                  ))}
-                                </ol>
-                              ) : (
-                                <p className="push-diagnostics-empty-events">No client events</p>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  )}
+                </section>
+
+                {diagnostics.alerts.length === 0 ? (
+                  <p className="push-diagnostics-note">No alerts in the last 7 days.</p>
+                ) : (
+                  <section className="push-diagnostics-scroll" aria-label="Recent Alerts">
+                    <strong className="push-diagnostics-section-title">Recent Alerts</strong>
+                    {diagnostics.alerts.map((alert) => (
+                      <div className="push-diagnostics-item" key={alert.id}>
+                        <div className="push-diagnostics-item-heading">
+                          <div>
+                            {alert.lineNumber && alert.lineId ? (
+                              <TransitLineBadge lineId={alert.lineId} lineNumber={alert.lineNumber} size={26} className="notification-line-badge" />
+                            ) : null}
+                            <strong>{alert.title}</strong>
+                          </div>
+                          <span>{formatDiagnosticTime(alert.createdAt)}</span>
+                        </div>
+                        <ul className="push-diagnostics-outcomes">
+                          {alert.outcomes.map((outcome) => (
+                            <li key={`${alert.id}-${outcome.deviceKey}`} data-outcome={outcome.outcome}>
+                              <span>{names.get(outcome.deviceKey) ?? "Device"}</span>
+                              <span>{outcomeLabel(outcome)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </section>
+                )}
+
+                <details className="push-diagnostics-technical">
+                  <summary>Technical Details</summary>
+                  <div className="push-diagnostics-technical-body">
+                    {diagnostics.vapidKeyFingerprint ? (
+                      <p>VAPID key <code>{diagnostics.vapidKeyFingerprint}</code> should stay the same across deployments.</p>
+                    ) : null}
+                    {diagnostics.devices.map((device) => (
+                      <p key={`technical-${device.key}`}>
+                        <b>{names.get(device.key) ?? device.label}</b>
+                        {device.installationIdPrefix ? <> · installation <code>{device.installationIdPrefix}</code></> : null}
+                        {" "}· endpoint <code>{device.endpointHashPrefix}</code>
+                        {device.registrationReason ? <> · {device.registrationReason}</> : null}
+                        {device.browserMajorVersion ? <> · browser {device.browserMajorVersion}</> : null}
+                        {device.displayMode ? <> · {device.displayMode}</> : null}
+                        {" "}· {device.endpointCount} {device.endpointCount === 1 ? "endpoint" : "endpoints"}
+                      </p>
+                    ))}
+                    {diagnostics.lifecycle.length > 0 ? (
+                      <ol className="push-diagnostics-lifecycle" aria-label="Subscription history">
+                        {diagnostics.lifecycle.map((record, index) => (
+                          <li key={`${record.occurredAt}-${index}`}>
+                            <span>{formatDiagnosticTime(record.occurredAt)}</span>
+                            <span>
+                              {record.deviceKey ? `${names.get(record.deviceKey) ?? record.deviceKey} · ` : ""}
+                              {record.eventType}: {record.reason}
+                              {record.endpointHashPrefix ? <> · <code>{record.endpointHashPrefix}</code></> : null}
+                              {record.previousEndpointHashPrefix ? <> replaced <code>{record.previousEndpointHashPrefix}</code></> : null}
+                              {record.browserMajorVersion ? <> · browser {record.browserMajorVersion}</> : null}
+                              {record.displayMode ? <> · {record.displayMode}</> : null}
+                              {record.detail ? <> · {record.detail}</> : null}
+                            </span>
+                          </li>
+                        ))}
+                      </ol>
+                    ) : null}
+                    {diagnostics.alerts.some((alert) => alert.outcomes.some((outcome) => outcome.technical)) ? (
+                      <ol className="push-diagnostics-lifecycle" aria-label="Delivery details">
+                        {diagnostics.alerts.flatMap((alert) => alert.outcomes
+                          .filter((outcome) => outcome.technical)
+                          .map((outcome) => (
+                            <li key={`delivery-${alert.id}-${outcome.deviceKey}`}>
+                              <span>{formatDiagnosticTime(alert.createdAt)}</span>
+                              <span>{names.get(outcome.deviceKey) ?? "Device"} · {alert.title} · {outcome.technical}</span>
+                            </li>
+                          )))}
+                      </ol>
+                    ) : null}
+                  </div>
+                </details>
+              </>
+            ) : null}
           </>
         )}
       </div>

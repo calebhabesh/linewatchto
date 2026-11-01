@@ -10,15 +10,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface PushNotificationDeliveryRepository extends JpaRepository<PushNotificationDeliveryEntity, String> {
     Optional<PushNotificationDeliveryEntity> findByEventIdAndSubscriptionId(String eventId, String subscriptionId);
-    Optional<PushNotificationDeliveryEntity> findTopBySubscription_IdOrderByCreatedAtDesc(String subscriptionId);
-    Optional<PushNotificationDeliveryEntity> findTopBySubscription_IdAndStatusOrderByCreatedAtDesc(String subscriptionId, String status);
-    Optional<PushNotificationDeliveryEntity> findTopBySubscription_IdAndDisplayedAtIsNotNullOrderByDisplayedAtDesc(String subscriptionId);
-    long countBySubscription_IdAndStatusAndDisplayedAtIsNull(String subscriptionId, String status);
-    long countBySubscription_IdAndStatusAndDisplayedAtIsNullAndCreatedAtAfter(
-        String subscriptionId,
-        String status,
-        Instant createdAtAfter
-    );
 
     @Query("""
         select delivery
@@ -119,11 +110,11 @@ public interface PushNotificationDeliveryRepository extends JpaRepository<PushNo
         join fetch delivery.event event
         join fetch delivery.subscription subscription
         where subscription.account.id = :accountId
-        order by delivery.createdAt desc
+          and event.createdAt >= :since
         """)
-    List<PushNotificationDeliveryEntity> findRecentDeliveriesForAccount(
+    List<PushNotificationDeliveryEntity> findDeliveriesForAccountSince(
         @Param("accountId") String accountId,
-        Pageable pageable
+        @Param("since") Instant since
     );
 
     @Query("""
@@ -144,5 +135,21 @@ public interface PushNotificationDeliveryRepository extends JpaRepository<PushNo
         @Param("endpointHash") String endpointHash,
         @Param("categories") List<String> categories,
         @Param("displayedAtAfter") Instant displayedAtAfter
+    );
+
+    /** Whether any endpoint of this installation already showed the event (catch-up never re-notifies it). */
+    @Query("""
+        select count(delivery) > 0
+        from PushNotificationDeliveryEntity delivery
+        join delivery.subscription subscription
+        where delivery.event.id = :eventId
+          and subscription.account.id = :accountId
+          and subscription.installationId = :installationId
+          and delivery.displayedAt is not null
+        """)
+    boolean existsDisplayedForInstallation(
+        @Param("eventId") String eventId,
+        @Param("accountId") String accountId,
+        @Param("installationId") String installationId
     );
 }

@@ -36,7 +36,6 @@
   .site-guide-body,
   .commute-station-options,
   .commute-route-stop-list,
-  .push-devices-list,
   .push-diagnostics-scroll,
   .alert-history-line-filter-options {
     scrollbar-width: thin; /* Firefox */
@@ -75,7 +74,6 @@
   .site-guide-body::-webkit-scrollbar,
   .commute-station-options::-webkit-scrollbar,
   .commute-route-stop-list::-webkit-scrollbar,
-  .push-devices-list::-webkit-scrollbar,
   .push-diagnostics-scroll::-webkit-scrollbar,
   .alert-history-line-filter-options::-webkit-scrollbar {
     display: block;
@@ -114,7 +112,6 @@
   .site-guide-body::-webkit-scrollbar-track,
   .commute-station-options::-webkit-scrollbar-track,
   .commute-route-stop-list::-webkit-scrollbar-track,
-  .push-devices-list::-webkit-scrollbar-track,
   .push-diagnostics-scroll::-webkit-scrollbar-track,
   .alert-history-line-filter-options::-webkit-scrollbar-track {
     background: transparent;
@@ -151,7 +148,6 @@
   .site-guide-body::-webkit-scrollbar-thumb,
   .commute-station-options::-webkit-scrollbar-thumb,
   .commute-route-stop-list::-webkit-scrollbar-thumb,
-  .push-devices-list::-webkit-scrollbar-thumb,
   .push-diagnostics-scroll::-webkit-scrollbar-thumb,
   .alert-history-line-filter-options::-webkit-scrollbar-thumb {
     background: #303641;
@@ -190,7 +186,6 @@
   .site-guide-body::-webkit-scrollbar-thumb:hover,
   .commute-station-options::-webkit-scrollbar-thumb:hover,
   .commute-route-stop-list::-webkit-scrollbar-thumb:hover,
-  .push-devices-list::-webkit-scrollbar-thumb:hover,
   .push-diagnostics-scroll::-webkit-scrollbar-thumb:hover,
   .alert-history-line-filter-options::-webkit-scrollbar-thumb:hover {
     background: #4d5667;

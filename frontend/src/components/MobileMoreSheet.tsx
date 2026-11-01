@@ -543,42 +543,18 @@ export function MobileMoreSheet({
                 <BatteryCharging size={18} aria-hidden="true" />
                 <div>
                   <span>Android Notification Reliability</span>
-                  <strong>Help alerts arrive while your phone is idle</strong>
+                  <strong>If alerts arrive late while your phone is idle</strong>
                 </div>
               </div>
 
-              <ol className="android-notification-steps" aria-label="Android notification setup steps">
-                <li>
-                  <b>1</b>
-                  <div>
-                    <strong>Open the app settings</strong>
-                    <p>Settings <i>›</i> Apps <i>›</i> LineWatchTO</p>
-                  </div>
-                </li>
-                <li>
-                  <b>2</b>
-                  <div>
-                    <strong>Remove the battery restriction</strong>
-                    <p>App battery usage <i>›</i> <em>Unrestricted</em></p>
-                  </div>
-                </li>
-                <li>
-                  <b>3</b>
-                  <div>
-                    <strong>Allow visible alerts</strong>
-                    <p>Notifications <i>›</i> LineWatchTO <i>›</i> Pop on screen</p>
-                  </div>
-                </li>
-              </ol>
-
-              <p className="android-notification-fallback">
-                Don&apos;t see LineWatchTO in Apps? Apply the battery setting to <strong>Chrome</strong> instead.
+              <p className="android-notification-path">
+                Settings <i>›</i> Apps <i>›</i> LineWatchTO <i>›</i> App battery usage <i>›</i> <em>Unrestricted</em> (or apply it to Chrome).
               </p>
 
               <div className="android-notification-caution">
                 <TriangleAlert size={15} aria-hidden="true" />
                 <p>
-                  Unrestricted access can use more battery and improves the odds, but Android and Chrome policy still cannot guarantee immediate delivery. Do not rely on PWA push as the only channel for safety-critical alerts.
+                  Unrestricted access can use more battery and improves the odds, but Android and Chrome can still delay or drop alerts. Opening LineWatchTO reconnects a device that stopped receiving them. Do not rely on PWA push as the only channel for safety-critical alerts.
                 </p>
               </div>
             </div>

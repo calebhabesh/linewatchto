@@ -12,16 +12,6 @@ public interface PushNotificationClientEventRepository extends JpaRepository<Pus
     @Query("""
         select clientEvent
         from PushNotificationClientEventEntity clientEvent
-        left join fetch clientEvent.delivery delivery
-        left join fetch clientEvent.subscription subscription
-        where delivery.id in :deliveryIds
-        order by clientEvent.occurredAt asc
-        """)
-    List<PushNotificationClientEventEntity> findByDeliveryIds(@Param("deliveryIds") List<String> deliveryIds);
-
-    @Query("""
-        select clientEvent
-        from PushNotificationClientEventEntity clientEvent
         where clientEvent.delivery.id = :deliveryId
           and clientEvent.occurredAt >= :attemptedAt
         order by clientEvent.occurredAt asc

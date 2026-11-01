@@ -165,6 +165,10 @@ export type SavePushSubscriptionInput = {
   userAgent: string;
   reason?: string;
   installationId?: string;
+  // Hash of the endpoint this device saved last; the server never sees it raw.
+  previousEndpointHash?: string;
+  browserMajorVersion?: number;
+  displayMode?: "standalone" | "browser";
 };
 
 export type PushSubscriptionResponse = {
@@ -190,107 +194,75 @@ export type PendingPushNotificationResponse = {
   notification: PendingPushNotification | null;
 };
 
-export type PushClientEvent = {
-  stage: string;
-  message: string | null;
-  occurredAt: string;
+// Notification diagnostics around browser installations (plan 12). Hash and
+// installation prefixes only; the backend never sends endpoints or keys.
+export type PushDeviceStatus = "reachable" | "unreachable" | "off";
+
+export type PushDeviceDiagnostic = {
+  key: string;
+  label: string;
+  status: PushDeviceStatus;
+  statusSince: string | null;
+  currentSubscriptionId: string | null;
+  shown: number;
+  sentWhileReachable: number;
+  missedWhileUnreachable: number;
+  lastShownAt: string | null;
+  lastShownTitle: string | null;
+  replacements: number;
+  browserMajorVersion: number | null;
+  displayMode: string | null;
+  installationIdPrefix: string | null;
+  endpointHashPrefix: string;
+  registrationReason: string | null;
+  endpointCount: number;
 };
 
-export type PushDeliveryDiagnostic = {
+export type PushAlertOutcome = {
+  deviceKey: string;
+  outcome: "shown" | "sent" | "missed" | "not-sent";
+  at: string | null;
+  reason: string | null;
+  catchUp: boolean;
+  technical: string | null;
+};
+
+export type PushAlertDiagnostic = {
   id: string;
   title: string;
-  tag: string;
   notificationState: string;
   category: string;
-  eventType: string | null;
   lineId: string | null;
   lineNumber: string | null;
-  eventCreatedAt: string | null;
-  deviceLabel: string;
-  userAgent: string;
-  endpointHashPrefix: string;
-  installationIdPrefix?: string | null;
-  registrationReason?: string | null;
-  subscriptionEnabled: boolean;
-  deliveryStatus: string;
-  httpStatus: number | null;
-  deliveryMessage: string | null;
-  lastAttemptAt: string | null;
-  displayedAt: string | null;
-  attemptCount: number;
-  clientEvents: PushClientEvent[];
-};
-
-export type PushRecipientDiagnostic = {
-  subscriptionId: string;
-  deviceLabel: string;
-  userAgent: string;
-  endpointHashPrefix: string;
-  installationIdPrefix?: string | null;
-  registrationReason?: string | null;
-  subscriptionEnabled: boolean;
-  enabledAt: string | null;
-  disabledAt: string | null;
-  status: "attempted" | "not-attempted" | string;
-  reasonCode: string;
-  reason: string;
-  delivery: PushDeliveryDiagnostic | null;
-};
-
-export type PushNotificationDiagnosticGroup = {
-  id: string;
-  title: string;
-  tag: string;
-  notificationKey: string;
-  sourceIncidentKey: string | null;
-  notificationState: string;
-  category: string;
-  eventType: string | null;
-  lineId: string | null;
-  lineNumber: string | null;
-  eventCreatedAt: string | null;
-  attempts: PushDeliveryDiagnostic[];
-  recipients: PushRecipientDiagnostic[];
-};
-
-export type PushDeliveryDiagnosticsResult = {
-  source: "backend" | "unavailable";
-  notifications: PushNotificationDiagnosticGroup[];
-  deliveries: PushDeliveryDiagnostic[];
-  message?: string;
-};
-
-export type PushDevice = {
-  id: string;
-  deviceLabel: string;
-  userAgent: string;
-  endpointHashPrefix: string;
-  installationIdPrefix?: string | null;
-  registrationReason?: string | null;
-  previousEndpointCount?: number;
-  enabled: boolean;
-  registrationInceptionAt?: string | null;
   createdAt: string | null;
-  updatedAt: string | null;
-  lastSeenAt: string | null;
-  disabledAt: string | null;
-  lastAttemptAt: string | null;
-  lastAcceptedAt: string | null;
-  lastDisplayedAt: string | null;
-  acceptedWithoutDisplayCount: number;
-  deliveryHealth: "displayed" | "accepted-no-display" | "sent-no-display" | "registered" | "disabled" | string;
-  staleCandidate: boolean;
+  outcomes: PushAlertOutcome[];
 };
 
-export type PushDevicesResult = {
+export type PushLifecycleRecord = {
+  occurredAt: string;
+  deviceKey: string | null;
+  eventType: string;
+  reason: string;
+  endpointHashPrefix: string | null;
+  previousEndpointHashPrefix: string | null;
+  browserMajorVersion: number | null;
+  displayMode: string | null;
+  detail: string | null;
+};
+
+export type PushDiagnosticsResult = {
   source: "backend" | "unavailable";
-  devices: PushDevice[];
+  windowStart: string | null;
+  devices: PushDeviceDiagnostic[];
+  alerts: PushAlertDiagnostic[];
   vapidKeyFingerprint: string | null;
+  lifecycle: PushLifecycleRecord[];
   message?: string;
 };
 
 export type PushDeviceTestResult = {
-  delivery: PushDeliveryDiagnostic;
+  deliveryStatus: string;
+  httpStatus: number | null;
 };
 
 export async function getPushNotificationConfig(options: AdapterOptions = {}): Promise<PushNotificationConfigResult> {
@@ -324,7 +296,7 @@ export async function getPushNotificationConfig(options: AdapterOptions = {}): P
   }
 }
 
-export async function getPushDeliveryDiagnostics(options: AdapterOptions = {}): Promise<PushDeliveryDiagnosticsResult> {
+export async function getPushDiagnostics(options: AdapterOptions = {}): Promise<PushDiagnosticsResult> {
   try {
     const fetcher = options.fetcher ?? fetch;
     const response = await fetcher(apiUrl("/api/account/push/diagnostics", options), {
@@ -335,75 +307,30 @@ export async function getPushDeliveryDiagnostics(options: AdapterOptions = {}): 
       throw await accountRequestError(response, "Push diagnostics request failed");
     }
     const body = await readJson<{
-      notifications?: PushNotificationDiagnosticGroup[];
-      deliveries?: PushDeliveryDiagnostic[];
+      windowStart?: string | null;
+      devices?: PushDeviceDiagnostic[];
+      alerts?: PushAlertDiagnostic[];
+      technical?: { vapidKeyFingerprint?: string | null; lifecycle?: PushLifecycleRecord[] };
     }>(response);
-    const deliveries = Array.isArray(body.deliveries) ? body.deliveries : [];
-    const notifications = Array.isArray(body.notifications)
-      ? body.notifications.map((notification) => ({
-          ...notification,
-          recipients: Array.isArray(notification.recipients) ? notification.recipients : [],
-        }))
-      : deliveries.map((delivery) => ({
-          id: delivery.id,
-          title: delivery.title,
-          tag: delivery.tag,
-          notificationKey: delivery.tag.replace(/\|(active|cleared)$/i, ""),
-          sourceIncidentKey: null,
-          notificationState: delivery.notificationState,
-          category: delivery.category,
-          eventType: delivery.eventType,
-          lineId: delivery.lineId,
-          lineNumber: delivery.lineNumber,
-          eventCreatedAt: delivery.eventCreatedAt,
-          attempts: [delivery],
-          recipients: [{
-            subscriptionId: "",
-            deviceLabel: delivery.deviceLabel,
-            userAgent: delivery.userAgent,
-            endpointHashPrefix: delivery.endpointHashPrefix,
-            subscriptionEnabled: delivery.subscriptionEnabled,
-            enabledAt: null,
-            disabledAt: null,
-            status: "attempted",
-            reasonCode: "attempted",
-            reason: "Delivery was attempted for this device.",
-            delivery,
-          }],
-        }));
-    return { source: "backend", notifications, deliveries };
-  } catch {
-    return {
-      source: "unavailable",
-      notifications: [],
-      deliveries: [],
-      message: "Push delivery diagnostics are unavailable.",
-    };
-  }
-}
-
-export async function getPushDevices(options: AdapterOptions = {}): Promise<PushDevicesResult> {
-  try {
-    const fetcher = options.fetcher ?? fetch;
-    const response = await fetcher(apiUrl("/api/account/push/devices", options), {
-      method: "GET",
-      credentials: "include",
-    });
-    if (!response.ok) {
-      throw await accountRequestError(response, "Push devices request failed");
-    }
-    const body = await readJson<{ devices?: PushDevice[]; vapidKeyFingerprint?: string | null }>(response);
     return {
       source: "backend",
+      windowStart: body.windowStart ?? null,
       devices: Array.isArray(body.devices) ? body.devices : [],
-      vapidKeyFingerprint: typeof body.vapidKeyFingerprint === "string" ? body.vapidKeyFingerprint : null,
+      alerts: Array.isArray(body.alerts)
+        ? body.alerts.map((alert) => ({ ...alert, outcomes: Array.isArray(alert.outcomes) ? alert.outcomes : [] }))
+        : [],
+      vapidKeyFingerprint: body.technical?.vapidKeyFingerprint ?? null,
+      lifecycle: Array.isArray(body.technical?.lifecycle) ? body.technical.lifecycle : [],
     };
   } catch {
     return {
       source: "unavailable",
+      windowStart: null,
       devices: [],
+      alerts: [],
       vapidKeyFingerprint: null,
-      message: "Push devices are unavailable.",
+      lifecycle: [],
+      message: "Notification diagnostics are unavailable.",
     };
   }
 }
@@ -433,10 +360,15 @@ export async function getLatestPushNotificationForSubscription(endpoint: string,
   );
 }
 
-export async function disablePushSubscription(endpoint: string, options: AdapterOptions = {}) {
+// "user-disabled" ends the installation's enablement; "vapid-key-changed" is a
+// replacement the next subscription continues.
+export async function disablePushSubscription(
+  endpoint: string,
+  { reason = "user-disabled", ...options }: AdapterOptions & { reason?: "user-disabled" | "vapid-key-changed" } = {},
+) {
   await accountJsonRequest<void>(
     "/api/account/push/subscription/disable",
-    { method: "POST", body: JSON.stringify({ endpoint }) },
+    { method: "POST", body: JSON.stringify({ endpoint, reason }) },
     options,
   );
 }

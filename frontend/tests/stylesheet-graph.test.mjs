@@ -797,29 +797,21 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.push-diagnostics-header/);
     assert.match(content, /\.push-diagnostics-note/);
     assert.match(content, /\.push-devices-section/);
-    assert.match(content, /\.push-devices-header/);
     assert.match(content, /\.push-devices-list/);
     assert.match(content, /\.push-device-row/);
     assert.match(content, /\.push-device-details/);
     assert.match(content, /\.push-device-main/);
-    assert.match(content, /\.push-device-hash/);
+    assert.match(content, /\.push-device-tag/);
     assert.match(content, /\.push-device-health/);
     assert.match(content, /\.push-device-meta/);
     assert.match(content, /\.push-device-actions/);
     assert.match(content, /\.push-device-disable/);
     assert.match(content, /\.push-device-test/);
     assert.match(content, /\.push-diagnostics-scroll/);
-    assert.match(content, /\.push-diagnostics-filter/);
-    assert.match(content, /\.push-diagnostics-archive-toggle/);
     assert.match(content, /\.push-diagnostics-item/);
     assert.match(content, /\.push-diagnostics-item-heading/);
-    assert.match(content, /\.push-diagnostics-meta/);
-    assert.match(content, /\.push-diagnostics-source/);
-    assert.match(content, /\.push-diagnostics-attempts/);
-    assert.match(content, /\.push-diagnostics-attempt/);
-    assert.match(content, /\.push-diagnostics-recipient/);
-    assert.match(content, /\.push-diagnostics-events/);
-    assert.match(content, /\.push-diagnostics-empty-events/);
+    assert.match(content, /\.push-diagnostics-outcomes/);
+    assert.match(content, /\.push-diagnostics-technical/);
   });
 
   it("resolves the extracted panels/alerts.css in the application stylesheet graph", () => {

@@ -13,6 +13,7 @@ const registrationSource = readFileSync(
   "utf8",
 );
 const serviceWorkerSource = readFileSync(new URL("../public/sw.js", import.meta.url), "utf8");
+const subscriptionCheckSource = readFileSync(new URL("../public/push-subscription-check.js", import.meta.url), "utf8");
 const offlinePageSource = readFileSync(new URL("../public/offline.html", import.meta.url), "utf8");
 const appUpdateBannerUrl = new URL("../src/components/AppUpdateBanner.tsx", import.meta.url);
 const appUpdatePageUrl = new URL("../public/app-update.html", import.meta.url);
@@ -294,6 +295,7 @@ async function serviceWorkerPush({
   existingNotifications = [],
   pushData = null,
   showNotificationError = null,
+  savedSubscriptionState,
 } = {}) {
   const listeners = new Map();
   const waitUntilPromises = [];
@@ -357,6 +359,9 @@ async function serviceWorkerPush({
     clients,
   };
 
+  const storage = savedSubscriptionState === undefined
+    ? null
+    : installSharedSubscriptionCheck(context, savedSubscriptionState);
   runInNewContext(serviceWorkerSource, context, { filename: "sw.js" });
 
   const pushListener = listeners.get("push");
@@ -377,7 +382,28 @@ async function serviceWorkerPush({
   pushListener(event);
   await Promise.all(waitUntilPromises);
 
-  return { fetchRequests, shownNotifications, listeners, operationLog };
+  return { fetchRequests, shownNotifications, listeners, operationLog, storage };
+}
+
+// Loads the shared subscription check into a worker context with in-memory
+// storage in place of IndexedDB. Returns the storage so tests can inspect writes.
+function installSharedSubscriptionCheck(context, savedState) {
+  context.TextEncoder = TextEncoder;
+  context.Response = globalThis.Response;
+  context.self.crypto = { ...(context.self.crypto || {}), subtle: globalThis.crypto.subtle };
+  runInNewContext(subscriptionCheckSource, context, { filename: "push-subscription-check.js" });
+  const storage = { state: savedState };
+  const check = context.self.LineWatchPushSubscriptionCheck;
+  check.readSavedSubscriptionState = async () => storage.state ?? null;
+  check.writeSavedSubscriptionState = async (state) => {
+    storage.state = { ...(storage.state || {}), ...state };
+  };
+  return storage;
+}
+
+async function sha256Hex(value) {
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Buffer.from(digest).toString("hex");
 }
 
 function clientEventRequests(fetchRequests) {
@@ -406,6 +432,7 @@ async function serviceWorkerPushSubscriptionChange({
     webPushAvailable: true,
     vapidPublicKey: "AQIDBA",
   },
+  savedSubscriptionState = null,
 } = {}) {
   const listeners = new Map();
   const fetchRequests = [];
@@ -464,6 +491,7 @@ async function serviceWorkerPushSubscriptionChange({
     },
   };
 
+  const storage = installSharedSubscriptionCheck(context, savedSubscriptionState);
   runInNewContext(serviceWorkerSource, context, { filename: "sw.js" });
 
   const subscriptionChangeListener = listeners.get("pushsubscriptionchange");
@@ -479,7 +507,7 @@ async function serviceWorkerPushSubscriptionChange({
   });
   await Promise.all(waitUntilPromises);
 
-  return { fetchRequests, subscribeCalls };
+  return { fetchRequests, subscribeCalls, storage };
 }
 
 async function serviceWorkerMessage({
@@ -861,28 +889,114 @@ describe("LineWatch PWA configuration", () => {
     assert.notEqual(fetchRequests[0]?.url, "/api/account/push/latest");
   });
 
-  it("repairs rotated push subscriptions from the service worker", async () => {
-    const { fetchRequests, subscribeCalls } = await serviceWorkerPushSubscriptionChange();
+  it("restores a dropped subscription in pushsubscriptionchange and reports each stage", async () => {
+    const savedHash = await sha256Hex("https://fcm.googleapis.com/fcm/send/saved-subscription");
+    const { fetchRequests, subscribeCalls, storage } = await serviceWorkerPushSubscriptionChange({
+      savedSubscriptionState: { endpointHash: savedHash, displayMode: "standalone" },
+    });
 
-    assert.equal(fetchRequests[0].url, "/api/account/push/subscription/disable");
-    assert.equal(
-      JSON.parse(fetchRequests[0].options.body).endpoint,
-      "https://fcm.googleapis.com/fcm/send/old-subscription",
-    );
-    assert.equal(fetchRequests[1].url, "/api/account/push/config");
-    assert.equal(fetchRequests[2].url, "/api/account/push/subscription");
-    assert.equal(
-      JSON.parse(fetchRequests[2].options.body).endpoint,
-      "https://fcm.googleapis.com/fcm/send/new-subscription",
-    );
-    assert.equal(JSON.parse(fetchRequests[2].options.body).keys.p256dh, "https://fcm.googleapis.com/fcm/send/new-subscription-p256dh");
-    assert.equal(
-      JSON.parse(fetchRequests[2].options.body).installationId,
-      "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324",
-    );
+    assert.deepEqual(fetchRequests.map((request) => request.url), [
+      "/api/account/push/subscription/worker-stage",
+      "/api/account/push/config",
+      "/api/account/push/subscription",
+      "/api/account/push/subscription/worker-stage",
+    ]);
+    assert.equal(JSON.parse(fetchRequests[0].options.body).stage, "subscription-change-fired");
+    const saved = JSON.parse(fetchRequests[2].options.body);
+    assert.equal(saved.endpoint, "https://fcm.googleapis.com/fcm/send/new-subscription");
+    assert.equal(saved.keys.p256dh, "https://fcm.googleapis.com/fcm/send/new-subscription-p256dh");
+    assert.equal(saved.installationId, "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324");
+    assert.equal(saved.reason, "restored-missing");
+    assert.equal(saved.previousEndpointHash, savedHash);
+    assert.equal(saved.displayMode, "standalone");
+    assert.equal(JSON.parse(fetchRequests[3].options.body).stage, "subscription-change-saved");
+    assert.equal(storage.state.endpointHash, await sha256Hex("https://fcm.googleapis.com/fcm/send/new-subscription"));
     assert.equal(subscribeCalls.length, 1);
     assert.equal(subscribeCalls[0].userVisibleOnly, true);
     assert.equal(subscribeCalls[0].applicationServerKey instanceof Uint8Array, true);
+    // Hashes only: no raw endpoint reaches storage or the previous-endpoint field.
+    assert.doesNotMatch(JSON.stringify(storage.state), /fcm\.googleapis/);
+  });
+
+  it("saves the browser's new subscription as endpoint-replaced with the old hash", async () => {
+    const savedHash = await sha256Hex("https://fcm.googleapis.com/fcm/send/old-subscription");
+    const { fetchRequests, subscribeCalls } = await serviceWorkerPushSubscriptionChange({
+      newSubscription: fakePushSubscription("https://fcm.googleapis.com/fcm/send/new-subscription"),
+      savedSubscriptionState: { endpointHash: savedHash },
+    });
+
+    const saved = JSON.parse(fetchRequests.find((request) => request.url === "/api/account/push/subscription").options.body);
+    assert.equal(saved.reason, "endpoint-replaced");
+    assert.equal(saved.previousEndpointHash, savedHash);
+    assert.equal(subscribeCalls.length, 0);
+  });
+
+  it("does not subscribe a device that never saved a subscription, and reports why", async () => {
+    const { fetchRequests, subscribeCalls } = await serviceWorkerPushSubscriptionChange({ oldSubscription: null });
+
+    assert.equal(subscribeCalls.length, 0);
+    const stages = fetchRequests.map((request) => JSON.parse(request.options.body || "{}"));
+    assert.deepEqual(stages.map((stage) => stage.stage), ["subscription-change-fired", "subscription-change-failed"]);
+    assert.equal(stages[1].message, "not-restorable");
+  });
+
+  it("saves a replaced endpoint noticed when a push arrives", async () => {
+    const savedHash = await sha256Hex("https://fcm.googleapis.com/fcm/send/earlier");
+    const { fetchRequests, storage } = await serviceWorkerPush({
+      pushData: {
+        title: "⚠️ Line 1 Yonge-University Delay",
+        body: "Finch to Union.",
+        url: "/",
+        tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+        state: "ACTIVE",
+        timestamp: "2026-06-05T15:00:00Z",
+      },
+      fetchBody: { enabled: true },
+      savedSubscriptionState: { endpointHash: savedHash },
+    });
+
+    const save = fetchRequests.find((request) => request.url === "/api/account/push/subscription");
+    assert.ok(save, "a different endpoint is saved");
+    assert.equal(JSON.parse(save.options.body).reason, "endpoint-replaced");
+    assert.equal(JSON.parse(save.options.body).previousEndpointHash, savedHash);
+    assert.equal(storage.state.endpointHash, await sha256Hex("https://fcm.googleapis.com/fcm/send/subscription"));
+    const stage = fetchRequests.find((request) => request.url === "/api/account/push/subscription/worker-stage");
+    assert.equal(JSON.parse(stage.options.body).stage, "check-replaced");
+  });
+
+  it("does not save when the push arrives on the endpoint the device saved", async () => {
+    const { fetchRequests } = await serviceWorkerPush({
+      pushData: {
+        title: "⚠️ Line 1 Yonge-University Delay",
+        body: "Finch to Union.",
+        url: "/",
+        tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+        state: "ACTIVE",
+        timestamp: "2026-06-05T15:00:00Z",
+      },
+      savedSubscriptionState: { endpointHash: await sha256Hex("https://fcm.googleapis.com/fcm/send/subscription") },
+    });
+
+    assert.equal(fetchRequests.some((request) => request.url === "/api/account/push/subscription"), false);
+  });
+
+  it("refreshes a catch-up alert already in the tray without alerting again", async () => {
+    const tag = "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active";
+    const catchUp = {
+      title: "⚠️ Line 1 Yonge-University Delay",
+      body: "Finch to Union.",
+      url: "/",
+      tag,
+      state: "ACTIVE",
+      timestamp: "2026-06-05T15:00:00Z",
+      catchUp: true,
+    };
+    const inTray = await serviceWorkerPush({ pushData: catchUp, existingNotifications: [{ tag, close: () => undefined }] });
+    assert.equal(inTray.shownNotifications[0].options.renotify, false);
+    assert.equal(inTray.shownNotifications[0].options.silent, false);
+
+    const missed = await serviceWorkerPush({ pushData: catchUp, existingNotifications: [] });
+    assert.equal(missed.shownNotifications[0].options.renotify, true);
   });
 
   it("keeps payload push notifications visible when display acknowledgement fails", async () => {

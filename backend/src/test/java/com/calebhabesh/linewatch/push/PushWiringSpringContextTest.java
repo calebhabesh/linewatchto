@@ -34,6 +34,7 @@ class PushWiringSpringContextTest {
         @Bean RegionalIngestionFreshness regionalIngestionFreshness() { return mock(RegionalIngestionFreshness.class); }
         @Bean AlertHistoryRepository alertHistoryRepository() { return mock(AlertHistoryRepository.class); }
         @Bean PushSubscriptionLifecycleService pushSubscriptionLifecycleService() { return mock(PushSubscriptionLifecycleService.class); }
+        @Bean PushSubscriptionLifecycleEventRepository pushSubscriptionLifecycleEventRepository() { return mock(PushSubscriptionLifecycleEventRepository.class); }
     }
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()

@@ -110,12 +110,14 @@ class PushNotificationControllerTest {
 
     @Test
     void returnsDeliveryDiagnosticsForCurrentAccount() {
-        PushResponses.PushDeliveryDiagnosticsResponse expected =
-            new PushResponses.PushDeliveryDiagnosticsResponse(java.util.List.of());
+        PushResponses.PushDiagnosticsResponse expected = new PushResponses.PushDiagnosticsResponse(
+            "2026-06-01T00:00:00Z", java.util.List.of(), java.util.List.of(),
+            new PushResponses.PushDiagnosticsTechnicalResponse(null, java.util.List.of())
+        );
         when(accountService.requireAccount("raw-token")).thenReturn(account);
         when(pushDeliveryDiagnosticsService.forAccount(account.getId())).thenReturn(expected);
 
-        PushResponses.PushDeliveryDiagnosticsResponse response = controller.diagnostics("raw-token");
+        PushResponses.PushDiagnosticsResponse response = controller.diagnostics("raw-token");
 
         assertThat(response).isEqualTo(expected);
         verify(pushDeliveryDiagnosticsService).forAccount(account.getId());
@@ -123,7 +125,7 @@ class PushNotificationControllerTest {
 
     @Test
     void sendsTestPushForCurrentAccountDevice() {
-        PushResponses.PushDeviceTestResponse expected = new PushResponses.PushDeviceTestResponse(null);
+        PushResponses.PushDeviceTestResponse expected = new PushResponses.PushDeviceTestResponse("accepted", 201);
         when(accountService.requireAccount("raw-token")).thenReturn(account);
         when(pushNotificationService.testDevice(account, "push_subscription_android")).thenReturn(expected);
 

@@ -55,6 +55,7 @@ and test evidence. Background inventory: [feature reference](feature-reference.m
 - Commute cancellation pushes additionally require exact schedule matching, at least two ordered path stops in matching direction, the scheduled trip inside the selected leg schedule, and current time inside its notification window.
 - Enabling/editing route rules silently baselines active impacts. Impacts beginning outside a window may notify once when the natural window opens. Planned/restored commute pushes respect the selected leg's open window; restored also requires its toggle and a prior active commute delivery.
 - Preserve distinct update re-notification, unchanged-snapshot deduplication, separate active/restored lifecycle entries, high transport urgency, and non-silent persistent display requests. Browser policy can still remove notifications.
+- Device reconnection catch-up is not route-rule baselining: it applies only to a replacement endpoint of the same installation whose enablement continued (browser rotation or push-service 404/410, never a rider's enable or disable), sends only still-active, uncleared alerts that became eligible while that installation was enabled, once per endpoint, and never an alert any endpoint of the installation already displayed. Devices store and report endpoint hashes only.
 - Planned-advisory follow-up policy is shared by commute and line streams (Smart, Within 24 Hours, Day Of, Announcements Only), emitting one applicable timing candidate per evaluation.
 
 ## Reliability and public claims

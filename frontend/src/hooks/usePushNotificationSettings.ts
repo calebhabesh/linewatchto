@@ -25,6 +25,18 @@ import {
   type DevicePushSetupState,
 } from "../app/push-notification-state";
 import { getOrCreatePushInstallationId } from "../app/push-installation-identity";
+import {
+  browserMajorVersion,
+  clearSavedSubscriptionState,
+  currentDisplayMode,
+  endpointHash,
+  readSavedSubscriptionState,
+  registerPeriodicSubscriptionCheck,
+  registrationReasonFor,
+  unregisterPeriodicSubscriptionCheck,
+  writeSavedSubscriptionState,
+  type PushRegistrationReason,
+} from "../app/push-subscription-check";
 
 export type UsePushNotificationSettingsResult = {
   supported: boolean;
@@ -107,27 +119,50 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
     [preferences]
   );
 
-  const saveDeviceSubscription = useCallback(async (subscription: PushSubscription, reason = "app-refresh") => {
+  const saveDeviceSubscription = useCallback(async (
+    subscription: PushSubscription,
+    reason: PushRegistrationReason,
+    previousEndpointHash?: string,
+  ) => {
     const installationId = await getOrCreatePushInstallationId();
-    return await savePushSubscription({
+    const displayMode = currentDisplayMode();
+    const response = await savePushSubscription({
       endpoint: subscription.endpoint,
       keys: pushSubscriptionKeys(subscription),
       userAgent: navigator.userAgent,
       reason,
       installationId,
+      previousEndpointHash,
+      browserMajorVersion: browserMajorVersion(
+        navigator.userAgent,
+        (navigator as Navigator & { userAgentData?: { brands?: { brand?: string; version?: string }[] } }).userAgentData,
+      ) ?? undefined,
+      displayMode,
     });
+    if (response.enabled) {
+      // The service worker compares later subscriptions against this hash.
+      await writeSavedSubscriptionState({
+        endpointHash: await endpointHash(subscription.endpoint),
+        savedAt: new Date().toISOString(),
+        displayMode,
+      });
+    }
+    return response;
   }, []);
 
+  // Each outcome has its own reason: a re-save ("refreshed"), a subscription the
+  // browser dropped ("restored-missing"), or a different endpoint from the
+  // browser ("endpoint-replaced", sent with the previous endpoint's hash).
   const createOrRefreshDeviceSubscription = useCallback(async (
     currentConfig: PushNotificationConfig,
-    reason = "app-refresh",
+    explicitReason?: "user-enabled",
   ) => {
     const registration = await serviceWorkerRegistrationForPush();
-    const existing = await registration.pushManager.getSubscription();
-    let subscription = existing;
+    const saved = await readSavedSubscriptionState();
+    let subscription = await registration.pushManager.getSubscription();
     if (subscription && !pushSubscriptionUsesApplicationServerKey(subscription, currentConfig.vapidPublicKey)) {
       try {
-        await disablePushSubscription(subscription.endpoint);
+        await disablePushSubscription(subscription.endpoint, { reason: "vapid-key-changed" });
       } catch {
         // The backend may not know this stale endpoint. Continue with browser cleanup.
       }
@@ -137,23 +172,33 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
       }
       subscription = null;
     }
+    const subscribedAnew = !subscription;
     subscription = subscription ?? await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: base64UrlToUint8Array(currentConfig.vapidPublicKey),
     });
-    const response = await saveDeviceSubscription(subscription, reason);
-    if (response.enabled) return subscription;
-
-    await subscription.unsubscribe();
-    const replacement = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: base64UrlToUint8Array(currentConfig.vapidPublicKey),
+    const currentHash = await endpointHash(subscription.endpoint);
+    const savedHash = saved?.endpointHash;
+    const reason = explicitReason ?? registrationReasonFor({
+      savedEndpointHash: savedHash,
+      currentEndpointHash: currentHash,
+      subscribedAnew,
     });
-    const replacementResponse = await saveDeviceSubscription(replacement, "invalid-endpoint-replacement");
-    if (!replacementResponse.enabled) {
-      throw new Error("Could not replace invalid push subscription.");
+    const previousEndpointHash = savedHash && savedHash !== currentHash ? savedHash : undefined;
+    const response = await saveDeviceSubscription(subscription, reason, previousEndpointHash);
+    if (!response.enabled) {
+      await subscription.unsubscribe();
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: base64UrlToUint8Array(currentConfig.vapidPublicKey),
+      });
+      const replacementResponse = await saveDeviceSubscription(subscription, "invalid-endpoint-replacement", currentHash);
+      if (!replacementResponse.enabled) {
+        throw new Error("Could not replace invalid push subscription.");
+      }
     }
-    return replacement;
+    await registerPeriodicSubscriptionCheck(registration);
+    return subscription;
   }, [saveDeviceSubscription]);
 
   const fetchConfigAndSubscription = useCallback(async (isMounted: () => boolean) => {
@@ -225,7 +270,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
 
       if (subscription && subscriptionUsesCurrentKey && permission === "granted" && !disabledByUser && !subscriptionSavedDuringRestore) {
         try {
-          subscription = await createOrRefreshDeviceSubscription(result.config, "app-refresh");
+          subscription = await createOrRefreshDeviceSubscription(result.config);
         } catch (err) {
           console.error("Failed to refresh device push subscription", err);
           setMessage("Notifications are on, but this device could not refresh its push registration.");
@@ -331,9 +376,12 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
       const registration = await getPushServiceWorkerRegistration(navigator.serviceWorker);
       const subscription = await registration?.pushManager.getSubscription();
       if (subscription) {
-        await disablePushSubscription(subscription.endpoint);
+        await disablePushSubscription(subscription.endpoint, { reason: "user-disabled" });
         await subscription.unsubscribe();
       }
+      // The worker restores only a subscription this device had saved.
+      await clearSavedSubscriptionState();
+      await unregisterPeriodicSubscriptionCheck(registration);
       writeDeviceDisabledByUser(accountState.user?.id, true);
       setSubscribed(false);
       setDeviceNotificationsEnabled(false);

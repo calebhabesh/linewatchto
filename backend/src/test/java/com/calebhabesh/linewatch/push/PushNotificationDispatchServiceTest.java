@@ -2948,6 +2948,142 @@ class PushNotificationDispatchServiceTest {
         verify(lineEventObservationService).markCleared(observation, clock.instant());
     }
 
+    // Plan 12 catch-up: a replacement endpoint of the same installation receives the
+    // still-active alerts its dead predecessor missed, once, and never one already shown.
+
+    private static final String CATCH_UP_INSTALLATION = "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324";
+
+    private PushSubscriptionEntity catchUpReplacement(Instant installationEnabledAt, Instant enabledAt) {
+        PushSubscriptionEntity replacement = PushSubscriptionEntity.create(
+            "push_subscription_replacement",
+            account,
+            "https://fcm.googleapis.com/fcm/send/replacement",
+            PushNotificationService.hashEndpoint("https://fcm.googleapis.com/fcm/send/replacement"),
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            CATCH_UP_INSTALLATION,
+            "endpoint-replaced",
+            enabledAt
+        );
+        replacement.continueInstallation(installationEnabledAt);
+        return replacement;
+    }
+
+    private PushNotificationCandidate catchUpCandidate() {
+        return candidate(
+            "commute_1", "outbound", "line-1", "1", "saved-commute-impact", "delay", "on-change",
+            "saved-commute-impact|commute_1|outbound|delay|delay-line-1", "dedupe-catch-up",
+            "Finch to Union", "Morning commute", Instant.parse("2026-06-05T14:20:00Z"),
+            "/?panel=commutes&commute=commute_1"
+        );
+    }
+
+    private PushNotificationEventEntity stubLatestActiveEvent(PushNotificationCandidate candidate, Instant createdAt) {
+        PushNotificationEventEntity event = PushNotificationEventEntity.create("push_event_catch_up", candidate, createdAt);
+        when(eventRepository.findFirstByAccountIdAndNotificationKeyAndNotificationStateOrderByCreatedAtDesc(
+            "user_1", candidate.notificationKey(), "ACTIVE"
+        )).thenReturn(Optional.of(event));
+        when(eventRepository.findFirstByAccountIdAndNotificationKeyAndNotificationStateOrderByCreatedAtDesc(
+            "user_1", candidate.notificationKey(), "CLEARED"
+        )).thenReturn(Optional.empty());
+        return event;
+    }
+
+    @Test
+    void catchUpSendsMissedActiveAlertToReplacementEndpointOnce() {
+        PushSubscriptionEntity replacement = catchUpReplacement(
+            Instant.parse("2026-06-05T10:00:00Z"), Instant.parse("2026-06-05T14:55:00Z")
+        );
+        PushNotificationCandidate candidate = catchUpCandidate();
+        PushNotificationEventEntity event = stubLatestActiveEvent(candidate, Instant.parse("2026-06-05T14:30:00Z"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(replacement));
+        when(deliveryRepository.findByEventIdAndSubscriptionId(event.getId(), replacement.getId())).thenReturn(Optional.empty());
+        when(webPushClient.send(eq(replacement), anyString(), any(WebPushPayload.class)))
+            .thenReturn(PushDeliveryResult.accepted(201));
+
+        service.catchUpReplacementSubscriptions("user_1", List.of(candidate));
+
+        ArgumentCaptor<WebPushPayload> payload = ArgumentCaptor.forClass(WebPushPayload.class);
+        verify(webPushClient).send(eq(replacement), anyString(), payload.capture());
+        assertThat(payload.getValue().catchUp()).isTrue();
+        assertThat(payload.getValue().toJson()).contains("\"catchUp\":true");
+        ArgumentCaptor<PushNotificationDeliveryEntity> delivery = ArgumentCaptor.forClass(PushNotificationDeliveryEntity.class);
+        verify(deliveryRepository).save(delivery.capture());
+        assertThat(delivery.getValue().isCatchUp()).isTrue();
+
+        // The delivery row is the dedupe: the next evaluation sends nothing.
+        when(deliveryRepository.findByEventIdAndSubscriptionId(event.getId(), replacement.getId()))
+            .thenReturn(Optional.of(delivery.getValue()));
+        service.catchUpReplacementSubscriptions("user_1", List.of(candidate));
+        verify(webPushClient, times(1)).send(any(), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
+    void catchUpNeverResendsAnAlertTheInstallationAlreadyShowed() {
+        PushSubscriptionEntity replacement = catchUpReplacement(
+            Instant.parse("2026-06-05T10:00:00Z"), Instant.parse("2026-06-05T14:55:00Z")
+        );
+        PushNotificationCandidate candidate = catchUpCandidate();
+        PushNotificationEventEntity event = stubLatestActiveEvent(candidate, Instant.parse("2026-06-05T14:30:00Z"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(replacement));
+        when(deliveryRepository.findByEventIdAndSubscriptionId(event.getId(), replacement.getId())).thenReturn(Optional.empty());
+        when(deliveryRepository.existsDisplayedForInstallation(event.getId(), "user_1", CATCH_UP_INSTALLATION))
+            .thenReturn(true);
+
+        service.catchUpReplacementSubscriptions("user_1", List.of(candidate));
+
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
+    void catchUpSkipsClearedAlertsAndAlertsFromBeforeTheInstallationWasEnabled() {
+        PushSubscriptionEntity replacement = catchUpReplacement(
+            Instant.parse("2026-06-05T14:40:00Z"), Instant.parse("2026-06-05T14:55:00Z")
+        );
+        PushNotificationCandidate candidate = catchUpCandidate();
+        stubLatestActiveEvent(candidate, Instant.parse("2026-06-05T14:30:00Z"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(replacement));
+
+        service.catchUpReplacementSubscriptions("user_1", List.of(candidate));
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+
+        PushSubscriptionEntity earlierInstallation = catchUpReplacement(
+            Instant.parse("2026-06-05T10:00:00Z"), Instant.parse("2026-06-05T14:55:00Z")
+        );
+        PushNotificationEventEntity active = stubLatestActiveEvent(candidate, Instant.parse("2026-06-05T14:30:00Z"));
+        PushNotificationEventEntity cleared = PushNotificationEventEntity.create(
+            "push_event_cleared", candidate, Instant.parse("2026-06-05T14:50:00Z")
+        );
+        when(eventRepository.findFirstByAccountIdAndNotificationKeyAndNotificationStateOrderByCreatedAtDesc(
+            "user_1", candidate.notificationKey(), "CLEARED"
+        )).thenReturn(Optional.of(cleared));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(earlierInstallation));
+        when(deliveryRepository.findByEventIdAndSubscriptionId(active.getId(), earlierInstallation.getId()))
+            .thenReturn(Optional.empty());
+
+        service.catchUpReplacementSubscriptions("user_1", List.of(candidate));
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
+    void catchUpEligibilityUsesInstallationEnablementOnlyForAlertsTheEndpointMissed() {
+        PushNotificationEventEntity event = PushNotificationEventEntity.create(
+            "push_event_1", catchUpCandidate(), Instant.parse("2026-06-05T14:30:00Z")
+        );
+        assertThat(PushNotificationDispatchService.catchUpEligible(
+            catchUpReplacement(Instant.parse("2026-06-05T10:00:00Z"), Instant.parse("2026-06-05T14:55:00Z")), event
+        )).isTrue();
+        // Became eligible after the replacement registered: the normal send path owns it.
+        assertThat(PushNotificationDispatchService.catchUpEligible(
+            catchUpReplacement(Instant.parse("2026-06-05T10:00:00Z"), Instant.parse("2026-06-05T14:20:00Z")), event
+        )).isFalse();
+        // A fresh enablement (no continuity) never catches up.
+        assertThat(PushNotificationDispatchService.catchUpEligible(
+            catchUpReplacement(Instant.parse("2026-06-05T14:55:00Z"), Instant.parse("2026-06-05T14:55:00Z")), event
+        )).isFalse();
+    }
+
     private PushNotificationCandidate reopenedSavedCommuteCandidate() {
         return candidate(
             "commute_1", "outbound", "line-1", "1", "saved-commute-impact", "delay", "on-change",
