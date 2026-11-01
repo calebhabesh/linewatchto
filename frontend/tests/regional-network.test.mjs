@@ -29,7 +29,10 @@ const regionalMapSource = readRegionalMapSource();
 const overlayHoverSource = readFileSync(new URL("../src/components/map-overlays/overlay-hover.ts", import.meta.url), "utf8");
 const framingSource = readFileSync(new URL("../src/components/map-camera/useMapFraming.ts", import.meta.url), "utf8");
 const regionalGeometrySource = readFileSync(new URL("../src/app/regional-map-geometry.ts", import.meta.url), "utf8");
-const regionalAssetSource = readFileSync(new URL("../src/app/regional-map-asset.ts", import.meta.url), "utf8");
+// GO/UP's artwork preparation: the shared, manifest-driven one (map-artwork.ts).
+const regionalAssetSource = ["../src/app/regional-map-asset.ts", "../src/app/map-artwork.ts"]
+  .map((path) => readFileSync(new URL(path, import.meta.url), "utf8"))
+  .join("\n");
 const regionalOverlaysSource = readFileSync(new URL("../src/app/regional-map-overlays.ts", import.meta.url), "utf8");
 // GO/UP's line alerts: the shared builder (map-corridors.ts) over GO/UP's drawn segments.
 const regionalLineAlertsSource = ["../src/app/map-corridors.ts", "../src/app/regional-map-content.ts", "../src/app/regional-map-overlays.ts"]
@@ -628,7 +631,8 @@ describe("network-scoped regional dashboard", () => {
     assert.match(overlayHoverSource, /const use = element\.ownerDocument\.createElementNS\(SVG_NAMESPACE, "use"\);/);
     assert.match(overlayHoverSource, /setHoverCopy\(element, hovered\);/);
     assert.match(sharedOverlaySource, /className="map-impact-hover-foreground-layer" pointerEvents="none">/);
-    assert.match(regionalLineAlertsSource, /regionalStationPillShape\(geometry, "station-union"\)/);
+    assert.match(readFileSync(new URL("../src/app/map-manifests.ts", import.meta.url), "utf8"), /outlineCutouts: \{ stationIds: \["union"\], strokeWidth: 96 \}/);
+    assert.match(readFileSync(new URL("../src/components/system-map/system-map-definition.ts", import.meta.url), "utf8"), /overlayPlane: mapOverlayPlane\(manifest, geometry\)/);
     // Hover copies sit in the overlay plane under the station artwork; targets
     // are in the interaction plane, line alerts under stations.
     assert.match(regionalMapSource, /className=\{`raster-map-dynamic-plane map-overlay-plane[\s\S]*?<MapLineAlertHoverCopies alerts=\{lineAlerts\} plane=\{overlayPlane\} \/>[\s\S]*?\{overPlanes\.map\(renderRasterPlane\)\}/);
@@ -923,10 +927,10 @@ describe("network-scoped regional dashboard", () => {
     assert.equal((regionalMapSource.match(/setArtwork\(/g) ?? []).length, 1);
     // The artwork loads once (app/map-artwork.ts); overlays are React layers beside it.
     assert.match(regionalMapSource, /preloadMapArtwork\(map\.artwork\)\.then\(\(markup\) => \{\s*if \(!cancelled && markup\) setArtwork\(markup\);/);
-    assert.match(regionalAssetSource, /preloadMapArtwork\(\{ url: source, prepare: prepareRegionalMapMarkup \}\)/);
+    assert.match(regionalAssetSource, /preloadMapArtwork\(\{ url: source, prepare: REGIONAL_MAP_ARTWORK\.prepare \}\)/);
     assert.doesNotMatch(regionalOverlaysSource, /Layer\.replaceChildren\(\)/);
     assert.doesNotMatch(regionalMapSource, /mapStageRef\.current\.replaceChildren/);
-    assert.match(regionalAssetSource, /element\.style\.removeProperty\("shape-rendering"\)/);
+    assert.match(regionalAssetSource, /RENDERING_HINTS = \["shape-rendering", "image-rendering"\][\s\S]*?element\.style\.removeProperty\(hint\)/);
     assert.match(sharedOverlaySource, /data-selected-commute-impact-overlay=\{alert\.impactId\}/);
     assert.match(globalsCss, /\[data-selected-commute-impact-overlay\] \.asset-alert-path-glow\s*\{\s*display:\s*none;/);
   });

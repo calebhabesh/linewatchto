@@ -24,8 +24,8 @@ export type SystemMapData = Pick<
 >;
 
 export type SystemMapContentInput = SystemMapData & {
-  /** The shell's station list for this map, when it passes one (TTC). */
-  stationList?: StationSummary[];
+  /** The network's station catalog (the shell's list), which every map places. */
+  stationList: StationSummary[];
   selection: ImpactSelection;
   commutePathPreview: AccountCommutePathPreview | null;
 };
@@ -40,11 +40,13 @@ export type SystemMapDefinition = {
   /** The authored SVG, prepared as artwork only. */
   artwork: MapArtworkSource;
   /**
-   * Whether the map places the shell's station list (`SystemMap`'s `stations`)
-   * rather than its data's stations, so a listed station the artwork lacks
-   * still gets a target (TTC's smoke fixtures need it).
+   * Whether the network's station catalog carries positions in this map's
+   * coordinates (TTC's `mapX`/`mapY` do; GO/UP's are 0, 0). Every map places
+   * its network's catalog (`SystemMap`'s `stations`) where the artwork draws
+   * each station; with positions, a station the artwork does not draw is
+   * placed at its own as a regular dot.
    */
-  usesStationList: boolean;
+  placesUndrawnStations: boolean;
   /** The network's content adapter: what the map draws over its artwork. */
   content: (input: SystemMapContentInput) => MapContent;
   trainMarkers: {
@@ -55,22 +57,44 @@ export type SystemMapDefinition = {
 };
 
 /** What a network's content adapter gives each of its maps, from the map's prepared geometry. */
-export type SystemMapNetworkAdapter = Pick<SystemMapDefinition, "usesStationList" | "content" | "trainMarkers">;
+export type SystemMapNetworkAdapter = Pick<SystemMapDefinition, "placesUndrawnStations" | "content" | "trainMarkers">;
 
-/** The overlay plane a map gets from its manifest alone: no outline cutouts. */
-export function manifestOverlayPlane(manifest: MapManifest<string>): MapOverlayPlane {
-  return { idPrefix: manifest.id, unit: manifest.overlayUnit, maskBounds: manifest.viewBox, outlineCutouts: [] };
+/**
+ * Where a map draws its overlays, from its manifest and prepared geometry: its
+ * id and overlay unit, map-wide masks over the view box with a view box of
+ * margin on every side (outlines near the edge are not clipped), and an
+ * outline cutout per pill station the manifest names (`outlineCutouts`).
+ */
+export function mapOverlayPlane(manifest: MapManifest<string>, geometry: PreparedMapGeometry): MapOverlayPlane {
+  const { viewBox } = manifest;
+  const { stationIds = [], strokeWidth = 0 } = manifest.outlineCutouts ?? {};
+  const outlineCutouts = stationIds.flatMap((stationId): MapOverlayPlane["outlineCutouts"] => {
+    const id = `station-${stationId}`;
+    const station = geometry.stations.find((candidate) => candidate.shapes.some((shape) => shape.id === id));
+    const shape = station?.shapes.find((candidate) => candidate.id === id);
+    if (!station || shape?.tag !== "rect" || shape.join || shape.transform) return [];
+    // Cutouts are plain rectangles: the pill may only be translated.
+    const [a, b, c, d, e, f] = station.transform;
+    if (a !== 1 || b !== 0 || c !== 0 || d !== 1) return [];
+    return [{ x: shape.x + e, y: shape.y + f, width: shape.width, height: shape.height, rx: shape.rx, ry: shape.ry, strokeWidth }];
+  });
+  return {
+    idPrefix: manifest.id,
+    unit: manifest.overlayUnit,
+    maskBounds: { x: viewBox.x - viewBox.width, y: viewBox.y - viewBox.height, width: viewBox.width * 3, height: viewBox.height * 3 },
+    outlineCutouts,
+  };
 }
 
 /**
- * A map's definition from its parts, with the station artwork read from its
- * prepared geometry. The geometry must be the manifest map's, prepared from
- * the same view box. Without an overlay plane or artwork, the map gets its
- * manifest's (`manifestOverlayPlane`, `mapArtworkSource`).
+ * A map's definition from its manifest, prepared geometry and network
+ * adapter. Everything else comes from the manifest and geometry, the same way
+ * for every map: station artwork, the overlay plane (`mapOverlayPlane`) and
+ * the SVG's preparation (`mapArtworkSource`). The geometry must be the
+ * manifest map's, prepared from the same view box.
  */
 export function defineSystemMap(
-  definition: Omit<SystemMapDefinition, "stationArtwork" | "overlayPlane" | "artwork">
-    & Partial<Pick<SystemMapDefinition, "overlayPlane" | "artwork">>,
+  definition: Omit<SystemMapDefinition, "stationArtwork" | "overlayPlane" | "artwork">,
 ): SystemMapDefinition {
   const { manifest, geometry } = definition;
   if (geometry.map !== manifest.id) {
@@ -78,8 +102,8 @@ export function defineSystemMap(
   }
   return {
     ...definition,
-    overlayPlane: definition.overlayPlane ?? manifestOverlayPlane(manifest),
-    artwork: definition.artwork ?? mapArtworkSource(manifest),
+    overlayPlane: mapOverlayPlane(manifest, geometry),
+    artwork: mapArtworkSource(manifest),
     stationArtwork: mapStationArtwork(geometry, manifest.stationPartSuffixes),
   };
 }

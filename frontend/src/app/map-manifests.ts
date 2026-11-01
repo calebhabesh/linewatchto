@@ -103,6 +103,13 @@ export type MapManifest<Id extends string = MapId> = {
    * SVG (read by `prepare:map-geometry`). Defaults to `mapBadgeObstacles`'s.
    */
   badgeObstacles?: MapBadgeObstacles;
+  /**
+   * Optional: stations drawn as pills (an untransformed `rect` dot, only
+   * translated) that the hover outline stops at instead of crossing, and the
+   * cutout's stroke in map units, wide enough to cover the pill's authored
+   * border (`mapOverlayPlane`).
+   */
+  outlineCutouts?: { stationIds: readonly string[]; strokeWidth: number };
 };
 
 export type MapBadgeObstacles = {
@@ -229,6 +236,8 @@ export const MAP_MANIFESTS: Record<MapId, MapManifest> = {
       "regional-route-up-airport-path",
       "regional-route-up-path",
     ],
+    // Union's pill: the hover outline disappears behind it.
+    outlineCutouts: { stationIds: ["union"], strokeWidth: 96 },
     badgeObstacles: {
       ignore: "defs",
       text: "text",

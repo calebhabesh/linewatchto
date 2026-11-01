@@ -1,7 +1,6 @@
 import type { Station, StationNodeImpact } from "./linewatch-data.ts";
-import type { PreparedMapGeometry } from "./map-geometry-data.ts";
+import { matrixTransform, type PreparedMapGeometry } from "./map-geometry-data.ts";
 import {
-  matrixTransform,
   regionalStation,
   regionalStationDots,
   regionalStationImpactAnchors,

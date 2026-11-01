@@ -49,7 +49,8 @@ describe("regional map asset loader and lifecycle", () => {
             setAttribute: () => {},
             prepend: () => {},
           },
-          querySelector: () => null,
+          // Every manifest layer exists; no parser error.
+          querySelector: (selector) => (selector === "parsererror" ? null : { querySelectorAll: () => [] }),
           querySelectorAll: () => [],
           getElementById: (id) => {
             if (id === "regional-stations-layer") {
@@ -135,7 +136,8 @@ describe("regional map asset loader and lifecycle", () => {
             setAttribute: () => {},
             prepend: () => {},
           },
-          querySelector: () => null,
+          // Every manifest layer exists; no parser error.
+          querySelector: (selector) => (selector === "parsererror" ? null : { querySelectorAll: () => [] }),
           querySelectorAll: () => [],
           getElementById: () => ({
             querySelector: () => null,

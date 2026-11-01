@@ -725,7 +725,7 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   await expect(regionalRasterLabelHover).toHaveCount(1);
   await regionalLabelTarget.dispatchEvent("pointerup", { pointerId: 31, pointerType: "mouse", button: 0 });
   // The authored label stays hidden under its raster copy.
-  await expect(regionalStage.locator('[data-regional-station-label-for="kipling"]')).toHaveCSS("visibility", "hidden");
+  await expect(regionalStage.locator('[data-map-station-label-for="kipling"]')).toHaveCSS("visibility", "hidden");
 });
 
 test("waits for the authored map font before lifting a hovered station label", async ({ page, request, isMobile }) => {
@@ -914,7 +914,7 @@ test("regional station names share the TTC raster hover glow and station selecti
   await waitForNetworkTransition(page, "regional");
   await page.getByRole("button", { name: "Collapse sidebar" }).click();
 
-  const authoredLabel = page.locator('[data-regional-station-label-for="kipling"]');
+  const authoredLabel = page.locator('[data-map-station-label-for="kipling"]');
   const labelTarget = page.locator('[data-station-label-id="kipling"]');
   await expect(authoredLabel).toHaveCount(1);
   await expect(labelTarget).toHaveCount(1);

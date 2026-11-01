@@ -2,8 +2,9 @@
    Regional Airport Connection Styling
    ========================================================================== */
 
-.dark [data-system-map="regional"] .map-stage .map-connection-airport :is(text, tspan),
-.high-contrast [data-system-map="regional"] .map-stage .map-connection-airport :is(text, tspan) {
+/* The authored airport marks, by their Inkscape label (the attribute keeps its prefixed name in the mounted SVG). */
+.dark [data-system-map="regional"] .map-stage g[inkscape\:label$="airport-icon"] :is(text, tspan),
+.high-contrast [data-system-map="regional"] .map-stage g[inkscape\:label$="airport-icon"] :is(text, tspan) {
   fill: #f8fafc !important;
 }
 

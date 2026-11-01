@@ -67,17 +67,16 @@ import { mobilePerformanceModeMatches } from "../../hooks/useMobilePerformanceMo
 import { useMapLabelFontReady } from "../../hooks/useMapLabelFontReady";
 import { usePageVisibility } from "../../hooks/usePageVisibility";
 import { useDashboardData } from "../../app/DataContext";
-import { cachedMapArtwork, preloadMapArtwork, splitMapArtwork } from "../../app/map-artwork";
+import { cachedMapArtwork, preloadMapArtwork, removeDescendantIds, splitMapArtwork } from "../../app/map-artwork";
 import { mapContentReuser, placeMapOverlapBadges, type MapPlacedOverlapBadge } from "../../app/map-content";
 import { mapStationLabelHover, mapStationLabelTargets, placeMapStations } from "../../app/map-station-artwork";
 import type { MapManifest } from "../../app/map-manifests";
 import type { RasterMapId, RasterMapPlane as RasterMapPlaneName } from "../../app/map-raster-manifest";
-import { removeDescendantIds } from "../../app/regional-map-asset";
 import { linkedCurrentImpactIds } from "../../app/selection-attention-key";
+import type { StationSummary } from "../../app/station-data";
 import type { ImpactSelection, MapImpact } from "../../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../../app/commute-data";
 import type { EstimatedTrainMarker } from "../../app/train-markers";
-import type { StationSummary } from "../../app/station-data";
 import type { NetworkId } from "../../app/regional-data";
 import type { MapViewPreference } from "../../app/visual-preferences";
 import type { MapCameraStore } from "../map-camera/camera-store";
@@ -88,11 +87,12 @@ export type SystemMapProps = {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
   /**
-   * The shell's station list for this map's network, read only by a map
-   * that `usesStationList`: a listed station its artwork does not draw is
-   * placed at its listed position. Other maps show their data's stations.
+   * The network's station catalog (the shell's list), which every map places:
+   * where its artwork draws each station, else (`placesUndrawnStations`) at
+   * its listed position. Kept whole when the dashboard data is partial
+   * (TTC's fixture view has 16 of its 109 stations).
    */
-  stations?: StationSummary[];
+  stations: StationSummary[];
   selectedStationId: string | null;
   onSelectStationId: (id: string | null) => void;
   isDark: boolean;
@@ -170,7 +170,7 @@ function SystemMapComponent({
   map,
   selection,
   onSelectImpact,
-  stations: shellStationList,
+  stations: stationList,
   selectedStationId,
   onSelectStationId,
   isDark,
@@ -201,7 +201,6 @@ function SystemMapComponent({
   selectionIntroKey: linkedSelectionIntroKey = null,
 }: SystemMapProps) {
   const { manifest, geometry, overlayPlane } = map;
-  const stationList = map.usesStationList ? shellStationList : undefined;
   const {
     networkSegments,
     activeAlerts,
@@ -294,10 +293,11 @@ function SystemMapComponent({
     [activeAlerts, delays, plannedClosures, selection],
   );
 
-  // Stations: targets shaped like their dots, and their names.
-  const stationPlacements = useMemo(() => placeMapStations(map.stationArtwork, stationList
-    ? stationList.map(({ id, name, mapX, mapY }) => ({ id, name, fallbackPoint: { x: mapX, y: mapY } }))
-    : dataStations.map(({ id, name }) => ({ id, name }))), [dataStations, map.stationArtwork, stationList]);
+  // Stations: the network's catalog, as targets shaped like their dots, and their names.
+  const { placesUndrawnStations } = map;
+  const stationPlacements = useMemo(() => placeMapStations(map.stationArtwork, stationList.map(({ id, name, mapX, mapY }) => (
+    placesUndrawnStations ? { id, name, fallbackPoint: { x: mapX, y: mapY } } : { id, name }
+  ))), [map.stationArtwork, placesUndrawnStations, stationList]);
   const selectedStationArtwork = useMemo(
     () => stationPlacements.find(({ artwork: station }) => station.id === selectedStationId)?.artwork ?? null,
     [selectedStationId, stationPlacements],

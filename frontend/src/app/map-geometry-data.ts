@@ -94,6 +94,11 @@ export type PreparedMapGeometry = {
 };
 
 /** A flat [x0, y0, x1, y1, …] list as points. */
+/** An SVG `transform` value for a prepared [a, b, c, d, e, f] matrix. */
+export function matrixTransform(matrix: readonly number[]): string {
+  return `matrix(${matrix.join(" ")})`;
+}
+
 export function preparedPoints(flat: readonly number[]): MapPoint[] {
   const points: MapPoint[] = [];
   for (let index = 0; index + 1 < flat.length; index += 2) points.push({ x: flat[index], y: flat[index + 1] });

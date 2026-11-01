@@ -41,7 +41,10 @@ const ttcTrainMarkerLayerSource = readFileSync(new URL("../src/components/map-ov
 const ttcMapRendererSource = [interactiveMapSource, ttcGlyphLanesSource, badgeArtworkSource, ttcTrainMarkerLayerSource].join("\n");
 const interactiveRegionalMapSource = readRegionalMapSource();
 const regionalStationLayersSource = readFileSync(new URL("../src/components/MapStationLayers.tsx", import.meta.url), "utf8");
-const regionalAssetSource = readFileSync(new URL("../src/app/regional-map-asset.ts", import.meta.url), "utf8");
+// GO/UP's artwork preparation: the shared, manifest-driven one (map-artwork.ts).
+const regionalAssetSource = ["../src/app/regional-map-asset.ts", "../src/app/map-artwork.ts"]
+  .map((path) => readFileSync(new URL(path, import.meta.url), "utf8"))
+  .join("\n");
 const regionalOverlaysSource = readFileSync(new URL("../src/app/regional-map-overlays.ts", import.meta.url), "utf8");
 const ttcChooserPlacementSource = readFileSync(new URL("../src/components/map-chooser-placement.ts", import.meta.url), "utf8");
 const chooserHookSource = readFileSync(new URL("../src/components/map-overlays/useMapOverlapChooser.ts", import.meta.url), "utf8");
@@ -155,7 +158,7 @@ describe("asset-backed map layering", () => {
   });
 
   it("gives regional station names the TTC hover glow with a bounded fast reveal", () => {
-    assert.match(regionalAssetSource, /dataset\.regionalStationLabelFor = stationId/);
+    assert.match(regionalAssetSource, /label\.setAttribute\("data-map-station-label-for", stationId\)/);
     assert.match(interactiveRegionalMapSource, /<MapStationLabelHoverCopy/);
     assert.match(regionalStationLayersSource, /className="raster-station-label-text-hover"/);
     assert.doesNotMatch(interactiveRegionalMapSource, /regional-station-label-hover-clone/);

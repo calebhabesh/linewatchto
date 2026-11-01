@@ -109,11 +109,11 @@ describe("stable raster map renderer", () => {
   });
 
   it("preserves authored label weights and theme-aware interchange leaders", async () => {
-    const [generator, map, stationLayers, regionalAsset, manifests, css, mapLabelFontHook] = await Promise.all([
+    const [generator, map, stationLayers, artworkPreparation, manifests, css, mapLabelFontHook] = await Promise.all([
       readFile(`${frontendRoot}/scripts/generate-map-rasters.mjs`, "utf8"),
       Promise.resolve(readSystemMapSource()),
       readFile(`${frontendRoot}/src/components/MapStationLayers.tsx`, "utf8"),
-      readFile(`${frontendRoot}/src/app/regional-map-asset.ts`, "utf8"),
+      readFile(`${frontendRoot}/src/app/map-artwork.ts`, "utf8"),
       readFile(`${frontendRoot}/src/app/map-manifests.ts`, "utf8"),
       readAppStylesheet(),
       readFile(`${frontendRoot}/src/hooks/useMapLabelFontReady.ts`, "utf8"),
@@ -148,8 +148,9 @@ describe("stable raster map renderer", () => {
     assert.match(manifests, /cutout: \{ kind: "use", idPrefix: "station-label-", dilate: 4 \}/);
     assert.match(manifests, /cutout: \{ kind: "copy", idPrefix: "regional-station-label-cutout-source-", dilate: 6 \}/);
     assert.match(map, /removeDescendantIds\(copy\)/);
-    assert.match(regionalAsset, /labelCutoutSources\.id = "regional-station-label-cutout-sources"/);
-    assert.match(regionalAsset, /cutoutSource\.id = `regional-station-label-cutout-source-\$\{stationId\}`/);
+    // One preparation for every map: a `copy` cutout gets glyph copies by id prefix.
+    assert.match(artworkPreparation, /sources\.id = `\$\{manifest\.id\}-station-label-cutout-sources`/);
+    assert.match(artworkPreparation, /source\.id = `\$\{cutout\.idPrefix\}\$\{stationId\}`/);
     assert.match(
       generator,
       /labelsRenderedSize:\s*(?:RASTER_MAP_RENDERED_SIZES\.regionalLabels|\{ width: 17036\.959, height: 9031\.6719 \})/,

@@ -625,3 +625,87 @@ full-spec runs; phone numbers are noisy). Build once and reuse it
     432–536 ms; later opens TTC 96–104 ms, GO/UP 144–232 ms. Parity TTC
     6.2 ms, GO/UP 9.2–9.8 ms per hover (one run at a 17.5 ms display read
     TTC 18.9).
+- **Phase 5 done (2026-11-01): green on both maps.**
+  - **Item 9: both GO/UP mobile cases were tests that assumed desktop UI.**
+    Neither the map nor the panel was at fault: mobile behaved the same on
+    both maps. `regional-station-alerts.spec.ts:6` expected the desktop
+    list card after tapping a line row. On mobile the tap opens the map's
+    impact inspector, which already read "Barrie Line", and the list card is
+    one step further, through "View in List". The spec now checks the
+    inspector, then the card. `regional-planned-closure-station-rings.spec.ts:6`
+    (a copy of `dashboard.spec.ts:1725`, which skips mobile as "network
+    selection is desktop-only", no longer true) waited for the desktop rail's
+    `[data-dest="closures"]`. On mobile it now uses the map's network switch,
+    Status, Planned Advisories, and the inspector's "View in List" between
+    the two cards. Both pass on desktop and mobile.
+  - **Item 10, station list: both maps place their network's station
+    catalog.** `usesStationList` is gone. `SystemMap`'s `stations` (the
+    shell's list per network) is required and every map places it where its
+    artwork draws each station. The one network fact is
+    `placesUndrawnStations`: whether the catalog's positions are in the
+    map's coordinates (TTC's `mapX`/`mapY` are; GO/UP's are 0, 0), so an
+    undrawn station is placed at its own as a regular dot. GO/UP's catalog
+    is its data's 72 stations, all drawn, so it is unchanged. The content
+    adapters get the catalog as `stationList` (TTC reads it; GO/UP's needs
+    only its data). Not the plan's default (both place their *data*
+    stations): tried first, it drops TTC station targets whenever the
+    dashboard data is partial. TTC's fixture view (backend unavailable) has
+    16 of 109 stations while its bundled catalog has all 109. It also made
+    the smoke stub's fixture stations (stub Eglinton sits on Stub Station)
+    collide and needed stub rewrites. On live data the two lists match (109
+    ids, same positions), so the catalog loses nothing. The smoke stub and
+    `withAuthoredTtcStations` are unchanged.
+  - **Item 10, artwork preparation is manifest data.** One preparation for
+    every map, `prepareMapArtworkMarkup(svg, manifest)` (`map-artwork.ts`).
+    `mapArtworkSource(manifest)` is now the only source, and
+    `prepareTtcMapMarkup` and `prepareRegionalMapMarkup` are retired. Steps:
+    - the manifest's `stations`, `stationLabels` and `lines` layers must
+      exist (TTC's extra required-layer list is gone; the validator checks
+      the SVG);
+    - inline `shape-rendering` and `image-rendering` hints are dropped on
+      both maps. TTC kept them, which overrode the phone performance mode's
+      `.map-stage svg { shape-rendering: auto }`;
+    - text keeps its authored hints. Stripping `text-rendering` too, as
+      GO/UP did, let phones' `optimizeLegibility` move TTC's names 1.6 units
+      off their prepared boxes (`browser-compat.spec.ts:8`). Names must
+      render as their boxes and rasters do;
+    - a `copy` name cutout builds glyph copies from `stationLabelLink`
+      (`name`: normalised match, skipping `stationPartSuffixes`) at the
+      name's ancestor transforms, under
+      `<defs id="<map id>-station-label-cutout-sources">`, and marks names
+      `data-map-station-label-for` (was `data-regional-station-label-for`).
+    GO/UP's airport marks (dark and high-contrast fill) are selected by
+    `g[inkscape\:label$="airport-icon"]` in `regional-map.css`, not by a
+    class the preparation added. The unused `map-connection-label` class,
+    the unused label ids and `REGIONAL_LARGE_TERMINAL_IDS` are gone.
+  - **Item 10, overlay plane is manifest data.** `mapOverlayPlane(manifest,
+    geometry)` (`system-map-definition.ts`) replaces
+    `manifestOverlayPlane` and `regionalOverlayPlane`. Every map gets
+    map-wide masks with a view box of margin, as GO/UP had. Outline cutouts
+    come from the new manifest field `outlineCutouts` (GO/UP:
+    `{ stationIds: ["union"], strokeWidth: 96 }`). `defineSystemMap` no
+    longer takes an overlay plane or artwork.
+  - **Shared helpers out of network modules.** `removeDescendantIds` and
+    `normalizedStationName` are in `map-artwork.ts`; `matrixTransform` is
+    in `map-geometry-data.ts` (the engine's `map-station-artwork.ts`
+    imported it from `regional-map-geometry.ts`). No engine module imports
+    a network-named module now, apart from the app-wide `NetworkId` type in
+    `regional-data`. `regional-map-asset.ts` and `map-preload.ts` keep only
+    each map's source and cache aliases.
+  - **compact-mobile: none of the 18 failures is map parity.** They fail the
+    same with and without this phase. 17 are stale shell selectors or
+    chrome layout: the Status, More and "Rotate map" buttons, the notice
+    chip, the old GO/UP switcher, and notice clearance at 320–412 px. One is
+    a stale TTC expectation of 3 raster planes (TTC has 4 since its badge
+    plane). They stay outside this plan.
+  - Checks: `test:fast` passes and typecheck is clean. Lint shows the 15
+    existing warnings. Browser checks ran on a worktree of `b32f8e16` plus
+    this phase only, since other sessions had unrelated work in the tree
+    (geometry label boxes, push notifications). There, `map-parity` passed
+    38. The browser list (dashboard by path, plus `map-line-badges`) on
+    desktop-chrome and mobile-chromium passed 362. It failed 3:
+    `browser-compat:8` mobile (fixed above, then passing), and
+    `dashboard.spec.ts:1117` and `:1576` desktop, which each passed twice on
+    rerun (flaky; `:1576` is likely the plan's flaky `:1574`, shifted). The
+    two item 9 cases pass, so the list has no per-map failures.
+    `test:visual` passed 30 with no differences.

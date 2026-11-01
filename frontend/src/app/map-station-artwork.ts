@@ -6,13 +6,13 @@
  */
 import type { MapBounds, MapPoint } from "./map-geometry.ts";
 import {
+  matrixTransform,
   stationLabelCenter,
   stationLabelPolygon,
   type PreparedMapGeometry,
   type PreparedStationShape,
   type StationLabelPadding,
 } from "./map-geometry-data.ts";
-import { matrixTransform } from "./regional-map-geometry.ts";
 
 export type MapStationShape = PreparedStationShape;
 

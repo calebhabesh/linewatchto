@@ -11,8 +11,8 @@
 import dynamic from "next/dynamic";
 import { memo, type ComponentType } from "react";
 import type { MapId } from "../../app/map-manifests";
-import { preloadMapArtwork, type MapArtworkSource } from "../../app/map-artwork";
-import { REGIONAL_MAP_ARTWORK } from "../../app/regional-map-asset";
+import { mapArtworkSource, preloadMapArtwork, type MapArtworkSource } from "../../app/map-artwork";
+import { MAP_MANIFESTS } from "../../app/map-manifests";
 import { SystemMap, type SystemMapProps } from "./SystemMap";
 import type { SystemMapDefinition } from "./system-map-definition";
 import { TTC_SYSTEM_MAP } from "./ttc-system-map";
@@ -27,7 +27,7 @@ type SystemMapEntry =
 const SYSTEM_MAPS: Record<MapId, SystemMapEntry> = {
   ttc: { bundled: TTC_SYSTEM_MAP },
   regional: {
-    artwork: REGIONAL_MAP_ARTWORK,
+    artwork: mapArtworkSource(MAP_MANIFESTS.regional),
     load: () => import("./regional-system-map").then((module) => module.REGIONAL_SYSTEM_MAP),
   },
 };

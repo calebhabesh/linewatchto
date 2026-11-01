@@ -138,14 +138,14 @@ describe("map line badges", () => {
   });
 
   it("separates authored badges from labels, stations, and track artwork without fading them", async () => {
-    const [preload, map, generator] = await Promise.all([
-      readFile(`${frontendRoot}/src/app/map-preload.ts`, "utf8"),
+    const [ttcSvg, map, generator] = await Promise.all([
+      readFile(`${frontendRoot}/public/assets/linewatch/ttc-subway-map-custom.svg`, "utf8"),
       Promise.resolve(readTtcMapSource()),
       readFile(`${frontendRoot}/scripts/generate-map-rasters.mjs`, "utf8"),
     ]);
     // The authored badges are a layer of the artwork; once the rasters are
     // ready they paint from their own plane, under the live overlays.
-    assert.match(preload, /"ttc-line-badges-layer",/);
+    assert.match(ttcSvg, /id="ttc-line-badges-layer"/);
     assert.match(generator, /foregroundCss:[\s\S]*?#ttc-line-badges-layer/);
     assert.match(generator, /badgesCss:[\s\S]*?#ttc-stations-layer,[\s\S]*?opacity: 0 !important/);
     assert.match(generator, /plane === "badges" \|\| theme === "light"/);

@@ -281,7 +281,7 @@
   pointer-events: none;
 }
 
-[data-system-map="regional"] .map-stage .regional-station-label-cutout-source :is(text, tspan) {
+[data-system-map="regional"] .map-stage .map-station-label-cutout-source :is(text, tspan) {
   font-family: "TeX Gyre Heros", Arial, Helvetica, sans-serif !important;
   pointer-events: none;
 }

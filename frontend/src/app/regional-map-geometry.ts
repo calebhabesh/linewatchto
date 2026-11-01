@@ -62,10 +62,6 @@ export function squaredPointDistance(a: MapPoint, b: MapPoint): number {
 }
 
 
-/** An SVG `transform` value for a prepared [a, b, c, d, e, f] matrix. */
-export function matrixTransform(matrix: readonly number[]): string {
-  return `matrix(${matrix.join(" ")})`;
-}
 
 type RegionalLookup = {
   stations: Map<string, PreparedStation>;

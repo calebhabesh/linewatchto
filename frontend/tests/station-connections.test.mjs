@@ -18,10 +18,6 @@ const regionalMap = readFileSync(
   new URL("../public/assets/linewatch/regional-rail-map.svg", import.meta.url),
   "utf8",
 );
-const regionalAssetSource = readFileSync(
-  new URL("../src/app/regional-map-asset.ts", import.meta.url),
-  "utf8",
-);
 const ttcStationPanel = readFileSync(
   new URL("../src/components/StationDetailPanel.tsx", import.meta.url),
   "utf8",
@@ -128,7 +124,6 @@ describe("station connection metadata and map labels", () => {
   });
 
   it("marks non-text connection artwork as collision keepouts", () => {
-    assert.match(regionalAssetSource, /element\.classList\.add\("map-connection-label"\)/);
     // Every VIA and airport connection mark is a prepared badge obstacle.
     const geometry = JSON.parse(readFileSync(new URL("../src/app/map-geometry/regional.json", import.meta.url), "utf8"));
     const connectionMarks = regionalMap.match(/inkscape:label="(?:via-rail-[^"]+|[^"]*airport-icon)"/g) ?? [];
@@ -162,8 +157,8 @@ describe("station connection metadata and map labels", () => {
     assert.doesNotMatch(css, /\.station-connection-row:last-child:nth-child\(odd\)/);
     assert.doesNotMatch(css, /\.station-connection-row:only-child/);
     assert.match(css, /\.dark \.station-connection-row,[\s\S]*?background: rgba\(255, 255, 255, 0\.035\)/);
-    assert.doesNotMatch(css, /map-connection-airport[^}]*filter:/s);
-    assert.match(css, /map-connection-airport :is\(text, tspan\)[\s\S]*?fill: #f8fafc !important/);
+    assert.doesNotMatch(css, /airport-icon"\][^}]*filter:/s);
+    assert.match(css, /g\[inkscape\\:label\$="airport-icon"\] :is\(text, tspan\)[\s\S]*?fill: #f8fafc !important/);
     assert.match(upExpressLogo, /fill:#4084cd/g);
     assert.match(ttcMap, /id="path40-9-51"[\s\S]*?style="fill:#4084cd/);
     assert.match(ttcMap, /id="path40-9-5"[\s\S]*?style="fill:#4084cd/);

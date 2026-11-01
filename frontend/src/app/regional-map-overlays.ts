@@ -7,7 +7,6 @@ import type {
   StationNodeImpact,
 } from "./linewatch-data.ts";
 import type { PreparedMapGeometry } from "./map-geometry-data.ts";
-import type { MapOverlayPlane } from "../components/map-overlays/overlay-plane.ts";
 import { mapBadgeArtwork } from "./map-badge-artwork.ts";
 import {
   REGIONAL_OVERLAP_INDICATOR_SCALE,
@@ -17,7 +16,6 @@ import {
   regionalStationVisualAnchors,
   resolvedRegionalSegmentPath,
   regionalOverlapBadgeAnchor,
-  regionalStationPillShape,
   REGIONAL_MAP_VIEWBOX,
 } from "./regional-map-geometry.ts";
 import {
@@ -188,42 +186,4 @@ export function regionalPlacedOverlapBadges(
     overlapBadges: badges.map((badge) => ({ ...badge, layoutId: badge.layoutId ?? badge.markerId })),
     badgePlacement: regionalBadgePlacement(geometry),
   }, { unit: REGIONAL_OVERLAY_UNIT, mapBounds: REGIONAL_MAP_VIEWBOX });
-}
-
-/** Covers Union's authored border, so the outline disappears behind the pill. */
-const REGIONAL_UNION_OUTLINE_CUTOUT_STROKE_WIDTH = 96;
-
-/**
- * Where GO/UP draws overlays: the root SVG's coordinates, at its rail's
- * scale. The hover outline stops at Union's pill instead of crossing it.
- */
-export function regionalOverlayPlane(geometry: PreparedMapGeometry): MapOverlayPlane {
-  // The view box with a margin, so outlines near the edge are not clipped.
-  const { viewBox } = geometry;
-  const maskBounds = {
-    x: viewBox.x - viewBox.width,
-    y: viewBox.y - viewBox.height,
-    width: viewBox.width * 3,
-    height: viewBox.height * 3,
-  };
-  const union = regionalStationPillShape(geometry, "station-union");
-  // Cutouts are plain rectangles: Union's pill is only translated.
-  const [a, b, c, d, e, f] = union?.matrix ?? [];
-  const outlineCutouts = union && a === 1 && b === 0 && c === 0 && d === 1
-    ? [{
-        x: union.shape.x + e,
-        y: union.shape.y + f,
-        width: union.shape.width,
-        height: union.shape.height,
-        rx: union.shape.rx,
-        ry: union.shape.ry,
-        strokeWidth: REGIONAL_UNION_OUTLINE_CUTOUT_STROKE_WIDTH,
-      }]
-    : [];
-  return {
-    idPrefix: "regional",
-    unit: REGIONAL_OVERLAY_UNIT,
-    maskBounds,
-    outlineCutouts,
-  };
 }

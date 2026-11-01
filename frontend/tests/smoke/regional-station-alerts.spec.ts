@@ -34,6 +34,14 @@ test("general regional labels use full line names in cards and details", async (
   await expect(row).toContainText("Barrie Line");
   await expect(row).not.toContainText(/Corridor|Allandale/);
   await row.click();
+  if (isMobile) {
+    // Mobile selection opens the map's impact inspector; the list card is
+    // one step further, through "View in List".
+    const inspector = page.getByRole("complementary", { name: "Selected map impact details" });
+    await expect(inspector).toContainText("Barrie Line");
+    await expect(inspector).not.toContainText(/BR Corridor|Allandale Waterfront/);
+    await inspector.getByRole("button", { name: "View in List", exact: true }).click();
+  }
   const card = page.locator('.alert-card.is-active');
   await expect(card).toContainText("Barrie Line");
   await expect(card).not.toContainText(/BR Corridor|Allandale Waterfront/);
