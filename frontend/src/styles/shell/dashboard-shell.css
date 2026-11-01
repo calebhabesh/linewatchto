@@ -212,20 +212,37 @@
    Section 6: Card Selection Highlight Glow & Keyframes
    -------------------------------------------------------------------------- */
 
+/* The glow is drawn once on a pseudo-element and only its opacity animates,
+   which the compositor runs without repainting. Animating box-shadow
+   repainted the card and its scrolling list on every frame, on the main
+   thread, while the map flew to the selected alert. */
 @keyframes highlight-glow {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(2, 132, 199, 0);
+    opacity: 0;
   }
   50% {
-    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.85), 0 0 16px rgba(2, 132, 199, 0.6);
+    opacity: 1;
   }
 }
 
 .highlight-active-card {
+  position: relative;
+}
+
+.highlight-active-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.85), 0 0 16px rgba(2, 132, 199, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  /* Its start time follows the map's flash (useScrollSelectedImpactCard). */
   animation: highlight-glow var(--selection-fast-cycle-duration) ease-in-out 4 forwards;
 }
 
-.motion-paused .highlight-active-card {
+.motion-paused .highlight-active-card::after {
   animation: none;
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.85);
+  opacity: 1;
 }

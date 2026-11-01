@@ -60,6 +60,7 @@ import {
   recordGeographicMapLifecycle,
   setGeographicProjectedImpactAnchorResolver,
   setGeographicProjectedSelectionBoundsResolver,
+  setGeographicProjectedStationResolver,
 } from "../app/geographic-lifecycle";
 import { MapOverlapChooser } from "./MapOverlapChooser";
 import {
@@ -104,9 +105,18 @@ import {
   updateGeographicDynamicSources,
   updateGeographicLineFilter,
   updateGeographicStationSelection,
+  updateGeographicStationHover,
+  createGeographicStationHoverAnimator,
   updateGeographicImpactSelection,
+  geographicSelectionWidthExpression,
+  GEOGRAPHIC_SELECTION_BAND_WIDTHS,
+  GEOGRAPHIC_SELECTION_GLOW_WIDTHS,
+  GEOGRAPHIC_SELECTION_GLOW_OPACITY,
 } from "./geographic-map-operations.ts";
 import { getLinkFeatures } from "../app/geographic-catalog";
+import { measureDesktopMapInsets } from "../app/desktop-sidebar-state";
+import { readMapOccludedInsets } from "./map-camera/useMapFraming";
+import { DEFAULT_STATION_LABEL_PLACEMENT, stationLabelPlacements } from "../app/geographic-station-label-placement";
 
 export {
   installTransitLayers,
@@ -179,6 +189,15 @@ type GeographicOverlapChooserState = {
 
 const GEOGRAPHIC_MOBILE_SELECTION_MAX_ZOOM = 14.75;
 
+/** Layers a press acts on; the cursor shows a pointer over them. */
+const GEOGRAPHIC_POINTER_LAYERS = [
+  "transit-planned-station-selection",
+  "transit-impact-badges",
+  "transit-station-impacts",
+  "transit-impacts-line",
+  "transit-impact-arrows",
+];
+
 function geographicMobileSelectionPadding(container: HTMLElement) {
   const topPillBottom = readMobilePillBottom(container);
   const inspectorTop = readMobileImpactInspectorTop(container, container.clientHeight);
@@ -189,6 +208,49 @@ function geographicMobileSelectionPadding(container: HTMLElement) {
     left: 72,
     right: 72,
   };
+}
+
+/** Room kept beyond a framed alert for its badges and direction glyphs. */
+const GEOGRAPHIC_FOCUS_OVERLAY_MARGIN_PX = 16;
+/** A focus frame never shrinks the visible map below this, per axis. */
+const GEOGRAPHIC_FOCUS_MIN_VISIBLE_PX = 160;
+
+/**
+ * Desktop focus padding: the edges the sidebar, toolbar and legend cover (the
+ * System Map's `readMapOccludedInsets`), so a framed alert or station sits in
+ * the part of the map left showing. The default camera stays full width.
+ */
+function geographicDesktopFocusPadding(container: HTMLElement) {
+  const { insets } = readMapOccludedInsets(
+    container,
+    container.clientHeight,
+    false,
+    measureDesktopMapInsets(container),
+    { selection: null, selectedStationId: null },
+  );
+  const fit = (start: number, end: number, size: number) => {
+    const total = start + end;
+    const available = Math.max(0, size - GEOGRAPHIC_FOCUS_MIN_VISIBLE_PX);
+    const scale = total > available && total > 0 ? available / total : 1;
+    return [Math.floor(start * scale), Math.floor(end * scale)] as const;
+  };
+  // Selecting an alert or station widens the sidebar to its detail width
+  // over ~300 ms; frame against the width it is heading to, which the shell
+  // sets at once, not the width it has now.
+  const sidebar = container.closest(".linewatch-shell")?.querySelector<HTMLElement>(
+    ".desktop-sidebar-container:not(.desktop-sidebar-container--collapsed)",
+  );
+  const sidebarTargetWidth = sidebar && sidebar.getAttribute("aria-hidden") !== "true"
+    ? Number.parseFloat(sidebar.style.getPropertyValue("--desktop-sidebar-width"))
+    : Number.NaN;
+  const sidebarLeft = Number.isFinite(sidebarTargetWidth)
+    ? Math.max(0, sidebar!.getBoundingClientRect().left + sidebarTargetWidth
+      - container.getBoundingClientRect().left + 24)
+    : 0;
+  const margin = GEOGRAPHIC_FOCUS_OVERLAY_MARGIN_PX;
+  const [left, right] = fit(Math.max(insets.left, sidebarLeft) + margin, insets.right + margin, container.clientWidth);
+  const [top, bottom] = fit(insets.top + margin, insets.bottom + margin, container.clientHeight);
+  return { top, bottom, left, right };
 }
 
 function uniqueMapImpacts(impacts: MapImpact[]): MapImpact[] {
@@ -311,17 +373,14 @@ export function GeographicNetworkMap({
 
     if (map.getLayer("transit-impacts-selection")) {
       setTransitPaintProperty(map, "transit-impacts-selection", "line-opacity", frame.opacity);
-      setTransitPaintProperty(map, "transit-impacts-selection", "line-width", [
-        "interpolate",
-        ["linear"],
-        ["zoom"],
-        9,
-        7.5 * frame.widthMultiplier,
-        14,
-        13.0 * frame.widthMultiplier,
-        17,
-        18.0 * frame.widthMultiplier,
-      ]);
+      setTransitPaintProperty(map, "transit-impacts-selection", "line-width",
+        geographicSelectionWidthExpression(GEOGRAPHIC_SELECTION_BAND_WIDTHS, frame.widthMultiplier));
+    }
+    if (map.getLayer("transit-impacts-selection-glow")) {
+      setTransitPaintProperty(map, "transit-impacts-selection-glow", "line-opacity",
+        GEOGRAPHIC_SELECTION_GLOW_OPACITY * frame.opacity);
+      setTransitPaintProperty(map, "transit-impacts-selection-glow", "line-width",
+        geographicSelectionWidthExpression(GEOGRAPHIC_SELECTION_GLOW_WIDTHS, frame.widthMultiplier));
     }
 
     if (map.getLayer("transit-station-impacts-selection")) {
@@ -400,6 +459,13 @@ export function GeographicNetworkMap({
 
   const activeFilteredLine = filteredLineId ?? null;
   const isDraggingRef = useRef(false);
+  const hoveredStationIdRef = useRef<string | null>(null);
+  const hoveredStationNameDrawnRef = useRef(true);
+  const stationHoverAnimatorRef = useRef<ReturnType<typeof createGeographicStationHoverAnimator> | null>(null);
+  const reducedMotionRef = useRef(reducedMotion);
+  useLayoutEffect(() => {
+    reducedMotionRef.current = reducedMotion;
+  }, [reducedMotion]);
 
   // Resolve real-time dashboard data with stable references
   const dashboardData = useOptionalDashboardData();
@@ -668,6 +734,83 @@ export function GeographicNetworkMap({
         .sort((a, b) => a.distance - b.distance)[0]?.feature;
     };
 
+    // The station a press at `point` selects: its marker (a little enlarged)
+    // or its name. As on the System Map, an overlap badge or a station alert
+    // ring under the point takes the press instead, and a station drawn over
+    // a line alert takes it from the line.
+    const stationAtPoint = (point: ReturnType<MapLibreMap["project"]>): string | null => {
+      if (impactBadgeAtPoint(point)) return null;
+      if (map.getLayer("transit-station-impacts")
+        && map.queryRenderedFeatures(point, { layers: ["transit-station-impacts"] }).length > 0) return null;
+      if (map.getLayer("transit-planned-station-selection")
+        && map.queryRenderedFeatures(point, { layers: ["transit-planned-station-selection"] }).length > 0) return null;
+      const layers = ["transit-stations-hit", "transit-station-labels", "transit-station-labels-hover"]
+        .filter((layerId) => map.getLayer(layerId));
+      if (layers.length === 0) return null;
+      const stationId = map.queryRenderedFeatures(point, { layers })[0]?.properties?.stationId;
+      return typeof stationId === "string" && stationId ? stationId : null;
+    };
+
+    // Whether the station's own name is drawn (not lost to a collision).
+    const stationNameDrawn = (stationId: string) => {
+      const coordinates = catalogRef.current && getStationCoordinates(catalogRef.current, stationId);
+      if (!coordinates || !map.getLayer("transit-station-labels")) return false;
+      const point = map.project(coordinates);
+      return map.queryRenderedFeatures(
+        [[point.x - 160, point.y - 80], [point.x + 160, point.y + 80]],
+        { layers: ["transit-station-labels"] },
+      ).some((feature) => feature.properties?.stationId === stationId);
+    };
+
+    // Hover eases in and out like the System Map's; reduced motion jumps.
+    stationHoverAnimatorRef.current?.dispose();
+    const stationHoverAnimator = createGeographicStationHoverAnimator(map, {
+      reducedMotion: () => reducedMotionRef.current
+        || (typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches),
+    });
+    stationHoverAnimatorRef.current = stationHoverAnimator;
+
+    const setHoveredStation = (stationId: string | null) => {
+      if (hoveredStationIdRef.current === stationId) return;
+      hoveredStationIdRef.current = stationId;
+      stationHoverAnimator.setHovered(stationId);
+      hoveredStationNameDrawnRef.current = stationId ? stationNameDrawn(stationId) : true;
+      updateGeographicStationHover(map, stationId, selectedStationIdRef.current ?? null, {
+        nameDrawn: hoveredStationNameDrawnRef.current,
+      });
+      const container = containerRef.current;
+      if (container) {
+        if (stationId) container.dataset.hoveredStation = stationId;
+        else delete container.dataset.hoveredStation;
+      }
+    };
+
+    // Station hover: the same ring and lifted name as the System Map, so a
+    // pointer shows which station a press selects. Touch has no hover.
+    // Taps send compatibility mouse events; only a hovering pointer shows
+    // hover (the System Map's `(hover: hover) and (pointer: fine)`).
+    const pointerHovers = typeof window.matchMedia === "function"
+      ? window.matchMedia("(hover: hover) and (pointer: fine)")
+      : null;
+    map.on("mousemove", (e) => {
+      if (isDraggingRef.current || (pointerHovers && !pointerHovers.matches)) return;
+      const stationId = stationAtPoint(e.point);
+      setHoveredStation(stationId);
+      if (stationId) {
+        setHoveredMapTarget((current) => (current?.type === "segment" ? null : current));
+      }
+      map.getCanvas().style.cursor = stationId || map.queryRenderedFeatures(e.point, {
+        layers: GEOGRAPHIC_POINTER_LAYERS.filter((layerId) => map.getLayer(layerId)),
+      }).length > 0 || impactBadgeAtPoint(e.point) ? "pointer" : "";
+    });
+    map.getCanvasContainer().addEventListener("mouseleave", () => setHoveredStation(null));
+    map.on("style.load", () => {
+      hoveredStationIdRef.current = null;
+      stationHoverAnimator.reset();
+      const container = containerRef.current;
+      if (container) delete container.dataset.hoveredStation;
+    });
+
     // Hover on Disruption Badges
     map.on("mousemove", "transit-impact-badges", (e) => {
       if (!e.features || e.features.length === 0) return;
@@ -712,6 +855,7 @@ export function GeographicNetworkMap({
       map.on("mousemove", layerId, (event) => {
         const id = event.features?.[0]?.properties?.[property];
         if (!id) return;
+        if (type === "segment" && stationAtPoint(event.point)) return;
         setHoveredMapTarget((current) => current?.type === type && current.id === id
           ? current
           : { type, id });
@@ -747,7 +891,7 @@ export function GeographicNetworkMap({
 
     // Click on Impacted Segments
     map.on("click", "transit-impacts-line", (e) => {
-      if (impactBadgeAtPoint(e.point)) return;
+      if (impactBadgeAtPoint(e.point) || stationAtPoint(e.point)) return;
       if (!e.features || e.features.length === 0) return;
       const props = e.features[0].properties;
       if (props?.segmentId) {
@@ -757,7 +901,7 @@ export function GeographicNetworkMap({
 
     // Click on Impact Direction Arrows
     map.on("click", "transit-impact-arrows", (e) => {
-      if (impactBadgeAtPoint(e.point)) return;
+      if (impactBadgeAtPoint(e.point) || stationAtPoint(e.point)) return;
       if (!e.features || e.features.length === 0) return;
       const props = e.features[0].properties;
       if (props && callbacksRef.current.onSelectImpact) {
@@ -768,19 +912,8 @@ export function GeographicNetworkMap({
       }
     });
 
-    // Station click handler
-    map.on("click", "transit-stations-outer", (e) => {
-      // Several MapLibre layer listeners can receive the same click. A badge
-      // owns its hit area so a station underneath cannot cover its chooser.
-      if (impactBadgeAtPoint(e.point)) return;
-      if (!e.features || e.features.length === 0) return;
-      if (map.getLayer("transit-planned-station-selection")
-        && map.queryRenderedFeatures(e.point, { layers: ["transit-planned-station-selection"] }).length > 0) return;
-      const stationId = e.features[0].properties?.stationId;
-      if (stationId && callbacksRef.current.onSelectStationId) {
-        callbacksRef.current.onSelectStationId(stationId);
-      }
-    });
+    // Station presses (marker or name) are resolved in the map click
+    // handler below, through stationAtPoint, so one press selects one thing.
 
     map.on("click", "transit-planned-station-selection", () => {
       if (selectionRef.current?.kind === "planned-closure") {
@@ -802,12 +935,20 @@ export function GeographicNetworkMap({
         return;
       }
 
+      const stationId = stationAtPoint(e.point);
+      if (stationId) {
+        callbacksRef.current.onSelectStationId?.(stationId);
+        return;
+      }
+
       // Empty map background clicks clear selection and filters.
       const interactiveLayers = [
         "transit-station-impacts",
         "transit-impacts-line",
         "transit-impact-arrows",
         "transit-stations-outer",
+        "transit-stations-hit",
+        "transit-station-labels",
         "transit-planned-station-selection",
       ].filter((l) => map.getLayer(l));
 
@@ -818,31 +959,13 @@ export function GeographicNetworkMap({
       }
     });
 
-    // Pointer cursor on interactive features
-    const pointerLayers = [
-      "transit-stations-outer",
-      "transit-planned-station-selection",
-      "transit-impact-badges",
-      "transit-station-impacts",
-      "transit-impacts-line",
-      "transit-impact-arrows",
-    ];
-    for (const layerId of pointerLayers) {
-      map.on("mouseenter", layerId, () => {
-        map.getCanvas().style.cursor = "pointer";
-      });
-      map.on("mouseleave", layerId, () => {
-        map.getCanvas().style.cursor = "";
-      });
-    }
+    // The pointer cursor is set by the map mousemove handler above.
 
     map.on("dragstart", () => {
       cameraAdjustedByUserRef.current = true;
       isDraggingRef.current = true;
       setHoveredMapTarget(null);
-      const frame = selectionAttentionRef.current.onUserGestureStart();
-      attentionHandlersRef.current.applyAttentionFrame(frame);
-      attentionHandlersRef.current.stopAttentionLoop();
+      setHoveredStation(null);
     });
 
     map.on("dragend", () => {
@@ -851,13 +974,9 @@ export function GeographicNetworkMap({
       }, 80);
     });
 
+    // The selection flash keeps its cadence through user pans and zooms.
     map.on("zoomstart", (e) => {
-      if (e.originalEvent) {
-        cameraAdjustedByUserRef.current = true;
-        const frame = selectionAttentionRef.current.onUserGestureStart();
-        attentionHandlersRef.current.applyAttentionFrame(frame);
-        attentionHandlersRef.current.stopAttentionLoop();
-      }
+      if (e.originalEvent) cameraAdjustedByUserRef.current = true;
     });
 
     map.on("zoom", () => {
@@ -878,12 +997,6 @@ export function GeographicNetworkMap({
         const flightGen = pendingCameraFlightGenRef.current;
         pendingCameraFlightGenRef.current = null;
         const frame = selectionAttentionRef.current.onCameraFlightEnd(flightGen);
-        attentionHandlersRef.current.applyAttentionFrame(frame);
-        if (frame.active) {
-          attentionHandlersRef.current.startAttentionLoop();
-        }
-      } else if (selectionAttentionRef.current.getState() === "gesture-pause") {
-        const frame = selectionAttentionRef.current.onUserGestureEnd();
         attentionHandlersRef.current.applyAttentionFrame(frame);
         if (frame.active) {
           attentionHandlersRef.current.startAttentionLoop();
@@ -1040,6 +1153,8 @@ export function GeographicNetworkMap({
       stopPrefetch?.();
       if (mapRef.current) {
         recordGeographicMapLifecycle("removal", "cleanup");
+        stationHoverAnimatorRef.current?.dispose();
+        stationHoverAnimatorRef.current = null;
         mapRef.current.remove();
         mapRef.current = null;
         appliedStyleUrlRef.current = null;
@@ -1254,6 +1369,14 @@ export function GeographicNetworkMap({
     if (!map || loadStatus !== "ready") return;
 
     updateGeographicStationSelection(map, selectedStationId ?? null);
+    updateGeographicStationHover(map, hoveredStationIdRef.current, selectedStationId ?? null, {
+      nameDrawn: hoveredStationNameDrawnRef.current,
+    });
+    const container = containerRef.current;
+    if (container) {
+      if (selectedStationId) container.dataset.selectedStation = selectedStationId;
+      else delete container.dataset.selectedStation;
+    }
 
     // If selection changed to a new station, focus camera
     if (selectedStationId && selectedStationId !== lastSelectedStationIdRef.current) {
@@ -1269,10 +1392,17 @@ export function GeographicNetworkMap({
             left: 0,
             right: 0,
           } : undefined;
+          // Desktop centres the station in the area the sidebar, toolbar and
+          // legend leave showing. An offset, unlike padding, does not persist.
+          const desktopPadding = !isMobile && container ? geographicDesktopFocusPadding(container) : null;
+          const offset: [number, number] | undefined = desktopPadding
+            ? [(desktopPadding.left - desktopPadding.right) / 2, (desktopPadding.top - desktopPadding.bottom) / 2]
+            : undefined;
           if (reducedMotion) {
             map.jumpTo({ center: coords, zoom: targetZoom, padding });
+            if (offset) map.panBy([-offset[0], -offset[1]], { animate: false });
           } else {
-            map.flyTo({ center: coords, zoom: targetZoom, padding, essential: true });
+            map.flyTo({ center: coords, zoom: targetZoom, padding, ...(offset ? { offset } : {}), essential: true });
           }
         }
       }
@@ -1324,8 +1454,11 @@ export function GeographicNetworkMap({
         : null;
       if (bounds) {
         recordGeographicMapLifecycle("focus", currentSelectionKey);
+        const container = containerRef.current;
         map.fitBounds(bounds, {
-          padding: { top: 90, bottom: 90, left: 60, right: 60 },
+          padding: container && window.innerWidth >= 768
+            ? geographicDesktopFocusPadding(container)
+            : { top: 90, bottom: 90, left: 60, right: 60 },
           maxZoom: 15.0,
           animate: !reducedMotion,
         });
@@ -1505,6 +1638,42 @@ export function GeographicNetworkMap({
       };
     });
     return () => setGeographicProjectedSelectionBoundsResolver(null);
+  }, []);
+
+  useEffect(() => {
+    setGeographicProjectedStationResolver((stationId) => {
+      const map = mapRef.current;
+      const catalog = catalogRef.current;
+      if (!map || !catalog || loadStatusRef.current !== "ready") return null;
+      const coordinates = getStationCoordinates(catalog, stationId);
+      if (!coordinates) return null;
+      const marker = map.project(coordinates);
+      // A point inside the name's first letters for each of its placements
+      // (offset in ems of the layer's text-size: 14px at zoom 9, 16 at 12, 18
+      // at 14, 21 at 16, then 0.9 em further out); the first point that
+      // hits the drawn name is where MapLibre placed it.
+      const zoom = map.getZoom();
+      const stops: Array<[number, number]> = [[9, 14], [12, 16], [14, 18], [16, 21]];
+      const upper = stops.findIndex(([stopZoom]) => zoom <= stopZoom);
+      const labelSize = upper <= 0
+        ? stops[upper < 0 ? stops.length - 1 : 0][1]
+        : stops[upper - 1][1] + (stops[upper][1] - stops[upper - 1][1])
+          * ((zoom - stops[upper - 1][0]) / (stops[upper][0] - stops[upper - 1][0]));
+      const placements = stationLabelPlacements(catalog).get(stationId) ?? [DEFAULT_STATION_LABEL_PLACEMENT];
+      const label = !map.getLayer("transit-station-labels") ? null : placements
+        .map(({ offset: [offsetX, offsetY] }) => {
+          const length = Math.hypot(offsetX, offsetY) || 1;
+          return {
+            x: marker.x + labelSize * (offsetX + (offsetX / length) * 0.9),
+            y: marker.y + labelSize * (offsetY + (offsetY / length) * 0.9),
+          };
+        })
+        .find((point) => map
+          .queryRenderedFeatures([point.x, point.y], { layers: ["transit-station-labels"] })
+          .some((feature) => feature.properties?.stationId === stationId)) ?? null;
+      return { marker: { x: marker.x, y: marker.y }, label };
+    });
+    return () => setGeographicProjectedStationResolver(null);
   }, []);
 
   useEffect(() => {

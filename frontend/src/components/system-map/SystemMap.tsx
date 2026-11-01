@@ -54,7 +54,18 @@ import { MapTrainMarkerLayer } from "../map-overlays/TrainMarkerLayer";
 import { installMapHoverController, type MapHoverController } from "../map-overlays/map-hover-controller";
 import { mapOverlayUnitStyle } from "../map-overlays/overlay-plane";
 import { useMapPulseSync } from "../map-overlays/pulse-sync";
-import { mapSelectionIntroKey, useMapSelectionIntro } from "../map-overlays/selection-intro";
+import {
+  LINE_ALERT_INTRO_SCOPE,
+  OTHER_SELECTION_INTRO_SCOPE,
+  mapSelectionIntroKey,
+  useMapSelectionIntro,
+} from "../map-overlays/selection-intro";
+import { useSettledMapSelection } from "../map-overlays/settled-selection";
+import {
+  announceMapSelectionIntro,
+  forgetMapSelectionIntro,
+  settleMapSelectionIntro,
+} from "../../app/selection-intro-sync";
 import { clearMapStationHover, setMapStationHovered } from "../map-overlays/station-hover";
 import { useMapOverlapChooser, useMapViewportSize } from "../map-overlays/useMapOverlapChooser";
 import { useMapTaps } from "../map-overlays/useMapTaps";
@@ -327,24 +338,34 @@ function SystemMapComponent({
     : null), [geometry, hoveredLabel, manifest.stationLabels.hoverPadding, mapLabelFontReady]);
   const labelCutout = labelHover ? hoveredLabel?.cutout ?? null : null;
 
+  // Stations passing under a still pointer while the camera moves are not
+  // hovers: the browser reports them as the map flies or glides beneath the
+  // cursor, and ringing a dot and lifting its name mid-flight repainted the
+  // stage. The next real pointer move hovers what is under it.
+  const cameraMoving = useCallback(() => {
+    const flags = rootRef.current?.dataset;
+    return flags?.mapCameraMoving === "true" || flags?.mapGestureActive === "true" || flags?.mapZoomActive === "true";
+  }, []);
   // Hovering or focusing a station rings its dot and lifts its name.
   const onStationHoverChange = useCallback<MapStationHoverChange>((stationId, hovered, via) => {
+    if (hovered && via === "pointer" && cameraMoving()) return;
     setMapStationHovered(rootRef.current, stationId, hovered);
     if (!hovered) {
       unhoverStationLabel(stationId);
     } else if (via === "pointer" || window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
       hoverStationLabel(stationId);
     }
-  }, [hoverStationLabel, unhoverStationLabel]);
+  }, [cameraMoving, hoverStationLabel, unhoverStationLabel]);
   // Hovering a name lifts it without ringing the dot.
   const onStationLabelHoverChange = useCallback<MapStationLabelHoverChange>((stationId, hovered) => {
+    if (hovered && cameraMoving()) return;
     if (hovered) {
       setMapStationHovered(rootRef.current, stationId, false);
       hoverStationLabel(stationId);
     } else {
       unhoverStationLabel(stationId);
     }
-  }, [hoverStationLabel, unhoverStationLabel]);
+  }, [cameraMoving, hoverStationLabel, unhoverStationLabel]);
 
   // The camera (hooks/usePanZoom.ts), with this map's framing as data.
   const desktopInsets = useDesktopMapInsets(viewportRef, railRef, mapChromeVisible);
@@ -434,17 +455,68 @@ function SystemMapComponent({
     return () => window.cancelAnimationFrame(frame);
   }, [clearCameraAdjustment, isCameraInitialized, moveToDefaultCamera, viewportOrientation]);
 
+  // Line alert emphasis (the raised tube and the flash) follows the selection
+  // once the camera is still, so a flight never repaints a long alert. Its
+  // intro key settles with it.
+  const settled = useSettledMapSelection(selection, linkedSelectionIntroKey, isCameraInteracting);
+  const settledSelection = settled.selection;
+  const settledSelectedLineAlerts = useMemo(
+    () => (settledSelection === selection
+      ? selectedLineAlerts
+      : lineAlerts.filter((alert) => !alert.exiting && isSelectedLineAlert(alert, settledSelection))),
+    [lineAlerts, selectedLineAlerts, selection, settledSelection],
+  );
+
   const focusTargetKey = useMemo(
     () => mapFocusTargetKey({ selection, selectedStationId, commutePathPreview }, selectionAttentionGeneration),
     [commutePathPreview, selection, selectedStationId, selectionAttentionGeneration],
   );
+  // Two intros on one clock: the line alert flash's, keyed by the settled
+  // selection (it mounts when the camera lands), and every other selection
+  // overlay's (station markers and rings), keyed by the selection at once.
+  // The selected alert's card glows in step with this flash
+  // (app/selection-intro-sync.ts): an active map that will flash the
+  // selection says so before the card checks, then reports the start.
+  const flashesSelection = Boolean(selection && isMapActive && !commutePreviewActive && selectedLineAlerts.length > 0);
+  const selectionKind = selection?.kind;
+  const selectionId = selection?.id;
+  useLayoutEffect(() => {
+    if (!flashesSelection || !selectionKind || !selectionId) return;
+    const identity = { kind: selectionKind, id: selectionId };
+    announceMapSelectionIntro(identity);
+    return () => forgetMapSelectionIntro(identity);
+  }, [flashesSelection, selectionAttentionGeneration, selectionId, selectionKind]);
+  const settledSelectionRef = useRef(settledSelection);
+  useLayoutEffect(() => {
+    settledSelectionRef.current = settledSelection;
+  }, [settledSelection]);
+  const reportLineIntroStart = useCallback((startTime: number | null) => {
+    const current = settledSelectionRef.current;
+    if (current) settleMapSelectionIntro(current, startTime);
+  }, []);
+  const lineSelectionIntroComplete = useMapSelectionIntro(settledSelection ? mapSelectionIntroKey({
+    selection: settledSelection,
+    linkedSelectionIntroKey: settled.introKey,
+    generation: selectionAttentionGeneration,
+  }) : null, rootRef, undefined, LINE_ALERT_INTRO_SCOPE, reportLineIntroStart);
+  // A hop between linked alerts keeps the intro (same key): no flash starts,
+  // so the card glows at once.
+  const settledKind = settledSelection?.kind;
+  const settledId = settledSelection?.id;
+  useEffect(() => {
+    if (settledKind && settledId && lineSelectionIntroComplete) {
+      settleMapSelectionIntro({ kind: settledKind, id: settledId }, null);
+    }
+    // Only when the settled selection changes; a finished intro later is not a hop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settledKind, settledId]);
   const selectionIntroComplete = useMapSelectionIntro(mapSelectionIntroKey({
     selection,
     linkedSelectionIntroKey,
     selectedStationId,
     commutePreviewKey: commutePathPreview ? `${commutePathPreview.id}:${commutePathPreview.legId}` : null,
     generation: selectionAttentionGeneration,
-  }), rootRef);
+  }), rootRef, undefined, OTHER_SELECTION_INTRO_SCOPE);
 
   // The entrance: the camera is placed once the artwork has loaded and the
   // viewport has a size. While the shell defers the entrance, or the raster
@@ -781,29 +853,31 @@ function SystemMapComponent({
           >
             <g id={layerId("dynamic-segment")} aria-label="Disruption overlays">
               <MapLineAlertLayer
-                alerts={commutePreviewActive && selection
+                alerts={commutePreviewActive && settledSelection
                   // The commute focus copy repaints the selected alert.
-                  ? lineAlerts.filter((alert) => !isSelectedLineAlert(alert, selection))
+                  ? lineAlerts.filter((alert) => !isSelectedLineAlert(alert, settledSelection))
                   : lineAlerts}
                 plane={overlayPlane}
-                selection={selection}
+                selection={settledSelection}
               />
             </g>
             <g id={layerId("dynamic-commute")} aria-label="Commute route preview">
               <MapCommutePreviewRoute preview={commutePreview} />
             </g>
-            {/* Hovered alerts repaint above the others, below the station artwork. */}
-            <g id={layerId("dynamic-hover")}>
-              <MapLineAlertHoverCopies alerts={lineAlerts} plane={overlayPlane} />
-            </g>
-            {/* The selected alert's flash stays above hover copies, so hovering never hides it. */}
             <g id={layerId("dynamic-selected-segment")} aria-label="Selected disruption emphasis">
               <MapLineAlertSelection
-                alerts={selectedLineAlerts}
+                alerts={settledSelectedLineAlerts}
                 plane={overlayPlane}
                 commutePreviewActive={commutePreviewActive}
-                introComplete={selectionIntroComplete}
+                introComplete={lineSelectionIntroComplete}
               />
+            </g>
+            {/* Hovered alerts repaint above the others and the selection's
+                flash, in full colour, below the station artwork. The selected
+                alert draws no copy (its tube is already raised), so hovering
+                it never hides its flash. */}
+            <g id={layerId("dynamic-hover")}>
+              <MapLineAlertHoverCopies alerts={lineAlerts} plane={overlayPlane} selection={settledSelection} />
             </g>
             <MapStationHoverIndicators
               stations={stationPlacements}

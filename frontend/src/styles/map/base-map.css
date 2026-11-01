@@ -419,8 +419,18 @@
 }
 
 /* Freeze selection attention at its current frame too. Keeping filters and
-   opacity untouched preserves every authored glow during a pan or zoom. */
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .map-selection-attention {
+   opacity untouched preserves every authored glow during a pan or zoom.
+   Camera flights pause it as well: a selected line alert's flash animates a
+   drop-shadow along the whole alert, and repainting a full-line delay's glow
+   on every frame of a scaling flight overflowed tile memory and flickered
+   the map. The intro resumes where it paused once the camera lands
+   (selection-intro.ts). */
+:is(
+  .map-gesture-active,
+  [data-map-gesture-active="true"],
+  [data-map-zoom-active="true"],
+  [data-map-camera-moving="true"]
+) .map-selection-attention {
   animation-play-state: paused !important;
   transition: none !important;
 }

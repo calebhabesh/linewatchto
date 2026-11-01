@@ -11,6 +11,9 @@ import {
   updateGeographicDynamicSources,
   updateGeographicLineFilter,
   updateGeographicStationSelection,
+  updateGeographicStationHover,
+  createGeographicStationHoverAnimator,
+  GEOGRAPHIC_STATION_HOVER_EASE_MS,
   updateGeographicImpactSelection,
   updateGeographicSelectionStyling,
   applyGeographicDynamicState,
@@ -275,6 +278,80 @@ describe("Geographic map operations", () => {
     });
   });
 
+  describe("updateGeographicStationHover", () => {
+    const hover = (hoveredStationId, selectedStationId, options) => {
+      const filters = {};
+      const mockMap = {
+        getLayer: (id) => id === "transit-station-hover" || id === "transit-station-labels-hover",
+        setFilter: (id, filter) => { filters[id] = filter; },
+      };
+      updateGeographicStationHover(mockMap, hoveredStationId, selectedStationId, options);
+      return filters;
+    };
+
+    it("rings every station but the selected one, so a selected station shows no hover ring", () => {
+      assert.deepEqual(hover("laird", "laird", { nameDrawn: true })["transit-station-hover"], ["!=", ["get", "stationId"], "laird"]);
+    });
+
+    it("draws a hovered name's copy only when its own name lost a collision", () => {
+      assert.deepEqual(hover("laird", null, { nameDrawn: false })["transit-station-labels-hover"], ["==", ["get", "stationId"], "laird"]);
+      assert.deepEqual(hover("laird", null, { nameDrawn: true })["transit-station-labels-hover"], ["==", ["get", "stationId"], ""]);
+    });
+
+    it("leaves the copy on its station when hover ends, so it can fade out", () => {
+      assert.equal(hover(null, null)["transit-station-labels-hover"], undefined);
+    });
+  });
+
+  describe("createGeographicStationHoverAnimator", () => {
+    const setup = (reducedMotion = false) => {
+      let time = 0;
+      const frames = [];
+      const states = new Map();
+      const map = {
+        getSource: () => ({}),
+        setFeatureState: ({ id }, { hover }) => states.set(id, hover),
+      };
+      const animator = createGeographicStationHoverAnimator(map, {
+        reducedMotion: () => reducedMotion,
+        now: () => time,
+        requestFrame: (callback) => frames.push(callback),
+        cancelFrame: () => {},
+      });
+      const advance = (ms) => {
+        time += ms;
+        const pending = frames.splice(0);
+        pending.forEach((callback) => callback(time));
+      };
+      return { animator, states, advance };
+    };
+
+    it("eases hover in and out over the System Map's 120 ms", () => {
+      const { animator, states, advance } = setup();
+      animator.setHovered("laird");
+      advance(GEOGRAPHIC_STATION_HOVER_EASE_MS / 2);
+      assert.equal(states.get("laird"), 0.5, "halfway, eased in and out symmetrically");
+      advance(GEOGRAPHIC_STATION_HOVER_EASE_MS / 2);
+      assert.equal(states.get("laird"), 1);
+
+      animator.setHovered("leaside");
+      advance(GEOGRAPHIC_STATION_HOVER_EASE_MS / 4);
+      assert.ok(states.get("laird") > 0.5 && states.get("laird") < 1, "the old station fades out");
+      assert.ok(states.get("leaside") > 0 && states.get("leaside") < 0.5, "the new one fades in");
+      advance(GEOGRAPHIC_STATION_HOVER_EASE_MS);
+      assert.equal(states.get("laird"), 0);
+      assert.equal(states.get("leaside"), 1);
+    });
+
+    it("changes at once under reduced motion", () => {
+      const { animator, states } = setup(true);
+      animator.setHovered("laird");
+      assert.equal(states.get("laird"), 1);
+      animator.setHovered(null);
+      assert.equal(states.get("laird"), 0);
+    });
+  });
+
   describe("updateGeographicImpactSelection", () => {
     it("sets impact selection filters across link and station layers", () => {
       const filterCalls = [];
@@ -455,7 +532,7 @@ describe("Geographic map operations", () => {
   });
 
   describe("installTransitLayers", () => {
-    it("registers static and dynamic sources, installs 26 layers, and is idempotent", () => {
+    it("registers static and dynamic sources, installs 29 layers, and is idempotent", () => {
       const addedSources = {};
       const addedLayers = [];
 
@@ -465,7 +542,11 @@ describe("Geographic map operations", () => {
           addedSources[id] = { ...config, setData: (data) => { addedSources[id].data = data; } };
         },
         getLayer: (id) => addedLayers.find((l) => l.id === id),
-        addLayer: (layer) => { addedLayers.push(layer); },
+        addLayer: (layer, beforeId) => {
+          const index = beforeId ? addedLayers.findIndex((l) => l.id === beforeId) : -1;
+          if (index >= 0) addedLayers.splice(index, 0, layer);
+          else addedLayers.push(layer);
+        },
         moveLayer: () => {},
         hasImage: () => false,
         addImage: () => {},
@@ -476,12 +557,12 @@ describe("Geographic map operations", () => {
           {
             type: "Feature",
             geometry: { type: "LineString", coordinates: [[0, 0], [1, 1]] },
-            properties: { lineId: "line-1", segmentId: "seg-1" },
+            properties: { featureType: "link", lineId: "line-1", segmentId: "seg-1", stationAId: "stn-1", stationBId: "stn-2" },
           },
           {
             type: "Feature",
             geometry: { type: "Point", coordinates: [0, 0] },
-            properties: { stationId: "stn-1", lineIds: ["line-1"], name: "Station 1" },
+            properties: { featureType: "station", stationId: "stn-1", lineIds: ["line-1"], name: "Station 1" },
           },
         ],
       };
@@ -511,7 +592,37 @@ describe("Geographic map operations", () => {
       assert.ok(addedLayers.find((l) => l.id === "transit-train-markers-halo"));
 
       const layerCount = addedLayers.length;
-      assert.equal(layerCount, 25, "Should install exactly 25 transit layers");
+      assert.equal(layerCount, 29, "Should install exactly 29 transit layers");
+
+      // The selected alert's glow sits under its band, and both are wider than
+      // the alert line so the selection shows beside its glyphs.
+      const glow = addedLayers.find((l) => l.id === "transit-impacts-selection-glow");
+      const band = addedLayers.find((l) => l.id === "transit-impacts-selection");
+      assert.ok(addedLayers.indexOf(glow) < addedLayers.indexOf(band));
+      const widthAt = (layer, zoom) => createExpression(layer.paint["line-width"], "paint.line-width").value
+        .evaluateWithoutErrorHandling({ zoom }, { properties: {} });
+      const line = addedLayers.find((l) => l.id === "transit-impacts-line");
+      for (const zoom of [9, 14, 17]) {
+        assert.ok(widthAt(band, zoom) >= 2.5 * widthAt(line, zoom), `band at zoom ${zoom}`);
+        assert.ok(widthAt(glow, zoom) > widthAt(band, zoom), `glow at zoom ${zoom}`);
+      }
+
+      // Station names take their placement from the station, and alert badges keep names clear.
+      assert.ok(addedSources["transit-stations"].data.features[0].properties.labelPlacements.length >= 2);
+      assert.equal(addedSources["transit-stations"].promoteId, "stationId");
+      assert.equal(addedLayers.find((l) => l.id === "transit-impact-badges").layout["icon-ignore-placement"], false);
+
+      // Station hover: a ring under the station marker, a lifted name that
+      // always draws, and a pointer target a little larger than the marker.
+      const ids = addedLayers.map((l) => l.id);
+      assert.ok(ids.indexOf("transit-station-hover") < ids.indexOf("transit-stations-outer"));
+      const hoverLabel = addedLayers.find((l) => l.id === "transit-station-labels-hover");
+      assert.ok(ids.indexOf("transit-station-labels") < ids.indexOf("transit-station-labels-hover"));
+      assert.equal(hoverLabel.layout["text-allow-overlap"], true);
+      assert.deepEqual(hoverLabel.layout["text-size"], addedLayers.find((l) => l.id === "transit-station-labels").layout["text-size"]);
+      assert.ok(addedLayers.find((l) => l.id === "transit-station-labels").layout["text-variable-anchor-offset"]);
+      const hit = addedLayers.find((l) => l.id === "transit-stations-hit");
+      assert.equal(hit.paint["circle-opacity"], 0);
 
       // Line breadcrumbs: each line's authored badge along it, under station markers.
       const breadcrumbs = addedLayers.find((l) => l.id === "transit-line-breadcrumbs");

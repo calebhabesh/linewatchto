@@ -4,7 +4,7 @@
     {
       "name": "all-alert-types",
       "file": "all-alert-types.json",
-      "routeCount": 16,
+      "routeCount": 18,
       "accessibilityCount": 2,
       "impactKinds": [
         "suspension",
@@ -53,6 +53,16 @@
         },
         "delay-bidirectional-segment": {
           "sourceId": "scenario-delay-line-2-main-street-kennedy",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
+        "delay-whole-line-nonlinear": {
+          "sourceId": "scenario-delay-line-1-whole-line",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
+        "delay-whole-line-straight": {
+          "sourceId": "scenario-delay-line-2-whole-line",
           "sourceKind": "modeled-gap-fill",
           "modeledFromSourceId": "synthetic-rsz-line-1"
         },

@@ -16,6 +16,11 @@ interface GeographicLifecycleEvent {
   detail?: string;
 }
 
+export type GeographicProjectedStation = {
+  marker: { x: number; y: number };
+  label: { x: number; y: number } | null;
+};
+
 interface GeographicMapLifecycleStats {
   constructors: number;
   removals: number;
@@ -28,6 +33,8 @@ interface GeographicMapLifecycleStats {
   events: GeographicLifecycleEvent[];
   getProjectedImpactAnchor: (key: string) => { x: number; y: number } | null;
   getProjectedSelectionBounds: (key: string) => { left: number; top: number; right: number; bottom: number } | null;
+  /** A station's marker and, when drawn, its name's centre, in map-container pixels. */
+  getProjectedStation: (stationId: string) => GeographicProjectedStation | null;
   isMoving: () => boolean;
   getCamera: () => { lng: number; lat: number; zoom: number } | null;
   reset: () => void;
@@ -53,6 +60,7 @@ export function getGeographicMapLifecycle(): GeographicMapLifecycleStats {
       events: [],
       getProjectedImpactAnchor: () => null,
       getProjectedSelectionBounds: () => null,
+      getProjectedStation: () => null,
       isMoving: () => false,
       getCamera: () => null,
       reset() {},
@@ -70,6 +78,7 @@ export function getGeographicMapLifecycle(): GeographicMapLifecycleStats {
     events: [],
     getProjectedImpactAnchor: () => null,
     getProjectedSelectionBounds: () => null,
+    getProjectedStation: () => null,
     isMoving: () => false,
     getCamera: () => null,
     reset() {
@@ -98,6 +107,13 @@ export function setGeographicProjectedSelectionBoundsResolver(
 ): void {
   if (typeof window === "undefined") return;
   getGeographicMapLifecycle().getProjectedSelectionBounds = resolver ?? (() => null);
+}
+
+export function setGeographicProjectedStationResolver(
+  resolver: ((stationId: string) => GeographicProjectedStation | null) | null,
+): void {
+  if (typeof window === "undefined") return;
+  getGeographicMapLifecycle().getProjectedStation = resolver ?? (() => null);
 }
 
 export function recordGeographicMapLifecycle(

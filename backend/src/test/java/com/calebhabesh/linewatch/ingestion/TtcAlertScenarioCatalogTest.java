@@ -43,7 +43,7 @@ class TtcAlertScenarioCatalogTest {
 
     static Stream<Arguments> scenarios() {
         return Stream.of(
-            Arguments.of("all-alert-types.json", 16, 2, EnumSet.of(
+            Arguments.of("all-alert-types.json", 18, 2, EnumSet.of(
                 AlertImpactKind.SUSPENSION,
                 AlertImpactKind.DELAY,
                 AlertImpactKind.LIMITED_SERVICE,

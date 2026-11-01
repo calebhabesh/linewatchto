@@ -20,7 +20,7 @@ export const scenarioNames = [
 
 export const scenarioExpectations = {
   "all-alert-types": {
-    routeCount: 16,
+    routeCount: 18,
     accessibilityCount: 2,
     impactKinds: ["suspension", "delay", "limited-service", "reduced-speed-zone", "planned-closure"],
     directionCoverage: {
@@ -44,6 +44,22 @@ export const scenarioExpectations = {
       },
       "delay-bidirectional-segment": {
         sourceId: "scenario-delay-line-2-main-street-kennedy",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-rsz-line-1",
+      },
+      // Whole-corridor delays, modeled on the overnight extended-service
+      // delays in recorded TTC history (Line 1 Finch to Vaughan Metropolitan
+      // Centre and Line 2 Kipling to Kennedy, both ways). They cover the
+      // other Line 1 and Line 2 cases, so selecting one of those from the
+      // chooser exercises a selection under a larger alert, and focusing
+      // one exercises the camera flight to a map-spanning selection.
+      "delay-whole-line-nonlinear": {
+        sourceId: "scenario-delay-line-1-whole-line",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-rsz-line-1",
+      },
+      "delay-whole-line-straight": {
+        sourceId: "scenario-delay-line-2-whole-line",
         sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
         modeledFromSourceId: "synthetic-rsz-line-1",
       },
@@ -450,6 +466,46 @@ function allAlertTypes(now) {
       direction: "Both ways",
       cause: "MAINTENANCE",
       causeDescription: "Track problem",
+    }),
+    activeGapFillRoute(now, {
+      id: "scenario-delay-line-1-whole-line",
+      route: "1",
+      stopStart: "Finch",
+      stopEnd: "Vaughan Metropolitan Centre",
+      stopIDList: [
+        "Finch", "North York Centre", "Sheppard-Yonge", "York Mills", "Lawrence", "Eglinton", "Davisville",
+        "St Clair", "Summerhill", "Rosedale", "Bloor-Yonge", "Wellesley", "College", "TMU", "Queen", "King",
+        "Union", "St Andrew", "Osgoode", "St Patrick", "Queen's Park", "Museum", "St George", "Spadina",
+        "Dupont", "St Clair West", "Cedarvale", "Glencairn", "Lawrence West", "Yorkdale", "Wilson",
+        "Sheppard West", "Downsview Park", "Finch West", "York University", "Pioneer Village", "Highway 407",
+        "Vaughan Metropolitan Centre",
+      ],
+      title: "Delays both ways between Finch and Vaughan Metropolitan Centre stations while trains run an extended overnight schedule.",
+      headerText: "Line 1 Yonge-University: Delays both ways between Finch and Vaughan Metropolitan Centre stations while trains run an extended overnight schedule.",
+      effect: "SIGNIFICANT_DELAYS",
+      effectDesc: "Delays",
+      direction: "Both ways",
+      cause: "OPERATIONS",
+      causeDescription: "Extended service",
+    }),
+    activeGapFillRoute(now, {
+      id: "scenario-delay-line-2-whole-line",
+      route: "2",
+      stopStart: "Kipling",
+      stopEnd: "Kennedy",
+      stopIDList: [
+        "Kipling", "Islington", "Royal York", "Old Mill", "Jane", "Runnymede", "High Park", "Keele",
+        "Dundas West", "Lansdowne", "Dufferin", "Ossington", "Christie", "Bathurst", "Spadina", "St George",
+        "Bay", "Bloor-Yonge", "Sherbourne", "Castle Frank", "Broadview", "Chester", "Pape", "Donlands",
+        "Greenwood", "Coxwell", "Woodbine", "Main Street", "Victoria Park", "Warden", "Kennedy",
+      ],
+      title: "Delays both ways between Kipling and Kennedy stations while trains run an extended overnight schedule.",
+      headerText: "Line 2 Bloor-Danforth: Delays both ways between Kipling and Kennedy stations while trains run an extended overnight schedule.",
+      effect: "SIGNIFICANT_DELAYS",
+      effectDesc: "Delays",
+      direction: "Both ways",
+      cause: "OPERATIONS",
+      causeDescription: "Extended service",
     }),
     activeGapFillRoute(now, {
       id: "scenario-station-node-union-vaughan",

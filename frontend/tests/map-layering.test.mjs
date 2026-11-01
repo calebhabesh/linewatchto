@@ -418,6 +418,21 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.asset-alert-path-glow:not\(\.map-selection-attention\):not\(\.interactive-glow\):not\(\.commute-path-preview-glow\)\s*\{[^}]*display:\s*none !important;[^}]*animation:\s*none !important;[^}]*filter:\s*none !important;/s);
   });
 
+  it("paints the selected alert's tube above every other alert on its line, without remounting it", () => {
+    // Selecting an alert covered by a more severe one (from the chooser) must
+    // show its own artwork under the flash, not the alert covering it.
+    // Overlapping alerts share a line, so the selected tube goes last in its
+    // line's group; staying in the same parent with the same key moves the
+    // node instead of rebuilding a whole-line alert's glyph lanes as the
+    // camera flight starts.
+    const layerSource = lineAlertOverlaysSource.slice(
+      lineAlertOverlaysSource.indexOf("export function MapLineAlertLayer"),
+      lineAlertOverlaysSource.indexOf("export function MapLineAlertSelection"),
+    );
+    assert.match(layerSource, /groupByLine\(alerts\)\.map\(\(\[lineId, lineAlerts\]\) => \([\s\S]*?selectedLast\(lineAlerts, selection\)\.map\(\(alert\) => \([\s\S]*?key=\{alert\.key\}/);
+    assert.match(lineAlertOverlaysSource, /function selectedLast\([\s\S]*?\.\.\.alerts\.filter\(\(alert\) => !isSelectedLineAlert\(alert, selection\)\),\s*\.\.\.alerts\.filter\(\(alert\) => isSelectedLineAlert\(alert, selection\)\),/);
+  });
+
   it("draws glyph lanes without a clip mask as long as the alert", () => {
     // Corridor-length masks held most of GO/UP's drawing-layer area at rest
     // and re-rastered at every zoom step (tile memory, page flicker). Glyphs
@@ -558,7 +573,7 @@ describe("asset-backed map layering", () => {
       sharedOverlaySource,
       /data-selected-commute-impact-overlay=\{alert\.impactId\}[\s\S]*?<MapLineAlertTube[\s\S]*?idSuffix="-commute-focus"/,
     );
-    assert.match(interactiveMapSource, /commutePreviewActive && selection[\s\S]*?lineAlerts\.filter\(\(alert\) => !isSelectedLineAlert\(alert, selection\)\)/);
+    assert.match(interactiveMapSource, /commutePreviewActive && settledSelection[\s\S]*?lineAlerts\.filter\(\(alert\) => !isSelectedLineAlert\(alert, settledSelection\)\)/);
     assert.doesNotMatch(globalCss, /commute-impact-focus/);
     assert.doesNotMatch(
       globalCss,
@@ -785,7 +800,10 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /@keyframes map-selection-path-breathe/);
     assert.match(globalCss, /@keyframes map-selection-station-intro/);
     assert.match(globalCss, /@keyframes map-selection-station-breathe/);
-    assert.match(globalCss, /:is\(\.map-gesture-active, \[data-map-gesture-active="true"\], \[data-map-zoom-active="true"\]\) \.map-selection-attention\s*\{[^}]*animation-play-state:\s*paused !important;/s);
+    // Gestures, zooms and camera flights all pause selection attention. A
+    // flight to a full-line delay that kept animating the flash's drop-shadow
+    // re-rastered it every frame and overflowed tile memory (map flicker).
+    assert.match(globalCss, /:is\(\s*\.map-gesture-active,\s*\[data-map-gesture-active="true"\],\s*\[data-map-zoom-active="true"\],\s*\[data-map-camera-moving="true"\]\s*\) \.map-selection-attention\s*\{[^}]*animation-play-state:\s*paused !important;/s);
     assert.doesNotMatch(
       globalCss,
       /\.map-gesture-active \.asset-alert-path\.map-selection-flash[^}]*animation:\s*none/s,

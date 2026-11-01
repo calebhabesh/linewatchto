@@ -126,14 +126,16 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /\.desktop-view-content-wrapper\[data-nav-direction="back"\][^}]*animation:\s*panel-container-back 220ms/s);
     assert.match(selectedImpactScrollSource, /addEventListener\("animationend", handleWrapperAnimationEnd\)/);
     assert.match(selectedImpactScrollSource, /wrapperAnimationNames\.has\(event\.animationName\)/);
-    assert.match(selectedImpactScrollSource, /highlightCard\(\);[\s\S]*const wrapper = /);
-    assert.match(selectedImpactScrollSource, /lastSelectionGlow\?\.selection !== selection[\s\S]*pendingSkipGlow\?\.kind === selection\.kind[\s\S]*if \(!lastSelectionGlow\.skipGlow\) highlightCard\(\);/);
+    assert.match(selectedImpactScrollSource, /cancelIntroWait = whenMapSelectionIntroStarts\(selection, highlightCard\);[\s\S]*const wrapper = /);
+    assert.match(selectedImpactScrollSource, /lastSelectionGlow\?\.selection !== selection[\s\S]*pendingSkipGlow\?\.kind === selection\.kind[\s\S]*if \(!lastSelectionGlow\.skipGlow\) \{\s*cancelIntroWait = whenMapSelectionIntroStarts\(selection, highlightCard\);/);
     assert.match(selectedImpactScrollSource, /closest<HTMLElement>\("\.alert-stack, \.closure-stack"\)/);
     assert.match(selectedImpactScrollSource, /getComputedStyle\(card\)\.scrollMarginTop/);
     assert.match(selectedImpactScrollSource, /const alignmentOffset = isMobile/);
     assert.match(selectedImpactScrollSource, /list\.scrollTo\(/);
     assert.match(globalCss, /\.alert-card\s*\{[^}]*scroll-margin-top:\s*10px/s);
-    assert.match(globalCss, /\.highlight-active-card\s*\{[^}]*var\(--selection-fast-cycle-duration\)/s);
+    assert.match(globalCss, /\.highlight-active-card::after\s*\{[^}]*animation:\s*highlight-glow var\(--selection-fast-cycle-duration\)/s);
+    // Opacity only, so the compositor runs it without repainting the list.
+    assert.match(globalCss, /@keyframes highlight-glow\s*\{\s*0%, 100% \{\s*opacity: 0;\s*\}\s*50% \{\s*opacity: 1;\s*\}\s*\}/);
   });
 
   it("keeps the map first while exposing floating submenu states", () => {

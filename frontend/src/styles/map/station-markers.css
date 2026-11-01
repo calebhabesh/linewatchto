@@ -49,12 +49,14 @@
    Section 2: Station Hover Rings
    ============================================================ */
 /* Hover rings sit under the station artwork; hover is written to them
-   (`setMapStationHovered`), and a selected station shows none. */
+   (`setMapStationHovered`), and a selected station shows none. They ease in
+   and out over the same 120 ms as the hovered name's lift
+   (`.raster-station-label-text-hover`, base-map.css). */
 .station-hover-indicator :is(circle, rect, ellipse) {
-  fill: transparent;
-  stroke: transparent;
+  fill: rgb(var(--station-selection-accent-rgb) / 0%);
+  stroke: rgb(var(--station-selection-accent-rgb) / 0%);
   stroke-width: 0;
-  transition: fill 70ms ease-out, stroke 70ms ease-out, stroke-width 70ms ease-out;
+  transition: fill 120ms ease, stroke 120ms ease, stroke-width 120ms ease;
 }
 
 .station-hover-indicator.active:not([data-station-hover-selected="true"]) :is(circle, rect, ellipse) {
@@ -65,6 +67,12 @@
 
 .motion-paused .station-hover-indicator :is(circle, rect, ellipse) {
   transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station-hover-indicator :is(circle, rect, ellipse) {
+    transition: none;
+  }
 }
 
 /* ============================================================

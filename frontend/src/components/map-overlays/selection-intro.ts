@@ -29,6 +29,11 @@ export function mapSelectionIntroKey({
   return null;
 }
 
+/** The line alert flash's intro: it settles with the camera (settled-selection.ts). */
+export const LINE_ALERT_INTRO_SCOPE = ".asset-alert-path.map-selection-attention";
+/** Every other selection overlay's intro (station markers and rings). */
+export const OTHER_SELECTION_INTRO_SCOPE = ".map-selection-attention:not(.asset-alert-path)";
+
 /** Longest an intro may take before breathing starts anyway (a long gesture holds it). */
 const MAP_SELECTION_INTRO_LIMIT_MS = 15_000;
 
@@ -44,12 +49,18 @@ export function useMapSelectionIntro(
   key: string | null,
   rootRef?: RefObject<Element | null>,
   onComplete?: () => void,
+  /** The selection overlays this intro belongs to; a map can run one per kind. */
+  scope = ".map-selection-attention",
+  /** When the intro starts (document timeline ms), or null when nothing animates. */
+  onStart?: (startTime: number | null) => void,
 ): boolean {
   const [completedKey, setCompletedKey] = useState<string | null>(null);
   const onCompleteRef = useRef(onComplete);
+  const onStartRef = useRef(onStart);
   useEffect(() => {
     onCompleteRef.current = onComplete;
-  }, [onComplete]);
+    onStartRef.current = onStart;
+  }, [onComplete, onStart]);
   useEffect(() => {
     if (!key) return;
     let done = false;
@@ -63,15 +74,29 @@ export function useMapSelectionIntro(
     // The selection's overlays mount in the same commit; read their intros a frame later.
     const frame = window.requestAnimationFrame(() => {
       const root = rootRef?.current;
-      if (!root || typeof root.getAnimations !== "function") return;
-      const intros = [...root.querySelectorAll(".map-selection-attention")]
+      if (!root || typeof root.getAnimations !== "function") {
+        onStartRef.current?.(null);
+        return;
+      }
+      const intros = [...root.querySelectorAll(scope)]
         .flatMap((element) => element.getAnimations())
         .filter((animation) => (
           typeof CSSAnimation !== "undefined"
           && animation instanceof CSSAnimation
           && animation.animationName.endsWith("-intro")
         ));
-      if (intros.length === 0) return;
+      if (intros.length === 0) {
+        onStartRef.current?.(null);
+        return;
+      }
+      // Start times resolve once the animations are running.
+      void Promise.all(intros.map((animation) => animation.ready)).then(() => {
+        if (done) return;
+        const starts = intros
+          .map((animation) => animation.startTime)
+          .filter((time): time is number => typeof time === "number");
+        onStartRef.current?.(starts.length > 0 ? Math.min(...starts) : null);
+      }, () => undefined);
       window.clearTimeout(timer);
       timer = window.setTimeout(complete, MAP_SELECTION_INTRO_LIMIT_MS);
       // A remounted overlay cancels its animation; the selection then breathes.
@@ -82,6 +107,6 @@ export function useMapSelectionIntro(
       window.clearTimeout(timer);
       window.cancelAnimationFrame(frame);
     };
-  }, [key, rootRef]);
+  }, [key, rootRef, scope]);
   return Boolean(key && completedKey === key);
 }

@@ -126,7 +126,7 @@ test("Geographic Selection Attention Controller", async (t) => {
     assert.equal(framePostArrivalPeak.opacity, ATTENTION_PEAK_OPACITY);
   });
 
-  await t.test("user gestures freeze at static legible state and resume at breathe without replaying intro", () => {
+  await t.test("user gestures leave the cadence running instead of restarting it", () => {
     const attention = new GeographicSelectionAttention();
     const t0 = 10000;
 
@@ -135,18 +135,13 @@ test("Geographic Selection Attention Controller", async (t) => {
       false,
       t0,
     );
-    assert.equal(attention.getState(), "intro");
-
-    // User starts dragging at t0 + 400ms
-    const framePause = attention.onUserGestureStart(t0 + 400);
-    assert.equal(framePause.state, "gesture-pause");
-    assert.equal(framePause.active, false);
-    assert.equal(framePause.opacity, ATTENTION_STATIC_OPACITY);
-
-    // User finishes dragging at t0 + 1200ms -> resumes at breathe (never replays intro)
-    const frameResume = attention.onUserGestureEnd(t0 + 1200);
-    assert.equal(frameResume.state, "breathe");
-    assert.equal(frameResume.active, true);
+    // The controller has no gesture hooks: frames during and after a pan or
+    // zoom follow the same clock, so the intro ends into breathe on time.
+    assert.equal(typeof attention.onUserGestureStart, "undefined");
+    assert.equal(attention.computeFrame(t0 + 900).opacity, ATTENTION_PEAK_OPACITY);
+    const afterIntro = attention.computeFrame(t0 + 3000);
+    assert.equal(afterIntro.state, "breathe");
+    assert.equal(afterIntro.active, true);
   });
 
   await t.test("reduced-motion, motion-paused, hidden-document, and mobile-performance fallback to static halo", () => {

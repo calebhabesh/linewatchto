@@ -1134,12 +1134,17 @@ test("regional segment selections flash quickly then breathe", async ({ page, re
   const selectedDelayGlow = page.locator(
     '#regional-dynamic-selected-segment-layer [data-selected-impact-emphasis="regional-demo-delay"]',
   ).first();
-  await expect(selectedDelayGlow).toBeAttached();
-
+  // The camera flies to the alert with the map's drawing unchanged; the
+  // emphasis appears once it lands (settled-selection.ts).
   await expect(page.locator("[data-system-map=regional]")).toHaveAttribute(
     "data-map-camera-moving",
     "true",
   );
+  await expect(page.locator("[data-system-map=regional]")).toHaveAttribute(
+    "data-map-camera-moving",
+    "false",
+  );
+  await expect(selectedDelayGlow).toBeAttached();
   await expect.poll(() => selectedDelayGlow.evaluate((element) => {
     const style = getComputedStyle(element);
     return {
@@ -2534,9 +2539,11 @@ test("desktop TTC station focus keeps one camera target while the SVG settles", 
   const focusTarget = await mapStage.evaluate((element) => (element as HTMLElement).style.transform);
   const stationAttention = page.locator(".station-selection-flash.map-selection-attention").first();
   await expect(stationAttention).toBeAttached();
+  // Selection attention holds its frame while the camera flies (base-map.css),
+  // and plays once it lands.
   expect(await stationAttention.evaluate(
     (element) => getComputedStyle(element).animationPlayState,
-  )).not.toContain("paused");
+  )).toContain("paused");
   expect(await stationAttention.evaluate(
     (element) => getComputedStyle(element).animationName,
   )).toContain("map-selection-station-intro");
@@ -2550,6 +2557,9 @@ test("desktop TTC station focus keeps one camera target while the SVG settles", 
   expect(await mapStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(focusTarget);
   await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute("data-map-camera-moving", "false", { timeout: 2_000 });
   expect(await mapStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(focusTarget);
+  await expect.poll(() => stationAttention.evaluate(
+    (element) => getComputedStyle(element).animationPlayState,
+  )).not.toContain("paused");
   await expect(authoredMap).toHaveAttribute("data-camera-test-identity", "stable-authored-map");
   await expect(authoredMap).toHaveCSS("shape-rendering", "geometricprecision");
   await expect(authoredMap).toHaveCSS("text-rendering", "geometricprecision");

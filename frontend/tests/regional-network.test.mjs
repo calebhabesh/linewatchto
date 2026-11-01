@@ -635,7 +635,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(readFileSync(new URL("../src/components/system-map/system-map-definition.ts", import.meta.url), "utf8"), /overlayPlane: mapOverlayPlane\(manifest, geometry\)/);
     // Hover copies sit in the overlay plane under the station artwork; targets
     // are in the interaction plane, line alerts under stations.
-    assert.match(regionalMapSource, /className=\{`raster-map-dynamic-plane map-overlay-plane[\s\S]*?<MapLineAlertHoverCopies alerts=\{lineAlerts\} plane=\{overlayPlane\} \/>[\s\S]*?\{overPlanes\.map\(renderRasterPlane\)\}/);
+    assert.match(regionalMapSource, /className=\{`raster-map-dynamic-plane map-overlay-plane[\s\S]*?<MapLineAlertHoverCopies alerts=\{lineAlerts\} plane=\{overlayPlane\} selection=\{settledSelection\} \/>[\s\S]*?\{overPlanes\.map\(renderRasterPlane\)\}/);
     assert.match(regionalMapSource, /<MapLineAlertTargets alerts=\{lineAlerts\} \/>[\s\S]*?<MapStationTargets/);
     assert.match(regionalMapSource, /<g ref=\{previewOutlineLayerRef\} id=\{layerId\("top-hover"\)\} className="map-impact-preview-outline-layer" \/>/);
     // A station alert's hover lights its shared hover priority ring, as on TTC.

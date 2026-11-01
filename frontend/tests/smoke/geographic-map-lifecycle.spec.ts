@@ -333,6 +333,117 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     }).toPass({ timeout: 5_000 });
   });
 
+  test("desktop impact focus frames a whole-line alert clear of the sidebar, toolbar and legend", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop sidebar framing regression");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    // Line 2, Kipling to Kennedy: wider than the map left beside the sidebar
+    // at the opening zoom, so the camera has to zoom out to show all of it.
+    const line2SegmentIds = [
+      "kipling-islington", "islington-royal-york", "royal-york-old-mill", "old-mill-jane", "jane-runnymede",
+      "runnymede-high-park", "high-park-keele", "keele-dundas-west", "dundas-west-lansdowne", "lansdowne-dufferin",
+      "dufferin-ossington", "ossington-christie", "christie-bathurst", "bathurst-spadina", "spadina-st-george",
+      "st-george-bay", "bay-bloor-yonge", "bloor-yonge-sherbourne", "sherbourne-castle-frank",
+      "castle-frank-broadview", "broadview-chester", "chester-pape", "pape-donlands", "donlands-greenwoood",
+      "greenwoood-coxwell", "coxwell-woodbine", "woodbine-main-street", "main-street-victoria-park",
+      "victoria-park-warden", "warden-kennedy",
+    ].map((pair) => `line-2-${pair}`);
+    await page.route("**/api/dashboard?network=ttc*", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      const sourceSegment = body.map.segments.find(
+        (candidate: { id: string }) => candidate.id === "line-4-sheppard-yonge-don-mills",
+      );
+      body.map.segments = body.map.segments.filter(
+        (segment: { id: string }) => !line2SegmentIds.includes(segment.id),
+      );
+      body.map.segments.push(...line2SegmentIds.map((id) => ({
+        ...sourceSegment,
+        id,
+        lineId: "line-2",
+        impacts: [{
+          kind: "delay",
+          cardId: "stub-delay-line-4",
+          travelDirection: "bidirectional",
+          sourceAlertIds: ["stub-delay-line-4-source"],
+        }],
+      })));
+      await route.fulfill({ response, json: body });
+    });
+    await page.goto("/?panel=delays");
+
+    const geoMap = page.locator(".geographic-network-map");
+    await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
+    await page.locator('[data-impact-card-id="stub-delay-line-4"]')
+      .locator(".impact-card-map-btn")
+      .click();
+
+    // The sidebar widens to its detail width while the camera flies; check
+    // the settled frame against where the sidebar ends up.
+    await expect(async () => {
+      const framing = await page.evaluate(() => {
+        const map = document.querySelector<HTMLElement>(".geographic-network-map")!.getBoundingClientRect();
+        const rect = (selector: string) => document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
+        return {
+          moving: window.__linewatchGeographicMapLifecycle?.isMoving() ?? true,
+          bounds: window.__linewatchGeographicMapLifecycle?.getProjectedSelectionBounds("delay:stub-delay-line-4") ?? null,
+          width: map.width,
+          sidebarRight: (rect(".desktop-sidebar-container")?.right ?? map.left) - map.left,
+          toolbarBottom: (rect(".desktop-map-control-rail")?.bottom ?? map.top) - map.top,
+          legendTop: (rect(".desktop-map-legend")?.top ?? map.bottom) - map.top,
+        };
+      });
+      expect(framing.moving).toBe(false);
+      expect(framing.bounds).not.toBeNull();
+      expect(framing.bounds!.left).toBeGreaterThanOrEqual(framing.sidebarRight + 16);
+      expect(framing.bounds!.right).toBeLessThanOrEqual(framing.width - 16);
+      expect(framing.bounds!.top).toBeGreaterThanOrEqual(framing.toolbarBottom + 16);
+      expect(framing.bounds!.bottom).toBeLessThanOrEqual(framing.legendTop - 16);
+    }).toPass({ timeout: 5_000 });
+  });
+
+  test("station markers and names show hover and select their station", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop pointer hover regression");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+
+    const geoMap = page.locator(".geographic-network-map");
+    const hoverSurface = geoMap.locator(':scope > [role="region"]');
+    await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
+    await expect.poll(() => page.evaluate(() => window.__linewatchGeographicMapLifecycle?.isMoving())).toBe(false);
+    const canvasBox = await geoMap.locator("canvas").boundingBox();
+    expect(canvasBox).not.toBeNull();
+
+    // Zoom in so downtown names draw.
+    for (let step = 0; step < 2; step++) {
+      await page.getByRole("button", { name: "Zoom in" }).click();
+      await expect.poll(() => page.evaluate(() => window.__linewatchGeographicMapLifecycle?.isMoving())).toBe(false);
+    }
+    const candidates = ["museum", "st-andrew", "queens-park", "osgoode", "st-george", "spadina"];
+    await expect.poll(() => page.evaluate(
+      (ids) => ids.some((id) => window.__linewatchGeographicMapLifecycle?.getProjectedStation(id)?.label),
+      candidates,
+    )).toBe(true);
+    const stations = await page.evaluate(
+      (ids) => ids.map((id) => window.__linewatchGeographicMapLifecycle?.getProjectedStation(id) ?? null),
+      candidates,
+    );
+    const index = stations.findIndex((station) => station?.label);
+    const stationId = candidates[index];
+    const station = stations[index]!;
+
+    await page.mouse.move(canvasBox!.x + station.marker.x + 2, canvasBox!.y + station.marker.y);
+    await expect(hoverSurface).toHaveAttribute("data-hovered-station", stationId);
+    await page.mouse.move(10, 10);
+    await expect(hoverSurface).not.toHaveAttribute("data-hovered-station");
+    await page.mouse.move(canvasBox!.x + station.label!.x, canvasBox!.y + station.label!.y);
+    await expect(hoverSurface).toHaveAttribute("data-hovered-station", stationId);
+
+    // Pressing the name selects its station.
+    await page.mouse.click(canvasBox!.x + station.label!.x, canvasBox!.y + station.label!.y);
+    await expect(hoverSurface).toHaveAttribute("data-selected-station", stationId);
+    await expect(page.locator(".station-detail-panel")).toBeVisible();
+  });
+
   test("clicking a geographic corridor with multiple alerts opens one complete chooser", async ({ page, isMobile }) => {
     await page.setViewportSize(isMobile ? { width: 390, height: 844 } : { width: 1440, height: 900 });
     await page.emulateMedia({ reducedMotion: "reduce" });

@@ -24,6 +24,11 @@ import { ALL_LINE_COLORS } from "../app/geographic-config.ts";
 import { REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data.ts";
 import type { PlannedClosure } from "../app/linewatch-data.ts";
 import { recordGeographicMapLifecycle } from "../app/geographic-lifecycle.ts";
+import {
+  DEFAULT_STATION_LABEL_PLACEMENT,
+  stationLabelPlacements,
+  variableAnchorOffset,
+} from "../app/geographic-station-label-placement.ts";
 import { installTransitOpacity, setTransitPaintProperty } from "./geographic-network-transition.ts";
 
 export const EMPTY_GEOJSON_FEATURE_COLLECTION: GeoJSON.FeatureCollection = {
@@ -196,6 +201,36 @@ function registerMapImages(map: MapLibreMap): void {
 export const GEOGRAPHIC_STATION_LABEL_MIN_ZOOM = { ttc: 10.5, regional: 9 } as const;
 
 /** Line breadcrumbs fade in from here, as the overview line badges fade out. */
+/**
+ * The selected alert's band and glow, as [zoom, width] stops. Like the System
+ * Map's selection flash (about 1.5× its alert tube, with a blue glow), the
+ * band is wider than the alert's glyphs so it shows on both sides of them.
+ * The attention flash scales these widths.
+ */
+export const GEOGRAPHIC_SELECTION_BAND_WIDTHS = [[9, 12], [14, 24], [17, 32]] as const;
+export const GEOGRAPHIC_SELECTION_GLOW_WIDTHS = [[9, 22], [14, 40], [17, 52]] as const;
+export const GEOGRAPHIC_SELECTION_GLOW_OPACITY = 0.55;
+
+export function geographicSelectionWidthExpression(
+  stops: ReadonlyArray<readonly [number, number]>,
+  multiplier = 1,
+): ExpressionSpecification {
+  return ["interpolate", ["linear"], ["zoom"], ...stops.flatMap(([zoom, width]) => [zoom, width * multiplier])] as ExpressionSpecification;
+}
+
+/** Station names grow with zoom; the hovered copy uses the same sizes. */
+const GEOGRAPHIC_STATION_LABEL_SIZE: ExpressionSpecification = [
+  "interpolate", ["linear"], ["zoom"], 9, 14, 12, 16, 14, 18, 16, 21,
+];
+/** Each name's placement beside its station (geographic-station-label-placement.ts). */
+const GEOGRAPHIC_STATION_LABEL_ANCHOR: ExpressionSpecification = ["coalesce", ["get", "labelAnchor"], "top"];
+const GEOGRAPHIC_STATION_LABEL_OFFSET: ExpressionSpecification = ["coalesce", ["get", "labelOffset"], ["literal", [0, 1.2]]];
+/** The System Map's station hover accent (`--station-selection-accent`) and its 30% fill. */
+const GEOGRAPHIC_STATION_HOVER_ACCENT = "#38bdf8";
+const GEOGRAPHIC_STATION_HOVER_FILL = "rgba(56, 189, 248, 0.3)";
+/** A station's eased hover, 0 to 1 (`createGeographicStationHoverAnimator`). */
+const STATION_HOVER_AMOUNT: ExpressionSpecification = ["coalesce", ["feature-state", "hover"], 0];
+const GEOGRAPHIC_STATION_LABEL_HOVER_HALO = { dark: "rgba(56, 189, 248, 0.6)", light: "rgba(56, 189, 248, 0.45)" } as const;
 export const GEOGRAPHIC_LINE_BREADCRUMB_MIN_ZOOM = 9;
 const GEOGRAPHIC_LINE_BREADCRUMB_FULL_ZOOM = 10;
 
@@ -408,6 +443,110 @@ export function updateGeographicStationSelection(
   }
 }
 
+/**
+ * Which stations the hover layers may draw. A selected station keeps its
+ * selection ring instead of a hover ring, as on the System Map. The hovered
+ * name's copy draws only when the station's own name lost a collision; it
+ * stays on the last such station so it can fade out. How strongly each draws
+ * is the eased `hover` feature state (`createGeographicStationHoverAnimator`).
+ */
+export function updateGeographicStationHover(
+  map: MapLibreMap,
+  hoveredStationId: string | null,
+  selectedStationId: string | null,
+  options: { nameDrawn?: boolean } = {},
+): void {
+  if (map.getLayer("transit-station-hover")) {
+    map.setFilter("transit-station-hover", ["!=", ["get", "stationId"], selectedStationId ?? ""]);
+  }
+  if (hoveredStationId && map.getLayer("transit-station-labels-hover")) {
+    map.setFilter("transit-station-labels-hover", [
+      "==",
+      ["get", "stationId"],
+      options.nameDrawn === false ? hoveredStationId : "",
+    ]);
+  }
+}
+
+/** Station hover eases in and out over this long, like the System Map's (station-markers.css). */
+export const GEOGRAPHIC_STATION_HOVER_EASE_MS = 120;
+
+type StationHoverTween = { from: number; to: number; start: number };
+
+/**
+ * Eases each station's `hover` feature state (0 to 1) toward its target, so
+ * the ring and the name's glow fade in and out. MapLibre applies feature
+ * state at once, without paint transitions, so the steps are driven here.
+ */
+export function createGeographicStationHoverAnimator(
+  map: Pick<MapLibreMap, "setFeatureState" | "getSource">,
+  options: {
+    reducedMotion: () => boolean;
+    now?: () => number;
+    requestFrame?: (callback: (time: number) => void) => number;
+    cancelFrame?: (handle: number) => void;
+  },
+) {
+  const now = options.now ?? (() => performance.now());
+  const requestFrame = options.requestFrame ?? ((callback) => window.requestAnimationFrame(callback));
+  const cancelFrame = options.cancelFrame ?? ((handle) => window.cancelAnimationFrame(handle));
+  const values = new Map<string, number>();
+  const tweens = new Map<string, StationHoverTween>();
+  let frame: number | null = null;
+  let hovered: string | null = null;
+
+  const write = (stationId: string, value: number) => {
+    values.set(stationId, value);
+    if (map.getSource("transit-stations")) {
+      map.setFeatureState({ source: "transit-stations", id: stationId }, { hover: value });
+    }
+  };
+  const step = () => {
+    frame = null;
+    const time = now();
+    for (const [stationId, tween] of tweens) {
+      const progress = Math.min(1, (time - tween.start) / GEOGRAPHIC_STATION_HOVER_EASE_MS);
+      const eased = progress * progress * (3 - 2 * progress);
+      write(stationId, tween.from + (tween.to - tween.from) * eased);
+      if (progress >= 1) tweens.delete(stationId);
+    }
+    if (tweens.size > 0) frame = requestFrame(step);
+  };
+  const target = (stationId: string, to: number) => {
+    const from = values.get(stationId) ?? 0;
+    if (options.reducedMotion()) {
+      tweens.delete(stationId);
+      write(stationId, to);
+      return;
+    }
+    if (from === to && !tweens.has(stationId)) return;
+    tweens.set(stationId, { from, to, start: now() });
+    if (frame === null) frame = requestFrame(step);
+  };
+
+  return {
+    setHovered(stationId: string | null) {
+      if (stationId === hovered) return;
+      if (hovered) target(hovered, 0);
+      hovered = stationId;
+      if (stationId) target(stationId, 1);
+    },
+    /** After a style reload, which drops feature state. */
+    reset() {
+      if (frame !== null) cancelFrame(frame);
+      frame = null;
+      tweens.clear();
+      values.clear();
+      hovered = null;
+    },
+    dispose() {
+      if (frame !== null) cancelFrame(frame);
+      frame = null;
+      tweens.clear();
+    },
+  };
+}
+
 export function updateGeographicImpactSelection(
   map: MapLibreMap,
   selection: { kind: string; id: string } | null,
@@ -433,9 +572,10 @@ export function updateGeographicImpactSelection(
   }
 
   const selectionId = selection?.id ?? null;
-  if (map.getLayer("transit-impacts-selection")) {
+  for (const layerId of ["transit-impacts-selection-glow", "transit-impacts-selection"]) {
+    if (!map.getLayer(layerId)) continue;
     map.setFilter(
-      "transit-impacts-selection",
+      layerId,
       selectionId
         ? ["in", selectionId, ["get", "allCardIds"]]
         : ["==", ["get", "impactCardId"], ""],
@@ -585,7 +725,24 @@ export function installTransitLayers(
   highContrast: boolean,
   initialData?: InstallTransitLayersInitialData,
 ): void {
-  const { links, stations } = partitionCatalogFeatures(activeCatalog);
+  const { links, stations: catalogStations } = partitionCatalogFeatures(activeCatalog);
+  // Each name's side of its station, clear of the lines leaving it.
+  const labelPlacements = stationLabelPlacements(activeCatalog);
+  const stations = {
+    ...catalogStations,
+    features: catalogStations.features.map((station) => {
+      const placements = labelPlacements.get(station.properties.stationId) ?? [DEFAULT_STATION_LABEL_PLACEMENT];
+      return {
+        ...station,
+        properties: {
+          ...station.properties,
+          labelAnchor: placements[0].anchor,
+          labelOffset: placements[0].offset,
+          labelPlacements: variableAnchorOffset(placements),
+        },
+      };
+    }),
+  };
 
   // 1. Static Links Source
   if (map.getSource("transit-links")) {
@@ -598,7 +755,8 @@ export function installTransitLayers(
   if (map.getSource("transit-stations")) {
     (map.getSource("transit-stations") as GeoJSONSource).setData(stations);
   } else {
-    map.addSource("transit-stations", { type: "geojson", data: stations });
+    // Hover is feature state on the placed name (promoteId names each station).
+    map.addSource("transit-stations", { type: "geojson", data: stations, promoteId: "stationId" });
   }
 
   const lineBreadcrumbs = projectGeographicLineBreadcrumbs(activeCatalog);
@@ -798,9 +956,28 @@ export function installTransitLayers(
     });
   }
 
-  // --- LAYER 5: Selection halo for selected impact ---
+  // --- LAYER 5: Selection glow and band for the selected impact ---
+  const selectedImpactId = initialData?.selection?.id ?? initialData?.selectionId;
+  if (!map.getLayer("transit-impacts-selection-glow")) {
+    map.addLayer({
+      id: "transit-impacts-selection-glow",
+      type: "line",
+      source: "transit-impacts",
+      filter: selectedImpactId
+        ? ["in", selectedImpactId, ["get", "allCardIds"]]
+        : ["==", ["get", "impactCardId"], ""],
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": "#0ea5e9",
+        "line-width": geographicSelectionWidthExpression(GEOGRAPHIC_SELECTION_GLOW_WIDTHS),
+        "line-blur": geographicSelectionWidthExpression(GEOGRAPHIC_SELECTION_GLOW_WIDTHS, 0.45),
+        "line-opacity": GEOGRAPHIC_SELECTION_GLOW_OPACITY,
+        "line-offset": routeOffsetExpr,
+      },
+    });
+  }
   if (!map.getLayer("transit-impacts-selection")) {
-    const selId = initialData?.selection?.id ?? initialData?.selectionId;
+    const selId = selectedImpactId;
     map.addLayer({
       id: "transit-impacts-selection",
       type: "line",
@@ -814,17 +991,7 @@ export function installTransitLayers(
       },
       paint: {
         "line-color": "#38bdf8",
-        "line-width": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          9,
-          7.5,
-          14,
-          13.0,
-          17,
-          18.0,
-        ],
+        "line-width": geographicSelectionWidthExpression(GEOGRAPHIC_SELECTION_BAND_WIDTHS),
         "line-opacity": 0.9,
         "line-offset": routeOffsetExpr,
       },
@@ -1015,6 +1182,41 @@ export function installTransitLayers(
         "circle-opacity": initialData?.activeFilteredLine
           ? ["case", ["in", initialData.activeFilteredLine, ["get", "lineIds"]], 1.0, 0.25]
           : 1.0,
+      },
+    });
+  }
+
+  // --- LAYER 8b: Station hover ring (under the station marker, as on the System Map) ---
+  if (!map.getLayer("transit-station-hover")) {
+    map.addLayer({
+      id: "transit-station-hover",
+      type: "circle",
+      source: "transit-stations",
+      // Drawn for every station but the selected one; the eased hover state
+      // fades the ring in and grows its stroke, as on the System Map.
+      filter: ["!=", ["get", "stationId"], initialData?.selectedStationId ?? ""],
+      paint: {
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 6.5, 12, 8.5, 15, 12.5, 17, 15],
+        "circle-color": GEOGRAPHIC_STATION_HOVER_FILL,
+        "circle-opacity": STATION_HOVER_AMOUNT,
+        "circle-stroke-width": ["*", 2.5, STATION_HOVER_AMOUNT],
+        "circle-stroke-color": GEOGRAPHIC_STATION_HOVER_ACCENT,
+        "circle-stroke-opacity": ["*", 0.95, STATION_HOVER_AMOUNT],
+      },
+    }, "transit-stations-outer");
+  }
+
+  // --- LAYER 8c: Station pointer target, a little larger than the marker ---
+  if (!map.getLayer("transit-stations-hit")) {
+    map.addLayer({
+      id: "transit-stations-hit",
+      type: "circle",
+      source: "transit-stations",
+      paint: {
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 7, 12, 9, 15, 12, 17, 14],
+        "circle-color": "#000000",
+        "circle-opacity": 0,
+        "circle-stroke-width": 0,
       },
     });
   }
@@ -1265,30 +1467,60 @@ export function installTransitLayers(
       layout: {
         "text-field": ["get", "name"],
         "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
-        "text-size": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          9,
-          14,
-          12,
-          16,
-          14,
-          18,
-          16,
-          21,
-        ],
-        "text-offset": [0, 1.2],
-        "text-anchor": "top",
+        "text-size": GEOGRAPHIC_STATION_LABEL_SIZE,
+        // Beside the station, clear of its lines; the next placement when an
+        // alert badge or another name takes the best one.
+        "text-variable-anchor-offset": ["coalesce", ["get", "labelPlacements"], ["literal", ["top", [0, 1.2]]]],
+        "text-justify": "auto",
         "text-optional": true,
       },
       paint: {
         "text-color": dark ? "#f8fafc" : "#0f172a",
-        "text-halo-color": dark ? "rgba(15, 23, 42, 0.9)" : "rgba(255, 255, 255, 0.9)",
-        "text-halo-width": 2,
+        // A hovered name glows where it is placed (feature state, set by
+        // updateGeographicStationHover).
+        "text-halo-color": [
+          "interpolate",
+          ["linear"],
+          STATION_HOVER_AMOUNT,
+          0,
+          dark ? ["rgba", 15, 23, 42, 0.9] : ["rgba", 255, 255, 255, 0.9],
+          1,
+          dark ? ["rgba", 56, 189, 248, 0.6] : ["rgba", 56, 189, 248, 0.45],
+        ],
+        "text-halo-width": ["interpolate", ["linear"], STATION_HOVER_AMOUNT, 0, 2, 1, 3],
+        "text-halo-blur": ["interpolate", ["linear"], STATION_HOVER_AMOUNT, 0, 0, 1, 2],
       },
     // Under the train markers (as on the System Map), so a train at a
     // station is never hidden behind its name.
+    }, map.getLayer("transit-train-markers-halo") ? "transit-train-markers-halo" : undefined);
+  }
+
+  // A hovered station's name when its own name is not drawn (it lost a
+  // collision): always drawn, at its best placement, so hovering the dot
+  // still says which station a press selects.
+  if (!map.getLayer("transit-station-labels-hover")) {
+    map.addLayer({
+      id: "transit-station-labels-hover",
+      type: "symbol",
+      source: "transit-stations",
+      filter: ["==", ["get", "stationId"], ""],
+      layout: {
+        "text-field": ["get", "name"],
+        "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
+        "text-size": GEOGRAPHIC_STATION_LABEL_SIZE,
+        "text-offset": GEOGRAPHIC_STATION_LABEL_OFFSET,
+        "text-anchor": GEOGRAPHIC_STATION_LABEL_ANCHOR,
+        "text-justify": "auto",
+        "text-allow-overlap": true,
+        "text-ignore-placement": true,
+      },
+      paint: {
+        "text-color": dark ? "#f8fafc" : "#0f172a",
+        "text-halo-color": GEOGRAPHIC_STATION_LABEL_HOVER_HALO[dark ? "dark" : "light"],
+        "text-opacity": STATION_HOVER_AMOUNT,
+        "text-halo-width": 3,
+        "text-halo-blur": 2,
+      },
     }, map.getLayer("transit-train-markers-halo") ? "transit-train-markers-halo" : undefined);
   }
 
@@ -1347,7 +1579,8 @@ export function installTransitLayers(
         "icon-image": ["get", "badgeImageKey"],
         "icon-size": 1,
         "icon-allow-overlap": true,
-        "icon-ignore-placement": true,
+        // Badges always draw, and station names keep clear of them.
+        "icon-ignore-placement": false,
       },
     });
   }

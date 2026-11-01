@@ -25,7 +25,7 @@ describe("overlap badge connector", () => {
     assert.ok(Math.abs(connector.from.x - (700 + 67.5)) < 0.001);
   });
 
-  it("places its end dot outside the outline, touching it", () => {
+  it("centres its end dot on the outline's edge, so the dot meets the alert", () => {
     const connector = overlapBadgeConnector({
       position: { x: 700, y: 400 },
       size: ROUND,
@@ -35,8 +35,9 @@ describe("overlap badge connector", () => {
     });
 
     assert.ok(connector);
-    // Dot centre is one dot radius outside the overlay edge at x = 949.
-    assert.ok(Math.abs(connector.to.x - (1000 - 51 - 9)) < 0.001, JSON.stringify(connector.to));
+    // Dot centre is on the overlay edge at x = 949, so the dot reaches into the
+    // outline's keyline instead of floating one dot radius off it.
+    assert.ok(Math.abs(connector.to.x - (1000 - 51)) < 0.001, JSON.stringify(connector.to));
   });
 
   it("keeps its end off station dots on the overlay", () => {
@@ -214,7 +215,7 @@ describe("overlap badge connector", () => {
     assert.equal(segmentHitsBox(connector, name), false, JSON.stringify(connector));
   });
 
-  it("keeps the end dot outside the outline when the line meets the overlay at a slant", () => {
+  it("centres the end dot on the outline when the line meets the overlay at a slant", () => {
     // A name straight across from the badge pushes the line to land at an angle.
     const name = { x: 800, y: 360, width: 120, height: 80 };
     const connector = overlapBadgeConnector({
@@ -228,9 +229,9 @@ describe("overlap badge connector", () => {
 
     assert.ok(connector);
     assert.ok(Math.abs(connector.to.y - 400) > 40, JSON.stringify(connector));
-    // The dot touches the outline from outside: one dot radius past x = 949.
+    // The dot's centre is on the outline at x = 949, not inside the alert.
     const fromOverlay = 1000 - connector.to.x;
-    assert.ok(fromOverlay >= 51 + 9 - 0.5 && fromOverlay <= 51 + 9 + 1, JSON.stringify(connector.to));
+    assert.ok(fromOverlay >= 51 - 0.5 && fromOverlay <= 51 + 1, JSON.stringify(connector.to));
   });
 
   it("gives a badge at its closest allowed spot a visible line", () => {

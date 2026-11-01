@@ -24,7 +24,7 @@ describe("alert scenario catalog", () => {
   it("makes all-alert-types cover every backend-to-map alert surface", () => {
     const scenario = index.scenarios.find((candidate) => candidate.name === "all-alert-types");
     assert.ok(scenario);
-    assert.equal(scenario.routeCount, 16);
+    assert.equal(scenario.routeCount, 18);
     assert.equal(scenario.accessibilityCount, 2);
     assert.deepEqual(scenario.directionCoverage, {
       "delay": ["bidirectional", "directional"],
@@ -43,6 +43,8 @@ describe("alert scenario catalog", () => {
         "delay-bidirectional-station-multi-dot",
         "delay-directional-segment",
         "delay-directional-station",
+        "delay-whole-line-nonlinear",
+        "delay-whole-line-straight",
         "limited-service-active-window",
         "planned-closure-bidirectional-static",
         "planned-closure-directional-moving",
@@ -79,6 +81,20 @@ describe("alert scenario catalog", () => {
       routesById.get("scenario-delay-line-2-main-street-kennedy")?.stopIDList,
       ["Main Street", "Victoria Park", "Warden", "Kennedy"],
     );
+    // Whole-corridor delays (from recorded history's overnight extended
+    // service) cover every other Line 1 and Line 2 case.
+    for (const [id, start, end, stationCount] of [
+      ["scenario-delay-line-1-whole-line", "Finch", "Vaughan Metropolitan Centre", 38],
+      ["scenario-delay-line-2-whole-line", "Kipling", "Kennedy", 31],
+    ]) {
+      const route = routesById.get(id);
+      assert.equal(route?.effectDesc, "Delays", id);
+      assert.equal(route?.direction, "Both ways", id);
+      assert.equal(route?.stopIDList[0], start, id);
+      assert.equal(route?.stopIDList.at(-1), end, id);
+      assert.equal(route?.stopIDList.length, stationCount, id);
+      assert.equal(scenario.coverageMatrix[id === "scenario-delay-line-1-whole-line" ? "delay-whole-line-nonlinear" : "delay-whole-line-straight"]?.sourceId, id);
+    }
     assert.equal(routesById.get("scenario-station-node-union-vaughan")?.stopStart, "Union");
     assert.equal(routesById.get("scenario-station-node-union-vaughan")?.stopEnd, "Union");
     assert.deepEqual(routesById.get("scenario-station-node-union-vaughan")?.stopIDList, ["Union"]);

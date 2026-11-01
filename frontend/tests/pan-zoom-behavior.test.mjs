@@ -411,6 +411,9 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /const cameraAdjustedByUserRef = useRef\(false\)/);
     assert.match(hookSource, /const refitIfCameraUntouched = useCallback/);
     assert.match(hookSource, /if \(!cameraInitializedRef\.current \|\| cameraAdjustedByUserRef\.current\) return/);
+    // A selection's framing is programmatic and leaves the camera "untouched";
+    // a legend or toolbar resize must not snap it back to the fit.
+    assert.match(hookSource, /const refitIfCameraUntouched = useCallback\(\(\) => \{[\s\S]*?if \(automaticRefitBlockedRef\.current\) return;\s*moveToDefaultCamera\(false, false\);/);
     assert.match(mapSource, /const cameraOwnedBySelection = Boolean\(selection \|\| selectedStationId \|\| commutePathPreview\)/);
     assert.match(mapSource, /automaticResizeRefitBlockedRef\.current = cameraOwnedBySelection/);
     // Resizes refit an untouched camera in usePanZoom, the same for both maps.

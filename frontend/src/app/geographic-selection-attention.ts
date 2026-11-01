@@ -3,7 +3,9 @@
  * Implements the system-map attention cadence:
  * - 2.4s intro with four bright peaks (every 0.6s at 12.5%, 37.5%, 62.5%, 87.5%)
  * - 1.2s alternate breathe afterwards
- * - Static legible halo during camera flight, user pan/zoom gestures, and fallback modes
+ * - Static legible halo during the selection's camera flight and in fallback modes
+ * - Keeps its cadence through user pans and zooms, as the System Map's pulses
+ *   do (docs/map-renderer-parity.md rule 6), so a gesture never restarts it
  * - Cancellable on unmount, selection change, or style reload
  * - Rebuilds zero GeoJSON per frame (drives only paint properties)
  */
@@ -13,7 +15,6 @@ export type SelectionAttentionState =
   | "camera-flight"
   | "intro"
   | "breathe"
-  | "gesture-pause"
   | "static-fallback";
 
 export interface SelectionAttentionFrame {
@@ -52,7 +53,6 @@ export class GeographicSelectionAttention {
   private currentSelectionId: string | null = null;
   private currentGeneration = 0;
   private startTime = 0;
-  private pauseTime = 0;
   private breatheBaseTime = 0;
   private flightResumesBreathe = false;
 
@@ -99,7 +99,7 @@ export class GeographicSelectionAttention {
     }
 
     if (request.continueAttention && !staticFallback
-      && (this.state === "intro" || this.state === "breathe" || this.state === "gesture-pause")) {
+      && (this.state === "intro" || this.state === "breathe")) {
       this.currentSelectionId = request.id;
       this.currentGeneration = request.generation;
       if (request.hasCameraFlight) {
@@ -150,32 +150,6 @@ export class GeographicSelectionAttention {
   }
 
   /**
-   * User pan or zoom gesture started. Freezes at legible static state.
-   */
-  public onUserGestureStart(
-    now: number = typeof performance !== "undefined" ? performance.now() : 0,
-  ): SelectionAttentionFrame {
-    if (this.state === "intro" || this.state === "breathe") {
-      this.pauseTime = now;
-      this.state = "gesture-pause";
-    }
-    return this.computeFrame(now);
-  }
-
-  /**
-   * User pan or zoom gesture ended. Resumes at breathe phase (never replays intro).
-   */
-  public onUserGestureEnd(
-    now: number = typeof performance !== "undefined" ? performance.now() : 0,
-  ): SelectionAttentionFrame {
-    if (this.state === "gesture-pause") {
-      this.state = "breathe";
-      this.breatheBaseTime = now;
-    }
-    return this.computeFrame(now);
-  }
-
-  /**
    * Compute frame properties for current timestamp.
    */
   public computeFrame(
@@ -191,7 +165,6 @@ export class GeographicSelectionAttention {
         };
 
       case "camera-flight":
-      case "gesture-pause":
       case "static-fallback":
         return {
           opacity: ATTENTION_STATIC_OPACITY,
@@ -255,7 +228,6 @@ export class GeographicSelectionAttention {
     this.currentSelectionId = null;
     this.currentGeneration = 0;
     this.startTime = 0;
-    this.pauseTime = 0;
     this.breatheBaseTime = 0;
     this.flightResumesBreathe = false;
   }

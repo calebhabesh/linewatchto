@@ -2,9 +2,10 @@
  * Overlap badge connector
  *
  * A short line from an overlap badge to the edge of the alert overlay it
- * explains. Its end dot sits just outside the overlay's outline (the edge of
- * the highlighted stroke, or the ring of a station-only alert), touching it,
- * so it never lands inside the overlay or on a station dot.
+ * explains. Its end dot is centred on the overlay's outline (the outer edge of
+ * the highlighted stroke, or the ring of a station-only alert), so it reaches
+ * across the outline's dark keyline and meets the alert itself rather than
+ * floating just off it. It never lands on a station dot.
  *
  * The line stays straight: a bent line would read as another route. It only
  * passes through open space: its landing point moves along the overlay so the
@@ -243,7 +244,7 @@ export type OverlapBadgeConnectorOptions = {
    * lands on the open part of the overlay rather than reading as a station.
    */
   avoid?: { center: MapPoint; radius: number }[];
-  /** Radius of the end dot; the dot sits outside the outline, touching it. */
+  /** Radius of the end dot, which is centred on the outline's edge. */
   endRadius?: number;
   /** Station names, other badges, and similar artwork the line must not pass through. */
   keepOut?: ConnectorKeepOut[];
@@ -325,12 +326,12 @@ export function overlapBadgeConnectorSearch({
   if (samples.length === 0) return { needed: false, connector: null };
   samples.sort((a, b) => a.gap - b.gap);
   const landing = (sample: (typeof samples)[number], dots = avoid) => {
-    // The end dot sits where the line leaves the outline. A line meeting the
-    // overlay at a slant travels farther inside it than its half-width: by the
-    // half-width over the sine of the crossing angle. Near a segment's end the
-    // rounded outline lets it out sooner; distance from a segment only grows
-    // along the way out, so halving the range finds that point.
-    const reach = sample.outlineRadius + endRadius;
+    // The end dot is centred where the line leaves the outline. A line meeting
+    // the overlay at a slant travels farther inside it than its half-width: by
+    // the half-width over the sine of the crossing angle. Near a segment's end
+    // the rounded outline lets it out sooner; distance from a segment only
+    // grows along the way out, so halving the range finds that point.
+    const reach = sample.outlineRadius;
     const toBadge = Math.hypot(sample.spinePoint.x - sample.center.x, sample.spinePoint.y - sample.center.y);
     let distance = reach;
     if (sample.segment && toBadge > 1e-6) {
@@ -361,14 +362,14 @@ export function overlapBadgeConnectorSearch({
     if (dots.some((circle) => Math.hypot(to.x - circle.center.x, to.y - circle.center.y) < circle.radius)) return null;
     return { gap: sample.gap, from: stepToward(sample.spinePoint, sample.center, badgeRadius), to };
   };
-  // The dot also stays outside every other outline of the badge's alerts,
-  // such as a neighbouring segment at a bend.
+  // The dot's centre also stays on or outside every other outline of the
+  // badge's alerts, such as a neighbouring segment at a bend.
   const outsideOutlines = (point: MapPoint) => outlines.every((outline) => {
     if ("center" in outline) {
-      return Math.hypot(point.x - outline.center.x, point.y - outline.center.y) >= outline.radius + endRadius - OUTLINE_TOLERANCE;
+      return Math.hypot(point.x - outline.center.x, point.y - outline.center.y) >= outline.radius - OUTLINE_TOLERANCE;
     }
     const { polyline, halfWidth } = outline;
-    const limit = halfWidth + endRadius - OUTLINE_TOLERANCE;
+    const limit = halfWidth - OUTLINE_TOLERANCE;
     if (polyline.length === 1) return Math.hypot(point.x - polyline[0].x, point.y - polyline[0].y) >= limit;
     for (let index = 1; index < polyline.length; index += 1) {
       if (pointSegmentDistance(point, polyline[index - 1], polyline[index]) < limit) return false;

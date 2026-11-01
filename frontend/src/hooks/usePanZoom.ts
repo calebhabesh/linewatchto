@@ -1105,6 +1105,10 @@ export function usePanZoom({
     // Background layout measurements must never replace the rider's camera.
     if (document.visibilityState === "hidden" || !isMapCurrentlyActive()) return;
     if (!cameraInitializedRef.current || cameraAdjustedByUserRef.current) return;
+    // A selection's framing is programmatic, so it leaves the camera
+    // "untouched"; without this, a toolbar or legend resize (a status poll
+    // changing a legend row) snapped a focused selection back to the fit.
+    if (automaticRefitBlockedRef.current) return;
     moveToDefaultCamera(false, false);
   }, [isMapCurrentlyActive, moveToDefaultCamera]);
 

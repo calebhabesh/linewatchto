@@ -360,6 +360,96 @@ for (const network of MAPS) {
         await expect(selectedEmphasis(page)).toHaveCount(0);
       });
 
+      test("selecting a line alert leaves the map's drawing still while the camera flies; its emphasis follows the landing", async ({ page }) => {
+        // Drawing a long alert's emphasis as the flight started repainted it
+        // across the whole map and made the flight hitch and flicker (worse
+        // the longer the alert). Overlays now change only while the camera is
+        // still, as they do for a station.
+        await openMap(page, network);
+        await page.evaluate((network) => {
+          const root = document.querySelector(`[data-system-map=${network}]`)!;
+          const plane = root.querySelector(".map-overlay-plane")!;
+          const record = { flights: 0, changesInFlight: [] as string[] };
+          (window as unknown as { __flight: typeof record }).__flight = record;
+          let moving = false;
+          new MutationObserver(() => {
+            const next = root.getAttribute("data-map-camera-moving") === "true";
+            if (next && !moving) record.flights += 1;
+            moving = next;
+          }).observe(root, { attributes: true, attributeFilter: ["data-map-camera-moving"] });
+          new MutationObserver((mutations) => {
+            if (!moving) return;
+            for (const mutation of mutations) {
+              const target = mutation.target as Element;
+              record.changesInFlight.push(`${mutation.type}:${mutation.attributeName ?? ""}:${target.getAttribute?.("class") ?? target.nodeName}`);
+            }
+          }).observe(plane, { subtree: true, childList: true, attributes: true, attributeFilter: ["class", "d"] });
+        }, network);
+        const alert = await alertPoint(page, network);
+        await page.mouse.click(alert.x, alert.y);
+        await settle(page);
+        await expect(selectedEmphasis(page, alert.id).first()).toBeAttached();
+        const record = await page.evaluate(() => (window as unknown as { __flight: { flights: number; changesInFlight: string[] } }).__flight);
+        expect(record.flights, "selecting the alert flew the camera").toBeGreaterThan(0);
+        expect(record.changesInFlight).toEqual([]);
+      });
+
+      test("moving the selection to another alert replays the fast intro on the new alert's flash", async ({ page }) => {
+        // The intro key used to switch as soon as the selection did, while the
+        // previous alert's flash was still drawn; that flash finished the new
+        // key's intro and the new alert went straight to breathing.
+        await openMap(page, network);
+        const chooser = page.getByRole("dialog", { name: /^Choose Alert on / });
+        const choose = async (index: number) => {
+          const badge = await badgePoint(page, network);
+          await page.mouse.click(badge.x, badge.y);
+          await expect(chooser).toBeVisible();
+          await chooser.locator(".overlap-chooser-choice").nth(index).click();
+          await expect(chooser).toHaveCount(0);
+        };
+        const introState = () => page.evaluate(() => {
+          const flash = document.querySelector<SVGPathElement>(".asset-alert-path.map-selection-flash");
+          if (!flash) return null;
+          return {
+            id: flash.dataset.selectedImpactEmphasis,
+            complete: flash.classList.contains("selection-intro-complete"),
+            intro: flash.getAnimations().some((animation) => (animation as CSSAnimation).animationName === "map-selection-path-intro"),
+          };
+        });
+        await choose(0);
+        await settle(page);
+        await expect.poll(introState).toMatchObject({ complete: false, intro: true });
+        const first = (await introState())!.id;
+        await choose(1);
+        await settle(page);
+        await expect.poll(async () => (await introState())?.id).not.toBe(first);
+        await expect.poll(introState).toMatchObject({ complete: false, intro: true });
+      });
+
+      test("the selected alert's card glows in step with its map flash", async ({ page }) => {
+        // Same four fast pulses on both; the card used to start when the
+        // alert was selected and the flash only when the camera landed.
+        await openMap(page, network);
+        const alert = await alertPoint(page, network);
+        await page.mouse.click(alert.x, alert.y);
+        await settle(page);
+        const phase = () => page.evaluate((id) => {
+          const flash = document.querySelector(`[data-selected-impact-emphasis="${CSS.escape(id)}"]`);
+          const flashIntro = flash?.getAnimations().find((animation) => (animation as CSSAnimation).animationName === "map-selection-path-intro");
+          const card = document.querySelector(`.highlight-active-card[data-impact-card-id="${CSS.escape(id)}"]`);
+          const glow = document.getAnimations().find((animation) => {
+            const effect = animation.effect as KeyframeEffect | null;
+            return effect?.target === card && effect?.pseudoElement === "::after";
+          });
+          if (!flashIntro || !glow) return null;
+          const glowDelay = Number((glow.effect as KeyframeEffect).getTiming().delay ?? 0);
+          // Time into each one's pulses, read at the same instant.
+          return Math.abs((Number(glow.currentTime) - glowDelay) - Number(flashIntro.currentTime));
+        }, alert.id);
+        await expect.poll(phase, { timeout: 4_000 }).not.toBeNull();
+        expect(await phase()).toBeLessThan(20);
+      });
+
       test("a pressed line alert shows no hover outline once the cursor leaves it", async ({ page }) => {
         await openMap(page, network);
         const alert = await alertPoint(page, network);

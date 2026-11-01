@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { MOBILE_VIEWPORT_QUERY } from "./useMobilePerformanceMode";
+import { whenMapSelectionIntroStarts } from "../app/selection-intro-sync";
 
 // Shared across panels: the badge that swaps between a planned advisory and its
 // current impact moves the selection to another panel, and the outgoing and
@@ -30,21 +31,36 @@ export function useScrollSelectedImpactCard(
     if (!isMatch) return;
 
     let highlightTimeout: number | undefined;
+    let cancelIntroWait: (() => void) | undefined;
 
     const selectedCard = () => document.querySelector<HTMLElement>(
       `[data-impact-card-id="${CSS.escape(selection.id)}"]`,
     );
 
-    const highlightCard = () => {
+    // The glow pulses with the map's flash when the map flashes this
+    // selection: its animation takes the flash's start time, so both run on
+    // one clock however late this runs.
+    const highlightCard = (flashStartTime: number | null) => {
       const card = selectedCard();
       if (!card) return;
 
       card.classList.remove("highlight-active-card");
       void card.offsetWidth;
       card.classList.add("highlight-active-card");
+      let elapsedMs = 0;
+      if (flashStartTime !== null && typeof card.getAnimations === "function") {
+        const now = document.timeline?.currentTime;
+        const glow = card.getAnimations({ subtree: true }).find((animation) => (
+          (animation as CSSAnimation).animationName === "highlight-glow"
+        ));
+        if (glow && typeof now === "number" && now - flashStartTime < 2400) {
+          glow.startTime = flashStartTime;
+          elapsedMs = Math.max(0, now - flashStartTime);
+        }
+      }
       highlightTimeout = window.setTimeout(() => {
         card.classList.remove("highlight-active-card");
-      }, 2500);
+      }, 2500 - elapsedMs);
     };
 
     const scrollToCard = () => {
@@ -76,7 +92,9 @@ export function useScrollSelectedImpactCard(
       pendingSkipGlow = null;
       lastSelectionGlow = { selection, skipGlow };
     }
-    if (!lastSelectionGlow.skipGlow) highlightCard();
+    if (!lastSelectionGlow.skipGlow) {
+      cancelIntroWait = whenMapSelectionIntroStarts(selection, highlightCard);
+    }
 
     const wrapper = document.querySelector<HTMLElement>(
       ".desktop-view-content-wrapper, .mobile-view-content-wrapper",
@@ -115,6 +133,7 @@ export function useScrollSelectedImpactCard(
     return () => {
       if (scrollTimeout !== undefined) window.clearTimeout(scrollTimeout);
       if (highlightTimeout !== undefined) window.clearTimeout(highlightTimeout);
+      cancelIntroWait?.();
       wrapper?.removeEventListener("animationend", handleWrapperAnimationEnd);
       const card = selectedCard();
       if (card) {

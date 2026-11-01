@@ -36,6 +36,14 @@ function groupByLine(alerts: MapLineAlert[]) {
   return [...byLine].sort(([a], [b]) => a.localeCompare(b));
 }
 
+/** Keeps paint order, with the selected alert's tubes moved to the end. */
+function selectedLast(alerts: MapLineAlert[], selection: ImpactSelection) {
+  return [
+    ...alerts.filter((alert) => !isSelectedLineAlert(alert, selection)),
+    ...alerts.filter((alert) => isSelectedLineAlert(alert, selection)),
+  ];
+}
+
 function layerStateClass(exiting?: boolean) {
   return exiting ? "map-layer-exiting" : "map-layer-current";
 }
@@ -197,7 +205,12 @@ export const MapLineAlertTube = memo(function MapLineAlertTube({
   );
 });
 
-/** Every line alert's tube, grouped by line. */
+/**
+ * Every line alert's tube, grouped by line. The selected alert's tubes paint
+ * last, above every other alert, so a selection made under a more severe
+ * alert (from the chooser) shows its own artwork beneath the flash, not the
+ * alert covering it. Hover copies and the flash still paint above them.
+ */
 export function MapLineAlertLayer({
   alerts,
   plane,
@@ -211,7 +224,11 @@ export function MapLineAlertLayer({
     <>
       {groupByLine(alerts).map(([lineId, lineAlerts]) => (
         <g key={lineId} data-map-alert-line={lineId}>
-          {lineAlerts.map((alert) => (
+          {/* Same parent, same keys: selecting moves the tube's node rather
+              than remounting it, so a whole-line alert's glyph lanes are not
+              rebuilt in the frame its camera flight starts. Overlapping
+              alerts share a line, so last in its line is above them. */}
+          {selectedLast(lineAlerts, selection).map((alert) => (
             <MapLineAlertTube
               key={alert.key}
               alert={alert}
@@ -270,12 +287,22 @@ function hoverIdentityAttributes(alert: MapLineAlert) {
 
 /**
  * A hover copy of each alert's artwork, shown only while that alert is
- * hovered so it paints above the others. Each copy's `<use>` exists only
+ * hovered so it paints above the others and the selection's flash. The
+ * selected alert's copy stays hidden: its tube is already above the others
+ * (`MapLineAlertLayer`), and a copy would cover its flash. Each copy's `<use>` exists only
  * while hovered (`setMapImpactHovered` adds it): Chrome keeps every `<use>`
  * clone in step with its alert even when hidden, and the camera flags restyle
  * the alerts on every gesture (map-renderer-parity.md rule 5).
  */
-export function MapLineAlertHoverCopies({ alerts, plane }: { alerts: MapLineAlert[]; plane: MapOverlayPlane }) {
+export function MapLineAlertHoverCopies({
+  alerts,
+  plane,
+  selection,
+}: {
+  alerts: MapLineAlert[];
+  plane: MapOverlayPlane;
+  selection: ImpactSelection;
+}) {
   return (
     <g aria-hidden="true" pointerEvents="none">
       {alerts.map((alert) => alert.exiting ? null : (
@@ -284,6 +311,7 @@ export function MapLineAlertHoverCopies({ alerts, plane }: { alerts: MapLineAler
           className="map-impact-hover-foreground"
           {...hoverIdentityAttributes(alert)}
           data-map-hover-copy-href={`#${lineAlertVisualId(plane, alert)}`}
+          data-map-hover-selected={isSelectedLineAlert(alert, selection) ? "true" : undefined}
         />
       ))}
     </g>

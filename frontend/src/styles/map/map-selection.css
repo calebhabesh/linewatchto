@@ -19,6 +19,13 @@
   }
 }
 
+/* Hover copies paint above the selection flash, so another alert hovered
+   over the selection shows in full colour. The selected alert's tube is
+   already raised; its copy would only cover its own flash. */
+.map-impact-hover-foreground[data-map-hover-selected="true"] > use {
+  display: none;
+}
+
 /* Chooser and badge previews outline the previewed alerts as one shape and
    leave their artwork in its resting order. It stays put while the map moves,
    with its glow dropped during gestures, so panning with the chooser open does
