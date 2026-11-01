@@ -83,14 +83,17 @@
   background-color: #000000 !important;
 }
 
+/* Divided children are named by class: a `[class*=...]` test followed by
+   `> *` makes Chromium restyle an element's whole subtree on any class change
+   anywhere (a class added to the shell restyled the whole document). */
 .high-contrast .panel [class*="border-"],
 .high-contrast .panel .border,
-.high-contrast .panel [class*="divide-"] > *,
+.high-contrast .panel :is(.divide-y, .divide-x) > *,
 .high-contrast .panel-strong [class*="border-"],
 .high-contrast .panel-strong .border,
-.high-contrast .panel-strong [class*="divide-"] > *,
+.high-contrast .panel-strong :is(.divide-y, .divide-x) > *,
 .high-contrast .station-detail-panel [class*="border-"],
 .high-contrast .station-detail-panel .border,
-.high-contrast .station-detail-panel [class*="divide-"] > * {
+.high-contrast .station-detail-panel :is(.divide-y, .divide-x) > * {
   border-color: #ffffff !important;
 }

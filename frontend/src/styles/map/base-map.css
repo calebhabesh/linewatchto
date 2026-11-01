@@ -39,6 +39,27 @@
   position: absolute;
   top: 0;
   left: 0;
+  /* The shell rewrites these on every sheet, inspector and viewport change,
+     and nothing in the stage reads them. Pinned here, the stage's style stays
+     the same, so Chromium stops each such restyle at the stage instead of
+     restyling every artwork and overlay element under it (plan 11 phase 4).
+     A shell variable the stage starts to read must leave this list. */
+  --panel: initial;
+  --mobile-inspector-height: initial;
+  --mobile-inspector-total-height: initial;
+  --mobile-impact-inspector-total-height: initial;
+  --mobile-station-sheet-height: initial;
+  --mobile-station-sheet-translate-y: initial;
+  --mobile-status-peek-actual-height: initial;
+  --mobile-map-legend-height: initial;
+  --rotated-map-viewport-width: initial;
+  --rotated-map-viewport-height: initial;
+  --visual-viewport-height: initial;
+  --visual-viewport-width: initial;
+  --visual-viewport-offset-top: initial;
+  --visual-viewport-offset-left: initial;
+  --visual-viewport-scale: initial;
+  --visual-keyboard-inset: initial;
 }
 
 /* Center commits the camera atomically, then briefly repaints this lightweight

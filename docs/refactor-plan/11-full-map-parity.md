@@ -520,20 +520,14 @@ full-spec runs; phone numbers are noisy). Build once and reuse it
        **Fix:** the grab cursor (press and drag) applies to fine pointers
        only (`base-map.css`). Style time in an opening tap (traced):
        GO/UP 406 to 250 ms, TTC 134 to 105 ms.
-    2. **Open, not fixed.** The first station open restyles nearly the whole
-       document once on both maps (GO/UP 9,505 elements, TTC 2,737); later
-       opens restyle about 550. A `MutationObserver` on the shell
-       (`mobileMapFrame`) forces it during the `pointerup` commit. These did
-       not change it: pinning the shell's state-dependent custom properties on
-       `.map-stage`, blocking their inline writes, dropping all 78 `:has()`
-       rules, dropping every `.linewatch-shell` and `mobile-map-inspector`
-       rule, warming a `<details>`, and fonts and stylesheets (none change).
-       Two levers would cut GO/UP's share: `content-visibility: hidden` on
-       the hidden map (TTC first open 208 to 160 ms, GO/UP about 600 to
-       530), and drawing each glyph lane as a few paths instead of up to 11
-       elements per glyph (removing glyph lanes entirely measured about
-       −100 ms). Neither ships here: the first changes the warm map switch,
-       the second the glyph artwork and its tests. Owner: pick if wanted.
+    2. **First open (fixed in the follow-up below).** The first station
+       open restyled nearly the whole document once on both maps (GO/UP
+       9,505 elements, TTC 2,737); later opens restyle about 550. A
+       `MutationObserver` on the shell (`mobileMapFrame`) forces it during
+       the `pointerup` commit. Ruled out at the time: blocking the shell's
+       inline custom-property writes, dropping all 78 `:has()` rules,
+       dropping every `.linewatch-shell` and `mobile-map-inspector` rule,
+       warming a `<details>`, fonts and stylesheets (none change).
   - **The budget's tap was not measuring what it said.** Opening a station
     flies the camera to it, and Escape does not close the mobile inspector,
     so taps 2 and 3 landed on whatever had moved under the point. The spec
@@ -574,3 +568,60 @@ full-spec runs; phone numbers are noisy). Build once and reuse it
     (dashboard by path, plus `map-line-badges`) passed 363 and failed only
     the two known GO/UP mobile cases (item 9, phase 5). `test:visual` 30
     passed with no differences, so no baselines changed.
+- **Phase 4 follow-up (2026-10-31): the owner left the two open levers and
+  the open items to the agent's judgement.**
+  - **First-open restyle, found.** Unthrottled micro-tests on the heavy
+    GO/UP page: toggling a class on the shell that no rule mentions cost
+    25 ms. The cause is `.high-contrast .panel [class*="divide-"] > *` (and
+    its `.panel-strong` and `.station-detail-panel` copies). With a
+    `[class*=…]` test before a combinator, Chromium restyles an element's
+    whole subtree on any class change, high contrast or not. The shell
+    gaining its inspector classes restyled the whole page. **Fix:** the
+    rule names the divide classes (`:is(.divide-y, .divide-x) > *`, the only
+    ones used). Class toggles on the shell now cost 0 ms. The class-substring
+    ceilings in `css-architecture-guardrails` and `measure-css` drop from
+    18 to 15.
+  - **Shell variables pinned on the stage.** With that trigger gone, the
+    inspector classes still cost 28.5 ms, because their rules change
+    `--panel` and `--mobile-inspector-*` on the shell. `.map-stage` now pins
+    every custom property the shell writes inline or switches with its
+    inspector classes (`base-map.css`). Opening the inspector costs 5.2 ms,
+    and a custom property on `<html>` costs 0.6 ms instead of 35 when the
+    stage pins it. The phase's first pinning attempt had looked inert only
+    because the class-attribute trigger dominated. Nothing in the stage
+    reads those properties (the commute chip, train toggle and panels are
+    outside it).
+  - **Guards.** New `tests/style-invalidation-guardrails.test.mjs`: no
+    `[class…=]` test before a combinator anywhere in the app's CSS (it
+    fails on the old rule), the grab cursor stays inside the fine-pointer
+    query, and every property the shell writes is pinned on the stage.
+  - **Effect.** GO/UP's opening tap restyles 808 elements, against 9,505
+    before. Forced style and layout in its `pointerup` fell from about 175
+    to 55 ms (Long Animation Frames). Its INP did not move beyond phone
+    noise: first open 432–536 ms (median 440), against 392–456 (median 416)
+    before the follow-up. What remains is the panel's script (about
+    100–120 ms at 4×), a frame of paint and layerization of GO/UP's larger
+    planes, and a `requestAnimationFrame` measurement in `mobileMapFrame`.
+    That measurement appends an element to read the sheet height, which
+    forces two style recalcs (about 22 ms at 4×, on both maps). GO/UP live
+    refresh fell from 229–249 to 169–187 ms. Its remaining React render is
+    the shell, not the map: the content is reused and the adapter takes
+    about 1 ms.
+  - **Not done, by judgement.** `content-visibility: hidden` on the hidden
+    map: the pinned stage already stops the hidden map's restyles, and it
+    would add style and layout to every network switch. Drawing each glyph
+    lane as a few paths: hiding every glyph lane now saves only 40–50 ms of
+    the first open (448, 344, 344 ms against 512, 376, 400), not enough for
+    an artwork refactor of both maps. TTC's opening tap still restyles
+    about 2,700 elements with no single invalidation root, and its INP is
+    about 190 ms, so it was left.
+  - Checks: `test:fast` passes, lint 15 existing warnings (CSS and tests
+    only, no TypeScript change). `map-parity` 38 passed. The browser list
+    passed 363 and failed only the two known GO/UP mobile cases.
+    `test:visual` 30 passed with no differences. `test:map-budgets`, three
+    full runs, all passed: wheel and drag p95 6.1 ms on both maps. TTC hover
+    p95 6.1 ms, 0–1 frames over 20 ms. GO/UP heavy hover p95 18.2–24.2 ms,
+    19–29 frames over 20 ms. Phone first open TTC 144–224 ms, GO/UP
+    432–536 ms; later opens TTC 96–104 ms, GO/UP 144–232 ms. Parity TTC
+    6.2 ms, GO/UP 9.2–9.8 ms per hover (one run at a 17.5 ms display read
+    TTC 18.9).

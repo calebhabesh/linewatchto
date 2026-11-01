@@ -46,14 +46,13 @@ const BUDGET = {
 const PHONE_BUDGET = {
   /**
    * Interaction to next paint on the tap that first opens a station, which
-   * costs most. Plan 11 phase 4 measured TTC 168–216 ms, GO/UP 480–600 ms:
-   * on both maps that tap restyles nearly the whole document once (about
-   * 10,000 elements on GO/UP's heavy data, 2,700 on TTC), so GO/UP pays for
-   * its larger overlay. The panel's own render is about 50 ms. The goal is
-   * 200 ms (INP "good").
+   * costs most. Plan 11 phase 4 measured TTC 144–224 ms, GO/UP 432–536 ms,
+   * after its restyle fixes (GO/UP's tap restyles 808 elements, was 9,505).
+   * What remains is the panel's script and painting GO/UP's larger planes.
+   * The goal is 200 ms (INP "good").
    */
   tapInpMs: 800,
-  /** A later open of the same station: TTC 80–112 ms, GO/UP 112–168 ms. */
+  /** A later open of the same station: TTC 96–112 ms, GO/UP 136–232 ms. */
   repeatTapInpMs: 300,
   /** The longest task while a live refresh replaces the overlays. */
   refreshLongestTaskMs: 250,
