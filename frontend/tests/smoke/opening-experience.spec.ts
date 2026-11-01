@@ -30,7 +30,7 @@ test("new visitors start on Welcome and can open What's New", async ({ page, isM
   }).toBeLessThan(48);
 
   await dialog.getByRole("tab", { name: "What's New" }).click();
-  const releaseDialog = page.getByRole("dialog", { name: "What's new in LineWatchTO v1.1.0" });
+  const releaseDialog = page.getByRole("dialog", { name: "What's new in LineWatchTO v1.3.0" });
   await expect(releaseDialog.getByRole("heading", { name: "A new way to explore" })).toBeVisible();
   await expect(releaseDialog.getByText("Current", { exact: true })).toBeVisible();
   await expect(releaseDialog.getByText("September 19, 2026")).toBeVisible();
@@ -54,10 +54,10 @@ test("returning visitors land on an unseen featured release once", async ({ page
 
   await page.goto("/");
 
-  const dialog = page.getByRole("dialog", { name: "What's new in LineWatchTO v1.1.0" });
+  const dialog = page.getByRole("dialog", { name: "What's new in LineWatchTO v1.3.0" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("tab", { name: "What's New" })).toHaveAttribute("aria-selected", "true");
   await dialog.getByRole("button", { name: "Close introduction" }).click();
   await expect(dialog).toBeHidden();
-  await expect.poll(() => page.evaluate((key) => window.localStorage.getItem(key), RELEASE_NOTES_SEEN_STORAGE_KEY)).toBe("1.1.0");
+  await expect.poll(() => page.evaluate((key) => window.localStorage.getItem(key), RELEASE_NOTES_SEEN_STORAGE_KEY)).toBe("1.3.0");
 });

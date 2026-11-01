@@ -26,10 +26,10 @@ const cardUrl = new URL("../src/components/ReleaseNoteCard.tsx", import.meta.url
 
 describe("release notes data", () => {
   it("publishes semantic-version release notes newest first", () => {
-    assert.equal(packageJson.version, "1.1.0");
-    assert.deepEqual(releaseNotes.map((note) => note.version), ["1.1.0", "1.0.0"]);
+    assert.equal(packageJson.version, "1.3.0");
+    assert.deepEqual(releaseNotes.map((note) => note.version), ["1.3.0", "1.1.0", "1.0.0"]);
     assert.equal(hasReleaseNotes, true);
-    assert.equal(latestReleaseNote?.version, "1.1.0");
+    assert.equal(latestReleaseNote?.version, "1.3.0");
     assert.equal(currentReleaseNote?.version, packageJson.version);
     assert.equal(releaseNotePreviewForVersion("1.0.0")?.title, "The first LineWatchTO release");
     assert.doesNotMatch(JSON.stringify(releaseNotes), /Dev Notes/i);
@@ -39,8 +39,8 @@ describe("release notes data", () => {
     const preview = releaseNotePreviewForVersion(packageJson.version);
 
     assert.equal(preview?.version, packageJson.version);
-    assert.equal(preview?.title, "A new way to explore");
-    assert.match(preview?.summary ?? "", /Map view/);
+    assert.equal(preview?.title, "Clearer maps, steadier alerts");
+    assert.match(preview?.summary ?? "", /TTC and GO\/UP maps/);
   });
 
   it("shows the one-time notice only until the current app version has been seen", () => {

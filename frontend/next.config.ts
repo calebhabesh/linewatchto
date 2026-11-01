@@ -58,7 +58,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_LINEWATCH_APP_VERSION:
       process.env.NEXT_PUBLIC_LINEWATCH_APP_VERSION ||
       packageJson.version ||
-      "1.1.0",
+      "1.3.0",
     NEXT_PUBLIC_LINEWATCH_BUILD_LABEL: buildLabel,
     NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL: environmentLabel(),
   },

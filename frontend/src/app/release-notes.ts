@@ -20,11 +20,28 @@ export const RELEASE_NOTES_SEEN_STORAGE_KEY = "linewatch-seen-release-notes-vers
 
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "1.3.0",
+    releasedAt: "2026-11-01",
+    title: "Clearer maps, steadier alerts",
+    summary: "The TTC and GO/UP maps now work the same way, and notifications recover on their own.",
+    announceOnLaunch: true,
+    sections: [
+      {
+        title: "Highlights",
+        items: [
+          "TTC and GO/UP maps show disruptions the same way: the same colours, alert badges, station alerts and commute previews, and GO/UP responds faster to taps and hovers.",
+          "Notifications reconnect on their own when a phone replaces its subscription, and catch you up on alerts you missed; Notification Diagnostics shows what reached each device.",
+          "GO/UP arrivals in My Stations name each platform, and long destinations wrap instead of being cut off.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.1.0",
     releasedAt: "2026-09-19",
     title: "A new way to explore",
     summary: "A new geographic Map view and redesigned desktop sidebar make service easier to explore across TTC and GO/UP.",
-    announceOnLaunch: true,
+    announceOnLaunch: false,
     sections: [
       {
         title: "Highlights",

@@ -8,7 +8,7 @@ for (const network of ['ttc', 'regional'] as const) {
     await setStubMode(request, 'seeded');
     await installDismissedTransientUi(page);
     await page.addInitScript((selectedNetwork) => {
-      localStorage.setItem('linewatch-seen-release-notes-version', '1.1.0');
+      localStorage.setItem('linewatch-seen-release-notes-version', '1.3.0');
       localStorage.setItem('linewatch-default-network-v1', selectedNetwork);
       sessionStorage.setItem(`linewatch-map-viewport-v1:${selectedNetwork}`, JSON.stringify({
         version: 1, centerX: 2500, centerY: 1100, zoom: 2.3,
