@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
   appUrl,
@@ -1345,9 +1346,26 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     .evaluateAll((markers) => markers.map((marker) => (
       marker.querySelector(".overlap-indicator-pill") ?? marker
     ).getBoundingClientRect().toJSON()));
+  // Badges keep clear of each name's inked letters (the prepared geometry's
+  // artwork labels), not its padded font box, so names without tall or
+  // descending letters leave room beside them.
+  const inkPolygons = (JSON.parse(readFileSync(new URL("../../src/app/map-geometry/regional.json", import.meta.url), "utf8")) as {
+    artwork: { labels: number[][] };
+  }).artwork.labels;
   const visibleMapTextBoxes = await page.locator(
     "[data-system-map=regional] .map-stage .station-label-hit-target",
-  ).evaluateAll((labels) => labels.map((label) => label.getBoundingClientRect().toJSON()));
+  ).first().evaluate((label, polygons) => {
+    const toScreen = (label as SVGGraphicsElement).getScreenCTM()!;
+    return polygons.map((corners) => {
+      const points = [];
+      for (let index = 0; index < corners.length; index += 2) {
+        points.push(new DOMPoint(corners[index], corners[index + 1]).matrixTransform(toScreen));
+      }
+      const xs = points.map((point) => point.x), ys = points.map((point) => point.y);
+      const x = Math.min(...xs), y = Math.min(...ys);
+      return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
+    });
+  }, inkPolygons);
   expect(visibleMapTextBoxes.length).toBeGreaterThan(0);
   // The map runs under the docked sidebar; only badges a rider can see must clear the labels.
   const sidebarBox = await page.locator("#desktop-sidebar-container").boundingBox();
