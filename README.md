@@ -50,6 +50,7 @@ The difficult part is turning several feeds into a consistent rider experience w
 | --- | --- |
 | A healthy feed can coexist with a failed one. | [Independent source and feature gates](docs/domain-invariants.md#sources-freshness-and-offline-reads) keep TTC, regional alerts, arrivals, schedules, and train markers from borrowing each other's live status. |
 | A closure on a line may miss a rider's route or direction. | [Weighted path calculation](backend/src/main/java/com/calebhabesh/linewatch/commute/CommutePathService.java) and [segment/direction matching](backend/src/main/java/com/calebhabesh/linewatch/commute/CommuteImpactService.java) evaluate each commute leg. The feature monitors routes within one network; it does not recommend detours or plan cross-network journeys. |
+| GO/UP notices are free text with inconsistent wording. | An optional [model reader](docs/feature-reference.md) sends each new public notice text to Gemini once, with structured output limited to the line's real stations. Only confident, catalog-valid readings are used, the regex classifier remains the fallback, and readings never change dates, times or rider-facing text. |
 | Large schedule archives can overwhelm a small server. | The [GTFS importer](backend/src/main/java/com/calebhabesh/linewatch/arrival/schedule/GtfsScheduleImportService.java) streams input and [batches stop-time writes](backend/src/main/java/com/calebhabesh/linewatch/arrival/schedule/GtfsScheduleImportWriter.java), rather than keeping the complete feed in memory. |
 | Detailed SVG maps are expensive to redraw during gestures. | [Pre-rendered map planes](docs/map-asset-preparation.md) carry static artwork while React overlays handle changing impacts and selections. Geographic mode uses MapLibre GL JS and OpenFreeMap. |
 | A saved dashboard can look live after connectivity fails. | [Separate public snapshots](frontend/src/app/dashboard-snapshot.ts) retain each network for up to seven days, label saved context, and make current status unknown. The [service worker](frontend/public/sw.js) excludes API responses and account pages from its offline cache. |
@@ -146,7 +147,7 @@ docker compose up -d postgres redis
 mvn -f backend/pom.xml spring-boot:run
 ```
 
-In another terminal, run `npm --prefix frontend run dev`. Alert ingestion is disabled by default. For opt-in live development, use `scripts/dev-live-backend.sh`; keep provider credentials in ignored local environment files. See the [operations guide](docs/operations-guide.md) for source configuration and isolated alert scenarios.
+In another terminal, run `npm --prefix frontend run dev`. Alert ingestion is disabled by default. For opt-in live development, use `scripts/dev-backend-live.sh`; keep provider credentials in ignored local environment files. See the [operations guide](docs/operations-guide.md) for source configuration and isolated alert scenarios.
 
 ## Verification
 

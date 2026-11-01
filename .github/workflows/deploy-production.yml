@@ -117,7 +117,7 @@ jobs:
       - name: Set up Node for public smoke check
         uses: actions/setup-node@v5
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Configure SSH and private network
         env:
