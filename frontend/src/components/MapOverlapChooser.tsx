@@ -24,7 +24,7 @@ import {
   REGIONAL_ROUTE_CARDINAL_DIRECTIONS,
   REGIONAL_ROUTE_DEFINITIONS,
 } from "../app/regional-data";
-import { transitLineName } from "./TransitLineBadge";
+import { TransitLineBadge, transitLineName } from "./TransitLineBadge";
 import type { ChooserFollowAnchor, MapChooserFollower } from "./map-chooser-follow";
 import { OVERLAP_CHOOSER_MOBILE_BREAKPOINT } from "./map-chooser-layout";
 import type { OverlapChooserScreenLayout } from "./map-chooser-placement";
@@ -293,9 +293,15 @@ export function MapOverlapChooser({
                   <ImpactTypeIcon kind={impact.kind} size={26} />
                 </span>
                 <span className="overlap-chooser-choice-copy">
-                  <strong>{typeLabel(impact.kind, details)}{impact.kind === "planned-closure" && details?.serviceEffect ? (
-                    <span className="overlap-chooser-choice-effect"><span aria-hidden="true">{" ·\u00a0"}</span>{details.serviceEffect === "limited-service" ? "Limited Service" : details.serviceEffect === "suspension" ? "Closure" : "Delay"}</span>
-                  ) : null}</strong>
+                  <span className="overlap-chooser-choice-heading">
+                    <strong>{typeLabel(impact.kind, details)}{impact.kind === "planned-closure" && details?.serviceEffect ? (
+                      <span className="overlap-chooser-choice-effect"><span aria-hidden="true">{" ·\u00a0"}</span>{details.serviceEffect === "limited-service" ? "Limited Service" : details.serviceEffect === "suspension" ? "Closure" : "Delay"}</span>
+                    ) : null}</strong>
+                    {details?.lineId ? (
+                      // The location line names the line, so the badge is a scanning aid only.
+                      <TransitLineBadge lineId={details.lineId} lineNumber={details.lineNumber || undefined} size={22} className="overlap-chooser-choice-line-badge" decorative />
+                    ) : null}
+                  </span>
                   {impact.kind === "planned-closure" && dateLabel ? (
                     <span className="overlap-chooser-choice-date">{dateLabel}{details?.closureTimeLabel ? <><span className="sr-only">, </span><span className="overlap-chooser-choice-time">{details.closureTimeLabel}</span></> : null}</span>
                   ) : null}

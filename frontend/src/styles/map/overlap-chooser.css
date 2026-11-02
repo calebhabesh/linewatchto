@@ -404,6 +404,25 @@
   min-width: 0;
 }
 
+/* The line badge sits right-aligned on the heading row, so every row's badge
+   lines up in one column; a long heading wraps beside it, never under it. */
+.overlap-chooser-choice-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.overlap-chooser-choice-heading > strong {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.overlap-chooser-choice-line-badge {
+  flex: 0 0 auto;
+}
+
 .overlap-chooser-choice-copy strong {
   font-size: 17px;
   font-weight: 850;
