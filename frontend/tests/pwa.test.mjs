@@ -666,7 +666,9 @@ describe("LineWatch PWA configuration", () => {
     assert.match(layoutSource, /appleWebApp:\s*\{/);
     assert.match(layoutSource, /capable:\s*true/);
     assert.match(layoutSource, /title:\s*lineWatchAppTitle/);
-    assert.match(layoutSource, /statusBarStyle:\s*"black-translucent"/);
+    // Opaque status bar: iOS 27 blurs the top edge of black-translucent installs.
+    assert.match(layoutSource, /statusBarStyle:\s*"default"/);
+    assert.match(layoutSource, /<div className="ios-status-bar-plate" aria-hidden="true" \/>/);
     assert.match(layoutSource, /formatDetection:\s*\{[\s\S]*telephone:\s*false/);
     assert.match(layoutSource, /export const viewport/);
     assert.match(layoutSource, /viewportFit:\s*"cover"/);

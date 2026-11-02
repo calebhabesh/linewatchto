@@ -66,7 +66,10 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: lineWatchAppTitle,
-    statusBarStyle: "black-translucent",
+    // "default" (opaque) avoids iOS 27's top-edge blur. The style is frozen at
+    // install, so earlier black-translucent installs keep the CSS mitigation
+    // (.ios-status-bar-plate, mobile-chrome.css).
+    statusBarStyle: "default",
   },
   openGraph: {
     title: lineWatchSeoTitle,
@@ -127,8 +130,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} ${notoSansEthiopic.variable}`}>
       <body suppressHydrationWarning>
-        {/* iOS 27 blurs the top of installed apps with a translucent status bar;
-            an opaque fixed element at the top edge stops it (mobile-chrome.css). */}
+        {/* iOS standalone top edge (mobile-chrome.css): fills the blur zone on
+            black-translucent installs, and sets the status bar color on default ones. */}
         <div className="ios-status-bar-plate" aria-hidden="true" />
         <PwaServiceWorkerRegistration />
         <ChunkLoadRecovery />

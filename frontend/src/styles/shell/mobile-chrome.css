@@ -29,7 +29,10 @@
    changing the meta tag needs a reinstall, and no element stops the blur. In
    iOS standalone the safe top grows by that depth (only when there is a
    status-bar inset at all), so all top chrome clears the blur, and an opaque
-   plate in the canvas color fills the zone so the blur has nothing to smear. */
+   plate in the canvas color fills the zone so the blur has nothing to smear.
+   Installs since the switch to the "default" (opaque) style have no inset and no
+   blur; there iOS colors the status bar from a real fixed element at the top
+   edge, so the plate keeps 1px to make it follow the app theme. */
 .ios-status-bar-plate {
   display: none;
 }
@@ -49,7 +52,7 @@
       top: 0;
       left: 0;
       width: 100%;
-      height: var(--mobile-safe-top);
+      height: max(1px, var(--mobile-safe-top));
       background-color: #f8fafc;
       pointer-events: none;
       z-index: 10001;
