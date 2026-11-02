@@ -8,7 +8,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
 import { startMapSurfaceTransition, type MapFadeController } from "../app/map-surface-transition";
-import { iosStandaloneBottomGap, shellViewportOffsetTop } from "../app/visual-viewport-offset";
+import { shellViewportOffsetTop } from "../app/visual-viewport-offset";
 import { NetworkMap, prepareNetworkMap } from "./NetworkMap";
 import { resolveSelectionAttentionAnchor, type SelectionAttentionAnchor } from "../app/selection-attention-key";
 import { NetworkSelector, NetworkSwitchContext } from "./NetworkSelector";
@@ -823,18 +823,6 @@ export function LineWatchShell({
     let viewportUpdatePending = false;
     let viewportUpdateTimer: number | null = null;
 
-    // env() is not readable from script; a hidden probe resolves it.
-    let safeAreaProbe: HTMLDivElement | null = null;
-    const readSafeAreaTop = () => {
-      if (!safeAreaProbe) {
-        safeAreaProbe = document.createElement("div");
-        safeAreaProbe.setAttribute("aria-hidden", "true");
-        safeAreaProbe.style.cssText = "position:fixed;top:0;left:0;width:0;visibility:hidden;pointer-events:none;height:env(safe-area-inset-top,0px)";
-        document.body.appendChild(safeAreaProbe);
-      }
-      return safeAreaProbe.getBoundingClientRect().height;
-    };
-
     const mapCameraInteractionActive = () => Boolean(document.querySelector(
       '[data-map-gesture-active="true"], [data-map-zoom-active="true"]',
     ));
@@ -890,13 +878,6 @@ export function LineWatchShell({
         `${Math.round(shellViewportOffsetTop(offsetTop, keyboardOpen, pageZoomed))}px`,
       );
       root.style.setProperty("--visual-viewport-offset-left", `${Math.round(offsetLeft)}px`);
-      root.style.setProperty("--ios-standalone-bottom-gap", `${iosStandaloneBottomGap({
-        iosStandalone: (navigator as Navigator & { standalone?: boolean }).standalone === true,
-        screenHeight: window.screen.height,
-        innerHeight: window.innerHeight,
-        innerWidth: window.innerWidth,
-        safeAreaTop: readSafeAreaTop(),
-      })}px`);
       root.style.setProperty("--visual-viewport-scale", String(scale));
       root.style.setProperty("--visual-keyboard-inset", `${Math.round(keyboardInset)}px`);
       root.dataset.visualKeyboard = keyboardOpen ? "open" : "closed";
@@ -938,7 +919,6 @@ export function LineWatchShell({
         window.removeEventListener("pointercancel", flushPendingViewportUpdate);
         if (viewportUpdateTimer !== null) window.clearTimeout(viewportUpdateTimer);
         delete document.documentElement.dataset.visualKeyboard;
-        safeAreaProbe?.remove();
       };
     } else {
       window.addEventListener("resize", handleViewportChange);
@@ -948,7 +928,6 @@ export function LineWatchShell({
         window.removeEventListener("pointercancel", flushPendingViewportUpdate);
         if (viewportUpdateTimer !== null) window.clearTimeout(viewportUpdateTimer);
         delete document.documentElement.dataset.visualKeyboard;
-        safeAreaProbe?.remove();
       };
     }
   }, []);
