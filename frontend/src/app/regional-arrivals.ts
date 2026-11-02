@@ -1,5 +1,6 @@
 import { apiUrl } from "./api-client.ts";
 import { formatNearArrivalRange, isNearLiveArrival } from "./arrival-countdown.ts";
+import { torontoCalendarDayOffset } from "./toronto-date.ts";
 import {
   REGIONAL_ROUTE_CARDINAL_DIRECTIONS,
   REGIONAL_ROUTE_DEFINITIONS,
@@ -629,12 +630,6 @@ const ARRIVAL_CLOCK_FORMAT = new Intl.DateTimeFormat("en-US", {
   minute: "2-digit",
   hour12: true,
 });
-const ARRIVAL_DATE_KEY_FORMAT = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/Toronto",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
 const ARRIVAL_WEEKDAY_FORMAT = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Toronto",
   weekday: "short",
@@ -645,10 +640,8 @@ export function formatRegionalArrivalClockTime(value: string, now: Date | number
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "";
   const time = ARRIVAL_CLOCK_FORMAT.format(parsed);
-  const current = new Date(now);
-  const arrivalKey = ARRIVAL_DATE_KEY_FORMAT.format(parsed);
-  if (arrivalKey === ARRIVAL_DATE_KEY_FORMAT.format(current)) return time;
-  const tomorrow = new Date(current.getTime() + 86_400_000);
-  if (arrivalKey === ARRIVAL_DATE_KEY_FORMAT.format(tomorrow)) return `Tomorrow, ${time}`;
+  const dayOffset = torontoCalendarDayOffset(parsed, now);
+  if (dayOffset === 0) return time;
+  if (dayOffset === 1) return `Tomorrow, ${time}`;
   return `${ARRIVAL_WEEKDAY_FORMAT.format(parsed)}, ${time}`;
 }

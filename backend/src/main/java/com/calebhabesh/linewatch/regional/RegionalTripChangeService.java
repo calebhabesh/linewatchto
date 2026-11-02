@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.regional;
 
+import com.calebhabesh.linewatch.arrival.schedule.GtfsServiceTime;
 import com.calebhabesh.linewatch.regional.RegionalGtfsScheduleRepository.MatchedDeparture;
 import com.calebhabesh.linewatch.regional.RegionalAlertStore.StoredClassification;
 import com.calebhabesh.linewatch.regional.RegionalTripChangeOperationalRepository.OperationalRecord;
@@ -365,7 +366,7 @@ public class RegionalTripChangeService {
     }
 
     private OffsetDateTime scheduledAt(MatchedDeparture row) {
-        return row.serviceDate().atStartOfDay(TORONTO).plusSeconds(row.departureSeconds()).toOffsetDateTime();
+        return GtfsServiceTime.at(row.serviceDate(), row.departureSeconds());
     }
 
     private void merge(Map<String, Accumulator> changes, Candidate candidate) {

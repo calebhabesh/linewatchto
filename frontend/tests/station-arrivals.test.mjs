@@ -270,6 +270,19 @@ describe("station arrival grouping", () => {
     assert.equal(isArrivalDue({ label: "Unavailable", minutes: null, status: "unavailable" }), false);
   });
 
+  it("labels tomorrow by Toronto calendar date across daylight-saving changes", () => {
+    // Evening before the 23-hour spring-forward day: now + 24h lands on the day after tomorrow.
+    assert.equal(
+      formatArrivalClockTime("2027-03-14T08:00:00-04:00", new Date("2027-03-13T23:30:00-05:00")),
+      "Tomorrow, 8:00 AM",
+    );
+    // Start of the 25-hour fall-back day: now + 24h is still today.
+    assert.equal(
+      formatArrivalClockTime("2026-11-02T06:00:00-05:00", new Date("2026-11-01T00:30:00-04:00")),
+      "Tomorrow, 6:00 AM",
+    );
+  });
+
   it("formats predicted arrival clock times in Toronto time", () => {
     const now = new Date("2026-06-04T12:00:00-04:00");
     assert.equal(formatArrivalClockTime("2026-06-04T21:53:00-04:00", now), "9:53 PM");

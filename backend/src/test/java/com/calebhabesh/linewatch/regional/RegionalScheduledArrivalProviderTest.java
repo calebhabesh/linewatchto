@@ -44,6 +44,31 @@ class RegionalScheduledArrivalProviderTest {
         assertThat(arrivals.getLast().predictedAt().toLocalDate()).isEqualTo(tomorrow);
     }
 
+    @Test
+    void keepsEveningDeparturesOnTheAutumnDaylightSavingChangeDay() {
+        // Sunday 2026-11-01 20:25 EST, after clocks fell back: GTFS 21:00:00 is 21:00 EST, and the
+        // query starts from 20:25 on today's service day and 44:25 on yesterday's.
+        RegionalGtfsScheduleRepository repository = mock(RegionalGtfsScheduleRepository.class);
+        RegionalArrivalProperties properties = new RegionalArrivalProperties();
+        properties.setScheduleEnabled(true);
+        properties.setScheduleLookaheadDays(0);
+        LocalDate sunday = LocalDate.of(2026, 11, 1);
+        int nowSeconds = 20 * 3_600 + 25 * 60;
+        when(repository.upcoming("milton", List.of("regional-mi"), sunday, nowSeconds, 172_799))
+            .thenReturn(List.of(departure("Milton GO", 21 * 3_600, "MI301")));
+        when(repository.upcoming("milton", List.of("regional-mi"), sunday.minusDays(1),
+            nowSeconds + 86_400 + 3_600, nowSeconds + 86_400 + 3_600 + 7_200))
+            .thenReturn(List.of());
+
+        RegionalScheduledArrivalProvider provider = new RegionalScheduledArrivalProvider(
+            repository, properties, Clock.fixed(Instant.parse("2026-11-02T01:25:00Z"), ZoneOffset.UTC)
+        );
+
+        assertThat(provider.arrivals("milton", List.of("regional-mi")))
+            .extracting(RegionalArrivalRecord::predictedAt)
+            .containsExactly(OffsetDateTime.parse("2026-11-01T21:00:00-05:00"));
+    }
+
     private RegionalGtfsScheduleRepository.ScheduledDeparture departure(
         String direction,
         int departureSeconds,

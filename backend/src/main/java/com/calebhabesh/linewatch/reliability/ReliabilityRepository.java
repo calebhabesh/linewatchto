@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.reliability;
 
+import com.calebhabesh.linewatch.arrival.schedule.GtfsServiceTime;
 import com.calebhabesh.linewatch.regional.RegionalNetworkCatalog;
 import com.calebhabesh.linewatch.reliability.ReliabilityIntervalCalculator.TimeRange;
 import java.time.Duration;
@@ -460,10 +461,8 @@ public class ReliabilityRepository {
         if (stationId != null) params.addValue("stationId", stationId);
         return jdbc.query(sql, params, (rs, row) -> {
             LocalDate serviceDate = rs.getObject("service_date", LocalDate.class);
-            OffsetDateTime start = serviceDate.atStartOfDay(TORONTO_ZONE)
-                .plusSeconds(rs.getInt("start_seconds")).toOffsetDateTime();
-            OffsetDateTime end = serviceDate.atStartOfDay(TORONTO_ZONE)
-                .plusSeconds(rs.getInt("end_seconds")).toOffsetDateTime();
+            OffsetDateTime start = GtfsServiceTime.at(serviceDate, rs.getInt("start_seconds"));
+            OffsetDateTime end = GtfsServiceTime.at(serviceDate, rs.getInt("end_seconds"));
             return new ServiceWindowRecord(rs.getString("line_id"), new TimeRange(
                 later(start, since), earlier(end, until)
             ));

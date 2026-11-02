@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.regional;
 
+import com.calebhabesh.linewatch.arrival.schedule.GtfsServiceTime;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -39,13 +40,13 @@ public class RegionalScheduledArrivalProvider {
         List<RegionalArrivalRecord> result = new ArrayList<>();
         for (int dayOffset = -1; dayOffset <= Math.max(0, properties.getScheduleLookaheadDays()); dayOffset++) {
             LocalDate serviceDate = now.toLocalDate().plusDays(dayOffset);
-            int minimum = dayOffset == -1 ? now.toLocalTime().toSecondOfDay() + 86_400
-                : dayOffset == 0 ? now.toLocalTime().toSecondOfDay() : 0;
+            // GTFS seconds of "now" on this service day (not the wall-clock second of day, which is off by an
+            // hour on daylight-saving change days); later service days start from zero.
+            int minimum = dayOffset > 0 ? 0 : GtfsServiceTime.secondsAt(serviceDate, now.toInstant());
             int maximum = dayOffset == -1 ? minimum + 7_200 : 172_799;
             for (RegionalGtfsScheduleRepository.ScheduledDeparture departure :
                 repository.upcoming(stationId, lineIds, serviceDate, minimum, maximum)) {
-                OffsetDateTime at = serviceDate.atStartOfDay(TORONTO)
-                    .plusSeconds(departure.departureSeconds()).toOffsetDateTime();
+                OffsetDateTime at = GtfsServiceTime.at(serviceDate, departure.departureSeconds());
                 if (at.isBefore(now.minusSeconds(30).toOffsetDateTime())) continue;
                 result.add(new RegionalArrivalRecord(
                     departure.lineId(), departure.direction(), at, at, departure.platform(),

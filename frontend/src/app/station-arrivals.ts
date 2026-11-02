@@ -1,4 +1,5 @@
 import { formatArrivalMinutes, formatNearArrivalRange, isNearLiveArrival } from "./arrival-countdown.ts";
+import { torontoCalendarDayOffset } from "./toronto-date.ts";
 import type { StationArrival, StationLine } from "./station-data";
 
 type ArrivalTimeFields = Pick<StationArrival, "label" | "minutes" | "status"> & Partial<Pick<StationArrival, "predictedAt">>;
@@ -343,17 +344,9 @@ export function formatArrivalClockTime(
     minute: "2-digit",
     hour12: true,
   }).format(date);
-  const dateKey = (value: Date) => new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Toronto",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(value);
-  const current = new Date(now);
-  if (dateKey(date) === dateKey(current)) return time;
-  if (dateKey(date) === dateKey(new Date(current.getTime() + 86_400_000))) {
-    return `Tomorrow, ${time}`;
-  }
+  const dayOffset = torontoCalendarDayOffset(date, now);
+  if (dayOffset === 0) return time;
+  if (dayOffset === 1) return `Tomorrow, ${time}`;
   const day = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Toronto",
     weekday: "short",

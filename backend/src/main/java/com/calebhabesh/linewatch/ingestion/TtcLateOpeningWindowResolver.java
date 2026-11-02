@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.ingestion;
 
+import com.calebhabesh.linewatch.arrival.schedule.GtfsServiceTime;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -103,9 +104,7 @@ public class TtcLateOpeningWindowResolver {
             if (firstDeparture.isEmpty() && stationIds != null && !stationIds.isEmpty()) {
                 firstDeparture = repository.firstDepartureSeconds(lineId, serviceDate, List.of());
             }
-            return firstDeparture.map(seconds -> serviceDate.atStartOfDay(TORONTO)
-                .plusSeconds(seconds)
-                .toOffsetDateTime());
+            return firstDeparture.map(seconds -> GtfsServiceTime.at(serviceDate, seconds));
         } catch (DataAccessException exception) {
             log.warn(
                 "Unable to resolve TTC late-opening start from the active GTFS schedule; using the published-hours fallback",

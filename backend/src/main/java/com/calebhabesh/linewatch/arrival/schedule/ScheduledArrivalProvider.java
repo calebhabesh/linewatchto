@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ScheduledArrivalProvider implements ArrivalProvider {
-    private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
+    private static final ZoneId TORONTO_ZONE = GtfsServiceTime.TORONTO;
     private final GtfsScheduleReadRepository repository;
     private final ArrivalProperties properties;
     private final Clock clock;
@@ -40,7 +40,10 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
         ZonedDateTime nowToronto = ZonedDateTime.now(clock).withZoneSameInstant(TORONTO_ZONE);
         LocalDate today = nowToronto.toLocalDate();
         LocalDate yesterday = today.minusDays(1);
-        int nowSeconds = nowToronto.toLocalTime().toSecondOfDay();
+        // GTFS seconds of "now" on today's and yesterday's service days; not the wall-clock second of day,
+        // which drifts by an hour on daylight-saving change days.
+        int nowSecondsToday = GtfsServiceTime.secondsAt(today, nowToronto.toInstant());
+        int nowSecondsYesterday = GtfsServiceTime.secondsAt(yesterday, nowToronto.toInstant());
         long horizonSeconds = properties.getScheduleHorizon().toSeconds();
         List<String> lineIds = lines.stream().map(StationResponses.StationLineResponse::id).collect(Collectors.toList());
 
@@ -71,7 +74,7 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
                 stationId,
                 lineIds,
                 activeServiceIdsToday,
-                nowSeconds,
+                nowSecondsToday,
                 172799,
                 properties.getMaxArrivalsPerLine()
             ))
@@ -86,7 +89,7 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
                 stationId,
                 lineIds,
                 activeServiceIdsYesterday,
-                nowSeconds + 86400,
+                nowSecondsYesterday,
                 172799,
                 properties.getMaxArrivalsPerLine()
             ))
@@ -127,8 +130,7 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
 
         List<ArrivalPrediction> predictions = new ArrayList<>();
         for (GtfsScheduleReadRepository.ScheduledDeparture dep : allDeps) {
-            ZonedDateTime depZdt = dep.serviceDate().atStartOfDay(TORONTO_ZONE).plusSeconds(dep.departureSeconds());
-            OffsetDateTime depOdt = depZdt.toOffsetDateTime();
+            OffsetDateTime depOdt = GtfsServiceTime.at(dep.serviceDate(), dep.departureSeconds());
             if (depOdt.isBefore(cutoff)) {
                 continue;
             }

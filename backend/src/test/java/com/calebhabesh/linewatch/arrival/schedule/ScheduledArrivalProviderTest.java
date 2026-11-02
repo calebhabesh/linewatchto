@@ -102,6 +102,43 @@ class ScheduledArrivalProviderTest {
     }
 
     @Test
+    void keepsEveningDeparturesOnTheAutumnDaylightSavingChangeDay() {
+        // Sunday 2026-11-01 20:25 EST, the evening after clocks fell back. Anchoring GTFS times at
+        // midnight EDT shifted every departure an hour early, so the next trains were dropped as
+        // already departed and Monday morning service was shown instead.
+        StationResponses.StationLineResponse line5 =
+            new StationResponses.StationLineResponse("line-5", "5", "Eglinton", "#F8823F", "Eastbound / Westbound", true, true);
+        ScheduledArrivalProvider fallBackProvider = new ScheduledArrivalProvider(
+            repository,
+            properties,
+            Clock.fixed(Instant.parse("2026-11-02T01:25:00Z"), ZoneId.of("UTC"))
+        );
+        LocalDate sunday = LocalDate.parse("2026-11-01");
+        when(repository.findImportIdForServiceDate(sunday)).thenReturn(Optional.of(7L));
+        when(repository.findActiveServiceIds(7L, sunday)).thenReturn(List.of("SUN"));
+        when(repository.findUpcomingDepartures(
+            eq(7L),
+            eq("forest-hill"),
+            eq(List.of("line-5")),
+            eq(List.of("SUN")),
+            eq(20 * 3600 + 25 * 60),
+            eq(172799),
+            eq(properties.getMaxArrivalsPerLine())
+        )).thenReturn(List.of(
+            new GtfsScheduleReadRepository.ScheduledDeparture("line-5", "Towards Kennedy", 20 * 3600 + 30 * 60, null),
+            new GtfsScheduleReadRepository.ScheduledDeparture("line-5", "Towards Kennedy", 20 * 3600 + 38 * 60, null)
+        ));
+
+        List<ArrivalPrediction> arrivals = fallBackProvider.arrivalsFor("forest-hill", List.of(line5));
+
+        assertThat(arrivals).extracting(ArrivalPrediction::predictedAt).containsExactly(
+            OffsetDateTime.parse("2026-11-01T20:30:00-05:00"),
+            OffsetDateTime.parse("2026-11-01T20:38:00-05:00")
+        );
+        assertThat(arrivals).extracting(ArrivalPrediction::minutes).containsExactly(5, 13);
+    }
+
+    @Test
     void returnsUnavailableRowsWhenNoImportCoversCurrentServiceDates() {
         when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-04"))).thenReturn(Optional.empty());
         when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-03"))).thenReturn(Optional.empty());

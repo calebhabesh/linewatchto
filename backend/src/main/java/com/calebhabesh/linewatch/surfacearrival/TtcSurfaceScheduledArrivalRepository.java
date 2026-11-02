@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.surfacearrival;
 
+import com.calebhabesh.linewatch.arrival.schedule.GtfsServiceTime;
 import com.calebhabesh.linewatch.arrival.schedule.GtfsScheduleReadRepository;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -35,10 +36,9 @@ public class TtcSurfaceScheduledArrivalRepository {
         for (LocalDate date = today.minusDays(2); !date.isAfter(end); date = date.plusDays(1)) {
             List<String> services = schedules.findActiveServiceIds(importId, date);
             if (services.isEmpty()) continue;
-            // GTFS service-day origin is noon minus twelve hours, including DST transitions.
-            OffsetDateTime origin = date.atTime(12, 0).atZone(TORONTO).minusHours(12).toOffsetDateTime();
-            long from = Duration.between(origin, now).toSeconds();
-            long until = Duration.between(origin, now.plus(horizon)).toSeconds();
+            LocalDate serviceDate = date;
+            long from = GtfsServiceTime.secondsAt(serviceDate, now.toInstant());
+            long until = GtfsServiceTime.secondsAt(serviceDate, now.plus(horizon).toInstant());
             result.addAll(jdbc.query("""
                 select r.mode, r.route_short_name, r.route_long_name, t.trip_headsign,
                        t.trip_id, s.stop_name, s.bay_platform, st.departure_seconds
@@ -54,7 +54,7 @@ public class TtcSurfaceScheduledArrivalRepository {
                     "from", from, "until", until), (rs, row) -> new SurfaceArrivalRecord(
                         stationId, "TTC", rs.getString("mode"), rs.getString("route_short_name"),
                         rs.getString("route_long_name"), rs.getString("trip_headsign"),
-                        origin.plusSeconds(rs.getInt("departure_seconds")), null,
+                        GtfsServiceTime.at(serviceDate, rs.getInt("departure_seconds")), null,
                         rs.getString("bay_platform"), rs.getString("stop_name"), rs.getString("trip_id"),
                         SOURCE, "scheduled")));
         }

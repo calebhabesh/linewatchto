@@ -639,6 +639,17 @@ describe("regional station arrivals adapter", () => {
     assert.equal(formatRegionalDestinationName("Union Station", "ST"), "Union");
   });
 
+  it("labels regional tomorrow by Toronto calendar date across daylight-saving changes", () => {
+    assert.equal(
+      formatRegionalArrivalClockTime("2027-03-14T08:00:00-04:00", new Date("2027-03-13T23:30:00-05:00")),
+      "Tomorrow, 8:00 AM",
+    );
+    assert.equal(
+      formatRegionalArrivalClockTime("2026-11-02T06:00:00-05:00", new Date("2026-11-01T00:30:00-04:00")),
+      "Tomorrow, 6:00 AM",
+    );
+  });
+
   it("formats regional prediction clock times in Toronto time", () => {
     const now = new Date("2026-07-28T12:00:00-04:00");
     assert.equal(formatRegionalArrivalClockTime("2026-07-28T19:55:00Z", now), "3:55 PM");
