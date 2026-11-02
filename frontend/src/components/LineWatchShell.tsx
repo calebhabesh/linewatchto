@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
 import { startMapSurfaceTransition, type MapFadeController } from "../app/map-surface-transition";
+import { shellViewportOffsetTop } from "../app/visual-viewport-offset";
 import { NetworkMap, prepareNetworkMap } from "./NetworkMap";
 import { resolveSelectionAttentionAnchor, type SelectionAttentionAnchor } from "../app/selection-attention-key";
 import { NetworkSelector, NetworkSwitchContext } from "./NetworkSelector";
@@ -872,7 +873,10 @@ export function LineWatchShell({
 
       root.style.setProperty("--visual-viewport-height", `${Math.round(effectiveViewportHeight)}px`);
       root.style.setProperty("--visual-viewport-width", `${Math.round(layoutWidth)}px`);
-      root.style.setProperty("--visual-viewport-offset-top", `${Math.round(offsetTop)}px`);
+      root.style.setProperty(
+        "--visual-viewport-offset-top",
+        `${Math.round(shellViewportOffsetTop(offsetTop, keyboardOpen, pageZoomed))}px`,
+      );
       root.style.setProperty("--visual-viewport-offset-left", `${Math.round(offsetLeft)}px`);
       root.style.setProperty("--visual-viewport-scale", String(scale));
       root.style.setProperty("--visual-keyboard-inset", `${Math.round(keyboardInset)}px`);

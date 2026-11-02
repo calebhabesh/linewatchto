@@ -1220,6 +1220,25 @@
   .linewatch-shell .mobile-bottom-nav-item[data-active="true"] .mobile-bottom-nav-label {
     transform: none;
   }
+  /* Compact phones (iPhone SE: 64px bar): the 40px icon box, gap and label
+     overflowed the 56px item, so count badges sat on the active indicator.
+     Smaller icons and a top inset keep badges clear of it. */
+  @media (max-width: 400px) {
+    .linewatch-shell .mobile-bottom-nav-item {
+      gap: 3px;
+      padding-top: 6px;
+    }
+    .linewatch-shell .mobile-bottom-nav-icon {
+      height: 23px;
+    }
+    .linewatch-shell .mobile-bottom-nav-icon > svg { width: 23px; height: 23px; }
+    .linewatch-shell .mobile-bottom-nav-badge {
+      top: -8px;
+    }
+    .linewatch-shell .mobile-bottom-nav-label {
+      font-size: 10px;
+    }
+  }
 
   @keyframes mobile-service-sheet-enter {
     from {

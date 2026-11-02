@@ -52,6 +52,13 @@ html {
   scroll-behavior: smooth;
 }
 
+/* The app shell never scrolls the page itself; without this iOS rubber-bands
+   the whole page under a drag on non-scrolling chrome (Android does not). */
+html,
+body {
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   background: #0d0808;
