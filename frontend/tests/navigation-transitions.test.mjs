@@ -517,6 +517,12 @@ describe("Navigation Transition Table — Required Rows", () => {
     assert.equal(d5.panelView, "commutes");
     assert.equal(d5.shouldReplaceUrl, true);
 
+    // 5b. A reconnection catch-up summary opens Alert History
+    const p5b = new URLSearchParams("panel=alert-history");
+    const d5b = parseNavigationDeepLinks(p5b);
+    assert.equal(d5b.panelView, "alert-history");
+    assert.equal(d5b.cleanedParams.has("panel"), false);
+
     // 6. OAuth error parameter
     const p6 = new URLSearchParams("account_error=google_oauth_failed");
     const d6 = parseNavigationDeepLinks(p6);

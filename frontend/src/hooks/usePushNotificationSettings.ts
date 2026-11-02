@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import type { AccountState } from "../app/auth-data";
 import {
   disablePushSubscription,
@@ -25,6 +25,7 @@ import {
   type DevicePushSetupState,
 } from "../app/push-notification-state";
 import { getOrCreatePushInstallationId } from "../app/push-installation-identity";
+import { createNewEndpointVerifier, type NewEndpointVerifier } from "../app/push-endpoint-verification";
 import {
   browserMajorVersion,
   clearSavedSubscriptionState,
@@ -113,6 +114,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [deviceSetupState, setDeviceSetupState] = useState<DevicePushSetupState>("checking");
   const [autoRestoreAttemptedFor, setAutoRestoreAttemptedFor] = useState<string | null>(null);
+  const newEndpointVerifierRef = useRef<NewEndpointVerifier | null>(null);
 
   const accountNotificationsDesired = useMemo(
     () => deriveAccountNotificationsDesired(preferences),
@@ -186,6 +188,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
     });
     const previousEndpointHash = savedHash && savedHash !== currentHash ? savedHash : undefined;
     const response = await saveDeviceSubscription(subscription, reason, previousEndpointHash);
+    let savedReason: PushRegistrationReason = reason;
     if (!response.enabled) {
       await subscription.unsubscribe();
       subscription = await registration.pushManager.subscribe({
@@ -196,10 +199,33 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
       if (!replacementResponse.enabled) {
         throw new Error("Could not replace invalid push subscription.");
       }
+      savedReason = "invalid-endpoint-replacement";
     }
     await registerPeriodicSubscriptionCheck(registration);
+    newEndpointVerifierRef.current?.endpointSaved(savedReason);
     return subscription;
   }, [saveDeviceSubscription]);
+
+  // Re-saves a newly obtained endpoint shortly after, while the app is open:
+  // a rejection means its first send found it dead, and the re-save above
+  // subscribes afresh. Skipped once the rider turns this device off.
+  const verifyNewEndpointRef = useRef<() => Promise<unknown>>(async () => undefined);
+  useEffect(() => {
+    verifyNewEndpointRef.current = async () => {
+      if (!config?.webPushAvailable || !config.vapidPublicKey) return;
+      if (Notification.permission !== "granted" || readDeviceDisabledByUser(accountState.user?.id)) return;
+      if (!await getCurrentPushSubscription(navigator.serviceWorker)) return;
+      await createOrRefreshDeviceSubscription(config);
+    };
+  }, [config, accountState.user?.id, createOrRefreshDeviceSubscription]);
+  useEffect(() => {
+    const verifier = createNewEndpointVerifier({ verify: () => verifyNewEndpointRef.current() });
+    newEndpointVerifierRef.current = verifier;
+    return () => {
+      verifier.dispose();
+      newEndpointVerifierRef.current = null;
+    };
+  }, []);
 
   const fetchConfigAndSubscription = useCallback(async (isMounted: () => boolean) => {
     if (!accountState.authenticated || !supported) {

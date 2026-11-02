@@ -35,6 +35,10 @@ public class PushNotificationDispatchService {
     // Catch-up runs on each evaluation for endpoints registered within this window.
     private static final Duration CATCH_UP_WINDOW = Duration.ofHours(24);
     private static final int MAX_CONTINUED_FROM_CHAIN = 64;
+    // A just-registered endpoint waits this long before catch-up sends to it.
+    private static final Duration CATCH_UP_SETTLE = Duration.ofSeconds(5);
+    private static final Duration PROMPT_CATCH_UP_LOOKBACK = Duration.ofMinutes(2);
+    private static final Duration SHORT_LIVED_ENDPOINT = Duration.ofMinutes(5);
     private static final Duration CLEARED_DELIVERY_RETRY_WINDOW = Duration.ofHours(24);
     private static final int CLEARED_DELIVERY_RETRY_LIMIT = 25;
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
@@ -46,6 +50,7 @@ public class PushNotificationDispatchService {
     );
     private static final String OCCURRENCE_SEPARATOR = "|after|";
     
+    private final java.util.Map<String, Instant> promptedReplacementIds = new java.util.concurrent.ConcurrentHashMap<>();
     private final SavedCommuteRepository savedCommuteRepository;
     private final PushCandidateResolver candidateResolver;
     private final PushNotificationEventRepository eventRepository;
@@ -1098,6 +1103,10 @@ public class PushNotificationDispatchService {
      * qualify; eligibility is judged from the installation's enablement, an
      * alert already shown on that installation is never sent again, and each
      * alert goes to a replacement once (the delivery row is the dedupe).
+     * Planned-advisory announcements are not caught up: they are not urgent and
+     * stay listed in the app; reminders and started windows still are. Several
+     * alerts go as one quiet batch under a single summary (Android showed
+     * seven separate alerts at 1:18 AM on 2026-11-02 when a phone reconnected).
      */
     void catchUpReplacementSubscriptions(String accountId, List<PushNotificationCandidate> allowedCandidates) {
         Instant now = clock.instant();
@@ -1106,6 +1115,7 @@ public class PushNotificationDispatchService {
             .filter(PushSubscriptionEntity::isInstallationReplacement)
             .filter(subscription -> subscription.getInstallationId() != null)
             .filter(subscription -> subscription.getEnabledAt().isAfter(now.minus(CATCH_UP_WINDOW)))
+            .filter(subscription -> !subscription.getEnabledAt().isAfter(now.minus(CATCH_UP_SETTLE)))
             .toList();
         if (replacements.isEmpty()) {
             return;
@@ -1116,38 +1126,175 @@ public class PushNotificationDispatchService {
                 notificationKeys.add(candidate.notificationKey());
             }
         }
-        Set<String> unreachable = new java.util.HashSet<>();
-        java.util.Map<String, List<String>> predecessors = new java.util.HashMap<>();
+        java.util.Map<String, List<PushSubscriptionEntity>> chains = new java.util.HashMap<>();
+        java.util.Map<String, List<PushNotificationEventEntity>> missedBySubscription = new java.util.HashMap<>();
+        java.util.Map<String, Set<String>> plannedBySubscription = new java.util.HashMap<>();
         for (String notificationKey : notificationKeys) {
             Optional<PushNotificationEventEntity> latest = latestEvent(accountId, notificationKey, ACTIVE_STATE);
             if (latest.isEmpty() || !latest.get().isDeliveryAllowed() || clearedSince(latest.get())) {
                 continue;
             }
             PushNotificationEventEntity event = latest.get();
+            boolean plannedAnnouncement = isPlannedAnnouncement(event);
             for (PushSubscriptionEntity subscription : replacements) {
-                if (unreachable.contains(subscription.getId())
-                    || !catchUpEligible(subscription, event)
+                if (!catchUpEligible(subscription, event)
                     || deliveryRepository.findByEventIdAndSubscriptionId(event.getId(), subscription.getId()).isPresent()
                     || deliveryRepository.existsDisplayedForInstallation(event.getId(), accountId, subscription.getInstallationId())
-                    || shownByContinuedEndpoint(event, predecessors.computeIfAbsent(
+                    || shownByContinuedEndpoint(event, chains.computeIfAbsent(
                         subscription.getId(), id -> continuedFromChain(accountId, subscription)
                     ))) {
                     continue;
                 }
+                if (plannedAnnouncement) {
+                    plannedBySubscription.computeIfAbsent(subscription.getId(), id -> new java.util.HashSet<>())
+                        .add(notificationKey);
+                } else {
+                    missedBySubscription.computeIfAbsent(subscription.getId(), id -> new java.util.ArrayList<>()).add(event);
+                }
+            }
+        }
+        for (PushSubscriptionEntity subscription : replacements) {
+            List<PushNotificationEventEntity> missed = missedBySubscription.get(subscription.getId());
+            if (missed == null || missed.isEmpty()) {
+                continue;
+            }
+            // Oldest first, so the newest alert ends up on top of the tray.
+            missed.sort(java.util.Comparator.comparing(
+                PushNotificationEventEntity::deliveryEligibilityAt,
+                java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder())
+            ));
+            List<PushSubscriptionEntity> chain = chains.getOrDefault(subscription.getId(), List.of());
+            int planned = plannedBySubscription.getOrDefault(subscription.getId(), Set.of()).size();
+            int cleared = clearedWhileUnreachable(
+                accountId,
+                subscription,
+                chain,
+                missed.stream().map(PushNotificationEventEntity::getNotificationKey).collect(java.util.stream.Collectors.toSet())
+            );
+            // One alert alone alerts as itself; anything more, or anything left
+            // out, gets a summary so the rider knows what this device missed.
+            WebPushPayload.CatchUpSummary summary = missed.size() < 2 && cleared == 0 && planned == 0
+                ? null
+                : PushCatchUpSummaryText.build(
+                    missed.size(),
+                    cleared,
+                    planned,
+                    Long.toString(now.toEpochMilli(), 36),
+                    connectionLostAt(chain),
+                    subscription.getEnabledAt()
+                );
+            for (PushNotificationEventEntity event : missed) {
                 String deliveryId = nextId("push_delivery");
                 PushDeliveryResult result = webPushClient.send(
                     subscription,
                     topicFor(PushNotificationDisplayTags.forEvent(event)),
                     WebPushPayload.fromDelivery(event, deliveryId, subscription, receiptTokenService, now, pushProperties)
-                        .asCatchUp()
+                        .asCatchUp(summary)
                 );
                 deliveryRepository.save(PushNotificationDeliveryEntity.catchUp(deliveryId, event, subscription, result, now));
                 if (result.invalidSubscription()) {
                     disableHardInvalidSubscription(subscription, result, now);
-                    unreachable.add(subscription.getId());
+                    break;
                 }
             }
         }
+    }
+
+    /**
+     * Alerts that started while this device was unreachable and have cleared
+     * since, counted per notification key. An alert any of whose
+     * updates the device showed is not counted; neither are keys being sent.
+     */
+    private int clearedWhileUnreachable(
+        String accountId,
+        PushSubscriptionEntity subscription,
+        List<PushSubscriptionEntity> chain,
+        Set<String> sentKeys
+    ) {
+        List<PushNotificationEventEntity> recent = eventRepository.findByAccountIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+            accountId, subscription.getEnabledAt().minus(CATCH_UP_WINDOW)
+        );
+        if (recent == null || recent.isEmpty()) {
+            return 0;
+        }
+        java.util.Map<String, Instant> latestClear = new java.util.HashMap<>();
+        java.util.Map<String, List<PushNotificationEventEntity>> activeByKey = new java.util.LinkedHashMap<>();
+        for (PushNotificationEventEntity event : recent) {
+            String key = event.getNotificationKey();
+            if (key == null || sentKeys.contains(key)) continue;
+            if (CLEARED_STATE.equals(event.getNotificationState())) {
+                latestClear.merge(key, event.getCreatedAt(), (a, b) -> a.isAfter(b) ? a : b);
+            } else if (ACTIVE_STATE.equals(event.getNotificationState())
+                && event.isDeliveryAllowed()
+                && !isPlannedAnnouncement(event)) {
+                activeByKey.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(event);
+            }
+        }
+        int cleared = 0;
+        for (java.util.Map.Entry<String, List<PushNotificationEventEntity>> entry : activeByKey.entrySet()) {
+            Instant clearedAt = latestClear.get(entry.getKey());
+            List<PushNotificationEventEntity> actives = entry.getValue();
+            boolean missedDuringOutage = actives.stream().anyMatch(event -> catchUpEligible(subscription, event)
+                && clearedAt != null && !clearedAt.isBefore(event.getCreatedAt()));
+            if (!missedDuringOutage) continue;
+            boolean shown = actives.stream().anyMatch(event ->
+                deliveryRepository.existsDisplayedForInstallation(event.getId(), accountId, subscription.getInstallationId())
+                    || shownByContinuedEndpoint(event, chain));
+            if (!shown) cleared++;
+        }
+        return cleared;
+    }
+
+    /**
+     * Accounts with a replacement endpoint enabled in the last few minutes that
+     * have not had a prompt evaluation yet. Evaluating them a few seconds after
+     * registration, instead of at the next minute's run, puts catch-up's first
+     * send inside the app session that registered the endpoint, so the open app
+     * can notice a dead endpoint and replace it (production 2026-11-02: a fresh
+     * Android endpoint answered 410 on its first send and the phone stayed
+     * unreachable until the app was opened again).
+     */
+    public List<String> accountsDueForPromptCatchUp() {
+        Instant now = clock.instant();
+        promptedReplacementIds.values().removeIf(at -> at.isBefore(now.minus(PROMPT_CATCH_UP_LOOKBACK.multipliedBy(2))));
+        List<String> accounts = new java.util.ArrayList<>();
+        for (PushSubscriptionRepository.ReplacementRef replacement : subscriptionRepository.findEnabledReplacements(
+            now.minus(PROMPT_CATCH_UP_LOOKBACK), now.minus(CATCH_UP_SETTLE)
+        )) {
+            if (promptedReplacementIds.putIfAbsent(replacement.getId(), now) == null
+                && !accounts.contains(replacement.getAccountId())) {
+                accounts.add(replacement.getAccountId());
+            }
+        }
+        return accounts;
+    }
+
+    /** Planned-advisory announcements (not reminders, not a started window). */
+    static boolean isPlannedAnnouncement(PushNotificationEventEntity event) {
+        return event.getCategory() != null
+            && event.getCategory().endsWith("-planned")
+            && "on-change".equals(event.getReminderBucket());
+    }
+
+    /**
+     * When this device's last working endpoint was reported gone by its push
+     * service, skipping replacements that died within minutes of registering;
+     * null when the nearest predecessor was not lost to the push service.
+     */
+    static Instant connectionLostAt(List<PushSubscriptionEntity> chain) {
+        Instant lostAt = null;
+        for (PushSubscriptionEntity link : chain) {
+            String reason = link.getDisabledReason();
+            if (link.getDisabledAt() == null || reason == null || !reason.startsWith("push-service-")) {
+                break;
+            }
+            lostAt = link.getDisabledAt();
+            if (link.getEnabledAt() == null
+                || !Duration.between(link.getEnabledAt(), link.getDisabledAt()).minus(SHORT_LIVED_ENDPOINT).isNegative()) {
+                break;
+            }
+        }
+        return lostAt;
     }
 
     /**
@@ -1155,21 +1302,23 @@ public class PushNotificationDispatchService {
      * report a new installation id with a new endpoint (seen on iOS), so the
      * installation alone does not find what the device already showed.
      */
-    private List<String> continuedFromChain(String accountId, PushSubscriptionEntity subscription) {
-        List<String> chain = new java.util.ArrayList<>();
+    private List<PushSubscriptionEntity> continuedFromChain(String accountId, PushSubscriptionEntity subscription) {
+        List<PushSubscriptionEntity> chain = new java.util.ArrayList<>();
         Set<String> seen = new java.util.HashSet<>(Set.of(subscription.getId()));
         String next = subscription.getContinuedFromSubscriptionId();
         while (next != null && seen.add(next) && chain.size() < MAX_CONTINUED_FROM_CHAIN) {
             Optional<PushSubscriptionEntity> previous = subscriptionRepository.findByIdAndAccountId(next, accountId);
             if (previous.isEmpty()) break;
-            chain.add(next);
+            chain.add(previous.get());
             next = previous.get().getContinuedFromSubscriptionId();
         }
         return chain;
     }
 
-    private boolean shownByContinuedEndpoint(PushNotificationEventEntity event, List<String> chain) {
-        return !chain.isEmpty() && deliveryRepository.existsDisplayedForSubscriptions(event.getId(), chain);
+    private boolean shownByContinuedEndpoint(PushNotificationEventEntity event, List<PushSubscriptionEntity> chain) {
+        return !chain.isEmpty() && deliveryRepository.existsDisplayedForSubscriptions(
+            event.getId(), chain.stream().map(PushSubscriptionEntity::getId).toList()
+        );
     }
 
     /** Eligible by the installation's enablement, and missed only because this endpoint came later. */

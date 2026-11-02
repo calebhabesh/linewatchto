@@ -1001,6 +1001,67 @@ describe("LineWatch PWA configuration", () => {
     assert.equal(missed.shownNotifications[0].options.renotify, true);
   });
 
+  it("shows a catch-up batch quietly under one summary that alerts once", async () => {
+    // Production 2026-11-02: a reconnected Android phone alerted seven times in one second.
+    const tag = "line-current|regional-lw|delay|regional-go-531826-lw|active";
+    const closed = [];
+    const trayEntry = (entryTag) => ({ tag: entryTag, close: () => closed.push(entryTag) });
+    const pushData = {
+      title: "⚠️ GO LW Lakeshore West Delay",
+      body: "Update - Train delay.",
+      url: "/",
+      tag,
+      state: "ACTIVE",
+      timestamp: "2026-11-02T05:01:00Z",
+      catchUp: true,
+      catchUpSummary: {
+        count: 6,
+        batch: "mh0abc",
+        title: "Reconnected · 6 Alerts in Effect",
+        body: "Alerts could not reach this device from Nov 1, 9:51 PM to 1:18 AM. These 6 are still in effect."
+          + " 1 more started and cleared meanwhile. Tap for Alert History.",
+        url: "/?panel=alert-history",
+      },
+    };
+    const { shownNotifications } = await serviceWorkerPush({
+      pushData,
+      fetchBody: { activeTags: [tag], retainedTags: [tag] },
+      existingNotifications: [trayEntry("linewatch-catch-up|older"), trayEntry(tag)],
+    });
+
+    assert.equal(shownNotifications.length, 2);
+    assert.equal(shownNotifications[0].title, pushData.title);
+    assert.equal(shownNotifications[0].options.silent, true);
+    assert.equal(shownNotifications[0].options.renotify, false);
+    assert.equal(shownNotifications[1].title, "Reconnected · 6 Alerts in Effect");
+    assert.equal(shownNotifications[1].options.tag, "linewatch-catch-up|mh0abc");
+    // A new tag alerts; later alerts of the batch replace it, which alerts only with renotify.
+    assert.equal(shownNotifications[1].options.silent, false);
+    assert.equal(shownNotifications[1].options.renotify, false);
+    assert.equal(shownNotifications[1].options.data.url, "/?panel=alert-history");
+    // An earlier batch's summary is closed; the alert it rides on is kept.
+    assert.deepEqual(closed, ["linewatch-catch-up|older"]);
+  });
+
+  it("closes a catch-up summary once none of the alerts remain", async () => {
+    const closed = [];
+    const trayEntry = (entryTag) => ({ tag: entryTag, close: () => closed.push(entryTag) });
+    const cleared = "line-current|line-2|delay|ttc-route-1|active";
+    await serviceWorkerPush({
+      pushData: {
+        title: "✅ Line 1 Yonge-University Delay Cleared",
+        body: "Regular service has resumed.",
+        url: "/",
+        tag: "line-current|line-1|delay|ttc-route-2|cleared",
+        state: "CLEARED",
+        timestamp: "2026-11-02T05:01:00Z",
+      },
+      fetchBody: { activeTags: [], retainedTags: [] },
+      existingNotifications: [trayEntry("linewatch-catch-up|mh0abc"), trayEntry(cleared)],
+    });
+    assert.deepEqual(closed.sort(), ["line-current|line-2|delay|ttc-route-1|active", "linewatch-catch-up|mh0abc"]);
+  });
+
   it("keeps payload push notifications visible when display acknowledgement fails", async () => {
     const { fetchRequests, shownNotifications } = await serviceWorkerPush({
       fetchOk: false,

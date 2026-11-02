@@ -17,6 +17,9 @@ const LINEWATCH_PUSH_CATEGORIES = new Set([
   "line-planned",
 ]);
 const FALLBACK_PUSH_TAG = "linewatch-commute-update";
+// One summary per catch-up batch; outside the push categories, so tag
+// reconciliation leaves it to the rules below.
+const CATCH_UP_SUMMARY_TAG_PREFIX = "linewatch-catch-up|";
 const PUSH_IDENTITY_CACHE = "linewatch-push-identity-v1";
 const PUSH_IDENTITY_CACHE_KEY = "/__linewatch/push-installation-id";
 
@@ -445,6 +448,20 @@ function normalizePayloadNotification(body) {
     deliveryId: typeof body.deliveryId === "string" ? body.deliveryId : "",
     receiptToken: typeof body.receiptToken === "string" ? body.receiptToken : "",
     catchUp: body.catchUp === true,
+    catchUpSummary: body.catchUp === true ? normalizeCatchUpSummary(body.catchUpSummary) : null,
+  };
+}
+
+function normalizeCatchUpSummary(summary) {
+  if (!summary || typeof summary !== "object") return null;
+  if (typeof summary.batch !== "string" || summary.batch.length === 0) return null;
+  if (typeof summary.title !== "string" || summary.title.trim().length === 0) return null;
+  return {
+    batch: summary.batch.slice(0, 64),
+    title: summary.title,
+    body: typeof summary.body === "string" ? summary.body : "",
+    // Where the rider finds what the batch left out; the tap handler keeps it same-origin.
+    url: typeof summary.url === "string" && summary.url.startsWith("/") ? summary.url : "/",
   };
 }
 
@@ -457,16 +474,18 @@ function shouldSkipExpiredNotification(notification) {
 async function showPushNotification(notification) {
   const notificationState = notificationStateFor(notification);
   // A catch-up alert the tray already holds (shown before the old endpoint
-  // died, report lost) is refreshed in place instead of alerting again.
+  // died, report lost) is refreshed in place instead of alerting again. An
+  // alert from a catch-up batch is shown quietly; its batch summary alerts once.
   const alreadyShown = notification.catchUp === true && await trayHasTag(notification.tag);
+  const batched = notification.catchUp === true && notification.catchUpSummary !== null;
   const options = {
     body: notification.body,
     tag: notification.tag,
     icon: NOTIFICATION_ICON_URL,
     badge: NOTIFICATION_BADGE_URL,
-    renotify: !alreadyShown,
+    renotify: !alreadyShown && !batched,
     requireInteraction: true,
-    silent: false,
+    silent: batched,
     data: {
       state: notificationState,
       url: notification.url || "/",
@@ -483,6 +502,42 @@ async function showPushNotification(notification) {
   }
 
   await self.registration.showNotification(notification.title, options);
+  if (batched) {
+    await showCatchUpSummary(notification.catchUpSummary);
+  }
+}
+
+// Every alert of a batch carries the summary. The first to arrive shows it and
+// alerts; the rest replace it in place, which alerts only with renotify.
+async function showCatchUpSummary(summary) {
+  const tag = `${CATCH_UP_SUMMARY_TAG_PREFIX}${summary.batch}`;
+  try {
+    await closeCatchUpSummaries((shownTag) => shownTag !== tag);
+    await self.registration.showNotification(summary.title, {
+      body: summary.body,
+      tag,
+      icon: NOTIFICATION_ICON_URL,
+      badge: NOTIFICATION_BADGE_URL,
+      renotify: false,
+      requireInteraction: false,
+      silent: false,
+      data: { url: summary.url },
+    });
+  } catch {
+    // The alerts themselves are already shown; the summary is an introduction.
+  }
+}
+
+async function closeCatchUpSummaries(shouldClose = () => true) {
+  if (typeof self.registration.getNotifications !== "function") return;
+  const shown = await self.registration.getNotifications();
+  await Promise.all(
+    shown
+      .filter((notification) => typeof notification.tag === "string"
+        && notification.tag.startsWith(CATCH_UP_SUMMARY_TAG_PREFIX)
+        && shouldClose(notification.tag))
+      .map((notification) => notification.close()),
+  );
 }
 
 async function trayHasTag(tag) {
@@ -932,11 +987,17 @@ async function closeInactivePushNotifications(retainedTags) {
 
   const retainedTagSet = new Set(retainedTags.filter((tag) => typeof tag === "string" && tag.length > 0));
   const notifications = await self.registration.getNotifications();
-  await Promise.all(
-    notifications
-      .filter((notification) => isLineWatchPushNotification(notification.tag) && !retainedTagSet.has(notification.tag))
-      .map((notification) => notification.close()),
-  );
+  const alerts = notifications.filter((notification) => isLineWatchPushNotification(notification.tag));
+  const inactive = alerts.filter((notification) => !retainedTagSet.has(notification.tag));
+  await Promise.all(inactive.map((notification) => notification.close()));
+  // A catch-up summary goes once none of the alerts it introduced remain.
+  if (inactive.length === alerts.length) {
+    await Promise.all(
+      notifications
+        .filter((notification) => typeof notification.tag === "string" && notification.tag.startsWith(CATCH_UP_SUMMARY_TAG_PREFIX))
+        .map((notification) => notification.close()),
+    );
+  }
 }
 
 function isLineWatchPushNotification(tag) {

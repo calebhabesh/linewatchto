@@ -16,8 +16,15 @@ public record WebPushPayload(
     String deliveryId,
     String receiptToken,
     long ttlSeconds,
-    boolean catchUp
+    boolean catchUp,
+    CatchUpSummary catchUpSummary
 ) {
+    /**
+     * Rides on every alert of a multi-alert catch-up batch: the worker shows
+     * the alerts quietly and this one summary, which alerts once per batch.
+     */
+    public record CatchUpSummary(int count, String batch, String title, String body, String url) {}
+
     private static final long DEFAULT_ACTIVE_TTL_SECONDS = 10 * 60;
     private static final long DEFAULT_CLEARED_TTL_SECONDS = 24 * 60 * 60;
 
@@ -29,7 +36,7 @@ public record WebPushPayload(
         String state,
         String timestamp
     ) {
-        this(title, body, url, tag, state, timestamp, null, timestamp, null, null, null, defaultTtlSeconds(state), false);
+        this(title, body, url, tag, state, timestamp, null, timestamp, null, null, null, defaultTtlSeconds(state), false, null);
     }
 
     public WebPushPayload(
@@ -42,7 +49,7 @@ public record WebPushPayload(
         String deliveryId,
         String receiptToken
     ) {
-        this(title, body, url, tag, state, timestamp, null, timestamp, null, deliveryId, receiptToken, defaultTtlSeconds(state), false);
+        this(title, body, url, tag, state, timestamp, null, timestamp, null, deliveryId, receiptToken, defaultTtlSeconds(state), false, null);
     }
 
     public static WebPushPayload fromEvent(PushNotificationEventEntity event) {
@@ -59,7 +66,8 @@ public record WebPushPayload(
             null,
             null,
             defaultTtlSeconds(event.getNotificationState()),
-            false
+            false,
+            null
         );
     }
 
@@ -91,7 +99,8 @@ public record WebPushPayload(
             deliveryId,
             receiptTokenService.tokenFor(deliveryId, subscription, event),
             transportTtl.toSeconds(),
-            false
+            false,
+            null
         );
     }
 
@@ -106,8 +115,13 @@ public record WebPushPayload(
 
     /** Marks a catch-up delivery: the worker replaces a tray entry with the same tag without alerting again. */
     public WebPushPayload asCatchUp() {
+        return asCatchUp(null);
+    }
+
+    /** A catch-up delivery in a batch of several: shown quietly under the batch's one summary. */
+    public WebPushPayload asCatchUp(CatchUpSummary summary) {
         return new WebPushPayload(title, body, url, tag, state, timestamp, sourceEventAt, sentAt, expiresAt,
-            deliveryId, receiptToken, ttlSeconds, true);
+            deliveryId, receiptToken, ttlSeconds, true, summary);
     }
 
     public String toJson() {
@@ -124,6 +138,13 @@ public record WebPushPayload(
             + ",\"deliveryId\":" + jsonString(deliveryId)
             + ",\"receiptToken\":" + jsonString(receiptToken)
             + (catchUp ? ",\"catchUp\":true" : "")
+            + (catchUp && catchUpSummary != null ? ",\"catchUpSummary\":{"
+                + "\"count\":" + catchUpSummary.count()
+                + ",\"batch\":" + jsonString(catchUpSummary.batch())
+                + ",\"title\":" + jsonString(catchUpSummary.title())
+                + ",\"body\":" + jsonString(catchUpSummary.body())
+                + ",\"url\":" + jsonString(catchUpSummary.url())
+                + "}" : "")
             + "}";
     }
 

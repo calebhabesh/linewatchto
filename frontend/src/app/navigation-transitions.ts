@@ -393,6 +393,8 @@ export function parseNavigationDeepLinks(
     commutes: "commutes",
     notifications: "notifications",
     analytics: "analytics",
+    // A reconnection catch-up summary opens here when alerts cleared meanwhile.
+    "alert-history": "alert-history",
     "trip-changes": "surface-notices",
   };
   if (options.hasReleaseNotes) {

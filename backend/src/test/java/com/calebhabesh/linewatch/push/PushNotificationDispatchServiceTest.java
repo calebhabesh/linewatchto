@@ -2,6 +2,7 @@ package com.calebhabesh.linewatch.push;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -3109,6 +3110,206 @@ class PushNotificationDispatchServiceTest {
         assertThat(PushNotificationDispatchService.catchUpEligible(
             catchUpReplacement(Instant.parse("2026-06-05T14:55:00Z"), Instant.parse("2026-06-05T14:55:00Z")), event
         )).isFalse();
+    }
+
+    private PushNotificationEventEntity stubLatestActiveEvent(String eventId, PushNotificationCandidate candidate, Instant createdAt) {
+        PushNotificationEventEntity event = PushNotificationEventEntity.create(eventId, candidate, createdAt);
+        when(eventRepository.findFirstByAccountIdAndNotificationKeyAndNotificationStateOrderByCreatedAtDesc(
+            "user_1", candidate.notificationKey(), "ACTIVE"
+        )).thenReturn(Optional.of(event));
+        return event;
+    }
+
+    private PushNotificationCandidate lineCandidate(String lineId, String category, String eventType, String key) {
+        return candidate(
+            null, null, lineId, lineId, category, eventType, "on-change", key, "dedupe-" + key,
+            "Entire line", lineId, Instant.parse("2026-06-05T14:00:00Z"), "/"
+        );
+    }
+
+    private PushSubscriptionEntity deadPredecessor(String id, Instant enabledAt, Instant disabledAt, String reason) {
+        PushSubscriptionEntity predecessor = PushSubscriptionEntity.create(
+            id, account, "https://fcm.googleapis.com/fcm/send/" + id,
+            PushNotificationService.hashEndpoint("https://fcm.googleapis.com/fcm/send/" + id),
+            "p256dh-key", "auth-secret", "Chrome Android", CATCH_UP_INSTALLATION, "refreshed", enabledAt
+        );
+        predecessor.disable(disabledAt, reason);
+        return predecessor;
+    }
+
+    @Test
+    void catchUpSendsSeveralMissedAlertsAsOneQuietBatchAndSkipsPlannedAnnouncements() {
+        // Production 2026-11-02: an Android phone reconnected at 1:18 AM and showed
+        // seven separate alerts at once, five of them advisories for later weekends.
+        PushSubscriptionEntity predecessor = deadPredecessor(
+            "push_subscription_dead", Instant.parse("2026-06-05T10:00:00Z"),
+            Instant.parse("2026-06-05T14:00:00Z"), "push-service-410"
+        );
+        PushSubscriptionEntity replacement = catchUpReplacement(
+            Instant.parse("2026-06-05T10:00:00Z"), Instant.parse("2026-06-05T14:55:00Z")
+        );
+        replacement.continueInstallation(Instant.parse("2026-06-05T10:00:00Z"), predecessor.getId());
+        PushNotificationCandidate delay = lineCandidate("regional-lw", "line-current", "delay", "line-current|regional-lw|delay|go-1");
+        PushNotificationCandidate suspension = lineCandidate("line-2", "line-current", "suspension", "line-current|line-2|suspension|ttc-2");
+        PushNotificationCandidate announcement = lineCandidate(
+            "regional-ki", "line-planned", "planned-closure", "line-planned|regional-ki|planned-closure|go-3"
+        );
+        PushNotificationEventEntity later = stubLatestActiveEvent("push_event_later", suspension, Instant.parse("2026-06-05T14:40:00Z"));
+        PushNotificationEventEntity earlier = stubLatestActiveEvent("push_event_earlier", delay, Instant.parse("2026-06-05T14:30:00Z"));
+        PushNotificationEventEntity planned = stubLatestActiveEvent("push_event_planned", announcement, Instant.parse("2026-06-05T14:35:00Z"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(replacement));
+        when(subscriptionRepository.findByIdAndAccountId(predecessor.getId(), "user_1")).thenReturn(Optional.of(predecessor));
+        when(webPushClient.send(eq(replacement), anyString(), any(WebPushPayload.class)))
+            .thenReturn(PushDeliveryResult.accepted(201));
+
+        service.catchUpReplacementSubscriptions("user_1", List.of(suspension, announcement, delay));
+
+        ArgumentCaptor<WebPushPayload> payloads = ArgumentCaptor.forClass(WebPushPayload.class);
+        verify(webPushClient, times(2)).send(eq(replacement), anyString(), payloads.capture());
+        List<WebPushPayload> sent = payloads.getAllValues();
+        // Oldest first, so the newest alert lands on top of the tray.
+        assertThat(sent).extracting(WebPushPayload::tag).containsExactly(
+            PushNotificationDisplayTags.forEvent(earlier), PushNotificationDisplayTags.forEvent(later)
+        );
+        assertThat(sent).allSatisfy(payload -> {
+            assertThat(payload.catchUp()).isTrue();
+            assertThat(payload.catchUpSummary().count()).isEqualTo(2);
+            assertThat(payload.catchUpSummary().title()).isEqualTo("Reconnected · 2 Alerts in Effect");
+            assertThat(payload.catchUpSummary().body()).isEqualTo(
+                "Alerts could not reach this device from 10:00 AM to 10:55 AM. These 2 are still in effect."
+                    + " 1 planned advisory was announced. Tap for Planned Advisories."
+            );
+            assertThat(payload.catchUpSummary().url()).isEqualTo("/?panel=closures");
+            assertThat(payload.toJson()).contains("\"catchUpSummary\":{\"count\":2,");
+        });
+        assertThat(sent.get(0).catchUpSummary().batch()).isEqualTo(sent.get(1).catchUpSummary().batch());
+        // The announcement is counted in the summary, never sent.
+        verify(deliveryRepository, never()).save(argThat(delivery -> delivery.getEvent().getId().equals(planned.getId())));
+    }
+
+    @Test
+    void aSingleMissedAlertIsCaughtUpWithoutABatchSummary() {
+        PushSubscriptionEntity replacement = catchUpReplacement(
+            Instant.parse("2026-06-05T10:00:00Z"), Instant.parse("2026-06-05T14:55:00Z")
+        );
+        PushNotificationCandidate candidate = catchUpCandidate();
+        stubLatestActiveEvent(candidate, Instant.parse("2026-06-05T14:30:00Z"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(replacement));
+        when(webPushClient.send(eq(replacement), anyString(), any(WebPushPayload.class)))
+            .thenReturn(PushDeliveryResult.accepted(201));
+
+        service.catchUpReplacementSubscriptions("user_1", List.of(candidate));
+
+        ArgumentCaptor<WebPushPayload> payload = ArgumentCaptor.forClass(WebPushPayload.class);
+        verify(webPushClient).send(eq(replacement), anyString(), payload.capture());
+        assertThat(payload.getValue().catchUpSummary()).isNull();
+        assertThat(payload.getValue().toJson()).doesNotContain("catchUpSummary");
+    }
+
+    @Test
+    void aSingleAlertGetsASummaryWhenAlertsThatClearedMeanwhileWereMissed() {
+        PushSubscriptionEntity replacement = catchUpReplacement(
+            Instant.parse("2026-06-05T10:00:00Z"), Instant.parse("2026-06-05T14:55:00Z")
+        );
+        PushNotificationCandidate current = catchUpCandidate();
+        PushNotificationEventEntity sent = stubLatestActiveEvent(current, Instant.parse("2026-06-05T14:30:00Z"));
+        PushNotificationCandidate missedKey = lineCandidate("line-2", "line-current", "delay", "line-current|line-2|delay|ttc-9");
+        PushNotificationEventEntity missedActive = PushNotificationEventEntity.create(
+            "push_event_missed", missedKey, Instant.parse("2026-06-05T14:10:00Z")
+        );
+        PushNotificationEventEntity missedUpdate = PushNotificationEventEntity.create(
+            "push_event_missed_update", missedKey, Instant.parse("2026-06-05T14:20:00Z")
+        );
+        PushNotificationEventEntity missedClear = PushNotificationEventEntity.cleared(
+            "push_event_missed_clear", missedUpdate, Instant.parse("2026-06-05T14:40:00Z"), formatter
+        );
+        // Seen before the outage, then cleared while unreachable: not missed.
+        PushNotificationCandidate seenKey = lineCandidate("line-1", "line-current", "delay", "line-current|line-1|delay|ttc-8");
+        PushNotificationEventEntity seenActive = PushNotificationEventEntity.create(
+            "push_event_seen", seenKey, Instant.parse("2026-06-05T12:00:00Z")
+        );
+        PushNotificationEventEntity seenUpdate = PushNotificationEventEntity.create(
+            "push_event_seen_update", seenKey, Instant.parse("2026-06-05T14:15:00Z")
+        );
+        PushNotificationEventEntity seenClear = PushNotificationEventEntity.cleared(
+            "push_event_seen_clear", seenUpdate, Instant.parse("2026-06-05T14:45:00Z"), formatter
+        );
+        // Started and cleared before this installation enabled push: not missed.
+        PushNotificationCandidate oldKey = lineCandidate("line-4", "line-current", "delay", "line-current|line-4|delay|ttc-7");
+        PushNotificationEventEntity oldActive = PushNotificationEventEntity.create(
+            "push_event_old", oldKey, Instant.parse("2026-06-05T09:00:00Z")
+        );
+        PushNotificationEventEntity oldClear = PushNotificationEventEntity.cleared(
+            "push_event_old_clear", oldActive, Instant.parse("2026-06-05T09:30:00Z"), formatter
+        );
+        when(eventRepository.findByAccountIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+            "user_1", Instant.parse("2026-06-04T14:55:00Z")
+        )).thenReturn(List.of(
+            seenClear, missedClear, sent, missedUpdate, seenUpdate, missedActive, seenActive, oldClear, oldActive
+        ));
+        when(deliveryRepository.existsDisplayedForInstallation(seenActive.getId(), "user_1", CATCH_UP_INSTALLATION))
+            .thenReturn(true);
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(replacement));
+        when(webPushClient.send(eq(replacement), anyString(), any(WebPushPayload.class)))
+            .thenReturn(PushDeliveryResult.accepted(201));
+
+        service.catchUpReplacementSubscriptions("user_1", List.of(current));
+
+        ArgumentCaptor<WebPushPayload> payload = ArgumentCaptor.forClass(WebPushPayload.class);
+        verify(webPushClient).send(eq(replacement), anyString(), payload.capture());
+        WebPushPayload.CatchUpSummary summary = payload.getValue().catchUpSummary();
+        assertThat(summary.title()).isEqualTo("Reconnected · 1 Alert in Effect");
+        assertThat(summary.body()).isEqualTo(
+            "This device's push connection was replaced at 10:55 AM. This alert started before then and is still in effect."
+                + " 1 more started and cleared meanwhile. Tap for Alert History."
+        );
+        assertThat(summary.url()).isEqualTo("/?panel=alert-history");
+    }
+
+    @Test
+    void catchUpWaitsAFewSecondsAfterAnEndpointRegisters() {
+        PushSubscriptionEntity replacement = catchUpReplacement(
+            Instant.parse("2026-06-05T10:00:00Z"), Instant.parse("2026-06-05T14:59:58Z")
+        );
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(replacement));
+
+        service.catchUpReplacementSubscriptions("user_1", List.of(catchUpCandidate()));
+
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
+    void connectionLossIsTheLastWorkingEndpointsPushServiceReport() {
+        PushSubscriptionEntity diedOnFirstSend = deadPredecessor(
+            "push_subscription_fresh", Instant.parse("2026-11-02T06:06:38Z"),
+            Instant.parse("2026-11-02T06:06:39Z"), "push-service-410"
+        );
+        PushSubscriptionEntity worked = deadPredecessor(
+            "push_subscription_worked", Instant.parse("2026-11-01T13:09:02Z"),
+            Instant.parse("2026-11-02T02:51:06Z"), "push-service-410"
+        );
+        assertThat(PushNotificationDispatchService.connectionLostAt(List.of(diedOnFirstSend, worked)))
+            .isEqualTo(Instant.parse("2026-11-02T02:51:06Z"));
+        PushSubscriptionEntity rotated = deadPredecessor(
+            "push_subscription_rotated", Instant.parse("2026-11-01T13:09:02Z"),
+            Instant.parse("2026-11-02T02:51:06Z"), "endpoint-replaced"
+        );
+        assertThat(PushNotificationDispatchService.connectionLostAt(List.of(rotated))).isNull();
+        assertThat(PushNotificationDispatchService.connectionLostAt(List.of())).isNull();
+    }
+
+    @Test
+    void aNewReplacementEndpointGetsOnePromptEvaluation() {
+        PushSubscriptionRepository.ReplacementRef ref = new PushSubscriptionRepository.ReplacementRef() {
+            @Override public String getId() { return "push_subscription_replacement"; }
+            @Override public String getAccountId() { return "user_1"; }
+        };
+        when(subscriptionRepository.findEnabledReplacements(
+            Instant.parse("2026-06-05T14:58:00Z"), Instant.parse("2026-06-05T14:59:55Z")
+        )).thenReturn(List.of(ref, ref));
+
+        assertThat(service.accountsDueForPromptCatchUp()).containsExactly("user_1");
+        assertThat(service.accountsDueForPromptCatchUp()).isEmpty();
     }
 
     private PushNotificationCandidate reopenedSavedCommuteCandidate() {
