@@ -65,6 +65,25 @@
     body:has(.linewatch-shell.high-contrast) .ios-status-bar-plate {
       background-color: #000000;
     }
+
+    /* black-translucent installs: iOS sizes the layout viewport one status bar
+       short of the screen and fills the strip below it with the page background,
+       which nothing can be drawn into (moving the nav down clipped it). Match
+       the bottom nav so the strip reads as part of it. */
+    html:has(.linewatch-shell),
+    html:has(.linewatch-shell) body {
+      background: #f1f5f9;
+    }
+
+    html:has(.linewatch-shell.dark),
+    html:has(.linewatch-shell.dark) body {
+      background: #1c2026;
+    }
+
+    html:has(.linewatch-shell.high-contrast),
+    html:has(.linewatch-shell.high-contrast) body {
+      background: #000000;
+    }
   }
 }
 
