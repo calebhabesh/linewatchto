@@ -1253,6 +1253,7 @@ class PushNotificationServiceTest {
         assertThat(replacement.getInstallationEnabledAt()).isEqualTo(Instant.parse("2026-06-04T09:00:00Z"));
         assertThat(replacement.getEnabledAt()).isEqualTo(clock.instant());
         assertThat(replacement.isInstallationReplacement()).isTrue();
+        assertThat(replacement.getContinuedFromSubscriptionId()).isEqualTo("push_subscription_previous");
         assertThat(replacement.getBrowserMajorVersion()).isEqualTo(156);
         assertThat(replacement.getDisplayMode()).isEqualTo("standalone");
         verify(lifecycleService).record(
@@ -1288,7 +1289,9 @@ class PushNotificationServiceTest {
             "push_subscription_previous", "https://fcm.googleapis.com/fcm/send/previous", Instant.parse("2026-06-04T09:00:00Z")
         );
         gone.disable(Instant.parse("2026-06-05T12:00:00Z"), "push-service-410");
-        assertThat(saveReplacement("user-enabled", gone.getEndpointHash(), gone).isInstallationReplacement()).isFalse();
+        PushSubscriptionEntity enabled = saveReplacement("user-enabled", gone.getEndpointHash(), gone);
+        assertThat(enabled.isInstallationReplacement()).isFalse();
+        assertThat(enabled.getContinuedFromSubscriptionId()).isNull();
     }
 
     @Test

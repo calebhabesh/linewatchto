@@ -34,6 +34,7 @@ public class PushNotificationDispatchService {
     private static final Duration FAILED_DELIVERY_RETRY_DELAY = Duration.ofSeconds(30);
     // Catch-up runs on each evaluation for endpoints registered within this window.
     private static final Duration CATCH_UP_WINDOW = Duration.ofHours(24);
+    private static final int MAX_CONTINUED_FROM_CHAIN = 64;
     private static final Duration CLEARED_DELIVERY_RETRY_WINDOW = Duration.ofHours(24);
     private static final int CLEARED_DELIVERY_RETRY_LIMIT = 25;
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
@@ -1116,6 +1117,7 @@ public class PushNotificationDispatchService {
             }
         }
         Set<String> unreachable = new java.util.HashSet<>();
+        java.util.Map<String, List<String>> predecessors = new java.util.HashMap<>();
         for (String notificationKey : notificationKeys) {
             Optional<PushNotificationEventEntity> latest = latestEvent(accountId, notificationKey, ACTIVE_STATE);
             if (latest.isEmpty() || !latest.get().isDeliveryAllowed() || clearedSince(latest.get())) {
@@ -1126,7 +1128,10 @@ public class PushNotificationDispatchService {
                 if (unreachable.contains(subscription.getId())
                     || !catchUpEligible(subscription, event)
                     || deliveryRepository.findByEventIdAndSubscriptionId(event.getId(), subscription.getId()).isPresent()
-                    || deliveryRepository.existsDisplayedForInstallation(event.getId(), accountId, subscription.getInstallationId())) {
+                    || deliveryRepository.existsDisplayedForInstallation(event.getId(), accountId, subscription.getInstallationId())
+                    || shownByContinuedEndpoint(event, predecessors.computeIfAbsent(
+                        subscription.getId(), id -> continuedFromChain(accountId, subscription)
+                    ))) {
                     continue;
                 }
                 String deliveryId = nextId("push_delivery");
@@ -1143,6 +1148,28 @@ public class PushNotificationDispatchService {
                 }
             }
         }
+    }
+
+    /**
+     * The endpoints this replacement continued, nearest first. The browser can
+     * report a new installation id with a new endpoint (seen on iOS), so the
+     * installation alone does not find what the device already showed.
+     */
+    private List<String> continuedFromChain(String accountId, PushSubscriptionEntity subscription) {
+        List<String> chain = new java.util.ArrayList<>();
+        Set<String> seen = new java.util.HashSet<>(Set.of(subscription.getId()));
+        String next = subscription.getContinuedFromSubscriptionId();
+        while (next != null && seen.add(next) && chain.size() < MAX_CONTINUED_FROM_CHAIN) {
+            Optional<PushSubscriptionEntity> previous = subscriptionRepository.findByIdAndAccountId(next, accountId);
+            if (previous.isEmpty()) break;
+            chain.add(next);
+            next = previous.get().getContinuedFromSubscriptionId();
+        }
+        return chain;
+    }
+
+    private boolean shownByContinuedEndpoint(PushNotificationEventEntity event, List<String> chain) {
+        return !chain.isEmpty() && deliveryRepository.existsDisplayedForSubscriptions(event.getId(), chain);
     }
 
     /** Eligible by the installation's enablement, and missed only because this endpoint came later. */

@@ -51,6 +51,8 @@ public class PushSubscriptionEntity {
     private Instant enabledAt;
     @Column(name = "installation_enabled_at")
     private Instant installationEnabledAt;
+    @Column(name = "continued_from_subscription_id")
+    private String continuedFromSubscriptionId;
     @Column(name = "browser_major_version")
     private Integer browserMajorVersion;
     @Column(name = "display_mode")
@@ -156,8 +158,14 @@ public class PushSubscriptionEntity {
      * eligible for catch-up. Never later than this endpoint's own enablement.
      */
     public void continueInstallation(Instant installationEnabledAt) {
+        continueInstallation(installationEnabledAt, null);
+    }
+
+    /** As above, naming the endpoint continued, so catch-up can see what it already showed. */
+    public void continueInstallation(Instant installationEnabledAt, String continuedFromSubscriptionId) {
         if (installationEnabledAt == null || enabledAt == null || installationEnabledAt.isAfter(enabledAt)) return;
         this.installationEnabledAt = installationEnabledAt;
+        this.continuedFromSubscriptionId = installationEnabledAt.isBefore(enabledAt) ? continuedFromSubscriptionId : null;
     }
 
     public void recordClient(Integer browserMajorVersion, String displayMode) {
@@ -207,6 +215,7 @@ public class PushSubscriptionEntity {
     public Instant getDisabledAt() { return disabledAt; }
     public Instant getEnabledAt() { return enabledAt; }
     public Instant getInstallationEnabledAt() { return installationEnabledAt == null ? enabledAt : installationEnabledAt; }
+    public String getContinuedFromSubscriptionId() { return continuedFromSubscriptionId; }
     public Integer getBrowserMajorVersion() { return browserMajorVersion; }
     public String getDisplayMode() { return displayMode; }
 }

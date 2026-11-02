@@ -272,6 +272,27 @@ behaviour.
   only they used, and their styles. Feature reference and the push invariants
   describe reconnection, catch-up and the device view; README makes no claim
   that changed.
+- 2026-11-02, post-deploy check (V89 live 2026-11-01 05:27 UTC, about 19 h of
+  data). Android: since 08:09 every alert sent to the iPhone was also sent to the
+  Pixel, and the 7 sent since 13:36 UTC were all shown; one worker recovery
+  (`check-restored`, `worker-wake: restored-missing`, 13:09 UTC) re-subscribed
+  after Chrome dropped the subscription and caught up the one missed alert; the
+  current endpoint has lived about 11.5 h with no 410. No
+  `subscription-change-*` or `periodic-sync-fired` records yet. iPhone: after
+  05:28 UTC 17 pushes were accepted by Apple with no display report until the
+  app was opened at 00:39 UTC, when Safari handed back a new endpoint; a device
+  that has not opened the app since the deploy has no stored hash, so its
+  worker cannot notice this. On that open the old cached bundle saved the new
+  endpoint (`app-refresh`, installation `c983a47a`, continuing the Oct 20
+  enablement) and the new bundle re-saved it 5 s later under installation
+  `be3cd6b5` (cause unknown; the installation id handling is unchanged since
+  July). Catch-up then checked "already displayed" under `be3cd6b5` only and
+  pushed 12 alerts back to Oct 22, 8 of which the old endpoint had shown; the
+  owner saw them all at once. Fix: V90
+  `push_subscriptions.continued_from_subscription_id`, set when a registration
+  continues an enablement; catch-up also skips alerts shown on that chain of
+  endpoints (`existsDisplayedForSubscriptions`). Regression tests in
+  `PushNotificationDispatchServiceTest` and `PushNotificationServiceTest`.
 - Open after deploy: re-run the Findings queries (Android endpoint lifetime,
   share of iPhone events also attempted on Android), and read the new
   `worker-stage` records to see whether Chrome fires `pushsubscriptionchange`

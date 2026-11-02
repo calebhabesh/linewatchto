@@ -152,4 +152,17 @@ public interface PushNotificationDeliveryRepository extends JpaRepository<PushNo
         @Param("accountId") String accountId,
         @Param("installationId") String installationId
     );
+
+    /** Whether any of these endpoints already showed the event. */
+    @Query("""
+        select count(delivery) > 0
+        from PushNotificationDeliveryEntity delivery
+        where delivery.event.id = :eventId
+          and delivery.subscription.id in :subscriptionIds
+          and delivery.displayedAt is not null
+        """)
+    boolean existsDisplayedForSubscriptions(
+        @Param("eventId") String eventId,
+        @Param("subscriptionIds") List<String> subscriptionIds
+    );
 }

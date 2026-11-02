@@ -3037,6 +3037,33 @@ class PushNotificationDispatchServiceTest {
     }
 
     @Test
+    void catchUpNeverResendsAnAlertTheContinuedEndpointShowedUnderAnotherInstallationId() {
+        // Production 2026-11-02: an iPhone's replacement endpoint arrived with a new
+        // installation id, and catch-up re-sent 8 alerts its predecessor had shown.
+        PushSubscriptionEntity predecessor = PushSubscriptionEntity.create(
+            "push_subscription_predecessor", account, "https://web.push.apple.com/predecessor",
+            PushNotificationService.hashEndpoint("https://web.push.apple.com/predecessor"),
+            "p256dh-key", "auth-secret", "Safari iOS", "c983a47a-old-installation", "refreshed",
+            Instant.parse("2026-06-05T10:00:00Z")
+        );
+        PushSubscriptionEntity replacement = catchUpReplacement(
+            Instant.parse("2026-06-05T10:00:00Z"), Instant.parse("2026-06-05T14:55:00Z")
+        );
+        replacement.continueInstallation(Instant.parse("2026-06-05T10:00:00Z"), predecessor.getId());
+        PushNotificationCandidate candidate = catchUpCandidate();
+        PushNotificationEventEntity event = stubLatestActiveEvent(candidate, Instant.parse("2026-06-05T14:30:00Z"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(replacement));
+        when(subscriptionRepository.findByIdAndAccountId(predecessor.getId(), "user_1")).thenReturn(Optional.of(predecessor));
+        when(deliveryRepository.findByEventIdAndSubscriptionId(event.getId(), replacement.getId())).thenReturn(Optional.empty());
+        when(deliveryRepository.existsDisplayedForSubscriptions(event.getId(), List.of(predecessor.getId())))
+            .thenReturn(true);
+
+        service.catchUpReplacementSubscriptions("user_1", List.of(candidate));
+
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
     void catchUpSkipsClearedAlertsAndAlertsFromBeforeTheInstallationWasEnabled() {
         PushSubscriptionEntity replacement = catchUpReplacement(
             Instant.parse("2026-06-05T14:40:00Z"), Instant.parse("2026-06-05T14:55:00Z")

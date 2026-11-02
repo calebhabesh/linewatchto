@@ -211,7 +211,7 @@ public class PushNotificationService {
             );
         }
 
-        Instant continuedInstallationEnabledAt = continuedInstallationEnabledAt(
+        Optional<PushSubscriptionEntity> continuedFrom = continuedInstallation(
             account.getId(), installationId, endpointHash, previousEndpointHash, registrationReason
         );
 
@@ -264,8 +264,8 @@ public class PushNotificationService {
         if (USER_ENABLED.equals(registrationReason)) {
             // A rider's explicit enable starts a new installation enablement.
             subscription.continueInstallation(subscription.getEnabledAt());
-        } else if (newlyEnabled && continuedInstallationEnabledAt != null) {
-            subscription.continueInstallation(continuedInstallationEnabledAt);
+        } else if (newlyEnabled && continuedFrom.isPresent()) {
+            subscription.continueInstallation(continuedFrom.get().getInstallationEnabledAt(), continuedFrom.get().getId());
         }
 
         PushSubscriptionEntity saved = subscriptionRepository.save(subscription);
@@ -281,19 +281,19 @@ public class PushNotificationService {
     }
 
     /**
-     * The installation enablement a new endpoint continues, or null when it
-     * starts afresh. It continues only when the previous endpoint of the same
+     * The endpoint whose installation enablement a new endpoint continues, or
+     * empty when it starts afresh. It continues only when the previous endpoint of the same
      * installation is still enabled or was lost to replacement (push service
      * 404/410, browser rotation), never when the rider turned it off.
      */
-    private Instant continuedInstallationEnabledAt(
+    private Optional<PushSubscriptionEntity> continuedInstallation(
         String accountId,
         String installationId,
         String endpointHash,
         String previousEndpointHash,
         String registrationReason
     ) {
-        if (USER_ENABLED.equals(registrationReason)) return null;
+        if (USER_ENABLED.equals(registrationReason)) return Optional.empty();
         Optional<PushSubscriptionEntity> previous = Optional.empty();
         if (previousEndpointHash != null && !previousEndpointHash.equals(endpointHash)) {
             previous = subscriptionRepository.findByAccountIdAndEndpointHash(accountId, previousEndpointHash)
@@ -305,9 +305,7 @@ public class PushNotificationService {
             );
         }
         return previous
-            .filter(candidate -> candidate.isEnabled() || isReplacementDisableReason(candidate.getDisabledReason()))
-            .map(PushSubscriptionEntity::getInstallationEnabledAt)
-            .orElse(null);
+            .filter(candidate -> candidate.isEnabled() || isReplacementDisableReason(candidate.getDisabledReason()));
     }
 
     static boolean isReplacementDisableReason(String reason) {
