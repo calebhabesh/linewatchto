@@ -24,6 +24,8 @@ import { ALL_LINE_COLORS } from "../app/geographic-config.ts";
 import { REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data.ts";
 import type { PlannedClosure } from "../app/linewatch-data.ts";
 import { recordGeographicMapLifecycle } from "../app/geographic-lifecycle.ts";
+import { cachedStreetcarCatalog } from "../app/geographic-surface-catalog.ts";
+import { installStreetcarLayers, updateStreetcarFilter } from "./geographic-streetcar-layers.ts";
 import {
   DEFAULT_STATION_LABEL_PLACEMENT,
   stationLabelPlacements,
@@ -322,6 +324,7 @@ export function updateGeographicLineFilter(
   map: MapLibreMap,
   activeFilteredLine: string | null,
 ): void {
+  updateStreetcarFilter(map, activeFilteredLine);
   if (map.getLayer("transit-routes")) {
     setTransitPaintProperty(map,
       "transit-routes",
@@ -1594,6 +1597,11 @@ export function installTransitLayers(
       selection: initialData.selection ?? (initialData.selectionId ? { kind: "selection", id: initialData.selectionId } : null),
       plannedClosures: initialData.plannedClosures,
     });
+  }
+  // Streetcars, once their catalog has loaded (the map loads it on the TTC network).
+  const streetcars = network === "ttc" ? cachedStreetcarCatalog() : null;
+  if (streetcars) {
+    installStreetcarLayers(map, streetcars, { dark, activeFilteredLine: initialData?.activeFilteredLine ?? null });
   }
   installTransitOpacity(map);
 }

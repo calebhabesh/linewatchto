@@ -8,7 +8,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { AlertCircle, RefreshCw, Layers, Locate, ZoomIn, ZoomOut } from "lucide-react";
 import { cachedGeographicCatalog, loadGeographicCatalog } from "../app/geographic-catalog-loader";
 import type { MapFadeController } from "../app/map-surface-transition";
-import { createGeographicMapFade, setTransitPaintProperty } from "./geographic-network-transition";
+import { createGeographicMapFade, installTransitOpacity, setTransitPaintProperty } from "./geographic-network-transition";
 import type { GeographicCatalog } from "../app/geographic-catalog";
 import type { NetworkId } from "../app/regional-data";
 import type { MapViewPreference } from "../app/visual-preferences";
@@ -63,6 +63,19 @@ import {
   setGeographicProjectedStationResolver,
 } from "../app/geographic-lifecycle";
 import { MapOverlapChooser } from "./MapOverlapChooser";
+import { GeographicStreetcarCard } from "./GeographicStreetcarCard";
+import {
+  cachedStreetcarCatalog,
+  loadStreetcarCatalog,
+  streetcarCardRows,
+  streetcarSchedulePeriodLabel,
+} from "../app/geographic-surface-catalog";
+import {
+  STREETCAR_BADGE_LAYER,
+  STREETCAR_HIT_LAYER,
+  hasStreetcarLayers,
+  installStreetcarLayers,
+} from "./geographic-streetcar-layers";
 import {
   MapChooserFollower,
   chooserBadgeInView,
@@ -74,7 +87,7 @@ import {
   GEOGRAPHIC_CHOOSER_KEEPOUT_GAP,
   type GeographicOverlapChooserLayout,
 } from "./geographic-chooser-placement";
-import { overlapChooserSize } from "./map-chooser-layout";
+import { overlapChooserSize, streetcarCardSize } from "./map-chooser-layout";
 import { useMapGestureInterruption } from "../hooks/useMapGestureInterruption";
 import {
   generateOverlapBadgeSvg,
@@ -187,6 +200,25 @@ type GeographicOverlapChooserState = {
   coordinate: [number, number];
 };
 
+/** A press on a streetcar line: the routes there and where the card points. */
+type GeographicStreetcarCardState = {
+  routes: string[];
+  coordinate: [number, number];
+};
+
+/** Routes on the streetcar lines under a press, in route order (MapLibre returns array properties as JSON). */
+function streetcarRoutesFromFeatures(features: Array<{ properties?: Record<string, unknown> | null }>): string[] {
+  const routes = new Set<string>();
+  for (const feature of features) {
+    const value = feature.properties?.routes;
+    const list = typeof value === "string" ? (() => {
+      try { return JSON.parse(value) as unknown; } catch { return []; }
+    })() : value;
+    if (Array.isArray(list)) for (const route of list) if (typeof route === "string") routes.add(route);
+  }
+  return [...routes].sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
+}
+
 const GEOGRAPHIC_MOBILE_SELECTION_MAX_ZOOM = 14.75;
 
 /** Layers a press acts on; the cursor shows a pointer over them. */
@@ -196,6 +228,7 @@ const GEOGRAPHIC_POINTER_LAYERS = [
   "transit-station-impacts",
   "transit-impacts-line",
   "transit-impact-arrows",
+  STREETCAR_HIT_LAYER,
 ];
 
 function geographicMobileSelectionPadding(container: HTMLElement) {
@@ -437,6 +470,27 @@ export function GeographicNetworkMap({
   const [retryCount, setRetryCount] = useState(0);
   const [currentZoom, setCurrentZoom] = useState<number>(() => getGeographicDefaultZoom(network));
   const [overlapChooser, setOverlapChooser] = useState<GeographicOverlapChooserState | null>(null);
+  const [streetcarCard, setStreetcarCard] = useState<GeographicStreetcarCardState | null>(null);
+  // One card is open at a time; the alert chooser and the streetcar card share
+  // its placement and follower.
+  const chooserAnchor = useMemo(() => {
+    if (overlapChooser) {
+      return {
+        coordinate: overlapChooser.coordinate,
+        size: (viewportWidth: number) => overlapChooserSize(overlapChooser.impacts.length, viewportWidth),
+      };
+    }
+    if (streetcarCard) {
+      return {
+        coordinate: streetcarCard.coordinate,
+        size: (viewportWidth: number) => {
+          const streetcars = cachedStreetcarCatalog();
+          return streetcarCardSize(streetcars ? streetcarCardRows(streetcars, streetcarCard.routes) : [], viewportWidth);
+        },
+      };
+    }
+    return null;
+  }, [overlapChooser, streetcarCard]);
   const [overlapChooserLayout, setOverlapChooserLayout] = useState<
     (GeographicOverlapChooserLayout & { followAnchor: ChooserFollowAnchor }) | null
   >(null);
@@ -925,6 +979,7 @@ export function GeographicNetworkMap({
     // also receive a 44px minimum target so their interaction area does not
     // shrink below the visible marker at low zoom or high pixel density.
     map.on("click", (e) => {
+      setStreetcarCard(null);
       const badge = impactBadgeAtPoint(e.point);
       if (badge) {
         activateImpactTarget(
@@ -939,6 +994,30 @@ export function GeographicNetworkMap({
       if (stationId) {
         callbacksRef.current.onSelectStationId?.(stationId);
         return;
+      }
+
+      // A streetcar line under the press shows its routes, unless an alert
+      // drawn there takes the press (its own click handler acts on it).
+      const alertLayers = [
+        "transit-station-impacts",
+        "transit-impacts-line",
+        "transit-impact-arrows",
+        "transit-planned-station-selection",
+      ].filter((layerId) => map.getLayer(layerId));
+      const onAlert = alertLayers.length > 0
+        && map.queryRenderedFeatures(e.point, { layers: alertLayers }).length > 0;
+      const streetcarLayers = [STREETCAR_HIT_LAYER, STREETCAR_BADGE_LAYER].filter((layerId) => map.getLayer(layerId));
+      if (!onAlert && streetcarLayers.length > 0) {
+        const routes = streetcarRoutesFromFeatures(map.queryRenderedFeatures(
+          [[e.point.x - 3, e.point.y - 3], [e.point.x + 3, e.point.y + 3]],
+          { layers: streetcarLayers },
+        ));
+        if (routes.length > 0) {
+          setOverlapChooser(null);
+          setHoveredOverlapImpact(null);
+          setStreetcarCard({ routes, coordinate: e.lngLat.toArray() as [number, number] });
+          return;
+        }
       }
 
       // Empty map background clicks clear selection and filters.
@@ -1188,6 +1267,7 @@ export function GeographicNetworkMap({
     selectionAttentionRef.current = new GeographicSelectionAttention();
     cameraAdjustedByUserRef.current = false;
     setOverlapChooser(null);
+    setStreetcarCard(null);
     setHoveredOverlapImpact(null);
     setHoveredMapTarget(null);
     for (const layer of map.getStyle().layers) {
@@ -1289,6 +1369,25 @@ export function GeographicNetworkMap({
     if (!map || loadStatus !== "ready") return;
     updateGeographicLineFilter(map, activeFilteredLine);
   }, [activeFilteredLine, loadStatus]);
+
+  // Streetcars load only for the TTC network, after the map is usable. Later
+  // installs (theme or network changes) read the cached catalog themselves.
+  const [streetcarCatalog, setStreetcarCatalog] = useState(cachedStreetcarCatalog);
+  useEffect(() => {
+    if (loadStatus !== "ready" || network !== "ttc") return;
+    let cancelled = false;
+    loadStreetcarCatalog().then((loaded) => {
+      if (cancelled) return;
+      setStreetcarCatalog(loaded);
+      const map = mapRef.current;
+      if (!map || isStyleLoadingRef.current || appliedCatalogRef.current?.network !== "ttc" || hasStreetcarLayers(map)) return;
+      installStreetcarLayers(map, loaded, { dark: isDarkRef.current, activeFilteredLine: activeFilteredLineRef.current });
+      installTransitOpacity(map);
+    }, () => {
+      // Streetcars are an optional layer; the subway map stays usable without them.
+    });
+    return () => { cancelled = true; };
+  }, [loadStatus, network, styleRevision]);
 
   // React to theme changes: compare applied style and only replace when genuinely changed
   useEffect(() => {
@@ -1694,7 +1793,7 @@ export function GeographicNetworkMap({
   useEffect(() => {
     const map = mapRef.current;
     const container = containerRef.current;
-    if (!map || !container || !overlapChooser || loadStatus !== "ready") {
+    if (!map || !container || !chooserAnchor || loadStatus !== "ready") {
       setOverlapChooserLayout(null);
       return;
     }
@@ -1705,7 +1804,7 @@ export function GeographicNetworkMap({
     let frameId: number | null = null;
     let opening = true;
     const followBadge = () => {
-      const point = map.project(overlapChooser.coordinate);
+      const point = map.project(chooserAnchor.coordinate);
       overlapChooserFollower.followPoint({ x: point.x, y: point.y });
     };
     const updateLayout = () => {
@@ -1715,10 +1814,10 @@ export function GeographicNetworkMap({
         if (!opening && map.isMoving()) return;
         const width = container.clientWidth;
         const height = container.clientHeight;
-        const point = map.project(overlapChooser.coordinate);
+        const point = map.project(chooserAnchor.coordinate);
         const badgeInView = chooserBadgeInView(point, { width, height });
         const compact = width <= 640;
-        const requestedChooserSize = overlapChooserSize(overlapChooser.impacts.length, width);
+        const requestedChooserSize = chooserAnchor.size(width);
         const containerRect = container.getBoundingClientRect();
         const visibleKeepoutElements = visibleMapChooserKeepouts()
           .filter((element) => !element.contains(container));
@@ -1795,7 +1894,7 @@ export function GeographicNetworkMap({
       resizeObserver.disconnect();
       if (frameId !== null) window.cancelAnimationFrame(frameId);
     };
-  }, [loadStatus, overlapChooser, overlapChooserFollower]);
+  }, [loadStatus, chooserAnchor, overlapChooserFollower]);
 
   // React to commute preview changes (focus camera on commute route)
   useEffect(() => {
@@ -1952,6 +2051,23 @@ export function GeographicNetworkMap({
           reducedMotion={reducedMotion}
           viewportOrientation="standard"
           viewportSize={overlapChooserLayout.viewportSize}
+        />
+      ) : null}
+
+      {streetcarCard && !overlapChooser && overlapChooserLayout && streetcarCatalog ? (
+        <GeographicStreetcarCard
+          rows={streetcarCardRows(streetcarCatalog, streetcarCard.routes)}
+          periodLabel={streetcarSchedulePeriodLabel(streetcarCatalog.source)}
+          selectionKey={selection ? `${selection.kind}:${selection.id}:${selectionAttentionGeneration}` : selectedStationId ? `station:${selectedStationId}` : commutePathPreview ? `commute:${commutePathPreview.id}:${commutePathPreview.legId}` : null}
+          layout={overlapChooserLayout.layout}
+          follower={overlapChooserFollower}
+          followAnchor={overlapChooserLayout.followAnchor}
+          viewportSize={overlapChooserLayout.viewportSize}
+          reducedMotion={reducedMotion}
+          onClose={(restoreFocus) => {
+            setStreetcarCard(null);
+            if (restoreFocus) containerRef.current?.focus({ preventScroll: true });
+          }}
         />
       ) : null}
 

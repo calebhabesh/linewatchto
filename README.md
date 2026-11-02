@@ -14,7 +14,7 @@ LineWatchTO is an unofficial transit dashboard for Toronto's TTC subway/LRT and 
 
 | Rider question | What the dashboard provides |
 | --- | --- |
-| Where is service affected? | TTC and GO/UP schematic maps, a geographic map option, and direction-aware disruption overlays. |
+| Where is service affected? | TTC and GO/UP schematic maps, a geographic map option (with the TTC streetcar network drawn from the published schedule), and direction-aware disruption overlays. |
 | Will it affect my usual route? | **My Commutes** matches disruptions to saved routes, with separate outbound/return legs and optional Web Push rules. |
 | What is happening at my station? | Station details, source-labeled live or scheduled arrivals, surface connections, accessibility outages, and **My Stations** bookmarks. |
 | What is coming up? | Planned advisories, searchable service notices, and station-specific information. |

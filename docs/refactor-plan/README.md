@@ -54,6 +54,7 @@ unused export, defect, or publication issue has been found.
 | [One map engine](10-one-map-engine.md) | One `SystemMap` component for every authored map, content adapters per network, maps as data; a new SVG map is a drop-in (owner decision, 2026-10-31) |
 | [Full map parity](11-full-map-parity.md) | One set of overlay rules for both network adapters, GO/UP interaction cost at TTC's, both maps green; full TTC and GO/UP parity (owner decision, 2026-10-31). Complete (2026-11-01) |
 | [Notification delivery](12-notification-delivery.md) | Android subscriptions replaced on the device go unseen until the app opens; recover them in the background, catch up on reconnect, and rebuild diagnostics around devices (owner request, 2026-10-31) |
+| [Surface network](13-surface-network.md) | TTC streetcars, stop numbers and stop departures on the Map View; outlines for live streetcar positions, TTC and GO buses behind a toggle, and gated station plans (owner request, 2026-11-02) |
 
 Root and scoped `AGENTS.md` remain authoritative. Read
 [domain invariants](../domain-invariants.md) for the affected behavior and

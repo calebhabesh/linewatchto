@@ -14,6 +14,19 @@ export function overlapChooserSize(impactCount: number, viewportWidth = OVERLAP_
   };
 }
 
+const STREETCAR_CARD_WIDTH = 300;
+
+/**
+ * The Map View streetcar card's size (GeographicStreetcarCard): padding and header, each route row (taller with its
+ * replacement-bus note, which wraps on phones), and the schedule note.
+ */
+export function streetcarCardSize(rows: readonly { replacementBuses: boolean }[], viewportWidth: number) {
+  const width = Math.max(220, Math.min(STREETCAR_CARD_WIDTH, viewportWidth - 32));
+  const compact = viewportWidth <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT;
+  const rowHeights = rows.reduce((sum, row) => sum + (row.replacementBuses ? (compact ? 76 : 62) : 44) + 4, 0);
+  return { width, height: Math.min(380, 24 + 46 + rowHeights + (compact ? 54 : 46)) };
+}
+
 export function chooserWidthCandidates(requestedWidth: number, viewportWidth: number): number[] {
   const width = Math.min(requestedWidth, Math.max(0, viewportWidth - 32));
   const minimumWidth = Math.min(width, 240);

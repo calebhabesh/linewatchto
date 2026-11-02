@@ -19,6 +19,7 @@
     "validate:map-asset": "node ../scripts/validate-map-asset.mjs",
     "generate:og-image": "node scripts/generate-og-image.mjs",
     "generate:geographic-catalog": "node ../scripts/generate-geographic-catalog.mjs",
+    "generate:surface-catalog": "node ../scripts/generate-surface-catalog.mjs",
     "metrics:css": "node scripts/measure-css.mjs",
     "preview:closing-soon": "node scripts/preview-closing-soon.mjs",
     "test:fast": "node --test --test-reporter=dot tests/*.test.mjs",
