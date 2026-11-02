@@ -38,14 +38,31 @@
 
 @supports (-webkit-touch-callout: none) {
   @media (display-mode: standalone) {
-    :root {
-      /* Plus the top bar's own 6px gap, puts the search bar where the blur
-         ends; other top chrome sits at the same gap or lower. black-translucent
-         installs (status-bar inset): 24px, blur gone 28-30px below the bar.
-         default-style installs (no inset; the page starts below an opaque bar,
-         which iOS 27 still fades onto the page): 28px, fade gone 34px down. */
-      --ios-top-blur-depth: calc(28px - min(4px, calc(env(safe-area-inset-top, 0px) * 100)));
-      --mobile-safe-top: calc(env(safe-area-inset-top, 0px) + var(--ios-top-blur-depth));
+    @media (orientation: portrait) {
+      :root {
+        /* Plus the top bar's own 6px gap, clears the whole fade.
+           black-translucent installs (status-bar inset): 24px, blur gone
+           28-30px below the bar. default-style installs (no inset; the page
+           starts below an opaque bar, which iOS 27 still fades onto the
+           page): 28px, fade gone 34px down. Portrait only: no status bar in
+           landscape. */
+        --ios-top-blur-depth: calc(28px - min(4px, calc(env(safe-area-inset-top, 0px) * 100)));
+        --mobile-safe-top: calc(env(safe-area-inset-top, 0px) + var(--ios-top-blur-depth));
+      }
+
+      /* The map's top chrome rises 14px back into the fade's faint tail: only
+         the search bar's plain top edge sits there, its text and icons start
+         where the fade ends. Sheets and popovers keep the full clearance.
+         The plate shrinks with it so it never covers the search bar. */
+      .ios-status-bar-plate,
+      .mobile-app-topbar,
+      .mobile-app-info,
+      .mobile-map-network-switch,
+      .mobile-legend-pill,
+      .subway-closing-soon-chip,
+      .go-up-closing-soon-chip {
+        --mobile-safe-top: calc(env(safe-area-inset-top, 0px) + var(--ios-top-blur-depth) - 14px);
+      }
     }
 
     .ios-status-bar-plate {
