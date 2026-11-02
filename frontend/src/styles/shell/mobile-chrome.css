@@ -24,8 +24,8 @@
 }
 
 /* iOS 27 draws a progressive blur over the top edge of installed apps whose
-   status bar is black-translucent, reaching about 30px below the status bar
-   (iPhone SE: 20px bar, blur to about 50px). The style is frozen at install, so
+   status bar is black-translucent, fading out about 28-30px below the status
+   bar (iPhone SE: 20px bar, tint gone by 48-50px). The style is frozen at install, so
    changing the meta tag needs a reinstall, and no element stops the blur. In
    iOS standalone the safe top grows by that depth (only when there is a
    status-bar inset at all), so all top chrome clears the blur, and an opaque
@@ -37,7 +37,9 @@
 @supports (-webkit-touch-callout: none) {
   @media (display-mode: standalone) {
     :root {
-      --ios-top-blur-depth: min(30px, calc(env(safe-area-inset-top, 0px) * 100));
+      /* 24px plus the top bar's own 6px gap puts the search bar where the
+         blur ends; other top chrome sits at the same gap or lower. */
+      --ios-top-blur-depth: min(24px, calc(env(safe-area-inset-top, 0px) * 100));
       --mobile-safe-top: calc(env(safe-area-inset-top, 0px) + var(--ios-top-blur-depth));
     }
 
