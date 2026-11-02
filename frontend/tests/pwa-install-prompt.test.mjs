@@ -104,7 +104,11 @@ describe("PWA install prompt state", () => {
     assert.equal(getPwaInstallInstructionText({ platform: "android-chrome", nativePromptAvailable: true }), "Tap Install, then confirm in Chrome.");
     assert.equal(getPwaInstallInstructionText({ platform: "android-chrome", nativePromptAvailable: false }), "Open the three-dot menu, tap Add to Home screen, then confirm.");
     assert.equal(getPwaInstallInstructionText({ platform: "ios-safari", nativePromptAvailable: false }), "Tap Share, choose Add to Home Screen, then tap Add.");
-    assert.equal(getPwaInstallInstructionText({ platform: "ios-other", nativePromptAvailable: false }), "Open this page in Safari, tap Share, then Add to Home Screen.");
+    assert.equal(getPwaInstallInstructionText({ platform: "ios-other", nativePromptAvailable: false }), "For the most reliable alerts, open this page in Safari, tap Share, then Add to Home Screen.");
+    // Browsers that cannot install a full Android app are pointed to Chrome.
+    for (const platform of ["android-firefox", "android-other"]) {
+      assert.equal(getPwaInstallInstructionText({ platform, nativePromptAvailable: false }), "For the most reliable alerts, open this page in Chrome, then tap Add to Home screen.");
+    }
   });
 
   it("requires mobile browser mode, engagement, no overlay conflict, and no fresh dismissal", () => {

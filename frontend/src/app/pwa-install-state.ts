@@ -220,13 +220,14 @@ export function getPwaInstallInstructionText({
       : "Open the browser menu, tap Add to Home screen or Install, then confirm.";
   }
   if (platform === "android-firefox" || platform === "android-other") {
-    return "Open the browser menu, tap Add to Home screen or Install, then confirm.";
+    // Chrome installs a full Android app and runs every background alert check.
+    return "For the most reliable alerts, open this page in Chrome, then tap Add to Home screen.";
   }
   if (platform === "ios-safari") {
     return "Tap Share, choose Add to Home Screen, then tap Add.";
   }
   if (platform === "ios-other") {
-    return "Open this page in Safari, tap Share, then Add to Home Screen.";
+    return "For the most reliable alerts, open this page in Safari, tap Share, then Add to Home Screen.";
   }
   return "Use your browser menu to add LineWatchTO to your home screen.";
 }

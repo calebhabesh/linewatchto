@@ -354,7 +354,7 @@ export function SiteGuideDropdown({
 
             <GuideSection icon={<Download size={15} />} title="Install LineWatchTO as an App">
               <p>
-                For the best mobile experience, add LineWatchTO to your home screen so it opens like an app.
+                For the best mobile experience, add LineWatchTO to your home screen so it opens like an app. Use Safari on iPhone and Chrome on Android: they install it most reliably and deliver alerts best.
               </p>
               <div className="site-guide-install-options">
                 <MobileInstallGuide

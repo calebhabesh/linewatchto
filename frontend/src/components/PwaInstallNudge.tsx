@@ -75,6 +75,12 @@ export function PwaInstallNudge({
         ) : null}
         {showAndroidSteps ? (
           <ol className="pwa-install-nudge-steps" aria-label="Android install steps">
+            {platform === "android-firefox" || platform === "android-other" ? (
+              <li>
+                <Smartphone size={14} aria-hidden="true" />
+                <span>Open Chrome</span>
+              </li>
+            ) : null}
             <li>
               <MoreVertical size={14} aria-hidden="true" />
               <span>Open menu</span>
