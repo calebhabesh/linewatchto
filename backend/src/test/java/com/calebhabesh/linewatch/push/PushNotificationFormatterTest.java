@@ -2,11 +2,94 @@ package com.calebhabesh.linewatch.push;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
 
 class PushNotificationFormatterTest {
-    private final PushNotificationFormatter formatter = new PushNotificationFormatter();
+    // Sat, Jun 6, 6:00 AM in Toronto.
+    private final PushNotificationFormatter formatter =
+        new PushNotificationFormatter(Clock.fixed(Instant.parse("2026-06-06T10:00:00Z"), ZoneOffset.UTC));
+
+    private static PushNotificationFormatter formatterAt(String instant) {
+        return new PushNotificationFormatter(Clock.fixed(Instant.parse(instant), ZoneOffset.UTC));
+    }
+
+    private static PushNotificationFacts plannedFacts(
+        String reminderBucket,
+        String description,
+        String start,
+        String end,
+        String closureHours,
+        String closureDates,
+        String currentEffect
+    ) {
+        return new PushNotificationFacts(
+            "line-2", "2", "planned-closure", reminderBucket, "Jane to Ossington", "Eastbound & Westbound",
+            true, null, null, Instant.parse(start), "Planned track work",
+            "Line 2 Bloor-Danforth: Jane to Ossington", description, closureHours, closureDates,
+            end == null ? null : Instant.parse(end), currentEffect
+        );
+    }
+
+    @Test
+    void plannedClosureInEffectReadsAsItsLiveEffectWithStartAndEnd() {
+        // Nov 1, 2026 (the autumn DST change): TTC's live child alert appeared at 8:00 AM.
+        FormattedPushNotification result = formatterAt("2026-11-01T13:00:53Z").formatActive(plannedFacts(
+            "on-change",
+            "There is no subway service between Jane and Ossington stations due to planned track work. "
+                + "Shuttle buses are running.",
+            "2026-11-01T13:00:00Z", "2026-11-01T17:00:00Z", null, null, "suspension"
+        ));
+
+        assertThat(result.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Suspension");
+        // Cleared and window-ended notifications reuse the subject.
+        assertThat(result.notificationSubject()).isEqualTo("Line 2 Bloor-Danforth Planned Advisory");
+        assertThat(result.body()).isEqualTo("""
+            There is no subway service between Jane and Ossington stations due to planned track work. Shuttle buses are running.
+            🕗 Planned advisory · Started 8:00 AM · Until 12:00 PM""");
+    }
+
+    @Test
+    void plannedReminderSaysWhenItStartsRelativeToToday() {
+        FormattedPushNotification sameDay = formatterAt("2026-11-01T11:00:00Z").formatActive(plannedFacts(
+            "closure-morning",
+            "On Sunday, November 1, subway service between Jane and Ossington stations will start by 12 p.m.",
+            "2026-11-01T13:00:00Z", "2026-11-01T17:00:00Z", "8:00 AM – 12:00 PM", "Sun, Nov 1", null
+        ));
+        // The start rides in the title, so a collapsed notification shows it.
+        assertThat(sameDay.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Planned Advisory · Today 8 AM");
+        assertThat(sameDay.notificationSubject()).isEqualTo("Line 2 Bloor-Danforth Planned Advisory");
+        // A single occurrence drops the dates and hours lines its start and end line repeats.
+        assertThat(sameDay.body()).isEqualTo("""
+            On Sunday, November 1, subway service between Jane and Ossington stations will start by 12 p.m.
+            Shuttle buses are running.
+            🕗 Starts today at 8:00 AM · Until 12:00 PM""");
+
+        FormattedPushNotification tonight = formatterAt("2026-11-09T15:00:00Z").formatActive(plannedFacts(
+            "closure-morning", null,
+            "2026-11-10T04:59:00Z", "2026-11-10T11:00:00Z", "11:59 PM – 6:00 AM", "Mon, Nov 9 – Thu, Nov 12", null
+        ));
+        assertThat(tonight.title()).endsWith(" · Today 11:59 PM");
+        assertThat(tonight.body()).contains("Advisory dates: Mon, Nov 9 – Thu, Nov 12.")
+            .endsWith("🕗 Starts today at 11:59 PM · Until tomorrow 6:00 AM");
+
+        FormattedPushNotification tomorrow = formatterAt("2026-11-06T15:00:00Z").formatActive(plannedFacts(
+            "closure-24h", null,
+            "2026-11-07T05:00:00Z", "2026-11-09T11:00:00Z", "All Day", "Sat, Nov 7 – Sun, Nov 8", null
+        ));
+        assertThat(tomorrow.title()).endsWith(" · Tomorrow 12 AM");
+        assertThat(tomorrow.body()).endsWith("🕗 Starts tomorrow at 12:00 AM · Until Mon 6:00 AM");
+
+        FormattedPushNotification announced = formatterAt("2026-11-01T15:00:00Z").formatActive(plannedFacts(
+            "on-change", null,
+            "2026-11-10T04:59:00Z", "2026-11-10T11:00:00Z", "11:59 PM – 6:00 AM", "Mon, Nov 9 – Thu, Nov 12", null
+        ));
+        assertThat(announced.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Planned Advisory · Mon, Nov 9");
+        assertThat(announced.body()).endsWith("🕗 Starts Mon, Nov 9 at 11:59 PM · Until Tue 6:00 AM");
+        assertThat(announced.body()).doesNotContain("Starts within", "Starts today.");
+    }
 
     @Test
     void formatsActiveSuspensionWithCanonicalTitleAndTorontoTime() {
@@ -81,9 +164,8 @@ class PushNotificationFormatterTest {
             Advisory dates: Sat, Jun 6 – Sun, Jun 7.
             Advisory hours: 11:59 PM – 5:00 AM.
             Shuttle buses are running.
-            Starts today.
             Affects Evening Route (Return).
-            🕗 Advisory starts Jun 7, 12:00 AM""");
+            🕗 Starts tomorrow at 12:00 AM""");
     }
 
     @Test
@@ -332,8 +414,6 @@ class PushNotificationFormatterTest {
             null
         ));
 
-        assertThat(result.body()).isEqualTo("""
-            Delays southbound at Eglinton Station.
-            Starts within 24 hours.""");
+        assertThat(result.body()).isEqualTo("Delays southbound at Eglinton Station.");
     }
 }

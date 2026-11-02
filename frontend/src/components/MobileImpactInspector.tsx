@@ -68,7 +68,6 @@ type Props = {
   onUnfocus: () => void;
   onBack?: () => void;
   backLabel?: string;
-  unfocusLabel?: string;
   onViewFullDetails: () => void;
   onSelectImpact: (selection: ImpactSelection) => void;
   commutePathPreview?: AccountCommutePathPreview | null;
@@ -356,7 +355,6 @@ export function MobileImpactInspector({
   onUnfocus,
   onBack,
   backLabel = "Back to Previous Impact",
-  unfocusLabel = "Unfocus impact",
   onViewFullDetails,
   onSelectImpact,
   commutePathPreview,
@@ -463,8 +461,8 @@ export function MobileImpactInspector({
               <ArrowLeft size={20} aria-hidden="true" />
             </button>
           ) : null}
-          <button type="button" onClick={handleUnfocusClick} className="mobile-impact-inspector-icon-button" aria-label={unfocusLabel}>
-            {unfocusLabel === "Unfocus impact" ? <X size={20} /> : <ArrowLeft size={20} />}
+          <button type="button" onClick={handleUnfocusClick} className="mobile-impact-inspector-icon-button" aria-label="Close Details">
+            <X size={20} aria-hidden="true" />
           </button>
         </div>
       </div>

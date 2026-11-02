@@ -282,7 +282,10 @@ public class SavedCommutePushPlanner {
             plannedClosure ? notificationTitle(match.notificationTitle(), match.title()) : null,
             match.description(),
             match.closureHours(),
-            match.closureDates()
+            match.closureDates(),
+            null,
+            plannedClosure && "current".equals(match.status())
+                && ("suspension".equals(match.kind()) || "delay".equals(match.kind())) ? match.kind() : null
         ));
 
         String segmentIds = String.join(",", emptyWhenNull(match.matchedSegmentIds()));

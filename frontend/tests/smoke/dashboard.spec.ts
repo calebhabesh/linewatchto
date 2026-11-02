@@ -2179,7 +2179,7 @@ test("reveals the map beneath a closing mobile impact sheet", async ({ page, req
   const mapViewport = page.locator(".linewatch-shell > main");
   await expect(inspector).toBeVisible();
   await expect(mapViewport).toHaveCSS("bottom", "0px");
-  await inspector.getByRole("button", { name: "Unfocus impact" }).click();
+  await inspector.getByRole("button", { name: "Close Details" }).click();
   await expect(inspector).toHaveCount(0);
   await expect(mapViewport).toHaveCSS("bottom", "0px");
 });
@@ -2408,7 +2408,7 @@ test("mobile keeps lightweight map focus flashes and menu transitions", async ({
     .poll(async () => mapFlash.evaluate((element) => getComputedStyle(element).filter))
     .toBe("none");
 
-  await page.locator('[data-mobile-impact-inspector]').getByRole("button", { name: "Unfocus impact" }).click();
+  await page.locator('[data-mobile-impact-inspector]').getByRole("button", { name: "Close Details" }).click();
   await page.getByRole("button", { name: "Stub Station station details" }).press("Enter");
 
   const stationFlash = page.locator('[data-map-highlight-id="stub-station"]').first();
@@ -3031,7 +3031,7 @@ test("mobile closing impact details preserves the focused map camera", async ({ 
 
   const focusedTransform = await mapLayer.evaluate((element) => element.style.transform);
 
-  await inspector.getByRole("button", { name: "Unfocus impact" }).click();
+  await inspector.getByRole("button", { name: "Close Details" }).click();
   await expect(inspector).toHaveCount(0);
   await page.waitForTimeout(500);
 
@@ -3182,7 +3182,7 @@ test("mobile rotated map mode keeps station and impact selections in the rotated
   await expect(inspector).toBeVisible();
   await expect(inspector).toContainText("Delay");
 
-  await inspector.getByRole("button", { name: "Unfocus impact" }).click();
+  await inspector.getByRole("button", { name: "Close Details" }).click();
   await page.getByRole("button", { name: "Rotate map" }).click();
   await page.getByRole("button", { name: "Stub Station station details" }).dispatchEvent("click");
   await expect(page.locator("[data-rotated-map-selection-card]")).toBeVisible();
@@ -3707,12 +3707,9 @@ for (const sameIdProjection of [false, true]) {
     }
     const closureCard = page.locator('[data-impact-card-id="stub-closure-line-1"]');
     await expect(closureCard).toBeVisible();
+    // Active Now swaps the list in place on every device, like the planned-advisory badge.
     await closureCard.getByRole("button", { name: "View current impact", exact: true }).click();
-    if (isMobile) {
-      const inspector = page.locator('[data-mobile-impact-inspector]');
-      await expect(inspector.getByRole("button", { name: "View related planned advisory details" })).toBeVisible();
-      await inspector.getByRole("button", { name: "View in List" }).click();
-    }
+    await expect(page.locator('[data-mobile-impact-inspector]')).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Suspensions" })).toBeVisible();
     const alertCard = page.locator(`[data-impact-card-id="${activeAlertId}"]`);
     for (const card of await page.locator(".alert-card").all()) {
@@ -3725,10 +3722,6 @@ for (const sameIdProjection of [false, true]) {
     await expect(page.getByRole("heading", { name: "Planned Advisories" })).toBeVisible();
     await expect(closureCard.getByText("Current Window", { exact: true })).toBeVisible();
     await closureCard.getByRole("button", { name: "View current impact", exact: true }).click();
-    if (isMobile) {
-      // The current impact opens in the map inspector on phones.
-      await page.locator('[data-mobile-impact-inspector]').getByRole("button", { name: "View in List" }).click();
-    }
     await page.getByRole("button", { name: "List view", exact: true }).click();
     await expect(alertCard).toHaveCSS("border-left-color", "rgba(239, 68, 68, 0.85)");
     await alertCard.getByText("Details", { exact: true }).click();

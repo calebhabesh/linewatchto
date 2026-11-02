@@ -60,7 +60,7 @@ test("Current Service selection shows Back on its card and returns to its origin
   await expect(page.locator("[data-mobile-impact-inspector]")).toHaveCount(0);
 });
 
-for (const back of ["back", "close", "browser"] as const) {
+for (const back of ["close", "browser"] as const) {
   test(`mobile service selection opens the split map and ${back} restores the sheet`, async ({ page, isMobile }) => {
     test.skip(!isMobile, "Mobile service sheet");
     await page.setViewportSize({ width: 360, height: 780 });
@@ -74,14 +74,15 @@ for (const back of ["back", "close", "browser"] as const) {
     await expect(inspector.getByRole("button", { name: "Show more map" })).toBeVisible();
     await expect(page.locator('[data-map-highlight-id]').first()).toBeAttached();
     const controls = inspector.getByRole("group", { name: "Impact navigation" });
-    await expect(controls.getByRole("button", { name: "Back to Map", exact: true })).toBeVisible();
-    await expect(controls.getByRole("button", { name: "Unfocus impact" })).toBeVisible();
+    // Opened on the map: Back would only repeat Close, so Close stands alone.
+    await expect(controls.getByRole("button", { name: /^Back/ })).toHaveCount(0);
+    await expect(controls.getByRole("button", { name: "Close Details" })).toBeVisible();
     const mapBox = await page.locator('[data-system-map=ttc] .system-map-viewport').first().boundingBox();
     const inspectorBox = await inspector.boundingBox();
     expect(mapBox && inspectorBox && inspectorBox.y > mapBox.y + 100).toBeTruthy();
-    if (back === "back") await page.screenshot({ path: "/tmp/linewatch-mobile-service-split.png" });
+    if (back === "close") await page.screenshot({ path: "/tmp/linewatch-mobile-service-split.png" });
     if (back === "browser") await page.goBack();
-    else await controls.getByRole("button", { name: back === "back" ? "Back to Map" : "Unfocus impact", exact: true }).click();
+    else await controls.getByRole("button", { name: "Close Details", exact: true }).click();
     await expect(inspector).toHaveCount(0);
     await expect(service).toBeVisible();
     await expect(page.locator(".mobile-service-sheet")).toHaveAttribute("data-snap", sheetSnap!);
@@ -101,7 +102,7 @@ test("mobile overlapping map details group Back and Close and restore the prior 
   await inspector.locator(".overlap-impact-ref").first().click();
   const controls = inspector.getByRole("group", { name: "Impact navigation" });
   const back = controls.getByRole("button", { name: "Back to Previous Impact" });
-  const close = controls.getByRole("button", { name: "Unfocus impact" });
+  const close = controls.getByRole("button", { name: "Close Details" });
   await expect(back).toBeVisible();
   await expect(close).toBeVisible();
   const backBox = await back.boundingBox();
@@ -116,6 +117,46 @@ test("mobile overlapping map details group Back and Close and restore the prior 
   await expect(inspector.getByRole("heading", { name: "Delay", exact: true })).toBeVisible();
   await expect(page.locator('[data-map-highlight-id="stub-delay-line-1-overlap"]')).toBeAttached();
   await expect(controls.getByRole("button", { name: "Back to Previous Impact" })).toHaveCount(0);
+});
+
+test("mobile planned advisory hops keep their context and Back and Close never match", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "mobile split inspector");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Status", exact: true }).click();
+  await page.locator(".mobile-status-actions").getByRole("button", { name: /Planned Advisor/ }).click();
+  const advisories = page.getByRole("heading", { name: "Planned Advisories" });
+  const advisoryCard = page.locator('[data-impact-card-id="stub-closure-line-1"]');
+  const inspector = page.locator("[data-mobile-impact-inspector]");
+
+  // In a list, both hops swap lists in place; Back unwinds without stacking repeats.
+  await advisoryCard.getByRole("button", { name: "View current impact", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Suspensions" })).toBeVisible();
+  await expect(inspector).toHaveCount(0);
+  const currentCard = page.locator('[data-impact-card-id="stub-active-closure-child-line-1"]');
+  await currentCard.getByRole("button", { name: "View related planned advisory details" }).click();
+  await expect(advisories).toBeVisible();
+  await advisoryCard.getByRole("button", { name: "View current impact", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Suspensions" })).toBeVisible();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(advisories).toBeVisible();
+
+  // In the split view, both hops stay in the split view.
+  await advisoryCard.getByRole("button", { name: /^View .* on map$/ }).click();
+  const controls = inspector.getByRole("group", { name: "Impact navigation" });
+  await expect(controls.getByRole("button", { name: "Back to Planned Advisories", exact: true })).toBeVisible();
+  await expect(controls.getByRole("button", { name: "Close Details", exact: true })).toBeVisible();
+  await inspector.getByRole("button", { name: "View current impact", exact: true }).click();
+  await expect(inspector.getByRole("heading", { name: "Suspension", exact: true })).toBeVisible();
+  await controls.getByRole("button", { name: "Back to Previous Impact", exact: true }).click();
+  await expect(inspector.getByRole("heading", { name: "Planned Advisory", exact: true })).toBeVisible();
+  await inspector.getByRole("button", { name: "View current impact", exact: true }).click();
+
+  // Close leaves the whole trail for the plain map; Back would have stepped once.
+  await controls.getByRole("button", { name: "Close Details", exact: true }).click();
+  await expect(inspector).toHaveCount(0);
+  await expect(advisories).toHaveCount(0);
+  await expect(page.locator(".mobile-status-peek")).toBeVisible();
 });
 
 test("mobile split description hints only while more content remains below", async ({ page, isMobile }) => {

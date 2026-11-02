@@ -45,6 +45,47 @@ class PushNotificationUpdateFingerprintTest {
         ));
     }
 
+    @Test
+    void regionalContentIgnoresDayWordsButNotTheEventTime() {
+        java.time.Instant start = java.time.Instant.parse("2026-11-07T05:00:00Z");
+        FormattedPushNotification announced = regional(
+            "No train service between Union and Exhibition.\n🕗 Starts Sat, Nov 7 at 12:00 AM", start
+        );
+        FormattedPushNotification dayBefore = new FormattedPushNotification(
+            "⚠️ Lakeshore West Planned Advisory · Tomorrow 12 AM",
+            "No train service between Union and Exhibition.\n🕗 Starts tomorrow at 12:00 AM",
+            "Lakeshore West Planned Advisory", "Union to Exhibition", null, null, start
+        );
+        FormattedPushNotification moved = regional(
+            "No train service between Union and Exhibition.\n🕗 Starts tomorrow at 12:00 AM",
+            start.plusSeconds(3600)
+        );
+        FormattedPushNotification reworded = regional(
+            "No train service between Union and Mimico.\n🕗 Starts tomorrow at 12:00 AM", start
+        );
+
+        String fingerprint = PushNotificationUpdateFingerprint.forRegionalCandidate(
+            "planned-closure", announced, "/?network=regional&panel=closures"
+        );
+        assertThat(fingerprint).startsWith(PushNotificationUpdateFingerprint.REGIONAL_CONTENT_PREFIX);
+        assertThat(PushNotificationUpdateFingerprint.forRegionalCandidate(
+            "planned-closure", dayBefore, "/?network=regional&panel=closures"
+        )).isEqualTo(fingerprint);
+        assertThat(PushNotificationUpdateFingerprint.forRegionalCandidate(
+            "planned-closure", moved, "/?network=regional&panel=closures"
+        )).isNotEqualTo(fingerprint);
+        assertThat(PushNotificationUpdateFingerprint.forRegionalCandidate(
+            "planned-closure", reworded, "/?network=regional&panel=closures"
+        )).isNotEqualTo(fingerprint);
+    }
+
+    private FormattedPushNotification regional(String body, java.time.Instant sourceEventAt) {
+        return new FormattedPushNotification(
+            "⚠️ Lakeshore West Planned Advisory", body, "Lakeshore West Planned Advisory",
+            "Union to Exhibition", null, null, sourceEventAt
+        );
+    }
+
     private FormattedPushNotification notification(String title, String body) {
         return new FormattedPushNotification(
             title,

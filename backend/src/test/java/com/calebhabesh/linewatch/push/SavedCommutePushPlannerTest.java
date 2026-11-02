@@ -26,7 +26,7 @@ class SavedCommutePushPlannerTest {
     private final CommutePathService commutePathService = mock(CommutePathService.class);
     private final CommuteImpactService commuteImpactService = mock(CommuteImpactService.class);
     private final java.time.Clock clock = java.time.Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), java.time.ZoneOffset.UTC);
-    private final PushNotificationFormatter formatter = new PushNotificationFormatter();
+    private final PushNotificationFormatter formatter = new PushNotificationFormatter(clock);
     private final SavedCommutePushPlanner planner = new SavedCommutePushPlanner(commutePathService, commuteImpactService, clock, formatter);
 
     private final AccountEntity account = AccountEntity.create(
@@ -153,7 +153,7 @@ class SavedCommutePushPlannerTest {
 
         assertThat(candidates).singleElement().satisfies(candidate -> {
             assertThat(candidate.legId()).isEqualTo("return");
-            assertThat(candidate.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Planned Advisory");
+            assertThat(candidate.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Planned Advisory · Sun, Jun 7");
             assertThat(candidate.body()).startsWith(
                 "There will be no subway service between Keele and Union stations."
             );
@@ -162,7 +162,7 @@ class SavedCommutePushPlannerTest {
             assertThat(candidate.body()).contains("Advisory hours: 12:00 AM – 5:00 AM.");
             assertThat(candidate.body()).contains("Shuttle buses are running.");
             assertThat(candidate.body()).contains("Affects Evening Route (Return).");
-            assertThat(candidate.body()).endsWith("🕗 Advisory starts Jun 7, 12:00 AM");
+            assertThat(candidate.body()).endsWith("🕗 Starts Sun, Jun 7 at 12:00 AM");
             assertThat(candidate.category()).isEqualTo("saved-commute-planned");
         });
     }
@@ -212,7 +212,7 @@ class SavedCommutePushPlannerTest {
         assertThat(candidates).singleElement().satisfies(candidate -> {
             assertThat(candidate.category()).isEqualTo("saved-commute-current");
             assertThat(candidate.sourceEventAt()).isEqualTo(windowStart.toInstant());
-            assertThat(candidate.body()).endsWith("🕗 Advisory starts Jun 5, 10:30 AM");
+            assertThat(candidate.body()).endsWith("🕗 Planned advisory · Started 10:30 AM");
         });
     }
 

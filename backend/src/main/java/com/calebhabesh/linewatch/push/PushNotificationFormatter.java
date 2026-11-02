@@ -2,14 +2,18 @@ package com.calebhabesh.linewatch.push;
 
 import com.calebhabesh.linewatch.regional.EnglishClockTextFormatter;
 import com.calebhabesh.linewatch.station.StationDisplayNameFormatter;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,6 +21,18 @@ public class PushNotificationFormatter {
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
     private static final DateTimeFormatter EVENT_TIME_FORMATTER =
         DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.ENGLISH).withZone(TORONTO_ZONE);
+    /** Separates a reminder's start time from the event name in its title. */
+    static final String TITLE_TIME_SEPARATOR = " · ";
+    private static final DateTimeFormatter HOUR_FORMATTER =
+        DateTimeFormatter.ofPattern("h a", Locale.ENGLISH);
+    private static final DateTimeFormatter CLOCK_TIME_FORMATTER =
+        DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH);
+    private static final DateTimeFormatter WEEKDAY_FORMATTER =
+        DateTimeFormatter.ofPattern("EEE", Locale.ENGLISH);
+    private static final DateTimeFormatter WEEKDAY_DATE_FORMATTER =
+        DateTimeFormatter.ofPattern("EEE, MMM d", Locale.ENGLISH);
+    private static final Pattern DATE_RANGE_PATTERN =
+        Pattern.compile("[–—]|\\s-\\s|(?i)\\bto\\b|(?i)\\band\\b|;");
     private static final Pattern BETWEEN_PATTERN =
         Pattern.compile("(?i)^between\\s+(.+?)\\s+and\\s+(.+)$");
     private static final Pattern TO_PATTERN =
@@ -30,11 +46,33 @@ public class PushNotificationFormatter {
     private static final Pattern CLOCK_LINE_PATTERN =
         Pattern.compile("(?m)^🕗\\s+[^\\r\\n]+$");
 
+    private final Clock clock;
+
+    public PushNotificationFormatter() {
+        this(Clock.systemUTC());
+    }
+
+    @Autowired
+    public PushNotificationFormatter(Clock clock) {
+        this.clock = clock;
+    }
+
     public FormattedPushNotification formatActive(PushNotificationFacts facts) {
+        boolean plannedClosure = "planned-closure".equals(facts.eventType());
+        String currentEffect = plannedClosure ? emptyToNull(normalizeText(facts.currentEffect())) : null;
+        boolean limitedService = com.calebhabesh.linewatch.ingestion.TtcLimitedService.isAffirmative(
+            facts.sourceTitle(), facts.sourceDescription()
+        );
+        // The subject names the event for its whole lifecycle (cleared and window-ended
+        // notifications reuse it); the title shows what riders face right now.
         String subject = notificationSubject(facts.lineId(), facts.lineNumber(), facts.eventType());
-        if (com.calebhabesh.linewatch.ingestion.TtcLimitedService.isAffirmative(facts.sourceTitle(), facts.sourceDescription())) {
-            subject = PushLineCatalog.identity(facts.lineId(), facts.lineNumber())
-                + ("planned-closure".equals(facts.eventType()) ? " Planned limited service" : " Limited service");
+        String headline = subject;
+        if (limitedService) {
+            String identity = PushLineCatalog.identity(facts.lineId(), facts.lineNumber());
+            subject = identity + (plannedClosure ? " Planned limited service" : " Limited service");
+            headline = currentEffect != null ? identity + " Limited service" : subject;
+        } else if (currentEffect != null && !"TTC Service Alert".equals(subject)) {
+            headline = PushLineCatalog.identity(facts.lineId(), facts.lineNumber()) + " " + eventLabel(currentEffect);
         }
         String location = normalizeDisplayText(facts.location());
         String displayDirection = normalizeText(facts.displayDirection());
@@ -49,35 +87,41 @@ public class PushNotificationFormatter {
         } else {
             bodyParts.add(activeFallbackSentence(facts.eventType(), location, facts.displayDirection(), facts.cause()));
         }
-        if ("planned-closure".equals(facts.eventType())) {
+        if (plannedClosure) {
             String closureDates = normalizeText(facts.closureDates());
-            if (!closureDates.isEmpty()) {
+            String closureHours = normalizeText(facts.closureHours());
+            // A single occurrence is fully described by its start and end line below.
+            boolean singleOccurrence = facts.sourceEventAt() != null
+                && facts.windowEndAt() != null
+                && !closureDates.isEmpty()
+                && !DATE_RANGE_PATTERN.matcher(closureDates).find();
+            if (!closureDates.isEmpty() && !singleOccurrence) {
                 bodyParts.add("Advisory dates: " + stripTerminalPunctuation(closureDates) + ".");
             }
-            String closureHours = normalizeText(facts.closureHours());
-            if (!closureHours.isEmpty()) {
+            if (!closureHours.isEmpty() && !singleOccurrence) {
                 bodyParts.add("Advisory hours: " + stripTerminalPunctuation(closureHours) + ".");
             }
         }
-        if (facts.shuttle()) {
+        if (facts.shuttle() && !containsIgnoreCase(String.join(" ", bodyParts), "shuttle")) {
             bodyParts.add("Shuttle buses are running.");
-        }
-        if ("closure-24h".equals(facts.reminderBucket())) {
-            bodyParts.add("Starts within 24 hours.");
-        } else if ("closure-morning".equals(facts.reminderBucket())) {
-            bodyParts.add("Starts today.");
         }
         if (scopeLabel != null) {
             bodyParts.add("Affects " + scopeLabel + ".");
         }
         if (facts.sourceEventAt() != null) {
-            bodyParts.add("planned-closure".equals(facts.eventType())
-                ? closureStartLine(facts.sourceEventAt())
+            bodyParts.add(plannedClosure
+                ? plannedWindowLine(facts.sourceEventAt(), facts.windowEndAt(), currentEffect != null)
                 : clockLine(facts.sourceEventAt()));
         }
 
+        // Before the window, the title carries when it starts so a collapsed notification shows it.
+        if (plannedClosure && currentEffect == null && facts.sourceEventAt() != null
+            && clock.instant().isBefore(facts.sourceEventAt())) {
+            headline += TITLE_TIME_SEPARATOR + titleStart(facts.sourceEventAt());
+        }
+
         return new FormattedPushNotification(
-            "⚠️ " + subject,
+            "⚠️ " + headline,
             String.join("\n", bodyParts),
             subject,
             location.isEmpty() ? null : location,
@@ -185,8 +229,55 @@ public class PushNotificationFormatter {
         return identity + " " + eventLabel(eventType);
     }
 
-    private String closureStartLine(Instant sourceEventAt) {
-        return "🕗 Advisory starts " + EVENT_TIME_FORMATTER.format(sourceEventAt);
+    /**
+     * Time-aware planned window line, worded relative to the moment it is sent:
+     * "🕗 Starts today at 8:00 AM · Until 12:00 PM" before the window, and
+     * "🕗 Planned advisory · Started 8:00 AM · Until 12:00 PM" once it is in effect.
+     */
+    String plannedWindowLine(Instant start, Instant end, boolean inEffect) {
+        ZonedDateTime now = clock.instant().atZone(TORONTO_ZONE);
+        ZonedDateTime startAt = start.atZone(TORONTO_ZONE);
+        boolean started = inEffect || !now.isBefore(startAt);
+        StringBuilder line = new StringBuilder("🕗 ");
+        if (started) {
+            line.append("Planned advisory · Started ").append(relativeMoment(startAt, now.toLocalDate(), false));
+        } else {
+            line.append("Starts ").append(relativeMoment(startAt, now.toLocalDate(), true));
+        }
+        if (end != null && end.isAfter(start)) {
+            ZonedDateTime endAt = end.atZone(TORONTO_ZONE);
+            line.append(" · Until ").append(endMoment(endAt, startAt, now.toLocalDate()));
+        }
+        return line.toString();
+    }
+
+    /** "Today 8 AM", "Tomorrow 11:59 PM", or "Sat, Nov 7" further out. */
+    private String titleStart(Instant start) {
+        ZonedDateTime startAt = start.atZone(TORONTO_ZONE);
+        LocalDate today = clock.instant().atZone(TORONTO_ZONE).toLocalDate();
+        String time = startAt.getMinute() == 0 ? HOUR_FORMATTER.format(startAt) : CLOCK_TIME_FORMATTER.format(startAt);
+        if (startAt.toLocalDate().equals(today)) return "Today " + time;
+        if (startAt.toLocalDate().equals(today.plusDays(1))) return "Tomorrow " + time;
+        return WEEKDAY_DATE_FORMATTER.format(startAt);
+    }
+
+    private String relativeMoment(ZonedDateTime moment, LocalDate today, boolean withAt) {
+        String time = CLOCK_TIME_FORMATTER.format(moment);
+        LocalDate date = moment.toLocalDate();
+        String at = withAt ? " at " : " ";
+        if (date.equals(today)) return withAt ? "today at " + time : time;
+        if (date.equals(today.plusDays(1))) return "tomorrow" + at + time;
+        if (date.equals(today.minusDays(1))) return "yesterday" + at + time;
+        return WEEKDAY_DATE_FORMATTER.format(moment) + (withAt ? " at " : ", ") + time;
+    }
+
+    private String endMoment(ZonedDateTime end, ZonedDateTime start, LocalDate today) {
+        String time = CLOCK_TIME_FORMATTER.format(end);
+        LocalDate date = end.toLocalDate();
+        if (date.equals(start.toLocalDate())) return time;
+        if (date.equals(today.plusDays(1)) && !start.toLocalDate().isAfter(today)) return "tomorrow " + time;
+        if (!date.isAfter(start.toLocalDate().plusDays(6))) return WEEKDAY_FORMATTER.format(end) + " " + time;
+        return WEEKDAY_DATE_FORMATTER.format(end) + ", " + time;
     }
 
     private String eventLabel(String eventType) {

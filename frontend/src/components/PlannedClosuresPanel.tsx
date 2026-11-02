@@ -211,7 +211,8 @@ export function PlannedClosuresPanel({
                           onClick={() => {
                             const currentSelection = { kind: currentKind, id: currentImpact.id } as const;
                             skipNextImpactCardGlow(currentSelection);
-                            onSelectImpact(currentSelection);
+                            // Same as "From Planned Advisory": swap to the current impact's list in place.
+                            onSelectRelatedImpact(currentSelection);
                           }}
                           aria-label="View current impact"
                         >

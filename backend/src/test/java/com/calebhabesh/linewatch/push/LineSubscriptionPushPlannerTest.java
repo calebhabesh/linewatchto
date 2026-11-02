@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 class LineSubscriptionPushPlannerTest {
     private final AlertDashboardService dashboardService = mock(AlertDashboardService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), ZoneOffset.UTC);
-    private final PushNotificationFormatter formatter = new PushNotificationFormatter();
+    private final PushNotificationFormatter formatter = new PushNotificationFormatter(clock);
     private final LineSubscriptionPushPlanner planner = new LineSubscriptionPushPlanner(dashboardService, clock, formatter);
 
     @Test
@@ -36,7 +36,11 @@ class LineSubscriptionPushPlannerTest {
         assertThat(corrected.getFirst().eventType()).isEqualTo("planned-closure");
         assertThat(corrected.getFirst().sourceIncidentKey()).isEqualTo(before.sourceIncidentKey());
         assertThat(corrected.getFirst().notification().body()).contains("limited subway service");
-        assertThat(corrected.getFirst().notification().title()).contains("Planned limited service");
+        // In effect: the title shows the live effect; the subject keeps the planned event
+        // so its window-ended notification still reads as a scheduled limited-service window.
+        assertThat(corrected.getFirst().notification().title()).isEqualTo("⚠️ Line 1 Yonge-University Limited service");
+        assertThat(corrected.getFirst().notificationSubject()).isEqualTo("Line 1 Yonge-University Planned limited service");
+        assertThat(corrected.getFirst().notification().body()).endsWith("🕗 Planned advisory · Started 10:00 AM · Until 1:00 PM");
         assertThat(corrected.getFirst().url()).contains("panel=delays");
     }
 
@@ -184,11 +188,11 @@ class LineSubscriptionPushPlannerTest {
             .satisfies(candidate -> assertThat(candidate.reminderBucket()).isEqualTo("closure-24h"));
 
         for (PushNotificationCandidate candidate : closureCandidates) {
-            assertThat(candidate.title()).isEqualTo("⚠️ Line 1 Yonge-University Planned Advisory");
+            assertThat(candidate.title()).isEqualTo("⚠️ Line 1 Yonge-University Planned Advisory · Tomorrow 12 AM");
             assertThat(candidate.sourceEventAt()).isEqualTo(eventStart.toInstant());
             assertThat(candidate.url()).isEqualTo("/?panel=closures&impactKind=planned-closure&impactId=closure-1&targetLine=line-1");
             if ("closure-24h".equals(candidate.reminderBucket())) {
-                assertThat(candidate.body()).contains("Starts within 24 hours.");
+                assertThat(candidate.body()).endsWith("🕗 Starts tomorrow at 12:00 AM · Until Mon 12:00 AM");
             }
             assertThat(candidate.body()).contains("Advisory dates: Sat, Jun 6 – Mon, Jun 8.");
             assertThat(candidate.body()).contains("Advisory hours: 12:00 AM – 5:00 AM.");
@@ -303,7 +307,9 @@ class LineSubscriptionPushPlannerTest {
             .singleElement()
             .satisfies(candidate -> {
                 assertThat(candidate.sourceEventAt()).isEqualTo(scheduledOpening.toInstant());
-                assertThat(candidate.body()).contains("Advisory hours: 8:07 AM – 11:00 AM.");
+                // One occurrence: its start and end line replaces the dates and hours lines.
+                assertThat(candidate.body()).endsWith("🕗 Starts Sun, Aug 23 at 8:07 AM · Until 11:00 AM");
+                assertThat(candidate.body()).doesNotContain("Advisory hours", "Advisory dates");
                 assertThat(candidate.body()).doesNotContain("12:00 AM");
             });
     }
@@ -347,8 +353,10 @@ class LineSubscriptionPushPlannerTest {
                 .startsWith("line-current|line-2|planned-closure-");
             assertThat(candidate.notificationKey())
                 .startsWith("line-current|line-2|planned-closure|planned-closure-");
-            assertThat(candidate.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Planned Advisory");
+            assertThat(candidate.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Suspension");
+            assertThat(candidate.notificationSubject()).isEqualTo("Line 2 Bloor-Danforth Planned Advisory");
             assertThat(candidate.body()).contains("No subway service between Jane and Ossington stations");
+            assertThat(candidate.body()).endsWith("🕗 Planned advisory · Started 10:30 AM");
             assertThat(candidate.body()).doesNotContain("Each nightly closure runs");
             assertThat(candidate.sourceEventAt()).isEqualTo(windowStart.toInstant());
             assertThat(candidate.url())

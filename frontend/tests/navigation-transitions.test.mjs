@@ -25,7 +25,65 @@ import {
   searchReturnDestinationAndLabel,
   isStatusSubView,
   defaultSubmenuBackFallback,
+  impactReturnContext,
+  mobileInspectorBackTarget,
+  transitionCloseImpactToMap,
 } from "../src/app/navigation-transitions.ts";
+
+describe("mobile split view Back and Close", () => {
+  const statusList = () => {
+    const status = transitionNavigateRoot(INITIAL_NAVIGATION_STATE, "status").nextState;
+    return transitionNavigateForward(status, "closures").nextState;
+  };
+  const backTarget = (state) => mobileInspectorBackTarget(impactReturnContext(state), state.mobileImpactReturnView);
+
+  it("names the list an impact was opened from and closes to the plain map", () => {
+    const opened = transitionSelectImpact(statusList(), {
+      selection: { kind: "planned-closure", id: "advisory" }, targetView: "closures", isMobile: true,
+    }).nextState;
+    assert.deepEqual(backTarget(opened), { kind: "impact-step", label: "Back to Planned Advisories" });
+
+    const current = transitionSelectImpact(opened, {
+      selection: { kind: "suspension", id: "child" }, targetView: "alerts", isMobile: true, related: true,
+    }).nextState;
+    assert.deepEqual(backTarget(current), { kind: "impact-step", label: "Back to Previous Impact" });
+
+    const closed = transitionCloseImpactToMap(current);
+    assert.equal(closed.activeView, "map");
+    assert.equal(closed.selection, null);
+    assert.deepEqual(closed.viewHistory, []);
+    assert.deepEqual(closed.impactHistory, []);
+    // Back steps one impact at a time instead.
+    const back = transitionSubmenuBack(current, { isMobile: true }).nextState;
+    assert.deepEqual(back.selection, { kind: "planned-closure", id: "advisory" });
+  });
+
+  it("hides Back when it would only repeat Close", () => {
+    const onMap = transitionSelectImpact(INITIAL_NAVIGATION_STATE, {
+      selection: { kind: "delay", id: "a" }, targetView: "delays", isMobile: true,
+    }).nextState;
+    assert.equal(backTarget(onMap), null);
+    const closed = transitionCloseImpactToMap(onMap);
+    assert.equal(closed.activeView, "map");
+    assert.equal(closed.selection, null);
+    assert.deepEqual(
+      mobileInspectorBackTarget(null, "my-stations"),
+      { kind: "my-stations", label: "Back to My Stations" },
+    );
+  });
+
+  it("hopping advisory and current impact never stacks Back steps", () => {
+    const list = statusList();
+    const current = transitionSelectImpactDetails(list, { kind: "suspension", id: "child" }, "alerts").nextState;
+    const advisory = transitionSelectImpactDetails(current, { kind: "planned-closure", id: "advisory" }, "closures").nextState;
+    const again = transitionImpactRevisit(advisory, { kind: "suspension", id: "child" });
+    assert.equal(again.count, 1);
+    assert.equal(again.nextState.activeView, "alerts");
+    const back = transitionSubmenuBack(again.nextState, { isMobile: true }).nextState;
+    assert.equal(back.activeView, "closures");
+    assert.equal(back.selection, null);
+  });
+});
 
 it("browser Back from View in List restores the same selected map impact", () => {
   const selection = { kind: "reduced-speed-zone", id: "zone-a" };
@@ -498,6 +556,9 @@ describe("Navigation Transition Table — Required Rows", () => {
 
     assert.equal(defaultSubmenuBackFallback("alerts", true), "status");
     assert.equal(defaultSubmenuBackFallback("commutes", true), "map");
+    // Root tabs on phones leave for the map, never for another tab.
+    assert.equal(defaultSubmenuBackFallback("status", true), "map");
+    assert.equal(defaultSubmenuBackFallback("more", true), "map");
     assert.equal(defaultSubmenuBackFallback("notifications", true), "more");
     assert.equal(defaultSubmenuBackFallback("alerts", false), "status");
     assert.equal(defaultSubmenuBackFallback("notifications", false), "more");

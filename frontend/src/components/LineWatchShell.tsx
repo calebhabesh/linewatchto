@@ -134,6 +134,7 @@ import {
 } from "../app/regional-data";
 import {
   type ImpactCategoryView,
+  mobileInspectorBackTarget,
   parseNavigationDeepLinks,
   replaceBrowserSearchParams,
 } from "../app/navigation-transitions";
@@ -566,7 +567,7 @@ export function LineWatchShell({
     mobileImpactReturnView,
     impactBackContext,
     handleSelectImpactDetails,
-    dismissImpactNavigation,
+    closeImpactToMap,
     impactListLaunch,
     lineImpactLaunch,
     accessibilityOutageTarget,
@@ -2144,25 +2145,29 @@ export function LineWatchShell({
     }, 60);
   }, [setActiveView, setMapLayoutSignal, setMobileInspectorDetent, setMapPresentationMode]);
 
+  const mobileInspectorBack = mobileInspectorBackTarget(impactBackContext, mobileImpactReturnView);
+
+  /** The split view's Back when it returns to My Stations, whatever history led to the impact. */
+  const handleReturnMobileImpactToMyStations = useCallback(() => {
+    if (selectionRef.current) consumeBrowserNavigationEntries();
+    selectionRef.current = null;
+    selectionBackBehaviorRef.current = "clear";
+    setMobileImpactReturnView(null);
+    setSelection(null);
+    setMobileInspectorDetent("map-focus");
+    navigateRoot("my-stations");
+  }, [consumeBrowserNavigationEntries, navigateRoot, selectionBackBehaviorRef, selectionRef, setMobileImpactReturnView, setMobileInspectorDetent, setSelection]);
+
+  /** The split view's Close: always the plain map. Back is the step-by-step return. */
   const handleClearMobileImpactSelection = useCallback(() => {
-    // An impact opened from My Stations returns there, whatever history led to it.
-    if (mobileImpactReturnView === "my-stations") {
-      if (selectionRef.current) consumeBrowserNavigationEntries();
-      selectionRef.current = null;
-      selectionBackBehaviorRef.current = "clear";
-      setMobileImpactReturnView(null);
-      setSelection(null);
-      setMobileInspectorDetent("map-focus");
-      navigateRoot("my-stations");
-      return;
-    }
-    if (dismissImpactNavigation()) {
+    if (closeImpactToMap()) {
       setMobileInspectorDetent("map-focus");
       return;
     }
     if (selectionRef.current) consumeBrowserNavigationEntries();
     selectionRef.current = null;
-    const shouldRestoreOrigin = selectionBackBehaviorRef.current === "restore-view";
+    // A station the impact was opened from stays open under it.
+    const shouldRestoreOrigin = mobileImpactReturnView !== "my-stations" && selectionBackBehaviorRef.current === "restore-view";
     selectionBackBehaviorRef.current = "clear";
     setMobileImpactReturnView(null);
     setSelection(null);
@@ -2170,7 +2175,7 @@ export function LineWatchShell({
     if (shouldRestoreOrigin) {
       restoreMapDrilldownOrigin();
     }
-  }, [consumeBrowserNavigationEntries, dismissImpactNavigation, mobileImpactReturnView, navigateRoot, restoreMapDrilldownOrigin, selectionBackBehaviorRef, selectionRef, setMobileImpactReturnView, setMobileInspectorDetent, setSelection]);
+  }, [closeImpactToMap, consumeBrowserNavigationEntries, mobileImpactReturnView, restoreMapDrilldownOrigin, selectionBackBehaviorRef, selectionRef, setMobileImpactReturnView, setMobileInspectorDetent, setSelection]);
 
   const handleClearRotatedSelection = useCallback(() => {
     if (selectionRef.current || selectedStationIdRef.current) consumeBrowserNavigationEntries();
@@ -3786,9 +3791,8 @@ export function LineWatchShell({
           detent={mobileInspectorDetent}
           onChangeDetent={setMobileInspectorDetent}
           onUnfocus={handleClearMobileImpactSelection}
-          onBack={impactBackContext ? handleSubmenuBack : undefined}
-          backLabel={impactBackContext?.origin.selection ? "Back to Previous Impact" : impactBackContext?.origin.activeView === "map" ? "Back to Map" : "Back"}
-          unfocusLabel={mobileImpactReturnView === "my-stations" ? "Back to My Stations" : undefined}
+          onBack={mobileInspectorBack ? (mobileInspectorBack.kind === "my-stations" ? handleReturnMobileImpactToMyStations : handleSubmenuBack) : undefined}
+          backLabel={mobileInspectorBack?.label}
           onViewFullDetails={() => navigateForward(viewForImpactSelection(selection))}
           onSelectImpact={handleRelatedImpact}
           commutePathPreview={commutePathPreview}

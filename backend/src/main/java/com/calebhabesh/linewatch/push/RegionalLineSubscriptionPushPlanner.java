@@ -151,7 +151,9 @@ public class RegionalLineSubscriptionPushPlanner {
             null,
             alert.hasDateOnlyServiceWindow()
                 ? RegionalServiceDateFormatter.format(alert.activePeriodStart(), alert.activePeriodEnd())
-                : null
+                : null,
+            sourceEventAt == null || alert.activePeriodEnd() == null ? null : alert.activePeriodEnd().toInstant(),
+            null
         ));
         String sourceIncidentKey = String.join("|", category, alert.lineId(), alert.id());
         String notificationKey = String.join("|", category, alert.lineId(), eventType, alert.id());

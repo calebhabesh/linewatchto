@@ -47,7 +47,7 @@ class PushNotificationDispatchServiceTest {
     private final PushProperties pushProperties = new PushProperties();
     private final PushReceiptTokenService receiptTokenService = new PushReceiptTokenService(pushProperties);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), ZoneOffset.UTC);
-    private final PushNotificationFormatter formatter = new PushNotificationFormatter();
+    private final PushNotificationFormatter formatter = new PushNotificationFormatter(clock);
     private final PushNotificationDispatchService service = new PushNotificationDispatchService(
         savedCommuteRepository,
         candidateResolver,
@@ -570,7 +570,7 @@ class PushNotificationDispatchServiceTest {
         ArgumentCaptor<PushNotificationEventEntity> eventCaptor = ArgumentCaptor.forClass(PushNotificationEventEntity.class);
         verify(eventRepository).save(eventCaptor.capture());
         assertThat(eventCaptor.getValue().getSourceEventAt()).isEqualTo(Instant.parse("2026-06-05T23:59:00Z"));
-        assertThat(eventCaptor.getValue().getBody()).endsWith("🕗 Advisory starts Jun 5, 7:59 PM");
+        assertThat(eventCaptor.getValue().getBody()).endsWith("🕗 Starts today at 7:59 PM");
         verify(alertHistoryRepository, never()).findLatestOpenedSnapshotTime(anyString());
     }
 

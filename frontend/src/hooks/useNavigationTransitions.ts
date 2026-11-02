@@ -13,6 +13,7 @@ import {
   transitionSelectImpact,
   transitionSelectImpactDetails,
   transitionImpactRevisit,
+  transitionCloseImpactToMap,
   impactReturnContext,
   type ImpactNavigationContext,
   transitionBrowserBack,
@@ -283,6 +284,15 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     const origin = state.impactHistory[0].origin;
     consumeBrowserNavigationEntries(state.impactHistory.length);
     applyImpactBack({ ...state, ...origin, selection: null, selectionBackBehavior: "clear", impactHistory: [], navDirection: "back" });
+    return true;
+  }, [applyImpactBack, consumeBrowserNavigationEntries, getCurrentNavigationState]);
+
+  /** The split view's Close: back to the plain map, dropping the trail and the list it started from. */
+  const closeImpactToMap = useCallback(() => {
+    const nextState = transitionCloseImpactToMap(getCurrentNavigationState());
+    if (!nextState) return false;
+    consumeBrowserNavigationEntries(browserNavigationDepthRef.current);
+    applyImpactBack(nextState, undefined);
     return true;
   }, [applyImpactBack, consumeBrowserNavigationEntries, getCurrentNavigationState]);
 
@@ -1098,6 +1108,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     handleMapSelectImpact,
     handleSelectImpactDetails,
     dismissImpactNavigation,
+    closeImpactToMap,
     handleStationSelectImpact,
     previewCommute,
     clearCommutePreview,

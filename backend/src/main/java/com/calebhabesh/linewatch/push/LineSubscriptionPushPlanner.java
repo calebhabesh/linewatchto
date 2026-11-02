@@ -7,7 +7,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -46,6 +48,11 @@ public class LineSubscriptionPushPlanner {
             : followUpPolicy;
         List<PushNotificationCandidate> candidates = new ArrayList<>();
         Instant now = clock.instant();
+        List<AlertDashboardService.PlannedClosureDto> plannedClosures = dashboardService.plannedClosures();
+        Map<String, AlertDashboardService.PlannedClosureDto> closuresById = new HashMap<>();
+        for (AlertDashboardService.PlannedClosureDto closure : plannedClosures) {
+            closuresById.putIfAbsent(closure.id(), closure);
+        }
 
         for (AlertDashboardService.ActiveAlertDto alert : dashboardService.activeAlerts()) {
             if (subscribedLineIds.contains(alert.lineId())
@@ -64,6 +71,9 @@ public class LineSubscriptionPushPlanner {
                         impactId
                     )
                     : impactId;
+                AlertDashboardService.PlannedClosureDto parent = activePlannedClosure
+                    ? closuresById.get(impactId)
+                    : null;
                 candidates.add(createLineCandidate(
                     accountId,
                     alert.lineId(),
@@ -78,7 +88,11 @@ public class LineSubscriptionPushPlanner {
                     notificationTitle(alert.notificationTitle(), alert.title()),
                     alert.description(),
                     alert.shuttle(),
+                    null,
+                    null,
                     alert.startedAt() == null ? null : alert.startedAt().toInstant(),
+                    parent == null ? null : instant(parent.activeWindowEnd()),
+                    activePlannedClosure ? "suspension" : null,
                     alert.updatedAt(),
                     activePlannedClosure
                         ? impactUrl("closures", eventType, impactId, alert.lineId())
@@ -107,7 +121,11 @@ public class LineSubscriptionPushPlanner {
                     notificationTitle(delay.notificationTitle(), delay.title()),
                     delay.description(),
                     delay.shuttle(),
+                    null,
+                    null,
                     delay.startedAt() == null ? null : delay.startedAt().toInstant(),
+                    planned ? instant(delay.activeWindowEnd()) : null,
+                    planned ? "delay" : null,
                     delay.updatedAt(),
                     impactUrl("delays", "delay", delay.id(), delay.lineId())
                 ));
@@ -137,7 +155,7 @@ public class LineSubscriptionPushPlanner {
             }
         }
 
-        for (AlertDashboardService.PlannedClosureDto closure : dashboardService.plannedClosures()) {
+        for (AlertDashboardService.PlannedClosureDto closure : plannedClosures) {
             if (subscribedLineIds.contains(closure.lineId())) {
                 String eventType = "planned-closure";
                 String category = "line-planned";
@@ -148,6 +166,9 @@ public class LineSubscriptionPushPlanner {
                     : closure.activeWindowStart() != null
                         ? closure.activeWindowStart()
                         : closure.startedAt();
+                OffsetDateTime eventEndAt = closure.nextWindowStart() != null
+                    ? closure.nextWindowEnd()
+                    : closure.activeWindowStart() != null ? closure.activeWindowEnd() : null;
                 Instant sourceEventAt = eventStartAt == null ? null : eventStartAt.toInstant();
 
                 if (sourceEventAt != null && !now.isBefore(sourceEventAt)) {
@@ -178,6 +199,8 @@ public class LineSubscriptionPushPlanner {
                     closure.windowHours(),
                     closure.windowDates(),
                     sourceEventAt,
+                    instant(eventEndAt),
+                    null,
                     closure.updatedAt(),
                     url
                 ));
@@ -250,6 +273,8 @@ public class LineSubscriptionPushPlanner {
             null,
             null,
             sourceEventAt,
+            null,
+            null,
             sourceUpdatedAt,
             url
         );
@@ -272,6 +297,8 @@ public class LineSubscriptionPushPlanner {
         String closureHours,
         String closureDates,
         Instant sourceEventAt,
+        Instant windowEndAt,
+        String currentEffect,
         OffsetDateTime sourceUpdatedAt,
         String url
     ) {
@@ -292,7 +319,9 @@ public class LineSubscriptionPushPlanner {
             sourceTitle,
             sourceDescription,
             closureHours,
-            closureDates
+            closureDates,
+            windowEndAt,
+            currentEffect
         ));
         String updateFingerprint = "planned-closure".equals(eventType)
             ? PlannedClosurePushIdentity.updateFingerprint(
@@ -345,6 +374,10 @@ public class LineSubscriptionPushPlanner {
         return notificationTitle == null || notificationTitle.isBlank()
             ? displayTitle
             : notificationTitle;
+    }
+
+    private static Instant instant(OffsetDateTime value) {
+        return value == null ? null : value.toInstant();
     }
 
     private String encode(String value) {

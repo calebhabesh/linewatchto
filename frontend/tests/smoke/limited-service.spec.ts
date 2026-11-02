@@ -80,10 +80,6 @@ for (const theme of ["light", "dark"] as const) {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: `/tmp/linewatch-limited-planned-${theme}-${mapView}-${isMobile ? "mobile" : "desktop"}.png` });
       await planned.getByRole("button", { name: "View current impact" }).click();
-      if (isMobile) {
-        await expect(page.getByRole("heading", { name: "Limited Service", exact: true })).toBeVisible();
-        await page.getByRole("button", { name: "View in List", exact: true }).click();
-      }
       await expect(page.getByRole("heading", { name: "Delays", exact: true })).toBeVisible();
       if (mapView === "geographic") await expect(page.locator(".geographic-network-map")).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

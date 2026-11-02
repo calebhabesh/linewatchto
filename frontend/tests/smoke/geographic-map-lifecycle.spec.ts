@@ -516,12 +516,10 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
       expect(framing.bounds!.top).toBeGreaterThanOrEqual(32);
       expect(framing.bounds!.bottom).toBeLessThanOrEqual(framing.height - 32);
       const inspector = page.locator("[data-mobile-impact-inspector]");
-      await inspector.getByRole("button", { name: "Unfocus impact" }).click();
+      await inspector.getByRole("button", { name: "Close Details" }).click();
       await expect(inspector).toHaveCount(0);
-      // Unfocus restores the originating Delays panel. Close it before testing
-      // pointer interaction with the underlying map.
-      await expect(page.getByRole("heading", { name: "Delays", exact: true })).toBeVisible();
-      await page.getByRole("button", { name: "Close", exact: true }).click();
+      // Close returns to the plain map, not the originating Delays panel.
+      await expect(page.getByRole("heading", { name: "Delays", exact: true })).toHaveCount(0);
       await expect(page.locator(".mobile-status-peek")).toBeVisible();
     }
 

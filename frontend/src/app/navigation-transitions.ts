@@ -116,6 +116,46 @@ function withImpactHistory(state: NavigationState, nextState: NavigationState, o
   };
 }
 
+/**
+ * The mobile split view's Back: one step to where the impact was opened from
+ * (the previous impact, a list, search results, or My Stations). Null when that
+ * is the plain map, which Close already reaches, so Back and Close never do the
+ * same thing side by side.
+ */
+export function mobileInspectorBackTarget(
+  context: ImpactNavigationContext | null,
+  mobileImpactReturnView: NavigationState["mobileImpactReturnView"],
+): { kind: "impact-step" | "my-stations"; label: string } | null {
+  const origin = context?.origin;
+  if (origin?.selection) return { kind: "impact-step", label: "Back to Previous Impact" };
+  if (origin && origin.activeView !== "map") {
+    const label = origin.activeView === "search" ? "Search Results" : SEARCH_RETURN_LABELS[origin.activeView];
+    return { kind: "impact-step", label: label ? `Back to ${label}` : "Back" };
+  }
+  return (origin?.mobileImpactReturnView ?? mobileImpactReturnView) === "my-stations"
+    ? { kind: "my-stations", label: "Back to My Stations" }
+    : null;
+}
+
+/**
+ * The mobile split view's Close: leaves the impact, its whole trail, and any
+ * list it was opened from for the plain map. Null without an impact trail
+ * (station or commute-preview contexts), where the caller's own clear applies.
+ */
+export function transitionCloseImpactToMap(state: NavigationState): NavigationState | null {
+  if (!impactReturnContext(state) || state.stationDrilldownOrigin || state.commutePathPreview) return null;
+  return {
+    ...state,
+    activeView: "map",
+    viewHistory: [],
+    selection: null,
+    selectionBackBehavior: "clear",
+    mobileImpactReturnView: null,
+    impactHistory: [],
+    navDirection: "back",
+  };
+}
+
 export function transitionImpactBack(state: NavigationState): NavigationState | null {
   const context = impactReturnContext(state);
   if (!context) return null;
@@ -237,7 +277,8 @@ export function defaultSubmenuBackFallback(view: ActiveView, isMobile: boolean):
   const isStatus = isStatusSubView(view);
   if (isMobile) {
     if (isStatus) return "status";
-    if (view === "commutes") return "map";
+    // Status and More are root tabs on phones: Back leaves them for the map, never for another tab.
+    if (view === "commutes" || view === "status" || view === "more") return "map";
     return "more";
   }
   return isStatus ? "status" : "more";
