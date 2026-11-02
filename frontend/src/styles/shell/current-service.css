@@ -1086,7 +1086,9 @@
 @media (max-width: 767px) {
   :root {
     --mobile-bottom-nav-height: 70px;
-    --mobile-bottom-nav-bottom-offset: 0px;
+    /* Negative on installed iOS apps whose layout viewport stops short of the
+       screen (LineWatchShell measures it), so the bar reaches the true bottom. */
+    --mobile-bottom-nav-bottom-offset: calc(0px - var(--ios-standalone-bottom-gap, 0px));
     --mobile-bottom-nav-side-inset: 0px;
     --mobile-status-peek-height: 176px;
   }
@@ -1097,7 +1099,7 @@
   }
   .linewatch-shell .mobile-bottom-nav {
     inset-inline: 0;
-    bottom: 0;
+    bottom: var(--mobile-bottom-nav-bottom-offset);
     height: var(--mobile-bottom-nav-height);
     min-height: 0;
     padding: 3px max(8px, var(--mobile-safe-right)) 5px max(8px, var(--mobile-safe-left));
