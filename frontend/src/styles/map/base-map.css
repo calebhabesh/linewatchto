@@ -154,8 +154,17 @@
 
 /* The authored maps remain in the DOM as non-painting geometry sources for
    hit testing and dynamic overlay construction. Static tracks, stations, and
-   labels are pre-rendered PNG surfaces so Chromium composites stable textures
-   during camera movement instead of rerasterizing two enormous SVG trees. */
+   labels are pre-rendered PNG surfaces so Chromium rasters stable images
+   during camera movement instead of two enormous SVG trees.
+
+   The planes paint into the camera stage; never promote them to their own
+   layers (translateZ, will-change). Each promoted plane is a full-map layer
+   (4500x2182 for TTC), and a flight that zooms out to frame a whole-line alert
+   re-rasters every one of them at the new scale while the whole map is on
+   screen. Four of them overflowed Chromium's tile memory at desktop window
+   sizes (2560x1309), which glitched the map on that selection. On phones,
+   separate plane layers were also composited from different Android tile
+   generations during a pinch, sliding the map and its badges apart. */
 .raster-map-plane {
   position: absolute;
   inset: 0;
@@ -166,8 +175,6 @@
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -195,17 +202,6 @@
    layer when Center or a direct gesture starts. */
 .linewatch-shell.mobile-performance-mode .map-stage {
   will-change: auto;
-}
-
-/* Keep every mobile base-map plane, live overlay, and overlap badge in the
-   same camera surface. Separate translateZ layers can be composited from
-   different Android Chromium tile generations during a pinch, which looks
-   like the map and its badges are flickering or sliding apart. Rotated mode
-   already uses this flattened model; using it for the fixed portrait maps
-   makes both presentations follow the same durable composition contract. */
-.linewatch-shell.mobile-performance-mode .map-stage .raster-map-plane {
-  backface-visibility: visible;
-  transform: none;
 }
 
 .map-stage:not([data-raster-map-ready="true"]) .raster-map-plane {

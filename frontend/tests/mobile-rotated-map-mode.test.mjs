@@ -117,7 +117,7 @@ describe("mobile rotated map mode", () => {
       /\.linewatch-shell\.mobile-map-rotated > main\s*\{(?=[^}]*contain:\s*layout paint size;)(?=[^}]*transform:\s*none;)[^}]*\}/s,
     );
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.rotated-map-ui-surface\s*\{[^}]*transform:\s*translate\(-50%, -50%\) rotate\(90deg\);/s);
-    assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.map-stage \.raster-map-plane\s*\{[^}]*backface-visibility:\s*visible;[^}]*transform:\s*none;/s);
+    assert.doesNotMatch(globalCss, /\.raster-map-plane[^{}]*\{[^}]*(?:transform|will-change|backface-visibility)\s*:/);
     assert.match(shellSource, /className="rotated-map-ui-surface"/);
     assert.doesNotMatch(globalCss, /\.linewatch-shell\.mobile-map-rotated > main\s*\{[^}]*rotate\(90deg\)/s);
     assert.match(hookSource, /orientedMapCameraTransform/);

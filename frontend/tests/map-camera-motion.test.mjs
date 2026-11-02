@@ -4,7 +4,8 @@ import { describe, it } from "node:test";
 import {
   classifyWheelInput,
   MapCameraMotion,
-  MOMENTUM_MAX_SPEED,
+  glideEase,
+  glidePlan,
   releaseVelocity,
   WHEEL_COMMIT_DELAY_MS,
   WHEEL_EASE_MS,
@@ -213,8 +214,9 @@ describe("drag momentum", () => {
     assert.ok(early > 100);
     clock.advance(4000);
     const travelled = host.camera.x - 100;
-    // 1 px/ms with a 200 ms time constant travels about 200 px.
-    assert.ok(travelled > 185 && travelled < 205, `travelled ${travelled}`);
+    // Measured from t=48 to the release at 105: 48 px / 57 ms. MapLibre's pan
+    // inertia turns 842 px/s into 253 px/s, eased to rest over 337 ms: 42.5 px.
+    assert.ok(Math.abs(travelled - 42.5) < 0.5, `travelled ${travelled}`);
     assert.equal(host.camera.y, 0);
     assert.deepEqual(host.log, ["ease 0", "glide-end"], "glides with no transition");
     assert.equal(motion.isGliding(), false);
@@ -235,10 +237,27 @@ describe("drag momentum", () => {
     assert.equal(reduced.release(101), false);
   });
 
-  it("caps the release speed", () => {
-    const samples = [{ x: 0, y: 0, time: 0 }, { x: 5000, y: 0, time: 50 }];
-    const velocity = releaseVelocity(samples, 50);
-    assert.ok(Math.abs(velocity.x - MOMENTUM_MAX_SPEED) < 1e-9);
+  it("matches the Map View's MapLibre pan inertia", () => {
+    // maplibre-gl 6.11 defaults: linearity 0.3, deceleration 2500 px/s², max 1400 px/s.
+    const oneMs = glidePlan({ x: 1, y: 0 });
+    assert.ok(Math.abs(oneMs.distance.x - 60) < 1e-9, `1 px/ms glides 60 px, got ${oneMs.distance.x}`);
+    assert.ok(Math.abs(oneMs.durationMs - 400) < 1e-9);
+    const diagonal = glidePlan({ x: 0.6, y: 0.8 });
+    assert.ok(Math.abs(diagonal.distance.x - 36) < 1e-9 && Math.abs(diagonal.distance.y - 48) < 1e-9);
+    const capped = glidePlan({ x: 50, y: 0 });
+    assert.ok(Math.abs(capped.distance.x - 1400 * (1400 / 750) / 2) < 1e-6);
+    assert.ok(Math.abs(capped.durationMs - (1400 / 750) * 1000) < 1e-6);
+    assert.equal(glideEase(0), 0);
+    assert.equal(glideEase(1), 1);
+    assert.ok(Math.abs(glideEase(0.5) - 0.8) < 0.05, "bezier(0, 0, 0.3, 1) is past most of the way at half time");
+  });
+
+  it("measures the release velocity up to the release, so a pause slows the glide", () => {
+    const samples = [0, 8, 16, 24, 32, 40, 48].map((time) => ({ x: time, y: 0, time }));
+    assert.ok(Math.abs(releaseVelocity(samples, 48).x - 1) < 1e-9, "48 px over 48 ms");
+    const paused = releaseVelocity(samples, 88);
+    assert.ok(paused.x < 0.5, `a 40 ms pause lowers the velocity, got ${paused.x}`);
+    assert.equal(releaseVelocity(samples, 300), null, "a release long after the last move does not glide");
   });
 
   it("a press or a wheel stops the glide where it is drawn", () => {

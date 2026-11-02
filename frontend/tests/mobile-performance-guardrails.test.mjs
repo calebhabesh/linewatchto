@@ -206,10 +206,7 @@ describe("mobile performance guardrails", () => {
     assert.match(shellSource, /const pageZoomed = Math\.abs\(scale - 1\) > 0\.01/);
     assert.match(shellSource, /const layoutHeight = pageZoomed \? window\.innerHeight : height/);
     assert.match(shellSource, /window\.addEventListener\("pointerup", flushPendingViewportUpdate\)/);
-    assert.match(
-      globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.map-stage \.raster-map-plane\s*\{[^}]*backface-visibility:\s*visible;[^}]*transform:\s*none;/s,
-    );
+    assert.doesNotMatch(globalCss, /\.raster-map-plane[^{}]*\{[^}]*(?:transform|will-change|backface-visibility)\s*:/);
   });
 
   it("does not end captured touch gestures on pointer leave", () => {

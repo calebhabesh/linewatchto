@@ -45,18 +45,24 @@ const WHEEL_NOTCH_MIN_PIXELS = 50;
 /** Firefox on macOS reports mouse-wheel notches in multiples of this. */
 const FIREFOX_MAC_NOTCH_PIXELS = 4.000244140625;
 
-/** A glide travels its release speed × this, then stops: about 200 px for a
- * 1 px/ms release, at most 300 px. Owner tuning, 2026-10-30: 325 ms and
- * 2.5 px/ms glided too far and too fast; this is closer to Google Maps. */
-export const MOMENTUM_TIME_CONSTANT_MS = 200;
-export const MOMENTUM_SAMPLE_WINDOW_MS = 160;
-/** A release with no movement in this window is a stop, not a fling. Busy
- * phones and test browsers deliver moves 60–70 ms apart. */
-export const MOMENTUM_RELEASE_IDLE_MS = 100;
-/** Logical pixels per millisecond. */
+/* Drag momentum is MapLibre's pan inertia (maplibre-gl 6.11 handler_inertia.ts,
+ * the Map View's defaults), so both views glide alike. Owner, 2026-11-02: the
+ * earlier speed × 200 ms glide (200 px for a 1 px/ms release) was far faster
+ * than the Map View (60 px). The velocity is measured over the last 60 ms up to
+ * the release, so a drag held still before release slows to no glide. */
+/** Pointer samples older than this at release are ignored. */
+export const MOMENTUM_BUFFER_CUTOFF_MS = 160;
+/** The window the release velocity is measured over. */
+export const MOMENTUM_VELOCITY_WINDOW_MS = 60;
+const MOMENTUM_LINEARITY = 0.3;
+/** Pixels per second squared. */
+const MOMENTUM_DECELERATION = 2500;
+/** Glide start speed cap, pixels per second (after linearity). */
+export const MOMENTUM_MAX_GLIDE_SPEED = 1400;
+/** Logical pixels per millisecond. Slower releases place the map without a
+ * glide (a few pixels at most), so a following press is never swallowed by
+ * stopping one. Not in MapLibre. */
 export const MOMENTUM_MIN_SPEED = 0.25;
-export const MOMENTUM_MAX_SPEED = 1.5;
-const MOMENTUM_STOP_SPEED = 0.02;
 const FALLBACK_FRAME_MS = 16;
 
 export function wheelPixelDelta(input: Pick<MapWheelInput, "deltaY" | "deltaMode">): number {
@@ -88,28 +94,54 @@ export function wheelZoomFactor(kind: WheelGestureKind, pixelDelta: number): num
 
 type PointerSample = { x: number; y: number; time: number };
 
-/** Release velocity of a drag, in logical pixels per millisecond, or null for no fling. */
+/**
+ * Release velocity of a drag, in logical pixels per millisecond, or null for no
+ * fling. Like MapLibre: samples within the velocity window before the release
+ * (never fewer than the last two still in the buffer), measured up to the
+ * release time.
+ */
 export function releaseVelocity(samples: readonly PointerSample[], releaseTime: number): PanZoomPoint | null {
-  const latest = samples.at(-1);
-  if (!latest || releaseTime - latest.time > MOMENTUM_RELEASE_IDLE_MS) return null;
-  const windowStart = latest.time - MOMENTUM_SAMPLE_WINDOW_MS;
-  const earliest = samples.find((sample) => sample.time >= windowStart) ?? latest;
-  const elapsed = latest.time - earliest.time;
+  const recent = samples.filter((sample) => releaseTime - sample.time <= MOMENTUM_BUFFER_CUTOFF_MS);
+  if (recent.length < 2) return null;
+  const windowStart = releaseTime - MOMENTUM_VELOCITY_WINDOW_MS;
+  let first = recent.length - 2;
+  while (first > 0 && recent[first - 1].time >= windowStart) first--;
+  const earliest = recent[first];
+  const latest = recent[recent.length - 1];
+  const elapsed = releaseTime - earliest.time;
   if (elapsed <= 0) return null;
-  let vx = (latest.x - earliest.x) / elapsed;
-  let vy = (latest.y - earliest.y) / elapsed;
-  const speed = Math.hypot(vx, vy);
-  if (speed < MOMENTUM_MIN_SPEED) return null;
-  if (speed > MOMENTUM_MAX_SPEED) {
-    vx *= MOMENTUM_MAX_SPEED / speed;
-    vy *= MOMENTUM_MAX_SPEED / speed;
-  }
+  const vx = (latest.x - earliest.x) / elapsed;
+  const vy = (latest.y - earliest.y) / elapsed;
+  if (Math.hypot(vx, vy) < MOMENTUM_MIN_SPEED) return null;
   return { x: vx, y: vy };
 }
 
-/** Distance a glide covers in `elapsedMs` at `velocity`, decaying with the momentum time constant. */
-export function glideDisplacement(velocity: number, elapsedMs: number): number {
-  return velocity * MOMENTUM_TIME_CONSTANT_MS * (1 - Math.exp(-elapsedMs / MOMENTUM_TIME_CONSTANT_MS));
+/** MapLibre's inertia ease, `bezier(0, 0, 0.3, 1)`: progress (0–1) at time fraction `x`. */
+export function glideEase(x: number): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  // x(t) = 0.9(1-t)t² + t³, y(t) = 3(1-t)t² + t³; both rise monotonically on [0, 1].
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 30; i++) {
+    const t = (lo + hi) / 2;
+    if (0.9 * (1 - t) * t * t + t * t * t < x) lo = t; else hi = t;
+  }
+  const t = (lo + hi) / 2;
+  return 3 * (1 - t) * t * t + t * t * t;
+}
+
+/** The glide a release velocity starts: its direction, total distance (px) and duration (ms). */
+export function glidePlan(velocity: PanZoomPoint): { distance: PanZoomPoint; durationMs: number } {
+  const releaseSpeed = Math.hypot(velocity.x, velocity.y) * 1000;
+  if (releaseSpeed === 0) return { distance: { x: 0, y: 0 }, durationMs: 0 };
+  const speed = Math.min(releaseSpeed * MOMENTUM_LINEARITY, MOMENTUM_MAX_GLIDE_SPEED);
+  const durationS = speed / (MOMENTUM_DECELERATION * MOMENTUM_LINEARITY);
+  const amount = speed * (durationS / 2);
+  return {
+    distance: { x: (velocity.x / Math.hypot(velocity.x, velocity.y)) * amount, y: (velocity.y / Math.hypot(velocity.x, velocity.y)) * amount },
+    durationMs: durationS * 1000,
+  };
 }
 
 export type MapCameraMotionHost = {
@@ -154,8 +186,9 @@ type ZoomSession = {
 };
 
 type Glide = {
-  velocity: PanZoomPoint;
-  position: PanZoomPoint;
+  start: PanZoomPoint;
+  distance: PanZoomPoint;
+  durationMs: number;
   scale: number;
   elapsed: number;
 };
@@ -227,7 +260,7 @@ export class MapCameraMotion {
   /** Records a drag position (logical viewport point) for release velocity. */
   trackPointer(point: PanZoomPoint, time: number) {
     this.samples.push({ x: point.x, y: point.y, time });
-    const cutoff = time - MOMENTUM_SAMPLE_WINDOW_MS * 2;
+    const cutoff = time - MOMENTUM_BUFFER_CUTOFF_MS;
     while (this.samples.length > 2 && this.samples[0].time < cutoff) this.samples.shift();
   }
 
@@ -241,10 +274,12 @@ export class MapCameraMotion {
     this.samples = [];
     if (!velocity) return false;
     const camera = this.host.readCamera();
+    const { distance, durationMs } = glidePlan(velocity);
     this.setEase(0);
     this.glide = {
-      velocity,
-      position: { x: camera.x, y: camera.y },
+      start: { x: camera.x, y: camera.y },
+      distance,
+      durationMs,
       scale: camera.scale,
       elapsed: 0,
     };
@@ -321,15 +356,14 @@ export class MapCameraMotion {
       this.lastFrameTime = null;
       return;
     }
-    const before = glide.elapsed;
     glide.elapsed += elapsed;
-    const dx = glideDisplacement(glide.velocity.x, glide.elapsed) - glideDisplacement(glide.velocity.x, before);
-    const dy = glideDisplacement(glide.velocity.y, glide.elapsed) - glideDisplacement(glide.velocity.y, before);
-    glide.position = { x: glide.position.x + dx, y: glide.position.y + dy };
-    this.host.writeCamera({ ...glide.position, scale: glide.scale });
-    const speed = Math.hypot(glide.velocity.x, glide.velocity.y)
-      * Math.exp(-glide.elapsed / MOMENTUM_TIME_CONSTANT_MS);
-    if (speed < MOMENTUM_STOP_SPEED) {
+    const progress = glideEase(glide.elapsed / glide.durationMs);
+    this.host.writeCamera({
+      x: glide.start.x + glide.distance.x * progress,
+      y: glide.start.y + glide.distance.y * progress,
+      scale: glide.scale,
+    });
+    if (glide.elapsed >= glide.durationMs) {
       this.stopGlide();
       this.lastFrameTime = null;
     } else {

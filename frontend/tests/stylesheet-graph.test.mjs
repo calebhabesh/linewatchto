@@ -202,7 +202,7 @@ describe("stylesheet-graph helper", () => {
     assert.ok(files.some(f => f.endsWith("base-map.css")), "base-map.css must be in graph files");
     const baseMapContent = readStylesheet(new URL("../src/styles/map/base-map.css", import.meta.url));
     assert.match(baseMapContent, /\.system-map,\s*\.system-map-viewport/);
-    assert.match(baseMapContent, /\.raster-map-plane\s*\{[^}]*transform:\s*translateZ\(0\);/);
+    assert.match(baseMapContent, /\.raster-map-plane\s*\{[^}]*position:\s*absolute;/);
     assert.match(baseMapContent, /\.ttc-map-entrance-reveal/);
     assert.match(baseMapContent, /\.map-center-feedback/);
     assert.match(baseMapContent, /\.map-stage\[data-raster-map-ready="true"\]:not\(\[data-raster-planes="none"\]\)\s*\.map-authored-svg/);

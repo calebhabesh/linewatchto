@@ -75,11 +75,9 @@ describe("stable raster map renderer", () => {
     assert.doesNotMatch(map, /rasterDensity === "desktop"/);
     assert.doesNotMatch(plane, /density === "mobile" && svgViewBox/);
     assert.match(css, /\.linewatch-shell\.mobile-performance-mode \.map-stage\s*\{[^}]*will-change:\s*auto/s);
-    assert.match(
-      css,
-      /\.linewatch-shell\.mobile-performance-mode \.map-stage \.raster-map-plane\s*\{[^}]*backface-visibility:\s*visible;[^}]*transform:\s*none;/s,
-    );
-    assert.match(css, /\.raster-map-plane\s*\{[^}]*transform:\s*translateZ\(0\);[^}]*backface-visibility:\s*hidden/s);
+    // The planes paint into the camera stage; promoted full-map plane layers
+    // overflowed tile memory on whole-line framings (base-map.css).
+    assert.doesNotMatch(css, /\.raster-map-plane[^{}]*\{[^}]*(?:transform|will-change|backface-visibility)\s*:/);
   });
 
   it("sandwiches live overlays between raster artwork and keeps interaction planes on top", async () => {
