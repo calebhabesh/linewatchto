@@ -127,6 +127,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} ${notoSansEthiopic.variable}`}>
       <body suppressHydrationWarning>
+        {/* iOS 27 blurs the top of installed apps with a translucent status bar;
+            an opaque fixed element at the top edge stops it (mobile-chrome.css). */}
+        <div className="ios-status-bar-plate" aria-hidden="true" />
         <PwaServiceWorkerRegistration />
         <ChunkLoadRecovery />
         <AppUpdateBanner />

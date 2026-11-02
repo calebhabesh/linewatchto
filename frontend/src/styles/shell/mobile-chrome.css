@@ -23,6 +23,38 @@
   display: none;
 }
 
+/* iOS 27 draws a progressive blur over the top edge of installed apps whose
+   status bar is black-translucent (the style is frozen at install, so changing
+   the meta tag needs a reinstall). A real fixed, opaque, full-width element at
+   top: 0 stops it; iOS ignores pseudo-elements here. iOS standalone only. */
+.ios-status-bar-plate {
+  display: none;
+}
+
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    .ios-status-bar-plate {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: var(--mobile-safe-top);
+      background-color: #f8fafc;
+      pointer-events: none;
+      z-index: 10001;
+    }
+
+    body:has(.linewatch-shell.dark) .ios-status-bar-plate {
+      background-color: #0e1622;
+    }
+
+    body:has(.linewatch-shell.high-contrast) .ios-status-bar-plate {
+      background-color: #000000;
+    }
+  }
+}
+
 @media (max-width: 767px) {
   .floating-panel-scroll,
   .line-impact-panel-stack,
