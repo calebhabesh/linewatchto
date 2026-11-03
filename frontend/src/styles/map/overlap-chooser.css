@@ -868,6 +868,18 @@
 /* The Map View's streetcar card (GeographicStreetcarCard): the alert
    chooser's surface and header, with plain route rows and a schedule note. */
 
+/* Short placements (a phone, between the side controls) scroll the whole card:
+   the route list keeps at least its rows, and the stop button and source note
+   never draw over it. */
+.streetcar-card-surface {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.streetcar-card-surface > * {
+  flex-shrink: 0;
+}
+
 .streetcar-card-surface .overlap-chooser-header strong {
   font-size: 18px;
 }
@@ -952,4 +964,130 @@
 .high-contrast .streetcar-card-note,
 .high-contrast .streetcar-card-source {
   color: #e2e8f0;
+}
+
+/* The streetcar card's way into departures (S3): the nearest stop on its routes. */
+.streetcar-card-stop {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  margin-top: 6px;
+  min-height: 48px;
+  padding: 6px 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.streetcar-card-stop:hover,
+.streetcar-card-stop:focus-visible {
+  background: rgba(15, 23, 42, 0.09);
+  outline: 2px solid #38bdf8;
+  outline-offset: 1px;
+}
+
+.dark .streetcar-card-stop {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.dark .streetcar-card-stop:hover,
+.dark .streetcar-card-stop:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.high-contrast .streetcar-card-stop {
+  background: transparent;
+  border-color: #ffffff;
+}
+
+.streetcar-card-stop-code {
+  border: 1.5px solid #da291c;
+  border-radius: 5px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  line-height: 1;
+  padding: 4px 6px;
+}
+
+.streetcar-card-stop-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.streetcar-card-stop-copy strong {
+  font-size: 13.5px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.streetcar-card-stop-copy span {
+  color: #475569;
+  font-size: 12.5px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.dark .streetcar-card-stop-copy span,
+.high-contrast .streetcar-card-stop-copy span {
+  color: #cbd5e1;
+}
+
+/* The live streetcar card (GeographicStreetcarVehicleCard, S4): the streetcar
+   card's surface, with the GPS report's age and stale state. */
+.streetcar-vehicle-status {
+  align-items: center;
+  display: flex;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 6px;
+  line-height: 1.3;
+  margin: 8px 2px 0;
+}
+
+.streetcar-vehicle-status-dot {
+  background: #16a34a;
+  border-radius: 50%;
+  flex: none;
+  height: 8px;
+  width: 8px;
+}
+
+.streetcar-vehicle-status[data-state="stale"] {
+  color: #92400e;
+}
+
+.streetcar-vehicle-status[data-state="stale"] .streetcar-vehicle-status-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+
+.dark .streetcar-vehicle-status[data-state="stale"] {
+  color: #fcd34d;
+}
+
+.high-contrast .streetcar-vehicle-status[data-state="stale"] {
+  color: #ffffff;
+}
+
+.streetcar-vehicle-note,
+.streetcar-vehicle-id {
+  color: #475569;
+  font-size: 12.5px;
+  line-height: 1.35;
+  margin: 4px 2px 0;
+}
+
+.dark .streetcar-vehicle-note,
+.dark .streetcar-vehicle-id,
+.high-contrast .streetcar-vehicle-note,
+.high-contrast .streetcar-vehicle-id {
+  color: #cbd5e1;
 }

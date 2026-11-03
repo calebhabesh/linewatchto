@@ -1926,6 +1926,15 @@
     overscroll-behavior: contain;
     scrollbar-width: none;
   }
+  /* With the TTC bus toggle the column is one button taller. */
+  .linewatch-shell:has(.mobile-bus-toggle) .mobile-legend-pill:not(.mobile-legend-pill--expanded) {
+    max-height: calc(
+      100dvh - var(--mobile-safe-top) - var(--mobile-map-controls-top-offset, 106px)
+      - var(--mobile-bottom-nav-occupied-height) - var(--mobile-status-peek-actual-height, 108px)
+      - var(--mobile-map-control-edge-inset, 12px) - var(--mobile-train-toggle-height, 54px) * 3
+      - var(--mobile-map-controls-gap, 8px) * 3
+    );
+  }
   .linewatch-shell .mobile-legend-pill:not(.mobile-legend-pill--expanded)::-webkit-scrollbar { display: none; }
   .linewatch-shell .mobile-legend-pill--expanded[data-scroll-more-below] {
     -webkit-mask-image: none;
@@ -1977,6 +1986,17 @@
     top: auto !important;
     height: var(--mobile-train-toggle-height, 54px);
     min-height: var(--mobile-train-toggle-height, 54px);
+  }
+  /* TTC bus toggle (TTC Map View only): the top of the stack. It shares the
+     train toggle's slot rules, so it is lifted one slot with translate. */
+  .linewatch-shell .mobile-train-left-cluster:has(.mobile-bus-toggle) {
+    height: calc(var(--mobile-train-toggle-height, 54px) * 2 + var(--mobile-map-controls-gap, 8px));
+  }
+  .linewatch-shell .mobile-train-left-cluster:has(.mobile-bus-toggle):has(.mobile-map-view-toggle) {
+    height: calc(var(--mobile-train-toggle-height, 54px) * 3 + var(--mobile-map-controls-gap, 8px) * 2);
+  }
+  .linewatch-shell .mobile-train-left-cluster .mobile-bus-toggle {
+    translate: 0 calc(-1 * (var(--mobile-train-toggle-height, 54px) + var(--mobile-map-controls-gap, 8px)));
   }
   .linewatch-shell .mobile-map-controls-group {
     right: calc(var(--mobile-safe-right) + var(--mobile-map-control-edge-inset, 12px));

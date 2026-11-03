@@ -61,10 +61,9 @@ describe("desktop content and navigation migration (Session 2)", () => {
       assert.match(morePanelSource, /onDefaultNetworkChange/);
     });
 
-    it("exposes secondary tools including analytics, alert history, and transit guide", () => {
-      assert.match(morePanelSource, /onOpenAnalytics/);
-      assert.match(morePanelSource, /onOpenAlertHistory/);
-      assert.match(morePanelSource, /onOpenFeedback/);
+    it("keeps About links and leaves the rail's destinations to the rail (desktop Settings)", () => {
+      // Analytics, Alert History, notices, announcements and Feedback each have a rail item.
+      assert.doesNotMatch(morePanelSource, /onOpenAnalytics|onOpenAlertHistory|onOpenFeedback|onOpenSurfaceNotices/);
       assert.match(morePanelSource, /onOpenPrivacyAcknowledgements/);
       assert.match(morePanelSource, /onOpenReleaseNotes/);
       assert.match(morePanelSource, /onOpenGuide/);

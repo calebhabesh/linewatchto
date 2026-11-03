@@ -49,6 +49,8 @@ import { DesktopMorePanel } from "./DesktopMorePanel";
 import {
   computeDesktopLayoutMetrics,
   desktopRailDestinationForView,
+  nextDesktopControlRail,
+  settleDesktopControlRails,
   type DesktopRailDestination,
 } from "../app/desktop-sidebar-state";
 import { PwaInstallNudge } from "./PwaInstallNudge";
@@ -71,6 +73,9 @@ import { stationImpactSelectionsByStation } from "../app/station-impact-types";
 import type { AccessibilityOutageTarget } from "./AccessibilityOutagesPanel";
 const AccessibilityOutagesPanel = preloadablePanel(() => import("./AccessibilityOutagesPanel").then((mod) => mod.AccessibilityOutagesPanel));
 import type { SurfaceNoticeDetail } from "../app/surface-notice-data";
+import { cachedStreetcarCatalog, streetcarStopByCode } from "../app/geographic-surface-catalog";
+import { SurfaceStopPanel } from "./SurfaceStopPanel";
+import { GoBusStopPanel } from "./GoBusStopPanel";
 const SurfaceNoticesPanel = preloadablePanel(() => import("./SurfaceNoticesPanel").then((mod) => mod.SurfaceNoticesPanel));
 const TtcAnnouncementsPanel = preloadablePanel(() => import("./TtcAnnouncementsPanel").then((mod) => mod.TtcAnnouncementsPanel));
 const StationDetailPanel = preloadablePanel(() => import("./StationDetailPanel").then((mod) => mod.StationDetailPanel));
@@ -82,7 +87,16 @@ import { useNetworkServiceFeeds } from "../hooks/useNetworkServiceFeeds";
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { MOBILE_PERFORMANCE_QUERY, MOBILE_VIEWPORT_QUERY, useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Accessibility, Activity, X, Train, AlertTriangle, Bookmark, MapPin, Navigation, BarChart3, Search, UserRound, Sun, Moon, History, FileText, Megaphone, Loader2 } from "lucide-react";
+import { Accessibility, Activity, X, Train, Bus, AlertTriangle, Bookmark, MapPin, Navigation, BarChart3, Search, UserRound, Sun, Moon, History, FileText, Megaphone, Loader2 } from "lucide-react";
+import { readBusLayerPreference, writeBusLayerPreference } from "../app/geographic-bus-catalog";
+import {
+  cachedGoBusCatalog,
+  cachedGoBusStops,
+  goBusStopByCode,
+  readGoBusLayerPreference,
+  writeGoBusLayerPreference,
+} from "../app/go-bus-catalog";
+import { useCollapseWidth } from "../hooks/useCollapseWidth";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { GoUpClosedScreen } from "./GoUpClosedScreen";
@@ -217,6 +231,10 @@ function leaveEmailedLinkRoute() {
   window.addEventListener("popstate", leave);
   const fallback = window.setTimeout(leave, 250);
 }
+
+
+/** The right-hand Train Markers panel unfolds once the System Map toolbar is placed (see useCollapseWidth). */
+const TRAIN_PANEL_BEFORE_EXPAND = { ready: () => nextDesktopControlRail(), settle: settleDesktopControlRails };
 
 export function LineWatchShell({
   initialData,
@@ -423,6 +441,30 @@ export function LineWatchShell({
   } | null>(null);
   const [pwaEngagementSignal, setPwaEngagementSignal] = useState(0);
   const [estimatedTrainsEnabled, setEstimatedTrainsEnabled] = useState(initialVisualPreferences.estimatedTrainsEnabled);
+  // TTC buses on the Map View (plan 13, S5): off by default, remembered on this device.
+  const [busesEnabled, setBusesEnabled] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setBusesEnabled(readBusLayerPreference(window.localStorage));
+  }, []);
+  const handleToggleBuses = useCallback(() => {
+    setBusesEnabled((current) => {
+      writeBusLayerPreference(window.localStorage, !current);
+      return !current;
+    });
+  }, []);
+  // GO buses on the GO/UP Map View (plan 13, S6): their own switch and key, off by default.
+  const [goBusesEnabled, setGoBusesEnabled] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGoBusesEnabled(readGoBusLayerPreference(window.localStorage));
+  }, []);
+  const handleToggleGoBuses = useCallback(() => {
+    setGoBusesEnabled((current) => {
+      writeGoBusLayerPreference(window.localStorage, !current);
+      return !current;
+    });
+  }, []);
   const subwayOperatingState = useSubwayOperatingState();
   const regionalRailOperatingState = useRegionalRailOperatingState();
   const trainNetworkOpen = selectedNetwork === "ttc"
@@ -696,6 +738,22 @@ export function LineWatchShell({
     if (typeof window === "undefined") return MOBILE_SHEET_DEFAULT_RATIO;
     return readStoredSheetHeightRatio(window.localStorage);
   });
+  // A surface stop whose departures are open: a TTC stop (plan 13, S3) or a
+  // GO bus stop (S6). It takes the station panel's place; a station, an alert
+  // or the other network closes it. It belongs to the view and network it
+  // opened on, so navigating elsewhere closes it.
+  const [selectedSurfaceStop, setSelectedSurfaceStop] = useState<{ code: string; view: ActiveView; network: NetworkId } | null>(null);
+  const selectedSurfaceStopCode = selectedSurfaceStop?.view === activeView && selectedSurfaceStop.network === selectedNetwork
+    ? selectedSurfaceStop.code
+    : null;
+  const setSelectedSurfaceStopCode = useCallback((code: null) => setSelectedSurfaceStop(code), []);
+  useEffect(() => {
+    if (!selectedSurfaceStop) return;
+    if (selectedStationId || selection || selectedNetwork !== selectedSurfaceStop.network || selectedSurfaceStop.view !== activeView) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedSurfaceStop(null);
+    }
+  }, [activeView, selectedNetwork, selectedStationId, selectedSurfaceStop, selection]);
 
   const [desktopMapFocus, setDesktopMapFocus] = useState<{
     selection: NonNullable<ImpactSelection>;
@@ -726,12 +784,27 @@ export function LineWatchShell({
     navMapSelectImpact(nextSelection, { related });
   }, [isMobile, navMapSelectImpact, selectedNetwork, selection, selectionAttentionGeneration, setMobileInspectorDetent]);
 
+  const [stationInitialSection, setStationInitialSection] = useState<{ stationId: string; section: string } | null>(null);
+  const clearStationInitialSection = useCallback(() => setStationInitialSection(null), []);
   const handleSelectStationId = useCallback((id: string | null) => {
     navSelectStationId(id);
     if (id) {
       setStationSheetRatio(readStoredSheetHeightRatio(typeof window !== "undefined" ? window.localStorage : null));
     }
   }, [navSelectStationId]);
+
+  const handleSelectSurfaceStop = useCallback((stopCode: string | null, view?: ActiveView) => {
+    if (!stopCode) {
+      setSelectedSurfaceStop(null);
+      return;
+    }
+    if (selectedStationId) navSelectStationId(null);
+    setSelection(null);
+    setSelectedSurfaceStop({ code: stopCode, view: view ?? activeView, network: selectedNetwork });
+    setStationSheetRatio(readStoredSheetHeightRatio(typeof window !== "undefined" ? window.localStorage : null));
+    if (!isMobile && desktopSidebarCollapsed) setDesktopSidebarCollapsed(false);
+    recordPwaInstallEngagement();
+  }, [activeView, desktopSidebarCollapsed, isMobile, navSelectStationId, recordPwaInstallEngagement, selectedNetwork, selectedStationId, setSelection]);
 
   const handleStationSelectImpact = useCallback((nextSelection: ImpactSelection) => {
     if (stationDrilldownOriginRef.current) {
@@ -1049,6 +1122,46 @@ export function LineWatchShell({
     [ttcStationSummaries],
   );
   const stationSummaries = stationCatalogs[selectedNetwork];
+
+  const surfaceStopStationName = useCallback(
+    (stationId: string) => stationSummaries.find((station) => station.id === stationId)?.name ?? null,
+    [stationSummaries],
+  );
+
+  const renderSurfaceStopPanel = () => selectedSurfaceStopCode && selectedNetwork === "regional" ? (
+    <GoBusStopPanel
+      key={`go:${selectedSurfaceStopCode}`}
+      stopCode={selectedSurfaceStopCode}
+      fallbackName={(() => {
+        const stops = cachedGoBusStops();
+        return stops ? goBusStopByCode(stops, selectedSurfaceStopCode)?.properties.name ?? null : null;
+      })()}
+      routeColor={(route) => {
+        const summary = cachedGoBusCatalog()?.routes.find((candidate) => candidate.route === route);
+        return summary ? { color: summary.color, textColor: summary.textColor } : null;
+      }}
+      onClose={() => setSelectedSurfaceStopCode(null)}
+      reducedMotion={reducedMotion}
+    />
+  ) : selectedSurfaceStopCode ? (
+    <SurfaceStopPanel
+      key={selectedSurfaceStopCode}
+      stopCode={selectedSurfaceStopCode}
+      fallbackName={(() => {
+        const streetcars = cachedStreetcarCatalog();
+        return streetcars ? streetcarStopByCode(streetcars, selectedSurfaceStopCode)?.properties.name ?? null : null;
+      })()}
+      stationName={surfaceStopStationName}
+      onOpenStation={(stationId) => {
+        // Back to the station with all of its bays: Surface Connections open and in view.
+        setStationInitialSection({ stationId, section: "surface-connections" });
+        handleSelectStationId(stationId);
+      }}
+      onClose={() => setSelectedSurfaceStopCode(null)}
+      reducedMotion={reducedMotion}
+    />
+  ) : null;
+
   const {
     savedStations,
     savedStationsLoading,
@@ -1815,17 +1928,19 @@ export function LineWatchShell({
         setDesktopSidebarCollapsed(false);
       }
       setSelectedStationId(null);
+      setSelectedSurfaceStopCode(null);
       setCommutePathPreview(null);
       setSelection(null);
       window.setTimeout(() => desktopSearchInputRef.current?.focus({ preventScroll: true }), 0);
     } else {
       setSelection(null);
       setSelectedStationId(null);
+      setSelectedSurfaceStopCode(null);
       setCommutePathPreview(null);
       window.setTimeout(() => stationSearchInputRef.current?.focus({ preventScroll: true }), 0);
     }
     navigateRoot("search");
-  }, [captureSearchReturnContext, desktopSidebarCollapsed, isMobile, navigateRoot, setCommutePathPreview, setSelectedStationId, setSelection]);
+  }, [captureSearchReturnContext, desktopSidebarCollapsed, isMobile, navigateRoot, setCommutePathPreview, setSelectedStationId, setSelectedSurfaceStopCode, setSelection]);
 
   // Dismiss search when clicking outside the search panel and its entry points
   useEffect(() => {
@@ -1971,6 +2086,29 @@ export function LineWatchShell({
     crossNetworkStationSelectionRef.current = { networkId, stationId };
     recordPwaInstallEngagement();
     handleNetworkChange(networkId);
+  };
+
+  // A bay sign's stop number in a station's Surface Connections (plan 13, S7
+  // review) opens that bay's departures over the map; the stop panel links
+  // back to the station.
+  const handleStationOpenSurfaceStop = useCallback((stopCode: string) => {
+    navigateToMapDrilldown();
+    handleSelectSurfaceStop(stopCode, "map");
+  }, [handleSelectSurfaceStop, navigateToMapDrilldown]);
+
+  // A stop number from search ("9037") opens that stop's departures over the map.
+  const handleSearchOpenSurfaceStop = (stopCode: string) => {
+    if (searchClosingTimeoutRef.current) {
+      window.clearTimeout(searchClosingTimeoutRef.current);
+      searchClosingTimeoutRef.current = null;
+    }
+    setIsClosingSearch(false);
+    stationSearchInputRef.current?.blur();
+    desktopSearchInputRef.current?.blur();
+    suppressSearchReopenRef.current = true;
+    searchSessionActiveRef.current = false;
+    navigateToMapDrilldown();
+    handleSelectSurfaceStop(stopCode, "map");
   };
 
   const handleSearchOpenImpactCategory = useCallback((kind: ImpactKind) => {
@@ -2204,7 +2342,7 @@ export function LineWatchShell({
     isMobile &&
     mapPresentationMode === "standard" &&
     activeView === "map" &&
-    Boolean(selectedStationId) &&
+    Boolean(selectedStationId || selectedSurfaceStopCode) &&
     !showClosedScreen;
 
   const mobileInspectorOpen = mobileImpactInspectorOpen || mobileStationInspectorOpen;
@@ -2709,7 +2847,7 @@ export function LineWatchShell({
         return;
       case "more":
         navigateRoot("more");
-        announceDesktop("More options and settings");
+        announceDesktop("Settings");
         return;
       case "source-status":
         navigateRoot("source-status");
@@ -2766,11 +2904,17 @@ export function LineWatchShell({
 
   const renderDesktopSidebarContent = () => {
     const renderDesktopActivePanel = () => {
+      if (selectedSurfaceStopCode && !selectedStationId) {
+        return renderSurfaceStopPanel();
+      }
       if (selectedStationId) {
         if (selectedNetwork === "ttc") {
           return (
             <StationDetailPanel
               key={`${selectedStationId}:${stationPanelActivationKey}`}
+              onOpenSurfaceStop={handleStationOpenSurfaceStop}
+              initialSection={stationInitialSection?.stationId === selectedStationId ? stationInitialSection.section : undefined}
+              onInitialSectionShown={clearStationInitialSection}
               stationResult={visibleStationResult}
               loading={stationLoading}
               updating={stationLoading && Boolean(visibleStationResult?.data)}
@@ -2855,6 +2999,7 @@ export function LineWatchShell({
               navigateForward("commutes");
             }}
             onOpenSurfaceNotice={handleSearchOpenSurfaceNotice}
+            onOpenSurfaceStop={handleSearchOpenSurfaceStop}
           />
         );
       }
@@ -2932,7 +3077,6 @@ export function LineWatchShell({
             dotBackgroundEnabled={dotBackgroundEnabled}
             isDark={isDark}
             defaultNetwork={defaultNetworkPreference}
-            currentNetwork={selectedNetwork}
             shareStatusLabel={shareStatusLabel}
             onToggleTheme={handleToggleTheme}
             onRequestSignIn={() => openAuthChoice("login")}
@@ -2945,12 +3089,6 @@ export function LineWatchShell({
             onToggleDotBackground={handleToggleDotBackground}
             onDefaultNetworkChange={handleDefaultNetworkChange}
             onOpenNotifications={() => navigateForward("notifications")}
-            onOpenAnalytics={() => navigateForward("analytics")}
-            onOpenAlertHistory={() => navigateForward("alert-history")}
-            onOpenAnnouncements={() => navigateForward("announcements")}
-            onOpenAccessibilityOutages={() => navigateForward("accessibility-outages")}
-            onOpenSurfaceNotices={() => navigateForward("surface-notices")}
-            onOpenFeedback={() => navigateForward("feedback")}
             onOpenPrivacyAcknowledgements={() => navigateForward("privacy-acknowledgements")}
             onOpenReleaseNotes={() => navigateForward("release-notes")}
             onOpenGuide={() => setGuideOpen(true)}
@@ -2963,7 +3101,9 @@ export function LineWatchShell({
       return renderPanelContent();
     };
 
-    const desktopKey = selectedStationId ? `station-${selectedStationId}` : (activeView === "map" ? "status" : activeView);
+    const desktopKey = selectedStationId
+      ? `station-${selectedStationId}`
+      : selectedSurfaceStopCode ? `surface-stop-${selectedSurfaceStopCode}` : (activeView === "map" ? "status" : activeView);
 
     return (
       <div key={desktopKey} className="desktop-view-content-wrapper" data-active-view={activeView} data-nav-direction={navDirection}>
@@ -3066,7 +3206,28 @@ export function LineWatchShell({
     stationSheetRatio,
   ]);
 
-  const showMobileStatusPeek = !showClosedScreen && !rotatedMapMode && !showPwaInstallNudge && activeView === "map" && !selection && !selectedStationId && !commutePathPreview;
+  // Bus toggles belong to the Map View (TTC buses on TTC, GO buses on GO/UP);
+  // the System Maps have no bus layer.
+  const busToggleShown = mapViewPreference === "geographic";
+  // On the desktop Map View (either network) the Train Markers switch lives in
+  // the toolbar's layer deck with the bus switches (the same setting);
+  // elsewhere it stays with the right-hand buttons.
+  const trainMarkersInLayerDeck = busToggleShown && !isMobile;
+  // It folds away (and back) as the view changes, so the buttons beside it close up smoothly.
+  const desktopTrainToggleRef = useRef<HTMLDivElement | null>(null);
+  // Its open width depends on whether the buttons beside it drop their captions,
+  // which depends on it and on the System Map toolbar: it unfolds once that
+  // toolbar has mounted, and the layout settles before it is measured.
+  useCollapseWidth(desktopTrainToggleRef, trainMarkersInLayerDeck, { reducedMotion, beforeExpand: TRAIN_PANEL_BEFORE_EXPAND });
+  const trainMarkersControl = useMemo(() => ({
+    checked: estimatedTrainsEnabled,
+    disabled: !trainNetworkOpen,
+    pending: estimatedTrainDisplayPending,
+    status: !trainNetworkOpen ? "Closed" : estimatedTrainStatusLabel ?? (estimatedTrainsEnabled ? "On" : "Off"),
+    ariaLabel: `Toggle estimated train markers (${estimatedTrainStatusLabel})`,
+    onToggle: handleToggleEstimatedTrains,
+  }), [estimatedTrainDisplayPending, estimatedTrainStatusLabel, estimatedTrainsEnabled, handleToggleEstimatedTrains, trainNetworkOpen]);
+  const showMobileStatusPeek = !showClosedScreen && !rotatedMapMode && !showPwaInstallNudge && activeView === "map" && !selection && !selectedStationId && !selectedSurfaceStopCode && !commutePathPreview;
 
   const [hasLeftMap, setHasLeftMap] = useState(false);
   if (!showMobileStatusPeek && !hasLeftMap) {
@@ -3108,7 +3269,7 @@ export function LineWatchShell({
       "--rotated-map-viewport-width": `${rotatedMapViewportFrame.width}px`,
       "--rotated-map-viewport-height": `${rotatedMapViewportFrame.height}px`,
     } : {}),
-    ...(isMobile && selectedStationId ? {
+    ...(isMobile && (selectedStationId || selectedSurfaceStopCode) ? {
       "--mobile-station-sheet-height": `${Math.round(stationSheetRatio * 100)}dvh`,
     } : {}),
   } as CSSProperties;
@@ -3238,6 +3399,7 @@ export function LineWatchShell({
               navigateForward("commutes");
             }}
             onOpenSurfaceNotice={handleSearchOpenSurfaceNotice}
+            onOpenSurfaceStop={handleSearchOpenSurfaceStop}
           />
         </div>
         )}
@@ -3257,6 +3419,8 @@ export function LineWatchShell({
             </button>
           )}
           <div
+            ref={desktopTrainToggleRef}
+            data-in-layer-deck={trainMarkersInLayerDeck ? "true" : undefined}
             className="desktop-train-toggle-btn panel flex items-center gap-3 px-3.5 h-10 sm:h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-[1.02] active:scale-[0.98] outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] select-none text-left"
           >
             <div className="shrink-0 flex items-center justify-center">
@@ -3568,6 +3732,13 @@ export function LineWatchShell({
                 stations={stationSummaries}
                 onSelectImpact={handleMapSelectImpact}
                 onSelectStationId={handleSelectStationId}
+                selectedSurfaceStopCode={selectedSurfaceStopCode}
+                onSelectSurfaceStop={handleSelectSurfaceStop}
+                busesEnabled={busesEnabled}
+                onToggleBuses={handleToggleBuses}
+                goBusesEnabled={goBusesEnabled}
+                onToggleGoBuses={handleToggleGoBuses}
+                trainMarkersControl={trainMarkersControl}
                 isDark={isDark}
                 highContrast={highContrast}
                 layoutResetSignal={mapLayoutSignal}
@@ -3628,6 +3799,13 @@ export function LineWatchShell({
             stations={stationSummaries}
             onSelectImpact={handleMapSelectImpact}
             onSelectStationId={handleSelectStationId}
+            selectedSurfaceStopCode={selectedSurfaceStopCode}
+            onSelectSurfaceStop={handleSelectSurfaceStop}
+            busesEnabled={busesEnabled}
+            onToggleBuses={handleToggleBuses}
+            goBusesEnabled={goBusesEnabled}
+            onToggleGoBuses={handleToggleGoBuses}
+            trainMarkersControl={trainMarkersControl}
             isDark={isDark}
             highContrast={highContrast}
             layoutResetSignal={mapLayoutSignal}
@@ -3712,6 +3890,26 @@ export function LineWatchShell({
               />
             ) : null}
           </button>
+          {busToggleShown ? (() => {
+            const goBuses = selectedNetwork === "regional";
+            const enabled = goBuses ? goBusesEnabled : busesEnabled;
+            return (
+              <button
+                type="button"
+                onClick={goBuses ? handleToggleGoBuses : handleToggleBuses}
+                className={`mobile-train-toggle mobile-bus-toggle ${enabled ? "active" : ""}`}
+                aria-pressed={enabled}
+                aria-label={goBuses ? "Show GO bus routes and stops" : "Show TTC bus routes and stops"}
+                data-bus-toggle
+                data-bus-network={selectedNetwork}
+              >
+                <Bus size={16} />
+                <span>
+                  {enabled ? "Viewing" : "View"}<br />{goBuses ? "GO Buses" : "Buses"}
+                </span>
+              </button>
+            );
+          })() : null}
           {showMobileStatusPeek && (
             <MapViewSelector
               view={mapViewPreference}
@@ -3723,9 +3921,15 @@ export function LineWatchShell({
         </div>
       )}
 
+      {isMobile && !showClosedScreen && !rotatedMapMode && !selectedStationId
+        && activeView === "map" && renderSurfaceStopPanel()}
+
       {isMobile && !showClosedScreen && !rotatedMapMode && selectedNetwork === "ttc" && selectedStationId && (
         <StationDetailPanel
           key={`${selectedStationId}:${stationPanelActivationKey}`}
+          onOpenSurfaceStop={handleStationOpenSurfaceStop}
+          initialSection={stationInitialSection?.stationId === selectedStationId ? stationInitialSection.section : undefined}
+          onInitialSectionShown={clearStationInitialSection}
           stationResult={visibleStationResult}
           loading={stationLoading}
           updating={stationLoading && Boolean(visibleStationResult?.data)}

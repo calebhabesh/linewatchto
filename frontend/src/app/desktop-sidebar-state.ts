@@ -216,6 +216,45 @@ export function desktopControlRailFits({
 }
 
 /** Keeps a map's desktop toolbar placed by `placeDesktopControlRail` as the layout changes. */
+/** The placement pass of every observed control rail, so a panel about to unfold can settle the layout first. */
+const activeRailPlacements = new Set<() => void>();
+
+/**
+ * Runs every control rail's placement now (not on the next frame). The
+ * right-hand Train Markers panel calls it before measuring its open width:
+ * whether the buttons beside it drop their captions depends on the panel
+ * itself, so a width measured first would unfold too wide and then snap.
+ */
+export function settleDesktopControlRails(): void {
+  for (const place of activeRailPlacements) place();
+}
+
+let railRegistrationWaiters: Array<() => void> = [];
+let lastRailRegisteredAt = -Infinity;
+
+/**
+ * Resolves when the next control rail starts being placed (a map view's
+ * toolbar mounting), or after `timeoutMs`. The Train Markers panel waits for
+ * it when it returns with the System Map, whose toolbar decides whether the
+ * buttons beside the panel drop their captions.
+ */
+export function nextDesktopControlRail(timeoutMs = 700): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  // A toolbar that mounted in the same update (just before this was asked) counts.
+  if (performance.now() - lastRailRegisteredAt < 100) return Promise.resolve();
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      railRegistrationWaiters = railRegistrationWaiters.filter((waiter) => waiter !== done);
+      resolve();
+    };
+    railRegistrationWaiters.push(done);
+    window.setTimeout(done, timeoutMs);
+  });
+}
+
 export function observeDesktopControlRail(rail: HTMLElement | null): () => void {
   if (!rail || typeof window === "undefined") return () => {};
   const container = rail.offsetParent instanceof HTMLElement ? rail.offsetParent : rail.parentElement;
@@ -261,7 +300,10 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
     // Keep the toolbar on the top row by dropping, in order, its zoom slider and captions,
     // then the right-hand buttons' captions; only then move it to a second row. Each pass
     // starts from the full layout, so the result settles on the same state every time.
-    setCompact(clusterElement, false);
+    // While a right-hand panel folds or unfolds (useCollapseWidth), the buttons keep
+    // their captions state: the width it animates to was measured in that state.
+    const clusterHeld = Boolean(clusterElement?.querySelector('[data-collapsing="true"]'));
+    if (!clusterHeld) setCompact(clusterElement, false);
     setCompact(rail, false);
     delete rail.dataset.hideNetwork;
     let placement = placeWith(rail.offsetWidth);
@@ -269,7 +311,7 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
       setCompact(rail, true);
       placement = placeWith(rail.offsetWidth);
     }
-    if (placement.top !== 20) {
+    if (placement.top !== 20 && !clusterHeld) {
       setCompact(clusterElement, true);
       placement = placeWith(rail.offsetWidth);
     }
@@ -290,6 +332,11 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
   };
 
   place();
+  activeRailPlacements.add(place);
+  lastRailRegisteredAt = performance.now();
+  const waiters = railRegistrationWaiters;
+  railRegistrationWaiters = [];
+  waiters.forEach((resolve) => resolve());
   const resizeObserver = new ResizeObserver(schedule);
   const classObserver = new MutationObserver(schedule);
   resizeObserver.observe(container);
@@ -303,6 +350,7 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
   window.addEventListener("resize", schedule);
   return () => {
     if (frame !== null) window.cancelAnimationFrame(frame);
+    activeRailPlacements.delete(place);
     resizeObserver.disconnect();
     classObserver.disconnect();
     window.removeEventListener("resize", schedule);
@@ -340,7 +388,10 @@ export function measureDesktopMapInsets(
   if (effectiveRail && window.getComputedStyle(effectiveRail).display !== "none") {
     const railRect = effectiveRail.getBoundingClientRect();
     if (railRect.width > 0 && railRect.height > 0) {
-      top = Math.min(containerRect.height, Math.max(0, Math.round(railRect.bottom - containerRect.top)));
+      // The TTC Map View's layer switches hang under the toolbar as its second deck.
+      const deck = effectiveRail.querySelector<HTMLElement>(".map-view-layers-row")?.getBoundingClientRect();
+      const railBottom = deck && deck.height > 0 ? Math.max(railRect.bottom, deck.bottom) : railRect.bottom;
+      top = Math.min(containerRect.height, Math.max(0, Math.round(railBottom - containerRect.top)));
     }
   }
 

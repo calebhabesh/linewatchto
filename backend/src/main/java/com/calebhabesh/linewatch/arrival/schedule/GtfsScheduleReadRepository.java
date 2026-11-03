@@ -118,6 +118,7 @@ public class GtfsScheduleReadRepository {
                        where id = :importId
                          and surface_schedule_available = true
                          and full_stop_catalog_available = true
+                         and surface_stop_catalog_available = true
                    )
                and exists (
                        select 1 from ttc_surface_routes where import_id = :importId

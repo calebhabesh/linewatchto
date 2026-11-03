@@ -1,6 +1,6 @@
 /**
- * Streetcar corridors from GTFS trip patterns: one line per street, each piece
- * carrying the routes that run on it (plan 13, S1). Pure calculations; the
+ * Surface corridors from GTFS trip patterns: one line per street, each piece
+ * carrying the routes that run on it (plan 13: streetcars in S1, buses in S5). Pure calculations; the
  * generator (scripts/generate-surface-catalog.mjs) does the file reading.
  *
  * A pattern is one route's stop sequence on one shape, with its weekday trip
@@ -27,6 +27,16 @@ export function isDaytimeStreetcarRoute(route) {
   return route.route_type.trim() === "0"
     && !RAPID_TRANSIT_SHORT_NAMES.has(shortName)
     && !/^3\d\d$/.test(shortName);
+}
+
+/**
+ * Daytime bus routes (plan 13, S5): GTFS route_type 3, minus the 300-series
+ * night routes, which run over the daytime streets and the subway, as the
+ * streetcar layer leaves out its night routes.
+ * @param {{ route_type: string, route_short_name: string }} route
+ */
+export function isDaytimeBusRoute(route) {
+  return route.route_type.trim() === "3" && !/^3\d\d$/.test(route.route_short_name.trim());
 }
 
 /** The TTC codes bus replacements and short turns as trips of the streetcar route. */
@@ -74,6 +84,53 @@ export function sliceByDistance(shape, from, to) {
   }
   coords.push(pointAtDistance(shape, to));
   return coords;
+}
+
+/**
+ * For feeds without shape_dist_traveled (GO, plan 13 S6): measures the shape
+ * in metres and places each stop where the shape passes closest to it, in
+ * stop order. Where the shape passes a stop twice (a loop), the earliest pass
+ * within 30 m of the closest one is taken, so a later pass is never chosen
+ * over the one the trip reaches first.
+ * @param {{ lon: number, lat: number }[]} points shape points in sequence
+ * @param {[number, number][]} stops stop coordinates in stop order
+ * @returns {{ shape: { lon: number, lat: number, dist: number }[], distances: number[], offsets: number[] }}
+ */
+export function placeStopsAlongShape(points, stops) {
+  const shape = [];
+  let total = 0;
+  for (let i = 0; i < points.length; i++) {
+    if (i > 0) total += haversine([points[i - 1].lon, points[i - 1].lat], [points[i].lon, points[i].lat]);
+    shape.push({ lon: points[i].lon, lat: points[i].lat, dist: total });
+  }
+  const distances = [], offsets = [];
+  let fromSegment = 1, floor = 0;
+  for (const stop of stops) {
+    const candidates = [];
+    let best = Infinity;
+    for (let i = Math.max(1, fromSegment); i < shape.length; i++) {
+      const a = [shape[i - 1].lon, shape[i - 1].lat], b = [shape[i].lon, shape[i].lat];
+      const { kx, ky } = planar(a[1]);
+      const dx = (b[0] - a[0]) * kx, dy = (b[1] - a[1]) * ky;
+      const px = (stop[0] - a[0]) * kx, py = (stop[1] - a[1]) * ky;
+      const lengthSquared = dx * dx + dy * dy;
+      const t = lengthSquared ? Math.max(0, Math.min(1, (px * dx + py * dy) / lengthSquared)) : 0;
+      const offset = Math.hypot(px - t * dx, py - t * dy);
+      const dist = shape[i - 1].dist + t * (shape[i].dist - shape[i - 1].dist);
+      if (dist < floor) continue;
+      candidates.push({ segment: i, offset, dist });
+      if (offset < best) best = offset;
+    }
+    const chosen = candidates.find(c => c.offset <= best + 30)
+      ?? { segment: shape.length - 1, offset: Infinity, dist: total };
+    // Two stops at one point still need increasing distances to make a gap.
+    const dist = Math.max(chosen.dist, floor + (distances.length ? 0.01 : 0));
+    distances.push(dist);
+    offsets.push(chosen.offset);
+    floor = dist;
+    fromSegment = chosen.segment;
+  }
+  return { shape, distances, offsets };
 }
 
 /** Points along a polyline no more than `step` metres apart, vertices included. */
@@ -207,6 +264,9 @@ function chainPieces(pieces) {
  * @param {TripPattern[]} patterns
  * @param {object} [options]
  * @param {number} [options.minPairTrips=6] Weekday trips a stop gap needs to be drawn
+ * @param {number} [options.minRouteShare=0] Also draw a gap carrying at least
+ *   this share of one of its routes' busiest gap (buses: low-frequency
+ *   Community routes run fewer than `minPairTrips` trips on their whole route)
  * @param {number} [options.mergeToleranceMeters=25] How far apart two runs on one street may be
  * @param {number} [options.simplifyMeters=2] Douglas-Peucker tolerance
  * @param {number} [options.minRunMeters=30] Shortest separate run worth drawing
@@ -215,8 +275,9 @@ function chainPieces(pieces) {
  *   stopRoutes: Map<string, string[]>,
  * }}
  */
-export function buildStreetcarCorridors(patterns, options = {}) {
+export function buildSurfaceCorridors(patterns, options = {}) {
   const minPairTrips = options.minPairTrips ?? 6;
+  const minRouteShare = options.minRouteShare ?? 0;
   const tolerance = options.mergeToleranceMeters ?? 25;
   const simplifyMeters = options.simplifyMeters ?? 2;
   const minRunMeters = options.minRunMeters ?? 30;
@@ -255,7 +316,13 @@ export function buildStreetcarCorridors(patterns, options = {}) {
   // Busiest pattern first, each in stop order: a street is drawn from one
   // continuous run, so its pieces meet end to end. (Sorting gaps by trips
   // would interleave the two directions' stops and leave every piece apart.)
-  const drawn = [...pairs.values()].filter(pair => pair.trips >= minPairTrips);
+  const busiestGap = new Map();
+  for (const pair of pairs.values()) {
+    for (const route of pair.routes) busiestGap.set(route, Math.max(busiestGap.get(route) ?? 0, pair.trips));
+  }
+  const drawable = pair => pair.trips >= minPairTrips
+    || (minRouteShare > 0 && [...pair.routes].some(route => pair.trips >= minRouteShare * busiestGap.get(route)));
+  const drawn = [...pairs.values()].filter(drawable);
 
   const stopRoutes = new Map();
   for (const pair of drawn) {
@@ -332,3 +399,6 @@ export function buildStreetcarCorridors(patterns, options = {}) {
     stopRoutes: new Map([...stopRoutes].map(([stopId, routes]) => [stopId, sortedRoutes(routes)])),
   };
 }
+
+/** The streetcar layer's name for the shared corridor builder (S1). */
+export const buildStreetcarCorridors = buildSurfaceCorridors;

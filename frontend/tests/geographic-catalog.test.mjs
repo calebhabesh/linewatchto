@@ -416,6 +416,7 @@ describe("geographic configuration invariants", () => {
   it("discloses required public transit attributions", () => {
     const ttcAttr = getGeographicAttribution("ttc");
     assert.ok(ttcAttr.includes("City of Toronto"));
+    assert.ok(ttcAttr.includes("Station plans") && ttcAttr.includes("© TTC"), "station plans credit the TTC");
     const regAttr = getGeographicAttribution("regional");
     assert.ok(regAttr.includes("Metrolinx"));
   });

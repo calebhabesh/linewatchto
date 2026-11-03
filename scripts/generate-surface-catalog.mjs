@@ -1,17 +1,20 @@
 #!/usr/bin/env node
 
 /**
- * TTC streetcar corridors and stops for the Map View (plan 13, S1).
+ * TTC surface corridors and stops for the Map View (plan 13: streetcars in
+ * S1, buses in S5).
  *
- * Reads the TTC static GTFS archive and writes
- * frontend/public/assets/linewatch/geographic/ttc-surface-streetcar.json:
+ * Reads the TTC static GTFS archive and writes, per mode,
+ * frontend/public/assets/linewatch/geographic/ttc-surface-<mode>.json:
  * one line per street with the daytime routes on it, the stops those routes
- * serve, and each route's weekday streetcar and replacement-bus trip counts.
- * Geometry comes from weekday streetcar trips only; bus-replacement and
- * short-turn trips are counted, not drawn.
+ * serve, and each route's weekday trip counts. Streetcar geometry comes from
+ * weekday streetcar trips only; bus-replacement and short-turn trips are
+ * counted, not drawn. Bus geometry comes from weekday trips of daytime bus
+ * routes (night routes are left out, as for streetcars); short turns are
+ * counted, not drawn.
  *
  * Usage:
- *   node scripts/generate-surface-catalog.mjs [--ttc-gtfs <zip>] [--output <json>]
+ *   node scripts/generate-surface-catalog.mjs [--mode streetcar|bus] [--ttc-gtfs <zip>] [--output <json>]
  *
  * Defaults: /tmp/linewatch-gtfs/completegtfs.zip (download it from the TTC
  * Open Data page; scripts/download-geographic-gtfs.mjs pins an older audited
@@ -27,7 +30,8 @@ import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import { gzipSync } from "node:zlib";
 import {
-  buildStreetcarCorridors,
+  buildSurfaceCorridors,
+  isDaytimeBusRoute,
   isDaytimeStreetcarRoute,
   tripKind,
 } from "./lib/surface-corridors.mjs";
@@ -40,7 +44,10 @@ const arg = (flag, fallback) => {
 };
 const zipPath = resolve(arg("--ttc-gtfs", "/tmp/linewatch-gtfs/completegtfs.zip"));
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
-const outputPath = resolve(arg("--output", resolve(repoRoot, "frontend/public/assets/linewatch/geographic/ttc-surface-streetcar.json")));
+const mode = arg("--mode", "streetcar");
+if (mode !== "streetcar" && mode !== "bus") throw new Error(`--mode must be streetcar or bus, not ${mode}`);
+const bus = mode === "bus";
+const outputPath = resolve(arg("--output", resolve(repoRoot, `frontend/public/assets/linewatch/geographic/ttc-surface-${mode}.json`)));
 
 /** One CSV record; GTFS fields may be quoted and contain commas. */
 function parseCsvLine(line) {
@@ -97,27 +104,30 @@ const archiveSha256 = createHash("sha256").update(readFileSync(zipPath)).digest(
 const [feedInfo] = readTable("feed_info.txt");
 const isoDate = value => `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
 
-// Weekday service: every service that runs Monday to Friday.
+// Weekday service: every service that runs Monday to Friday. Buses also take
+// services on some weekdays only: Community routes run Mon/Wed/Thu or Tue/Fri.
+const WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"];
 const weekdayServices = new Set(
   readTable("calendar.txt")
-    .filter(row => ["monday", "tuesday", "wednesday", "thursday", "friday"].every(day => row[day] === "1"))
+    .filter(row => (bus ? WEEKDAYS.some(day => row[day] === "1") : WEEKDAYS.every(day => row[day] === "1")))
     .map(row => row.service_id),
 );
 if (weekdayServices.size === 0) throw new Error("calendar.txt has no Monday-to-Friday service");
 
 const routes = new Map(
-  readTable("routes.txt").filter(isDaytimeStreetcarRoute).map(route => [route.route_id, route]),
+  readTable("routes.txt").filter(bus ? isDaytimeBusRoute : isDaytimeStreetcarRoute).map(route => [route.route_id, route]),
 );
-if (routes.size === 0) throw new Error("No daytime streetcar routes in routes.txt");
+if (routes.size === 0) throw new Error(`No daytime ${mode} routes in routes.txt`);
 
 const routeCounts = new Map([...routes.values()].map(route => [route.route_short_name, {
   streetcar: 0, "replacement-bus": 0, "short-turn": 0,
 }]));
-/** trip_id -> { route short name, shape id } for weekday streetcar trips */
+/** trip_id -> { route short name, shape id } for the weekday trips drawn */
 const streetcarTrips = new Map();
 for (const trip of readTable("trips.txt")) {
   const route = routes.get(trip.route_id);
   if (!route || !weekdayServices.has(trip.service_id)) continue;
+  // tripKind's "streetcar" is a regular trip of the route: on a bus route, a bus trip.
   const kind = tripKind(trip.trip_headsign);
   routeCounts.get(route.route_short_name)[kind]++;
   if (kind === "streetcar" && trip.shape_id) {
@@ -138,6 +148,8 @@ const patternsByKey = new Map();
 let skippedTrips = 0;
 for (const [tripId, trip] of streetcarTrips) {
   const stops = (tripStops.get(tripId) ?? []).sort((a, b) => a[0] - b[0]);
+  // Some trips (Community buses) leave the first stop's distance blank: it is 0.
+  if (stops.length > 0 && Number.isNaN(stops[0][2])) stops[0][2] = 0;
   if (stops.length < 2 || stops.some(([, , dist]) => !Number.isFinite(dist))) {
     skippedTrips++;
     continue;
@@ -171,7 +183,9 @@ for (const pattern of patterns) {
   pattern.shape = points.slice().sort((a, b) => a.seq - b.seq);
 }
 
-const { corridors, stopRoutes } = buildStreetcarCorridors(patterns);
+// A bus route's own quiet branches still draw (a quarter of its busiest gap),
+// so a Community route with 12 trips a day is not lost to the 6-trip floor.
+const { corridors, stopRoutes } = buildSurfaceCorridors(patterns, bus ? { minRouteShare: 0.25 } : {});
 
 const stopsById = new Map(readTable("stops.txt").map(stop => [stop.stop_id, stop]));
 const routeOrder = (a, b) => a.localeCompare(b, "en", { numeric: true });
@@ -184,9 +198,9 @@ for (const corridor of corridors) {
   perRouteSet.set(setKey, n);
   corridorFeatures.push({
     type: "Feature",
-    id: `streetcar-corridor-${setKey}-${n}`,
+    id: `${mode}-corridor-${setKey}-${n}`,
     geometry: { type: "LineString", coordinates: corridor.coordinates },
-    properties: { featureType: "streetcar-corridor", routes: corridor.routes },
+    properties: { featureType: `${mode}-corridor`, routes: corridor.routes },
   });
 }
 
@@ -198,10 +212,10 @@ const stopFeatures = [...stopRoutes.entries()]
     validateCoordinate(coordinates);
     return {
       type: "Feature",
-      id: `streetcar-stop-${stopId}`,
+      id: `${mode}-stop-${stopId}`,
       geometry: { type: "Point", coordinates },
       properties: {
-        featureType: "streetcar-stop",
+        featureType: `${mode}-stop`,
         stopId,
         ...(stop.stop_code ? { stopCode: stop.stop_code } : {}),
         name: stop.stop_name,
@@ -223,19 +237,38 @@ const routeSummaries = [...routes.values()]
       color: `#${route.route_color || "ED1C24"}`,
       textColor: `#${route.route_text_color || "FFFFFF"}`,
       drawn: drawnRoutes.has(route.route_short_name),
-      weekdayTrips: {
-        streetcar: counts.streetcar,
-        shortTurn: counts["short-turn"],
-        replacementBus: counts["replacement-bus"],
-      },
+      weekdayTrips: bus
+        ? { bus: counts.streetcar + counts["replacement-bus"], shortTurn: counts["short-turn"] }
+        : {
+          streetcar: counts.streetcar,
+          shortTurn: counts["short-turn"],
+          replacementBus: counts["replacement-bus"],
+        },
     };
   });
+
+// Buses: the stops go in their own file, loaded only when the map nears stop
+// zoom (8,000+ stops are two thirds of the bytes). Each keeps what the map
+// draws and the bus card looks up: pole number, name, routes.
+const busStopFeatures = bus
+  ? stopFeatures.filter(feature => feature.properties.stopCode).map(feature => ({
+    type: "Feature",
+    // 5 decimals is about a metre: the pole, not the street.
+    geometry: { type: "Point", coordinates: feature.geometry.coordinates.map(value => Number(value.toFixed(5))) },
+    properties: {
+      featureType: "bus-stop",
+      stopCode: feature.properties.stopCode,
+      name: feature.properties.name,
+      routes: feature.properties.routes,
+    },
+  }))
+  : [];
 
 const catalog = {
   type: "FeatureCollection",
   schemaVersion: "1.0.0",
   network: "ttc",
-  layer: "streetcar",
+  layer: mode,
   source: {
     sourceName: "Merged GTFS - TTC Routes and Schedules",
     publisher: "Toronto Transit Commission (TTC)",
@@ -248,19 +281,39 @@ const catalog = {
     servicePattern: "weekday",
   },
   routes: routeSummaries,
-  features: [...corridorFeatures, ...stopFeatures],
+  features: bus ? corridorFeatures : [...corridorFeatures, ...stopFeatures],
 };
 
 const json = JSON.stringify(catalog) + "\n";
 writeFileSync(outputPath, json, "utf8");
+const stopsOutputPath = outputPath.replace(/\.json$/, "-stops.json");
+let stopsJson = "";
+if (bus) {
+  stopsJson = JSON.stringify({
+    type: "FeatureCollection",
+    schemaVersion: "1.0.0",
+    network: "ttc",
+    layer: "bus-stops",
+    source: catalog.source,
+    features: busStopFeatures,
+  }) + "\n";
+  writeFileSync(stopsOutputPath, stopsJson, "utf8");
+}
 
 const kb = bytes => `${(bytes / 1024).toFixed(1)} KB`;
-console.log(`[Streetcar catalog] feed ${feedInfo.feed_version} (${catalog.source.feedStartDate} to ${catalog.source.feedEndDate})`);
-console.log(`  Patterns: ${patterns.length} from ${streetcarTrips.size - skippedTrips} weekday streetcar trips (${skippedTrips} skipped without stop distances)`);
+console.log(`[${bus ? "Bus" : "Streetcar"} catalog] feed ${feedInfo.feed_version} (${catalog.source.feedStartDate} to ${catalog.source.feedEndDate})`);
+console.log(`  Patterns: ${patterns.length} from ${streetcarTrips.size - skippedTrips} weekday ${mode} trips (${skippedTrips} skipped without stop distances)`);
 console.log(`  Corridors: ${corridorFeatures.length}, stops: ${stopFeatures.length}`);
 for (const route of routeSummaries) {
   const t = route.weekdayTrips;
-  console.log(`  ${route.route.padEnd(4)} ${route.drawn ? "drawn" : "NOT DRAWN"}  streetcar ${t.streetcar}, short turn ${t.shortTurn}, replacement bus ${t.replacementBus}`);
+  console.log(bus
+    ? `  ${route.route.padEnd(4)} ${route.drawn ? "drawn" : "NOT DRAWN"}  bus ${t.bus}, short turn ${t.shortTurn}`
+    : `  ${route.route.padEnd(4)} ${route.drawn ? "drawn" : "NOT DRAWN"}  streetcar ${t.streetcar}, short turn ${t.shortTurn}, replacement bus ${t.replacementBus}`);
 }
 console.log(`  Raw: ${kb(Buffer.byteLength(json))} | Gzipped: ${kb(gzipSync(Buffer.from(json)).length)}`);
 console.log(`  Written to: ${outputPath}`);
+if (bus) {
+  console.log(`  Stops with pole numbers: ${busStopFeatures.length} of ${stopFeatures.length}`);
+  console.log(`  Stops raw: ${kb(Buffer.byteLength(stopsJson))} | Gzipped: ${kb(gzipSync(Buffer.from(stopsJson)).length)}`);
+  console.log(`  Stops written to: ${stopsOutputPath}`);
+}

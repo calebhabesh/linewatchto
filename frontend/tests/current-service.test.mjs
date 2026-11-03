@@ -215,14 +215,14 @@ test("surface notices button text uses 'streetcar and bus notices' and CSS style
   assert.match(stylesSource, /\.current-service-notice\s+\[data-category="no-service"\]\s+svg\s*\{\s*color:\s*#dc2626;\s*\}/);
 });
 
-test("service notices route badges use regional color-coded badges in GO/UP mode", () => {
+test("service notices route badges use GO colours in GO/UP mode and TTC route-family colours on TTC", () => {
   const currentServicePanelSource = readFileSync(new URL("../src/components/CurrentServicePanel.tsx", import.meta.url), "utf8");
   const desktopOverviewSource = readFileSync(new URL("../src/components/DesktopStatusOverview.tsx", import.meta.url), "utf8");
 
   assert.match(currentServicePanelSource, /goNoticeRouteBadgeStyle/);
-  assert.match(currentServicePanelSource, /data\.networkId === "regional" \? goNoticeRouteBadgeStyle\(route\) : undefined/);
+  assert.match(currentServicePanelSource, /data\.networkId === "regional" \? goNoticeRouteBadgeStyle\(route\) : ttcRouteBadgeStyle\(route\)/);
   assert.match(desktopOverviewSource, /goNoticeRouteBadgeStyle/);
-  assert.match(desktopOverviewSource, /regional \? goNoticeRouteBadgeStyle\(route\) : undefined/);
+  assert.match(desktopOverviewSource, /regional \? goNoticeRouteBadgeStyle\(route\) : ttcRouteBadgeStyle\(route\)/);
 });
 
 test("historical service reports remain readable without an all-clear claim", () => {

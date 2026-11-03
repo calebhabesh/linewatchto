@@ -44,3 +44,12 @@ test('saved mobile cameras expire after twelve hours',()=>{
   null,
  );
 });
+
+test('a Map View camera up to the map maximum zoom (21, for station plans) is kept, above it is not',()=>{
+ const storage=memory();
+ const savedAt=1_700_000_000_000;
+ saveGeographicMapViewport(storage,'ttc',{lng:-79.4838,lat:43.65,zoom:21},savedAt);
+ assert.deepEqual(readGeographicMapViewport(storage,'ttc',savedAt),{lng:-79.4838,lat:43.65,zoom:21});
+ storage.setItem('linewatch-geographic-map-viewport-v1:ttc',JSON.stringify({version:2,lng:-79.4838,lat:43.65,zoom:21.5,savedAt}));
+ assert.equal(readGeographicMapViewport(storage,'ttc',savedAt),null);
+});

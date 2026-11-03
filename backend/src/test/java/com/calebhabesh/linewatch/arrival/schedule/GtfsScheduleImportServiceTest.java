@@ -148,6 +148,63 @@ class GtfsScheduleImportServiceTest {
     }
 
     @Test
+    void catalogsEverySurfaceStopWithItsPoleNumberAndKeepsTripsAwayFromStations() throws Exception {
+        Path zip = tempDir.resolve("gtfs-all-stops.zip");
+        try (ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(zip))) {
+            entry(output, "routes.txt", """
+                route_id,agency_id,route_short_name,route_long_name,route_type
+                1,TTC,1,Yonge-University,1
+                97,TTC,97,Yonge,3
+                """);
+            entry(output, "stops.txt", """
+                stop_id,stop_code,stop_name,stop_lat,stop_lon,parent_station
+                ROSEDALE_PLATFORM,,Rosedale Station - Northbound Platform,43.6771,-79.3889,
+                9037,9037,Yonge St at Crescent Rd South Side - Rosedale Station,43.676573,-79.389457,
+                4321,4321,Yonge St at Summerhill Ave,43.6820,-79.3910,
+                UNUSED,5555,Not served by a surface trip,43.0,-79.0,
+                """);
+            entry(output, "calendar.txt", """
+                service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date
+                DAILY,1,1,1,1,1,1,1,20260601,20261231
+                """);
+            entry(output, "trips.txt", """
+                route_id,service_id,trip_id,trip_headsign,direction_id
+                1,DAILY,L1_1,Northbound to Finch,0
+                97,DAILY,AT_STATION,North - 97 Yonge towards Steeles,0
+                97,DAILY,STREET_ONLY,South - 97 Yonge towards Queens Quay,1
+                """);
+            entry(output, "stop_times.txt", """
+                trip_id,arrival_time,departure_time,stop_id,stop_sequence
+                L1_1,09:00:00,09:00:00,ROSEDALE_PLATFORM,1
+                AT_STATION,09:01:00,09:01:00,9037,1
+                AT_STATION,09:03:00,09:03:00,4321,2
+                STREET_ONLY,09:10:00,09:10:00,4321,1
+                """);
+        }
+        GtfsScheduleImportWriter writer = mock(GtfsScheduleImportWriter.class);
+        new GtfsScheduleImportService(writer).importZip(zip, "test-all-stops");
+        ArgumentCaptor<GtfsSchedulePreparedImport> prepared =
+            ArgumentCaptor.forClass(GtfsSchedulePreparedImport.class);
+        verify(writer).write(eq(zip), eq("test-all-stops"), prepared.capture());
+
+        assertThat(prepared.getValue().surfaceStops())
+            .extracting(GtfsImportModels.SurfaceStopRow::stopId, GtfsImportModels.SurfaceStopRow::stopCode,
+                GtfsImportModels.SurfaceStopRow::stationId)
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("4321", "4321", null),
+                org.assertj.core.groups.Tuple.tuple("9037", "9037", "rosedale"));
+        assertThat(prepared.getValue().surfaceStops().get(1).latitude()).isEqualTo(43.676573);
+        // A trip that never reaches a station stop is still kept for the stop view's schedule.
+        assertThat(prepared.getValue().surfaceTrips())
+            .extracting(GtfsImportModels.SurfaceTripRow::tripId)
+            .containsExactlyInAnyOrder("AT_STATION", "STREET_ONLY");
+        // The station view's catalog is unchanged: only the station stop is linked.
+        assertThat(prepared.getValue().surfaceStationStops())
+            .extracting(GtfsImportModels.SurfaceStationStopRow::stopId)
+            .containsExactly("9037");
+    }
+
+    @Test
     void mapsAmpersandStationNameToReviewedAndAlias() throws Exception {
         Path zip = tempDir.resolve("gtfs-aga-khan.zip");
         try (ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(zip))) {

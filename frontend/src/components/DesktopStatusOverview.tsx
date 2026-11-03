@@ -30,6 +30,7 @@ import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { NetworkSelector } from "./NetworkSelector";
 import { goNoticeRouteBadgeStyle, goNoticeRouteLabel } from "../app/go-bus-route-colors";
+import { ttcRouteBadgeStyle } from "../app/ttc-route-badge";
 import { surfaceNoticePreviewLocation } from "../app/surface-notice-groups";
 
 import type { NetworkId } from "../app/regional-data";
@@ -455,7 +456,7 @@ export function DesktopStatusOverview({
                     <span
                       className="current-service-route"
                       key={route}
-                      style={regional ? goNoticeRouteBadgeStyle(route) : undefined}
+                      style={regional ? goNoticeRouteBadgeStyle(route) : ttcRouteBadgeStyle(route)}
                       aria-label={regional ? goNoticeRouteLabel(route) : undefined}
                     >
                       {route}

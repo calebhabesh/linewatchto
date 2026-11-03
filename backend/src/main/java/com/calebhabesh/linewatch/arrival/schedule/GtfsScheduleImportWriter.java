@@ -54,6 +54,7 @@ public class GtfsScheduleImportWriter {
         repository.insertSurfaceStationStops(importId, prepared.surfaceStationStops());
         repository.insertSurfaceTrips(importId, prepared.surfaceTrips());
         repository.insertSurfaceStationConnections(importId, prepared.surfaceStationConnections());
+        repository.insertSurfaceStops(importId, prepared.surfaceStops());
 
         StopTimeBatcher batcher = new StopTimeBatcher(
             repository,
@@ -64,17 +65,24 @@ public class GtfsScheduleImportWriter {
             .map(GtfsImportModels.SurfaceTripRow::tripId).collect(java.util.stream.Collectors.toSet());
         var lastSurfaceStops = prepared.surfaceTrips().stream().collect(java.util.stream.Collectors.toMap(
             GtfsImportModels.SurfaceTripRow::tripId, GtfsImportModels.SurfaceTripRow::lastStopSequence));
-        Set<String> surfaceStops = prepared.surfaceStationStops().stream()
-            .map(GtfsImportModels.SurfaceStationStopRow::stopId).collect(java.util.stream.Collectors.toSet());
+        Set<String> surfaceStops = new java.util.HashSet<>();
+        prepared.surfaceStationStops().forEach(stop -> surfaceStops.add(stop.stopId()));
+        prepared.surfaceStops().forEach(stop -> surfaceStops.add(stop.stopId()));
+        var tripsById = prepared.surfaceTrips().stream().collect(java.util.stream.Collectors.toMap(
+            GtfsImportModels.SurfaceTripRow::tripId, java.util.function.Function.identity(), (a, b) -> a));
+        Set<GtfsImportModels.SurfaceStopRouteRow> stopRoutes = new java.util.HashSet<>();
         List<GtfsImportModels.StopTimeRow> surfaceBatch = new ArrayList<>();
         streamStopTimes(zipPath, row -> {
             batcher.accept(row);
-            // Only ordinary, published boarding departures at reviewed station stops.
+            // Only ordinary, published boarding departures at surface stops.
             if (!surfaceTrips.contains(row.value("trip_id")) || !surfaceStops.contains(row.value("stop_id"))) return;
             if (Integer.parseInt(row.value("stop_sequence")) >= lastSurfaceStops.get(row.value("trip_id"))) return;
             String pickup = row.value("pickup_type");
             if (!pickup.isBlank() && !"0".equals(pickup)) return;
             if (row.value("departure_time").isBlank()) return;
+            GtfsImportModels.SurfaceTripRow trip = tripsById.get(row.value("trip_id"));
+            stopRoutes.add(new GtfsImportModels.SurfaceStopRouteRow(row.value("stop_id"), trip.routeId(),
+                trip.tripHeadsign() == null ? "" : trip.tripHeadsign()));
             int departure = GtfsCsvReader.seconds(row.value("departure_time"));
             surfaceBatch.add(new GtfsImportModels.StopTimeRow(row.value("trip_id"), row.value("stop_id"),
                 departure, departure, Integer.parseInt(row.value("stop_sequence"))));
@@ -85,6 +93,17 @@ public class GtfsScheduleImportWriter {
         });
         repository.insertSurfaceStopTimes(importId, List.copyOf(surfaceBatch));
         repository.markSurfaceScheduleAvailable(importId);
+        if (!prepared.surfaceStops().isEmpty()) {
+            Set<String> catalogStops = prepared.surfaceStops().stream()
+                .map(GtfsImportModels.SurfaceStopRow::stopId).collect(java.util.stream.Collectors.toSet());
+            repository.insertSurfaceStopRoutes(importId, stopRoutes.stream()
+                .filter(route -> catalogStops.contains(route.stopId()))
+                .sorted(java.util.Comparator.comparing(GtfsImportModels.SurfaceStopRouteRow::stopId)
+                    .thenComparing(GtfsImportModels.SurfaceStopRouteRow::routeId)
+                    .thenComparing(GtfsImportModels.SurfaceStopRouteRow::destination))
+                .toList());
+            repository.markSurfaceStopCatalogAvailable(importId);
+        }
         batcher.finish();
 
         repository.insertStationStops(importId, prepared.stationStops());

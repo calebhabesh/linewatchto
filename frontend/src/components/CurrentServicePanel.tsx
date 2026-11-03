@@ -23,6 +23,7 @@ import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { LineAdvisorySummary, LineServiceStatus } from "./LineServiceStatus";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { goNoticeRouteBadgeStyle, goNoticeRouteLabel } from "../app/go-bus-route-colors";
+import { ttcRouteBadgeStyle } from "../app/ttc-route-badge";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { surfaceNoticePreviewLocation } from "../app/surface-notice-groups";
 
@@ -467,7 +468,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                 <span
                   className="current-service-route"
                   key={route}
-                  style={data.networkId === "regional" ? goNoticeRouteBadgeStyle(route) : undefined}
+                  style={data.networkId === "regional" ? goNoticeRouteBadgeStyle(route) : ttcRouteBadgeStyle(route)}
                   aria-label={data.networkId === "regional" ? goNoticeRouteLabel(route) : undefined}
                 >
                   {route}

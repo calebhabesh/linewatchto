@@ -15,6 +15,7 @@ record GtfsSchedulePreparedImport(
     List<GtfsImportModels.SurfaceStationStopRow> surfaceStationStops,
     List<GtfsImportModels.SurfaceTripRow> surfaceTrips,
     List<GtfsImportModels.SurfaceStationConnectionRow> surfaceStationConnections,
+    List<GtfsImportModels.SurfaceStopRow> surfaceStops,
     Set<String> rapidTransitTripIds,
     LocalDate serviceStart,
     LocalDate serviceEnd
@@ -30,6 +31,7 @@ record GtfsSchedulePreparedImport(
         surfaceStationStops = List.copyOf(surfaceStationStops);
         surfaceTrips = List.copyOf(surfaceTrips);
         surfaceStationConnections = List.copyOf(surfaceStationConnections);
+        surfaceStops = List.copyOf(surfaceStops);
         rapidTransitTripIds = Set.copyOf(rapidTransitTripIds);
     }
 
@@ -45,6 +47,6 @@ record GtfsSchedulePreparedImport(
         LocalDate serviceEnd
     ) {
         this(routes, stops, services, serviceExceptions, trips, stationStops,
-            List.of(), List.of(), List.of(), List.of(), rapidTransitTripIds, serviceStart, serviceEnd);
+            List.of(), List.of(), List.of(), List.of(), List.of(), rapidTransitTripIds, serviceStart, serviceEnd);
     }
 }

@@ -6,6 +6,8 @@ import type { KeyboardEvent, MutableRefObject } from "react";
 import { Activity, AlertTriangle, ArrowLeft, BarChart3, History, MapPin, Menu, Bookmark, Bus, ChevronRight, LoaderCircle, Megaphone, MessageSquareText, Navigation, Search, X } from "lucide-react";
 import { desktopRailDestinationForView, type DesktopRailDestination } from "../app/desktop-sidebar-state";
 import { useDashboardData } from "../app/DataContext";
+import { cachedStreetcarCatalog, streetcarStopByCode } from "../app/geographic-surface-catalog";
+import { surfaceStopCodeFromQuery } from "../app/surface-stop-arrivals";
 import {
   IMPACT_SEARCH_CATEGORIES,
   matchImpactCategories,
@@ -115,6 +117,8 @@ type Props = {
   onOpenDestination: (view: GlobalDestinationView) => void;
   onOpenSavedCommute: (commuteId: string) => void;
   onOpenSurfaceNotice: (notice: SurfaceNoticeDetail) => void;
+  /** Opens a TTC surface stop's departures by stop number (plan 13, S3). */
+  onOpenSurfaceStop?: (stopCode: string) => void;
   expandedLineId?: string | null;
   onExpandedLineIdChange?: (lineId: string | null) => void;
 };
@@ -435,6 +439,7 @@ export function StationSearchPanel({
   onOpenDestination,
   onOpenSavedCommute,
   onOpenSurfaceNotice,
+  onOpenSurfaceStop,
   expandedLineId: propExpandedLineId,
   onExpandedLineIdChange,
 }: Props) {
@@ -507,6 +512,14 @@ export function StationSearchPanel({
   );
   const [surfaceNotices, setSurfaceNotices] = useState<SurfaceNoticeDetail[]>([]);
   const surfaceNoticesRequestedNetworkRef = useRef<NetworkId | null>(null);
+  // A stop number opens that TTC stop's departures; the streetcar catalog names it when it can.
+  const surfaceStopResult = useMemo(() => {
+    const stopCode = onOpenSurfaceStop && currentNetwork === "ttc" ? surfaceStopCodeFromQuery(query) : null;
+    if (!stopCode) return null;
+    const streetcars = cachedStreetcarCatalog();
+    const known = streetcars ? streetcarStopByCode(streetcars, stopCode) : null;
+    return { stopCode, name: known?.properties.name ?? null, routes: known?.properties.routes ?? [] };
+  }, [currentNetwork, onOpenSurfaceStop, query]);
   const surfaceNoticeResults = useMemo(
     () => searchSurfaceNotices(surfaceNotices, query),
     [query, surfaceNotices],
@@ -664,7 +677,9 @@ export function StationSearchPanel({
 
     if (event.key === "Enter" && query.trim()) {
       event.preventDefault();
-      if (destinationResults[0]) {
+      if (surfaceStopResult && onOpenSurfaceStop) {
+        onOpenSurfaceStop(surfaceStopResult.stopCode);
+      } else if (destinationResults[0]) {
         onOpenDestination(destinationResults[0].view);
       } else if (lineResults[0]) {
         chooseLine(lineResults[0].line.id);
@@ -1007,8 +1022,39 @@ export function StationSearchPanel({
 
         {query.trim() ? (
           <div className="station-search-results global-search-results" aria-label="Search results">
-            {destinationResults.length > 0 || lineResults.length > 0 || stationResults.length > 0 || savedCommuteResults.length > 0 || impactGroups.length > 0 || surfaceNoticeResults.length > 0 || matchedCategories.length > 0 ? (
+            {surfaceStopResult || destinationResults.length > 0 || lineResults.length > 0 || stationResults.length > 0 || savedCommuteResults.length > 0 || impactGroups.length > 0 || surfaceNoticeResults.length > 0 || matchedCategories.length > 0 ? (
               <div className="station-search-results-list global-search-results-list">
+                {surfaceStopResult && onOpenSurfaceStop ? (
+                  <section className="global-search-group" aria-labelledby="global-search-stop-heading">
+                    <div className="global-search-group-heading">
+                      <h3 id="global-search-stop-heading">Stop Number</h3>
+                    </div>
+                    {(() => {
+                      const keyboardIndex = nextResultButtonIndex++;
+                      return (
+                        <button
+                          ref={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
+                          type="button"
+                          className="global-search-resource-result"
+                          data-surface-stop-result={surfaceStopResult.stopCode}
+                          onClick={() => onOpenSurfaceStop(surfaceStopResult.stopCode)}
+                          onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
+                        >
+                          <span className="global-search-resource-icon"><Bus size={18} /></span>
+                          <span>
+                            <strong>Stop {surfaceStopResult.stopCode}{surfaceStopResult.name ? ` · ${surfaceStopResult.name}` : ""}</strong>
+                            <small>
+                              {surfaceStopResult.routes.length > 0
+                                ? `Streetcar ${surfaceStopResult.routes.join(", ")} · Departures`
+                                : "TTC bus and streetcar departures"}
+                            </small>
+                          </span>
+                          <ChevronRight size={17} aria-hidden="true" />
+                        </button>
+                      );
+                    })()}
+                  </section>
+                ) : null}
                 {destinationResults.length > 0 ? (
                   <section className="global-search-group" aria-labelledby="global-search-destinations-heading">
                     <div className="global-search-group-heading">

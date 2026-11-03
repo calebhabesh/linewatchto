@@ -61,4 +61,40 @@ public class TtcSurfaceScheduledArrivalRepository {
         result.sort(Comparator.comparing(SurfaceArrivalRecord::scheduledAt));
         return List.copyOf(result);
     }
+
+    /** Scheduled boarding departures at one surface stop, any stop in the active import. */
+    public List<TtcSurfaceStopArrival> stopArrivals(String stopId, OffsetDateTime now, Duration horizon) {
+        var active = schedules.findActiveImportId();
+        if (active.isEmpty()) return List.of();
+        long importId = active.get();
+        List<TtcSurfaceStopArrival> result = new ArrayList<>();
+        LocalDate today = now.atZoneSameInstant(TORONTO).toLocalDate();
+        LocalDate end = now.plus(horizon).atZoneSameInstant(TORONTO).toLocalDate();
+        // Include previous service days for GTFS times after 24:00.
+        for (LocalDate date = today.minusDays(2); !date.isAfter(end); date = date.plusDays(1)) {
+            List<String> services = schedules.findActiveServiceIds(importId, date);
+            if (services.isEmpty()) continue;
+            LocalDate serviceDate = date;
+            long from = GtfsServiceTime.secondsAt(serviceDate, now.toInstant());
+            long until = GtfsServiceTime.secondsAt(serviceDate, now.plus(horizon).toInstant());
+            result.addAll(jdbc.query("""
+                select r.route_id, r.mode, r.route_short_name, r.route_long_name,
+                       coalesce(t.trip_headsign, '') as trip_headsign, t.trip_id, st.departure_seconds
+                from ttc_surface_stop_times st
+                join ttc_surface_trips t on t.import_id = st.import_id and t.trip_id = st.trip_id
+                join ttc_surface_routes r on r.import_id = t.import_id and r.route_id = t.route_id
+                where st.import_id = :importId and st.stop_id = :stopId
+                  and t.service_id in (:services)
+                  and st.departure_seconds >= :from and st.departure_seconds <= :until
+                order by st.departure_seconds, t.trip_id
+                """, Map.of("importId", importId, "stopId", stopId, "services", services,
+                    "from", from, "until", until), (rs, row) -> new TtcSurfaceStopArrival(
+                        stopId, rs.getString("route_id"), rs.getString("route_short_name"),
+                        rs.getString("route_long_name"), rs.getString("mode"), rs.getString("trip_headsign"),
+                        GtfsServiceTime.at(serviceDate, rs.getInt("departure_seconds")), null,
+                        rs.getString("trip_id"), "scheduled")));
+        }
+        result.sort(Comparator.comparing(TtcSurfaceStopArrival::scheduledAt));
+        return List.copyOf(result);
+    }
 }

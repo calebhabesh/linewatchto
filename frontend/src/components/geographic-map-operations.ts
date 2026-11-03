@@ -26,6 +26,11 @@ import type { PlannedClosure } from "../app/linewatch-data.ts";
 import { recordGeographicMapLifecycle } from "../app/geographic-lifecycle.ts";
 import { cachedStreetcarCatalog } from "../app/geographic-surface-catalog.ts";
 import { installStreetcarLayers, updateStreetcarFilter } from "./geographic-streetcar-layers.ts";
+import { areStationPlansRequested, installStationPlanLayers } from "./geographic-station-plan-layers.ts";
+import { updateBusFilter } from "./geographic-bus-layers.ts";
+import { updateGoBusFilter } from "./geographic-go-bus-layers.ts";
+import { installStreetcarVehicleLayers, updateStreetcarVehicleFilter } from "./geographic-streetcar-vehicles.ts";
+import { updateBusVehicleFilter } from "./geographic-bus-vehicles.ts";
 import {
   DEFAULT_STATION_LABEL_PLACEMENT,
   stationLabelPlacements,
@@ -69,6 +74,8 @@ interface InstallTransitLayersInitialData {
   selectionId?: string | null;
   selection?: { kind: string; id: string } | null;
   plannedClosures?: PlannedClosure[];
+  /** The rider's Streetcar Routes switch (default on); live cars install either way. */
+  streetcarRoutes?: boolean;
 }
 
 export function ensureBadgeImages(
@@ -325,6 +332,10 @@ export function updateGeographicLineFilter(
   activeFilteredLine: string | null,
 ): void {
   updateStreetcarFilter(map, activeFilteredLine);
+  updateBusFilter(map, activeFilteredLine);
+  updateGoBusFilter(map, activeFilteredLine);
+  updateStreetcarVehicleFilter(map, activeFilteredLine);
+  updateBusVehicleFilter(map, activeFilteredLine);
   if (map.getLayer("transit-routes")) {
     setTransitPaintProperty(map,
       "transit-routes",
@@ -1601,7 +1612,17 @@ export function installTransitLayers(
   // Streetcars, once their catalog has loaded (the map loads it on the TTC network).
   const streetcars = network === "ttc" ? cachedStreetcarCatalog() : null;
   if (streetcars) {
-    installStreetcarLayers(map, streetcars, { dark, activeFilteredLine: initialData?.activeFilteredLine ?? null });
+    if (initialData?.streetcarRoutes !== false) {
+      installStreetcarLayers(map, streetcars, { dark, activeFilteredLine: initialData?.activeFilteredLine ?? null });
+    }
+    // Live cars (S4) start empty; the map sets their data after every install.
+    installStreetcarVehicleLayers(map, {
+      dark,
+      activeFilteredLine: initialData?.activeFilteredLine ?? null,
+      color: streetcars.routes.find((route) => route.drawn)?.color,
+    });
   }
+  // Station floor plans (S7), once the map has neared plan zoom on TTC.
+  if (network === "ttc" && areStationPlansRequested()) installStationPlanLayers(map, { dark });
   installTransitOpacity(map);
 }

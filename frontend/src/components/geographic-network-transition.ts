@@ -20,6 +20,7 @@ export function installTransitOpacity(map: MapLibreMap) {
     if (!layer.id.startsWith("transit-")) continue;
     const properties = layer.type === "line" ? ["line-opacity"]
       : layer.type === "circle" ? ["circle-opacity", "circle-stroke-opacity"]
+      : layer.type === "fill" ? ["fill-opacity"]
       : layer.type === "symbol" ? [
         ...(layer.layout?.["icon-image"] ? ["icon-opacity"] : []),
         ...(layer.layout?.["text-field"] ? ["text-opacity"] : []),

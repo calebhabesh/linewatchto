@@ -78,6 +78,14 @@ type Props = {
   selectedStationName?: string;
   onClose: () => void;
   onSelectImpact?: (selection: ImpactSelection) => void;
+  /** Opens a surface stop's departures (a bay sign's stop number in Surface Connections). */
+  onOpenSurfaceStop?: (stopCode: string) => void;
+  /**
+   * A section to open and scroll to once the station has loaded ("surface-connections"
+   * when a stop panel's station link brings the rider back to all of its bays).
+   */
+  initialSection?: string;
+  onInitialSectionShown?: () => void;
   reducedMotion?: boolean;
   authenticated?: boolean;
   saved?: boolean;
@@ -309,7 +317,7 @@ function arrivalSourceTitle(arrivals: StationArrival[]) {
   return sources.length > 0 ? `Source: ${sources.join(" / ")}` : "Source unavailable";
 }
 
-export function StationDetailPanel({ stationResult, loading, updating, selectedStationName, onClose, onSelectImpact, reducedMotion, authenticated = false, saved = false, savePending = false, onToggleSaved, onRequestSignIn }: Props) {
+export function StationDetailPanel({ stationResult, loading, updating, selectedStationName, onClose, onSelectImpact, onOpenSurfaceStop, initialSection, onInitialSectionShown, reducedMotion, authenticated = false, saved = false, savePending = false, onToggleSaved, onRequestSignIn }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, snapshot } = useDashboardData();
   const subwayOperatingState = useSubwayOperatingState();
   const rawStation = stationResult?.data ?? null;
@@ -455,6 +463,20 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
       block: "start",
     });
   };
+
+  // Open the requested section once the station's content is on screen.
+  const initialSectionShownRef = useRef<string | null>(null);
+  const stationLoaded = Boolean(station);
+  useEffect(() => {
+    if (!initialSection || !stationLoaded || initialSectionShownRef.current === initialSection) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (!document.querySelector(`[data-station-section="${initialSection}"]`)) return;
+      initialSectionShownRef.current = initialSection;
+      handleJumpToSection(initialSection);
+      onInitialSectionShown?.();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  });
 
   const navItems: StationSubmenuNavItem[] = [];
   if (station) {
@@ -1136,7 +1158,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	            );
 	          })()}
 
-              <SurfaceConnectionsSection networkId="ttc" stationId={station.id} />
+              <SurfaceConnectionsSection networkId="ttc" stationId={station.id} onOpenSurfaceStop={onOpenSurfaceStop} />
 
               {stationNotices.length > 0 && (
                 <details

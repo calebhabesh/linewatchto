@@ -234,3 +234,258 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 1px 2px rgba(0, 0, 0, 0.25);
 }
+
+.surface-stop-station-link {
+  align-items: center;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 8px;
+  color: inherit;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-height: 44px;
+  /* The scroll area's gap is 12px; the title's line box already adds space
+     above, so this evens the space above and below the link. */
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  text-align: left;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.surface-stop-station-link span {
+  display: grid;
+  gap: 1px;
+}
+
+.surface-stop-station-link strong {
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.surface-stop-station-link small {
+  color: #475569;
+  font-size: 12px;
+}
+
+/* Hover and focus stay inside the link's own edge: it is the first thing in a
+   scrolling area, which clipped an outline drawn outside it. */
+.surface-stop-station-link:hover {
+  background: rgba(15, 23, 42, 0.06);
+  border-color: rgba(15, 23, 42, 0.24);
+}
+
+.surface-stop-station-link:focus-visible {
+  background: rgba(15, 23, 42, 0.06);
+  outline: 2px solid #38bdf8;
+  outline-offset: -2px;
+}
+
+.dark .surface-stop-station-link {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.dark .surface-stop-station-link small {
+  color: #cbd5e1;
+}
+
+.dark .surface-stop-station-link:hover,
+.dark .surface-stop-station-link:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dark .surface-stop-station-link:hover {
+  border-color: rgba(255, 255, 255, 0.26);
+}
+
+.surface-stop-message {
+  align-items: center;
+  color: #334155;
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+  line-height: 1.4;
+  margin: 0;
+  padding: 6px 2px;
+}
+
+.dark .surface-stop-message {
+  color: #e2e8f0;
+}
+
+.surface-stop-route-badge {
+  align-items: center;
+  border-radius: 6px;
+  color: #ffffff;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 900;
+  height: 32px;
+  justify-content: center;
+  min-width: 32px;
+  padding: 0 6px;
+}
+
+.surface-stop-route-badge.is-streetcar,
+.surface-stop-route-badge.is-bus {
+  background: #da291c;
+}
+
+.surface-stop-notices h3 {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  margin: 4px 0 6px;
+  text-transform: uppercase;
+}
+
+.surface-stop-notices ul {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.surface-stop-notices li {
+  border-left: 3px solid #f59e0b;
+  display: grid;
+  gap: 2px;
+  padding: 2px 0 2px 8px;
+}
+
+.surface-stop-notices strong {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.surface-stop-notices span {
+  color: #475569;
+  font-size: 12px;
+}
+
+.dark .surface-stop-notices span {
+  color: #cbd5e1;
+}
+
+.surface-stop-idle {
+  display: grid;
+  gap: 6px;
+}
+
+.surface-stop-idle > span:first-child {
+  color: #475569;
+  font-size: 12px;
+}
+
+.dark .surface-stop-idle > span:first-child,
+.high-contrast .surface-stop-idle > span:first-child {
+  color: #cbd5e1;
+}
+
+.surface-stop-idle-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.surface-stop-route-badge.is-small {
+  border-radius: 5px;
+  font-size: 11px;
+  height: 24px;
+  min-width: 34px;
+}
+
+/* Stop departures arrive with a short fade and rise, each route a beat after
+   the last, instead of popping in. Only on first appearance (and for a route
+   that joins later); refreshes keep their elements and do not replay it.
+   The panel skips the classes under reduced motion. */
+@keyframes surface-stop-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.surface-stop-departures-enter {
+  animation: surface-stop-enter 220ms ease-out both;
+}
+
+.surface-stop-route-enter {
+  animation: surface-stop-enter 240ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface-stop-departures-enter,
+  .surface-stop-route-enter {
+    animation: none;
+  }
+}
+
+/*
+ * TTC bus bay sign over a bay's routes (plan 13, S7 review): black with a
+ * white inset edge, "BAY" small over the number, as on the Map View's
+ * station plans and the signs in TTC stations. The same in both themes.
+ */
+.surface-bay-header {
+  padding: 2px 4px 0;
+}
+
+.surface-bay-sign {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 26px;
+  height: 30px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: #111111;
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1.5px #ffffff, 0 0 0 1px rgb(0 0 0 / 0.55);
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1;
+}
+
+.surface-bay-sign-word {
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.surface-bay-sign-number {
+  margin-top: 1px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+/*
+ * The bay's stop link takes the section caption's style ("TTC Live Surface
+ * Estimates": uppercase, 0.05em) at the header's size (13px, bold), in the
+ * link blue. Set here,
+ * not with utility classes: the global button reset (font: inherit) is
+ * unlayered and wins over Tailwind's layered utilities on a <button>.
+ */
+.surface-bay-stop-link {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.surface-bay-header.is-compact .surface-bay-sign {
+  min-width: 22px;
+  height: 26px;
+}
+
+.surface-bay-header.is-compact .surface-bay-sign-number {
+  font-size: 13px;
+}

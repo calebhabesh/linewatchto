@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildStreetcarCorridors,
+  buildSurfaceCorridors,
+  isDaytimeBusRoute,
   isDaytimeStreetcarRoute,
+  placeStopsAlongShape,
   tripKind,
 } from "../../scripts/lib/surface-corridors.mjs";
 import { haversine } from "../../scripts/lib/geographic-geometry.mjs";
@@ -113,5 +116,64 @@ describe("streetcar corridors", () => {
     ], { minPairTrips: 6 });
     assert.equal(corridors.length, 1);
     assert.equal(stopRoutes.has("y2000_600"), false);
+  });
+});
+
+describe("bus corridors (plan 13, S5)", () => {
+  it("keeps daytime bus routes and leaves out night routes and streetcars", () => {
+    const route = (shortName, type = "3") => ({ route_short_name: shortName, route_type: type });
+    assert.equal(isDaytimeBusRoute(route("29")), true);
+    assert.equal(isDaytimeBusRoute(route("929")), true, "Express routes are daytime buses");
+    assert.equal(isDaytimeBusRoute(route("402")), true, "Community routes are daytime buses");
+    assert.equal(isDaytimeBusRoute(route("329")), false, "night routes run over daytime streets");
+    assert.equal(isDaytimeBusRoute(route("504", "0")), false);
+  });
+
+  it("draws a quiet route's own gaps with a route share, and leaves other quiet gaps out", () => {
+    const dufferin = [[0, 0], [0, 2000]];
+    const community = [[500, 0], [500, 2000]];
+    const patterns = [
+      pattern("29", "s29", 120, dufferin, "d"),
+      pattern("402", "s402", 4, community, "c"),
+    ];
+    const strict = buildSurfaceCorridors(patterns);
+    assert.deepEqual(strict.corridors.map(c => c.routes), [["29"]], "4 trips are under the 6-trip floor");
+    const shared = buildSurfaceCorridors(patterns, { minRouteShare: 0.25 });
+    assert.deepEqual(shared.corridors.map(c => c.routes).sort(), [["29"], ["402"]]);
+    assert.ok(shared.stopRoutes.get("c500_0").includes("402"));
+  });
+
+  it("still leaves out a busy route's rare branch under the route share", () => {
+    const main = pattern("29", "main", 120, [[0, 0], [0, 2000]], "d");
+    const branch = pattern("29", "branch", 3, [[0, 2000], [1000, 2000]], "b");
+    const { corridors } = buildSurfaceCorridors([main, branch], { minRouteShare: 0.25 });
+    assert.equal(corridors.length, 1);
+    assert.ok(lengthOf(corridors[0].coordinates) < 2100, "the branch is not drawn");
+  });
+});
+
+describe("stops placed along a shape without distances (GO, plan 13 S6)", () => {
+  const points = (path) => path.map(([e, n]) => { const [lon, lat] = at(e, n); return { lon, lat }; });
+
+  it("measures the shape and places each stop at its closest pass, in order", () => {
+    const shape = points([[0, 0], [1000, 0], [2000, 0]]);
+    const placed = placeStopsAlongShape(shape, [at(0, 10), at(1500, -20), at(2000, 0)]);
+    assert.ok(Math.abs(placed.shape.at(-1).dist - 2000) < 5);
+    assert.ok(Math.abs(placed.distances[1] - 1500) < 5);
+    assert.ok(placed.offsets[1] > 15 && placed.offsets[1] < 25);
+    assert.ok(placed.distances[0] < placed.distances[1] && placed.distances[1] < placed.distances[2]);
+  });
+
+  it("takes the first pass of a loop, never a later one", () => {
+    // Out east 1 km, back west 5 m north: the stop near the start is passed twice.
+    const shape = points([[0, 0], [1000, 0], [1000, 5], [0, 5]]);
+    const placed = placeStopsAlongShape(shape, [at(100, 4), at(1000, 2), at(100, 6)]);
+    assert.ok(placed.distances[0] < 150, "first stop on the way out");
+    assert.ok(placed.distances[2] > 1800, "last stop on the way back");
+  });
+
+  it("reports a stop the shape never comes near, so the pattern can be dropped", () => {
+    const placed = placeStopsAlongShape(points([[0, 0], [1000, 0]]), [at(0, 0), at(500, 400)]);
+    assert.ok(placed.offsets[1] > 350);
   });
 });

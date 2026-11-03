@@ -5,13 +5,14 @@ test.beforeEach(async ({ page }) => {
   await installDismissedTransientUi(page);
 });
 
-test("desktop More restores secondary destinations and opens the site guide", async ({ page, request }) => {
+test("desktop Settings keeps preferences and About links and opens the site guide", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "Desktop rail and Settings panel; phones keep the More sheet");
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  const morePanel = page.getByLabel("Settings and more options");
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  const morePanel = page.locator(".desktop-more-panel");
   await expect(morePanel).toBeVisible();
   await expect(morePanel.getByRole("button", { name: "Notifications", exact: true })).toBeVisible();
   await expect(morePanel.getByRole("link", { name: "Transit Guides", exact: true })).toHaveAttribute("href", "/explore");

@@ -176,8 +176,24 @@ linewatch:
     regional-enabled: ${LINEWATCH_REGIONAL_SURFACE_ARRIVALS_ENABLED:false}
     regional-cache-ttl: ${LINEWATCH_REGIONAL_SURFACE_ARRIVALS_CACHE_TTL:PT30S}
     regional-max-source-age: ${LINEWATCH_REGIONAL_SURFACE_ARRIVALS_MAX_SOURCE_AGE:PT5M}
+    # GO bus stop departures on the GO/UP Map View (plan 13, S6): upstream reads per minute, all stops together.
+    regional-stop-fetches-per-minute: ${LINEWATCH_REGIONAL_SURFACE_ARRIVALS_STOP_FETCHES_PER_MINUTE:60}
     horizon: ${LINEWATCH_SURFACE_ARRIVALS_HORIZON:PT2H}
     max-arrivals-per-route: ${LINEWATCH_SURFACE_ARRIVALS_MAX_PER_ROUTE:3}
+  # Live TTC streetcar positions on the Map View (plan 13, S4). Its own flag and freshness:
+  # surface trip updates or alerts being fresh says nothing about vehicle positions.
+  streetcar-positions:
+    enabled: ${LINEWATCH_TTC_STREETCAR_POSITIONS_ENABLED:false}
+    url: ${LINEWATCH_TTC_STREETCAR_POSITIONS_URL:https://bustime.ttc.ca/gtfsrt/vehicles?debug}
+    initial-delay: ${LINEWATCH_TTC_STREETCAR_POSITIONS_INITIAL_DELAY:PT12S}
+    fixed-delay: ${LINEWATCH_TTC_STREETCAR_POSITIONS_FIXED_DELAY:PT15S}
+    max-source-age: ${LINEWATCH_TTC_STREETCAR_POSITIONS_MAX_SOURCE_AGE:PT2M}
+    vehicle-stale-after: ${LINEWATCH_TTC_STREETCAR_POSITIONS_VEHICLE_STALE_AFTER:PT2M}
+    vehicle-max-age: ${LINEWATCH_TTC_STREETCAR_POSITIONS_VEHICLE_MAX_AGE:PT5M}
+  # Live TTC bus positions (plan 13, S8): the same vehicle feed read as streetcars (one read serves
+  # both), its cadence and freshness limits above, and its own flag.
+  bus-positions:
+    enabled: ${LINEWATCH_TTC_BUS_POSITIONS_ENABLED:false}
   regional:
     arrivals:
       enabled: ${LINEWATCH_REGIONAL_ARRIVALS_ENABLED:false}

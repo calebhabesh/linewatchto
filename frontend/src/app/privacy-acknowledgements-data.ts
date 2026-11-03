@@ -42,6 +42,15 @@ export const acknowledgementSections: NoticeSection[] = [
     ],
   },
   {
+    title: "TTC Station Plans",
+    body: "Station floor plans on the Map View (footprints, entrances, elevators, stairs and escalators) are drawn from the TTC's public station layout map service, the data behind the TTC Live Map. They are the Toronto Transit Commission's work and are credited to the TTC.",
+    bullets: [
+      "The service publishes no licence, and it is not an Open Data Toronto dataset; LineWatchTO uses it with attribution and will remove the plans if the TTC objects.",
+      "An elevator, escalator or entrance shown on a plan does not mean it is working. Check Accessibility Outages and official TTC channels.",
+      "Bus bay numbers on the plans come from TTC GTFS (Open Government Licence – Toronto).",
+    ],
+  },
+  {
     title: "Permission-Sensitive Sources and Regional Names",
     body: "LineWatchTO does not treat TTC Live Alerts or Metrolinx API records as Toronto open data. Public launch of those integrations requires written source-owner confirmation appropriate to the intended use.",
     bullets: [
@@ -110,6 +119,11 @@ export const privacyAcknowledgementLinks: NoticeLink[] = [
     label: "Metrolinx GO System Map Reference",
     href: "https://assets.metrolinx.com/image/upload/v1695737837/Images/GO/system-map.png",
     description: "Metrolinx system-map image used as the direct visual reference for LineWatchTO's independently re-created GO/UP map.",
+  },
+  {
+    label: "TTC Live Map",
+    href: "https://livemap.ttc.ca/",
+    description: "The TTC's live map, whose station layout service is the source of LineWatchTO's station floor plans.",
   },
   {
     label: "TTC Website Terms",

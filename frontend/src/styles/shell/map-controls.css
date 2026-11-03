@@ -467,3 +467,177 @@
     color: inherit;
   }
 }
+
+/* Map View layer switches (plan 13: TTC in S5, GO/UP in S6): the toolbar's lower deck, one
+   shape with it. The deck hangs from the toolbar's bottom edge, inset on both
+   sides, joined by concave curves (the ::before/::after fillets), with its own
+   rounded bottom corners, as wide as its switches. The two share one drop shadow, so neither shades the
+   other. When the toolbar compacts (captions dropped), the switches drop their
+   text too; each keeps its accessible name and title. */
+.map-view-layers-row {
+  /* 18px (S8, was 22): room for "Train Markers" and "Streetcars & Buses" at 1440px. */
+  --deck-inset: 18px;
+  --deck-fillet: 10px;
+  --deck-fill: var(--panel-strong, #ffffff);
+  align-items: center;
+  background: var(--deck-fill);
+  border-radius: 0 0 12px 12px;
+  box-sizing: border-box;
+  display: flex;
+  /* 6px gaps and 10px ends: four labelled switches, one captioned
+     "Streetcars & Buses", fit the 1440px toolbar (S8). */
+  gap: 6px;
+  height: 48px;
+  justify-content: center;
+  /* Tapered to its switches and centred under the toolbar (two on GO/UP,
+     four on TTC); never wider than the toolbar's inset. */
+  left: 0;
+  margin-inline: auto;
+  max-width: calc(100% - 2 * var(--deck-inset));
+  padding: 0 10px 4px;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+/* While the Map View loads, the deck waits rolled up with its switches hidden,
+   so its entrance (Web Animations in GeographicNetworkMap) starts from nothing
+   rather than from an open deck that snaps shut. */
+@media (prefers-reduced-motion: no-preference) {
+  .map-view-layers-row[data-deck-waiting="true"] {
+    clip-path: inset(0 -12px 100% -12px);
+  }
+
+  .map-view-layers-row[data-deck-waiting="true"] .map-layer-switch {
+    opacity: 0;
+  }
+}
+
+.map-view-layers-row::before,
+.map-view-layers-row::after {
+  content: "";
+  height: var(--deck-fillet);
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  width: var(--deck-fillet);
+}
+
+.map-view-layers-row::before {
+  background: radial-gradient(circle at 0 100%, transparent calc(var(--deck-fillet) - 0.5px), var(--deck-fill) var(--deck-fillet));
+  right: 100%;
+}
+
+.map-view-layers-row::after {
+  background: radial-gradient(circle at 100% 100%, transparent calc(var(--deck-fillet) - 0.5px), var(--deck-fill) var(--deck-fillet));
+  left: 100%;
+}
+
+.dark .map-view-layers-row {
+  --deck-fill: var(--panel-strong, rgba(10, 12, 16, 0.98));
+}
+
+.high-contrast .map-view-layers-row {
+  --deck-fill: var(--map-control-bg, #000000);
+  border: 1px solid #ffffff;
+  border-top: none;
+}
+
+/* One shadow around the toolbar and its deck together. */
+.linewatch-shell .desktop-map-control-rail:has(> .map-view-layers-row) {
+  box-shadow: none;
+  filter: drop-shadow(0 8px 14px rgba(15, 23, 42, 0.16));
+}
+
+/* On the dark map a subtle light catch along the top edge sets the shape
+   off the basemap; the dark shadow does the rest. */
+.linewatch-shell.dark .desktop-map-control-rail:has(> .map-view-layers-row),
+.dark .desktop-map-control-rail:has(> .map-view-layers-row) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.55));
+}
+
+.high-contrast .desktop-map-control-rail:has(> .map-view-layers-row) {
+  filter: none;
+}
+
+.desktop-map-control-rail[data-compact="true"] .map-view-layers-row {
+  --deck-inset: 18px;
+  --deck-fillet: 8px;
+  gap: 0;
+  padding: 0 2px 4px;
+}
+
+.desktop-map-control-rail[data-compact="true"] .map-layer-switch {
+  gap: 4px;
+  padding: 0 3px;
+}
+
+.desktop-map-control-rail[data-compact="true"] .map-layer-switch-copy {
+  display: none;
+}
+
+.map-layer-switch {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  gap: 6px;
+  height: 44px;
+  /* 4px (S8): with the deck's 6px gaps, the four labelled switches fit the 1440px toolbar. */
+  padding: 0 4px;
+}
+
+.map-layer-switch-icon {
+  color: #64748b;
+  display: inline-flex;
+}
+
+.map-layer-switch[data-checked="true"] .map-layer-switch-icon {
+  color: #2563eb;
+}
+
+.dark .map-layer-switch-icon {
+  color: #94a3b8;
+}
+
+.dark .map-layer-switch[data-checked="true"] .map-layer-switch-icon {
+  color: #60a5fa;
+}
+
+.map-layer-switch-copy {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+}
+
+.map-layer-switch-label {
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.map-layer-switch-status {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dark .map-layer-switch-label,
+.high-contrast .map-layer-switch-label {
+  color: #f1f5f9;
+}
+
+.dark .map-layer-switch-status,
+.high-contrast .map-layer-switch-status {
+  color: #94a3b8;
+}
+
+/* useCollapseWidth: while a control folds away or back, its contents keep
+   their size and are clipped at its edge instead of squeezing together. */
+[data-collapsing="true"] > * {
+  flex-shrink: 0;
+}

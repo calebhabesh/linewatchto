@@ -48,6 +48,10 @@ class GtfsScheduleSourceVersionIntegrationTest {
 
             repository.markSurfaceScheduleAvailable(importId);
             repository.markFullStopCatalogAvailable(importId);
+            // An import from before the all-stops surface catalog (V91) is re-imported.
+            assertThat(repository.hasCompleteImportOfSourceVersion(VERSION)).isFalse();
+
+            repository.markSurfaceStopCatalogAvailable(importId);
             assertThat(repository.hasCompleteImportOfSourceVersion(VERSION)).isTrue();
             assertThat(repository.hasCompleteImportOfSourceVersion(VERSION + "-newer")).isFalse();
         });

@@ -42,32 +42,46 @@ class GtfsScheduleImportWriterTest {
     private final GtfsScheduleImportWriter writer = new GtfsScheduleImportWriter(repository, clock);
 
     @Test
-    void storesOnlyBoardableMappedSurfaceDeparturesAndPreservesAfterMidnightTimes() throws Exception {
+    void storesBoardableDeparturesAtEveryCatalogStopAndPreservesAfterMidnightTimes() throws Exception {
         Path zip = tempDir.resolve("surface.zip");
         try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(zip))) {
             out.putNextEntry(new ZipEntry("stop_times.txt"));
             out.write("""
                 trip_id,stop_id,arrival_time,departure_time,stop_sequence,pickup_type
                 bus,bay,25:00:00,25:01:00,1,0
-                bus,unmapped,25:02:00,25:02:00,2,0
-                bus,bay,25:03:00,25:03:00,3,1
-                bus,bay,25:04:00,25:04:00,4,2
-                bus,bay,25:05:00,25:05:00,5,0
+                bus,street,25:02:00,25:02:00,2,0
+                bus,unlisted,25:02:30,25:02:30,3,0
+                bus,bay,25:03:00,25:03:00,4,1
+                bus,street,25:04:00,25:04:00,5,2
+                bus,bay,25:05:00,25:05:00,6,0
                 """.getBytes(StandardCharsets.UTF_8));
         }
         var prepared = new GtfsSchedulePreparedImport(List.of(), List.of(), List.of(), List.of(), List.of(),
             List.of(), List.of(),
             List.of(new GtfsImportModels.SurfaceStationStopRow("bay", "union", "Union at Bay 1", "", "Bay 1")),
-            List.of(new GtfsImportModels.SurfaceTripRow("bus", "995", "East", "weekday", 5)),
-            List.of(), Set.of(), LocalDate.parse("2026-06-01"), LocalDate.parse("2026-12-31"));
+            List.of(new GtfsImportModels.SurfaceTripRow("bus", "995", "East", "weekday", 6)),
+            List.of(),
+            List.of(
+                new GtfsImportModels.SurfaceStopRow("bay", "1001", "Union at Bay 1", 43.6, -79.3, "union", "Bay 1"),
+                new GtfsImportModels.SurfaceStopRow("street", "9037", "Yonge St at Crescent Rd", 43.7, -79.4, null, "")
+            ),
+            Set.of(), LocalDate.parse("2026-06-01"), LocalDate.parse("2026-12-31"));
         writer.write(zip, "test", prepared);
         ArgumentCaptor<List<GtfsImportModels.StopTimeRow>> rows = ArgumentCaptor.forClass(List.class);
         verify(repository).insertSurfaceStopTimes(anyLong(), rows.capture());
-        assertThat(rows.getValue()).singleElement().satisfies(row -> {
-            assertThat(row.stopId()).isEqualTo("bay");
-            assertThat(row.departureSeconds()).isEqualTo(25 * 3600 + 60);
-        });
+        // The last stop, no-pickup rows and stops outside the catalog are not departures.
+        assertThat(rows.getValue()).extracting(GtfsImportModels.StopTimeRow::stopId, GtfsImportModels.StopTimeRow::departureSeconds)
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("bay", 25 * 3600 + 60),
+                org.assertj.core.groups.Tuple.tuple("street", 25 * 3600 + 120));
+        verify(repository).insertSurfaceStops(anyLong(), eq(prepared.surfaceStops()));
+        ArgumentCaptor<List<GtfsImportModels.SurfaceStopRouteRow>> stopRoutes = ArgumentCaptor.forClass(List.class);
+        verify(repository).insertSurfaceStopRoutes(anyLong(), stopRoutes.capture());
+        assertThat(stopRoutes.getValue()).containsExactly(
+            new GtfsImportModels.SurfaceStopRouteRow("bay", "995", "East"),
+            new GtfsImportModels.SurfaceStopRouteRow("street", "995", "East"));
         verify(repository).markSurfaceScheduleAvailable(anyLong());
+        verify(repository).markSurfaceStopCatalogAvailable(anyLong());
     }
 
     @Test

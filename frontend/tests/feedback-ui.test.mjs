@@ -54,8 +54,8 @@ describe("feedback navigation", () => {
     assert.match(moreSheetSource, />\s*Support\s*</);
     assert.doesNotMatch(moreSheetSource, /Leave Feedback \/ Support/);
 
-    // DesktopMorePanel uses MessageSquareText for feedback and HeartHandshake for support
-    assert.match(desktopMoreSource, /MessageSquareText size=\{18\}[^>]*\/>\s*<span>Leave Feedback<\/span>/);
+    // Desktop Settings keeps Support (HeartHandshake); Feedback is its own rail item.
+    assert.doesNotMatch(desktopMoreSource, /Leave Feedback/);
     assert.match(desktopMoreSource, /HeartHandshake size=\{18\}[^>]*\/>\s*<span>Support<\/span>/);
     assert.doesNotMatch(desktopMoreSource, /HeartHandshake size=\{18\}[^>]*\/>\s*<span>Leave Feedback<\/span>/);
   });

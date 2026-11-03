@@ -24,7 +24,10 @@ const TTC_GEOGRAPHIC_BOUNDS: [[number, number], [number, number]] = [
 const TTC_GEOGRAPHIC_CENTER: [number, number] = [-79.3832, 43.68];
 const TTC_GEOGRAPHIC_DEFAULT_ZOOM = 11.2;
 export const GEOGRAPHIC_MIN_ZOOM = 7.0;
-export const GEOGRAPHIC_MAX_ZOOM = 17.0;
+// Street level: the vector base tiles overzoom past their own maximum, so stops and
+// streetcar positions can be read curb by curb.
+/** Close to street level, about as far as livemap.ttc.ca, for station plans (plan 13, S7; 19 before). */
+export const GEOGRAPHIC_MAX_ZOOM = 21.0;
 export const STATION_FOCUS_ZOOM = 14.2;
 
 export const TTC_LINE_COLORS: Record<string, string> = {
@@ -89,7 +92,9 @@ export const REGIONAL_MAJOR_STATIONS = new Set([
 ]);
 
 const GEOGRAPHIC_ATTRIBUTION =
-  'TTC shapes <a href="https://open.toronto.ca/" target="_blank" rel="noopener noreferrer">© City of Toronto</a>';
+  'TTC shapes <a href="https://open.toronto.ca/" target="_blank" rel="noopener noreferrer">© City of Toronto</a>'
+  // Station floor plans (plan 13, S7) come from the TTC's own map service.
+  + ' · Station plans <a href="https://livemap.ttc.ca/" target="_blank" rel="noopener noreferrer">© TTC</a>';
 
 const REGIONAL_GEOGRAPHIC_ATTRIBUTION =
   'Regional shapes <a href="https://www.gotransit.com/" target="_blank" rel="noopener noreferrer">© Metrolinx</a>';

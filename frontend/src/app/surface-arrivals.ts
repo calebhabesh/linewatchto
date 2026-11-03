@@ -55,6 +55,8 @@ type SurfaceRouteDetails = {
   cleanDestination: string;
   direction: string;
   metaSubtitle: string;
+  /** The same line without the bay, for rows under a bay sign (plan 13, S7 review). */
+  metaSubtitleWithoutBay: string;
 };
 
 const SURFACE_DUE_EXPIRY_SECONDS = 90;
@@ -260,6 +262,7 @@ export function parseSurfaceRouteDetails(
   if (direction) {
     metaParts.push(direction);
   }
+  const metaSubtitleWithoutBay = metaParts.join(" · ");
   if (bayLabel) {
     metaParts.push(bayLabel);
   } else {
@@ -272,6 +275,7 @@ export function parseSurfaceRouteDetails(
     cleanDestination,
     direction,
     metaSubtitle: metaParts.join(" · "),
+    metaSubtitleWithoutBay,
   };
 }
 

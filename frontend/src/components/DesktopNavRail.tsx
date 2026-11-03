@@ -10,7 +10,7 @@ import {
   History,
   MapPin,
   Megaphone,
-  Menu,
+  Settings,
   MessageSquareText,
   Navigation,
   PanelLeftClose,
@@ -62,7 +62,6 @@ const RAIL_ITEMS: readonly RailItemDef[] = [
   { key: "stations", label: "My Stations", Icon: MapPin },
   { key: "commutes", label: "My Commutes", Icon: Navigation },
   { key: "alert-history", label: "Alert History", Icon: History },
-  { key: "more", label: "More", Icon: Menu },
 ];
 
 export function DesktopNavRail({
@@ -135,7 +134,10 @@ export function DesktopNavRail({
         { key: "closures", label: "Planned Advisories", lines: ["Planned", "Advisories"], count: plannedClosureCount, countLabel: plannedClosureCount === 1 ? "planned advisory" : "planned advisories", icon: <PlannedClosureIcon size={21} /> },
       ] as const;
 
-  const feedbackIndex = RAIL_ITEMS.length + noticeShortcuts.length + alertShortcuts.length;
+  // Settings (the "more" destination; phones call it More) sits in the bottom group, above
+  // Feedback; focus order follows the rail top to bottom.
+  const moreIndex = RAIL_ITEMS.length + noticeShortcuts.length + alertShortcuts.length;
+  const feedbackIndex = moreIndex + 1;
   const analyticsIndex = feedbackIndex + 1;
   const sourceStatusIndex = analyticsIndex + 1;
   const totalSlots = sourceStatusIndex + 1;
@@ -355,6 +357,26 @@ export function DesktopNavRail({
           </div>
 
           <div className="desktop-rail-divider" role="separator" aria-orientation="horizontal" />
+
+          <button
+            ref={(element) => {
+              itemRefs.current[moreIndex] = element;
+            }}
+            type="button"
+            className="desktop-rail-item"
+            data-active={activeDestination === "more" ? "true" : "false"}
+            data-dest="more"
+            aria-current={activeDestination === "more" ? "page" : undefined}
+            aria-label="Settings"
+            title="Settings"
+            onClick={() => onSelectDestination("more")}
+            onKeyDown={(e) => handleItemKeyDown(moreIndex, e)}
+          >
+            <span className="desktop-rail-icon-slot">
+              <Settings size={21} aria-hidden="true" />
+            </span>
+            <span className="desktop-rail-label">Settings</span>
+          </button>
 
           <button
             ref={(element) => {

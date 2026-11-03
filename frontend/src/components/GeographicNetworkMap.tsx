@@ -1,11 +1,11 @@
 "use client";
 
 import { CommuteRouteLabel } from "./CommuteRouteLabel";
-import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo, type ReactNode, type RefObject } from "react";
 import { Map as MapLibreMap, AttributionControl, getVersion, setWorkerUrl, type VectorTileSource } from "maplibre-gl";
 import { installTilePrefetch, type PrefetchSource } from "./map-tile-prefetch";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { AlertCircle, RefreshCw, Layers, Locate, ZoomIn, ZoomOut } from "lucide-react";
+import { AlertCircle, RefreshCw, Layers, Locate, Bus, Route, SatelliteDish, TrainFrontTunnel, ZoomIn, ZoomOut } from "lucide-react";
 import { cachedGeographicCatalog, loadGeographicCatalog } from "../app/geographic-catalog-loader";
 import type { MapFadeController } from "../app/map-surface-transition";
 import { createGeographicMapFade, installTransitOpacity, setTransitPaintProperty } from "./geographic-network-transition";
@@ -26,6 +26,7 @@ import { useOptionalDashboardData } from "../app/DataContext";
 import { plannedAdvisoryStationImpacts } from "../app/map-alert-selector";
 import { NetworkSelector } from "./NetworkSelector";
 import { MapViewSelector } from "./MapViewSelector";
+import { observeDesktopControlRail } from "../app/desktop-sidebar-state";
 import {
   getStationCoordinates,
   projectImpactedLinks,
@@ -64,18 +65,131 @@ import {
 } from "../app/geographic-lifecycle";
 import { MapOverlapChooser } from "./MapOverlapChooser";
 import { GeographicStreetcarCard } from "./GeographicStreetcarCard";
+import { GeographicStreetcarVehicleCard } from "./GeographicStreetcarVehicleCard";
+import {
+  distanceToStreetcarRoute,
+  findStreetcarVehicle,
+  getStreetcarPositions,
+  streetcarPositionsDelayMs,
+  streetcarVehicleAgeSeconds,
+  streetcarVehicleFeatures,
+  streetcarVehicleState,
+  STREETCAR_OFF_ROUTE_METERS,
+  type StreetcarPositionsRead,
+} from "../app/streetcar-positions";
+import {
+  BUS_VEHICLE_MIN_ZOOM,
+  busPositionsArea,
+  busPositionsAreaCovers,
+  busVehicleFeatures,
+  busVehicleFeaturesSignature,
+  findBusVehicle,
+  getBusPositions,
+  isBusOffRoute,
+  type BusPositionsArea,
+  type BusPositionsRead,
+  type BusVehicle,
+} from "../app/bus-positions";
+import {
+  hasBusVehicleLayers,
+  installBusVehicleLayers,
+  removeBusVehicleLayers,
+  setBusVehicleData,
+  busVehicleKeyAtPoint,
+} from "./geographic-bus-vehicles";
+import {
+  STREETCAR_VEHICLE_LAYER,
+  hasStreetcarVehicleLayers,
+  installStreetcarVehicleLayers,
+  setStreetcarVehicleData,
+  streetcarVehicleKeyAtPoint,
+} from "./geographic-streetcar-vehicles";
 import {
   cachedStreetcarCatalog,
   loadStreetcarCatalog,
+  nearestStreetcarStop,
   streetcarCardRows,
+  streetcarStopByCode,
   streetcarSchedulePeriodLabel,
+  type StreetcarStopFeature,
 } from "../app/geographic-surface-catalog";
 import {
   STREETCAR_BADGE_LAYER,
   STREETCAR_HIT_LAYER,
+  STREETCAR_STOP_LAYER,
   hasStreetcarLayers,
   installStreetcarLayers,
+  removeStreetcarLayers,
+  streetcarStopCodeAtPoint,
+  updateStreetcarStopSelection,
 } from "./geographic-streetcar-layers";
+import {
+  BUS_BADGE_LAYER,
+  BUS_HIT_LAYER,
+  BUS_STOP_LAYER,
+  addMissingBusBadgeImage,
+  busStopCodeAtPoint,
+  hasBusLayers,
+  hasBusStopLayers,
+  installBusLayers,
+  installBusStopLayers,
+  removeBusLayers,
+  removeBusStopLayers,
+  updateBusStopSelection,
+} from "./geographic-bus-layers";
+import {
+  GO_BUS_BADGE_LAYER,
+  GO_BUS_HIT_LAYER,
+  GO_BUS_STOP_LAYER,
+  addMissingGoBusBadgeImage,
+  goBusStopCodeAtPoint,
+  hasGoBusLayers,
+  hasGoBusStopLayers,
+  installGoBusLayers,
+  installGoBusStopLayers,
+  removeGoBusLayers,
+  updateGoBusStopSelection,
+} from "./geographic-go-bus-layers";
+import {
+  cachedGoBusCatalog,
+  cachedGoBusStops,
+  goBusCardRows,
+  goBusStopByCode,
+  loadGoBusCatalog,
+  loadGoBusStops,
+  nearestGoBusStop,
+  type GoBusStopFeature,
+} from "../app/go-bus-catalog";
+import {
+  STREETCAR_POSITIONS_STORAGE_KEY,
+  STREETCAR_ROUTES_STORAGE_KEY,
+  estimatedTrainsDetail,
+  readLayerPreference,
+  vehiclePositionsDetail,
+  writeLayerPreference,
+} from "../app/map-view-layers";
+import SquishSwitch from "./SquishSwitch";
+import {
+  STATION_PLAN_BAY_LAYER,
+  addMissingStationBayImage,
+  hasStationPlanLayers,
+  installStationPlanLayers,
+  prepareStationPlanImages,
+  requestStationPlans,
+  stationBayStopCodeAtPoint,
+} from "./geographic-station-plan-layers";
+import { STATION_PLANS_LOAD_ZOOM } from "../app/geographic-station-plans";
+import {
+  BUS_STOPS_LOAD_ZOOM,
+  busCardRows,
+  busStopByCode,
+  cachedBusCatalog,
+  cachedBusStops,
+  loadBusCatalog,
+  loadBusStops,
+  nearestBusStop,
+  type BusStopFeature,
+} from "../app/geographic-bus-catalog";
 import {
   MapChooserFollower,
   chooserBadgeInView,
@@ -87,7 +201,7 @@ import {
   GEOGRAPHIC_CHOOSER_KEEPOUT_GAP,
   type GeographicOverlapChooserLayout,
 } from "./geographic-chooser-placement";
-import { overlapChooserSize, streetcarCardSize } from "./map-chooser-layout";
+import { overlapChooserSize, streetcarCardSize, streetcarVehicleCardSize } from "./map-chooser-layout";
 import { useMapGestureInterruption } from "../hooks/useMapGestureInterruption";
 import {
   generateOverlapBadgeSvg,
@@ -150,6 +264,9 @@ export type GeographicNetworkMapProps = {
   highContrast: boolean;
   selectedStationId?: string | null;
   onSelectStationId?: (stationId: string | null) => void;
+  /** The TTC surface stop whose departures are open (plan 13, S3). */
+  selectedSurfaceStopCode?: string | null;
+  onSelectSurfaceStop?: (stopCode: string | null) => void;
   selection?: ImpactSelection;
   onSelectImpact?: (selection: ImpactSelection) => void;
   commutePathPreview?: AccountCommutePathPreview | null;
@@ -177,6 +294,26 @@ export type GeographicNetworkMapProps = {
   selectionIntroKey?: string | null;
   mobilePerformanceMode?: boolean;
   layoutResetSignal?: number;
+  /** TTC buses (plan 13, S5): the rider's toggle, off by default. Drawn on the TTC network only. */
+  busesEnabled?: boolean;
+  /** The layer deck's Buses switch; without it the deck shows no bus switch. */
+  onToggleBuses?: () => void;
+  /** GO buses (plan 13, S6): the rider's toggle, off by default. Drawn on the GO/UP network only. */
+  goBusesEnabled?: boolean;
+  /** The GO/UP layer deck's GO Buses switch. */
+  onToggleGoBuses?: () => void;
+  /**
+   * The shell's estimated train markers switch, also shown in the Map View's
+   * layer deck on both networks (one setting, so both always agree).
+   */
+  trainMarkersControl?: {
+    checked: boolean;
+    disabled: boolean;
+    pending: boolean;
+    status: string;
+    ariaLabel: string;
+    onToggle: () => void;
+  };
 };
 
 const EMPTY_SEGMENTS: NetworkSegment[] = [];
@@ -200,11 +337,39 @@ type GeographicOverlapChooserState = {
   coordinate: [number, number];
 };
 
-/** A press on a streetcar line: the routes there and where the card points. */
-type GeographicStreetcarCardState = {
-  routes: string[];
-  coordinate: [number, number];
-};
+/**
+ * A press on a streetcar or bus line (the routes there and where the card
+ * points), or on a live car (S4), which the card names by its key in the
+ * latest read.
+ */
+type GeographicStreetcarCardState =
+  | {
+    kind: "routes";
+    mode: "streetcar" | "bus" | "go-bus";
+    routes: string[];
+    coordinate: [number, number];
+    /** The nearest stop on these routes, offered as a way into its departures (S3). */
+    nearestStop: StreetcarStopFeature | BusStopFeature | GoBusStopFeature | null;
+  }
+  | { kind: "vehicle"; key: string; coordinate: [number, number] }
+  /** A live bus (S8). */
+  | { kind: "bus-vehicle"; key: string; coordinate: [number, number] };
+
+/** Pole numbers the streetcar layer draws; a shared pole shows its streetcar label only. */
+const streetcarStopCodeSets = new WeakMap<object, Set<string>>();
+function streetcarStopCodeSet(catalog: ReturnType<typeof cachedStreetcarCatalog>): Set<string> {
+  if (!catalog) return new Set();
+  let codes = streetcarStopCodeSets.get(catalog);
+  if (!codes) {
+    codes = new Set(catalog.features.flatMap((feature) => (
+      feature.properties.featureType === "streetcar-stop" && "stopCode" in feature.properties && feature.properties.stopCode
+        ? [feature.properties.stopCode]
+        : []
+    )));
+    streetcarStopCodeSets.set(catalog, codes);
+  }
+  return codes;
+}
 
 /** Routes on the streetcar lines under a press, in route order (MapLibre returns array properties as JSON). */
 function streetcarRoutesFromFeatures(features: Array<{ properties?: Record<string, unknown> | null }>): string[] {
@@ -229,6 +394,13 @@ const GEOGRAPHIC_POINTER_LAYERS = [
   "transit-impacts-line",
   "transit-impact-arrows",
   STREETCAR_HIT_LAYER,
+  STREETCAR_STOP_LAYER,
+  STREETCAR_VEHICLE_LAYER,
+  BUS_HIT_LAYER,
+  BUS_STOP_LAYER,
+  GO_BUS_HIT_LAYER,
+  GO_BUS_STOP_LAYER,
+  STATION_PLAN_BAY_LAYER,
 ];
 
 function geographicMobileSelectionPadding(container: HTMLElement) {
@@ -334,6 +506,108 @@ function openMapTilesPrefetchSources(map: MapLibreMap): PrefetchSource[] {
   }];
 }
 
+/** Street level: stop pills draw from zoom 15. */
+const SURFACE_STOP_FOCUS_ZOOM = 16;
+/** GO bus stops are framed a little wider: terminals and highway stops, not street poles. */
+const GO_BUS_STOP_FOCUS_ZOOM = 15;
+
+/**
+ * Flies to a selected station or stop the same way: at least `minZoom`, centred
+ * above the phone's submenu sheet, or in the area the desktop sidebar, toolbar
+ * and legend leave showing.
+ */
+function focusGeographicCamera(
+  map: MapLibreMap,
+  container: HTMLDivElement | null,
+  coords: [number, number],
+  minZoom: number,
+  reducedMotion: boolean,
+) {
+  const targetZoom = Math.max(map.getZoom(), minZoom);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const padding = isMobile && container ? {
+    top: readMobilePillBottom(container),
+    bottom: Math.max(0, container.clientHeight - readMobileStationSubmenuTop(container, container.clientHeight)),
+    left: 0,
+    right: 0,
+  } : undefined;
+  // Desktop centres the station in the area the sidebar, toolbar and
+  // legend leave showing. An offset, unlike padding, does not persist.
+  const desktopPadding = !isMobile && container ? geographicDesktopFocusPadding(container) : null;
+  const offset: [number, number] | undefined = desktopPadding
+    ? [(desktopPadding.left - desktopPadding.right) / 2, (desktopPadding.top - desktopPadding.bottom) / 2]
+    : undefined;
+  if (reducedMotion) {
+    map.jumpTo({ center: coords, zoom: targetZoom, padding });
+    if (offset) map.panBy([-offset[0], -offset[1]], { animate: false });
+  } else {
+    map.flyTo({ center: coords, zoom: targetZoom, padding, ...(offset ? { offset } : {}), essential: true });
+  }
+}
+
+/**
+ * The stop a live bus's card offers (S8): the nearest bus stop on its route
+ * within 300 m, or for a replacement bus the nearest stop of the streetcar
+ * route it stands in for. Null until the stop file has loaded.
+ */
+function busVehicleNearestStop(vehicle: BusVehicle): StreetcarStopFeature | BusStopFeature | null {
+  const coordinate: [number, number] = [vehicle.longitude, vehicle.latitude];
+  if (vehicle.replacement) {
+    const streetcars = cachedStreetcarCatalog();
+    return streetcars ? nearestStreetcarStop(streetcars, coordinate, [vehicle.route])?.stop ?? null : null;
+  }
+  const stops = cachedBusStops();
+  return stops ? nearestBusStop(stops, coordinate, [vehicle.route])?.stop ?? null : null;
+}
+
+/**
+ * One switch in the Map View's layer deck, in the Train Markers switch's
+ * design: the mode on top, and below it what the switch controls (or why it
+ * cannot show anything now). The switch itself carries on or off.
+ */
+function MapLayerSwitch({ id, icon, label, detail, checked, disabled = false, pending = false, ariaLabel, title, onChange, dataBusToggle = false }: {
+  id: string;
+  icon: ReactNode;
+  label: string;
+  detail: string;
+  checked: boolean;
+  disabled?: boolean;
+  pending?: boolean;
+  ariaLabel: string;
+  title: string;
+  onChange: () => void;
+  dataBusToggle?: boolean;
+}) {
+  return (
+    <div
+      className="map-layer-switch"
+      data-checked={checked ? "true" : "false"}
+      data-disabled={disabled ? "true" : undefined}
+      data-bus-toggle={dataBusToggle ? "" : undefined}
+      title={title}
+    >
+      <span className="map-layer-switch-icon">{icon}</span>
+      <label htmlFor={id} className="map-layer-switch-copy">
+        <span className="map-layer-switch-label">{label}</span>
+        <span className="map-layer-switch-status">{detail}</span>
+      </label>
+      <SquishSwitch
+        id={id}
+        checked={checked}
+        disabled={disabled}
+        ariaBusy={pending}
+        ariaLabel={ariaLabel}
+        className="shrink-0"
+        trackOnColor="#10b981"
+        width={34}
+        height={20}
+        onChange={onChange}
+        title={title}
+      />
+    </div>
+  );
+}
+
 export function GeographicNetworkMap({
   network,
   networkFadeRef,
@@ -341,6 +615,8 @@ export function GeographicNetworkMap({
   highContrast,
   selectedStationId,
   onSelectStationId,
+  selectedSurfaceStopCode = null,
+  onSelectSurfaceStop,
   selection,
   onSelectImpact,
   commutePathPreview,
@@ -367,6 +643,11 @@ export function GeographicNetworkMap({
   selectionIntroKey = null,
   mobilePerformanceMode = false,
   layoutResetSignal = 0,
+  busesEnabled = false,
+  onToggleBuses,
+  goBusesEnabled = false,
+  onToggleGoBuses,
+  trainMarkersControl,
 }: GeographicNetworkMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sliderRef = useRef<HTMLInputElement | null>(null);
@@ -471,6 +752,20 @@ export function GeographicNetworkMap({
   const [currentZoom, setCurrentZoom] = useState<number>(() => getGeographicDefaultZoom(network));
   const [overlapChooser, setOverlapChooser] = useState<GeographicOverlapChooserState | null>(null);
   const [streetcarCard, setStreetcarCard] = useState<GeographicStreetcarCardState | null>(null);
+  // Live streetcar positions (S4): the latest read, and the clock their ages are read against.
+  const [streetcarPositions, setStreetcarPositions] = useState<StreetcarPositionsRead | null>(null);
+  const [streetcarPositionsNow, setStreetcarPositionsNow] = useState(() => Date.now());
+  const streetcarPositionsRef = useRef(streetcarPositions);
+  useLayoutEffect(() => {
+    streetcarPositionsRef.current = streetcarPositions;
+  }, [streetcarPositions]);
+  // Live bus positions (S8): the latest read of the area around the view, and its clock.
+  const [busPositions, setBusPositions] = useState<BusPositionsRead | null>(null);
+  const [busPositionsNow, setBusPositionsNow] = useState(() => Date.now());
+  const busPositionsRef = useRef(busPositions);
+  useLayoutEffect(() => {
+    busPositionsRef.current = busPositions;
+  }, [busPositions]);
   // One card is open at a time; the alert chooser and the streetcar card share
   // its placement and follower.
   const chooserAnchor = useMemo(() => {
@@ -480,12 +775,61 @@ export function GeographicNetworkMap({
         size: (viewportWidth: number) => overlapChooserSize(overlapChooser.impacts.length, viewportWidth),
       };
     }
+    if (streetcarCard?.kind === "bus-vehicle") {
+      return {
+        coordinate: streetcarCard.coordinate,
+        size: (viewportWidth: number) => {
+          const vehicle = findBusVehicle(busPositionsRef.current, streetcarCard.key);
+          return streetcarVehicleCardSize(viewportWidth, {
+            offRoute: Boolean(vehicle && isBusOffRoute(cachedBusCatalog(), vehicle)),
+            replacement: Boolean(vehicle?.replacement),
+            withStop: Boolean(vehicle && callbacksRef.current.onSelectSurfaceStop && busVehicleNearestStop(vehicle)),
+          });
+        },
+      };
+    }
+    if (streetcarCard?.kind === "vehicle") {
+      return {
+        coordinate: streetcarCard.coordinate,
+        size: (viewportWidth: number) => {
+          const vehicle = findStreetcarVehicle(streetcarPositionsRef.current, streetcarCard.key);
+          const streetcars = cachedStreetcarCatalog();
+          return streetcarVehicleCardSize(viewportWidth, {
+            offRoute: Boolean(vehicle && streetcars && distanceToStreetcarRoute(
+              streetcars, vehicle.route, [vehicle.longitude, vehicle.latitude],
+            ) > STREETCAR_OFF_ROUTE_METERS),
+            withStop: Boolean(vehicle && streetcars && callbacksRef.current.onSelectSurfaceStop
+              && nearestStreetcarStop(streetcars, [vehicle.longitude, vehicle.latitude], [vehicle.route])),
+          });
+        },
+      };
+    }
     if (streetcarCard) {
       return {
         coordinate: streetcarCard.coordinate,
         size: (viewportWidth: number) => {
+          if (streetcarCard.mode === "go-bus") {
+            const goBuses = cachedGoBusCatalog();
+            return streetcarCardSize(
+              goBuses ? goBusCardRows(goBuses, streetcarCard.routes) : [],
+              viewportWidth,
+              Boolean(streetcarCard.nearestStop),
+            );
+          }
+          if (streetcarCard.mode === "bus") {
+            const buses = cachedBusCatalog();
+            return streetcarCardSize(
+              buses ? busCardRows(buses, streetcarCard.routes) : [],
+              viewportWidth,
+              Boolean(streetcarCard.nearestStop),
+            );
+          }
           const streetcars = cachedStreetcarCatalog();
-          return streetcarCardSize(streetcars ? streetcarCardRows(streetcars, streetcarCard.routes) : [], viewportWidth);
+          return streetcarCardSize(
+            streetcars ? streetcarCardRows(streetcars, streetcarCard.routes) : [],
+            viewportWidth,
+            Boolean(streetcarCard.nearestStop),
+          );
         },
       };
     }
@@ -544,6 +888,16 @@ export function GeographicNetworkMap({
   const lastZoomInSignalRef = useRef(zoomInSignal ?? 0);
   const lastZoomOutSignalRef = useRef(zoomOutSignal ?? 0);
   const lastSelectedStationIdRef = useRef<string | null>(selectedStationId ?? null);
+  // A stop already open when the map mounts keeps the restored camera, as a station does.
+  const lastFocusedSurfaceStopRef = useRef<string | null>(selectedSurfaceStopCode);
+  // The Layers row's streetcar switches (plan 13), on unless the rider turned them off.
+  const [streetcarRoutesShown, setStreetcarRoutesShown] = useState(() => (
+    readLayerPreference(typeof window === "undefined" ? null : window.localStorage, STREETCAR_ROUTES_STORAGE_KEY, true)
+  ));
+  const [streetcarPositionsShown, setStreetcarPositionsShown] = useState(() => (
+    readLayerPreference(typeof window === "undefined" ? null : window.localStorage, STREETCAR_POSITIONS_STORAGE_KEY, true)
+  ));
+  const streetcarRoutesShownRef = useRef(streetcarRoutesShown);
   const lastSelectionRef = useRef<string | null>(null);
   const lastCommutePreviewIdRef = useRef<string | null>(commutePathPreview?.id ?? null);
   const cameraAdjustedByUserRef = useRef(false);
@@ -676,6 +1030,7 @@ export function GeographicNetworkMap({
   const callbacksRef = useRef({
     onReady,
     onSelectStationId,
+    onSelectSurfaceStop,
     onSelectImpact,
     onFilterLineId,
     persistCamera,
@@ -698,6 +1053,7 @@ export function GeographicNetworkMap({
     callbacksRef.current = {
       onReady,
       onSelectStationId,
+      onSelectSurfaceStop,
       onSelectImpact,
       onFilterLineId,
       persistCamera,
@@ -707,7 +1063,7 @@ export function GeographicNetworkMap({
       startAttentionLoop,
       stopAttentionLoop,
     };
-  }, [loadStatus, overlayData, selectedStationId, selection, resolvedPlannedClosures, activeFilteredLine, highContrast, isDark, onReady, onSelectStationId, onSelectImpact, onFilterLineId, persistCamera, applyAttentionFrame, startAttentionLoop, stopAttentionLoop]);
+  }, [loadStatus, overlayData, selectedStationId, selection, resolvedPlannedClosures, activeFilteredLine, highContrast, isDark, onReady, onSelectStationId, onSelectSurfaceStop, onSelectImpact, onFilterLineId, persistCamera, applyAttentionFrame, startAttentionLoop, stopAttentionLoop]);
 
   const activateImpactTarget = useCallback(
     (
@@ -917,7 +1273,15 @@ export function GeographicNetworkMap({
       map.on("mouseleave", layerId, () => setHoveredMapTarget(null));
     }
 
-    // Dynamic style image fallback for overlap badges
+    // Bus route badges (S5, S6) and station plan bay badges (S7) are drawn
+    // when the map first needs them, only for those in view. MapLibre 6 asks
+    // the resolver before drawing; a styleimagemissing listener cannot supply
+    // the image for the request that fired it.
+    map.setMissingStyleImageResolver((id) => {
+      if (addMissingBusBadgeImage(map, id) || addMissingGoBusBadgeImage(map, id)) return;
+      addMissingStationBayImage(map, id);
+    });
+    // Dynamic style image fallback for overlap badges.
     map.on("styleimagemissing", (e) => {
       const id = e.id;
       if (!id || !id.startsWith("overlap-badge:")) return;
@@ -996,6 +1360,46 @@ export function GeographicNetworkMap({
         return;
       }
 
+      // A live streetcar (S4), drawn over stop pills, opens its card: route, report age, next stop.
+      const vehicleKey = streetcarVehicleKeyAtPoint(map, e.point);
+      if (vehicleKey) {
+        setOverlapChooser(null);
+        setHoveredOverlapImpact(null);
+        const vehicle = findStreetcarVehicle(streetcarPositionsRef.current, vehicleKey);
+        setStreetcarCard({
+          kind: "vehicle",
+          key: vehicleKey,
+          coordinate: vehicle ? [vehicle.longitude, vehicle.latitude] : e.lngLat.toArray() as [number, number],
+        });
+        return;
+      }
+
+      // A live bus (S8), drawn under live cars and over stop labels, opens its card.
+      const busKey = busVehicleKeyAtPoint(map, e.point);
+      if (busKey) {
+        setOverlapChooser(null);
+        setHoveredOverlapImpact(null);
+        const bus = findBusVehicle(busPositionsRef.current, busKey);
+        setStreetcarCard({
+          kind: "bus-vehicle",
+          key: busKey,
+          coordinate: bus ? [bus.longitude, bus.latitude] : e.lngLat.toArray() as [number, number],
+        });
+        return;
+      }
+
+      // A stop-number pill opens that stop's departures (streetcar stops are drawn
+      // over bus stops); a station plan's bus bay badge (S7) is drawn over both.
+      const stopCode = stationBayStopCodeAtPoint(map, e.point)
+        ?? streetcarStopCodeAtPoint(map, e.point) ?? busStopCodeAtPoint(map, e.point)
+        ?? goBusStopCodeAtPoint(map, e.point);
+      if (stopCode && callbacksRef.current.onSelectSurfaceStop) {
+        setOverlapChooser(null);
+        setHoveredOverlapImpact(null);
+        callbacksRef.current.onSelectSurfaceStop(stopCode);
+        return;
+      }
+
       // A streetcar line under the press shows its routes, unless an alert
       // drawn there takes the press (its own click handler acts on it).
       const alertLayers = [
@@ -1015,7 +1419,52 @@ export function GeographicNetworkMap({
         if (routes.length > 0) {
           setOverlapChooser(null);
           setHoveredOverlapImpact(null);
-          setStreetcarCard({ routes, coordinate: e.lngLat.toArray() as [number, number] });
+          const coordinate = e.lngLat.toArray() as [number, number];
+          const streetcars = cachedStreetcarCatalog();
+          const nearestStop = streetcars && callbacksRef.current.onSelectSurfaceStop
+            ? nearestStreetcarStop(streetcars, coordinate, routes)?.stop ?? null
+            : null;
+          setStreetcarCard({ kind: "routes", mode: "streetcar", routes, coordinate, nearestStop });
+          return;
+        }
+      }
+
+      // A bus line (S5), drawn under the streetcars, shows its routes the same way.
+      const busLayers = [BUS_HIT_LAYER, BUS_BADGE_LAYER].filter((layerId) => map.getLayer(layerId));
+      if (!onAlert && busLayers.length > 0) {
+        const routes = streetcarRoutesFromFeatures(map.queryRenderedFeatures(
+          [[e.point.x - 3, e.point.y - 3], [e.point.x + 3, e.point.y + 3]],
+          { layers: busLayers },
+        ));
+        if (routes.length > 0) {
+          setOverlapChooser(null);
+          setHoveredOverlapImpact(null);
+          const coordinate = e.lngLat.toArray() as [number, number];
+          const busStops = cachedBusStops();
+          const nearestStop = busStops && callbacksRef.current.onSelectSurfaceStop
+            ? nearestBusStop(busStops, coordinate, routes)?.stop ?? null
+            : null;
+          setStreetcarCard({ kind: "routes", mode: "bus", routes, coordinate, nearestStop });
+          return;
+        }
+      }
+
+      // A GO bus line (S6), drawn under the GO/UP rail lines, shows its routes the same way.
+      const goBusLayers = [GO_BUS_HIT_LAYER, GO_BUS_BADGE_LAYER].filter((layerId) => map.getLayer(layerId));
+      if (!onAlert && goBusLayers.length > 0) {
+        const routes = streetcarRoutesFromFeatures(map.queryRenderedFeatures(
+          [[e.point.x - 3, e.point.y - 3], [e.point.x + 3, e.point.y + 3]],
+          { layers: goBusLayers },
+        ));
+        if (routes.length > 0) {
+          setOverlapChooser(null);
+          setHoveredOverlapImpact(null);
+          const coordinate = e.lngLat.toArray() as [number, number];
+          const goStops = cachedGoBusStops();
+          const nearestStop = goStops && callbacksRef.current.onSelectSurfaceStop
+            ? nearestGoBusStop(goStops, coordinate, routes)?.stop ?? null
+            : null;
+          setStreetcarCard({ kind: "routes", mode: "go-bus", routes, coordinate, nearestStop });
           return;
         }
       }
@@ -1033,6 +1482,7 @@ export function GeographicNetworkMap({
 
       const features = map.queryRenderedFeatures(e.point, { layers: interactiveLayers });
       if (features.length === 0) {
+        callbacksRef.current.onSelectSurfaceStop?.(null);
         callbacksRef.current.onSelectStationId?.(null);
         callbacksRef.current.onSelectImpact?.(null as unknown as ImpactSelection);
       }
@@ -1176,6 +1626,7 @@ export function GeographicNetworkMap({
             network,
             isDarkRef.current,
             highContrastRef.current,
+            { streetcarRoutes: streetcarRoutesShownRef.current },
           );
           applyGeographicDynamicState(map, {
             overlayData: overlayDataRef.current,
@@ -1278,6 +1729,7 @@ export function GeographicNetworkMap({
       overlayData: overlayDataRef.current, activeFilteredLine: activeFilteredLineRef.current,
       selectedStationId: selectedStationIdRef.current ?? null,
       selection: selectionRef.current ?? null, plannedClosures: resolvedPlannedClosuresRef.current,
+      streetcarRoutes: streetcarRoutesShownRef.current,
     });
     appliedCatalogRef.current = catalog;
     if (attributionRef.current) map.removeControl(attributionRef.current);
@@ -1381,6 +1833,7 @@ export function GeographicNetworkMap({
       setStreetcarCatalog(loaded);
       const map = mapRef.current;
       if (!map || isStyleLoadingRef.current || appliedCatalogRef.current?.network !== "ttc" || hasStreetcarLayers(map)) return;
+      if (!streetcarRoutesShownRef.current) return;
       installStreetcarLayers(map, loaded, { dark: isDarkRef.current, activeFilteredLine: activeFilteredLineRef.current });
       installTransitOpacity(map);
     }, () => {
@@ -1388,6 +1841,457 @@ export function GeographicNetworkMap({
     });
     return () => { cancelled = true; };
   }, [loadStatus, network, styleRevision]);
+
+  // The open stop's pill is filled; reapplied after every streetcar install.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || loadStatus !== "ready" || network !== "ttc" || !streetcarCatalog || !hasStreetcarLayers(map)) return;
+    updateStreetcarStopSelection(map, selectedSurfaceStopCode);
+  }, [isDark, loadStatus, network, selectedSurfaceStopCode, streetcarCatalog, streetcarRoutesShown, styleRevision]);
+
+  // TTC buses (S5): while the toggle is on, on the TTC network, the corridors
+  // load once and install (again after a style change); the stop file loads
+  // near stop zoom, or when a stop opens. Off removes the layers and sources.
+  const busesShown = busesEnabled && network === "ttc";
+  const busesShownRef = useRef(busesShown);
+  if (!busesShown && streetcarCard?.kind === "routes" && streetcarCard.mode === "bus") setStreetcarCard(null);
+  const selectedSurfaceStopCodeRef = useRef(selectedSurfaceStopCode);
+  useLayoutEffect(() => {
+    busesShownRef.current = busesShown;
+    selectedSurfaceStopCodeRef.current = selectedSurfaceStopCode;
+  }, [busesShown, selectedSurfaceStopCode]);
+  const [busCatalog, setBusCatalog] = useState(cachedBusCatalog);
+  const [busStops, setBusStops] = useState(cachedBusStops);
+  const syncBusLayers = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || isStyleLoadingRef.current || loadStatusRef.current !== "ready") return;
+    if (!busesShownRef.current || appliedCatalogRef.current?.network !== "ttc") {
+      removeBusLayers(map);
+      return;
+    }
+    const corridors = cachedBusCatalog();
+    if (!corridors) return;
+    let installed = false;
+    if (!hasBusLayers(map)) {
+      installBusLayers(map, corridors, { dark: isDarkRef.current, activeFilteredLine: activeFilteredLineRef.current });
+      installed = true;
+    }
+    const stops = cachedBusStops();
+    if (stops && !hasBusStopLayers(map)) {
+      installBusStopLayers(map, stops, {
+        activeFilteredLine: activeFilteredLineRef.current,
+        selectedStopCode: selectedSurfaceStopCodeRef.current ?? null,
+        streetcarStopCodes: streetcarRoutesShownRef.current ? streetcarStopCodeSet(cachedStreetcarCatalog()) : new Set(),
+      });
+      installed = true;
+    }
+    if (installed) installTransitOpacity(map);
+  }, []);
+  useEffect(() => {
+    if (loadStatus !== "ready") return;
+    syncBusLayers();
+    if (!busesShown) return;
+    let cancelled = false;
+    loadBusCatalog().then((loaded) => {
+      if (cancelled) return;
+      setBusCatalog(loaded);
+      syncBusLayers();
+    }, () => {
+      // Buses are an optional layer; the map stays usable without them.
+    });
+    return () => { cancelled = true; };
+  }, [busesShown, loadStatus, styleRevision, syncBusLayers]);
+  const wantBusStops = busesShown && (currentZoom >= BUS_STOPS_LOAD_ZOOM || Boolean(selectedSurfaceStopCode)
+    || streetcarCard?.kind === "bus-vehicle");
+  useEffect(() => {
+    if (loadStatus !== "ready" || !wantBusStops) return;
+    let cancelled = false;
+    loadBusStops().then((loaded) => {
+      if (cancelled) return;
+      setBusStops(loaded);
+      syncBusLayers();
+    }, () => {
+      // Without the stop file the bus lines still draw.
+    });
+    return () => { cancelled = true; };
+  }, [loadStatus, syncBusLayers, wantBusStops]);
+  // Station floor plans (S7): no switch. Once the TTC Map View nears plan
+  // zoom the map is given the file's URL (MapLibre's worker fetches and
+  // parses it, 91 KB gzipped), then installTransitLayers draws plans after
+  // every style change or network switch.
+  const stationPlansWanted = network === "ttc" && currentZoom >= STATION_PLANS_LOAD_ZOOM;
+  useEffect(() => {
+    if (loadStatus !== "ready" || !stationPlansWanted) return;
+    requestStationPlans();
+    void prepareStationPlanImages();
+    const map = mapRef.current;
+    if (!map || isStyleLoadingRef.current || appliedCatalogRef.current?.network !== "ttc" || hasStationPlanLayers(map)) return;
+    if (installStationPlanLayers(map, { dark: isDarkRef.current })) installTransitOpacity(map);
+  }, [loadStatus, stationPlansWanted, styleRevision]);
+
+  // The Streetcar Routes switch adds or removes the routes and their stops;
+  // live cars and the catalog's lookups stay. A shared pole moves to the bus
+  // layer's label while streetcar routes are off.
+  useLayoutEffect(() => {
+    streetcarRoutesShownRef.current = streetcarRoutesShown;
+  }, [streetcarRoutesShown]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || loadStatus !== "ready" || network !== "ttc" || !streetcarCatalog || isStyleLoadingRef.current) return;
+    if (appliedCatalogRef.current?.network !== "ttc") return;
+    if (streetcarRoutesShown === hasStreetcarLayers(map)) return;
+    if (streetcarRoutesShown) {
+      installStreetcarLayers(map, streetcarCatalog, { dark: isDarkRef.current, activeFilteredLine: activeFilteredLineRef.current });
+      updateStreetcarStopSelection(map, selectedSurfaceStopCodeRef.current ?? null);
+      installTransitOpacity(map);
+    } else {
+      removeStreetcarLayers(map);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the routes' card closes with them
+      setStreetcarCard((card) => (card?.kind === "routes" && card.mode === "streetcar" ? null : card));
+    }
+    if (hasBusStopLayers(map)) {
+      removeBusStopLayers(map);
+      syncBusLayers();
+    }
+  }, [loadStatus, network, streetcarCatalog, streetcarRoutesShown, styleRevision, syncBusLayers]);
+
+  // The open bus stop's label is filled, as a streetcar stop's.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || loadStatus !== "ready" || !busesShown || !busStops || !hasBusStopLayers(map)) return;
+    updateBusStopSelection(map, selectedSurfaceStopCode);
+  }, [busCatalog, busStops, busesShown, loadStatus, selectedSurfaceStopCode, styleRevision]);
+
+  // A newly opened stop (pressed, or from search) is framed like a station:
+  // flown to at street level, above the phone sheet. Waits for the stop list
+  // when a search opens a stop before it loads. A bus stop moves the camera
+  // only while buses are shown, so the map never flies to a stop it does not draw.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!selectedSurfaceStopCode) {
+      lastFocusedSurfaceStopRef.current = null;
+      return;
+    }
+    if (!map || loadStatus !== "ready" || network !== "ttc" || !streetcarCatalog) return;
+    if (selectedSurfaceStopCode === lastFocusedSurfaceStopRef.current) return;
+    const streetcarStop = streetcarRoutesShown ? streetcarStopByCode(streetcarCatalog, selectedSurfaceStopCode) : null;
+    if (!streetcarStop && busesShown && !busStops) return; // the bus stop file is still loading
+    lastFocusedSurfaceStopRef.current = selectedSurfaceStopCode;
+    const stop = streetcarStop ?? (busesShown && busStops ? busStopByCode(busStops, selectedSurfaceStopCode) : null);
+    if (!stop) return;
+    focusGeographicCamera(map, containerRef.current, stop.geometry.coordinates as [number, number], SURFACE_STOP_FOCUS_ZOOM, reducedMotion);
+  }, [busStops, busesShown, loadStatus, network, reducedMotion, selectedSurfaceStopCode, streetcarCatalog, streetcarRoutesShown]);
+
+  // GO buses (S6): while the toggle is on, on the GO/UP network, the corridors
+  // and the stop file (18 KB gzipped) load once and install (again after a
+  // style change). Off removes the layers and sources. GO buses are wayfinding
+  // only: nothing here reads or affects GO/UP rail status.
+  const goBusesShown = goBusesEnabled && network === "regional";
+  const goBusesShownRef = useRef(goBusesShown);
+  if (!goBusesShown && streetcarCard?.kind === "routes" && streetcarCard.mode === "go-bus") setStreetcarCard(null);
+  useLayoutEffect(() => {
+    goBusesShownRef.current = goBusesShown;
+  }, [goBusesShown]);
+  const [goBusCatalog, setGoBusCatalog] = useState(cachedGoBusCatalog);
+  const [goBusStops, setGoBusStops] = useState(cachedGoBusStops);
+  const syncGoBusLayers = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || isStyleLoadingRef.current || loadStatusRef.current !== "ready") return;
+    if (!goBusesShownRef.current || appliedCatalogRef.current?.network !== "regional") {
+      removeGoBusLayers(map);
+      return;
+    }
+    const corridors = cachedGoBusCatalog();
+    if (!corridors) return;
+    let installed = false;
+    if (!hasGoBusLayers(map)) {
+      installGoBusLayers(map, corridors, { dark: isDarkRef.current, activeFilteredLine: activeFilteredLineRef.current });
+      installed = true;
+    }
+    const stops = cachedGoBusStops();
+    if (stops && !hasGoBusStopLayers(map)) {
+      installGoBusStopLayers(map, stops, {
+        activeFilteredLine: activeFilteredLineRef.current,
+        selectedStopCode: selectedSurfaceStopCodeRef.current ?? null,
+      });
+      installed = true;
+    }
+    if (installed) installTransitOpacity(map);
+  }, []);
+  useEffect(() => {
+    if (loadStatus !== "ready") return;
+    syncGoBusLayers();
+    if (!goBusesShown) return;
+    let cancelled = false;
+    Promise.all([loadGoBusCatalog(), loadGoBusStops().catch(() => null)]).then(([corridors, stops]) => {
+      if (cancelled) return;
+      setGoBusCatalog(corridors);
+      if (stops) setGoBusStops(stops);
+      syncGoBusLayers();
+    }, () => {
+      // GO buses are an optional layer; the map stays usable without them.
+    });
+    return () => { cancelled = true; };
+  }, [goBusesShown, loadStatus, styleRevision, syncGoBusLayers]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || loadStatus !== "ready" || !goBusesShown || !goBusStops || !hasGoBusStopLayers(map)) return;
+    updateGoBusStopSelection(map, selectedSurfaceStopCode);
+  }, [goBusCatalog, goBusStops, goBusesShown, loadStatus, selectedSurfaceStopCode, styleRevision]);
+  // A newly opened GO bus stop is flown to, as a TTC stop is; only while GO buses are shown.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!selectedSurfaceStopCode || !map || loadStatus !== "ready" || network !== "regional") return;
+    if (!goBusesShown || !goBusStops || selectedSurfaceStopCode === lastFocusedSurfaceStopRef.current) return;
+    lastFocusedSurfaceStopRef.current = selectedSurfaceStopCode;
+    const stop = goBusStopByCode(goBusStops, selectedSurfaceStopCode);
+    if (!stop) return;
+    focusGeographicCamera(map, containerRef.current, stop.geometry.coordinates as [number, number], GO_BUS_STOP_FOCUS_ZOOM, reducedMotion);
+  }, [goBusStops, goBusesShown, loadStatus, network, reducedMotion, selectedSurfaceStopCode]);
+
+  // Live streetcar positions (S4), read while the TTC Map View is open and the
+  // page is visible, at the server's cadence; a disabled source is not asked again.
+  useEffect(() => {
+    if (loadStatus !== "ready" || network !== "ttc" || !streetcarCatalog) return;
+    if (!streetcarPositionsShown) {
+      // Turned off: the cars go, and nothing is read until they are turned back on.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clears the last read with the switch
+      setStreetcarPositions(null);
+      setStreetcarCard((card) => (card?.kind === "vehicle" ? null : card));
+      return;
+    }
+    let cancelled = false;
+    let timer: number | undefined;
+    let controller: AbortController | null = null;
+    const read = async () => {
+      window.clearTimeout(timer);
+      controller?.abort();
+      if (cancelled || document.visibilityState === "hidden") return;
+      const current = new AbortController();
+      controller = current;
+      let result: Awaited<ReturnType<typeof getStreetcarPositions>>;
+      try {
+        result = await getStreetcarPositions({ signal: current.signal });
+      } catch {
+        return;
+      }
+      if (cancelled || controller !== current) return;
+      if (result.kind === "ok") {
+        const next = result.read;
+        setStreetcarPositions(next);
+        setStreetcarPositionsNow(next.receivedAt);
+        // A car that is no longer reported closes its card.
+        setStreetcarCard((card) => (
+          card?.kind === "vehicle" && !findStreetcarVehicle(next, card.key) ? null : card
+        ));
+      }
+      const delay = streetcarPositionsDelayMs(result);
+      if (delay !== null) timer = window.setTimeout(() => { void read(); }, delay);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void read();
+    };
+    void read();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      controller?.abort();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [loadStatus, network, streetcarCatalog, streetcarPositionsShown]);
+
+  // Ages grow between reads: cars turn stale, then drop off, without a new read.
+  useEffect(() => {
+    if (!streetcarPositions || streetcarPositions.data.vehicles.length === 0) return;
+    const interval = window.setInterval(() => {
+      const now = Date.now();
+      setStreetcarPositionsNow(now);
+      setStreetcarCard((card) => {
+        if (card?.kind !== "vehicle") return card;
+        const vehicle = findStreetcarVehicle(streetcarPositions, card.key);
+        return vehicle && streetcarVehicleState(vehicle, streetcarPositions, now) !== "expired" ? card : null;
+      });
+    }, 5_000);
+    return () => window.clearInterval(interval);
+  }, [streetcarPositions]);
+
+  const selectedStreetcarVehicleKey = streetcarCard?.kind === "vehicle" ? streetcarCard.key : null;
+  const streetcarVehicleData = useMemo(() => (
+    network === "ttc"
+      ? streetcarVehicleFeatures(streetcarPositions, streetcarCatalog, streetcarPositionsNow, selectedStreetcarVehicleKey)
+      : null
+  ), [network, selectedStreetcarVehicleKey, streetcarCatalog, streetcarPositions, streetcarPositionsNow]);
+
+  // Cars go above the streetcar lines; installed with them, then fed each read.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || loadStatus !== "ready" || network !== "ttc" || !streetcarCatalog || !streetcarVehicleData) return;
+    if (isStyleLoadingRef.current || appliedCatalogRef.current?.network !== "ttc") return;
+    if (hasStreetcarVehicleLayers(map)) {
+      setStreetcarVehicleData(map, streetcarVehicleData);
+      return;
+    }
+    installStreetcarVehicleLayers(map, {
+      dark: isDarkRef.current,
+      activeFilteredLine: activeFilteredLineRef.current,
+      color: streetcarCatalog.routes.find((route) => route.drawn)?.color,
+      data: streetcarVehicleData,
+    });
+    installTransitOpacity(map);
+  }, [loadStatus, network, streetcarCatalog, streetcarVehicleData, styleRevision]);
+
+  const streetcarVehicleCard = useMemo(() => {
+    if (streetcarCard?.kind !== "vehicle" || !streetcarPositions || !streetcarCatalog) return null;
+    const vehicle = findStreetcarVehicle(streetcarPositions, streetcarCard.key);
+    if (!vehicle) return null;
+    const state = streetcarVehicleState(vehicle, streetcarPositions, streetcarPositionsNow);
+    if (state === "expired") return null;
+    return {
+      vehicle,
+      state,
+      ageSeconds: streetcarVehicleAgeSeconds(vehicle, streetcarPositions, streetcarPositionsNow),
+      offRoute: distanceToStreetcarRoute(streetcarCatalog, vehicle.route, [vehicle.longitude, vehicle.latitude])
+        > STREETCAR_OFF_ROUTE_METERS,
+      nearestStop: nearestStreetcarStop(streetcarCatalog, [vehicle.longitude, vehicle.latitude], [vehicle.route])?.stop
+        ?? null,
+    };
+  }, [streetcarCard, streetcarCatalog, streetcarPositions, streetcarPositionsNow]);
+
+  // Live buses (S8): with Bus Routes and Vehicles on, on the TTC network, from
+  // the bus zoom. Only the area around the view is read, again when the view
+  // leaves it, at the server's cadence while the page is visible; a disabled
+  // source is not asked again until the view or switches change.
+  const busPositionsWanted = busesShown && streetcarPositionsShown && currentZoom >= BUS_VEHICLE_MIN_ZOOM;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || loadStatus !== "ready" || network !== "ttc") return;
+    if (!busPositionsWanted) {
+      // Off or zoomed out: the buses go, and nothing is read.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clears the last read with the switch or zoom
+      setBusPositions(null);
+      setStreetcarCard((card) => (card?.kind === "bus-vehicle" ? null : card));
+      return;
+    }
+    let cancelled = false;
+    let disabled = false;
+    let timer: number | undefined;
+    let controller: AbortController | null = null;
+    let requestedArea: BusPositionsArea | null = null;
+    const view = (): BusPositionsArea => {
+      const bounds = map.getBounds();
+      return [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
+    };
+    const read = async () => {
+      window.clearTimeout(timer);
+      controller?.abort();
+      if (cancelled || document.visibilityState === "hidden") return;
+      const current = new AbortController();
+      controller = current;
+      const area = busPositionsArea(view());
+      requestedArea = area;
+      let result: Awaited<ReturnType<typeof getBusPositions>>;
+      try {
+        result = await getBusPositions({ area, signal: current.signal });
+      } catch {
+        return;
+      }
+      if (cancelled || controller !== current) return;
+      if (result.kind === "ok") {
+        const next = result.read;
+        disabled = next.data.state === "disabled";
+        setBusPositions(next);
+        setBusPositionsNow(next.receivedAt);
+        // A bus that is no longer reported (or has left the area) closes its card.
+        setStreetcarCard((card) => (
+          card?.kind === "bus-vehicle" && !findBusVehicle(next, card.key) ? null : card
+        ));
+      }
+      const delay = streetcarPositionsDelayMs(result);
+      if (delay !== null) timer = window.setTimeout(() => { void read(); }, delay);
+    };
+    const onMoveEnd = () => {
+      if (!disabled && !busPositionsAreaCovers(requestedArea, view())) void read();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void read();
+    };
+    void read();
+    map.on("moveend", onMoveEnd);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      controller?.abort();
+      map.off("moveend", onMoveEnd);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [busPositionsWanted, loadStatus, network]);
+
+  // Bus ages grow between reads, as cars' do.
+  useEffect(() => {
+    if (!busPositions || busPositions.data.vehicles.length === 0) return;
+    const interval = window.setInterval(() => {
+      const now = Date.now();
+      setBusPositionsNow(now);
+      setStreetcarCard((card) => {
+        if (card?.kind !== "bus-vehicle") return card;
+        const vehicle = findBusVehicle(busPositions, card.key);
+        return vehicle && streetcarVehicleState(vehicle, busPositions, now) !== "expired" ? card : null;
+      });
+    }, 5_000);
+    return () => window.clearInterval(interval);
+  }, [busPositions]);
+
+  const selectedBusVehicleKey = streetcarCard?.kind === "bus-vehicle" ? streetcarCard.key : null;
+  const busVehicleData = useMemo(
+    () => busVehicleFeatures(busPositions, busPositionsNow, selectedBusVehicleKey),
+    [busPositions, busPositionsNow, selectedBusVehicleKey],
+  );
+  // What the map last drew: an age tick that changes no bus's state or the
+  // selection leaves the source alone (about 1,400 buses citywide at peak).
+  const busVehicleSignatureRef = useRef<string | null>(null);
+  const busVehiclesShown = busesShown && streetcarPositionsShown;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || loadStatus !== "ready" || isStyleLoadingRef.current) return;
+    if (!busVehiclesShown) {
+      removeBusVehicleLayers(map);
+      busVehicleSignatureRef.current = null;
+      return;
+    }
+    if (appliedCatalogRef.current?.network !== "ttc") return;
+    const signature = busVehicleFeaturesSignature(busVehicleData);
+    if (hasBusVehicleLayers(map)) {
+      if (signature !== busVehicleSignatureRef.current) {
+        setBusVehicleData(map, busVehicleData);
+        busVehicleSignatureRef.current = signature;
+      }
+      return;
+    }
+    installBusVehicleLayers(map, {
+      dark: isDarkRef.current,
+      activeFilteredLine: activeFilteredLineRef.current,
+      data: busVehicleData,
+    });
+    busVehicleSignatureRef.current = signature;
+    installTransitOpacity(map);
+  }, [busVehicleData, busVehiclesShown, loadStatus, styleRevision]);
+
+  const busVehicleCard = useMemo(() => {
+    if (streetcarCard?.kind !== "bus-vehicle" || !busPositions) return null;
+    const vehicle = findBusVehicle(busPositions, streetcarCard.key);
+    if (!vehicle) return null;
+    const state = streetcarVehicleState(vehicle, busPositions, busPositionsNow);
+    if (state === "expired") return null;
+    return {
+      vehicle,
+      state,
+      ageSeconds: streetcarVehicleAgeSeconds(vehicle, busPositions, busPositionsNow),
+      offRoute: isBusOffRoute(busCatalog, vehicle),
+      nearestStop: busStops || streetcarCatalog ? busVehicleNearestStop(vehicle) : null,
+    };
+  }, [busCatalog, busPositions, busPositionsNow, busStops, streetcarCard, streetcarCatalog]);
 
   // React to theme changes: compare applied style and only replace when genuinely changed
   useEffect(() => {
@@ -1412,6 +2316,7 @@ export function GeographicNetworkMap({
           catalogRef.current.network,
           isDark,
           highContrastRef.current,
+          { streetcarRoutes: streetcarRoutesShownRef.current },
         );
         applyGeographicDynamicState(map, {
           overlayData: overlayDataRef.current,
@@ -1481,29 +2386,7 @@ export function GeographicNetworkMap({
     if (selectedStationId && selectedStationId !== lastSelectedStationIdRef.current) {
       if (catalogRef.current) {
         const coords = getStationCoordinates(catalogRef.current, selectedStationId);
-        if (coords) {
-          const targetZoom = Math.max(map.getZoom(), STATION_FOCUS_ZOOM);
-          const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-          const container = containerRef.current;
-          const padding = isMobile && container ? {
-            top: readMobilePillBottom(container),
-            bottom: Math.max(0, container.clientHeight - readMobileStationSubmenuTop(container, container.clientHeight)),
-            left: 0,
-            right: 0,
-          } : undefined;
-          // Desktop centres the station in the area the sidebar, toolbar and
-          // legend leave showing. An offset, unlike padding, does not persist.
-          const desktopPadding = !isMobile && container ? geographicDesktopFocusPadding(container) : null;
-          const offset: [number, number] | undefined = desktopPadding
-            ? [(desktopPadding.left - desktopPadding.right) / 2, (desktopPadding.top - desktopPadding.bottom) / 2]
-            : undefined;
-          if (reducedMotion) {
-            map.jumpTo({ center: coords, zoom: targetZoom, padding });
-            if (offset) map.panBy([-offset[0], -offset[1]], { animate: false });
-          } else {
-            map.flyTo({ center: coords, zoom: targetZoom, padding, ...(offset ? { offset } : {}), essential: true });
-          }
-        }
+        if (coords) focusGeographicCamera(map, containerRef.current, coords, STATION_FOCUS_ZOOM, reducedMotion);
       }
     }
     lastSelectedStationIdRef.current = selectedStationId ?? null;
@@ -2015,6 +2898,99 @@ export function GeographicNetworkMap({
     }
   }, [isMapActive, loadStatus]);
 
+  // The top toolbar keeps clear of the right-hand buttons as the System Map's
+  // does (captions drop, then a second row), now that the TTC Map View adds a
+  // Bus Routes switch there (S5).
+  const controlRailRef = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => observeDesktopControlRail(controlRailRef.current), []);
+
+  // The layer deck unrolls from under the toolbar as the Map View opens on
+  // either network (once the map is ready and shown), and again after a
+  // network switch with that network's switches; its switches fade in one
+  // after another. Web Animations only (no stylesheet keyframes); nothing
+  // under reduced motion.
+  const layerDeckRef = useRef<HTMLDivElement | null>(null);
+  const layerDeckExitRef = useRef<Promise<void> | null>(null);
+  const layerDeckExitAnimationsRef = useRef<Animation[]>([]);
+  const mapReady = loadStatus === "ready";
+  // Until its entrance can play (the map still loading), the deck stays rolled
+  // up with its switches hidden, so it never shows open and then snaps shut to
+  // animate in. A map that fails to load shows the deck at once; so does
+  // reduced motion (the app setting here, the system setting in map-controls.css).
+  const layerDeckWaiting = !reducedMotion && loadStatus === "loading";
+  useLayoutEffect(() => {
+    const deck = layerDeckRef.current;
+    layerDeckExitRef.current = null;
+    // A roll-up still holding the old network's deck closed gives way to the new deck.
+    layerDeckExitAnimationsRef.current.forEach((animation) => animation.cancel());
+    layerDeckExitAnimationsRef.current = [];
+    if (!mapReady || !deck || reducedMotion || typeof deck.animate !== "function") return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const easing = "cubic-bezier(0.2, 0.8, 0.2, 1)";
+    const animations = [
+      deck.animate([
+        { clipPath: "inset(0 -12px 100% -12px)", transform: "translateY(-4px)" },
+        { clipPath: "inset(0 -12px 0 -12px)", transform: "none" },
+      ], { duration: 280, easing }),
+      ...[...deck.querySelectorAll<HTMLElement>(".map-layer-switch")].map((item, index) => item.animate([
+        { opacity: 0, transform: "translateY(-6px)" },
+        { opacity: 1, transform: "none" },
+      ], { duration: 240, delay: 90 + index * 45, easing, fill: "backwards" })),
+    ];
+    return () => animations.forEach((animation) => animation.cancel());
+  }, [mapReady, network, reducedMotion]);
+
+  // The inverse, as the rider leaves the Map View for the System Map, or
+  // switches network: the switches fade out right to left, then the deck
+  // rolls back up into the toolbar. Resolves when it has finished (at once
+  // without motion).
+  const playLayerDeckExit = useCallback((): Promise<void> => {
+    if (layerDeckExitRef.current) return layerDeckExitRef.current;
+    const deck = layerDeckRef.current;
+    if (!deck || reducedMotion || typeof deck.animate !== "function"
+      || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      return Promise.resolve();
+    }
+    const easing = "cubic-bezier(0.4, 0, 1, 1)";
+    const items = [...deck.querySelectorAll<HTMLElement>(".map-layer-switch")].reverse();
+    const animations = [
+      ...items.map((item, index) => item.animate([
+        { opacity: 1, transform: "none" },
+        { opacity: 0, transform: "translateY(-6px)" },
+      ], { duration: 150, delay: index * 30, easing, fill: "forwards" })),
+      deck.animate([
+        { clipPath: "inset(0 -12px 0 -12px)", transform: "none" },
+        { clipPath: "inset(0 -12px 100% -12px)", transform: "translateY(-4px)" },
+      ], { duration: 200, delay: 70, easing, fill: "forwards" }),
+    ];
+    layerDeckExitAnimationsRef.current = animations;
+    const done = Promise.all(animations.map((animation) => animation.finished)).then(() => undefined, () => undefined);
+    layerDeckExitRef.current = done;
+    // If the rider stays (a switch that did not happen), the deck comes back.
+    void done.then(() => window.setTimeout(() => {
+      if (layerDeckExitRef.current === done) layerDeckExitRef.current = null;
+      animations.forEach((animation) => animation.cancel());
+    }, 1200));
+    return done;
+  }, [reducedMotion]);
+  const handleMapViewTransitionStart = useCallback((next: MapViewPreference) => {
+    if (next !== "geographic") void playLayerDeckExit();
+  }, [playLayerDeckExit]);
+  const handleMapViewChange = useCallback((next: MapViewPreference) => {
+    if (!onMapViewChange) return;
+    if (next === "geographic") {
+      onMapViewChange(next);
+      return;
+    }
+    void playLayerDeckExit().then(() => onMapViewChange(next));
+  }, [onMapViewChange, playLayerDeckExit]);
+  const handleNetworkChange = useCallback((next: NetworkId) => {
+    // Each network has its own deck: the old one rolls up alongside the
+    // network fade (the switch is not held for it) and the new one unrolls.
+    if (next !== network) void playLayerDeckExit();
+    onNetworkChange?.(next);
+  }, [network, onNetworkChange, playLayerDeckExit]);
+
   const networkBounds = getGeographicBounds(network);
 
   return (
@@ -2023,6 +2999,8 @@ export function GeographicNetworkMap({
       data-status={loadStatus}
       data-network={network}
       data-high-contrast={highContrast ? "true" : undefined}
+      data-buses={busesShown ? "on" : undefined}
+      data-go-buses={goBusesShown ? "on" : undefined}
     >
       <div
         ref={containerRef}
@@ -2054,10 +3032,75 @@ export function GeographicNetworkMap({
         />
       ) : null}
 
-      {streetcarCard && !overlapChooser && overlapChooserLayout && streetcarCatalog ? (
+      {streetcarCard?.kind === "routes" && !overlapChooser && overlapChooserLayout
+        && (streetcarCard.mode === "go-bus" ? goBusCatalog : streetcarCard.mode === "bus" ? busCatalog : streetcarCatalog) ? (
         <GeographicStreetcarCard
-          rows={streetcarCardRows(streetcarCatalog, streetcarCard.routes)}
-          periodLabel={streetcarSchedulePeriodLabel(streetcarCatalog.source)}
+          mode={streetcarCard.mode}
+          rows={streetcarCard.mode === "go-bus"
+            ? goBusCardRows(goBusCatalog!, streetcarCard.routes)
+            : streetcarCard.mode === "bus"
+              ? busCardRows(busCatalog!, streetcarCard.routes)
+              : streetcarCardRows(streetcarCatalog!, streetcarCard.routes)}
+          nearestStop={streetcarCard.nearestStop}
+          onOpenStop={(stopCode) => {
+            setStreetcarCard(null);
+            onSelectSurfaceStop?.(stopCode);
+          }}
+          periodLabel={streetcarSchedulePeriodLabel((streetcarCard.mode === "go-bus"
+            ? goBusCatalog!
+            : streetcarCard.mode === "bus" ? busCatalog! : streetcarCatalog!).source)}
+          selectionKey={selection ? `${selection.kind}:${selection.id}:${selectionAttentionGeneration}` : selectedStationId ? `station:${selectedStationId}` : commutePathPreview ? `commute:${commutePathPreview.id}:${commutePathPreview.legId}` : null}
+          layout={overlapChooserLayout.layout}
+          follower={overlapChooserFollower}
+          followAnchor={overlapChooserLayout.followAnchor}
+          viewportSize={overlapChooserLayout.viewportSize}
+          reducedMotion={reducedMotion}
+          onClose={(restoreFocus) => {
+            setStreetcarCard(null);
+            if (restoreFocus) containerRef.current?.focus({ preventScroll: true });
+          }}
+        />
+      ) : null}
+
+      {streetcarVehicleCard && !overlapChooser && overlapChooserLayout ? (
+        <GeographicStreetcarVehicleCard
+          key={streetcarCard?.kind === "vehicle" ? streetcarCard.key : undefined}
+          vehicle={streetcarVehicleCard.vehicle}
+          state={streetcarVehicleCard.state}
+          ageSeconds={streetcarVehicleCard.ageSeconds}
+          offRoute={streetcarVehicleCard.offRoute}
+          nearestStop={streetcarVehicleCard.nearestStop}
+          onOpenStop={onSelectSurfaceStop ? (stopCode) => {
+            setStreetcarCard(null);
+            onSelectSurfaceStop(stopCode);
+          } : undefined}
+          selectionKey={selection ? `${selection.kind}:${selection.id}:${selectionAttentionGeneration}` : selectedStationId ? `station:${selectedStationId}` : commutePathPreview ? `commute:${commutePathPreview.id}:${commutePathPreview.legId}` : null}
+          layout={overlapChooserLayout.layout}
+          follower={overlapChooserFollower}
+          followAnchor={overlapChooserLayout.followAnchor}
+          viewportSize={overlapChooserLayout.viewportSize}
+          reducedMotion={reducedMotion}
+          onClose={(restoreFocus) => {
+            setStreetcarCard(null);
+            if (restoreFocus) containerRef.current?.focus({ preventScroll: true });
+          }}
+        />
+      ) : null}
+
+      {busVehicleCard && !overlapChooser && overlapChooserLayout ? (
+        <GeographicStreetcarVehicleCard
+          key={streetcarCard?.kind === "bus-vehicle" ? streetcarCard.key : undefined}
+          mode="bus"
+          replacement={busVehicleCard.vehicle.replacement}
+          vehicle={busVehicleCard.vehicle}
+          state={busVehicleCard.state}
+          ageSeconds={busVehicleCard.ageSeconds}
+          offRoute={busVehicleCard.offRoute}
+          nearestStop={busVehicleCard.nearestStop}
+          onOpenStop={onSelectSurfaceStop ? (stopCode) => {
+            setStreetcarCard(null);
+            onSelectSurfaceStop(stopCode);
+          } : undefined}
           selectionKey={selection ? `${selection.kind}:${selection.id}:${selectionAttentionGeneration}` : selectedStationId ? `station:${selectedStationId}` : commutePathPreview ? `commute:${commutePathPreview.id}:${commutePathPreview.legId}` : null}
           layout={overlapChooserLayout.layout}
           follower={overlapChooserFollower}
@@ -2073,6 +3116,7 @@ export function GeographicNetworkMap({
 
       {/* Desktop Top center map controls */}
       <div
+        ref={controlRailRef}
         className="map-control-rail desktop-map-control-rail absolute top-14 sm:top-5 left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto"
         data-map-chooser-keepout
       >
@@ -2156,14 +3200,105 @@ export function GeographicNetworkMap({
         {onNetworkChange && (
           <div className="desktop-map-control-network-group hidden md:flex items-center">
             <div className="map-control-divider" aria-hidden="true" />
-            <NetworkSelector network={network} onChange={onNetworkChange} ariaLabel="Map network switcher" />
+            <NetworkSelector network={network} onChange={handleNetworkChange} ariaLabel="Map network switcher" />
           </div>
         )}
 
         {onMapViewChange && (
           <div className="desktop-map-control-view-group hidden md:flex items-center">
             <div className="map-control-divider" aria-hidden="true" />
-            <MapViewSelector view={mapView ?? "geographic"} onChange={onMapViewChange} />
+            <MapViewSelector
+              view={mapView ?? "geographic"}
+              onChange={handleMapViewChange}
+              onTransitionStart={handleMapViewTransitionStart}
+            />
+          </div>
+        )}
+
+        {(network === "ttc" || network === "regional") && (
+          <div
+            ref={layerDeckRef}
+            id="map-view-layers-row"
+            className="map-view-layers-row"
+            data-network={network}
+            data-deck-waiting={layerDeckWaiting ? "true" : undefined}
+            data-map-chooser-keepout
+            role="group"
+            aria-label="Map layers"
+          >
+            {trainMarkersControl ? (
+              <MapLayerSwitch
+                id="map-layer-train-markers"
+                icon={<TrainFrontTunnel size={20} aria-hidden="true" />}
+                label="Train Markers"
+                detail={estimatedTrainsDetail(trainMarkersControl.checked, trainMarkersControl.status)}
+                checked={trainMarkersControl.checked}
+                disabled={trainMarkersControl.disabled}
+                pending={trainMarkersControl.pending}
+                ariaLabel={trainMarkersControl.ariaLabel}
+                title="Estimated Train Markers"
+                onChange={trainMarkersControl.onToggle}
+              />
+            ) : null}
+            {network === "regional" && onToggleGoBuses ? (
+              <MapLayerSwitch
+                id="map-layer-go-bus-routes"
+                icon={<Bus size={20} aria-hidden="true" />}
+                label="GO Buses"
+                detail="Routes"
+                checked={goBusesEnabled}
+                ariaLabel="Show GO bus routes and stops"
+                title="GO Bus Routes"
+                onChange={onToggleGoBuses}
+                dataBusToggle
+              />
+            ) : null}
+            {network === "ttc" ? (<>
+            <MapLayerSwitch
+              id="map-layer-streetcar-routes"
+              icon={<Route size={20} aria-hidden="true" />}
+              label="Streetcars"
+              detail="Routes"
+              checked={streetcarRoutesShown}
+              ariaLabel="Show TTC streetcar routes and stops"
+              title="Streetcar Routes"
+              onChange={() => setStreetcarRoutesShown((current) => {
+                writeLayerPreference(window.localStorage, STREETCAR_ROUTES_STORAGE_KEY, !current);
+                return !current;
+              })}
+            />
+            {onToggleBuses ? (
+              <MapLayerSwitch
+                id="map-layer-bus-routes"
+                icon={<Bus size={20} aria-hidden="true" />}
+                label="Buses"
+                detail="Routes"
+                checked={busesEnabled}
+                ariaLabel="Show TTC bus routes and stops"
+                title="Bus Routes"
+                onChange={onToggleBuses}
+                dataBusToggle
+              />
+            ) : null}
+            <MapLayerSwitch
+              id="map-layer-streetcar-positions"
+              icon={<SatelliteDish size={20} aria-hidden="true" />}
+              label="Live GPS"
+              detail={vehiclePositionsDetail(
+                streetcarPositionsShown,
+                streetcarPositions?.data.state ?? null,
+                busPositionsWanted ? busPositions?.data.state ?? null : null,
+                busesEnabled,
+              )}
+              checked={streetcarPositionsShown}
+              ariaLabel="Show live streetcar and bus GPS positions"
+              title={busesEnabled ? `Live Vehicles (buses from zoom ${BUS_VEHICLE_MIN_ZOOM})` : "Live Vehicles"}
+              onChange={() => setStreetcarPositionsShown((current) => {
+                writeLayerPreference(window.localStorage, STREETCAR_POSITIONS_STORAGE_KEY, !current);
+                return !current;
+              })}
+            />
+            </>) : null}
           </div>
         )}
       </div>

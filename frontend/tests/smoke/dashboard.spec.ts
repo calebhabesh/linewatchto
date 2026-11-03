@@ -26,7 +26,7 @@ async function openDashboardMenu(page: Page, isMobile = false) {
 }
 
 type DesktopDestination =
-  | "status" | "sign-in" | "stations" | "commutes" | "alert-history" | "more" | "source-status"
+  | "status" | "sign-in" | "stations" | "commutes" | "alert-history" | "more" | "source-status" | "analytics"
   | "accessibility-outages" | "surface-notices" | "announcements"
   | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "trip-changes";
 
@@ -551,7 +551,13 @@ test("mapped station details expose compact source-honest surface connections", 
   await surface.getByText("Surface Connections").click();
   await expect(surface.locator('[data-surface-route="504"]')).toBeVisible();
   await expect(surface.getByText("Dundas West Station")).toBeVisible();
-  await expect(surface.getByText(/Bay 7/)).toBeVisible();
+  // A plain bay gets one sign over its routes (plan 13, S7 review); its routes
+  // no longer repeat the bay. The stub station is not in the bay index, so no stop link.
+  const bayHeader = surface.locator('[data-surface-bay-header="7"]');
+  await expect(bayHeader).toBeVisible();
+  await expect(bayHeader.getByText("Bus Bay 7")).toBeVisible();
+  await expect(bayHeader.locator(".surface-bay-stop-link")).toHaveCount(0);
+  await expect(surface.locator('[data-surface-route="504"]').getByText(/Bay 7/)).toHaveCount(0);
   await expect(surface.getByText("Live", { exact: true })).toBeVisible();
 });
 
@@ -2155,7 +2161,7 @@ test("opens an impact notification deep link in the focused map view", async ({ 
     await expect(shell).toHaveClass(/mobile-map-inspector-impact/);
     await expect(inspector).toBeVisible();
     await expect(inspector).toHaveCSS("background-color", "rgb(10, 12, 16)");
-    await expect(page.locator(".mobile-train-toggle")).toBeHidden();
+    await expect(page.locator(".mobile-train-toggle:not(.mobile-bus-toggle)")).toBeHidden();
     await expect(inspector).toContainText("Delay");
     await expect(inspector).toContainText("Sheppard-Yonge");
     await expect(mapViewport).toHaveCSS("bottom", "0px");
@@ -3208,7 +3214,7 @@ test("station detail shows accessibility facilities and active outage warning", 
 
   if (isMobile) {
     await expect(page.locator(".linewatch-shell.mobile-map-inspector-station")).toBeVisible();
-    await expect(page.locator(".mobile-train-toggle")).toBeHidden();
+    await expect(page.locator(".mobile-train-toggle:not(.mobile-bus-toggle)")).toBeHidden();
     await expect(page.getByRole("button", { name: "Map", exact: true })).toHaveCount(0);
   }
   const lineDetailCard = stationPanel.locator('[data-station-header-line-details] > div').first();
@@ -3418,7 +3424,7 @@ test("mobile map legend summarizes line impacts and opens the all-types line vie
   await expect.poll(async () => {
     const [legendBox, trainBox] = await Promise.all([
       page.locator(".mobile-legend-pill").boundingBox(),
-      page.locator(".mobile-train-toggle").boundingBox(),
+      page.locator(".mobile-train-toggle:not(.mobile-bus-toggle)").boundingBox(),
     ]);
     return legendBox && trainBox ? Math.round(trainBox.y - (legendBox.y + legendBox.height)) : null;
   }).toBeGreaterThanOrEqual(7);
@@ -5389,8 +5395,8 @@ test("shows official TTC performance metrics from backend", async ({ page, reque
     await page.getByRole("button", { name: "More", exact: true }).click();
     await page.getByLabel("More LineWatchTO options").getByRole("button", { name: "Reliability Analytics" }).click();
   } else {
-    await openDesktopDestination(page, "more");
-    await page.locator(".desktop-more-panel").getByRole("button", { name: "Reliability Analytics" }).click();
+    // Desktop Settings no longer repeats Reliability Analytics; the rail opens it.
+    await openDesktopDestination(page, "analytics");
   }
   await expect(page.getByText("Official TTC Performance")).toBeVisible();
   await expect(page.getByText("Source: TTC.ca")).toBeVisible();
@@ -5752,7 +5758,7 @@ test("mobile train toggle changes its label and blue foreground without changing
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto("/");
 
-  const toggle = page.locator(".mobile-train-toggle");
+  const toggle = page.locator(".mobile-train-toggle:not(.mobile-bus-toggle)");
   await expect(toggle).toContainText(/View\s*Trains/);
   const before = await toggle.evaluate((button) => {
     const style = getComputedStyle(button);

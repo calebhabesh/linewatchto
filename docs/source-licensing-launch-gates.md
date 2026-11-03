@@ -1,6 +1,6 @@
 # Source Licensing and Naming Launch Gates
 
-Last reviewed: 2026-09-30
+Last reviewed: 2026-11-03
 
 LineWatchTO is an unofficial, independent project. Technical readiness does not by itself authorize public use of a source, name, map, or mark.
 
@@ -19,6 +19,20 @@ The public acknowledgements panel must include the exact statement:
 > Contains information licensed under the Open Government Licence – Toronto.
 
 That statement applies only to identified City of Toronto open-data inputs, including the official TTC GTFS Realtime dataset. It must not be presented as licensing TTC Live Alerts, TTC website assets, or Metrolinx API records.
+
+## TTC vehicle positions (plan 13, S4)
+
+Recorded 2026-11-02. Live streetcar positions read the TTC GTFS-RT VehiclePosition feed at `https://bustime.ttc.ca/gtfsrt/vehicles` (text form `?debug`). Open Data Toronto lists it under *TTC BusTime Real-Time Next Vehicle Arrival (NVAS)* (Open Government Licence – Toronto), which describes vehicle locations and is to be used with TTC static GTFS; the OGL–Toronto acknowledgement above covers it. `gtfsrt.ttc.ca/vehicles/position` serves the same data, but its dataset page (*TTC GTFS-Realtime Service Disruptions*) describes only alerts, so it is not the default. The feed is off unless `LINEWATCH_TTC_STREETCAR_POSITIONS_ENABLED=true`. Only normalized streetcar positions are served (route, headsign, coordinates, bearing, report age, vehicle number); the raw payload is not stored or returned. Vehicle numbers are published in the open feed; enabling the source in production remains the owner's decision.
+
+Widened 2026-11-03 (plan 13, S8): live TTC bus positions use the same feed read (one poll serves streetcars and buses; nothing new is polled) under their own flag, `LINEWATCH_TTC_BUS_POSITIONS_ENABLED`, off by default. Only normalized bus positions on trips of the active schedule are served (the same fields, plus whether the trip is a streetcar route's replacement bus), and only for the area the Map View asks for. The licence and attribution are unchanged. Enabling bus positions in production remains the owner's decision. No GO bus vehicle source is used; one would need its own entry here first.
+
+## TTC station plans (plan 13, S7)
+
+Owner decision, 2026-11-03: station floor plans may be drawn from the TTC's public ArcGIS Online feature service `StationFootprints_View` (`services2.arcgis.com/4bxnkNIQISOHuO8V`, owned by the TTC GIS account; the data behind livemap.ttc.ca), credited to the TTC in Privacy & Acknowledgements and on the map. The service publishes no licence, access or copyright text and is not an Open Data Toronto dataset, so OGL–Toronto does not cover it; attribution is a courtesy, not a licence. Using it rests on the owner's decision, not on written permission. A request to the TTC for written permission (OGL–Toronto reuse with attribution) is still advisable; if the TTC objects, the layer and its asset are removed. Only geometry and public station-feature attributes are used; nothing is fetched from the service at runtime. Built 2026-11-03: `scripts/generate-station-plans.mjs` reads layers 1 (StationPaths) and 3 (StationExits) once and writes `frontend/public/assets/linewatch/geographic/ttc-station-plans.json` (footprints with floor numbers, entrances with bearing, name and letter, elevator, stair and escalator positions with the source's up/down; the service's styling, icon artwork and other feature types are not copied). Bus bays on the plans, and the bay index `ttc-station-bays.json` behind the station panel's bay signs, come from TTC static GTFS station stops under OGL–Toronto, not from this service. Raw service responses are not kept in the repository. To remove the layer, delete that asset, the generator and `geographic-station-plan-layers.ts`, and the credits.
+
+## GO bus routes and stop departures (plan 13, S6)
+
+Recorded 2026-11-03. GO bus corridors and stops on the GO/UP Map View come from the GO Transit static GTFS archive (Metrolinx Open Data, the archive the regional rail catalog already uses). GO bus stop departures widen the existing Metrolinx API use: the backend calls GO Next Service (`Stop/NextService/{stopCode}`, the call already made for GO Bus rows at GO/UP stations) for any GO stop number in `backend/src/main/resources/regional/go-bus-stops.csv`, on demand when a rider opens that stop, instead of only the stop codes listed at stations. It is off unless `LINEWATCH_REGIONAL_SURFACE_ARRIVALS_ENABLED=true`, caches each stop for 30 s, and makes at most `LINEWATCH_REGIONAL_SURFACE_ARRIVALS_STOP_FETCHES_PER_MINUTE` (60) upstream reads across all stops. Only normalized departures are returned (route, route name, destination, times, bay when published, trip number, live or scheduled); the raw payload is not stored or returned and the key stays backend-only. Confirming that the registered Metrolinx API agreement covers per-stop reads at this scope remains the owner's decision, with the other live integration terms below.
 
 ## Repository publication decision
 

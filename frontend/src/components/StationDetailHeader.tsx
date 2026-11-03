@@ -6,11 +6,14 @@ import type { PointerEventHandler } from "react";
 type Props = {
   onPointerDown?: PointerEventHandler<HTMLElement>;
   stationName: string;
+  /** The small label over the name; "Station" unless a stop panel says otherwise. */
+  eyebrow?: string;
   updating?: boolean;
-  saved: boolean;
-  savePending: boolean;
+  saved?: boolean;
+  savePending?: boolean;
   saveDisabled?: boolean;
-  onToggleSaved: () => void;
+  /** Without it the header has no save control (a surface stop cannot be saved yet). */
+  onToggleSaved?: () => void;
   onClose: () => void;
   closeLabel?: string;
 };
@@ -18,9 +21,10 @@ type Props = {
 export function StationDetailHeader({
   onPointerDown,
   stationName,
+  eyebrow = "Station",
   updating = false,
-  saved,
-  savePending,
+  saved = false,
+  savePending = false,
   saveDisabled = false,
   onToggleSaved,
   onClose,
@@ -30,7 +34,7 @@ export function StationDetailHeader({
     <header onPointerDown={onPointerDown} className="station-detail-header flex items-start justify-between gap-3 shrink-0">
       <div className="min-w-0 flex-1">
         <span className="block leading-none text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          Station
+          {eyebrow}
         </span>
         <h2 className="my-0.5 md:mb-0 md:mt-0.5 break-words text-[32px] sm:text-4xl font-black tracking-tight leading-[1.1] text-slate-950 dark:text-white">
           {stationName}
@@ -42,7 +46,7 @@ export function StationDetailHeader({
         ) : null}
       </div>
       <div className="station-detail-header-actions">
-        <div className="station-detail-save-control">
+        {onToggleSaved ? <div className="station-detail-save-control">
           <button
             type="button"
             onClick={onToggleSaved}
@@ -56,7 +60,7 @@ export function StationDetailHeader({
               : <Bookmark size={20} fill={saved ? "currentColor" : "none"} />}
             <span>{saved ? "Saved" : "Save"}</span>
           </button>
-        </div>
+        </div> : null}
         <button
           type="button"
           onClick={onClose}

@@ -1,3 +1,5 @@
+import { GEOGRAPHIC_MAX_ZOOM } from "./geographic-config.ts";
+
 type Camera = { x: number; y: number; scale: number };
 type Size = { width: number; height: number };
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
@@ -62,7 +64,7 @@ export function saveGeographicMapViewport(
     ![camera.lng, camera.lat, camera.zoom, savedAt].every(Number.isFinite)
     || camera.lng < -82.0 || camera.lng > -77.0
     || camera.lat < 42.0 || camera.lat > 46.0
-    || camera.zoom < 5 || camera.zoom > 20
+    || camera.zoom < 5 || camera.zoom > GEOGRAPHIC_MAX_ZOOM
   ) return;
   try {
     storage.setItem(geographicMapViewportKey(network), JSON.stringify({
@@ -90,7 +92,7 @@ export function readGeographicMapViewport(
       || value.savedAt > now || now - value.savedAt > MAP_VIEWPORT_MAX_AGE_MS
       || value.lng < -82.0 || value.lng > -77.0
       || value.lat < 42.0 || value.lat > 46.0
-      || value.zoom < 5 || value.zoom > 20
+      || value.zoom < 5 || value.zoom > GEOGRAPHIC_MAX_ZOOM
     ) return null;
     return { lng: value.lng, lat: value.lat, zoom: value.zoom };
   } catch { return null; }

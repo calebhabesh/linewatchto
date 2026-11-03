@@ -24,6 +24,7 @@ public class TtcSurfaceArrivalIndexer {
     ) {
         TtcSurfaceScheduleCatalog.Catalog catalog = catalogRepository.active();
         Map<String, SurfaceArrivalRecord> unique = new LinkedHashMap<>();
+        Map<String, Map<String, TtcSurfaceStopArrival>> byStop = new java.util.HashMap<>();
         if (catalog.available()) {
             for (TtcSurfaceTripUpdateParser.TripUpdate update : feed.trips()) {
                 TtcSurfaceScheduleCatalog.Trip trip = catalog.trips().get(update.tripId());
@@ -38,10 +39,19 @@ public class TtcSurfaceArrivalIndexer {
                 }
                 if (route == null || !mode.equals(route.mode())) continue;
                 for (TtcSurfaceTripUpdateParser.StopUpdate stopUpdate : update.stops()) {
-                    TtcSurfaceScheduleCatalog.Stop stop = catalog.stops().get(stopUpdate.stopId());
-                    if (stop == null) continue;
                     String destination = trip != null && !trip.headsign().isBlank()
                         ? trip.headsign() : route.longName();
+                    // Every stop, station or not, is indexed for the stop view.
+                    String tripKey = update.tripId() == null ? route.routeId() + ":" + stopUpdate.event().predictedAt()
+                        : update.tripId();
+                    byStop.computeIfAbsent(stopUpdate.stopId(), ignored -> new LinkedHashMap<>())
+                        .putIfAbsent(tripKey, new TtcSurfaceStopArrival(
+                            stopUpdate.stopId(), route.routeId(), route.shortName(), route.longName(), mode,
+                            trip == null || trip.headsign().isBlank() ? "" : trip.headsign(),
+                            stopUpdate.event().scheduledAt(), stopUpdate.event().predictedAt(),
+                            update.tripId() == null ? "" : update.tripId(), "live"));
+                    TtcSurfaceScheduleCatalog.Stop stop = catalog.stops().get(stopUpdate.stopId());
+                    if (stop == null) continue;
                     SurfaceArrivalRecord row = new SurfaceArrivalRecord(
                         stop.stationId(), "TTC", mode, route.shortName(), route.longName(),
                         destination == null ? "" : destination,
@@ -57,8 +67,12 @@ public class TtcSurfaceArrivalIndexer {
         }
         List<SurfaceArrivalRecord> arrivals = new ArrayList<>(unique.values());
         arrivals.sort(Comparator.comparing(SurfaceArrivalRecord::predictedAt));
+        Map<String, List<TtcSurfaceStopArrival>> arrivalsByStop = new java.util.HashMap<>();
+        byStop.forEach((stopId, rows) -> arrivalsByStop.put(stopId, rows.values().stream()
+            .sorted(Comparator.comparing(TtcSurfaceStopArrival::predictedAt)).toList()));
         return new TtcSurfaceArrivalSnapshot(
-            mode, feed.sourceUpdatedAt(), indexedAt, catalog.available(), catalog.mappedStationIds(), arrivals
+            mode, feed.sourceUpdatedAt(), indexedAt, catalog.available(), catalog.mappedStationIds(), arrivals,
+            arrivalsByStop
         );
     }
 }

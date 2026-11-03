@@ -159,6 +159,7 @@ describe("desktop map insets and occlusion helpers", () => {
 
     const mockRail = {
       getBoundingClientRect: () => ({ width: 48, height: 120, top: 0, bottom: 120 }),
+      querySelector: () => null,
     };
     const mockContainer = {
       getClientRects: () => [{ width: 1024, height: 768 }],
@@ -179,6 +180,15 @@ describe("desktop map insets and occlusion helpers", () => {
     const insets = measureDesktopMapInsets(mockContainer, mockRail);
     assert.equal(insets.top, 120);
     assert.equal(insets.bottom, 48); // 768 - 720
+
+    // The TTC Map View's layer switches (plan 13) are the toolbar's second deck.
+    const railWithDeck = {
+      ...mockRail,
+      querySelector: (sel) => (sel === ".map-view-layers-row"
+        ? { getBoundingClientRect: () => ({ width: 600, height: 56, top: 128, bottom: 184 }) }
+        : null),
+    };
+    assert.equal(measureDesktopMapInsets(mockContainer, railWithDeck).top, 184);
 
     globalThis.window = origWindow;
   });

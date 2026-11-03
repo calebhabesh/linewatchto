@@ -1,0 +1,814 @@
+stop_code,name,routes
+00005,Yonge St. @ Baif Blvd. (Hillcrest Mall),61
+00006,Yonge St. @ Hwy. 407,32
+00008,Yonge St. @ Sheppard Ave.,19 27 67 96
+00011,York Mills Bus Terminal,33 36 92
+00013,Finch Bus Terminal,19 27 32 67 96
+00014,Yonge St. @ Langstaff Rd. E.,32
+00015,Yonge St. @ 16th Ave. (South Hill Shopping Centre),61
+00019,Yorkdale Bus Terminal,19 27 33 36 92 94
+00020,Hwy. 401 @ Keele St.,19 27 33 36 94
+00022,Keele St. @ Hwy. 401,19 27 33 36 94
+00025,Barrie St. @ Holland St. W.,68
+00027,Keele St. @ Station Rd. (King City GO),65
+00028,Rutherford GO Bus,65
+00030,Keele St. @ Burton Grove (King City GO),65
+00031,Whitby GO Bus,90 96
+00062,Richmond Hill GO Bus,61
+00073,Yonge St. @ Steeles Ave. W.,32
+00074,Yonge St. @ Steeles Ave. W.,32
+00077,Yonge St. @ Park Home Ave.,19 27 67 96
+00081,Aurora GO Bus,65 68
+00083,Yonge St. @ Mount Albert Rd.,68
+00087,Yonge St. @ Killarney Beach Rd.,68
+00090,Yonge St. @ Victoria St.,68
+00092,Yonge St. @ Mapleview Dr. E.,68
+00093,Yonge St. @ Mapleview Dr. E.,68
+00115,Hwy. 47 @ Front St.,70 71
+00116,Hwy. 47 @ Front St.,70 71
+00117,Main St. @ Edward St. (Stouffville GO),70 71
+00118,Main St. @ Edward St. (Stouffville GO),70 71
+00121,Mount Joy GO Bus,70 71
+00122,Main St. N. @ Station St. (Markham GO),70 71
+00123,Main St. N. @ Ramona Blvd. (Markham GO),71
+00124,Bullock Dr. @ McCowan Rd. (Centennial GO),70 71
+00125,Bullock Dr. @ McCowan Rd. (Centennial GO),71
+00126,Bullock Dr. @ Austin Dr.,70 71
+00127,Bullock Dr. @ Austin Dr.,71
+00128,Unionville GO Bus,40 52 56 70 71
+00129,Meadowvale GO Bus,21 27 43 48
+00132,Square One,19 21 25 29 40 41 47 56 94
+00133,Square One,19 21 25 29 40 41 47 56 94
+00137,Oakville GO Bus,18 22 56
+00138,Bronte Rd. @ Hwy. 407 Park & Ride,41 47
+00139,Dundas St. @ Hwy. 407 Park & Ride,12 40 41 43 47
+00141,Hamilton GO Centre Bus,11 16 17 18 40 41 47
+00144,University of Toronto Scarborough,41
+00147,Pickering GO Bus,41 90 94
+00148,Streetsville GO Bus,21
+00153,Durham College Campus/Ontario Tech University,52 56
+00155,Bowmanville Ave. @ Baseline Rd.,88
+00156,Bowmanville Ave. @ Baseline Rd.,88
+00157,King St. E. @ Liberty St.,88
+00158,King St. E. @ Liberty St.,88
+00159,Durham College Oshawa GO,52 56 88 90 92 96
+00161,Ajax GO Bus,90 96
+00166,Bond St. W. @ Centre St. N.,92
+00170,Kingston Rd. @ Port Union Rd.,92
+00171,Kingston Rd. @ Sheppard Ave. E.,92
+00173,Dundas St. @ Brock St.,92
+00174,Dundas St. @ Brock St.,92
+00177,Burlington GO Bus,12 18
+00178,King St. W. @ Dundurn St. N.,11 16 17 18 40 41 47
+00180,Aldershot GO Bus,11 15 17 18
+00181,Clarkson GO Bus,18
+00189,Erindale GO Bus,21
+00190,Aquitaine Ave. @ Formentera Ave. (Meadowvale Town Centre),21 27 43 48
+00191,Aquitaine Ave. @ Meadowvale Town Centre Circle,21 27 43 48
+00194,Milton GO Bus,21 22 27
+00196,Erin Mills Pkwy. @ Turner Valley Rd.,21 27 43 48
+00197,Mississauga Rd. @ Mississauga Rd.,21 27 43 48
+00200,Syntex Crt. @ Financial Dr.,27 30
+00201,University of Guelph,17 29 31 33 48
+00203,Alma St. @ Inkerman St.,31 33
+00204,Alma St. @ Inkerman St.,31 33
+00205,Main St. N. @ Mill St. E.,31 33
+00210,Georgetown Market,31 33
+00211,Guelph St. @ Alcott Dr.,31 33
+00212,Guelph St. @ King St.,31 33
+00213,Guelph St. @ King St.,31 33
+00215,Bovaird Dr. W. @ Mississauga Rd.,31 33
+00216,Bovaird Dr. W. @ Chinguacousy Rd.,31 33
+00217,Bovaird Dr. W. @ Chinguacousy Rd.,31 33
+00221,Brampton Bus Terminal,31 33 37
+00222,Shopper's World,31 33
+00223,Shopper's World,31 33
+00225,Bramalea Bus Terminal,32 36
+00227,Steeles Ave. E. @ Rutherford St. S.,31
+00228,Malton GO Bus,31 38
+00231,Trinity Common Mall,32
+00241,Finch Ave. W. @ Longo Circle,38
+00242,Finch Ave. W. @ Darcel Ave.,38
+00249,Hurontario St. @ Mayfield Rd.,37
+00250,Hurontario St. @ Mayfield Rd.,37
+00251,Hurontario St. @ King St.,37
+00252,Hurontario St. @ King St.,37
+00253,Hurontario St. @ Charleston Side Rd.,37
+00254,Hurontario St. @ Charleston Side Rd.,37
+00255,Hwy. 10 @ Buena Vista Dr.,37
+00257,Hansen Blvd. @ First St. (Orangeville Mall),37
+00258,Broadway @ Blind Line,37
+00263,Appleby GO Bus,18
+00264,Bronte GO Bus,18
+00276,East Gwillimbury GO Bus,65 68
+00292,Bovaird Dr. W. @ Hurontario St.,31 33
+00296,Mount Pleasant GO Bus,31 33 43
+00297,Wellington St. E. @ Bayview Ave.,65
+00299,Yonge St. @ Elmhurst Ave.,19 27 67 96
+00300,Yonge St. @ North York Blvd.,19 27 67 96
+00302,Railway St. @ Albert St.,70 71
+00303,Wellington St. E. @ Bayview Ave.,65
+00306,Clarington Blvd. @ Durham Hwy. 2 (Bowmanville) Park & Ride,88
+00307,Wellington St. E. @ Hwy. 404 Park & Ride,65 67
+00310,McMaster University,15 17 41 43 47
+00312,Kingston Rd. @ Fairport Rd.,41 92 94
+00314,Kingston Rd. @ Glenanna Rd.,92
+00322,Kingston Rd. @ Harwood Ave.,92
+00323,Kingston Rd. @ Harwood Ave.,92
+00325,Dundas St. @ White Oaks Crt.,92
+00326,Dundas St. @ Garden St.,92
+00327,Dundas St. @ Garden St.,92
+00328,Dundas St. @ Anderson St.,92
+00329,Dundas St. @ Hopkins St.,92
+00331,Dundas St. @ Thickson Rd.,92
+00332,Bond St. W. @ Stevenson Rd. N.,92
+00333,King St. W. @ Stevenson Rd.,92
+00337,Brock Rd. @ McLean Rd. (Aberfoyle) Park & Ride,17 25 29 48
+00338,Hwy. 50 @ Columbia Way,38
+00339,Regional Rd. 50 @ Nashville Rd.,38
+00340,Hwy. 50 @ Queen St. E.,38
+00341,Lisgar GO Bus,21
+00342,Dundas St. @ White Oaks Crt.,92
+00343,Kingston Rd. @ Church St.,92
+00344,Kingston Rd. @ Church St.,92
+00345,Barrie South GO Bus,68
+00346,Queen St. S. @ Wilton Dr.,38
+00347,Queen St. S. @ Allan Dr.,38
+00349,Townline @ Mill St. (Orangeville) Park & Ride,37
+00350,Richmond Hill Centre,40 41 52 56
+00354,Hurontario St. @ Hwy. 407 Park & Ride,33 48
+00358,Centennial College,41
+00365,Kingston Rd. @ Brock Rd.,92
+00367,Kingston Rd. @ Westney Rd.,92
+00368,Dundas St. @ Thickson Rd.,92
+00429,Bond St. W. @ Park Rd. N.,92
+00462,Clarington Blvd. @ Durham Hwy. 2,88
+00510,Durham Hwy. 2 @ Bennett Rd.,88
+00511,Durham Hwy. 2 @ Bennett Rd.,88
+00514,Durham Hwy. 2 @ Bragg Rd.,88
+00519,King St. E. @ Division St.,88
+00521,King St. E. @ Galbraith Cr.,88
+00522,King St. E. @ George St.,88
+00525,Durham Hwy. 2 @ Kurve Inn Rd.,88
+00529,Durham Hwy. 2 @ Lambs Rd.,88
+00530,Durham Hwy. 2 @ Lambs Rd.,88
+00535,King St. E. @ Mearns Ave.,88
+00536,King St. E. @ Mearns Ave.,88
+00537,King St. E. @ Ontario St.,88
+00539,Durham Hwy. 2 @ Rickard Rd.,88
+00540,King St. W. @ Roenigk Dr.,88
+00541,King St. W. @ Roenigk Dr.,88
+00553,Durham Hwy. 47 @ Goodwood Rd.,70 71
+00554,Toronto St. @ Welwood Dr.,70 71
+00590,King St. W. @ Park Rd.,92
+00622,Kingston Rd. @ Rougemount Dr.,92
+00623,Kingston Rd. @ Rougemount Dr.,92
+00633,Kingston Rd. @ Whites Rd.,92
+00634,Kingston Rd. @ Whites Rd.,41 92 94
+00681,Stouffville Rd. At Goodwood Rd.,70 71
+00692,Toronto St. N. @ Albert St.,70 71
+00693,Toronto St. S. @ Campbell Dr.,70 71
+00694,Toronto St. S. @ Campbell Dr.,70 71
+00695,Toronto St. @ Elgin Park Dr.,70 71
+00696,Toronto St. S. @ Mill St.,70 71
+00697,Toronto St. S. @ Peel St.,70 71
+00698,Toronto St. S. @ Poplar St.,70 71
+00699,Toronto St. @ Welwood Dr.,70 71
+00714,Toronto St. @ Brock St.,70 71
+00718,Durham Hwy. 2 @ Durham Regional Rd. 42,88
+00719,Durham Hwy. 2 @ Durham Regional Rd. 42,88
+00726,Liverpool Rd. @ Pickering Pkwy.,41 94
+00727,Liverpool Rd. @ Pickering Pkwy.,41 94
+00728,Kingston Rd. @ Salem Rd.,92
+00729,Kingston Rd. @ Salem Rd.,92
+00730,Erin Mills Pkwy. @ Britannia Rd. W.,21
+00731,Yonge St. @ 16th Ave.,61
+00732,Main St. W. @ Longwood Rd. S.,11 16 17 18 40 41 47
+00734,King St. E. @ Simpson Ave.,88
+00736,Finch Bus Terminal,19 27 67 96
+00738,Hwy. 48 @ 19th Ave.,70 71
+00801,Main St. S. @ Frederick St.,31 33
+00802,Alma St. @ Fall St. (Rockwood Conservation Area),31 33
+00803,Alma St. @ Fall St. (Rockwood Conservation Area),31 33
+00804,Brant St. @ Leighland Rd.,18
+00806,Derry Rd. @ Fourth Line,21 22 27
+00807,Derry Rd. @ Fourth Line,21 22 27
+00808,Derry Rd. @ James Snow Pkwy.,21 22 27
+00809,Derry Rd. @ James Snow Pkwy.,21 22 27
+00810,Derry Rd. @ Miller Way,21 22 27
+00811,Derry Rd. @ Thompson Rd. S.,21 22 27
+00812,Derry Rd. @ Miller Way,21 22 27
+00815,Derry Rd. @ Trudeau Dr.,21 22 27
+00816,Derry Rd. @ Trudeau Dr.,21 22 27
+00819,Fairview St. @ Maple Ave.,12 18
+00820,Fairview St. @ Maple Ave.,12 18
+00822,Guelph St. @ Noble St.,31 33
+00823,Guelph St. @ Armstrong Ave.,31 33
+00824,Guelph St. @ Armstrong Ave.,31 33
+00827,Guelph St. @ Delrex Blvd.,31 33
+00828,Guelph St. @ Delrex Blvd.,31 33
+00830,Guelph St. @ Lakeview Ave.,31 33
+00832,Guelph St. @ Maple Ave.,31 33
+00833,Guelph St. @ McFarlane Dr.,31 33
+00834,Guelph St. @ Mill St.,31 33
+00837,Guelph St. @ Mill St.,31 33
+00838,324 Guelph St. @ Sinclair Ave.,31 33
+00839,Guelph St. @ Noble St.,31 33
+00841,Guelph St. @ Sinclair Ave.,31 33
+00842,Guelph St. @ Sinclair Ave.,31 33
+00844,279 Guelph St. @ Sinclair Ave.,31 33
+00846,Main St. N. @ Elizabeth Dr.,31 33
+00847,Hwy. 7 @ Banting Rd.,31 33
+00848,Hwy. 7 @ Bethel Rd.,31 33
+00849,Hwy. 7 @ Hyland Ave.,31 33
+00853,Main St. N. @ Moore Park Cres.,31 33
+00854,Main St. N. @ Moore Park Cres.,31 33
+00860,Main St. S. @ Valley Rd.,31 33
+00861,Main St. S. @ Bridge St.,31 33
+00864,Mill St. E. @ Fellows St. (Acton GO),31 33
+00865,Mill St. E. @ Elgin St. N.,31 33
+00866,Mill St. E. @ Elgin St. S.,31 33
+00867,Main St. N. @ School Ln.,31 33
+00868,Mill St. E. @ Fellows St. (Acton GO),31 33
+00887,Queen St. @ Acton Blvd.,31 33
+00888,Queen St. @ Churchill Rd. S.,31 33
+00889,Queen St. @ Churchill Rd. N.,31 33
+00890,Queen St. @ Longfield Rd.,31 33
+00891,Thompson Rd. S. @ Childs Dr.,21 22 27
+00892,Thompson Rd. S. @ Childs Dr.,21 22 27
+00893,Thompson Rd. S. @ Laurier Ave.,21 22 27
+00894,Thompson Rd. S. @ Laurier Ave.,21 22 27
+00895,Thompson Rd. S. @ McCuaig Dr.,21 22 27
+00896,Thompson Rd. S. @ McCuaig Dr.,21 22 27
+00902,Trafalgar Rd. @ Iroquois Shore Rd.,22 56
+00913,Young St. @ Peel St.,31 33
+00924,Guelph St. @ Mountainview Rd. N.,31 33
+00926,Hwy. 7 @ Banting Rd.,31 33
+00929,Queen St. @ Tanners Dr.,31 33
+00930,Queen St. @ Tanners Dr.,31 33
+00931,Derry Rd. @ Armstrong Blvd.,21 22 27
+00932,Drew Centre @ Thompson Rd. S.,21 22 27
+00938,King St. W. @ Temperance St.,88
+00939,Sheridan College,22 56
+00942,Bovaird Dr. W. @ Lake Louise Dr.,31 33
+00945,Bowmanville Ave. @ Aspen Springs Dr.,88
+00946,Bowmanville Ave. @ Aspen Springs Dr.,88
+00947,Bowmanville Ave. @ Waverley Rd.,88
+00948,Bowmanville Ave. @ Waverley Rd.,88
+00949,Brant St. @ Churchill Ave.,18
+00958,10953 Hwy. 48 @ Elgin Mills Rd. E.,70 71
+00959,10953 Hwy. 48 @ Elgin Mills Rd. E.,70 71
+00960,Main St. S. @ Dunbar St.,31 33
+00962,Hwy. 50 @ Langstaff Rd.,38
+00963,Regional Rd. 50 @ Rutherford Rd.,38
+00964,Tenth Line @ Hemlock Dr.,70 71
+00965,Tenth Line @ Norm Faulkner Dr.,70 71
+00968,Hwy. 50 @ Bellchase Trail,38
+00969,Hwy. 50 @ Trade Valley Dr.,38
+00971,Kingston Rd. @ Walnut Ln.,41 92 94
+00972,Kingston Rd. @ Walnut Ln.,41 92 94
+00973,Tenth Line @ Forsyth Farm Dr.,70 71
+00974,Tenth Line @ Forsyth Farm Dr.,70 71
+00975,Guelph St. @ Maple Ave.,31 33
+00977,Yonge St. @ Shore Acres Dr.,68
+00978,Yonge St. @ County Rd. 89,68
+00989,Hurontario St. @ County Court Blvd.,33
+00990,Hurontario St. @ County Court Blvd.,33
+00991,Hurontario St. @ Ray Lawson Blvd.,33
+00992,Hurontario St. @ Sir Lou Dr.,33
+01002,King St. E. @ Hughson St. N.,11 16 17 18 40 41 47
+01004,King St. W. @ Pearl St. N.,11 16 17 18 40 41 47
+01005,King St. W. @ Strathcona Ave. N.,11 16 17 18 40 41 47
+01006,King St. W. @ Summers Ln. (Hamilton Place),11 16 17 18 40 41 47
+01007,Main St. W. @ Caroline St. S.,11 16 17 18 40 41 47
+01008,Main St. W. @ Dundurn St. S.,11 16 17 18 40 41 47
+01009,Main St. W. @ Macklin St. S.,11 16 17 18 40 41 47
+01010,Main St. W. @ Paisley Ave. S.,11 15 16 17 18 40 41 47
+01011,Main St. W. @ Pearl St. S.,11 16 17 18 40 41 47
+01012,Main St. W. @ Ray St. S.,11 16 17 18 40 41 47
+01014,Main St. W. @ Summers Ln. (Hamilton City Hall),11 16 17 18 40 41 47
+01016,Derry Rd. @ Thompson Rd. S.,21 22 27
+01017,Derry Rd. @ Thompson Rd. S.,21 22 27
+01024,Thompson Rd. S. @ Derry Rd. W.,21 22 27
+01134,Aquitaine Ave. @ Glen Erin Dr.,21 27 43 48
+01135,Aquitaine Ave. @ Glen Erin Dr.,21 27 43 48
+01136,Aquitaine Ave. @ Montevideo Rd.,21 27 43 48
+01137,Aquitaine Ave. @ Montevideo Rd.,21 27 43 48
+01138,Aquitaine Ave. @ Millcreek Dr.,21 27 43 48
+01139,Aquitaine Ave. @ Millcreek Dr.,21 27 43 48
+01140,Blind Line @ Banting Dr.,37
+01143,Blind Line @ St. Andrews Dr.,37
+01150,Bovaird Dr. W. @ McLaughlin Rd. N.,31 33
+01153,Bovaird Dr. W. @ Worthington Ave.,31 33
+01160,Bramalea Rd. @ Avondale Blvd.,32 36
+01161,Bramalea Rd. @ Balmoral Dr.,32 36
+01165,Bramalea Rd. @ Dearbourne Blvd.,32 36
+01170,Broadway @ 4th St.,37
+01171,Broadway @ Banting Dr.,37
+01172,Broadway @ Centre St.,37
+01173,Broadway @ Dawson Rd.,37
+01174,Broadway @ John St.,37
+01176,Broadway @ Townline,37
+01177,Broadway @ Wellington St.,37
+01184,Clark Blvd. @ Kings Cross Rd.,32 36
+01185,Clark Blvd. @ Kings Cross Rd.,32 36
+01191,Creditview Rd. @ Eglinton Ave.,21
+01192,Creditview Rd. @ Rathkeale Rd.,21
+01193,Derry Rd. W. @ Ninth Line,21 27 43 48
+01195,Derry Rd. W. @ Danton Promenade,21 27 43 48
+01196,Derry Rd. W. @ Danton Promenade,21 27 43 48
+01197,Derry Rd. W. @ Forest Park Dr.,21 27 43 48
+01198,Derry Rd. W. @ Lisgar Dr.,21 27 43 48
+01200,Derry Rd. W. @ Rosehurst Dr.,21 27 43 48
+01202,Derry Rd. W. @ Tenth Line W.,21 27 43 48
+01203,Derry Rd. W. @ Tenth Line W.,21 27 43 48
+01204,Derry Rd. W. @ Terragar Blvd.,21 27 43 48
+01234,Eglinton Ave. W. @ Mississauga Rd.,21
+01235,Eglinton Ave. W. @ Mississauga Rd.,21
+01236,Erin Mills Pkwy. @ Battleford Rd.,21
+01237,Erin Mills Pkwy. @ Britannia Rd. W.,21
+01240,Erin Mills Pkwy. @ Erin Centre Blvd.,21
+01242,Erin Mills Pkwy. @ Millcreek Dr.,21
+01243,Erin Mills Pkwy. @ Millcreek Dr.,21 27 43 48
+01244,Erin Mills Pkwy. @ Wickham Rd.,21
+01245,Erin Mills Pkwy. @ Windwood Dr.,21
+01246,Mississauga Rd. @ Argentia Rd.,21 27 43 48
+01247,Erin Mills Pkwy. @ Erin Centre Blvd.,21
+01248,Finch Ave. @ Kenview Blvd.,38
+01249,Finch Ave. @ Kenview Blvd. (Wild Water Kingdom),38
+01255,Hansen Blvd. @ Michael Dr.,37
+01256,Hansen Blvd. @ Scott Dr.,37
+01258,Hurontario St. @ Bovaird Dr. W.,37
+01261,Hurontario St. @ Conservation Dr.,37
+01271,Hurontario St. @ Sandalwood Pkwy. W.,37
+01276,Hurontario St. @ Wanless Dr.,37
+01279,Hwy. 10 @ 4th Ave.,37
+01280,Hurontario St. @ Boston Mills Rd.,37
+01281,Hurontario St. @ Boston Mills Rd.,37
+01282,Hurontario St. @ Chester Dr.,37
+01283,Hurontario St. @ Forks of The Credit Rd.,37
+01284,Hurontario St. @ Forks of The Credit Rd.,37
+01285,Hurontario St. @ McCannell Ave.,37
+01286,Hurontario St. @ Mistywood Dr.,37
+01288,Hurontario St. @ Olde Baseline Rd.,37
+01289,Hurontario St. @ Olde Baseline Rd.,37
+01290,Hurontario St. @ Terry St.,37
+01291,Hurontario St. @ Terry St.,37
+01292,Hurontario St. @ Travelled Rd.,37
+01294,Hwy. 10 @ Dufferin Rd.,37
+01306,Main St. S. @ Clarence St.,31 33
+01307,Main St. S. @ Elgin Dr.,31 33
+01308,Main St. S. @ Elgin Dr.,31 33
+01311,Wellington St. W. @ George St. S.,31 33
+01313,Main St. S. @ Wellington St. E.,31 33
+01317,Main St. S. @ Nanwood Dr.,31 33
+01321,Main St. N. @ Vodden St. E.,31 33 37
+01325,Millcreek Dr. @ Erin Mills Pkwy.,21 27 43 48
+01326,Millcreek Dr. @ Millrace Crt. E.,21 27 43 48
+01327,Millcreek Dr. @ Millrace Crt. E.,21 27 43 48
+01335,Queen St. S. @ Downey Dr.,38
+01346,Queen St. S. @ Shore St.,38
+01356,Rathburn Rd. W. @ Creditview Rd.,21
+01357,Rathburn Rd. W. @ Elora Dr.,21
+01358,Rathburn Rd. W. @ Elora Dr.,21
+01359,Rathburn Rd. W. @ Elora Dr.,21
+01360,Rathburn Rd. W. @ Elora Dr.,21
+01362,Rathburn Rd. W. @ Mavis Rd.,21
+01363,Rathburn Rd. W. @ Elora Dr.,21
+01373,Steeles Ave. E. @ Kennedy Rd. S.,31 33
+01374,Steeles Ave. E. @ Kennedy Rd. S.,31
+01384,Thomas St. @ Erin Mills Pkwy.,21
+01393,Albion Rd. @ Steeles Ave. W.,38
+01394,Albion Rd. @ Steeles Ave. W.,38
+01398,Hwy. 50 @ Cottrelle Blvd.,38
+01402,Regional Rd. 50 @ Countryside Dr.,38
+01403,Regional Rd. 50 @ George Bolton Pkwy.,38
+01404,Regional Rd. 50 @ George Bolton Pkwy.,38
+01405,Hwy. 50 @ McEwan Dr.,38
+01406,Hwy. 50 @ McEwan Dr.,38
+01407,Regional Rd. 50 @ Queensgate Blvd.,38
+01408,Regional Rd. 50 @ Queensgate Blvd.,38
+01409,Regional Rd. 50 @ Bolton Heights Dr.,38
+01410,Regional Rd. 50 @ Cross Country Blvd.,38
+01426,Main St. N. @ Vodden St. W.,31 33 37
+01435,Trafalgar Rd. @ Burnhamthorpe Rd.,22 56
+01436,Streetsville GO Station Parking Lot,21
+01438,Mississauga Rd. @ Dupont Meadow Place,43 48
+01439,Mississauga Rd. @ Argentia Rd.,21 27 43 48
+01440,Mississauga Rd. @ Royal Bank Dr.,27 30 43 48
+01441,Trafalgar Rd. @ Burnhamthorpe Rd.,22 56
+01444,Eglinton Ave. W. @ Credit Valley Rd.,21
+01445,Eglinton Ave. W. @ Summersky Crt.,21
+01446,Erin Mills Pkwy. @ McFarren Blvd.,21
+01447,Erin Mills Pkwy. @ Banfield Rd.,21
+01448,Mayfield Rd. @ Hwy. 50 Park & Ride,38
+01452,Hurontario St. @ Sandalwood Pkwy. E.,37
+01454,Main St. N. @ Williams Pkwy.,31 33 37
+01455,Erin Mills Pkwy. @ Vista Blvd.,21
+01459,Steeles Ave. E. @ First Gulf Blvd.,31 33
+01462,Main St. N. @ Bovaird Dr. W.,31 33 37
+01481,Derry Rd. W. @ Winston Churchill Blvd.,21 27 43 48
+01483,Winston Churchill Blvd. @ Vanderbilt Rd.,21 27 43 48
+01487,Hurontario St. @ Travelled Rd.,37
+01488,Hurontario St. @ Travelled Rd.,37
+01504,Barrie St. @ 8th Line,68
+01505,Barrie St. @ 8th Line,68
+01506,Barrie St. @ Britannia Ave.,68
+01507,Barrie St. @ Fletcher St.,68
+01508,Burton Ave. @ Bayview Dr.,68
+01514,Holland St. E. @ Colborne St.,68
+01515,Holland St. E. @ Colborne St.,68
+01516,Hwy. 11 @ Meadowland St.,68
+01521,Yonge St. @ Ashford Dr.,68
+01522,Yonge St. @ Innisfil Beach Rd.,68
+01524,Yonge St. @ Big Bay Point Rd.,68
+01525,Yonge St. @ Country Ln.,68
+01526,Yonge St. @ Country Ln.,68
+01527,Yonge St. @ Esther Dr.,68
+01528,Yonge St. @ Esther Dr.,68
+01531,Yonge St. @ Innisfil Beach Rd.,68
+01532,Yonge St. @ Little Ave.,68
+01534,Yonge St. @ Lynn St.,68
+01535,Yonge St. @ Lynn St.,68
+01536,Yonge St. @ Madelaine Dr.,68
+01537,Yonge St. @ Meadowland St.,68
+01538,Yonge St. @ Glenn Ave.,68
+01543,Wellington St. E. @ First Commerce Dr.,65
+01544,Wellington St. E. @ First Commerce Dr.,65
+01546,Yonge St. @ Big Bay Point Rd.,68
+01644,Yonge St. @ Churchill Ave.,19 27 67 96
+01645,Yonge St. @ Cummer Ave.,32
+01646,Yonge St. @ Drewry Ave.,32
+01647,Yonge St. @ Florence Ave.,19 27 67 94 96
+01648,Yonge St. @ Glendora Ave.,19 27 67 96
+01650,Yonge St. @ Northtown Way,19 27 67 96
+01651,Yonge St. @ Kempford Blvd.,19 27 67 96
+01653,Yonge St. @ Elmwood Ave.,19 27 67 96
+01654,Yonge St. @ Ellerslie Ave.,19 27 67 96
+01655,Yonge St. @ Norton Ave.,19 27 67 96
+01657,Yonge St. @ William Carson Cr.,33 36 92
+01658,Toronto St. S. @ Banff Rd.,70 71
+01659,Toronto St. S. @ Banff Rd.,70 71
+01660,Yonge St. @ Empress Ave.,19 27 67 96
+01661,Yonge St. @ Finch Ave.,19 27 67 96
+01701,Elizabeth St. @ Beaumont Cr.,31 33
+01702,Elizabeth St. @ Beaumont Cr.,31 33
+01703,Elizabeth St. @ Stevenson St. S.,31 33
+01704,Elizabeth St. @ Stevenson St. S.,31 33
+01706,Elizabeth St. @ Victoria Rd. S.,31 33
+01707,785 York Rd. @ Cityview Dr.,31 33
+01708,Gordon St. @ Stone Rd.,17 29 48
+01711,Gordon St. @ Kortright Rd. E.,17 29 48
+01712,Gordon St. @ Edinburgh Rd. S.,17 29 48
+01713,Gordon St. @ Edinburgh Rd. S.,17 29 48
+01714,Gordon St. @ Arkell Rd.,17 29 48
+01715,Gordon St. @ Arkell Rd.,17 29 48
+01716,Gordon St. @ Clairfields Dr. W.,17 29 48
+01718,Brock Rd. S. @ Maple Leaf Ln.,17 29 48
+01719,Brock Rd. S. @ Old Brock Rd.,17 29 48
+01727,Trafalgar Rd. @ White Oaks Blvd.,22 56
+01728,Trafalgar Rd. @ Rosegate Way,22 56
+01729,Trafalgar Rd. @ Leighland Ave.,22 56
+01731,Toronto St. S. @ Mill St.,70 71
+01800,Wellington St. E. @ Mavrinac Blvd.,65
+01801,Wellington St. E. @ Stronach Blvd.,65
+01802,Tenth Line @ Aintree Dr.,70 71
+01804,Bradford St. @ Olive St.,68
+01805,Bradford St. @ Yonge St.,68
+01806,Bullock Dr. @ Hwy. 7,71
+01807,Bullock Dr. @ Hwy. 7,70 71
+01825,Yonge St. @ Old Yonge St.,68
+01860,Hwy. 7 @ Swansea Rd.,71
+01861,Hwy. 7 @ Swansea Rd.,70 71
+01877,Keele St. @ Drummond Dr.,65
+01878,Keele St. @ Drummond Dr.,65
+01887,Keele St. @ Teston Rd.,65
+01888,Keele St. @ Teston Rd.,65
+01924,Main St. @ Church St. N.,70 71
+01925,Main St. @ Market St.,70 71
+01926,Main St. @ Stouffer St.,70 71
+01969,Toll Rd. @ Bradford St.,68
+01970,Toll Rd. @ Bradford St.,68
+01971,Toll Rd. @ Centennial Ave.,68
+01972,Toll Rd. @ Centennial Ave.,68
+01973,Toll Rd. @ Oriole Dr.,68
+01974,Toll Rd. @ Oriole Dr.,68
+01979,Yonge St. @ Carrville Rd.,61
+01985,Yonge St. @ Baif Blvd. (Hillcrest Mall),61
+01986,Yonge St. @ Bantry Ave.,61
+01988,Yonge St. @ Beresford Dr.,61
+02003,Yonge St. @ Clarissa Dr.,61
+02004,Yonge St. @ Clark Ave. W.,32
+02012,Yonge St. @ Doncaster Ave.,32
+02015,Yonge St. @ Edgar Ave.,61
+02019,Yonge St. @ Elmwood Ave.,61
+02021,Yonge St. @ Garden Ave.,40 41 52 56
+02028,Yonge St. @ Harding Blvd.,61
+02029,Yonge St. @ Harding Blvd. W.,61
+02032,Yonge St. @ High Tech Rd.,61
+02035,Yonge St. @ Hopkins St.,61
+02043,Yonge St. @ John St.,32
+02052,Yonge St. @ Major Mackenzie Dr. E.,61
+02056,Yonge St. @ May Ave.,61
+02057,Yonge St. @ May Ave.,61
+02058,Yonge St. @ Meadowview Ave.,32
+02067,Yonge St. @ North St.,68
+02068,Yonge St. @ North St.,68
+02069,Yonge St. @ Northern Heights Dr.,61
+02071,Yonge St. @ Oak Ave.,61
+02072,Yonge St. @ Observatory Ln.,61
+02078,Yonge St. @ Royal Orchard Blvd.,32
+02079,Yonge St. @ Royal Orchard Blvd.,32
+02081,Yonge St. @ Scott Dr.,61
+02095,Yonge St. @ Weldrick Rd. E.,61
+02096,Yonge St. @ Weldrick Rd. W.,61
+02100,Yonge St. @ Yongehurst Dr.,61
+02101,Yonge St. @ Spruce Ave.,61
+02108,Bullock Dr. @ McCowan Rd.,70 71
+02109,Bullock Dr. @ McCowan Rd.,71
+02110,Bullock Dr. @ Laidlaw Blvd.,70 71
+02111,Bullock Dr. @ Laidlaw Blvd.,71
+02112,Main St. N. @ 16th Ave.,71
+02113,Hwy. 48 @ 16th Ave.,70 71
+02116,Queen St. N. @ Columbia Way,38
+02117,Tenth Line @ Aintree Dr.,70 71
+02118,Yonge St. @ Mortonvale Dr.,68
+02126,Main St. @ Stouffer St.,70 71
+02127,Yonge St. @ Clark Ave. E.,32
+02139,Keele St. @ Barrhill Rd.,65
+02141,YMCA Blvd. @ Kennedy Rd.,40 52 56 71
+02144,YMCA Blvd. @ Kennedy Rd.,40 52 56 70 71
+02148,Wilfrid Laurier University,17 25 30
+02150,Cambridge Smart Centre,25
+02151,Regional Rd. 25 @ Hwy. 401 Park & Ride,22 25 29 48
+02153,Wilfrid Laurier University,17 25 30
+02157,Maple GO Bus,65
+02158,Major Mackenzie Dr. W. @ Keele St.,65
+02160,Bradford GO Bus,68
+02162,Hwy. 2 @ Hwy. 35/115 Park & Ride,88
+02163,Trafalgar Rd. @ Hwy. 407 Park & Ride,22 40 41 43 47 56
+02170,Tenth Line @ Sleepy Hollow Ln.,70 71
+02171,Tenth Line @ Sleepy Hollow Ln.,70 71
+02172,Keele St. @ Kirby Rd.,65
+02173,Keele St. @ Kirby Rd.,65
+02174,Williams Pkwy. @ Hwy. 410 Park & Ride,32
+02175,Keele St. @ Peak Point Blvd.,65
+02176,Keele St. @ Peak Point Blvd.,65
+02177,Main St. @ Tenth Line,70 71
+02184,Sportsworld Dr. @ Hwy. 8 Park & Ride,25
+02185,Main St. W. @ Haddon Ave. S.,15 17 41 43 47
+02186,Kitchener GO Bus,30
+02189,Hwy. 48 @ Hoover Park Dr.,70 71
+02190,Hwy. 48 @ Hoover Park Dr.,70 71
+02191,Main St. @ Sandiford Dr.,70 71
+02192,Main St. @ Sandale Rd.,70 71
+02193,Main St. @ Weldon Rd.,70 71
+02194,Main St. @ Westlawn Cres.,70 71
+02202,Yonge St. @ Victoria St.,68
+02204,Weber St. E. @ Montgomery Rd.,30
+02205,Weber St. E. @ Montgomery Rd.,30
+02208,Renforth Dr. @ Convair Dr.,19 40 94
+02209,Renforth Dr. @ Convair Dr.,19 40 94
+02214,Erin Mills Transitway Station,25 29 41 47 56
+02215,Erin Mills Transitway Station,41 47 56
+02216,Erin Mills Transitway Station,25 29
+02300,Union Station Bus Terminal,16 18 21 31 61 65 68 71 90
+02402,St. Catharines Fairview Mall,12
+02404,Stanley Ave. @ Hwy. 420 Park & Ride,12
+02405,Stanley Ave. @ Hwy. 420 Park & Ride,12
+02406,Casablanca Blvd. @ QEW Park & Ride,11 12
+02408,Niagara Falls Bus Terminal,12
+02412,Main St. S. @ Ridge Rd.,31 33
+02413,Georgetown GO Bus,31 33
+02501,Trent University,88
+02502,Peterborough Bus Terminal,88
+02503,Fisher Dr. Park & Ride,88
+02504,Peterborough Rd. 10 @ Hwy. 115 Park & Ride,88
+02505,Hwy. 35 @ Hwy. 115 Park & Ride,88
+02508,Derry Rd. W. @ Ninth Line,21 27 43 48
+02512,Blind Line @ Hansen Blvd.,37
+02513,Blind Line @ College Ave.,37
+02518,MacDonell St. @ Carden St. (Guelph Central GO),31 33
+02519,Guelph Central GO Bus,17 29 31 33
+02520,Wellington St. E. @ John West Way,65 68
+02521,Wellington St. E. @ Mary St.,65 68
+02522,Woodbine Ave. @ Hwy. 404 Park & Ride,67
+02523,Queensville Sdrd. @ Hwy. 404 Park & Ride,67
+02530,Weber St. W. @ Queen St. N.,30
+02531,Weber St. E. @ Queen St. N.,30
+02532,King St. W. @ Scugog St.,88
+02533,Hwy. 50 @ Queen St. E.,38
+02534,Hwy. 50 @ Ebenezer Rd.,38
+02535,Hwy. 50 @ Ebenezer Rd.,38
+02537,Barrie St. @ Doctors Lane,68
+02538,Davis Dr. @ Hwy. 404 Park & Ride,67
+02539,Brock Rd. @ Hwy. 407 Park & Ride,56
+02540,Morningside Ave. @ Tams Rd.,41
+02541,Morningside Ave. @ Tams Rd.,41
+02542,Simcoe St. N. @ Parkwood Crt.,52 56
+02543,Simcoe St. N. @ Parkwood Crt.,52 56
+02544,Markham Rd. @ Edward Jeffreys Ave.,70 71
+02545,Markham Rd. @ Edward Jeffreys Ave.,71
+02546,Hurontario St. @ Old School Rd.,37
+02567,Hurontario St. @ Old School Rd.,37
+02571,Kingston Rd. @ Glenanna Rd.,92
+02572,Victoria St. @ Thickson Rd. (Thickson Ridge Power Centre),90 96
+02573,Victoria St. @ Thickson Rd. (Thickson Ridge Power Centre),90 96
+02574,Markham Rd. @ Castlemore Ave.,70 71
+02575,Markham Rd. @ Castlemore Ave.,70 71
+02576,Kingston Rd. @ Fairport Rd.,41 92 94
+02577,Yonge St. @ 4th Line (Churchill Community Centre),68
+02579,Major Mackenzie Dr. E. @ Cedar Ave.,61
+02580,Major Mackenzie Dr. E. @ Cedar Ave.,61
+02586,Financial Dr. @ Syntex Crt.,27 30
+02587,Dupont Meadow Pl. @ Mississauga Rd.,27 30
+02605,Hespeler Rd. @ Pinebush Rd.,25
+02607,Wayne Gretzky Pkwy. @ Henry St,15
+02608,Wayne Gretzky Pkwy. @ Henry St.,15
+02609,Wayne Gretzky Pkwy. @ Elgin St.,15
+02610,Wayne Gretzky Pkwy. @ Elgin St.,15
+02611,Wayne Gretzky Pkwy. @ Chatham St.,15
+02612,Wayne Gretzky Pkwy. @ Chatham St.,15
+02613,Colborne St. E. @ Puleston St.,15
+02614,Colborne St E. @ Kiwanis Way,15
+02615,Dalhousie St. @ Park Ave.,15
+02616,Colborne St. E. @ Park Ave.,15
+02617,Brantford Bus Terminal,15
+02619,McMaster Innovation Park,15
+02620,McMaster Innovation Park,15
+02621,Ontario St. @ QEW (Beamsville) Park & Ride,11 12
+02628,Kingston Rd. @ Brock Rd.,92
+02629,Gormley GO Bus,61
+02633,Mountainview Rd. N. @ Maple Ave.,31 33
+02634,Davis Dr. @ Superior St. (Newmarket GO),65 68
+02635,Winston Churchill Transitway Station,25 29
+02636,Winston Churchill Transitway Station,25 29
+02637,Davis Dr. @ Superior St. (Newmarket GO),65 68
+02644,Main St. @ Ringwood Dr.,70 71
+02645,Main St. @ Baker Hill Blvd.,70 71
+02646,Niagara College,12
+02647,Trafalgar Rd. @ Dundas St. E.,22 56
+02650,Military Trail. @ Pan Am Dr.,41
+02651,Military Trail. @ Pan Am Dr.,41
+02652,West Harbour GO Bus,11 18
+02653,Hwy. 10 @ Buena Vista Dr.,37
+02654,Hurontario St. @ Elm Dr.,21
+02655,Hurontario St. @ Fairview Rd.,21
+02658,Dixie Transitway Station,19 29 40 94
+02659,Dixie Transitway Station,19 29 40 94
+02660,Renforth Transitway Station,19 29 40 94
+02661,Renforth Transitway Station,19 29 40 94
+02672,Dundas St. @ Hwy. 412 Park & Ride,92
+02673,Hwy 407 Bus Terminal,30 41 47 48 52 56
+02674,Hwy 407 Bus Terminal,30 40 41 47 48 52 56
+02675,Dundas St. @ Halls Rd.,92
+02676,Dundas St. @ Halls Rd.,92
+02677,Gordon St. @ Clair Rd. E.,17 29 48
+02680,Bramalea Rd. @ Balmoral Dr.,32 36
+02681,Queen St. @ Hickman St.,38
+02682,Queen St. @ Mill St.,38
+02683,Green Lane E. @ Yonge St.,68
+02684,Simcoe St. @ Britannia Ave.,52 56
+02688,Burton Ave. @ Granville St.,68
+02689,Prospect St. @ Pearson St.,65 68
+02690,Prospect St. @ Pearson St.,65 68
+02691,Bayview Ave. @ Mulock Dr.,65 68
+02692,Bayview Ave. @ Mulock Dr.,65 68
+02693,Bayview Ave. @ St. John's Sideroad,65 68
+02694,Bayview Ave. @ St. John's Sideroad,65 68
+02696,Guelph St. @ Hall Rd.,31 33
+02699,Hwy. 10 @ Travelled Rd.,37
+02700,Trafalgar Rd. @ Dundas St.,22 56
+02702,Kingston Rd. @ Westney Rd.,92
+02706,Yonge St. @ Queen St.,68
+02708,Hwy. 50 @ Castlemore Rd.,38
+02709,Yonge St. @ Finch Ave.,19 27 67 96
+02710,Major Mackenzie Dr. E. @ Hwy. 404,67
+02711,Major Mackenzie Dr. E. @ Hwy. 404,67
+02712,Bovaird Dr. W. @ McLaughlin Rd. N.,31 33
+02714,First Ave. @ Front St. Park & Ride,88
+02715,First Ave. @ Front St. Park & Ride,88
+02716,Courtice Rd. @ Baseline Rd. Park & Ride,88
+02717,Gordon St. @ Clairfields Dr. E.,17 29 48
+02718,Gordon St. @ Kortright Rd.,17 29 48
+02719,York St. @ 800 York St.,31 33
+02720,Elizabeth St. @ Victoria Rd.,31 33
+02721,Gordon St. @ Stone Rd.,17 29 48
+02722,Main St. @ Mill St. E.,31 33
+02725,Bayview Ave. @ River Ridge Blvd.,65 68
+02726,Bayview Ave. @ River Ridge Blvd.,65 68
+02728,Bramalea GO Bus,30 31 32 33 37 41 47 48 56
+02730,Confederation GO Bus,11 12
+02736,Derry Rd. @ Sauve St.,21 22 27
+02737,Derry Rd. @ Sauve St.,21 22 27
+02738,Rathburn Rd. W. @ Perivale Rd.,21
+02739,Rathburn Rd. W. @ Perivale Rd.,21
+02741,Davis Dr. @ Prospect St.,65 68
+02742,Prospect St. @ Davis Dr.,65 68
+02743,Green Lane E. @ Yonge St.,68
+02744,Yonge St. @ Little Ave.,68
+02745,Main St. N. @ Williams Pkwy.,31 33 37
+02746,Main St. S. @ Nanwood Dr.,31 33
+02748,Centre St. S. @ Athol St. W.,52 56 92
+02749,Simcoe St. S. @ Athol St. E.,52 56 92
+02750,Main St. S. @ Clarence St.,31 33
+02751,Cooksville GO Bus,21
+02752,Cooksville GO Bus,21
+02756,Consumers Rd. @ William Sylvester Dr.,41
+02757,Consumers Rd. @ William Sylvester Dr.,41
+02758,Hwy. 47 @ Paisley Ln.,70 71
+02759,King St. W. @ Queen St. N.,11 16 17 18 40 41 47
+02763,Trafalgar Rd. @ Glenashton Dr.,22 56
+02764,Trafalgar Rd. @ River Oaks Blvd. E.,22 56
+02765,Trafalgar Rd. @ Upper Middle Rd. E.,22 56
+02766,Trafalgar Rd. @ McCraney St. E.,22 56
+02767,Bloomington GO Bus,61 67
+02768,Yonge St. @ Westwood Ln.,61
+02771,Yonge St. @ Hwy. 407,40 41 52 56
+02772,Yonge St. @ Sheppard Ave.,19 27 67 96
+02775,Port Credit GO Bus,18
+02778,Kipling Bus Terminal,29
+02779,Baldwin St. @ Hwy. 407 Park & Ride,56
+02780,Brock University,11
+02781,Simcoe St. N. @ Britannia Ave.,52 56
+02782,Simcoe St. N. @ Windfields Farm Dr.,52 56
+02783,Trafalgar Rd. @ Upper Middle Rd. E.,22 56
+02784,Trafalgar Rd. @ Briarhall Gate,22 56
+02785,Trafalgar Rd. @ Glenashton Dr.,22 56
+02786,Trafalgar Rd. @ Rosegate Way,22 56
+02787,Simcoe St. N. @ Windfields Farm Dr.,52 56
+02799,University of Waterloo Terminal,17 25 30
+02800,University of Waterloo Terminal,17 25 30
+02801,Maple Ave. @ Mountainview Rd. N.,31 33
+02802,Mountainview Rd. N. @ Maple Ave.,31 33
+02803,Main St. N. @ George St.,31 33
+02804,Main St. N. @ Henry St.,31 33
+02806,Tenth Ln. @ Main St.,70 71
+02807,Guelph St. W. @ Lakeview Ave.,31 33
+02808,Main St. S. @ MacLennan St.,31 33
+02809,Guelph St. @ Mountainview Rd. S.,31 33
+02815,Cornell Bus Terminal,52 56
+02816,Scarborough Centre Bus Terminal,41 92 94 96
+02818,Victoria St. N. @ Frederick St.,17
+02819,Victoria St. N. @ Frederick St.,17
+02821,Yonge St. @ Poyntz Ave.,19 27 67 94 96
+02829,Yonge St. @ John St.,32
+02830,Old Elm GO Bus,70 71
+02834,Hwy. 48 @ 19th Ave.,70 71
+02837,Sheppard Ave. E. @ Herons Hill Way,41
+02838,Sheppard Ave. E. @ Herons Hill Way,41
+02839,Simcoe St. N. @ Richmond St. E.,52 56
+02843,Rathburn Rd. W. @ Mavis Rd.,21
+02845,Gordon St. @ Clair Rd. W.,17 29 48
+02846,Toronto St. @ Elgin Park Dr.,70 71
+02847,Thomas St. @ Highbank Rd.,21
+02848,Woodlawn Rd. W. @ Regal Rd.,17
+02849,Woodlawn Rd. W. @ Regal Rd.,17
+02850,Sour Springs Rd. @ Mohawk Rd.,15
+02851,Sour Springs Rd. @ Mohawk Rd.,15
+02852,Chiefswood Rd. @ Sour Springs Rd.,15
+02853,Sour Springs Rd. @ Chiefswood Rd.,15
+02855,50 Generations Dr. (Oneida Business Park),15
+02856,Red Maple Rd. @ Hwy. 7 (Langstaff GO),61
+02857,Bayview Ave. @ Hwy. 7,61
+02858,Bayview Ave. @ Hwy. 7,61
+02860,Keele St. @ Barhill Rd.,65
+02861,Bovaird Dr. W. @ Mississauga Rd.,31 33 43
+02862,Durham Hwy. 2 @ Bowmanville Ave.,88
+02863,Durham Hwy. 2 @ Bowmanville Ave.,88
+02864,Durham Hwy. 2 @ Browview Rd.,88
+02865,Chiefswood Rd. @ 4th Line,15
+02866,4th Line @ Chiefswood Rd.,15
+02867,Erie Ave. @ Ninth Ave.,15
+02868,Erie Ave. @ Ninth Ave.,15
+02869,Winston Churchill Blvd. @ Vanderbilt Rd.,21 27 43 48
+02870,Humber College North Campus,40
+02871,Humber College North Campus,40
+02872,Gibb St. @ Oshawa Centre,52 56 92
+02873,Gibb St. @ Oshawa Centre,52 56 92
+02874,University Ave. E. @ Weber St. N.,17 25 30
+02875,University Ave. E. @ Weber St. N.,17 25 30
+02876,Victoria St. N. @ Bingemans Centre Dr.,17
+02877,Victoria St. N. @ Lackner Blvd.,17
+02878,Meadowvale Blvd. @ Mississauga Rd.,27
+02879,Meadowvale Blvd. @ Financial Dr.,27
+02880,Millcreek Dr. @ Millrace Crt.,21 27 43 48
+02881,Millcreek Dr. @ Millrace Crt.,21 27 43 48
+02882,Burton Ave. @ Granville St.,68
+02883,Brock Rd. S. @ Gilmour Rd.,17 29 48
+02884,Brock Rd. S. @ Gilmour Rd.,17 29 48
+02890,Mississauga Rd. @ Williams Pkwy.,43
+02891,Mississauga Rd. @ Williams Pkwy.,43
+02892,Mississauga Rd. @ Steeles Ave. W.,43
+02893,Mississauga Rd. @ Steeles Ave. W.,43
+02894,Glenwoods Ave. @ The Queensway S.,67
+08032,Bramalea Bus Terminal,36
+08041,Bramalea GO Bus,30 31 32 41 47 48 56
+08042,Bramalea GO Bus,32 36
+08043,Cornell Bus Terminal,52 56
+08044,Bramalea GO Bus,32 36
+08045,Old Elm GO Bus,70 71
+08046,50 Generations Dr. (Oneida Business Park),15
+08047,New Credit Variety & Gas Bar,15
+08048,St. Catharines Downtown Terminal,11
+08049,Allandale Waterfront GO Bus,68

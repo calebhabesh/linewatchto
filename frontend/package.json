@@ -20,6 +20,8 @@
     "generate:og-image": "node scripts/generate-og-image.mjs",
     "generate:geographic-catalog": "node ../scripts/generate-geographic-catalog.mjs",
     "generate:surface-catalog": "node ../scripts/generate-surface-catalog.mjs",
+    "generate:go-bus-catalog": "node ../scripts/generate-go-bus-catalog.mjs",
+    "generate:station-plans": "node ../scripts/generate-station-plans.mjs",
     "metrics:css": "node scripts/measure-css.mjs",
     "preview:closing-soon": "node scripts/preview-closing-soon.mjs",
     "test:fast": "node --test --test-reporter=dot tests/*.test.mjs",

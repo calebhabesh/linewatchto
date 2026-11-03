@@ -1097,6 +1097,89 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  // Live streetcar (plan 13, S4) and bus (S8) positions: off unless a spec routes its own answer.
+  if (request.method === "GET"
+    && (url.pathname === "/api/surface/streetcars/positions" || url.pathname === "/api/surface/buses/positions")) {
+    sendJson(request, response, 200, {
+      networkId: "ttc",
+      state: "disabled",
+      source: "TTC GTFS-RT vehicle positions",
+      generatedAt: "2026-08-14T16:00:00Z",
+      sourceUpdatedAt: null,
+      maxSourceAgeSeconds: 120,
+      vehicleStaleAfterSeconds: 120,
+      vehicleMaxAgeSeconds: 300,
+      refreshSeconds: 15,
+      vehicles: [],
+    });
+    return;
+  }
+
+  // One TTC surface stop (plan 13, S3). Times sit just after the smoke tests' frozen 2026-08-14T16:00Z clock.
+  const surfaceStopMatch = url.pathname.match(/^\/api\/surface\/stops\/([^/]+)\/arrivals$/);
+  if (request.method === "GET" && surfaceStopMatch) {
+    const stopCode = decodeURIComponent(surfaceStopMatch[1]);
+    // 14999 is a bay at Stub Station (plan 13, S7 review): its panel links back to the station.
+    if (stopCode !== "100" && stopCode !== "14999") {
+      sendJson(request, response, 404, { error: "Unknown stop" });
+      return;
+    }
+    const atStation = stopCode === "14999";
+    sendJson(request, response, 200, {
+      networkId: "ttc",
+      stopCode,
+      stopId: stopCode,
+      stopName: atStation ? "Stub Station at Bay 7" : "Bathurst St at Fort York Blvd",
+      stationId: atStation ? "stub-station" : null,
+      latitude: 43.638947,
+      longitude: -79.400771,
+      availability: "available",
+      message: null,
+      generatedAt: "2026-08-14T16:00:00Z",
+      horizonMinutes: 120,
+      live: { state: "live", sourceUpdatedAt: "2026-08-14T15:59:50Z", maxAgeSeconds: 120, source: "TTC GTFS-RT bus and streetcar trip updates" },
+      schedule: { state: "available", serviceStart: "2026-08-02", serviceEnd: "2026-09-05", source: "TTC published GTFS schedule" },
+      routes: [{
+        route: "511",
+        routeName: "Bathurst",
+        mode: "streetcar",
+        destination: "North - 511 Bathurst towards Bathurst Station",
+        departures: [
+          { status: "live", at: "2026-08-14T16:04:00Z", predictedAt: "2026-08-14T16:04:00Z", scheduledAt: "2026-08-14T16:03:00Z", minutes: 4 },
+          { status: "scheduled", at: "2026-08-14T16:20:00Z", predictedAt: null, scheduledAt: "2026-08-14T16:20:00Z", minutes: 20 },
+        ],
+      }],
+    });
+    return;
+  }
+
+  // One GO bus stop (plan 13, S6): a live time Metrolinx moved off the schedule, and a scheduled one.
+  const goBusStopMatch = url.pathname.match(/^\/api\/regional\/bus-stops\/([^/]+)\/departures$/);
+  if (request.method === "GET" && goBusStopMatch) {
+    const stopCode = decodeURIComponent(goBusStopMatch[1]);
+    if (stopCode !== "00008") {
+      sendJson(request, response, 404, { error: "Unknown stop" });
+      return;
+    }
+    sendJson(request, response, 200, {
+      networkId: "regional",
+      stopCode,
+      stopName: "Yonge St. @ Sheppard Ave.",
+      routes: ["19", "27", "67", "96"],
+      availability: "available",
+      message: null,
+      generatedAt: "2026-08-14T16:00:00Z",
+      sourceUpdatedAt: "2026-08-14T15:59:50Z",
+      source: "Metrolinx GO Next Service",
+      horizonMinutes: 120,
+      departures: [
+        { route: "19", routeName: "Mississauga / North York", destination: "19 - Square One", minutes: 7, at: "2026-08-14T16:06:30Z", predictedAt: "2026-08-14T16:06:30Z", scheduledAt: "2026-08-14T16:05:00Z", bayPlatform: "", tripId: "19101", status: "live" },
+        { route: "96", routeName: "Oshawa / Finch Express", destination: "96 - Oshawa", minutes: 25, at: "2026-08-14T16:25:00Z", predictedAt: null, scheduledAt: "2026-08-14T16:25:00Z", bayPlatform: "", tripId: "96101", status: "scheduled" },
+      ],
+    });
+    return;
+  }
+
   const surfaceConnectionMatch = url.pathname.match(/^\/api\/(regional\/)?stations\/([^/]+)\/surface-connections$/);
   if (request.method === "GET" && surfaceConnectionMatch) {
     const regional = Boolean(surfaceConnectionMatch[1]);

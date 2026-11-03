@@ -231,8 +231,10 @@ export const SEARCH_RETURN_LABELS: Record<string, string> = {
   feedback: "Feedback",
 };
 
+/** `desktop`: the "more" destination is Settings in the desktop rail (More on phones). */
 export function searchReturnDestinationAndLabel(
   context: SearchReturnContext | null,
+  options: { desktop?: boolean } = {},
 ): { destination: string; label: string } {
   if (!context) {
     return { destination: "status", label: "Back to Status" };
@@ -240,7 +242,9 @@ export function searchReturnDestinationAndLabel(
   const destination = context.selectedStationId ? "my-stations" : context.activeView;
   const label = context.selectedStationId
     ? "Back to Station Details"
-    : `Back to ${SEARCH_RETURN_LABELS[context.activeView] ?? "previous page"}`;
+    : options.desktop && context.activeView === "more"
+      ? "Back to Settings"
+      : `Back to ${SEARCH_RETURN_LABELS[context.activeView] ?? "previous page"}`;
   return { destination, label };
 }
 

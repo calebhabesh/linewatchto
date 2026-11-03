@@ -1,21 +1,16 @@
 "use client";
 
 import {
-  BarChart3,
   Bell,
   BookOpen,
-  Bus,
   Info,
   ChevronRight,
   Contrast,
   FileText,
   HeartHandshake,
-  History,
   LogIn,
   LogOut,
   MapPinCheck,
-  Megaphone,
-  MessageSquareText,
   Moon,
   Pause,
   Share2,
@@ -24,7 +19,6 @@ import {
   UserPlus,
   UserRound,
 } from "lucide-react";
-import { AccessibilityMenuIcon } from "./AccessibilityMenuIcon";
 import type { AccountState } from "../app/auth-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import type { NetworkId } from "../app/regional-data";
@@ -40,7 +34,6 @@ type Props = {
   dotBackgroundEnabled: boolean;
   isDark: boolean;
   defaultNetwork: NetworkId;
-  currentNetwork: NetworkId;
   shareStatusLabel: string | null;
   onToggleTheme: () => void;
   onRequestSignIn: () => void;
@@ -52,12 +45,6 @@ type Props = {
   onToggleDotBackground: () => void;
   onDefaultNetworkChange: (network: NetworkId) => void;
   onOpenNotifications: () => void;
-  onOpenAnalytics: () => void;
-  onOpenAlertHistory: () => void;
-  onOpenAnnouncements?: () => void;
-  onOpenAccessibilityOutages: () => void;
-  onOpenSurfaceNotices: () => void;
-  onOpenFeedback: () => void;
   onOpenPrivacyAcknowledgements: () => void;
   onOpenReleaseNotes: () => void;
   onOpenGuide: () => void;
@@ -74,7 +61,6 @@ export function DesktopMorePanel({
   dotBackgroundEnabled,
   isDark,
   defaultNetwork,
-  currentNetwork,
   shareStatusLabel,
   onToggleTheme,
   onRequestSignIn,
@@ -86,12 +72,6 @@ export function DesktopMorePanel({
   onToggleDotBackground,
   onDefaultNetworkChange,
   onOpenNotifications,
-  onOpenAnalytics,
-  onOpenAlertHistory,
-  onOpenAnnouncements,
-  onOpenAccessibilityOutages,
-  onOpenSurfaceNotices,
-  onOpenFeedback,
   onOpenPrivacyAcknowledgements,
   onOpenReleaseNotes,
   onOpenGuide,
@@ -99,7 +79,7 @@ export function DesktopMorePanel({
   supportUrl,
 }: Props) {
   return (
-    <div className="desktop-more-panel" aria-label="Settings and more options">
+    <div className="desktop-more-panel" aria-label="Settings">
       {/* Account Section */}
       <section className="desktop-more-section" aria-label="Account">
         <div className="desktop-more-section-header">
@@ -300,64 +280,6 @@ export function DesktopMorePanel({
         </div>
       </section>
 
-      {/* Navigation & Tools */}
-      <section className="desktop-more-section" aria-label="Tools and Guides">
-        <div className="desktop-more-section-header">
-          <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
-          <h3 className="desktop-more-section-title">Navigation & Tools</h3>
-        </div>
-        <div className="desktop-more-card desktop-more-links-card">
-          <button type="button" className="desktop-more-nav-item" onClick={onOpenAnalytics}>
-            <div className="desktop-more-nav-item-main">
-              <BarChart3 size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
-              <span>Reliability Analytics</span>
-            </div>
-            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
-          </button>
-          <button type="button" className="desktop-more-nav-item" onClick={onOpenAlertHistory}>
-            <div className="desktop-more-nav-item-main">
-              <History size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
-              <span>Alert History</span>
-            </div>
-            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
-          </button>
-          <button type="button" className="desktop-more-nav-item" onClick={onOpenAccessibilityOutages}>
-            <div className="desktop-more-nav-item-main">
-              <AccessibilityMenuIcon size={18} />
-              <span>Accessibility Outages</span>
-            </div>
-            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
-          </button>
-          <button type="button" className="desktop-more-nav-item" onClick={onOpenSurfaceNotices}>
-            <div className="desktop-more-nav-item-main">
-              {currentNetwork === "regional" ? (
-                <Megaphone size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
-              ) : (
-                <Bus size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
-              )}
-              <span>{currentNetwork === "regional" ? "Service Notices" : "Streetcar & Bus"}</span>
-            </div>
-            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
-          </button>
-          {currentNetwork === "ttc" && onOpenAnnouncements && (
-            <button type="button" className="desktop-more-nav-item" onClick={onOpenAnnouncements}>
-              <div className="desktop-more-nav-item-main">
-                <Megaphone size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
-                <span>TTC Announcements</span>
-              </div>
-              <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
-            </button>
-          )}
-          <button type="button" className="desktop-more-nav-item" onClick={onOpenGuide}>
-            <div className="desktop-more-nav-item-main">
-              <Info size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
-              <span>Site Guide</span>
-            </div>
-            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
-          </button>
-        </div>
-      </section>
-
       {/* Info & Legal */}
       <section className="desktop-more-section" aria-label="Information and Feedback">
         <div className="desktop-more-section-header">
@@ -365,13 +287,6 @@ export function DesktopMorePanel({
           <h3 className="desktop-more-section-title">About</h3>
         </div>
         <div className="desktop-more-card desktop-more-links-card">
-          <button type="button" className="desktop-more-nav-item" onClick={onOpenFeedback}>
-            <div className="desktop-more-nav-item-main">
-              <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
-              <span>Leave Feedback</span>
-            </div>
-            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
-          </button>
           {supportUrl ? (
             <a
               href={supportUrl}
@@ -407,6 +322,13 @@ export function DesktopMorePanel({
             </div>
             <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
           </a>
+          <button type="button" className="desktop-more-nav-item" onClick={onOpenGuide}>
+            <div className="desktop-more-nav-item-main">
+              <Info size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              <span>Site Guide</span>
+            </div>
+            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
+          </button>
           <button type="button" className="desktop-more-nav-item" onClick={onShareApp}>
             <div className="desktop-more-nav-item-main">
               <Share2 size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />

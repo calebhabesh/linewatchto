@@ -1,5 +1,6 @@
 "use client";
 
+import { ttcRouteBadgeStyle } from "../app/ttc-route-badge";
 import { FilterSearchRow, FilterResultCount } from "./FilterSearchRow";
 
 import { availableFilterOptions } from "../app/filter-options";
@@ -407,8 +408,9 @@ export function SurfaceNoticesPanel({
     return (
       <span key={routeId} aria-label={regional ? `GO Bus ${routeId}` : `Route ${routeId}`}
         className="notice-route-badge inline-flex shrink-0 items-center justify-center rounded px-2 py-0.5 text-xs font-black"
-        style={{ backgroundColor: regional ? goBusRouteColor(routeId) : "#dc2626",
-          color: regional ? goBusRouteTextColor(routeId) : "#ffffff" }}>
+        style={regional
+          ? { backgroundColor: goBusRouteColor(routeId), color: goBusRouteTextColor(routeId) }
+          : ttcRouteBadgeStyle(routeId)}>
         {routeId}
       </span>
     );

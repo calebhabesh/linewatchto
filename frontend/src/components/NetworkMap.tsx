@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { DataProvider, type DashboardData } from "../app/DataContext";
 import { isRepeatMapSelection } from "../app/map-repeat-selection";
+import type { GeographicNetworkMapProps } from "./GeographicNetworkMap";
 import type { MapFadeController } from "../app/map-surface-transition";
 import { loadGeographicCatalog } from "../app/geographic-catalog-loader";
 import { MAP_MANIFESTS, NETWORK_MAPS } from "../app/map-manifests";
@@ -61,6 +62,15 @@ type NetworkMapProps = SystemMapShellProps & {
   warmingNetwork?: NetworkId | null;
   onPreparedMapReady?: () => void;
   geographicFadeRef?: RefObject<MapFadeController | null>;
+  /** Map View only: the TTC surface stop whose departures are open (plan 13, S3). */
+  selectedSurfaceStopCode?: string | null;
+  onSelectSurfaceStop?: (stopCode: string | null) => void;
+  /** Map View only: TTC buses (plan 13, S5), the rider's toggle. */
+  busesEnabled?: boolean;
+  onToggleBuses?: () => void;
+  goBusesEnabled?: boolean;
+  onToggleGoBuses?: () => void;
+  trainMarkersControl?: GeographicNetworkMapProps["trainMarkersControl"];
 };
 
 export function NetworkMap({
@@ -74,6 +84,13 @@ export function NetworkMap({
   warmingNetwork,
   onPreparedMapReady,
   geographicFadeRef,
+  selectedSurfaceStopCode = null,
+  onSelectSurfaceStop,
+  busesEnabled = false,
+  onToggleBuses,
+  goBusesEnabled = false,
+  onToggleGoBuses,
+  trainMarkersControl,
   ...shellProps
 }: NetworkMapProps) {
   // Timed GO/UP markers keep moving toward their next station between polls.
@@ -97,6 +114,8 @@ export function NetworkMap({
           highContrast={Boolean(props.highContrast)}
           selectedStationId={props.selectedStationId}
           onSelectStationId={props.onSelectStationId}
+          selectedSurfaceStopCode={selectedSurfaceStopCode}
+          onSelectSurfaceStop={onSelectSurfaceStop}
           selection={props.selection}
           onSelectImpact={(next) => {
             if (!isRepeatMapSelection(props, next)) props.onSelectImpact(next);
@@ -119,6 +138,11 @@ export function NetworkMap({
           selectionIntroKey={props.selectionIntroKey}
           mobilePerformanceMode={props.mobilePerformanceMode}
           layoutResetSignal={props.layoutResetSignal}
+          busesEnabled={busesEnabled}
+          onToggleBuses={onToggleBuses}
+          goBusesEnabled={goBusesEnabled}
+          onToggleGoBuses={onToggleGoBuses}
+          trainMarkersControl={trainMarkersControl}
         />
         <NetworkMapLegend
           mode={network}

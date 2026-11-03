@@ -207,9 +207,56 @@ public class GtfsScheduleImportRepository {
                 where source_version = :version
                   and surface_schedule_available = true
                   and full_stop_catalog_available = true
+                  and surface_stop_catalog_available = true
             )
             """, java.util.Map.of("version", sourceVersion), Boolean.class);
         return Boolean.TRUE.equals(exists);
+    }
+
+    public void markSurfaceStopCatalogAvailable(long importId) {
+        jdbc.update("update gtfs_schedule_imports set surface_stop_catalog_available = true where id = :id",
+            java.util.Map.of("id", importId));
+    }
+
+    public void insertSurfaceStops(long importId, List<GtfsImportModels.SurfaceStopRow> rows) {
+        String sql = """
+            insert into ttc_surface_stops (
+                import_id, stop_id, stop_code, stop_name, latitude, longitude, station_id, bay_platform
+            ) values (
+                :importId, :stopId, :stopCode, :stopName, :latitude, :longitude, :stationId, :bayPlatform
+            )
+            """;
+        for (int start = 0; start < rows.size(); start += 1_000) {
+            SqlParameterSource[] batch = rows.subList(start, Math.min(start + 1_000, rows.size())).stream()
+                .map(row -> new MapSqlParameterSource()
+                    .addValue("importId", importId)
+                    .addValue("stopId", row.stopId())
+                    .addValue("stopCode", row.stopCode().isBlank() ? null : row.stopCode())
+                    .addValue("stopName", row.stopName())
+                    .addValue("latitude", row.latitude())
+                    .addValue("longitude", row.longitude())
+                    .addValue("stationId", row.stationId())
+                    .addValue("bayPlatform", row.bayPlatform().isBlank() ? null : row.bayPlatform()))
+                .toArray(SqlParameterSource[]::new);
+            jdbc.batchUpdate(sql, batch);
+        }
+    }
+
+    public void insertSurfaceStopRoutes(long importId, List<GtfsImportModels.SurfaceStopRouteRow> rows) {
+        String sql = """
+            insert into ttc_surface_stop_routes (import_id, stop_id, route_id, destination)
+            values (:importId, :stopId, :routeId, :destination)
+            """;
+        for (int start = 0; start < rows.size(); start += 1_000) {
+            SqlParameterSource[] batch = rows.subList(start, Math.min(start + 1_000, rows.size())).stream()
+                .map(row -> new MapSqlParameterSource()
+                    .addValue("importId", importId)
+                    .addValue("stopId", row.stopId())
+                    .addValue("routeId", row.routeId())
+                    .addValue("destination", row.destination()))
+                .toArray(SqlParameterSource[]::new);
+            jdbc.batchUpdate(sql, batch);
+        }
     }
 
     public void markFullStopCatalogAvailable(long importId) {
@@ -365,7 +412,8 @@ public class GtfsScheduleImportRepository {
             analyze gtfs_schedule_imports, gtfs_routes, gtfs_stops, gtfs_services,
                     gtfs_service_exceptions, gtfs_trips, gtfs_stop_times,
                     gtfs_station_stops, ttc_surface_routes, ttc_surface_station_stops,
-                    ttc_surface_trips, ttc_surface_station_connections
+                    ttc_surface_trips, ttc_surface_station_connections, ttc_surface_stops,
+                    ttc_surface_stop_routes, ttc_surface_stop_times
             """);
     }
 

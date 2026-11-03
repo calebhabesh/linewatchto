@@ -50,9 +50,12 @@ export function MapViewSelector({
   className = "",
   disabled = false,
   ariaLabel,
+  onTransitionStart,
 }: {
   view: MapViewPreference;
   onChange: (view: MapViewPreference) => void;
+  /** Called as the toggle starts its glide, before `onChange`, so a view can begin its exit. */
+  onTransitionStart?: (view: MapViewPreference) => void;
   compactVertical?: boolean;
   className?: string;
   disabled?: boolean;
@@ -88,6 +91,7 @@ export function MapViewSelector({
     }
 
     setPendingView(nextView);
+    onTransitionStart?.(nextView);
     transitionTimerRef.current = window.setTimeout(() => {
       transitionTimerRef.current = null;
       onChange(nextView);

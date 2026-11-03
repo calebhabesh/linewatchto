@@ -1050,7 +1050,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     return () => window.removeEventListener("keydown", handleDesktopKeyDown);
   }, [closeSelectedStation, handleCloseSearch, handleSubmenuBack, isMobile, isSearchFocused, onDesktopEscapeSearch]);
 
-  const { destination: searchReturnDestination, label: searchReturnLabel } = searchReturnDestinationAndLabel(searchReturnContext);
+  const { destination: searchReturnDestination, label: searchReturnLabel } = searchReturnDestinationAndLabel(searchReturnContext, { desktop: !isMobile });
 
   return {
     // Navigation state

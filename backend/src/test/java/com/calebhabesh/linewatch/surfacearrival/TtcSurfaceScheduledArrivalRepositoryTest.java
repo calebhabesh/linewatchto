@@ -46,6 +46,35 @@ class TtcSurfaceScheduledArrivalRepositoryTest {
     }
 
     @Test
+    void readsAStopsAfterMidnightDeparturesFromThePreviousTorontoServiceDay() throws Exception {
+        var jdbc = mock(NamedParameterJdbcTemplate.class);
+        var schedules = mock(GtfsScheduleReadRepository.class);
+        when(schedules.findActiveImportId()).thenReturn(Optional.of(42L));
+        // 00:30 on Tuesday in Toronto is still Monday's service day for a 24:50 GTFS time.
+        when(schedules.findActiveServiceIds(42L, LocalDate.parse("2026-09-14"))).thenReturn(List.of("weekday"));
+        when(jdbc.query(anyString(), anyMap(), org.mockito.ArgumentMatchers.<RowMapper<TtcSurfaceStopArrival>>any()))
+            .thenAnswer(call -> {
+                Map<String, Object> params = call.getArgument(1);
+                assertThat(params.get("stopId")).isEqualTo("2120");
+                assertThat(params.get("from")).isEqualTo(24 * 3600L + 30 * 60);
+                ResultSet rs = mock(ResultSet.class);
+                when(rs.getInt("departure_seconds")).thenReturn(24 * 3600 + 50 * 60);
+                when(rs.getString("route_short_name")).thenReturn("304");
+                when(rs.getString("trip_headsign")).thenReturn("West - 304 King");
+                when(rs.getString("trip_id")).thenReturn("night-1");
+                RowMapper<TtcSurfaceStopArrival> mapper = call.getArgument(2);
+                return List.of(mapper.mapRow(rs, 0));
+            });
+        var rows = new TtcSurfaceScheduledArrivalRepository(jdbc, schedules)
+            .stopArrivals("2120", OffsetDateTime.parse("2026-09-15T00:30:00-04:00"), Duration.ofHours(2));
+        assertThat(rows).singleElement().satisfies(row -> {
+            assertThat(row.scheduledAt()).isEqualTo(OffsetDateTime.parse("2026-09-15T00:50:00-04:00"));
+            assertThat(row.predictedAt()).isNull();
+            assertThat(row.status()).isEqualTo("scheduled");
+        });
+    }
+
+    @Test
     void doesNotInventDeparturesWithoutAnActiveImportOrEligibleService() {
         var jdbc = mock(NamedParameterJdbcTemplate.class);
         var schedules = mock(GtfsScheduleReadRepository.class);

@@ -13,6 +13,15 @@ import { readShellSource } from "./helpers/shell-source.mjs";
 const panelUrl = new URL("../src/components/PrivacyAcknowledgementsPanel.tsx", import.meta.url);
 
 describe("privacy and acknowledgement content", () => {
+  it("credits the TTC for station floor plans without implying elevators work (plan 13, S7)", () => {
+    const section = acknowledgementSections.find((entry) => entry.title === "TTC Station Plans");
+    assert.ok(section, "station plans have their own acknowledgement");
+    const copy = JSON.stringify(section);
+    assert.match(copy, /credited to the TTC/);
+    assert.match(copy, /not an Open Data Toronto dataset/);
+    assert.match(copy, /does not mean it is working/);
+  });
+
   it("credits the TTC and Metrolinx map references while keeping LineWatchTO clearly unofficial", () => {
     const combinedCopy = JSON.stringify(acknowledgementSections);
 

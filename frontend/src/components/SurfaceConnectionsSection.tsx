@@ -2,7 +2,7 @@
 
 import { useDashboardData } from "../app/DataContext";
 
-import { Bus, CalendarCheck2, ChevronDown, Layers, LoaderCircle } from "lucide-react";
+import { Bus, CalendarCheck2, ChevronDown, ChevronRight, Layers, LoaderCircle } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   buildPinnedSurfaceGroups,
@@ -29,7 +29,16 @@ import { LiveSignalIcon } from "./LiveSignalIcon";
 import { ArrivalTileSourceIndicator } from "./ArrivalTileSourceIndicator";
 import { ArrivalSourceBadge } from "./ArrivalSourceBadge";
 import { ArrivalDelayBadge } from "./ArrivalDelayBadge";
+import { torontoCalendarDayOffset } from "../app/toronto-date";
+import { ttcRouteBadgeStyle } from "../app/ttc-route-badge";
 import { recentSurfaceSnapshots, rememberSurfaceSnapshot, surfaceSnapshotKey } from "../app/station-request-lifecycle";
+import {
+  bayNumberFromPlatform,
+  cachedStationBays,
+  loadStationBays,
+  stationBayStopCode,
+  type StationBayIndex,
+} from "../app/station-bays";
 
 const REFRESH_MS = 15_000;
 
@@ -38,26 +47,86 @@ type Props = {
   stationId: string;
   className?: string;
   variant?: "station-detail" | "saved-station";
+  /** Opens a stop's departures (a bay sign's stop number); without it the number is plain text. */
+  onOpenSurfaceStop?: (stopCode: string) => void;
 };
 
-function SurfaceRouteCard({
+/**
+ * A TTC station bus bay's sign over its routes (plan 13, S7 review): the bay
+ * sign as on the Map View's station plans and in TTC stations, "Bus Bay 2",
+ * and the bay's stop number, which opens that stop's departures. Shown only
+ * for a plain bay number at a TTC station; the stop number only when the bay
+ * index names exactly one stop for it.
+ */
+export function SurfaceBayHeader({
+  bay,
+  stopCode,
+  onOpenStop,
+  compact = false,
+}: {
+  bay: string;
+  stopCode: string | null;
+  onOpenStop?: (stopCode: string) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className={`surface-bay-header flex min-w-0 items-center gap-2.5${compact ? " is-compact" : ""}`} data-surface-bay-header={bay}>
+      <span className="surface-bay-sign" aria-hidden="true">
+        <span className="surface-bay-sign-word">Bay</span>
+        <span className="surface-bay-sign-number">{bay}</span>
+      </span>
+      <span className="min-w-0 truncate text-sm font-black text-slate-900 dark:text-white">Bus Bay {bay}</span>
+      {stopCode ? (
+        onOpenStop ? (
+          <button
+            type="button"
+            className="surface-bay-stop-link ml-auto inline-flex shrink-0 items-center gap-0.5 rounded-md px-1.5 py-1 text-blue-700 hover:bg-blue-500/10 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 dark:text-sky-300 dark:hover:bg-sky-400/10"
+            onClick={() => onOpenStop(stopCode)}
+            aria-label={`Bus Bay ${bay}: open stop ${stopCode} departures`}
+          >
+            Stop {stopCode}
+            <ChevronRight size={15} strokeWidth={2.5} aria-hidden="true" />
+          </button>
+        ) : (
+          <span className="surface-bay-stop-link ml-auto shrink-0 text-slate-500 dark:text-slate-400">Stop {stopCode}</span>
+        )
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * One route and direction with its arrival tiles, in the station Train Arrivals
+ * tile design. Also used by the surface stop panel (plan 13, S3), which has no
+ * pins, no bay line and marks times after Toronto midnight "Tomorrow".
+ */
+export function SurfaceRouteCard({
   group,
   networkId,
-  isPinned,
-  isHoveredPin,
+  isPinned = false,
+  isHoveredPin = false,
   onHoverPinChange,
   onTogglePin,
   stationName,
   tick,
+  subtitle,
+  showDay = false,
+  bayShownAbove = false,
 }: {
   group: SurfaceArrivalGroup;
   networkId: "ttc" | "regional";
-  isPinned: boolean;
-  isHoveredPin: boolean;
-  onHoverPinChange: (hovered: boolean) => void;
-  onTogglePin: () => void;
+  isPinned?: boolean;
+  isHoveredPin?: boolean;
+  onHoverPinChange?: (hovered: boolean) => void;
+  onTogglePin?: () => void;
   stationName: string;
   tick: number;
+  /** Replaces the mode/direction/bay line under the destination. */
+  subtitle?: string;
+  /** Adds "Tomorrow" to a time on a later Toronto calendar day. */
+  showDay?: boolean;
+  /** A bay sign above names the bay, so the meta line leaves it out. */
+  bayShownAbove?: boolean;
 }) {
   const details = parseSurfaceRouteDetails(group, networkId);
   const hasArrivals = group.arrivals.length > 0;
@@ -85,9 +154,10 @@ function SurfaceRouteCard({
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <span
-            className={`inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md px-1.5 text-xs font-black text-white shadow-sm ${
-              networkId === "regional" ? "bg-emerald-700" : "bg-red-600"
+            className={`inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md px-1.5 text-xs font-black shadow-sm ${
+              networkId === "regional" ? "bg-emerald-700 text-white" : ""
             }`}
+            style={networkId === "regional" ? undefined : ttcRouteBadgeStyle(group.route)}
           >
             {group.route}
           </span>
@@ -115,21 +185,23 @@ function SurfaceRouteCard({
               </p>
             ) : null}
             <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-              {details.metaSubtitle}
+              {subtitle ?? (bayShownAbove ? details.metaSubtitleWithoutBay : details.metaSubtitle)}
             </p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2 self-center">
           <ArrivalSourceBadge label={groupSourceLabel} />
-          <ArrivalLinePinButton
-            compact
-            pinned={isPinned}
-            hovered={isHoveredPin}
-            onHoverChange={onHoverPinChange}
-            lineLabel={`Route ${group.route}`}
-            stationName={stationName || "Station"}
-            onToggle={onTogglePin}
-          />
+          {onTogglePin && onHoverPinChange ? (
+            <ArrivalLinePinButton
+              compact
+              pinned={isPinned}
+              hovered={isHoveredPin}
+              onHoverChange={onHoverPinChange}
+              lineLabel={`Route ${group.route}`}
+              stationName={stationName || "Station"}
+              onToggle={onTogglePin}
+            />
+          ) : null}
         </div>
       </div>
 
@@ -143,11 +215,13 @@ function SurfaceRouteCard({
             const delayMinutes = getSurfaceArrivalDelayMinutes(arrival, tick);
             const delayed = delayMinutes !== null;
             const isCountdown = detailedCountdown && !due;
+            const tomorrow = showDay
+              && torontoCalendarDayOffset(Date.parse(arrival.predictedAt || arrival.scheduledAt || ""), tick) === 1;
             const arrivalLabelClassName = isCountdown
               ? "whitespace-nowrap text-base sm:text-lg font-black leading-none tracking-tight tabular-nums"
               : "text-base sm:text-lg font-black leading-none";
             const arrivalTileClassName = [
-              "surface-departure-tile relative flex min-h-[74px] sm:min-h-[78px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-1.5 text-center transition-colors",
+              "surface-departure-tile relative flex min-h-[82px] sm:min-h-[86px] flex-col items-center justify-center rounded-md border px-1.5 pt-5 pb-1.5 text-center transition-colors",
               due
                 ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
                 : delayed
@@ -159,8 +233,9 @@ function SurfaceRouteCard({
 
             return (
               <div
-                key={`${arrival.tripId}:${arrival.predictedAt}:${index}`}
+                key={index}
                 data-arrival-due={due ? "true" : "false"}
+                data-departure-status={arrival.status}
                 className={arrivalTileClassName}
               >
                 <ArrivalTileSourceIndicator status={arrival.status} isDue={due} size={12} />
@@ -188,6 +263,11 @@ function SurfaceRouteCard({
                     </span>
                   </span>
                 )}
+                {tomorrow ? (
+                  <span className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                    Tomorrow
+                  </span>
+                ) : null}
               </div>
             );
           })}
@@ -212,6 +292,7 @@ function SurfaceCompactRouteRow({
   onTogglePin,
   stationName,
   tick,
+  bayShownAbove = false,
 }: {
   group: SurfaceArrivalGroup;
   networkId: "ttc" | "regional";
@@ -221,6 +302,7 @@ function SurfaceCompactRouteRow({
   onTogglePin: () => void;
   stationName: string;
   tick: number;
+  bayShownAbove?: boolean;
 }) {
   const details = parseSurfaceRouteDetails(group, networkId);
   const hasArrivals = group.arrivals.length > 0;
@@ -255,9 +337,10 @@ function SurfaceCompactRouteRow({
     >
       <div className="flex w-full min-w-0 max-w-full items-center gap-2">
         <span
-          className={`inline-flex min-h-7 min-w-7 shrink-0 items-center justify-center rounded-md px-1.5 text-xs font-black leading-none text-white ${
-            networkId === "regional" ? "bg-emerald-700" : "bg-red-600"
+          className={`inline-flex min-h-7 min-w-7 shrink-0 items-center justify-center rounded-md px-1.5 text-xs font-black leading-none ${
+            networkId === "regional" ? "bg-emerald-700 text-white" : ""
           }`}
+          style={networkId === "regional" ? undefined : ttcRouteBadgeStyle(group.route)}
         >
           {group.route}
         </span>
@@ -284,7 +367,7 @@ function SurfaceCompactRouteRow({
             </p>
           ) : null}
           <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-            {details.metaSubtitle}
+            {bayShownAbove ? details.metaSubtitleWithoutBay : details.metaSubtitle}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 self-center">
@@ -335,7 +418,7 @@ function SurfaceCompactRouteRow({
 
             return (
               <div
-                key={`${arrival.tripId}:${arrival.predictedAt}:${index}`}
+                key={index}
                 data-arrival-due={due ? "true" : "false"}
                 className={arrivalTileClassName}
               >
@@ -383,7 +466,7 @@ function SurfaceCompactRouteRow({
   );
 }
 
-export function SurfaceConnectionsSection({ networkId, stationId, className, variant = "station-detail" }: Props) {
+export function SurfaceConnectionsSection({ networkId, stationId, className, variant = "station-detail", onOpenSurfaceStop }: Props) {
   const dashboard = useDashboardData();
   const isSavedStationVariant = variant === "saved-station";
   const { pinnedLineIds, togglePin } = useArrivalLinePins(networkId, stationId);
@@ -442,6 +525,25 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
     () => groupSurfaceArrivalsByBay(allGroups, pinnedLineIds),
     [allGroups, pinnedLineIds],
   );
+
+  // TTC bay signs: each bay group's plain bay number, and (from the station
+  // bay index, loaded once when a station has bays) its stop number.
+  const sectionBays = useMemo(
+    () => baySections.map((section) => (networkId === "ttc" ? bayNumberFromPlatform(section.groups[0]?.bayPlatform) : null)),
+    [baySections, networkId],
+  );
+  const hasBaySigns = sectionBays.some(Boolean);
+  const [bayIndexData, setBayIndexData] = useState<StationBayIndex | null>(cachedStationBays);
+  useEffect(() => {
+    if (!hasBaySigns || bayIndexData) return;
+    let cancelled = false;
+    loadStationBays().then((loaded) => {
+      if (!cancelled) setBayIndexData(loaded);
+    }, () => {
+      // Without the index the signs still show; only the stop link waits.
+    });
+    return () => { cancelled = true; };
+  }, [bayIndexData, hasBaySigns]);
 
   const pinnedGroups = useMemo(
     () => buildPinnedSurfaceGroups(allGroups, snapshot.arrivals, pinnedLineIds, networkId),
@@ -535,6 +637,14 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
                     />
                   )}
                   <div className="flex w-full min-w-0 max-w-full flex-col gap-1.5 overflow-hidden" data-surface-bay={baySection.bayKey}>
+                    {sectionBays[bayIndex] ? (
+                      <SurfaceBayHeader
+                        compact
+                        bay={sectionBays[bayIndex]!}
+                        stopCode={stationBayStopCode(bayIndexData, stationId, sectionBays[bayIndex]!)}
+                        onOpenStop={onOpenSurfaceStop}
+                      />
+                    ) : null}
                     {baySection.groups.map((group) => {
                       const isPinned = pinnedLineIds.includes(`surface:${group.route}`) || pinnedLineIds.includes(group.route);
                       const isHoveredPin = hoveredPinRoute === group.route;
@@ -550,6 +660,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
                           onTogglePin={() => togglePin(`surface:${group.route}`)}
                           stationName={snapshot.stationName || "Station"}
                           tick={tick}
+                          bayShownAbove={Boolean(sectionBays[bayIndex])}
                         />
                       );
                     })}
@@ -654,6 +765,13 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
                     />
                   )}
                   <div className="flex flex-col gap-2" data-surface-bay={baySection.bayKey}>
+                    {sectionBays[bayIndex] ? (
+                      <SurfaceBayHeader
+                        bay={sectionBays[bayIndex]!}
+                        stopCode={stationBayStopCode(bayIndexData, stationId, sectionBays[bayIndex]!)}
+                        onOpenStop={onOpenSurfaceStop}
+                      />
+                    ) : null}
                     {baySection.groups.map((group, groupIndex) => {
                       const isPinned = pinnedLineIds.includes(`surface:${group.route}`) || pinnedLineIds.includes(group.route);
                       const isHoveredPin = hoveredPinRoute === group.route;
@@ -677,6 +795,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
                             onTogglePin={() => togglePin(`surface:${group.route}`)}
                             stationName={snapshot.stationName || "Station"}
                             tick={tick}
+                            bayShownAbove={Boolean(sectionBays[bayIndex])}
                           />
                         </Fragment>
                       );

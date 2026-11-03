@@ -305,6 +305,11 @@ describe("Navigation Transition Table — Required Rows", () => {
     assert.equal(destination, "status");
     assert.equal(label, "Back to Status");
 
+    // The "more" destination is Settings in the desktop rail and More on phones.
+    const fromMore = { activeView: "more", selectedStationId: null, selectedNetwork: "ttc" };
+    assert.equal(searchReturnDestinationAndLabel(fromMore).label, "Back to More");
+    assert.equal(searchReturnDestinationAndLabel(fromMore, { desktop: true }).label, "Back to Settings");
+
     // 3. User selects station and closes search
     const closeSearch = transitionCloseSearch(state, {
       destination: "status",

@@ -156,25 +156,29 @@ test("Status, More and secondary list menus reach their final content on short s
   const status = page.locator(isMobile ? ".mobile-status-content-scroll" : ".desktop-status-overview");
   await expect(status).toBeVisible();
   await expectLastItemReachable(status.locator("*").filter({ visible: true }).last());
-  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: isMobile ? "More" : "Settings", exact: true }).click();
   const more = page.locator(isMobile ? ".mobile-more-content-scroll" : ".desktop-more-panel");
   await expect(more).toBeVisible();
   await expectLastItemReachable(more.locator("*").filter({ visible: true }).last());
-  for (const [name, selector] of [
-    ["Release Notes", ".release-notes-content"],
-    ["Privacy & Acknowledgements", ".privacy-acknowledgements-scroll"],
-    ["Notifications", ".notification-settings-scroll"],
-    ["Reliability Analytics", ".reliability-list"],
-    ["Alert History", ".alert-history-scroll"],
-    ["TTC Announcements", ".notification-settings-scroll"],
-    ["Leave Feedback", ".feedback-content"],
-  ]) {
+  // On desktop, destinations with their own rail item open from the rail, not from Settings.
+  for (const [name, selector, railDestination] of [
+    ["Release Notes", ".release-notes-content", null],
+    ["Privacy & Acknowledgements", ".privacy-acknowledgements-scroll", null],
+    ["Notifications", ".notification-settings-scroll", null],
+    ["Reliability Analytics", ".reliability-list", "analytics"],
+    ["Alert History", ".alert-history-scroll", "alert-history"],
+    ["TTC Announcements", ".notification-settings-scroll", "announcements"],
+    ["Leave Feedback", ".feedback-content", "feedback"],
+  ] as const) {
     await test.step(name, async () => {
-      await more.getByRole("button", { name: new RegExp(name) }).click();
+      const fromRail = !isMobile && railDestination !== null;
+      if (fromRail) await page.locator(`.desktop-nav-rail [data-dest="${railDestination}"]`).click();
+      else await more.getByRole("button", { name: new RegExp(name) }).click();
       const content = page.locator(selector);
       await expect(content).toBeVisible();
       await expectLastItemReachable(content.locator("*").filter({ visible: true }).last());
-      await page.getByRole("button", { name: /^Back/ }).first().click();
+      if (fromRail) await page.locator('.desktop-nav-rail [data-dest="more"]').click();
+      else await page.getByRole("button", { name: /^Back/ }).first().click();
       await expect(more).toBeVisible();
     });
   }
@@ -207,7 +211,7 @@ test("station browsing, detail and saved lists reach their final content", async
   await expect(detail).toBeVisible();
   await expectLastItemReachable(detail.locator("*").filter({ visible: true }).last());
   await page.getByRole("button", { name: /Close station detail/ }).click();
-  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: isMobile ? "More" : "Settings", exact: true }).click();
   await page.getByRole("button", { name: "Demo Account", exact: true }).click();
   const commutes = page.locator(".saved-commute-list-scroll");
   await expect(commutes).toBeVisible();

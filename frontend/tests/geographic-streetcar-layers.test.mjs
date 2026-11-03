@@ -7,8 +7,11 @@ import {
   STREETCAR_CASING_LAYER,
   STREETCAR_HIT_LAYER,
   STREETCAR_LINE_LAYER,
+  STREETCAR_STOP_LAYER,
   installStreetcarLayers,
+  streetcarStopCodeAtPoint,
   updateStreetcarFilter,
+  updateStreetcarStopSelection,
 } from "../src/components/geographic-streetcar-layers.ts";
 import { installTransitLayers } from "../src/components/geographic-map-operations.ts";
 import {
@@ -18,6 +21,9 @@ import {
   streetcarCardRows,
   streetcarRouteSets,
   streetcarSchedulePeriodLabel,
+  STREETCAR_BADGE_MIN_ZOOM,
+  nearestStreetcarStop,
+  streetcarStopByCode,
 } from "../src/app/geographic-surface-catalog.ts";
 import { streetcarCardSize } from "../src/components/map-chooser-layout.ts";
 import { getGeographicDefaultZoom } from "../src/app/geographic-config.ts";
@@ -64,6 +70,14 @@ function createMockMap(existingLayers = []) {
     hasImage: () => false,
     addImage: () => {},
     setPaintProperty: (layer, property, value) => paint.push({ layer, property, value }),
+    setLayoutProperty: (layer, property, value) => {
+      const target = layers.find((item) => item.id === layer);
+      target.layout = { ...target.layout, [property]: value };
+    },
+    removeImage: () => {},
+    queryRenderedFeatures: (_box, options) => (options.layers.includes("transit-streetcar-stops")
+      ? [{ properties: { stopCode: "9037" } }]
+      : []),
     getPaintProperty: () => undefined,
     getStyle: () => ({ layers }),
   };
@@ -117,7 +131,7 @@ describe("streetcar layers on the Map View", () => {
     const map = createMockMap();
     installStreetcarLayers(map, catalog, { dark: false, activeFilteredLine: null });
     installStreetcarLayers(map, catalog, { dark: false, activeFilteredLine: null });
-    assert.equal(ids(map).length, 4);
+    assert.equal(ids(map).length, 6);
     const corridors = map.sources["transit-streetcar-corridors"].data.features;
     assert.equal(corridors.length, 2, "stops are not drawn as corridors");
     assert.deepEqual(corridors.map((f) => f.properties.badgeImage), ["streetcar-badges:504,510", "streetcar-badges:504"]);
@@ -196,5 +210,72 @@ describe("streetcar card", () => {
     assert.ok(noted.height > plain.height);
     assert.ok(phone.height > noted.height);
     assert.ok(phone.width <= 360 - 32);
+  });
+});
+
+describe("streetcar stop pills", () => {
+  it("places stop numbers deeper than the route badges, over them, under the stations, and hides them on collision", () => {
+    const map = createMockMap(["transit-routes-casing", "transit-routes", "transit-stations-outer", "transit-station-labels"]);
+    installStreetcarLayers(map, catalog, { dark: true, activeFilteredLine: null });
+    const order = ids(map);
+    const stops = map.getLayer(STREETCAR_STOP_LAYER);
+    assert.ok(stops.minzoom > STREETCAR_BADGE_MIN_ZOOM);
+    assert.ok(order.indexOf(STREETCAR_STOP_LAYER) > order.indexOf(STREETCAR_BADGE_LAYER));
+    assert.ok(order.indexOf(STREETCAR_STOP_LAYER) < order.indexOf("transit-stations-outer"));
+    assert.equal(stops.layout["icon-allow-overlap"], false);
+    assert.equal(stops.layout["text-allow-overlap"], false);
+    assert.deepEqual(stops.layout["text-field"], ["get", "stopCode"]);
+    const points = map.sources["transit-streetcar-stops"].data.features;
+    assert.deepEqual(points.map((feature) => feature.properties.stopCode), ["9037"]);
+  });
+
+  it("marks the open stop and reads a pressed pill's number", () => {
+    const map = createMockMap();
+    installStreetcarLayers(map, catalog, { dark: false, activeFilteredLine: null });
+    assert.equal(map.getLayer(STREETCAR_STOP_LAYER).layout["icon-image"], "streetcar-stop-pill");
+    updateStreetcarStopSelection(map, "9037");
+    assert.deepEqual(map.getLayer(STREETCAR_STOP_LAYER).layout["icon-image"],
+      ["case", ["==", ["get", "stopCode"], "9037"], "streetcar-stop-pill-selected", "streetcar-stop-pill"]);
+    updateStreetcarStopSelection(map, null);
+    assert.equal(map.getLayer(STREETCAR_STOP_LAYER).layout["icon-image"], "streetcar-stop-pill");
+    assert.equal(streetcarStopCodeAtPoint(map, { x: 10, y: 10 }), "9037");
+  });
+
+  it("labels stops black on white above a dot on the stop's published position", () => {
+    const map = createMockMap();
+    installStreetcarLayers(map, catalog, { dark: true, activeFilteredLine: null });
+    const dot = map.getLayer("transit-streetcar-stop-dots");
+    assert.equal(dot.type, "circle");
+    assert.equal(dot.source, "transit-streetcar-stops");
+    const label = map.getLayer(STREETCAR_STOP_LAYER);
+    assert.equal(label.layout["text-anchor"], "bottom");
+    assert.ok(label.layout["text-offset"][1] < 0, "the label sits above the dot");
+    // Dark text in both themes, never the route red.
+    assert.equal(label.paint["text-color"], "#0f172a");
+    const order = ids(map);
+    assert.ok(order.indexOf("transit-streetcar-stop-dots") < order.indexOf(STREETCAR_STOP_LAYER));
+  });
+
+  it("dims the pills with the lines while a subway line is filtered", () => {
+    const map = createMockMap();
+    installStreetcarLayers(map, catalog, { dark: false, activeFilteredLine: null });
+    updateStreetcarFilter(map, "line-1");
+    const pill = map.paint.find((call) => call.layer === STREETCAR_STOP_LAYER && call.property === "icon-opacity");
+    assert.equal(evaluate(pill.value, 15), 0.25);
+  });
+
+  it("finds a stop by its number and the nearest stop on a pressed street's routes", () => {
+    assert.equal(streetcarStopByCode(catalog, "9037")?.properties.name, "King St at Spadina");
+    assert.equal(streetcarStopByCode(catalog, "1"), null);
+    // About 80 m from the stop, on a route that serves it.
+    assert.equal(nearestStreetcarStop(catalog, [-79.391, 43.645], ["510"])?.stop.properties.stopCode, "9037");
+    // A route that does not serve it, or a press too far away, offers no stop.
+    assert.equal(nearestStreetcarStop(catalog, [-79.391, 43.645], ["501"]), null);
+    assert.equal(nearestStreetcarStop(catalog, [-79.40, 43.645], ["510"]), null);
+  });
+
+  it("makes room in the card for the nearest-stop button", () => {
+    const rows = [{ replacementBuses: false }];
+    assert.ok(streetcarCardSize(rows, 1440, true).height > streetcarCardSize(rows, 1440).height);
   });
 });

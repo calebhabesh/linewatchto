@@ -14,6 +14,8 @@ public class SurfaceArrivalProperties {
     private boolean regionalEnabled;
     private Duration regionalCacheTtl = Duration.ofSeconds(30);
     private Duration regionalMaxSourceAge = Duration.ofMinutes(5);
+    /** Upstream Next Service reads for GO bus stop departures (plan 13, S6), all stops together. */
+    private int regionalStopFetchesPerMinute = 60;
     private Duration horizon = Duration.ofHours(2);
     private int maxArrivalsPerRoute = 3;
 
@@ -33,6 +35,8 @@ public class SurfaceArrivalProperties {
     public void setRegionalCacheTtl(Duration value) { this.regionalCacheTtl = value; }
     public Duration getRegionalMaxSourceAge() { return regionalMaxSourceAge; }
     public void setRegionalMaxSourceAge(Duration value) { this.regionalMaxSourceAge = value; }
+    public int getRegionalStopFetchesPerMinute() { return regionalStopFetchesPerMinute; }
+    public void setRegionalStopFetchesPerMinute(int value) { this.regionalStopFetchesPerMinute = value; }
     public Duration getHorizon() { return horizon; }
     public void setHorizon(Duration value) { this.horizon = value; }
     public int getMaxArrivalsPerRoute() { return maxArrivalsPerRoute; }

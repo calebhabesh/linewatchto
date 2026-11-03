@@ -1,19 +1,25 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { useFollowedChooserPortal } from "./MapOverlapChooser";
 import type { ChooserFollowAnchor, MapChooserFollower } from "./map-chooser-follow";
 import { OVERLAP_CHOOSER_MOBILE_BREAKPOINT } from "./map-chooser-layout";
+import { ttcRouteBadgeStyle } from "../app/ttc-route-badge";
 import type { OverlapChooserScreenLayout } from "./map-chooser-placement";
 import type { StreetcarCardRow } from "../app/geographic-surface-catalog";
 
 /**
- * What a press on a streetcar line shows: the routes on that street and the
- * schedule period the line is drawn from. Not live service (plan 13, S2).
+ * What a press on a streetcar line (plan 13, S2), a TTC bus line (S5) or a GO
+ * bus line (S6) shows: the routes on that street or road and the schedule
+ * period the line is drawn from. Not live service. The nearest stop on those
+ * routes opens its departures (S3; GO stops in S6).
  */
 export function GeographicStreetcarCard({
+  mode = "streetcar",
   rows,
+  nearestStop = null,
+  onOpenStop,
   periodLabel,
   selectionKey,
   layout,
@@ -23,7 +29,10 @@ export function GeographicStreetcarCard({
   reducedMotion,
   onClose,
 }: {
-  rows: StreetcarCardRow[];
+  mode?: "streetcar" | "bus" | "go-bus";
+  rows: Pick<StreetcarCardRow, "route" | "name" | "color" | "textColor" | "replacementBuses">[];
+  nearestStop?: { properties: { stopCode?: string; name: string } } | null;
+  onOpenStop?: (stopCode: string) => void;
   periodLabel: string;
   selectionKey: string | null;
   layout: OverlapChooserScreenLayout;
@@ -65,14 +74,17 @@ export function GeographicStreetcarCard({
     };
   }, [reducedMotion, viewportSize.width]);
 
-  const title = rows.length === 1 ? "Streetcar Route" : "Streetcar Routes";
+  const noun = mode === "go-bus" ? "GO Bus" : mode === "bus" ? "Bus" : "Streetcar";
+  const title = rows.length === 1 ? `${noun} Route` : `${noun} Routes`;
 
   return (
     <div
       ref={attachPortal}
       className="overlap-chooser-portal overlap-chooser-object open"
       style={portalStyle}
-      data-streetcar-card
+      data-streetcar-card={mode === "streetcar" ? "" : undefined}
+      data-bus-card={mode === "bus" ? "" : undefined}
+      data-go-bus-card={mode === "go-bus" ? "" : undefined}
     >
       <div
         ref={surfaceRef}
@@ -96,7 +108,7 @@ export function GeographicStreetcarCard({
             ref={closeRef}
             type="button"
             className="overlap-chooser-close"
-            aria-label="Close streetcar routes"
+            aria-label={`Close ${mode === "go-bus" ? "GO bus" : noun.toLowerCase()} routes`}
             onClick={() => onClose(true)}
           >
             <X size={20} aria-hidden="true" />
@@ -107,7 +119,7 @@ export function GeographicStreetcarCard({
             <li key={row.route} className="streetcar-card-row" data-streetcar-route={row.route}>
               <span
                 className="streetcar-card-badge"
-                style={{ backgroundColor: row.color, color: row.textColor }}
+                style={mode === "bus" ? ttcRouteBadgeStyle(row.route) : { backgroundColor: row.color, color: row.textColor }}
                 aria-hidden="true"
               >
                 {row.route}
@@ -121,6 +133,20 @@ export function GeographicStreetcarCard({
             </li>
           ))}
         </ul>
+        {nearestStop?.properties.stopCode && onOpenStop ? (
+          <button
+            type="button"
+            className="streetcar-card-stop"
+            onClick={() => onOpenStop(nearestStop.properties.stopCode as string)}
+          >
+            <span className="streetcar-card-stop-code">{nearestStop.properties.stopCode}</span>
+            <span className="streetcar-card-stop-copy">
+              <strong>Nearest Stop Departures</strong>
+              <span>{nearestStop.properties.name}</span>
+            </span>
+            <ChevronRight size={16} aria-hidden="true" />
+          </button>
+        ) : null}
         <p className="streetcar-card-source">
           Weekday schedule, {periodLabel}. Not live service.
         </p>

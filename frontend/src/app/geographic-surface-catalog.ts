@@ -89,6 +89,45 @@ export function isStreetcarStopFeature(
  */
 export const STREETCAR_BADGE_MIN_ZOOM = 13;
 
+/**
+ * Stop-number pills (S3) start deeper than the badges: at 15 a block's stops
+ * are far enough apart that most pills place; the rest hide on collision.
+ */
+export const STREETCAR_STOP_MIN_ZOOM = 15;
+
+/** The catalog stop with this pole number, if the streetcar asset has it. */
+export function streetcarStopByCode(catalog: StreetcarCatalog, stopCode: string): StreetcarStopFeature | null {
+  for (const feature of catalog.features) {
+    if (isStreetcarStopFeature(feature) && feature.properties.stopCode === stopCode) return feature;
+  }
+  return null;
+}
+
+/**
+ * The stop nearest a press on a streetcar line that serves one of its routes,
+ * within `maxMeters`; the streetcar card offers it as a way into departures.
+ */
+export function nearestStreetcarStop(
+  catalog: StreetcarCatalog,
+  coordinate: GeographicCoordinate,
+  routes: readonly string[],
+  maxMeters = 300,
+): { stop: StreetcarStopFeature; meters: number } | null {
+  const wanted = new Set(routes);
+  const [lng, lat] = coordinate;
+  const metersPerDegreeLat = 111_320;
+  const metersPerDegreeLng = 111_320 * Math.cos((lat * Math.PI) / 180);
+  let best: { stop: StreetcarStopFeature; meters: number } | null = null;
+  for (const feature of catalog.features) {
+    if (!isStreetcarStopFeature(feature) || !feature.properties.stopCode) continue;
+    if (!feature.properties.routes.some((route) => wanted.has(route))) continue;
+    const [stopLng, stopLat] = feature.geometry.coordinates;
+    const meters = Math.hypot((stopLng - lng) * metersPerDegreeLng, (stopLat - lat) * metersPerDegreeLat);
+    if (meters <= maxMeters && (!best || meters < best.meters)) best = { stop: feature, meters };
+  }
+  return best;
+}
+
 let cachedCatalog: StreetcarCatalog | null = null;
 let pendingCatalog: Promise<StreetcarCatalog> | null = null;
 
