@@ -55,6 +55,8 @@ unused export, defect, or publication issue has been found.
 | [Full map parity](11-full-map-parity.md) | One set of overlay rules for both network adapters, GO/UP interaction cost at TTC's, both maps green; full TTC and GO/UP parity (owner decision, 2026-10-31). Complete (2026-11-01) |
 | [Notification delivery](12-notification-delivery.md) | Android subscriptions replaced on the device go unseen until the app opens; recover them in the background, catch up on reconnect, and rebuild diagnostics around devices (owner request, 2026-10-31) |
 | [Surface network](13-surface-network.md) | TTC streetcars, stop numbers and stop departures on the Map View; outlines for live streetcar positions, TTC and GO buses behind a toggle, and gated station plans (owner request, 2026-11-02) |
+| [Unified search](14-unified-search.md) | Search for TTC and GO routes and every surface stop by number or street names, Map View selection, a route panel, Stops Near Me and recent stops; runs before plan 15 (owner request, 2026-11-04) |
+| [Map View layers and notice View](15-map-view-layers-and-notice-view.md) | Phone Layers sheet sharing the desktop deck's switches; View on streetcar and bus notices frames and selects stops or routes without service colour (owner request, 2026-11-04) |
 
 Root and scoped `AGENTS.md` remain authoritative. Read
 [domain invariants](../domain-invariants.md) for the affected behavior and
