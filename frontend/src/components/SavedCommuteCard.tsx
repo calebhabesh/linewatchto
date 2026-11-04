@@ -739,7 +739,7 @@ export function SavedCommuteCard({
         </div>
 
         <div className="mt-1 mb-3 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-          {commute.networkId === "regional" ? "Topology Planning Estimate" : "Default Scheduled Route"} · To {selectedLeg.toStationName}
+          {commute.networkId === "regional" && selectedLeg.path.weightSource !== "regional-gtfs-scheduled-median" ? "Topology Planning Estimate" : "Default Scheduled Route"} · To {selectedLeg.toStationName}
         </div>
 
         <TravelTimeEstimateBlock leg={selectedLeg} />

@@ -385,13 +385,19 @@ public class CommuteImpactService {
             estimatedHighSeconds,
             extraLowSeconds,
             extraHighSeconds,
-            "regional-topology-estimate".equals(path.weightSource())
+            isPlanningEstimate(path)
                 ? "low"
                 : immediateMatches.size() == 1 ? "medium" : "low",
             "Typical commute: " + durationLabel(baselineSeconds)
                 + ". With current impacts: " + durationRangeLabel(estimatedLowSeconds, estimatedHighSeconds)
                 + ". Extra time: " + extraRangeLabel(extraLowSeconds, extraHighSeconds) + "."
         );
+    }
+
+    /** Regional paths with links the GO/UP timetables do not cover are planning estimates. */
+    private boolean isPlanningEstimate(CommuteResponses.PathResponse path) {
+        return "regional-topology-estimate".equals(path.weightSource())
+            || "regional-mixed-scheduled-fallback".equals(path.weightSource());
     }
 
     private boolean hasUnreliableTravelTimeImpact(List<CommuteResponses.MatchedImpactResponse> matches) {
@@ -403,7 +409,7 @@ public class CommuteImpactService {
 
     private CommuteResponses.TravelTimeEstimateResponse standardTravelTimeEstimate(CommuteResponses.PathResponse path) {
         int baselineSeconds = Math.max(0, path.estimatedTravelSeconds());
-        boolean regionalEstimate = "regional-topology-estimate".equals(path.weightSource());
+        boolean regionalEstimate = isPlanningEstimate(path);
         return new CommuteResponses.TravelTimeEstimateResponse(
             "standard",
             baselineSeconds,

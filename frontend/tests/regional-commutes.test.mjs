@@ -71,9 +71,12 @@ describe("regional My Commutes UI boundary", () => {
     assert.doesNotMatch(panelSource, /excluded from TTC push matching/);
   });
 
-  it("labels regional travel-time modeling as a low-confidence planning estimate", () => {
-    assert.match(cardSource, /Topology Planning Estimate/);
-    assert.match(draftEditorSource, /low-confidence planning estimates/);
+  it("labels regional travel time as scheduled only when the GO/UP timetable times the whole path", () => {
+    assert.match(cardSource, /weightSource !== "regional-gtfs-scheduled-median" \? "Topology Planning Estimate" : "Default Scheduled Route"/);
+    assert.match(draftEditorSource, /median scheduled GO and UP ride between your stations/);
+    assert.match(draftEditorSource, /low-confidence planning estimates where the timetable has no times/);
+    assert.match(accountDataSource, /regional-gtfs-scheduled-median/);
+    assert.match(accountDataSource, /regional-mixed-scheduled-fallback/);
     assert.match(accountDataSource, /regional-topology-estimate/);
   });
 });

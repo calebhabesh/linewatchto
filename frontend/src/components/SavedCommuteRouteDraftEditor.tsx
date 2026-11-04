@@ -168,7 +168,7 @@ export function SavedCommuteRouteDraftEditor({
 
       {draftNetworkId === "regional" ? (
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Travel times are low-confidence planning estimates. Notification matching uses only fresh dashboard-visible Metrolinx corridor, segment, and station impacts.
+          Travel times use the median scheduled GO and UP ride between your stations, plus 10 minutes per transfer, and fall back to low-confidence planning estimates where the timetable has no times. Notification matching uses only fresh dashboard-visible Metrolinx corridor, segment, and station impacts.
         </p>
       ) : null}
 

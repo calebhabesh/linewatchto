@@ -75,6 +75,28 @@ class RegionalCommuteImpactServiceTest {
     }
 
     @Test
+    void reportsTimetableTimedRegionalPathsAsTypicalCommutes() {
+        when(freshness.isFresh()).thenReturn(true);
+        when(alertStore.findActiveAlerts()).thenReturn(List.of());
+        RegionalGtfsScheduleRepository repository = mock(RegionalGtfsScheduleRepository.class);
+        when(repository.activeImportSignature()).thenReturn("go:1:100");
+        when(repository.scheduledStationPairTimes()).thenReturn(List.of(
+            new RegionalGtfsScheduleRepository.StationPairTime("regional-lw", "union", "exhibition", 480, 10),
+            new RegionalGtfsScheduleRepository.StationPairTime("regional-lw", "exhibition", "mimico", 420, 10)
+        ));
+        RegionalCommutePathService scheduledPaths = new RegionalCommutePathService(repository);
+
+        var scheduled = service.impactFor(scheduledPaths.path("union", "mimico")).travelTimeEstimate();
+        var partlyScheduled = service.impactFor(scheduledPaths.path("union", "long-branch")).travelTimeEstimate();
+
+        assertThat(scheduled.status()).isEqualTo("standard");
+        assertThat(scheduled.confidence()).isEqualTo("high");
+        assertThat(scheduled.summary()).isEqualTo("Typical commute: about 15 min. No extra time estimated.");
+        assertThat(partlyScheduled.confidence()).isEqualTo("low");
+        assertThat(partlyScheduled.summary()).startsWith("Planning estimate:");
+    }
+
+    @Test
     void carriesDateOnlyServiceWindowIntoTheNotificationSeam() {
         var path = pathService.path("allandale-waterfront", "union");
         when(freshness.isFresh()).thenReturn(true);

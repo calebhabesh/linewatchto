@@ -331,6 +331,56 @@ public class RegionalGtfsScheduleRepository {
         ));
     }
 
+    /** Identifies the active GO and UP imports, so callers can cache timetable-derived values per import. */
+    public String activeImportSignature() {
+        List<String> signatures = jdbc.query("""
+            select coalesce(string_agg(
+                source_system || ':' || id || ':' || extract(epoch from imported_at)::bigint,
+                ',' order by source_system
+            ), '') as signature
+            from regional_gtfs_schedule_imports
+            where active = true
+            """, Map.of(), (rs, row) -> rs.getString("signature"));
+        return signatures.isEmpty() || signatures.getFirst() == null ? "" : signatures.getFirst();
+    }
+
+    /**
+     * Median scheduled ride time between every ordered pair of stations a trip serves on one line,
+     * over the active GO and UP imports. A pair of neighbouring stations gives that link's run time;
+     * a longer pair counts only trips that stop at both, so express trips time their own stops.
+     */
+    public List<StationPairTime> scheduledStationPairTimes() {
+        return jdbc.query("""
+            with active_departures as (
+                select departure.import_id, departure.trip_id, departure.line_id, departure.station_id,
+                       departure.stop_sequence, departure.departure_seconds
+                from regional_gtfs_departures departure
+                join regional_gtfs_schedule_imports import
+                  on import.id = departure.import_id and import.active = true
+                where departure.stop_sequence is not null
+            )
+            select origin.line_id,
+                   origin.station_id as from_station_id,
+                   destination.station_id as to_station_id,
+                   percentile_disc(0.5) within group (
+                       order by destination.departure_seconds - origin.departure_seconds
+                   ) as ride_seconds,
+                   count(*) as trip_count
+            from active_departures origin
+            join active_departures destination
+              on destination.import_id = origin.import_id
+             and destination.trip_id = origin.trip_id
+             and destination.line_id = origin.line_id
+             and destination.stop_sequence > origin.stop_sequence
+            where destination.station_id <> origin.station_id
+              and destination.departure_seconds - origin.departure_seconds between 30 and 14400
+            group by origin.line_id, origin.station_id, destination.station_id
+            """, Map.of(), (rs, row) -> new StationPairTime(
+            rs.getString("line_id"), rs.getString("from_station_id"), rs.getString("to_station_id"),
+            rs.getInt("ride_seconds"), rs.getInt("trip_count")
+        ));
+    }
+
     public Optional<ActiveImport> activeImport(String sourceSystem) {
         return jdbc.query("""
             select id, source_system, source_url, imported_at, service_start, service_end
@@ -359,6 +409,9 @@ public class RegionalGtfsScheduleRepository {
         LocalDate serviceDate
     ) {}
     public record LinkTime(String lineId, String fromStationId, String toStationId, int seconds) {}
+    public record StationPairTime(
+        String lineId, String fromStationId, String toStationId, int seconds, int tripCount
+    ) {}
     public record ActiveImport(
         long id, String sourceSystem, String sourceUrl, OffsetDateTime importedAt,
         LocalDate serviceStart, LocalDate serviceEnd

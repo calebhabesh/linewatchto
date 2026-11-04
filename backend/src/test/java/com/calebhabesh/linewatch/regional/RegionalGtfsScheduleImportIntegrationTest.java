@@ -138,6 +138,36 @@ class RegionalGtfsScheduleImportIntegrationTest {
     }
 
     @Test
+    void stationPairTimesTimeEveryOrderedPairFromTripsThatStopAtBoth() {
+        LocalDate serviceDate = LocalDate.parse("2026-10-06");
+        assertThat(repository.activeImportSignature()).isEmpty();
+        List<RegionalGtfsScheduleImport.Departure> departures = List.of(
+            // Two all-stops trips and one express that skips Exhibition.
+            new RegionalGtfsScheduleImport.Departure("union", "regional-lw", "S1", "L1", "", "West", 60_000, "", 1),
+            new RegionalGtfsScheduleImport.Departure("exhibition", "regional-lw", "S1", "L1", "", "West", 60_480, "", 2),
+            new RegionalGtfsScheduleImport.Departure("mimico", "regional-lw", "S1", "L1", "", "West", 60_960, "", 3),
+            new RegionalGtfsScheduleImport.Departure("union", "regional-lw", "S1", "L2", "", "West", 63_600, "", 1),
+            new RegionalGtfsScheduleImport.Departure("exhibition", "regional-lw", "S1", "L2", "", "West", 64_140, "", 2),
+            new RegionalGtfsScheduleImport.Departure("mimico", "regional-lw", "S1", "L2", "", "West", 64_620, "", 3),
+            new RegionalGtfsScheduleImport.Departure("union", "regional-lw", "S1", "E1", "", "West", 62_000, "", 1),
+            new RegionalGtfsScheduleImport.Departure("mimico", "regional-lw", "S1", "E1", "", "West", 62_600, "", 4)
+        );
+        repository.replace(new RegionalGtfsScheduleImport(
+            "go", "https://example.test/go.zip", serviceDate, serviceDate.plusDays(1),
+            List.of(), List.of(new RegionalGtfsScheduleImport.ServiceException("S1", serviceDate, 1)),
+            departures
+        ), java.time.OffsetDateTime.parse("2026-10-06T12:00:00Z"));
+
+        assertThat(repository.scheduledStationPairTimes()).containsExactlyInAnyOrder(
+            new RegionalGtfsScheduleRepository.StationPairTime("regional-lw", "union", "exhibition", 480, 2),
+            new RegionalGtfsScheduleRepository.StationPairTime("regional-lw", "exhibition", "mimico", 480, 2),
+            // Lower median of 600 (express), 960 and 1020 (all stops).
+            new RegionalGtfsScheduleRepository.StationPairTime("regional-lw", "union", "mimico", 960, 3)
+        );
+        assertThat(repository.activeImportSignature()).startsWith("go:").doesNotContain("up:");
+    }
+
+    @Test
     void successfulImportStreamsDeparturesInBatchesAndActivatesAtomically() throws Exception {
         // Step 1: establish initial active import for "go" with 2 departures
         Path initialZip = tempDir.resolve("go_initial.zip");

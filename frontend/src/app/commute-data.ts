@@ -16,7 +16,7 @@ export type AccountCommutePath = {
   lineIds: string[];
   transferStationIds: string[];
   estimatedTravelSeconds: number;
-  weightSource: "gtfs-scheduled-median" | "mixed-scheduled-fallback" | "seeded-fallback" | "topology-fallback" | "regional-topology-estimate" | "unavailable";
+  weightSource: "gtfs-scheduled-median" | "mixed-scheduled-fallback" | "seeded-fallback" | "topology-fallback" | "regional-gtfs-scheduled-median" | "regional-mixed-scheduled-fallback" | "regional-topology-estimate" | "unavailable";
   summary: string;
 };
 
