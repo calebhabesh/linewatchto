@@ -4,12 +4,13 @@
  * and bus routes dashed (owner, 2026-11-03), each thinner than its daytime
  * line and drawn under the daytime bus and streetcar lines, so a daytime route
  * on the same street is never hidden. Badges in the night family (blue on
- * white, blue edge) from zoom 13. No stops: night routes stop at daytime
- * poles. Shown with Bus Routes on; never coloured by service data, and a drawn
+ * white, blue edge) from zoom 13. No stop layer: most night stops are
+ * daytime poles, and the night-only poles draw only when selected (plan 14,
+ * U4). Shown with Bus Routes on; never coloured by service data, and a drawn
  * night line never implies service now.
  */
 
-import type { Map as MapLibreMap } from "maplibre-gl";
+import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import {
   NIGHT_BADGE_MAX_ROUTES,
   NIGHT_BADGE_MIN_ZOOM,
@@ -18,9 +19,17 @@ import {
   nightCorridors,
   type NightCatalog,
   type NightRouteKind,
+  type NightStopFeature,
 } from "../app/night-route-catalog.ts";
 import { TTC_NIGHT_ROUTE_BLUE, ttcRouteBadgeColors } from "../app/ttc-route-badge.ts";
-import { BUS_BADGE_LAYER, BUS_CASING_LAYER, createBusLayerKit, type BusLineStyle } from "./geographic-bus-layers.ts";
+import {
+  BUS_BADGE_LAYER,
+  BUS_CASING_LAYER,
+  createBusLayerKit,
+  ttcSelectedStopBefore,
+  type BusLineStyle,
+} from "./geographic-bus-layers.ts";
+import { removeSurfaceSelectionLayers, type SurfaceSelectionTarget } from "./geographic-surface-selection-layers.ts";
 import { STREETCAR_BADGE_LAYER, STREETCAR_CASING_LAYER } from "./geographic-streetcar-layers.ts";
 
 const RAIL_LINE_BEFORE = "transit-routes-casing";
@@ -114,4 +123,54 @@ export function removeNightLayers(map: MapLibreMap): void {
 
 export function updateNightFilter(map: MapLibreMap, activeFilteredLine: string | null): void {
   for (const kind of KINDS) kits[kind].updateFilter(map, activeFilteredLine);
+}
+
+/** Where a selected night route draws (plan 14, U4): each kind's own outline. */
+export const NIGHT_SELECTION_TARGETS: SurfaceSelectionTarget[] = KINDS.map((kind) => kits[kind].selectionTarget);
+
+/**
+ * With Bus Routes off, a selected night route still draws: each kind's
+ * source holds only that route's corridors (none for the other kind).
+ */
+export function installNightSelectionSources(map: MapLibreMap, catalog: NightCatalog, route: string | null): void {
+  for (const kind of KINDS) {
+    const corridors = route
+      ? nightCorridors(catalog, kind).features.filter((feature) => feature.properties.routes.includes(route))
+      : [];
+    kits[kind].installSelectionSources(map, { corridors, stops: [] });
+  }
+}
+
+/**
+ * Night-only poles (plan 14, U1: 245 poles only night routes serve) are
+ * never drawn as a layer; a selected one draws from this source, which holds
+ * only the selected poles.
+ */
+const NIGHT_STOP_SOURCE_ID = "transit-night-stops";
+export const NIGHT_STOP_SELECTION_TARGET: SurfaceSelectionTarget = {
+  prefix: "transit-night",
+  corridorSource: null,
+  stopSource: NIGHT_STOP_SOURCE_ID,
+  style: null,
+  lineBefore: () => undefined,
+  stopBefore: ttcSelectedStopBefore,
+};
+
+export function installNightStopSelectionSource(map: MapLibreMap, stops: readonly NightStopFeature[]): void {
+  const data: GeoJSON.FeatureCollection = {
+    type: "FeatureCollection",
+    features: stops.map((feature) => ({
+      type: "Feature",
+      geometry: feature.geometry,
+      properties: { stopCode: feature.properties.stopCode },
+    })),
+  };
+  const source = map.getSource(NIGHT_STOP_SOURCE_ID) as GeoJSONSource | undefined;
+  if (source) source.setData(data);
+  else map.addSource(NIGHT_STOP_SOURCE_ID, { type: "geojson", data });
+}
+
+export function removeNightStopSelection(map: MapLibreMap): void {
+  removeSurfaceSelectionLayers(map, NIGHT_STOP_SELECTION_TARGET.prefix);
+  if (map.getSource(NIGHT_STOP_SOURCE_ID)) map.removeSource(NIGHT_STOP_SOURCE_ID);
 }

@@ -75,6 +75,7 @@ function createMockMap(existingLayers = []) {
       target.layout = { ...target.layout, [property]: value };
     },
     removeImage: () => {},
+    setFilter: (layer, filter) => { layers.find((item) => item.id === layer).filter = filter; },
     queryRenderedFeatures: (_box, options) => (options.layers.includes("transit-streetcar-stops")
       ? [{ properties: { stopCode: "9037" } }]
       : []),
@@ -229,15 +230,17 @@ describe("streetcar stop pills", () => {
     assert.deepEqual(points.map((feature) => feature.properties.stopCode), ["9037"]);
   });
 
-  it("marks the open stop and reads a pressed pill's number", () => {
+  it("leaves the open stop to the selection layer and reads a pressed pill's number", () => {
     const map = createMockMap();
     installStreetcarLayers(map, catalog, { dark: false, activeFilteredLine: null });
     assert.equal(map.getLayer(STREETCAR_STOP_LAYER).layout["icon-image"], "streetcar-stop-pill");
-    updateStreetcarStopSelection(map, "9037");
-    assert.deepEqual(map.getLayer(STREETCAR_STOP_LAYER).layout["icon-image"],
-      ["case", ["==", ["get", "stopCode"], "9037"], "streetcar-stop-pill-selected", "streetcar-stop-pill"]);
-    updateStreetcarStopSelection(map, null);
-    assert.equal(map.getLayer(STREETCAR_STOP_LAYER).layout["icon-image"], "streetcar-stop-pill");
+    assert.equal(map.getLayer(STREETCAR_STOP_LAYER).filter, undefined);
+    updateStreetcarStopSelection(map, ["9037"]);
+    const unselected = ["!", ["in", ["get", "stopCode"], ["literal", ["9037"]]]];
+    assert.deepEqual(map.getLayer(STREETCAR_STOP_LAYER).filter, unselected);
+    assert.deepEqual(map.getLayer("transit-streetcar-stop-dots").filter, unselected);
+    updateStreetcarStopSelection(map, []);
+    assert.equal(map.getLayer(STREETCAR_STOP_LAYER).filter, null);
     assert.equal(streetcarStopCodeAtPoint(map, { x: 10, y: 10 }), "9037");
   });
 

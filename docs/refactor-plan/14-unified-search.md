@@ -62,7 +62,7 @@ plan reads.
 | U1 | Search index asset (generator) | Done (2026-11-04) |
 | U2 | Matching and ranking | Done (2026-11-04) |
 | U3 | Stop and route results in search | Done (2026-11-04) |
-| U4 | Selection on the Map View (stops, routes) | Not started |
+| U4 | Selection on the Map View (stops, routes) | Done (2026-11-04) |
 | U5 | Route panel | Not started |
 | U6 | Stops Near Me and recent stops | Not started |
 | U7 | Phone flow and stop links | Not started |
@@ -308,6 +308,78 @@ Map. Plan 15 L4 reuses it for notice View.
   (`selectedSurfaceStopCodeRef`); extend that rather than adding a second
   selection path. Unit-test the filter inputs; check one route and one
   multi-stop selection on both networks at 360 and 1440 px.
+
+Done (2026-11-04):
+
+- One selection. `mergeSurfaceSelection` (`src/app/surface-map-selection.ts`)
+  joins the open stop with a new map prop, `surfaceSelection` (stop numbers
+  and one route with its layer). The shell holds it as `surfaceMapSelection`
+  with an owner (`route` or `notice`) and clears it when the route panel
+  closes, or on a stop, station, alert, view or network change.
+  `showSurfaceSelectionOnMap` is the call U5's View on Map and plan 15's
+  notice View make. Nothing calls it yet except a dev-only
+  `window.__linewatchSurfaceSelectionDebug`.
+- Style (`geographic-surface-selection-layers.ts`, shared by all four
+  layers): a route gets a dark `#0f172a` band with a white edge under its
+  casing. Selected stops get the selected pill and dot at every zoom, over
+  other labels and under vehicles and stations. The ordinary stop labels
+  filter out every selected stop, so a shared pole never shows twice; the
+  old in-layer `case` styling is gone. Corridors carry a `routeKey`
+  (`|29|929|`) so the route filter never matches the 129 or 929.
+- Layer off: the layer's existing sources hold only the selected route's
+  corridors and the selected stops, and only the selection draws; the switch
+  is unchanged. This differs from the plan text, which said to filter the full
+  sources: a subset avoids tiling 8,310 bus stops in the worker for one pole.
+  The sources are the same ones and there is no new geometry. Turning the
+  switch on replaces the subset with the full file. Clearing the selection
+  removes these layers and sources.
+- Where a stop draws: streetcar file, else bus stops, else night-only poles
+  (`assignSelectedTtcStops`). Each file loads only when a selected stop
+  needs it. Night-only poles load from `ttc-surface-night-stops.json` (48 KB)
+  into a `transit-night-stops` source and draw only when selected. Selected
+  pills take presses, night-only ones included.
+- Camera: one effect replaces the two stop-focus effects and frames each
+  selection once its files are in, whether or not its layer is on. This
+  fixes the U3 gap: searched bus and GO stops now fly. One stop flies like a
+  station (zoom 16, GO 15). A route or several stops use `fitBounds` with
+  alert View's padding:
+  - Desktop: `geographicDesktopFocusPadding`, full-width framing, max zoom 15.
+  - Phone: chips and sheet kept clear, 72 px sides, max zoom 14.75.
+  - Stops only: max zoom 16, with 24 px at the top for the pill.
+- Phone fix: MapLibre adds `fitBounds` padding to the padding the camera
+  already holds, which a phone stop or station flight leaves at the sheet's
+  height. The total was taller than the screen, so the fit was skipped after
+  a stop flight. The frame now asks only for the padding beyond what the
+  camera holds.
+- The map region carries `data-surface-selection-layers` for tests.
+- Tests: `surface-map-selection.test.mjs` (14 cases: route-to-layer, merge,
+  key, route and stop filters evaluated with the style spec, stop
+  placement on the shipped files, bounds, layer order and colours, layer-off
+  sources, clean removal). The bus, streetcar and GO layer tests were updated
+  for the filter. Smoke: `surface-stop.spec.ts` checks that a bus stop
+  searched with Buses off draws, is flown to, and clears on close.
+- Checked on the dev server at 1440 and 360 px, light and dark, with Buses
+  and GO Buses off:
+  - TTC: the 29 from its route panel. Several stops: 979, 2020 and 2034 (bus),
+    100 (streetcar) and 96 (night-only). The 329 night route.
+  - GO: the 40 from its route panel. Stops 00128, 00132 and 00139.
+  - Clearing left no selection layers or sources.
+- Production build, desktop, 4× CPU: opening bus stop 2034 with Buses off
+  against streetcar stop 100, two runs each, showed the same long tasks: the
+  camera flight's 50–140 ms frames, 1.3–1.6 s in total. Loading the stop
+  file adds no task of its own.
+- Checks: test:fast 2,226 passed, typecheck, lint (0 errors; the 16 existing
+  warnings), build. Smoke on desktop-chrome and mobile-chromium: 42 passed
+  (`surface-stop`, `surface-buses`, `go-buses`, `night-routes`,
+  `geographic-map-lifecycle`, `bus-positions`, `go-bus-positions`,
+  `streetcar-positions`, `search-close-*`).
+- Not done:
+  - The stop position search passes is still unused. The camera waits for
+    the bus stop file the first time a bus stop is opened with Buses off.
+  - The selection keeps full opacity while a subway line is filtered.
+  - A selected route drawn with its layer off has no route badges; its panel
+    names it.
+  - There is no phone re-fit after the sheet resizes (alert View has one).
 
 ### U5 — Route panel
 

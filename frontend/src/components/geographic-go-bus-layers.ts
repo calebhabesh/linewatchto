@@ -21,6 +21,8 @@ import { createBusLayerKit } from "./geographic-bus-layers.ts";
 
 const RAIL_LINE_BEFORE = "transit-routes-casing";
 const STATION_BEFORE = "transit-stations-outer";
+/** Live GO buses (S9); named here to keep this module free of the vehicle layer's imports. */
+const GO_BUS_VEHICLE_HALO_LAYER = "transit-go-bus-vehicles-halo";
 
 /**
  * GO green, dashed, thinner than the GO/UP rail lines: the TTC bus rule
@@ -56,6 +58,8 @@ const kit = createBusLayerKit({
   lineBefore: (map) => (map.getLayer(RAIL_LINE_BEFORE) ? RAIL_LINE_BEFORE : undefined),
   badgeBefore: (map) => (map.getLayer(STATION_BEFORE) ? STATION_BEFORE : undefined),
   stopBefore: (map) => (map.getLayer(STATION_BEFORE) ? STATION_BEFORE : undefined),
+  // Selected stops (plan 14, U4) under live GO buses and station markers.
+  selectedStopBefore: (map) => [GO_BUS_VEHICLE_HALO_LAYER, STATION_BEFORE].find((layer) => map.getLayer(layer)),
 });
 
 export const GO_BUS_CASING_LAYER = kit.layers.casing;
@@ -79,7 +83,7 @@ export function installGoBusLayers(
 export function installGoBusStopLayers(
   map: MapLibreMap,
   stops: GoBusStopCatalog,
-  options: { activeFilteredLine: string | null; selectedStopCode: string | null },
+  options: { activeFilteredLine: string | null; selectedStopCodes?: readonly string[] },
 ): void {
   kit.installStopLayers(map, stops, options);
 }
@@ -88,5 +92,8 @@ export const removeGoBusLayers = kit.removeLayers;
 export const hasGoBusLayers = kit.hasLayers;
 export const hasGoBusStopLayers = kit.hasStopLayers;
 export const updateGoBusStopSelection = kit.updateStopSelection;
+/** Where a selected GO bus route or stop draws (plan 14, U4). */
+export const GO_BUS_SELECTION_TARGET = kit.selectionTarget;
+export const installGoBusSelectionSources = kit.installSelectionSources;
 export const goBusStopCodeAtPoint = kit.stopCodeAtPoint;
 export const updateGoBusFilter = kit.updateFilter;

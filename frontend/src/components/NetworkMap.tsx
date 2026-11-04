@@ -1,3 +1,4 @@
+import type { SurfaceMapSelection } from "../app/surface-map-selection";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { DataProvider, type DashboardData } from "../app/DataContext";
 import { isRepeatMapSelection } from "../app/map-repeat-selection";
@@ -65,6 +66,8 @@ type NetworkMapProps = SystemMapShellProps & {
   /** Map View only: the TTC surface stop whose departures are open (plan 13, S3). */
   selectedSurfaceStopCode?: string | null;
   onSelectSurfaceStop?: (stopCode: string | null) => void;
+  /** Map View only: stops or a route an open panel shows (plan 14, U4). */
+  surfaceSelection?: SurfaceMapSelection | null;
   /** Map View only: TTC buses (plan 13, S5), the rider's toggle. */
   busesEnabled?: boolean;
   onToggleBuses?: () => void;
@@ -86,6 +89,7 @@ export function NetworkMap({
   geographicFadeRef,
   selectedSurfaceStopCode = null,
   onSelectSurfaceStop,
+  surfaceSelection = null,
   busesEnabled = false,
   onToggleBuses,
   goBusesEnabled = false,
@@ -116,6 +120,7 @@ export function NetworkMap({
           onSelectStationId={props.onSelectStationId}
           selectedSurfaceStopCode={selectedSurfaceStopCode}
           onSelectSurfaceStop={onSelectSurfaceStop}
+          surfaceSelection={surfaceSelection}
           selection={props.selection}
           onSelectImpact={(next) => {
             if (!isRepeatMapSelection(props, next)) props.onSelectImpact(next);

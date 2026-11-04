@@ -3,14 +3,16 @@
  * routes, streetcar and bus, drawn from the published schedule's weekday night
  * trips (`ttc-surface-night.json`, `generate-surface-catalog.mjs --mode
  * night`). Shown with Bus Routes on (owner, 2026-11-03), labelled as the night
- * network: a drawn night line never implies service now. Night routes stop at
- * daytime poles, so there is no night stop file.
+ * network: a drawn night line never implies service now. Most night stops are
+ * daytime poles; the 245 poles only night routes serve are in
+ * `ttc-surface-night-stops.json` (plan 14, U1), drawn only when selected (U4).
  */
 
 import type { GeographicCoordinate } from "./geographic-catalog.ts";
 import { cachedLoader } from "./geographic-bus-catalog.ts";
 
 export const NIGHT_CATALOG_URL = "/assets/linewatch/geographic/ttc-surface-night.json";
+export const NIGHT_STOPS_URL = "/assets/linewatch/geographic/ttc-surface-night-stops.json";
 /** Night route badges along the lines; a daytime streetcar's badges also start at 13. */
 export const NIGHT_BADGE_MIN_ZOOM = 13;
 export const NIGHT_BADGE_MAX_ROUTES = 5;
@@ -70,6 +72,32 @@ const nightCatalogLoader = cachedLoader<NightCatalog>(
 
 export const cachedNightCatalog = nightCatalogLoader.cached;
 export const loadNightCatalog = nightCatalogLoader.load;
+
+export type NightStopFeature = {
+  type: "Feature";
+  geometry: { type: "Point"; coordinates: GeographicCoordinate };
+  properties: { featureType: "night-stop"; stopCode: string; name: string; routes: string[] };
+};
+
+export type NightStopCatalog = {
+  type: "FeatureCollection";
+  network: "ttc";
+  layer: "night-stops";
+  features: NightStopFeature[];
+};
+
+const nightStopsLoader = cachedLoader<NightStopCatalog>(
+  NIGHT_STOPS_URL,
+  (value): value is NightStopCatalog => {
+    const catalog = value as Partial<NightStopCatalog> | null;
+    return Boolean(catalog && catalog.layer === "night-stops" && catalog.network === "ttc" && Array.isArray(catalog.features));
+  },
+  "night stops",
+);
+
+export const cachedNightStops = nightStopsLoader.cached;
+/** Fetched only when a selected stop is in no daytime stop file (48 KB). */
+export const loadNightStops = nightStopsLoader.load;
 
 /** The corridors of one kind, for the layer drawing that kind. */
 export function nightCorridors(catalog: NightCatalog, kind: NightRouteKind): { features: NightCorridorFeature[] } {

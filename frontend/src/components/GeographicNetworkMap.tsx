@@ -110,14 +110,43 @@ import {
   writeGoBusPositionsPreference,
   type GoBusPositionsRead,
 } from "../app/go-bus-positions";
-import { cachedNightCatalog, loadNightCatalog, nightCardRows } from "../app/night-route-catalog";
+import {
+  cachedNightCatalog,
+  cachedNightStops,
+  loadNightCatalog,
+  loadNightStops,
+  nightCardRows,
+  type NightCatalog,
+  type NightStopCatalog,
+} from "../app/night-route-catalog";
 import {
   NIGHT_PRESS_LAYERS,
+  NIGHT_SELECTION_TARGETS,
+  NIGHT_STOP_SELECTION_TARGET,
   addMissingNightBadgeImage,
   hasNightLayers,
   installNightLayers,
+  installNightSelectionSources,
+  installNightStopSelectionSource,
   removeNightLayers,
+  removeNightStopSelection,
 } from "./geographic-night-layers";
+import {
+  applySurfaceSelectionLayers,
+  drawnSurfaceSelectionLayers,
+  surfaceSelectionStopCodeAtPoint,
+  surfaceSelectionStopLayers,
+} from "./geographic-surface-selection-layers";
+import {
+  assignSelectedTtcStops,
+  mergeSurfaceSelection,
+  routeCorridors,
+  routeCoordinates,
+  surfaceSelectionBounds,
+  surfaceSelectionKey,
+  type SurfaceMapSelection,
+  type SurfaceSelectionLayer,
+} from "../app/surface-map-selection";
 import {
   goBusVehicleKeyAtPoint,
   hasGoBusVehicleLayers,
@@ -134,19 +163,22 @@ import {
 } from "./geographic-streetcar-vehicles";
 import {
   cachedStreetcarCatalog,
+  isStreetcarCorridorFeature,
+  isStreetcarStopFeature,
   loadStreetcarCatalog,
   nearestStreetcarStop,
   streetcarCardRows,
-  streetcarStopByCode,
   streetcarSchedulePeriodLabel,
   type StreetcarStopFeature,
 } from "../app/geographic-surface-catalog";
 import {
   STREETCAR_BADGE_LAYER,
   STREETCAR_HIT_LAYER,
+  STREETCAR_SELECTION_TARGET,
   STREETCAR_STOP_LAYER,
   hasStreetcarLayers,
   installStreetcarLayers,
+  installStreetcarSelectionSources,
   removeStreetcarLayers,
   streetcarStopCodeAtPoint,
   updateStreetcarStopSelection,
@@ -154,12 +186,14 @@ import {
 import {
   BUS_BADGE_LAYER,
   BUS_HIT_LAYER,
+  BUS_SELECTION_TARGET,
   BUS_STOP_LAYER,
   addMissingBusBadgeImage,
   busStopCodeAtPoint,
   hasBusLayers,
   hasBusStopLayers,
   installBusLayers,
+  installBusSelectionSources,
   installBusStopLayers,
   removeBusLayers,
   removeBusStopLayers,
@@ -168,12 +202,14 @@ import {
 import {
   GO_BUS_BADGE_LAYER,
   GO_BUS_HIT_LAYER,
+  GO_BUS_SELECTION_TARGET,
   GO_BUS_STOP_LAYER,
   addMissingGoBusBadgeImage,
   goBusStopCodeAtPoint,
   hasGoBusLayers,
   hasGoBusStopLayers,
   installGoBusLayers,
+  installGoBusSelectionSources,
   installGoBusStopLayers,
   removeGoBusLayers,
   updateGoBusStopSelection,
@@ -182,10 +218,11 @@ import {
   cachedGoBusCatalog,
   cachedGoBusStops,
   goBusCardRows,
-  goBusStopByCode,
   loadGoBusCatalog,
   loadGoBusStops,
   nearestGoBusStop,
+  type GoBusCatalog,
+  type GoBusStopCatalog,
   type GoBusStopFeature,
 } from "../app/go-bus-catalog";
 import {
@@ -210,12 +247,13 @@ import { STATION_PLANS_LOAD_ZOOM } from "../app/geographic-station-plans";
 import {
   BUS_STOPS_LOAD_ZOOM,
   busCardRows,
-  busStopByCode,
   cachedBusCatalog,
   cachedBusStops,
   loadBusCatalog,
   loadBusStops,
   nearestBusStop,
+  type BusCatalog,
+  type BusStopCatalog,
   type BusStopFeature,
 } from "../app/geographic-bus-catalog";
 import {
@@ -295,6 +333,12 @@ export type GeographicNetworkMapProps = {
   /** The TTC surface stop whose departures are open (plan 13, S3). */
   selectedSurfaceStopCode?: string | null;
   onSelectSurfaceStop?: (stopCode: string | null) => void;
+  /**
+   * Stops or a route an open panel shows on the map (plan 14, U4: a route
+   * panel's View on Map, a notice's View). Drawn with the open stop in the
+   * neutral selected style, and framed once.
+   */
+  surfaceSelection?: SurfaceMapSelection | null;
   selection?: ImpactSelection;
   onSelectImpact?: (selection: ImpactSelection) => void;
   commutePathPreview?: AccountCommutePathPreview | null;
@@ -353,6 +397,10 @@ const EMPTY_TRAIN_MARKERS: EstimatedTrainMarker[] = [];
 declare global {
   interface Window {
     __geographicMapDebug?: { map: MapLibreMap };
+    /** Dev only (LineWatchShell): shows a surface selection on the Map View. */
+    __linewatchSurfaceSelectionDebug?: {
+      show: (selection: SurfaceMapSelection | null, owner: "route" | "notice") => void;
+    };
   }
 }
 
@@ -401,6 +449,85 @@ function streetcarStopCodeSet(catalog: ReturnType<typeof cachedStreetcarCatalog>
   return codes;
 }
 
+/** Pole numbers in a stop file, built once per file. */
+const stopCodeSets = new WeakMap<object, Set<string>>();
+function stopCodeSetOf(stops: { features: ReadonlyArray<{ properties: { stopCode: string } }> }): Set<string> {
+  let codes = stopCodeSets.get(stops);
+  if (!codes) {
+    codes = new Set(stops.features.map((feature) => feature.properties.stopCode));
+    stopCodeSets.set(stops, codes);
+  }
+  return codes;
+}
+
+type SurfaceSelectionFiles = {
+  streetcars: ReturnType<typeof cachedStreetcarCatalog>;
+  busCorridors: BusCatalog | null;
+  busStops: BusStopCatalog | null;
+  nightCorridors: NightCatalog | null;
+  nightStops: NightStopCatalog | null;
+  goCorridors: GoBusCatalog | null;
+  goStops: GoBusStopCatalog | null;
+};
+
+/**
+ * The points a selection covers (its stops and its route's corridors), or
+ * null while a file it needs is still loading.
+ */
+function surfaceSelectionPoints(
+  network: NetworkId,
+  selection: SurfaceMapSelection,
+  files: SurfaceSelectionFiles,
+): Array<[number, number]> | null {
+  const points: Array<[number, number]> = [];
+  const route = selection.route;
+  const stopsIn = (features: ReadonlyArray<{ geometry: { coordinates: [number, number] }; properties: { stopCode?: string } }>, codes: readonly string[]) => {
+    const wanted = new Set(codes);
+    for (const feature of features) if (wanted.has(feature.properties.stopCode ?? "")) points.push(feature.geometry.coordinates);
+  };
+  if (network === "regional") {
+    if (selection.stopCodes.length > 0) {
+      if (!files.goStops) return null;
+      stopsIn(files.goStops.features, selection.stopCodes);
+    }
+    if (route?.layer === "go-bus") {
+      if (!files.goCorridors) return null;
+      points.push(...routeCoordinates(files.goCorridors.features, route.route));
+    }
+    return points;
+  }
+  const assigned = assignSelectedTtcStops(selection.stopCodes, {
+    streetcar: files.streetcars ? streetcarStopCodeSet(files.streetcars) : null,
+    bus: files.busStops ? stopCodeSetOf(files.busStops) : null,
+    night: files.nightStops ? stopCodeSetOf(files.nightStops) : null,
+  });
+  if (assigned.needs) return null;
+  if (files.streetcars) stopsIn(files.streetcars.features.filter(isStreetcarStopFeature), assigned.streetcar);
+  if (files.busStops) stopsIn(files.busStops.features, assigned.bus);
+  if (files.nightStops) stopsIn(files.nightStops.features, assigned.night);
+  const corridors = route?.layer === "streetcar" ? files.streetcars?.features.filter(isStreetcarCorridorFeature)
+    : route?.layer === "bus" ? files.busCorridors?.features
+    : route?.layer === "night" ? files.nightCorridors?.features
+    : [];
+  if (!corridors) return null;
+  if (route) points.push(...routeCoordinates(corridors, route.route));
+  return points;
+}
+
+/**
+ * Phone padding for a framed route or stops: alert View's rule, with the
+ * stop or route sheet in the inspector's place.
+ */
+function geographicMobileSurfaceSelectionPadding(container: HTMLElement) {
+  const height = container.clientHeight;
+  const top = Math.max(104, Math.ceil(readMobilePillBottom(container) + 16));
+  const bottom = Math.max(96, Math.ceil(height - readMobileStationSubmenuTop(container, height) + 24));
+  // Never below the minimum visible height: a tall sheet gives way first.
+  const available = Math.max(0, height - GEOGRAPHIC_FOCUS_MIN_VISIBLE_PX);
+  const scale = top + bottom > available && top + bottom > 0 ? available / (top + bottom) : 1;
+  return { top: Math.floor(top * scale), bottom: Math.floor(bottom * scale), left: 72, right: 72 };
+}
+
 /** Routes on the streetcar lines under a press, in route order (MapLibre returns array properties as JSON). */
 function streetcarRoutesFromFeatures(features: Array<{ properties?: Record<string, unknown> | null }>): string[] {
   const routes = new Set<string>();
@@ -415,6 +542,11 @@ function streetcarRoutesFromFeatures(features: Array<{ properties?: Record<strin
 }
 
 const GEOGRAPHIC_MOBILE_SELECTION_MAX_ZOOM = 14.75;
+
+/** Every layer that can draw a surface selection (plan 14, U4). */
+const SURFACE_SELECTION_PREFIXES = [
+  STREETCAR_SELECTION_TARGET, BUS_SELECTION_TARGET, ...NIGHT_SELECTION_TARGETS, NIGHT_STOP_SELECTION_TARGET, GO_BUS_SELECTION_TARGET,
+].map((target) => target.prefix);
 
 /** Layers a press acts on; the cursor shows a pointer over them. */
 const GEOGRAPHIC_POINTER_LAYERS = [
@@ -431,6 +563,8 @@ const GEOGRAPHIC_POINTER_LAYERS = [
   GO_BUS_HIT_LAYER,
   GO_BUS_STOP_LAYER,
   STATION_PLAN_BAY_LAYER,
+  ...[STREETCAR_SELECTION_TARGET, BUS_SELECTION_TARGET, NIGHT_STOP_SELECTION_TARGET, GO_BUS_SELECTION_TARGET]
+    .flatMap((target) => surfaceSelectionStopLayers(target.prefix)),
 ];
 
 function geographicMobileSelectionPadding(container: HTMLElement) {
@@ -536,6 +670,8 @@ function openMapTilesPrefetchSources(map: MapLibreMap): PrefetchSource[] {
   }];
 }
 
+/** Height of a selected stop's pill above its position, kept clear when stops are framed. */
+const SELECTED_STOP_PILL_ROOM_PX = 24;
 /** Street level: stop pills draw from zoom 15. */
 const SURFACE_STOP_FOCUS_ZOOM = 16;
 /** GO bus stops are framed a little wider: terminals and highway stops, not street poles. */
@@ -647,6 +783,7 @@ export function GeographicNetworkMap({
   onSelectStationId,
   selectedSurfaceStopCode = null,
   onSelectSurfaceStop,
+  surfaceSelection = null,
   selection,
   onSelectImpact,
   commutePathPreview,
@@ -943,8 +1080,18 @@ export function GeographicNetworkMap({
   const lastZoomInSignalRef = useRef(zoomInSignal ?? 0);
   const lastZoomOutSignalRef = useRef(zoomOutSignal ?? 0);
   const lastSelectedStationIdRef = useRef<string | null>(selectedStationId ?? null);
-  // A stop already open when the map mounts keeps the restored camera, as a station does.
-  const lastFocusedSurfaceStopRef = useRef<string | null>(selectedSurfaceStopCode);
+  // The open stop and what an open panel shows on the map, as one selection
+  // (plan 14, U4), drawn by syncSurfaceSelection and framed once.
+  const mapSurfaceSelection = mergeSurfaceSelection(selectedSurfaceStopCode, surfaceSelection);
+  const surfaceSelectionKeyValue = surfaceSelectionKey(mapSurfaceSelection);
+  const surfaceSelectionRef = useRef(mapSurfaceSelection);
+  useLayoutEffect(() => {
+    surfaceSelectionRef.current = mapSurfaceSelection;
+  });
+  // A selection already open when the map mounts keeps the restored camera, as a station does.
+  const lastFramedSurfaceSelectionRef = useRef(surfaceSelectionKeyValue);
+  /** Redraws the selection; set once the layer effects below have defined it. */
+  const syncSurfaceSelectionRef = useRef<() => void>(() => {});
   // The Layers row's streetcar switches (plan 13), on unless the rider turned them off.
   const [streetcarRoutesShown, setStreetcarRoutesShown] = useState(() => (
     readLayerPreference(typeof window === "undefined" ? null : window.localStorage, STREETCAR_ROUTES_STORAGE_KEY, true)
@@ -1465,6 +1612,7 @@ export function GeographicNetworkMap({
       // over bus stops); a station plan's bus bay badge (S7) is drawn over both.
       const stopCode = stationBayStopCodeAtPoint(map, e.point)
         ?? streetcarStopCodeAtPoint(map, e.point) ?? busStopCodeAtPoint(map, e.point)
+        ?? surfaceSelectionStopCodeAtPoint(map, e.point, NIGHT_STOP_SELECTION_TARGET.prefix)
         ?? goBusStopCodeAtPoint(map, e.point);
       if (stopCode && callbacksRef.current.onSelectSurfaceStop) {
         setOverlapChooser(null);
@@ -1930,13 +2078,6 @@ export function GeographicNetworkMap({
     return () => { cancelled = true; };
   }, [loadStatus, network, styleRevision]);
 
-  // The open stop's pill is filled; reapplied after every streetcar install.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || loadStatus !== "ready" || network !== "ttc" || !streetcarCatalog || !hasStreetcarLayers(map)) return;
-    updateStreetcarStopSelection(map, selectedSurfaceStopCode);
-  }, [isDark, loadStatus, network, selectedSurfaceStopCode, streetcarCatalog, streetcarRoutesShown, styleRevision]);
-
   // TTC buses (S5): while the toggle is on, on the TTC network, the corridors
   // load once and install (again after a style change); the stop file loads
   // near stop zoom, or when a stop opens. Off removes the layers and sources.
@@ -1945,11 +2086,9 @@ export function GeographicNetworkMap({
   if (!busesShown && streetcarCard?.kind === "routes" && (streetcarCard.mode === "bus" || streetcarCard.mode === "night")) {
     setStreetcarCard(null);
   }
-  const selectedSurfaceStopCodeRef = useRef(selectedSurfaceStopCode);
   useLayoutEffect(() => {
     busesShownRef.current = busesShown;
-    selectedSurfaceStopCodeRef.current = selectedSurfaceStopCode;
-  }, [busesShown, selectedSurfaceStopCode]);
+  }, [busesShown]);
   const [busCatalog, setBusCatalog] = useState(cachedBusCatalog);
   const [nightCatalog, setNightCatalog] = useState(cachedNightCatalog);
   const [busStops, setBusStops] = useState(cachedBusStops);
@@ -1959,6 +2098,8 @@ export function GeographicNetworkMap({
     if (!busesShownRef.current || appliedCatalogRef.current?.network !== "ttc") {
       removeNightLayers(map);
       removeBusLayers(map);
+      // A selected bus or night route or stop still draws on its own.
+      syncSurfaceSelectionRef.current();
       return;
     }
     let installed = false;
@@ -1981,7 +2122,7 @@ export function GeographicNetworkMap({
     if (stops && !hasBusStopLayers(map)) {
       installBusStopLayers(map, stops, {
         activeFilteredLine: activeFilteredLineRef.current,
-        selectedStopCode: selectedSurfaceStopCodeRef.current ?? null,
+        selectedStopCodes: surfaceSelectionRef.current?.stopCodes ?? [],
         streetcarStopCodes: streetcarRoutesShownRef.current ? streetcarStopCodeSet(cachedStreetcarCatalog()) : new Set(),
       });
       installed = true;
@@ -2009,7 +2150,7 @@ export function GeographicNetworkMap({
     });
     return () => { cancelled = true; };
   }, [busesShown, loadStatus, styleRevision, syncBusLayers]);
-  const wantBusStops = busesShown && (currentZoom >= BUS_STOPS_LOAD_ZOOM || Boolean(selectedSurfaceStopCode)
+  const wantBusStops = busesShown && (currentZoom >= BUS_STOPS_LOAD_ZOOM || Boolean(mapSurfaceSelection?.stopCodes.length)
     || streetcarCard?.kind === "bus-vehicle");
   useEffect(() => {
     if (loadStatus !== "ready" || !wantBusStops) return;
@@ -2049,8 +2190,11 @@ export function GeographicNetworkMap({
     if (appliedCatalogRef.current?.network !== "ttc") return;
     if (streetcarRoutesShown === hasStreetcarLayers(map)) return;
     if (streetcarRoutesShown) {
-      installStreetcarLayers(map, streetcarCatalog, { dark: isDarkRef.current, activeFilteredLine: activeFilteredLineRef.current });
-      updateStreetcarStopSelection(map, selectedSurfaceStopCodeRef.current ?? null);
+      installStreetcarLayers(map, streetcarCatalog, {
+        dark: isDarkRef.current,
+        activeFilteredLine: activeFilteredLineRef.current,
+        selectedStopCodes: surfaceSelectionRef.current?.stopCodes ?? [],
+      });
       installTransitOpacity(map);
     } else {
       removeStreetcarLayers(map);
@@ -2062,33 +2206,6 @@ export function GeographicNetworkMap({
       syncBusLayers();
     }
   }, [loadStatus, network, streetcarCatalog, streetcarRoutesShown, styleRevision, syncBusLayers]);
-
-  // The open bus stop's label is filled, as a streetcar stop's.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || loadStatus !== "ready" || !busesShown || !busStops || !hasBusStopLayers(map)) return;
-    updateBusStopSelection(map, selectedSurfaceStopCode);
-  }, [busCatalog, busStops, busesShown, loadStatus, selectedSurfaceStopCode, styleRevision]);
-
-  // A newly opened stop (pressed, or from search) is framed like a station:
-  // flown to at street level, above the phone sheet. Waits for the stop list
-  // when a search opens a stop before it loads. A bus stop moves the camera
-  // only while buses are shown, so the map never flies to a stop it does not draw.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!selectedSurfaceStopCode) {
-      lastFocusedSurfaceStopRef.current = null;
-      return;
-    }
-    if (!map || loadStatus !== "ready" || network !== "ttc" || !streetcarCatalog) return;
-    if (selectedSurfaceStopCode === lastFocusedSurfaceStopRef.current) return;
-    const streetcarStop = streetcarRoutesShown ? streetcarStopByCode(streetcarCatalog, selectedSurfaceStopCode) : null;
-    if (!streetcarStop && busesShown && !busStops) return; // the bus stop file is still loading
-    lastFocusedSurfaceStopRef.current = selectedSurfaceStopCode;
-    const stop = streetcarStop ?? (busesShown && busStops ? busStopByCode(busStops, selectedSurfaceStopCode) : null);
-    if (!stop) return;
-    focusGeographicCamera(map, containerRef.current, stop.geometry.coordinates as [number, number], SURFACE_STOP_FOCUS_ZOOM, reducedMotion);
-  }, [busStops, busesShown, loadStatus, network, reducedMotion, selectedSurfaceStopCode, streetcarCatalog, streetcarRoutesShown]);
 
   // GO buses (S6): while the toggle is on, on the GO/UP network, the corridors
   // and the stop file (18 KB gzipped) load once and install (again after a
@@ -2107,6 +2224,8 @@ export function GeographicNetworkMap({
     if (!map || isStyleLoadingRef.current || loadStatusRef.current !== "ready") return;
     if (!goBusesShownRef.current || appliedCatalogRef.current?.network !== "regional") {
       removeGoBusLayers(map);
+      // A selected GO bus route or stop still draws on its own.
+      syncSurfaceSelectionRef.current();
       return;
     }
     const corridors = cachedGoBusCatalog();
@@ -2120,7 +2239,7 @@ export function GeographicNetworkMap({
     if (stops && !hasGoBusStopLayers(map)) {
       installGoBusStopLayers(map, stops, {
         activeFilteredLine: activeFilteredLineRef.current,
-        selectedStopCode: selectedSurfaceStopCodeRef.current ?? null,
+        selectedStopCodes: surfaceSelectionRef.current?.stopCodes ?? [],
       });
       installed = true;
     }
@@ -2141,21 +2260,204 @@ export function GeographicNetworkMap({
     });
     return () => { cancelled = true; };
   }, [goBusesShown, loadStatus, styleRevision, syncGoBusLayers]);
+  // Neutral selection (plan 14, U4): the open stop and what an open panel
+  // shows on the map. A selected route gets an outline under its line and
+  // selected stops the selected pill, at every zoom. A layer whose switch is
+  // off draws only the selection, from its sources holding only the selected
+  // features; the switch is unchanged, and clearing the selection removes them.
+  const [nightStops, setNightStops] = useState(cachedNightStops);
+  const syncSurfaceSelection = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || isStyleLoadingRef.current || loadStatusRef.current !== "ready") return;
+    const selection = surfaceSelectionRef.current;
+    const stopCodes = selection?.stopCodes ?? [];
+    const routeOn = (layer: SurfaceSelectionLayer) => (selection?.route?.layer === layer ? selection.route.route : null);
+    const dark = isDarkRef.current;
+    const network = appliedCatalogRef.current?.network;
+    if (network === "ttc") {
+      const streetcars = cachedStreetcarCatalog();
+      const busStopFile = cachedBusStops();
+      const nightStopFile = cachedNightStops();
+      const assigned = assignSelectedTtcStops(stopCodes, {
+        streetcar: streetcars ? streetcarStopCodeSet(streetcars) : null,
+        bus: busStopFile ? stopCodeSetOf(busStopFile) : null,
+        night: nightStopFile ? stopCodeSetOf(nightStopFile) : null,
+      });
+
+      const streetcarRoute = routeOn("streetcar");
+      const streetcarsOn = streetcarRoutesShownRef.current;
+      if (!streetcarsOn) {
+        if (streetcars && (streetcarRoute || assigned.streetcar.length > 0)) {
+          installStreetcarSelectionSources(map, streetcars, { route: streetcarRoute, stopCodes: assigned.streetcar });
+        } else {
+          removeStreetcarLayers(map);
+        }
+      } else {
+        updateStreetcarStopSelection(map, stopCodes);
+      }
+      applySurfaceSelectionLayers(map, STREETCAR_SELECTION_TARGET, {
+        route: streetcarRoute, stopCodes: assigned.streetcar, routeLine: !streetcarsOn, dark,
+      });
+
+      const busRoute = routeOn("bus");
+      const busesOn = busesShownRef.current;
+      if (!busesOn) {
+        const corridors = cachedBusCatalog();
+        if ((busRoute && corridors) || assigned.bus.length > 0) {
+          const codes = new Set(assigned.bus);
+          installBusSelectionSources(map, {
+            corridors: busRoute && corridors ? routeCorridors(corridors.features, busRoute) : [],
+            stops: busStopFile ? busStopFile.features.filter((feature) => codes.has(feature.properties.stopCode)) : [],
+          });
+        } else {
+          removeBusLayers(map);
+        }
+      } else {
+        updateBusStopSelection(map, stopCodes);
+      }
+      applySurfaceSelectionLayers(map, BUS_SELECTION_TARGET, {
+        route: busRoute, stopCodes: assigned.bus, routeLine: !busesOn, dark,
+      });
+
+      const nightRoute = routeOn("night");
+      const nightRoutes = cachedNightCatalog();
+      if (!busesOn) {
+        if (nightRoute && nightRoutes) installNightSelectionSources(map, nightRoutes, nightRoute);
+        else removeNightLayers(map);
+      }
+      for (const target of NIGHT_SELECTION_TARGETS) {
+        applySurfaceSelectionLayers(map, target, { route: nightRoute, stopCodes: [], routeLine: !busesOn, dark });
+      }
+      // Night-only poles have no layer of their own: only a selected one draws.
+      if (assigned.night.length > 0 && nightStopFile) {
+        const codes = new Set(assigned.night);
+        installNightStopSelectionSource(map, nightStopFile.features.filter((feature) => codes.has(feature.properties.stopCode)));
+        applySurfaceSelectionLayers(map, NIGHT_STOP_SELECTION_TARGET, {
+          route: null, stopCodes: assigned.night, routeLine: false, dark,
+        });
+      } else {
+        removeNightStopSelection(map);
+      }
+    } else if (network === "regional") {
+      const goRoute = routeOn("go-bus");
+      const goStopFile = cachedGoBusStops();
+      const goStopCodes = goStopFile ? stopCodes.filter((code) => stopCodeSetOf(goStopFile).has(code)) : [];
+      const goBusesOn = goBusesShownRef.current;
+      if (!goBusesOn) {
+        const corridors = cachedGoBusCatalog();
+        if ((goRoute && corridors) || goStopCodes.length > 0) {
+          const codes = new Set(goStopCodes);
+          installGoBusSelectionSources(map, {
+            corridors: goRoute && corridors ? routeCorridors(corridors.features, goRoute) : [],
+            stops: goStopFile ? goStopFile.features.filter((feature) => codes.has(feature.properties.stopCode)) : [],
+          });
+        } else {
+          removeGoBusLayers(map);
+        }
+      } else {
+        updateGoBusStopSelection(map, stopCodes);
+      }
+      applySurfaceSelectionLayers(map, GO_BUS_SELECTION_TARGET, {
+        route: goRoute, stopCodes: goStopCodes, routeLine: !goBusesOn, dark,
+      });
+    }
+    if (selection) installTransitOpacity(map);
+    const container = containerRef.current;
+    if (container) {
+      const drawn = drawnSurfaceSelectionLayers(map, SURFACE_SELECTION_PREFIXES);
+      if (drawn.length > 0) container.dataset.surfaceSelectionLayers = drawn.join(" ");
+      else delete container.dataset.surfaceSelectionLayers;
+    }
+  }, []);
+  useLayoutEffect(() => {
+    syncSurfaceSelectionRef.current = syncSurfaceSelection;
+  }, [syncSurfaceSelection]);
+  // Again after every install the selection reads from (theme, network, switches, files).
+  useEffect(() => {
+    if (loadStatus !== "ready") return;
+    syncSurfaceSelection();
+  }, [
+    busCatalog, busStops, busesShown, goBusCatalog, goBusStops, goBusesShown, loadStatus, network, nightCatalog,
+    nightStops, streetcarCatalog, streetcarRoutesShown, styleRevision, surfaceSelectionKeyValue, syncSurfaceSelection,
+  ]);
+
+  // The files a selection needs, loaded even with its layer's switch off: a
+  // stop the streetcar file lacks needs the bus stops, then the night-only poles.
+  const selectedRouteLayer = mapSurfaceSelection?.route?.layer ?? null;
+  const ttcStopFileNeeded = network === "ttc" && mapSurfaceSelection
+    ? assignSelectedTtcStops(mapSurfaceSelection.stopCodes, {
+      streetcar: streetcarCatalog ? streetcarStopCodeSet(streetcarCatalog) : null,
+      bus: busStops ? stopCodeSetOf(busStops) : null,
+      night: nightStops ? stopCodeSetOf(nightStops) : null,
+    }).needs
+    : null;
+  const goStopFileNeeded = network === "regional" && Boolean(mapSurfaceSelection?.stopCodes.length);
+  useEffect(() => {
+    if (loadStatus !== "ready") return;
+    let cancelled = false;
+    const keep = <T,>(set: (value: T) => void) => (value: T) => { if (!cancelled) set(value); };
+    const optional = () => {
+      // The panel works without the map's selection; the map stays usable.
+    };
+    if (ttcStopFileNeeded === "bus") loadBusStops().then(keep(setBusStops), optional);
+    if (ttcStopFileNeeded === "night") loadNightStops().then(keep(setNightStops), optional);
+    if (network === "ttc" && selectedRouteLayer === "bus") loadBusCatalog().then(keep(setBusCatalog), optional);
+    if (network === "ttc" && selectedRouteLayer === "night") loadNightCatalog().then(keep(setNightCatalog), optional);
+    if (network === "regional" && selectedRouteLayer === "go-bus") loadGoBusCatalog().then(keep(setGoBusCatalog), optional);
+    if (goStopFileNeeded) loadGoBusStops().then(keep(setGoBusStops), optional);
+    return () => { cancelled = true; };
+  }, [goStopFileNeeded, loadStatus, network, selectedRouteLayer, ttcStopFileNeeded]);
+
+  // A new selection is framed once its files are in: one stop is flown to
+  // like a station, at street level; a route or several stops are fitted with
+  // alert View's padding (full-width map, toolbar, legend and sheet kept clear).
+  // The camera moves whether or not the selection's layer is switched on.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || loadStatus !== "ready" || !goBusesShown || !goBusStops || !hasGoBusStopLayers(map)) return;
-    updateGoBusStopSelection(map, selectedSurfaceStopCode);
-  }, [goBusCatalog, goBusStops, goBusesShown, loadStatus, selectedSurfaceStopCode, styleRevision]);
-  // A newly opened GO bus stop is flown to, as a TTC stop is; only while GO buses are shown.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!selectedSurfaceStopCode || !map || loadStatus !== "ready" || network !== "regional") return;
-    if (!goBusesShown || !goBusStops || selectedSurfaceStopCode === lastFocusedSurfaceStopRef.current) return;
-    lastFocusedSurfaceStopRef.current = selectedSurfaceStopCode;
-    const stop = goBusStopByCode(goBusStops, selectedSurfaceStopCode);
-    if (!stop) return;
-    focusGeographicCamera(map, containerRef.current, stop.geometry.coordinates as [number, number], GO_BUS_STOP_FOCUS_ZOOM, reducedMotion);
-  }, [goBusStops, goBusesShown, loadStatus, network, reducedMotion, selectedSurfaceStopCode]);
+    const selection = surfaceSelectionRef.current;
+    if (!surfaceSelectionKeyValue || !selection) {
+      lastFramedSurfaceSelectionRef.current = "";
+      return;
+    }
+    if (!map || loadStatus !== "ready" || surfaceSelectionKeyValue === lastFramedSurfaceSelectionRef.current) return;
+    if (appliedCatalogRef.current?.network !== network) return;
+    const target = surfaceSelectionPoints(network, selection, {
+      streetcars: streetcarCatalog, busCorridors: busCatalog, busStops, nightCorridors: nightCatalog, nightStops,
+      goCorridors: goBusCatalog, goStops: goBusStops,
+    });
+    if (!target) return; // a file it needs is still loading
+    lastFramedSurfaceSelectionRef.current = surfaceSelectionKeyValue;
+    if (target.length === 0) return;
+    if (!selection.route && target.length === 1) {
+      const zoom = network === "regional" ? GO_BUS_STOP_FOCUS_ZOOM : SURFACE_STOP_FOCUS_ZOOM;
+      focusGeographicCamera(map, containerRef.current, target[0], zoom, reducedMotion);
+      return;
+    }
+    const bounds = surfaceSelectionBounds(target);
+    const container = containerRef.current;
+    if (!bounds || !container) return;
+    const isMobile = window.innerWidth < 768;
+    const padding = isMobile ? geographicMobileSurfaceSelectionPadding(container) : geographicDesktopFocusPadding(container);
+    // A stop's pill stands above its position: keep the top one clear of the chrome.
+    if (selection.stopCodes.length > 0) padding.top += SELECTED_STOP_PILL_ROOM_PX;
+    // fitBounds adds its padding to the camera's own (a phone stop or station
+    // flight leaves the sheet's there); ask only for what that does not cover.
+    const held = map.getPadding();
+    recordGeographicMapLifecycle("focus", `surface:${surfaceSelectionKeyValue}`);
+    map.fitBounds(bounds, {
+      padding: {
+        top: Math.max(0, padding.top - (held.top ?? 0)),
+        bottom: Math.max(0, padding.bottom - (held.bottom ?? 0)),
+        left: Math.max(0, padding.left - (held.left ?? 0)),
+        right: Math.max(0, padding.right - (held.right ?? 0)),
+      },
+      maxZoom: selection.route ? (isMobile ? GEOGRAPHIC_MOBILE_SELECTION_MAX_ZOOM : 15) : SURFACE_STOP_FOCUS_ZOOM,
+      animate: !reducedMotion,
+    });
+  }, [
+    busCatalog, busStops, goBusCatalog, goBusStops, loadStatus, network, nightCatalog, nightStops, reducedMotion,
+    streetcarCatalog, surfaceSelectionKeyValue,
+  ]);
 
   // Live streetcar positions (S4), read while the TTC Map View is open and the
   // page is visible, at the server's cadence; a disabled source is not asked again.

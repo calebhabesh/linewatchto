@@ -127,6 +127,7 @@ function createMockMap(existingLayers = []) {
     hasImage: (id) => images.has(id),
     addImage: (id, image) => images.set(id, image),
     removeImage: (id) => images.delete(id),
+    setFilter: (layer, filter) => { layers.find((item) => item.id === layer).filter = filter; },
     setPaintProperty: (layer, property, value) => paint.push({ layer, property, value }),
     setLayoutProperty: (layer, property, value) => {
       const target = layers.find((item) => item.id === layer);
@@ -156,7 +157,7 @@ describe("bus layers on the Map View (plan 13, S5)", () => {
       const map = createMockMap(BASE);
       if (streetcarsFirst) installStreetcarLayers(map, streetcarCatalog, { dark: false, activeFilteredLine: null });
       installBusLayers(map, busCatalog, { dark: false, activeFilteredLine: null });
-      installBusStopLayers(map, busStops, { activeFilteredLine: null, selectedStopCode: null, streetcarStopCodes: streetcarCodes });
+      installBusStopLayers(map, busStops, { activeFilteredLine: null, streetcarStopCodes: streetcarCodes });
       if (!streetcarsFirst) installStreetcarLayers(map, streetcarCatalog, { dark: false, activeFilteredLine: null });
       const order = ids(map);
       const at = (id) => order.indexOf(id);
@@ -175,7 +176,7 @@ describe("bus layers on the Map View (plan 13, S5)", () => {
   it("draw at every zoom once on, thinner than streetcars, badges after theirs", () => {
     const map = createMockMap(BASE);
     installBusLayers(map, busCatalog, { dark: true, activeFilteredLine: null });
-    installBusStopLayers(map, busStops, { activeFilteredLine: null, selectedStopCode: null, streetcarStopCodes: streetcarCodes });
+    installBusStopLayers(map, busStops, { activeFilteredLine: null, streetcarStopCodes: streetcarCodes });
     for (const id of [BUS_CASING_LAYER, BUS_LINE_LAYER, BUS_HIT_LAYER]) {
       assert.equal(map.getLayer(id).minzoom, undefined, `${id} draws at the default view`);
     }
@@ -200,7 +201,7 @@ describe("bus layers on the Map View (plan 13, S5)", () => {
     const map = createMockMap(BASE);
     installStreetcarVehicleLayers(map, { dark: false, activeFilteredLine: null });
     installBusLayers(map, busCatalog, { dark: false, activeFilteredLine: null });
-    installBusStopLayers(map, busStops, { activeFilteredLine: null, selectedStopCode: null, streetcarStopCodes: new Set() });
+    installBusStopLayers(map, busStops, { activeFilteredLine: null, streetcarStopCodes: new Set() });
     installStreetcarLayers(map, streetcarCatalog, { dark: false, activeFilteredLine: null });
     const order = ids(map);
     for (const id of [BUS_BADGE_LAYER, BUS_STOP_LAYER, STREETCAR_BADGE_LAYER, STREETCAR_STOP_LAYER]) {
@@ -215,19 +216,19 @@ describe("bus layers on the Map View (plan 13, S5)", () => {
   it("leave shared poles to the streetcar stop labels", () => {
     const map = createMockMap(BASE);
     installBusLayers(map, busCatalog, { dark: false, activeFilteredLine: null });
-    installBusStopLayers(map, busStops, { activeFilteredLine: null, selectedStopCode: null, streetcarStopCodes: streetcarCodes });
+    installBusStopLayers(map, busStops, { activeFilteredLine: null, streetcarStopCodes: streetcarCodes });
     const codes = map.sources["transit-bus-stops"].data.features.map((feature) => feature.properties.stopCode);
     assert.deepEqual(codes, ["2040", "11630"]);
   });
 
   it("install stops only with the lines, are idempotent, and come off completely", () => {
     const map = createMockMap(BASE);
-    installBusStopLayers(map, busStops, { activeFilteredLine: null, selectedStopCode: null, streetcarStopCodes: streetcarCodes });
+    installBusStopLayers(map, busStops, { activeFilteredLine: null, streetcarStopCodes: streetcarCodes });
     assert.equal(hasBusStopLayers(map), false, "no stops without the lines");
     installBusLayers(map, busCatalog, { dark: false, activeFilteredLine: null });
     installBusLayers(map, busCatalog, { dark: false, activeFilteredLine: null });
-    installBusStopLayers(map, busStops, { activeFilteredLine: null, selectedStopCode: "2040", streetcarStopCodes: streetcarCodes });
-    installBusStopLayers(map, busStops, { activeFilteredLine: null, selectedStopCode: "2040", streetcarStopCodes: streetcarCodes });
+    installBusStopLayers(map, busStops, { activeFilteredLine: null, selectedStopCodes: ["2040"], streetcarStopCodes: streetcarCodes });
+    installBusStopLayers(map, busStops, { activeFilteredLine: null, selectedStopCodes: ["2040"], streetcarStopCodes: streetcarCodes });
     assert.ok(hasBusLayers(map) && hasBusStopLayers(map));
     assert.equal(ids(map).length, BASE.length + 6);
     removeBusLayers(map);
@@ -235,12 +236,13 @@ describe("bus layers on the Map View (plan 13, S5)", () => {
     assert.deepEqual(Object.keys(map.sources), []);
   });
 
-  it("mark the open stop, take presses on it, and dim with a filtered subway line", () => {
+  it("leave the open stop to the selection layer, take presses, and dim with a filtered subway line", () => {
     const map = createMockMap(BASE);
     installBusLayers(map, busCatalog, { dark: false, activeFilteredLine: null });
-    installBusStopLayers(map, busStops, { activeFilteredLine: null, selectedStopCode: null, streetcarStopCodes: streetcarCodes });
-    updateBusStopSelection(map, "2040");
-    assert.deepEqual(map.getLayer(BUS_STOP_LAYER).layout["icon-image"].slice(0, 2), ["case", ["==", ["get", "stopCode"], "2040"]]);
+    installBusStopLayers(map, busStops, { activeFilteredLine: null, selectedStopCodes: ["2040"], streetcarStopCodes: streetcarCodes });
+    assert.deepEqual(map.getLayer(BUS_STOP_LAYER).filter, ["!", ["in", ["get", "stopCode"], ["literal", ["2040"]]]]);
+    updateBusStopSelection(map, []);
+    assert.equal(map.getLayer(BUS_STOP_LAYER).filter, null);
     assert.equal(busStopCodeAtPoint(map, { x: 10, y: 10 }), "2040");
     updateBusFilter(map, "line-1");
     const line = map.paint.find((call) => call.layer === BUS_LINE_LAYER && call.property === "line-opacity");

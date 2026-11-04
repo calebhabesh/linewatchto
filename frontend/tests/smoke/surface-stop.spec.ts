@@ -67,6 +67,39 @@ test.describe("Surface stop departures on the Map View", () => {
     await expect(page.locator("[data-surface-stop-panel='424242']")).toContainText("not in the TTC stop list");
   });
 
+  test("a bus stop from search draws and is flown to with Bus Routes off, then clears", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop search entry");
+    // Plan 14, U4: Dufferin St at College St, a bus-only pole (no streetcar stops there).
+    const busStop = { code: "2034", lng: -79.43266, lat: 43.65266 };
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    const geoMap = page.locator(".geographic-network-map");
+    await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 20_000 });
+    const busesSwitch = page.locator("[data-bus-toggle]").first();
+    await expect(busesSwitch).toHaveAttribute("data-checked", "false");
+
+    const input = page.getByPlaceholder(/Search all stations/);
+    await input.click();
+    await input.fill(busStop.code);
+    await page.locator(`[data-search-group='stops'] [data-surface-stop-result='${busStop.code}']`).click();
+    const panel = page.locator(`[data-surface-stop-panel='${busStop.code}']`);
+    await expect(panel).toBeVisible();
+
+    // Only the selection draws: its pill, not the Buses switch's layers.
+    const mapSurface = geoMap.locator(':scope > [role="region"]');
+    await expect(mapSurface).toHaveAttribute("data-surface-selection-layers", /transit-bus-selected-stops/, { timeout: 15_000 });
+    await expect(busesSwitch).toHaveAttribute("data-checked", "false");
+    await expect.poll(async () => {
+      const camera = await page.evaluate(() => window.__linewatchGeographicMapLifecycle?.getCamera() ?? null);
+      return Boolean(camera && camera.zoom >= 15.9
+        && Math.abs(camera.lng - busStop.lng) < 0.01 && Math.abs(camera.lat - busStop.lat) < 0.01);
+    }, { timeout: 15_000 }).toBe(true);
+
+    await panel.getByRole("button", { name: "Close stop departures" }).click();
+    await expect(panel).toHaveCount(0);
+    await expect(mapSurface).not.toHaveAttribute("data-surface-selection-layers");
+  });
+
   test("a station bay's stop links back to the station's Surface Connections, open and in view", async ({ page, isMobile }) => {
     test.skip(isMobile, "Desktop search entry");
     await page.setViewportSize({ width: 1440, height: 900 });

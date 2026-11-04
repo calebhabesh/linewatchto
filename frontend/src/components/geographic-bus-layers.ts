@@ -21,8 +21,14 @@ import {
   type BusCatalog,
   type BusStopCatalog,
 } from "../app/geographic-bus-catalog.ts";
+import { surfaceRouteKey, unselectedStopFilter } from "../app/surface-map-selection.ts";
 import { ttcRouteBadgeColors } from "../app/ttc-route-badge.ts";
 import { setTransitPaintProperty } from "./geographic-network-transition.ts";
+import {
+  removeSurfaceSelectionLayers,
+  surfaceSelectionStopLayers,
+  type SurfaceSelectionTarget,
+} from "./geographic-surface-selection-layers.ts";
 import {
   STREETCAR_BADGE_LAYER,
   STREETCAR_CASING_LAYER,
@@ -79,6 +85,8 @@ export type BusLayerConfig = {
   badgeBefore: (map: MapLibreMap) => string | undefined;
   /** The layer the stops go under. */
   stopBefore: (map: MapLibreMap) => string | undefined;
+  /** The layer selected stops (plan 14, U4) go under: over every stop label. */
+  selectedStopBefore?: (map: MapLibreMap) => string | undefined;
 };
 
 function dimmed(activeFilteredLine: string | null): number {
@@ -160,7 +168,6 @@ export function createBusLayerKit(config: BusLayerConfig) {
   const LINE_LAYERS = [CASING_LAYER, LINE_LAYER, HIT_LAYER, BADGE_LAYER];
   const STOP_LAYERS = [STOP_DOT_LAYER, STOP_LAYER];
   const STOP_PILL_IMAGE = `${config.idPrefix}-stop-pill`;
-  const STOP_PILL_SELECTED_IMAGE = `${config.idPrefix}-stop-pill-selected`;
 
   function registerStopPillImages(map: MapLibreMap) {
     const scale = BADGE_PIXEL_RATIO;
@@ -172,7 +179,6 @@ export function createBusLayerKit(config: BusLayerConfig) {
     };
     const images: Array<[string, string, string]> = [
       [STOP_PILL_IMAGE, "#ffffff", "#6b7280"],
-      [STOP_PILL_SELECTED_IMAGE, "#0f172a", "#ffffff"],
     ];
     for (const [id, fill, edge] of images) {
       if (map.hasImage(id)) continue;
@@ -185,14 +191,30 @@ export function createBusLayerKit(config: BusLayerConfig) {
     }
   }
 
-  const stopPillImage = (selectedStopCode: string | null): unknown => (selectedStopCode
-    ? ["case", ["==", ["get", "stopCode"], selectedStopCode], STOP_PILL_SELECTED_IMAGE, STOP_PILL_IMAGE]
-    : STOP_PILL_IMAGE);
-  const stopTextColor = (selectedStopCode: string | null): unknown => (selectedStopCode
-    ? ["case", ["==", ["get", "stopCode"], selectedStopCode], "#ffffff", "#0f172a"]
-    : "#0f172a");
-  const stopSortKey = (selectedStopCode: string | null): unknown =>
-    ["case", ["==", ["get", "stopCode"], selectedStopCode ?? ""], 0, 1];
+  const corridorCollection = (features: readonly BusCorridorLike[]): GeoJSON.FeatureCollection => ({
+    type: "FeatureCollection",
+    features: features.map((feature) => ({
+      ...feature,
+      properties: {
+        ...feature.properties,
+        badgeImage: config.badgeImageId(feature.properties.routes),
+        routeKey: surfaceRouteKey(feature.properties.routes),
+      },
+    })),
+  });
+  const stopCollection = (features: readonly BusStopLike[]): GeoJSON.FeatureCollection => ({
+    type: "FeatureCollection",
+    features: features.map((feature) => ({
+      type: "Feature",
+      geometry: feature.geometry,
+      properties: { stopCode: feature.properties.stopCode },
+    })),
+  });
+  const setSourceData = (map: MapLibreMap, id: string, data: GeoJSON.FeatureCollection) => {
+    const source = map.getSource(id) as GeoJSONSource | undefined;
+    if (source) source.setData(data);
+    else map.addSource(id, { type: "geojson", data });
+  };
 
   /**
    * Draws a badge row the map asked for (`styleimagemissing`), so only the
@@ -217,16 +239,7 @@ export function createBusLayerKit(config: BusLayerConfig) {
     catalog: { features: BusCorridorLike[] },
     options: { dark: boolean; activeFilteredLine: string | null },
   ): void {
-    const corridors: GeoJSON.FeatureCollection = {
-      type: "FeatureCollection",
-      features: catalog.features.map((feature) => ({
-        ...feature,
-        properties: { ...feature.properties, badgeImage: config.badgeImageId(feature.properties.routes) },
-      })),
-    };
-    const source = map.getSource(SOURCE_ID) as GeoJSONSource | undefined;
-    if (source) source.setData(corridors);
-    else map.addSource(SOURCE_ID, { type: "geojson", data: corridors });
+    setSourceData(map, SOURCE_ID, corridorCollection(catalog.features));
 
     const theme = options.dark ? config.style.dark : config.style.light;
     const opacity = dimmed(options.activeFilteredLine);
@@ -296,24 +309,15 @@ export function createBusLayerKit(config: BusLayerConfig) {
   function installStopLayers(
     map: MapLibreMap,
     stops: { features: BusStopLike[] },
-    options: { activeFilteredLine: string | null; selectedStopCode: string | null; skipStopCodes?: ReadonlySet<string> },
+    options: { activeFilteredLine: string | null; selectedStopCodes?: readonly string[]; skipStopCodes?: ReadonlySet<string> },
   ): void {
     if (!map.getLayer(LINE_LAYER)) return;
     const skip = options.skipStopCodes;
-    const data: GeoJSON.FeatureCollection = {
-      type: "FeatureCollection",
-      features: stops.features
-        .filter((feature) => !skip?.has(feature.properties.stopCode))
-        .map((feature) => ({
-          type: "Feature",
-          geometry: feature.geometry,
-          properties: { stopCode: feature.properties.stopCode },
-        })),
-    };
-    const source = map.getSource(STOP_SOURCE_ID) as GeoJSONSource | undefined;
-    if (source) source.setData(data);
-    else map.addSource(STOP_SOURCE_ID, { type: "geojson", data });
+    setSourceData(map, STOP_SOURCE_ID, stopCollection(
+      skip ? stops.features.filter((feature) => !skip.has(feature.properties.stopCode)) : stops.features,
+    ));
     registerStopPillImages(map);
+    const unselected = unselectedStopFilter(options.selectedStopCodes ?? []);
     const opacity = dimmed(options.activeFilteredLine);
     const before = config.stopBefore(map);
     if (!map.getLayer(STOP_DOT_LAYER)) {
@@ -322,6 +326,7 @@ export function createBusLayerKit(config: BusLayerConfig) {
         type: "circle",
         source: STOP_SOURCE_ID,
         minzoom: config.stopMinZoom,
+        ...(unselected ? { filter: unselected as never } : {}),
         paint: {
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 2.2, 19, 3.6],
           "circle-color": "#374151",
@@ -338,6 +343,7 @@ export function createBusLayerKit(config: BusLayerConfig) {
         type: "symbol",
         source: STOP_SOURCE_ID,
         minzoom: config.stopMinZoom,
+        ...(unselected ? { filter: unselected as never } : {}),
         layout: {
           "text-field": ["get", "stopCode"],
           "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
@@ -345,7 +351,7 @@ export function createBusLayerKit(config: BusLayerConfig) {
           "text-anchor": "bottom",
           "text-offset": [0, -0.75],
           "icon-anchor": "bottom",
-          "icon-image": stopPillImage(options.selectedStopCode) as never,
+          "icon-image": STOP_PILL_IMAGE,
           "icon-text-fit": "both",
           "icon-text-fit-padding": [1, 3, 1, 3],
           // Under other stops and station names: a label that would overlap
@@ -353,10 +359,9 @@ export function createBusLayerKit(config: BusLayerConfig) {
           "icon-allow-overlap": false,
           "text-allow-overlap": false,
           "icon-padding": 2,
-          "symbol-sort-key": stopSortKey(options.selectedStopCode) as never,
         },
         paint: {
-          "text-color": stopTextColor(options.selectedStopCode) as never,
+          "text-color": "#0f172a",
           "text-opacity": opacity,
           "icon-opacity": opacity,
         },
@@ -364,8 +369,9 @@ export function createBusLayerKit(config: BusLayerConfig) {
     }
   }
 
-  /** Removes every layer and source (the toggle turned off). */
+  /** Removes every layer and source (the toggle turned off), a selection's too. */
   function removeLayers(map: MapLibreMap): void {
+    removeSurfaceSelectionLayers(map, config.idPrefix);
     for (const layer of [...STOP_LAYERS, ...LINE_LAYERS]) {
       if (map.getLayer(layer)) map.removeLayer(layer);
     }
@@ -376,26 +382,51 @@ export function createBusLayerKit(config: BusLayerConfig) {
 
   /** Removes the stops only, so they can be redrawn (shared poles change hands). */
   function removeStopLayers(map: MapLibreMap): void {
-    for (const layer of STOP_LAYERS) {
+    for (const layer of [...surfaceSelectionStopLayers(config.idPrefix), ...STOP_LAYERS]) {
       if (map.getLayer(layer)) map.removeLayer(layer);
     }
     if (map.getSource(STOP_SOURCE_ID)) map.removeSource(STOP_SOURCE_ID);
   }
 
+  /**
+   * With the switch off, a selection (plan 14, U4) still draws: the sources
+   * hold only the selected route's corridors and the selected stops.
+   */
+  function installSelectionSources(
+    map: MapLibreMap,
+    data: { corridors: readonly BusCorridorLike[]; stops: readonly BusStopLike[] },
+  ): void {
+    setSourceData(map, SOURCE_ID, corridorCollection(data.corridors));
+    setSourceData(map, STOP_SOURCE_ID, stopCollection(data.stops));
+  }
+
+  /** Where the selection draws: its outline under this layer's casing, its stops over every label. */
+  const selectionTarget: SurfaceSelectionTarget = {
+    prefix: config.idPrefix,
+    corridorSource: SOURCE_ID,
+    stopSource: STOP_SOURCE_ID,
+    style: config.style,
+    lineBefore: (map) => (map.getLayer(CASING_LAYER) ? CASING_LAYER : config.lineBefore(map)),
+    stopBefore: (map) => (config.selectedStopBefore ?? config.stopBefore)(map),
+  };
+
   const hasLayers = (map: MapLibreMap) => LINE_LAYERS.every((layer) => Boolean(map.getLayer(layer)));
   const hasStopLayers = (map: MapLibreMap) => STOP_LAYERS.every((layer) => Boolean(map.getLayer(layer)));
 
-  /** Marks the stop whose departures are open; null clears it. */
-  function updateStopSelection(map: MapLibreMap, selectedStopCode: string | null): void {
-    if (!map.getLayer(STOP_LAYER)) return;
-    map.setLayoutProperty(STOP_LAYER, "icon-image", stopPillImage(selectedStopCode) as never);
-    map.setLayoutProperty(STOP_LAYER, "symbol-sort-key", stopSortKey(selectedStopCode) as never);
-    map.setPaintProperty(STOP_LAYER, "text-color", stopTextColor(selectedStopCode) as never);
+  /**
+   * Leaves the selected stops (every layer's, so a shared pole never shows
+   * twice) to the selection layer, which draws them in the selected style.
+   */
+  function updateStopSelection(map: MapLibreMap, selectedStopCodes: readonly string[]): void {
+    const filter = unselectedStopFilter(selectedStopCodes);
+    for (const layer of STOP_LAYERS) {
+      if (map.getLayer(layer)) map.setFilter(layer, filter as never);
+    }
   }
 
-  /** The stop number under a press on a label or dot, if any. */
+  /** The stop number under a press on a label or dot (a selected one first), if any. */
   function stopCodeAtPoint(map: MapLibreMap, point: { x: number; y: number }): string | null {
-    const layers = STOP_LAYERS.filter((layer) => map.getLayer(layer));
+    const layers = [...surfaceSelectionStopLayers(config.idPrefix), ...STOP_LAYERS].filter((layer) => map.getLayer(layer));
     if (layers.length === 0) return null;
     const features = map.queryRenderedFeatures(
       [[point.x - 4, point.y - 4], [point.x + 4, point.y + 4]],
@@ -433,6 +464,8 @@ export function createBusLayerKit(config: BusLayerConfig) {
     },
     addMissingBadgeImage,
     installLayers,
+    installSelectionSources,
+    selectionTarget,
     installStopLayers,
     removeLayers,
     removeStopLayers,
@@ -446,6 +479,17 @@ export function createBusLayerKit(config: BusLayerConfig) {
 
 /** Live buses (S8); named here to keep this module free of the vehicle layer's imports. */
 const BUS_VEHICLE_HALO_LAYER = "transit-bus-vehicles-halo";
+
+/**
+ * Selected TTC stops (plan 14, U4): over every stop label and badge, under
+ * live vehicles and station markers.
+ */
+export function ttcSelectedStopBefore(map: MapLibreMap): string | undefined {
+  for (const layer of [BUS_VEHICLE_HALO_LAYER, STREETCAR_VEHICLE_HALO_LAYER, STATION_BEFORE]) {
+    if (map.getLayer(layer)) return layer;
+  }
+  return undefined;
+}
 
 /** Under the streetcar layer's symbols, else under live buses or cars, else under stations. */
 function underStreetcarSymbol(map: MapLibreMap, streetcarLayer: string): string | undefined {
@@ -486,6 +530,7 @@ const ttcBusKit = createBusLayerKit({
   },
   badgeBefore: (map) => underStreetcarSymbol(map, STREETCAR_BADGE_LAYER),
   stopBefore: (map) => underStreetcarSymbol(map, STREETCAR_STOP_DOT_LAYER),
+  selectedStopBefore: ttcSelectedStopBefore,
 });
 
 export const BUS_CASING_LAYER = ttcBusKit.layers.casing;
@@ -511,7 +556,7 @@ export function installBusLayers(
 export function installBusStopLayers(
   map: MapLibreMap,
   stops: BusStopCatalog,
-  options: { activeFilteredLine: string | null; selectedStopCode: string | null; streetcarStopCodes: ReadonlySet<string> },
+  options: { activeFilteredLine: string | null; selectedStopCodes?: readonly string[]; streetcarStopCodes: ReadonlySet<string> },
 ): void {
   ttcBusKit.installStopLayers(map, stops, { ...options, skipStopCodes: options.streetcarStopCodes });
 }
@@ -520,5 +565,8 @@ export const removeBusStopLayers = ttcBusKit.removeStopLayers;
 export const hasBusLayers = ttcBusKit.hasLayers;
 export const hasBusStopLayers = ttcBusKit.hasStopLayers;
 export const updateBusStopSelection = ttcBusKit.updateStopSelection;
+/** Where a selected bus route or stop draws (plan 14, U4). */
+export const BUS_SELECTION_TARGET = ttcBusKit.selectionTarget;
+export const installBusSelectionSources = ttcBusKit.installSelectionSources;
 export const busStopCodeAtPoint = ttcBusKit.stopCodeAtPoint;
 export const updateBusFilter = ttcBusKit.updateFilter;

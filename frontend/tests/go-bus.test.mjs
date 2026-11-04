@@ -113,7 +113,7 @@ describe("GO bus layers on the GO/UP Map View (plan 13, S6)", () => {
   it("draw under the GO/UP rail lines and stations, at every zoom, thinner than rail", () => {
     const map = createMockMap(BASE);
     installGoBusLayers(map, catalog, { dark: false, activeFilteredLine: null });
-    installGoBusStopLayers(map, stops, { activeFilteredLine: null, selectedStopCode: null });
+    installGoBusStopLayers(map, stops, { activeFilteredLine: null });
     const order = ids(map);
     for (const id of [GO_BUS_CASING_LAYER, GO_BUS_LINE_LAYER, GO_BUS_HIT_LAYER]) {
       assert.ok(order.indexOf(id) < order.indexOf("transit-routes-casing"), `${id} under the rail lines`);
@@ -147,7 +147,7 @@ describe("GO bus layers on the GO/UP Map View (plan 13, S6)", () => {
   it("dim with a filtered line, take stop presses, and remove cleanly", () => {
     const map = createMockMap(BASE);
     installGoBusLayers(map, catalog, { dark: false, activeFilteredLine: null });
-    installGoBusStopLayers(map, stops, { activeFilteredLine: null, selectedStopCode: "00008" });
+    installGoBusStopLayers(map, stops, { activeFilteredLine: null, selectedStopCodes: ["00008"] });
     assert.ok(hasGoBusLayers(map) && hasGoBusStopLayers(map));
     assert.equal(goBusStopCodeAtPoint(map, { x: 1, y: 1 }), "00008");
     updateGoBusFilter(map, "regional-lw");

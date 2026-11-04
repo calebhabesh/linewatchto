@@ -78,6 +78,7 @@ import { SurfaceStopPanel } from "./SurfaceStopPanel";
 import { GoBusStopPanel } from "./GoBusStopPanel";
 import { SurfaceRoutePanel } from "./SurfaceRoutePanel";
 import type { SurfaceSearchRoute } from "../app/surface-search";
+import type { SurfaceMapSelection } from "../app/surface-map-selection";
 const SurfaceNoticesPanel = preloadablePanel(() => import("./SurfaceNoticesPanel").then((mod) => mod.SurfaceNoticesPanel));
 const TtcAnnouncementsPanel = preloadablePanel(() => import("./TtcAnnouncementsPanel").then((mod) => mod.TtcAnnouncementsPanel));
 const StationDetailPanel = preloadablePanel(() => import("./StationDetailPanel").then((mod) => mod.StationDetailPanel));
@@ -770,6 +771,38 @@ export function LineWatchShell({
       setSelectedSurfaceRoute(null);
     }
   }, [activeView, selectedNetwork, selectedStationId, selectedSurfaceRoute, selectedSurfaceStop, selection]);
+  // Stops or a route an open panel shows on the Map View (plan 14, U4): a
+  // route panel's View on Map (U5) or a notice's View (plan 15). The neutral
+  // selection lasts only while its panel is open: closing the route panel, a
+  // stop, a station, an alert, or another view or network clears it.
+  const [surfaceMapSelection, setSurfaceMapSelection] = useState<{
+    selection: SurfaceMapSelection;
+    owner: "route" | "notice";
+    view: ActiveView;
+    network: NetworkId;
+  } | null>(null);
+  const shownSurfaceSelection = surfaceMapSelection?.view === activeView && surfaceMapSelection.network === selectedNetwork
+    ? surfaceMapSelection.selection
+    : null;
+  useEffect(() => {
+    if (!surfaceMapSelection) return;
+    if (selectedStationId || selection || selectedSurfaceStop
+      || (surfaceMapSelection.owner === "route" && !selectedSurfaceRoute)
+      || selectedNetwork !== surfaceMapSelection.network || surfaceMapSelection.view !== activeView) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSurfaceMapSelection(null);
+    }
+  }, [activeView, selectedNetwork, selectedStationId, selectedSurfaceRoute, selectedSurfaceStop, selection, surfaceMapSelection]);
+  /** Shows stops or a route on the Map View for the panel that owns them; null clears. */
+  const showSurfaceSelectionOnMap = useCallback((next: SurfaceMapSelection | null, owner: "route" | "notice") => {
+    setSurfaceMapSelection(next ? { selection: next, owner, view: activeView, network: selectedNetwork } : null);
+  }, [activeView, selectedNetwork]);
+  useEffect(() => {
+    // Dev-only handle for scripted checks until U5 and plan 15 add the buttons.
+    if (process.env.NODE_ENV === "production") return;
+    window.__linewatchSurfaceSelectionDebug = { show: showSurfaceSelectionOnMap };
+    return () => { delete window.__linewatchSurfaceSelectionDebug; };
+  }, [showSurfaceSelectionOnMap]);
   // A stop or route found on the other network opens once that network is shown.
   const pendingSurfaceOpenRef = useRef<{ network: NetworkId; stopCode?: string; route?: SurfaceSearchRoute } | null>(null);
 
@@ -1150,7 +1183,10 @@ export function LineWatchShell({
     <SurfaceRoutePanel
       key={`route:${visibleSurfaceRoute.network}:${visibleSurfaceRoute.kind}:${visibleSurfaceRoute.route}`}
       route={visibleSurfaceRoute}
-      onClose={() => setSelectedSurfaceRoute(null)}
+      onClose={() => {
+        setSelectedSurfaceRoute(null);
+        setSurfaceMapSelection(null);
+      }}
       reducedMotion={reducedMotion}
     />
   ) : selectedSurfaceStopCode && selectedNetwork === "regional" ? (
@@ -2171,6 +2207,7 @@ export function LineWatchShell({
     if (selectedStationId) navSelectStationId(null);
     setSelection(null);
     setSelectedSurfaceStop(null);
+    setSurfaceMapSelection(null);
     setSelectedSurfaceRoute({ route, view: "map" });
     if (!isMobile && desktopSidebarCollapsed) setDesktopSidebarCollapsed(false);
     recordPwaInstallEngagement();
@@ -3801,6 +3838,7 @@ export function LineWatchShell({
                 onSelectStationId={handleSelectStationId}
                 selectedSurfaceStopCode={selectedSurfaceStopCode}
                 onSelectSurfaceStop={handleSelectSurfaceStop}
+                surfaceSelection={shownSurfaceSelection}
                 busesEnabled={busesEnabled}
                 onToggleBuses={handleToggleBuses}
                 goBusesEnabled={goBusesEnabled}
@@ -3868,6 +3906,7 @@ export function LineWatchShell({
             onSelectStationId={handleSelectStationId}
             selectedSurfaceStopCode={selectedSurfaceStopCode}
             onSelectSurfaceStop={handleSelectSurfaceStop}
+            surfaceSelection={shownSurfaceSelection}
             busesEnabled={busesEnabled}
             onToggleBuses={handleToggleBuses}
             goBusesEnabled={goBusesEnabled}

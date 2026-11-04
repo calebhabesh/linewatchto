@@ -16,8 +16,16 @@ import {
   streetcarBadgeImageId,
   streetcarRouteSets,
   type StreetcarCatalog,
+  type StreetcarCorridorFeature,
+  type StreetcarStopFeature,
 } from "../app/geographic-surface-catalog.ts";
+import { surfaceRouteKey, unselectedStopFilter } from "../app/surface-map-selection.ts";
 import { setTransitPaintProperty } from "./geographic-network-transition.ts";
+import {
+  removeSurfaceSelectionLayers,
+  surfaceSelectionStopLayers,
+  type SurfaceSelectionTarget,
+} from "./geographic-surface-selection-layers.ts";
 
 const SOURCE_ID = "transit-streetcar-corridors";
 const STOP_SOURCE_ID = "transit-streetcar-stops";
@@ -41,7 +49,11 @@ const STREETCAR_LAYERS = [
 ];
 
 const STOP_PILL_IMAGE = "streetcar-stop-pill";
-const STOP_PILL_SELECTED_IMAGE = "streetcar-stop-pill-selected";
+const SELECTION_PREFIX = "transit-streetcar";
+/** Thinner than the subway at every zoom (2.2 px at 9, 5 px at 14), so the subway stays the main read. */
+const LINE_WIDTH = ["interpolate", ["linear"], ["zoom"], 9, 1.1, 12, 1.8, 14, 2.6, 17, 4.6];
+const CASING_WIDTH = ["interpolate", ["linear"], ["zoom"], 9, 2.1, 12, 3, 14, 4.4, 17, 7];
+const STREETCAR_RED = "#ED1C24";
 
 /** Under the subway lines; badges sit over them but under station markers and names. */
 const LINE_BEFORE = "transit-routes-casing";
@@ -103,8 +115,9 @@ function drawBadgeRow(routes: readonly string[], color: string, textColor: strin
 }
 
 /**
- * A stretchable label behind a stop number: white with a dark edge, or dark
- * with a white edge when selected. Nine-slice, so one image fits every number.
+ * A stretchable label behind a stop number: white with a dark edge (a
+ * selected stop's is the shared selected pill). Nine-slice, so one image
+ * fits every number.
  */
 function drawStopPill(fill: string, edge: string): ImageData | null {
   if (typeof document === "undefined") return null;
@@ -138,7 +151,6 @@ function registerStopPillImages(map: MapLibreMap) {
   // dark edge keeps them apart from the light map.
   const images: Array<[string, string, string]> = [
     [STOP_PILL_IMAGE, "#ffffff", "#1f2937"],
-    [STOP_PILL_SELECTED_IMAGE, "#0f172a", "#ffffff"],
   ];
   for (const [id, fill, edge] of images) {
     try {
@@ -152,17 +164,36 @@ function registerStopPillImages(map: MapLibreMap) {
   }
 }
 
-function stopPillImage(selectedStopCode: string | null): unknown {
-  return selectedStopCode
-    ? ["case", ["==", ["get", "stopCode"], selectedStopCode], STOP_PILL_SELECTED_IMAGE, STOP_PILL_IMAGE]
-    : STOP_PILL_IMAGE;
+function corridorCollection(features: readonly StreetcarCorridorFeature[]): GeoJSON.FeatureCollection {
+  return {
+    type: "FeatureCollection",
+    features: features.map((feature) => ({
+      ...feature,
+      properties: {
+        ...feature.properties,
+        badgeImage: streetcarBadgeImageId(feature.properties.routes),
+        routeKey: surfaceRouteKey(feature.properties.routes),
+      },
+    })),
+  };
 }
 
-function stopTextColor(selectedStopCode: string | null): unknown {
-  const normal = "#0f172a";
-  return selectedStopCode
-    ? ["case", ["==", ["get", "stopCode"], selectedStopCode], "#ffffff", normal]
-    : normal;
+function stopCollection(features: readonly StreetcarStopFeature[]): GeoJSON.FeatureCollection {
+  return {
+    type: "FeatureCollection",
+    features: features.filter((feature) => Boolean(feature.properties.stopCode)).map((feature) => ({
+      type: "Feature",
+      id: feature.id,
+      geometry: feature.geometry,
+      properties: { stopCode: feature.properties.stopCode, name: feature.properties.name },
+    })),
+  };
+}
+
+function setSourceData(map: MapLibreMap, id: string, data: GeoJSON.FeatureCollection) {
+  const source = map.getSource(id) as GeoJSONSource | undefined;
+  if (source) source.setData(data);
+  else map.addSource(id, { type: "geojson", data });
 }
 
 function registerBadgeImages(map: MapLibreMap, catalog: StreetcarCatalog) {
@@ -184,37 +215,14 @@ function registerBadgeImages(map: MapLibreMap, catalog: StreetcarCatalog) {
 export function installStreetcarLayers(
   map: MapLibreMap,
   catalog: StreetcarCatalog,
-  options: { dark: boolean; activeFilteredLine: string | null; selectedStopCode?: string | null },
+  options: { dark: boolean; activeFilteredLine: string | null; selectedStopCodes?: readonly string[] },
 ): void {
-  const corridors: GeoJSON.FeatureCollection = {
-    type: "FeatureCollection",
-    features: catalog.features.filter(isStreetcarCorridorFeature).map((feature) => ({
-      ...feature,
-      properties: { ...feature.properties, badgeImage: streetcarBadgeImageId(feature.properties.routes) },
-    })),
-  };
-  const source = map.getSource(SOURCE_ID) as GeoJSONSource | undefined;
-  if (source) source.setData(corridors);
-  else map.addSource(SOURCE_ID, { type: "geojson", data: corridors });
-
+  setSourceData(map, SOURCE_ID, corridorCollection(catalog.features.filter(isStreetcarCorridorFeature)));
   registerBadgeImages(map, catalog);
-  const color = catalog.routes.find((route) => route.drawn)?.color ?? "#ED1C24";
-  const stops: GeoJSON.FeatureCollection = {
-    type: "FeatureCollection",
-    features: catalog.features.filter(isStreetcarStopFeature)
-      .filter((feature) => Boolean(feature.properties.stopCode))
-      .map((feature) => ({
-        type: "Feature",
-        id: feature.id,
-        geometry: feature.geometry,
-        properties: { stopCode: feature.properties.stopCode, name: feature.properties.name },
-      })),
-  };
-  const stopSource = map.getSource(STOP_SOURCE_ID) as GeoJSONSource | undefined;
-  if (stopSource) stopSource.setData(stops);
-  else map.addSource(STOP_SOURCE_ID, { type: "geojson", data: stops });
+  const color = catalog.routes.find((route) => route.drawn)?.color ?? STREETCAR_RED;
+  setSourceData(map, STOP_SOURCE_ID, stopCollection(catalog.features.filter(isStreetcarStopFeature)));
   registerStopPillImages(map);
-  const selectedStopCode = options.selectedStopCode ?? null;
+  const unselected = unselectedStopFilter(options.selectedStopCodes ?? []);
   const lineBefore = map.getLayer(LINE_BEFORE) ? LINE_BEFORE : undefined;
   // Live cars (S4) and buses (S8) stay above badges and stop labels when the
   // routes are turned back on after the vehicles were drawn.
@@ -230,7 +238,7 @@ export function installStreetcarLayers(
       layout: { "line-cap": "round", "line-join": "round" },
       paint: {
         "line-color": options.dark ? "#000000" : "#ffffff",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 9, 2.1, 12, 3, 14, 4.4, 17, 7],
+        "line-width": CASING_WIDTH as never,
         "line-opacity": lineOpacity(options.activeFilteredLine),
       },
     }, lineBefore);
@@ -243,9 +251,7 @@ export function installStreetcarLayers(
       layout: { "line-cap": "round", "line-join": "round" },
       paint: {
         "line-color": color,
-        // Thinner than the subway at every zoom (2.2 px at 9, 5 px at 14), so
-        // the subway stays the main read.
-        "line-width": ["interpolate", ["linear"], ["zoom"], 9, 1.1, 12, 1.8, 14, 2.6, 17, 4.6],
+        "line-width": LINE_WIDTH as never,
         "line-opacity": lineOpacity(options.activeFilteredLine),
       },
     }, lineBefore);
@@ -287,6 +293,7 @@ export function installStreetcarLayers(
       type: "circle",
       source: STOP_SOURCE_ID,
       minzoom: STREETCAR_STOP_MIN_ZOOM,
+      ...(unselected ? { filter: unselected as never } : {}),
       paint: {
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 2.5, 19, 4],
         "circle-color": "#0f172a",
@@ -303,6 +310,7 @@ export function installStreetcarLayers(
       type: "symbol",
       source: STOP_SOURCE_ID,
       minzoom: STREETCAR_STOP_MIN_ZOOM,
+      ...(unselected ? { filter: unselected as never } : {}),
       layout: {
         "text-field": ["get", "stopCode"],
         "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
@@ -311,7 +319,7 @@ export function installStreetcarLayers(
         "text-anchor": "bottom",
         "text-offset": [0, -0.75],
         "icon-anchor": "bottom",
-        "icon-image": stopPillImage(selectedStopCode) as never,
+        "icon-image": STOP_PILL_IMAGE,
         "icon-text-fit": "both",
         "icon-text-fit-padding": [1, 3, 1, 3],
         // Collide and hide: a pill that would overlap another, a station name
@@ -319,10 +327,9 @@ export function installStreetcarLayers(
         "icon-allow-overlap": false,
         "text-allow-overlap": false,
         "icon-padding": 2,
-        "symbol-sort-key": ["case", ["==", ["get", "stopCode"], selectedStopCode ?? ""], 0, 1],
       },
       paint: {
-        "text-color": stopTextColor(selectedStopCode) as never,
+        "text-color": "#0f172a",
         "text-opacity": badgeOpacity(options.activeFilteredLine),
         "icon-opacity": badgeOpacity(options.activeFilteredLine),
       },
@@ -330,21 +337,59 @@ export function installStreetcarLayers(
   }
 }
 
-/** Marks the stop whose departures are open; null clears it. */
+/**
+ * Leaves the selected stops (every layer's, so a shared pole never shows
+ * twice) to the selection layer, which draws them in the selected style.
+ */
 export function updateStreetcarStopSelection(
   map: MapLibreMap,
-  selectedStopCode: string | null,
+  selectedStopCodes: readonly string[],
 ): void {
-  if (!map.getLayer(STREETCAR_STOP_LAYER)) return;
-  map.setLayoutProperty(STREETCAR_STOP_LAYER, "icon-image", stopPillImage(selectedStopCode) as never);
-  map.setLayoutProperty(STREETCAR_STOP_LAYER, "symbol-sort-key",
-    ["case", ["==", ["get", "stopCode"], selectedStopCode ?? ""], 0, 1]);
-  map.setPaintProperty(STREETCAR_STOP_LAYER, "text-color", stopTextColor(selectedStopCode) as never);
+  const filter = unselectedStopFilter(selectedStopCodes);
+  for (const layer of [STREETCAR_STOP_DOT_LAYER, STREETCAR_STOP_LAYER]) {
+    if (map.getLayer(layer)) map.setFilter(layer, filter as never);
+  }
 }
 
-/** The stop number under a press on a pill, if any. */
+/** Where a selected streetcar route or stop draws (plan 14, U4). */
+export const STREETCAR_SELECTION_TARGET: SurfaceSelectionTarget = {
+  prefix: SELECTION_PREFIX,
+  corridorSource: SOURCE_ID,
+  stopSource: STOP_SOURCE_ID,
+  style: { color: STREETCAR_RED, dash: null, width: LINE_WIDTH, casingWidth: CASING_WIDTH },
+  lineBefore: (map) => {
+    for (const layer of [STREETCAR_CASING_LAYER, LINE_BEFORE]) if (map.getLayer(layer)) return layer;
+    return undefined;
+  },
+  stopBefore: (map) => {
+    for (const layer of [BUS_VEHICLE_HALO_LAYER, VEHICLE_HALO_LAYER, BADGE_BEFORE]) if (map.getLayer(layer)) return layer;
+    return undefined;
+  },
+};
+
+/**
+ * With Streetcar Routes off, a selection still draws: the sources hold only
+ * the selected route's corridors and the selected stops.
+ */
+export function installStreetcarSelectionSources(
+  map: MapLibreMap,
+  catalog: StreetcarCatalog,
+  selection: { route: string | null; stopCodes: readonly string[] },
+): void {
+  const route = selection.route;
+  const codes = new Set(selection.stopCodes);
+  setSourceData(map, SOURCE_ID, corridorCollection(route
+    ? catalog.features.filter(isStreetcarCorridorFeature).filter((feature) => feature.properties.routes.includes(route))
+    : []));
+  setSourceData(map, STOP_SOURCE_ID, stopCollection(
+    catalog.features.filter(isStreetcarStopFeature).filter((feature) => codes.has(feature.properties.stopCode ?? "")),
+  ));
+}
+
+/** The stop number under a press on a pill (a selected one first), if any. */
 export function streetcarStopCodeAtPoint(map: MapLibreMap, point: { x: number; y: number }): string | null {
-  const layers = [STREETCAR_STOP_LAYER, STREETCAR_STOP_DOT_LAYER].filter((layer) => map.getLayer(layer));
+  const layers = [...surfaceSelectionStopLayers(SELECTION_PREFIX), STREETCAR_STOP_LAYER, STREETCAR_STOP_DOT_LAYER]
+    .filter((layer) => map.getLayer(layer));
   if (layers.length === 0) return null;
   const features = map.queryRenderedFeatures(
     [[point.x - 4, point.y - 4], [point.x + 4, point.y + 4]],
@@ -376,8 +421,9 @@ export function hasStreetcarLayers(map: MapLibreMap): boolean {
   return STREETCAR_LAYERS.every((layer) => Boolean(map.getLayer(layer)));
 }
 
-/** Removes the streetcar routes and stops (the Streetcar Routes switch turned off). */
+/** Removes the streetcar routes and stops (the Streetcar Routes switch turned off), a selection's too. */
 export function removeStreetcarLayers(map: MapLibreMap): void {
+  removeSurfaceSelectionLayers(map, SELECTION_PREFIX);
   for (const layer of [...STREETCAR_LAYERS].reverse()) {
     if (map.getLayer(layer)) map.removeLayer(layer);
   }
