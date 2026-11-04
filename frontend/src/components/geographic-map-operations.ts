@@ -29,6 +29,8 @@ import { installStreetcarLayers, updateStreetcarFilter } from "./geographic-stre
 import { areStationPlansRequested, installStationPlanLayers } from "./geographic-station-plan-layers.ts";
 import { updateBusFilter } from "./geographic-bus-layers.ts";
 import { updateGoBusFilter } from "./geographic-go-bus-layers.ts";
+import { updateGoBusVehicleFilter } from "./geographic-go-bus-vehicles.ts";
+import { updateNightFilter } from "./geographic-night-layers.ts";
 import { installStreetcarVehicleLayers, updateStreetcarVehicleFilter } from "./geographic-streetcar-vehicles.ts";
 import { updateBusVehicleFilter } from "./geographic-bus-vehicles.ts";
 import {
@@ -336,6 +338,8 @@ export function updateGeographicLineFilter(
   updateGoBusFilter(map, activeFilteredLine);
   updateStreetcarVehicleFilter(map, activeFilteredLine);
   updateBusVehicleFilter(map, activeFilteredLine);
+  updateGoBusVehicleFilter(map, activeFilteredLine);
+  updateNightFilter(map, activeFilteredLine);
   if (map.getLayer("transit-routes")) {
     setTransitPaintProperty(map,
       "transit-routes",

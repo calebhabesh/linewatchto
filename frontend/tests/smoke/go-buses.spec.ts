@@ -77,7 +77,11 @@ test.describe("GO buses on the GO/UP Map View", () => {
     await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 20_000 });
     const row = page.locator("#map-view-layers-row");
     await expect(row).toHaveAttribute("data-network", "regional");
-    await expect(row.locator(".map-layer-switch-label")).toHaveText(["Train Markers", "GO Buses"]);
+    await expect(row.locator(".map-layer-switch-label")).toHaveText(["Train Markers", "GO Buses", "Live GPS"]);
+    // Live GO buses (S9): on by default, drawn only once GO Buses is on.
+    const liveGps = row.locator("#map-layer-go-bus-positions");
+    await expect(liveGps).toHaveAttribute("aria-checked", "true");
+    await expect(row.locator(".map-layer-switch").nth(2)).toContainText("With GO Buses");
     await expect(row.getByRole("switch", { name: /Toggle estimated train markers/ })).toBeVisible();
     await expect(page.locator(".desktop-train-toggle-btn")).toBeHidden();
 
@@ -86,6 +90,12 @@ test.describe("GO buses on the GO/UP Map View", () => {
     await goBuses.click();
     await expect(geoMap).toHaveAttribute("data-go-buses", "on");
     expect(await page.evaluate(() => localStorage.getItem("linewatch-map-view-go-buses-v1"))).toBe("on");
+    await expect(row.locator(".map-layer-switch").nth(2)).not.toContainText("With GO Buses");
+    await liveGps.click();
+    await expect(liveGps).toHaveAttribute("aria-checked", "false");
+    expect(await page.evaluate(() => localStorage.getItem("linewatch-map-view-go-bus-positions-v1"))).toBe("off");
+    // TTC's Live GPS is its own switch.
+    expect(await page.evaluate(() => localStorage.getItem("linewatch-map-view-streetcar-positions-v1"))).toBeNull();
 
     await page.locator(".desktop-map-control-network-group").getByRole("button", { name: /TTC/ }).click();
     await waitForNetworkTransition(page, "ttc");

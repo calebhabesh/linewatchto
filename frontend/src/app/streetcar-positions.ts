@@ -222,7 +222,9 @@ export function findStreetcarVehicle(read: StreetcarPositionsRead | null, key: s
 }
 
 /** How long to wait before the next read: the server's cadence, slower when the source is off. */
-export function streetcarPositionsDelayMs(result: StreetcarPositionsResult | null): number | null {
+export function streetcarPositionsDelayMs(
+  result: { kind: "error" } | { kind: "ok"; read: { data: Pick<StreetcarPositions, "state" | "refreshSeconds"> } } | null,
+): number | null {
   if (!result || result.kind === "error") return STREETCAR_POSITIONS_REFRESH_MS * 2;
   if (result.read.data.state === "disabled") return null;
   if (result.read.data.state === "unavailable") return 60_000;

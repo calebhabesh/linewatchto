@@ -90,6 +90,8 @@ Read first: the surface and freshness lines of
 | S6 | GO buses on the GO/UP Map View | Done |
 | S7 | Station floor plans | Done |
 | S8 | Live bus positions | Done |
+| S9 | Live GO bus positions | Done |
+| S10 | TTC night routes on the Map View | Done |
 
 ### S0 — Invariant and claims update (done 2026-11-02)
 
@@ -1451,6 +1453,265 @@ Accessibility Outages, Streetcar & Bus, TTC Announcements, Leave Feedback),
 and Site Guide moved into About. Phones keep More unchanged. After a search
 from it, desktop reads "Back to Settings".
 
+### S9 — Live GO bus positions (done 2026-11-03)
+
+Owner request, 2026-11-03: live GO bus positions on the GO/UP Map View, as
+S8 does for TTC buses. Not built; detail before building.
+
+**Found (one read, 2026-11-03 ~9:40 AM, the backend's Metrolinx key).**
+
+- `api/V1/Gtfs/Feed/VehiclePosition` (already polled for GO train markers by
+  `MetrolinxVehiclePositionClient.fetchGo`): 203 vehicles, 25 trains and 178
+  GO buses (route type 3 in GO GTFS; route ids carry a date prefix, e.g.
+  `09261126-41`). Buses carry position, bearing, trip id, stop id,
+  current status, occupancy and timestamp. `parseVehiclePositions` drops
+  them today (their route does not resolve to a rail line).
+- Bus report age at the feed timestamp: median 59 s, p90 359 s, max 2,099 s.
+  S4/S8's 2 min stale limit would mark many GO buses stale; GO needs its own
+  freshness rule.
+- `api/V1/ServiceataGlance/Buses/All`: 187 bus trips with latitude,
+  longitude, course, `DelaySeconds`, previous/next/at stop codes,
+  `IsInMotion`, route and trip numbers. Richer (delay), but a second endpoint
+  to poll; not read by the app today.
+
+**Owner decisions (2026-11-03)**
+
+- *Source gate:* the owner confirmed the registered Metrolinx API agreement
+  covers serving normalized GO bus positions (source gates, S9 entry).
+- *Source:* VehiclePosition only (no new upstream read; Service at a Glance
+  not used).
+- *Pre-trip buses* (heading to their trip's first stop before its start):
+  hidden.
+- *Freshness:* a bus under way is stale after 5 min and dropped after
+  15 min; the feed is stale after 2 min, as the train markers.
+- *Switch:* a Live GPS switch on the GO/UP deck (caption "GO Buses"), its
+  own key, on by default, drawing only while GO Buses is on; phones' View GO
+  Buses shows them.
+
+**Constraints:** GO/UP only;
+TTC sources never authorize GO claims and GO buses never affect GO/UP rail
+status or train markers. Wayfinding: labelled with age, stale when old,
+never coloured by service data.
+
+**Sample (2026-11-03, 10:24 AM – 7:24 PM, every 10 min, 55 reads, no
+failed read).** Script in the session scratchpad, not the repo; it keeps
+counts only, never the payload. Overnight and early-morning reads were not
+recorded (owner, 2026-11-04): they only tune the limits, since a late report
+is labelled stale or dropped, never live. One 11:50 PM read had a p90 of
+612 s, so late-night buses may show stale more often; the 5 and 15 min
+limits are first tuning. Every bus carried a trip, position, bearing, stop and occupancy; every
+bus trip but one (in one read) was in the GO GTFS (feed 20261028133417) and
+active that day; 28–29 routes. "Pre-trip" is a bus whose stop is its trip's
+first stop before the scheduled start (layover or deadhead).
+
+| Time | Trains | Buses | Pre-trip | Under way: median / p90 / p99 age | Under way over 5 / 10 min | Feed |
+| --- | --- | --- | --- | --- | --- | --- |
+| 10:24 | 23 | 156 | 40 | 17 / 157 / 1,537 s | 6 / 5 | 167 KB |
+| 12:24 | 22 | 137 | 36 | 11 / 31 / 331 s | 2 / 0 | 149 KB |
+| 14:24 | 21 | 147 | 36 | 18 / 38 / 498 s | 3 / 1 | 157 KB |
+| 16:24 | 32 | 191 | 35 | 51 / 71 / 1,390 s | 5 / 4 | 209 KB |
+| 17:24 | 44 | 215 | 36 | 49 / 89 / 3,650 s | 8 / 5 | 242 KB |
+| 19:24 | 27 | 176 | 45 | 13 / 92 / 1,973 s | 5 / 4 | 190 KB |
+
+Peak 223 buses (5:44 PM). Across all reads 7,256 under-way bus reports:
+4.1% over 5 min, 2.4% over 10 min; the p90 ranged 28–171 s. An old report is
+usually one bus stuck for a long time (the p99), not slow reporting in
+general, so 5 min stale and 15 min gone (owner decision) keep almost
+every moving bus live. Pre-trip buses were 30–45 per read, their reports up
+to 70 min old. Service at a Glance listed 142–231 trips per read (not used).
+GO publishes bearing 0 and speed 0 for every bus: no heading.
+
+**Built**
+
+- Backend: `MetrolinxGoVehiclePositionSnapshots` (package `regional`): the GO
+  VehiclePosition read, cached 10 s, last-good for 2 min after a failed read;
+  `MetrolinxVehiclePositionClient.fetchGo` (train markers) and the bus
+  service both read it, so one upstream read serves both, and nothing reads
+  it on a schedule. Package `gobusposition`: `GoBusPositionProperties`
+  (`linewatch.regional.bus-positions.*`, `LINEWATCH_REGIONAL_GO_BUS_POSITIONS_ENABLED`
+  off by default, on in `dev-live`; max source age 2 min, stale 5 min, max
+  age 15 min, refresh 15 s), `GoBusPositionIndexer` (bus route ids end in a
+  route number, rail in letters; destination from the vehicle label; trip
+  start from `start_date` and `start_time`, GTFS time from noon minus 12 h),
+  `GoBusPositionService` (on request; disabled reads nothing; a bus is
+  served once its trip's scheduled start has passed; bbox; each shared read
+  indexed once), `GET /api/regional/buses/positions?bbox=`
+  (`GoBusPositionController`, `no-store`, S8's bbox rules). Env examples and
+  the parity script carry the four variables.
+- Frontend: `src/app/go-bus-positions.ts` (read, the S4 age and stale rules
+  with the GO limits from the response, features, next-or-nearest stop,
+  switch caption, `linewatch-map-view-go-bus-positions-v1`);
+  `geographic-go-bus-vehicles.ts` (S8's glyph, exported as `drawBusGlyph`,
+  in GO green, `#3CC47A` on the dark map, drawn level with no arrow, under
+  the train markers and stations, from zoom 10, route numbers from 13).
+  `GeographicNetworkMap` reads with GO Buses and Live GPS on, from zoom 10,
+  for the view grown by half, again when the view leaves it and every
+  `refreshSeconds` while visible; below zoom 10 nothing is read. A press
+  (after live TTC vehicles, before stop labels) opens the vehicle card in
+  `go-bus` mode: "Live GO Bus" ("GO Bus" when stale), GO route badge and
+  name, destination, age line, vehicle number, Next Stop Departures (the
+  bus's next GO stop on its route) or Nearest Stop Departures (within 1 km),
+  "Position from Metrolinx GO bus GPS. Not a schedule." The desktop GO/UP
+  deck has Train Markers, GO Buses, Live GPS (caption "GO Buses"; "With GO
+  Buses" while GO Buses is off; Stale, Unavailable, Source Off from the
+  read). Phones: View GO Buses shows live GO buses.
+- Docs: source gates (S9 entry), domain invariants, feature reference,
+  README.
+
+**Payload.** The whole GO network at 7:26 PM: 125 buses served (44
+pre-trip hidden), 31 KB raw, 3.8 KB gzipped. A phone view at zoom 10.6 over
+Toronto grown by half held 31; at zoom 12.6 over Mississauga, 25.
+
+**Phone cost (measured).** Production build, temporary Playwright spec
+(`mobile-chromium`, Chrome with `--use-angle=gl`, CPU throttled 4× over CDP,
+service workers blocked), the 7:26 PM snapshot served by bbox as the backend
+does, GO Buses on in every pass, Live GPS on / off / on / off, two cameras,
+the whole spec run twice. Each pass starts a zoom below the camera and
+double-taps across it, so the 5 s window holds the first read and install.
+Every on pass was served its read (31 or 25 buses); screenshots show the
+glyphs.
+
+- *Toronto (zoom 10.6, 31 buses):* main thread 668–755 ms on vs 672–817 off
+  in the 5 s after crossing; longest task 123–156 vs 124–156; one or two
+  tasks over 50 ms on and off alike (the zoom itself); workers 73–90 vs
+  82–83 ms. Idle 5 s: 63–153 vs 71–160 ms.
+- *Mississauga (zoom 12.6, 25 buses):* 501–663 ms on vs 586–693 off; longest
+  31–59 vs 44–53; at most one task over 50 ms either way. Idle 54–128 vs
+  61–78 ms.
+- *Drags (five per pass):* median 16.7 ms, p95 16.7–16.8, no frame over
+  20 ms, on or off. *Heap:* 35–63 MB, noise.
+
+So live GO buses cost nothing measurable on the phone: about 30 glyphs in
+view and a 4 KB read.
+
+**Checks.** Backend: new `GoBusPositionIndexerTest`, `GoBusPositionServiceTest`,
+`GoBusPositionControllerTest`, `MetrolinxGoVehiclePositionSnapshotsTest`
+(one read per window; last-good; train markers and buses share one read);
+`MetrolinxVehiclePositionClientTest` and the train-marker tests pass on the
+shared read. Frontend `test:fast` 2,177 (new `tests/go-bus-positions.test.mjs`),
+typecheck, lint (no errors, 16 warnings as before). New
+`tests/smoke/go-bus-positions.spec.ts` (phone: card with age, route, next
+stop opening the GO stop panel, no TTC vehicle read; stale; disabled asked
+once; nothing read with GO Buses off, Live GPS off or below zoom 10) and the
+`go-buses` desktop deck test (three switches, caption, own key): 6 passed on
+desktop-chrome and mobile-chromium.
+
+**Not done / open:** production enablement of
+`LINEWATCH_REGIONAL_GO_BUS_POSITIONS_ENABLED` (owner). The owner's :8080
+backend needs a rebuild to serve the endpoint (until then a 404 and a retry
+every 30 s, no GO buses). The cost run used an evening snapshot (125 buses),
+not the 5:44 PM peak (223), and the payload was built from a live read by the
+indexer's rules in a script, not from the running endpoint. GO bus zoom 10
+and route numbers from 13 are first tuning. Not checked on the dev server
+(needs the backend rebuild).
+
+### Scope and coverage (owner, 2026-11-03)
+
+- **The Map View is the coverage target.** System Maps stay the uncluttered
+  rail-only view by design; surface routes and vehicles belong to the Map
+  View only.
+- **Agencies:** TTC and GO/UP only. MiWay, YRT, Brampton Transit, Durham and
+  other agencies publish their own GTFS but are out of scope.
+- **TTC subway and LRT trains:** estimated train markers are the vehicle
+  positions we provide for them (labelled as estimates; the TTC publishes no
+  subway or LRT vehicle positions in the feeds used). Owner observation: in
+  the TTC vehicle feed Line 5 is spotty and Line 6 is not provided at all,
+  so no LRT GPS layer is planned.
+
+### S10 — TTC night routes on the Map View (done 2026-11-03)
+
+Owner decision, 2026-11-03: draw the TTC night network (300-series routes,
+bus and streetcar) on the Map View. Today S1 and S5 leave night routes out
+of the drawn lines (`isDaytimeStreetcarRoute`, `isDaytimeBusRoute` in
+`scripts/lib/surface-corridors.mjs`), while S8 already shows live night
+buses and the stop view lists night departures.
+
+**Found (TTC GTFS S1000544, Nov 1 – Dec 19).** 35 night routes: 6
+streetcar (301, 304, 305, 306, 310, 312) and 29 bus. Every one runs every
+night (weekday service 1: 988 trips, 229 shapes; Saturday 951, 220;
+Sunday 1,691, 245, the Saturday-night/Sunday-morning run being longer).
+Weekend services add 58 shapes the weekday one lacks (mostly longer early-
+morning variants). 44 weekday night trips are "Replacement Bus" trips.
+
+**Owner decisions (2026-11-03):** night lines show with Bus Routes on (the
+deck stays four switches; phones: View Buses; never by time of day);
+weekday night pattern only (weekend-only variants not drawn); night blue,
+streetcar solid and bus dashed; own asset and layer.
+
+**Asset (measured, feed S1000544).** `generate-surface-catalog.mjs --mode
+night` (`isNightRoute`, `buildNightCorridors` in
+`scripts/lib/surface-corridors.mjs`): the 35 night routes from the
+Monday-to-Friday service, 763 night trips in 161 patterns, streetcar and bus
+night routes built apart so a street with both draws each in its own style
+and a badge row never mixes them; a night route's quiet branch keeps a
+quarter of its busiest gap (the bus rule). Replacement-bus (44) and
+short-turn trips are counted, not drawn. Every route draws. No stops: night
+routes stop at daytime poles, which the stop view already lists with their
+night times. Generation takes about 3 s.
+
+| Form | Corridors | Length | Raw | Gzipped |
+| --- | --- | --- | --- | --- |
+| `ttc-surface-night.json` | 332 (30 streetcar, 302 bus) | 66 + 587 km | 204 KB | 43 KB |
+
+Up to 4 night routes on one corridor. The daytime assets regenerated from the
+same archive are byte-identical (SHA-256 of `ttc-surface-streetcar.json`,
+`ttc-surface-bus.json` and `ttc-surface-bus-stops.json` checked before and
+after).
+
+**Built**
+
+- Generator as above; `tests/surface-corridors.test.mjs` covers night route
+  selection and the apart-by-kind build with the route share.
+- `src/app/night-route-catalog.ts` (types, loader, per-kind badge image ids,
+  card rows with the replacement-bus note); `geographic-night-layers.ts`:
+  two instances of the bus layer kit (`dash` may now be null for a solid
+  line), night blue `#0054A6` (`#5B9BE0` on the dark map, where the dark
+  blue sank into the basemap in the screenshot check), streetcar solid and
+  bus dashed, each thinner than its daytime line, under the daytime bus and
+  streetcar lines; night badges from zoom 13, under the daytime badges.
+- `GeographicNetworkMap`: the night file loads with Bus Routes on (desktop
+  Buses switch, phone View Buses) and installs and removes with the bus
+  layers; a press (after daytime streetcar and bus lines) opens the routes
+  card as "Night Routes" (night badges; "Some trips run as replacement
+  buses." for 301, 304, 306; no stop button; "Weekday night schedule,
+  Nov 1 – Dec 19. Not live service."). Night lines dim under a line filter.
+- Docs: domain invariants, feature reference, README.
+
+**Phone cost (measured).** The S9 harness (production build,
+`mobile-chromium`, Chrome with `--use-angle=gl`, CPU 4×, service workers
+blocked): each pass loads with Bus Routes off and taps View Buses in a 6 s
+trace, so the window holds both files' parse and install; night served /
+blocked (404) / served / blocked, so the difference is the night layer
+alone; two cameras, run twice. Every served pass fetched the file; the
+screenshots show the dashed blue 300 along Bloor.
+
+- *Whole city (zoom 11.2):* turning on, main thread 1,357–1,456 ms with
+  night vs 1,392–1,472 without; longest task 53–63 vs 58–70; one or two
+  tasks over 50 ms vs one; workers 31–33 vs 25–27 ms. Idle 840–940 vs
+  840–985 ms (live streetcars).
+- *Downtown (zoom 13.6):* 1,378–1,611 vs 1,228–1,417 ms; longest 56–73 vs
+  56–62; one or two over 50 ms vs one; workers 28–31 vs 15–16 ms. Idle
+  781–858 vs 779–976 ms.
+- *Drags:* median 16.7 ms, p95 16.7–16.8, one frame over 20 ms in one pass
+  without night. *Heap:* 33–60 MB, noise.
+
+So the night network adds up to about 200 ms of main-thread work and 15 ms
+of worker time while Bus Routes turns on downtown, sometimes one more task
+over 50 ms, and nothing measurable afterwards.
+
+**Checks.** Frontend `test:fast` 2,184 (new `tests/night-routes.test.mjs`,
+night cases in `surface-corridors.test.mjs`), typecheck, lint (no errors).
+New `tests/smoke/night-routes.spec.ts` (phone: the file loads with Bus
+Routes, a press on the 322 where no daytime line runs within 400 m opens
+"Night Route" with the weekday night label and no stop; nothing loads with
+Bus Routes off).
+
+**Not done / open:** a press on a street with a daytime line opens the
+daytime card only (the night line is under it), so on Queen the 301 is read
+from its badge, not the card; listing night routes in the daytime card is
+not built. Night badge zoom (13), widths and the dark-map blue are first
+tuning. Not checked on the dev server.
+
 ## Open questions
 
 - Production disk headroom for ~0.9 GB of surface stop times across a
@@ -1459,6 +1720,9 @@ from it, desktop reads "Back to Settings".
 - Bus badge and stop zooms (14, 15): confirm on the map.
 - GO bus badge and stop zooms (11, 12.5) and the dark-map green: confirm on the map.
 - Live bus zoom (13), glyph size and route numbers (15): confirm on the map.
+- Live GO bus zoom (10) and route numbers (13): confirm on the map.
+- Night line widths, dark-map blue (`#5B9BE0`) and badge zoom (13): confirm
+  on the map; whether daytime route cards also list the night routes under them.
 - Whether station GO Bus rows adopt the S6 live rule (live only when the
   computed time differs from the schedule).
 - Station plan fade zooms and greys, and the stair/escalator glyphs: confirm on the map.

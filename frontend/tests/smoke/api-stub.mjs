@@ -1115,6 +1115,23 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  // Live GO bus positions (plan 13, S9): off unless a spec routes its own answer.
+  if (request.method === "GET" && url.pathname === "/api/regional/buses/positions") {
+    sendJson(request, response, 200, {
+      networkId: "regional",
+      state: "disabled",
+      source: "Metrolinx GO GTFS-RT VehiclePosition",
+      generatedAt: "2026-08-14T16:00:00Z",
+      sourceUpdatedAt: null,
+      maxSourceAgeSeconds: 120,
+      vehicleStaleAfterSeconds: 300,
+      vehicleMaxAgeSeconds: 900,
+      refreshSeconds: 15,
+      vehicles: [],
+    });
+    return;
+  }
+
   // One TTC surface stop (plan 13, S3). Times sit just after the smoke tests' frozen 2026-08-14T16:00Z clock.
   const surfaceStopMatch = url.pathname.match(/^\/api\/surface\/stops\/([^/]+)\/arrivals$/);
   if (request.method === "GET" && surfaceStopMatch) {

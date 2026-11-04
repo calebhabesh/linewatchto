@@ -98,6 +98,34 @@ import {
   busVehicleKeyAtPoint,
 } from "./geographic-bus-vehicles";
 import {
+  GO_BUS_VEHICLE_MIN_ZOOM,
+  findGoBusVehicle,
+  getGoBusPositions,
+  goBusPositionsDetail,
+  goBusVehicleFeatures,
+  goBusVehicleFeaturesSignature,
+  goBusVehicleState,
+  goBusVehicleStop,
+  readGoBusPositionsPreference,
+  writeGoBusPositionsPreference,
+  type GoBusPositionsRead,
+} from "../app/go-bus-positions";
+import { cachedNightCatalog, loadNightCatalog, nightCardRows } from "../app/night-route-catalog";
+import {
+  NIGHT_PRESS_LAYERS,
+  addMissingNightBadgeImage,
+  hasNightLayers,
+  installNightLayers,
+  removeNightLayers,
+} from "./geographic-night-layers";
+import {
+  goBusVehicleKeyAtPoint,
+  hasGoBusVehicleLayers,
+  installGoBusVehicleLayers,
+  removeGoBusVehicleLayers,
+  setGoBusVehicleData,
+} from "./geographic-go-bus-vehicles";
+import {
   STREETCAR_VEHICLE_LAYER,
   hasStreetcarVehicleLayers,
   installStreetcarVehicleLayers,
@@ -345,7 +373,7 @@ type GeographicOverlapChooserState = {
 type GeographicStreetcarCardState =
   | {
     kind: "routes";
-    mode: "streetcar" | "bus" | "go-bus";
+    mode: "streetcar" | "bus" | "go-bus" | "night";
     routes: string[];
     coordinate: [number, number];
     /** The nearest stop on these routes, offered as a way into its departures (S3). */
@@ -353,7 +381,9 @@ type GeographicStreetcarCardState =
   }
   | { kind: "vehicle"; key: string; coordinate: [number, number] }
   /** A live bus (S8). */
-  | { kind: "bus-vehicle"; key: string; coordinate: [number, number] };
+  | { kind: "bus-vehicle"; key: string; coordinate: [number, number] }
+  /** A live GO bus (S9), on GO/UP. */
+  | { kind: "go-bus-vehicle"; key: string; coordinate: [number, number] };
 
 /** Pole numbers the streetcar layer draws; a shared pole shows its streetcar label only. */
 const streetcarStopCodeSets = new WeakMap<object, Set<string>>();
@@ -766,6 +796,13 @@ export function GeographicNetworkMap({
   useLayoutEffect(() => {
     busPositionsRef.current = busPositions;
   }, [busPositions]);
+  // Live GO bus positions (S9): the latest read of the area around the view, and its clock.
+  const [goBusPositions, setGoBusPositions] = useState<GoBusPositionsRead | null>(null);
+  const [goBusPositionsNow, setGoBusPositionsNow] = useState(() => Date.now());
+  const goBusPositionsRef = useRef(goBusPositions);
+  useLayoutEffect(() => {
+    goBusPositionsRef.current = goBusPositions;
+  }, [goBusPositions]);
   // One card is open at a time; the alert chooser and the streetcar card share
   // its placement and follower.
   const chooserAnchor = useMemo(() => {
@@ -773,6 +810,20 @@ export function GeographicNetworkMap({
       return {
         coordinate: overlapChooser.coordinate,
         size: (viewportWidth: number) => overlapChooserSize(overlapChooser.impacts.length, viewportWidth),
+      };
+    }
+    if (streetcarCard?.kind === "go-bus-vehicle") {
+      return {
+        coordinate: streetcarCard.coordinate,
+        size: (viewportWidth: number) => {
+          const vehicle = findGoBusVehicle(goBusPositionsRef.current, streetcarCard.key);
+          const stops = cachedGoBusStops();
+          return streetcarVehicleCardSize(viewportWidth, {
+            offRoute: false,
+            withStop: Boolean(vehicle && stops && callbacksRef.current.onSelectSurfaceStop
+              && goBusVehicleStop(stops, vehicle)),
+          });
+        },
       };
     }
     if (streetcarCard?.kind === "bus-vehicle") {
@@ -815,6 +866,10 @@ export function GeographicNetworkMap({
               viewportWidth,
               Boolean(streetcarCard.nearestStop),
             );
+          }
+          if (streetcarCard.mode === "night") {
+            const night = cachedNightCatalog();
+            return streetcarCardSize(night ? nightCardRows(night, streetcarCard.routes) : [], viewportWidth, false);
           }
           if (streetcarCard.mode === "bus") {
             const buses = cachedBusCatalog();
@@ -893,6 +948,10 @@ export function GeographicNetworkMap({
   // The Layers row's streetcar switches (plan 13), on unless the rider turned them off.
   const [streetcarRoutesShown, setStreetcarRoutesShown] = useState(() => (
     readLayerPreference(typeof window === "undefined" ? null : window.localStorage, STREETCAR_ROUTES_STORAGE_KEY, true)
+  ));
+  // The GO/UP deck's Live GPS switch (S9): live GO buses while GO Buses is on.
+  const [goBusPositionsShown, setGoBusPositionsShown] = useState(() => (
+    readGoBusPositionsPreference(typeof window === "undefined" ? null : window.localStorage)
   ));
   const [streetcarPositionsShown, setStreetcarPositionsShown] = useState(() => (
     readLayerPreference(typeof window === "undefined" ? null : window.localStorage, STREETCAR_POSITIONS_STORAGE_KEY, true)
@@ -1278,7 +1337,7 @@ export function GeographicNetworkMap({
     // the resolver before drawing; a styleimagemissing listener cannot supply
     // the image for the request that fired it.
     map.setMissingStyleImageResolver((id) => {
-      if (addMissingBusBadgeImage(map, id) || addMissingGoBusBadgeImage(map, id)) return;
+      if (addMissingBusBadgeImage(map, id) || addMissingGoBusBadgeImage(map, id) || addMissingNightBadgeImage(map, id)) return;
       addMissingStationBayImage(map, id);
     });
     // Dynamic style image fallback for overlap badges.
@@ -1388,6 +1447,20 @@ export function GeographicNetworkMap({
         return;
       }
 
+      // A live GO bus (S9), on GO/UP, drawn under the train markers, opens its card.
+      const goBusKey = goBusVehicleKeyAtPoint(map, e.point);
+      if (goBusKey) {
+        setOverlapChooser(null);
+        setHoveredOverlapImpact(null);
+        const bus = findGoBusVehicle(goBusPositionsRef.current, goBusKey);
+        setStreetcarCard({
+          kind: "go-bus-vehicle",
+          key: goBusKey,
+          coordinate: bus ? [bus.longitude, bus.latitude] : e.lngLat.toArray() as [number, number],
+        });
+        return;
+      }
+
       // A stop-number pill opens that stop's departures (streetcar stops are drawn
       // over bus stops); a station plan's bus bay badge (S7) is drawn over both.
       const stopCode = stationBayStopCodeAtPoint(map, e.point)
@@ -1445,6 +1518,21 @@ export function GeographicNetworkMap({
             ? nearestBusStop(busStops, coordinate, routes)?.stop ?? null
             : null;
           setStreetcarCard({ kind: "routes", mode: "bus", routes, coordinate, nearestStop });
+          return;
+        }
+      }
+
+      // A night line (S10), drawn under the daytime lines, shows its night routes.
+      const nightLayers = NIGHT_PRESS_LAYERS.filter((layerId) => map.getLayer(layerId));
+      if (!onAlert && nightLayers.length > 0) {
+        const routes = streetcarRoutesFromFeatures(map.queryRenderedFeatures(
+          [[e.point.x - 3, e.point.y - 3], [e.point.x + 3, e.point.y + 3]],
+          { layers: nightLayers },
+        ));
+        if (routes.length > 0) {
+          setOverlapChooser(null);
+          setHoveredOverlapImpact(null);
+          setStreetcarCard({ kind: "routes", mode: "night", routes, coordinate: e.lngLat.toArray() as [number, number], nearestStop: null });
           return;
         }
       }
@@ -1854,24 +1942,37 @@ export function GeographicNetworkMap({
   // near stop zoom, or when a stop opens. Off removes the layers and sources.
   const busesShown = busesEnabled && network === "ttc";
   const busesShownRef = useRef(busesShown);
-  if (!busesShown && streetcarCard?.kind === "routes" && streetcarCard.mode === "bus") setStreetcarCard(null);
+  if (!busesShown && streetcarCard?.kind === "routes" && (streetcarCard.mode === "bus" || streetcarCard.mode === "night")) {
+    setStreetcarCard(null);
+  }
   const selectedSurfaceStopCodeRef = useRef(selectedSurfaceStopCode);
   useLayoutEffect(() => {
     busesShownRef.current = busesShown;
     selectedSurfaceStopCodeRef.current = selectedSurfaceStopCode;
   }, [busesShown, selectedSurfaceStopCode]);
   const [busCatalog, setBusCatalog] = useState(cachedBusCatalog);
+  const [nightCatalog, setNightCatalog] = useState(cachedNightCatalog);
   const [busStops, setBusStops] = useState(cachedBusStops);
   const syncBusLayers = useCallback(() => {
     const map = mapRef.current;
     if (!map || isStyleLoadingRef.current || loadStatusRef.current !== "ready") return;
     if (!busesShownRef.current || appliedCatalogRef.current?.network !== "ttc") {
+      removeNightLayers(map);
       removeBusLayers(map);
       return;
     }
-    const corridors = cachedBusCatalog();
-    if (!corridors) return;
     let installed = false;
+    // The night network (S10) shows with Bus Routes, under the daytime lines.
+    const nightRoutes = cachedNightCatalog();
+    if (nightRoutes && !hasNightLayers(map)) {
+      installNightLayers(map, nightRoutes, { dark: isDarkRef.current, activeFilteredLine: activeFilteredLineRef.current });
+      installed = true;
+    }
+    const corridors = cachedBusCatalog();
+    if (!corridors) {
+      if (installed) installTransitOpacity(map);
+      return;
+    }
     if (!hasBusLayers(map)) {
       installBusLayers(map, corridors, { dark: isDarkRef.current, activeFilteredLine: activeFilteredLineRef.current });
       installed = true;
@@ -1898,6 +1999,13 @@ export function GeographicNetworkMap({
       syncBusLayers();
     }, () => {
       // Buses are an optional layer; the map stays usable without them.
+    });
+    loadNightCatalog().then((loaded) => {
+      if (cancelled) return;
+      setNightCatalog(loaded);
+      syncBusLayers();
+    }, () => {
+      // Night routes are optional; the daytime layers draw without them.
     });
     return () => { cancelled = true; };
   }, [busesShown, loadStatus, styleRevision, syncBusLayers]);
@@ -2292,6 +2400,139 @@ export function GeographicNetworkMap({
       nearestStop: busStops || streetcarCatalog ? busVehicleNearestStop(vehicle) : null,
     };
   }, [busCatalog, busPositions, busPositionsNow, busStops, streetcarCard, streetcarCatalog]);
+
+  // Live GO buses (S9): with GO Buses and the GO/UP Live GPS switch on, on
+  // GO/UP, from the GO bus vehicle zoom. Read like TTC buses: the area around
+  // the view, again when the view leaves it, at the server's cadence while
+  // visible; a disabled source is not asked again until the view or switches
+  // change. GO buses never feed the train markers or GO/UP rail status.
+  const goBusVehiclesShown = goBusesShown && goBusPositionsShown;
+  const goBusPositionsWanted = goBusVehiclesShown && currentZoom >= GO_BUS_VEHICLE_MIN_ZOOM;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || loadStatus !== "ready" || network !== "regional") return;
+    if (!goBusPositionsWanted) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clears the last read with the switch or zoom
+      setGoBusPositions(null);
+      setStreetcarCard((card) => (card?.kind === "go-bus-vehicle" ? null : card));
+      return;
+    }
+    let cancelled = false;
+    let disabled = false;
+    let timer: number | undefined;
+    let controller: AbortController | null = null;
+    let requestedArea: BusPositionsArea | null = null;
+    const view = (): BusPositionsArea => {
+      const bounds = map.getBounds();
+      return [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
+    };
+    const read = async () => {
+      window.clearTimeout(timer);
+      controller?.abort();
+      if (cancelled || document.visibilityState === "hidden") return;
+      const current = new AbortController();
+      controller = current;
+      const area = busPositionsArea(view());
+      requestedArea = area;
+      let result: Awaited<ReturnType<typeof getGoBusPositions>>;
+      try {
+        result = await getGoBusPositions({ area, signal: current.signal });
+      } catch {
+        return;
+      }
+      if (cancelled || controller !== current) return;
+      if (result.kind === "ok") {
+        const next = result.read;
+        disabled = next.data.state === "disabled";
+        setGoBusPositions(next);
+        setGoBusPositionsNow(next.receivedAt);
+        setStreetcarCard((card) => (
+          card?.kind === "go-bus-vehicle" && !findGoBusVehicle(next, card.key) ? null : card
+        ));
+      }
+      const delay = streetcarPositionsDelayMs(result);
+      if (delay !== null) timer = window.setTimeout(() => { void read(); }, delay);
+    };
+    const onMoveEnd = () => {
+      if (!disabled && !busPositionsAreaCovers(requestedArea, view())) void read();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void read();
+    };
+    void read();
+    map.on("moveend", onMoveEnd);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      controller?.abort();
+      map.off("moveend", onMoveEnd);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [goBusPositionsWanted, loadStatus, network]);
+
+  // GO bus ages grow between reads.
+  useEffect(() => {
+    if (!goBusPositions || goBusPositions.data.vehicles.length === 0) return;
+    const interval = window.setInterval(() => {
+      const now = Date.now();
+      setGoBusPositionsNow(now);
+      setStreetcarCard((card) => {
+        if (card?.kind !== "go-bus-vehicle") return card;
+        const vehicle = findGoBusVehicle(goBusPositions, card.key);
+        return vehicle && goBusVehicleState(vehicle, goBusPositions, now) !== "expired" ? card : null;
+      });
+    }, 5_000);
+    return () => window.clearInterval(interval);
+  }, [goBusPositions]);
+
+  const selectedGoBusVehicleKey = streetcarCard?.kind === "go-bus-vehicle" ? streetcarCard.key : null;
+  const goBusVehicleData = useMemo(
+    () => goBusVehicleFeatures(goBusPositions, goBusPositionsNow, selectedGoBusVehicleKey),
+    [goBusPositions, goBusPositionsNow, selectedGoBusVehicleKey],
+  );
+  const goBusVehicleSignatureRef = useRef<string | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || loadStatus !== "ready" || isStyleLoadingRef.current) return;
+    if (!goBusVehiclesShown) {
+      removeGoBusVehicleLayers(map);
+      goBusVehicleSignatureRef.current = null;
+      return;
+    }
+    if (appliedCatalogRef.current?.network !== "regional") return;
+    const signature = goBusVehicleFeaturesSignature(goBusVehicleData);
+    if (hasGoBusVehicleLayers(map)) {
+      if (signature !== goBusVehicleSignatureRef.current) {
+        setGoBusVehicleData(map, goBusVehicleData);
+        goBusVehicleSignatureRef.current = signature;
+      }
+      return;
+    }
+    installGoBusVehicleLayers(map, {
+      dark: isDarkRef.current,
+      activeFilteredLine: activeFilteredLineRef.current,
+      data: goBusVehicleData,
+    });
+    goBusVehicleSignatureRef.current = signature;
+    installTransitOpacity(map);
+  }, [goBusVehicleData, goBusVehiclesShown, loadStatus, styleRevision]);
+
+  const goBusVehicleCard = useMemo(() => {
+    if (streetcarCard?.kind !== "go-bus-vehicle" || !goBusPositions) return null;
+    const vehicle = findGoBusVehicle(goBusPositions, streetcarCard.key);
+    if (!vehicle) return null;
+    const state = goBusVehicleState(vehicle, goBusPositions, goBusPositionsNow);
+    if (state === "expired") return null;
+    const summary = goBusCatalog?.routes.find((route) => route.route === vehicle.route) ?? null;
+    return {
+      vehicle,
+      state,
+      ageSeconds: streetcarVehicleAgeSeconds(vehicle, goBusPositions, goBusPositionsNow),
+      route: summary,
+      stop: goBusStops ? goBusVehicleStop(goBusStops, vehicle) : null,
+    };
+  }, [goBusCatalog, goBusPositions, goBusPositionsNow, goBusStops, streetcarCard]);
 
   // React to theme changes: compare applied style and only replace when genuinely changed
   useEffect(() => {
@@ -3033,12 +3274,15 @@ export function GeographicNetworkMap({
       ) : null}
 
       {streetcarCard?.kind === "routes" && !overlapChooser && overlapChooserLayout
-        && (streetcarCard.mode === "go-bus" ? goBusCatalog : streetcarCard.mode === "bus" ? busCatalog : streetcarCatalog) ? (
+        && (streetcarCard.mode === "go-bus" ? goBusCatalog : streetcarCard.mode === "night" ? nightCatalog
+          : streetcarCard.mode === "bus" ? busCatalog : streetcarCatalog) ? (
         <GeographicStreetcarCard
           mode={streetcarCard.mode}
           rows={streetcarCard.mode === "go-bus"
             ? goBusCardRows(goBusCatalog!, streetcarCard.routes)
-            : streetcarCard.mode === "bus"
+            : streetcarCard.mode === "night"
+              ? nightCardRows(nightCatalog!, streetcarCard.routes)
+              : streetcarCard.mode === "bus"
               ? busCardRows(busCatalog!, streetcarCard.routes)
               : streetcarCardRows(streetcarCatalog!, streetcarCard.routes)}
           nearestStop={streetcarCard.nearestStop}
@@ -3048,7 +3292,8 @@ export function GeographicNetworkMap({
           }}
           periodLabel={streetcarSchedulePeriodLabel((streetcarCard.mode === "go-bus"
             ? goBusCatalog!
-            : streetcarCard.mode === "bus" ? busCatalog! : streetcarCatalog!).source)}
+            : streetcarCard.mode === "night" ? nightCatalog!
+              : streetcarCard.mode === "bus" ? busCatalog! : streetcarCatalog!).source)}
           selectionKey={selection ? `${selection.kind}:${selection.id}:${selectionAttentionGeneration}` : selectedStationId ? `station:${selectedStationId}` : commutePathPreview ? `commute:${commutePathPreview.id}:${commutePathPreview.legId}` : null}
           layout={overlapChooserLayout.layout}
           follower={overlapChooserFollower}
@@ -3097,6 +3342,34 @@ export function GeographicNetworkMap({
           ageSeconds={busVehicleCard.ageSeconds}
           offRoute={busVehicleCard.offRoute}
           nearestStop={busVehicleCard.nearestStop}
+          onOpenStop={onSelectSurfaceStop ? (stopCode) => {
+            setStreetcarCard(null);
+            onSelectSurfaceStop(stopCode);
+          } : undefined}
+          selectionKey={selection ? `${selection.kind}:${selection.id}:${selectionAttentionGeneration}` : selectedStationId ? `station:${selectedStationId}` : commutePathPreview ? `commute:${commutePathPreview.id}:${commutePathPreview.legId}` : null}
+          layout={overlapChooserLayout.layout}
+          follower={overlapChooserFollower}
+          followAnchor={overlapChooserLayout.followAnchor}
+          viewportSize={overlapChooserLayout.viewportSize}
+          reducedMotion={reducedMotion}
+          onClose={(restoreFocus) => {
+            setStreetcarCard(null);
+            if (restoreFocus) containerRef.current?.focus({ preventScroll: true });
+          }}
+        />
+      ) : null}
+
+      {goBusVehicleCard && !overlapChooser && overlapChooserLayout ? (
+        <GeographicStreetcarVehicleCard
+          key={streetcarCard?.kind === "go-bus-vehicle" ? streetcarCard.key : undefined}
+          mode="go-bus"
+          vehicle={goBusVehicleCard.vehicle}
+          goRoute={goBusVehicleCard.route}
+          nextStop={goBusVehicleCard.stop?.next ?? false}
+          state={goBusVehicleCard.state}
+          ageSeconds={goBusVehicleCard.ageSeconds}
+          offRoute={false}
+          nearestStop={goBusVehicleCard.stop?.stop ?? null}
           onOpenStop={onSelectSurfaceStop ? (stopCode) => {
             setStreetcarCard(null);
             onSelectSurfaceStop(stopCode);
@@ -3251,6 +3524,27 @@ export function GeographicNetworkMap({
                 title="GO Bus Routes"
                 onChange={onToggleGoBuses}
                 dataBusToggle
+              />
+            ) : null}
+            {network === "regional" && onToggleGoBuses ? (
+              <MapLayerSwitch
+                id="map-layer-go-bus-positions"
+                icon={<SatelliteDish size={20} aria-hidden="true" />}
+                label="Live GPS"
+                detail={goBusPositionsDetail(
+                  goBusesEnabled,
+                  goBusPositionsShown,
+                  goBusPositionsWanted ? goBusPositions?.data.state ?? null : null,
+                )}
+                checked={goBusPositionsShown}
+                ariaLabel="Show live GO bus GPS positions"
+                title={goBusesEnabled
+                  ? `Live GO Buses (from zoom ${GO_BUS_VEHICLE_MIN_ZOOM})`
+                  : "Live GO Buses (with GO Buses on)"}
+                onChange={() => setGoBusPositionsShown((current) => {
+                  writeGoBusPositionsPreference(window.localStorage, !current);
+                  return !current;
+                })}
               />
             ) : null}
             {network === "ttc" ? (<>

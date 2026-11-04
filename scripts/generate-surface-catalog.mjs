@@ -11,10 +11,13 @@
  * weekday streetcar trips only; bus-replacement and short-turn trips are
  * counted, not drawn. Bus geometry comes from weekday trips of daytime bus
  * routes (night routes are left out, as for streetcars); short turns are
- * counted, not drawn.
+ * counted, not drawn. Night mode (S10) draws the 300-series night routes,
+ * streetcar and bus, from their Monday-to-Friday trips, each corridor marked
+ * with its mode; replacement-bus and short-turn trips are counted, not drawn,
+ * and no stops are written (night routes stop at daytime poles).
  *
  * Usage:
- *   node scripts/generate-surface-catalog.mjs [--mode streetcar|bus] [--ttc-gtfs <zip>] [--output <json>]
+ *   node scripts/generate-surface-catalog.mjs [--mode streetcar|bus|night] [--ttc-gtfs <zip>] [--output <json>]
  *
  * Defaults: /tmp/linewatch-gtfs/completegtfs.zip (download it from the TTC
  * Open Data page; scripts/download-geographic-gtfs.mjs pins an older audited
@@ -30,9 +33,11 @@ import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import { gzipSync } from "node:zlib";
 import {
+  buildNightCorridors,
   buildSurfaceCorridors,
   isDaytimeBusRoute,
   isDaytimeStreetcarRoute,
+  isNightRoute,
   tripKind,
 } from "./lib/surface-corridors.mjs";
 import { validateCoordinate } from "./lib/geographic-geometry.mjs";
@@ -45,8 +50,14 @@ const arg = (flag, fallback) => {
 const zipPath = resolve(arg("--ttc-gtfs", "/tmp/linewatch-gtfs/completegtfs.zip"));
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const mode = arg("--mode", "streetcar");
-if (mode !== "streetcar" && mode !== "bus") throw new Error(`--mode must be streetcar or bus, not ${mode}`);
+if (mode !== "streetcar" && mode !== "bus" && mode !== "night") {
+  throw new Error(`--mode must be streetcar, bus or night, not ${mode}`);
+}
 const bus = mode === "bus";
+// Night (plan 13, S10): the 300-series routes, streetcar and bus, from the
+// Monday-to-Friday service, drawn as their own lines (each corridor marked
+// streetcar or bus). No stop file: night routes stop at daytime poles.
+const night = mode === "night";
 const outputPath = resolve(arg("--output", resolve(repoRoot, `frontend/public/assets/linewatch/geographic/ttc-surface-${mode}.json`)));
 
 /** One CSV record; GTFS fields may be quoted and contain commas. */
@@ -115,7 +126,9 @@ const weekdayServices = new Set(
 if (weekdayServices.size === 0) throw new Error("calendar.txt has no Monday-to-Friday service");
 
 const routes = new Map(
-  readTable("routes.txt").filter(bus ? isDaytimeBusRoute : isDaytimeStreetcarRoute).map(route => [route.route_id, route]),
+  readTable("routes.txt")
+    .filter(night ? isNightRoute : bus ? isDaytimeBusRoute : isDaytimeStreetcarRoute)
+    .map(route => [route.route_id, route]),
 );
 if (routes.size === 0) throw new Error(`No daytime ${mode} routes in routes.txt`);
 
@@ -185,7 +198,11 @@ for (const pattern of patterns) {
 
 // A bus route's own quiet branches still draw (a quarter of its busiest gap),
 // so a Community route with 12 trips a day is not lost to the 6-trip floor.
-const { corridors, stopRoutes } = buildSurfaceCorridors(patterns, bus ? { minRouteShare: 0.25 } : {});
+const nightKind = routeShortName => ([...routes.values()]
+  .find(route => route.route_short_name === routeShortName)?.route_type === "0" ? "streetcar" : "bus");
+const daytime = night ? null : buildSurfaceCorridors(patterns, bus ? { minRouteShare: 0.25 } : {});
+const corridors = night ? buildNightCorridors(patterns, nightKind) : daytime.corridors;
+const stopRoutes = night ? new Map() : daytime.stopRoutes;
 
 const stopsById = new Map(readTable("stops.txt").map(stop => [stop.stop_id, stop]));
 const routeOrder = (a, b) => a.localeCompare(b, "en", { numeric: true });
@@ -196,12 +213,19 @@ for (const corridor of corridors) {
   const setKey = corridor.routes.join("-");
   const n = (perRouteSet.get(setKey) ?? 0) + 1;
   perRouteSet.set(setKey, n);
-  corridorFeatures.push({
-    type: "Feature",
-    id: `${mode}-corridor-${setKey}-${n}`,
-    geometry: { type: "LineString", coordinates: corridor.coordinates },
-    properties: { featureType: `${mode}-corridor`, routes: corridor.routes },
-  });
+  corridorFeatures.push(night
+    ? {
+      type: "Feature",
+      id: `night-${corridor.kind}-corridor-${setKey}-${n}`,
+      geometry: { type: "LineString", coordinates: corridor.coordinates },
+      properties: { featureType: "night-corridor", kind: corridor.kind, routes: corridor.routes },
+    }
+    : {
+      type: "Feature",
+      id: `${mode}-corridor-${setKey}-${n}`,
+      geometry: { type: "LineString", coordinates: corridor.coordinates },
+      properties: { featureType: `${mode}-corridor`, routes: corridor.routes },
+    });
 }
 
 const stopFeatures = [...stopRoutes.entries()]
@@ -237,7 +261,10 @@ const routeSummaries = [...routes.values()]
       color: `#${route.route_color || "ED1C24"}`,
       textColor: `#${route.route_text_color || "FFFFFF"}`,
       drawn: drawnRoutes.has(route.route_short_name),
-      weekdayTrips: bus
+      ...(night ? { kind: route.route_type === "0" ? "streetcar" : "bus" } : {}),
+      weekdayTrips: night
+        ? { night: counts.streetcar, shortTurn: counts["short-turn"], replacementBus: counts["replacement-bus"] }
+        : bus
         ? { bus: counts.streetcar + counts["replacement-bus"], shortTurn: counts["short-turn"] }
         : {
           streetcar: counts.streetcar,
@@ -278,10 +305,10 @@ const catalog = {
     feedStartDate: isoDate(feedInfo.feed_start_date),
     feedEndDate: isoDate(feedInfo.feed_end_date),
     archiveSha256,
-    servicePattern: "weekday",
+    servicePattern: night ? "weekday-night" : "weekday",
   },
   routes: routeSummaries,
-  features: bus ? corridorFeatures : [...corridorFeatures, ...stopFeatures],
+  features: bus || night ? corridorFeatures : [...corridorFeatures, ...stopFeatures],
 };
 
 const json = JSON.stringify(catalog) + "\n";
@@ -301,12 +328,14 @@ if (bus) {
 }
 
 const kb = bytes => `${(bytes / 1024).toFixed(1)} KB`;
-console.log(`[${bus ? "Bus" : "Streetcar"} catalog] feed ${feedInfo.feed_version} (${catalog.source.feedStartDate} to ${catalog.source.feedEndDate})`);
+console.log(`[${night ? "Night" : bus ? "Bus" : "Streetcar"} catalog] feed ${feedInfo.feed_version} (${catalog.source.feedStartDate} to ${catalog.source.feedEndDate})`);
 console.log(`  Patterns: ${patterns.length} from ${streetcarTrips.size - skippedTrips} weekday ${mode} trips (${skippedTrips} skipped without stop distances)`);
 console.log(`  Corridors: ${corridorFeatures.length}, stops: ${stopFeatures.length}`);
 for (const route of routeSummaries) {
   const t = route.weekdayTrips;
-  console.log(bus
+  console.log(night
+    ? `  ${route.route.padEnd(4)} ${route.kind.padEnd(9)} ${route.drawn ? "drawn" : "NOT DRAWN"}  night ${t.night}, short turn ${t.shortTurn}, replacement bus ${t.replacementBus}`
+    : bus
     ? `  ${route.route.padEnd(4)} ${route.drawn ? "drawn" : "NOT DRAWN"}  bus ${t.bus}, short turn ${t.shortTurn}`
     : `  ${route.route.padEnd(4)} ${route.drawn ? "drawn" : "NOT DRAWN"}  streetcar ${t.streetcar}, short turn ${t.shortTurn}, replacement bus ${t.replacementBus}`);
 }

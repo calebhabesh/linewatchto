@@ -219,6 +219,13 @@ linewatch:
       max-source-age: ${LINEWATCH_REGIONAL_TRAIN_MARKERS_MAX_SOURCE_AGE:PT2M}
       retention-ttl: ${LINEWATCH_REGIONAL_TRAIN_MARKERS_RETENTION_TTL:PT90S}
       max-markers: ${LINEWATCH_REGIONAL_TRAIN_MARKERS_MAX_MARKERS:80}
+    # Live GO bus positions on the GO/UP Map View (plan 13, S9): the GO VehiclePosition read the
+    # train markers make (one read serves both), its own flag and freshness. Read on request only.
+    bus-positions:
+      enabled: ${LINEWATCH_REGIONAL_GO_BUS_POSITIONS_ENABLED:false}
+      max-source-age: ${LINEWATCH_REGIONAL_GO_BUS_POSITIONS_MAX_SOURCE_AGE:PT2M}
+      vehicle-stale-after: ${LINEWATCH_REGIONAL_GO_BUS_POSITIONS_VEHICLE_STALE_AFTER:PT5M}
+      vehicle-max-age: ${LINEWATCH_REGIONAL_GO_BUS_POSITIONS_VEHICLE_MAX_AGE:PT15M}
   performance:
     ttc:
       enabled: ${LINEWATCH_PERFORMANCE_TTC_ENABLED:true}

@@ -27,6 +27,7 @@ class MetrolinxVehiclePositionClientTest {
     private MetrolinxVehiclePositionClient client;
     private MetrolinxTripUpdateSnapshots snapshots;
     private MetrolinxFeedFetcher fetcher;
+    private Clock clock;
 
     @BeforeEach
     void setUp() {
@@ -38,10 +39,10 @@ class MetrolinxVehiclePositionClientTest {
         properties.setBaseUrl(URI.create("https://api.example.test/OpenDataAPI/"));
         properties.setApiKey("secret");
         properties.setFetchRetryDelay(Duration.ZERO);
-        Clock clock = Clock.fixed(Instant.ofEpochSecond(1785268043), ZoneOffset.UTC);
+        clock = Clock.fixed(Instant.ofEpochSecond(1785268043), ZoneOffset.UTC);
         fetcher = new MetrolinxFeedFetcher(builder.build(), JsonMapper.builder().findAndAddModules().build(), properties, clock);
         snapshots = new MetrolinxTripUpdateSnapshots(fetcher, new MetrolinxUpTripUpdateParser(), clock);
-        client = new MetrolinxVehiclePositionClient(fetcher, snapshots, RegionalLinkTravelTimes.NONE);
+        client = new MetrolinxVehiclePositionClient(fetcher, new MetrolinxGoVehiclePositionSnapshots(fetcher, clock), snapshots, RegionalLinkTravelTimes.NONE);
     }
 
     // An eastbound UP train that has left Bloor: the TripUpdate no longer lists
@@ -63,7 +64,7 @@ class MetrolinxVehiclePositionClientTest {
 
     @Test
     void timesALinkFromTheTimetableOnceTheFeedDropsThePreviousStop() {
-        client = new MetrolinxVehiclePositionClient(fetcher, snapshots, (lineId, from, to) ->
+        client = new MetrolinxVehiclePositionClient(fetcher, new MetrolinxGoVehiclePositionSnapshots(fetcher, clock), snapshots, (lineId, from, to) ->
             "regional-up".equals(lineId) && "bloor".equals(from) && "union".equals(to)
                 ? java.util.OptionalInt.of(540) : java.util.OptionalInt.empty());
         server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/VehiclePosition?key=secret"))
@@ -100,7 +101,7 @@ class MetrolinxVehiclePositionClientTest {
 
     @Test
     void prefersTheTripsOwnDepartureOverTheTimetableLinkTime() {
-        client = new MetrolinxVehiclePositionClient(fetcher, snapshots, (lineId, from, to) -> java.util.OptionalInt.of(900));
+        client = new MetrolinxVehiclePositionClient(fetcher, new MetrolinxGoVehiclePositionSnapshots(fetcher, clock), snapshots, (lineId, from, to) -> java.util.OptionalInt.of(900));
         server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/VehiclePosition?key=secret"))
             .andRespond(withSuccess(GO_VP_TO_WESTON, MediaType.APPLICATION_JSON));
         expectGoTripUpdates("""

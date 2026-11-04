@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  buildNightCorridors,
   buildStreetcarCorridors,
   buildSurfaceCorridors,
   isDaytimeBusRoute,
   isDaytimeStreetcarRoute,
+  isNightRoute,
   placeStopsAlongShape,
   tripKind,
 } from "../../scripts/lib/surface-corridors.mjs";
@@ -149,6 +151,32 @@ describe("bus corridors (plan 13, S5)", () => {
     const { corridors } = buildSurfaceCorridors([main, branch], { minRouteShare: 0.25 });
     assert.equal(corridors.length, 1);
     assert.ok(lengthOf(corridors[0].coordinates) < 2100, "the branch is not drawn");
+  });
+});
+
+describe("night corridors (plan 13, S10)", () => {
+  it("takes the 300-series streetcar and bus routes only", () => {
+    const route = (shortName, type) => ({ route_short_name: shortName, route_type: type });
+    assert.equal(isNightRoute(route("301", "0")), true);
+    assert.equal(isNightRoute(route("320", "3")), true);
+    assert.equal(isNightRoute(route("501", "0")), false);
+    assert.equal(isNightRoute(route("29", "3")), false);
+    assert.equal(isNightRoute(route("3", "1")), false, "Line 3 is rapid transit, not a night route");
+    assert.equal(isNightRoute(route("399", "1")), false, "only streetcar and bus route types");
+  });
+
+  it("builds streetcar and bus night routes apart, so a shared street draws both", () => {
+    const queen = [[0, 0], [3000, 0]];
+    const kindOf = route => (route === "301" ? "streetcar" : "bus");
+    const corridors = buildNightCorridors([
+      pattern("301", "s301", 22, queen, "q"),
+      pattern("300", "s300", 70, queen, "q"),
+      // A quiet night branch keeps a quarter of its route's busiest gap.
+      pattern("300", "s300b", 18, [[3000, 0], [3000, 1500]], "b"),
+    ], kindOf);
+    assert.deepEqual(corridors.map(c => [c.kind, c.routes]).sort(), [["bus", ["300"]], ["streetcar", ["301"]]]);
+    const bus = corridors.find(c => c.kind === "bus");
+    assert.ok(lengthOf(bus.coordinates) > 4400, "the branch draws with the main line");
   });
 });
 

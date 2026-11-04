@@ -64,7 +64,8 @@ export const BUS_GLYPH_ARROW_PATH = "M 4 -7 L 17 0 L 4 7 Z";
 const GLYPH_HALF_WIDTH = 28;
 const GLYPH_HALF_HEIGHT = 18;
 
-function drawBus(state: "live" | "stale", heading: boolean, color: string, paint: GlyphPaint): ImageData | null {
+/** The bus glyph as an image (also GO buses', S9, in GO green). */
+export function drawBusGlyph(state: "live" | "stale", heading: boolean, color: string, paint: GlyphPaint): ImageData | null {
   if (typeof document === "undefined" || typeof Path2D === "undefined") return null;
   const unitsToDevice = UNITS_TO_PX * PIXEL_RATIO;
   const width = Math.ceil(2 * GLYPH_HALF_WIDTH * unitsToDevice);
@@ -118,7 +119,7 @@ function registerBusImages(map: MapLibreMap, dark: boolean) {
         try {
           // Paint follows the theme, so a style change redraws it.
           if (map.hasImage(id)) map.removeImage(id);
-          const image = drawBus(state, heading, FAMILY_COLORS[family], paint);
+          const image = drawBusGlyph(state, heading, FAMILY_COLORS[family], paint);
           if (image) map.addImage(id, image, { pixelRatio: PIXEL_RATIO });
         } catch {
           // Without the image the bus is not drawn; the rest of the map is unaffected.

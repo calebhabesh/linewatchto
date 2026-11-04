@@ -8,6 +8,8 @@ import { OVERLAP_CHOOSER_MOBILE_BREAKPOINT } from "./map-chooser-layout";
 import type { OverlapChooserScreenLayout } from "./map-chooser-placement";
 import type { StreetcarStopFeature } from "../app/geographic-surface-catalog";
 import type { BusStopFeature } from "../app/geographic-bus-catalog";
+import type { GoBusRouteSummary, GoBusStopFeature } from "../app/go-bus-catalog";
+import type { GoBusVehicle } from "../app/go-bus-positions";
 import { parseSurfaceRouteDetails } from "../app/surface-arrivals";
 import { ttcRouteBadgeStyle } from "../app/ttc-route-badge";
 import {
@@ -16,18 +18,25 @@ import {
   type StreetcarVehicleState,
 } from "../app/streetcar-positions";
 
+/** GO green, for a GO route the catalog does not list. */
+const GO_BUS_BADGE_FALLBACK = "#00853E";
+
 /**
  * What a press on a live streetcar shows (plan 13, S4): its route and
  * destination, how old its GPS report is, whether it is off its mapped route,
  * and the departures at the nearest stop on its route (S3). The feed's own
  * stop references do not match the published schedule, so no "next stop" is claimed.
  * Live buses (S8) use the same card with `mode="bus"`; a replacement bus says
- * which streetcar route it stands in for.
+ * which streetcar route it stands in for. Live GO buses (S9) use
+ * `mode="go-bus"`: GO's route colours and name, the destination from the
+ * vehicle label, and the bus's next GO stop when GO names one on its route.
  */
 export function GeographicStreetcarVehicleCard({
   mode = "streetcar",
   replacement = false,
   vehicle,
+  goRoute = null,
+  nextStop = false,
   state,
   ageSeconds,
   offRoute,
@@ -41,14 +50,18 @@ export function GeographicStreetcarVehicleCard({
   reducedMotion,
   onClose,
 }: {
-  mode?: "streetcar" | "bus";
+  mode?: "streetcar" | "bus" | "go-bus";
   /** A bus on a streetcar route's replacement-bus trip. */
   replacement?: boolean;
-  vehicle: StreetcarVehicle;
+  vehicle: StreetcarVehicle | GoBusVehicle;
+  /** GO buses: the route from the GO bus catalog (name and colours), when it is listed. */
+  goRoute?: GoBusRouteSummary | null;
+  /** GO buses: the stop offered is the bus's next stop, not just the nearest. */
+  nextStop?: boolean;
   state: Exclude<StreetcarVehicleState, "expired">;
   ageSeconds: number;
   offRoute: boolean;
-  nearestStop?: StreetcarStopFeature | BusStopFeature | null;
+  nearestStop?: StreetcarStopFeature | BusStopFeature | GoBusStopFeature | null;
   onOpenStop?: (stopCode: string) => void;
   selectionKey: string | null;
   layout: OverlapChooserScreenLayout;
@@ -90,18 +103,29 @@ export function GeographicStreetcarVehicleCard({
     };
   }, [reducedMotion, viewportSize.width]);
 
-  const details = parseSurfaceRouteDetails({
-    mode: mode === "bus" && !replacement ? "bus" : "streetcar",
-    route: vehicle.route,
-    routeName: vehicle.routeName,
-    destination: vehicle.destination,
-    bayPlatform: "",
-  });
-  const routeName = details.displayRouteName;
-  const destination = details.destinationTarget || details.cleanDestination;
+  const go = mode === "go-bus";
+  let routeName: string;
+  let destination: string;
+  if ("routeName" in vehicle) {
+    const details = parseSurfaceRouteDetails({
+      mode: mode === "bus" && !replacement ? "bus" : "streetcar",
+      route: vehicle.route,
+      routeName: vehicle.routeName,
+      destination: vehicle.destination,
+      bayPlatform: "",
+    });
+    routeName = details.displayRouteName;
+    destination = details.destinationTarget || details.cleanDestination;
+  } else {
+    routeName = goRoute?.name ?? `Route ${vehicle.route}`;
+    destination = vehicle.destination ?? "";
+  }
+  const badgeStyle = go
+    ? { backgroundColor: goRoute?.color ?? GO_BUS_BADGE_FALLBACK, color: goRoute?.textColor ?? "#ffffff" }
+    : ttcRouteBadgeStyle(vehicle.route);
   const status = streetcarVehicleStatusLabel(state, ageSeconds);
   // A stale report is not called live anywhere on the card.
-  const noun = mode === "bus" ? "Bus" : "Streetcar";
+  const noun = go ? "GO Bus" : mode === "bus" ? "Bus" : "Streetcar";
   const title = state === "live" ? `Live ${noun}` : noun;
 
   return (
@@ -111,6 +135,7 @@ export function GeographicStreetcarVehicleCard({
       style={portalStyle}
       data-streetcar-vehicle-card={mode === "streetcar" ? "" : undefined}
       data-bus-vehicle-card={mode === "bus" ? "" : undefined}
+      data-go-bus-vehicle-card={go ? "" : undefined}
     >
       <div
         ref={surfaceRef}
@@ -143,7 +168,7 @@ export function GeographicStreetcarVehicleCard({
         <div className="streetcar-card-row" data-streetcar-route={vehicle.route}>
           <span
             className="streetcar-card-badge"
-            style={ttcRouteBadgeStyle(vehicle.route)}
+            style={badgeStyle}
             aria-hidden="true"
           >
             {vehicle.route}
@@ -172,13 +197,17 @@ export function GeographicStreetcarVehicleCard({
           >
             <span className="streetcar-card-stop-code">{nearestStop.properties.stopCode}</span>
             <span className="streetcar-card-stop-copy">
-              <strong>Nearest Stop Departures</strong>
+              <strong>{nextStop ? "Next Stop Departures" : "Nearest Stop Departures"}</strong>
               <span>{nearestStop.properties.name}</span>
             </span>
             <ChevronRight size={16} aria-hidden="true" />
           </button>
         ) : null}
-        <p className="streetcar-card-source">Position from TTC vehicle GPS. Not a schedule.</p>
+        <p className="streetcar-card-source">
+          {go
+            ? "Position from Metrolinx GO bus GPS. Not a schedule."
+            : "Position from TTC vehicle GPS. Not a schedule."}
+        </p>
       </div>
     </div>
   );

@@ -13,7 +13,8 @@ import type { StreetcarCardRow } from "../app/geographic-surface-catalog";
  * What a press on a streetcar line (plan 13, S2), a TTC bus line (S5) or a GO
  * bus line (S6) shows: the routes on that street or road and the schedule
  * period the line is drawn from. Not live service. The nearest stop on those
- * routes opens its departures (S3; GO stops in S6).
+ * routes opens its departures (S3; GO stops in S6). Night lines (S10) read
+ * "Night Routes" with the weekday night schedule; they offer no stop.
  */
 export function GeographicStreetcarCard({
   mode = "streetcar",
@@ -29,7 +30,7 @@ export function GeographicStreetcarCard({
   reducedMotion,
   onClose,
 }: {
-  mode?: "streetcar" | "bus" | "go-bus";
+  mode?: "streetcar" | "bus" | "go-bus" | "night";
   rows: Pick<StreetcarCardRow, "route" | "name" | "color" | "textColor" | "replacementBuses">[];
   nearestStop?: { properties: { stopCode?: string; name: string } } | null;
   onOpenStop?: (stopCode: string) => void;
@@ -74,7 +75,7 @@ export function GeographicStreetcarCard({
     };
   }, [reducedMotion, viewportSize.width]);
 
-  const noun = mode === "go-bus" ? "GO Bus" : mode === "bus" ? "Bus" : "Streetcar";
+  const noun = mode === "go-bus" ? "GO Bus" : mode === "night" ? "Night" : mode === "bus" ? "Bus" : "Streetcar";
   const title = rows.length === 1 ? `${noun} Route` : `${noun} Routes`;
 
   return (
@@ -85,6 +86,7 @@ export function GeographicStreetcarCard({
       data-streetcar-card={mode === "streetcar" ? "" : undefined}
       data-bus-card={mode === "bus" ? "" : undefined}
       data-go-bus-card={mode === "go-bus" ? "" : undefined}
+      data-night-card={mode === "night" ? "" : undefined}
     >
       <div
         ref={surfaceRef}
@@ -119,7 +121,9 @@ export function GeographicStreetcarCard({
             <li key={row.route} className="streetcar-card-row" data-streetcar-route={row.route}>
               <span
                 className="streetcar-card-badge"
-                style={mode === "bus" ? ttcRouteBadgeStyle(row.route) : { backgroundColor: row.color, color: row.textColor }}
+                style={mode === "bus" || mode === "night"
+                  ? ttcRouteBadgeStyle(row.route)
+                  : { backgroundColor: row.color, color: row.textColor }}
                 aria-hidden="true"
               >
                 {row.route}
@@ -148,7 +152,7 @@ export function GeographicStreetcarCard({
           </button>
         ) : null}
         <p className="streetcar-card-source">
-          Weekday schedule, {periodLabel}. Not live service.
+          {mode === "night" ? "Weekday night schedule" : "Weekday schedule"}, {periodLabel}. Not live service.
         </p>
       </div>
     </div>

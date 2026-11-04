@@ -26,9 +26,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class MetrolinxVehiclePositionClient {
-    static final String GO_SOURCE = "Metrolinx GO GTFS-RT VehiclePosition";
+    static final String GO_SOURCE = MetrolinxGoVehiclePositionSnapshots.GO_SOURCE;
     static final String UP_SOURCE = "Metrolinx UP Express GTFS-RT VehiclePosition reconciled with TripUpdates";
-    private static final String GO_PATH = "api/V1/Gtfs/Feed/VehiclePosition";
     private static final String UP_PATH = "api/V1/UP/Gtfs/Feed/VehiclePosition";
     private static final Duration MAX_UP_FEED_SKEW = Duration.ofMinutes(2);
     /** A timed marker stops short of the station until the feed reports the train there. */
@@ -42,21 +41,26 @@ public class MetrolinxVehiclePositionClient {
     static final int FALLBACK_GO_LINK_SECONDS = 420;
 
     private final MetrolinxFeedFetcher fetcher;
+    private final MetrolinxGoVehiclePositionSnapshots goVehiclePositions;
     private final MetrolinxTripUpdateSnapshots tripUpdates;
     private final RegionalLinkTravelTimes linkTravelTimes;
 
     public MetrolinxVehiclePositionClient(
         MetrolinxFeedFetcher fetcher,
+        MetrolinxGoVehiclePositionSnapshots goVehiclePositions,
         MetrolinxTripUpdateSnapshots tripUpdates,
         RegionalLinkTravelTimes linkTravelTimes
     ) {
         this.fetcher = fetcher;
+        this.goVehiclePositions = goVehiclePositions;
         this.tripUpdates = tripUpdates;
         this.linkTravelTimes = linkTravelTimes;
     }
 
     public RegionalTrainMarkerFeed fetchGo() {
-        JsonNode vehiclePositions = fetcher.fetch(GO_PATH, GO_SOURCE);
+        // The shared read: live GO bus positions (S9) use the same one. Its bus
+        // entities are left out below (their routes are not rail lines).
+        JsonNode vehiclePositions = goVehiclePositions.go();
         // Timing is optional for GO: without trip updates, markers keep their
         // status placement rather than disappearing.
         GoTripUpdateFeed goTrips;

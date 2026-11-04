@@ -3,7 +3,8 @@
  * catalog, route badges along it, and stop dots and numbers from the stop
  * file. TTC buses (plan 13, S5: red dashed, under the streetcars and subway)
  * and GO buses (S6: GO green dashed, under the GO/UP rail lines) share this
- * kit with their own ids, style and badge colours. Wayfinding layers behind
+ * kit with their own ids, style and badge colours, as do the TTC night
+ * routes (S10, `geographic-night-layers.ts`). Wayfinding layers behind
  * a toggle, never coloured by service data.
  *
  * Layer ids start with `transit-`, so a network switch removes them with the
@@ -40,7 +41,8 @@ const BADGE_GAP = 2;
 
 export type BusLineStyle = {
   color: string;
-  dash: number[];
+  /** Null draws a solid line (night streetcar routes, S10). */
+  dash: number[] | null;
   light: { casing: string; color?: string };
   /** A dark-theme line colour, where the base colour would sink into a dark basemap. */
   dark: { casing: string; color?: string };
@@ -250,7 +252,7 @@ export function createBusLayerKit(config: BusLayerConfig) {
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
           "line-color": theme.color ?? config.style.color,
-          "line-dasharray": config.style.dash,
+          ...(config.style.dash ? { "line-dasharray": config.style.dash } : {}),
           "line-width": config.style.width as never,
           "line-opacity": opacity,
         },

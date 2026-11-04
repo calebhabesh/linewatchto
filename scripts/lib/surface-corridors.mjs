@@ -39,6 +39,16 @@ export function isDaytimeBusRoute(route) {
   return route.route_type.trim() === "3" && !/^3\d\d$/.test(route.route_short_name.trim());
 }
 
+/**
+ * TTC night routes (plan 13, S10): the 300 series, streetcar (route_type 0) or
+ * bus (3), which the daytime layers leave out.
+ * @param {{ route_type: string, route_short_name: string }} route
+ */
+export function isNightRoute(route) {
+  const type = route.route_type.trim();
+  return (type === "0" || type === "3") && /^3\d\d$/.test(route.route_short_name.trim());
+}
+
 /** The TTC codes bus replacements and short turns as trips of the streetcar route. */
 export function tripKind(headsign) {
   if (/replacement bus/i.test(headsign)) return "replacement-bus";
@@ -402,3 +412,19 @@ export function buildSurfaceCorridors(patterns, options = {}) {
 
 /** The streetcar layer's name for the shared corridor builder (S1). */
 export const buildStreetcarCorridors = buildSurfaceCorridors;
+
+/**
+ * The night network's corridors (plan 13, S10): night streetcar and night bus
+ * routes are built apart, so a street carrying both draws each in its own
+ * style and a streetcar line never gains a bus route's badge (or the
+ * reverse). A night route's quiet branch keeps a quarter of its busiest gap,
+ * as daytime buses do. Each corridor carries its `kind`.
+ * @param {Parameters<typeof buildSurfaceCorridors>[0]} patterns
+ * @param {(routeShortName: string) => "streetcar" | "bus"} kindOf
+ */
+export function buildNightCorridors(patterns, kindOf) {
+  return ["streetcar", "bus"].flatMap(kind => buildSurfaceCorridors(
+    patterns.filter(pattern => kindOf(pattern.routeShortName) === kind),
+    { minRouteShare: 0.25 },
+  ).corridors.map(corridor => ({ ...corridor, kind })));
+}

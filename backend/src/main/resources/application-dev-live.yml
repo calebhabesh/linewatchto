@@ -18,6 +18,8 @@ linewatch:
   bus-positions:
     enabled: ${LINEWATCH_TTC_BUS_POSITIONS_ENABLED:true}
   regional:
+    bus-positions:
+      enabled: ${LINEWATCH_REGIONAL_GO_BUS_POSITIONS_ENABLED:true}
     arrivals:
       schedule-enabled: ${LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_ENABLED:true}
       schedule-refresh-enabled: ${LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_REFRESH_ENABLED:true}

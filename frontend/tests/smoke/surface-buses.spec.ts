@@ -88,8 +88,8 @@ test.describe("TTC buses on the Map View", () => {
 
     await page.getByRole("button", { name: /GO\/UP/ }).first().click();
     await waitForNetworkTransition(page, "regional");
-    // GO/UP has its own deck (S6): Trains and GO Buses, never TTC buses.
-    await expect(page.locator("#map-view-layers-row .map-layer-switch-label")).toHaveText(["Train Markers", "GO Buses"]);
+    // GO/UP has its own deck (S6; Live GPS for GO buses in S9), never TTC buses.
+    await expect(page.locator("#map-view-layers-row .map-layer-switch-label")).toHaveText(["Train Markers", "GO Buses", "Live GPS"]);
     await expect(page.locator("#map-layer-bus-routes")).toHaveCount(0);
     await expect(page.locator(".geographic-network-map")).not.toHaveAttribute("data-buses", "on");
   });
