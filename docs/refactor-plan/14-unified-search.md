@@ -58,10 +58,10 @@ plan reads.
 
 | Phase | Owns | Detail |
 | --- | --- | --- |
-| U0 | Invariants, privacy copy | Not started |
-| U1 | Search index asset (generator) | Not started |
-| U2 | Matching and ranking | Not started |
-| U3 | Stop and route results in search | Not started |
+| U0 | Invariants, privacy copy | Done (2026-11-04) |
+| U1 | Search index asset (generator) | Done (2026-11-04) |
+| U2 | Matching and ranking | Done (2026-11-04) |
+| U3 | Stop and route results in search | Done (2026-11-04) |
 | U4 | Selection on the Map View (stops, routes) | Not started |
 | U5 | Route panel | Not started |
 | U6 | Stops Near Me and recent stops | Not started |
@@ -84,6 +84,12 @@ plan reads.
 - Location: requested only when the rider acts, used on the device, never
   sent, stored or logged. Add this to Privacy & Acknowledgements.
 
+Done (2026-11-04): domain invariants amend the surface line with the neutral
+selection exception and add a search line and a location line. Privacy &
+Acknowledgements has a "Location for Stops Near Me" section, and Browser
+Storage names Recent Stops; both describe U6 behaviour ahead of it shipping.
+Test: `privacy-acknowledgements.test.mjs`.
+
 ### U1 — Search index asset
 
 `scripts/generate-search-index.mjs` reads the generated catalogs (not GTFS
@@ -101,6 +107,55 @@ again, so the index can never disagree with the map) and writes
   it. A script test checks that every catalog stop and route is in the index.
 - Report the raw and gzipped sizes. If the TTC index exceeds about 100 KB
   gzipped, drop fields before splitting files.
+
+Done (2026-11-04), from TTC feed S1000544 and GO feed 20261028133417
+(catalogs regenerated from the pinned archives; existing assets
+byte-identical):
+
+| File | Rows | Raw | Gzipped | Brotli |
+| --- | --- | --- | --- | --- |
+| `search-index-ttc.json` | 225 routes, 9,017 stops | 487.4 KB | 109.3 KB | 87.5 KB |
+| `search-index-go.json` | 38 routes, 813 stops | 46.9 KB | 13.8 KB | 10.4 KB |
+
+- `scripts/generate-search-index.mjs` (`npm --prefix frontend run
+  generate:search-index`), building on `scripts/lib/search-index.mjs`. The
+  TTC and GO generators run it after writing. Columns are in stop-number
+  order; TTC stop numbers and every position (1e-5 degrees) are stored as
+  differences from the previous stop, which took the TTC index from 136.8
+  to 109.3 KB gzipped without dropping a field (a street-name dictionary
+  gained nothing over gzip). `decodeSearchIndexStops` is the reference
+  reader for U2. Route colours are a palette. Route kinds: streetcar, bus,
+  express (900 series), night-streetcar, night-bus, go-bus. A stop's kind
+  comes from its routes, so there is no stop kind column. `stations` maps
+  217 stops inside subway stations to LineWatch ids (bus bays from the
+  station plans, else "X Station …" names).
+- Route stop sequences are one file per layer instead of one per network:
+  `ttc-surface-{streetcar,bus,night}-route-stops.json` (2.2, 39.2, 12.6 KB
+  gzipped) and `go-surface-bus-route-stops.json` (4.2 KB). A route panel
+  loads only its layer's file. They come from the surface and GO
+  generators, since the catalogs have no stop order
+  (`scripts/lib/route-stop-sequences.mjs`). Each route keeps its distinct
+  patterns by direction with the most common headsign and weekday trips.
+  Short turns and stop-skipping variants fold into the pattern that visits
+  their stops in order. A minor pattern (under a tenth of the busiest
+  pattern's trips, or under 3 stops, such as the 52's Pearson loop, which
+  the feed splits off as its own trip) is dropped when the route's other
+  patterns list 80% of its stops. Daytime sequences keep only stops the map
+  draws.
+- Night-only poles: 245 poles are served only by night routes (the 300 on
+  Bloor), contrary to plan 13 S10's "night routes stop at daytime poles".
+  Night mode now writes them to `ttc-surface-night-stops.json` (48 KB, not
+  drawn, read only by the index), so it must run after the streetcar and bus
+  modes. U4 needs a source for them before a night-only stop can be selected
+  on the map.
+- Tests: `frontend/tests/search-index.test.mjs` covers the sequence folding,
+  the builder (merged poles, night routes, stations, delta round trip, GO
+  leading zeros), and a check that every shipped catalog route and stop, and
+  every route-panel stop, is in the index with the same name and position.
+  Checks: test:fast 2,195 passed, typecheck, lint (0 errors; 16 existing
+  warnings), test:scripts 43 passed.
+- Not done yet: service-worker or HTTP caching of the index (U3, when the
+  client first loads it).
 
 ### U2 — Matching and ranking
 
@@ -120,6 +175,45 @@ These are pure functions in `unified-search.ts`, with tests:
   keystroke on the production build at 4× CPU throttling: the goal is under
   4 ms. Move matching to a worker only if it misses that.
 
+Done (2026-11-04):
+
+- Stop and route matching is in `src/app/surface-search.ts`, kept out of
+  `unified-search.ts` so that file stays the cross-group layer. That file
+  gained `orderSearchGroups` (tiers: stop number, route number, station,
+  route name, stop name, line, notice) and `capSearchGroup` (5 rows, then
+  Show All). Route names rank after stations and before stop names: for
+  "dufferin", Dufferin station comes first, then the 29, then the stops.
+- `prepareSurfaceSearchIndex` decodes the U1 columns once and builds a
+  sorted vocabulary with posting lists. Both long and short forms of each
+  street word are indexed, so a half-typed "aven" finds "Ave". A query word
+  is a binary-search prefix lookup marked into a reusable bitmask, and only
+  stops that every word matches (in any order) get scored. Intersection keys
+  (streets sorted, without direction, side or "Opposite") group a corner's
+  poles within 250 m. They are computed for matched stops only.
+  `searchSurfaceStops(…, limit)` builds only the places it returns and
+  counts the rest (`total`) for Show All.
+- Stop numbers: exact, then prefix from 3 digits. GO numbers match with or
+  without leading zeros ("5" finds 00005 from the TTC tab). Route numbers:
+  "504", "route 29", "52A" (the 52), and "GO 40" (GO only). Night and
+  express namesakes rank after the day route.
+- Two rules not in the plan: one letter, or a query of only street-type and
+  direction words ("st", "ave", "west"), returns no stop-name rows.
+  Stations, lines and routes still answer. "st" matched 2,111 places and
+  cost 5 ms or more at 4×.
+- Measured in Chromium (Playwright) at 4× CPU throttling, running this
+  module's own code, since nothing in the production build calls it until
+  U3. Medians: every prefix of "dufferin steeles" 0.0–0.8 ms; "7658", "765",
+  "504" 1.2–1.4 ms; "queen st w" 0.7 ms. No worker needed. JSON parse of
+  both files is 13 ms. The token build is 101 ms at 4× (16 ms unthrottled
+  in Node), down from 168 ms after skipping Unicode normalization for ASCII
+  names and deferring intersection keys. **U3 must not run it as one task on
+  first focus:** run it in idle time or chunks, and keep the exact
+  stop-number path answering until it finishes. Re-measure all of this on
+  the production build in U3.
+- Tests: `frontend/tests/surface-search.test.mjs`, 15 cases on the shipped
+  indexes. Checks: test:fast 2,210 passed, typecheck, lint (0 errors; no
+  warnings in the new files).
+
 ### U3 — Stop and route results in search
 
 - New groups in `StationSearchPanel`: Stops (stop badge with number, name,
@@ -131,6 +225,70 @@ These are pure functions in `unified-search.ts`, with tests:
 - The index loads on first focus. Until it arrives, the exact stop-number
   path keeps working from the query alone (no regression offline).
 - From a System Map, opening a stop or route switches to the Map View.
+
+Done (2026-11-04):
+
+- `StationSearchPanel` has Stops and Routes groups
+  (`SurfaceSearchResults.tsx`, on the existing result-row styles):
+  - A stop row shows its number badge (red edge TTC, green GO), name and
+    route badges in each route's colours.
+  - An intersection's corners are one row with a pole count. It expands
+    to each pole with its number, and long names wrap to two lines so
+    "… East Side" stays readable.
+  - A route row shows its badge, name and kind (Streetcar, Bus, Express
+    Bus, Community Bus, Night Bus, Night Streetcar, GO Bus).
+  - Each group shows 5 rows; Show All lists up to 50.
+  - The other network's rows sit under a network heading, as stations do.
+  - Distance waits for U6.
+- The content groups (stops, routes, lines, stations, saved stations,
+  commutes, alerts, notices) render from one list sorted by
+  `orderSearchGroups`. Keyboard indexes and Enter follow the order on
+  screen. Go To and Categories stay at the top as before. Lines now come
+  after stations and stop names, as U2 ranks them.
+- **Ranking change:** an exact route number now outranks an exact stop
+  number (`route-number` is the first tier). Nearly every route number is
+  also a stop number: "504" was opening stop 504 (Bloor St West at
+  Dovercourt Rd) before the 504 King. This follows the U2 bullet's own
+  example ("504"); 4- and 5-digit stop numbers, which have no route, still
+  lead. `surface-stop.spec.ts` now clicks stop 100 under Stops, since 100 is
+  also a route.
+- A typed TTC number with no exact match (index not loaded, offline, or not
+  a stop) keeps the old typed-number row, so "424242" still opens a panel
+  that says it is not in the TTC stop list.
+- Loading: `surface-search-index.ts` fetches both networks' files the first
+  time search opens, through the catalogs' `cachedLoader` (same HTTP caching
+  as the other Map View assets; the service worker does not cache them).
+  Tokens are built by `prepareSurfaceSearchIndexInSlices`, which hands the
+  page a turn every 6 ms.
+- Opening: a stop calls the shell with its network. A route opens
+  `SurfaceRoutePanel`, in the stop panel's place, with its badge, kind,
+  name, schedule period and "Not live service." (plus a note for undrawn
+  routes). U5 adds notices, stops by direction and View on Map. Either one
+  switches a System Map to the Map View (the saved view setting). The other
+  network's stop or route switches network first and opens on the Map View,
+  as a station from the other network does.
+- **Not done in U3:** the map flies to a found stop only while its layer is
+  shown (Streetcars on by default; Buses and GO Buses off). Drawing and
+  framing a selected stop with its layer off is U4.
+- Production build, desktop, 4× CPU throttling, two runs each, with the index
+  files blocked and with them loaded:
+  - Opening search: one 106–131 ms long task in both cases. It is the panel
+    render that was already there; the index adds no long task.
+  - Keystrokes: key event durations are the same either way (median 24 ms,
+    max 64–72 ms over 30 typed keys). That is the panel's existing React
+    render; the matching itself is 0.1–1.4 ms (U2).
+  - Index: stops answer 0.77 s after first focus. The TTC file is 499 KB
+    uncompressed from the local test server; it is 109 KB gzipped (U1).
+- Checked on the dev server: 1440 px (both themes) for intersection, route
+  number, route panel and GO stop from the TTC tab; 360 px (both themes) for
+  expand, pole, stop sheet and no horizontal overflow.
+- Checks: test:fast 2,212 passed (2 new loader tests), typecheck, lint (0
+  errors), build. Smoke on desktop-chrome and mobile-chromium:
+  `surface-stop`, `search-close-*`, `mobile-app-layout` and the search tests
+  in `dashboard`, `sidebar-list-scroll` and `account-view-transitions`
+  passed. `desktop-search-entry` fails on both projects, before and after
+  this change: it expects "Back to More", and desktop More has read
+  "Back to Settings" since plan 13.
 
 ### U4 — Selection on the Map View
 

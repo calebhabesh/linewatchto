@@ -56,8 +56,9 @@ test.describe("Surface stop departures on the Map View", () => {
     const input = page.getByPlaceholder(/Search all stations/);
     await input.click();
     await input.fill("100");
-    await expect(page.locator("[data-surface-stop-result='100']")).toBeVisible();
-    await input.press("Enter");
+    // 100 is also a bus route (plan 14, U3): the route number leads and the stop is listed under Stops.
+    await expect(page.locator("[data-search-group='routes'] [data-surface-route-result='ttc:100']")).toBeVisible();
+    await page.locator("[data-search-group='stops'] [data-surface-stop-result='100']").click();
     await expect(page.locator("[data-surface-stop-panel='100'] [data-departure-status='live']")).toBeVisible();
 
     await input.click();

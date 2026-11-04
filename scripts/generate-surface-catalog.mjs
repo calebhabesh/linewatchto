@@ -16,6 +16,10 @@
  * with its mode; replacement-bus and short-turn trips are counted, not drawn,
  * and no stops are written (night routes stop at daytime poles).
  *
+ * Every mode also writes ttc-surface-<mode>-route-stops.json (each route's
+ * stops in order by direction, for the route panel, plan 14) and then
+ * rebuilds the TTC search index (scripts/generate-search-index.mjs).
+ *
  * Usage:
  *   node scripts/generate-surface-catalog.mjs [--mode streetcar|bus|night] [--ttc-gtfs <zip>] [--output <json>]
  *
@@ -28,7 +32,7 @@
 import { spawn, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import { gzipSync } from "node:zlib";
@@ -40,6 +44,7 @@ import {
   isNightRoute,
   tripKind,
 } from "./lib/surface-corridors.mjs";
+import { buildRouteStopSequences } from "./lib/route-stop-sequences.mjs";
 import { validateCoordinate } from "./lib/geographic-geometry.mjs";
 
 const args = process.argv.slice(2);
@@ -144,7 +149,12 @@ for (const trip of readTable("trips.txt")) {
   const kind = tripKind(trip.trip_headsign);
   routeCounts.get(route.route_short_name)[kind]++;
   if (kind === "streetcar" && trip.shape_id) {
-    streetcarTrips.set(trip.trip_id, { routeShortName: route.route_short_name, shapeId: trip.shape_id });
+    streetcarTrips.set(trip.trip_id, {
+      routeShortName: route.route_short_name,
+      shapeId: trip.shape_id,
+      direction: Number(trip.direction_id || 0),
+      headsign: trip.trip_headsign,
+    });
   }
 }
 
@@ -250,6 +260,40 @@ const stopFeatures = [...stopRoutes.entries()]
   })
   .sort((a, b) => a.properties.stopId.localeCompare(b.properties.stopId, "en", { numeric: true }));
 
+// Route stop sequences (plan 14, U1): each drawn trip's stops in order, by
+// direction, for the route panel. Only stops with a pole number: riders and
+// stop departures use it. Daytime sequences keep only stops the map draws.
+// Night routes have no drawn stops, and some of their poles have no daytime
+// route (the 300 on Bloor): night mode writes those night-only poles to their
+// own file for the search index, so run it after the streetcar and bus modes.
+const mapStopCodes = new Set(stopFeatures.map(feature => feature.properties.stopCode).filter(Boolean));
+const sequencePatterns = new Map();
+for (const [tripId, trip] of streetcarTrips) {
+  const stops = (tripStops.get(tripId) ?? []).slice().sort((a, b) => a[0] - b[0])
+    .map(([, stopId]) => stopsById.get(stopId)?.stop_code).filter(code => code && (night || mapStopCodes.has(code)));
+  const key = `${trip.routeShortName}|${trip.direction}|${trip.headsign}|${stops.join(" ")}`;
+  const entry = sequencePatterns.get(key);
+  if (entry) entry.trips++;
+  else sequencePatterns.set(key, { route: trip.routeShortName, direction: trip.direction, headsign: trip.headsign, trips: 1, stops });
+}
+const routeStopSequences = buildRouteStopSequences([...sequencePatterns.values()]);
+
+const stopsByCode = new Map([...stopsById.values()].filter(stop => stop.stop_code).map(stop => [stop.stop_code, stop]));
+const nightStopRoutes = new Map();
+if (night) {
+  const daytimeCodes = new Set([
+    ...JSON.parse(readFileSync(outputPath.replace(/night\.json$/, "streetcar.json"), "utf8")).features,
+    ...JSON.parse(readFileSync(outputPath.replace(/night\.json$/, "bus-stops.json"), "utf8")).features,
+  ].map(feature => feature.properties.stopCode).filter(Boolean));
+  for (const entry of sequencePatterns.values()) {
+    for (const code of entry.stops) {
+      if (daytimeCodes.has(code)) continue;
+      if (!nightStopRoutes.has(code)) nightStopRoutes.set(code, new Set());
+      nightStopRoutes.get(code).add(entry.route);
+    }
+  }
+}
+
 const drawnRoutes = new Set(corridors.flatMap(c => c.routes));
 const routeSummaries = [...routes.values()]
   .sort((a, b) => routeOrder(a.route_short_name, b.route_short_name))
@@ -326,6 +370,40 @@ if (bus) {
   }) + "\n";
   writeFileSync(stopsOutputPath, stopsJson, "utf8");
 }
+if (night) {
+  // Night-only poles, not drawn on the map: read by the search index (plan 14, U1).
+  stopsJson = JSON.stringify({
+    type: "FeatureCollection",
+    schemaVersion: "1.0.0",
+    network: "ttc",
+    layer: "night-stops",
+    source: catalog.source,
+    features: [...nightStopRoutes.entries()]
+      .sort(([a], [b]) => routeOrder(a, b))
+      .map(([code, served]) => {
+        const stop = stopsByCode.get(code);
+        const coordinates = [Number(Number(stop.stop_lon).toFixed(5)), Number(Number(stop.stop_lat).toFixed(5))];
+        validateCoordinate(coordinates);
+        return {
+          type: "Feature",
+          geometry: { type: "Point", coordinates },
+          properties: { featureType: "night-stop", stopCode: code, name: stop.stop_name, routes: [...served].sort(routeOrder) },
+        };
+      }),
+  }) + "\n";
+  writeFileSync(stopsOutputPath, stopsJson, "utf8");
+}
+
+// Loaded only when a route panel first opens (plan 14, U5).
+const sequencesOutputPath = outputPath.replace(/\.json$/, "-route-stops.json");
+const sequencesJson = JSON.stringify({
+  schemaVersion: "1.0.0",
+  network: "ttc",
+  layer: `${mode}-route-stops`,
+  source: catalog.source,
+  routes: routeStopSequences,
+}) + "\n";
+writeFileSync(sequencesOutputPath, sequencesJson, "utf8");
 
 const kb = bytes => `${(bytes / 1024).toFixed(1)} KB`;
 console.log(`[${night ? "Night" : bus ? "Bus" : "Streetcar"} catalog] feed ${feedInfo.feed_version} (${catalog.source.feedStartDate} to ${catalog.source.feedEndDate})`);
@@ -341,8 +419,17 @@ for (const route of routeSummaries) {
 }
 console.log(`  Raw: ${kb(Buffer.byteLength(json))} | Gzipped: ${kb(gzipSync(Buffer.from(json)).length)}`);
 console.log(`  Written to: ${outputPath}`);
+console.log(`  Route stop sequences: ${Object.values(routeStopSequences).flat().length} patterns, raw ${kb(Buffer.byteLength(sequencesJson))} | Gzipped: ${kb(gzipSync(Buffer.from(sequencesJson)).length)}`);
+if (night) console.log(`  Night-only stops: ${nightStopRoutes.size}, raw ${kb(Buffer.byteLength(stopsJson))}, written to ${stopsOutputPath}`);
 if (bus) {
   console.log(`  Stops with pole numbers: ${busStopFeatures.length} of ${stopFeatures.length}`);
   console.log(`  Stops raw: ${kb(Buffer.byteLength(stopsJson))} | Gzipped: ${kb(gzipSync(Buffer.from(stopsJson)).length)}`);
   console.log(`  Stops written to: ${stopsOutputPath}`);
 }
+
+// The search index reads the catalogs just written (plan 14, U1), so a new
+// schedule period rebuilds it.
+execFileSync(process.execPath, [
+  fileURLToPath(new URL("./generate-search-index.mjs", import.meta.url)),
+  "--network", "ttc", "--dir", dirname(outputPath),
+], { stdio: "inherit" });

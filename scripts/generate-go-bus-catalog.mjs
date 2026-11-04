@@ -26,7 +26,9 @@
  *   node scripts/generate-go-bus-catalog.mjs [--go-gtfs <zip>] [--output <json>] [--backend-stops <csv>]
  *
  * Also writes backend/src/main/resources/regional/go-bus-stops.csv: the stop
- * numbers the backend accepts for GO bus stop departures, with name and routes.
+ * numbers the backend accepts for GO bus stop departures, with name and routes,
+ * and go-surface-bus-route-stops.json (each route's stops in order by
+ * direction, for the route panel, plan 14), then rebuilds the GO search index.
  *
  * Default archive: /tmp/linewatch-gtfs/GO-GTFS.zip (the current file from
  * Metrolinx Open Data). Output is deterministic for a given archive.
@@ -40,6 +42,7 @@ import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import { gzipSync } from "node:zlib";
 import { buildSurfaceCorridors, placeStopsAlongShape } from "./lib/surface-corridors.mjs";
+import { buildRouteStopSequences } from "./lib/route-stop-sequences.mjs";
 import { validateCoordinate } from "./lib/geographic-geometry.mjs";
 
 const args = process.argv.slice(2);
@@ -154,7 +157,12 @@ for (const trip of readTable("trips.txt")) {
     tripsWithoutShape++;
     continue;
   }
-  busTrips.set(trip.trip_id, { routeShortName: routeKey(route), shapeId: trip.shape_id });
+  busTrips.set(trip.trip_id, {
+    routeShortName: routeKey(route),
+    shapeId: trip.shape_id,
+    direction: Number(trip.direction_id || 0),
+    headsign: trip.trip_headsign,
+  });
 }
 
 /** trip_id -> [stop_sequence, stop_id][] */
@@ -256,6 +264,26 @@ const stopFeatures = [...stopRoutes.entries()]
   })
   .sort((a, b) => a.properties.stopCode.localeCompare(b.properties.stopCode, "en", { numeric: true }));
 
+// Route stop sequences (plan 14, U1): the stops of each drawn pattern's trips
+// in order, by direction, for the route panel. Rail stations and stops the
+// map does not draw are left out; trip counts are per weekday.
+const mapStopCodes = new Set(stopFeatures.map(feature => feature.properties.stopCode));
+const drawnPatterns = new Set(patterns.map(p => `${p.routeShortName}|${p.shapeId}|${p.stopIds.join(" ")}`));
+const sequencePatterns = new Map();
+for (const [tripId, trip] of busTrips) {
+  const stopIds = (tripStops.get(tripId) ?? []).map(([, stopId]) => stopId);
+  if (!drawnPatterns.has(`${trip.routeShortName}|${trip.shapeId}|${stopIds.join(" ")}`)) continue;
+  const stops = stopIds.filter(stopId => mapStopCodes.has(stopId));
+  const key = `${trip.routeShortName}|${trip.direction}|${trip.headsign}|${stops.join(" ")}`;
+  const entry = sequencePatterns.get(key);
+  if (entry) entry.trips++;
+  else sequencePatterns.set(key, { route: trip.routeShortName, direction: trip.direction, headsign: trip.headsign, trips: 1, stops });
+}
+const routeStopSequences = buildRouteStopSequences([...sequencePatterns.values()]);
+for (const sequences of Object.values(routeStopSequences)) {
+  for (const sequence of sequences) sequence.trips = Math.max(1, Math.round(sequence.trips / WEEKDAY_COUNT));
+}
+
 const drawnRoutes = new Set(corridors.flatMap(c => c.routes));
 const routeSummaries = [...routes.values()]
   .sort((a, b) => routeOrder(routeKey(a), routeKey(b)))
@@ -303,6 +331,16 @@ const json = JSON.stringify(catalog) + "\n";
 const stopsJson = JSON.stringify(stopsCatalog) + "\n";
 writeFileSync(outputPath, json, "utf8");
 writeFileSync(stopsOutputPath, stopsJson, "utf8");
+// Loaded only when a route panel first opens (plan 14, U5).
+const sequencesOutputPath = outputPath.replace(/\.json$/, "-route-stops.json");
+const sequencesJson = JSON.stringify({
+  schemaVersion: "1.0.0",
+  network: "regional",
+  layer: "go-bus-route-stops",
+  source,
+  routes: routeStopSequences,
+}) + "\n";
+writeFileSync(sequencesOutputPath, sequencesJson, "utf8");
 const csvField = value => (/[",\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value);
 const backendCsv = ["stop_code,name,routes", ...stopFeatures.map(({ properties: p }) =>
   [p.stopCode, p.name, p.routes.join(" ")].map(csvField).join(","))].join("\n") + "\n";
@@ -328,4 +366,12 @@ for (const route of routeSummaries) {
 }
 console.log(`  Corridors raw: ${kb(Buffer.byteLength(json))} | Gzipped: ${kb(gzipSync(Buffer.from(json)).length)}`);
 console.log(`  Stops raw: ${kb(Buffer.byteLength(stopsJson))} | Gzipped: ${kb(gzipSync(Buffer.from(stopsJson)).length)}`);
-console.log(`  Written to: ${outputPath}, ${stopsOutputPath} and ${backendStopsPath}`);
+console.log(`  Route stop sequences: ${Object.values(routeStopSequences).flat().length} patterns, raw ${kb(Buffer.byteLength(sequencesJson))} | Gzipped: ${kb(gzipSync(Buffer.from(sequencesJson)).length)}`);
+console.log(`  Written to: ${outputPath}, ${stopsOutputPath}, ${sequencesOutputPath} and ${backendStopsPath}`);
+
+// The search index reads the catalogs just written (plan 14, U1), so a new
+// schedule period rebuilds it.
+execFileSync(process.execPath, [
+  fileURLToPath(new URL("./generate-search-index.mjs", import.meta.url)),
+  "--network", "go", "--dir", dirname(outputPath),
+], { stdio: "inherit" });

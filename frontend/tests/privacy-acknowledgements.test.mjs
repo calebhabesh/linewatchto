@@ -41,6 +41,14 @@ describe("privacy and acknowledgement content", () => {
     assert.match(combinedCopy, /Metrolinx/i);
   });
 
+  it("says location for Stops Near Me stays on the device (plan 14, U0)", () => {
+    const section = dataPracticeSections.find((entry) => entry.title === "Location for Stops Near Me");
+    assert.ok(section, "location has its own data-practice section");
+    assert.match(section.body, /only when you tap it, never when the page loads/);
+    assert.match(section.body, /never sent to LineWatchTO or anyone else, stored, or logged/);
+    assert.match(JSON.stringify(dataPracticeSections), /Recent Stops/);
+  });
+
   it("summarizes privacy-sensitive app behavior", () => {
     const combinedCopy = JSON.stringify(dataPracticeSections);
 

@@ -86,8 +86,12 @@ export const dataPracticeSections: NoticeSection[] = [
     body: "When you send feedback, LineWatchTO sends your message plus basic page context such as app version, data source, page URL, and viewport size. The feedback form does not ask for a reply email address.",
   },
   {
+    title: "Location for Stops Near Me",
+    body: "Stops Near Me asks your browser for your location only when you tap it, never when the page loads. Your position is used on your device to find nearby stops from the stop list LineWatchTO has already downloaded; it is never sent to LineWatchTO or anyone else, stored, or logged. Only the departures of the stops you choose are requested, by stop number.",
+  },
+  {
     title: "Browser Storage and PWA Cache",
-    body: "LineWatchTO may keep display preferences, app update state, a random push-installation identifier, service-worker cache entries, local storage values, and other local app state in your browser so the dashboard opens quickly and keeps your chosen controls.",
+    body: "LineWatchTO may keep display preferences, app update state, a random push-installation identifier, service-worker cache entries, local storage values (including the last few stops you opened, shown as Recent Stops), and other local app state in your browser so the dashboard opens quickly and keeps your chosen controls.",
   },
   {
     title: "Cloudflare Web Analytics",

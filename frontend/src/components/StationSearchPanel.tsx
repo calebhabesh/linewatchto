@@ -1,13 +1,21 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { KeyboardEvent, MutableRefObject } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent, MutableRefObject, ReactNode } from "react";
 import { Activity, AlertTriangle, ArrowLeft, BarChart3, History, MapPin, Menu, Bookmark, Bus, ChevronRight, LoaderCircle, Megaphone, MessageSquareText, Navigation, Search, X } from "lucide-react";
 import { desktopRailDestinationForView, type DesktopRailDestination } from "../app/desktop-sidebar-state";
 import { useDashboardData } from "../app/DataContext";
 import { cachedStreetcarCatalog, streetcarStopByCode } from "../app/geographic-surface-catalog";
 import { surfaceStopCodeFromQuery } from "../app/surface-stop-arrivals";
+import {
+  searchSurfaceRoutes,
+  searchSurfaceStops,
+  type SurfaceSearchRoute,
+  type SurfaceSearchStop,
+} from "../app/surface-search";
+import { useSurfaceSearchIndexes } from "../hooks/useSurfaceSearchIndexes";
+import { SurfaceRouteResult, SurfaceStopGroupResult, type ResultKeyboard } from "./SurfaceSearchResults";
 import {
   IMPACT_SEARCH_CATEGORIES,
   matchImpactCategories,
@@ -47,7 +55,11 @@ import {
   searchSavedCommutes,
   searchSurfaceNotices,
   searchTransitLines,
+  SEARCH_GROUP_LIMIT,
+  capSearchGroup,
+  orderSearchGroups,
   type GlobalDestinationView,
+  type SearchGroupTier,
 } from "../app/unified-search";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { LineBadge } from "./ImpactCardFields";
@@ -117,8 +129,13 @@ type Props = {
   onOpenDestination: (view: GlobalDestinationView) => void;
   onOpenSavedCommute: (commuteId: string) => void;
   onOpenSurfaceNotice: (notice: SurfaceNoticeDetail) => void;
-  /** Opens a TTC surface stop's departures by stop number (plan 13, S3). */
-  onOpenSurfaceStop?: (stopCode: string) => void;
+  /**
+   * Opens a surface stop's departures by stop number (plan 13, S3): a TTC
+   * stop, or a GO bus stop; the network defaults to the current one.
+   */
+  onOpenSurfaceStop?: (stopCode: string, network?: NetworkId, position?: { lon: number; lat: number }) => void;
+  /** Opens a surface route's panel (plan 14, U3 and U5). */
+  onOpenSurfaceRoute?: (route: SurfaceSearchRoute) => void;
   expandedLineId?: string | null;
   onExpandedLineIdChange?: (lineId: string | null) => void;
 };
@@ -440,6 +457,7 @@ export function StationSearchPanel({
   onOpenSavedCommute,
   onOpenSurfaceNotice,
   onOpenSurfaceStop,
+  onOpenSurfaceRoute,
   expandedLineId: propExpandedLineId,
   onExpandedLineIdChange,
 }: Props) {
@@ -512,14 +530,40 @@ export function StationSearchPanel({
   );
   const [surfaceNotices, setSurfaceNotices] = useState<SurfaceNoticeDetail[]>([]);
   const surfaceNoticesRequestedNetworkRef = useRef<NetworkId | null>(null);
-  // A stop number opens that TTC stop's departures; the streetcar catalog names it when it can.
+  // Stops and routes from the search index (plan 14, U3), loaded the first
+  // time search opens. "Show All" builds more rows only for its own group.
+  const surfaceIndexes = useSurfaceSearchIndexes(open && Boolean(onOpenSurfaceStop));
+  const [expandedSurfaceGroups, setExpandedSurfaceGroups] = useState<{ query: string; stops: boolean; routes: boolean; places: string[] }>(
+    { query: "", stops: false, routes: false, places: [] },
+  );
+  const surfaceExpansion = expandedSurfaceGroups.query === query ? expandedSurfaceGroups : { query, stops: false, routes: false, places: [] };
+  const updateSurfaceExpansion = (change: Partial<typeof surfaceExpansion>) => setExpandedSurfaceGroups({ ...surfaceExpansion, ...change });
+  const surfaceStopSearch = useMemo(
+    () => (onOpenSurfaceStop && surfaceIndexes.length > 0
+      ? searchSurfaceStops(surfaceIndexes, query, currentNetwork, surfaceExpansion.stops ? 50 : SEARCH_GROUP_LIMIT)
+      : { groups: [], total: 0, exactNumber: false }),
+    [currentNetwork, onOpenSurfaceStop, query, surfaceExpansion.stops, surfaceIndexes],
+  );
+  const surfaceRouteResults = useMemo(
+    () => (onOpenSurfaceRoute && surfaceIndexes.length > 0 ? searchSurfaceRoutes(surfaceIndexes, query, currentNetwork) : []),
+    [currentNetwork, onOpenSurfaceRoute, query, surfaceIndexes],
+  );
+  const surfaceRouteLookup = useMemo(() => {
+    const byKey = new Map(surfaceIndexes.flatMap((index) => index.routes.map((route) => [`${route.network}:${route.route}`, route] as const)));
+    return (network: NetworkId, route: string) => byKey.get(`${network}:${route}`) ?? null;
+  }, [surfaceIndexes]);
+  // A typed TTC stop number the index has no exact match for (not loaded yet,
+  // offline, or not a stop) still opens that number: the stop panel names it
+  // from the streetcar catalog, or says it is not in the TTC stop list.
   const surfaceStopResult = useMemo(() => {
-    const stopCode = onOpenSurfaceStop && currentNetwork === "ttc" ? surfaceStopCodeFromQuery(query) : null;
+    const stopCode = onOpenSurfaceStop && currentNetwork === "ttc" && !surfaceStopSearch.exactNumber
+      ? surfaceStopCodeFromQuery(query)
+      : null;
     if (!stopCode) return null;
     const streetcars = cachedStreetcarCatalog();
     const known = streetcars ? streetcarStopByCode(streetcars, stopCode) : null;
     return { stopCode, name: known?.properties.name ?? null, routes: known?.properties.routes ?? [] };
-  }, [currentNetwork, onOpenSurfaceStop, query]);
+  }, [currentNetwork, onOpenSurfaceStop, query, surfaceStopSearch.exactNumber]);
   const surfaceNoticeResults = useMemo(
     () => searchSurfaceNotices(surfaceNotices, query),
     [query, surfaceNotices],
@@ -653,6 +697,374 @@ export function StationSearchPanel({
     buttons[((index % buttons.length) + buttons.length) % buttons.length]?.focus();
   }
 
+  let nextResultButtonIndex = 0;
+
+  function openSurfaceStop(stop: SurfaceSearchStop) {
+    onOpenSurfaceStop?.(stop.code, stop.network, { lon: stop.lon, lat: stop.lat });
+  }
+
+  const resultKeyboard: ResultKeyboard = () => {
+    const keyboardIndex = nextResultButtonIndex++;
+    return {
+      ref: (element) => { resultButtonRefs.current[keyboardIndex] = element; },
+      onKeyDown: (event) => handleResultKeyDown(keyboardIndex, event),
+    };
+  };
+
+  const surfaceNetworkHeading = (networkId: NetworkId) => (networkId === "ttc" ? "TTC Streetcar & Bus" : "GO Bus");
+
+  function renderSurfaceStops() {
+    if (!onOpenSurfaceStop) return null;
+    const typedNumberRow = () => {
+      if (!surfaceStopResult) return null;
+      const { ref, onKeyDown } = resultKeyboard();
+      return (
+        <button
+          ref={ref}
+          type="button"
+          className="global-search-resource-result"
+          data-surface-stop-result={surfaceStopResult.stopCode}
+          onClick={() => onOpenSurfaceStop(surfaceStopResult.stopCode, "ttc")}
+          onKeyDown={onKeyDown}
+        >
+          <span className="global-search-resource-icon"><Bus size={18} /></span>
+          <span>
+            <strong>Stop {surfaceStopResult.stopCode}{surfaceStopResult.name ? ` · ${surfaceStopResult.name}` : ""}</strong>
+            <small>
+              {surfaceStopResult.routes.length > 0
+                ? `Streetcar ${surfaceStopResult.routes.join(", ")} · Departures`
+                : "TTC bus and streetcar departures"}
+            </small>
+          </span>
+          <ChevronRight size={17} aria-hidden="true" />
+        </button>
+      );
+    };
+    if (surfaceStopSearch.groups.length === 0 && !surfaceStopResult) return null;
+    const { visible } = capSearchGroup(surfaceStopSearch.groups, surfaceExpansion.stops, surfaceExpansion.stops ? 50 : SEARCH_GROUP_LIMIT);
+    const hidden = Math.max(0, surfaceStopSearch.total - visible.length);
+    const networks = networkResultOrder.filter((networkId) => visible.some((group) => group.network === networkId));
+    return (
+      <section className="global-search-group" aria-labelledby="global-search-stops-heading" data-search-group="stops">
+        <div className="global-search-group-heading">
+          <h3 id="global-search-stops-heading">Stops</h3>
+          {surfaceStopSearch.total > 0 ? <span>{surfaceStopSearch.total}</span> : null}
+        </div>
+        {typedNumberRow()}
+        {networks.map((networkId) => (
+          <div key={networkId} className="global-search-network-subgroup">
+            {networks.length > 1 || networkId !== currentNetwork ? (
+              <div className={`global-search-network-heading ${networkId}`}>{surfaceNetworkHeading(networkId)}</div>
+            ) : null}
+            {visible.filter((group) => group.network === networkId).map((group) => (
+              <SurfaceStopGroupResult
+                key={group.key}
+                group={group}
+                expanded={surfaceExpansion.places.includes(group.key)}
+                onToggle={() => updateSurfaceExpansion({
+                  places: surfaceExpansion.places.includes(group.key)
+                    ? surfaceExpansion.places.filter((key) => key !== group.key)
+                    : [...surfaceExpansion.places, group.key],
+                })}
+                onOpenStop={openSurfaceStop}
+                keyboard={resultKeyboard}
+                routeLookup={surfaceRouteLookup}
+              />
+            ))}
+          </div>
+        ))}
+        {hidden > 0 ? (
+          <button type="button" className="global-search-show-all" onClick={() => updateSurfaceExpansion({ stops: true })}>
+            Show All Stops ({surfaceStopSearch.total})
+          </button>
+        ) : null}
+      </section>
+    );
+  }
+
+  function renderSurfaceRoutes() {
+    if (!onOpenSurfaceRoute || surfaceRouteResults.length === 0) return null;
+    const { visible, hiddenCount } = capSearchGroup(surfaceRouteResults, surfaceExpansion.routes);
+    const networks = networkResultOrder.filter((networkId) => visible.some((result) => result.route.network === networkId));
+    return (
+      <section className="global-search-group" aria-labelledby="global-search-routes-heading" data-search-group="routes">
+        <div className="global-search-group-heading">
+          <h3 id="global-search-routes-heading">Routes</h3>
+          <span>{surfaceRouteResults.length}</span>
+        </div>
+        {networks.map((networkId) => (
+          <div key={networkId} className="global-search-network-subgroup">
+            {networks.length > 1 || networkId !== currentNetwork ? (
+              <div className={`global-search-network-heading ${networkId}`}>{surfaceNetworkHeading(networkId)}</div>
+            ) : null}
+            {visible.filter((result) => result.route.network === networkId).map((result) => (
+              <SurfaceRouteResult
+                key={`${result.route.network}:${result.route.kind}:${result.route.route}`}
+                route={result.route}
+                onOpen={onOpenSurfaceRoute}
+                keyboard={resultKeyboard}
+              />
+            ))}
+          </div>
+        ))}
+        {hiddenCount > 0 ? (
+          <button type="button" className="global-search-show-all" onClick={() => updateSurfaceExpansion({ routes: true })}>
+            Show All Routes ({surfaceRouteResults.length})
+          </button>
+        ) : null}
+      </section>
+    );
+  }
+
+  // Result groups in the order a rider means them (plan 14, U2): the tier
+  // comes from each group's best match, so "504" leads with routes and
+  // "dufferin" with stations. Rendered in this order, so keyboard indexes
+  // and Enter follow what is on screen.
+  const resultGroups: { key: string; tier: SearchGroupTier; first: (() => void) | null; render: () => ReactNode }[] = [
+    {
+      key: "surface-stops",
+      tier: surfaceStopSearch.exactNumber || surfaceStopResult ? "stop-number" : "stop-name",
+      first: surfaceStopResult && onOpenSurfaceStop
+        ? () => onOpenSurfaceStop(surfaceStopResult.stopCode, "ttc")
+        : surfaceStopSearch.groups[0] ? () => openSurfaceStop(surfaceStopSearch.groups[0].stops[0]) : null,
+      render: renderSurfaceStops,
+    },
+    {
+      key: "surface-routes",
+      tier: surfaceRouteResults[0]?.match === "exact-number" ? "route-number" : "route-name",
+      first: surfaceRouteResults[0] && onOpenSurfaceRoute ? () => onOpenSurfaceRoute(surfaceRouteResults[0].route) : null,
+      render: renderSurfaceRoutes,
+    },
+    {
+      key: "lines",
+      tier: "line",
+      first: lineResults[0] ? () => chooseLine(lineResults[0].line.id) : null,
+      render: () => (lineResults.length > 0 ? (
+                  <section className="global-search-group" aria-labelledby="global-search-lines-heading">
+                    <div className="global-search-group-heading">
+                      <h3 id="global-search-lines-heading">Lines</h3>
+                    </div>
+                    {lineResults.map((result) => {
+                      const keyboardIndex = nextResultButtonIndex++;
+                      return (
+                        <button
+                          key={result.line.id}
+                          ref={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
+                          type="button"
+                          className="global-search-resource-result"
+                          onClick={() => chooseLine(result.line.id)}
+                          onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
+                        >
+                          <span className="global-search-resource-icon global-search-resource-icon--standard">
+                            <TransitLineBadge
+                              lineId={result.line.id}
+                              lineNumber={result.line.number}
+                              lineName={result.line.name}
+                              size={28}
+                              decorative
+                            />
+                          </span>
+                          <span>
+                            <strong>{result.line.id.startsWith("regional-") ? result.line.number : `Line ${result.line.number}`} · {result.line.name}</strong>
+                            <small>{result.line.id.startsWith("regional-") ? "GO/UP Rail" : "TTC Subway & LRT"} · Browse stations</small>
+                          </span>
+                          <ChevronRight size={17} aria-hidden="true" />
+                        </button>
+                      );
+                    })}
+                  </section>
+                ) : null),
+    },
+    {
+      key: "saved-stations",
+      tier: "station",
+      first: savedStationResults[0] ? () => chooseStation(savedStationResults[0].station.id, savedStationResults[0].networkId) : null,
+      render: () => (savedStationResults.length > 0 ? (
+                  <section className="global-search-group" aria-labelledby="global-search-saved-stations-heading">
+                    <div className="global-search-group-heading">
+                      <h3 id="global-search-saved-stations-heading">Saved Stations</h3>
+                      <span>{savedStationResults.length}</span>
+                    </div>
+                    {networkResultOrder.map((networkId) => {
+                      const networkResults = savedStationResults.filter((result) => result.networkId === networkId);
+                      if (networkResults.length === 0) return null;
+                      return (
+                        <div key={networkId} className="global-search-network-subgroup">
+                          <div className={`global-search-network-heading ${networkId}`}>
+                            {networkId === "ttc" ? "TTC Subway & LRT" : "GO/UP Rail"}
+                          </div>
+                          {networkResults.map((result) => {
+                            const keyboardIndex = nextResultButtonIndex++;
+                            return (
+                              <StationButton
+                                key={`${result.networkId}:${result.station.id}`}
+                                station={result.station}
+                                networkId={result.networkId}
+                                impactKinds={result.networkId === currentNetwork ? stationImpactKinds.get(result.station.id) ?? [] : []}
+                                selected={result.networkId === currentNetwork && selectedStationId === result.station.id}
+                                onSelect={chooseStation}
+                                buttonRef={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
+                                onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
+                                saved
+                                pending={pendingSavedStationIds.has(result.station.id)}
+                                authenticated={authenticated}
+                                onToggleSaved={onToggleSavedStation}
+                                onRequestSignIn={onRequestSignIn}
+                                activeFilters={amenityFilters}
+                              />
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </section>
+                ) : null),
+    },
+    {
+      key: "stations",
+      tier: "station",
+      first: otherStationResults[0] ? () => chooseStation(otherStationResults[0].station.id, otherStationResults[0].networkId) : null,
+      render: () => (otherStationResults.length > 0 ? (
+                  <section className="global-search-group" aria-labelledby="global-search-stations-heading">
+                    <div className="global-search-group-heading">
+                      <h3 id="global-search-stations-heading">Stations</h3>
+                      <span>{otherStationResults.length}</span>
+                    </div>
+                    {networkResultOrder.map((networkId) => {
+                      const networkResults = otherStationResults.filter((result) => result.networkId === networkId);
+                      if (networkResults.length === 0) return null;
+                      return (
+                        <div key={networkId} className="global-search-network-subgroup">
+                          <div className={`global-search-network-heading ${networkId}`}>
+                            {networkId === "ttc" ? "TTC Subway & LRT" : "GO/UP Rail"}
+                          </div>
+                          {networkResults.map((result) => {
+                            const keyboardIndex = nextResultButtonIndex++;
+                            return (
+                              <StationButton
+                                key={`${result.networkId}:${result.station.id}`}
+                                station={result.station}
+                                networkId={result.networkId}
+                                impactKinds={result.networkId === currentNetwork ? stationImpactKinds.get(result.station.id) ?? [] : []}
+                                selected={result.networkId === currentNetwork && selectedStationId === result.station.id}
+                                onSelect={chooseStation}
+                                buttonRef={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
+                                onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
+                                saved={false}
+                                pending={pendingSavedStationIds.has(result.station.id)}
+                                authenticated={authenticated}
+                                onToggleSaved={onToggleSavedStation}
+                                onRequestSignIn={onRequestSignIn}
+                                activeFilters={amenityFilters}
+                              />
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </section>
+                ) : null),
+    },
+    {
+      key: "commutes",
+      tier: "station",
+      first: savedCommuteResults[0] ? () => onOpenSavedCommute(savedCommuteResults[0].commute.id) : null,
+      render: () => (savedCommuteResults.length > 0 ? (
+                  <section className="global-search-group" aria-labelledby="global-search-commutes-heading">
+                    <div className="global-search-group-heading">
+                      <h3 id="global-search-commutes-heading">My Commutes</h3>
+                      <span>{savedCommuteResults.length}</span>
+                    </div>
+                    {savedCommuteResults.map(({ commute }) => {
+                      const keyboardIndex = nextResultButtonIndex++;
+                      return (
+                        <button
+                          key={commute.id}
+                          ref={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
+                          type="button"
+                          className="global-search-resource-result"
+                          onClick={() => onOpenSavedCommute(commute.id)}
+                          onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
+                        >
+                          <span className="global-search-resource-icon"><Navigation size={18} /></span>
+                          <span>
+                            <strong>{commute.label}</strong>
+                            <small>{commute.originStationName} to {commute.destinationStationName} · {commute.impact.statusLabel}</small>
+                          </span>
+                          <ChevronRight size={17} aria-hidden="true" />
+                        </button>
+                      );
+                    })}
+                  </section>
+                ) : null),
+    },
+    {
+      key: "impacts",
+      tier: "line",
+      first: impactGroups[0]?.results[0] ? () => chooseImpact(impactGroups[0].results[0].selection) : null,
+      render: () => (impactGroups.map((group) => (
+                  <section key={group.kind} className="global-search-group" aria-labelledby={`global-search-${group.kind}-heading`}>
+                    <div className="global-search-group-heading">
+                      <h3 id={`global-search-${group.kind}-heading`}>
+                        <ImpactTypeIcon kind={group.kind} size={14} />
+                        {group.label}
+                      </h3>
+                      <button type="button" onClick={() => chooseCategory(group.kind)}>View All</button>
+                    </div>
+                    {group.results.map((result) => {
+                      const keyboardIndex = nextResultButtonIndex++;
+                      return (
+                        <ImpactSearchButton
+                          key={`${result.selection.kind}-${result.selection.id}`}
+                          result={result}
+                          onSelect={chooseImpact}
+                          buttonRef={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
+                          onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
+                        />
+                      );
+                    })}
+                  </section>
+                ))),
+    },
+    {
+      key: "notices",
+      tier: "notice",
+      first: surfaceNoticeResults[0] ? () => onOpenSurfaceNotice(surfaceNoticeResults[0].notice) : null,
+      render: () => (surfaceNoticeResults.length > 0 ? (
+                  <section className="global-search-group" aria-labelledby="global-search-surface-heading">
+                    <div className="global-search-group-heading">
+                      <h3 id="global-search-surface-heading">{currentNetwork === "regional" ? "GO / UP Notices" : "Streetcar & Bus Notices"}</h3>
+                      <button type="button" onClick={() => onOpenDestination("surface-notices")}>View All</button>
+                    </div>
+                    {surfaceNoticeResults.map(({ notice }) => {
+                      const keyboardIndex = nextResultButtonIndex++;
+                      const routes = notice.routeIds.length > 0 ? `Route ${notice.routeIds.join(", ")}` : notice.routeType;
+                      return (
+                        <button
+                          key={notice.id}
+                          ref={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
+                          type="button"
+                          className="global-search-resource-result"
+                          onClick={() => onOpenSurfaceNotice(notice)}
+                          onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
+                        >
+                          <span className="global-search-resource-icon">
+                            {currentNetwork === "regional" ? <Megaphone size={18} /> : <Bus size={18} />}
+                          </span>
+                          <span>
+                            <strong>{notice.title}</strong>
+                            <small>{routes}{notice.location ? ` · ${notice.location}` : ""}</small>
+                          </span>
+                          <ChevronRight size={17} aria-hidden="true" />
+                        </button>
+                      );
+                    })}
+                  </section>
+                ) : null),
+    },
+  ];
+  const orderedResultGroups = orderSearchGroups(resultGroups.filter((group) => group.first));
+
   function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -677,22 +1089,14 @@ export function StationSearchPanel({
 
     if (event.key === "Enter" && query.trim()) {
       event.preventDefault();
-      if (surfaceStopResult && onOpenSurfaceStop) {
-        onOpenSurfaceStop(surfaceStopResult.stopCode);
+      // A typed stop or route number wins; then app destinations; then the first group on screen.
+      const [top] = orderedResultGroups;
+      if (top && (top.tier === "stop-number" || top.tier === "route-number")) {
+        top.first?.();
       } else if (destinationResults[0]) {
         onOpenDestination(destinationResults[0].view);
-      } else if (lineResults[0]) {
-        chooseLine(lineResults[0].line.id);
-      } else if (savedStationResults[0]) {
-        chooseStation(savedStationResults[0].station.id, savedStationResults[0].networkId);
-      } else if (otherStationResults[0]) {
-        chooseStation(otherStationResults[0].station.id, otherStationResults[0].networkId);
-      } else if (savedCommuteResults[0]) {
-        onOpenSavedCommute(savedCommuteResults[0].commute.id);
-      } else if (impactGroups[0]?.results[0]) {
-        chooseImpact(impactGroups[0].results[0].selection);
-      } else if (surfaceNoticeResults[0]) {
-        onOpenSurfaceNotice(surfaceNoticeResults[0].notice);
+      } else if (top) {
+        top.first?.();
       } else if (matchedCategories[0]) {
         chooseCategory(matchedCategories[0].kind);
       }
@@ -707,11 +1111,11 @@ export function StationSearchPanel({
   });
 
 
+
   const activeLineGroup = useMemo<NetworkStationLineGroup | undefined>(() => {
     return lineGroups.find((group) => group.line.id === expandedLineId) || lineGroups[0];
   }, [lineGroups, expandedLineId]);
 
-  let nextResultButtonIndex = 0;
 
   function handleResultKeyDown(index: number, event: KeyboardEvent<HTMLButtonElement>) {
     if (event.key === "Escape") {
@@ -1022,39 +1426,8 @@ export function StationSearchPanel({
 
         {query.trim() ? (
           <div className="station-search-results global-search-results" aria-label="Search results">
-            {surfaceStopResult || destinationResults.length > 0 || lineResults.length > 0 || stationResults.length > 0 || savedCommuteResults.length > 0 || impactGroups.length > 0 || surfaceNoticeResults.length > 0 || matchedCategories.length > 0 ? (
+            {destinationResults.length > 0 || matchedCategories.length > 0 || orderedResultGroups.length > 0 ? (
               <div className="station-search-results-list global-search-results-list">
-                {surfaceStopResult && onOpenSurfaceStop ? (
-                  <section className="global-search-group" aria-labelledby="global-search-stop-heading">
-                    <div className="global-search-group-heading">
-                      <h3 id="global-search-stop-heading">Stop Number</h3>
-                    </div>
-                    {(() => {
-                      const keyboardIndex = nextResultButtonIndex++;
-                      return (
-                        <button
-                          ref={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
-                          type="button"
-                          className="global-search-resource-result"
-                          data-surface-stop-result={surfaceStopResult.stopCode}
-                          onClick={() => onOpenSurfaceStop(surfaceStopResult.stopCode)}
-                          onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
-                        >
-                          <span className="global-search-resource-icon"><Bus size={18} /></span>
-                          <span>
-                            <strong>Stop {surfaceStopResult.stopCode}{surfaceStopResult.name ? ` · ${surfaceStopResult.name}` : ""}</strong>
-                            <small>
-                              {surfaceStopResult.routes.length > 0
-                                ? `Streetcar ${surfaceStopResult.routes.join(", ")} · Departures`
-                                : "TTC bus and streetcar departures"}
-                            </small>
-                          </span>
-                          <ChevronRight size={17} aria-hidden="true" />
-                        </button>
-                      );
-                    })()}
-                  </section>
-                ) : null}
                 {destinationResults.length > 0 ? (
                   <section className="global-search-group" aria-labelledby="global-search-destinations-heading">
                     <div className="global-search-group-heading">
@@ -1099,212 +1472,11 @@ export function StationSearchPanel({
                   </section>
                 ) : null}
 
-                {lineResults.length > 0 ? (
-                  <section className="global-search-group" aria-labelledby="global-search-lines-heading">
-                    <div className="global-search-group-heading">
-                      <h3 id="global-search-lines-heading">Lines</h3>
-                    </div>
-                    {lineResults.map((result) => {
-                      const keyboardIndex = nextResultButtonIndex++;
-                      return (
-                        <button
-                          key={result.line.id}
-                          ref={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
-                          type="button"
-                          className="global-search-resource-result"
-                          onClick={() => chooseLine(result.line.id)}
-                          onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
-                        >
-                          <span className="global-search-resource-icon global-search-resource-icon--standard">
-                            <TransitLineBadge
-                              lineId={result.line.id}
-                              lineNumber={result.line.number}
-                              lineName={result.line.name}
-                              size={28}
-                              decorative
-                            />
-                          </span>
-                          <span>
-                            <strong>{result.line.id.startsWith("regional-") ? result.line.number : `Line ${result.line.number}`} · {result.line.name}</strong>
-                            <small>{result.line.id.startsWith("regional-") ? "GO/UP Rail" : "TTC Subway & LRT"} · Browse stations</small>
-                          </span>
-                          <ChevronRight size={17} aria-hidden="true" />
-                        </button>
-                      );
-                    })}
-                  </section>
-                ) : null}
-
-                {savedStationResults.length > 0 ? (
-                  <section className="global-search-group" aria-labelledby="global-search-saved-stations-heading">
-                    <div className="global-search-group-heading">
-                      <h3 id="global-search-saved-stations-heading">Saved Stations</h3>
-                      <span>{savedStationResults.length}</span>
-                    </div>
-                    {networkResultOrder.map((networkId) => {
-                      const networkResults = savedStationResults.filter((result) => result.networkId === networkId);
-                      if (networkResults.length === 0) return null;
-                      return (
-                        <div key={networkId} className="global-search-network-subgroup">
-                          <div className={`global-search-network-heading ${networkId}`}>
-                            {networkId === "ttc" ? "TTC Subway & LRT" : "GO/UP Rail"}
-                          </div>
-                          {networkResults.map((result) => {
-                            const keyboardIndex = nextResultButtonIndex++;
-                            return (
-                              <StationButton
-                                key={`${result.networkId}:${result.station.id}`}
-                                station={result.station}
-                                networkId={result.networkId}
-                                impactKinds={result.networkId === currentNetwork ? stationImpactKinds.get(result.station.id) ?? [] : []}
-                                selected={result.networkId === currentNetwork && selectedStationId === result.station.id}
-                                onSelect={chooseStation}
-                                buttonRef={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
-                                onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
-                                saved
-                                pending={pendingSavedStationIds.has(result.station.id)}
-                                authenticated={authenticated}
-                                onToggleSaved={onToggleSavedStation}
-                                onRequestSignIn={onRequestSignIn}
-                                activeFilters={amenityFilters}
-                              />
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </section>
-                ) : null}
-
-                {otherStationResults.length > 0 ? (
-                  <section className="global-search-group" aria-labelledby="global-search-stations-heading">
-                    <div className="global-search-group-heading">
-                      <h3 id="global-search-stations-heading">Stations</h3>
-                      <span>{otherStationResults.length}</span>
-                    </div>
-                    {networkResultOrder.map((networkId) => {
-                      const networkResults = otherStationResults.filter((result) => result.networkId === networkId);
-                      if (networkResults.length === 0) return null;
-                      return (
-                        <div key={networkId} className="global-search-network-subgroup">
-                          <div className={`global-search-network-heading ${networkId}`}>
-                            {networkId === "ttc" ? "TTC Subway & LRT" : "GO/UP Rail"}
-                          </div>
-                          {networkResults.map((result) => {
-                            const keyboardIndex = nextResultButtonIndex++;
-                            return (
-                              <StationButton
-                                key={`${result.networkId}:${result.station.id}`}
-                                station={result.station}
-                                networkId={result.networkId}
-                                impactKinds={result.networkId === currentNetwork ? stationImpactKinds.get(result.station.id) ?? [] : []}
-                                selected={result.networkId === currentNetwork && selectedStationId === result.station.id}
-                                onSelect={chooseStation}
-                                buttonRef={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
-                                onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
-                                saved={false}
-                                pending={pendingSavedStationIds.has(result.station.id)}
-                                authenticated={authenticated}
-                                onToggleSaved={onToggleSavedStation}
-                                onRequestSignIn={onRequestSignIn}
-                                activeFilters={amenityFilters}
-                              />
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </section>
-                ) : null}
-
-                {savedCommuteResults.length > 0 ? (
-                  <section className="global-search-group" aria-labelledby="global-search-commutes-heading">
-                    <div className="global-search-group-heading">
-                      <h3 id="global-search-commutes-heading">My Commutes</h3>
-                      <span>{savedCommuteResults.length}</span>
-                    </div>
-                    {savedCommuteResults.map(({ commute }) => {
-                      const keyboardIndex = nextResultButtonIndex++;
-                      return (
-                        <button
-                          key={commute.id}
-                          ref={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
-                          type="button"
-                          className="global-search-resource-result"
-                          onClick={() => onOpenSavedCommute(commute.id)}
-                          onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
-                        >
-                          <span className="global-search-resource-icon"><Navigation size={18} /></span>
-                          <span>
-                            <strong>{commute.label}</strong>
-                            <small>{commute.originStationName} to {commute.destinationStationName} · {commute.impact.statusLabel}</small>
-                          </span>
-                          <ChevronRight size={17} aria-hidden="true" />
-                        </button>
-                      );
-                    })}
-                  </section>
-                ) : null}
-
-                {impactGroups.map((group) => (
-                  <section key={group.kind} className="global-search-group" aria-labelledby={`global-search-${group.kind}-heading`}>
-                    <div className="global-search-group-heading">
-                      <h3 id={`global-search-${group.kind}-heading`}>
-                        <ImpactTypeIcon kind={group.kind} size={14} />
-                        {group.label}
-                      </h3>
-                      <button type="button" onClick={() => chooseCategory(group.kind)}>View All</button>
-                    </div>
-                    {group.results.map((result) => {
-                      const keyboardIndex = nextResultButtonIndex++;
-                      return (
-                        <ImpactSearchButton
-                          key={`${result.selection.kind}-${result.selection.id}`}
-                          result={result}
-                          onSelect={chooseImpact}
-                          buttonRef={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
-                          onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
-                        />
-                      );
-                    })}
-                  </section>
-                ))}
-
-                {surfaceNoticeResults.length > 0 ? (
-                  <section className="global-search-group" aria-labelledby="global-search-surface-heading">
-                    <div className="global-search-group-heading">
-                      <h3 id="global-search-surface-heading">{currentNetwork === "regional" ? "GO / UP Notices" : "Streetcar & Bus Notices"}</h3>
-                      <button type="button" onClick={() => onOpenDestination("surface-notices")}>View All</button>
-                    </div>
-                    {surfaceNoticeResults.map(({ notice }) => {
-                      const keyboardIndex = nextResultButtonIndex++;
-                      const routes = notice.routeIds.length > 0 ? `Route ${notice.routeIds.join(", ")}` : notice.routeType;
-                      return (
-                        <button
-                          key={notice.id}
-                          ref={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
-                          type="button"
-                          className="global-search-resource-result"
-                          onClick={() => onOpenSurfaceNotice(notice)}
-                          onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
-                        >
-                          <span className="global-search-resource-icon">
-                            {currentNetwork === "regional" ? <Megaphone size={18} /> : <Bus size={18} />}
-                          </span>
-                          <span>
-                            <strong>{notice.title}</strong>
-                            <small>{routes}{notice.location ? ` · ${notice.location}` : ""}</small>
-                          </span>
-                          <ChevronRight size={17} aria-hidden="true" />
-                        </button>
-                      );
-                    })}
-                  </section>
-                ) : null}
+                {orderedResultGroups.map((group) => <Fragment key={group.key}>{group.render()}</Fragment>)}
               </div>
             ) : (
               <div className="station-search-empty" role="status">
-                No station, line, alert, saved item, or service notice matches.
+                No station, stop, route, line, alert, saved item, or service notice matches.
               </div>
             )}
           </div>

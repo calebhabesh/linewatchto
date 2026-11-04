@@ -173,3 +173,45 @@ export function searchSurfaceNotices(
     .sort((a, b) => a.score - b.score || b.notice.updatedAt.localeCompare(a.notice.updatedAt))
     .slice(0, limit);
 }
+
+/**
+ * Result groups in the search panel (plan 14, U2), in the order a rider
+ * means them: a typed route number, then a stop number, then stations, route
+ * names, stop names, lines and notices. A group's tier comes from its best
+ * match, so "504" puts the 504 King first (nearly every route number is also
+ * some stop's number), "7658" its stop, and "dufferin" its station.
+ */
+export type SearchGroupTier =
+  | "stop-number"
+  | "route-number"
+  | "station"
+  | "route-name"
+  | "stop-name"
+  | "line"
+  | "notice";
+
+const SEARCH_GROUP_TIER_ORDER: SearchGroupTier[] = [
+  "route-number",
+  "stop-number",
+  "station",
+  "route-name",
+  "stop-name",
+  "line",
+  "notice",
+];
+
+/** Stops and routes show this many rows before "Show All". */
+export const SEARCH_GROUP_LIMIT = 5;
+
+export function orderSearchGroups<T extends { tier: SearchGroupTier }>(groups: T[]): T[] {
+  return groups
+    .map((group, position) => ({ group, position }))
+    .sort((a, b) => SEARCH_GROUP_TIER_ORDER.indexOf(a.group.tier) - SEARCH_GROUP_TIER_ORDER.indexOf(b.group.tier) || a.position - b.position)
+    .map(({ group }) => group);
+}
+
+/** The rows a group shows and how many "Show All" adds. */
+export function capSearchGroup<T>(items: T[], expanded: boolean, limit = SEARCH_GROUP_LIMIT) {
+  const visible = expanded ? items : items.slice(0, limit);
+  return { visible, hiddenCount: items.length - visible.length };
+}

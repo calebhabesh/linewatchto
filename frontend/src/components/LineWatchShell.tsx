@@ -76,6 +76,8 @@ import type { SurfaceNoticeDetail } from "../app/surface-notice-data";
 import { cachedStreetcarCatalog, streetcarStopByCode } from "../app/geographic-surface-catalog";
 import { SurfaceStopPanel } from "./SurfaceStopPanel";
 import { GoBusStopPanel } from "./GoBusStopPanel";
+import { SurfaceRoutePanel } from "./SurfaceRoutePanel";
+import type { SurfaceSearchRoute } from "../app/surface-search";
 const SurfaceNoticesPanel = preloadablePanel(() => import("./SurfaceNoticesPanel").then((mod) => mod.SurfaceNoticesPanel));
 const TtcAnnouncementsPanel = preloadablePanel(() => import("./TtcAnnouncementsPanel").then((mod) => mod.TtcAnnouncementsPanel));
 const StationDetailPanel = preloadablePanel(() => import("./StationDetailPanel").then((mod) => mod.StationDetailPanel));
@@ -754,6 +756,22 @@ export function LineWatchShell({
       setSelectedSurfaceStop(null);
     }
   }, [activeView, selectedNetwork, selectedStationId, selectedSurfaceStop, selection]);
+  // A surface route opened from search (plan 14, U3): the stop panel's place
+  // and rules. A stop, a station, an alert or the other network closes it.
+  const [selectedSurfaceRoute, setSelectedSurfaceRoute] = useState<{ route: SurfaceSearchRoute; view: ActiveView } | null>(null);
+  const visibleSurfaceRoute = selectedSurfaceRoute?.view === activeView && selectedSurfaceRoute.route.network === selectedNetwork
+    ? selectedSurfaceRoute.route
+    : null;
+  useEffect(() => {
+    if (!selectedSurfaceRoute) return;
+    if (selectedStationId || selection || selectedSurfaceStop
+      || selectedNetwork !== selectedSurfaceRoute.route.network || selectedSurfaceRoute.view !== activeView) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedSurfaceRoute(null);
+    }
+  }, [activeView, selectedNetwork, selectedStationId, selectedSurfaceRoute, selectedSurfaceStop, selection]);
+  // A stop or route found on the other network opens once that network is shown.
+  const pendingSurfaceOpenRef = useRef<{ network: NetworkId; stopCode?: string; route?: SurfaceSearchRoute } | null>(null);
 
   const [desktopMapFocus, setDesktopMapFocus] = useState<{
     selection: NonNullable<ImpactSelection>;
@@ -1128,7 +1146,14 @@ export function LineWatchShell({
     [stationSummaries],
   );
 
-  const renderSurfaceStopPanel = () => selectedSurfaceStopCode && selectedNetwork === "regional" ? (
+  const renderSurfaceStopPanel = () => visibleSurfaceRoute && !selectedSurfaceStopCode ? (
+    <SurfaceRoutePanel
+      key={`route:${visibleSurfaceRoute.network}:${visibleSurfaceRoute.kind}:${visibleSurfaceRoute.route}`}
+      route={visibleSurfaceRoute}
+      onClose={() => setSelectedSurfaceRoute(null)}
+      reducedMotion={reducedMotion}
+    />
+  ) : selectedSurfaceStopCode && selectedNetwork === "regional" ? (
     <GoBusStopPanel
       key={`go:${selectedSurfaceStopCode}`}
       stopCode={selectedSurfaceStopCode}
@@ -1733,6 +1758,8 @@ export function LineWatchShell({
         ? crossNetworkStationSelectionRef.current
         : null;
       crossNetworkStationSelectionRef.current = null;
+      const pendingSurfaceOpen = pendingSurfaceOpenRef.current?.network === network ? pendingSurfaceOpenRef.current : null;
+      pendingSurfaceOpenRef.current = null;
       setClosedScreenAcknowledged(true);
       setClosedMapPeek(true);
       setIsClosedScreenExiting(false);
@@ -1741,6 +1768,8 @@ export function LineWatchShell({
       setSelection(null);
       setCommutePathPreview(null);
       setSelectedStationId(pendingStationSelection?.stationId ?? null);
+      setSelectedSurfaceStop(pendingSurfaceOpen?.stopCode ? { code: pendingSurfaceOpen.stopCode, view: "map", network } : null);
+      setSelectedSurfaceRoute(pendingSurfaceOpen?.route ? { route: pendingSurfaceOpen.route, view: "map" } : null);
       setVisibleStationResult(null);
       setStationSearchQuery("");
       if (!isMobile) {
@@ -1756,6 +1785,9 @@ export function LineWatchShell({
           activeView === "more"
         ) {
           // Keep active top-level rail section
+        } else if (pendingSurfaceOpen) {
+          // A stop or route from search opens over the Map View.
+          setActiveView("map");
         } else {
           setActiveView("status");
         }
@@ -2096,8 +2128,10 @@ export function LineWatchShell({
     handleSelectSurfaceStop(stopCode, "map");
   }, [handleSelectSurfaceStop, navigateToMapDrilldown]);
 
-  // A stop number from search ("9037") opens that stop's departures over the map.
-  const handleSearchOpenSurfaceStop = (stopCode: string) => {
+  // A stop or route from search opens over the Map View (plan 14, U3): a
+  // System Map switches to it, and the other network's stop or route
+  // switches network first, as a station does.
+  const closeSearchForSurfaceResult = () => {
     if (searchClosingTimeoutRef.current) {
       window.clearTimeout(searchClosingTimeoutRef.current);
       searchClosingTimeoutRef.current = null;
@@ -2107,8 +2141,39 @@ export function LineWatchShell({
     desktopSearchInputRef.current?.blur();
     suppressSearchReopenRef.current = true;
     searchSessionActiveRef.current = false;
+    if (mapViewPreference !== "geographic") setMapViewPreference("geographic");
+  };
+
+  const handleSearchOpenSurfaceStop = (stopCode: string, network: NetworkId = selectedNetwork) => {
+    closeSearchForSurfaceResult();
     navigateToMapDrilldown();
+    if (network !== selectedNetwork) {
+      pushBrowserNavigationEntry();
+      pendingSurfaceOpenRef.current = { network, stopCode };
+      recordPwaInstallEngagement();
+      handleNetworkChange(network);
+      return;
+    }
+    setSelectedSurfaceRoute(null);
     handleSelectSurfaceStop(stopCode, "map");
+  };
+
+  const handleSearchOpenSurfaceRoute = (route: SurfaceSearchRoute) => {
+    closeSearchForSurfaceResult();
+    navigateToMapDrilldown();
+    if (route.network !== selectedNetwork) {
+      pushBrowserNavigationEntry();
+      pendingSurfaceOpenRef.current = { network: route.network, route };
+      recordPwaInstallEngagement();
+      handleNetworkChange(route.network);
+      return;
+    }
+    if (selectedStationId) navSelectStationId(null);
+    setSelection(null);
+    setSelectedSurfaceStop(null);
+    setSelectedSurfaceRoute({ route, view: "map" });
+    if (!isMobile && desktopSidebarCollapsed) setDesktopSidebarCollapsed(false);
+    recordPwaInstallEngagement();
   };
 
   const handleSearchOpenImpactCategory = useCallback((kind: ImpactKind) => {
@@ -2904,7 +2969,7 @@ export function LineWatchShell({
 
   const renderDesktopSidebarContent = () => {
     const renderDesktopActivePanel = () => {
-      if (selectedSurfaceStopCode && !selectedStationId) {
+      if ((selectedSurfaceStopCode || visibleSurfaceRoute) && !selectedStationId) {
         return renderSurfaceStopPanel();
       }
       if (selectedStationId) {
@@ -3000,6 +3065,7 @@ export function LineWatchShell({
             }}
             onOpenSurfaceNotice={handleSearchOpenSurfaceNotice}
             onOpenSurfaceStop={handleSearchOpenSurfaceStop}
+            onOpenSurfaceRoute={handleSearchOpenSurfaceRoute}
           />
         );
       }
@@ -3400,6 +3466,7 @@ export function LineWatchShell({
             }}
             onOpenSurfaceNotice={handleSearchOpenSurfaceNotice}
             onOpenSurfaceStop={handleSearchOpenSurfaceStop}
+            onOpenSurfaceRoute={handleSearchOpenSurfaceRoute}
           />
         </div>
         )}

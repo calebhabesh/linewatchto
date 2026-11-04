@@ -489,3 +489,21 @@
 .surface-bay-header.is-compact .surface-bay-sign-number {
   font-size: 13px;
 }
+
+/* Route panel from search (plan 14, U3). */
+.surface-route-panel-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.surface-route-panel-summary p {
+  color: rgb(71, 85, 105);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.dark .surface-route-panel-summary p {
+  color: rgb(148, 163, 184);
+}

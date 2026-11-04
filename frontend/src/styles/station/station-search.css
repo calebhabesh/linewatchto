@@ -1664,3 +1664,136 @@
   }
 
 }
+
+/* Stop and route results (plan 14, U3). */
+.surface-search-stop-code,
+.surface-search-stop-count {
+  display: inline-flex;
+  min-width: 30px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1.5px solid #da291c;
+  border-radius: 5px;
+  padding: 0 4px;
+  color: rgb(15, 23, 42);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.surface-search-stop-code.is-regional,
+.surface-search-stop-count.is-regional {
+  border-color: #00853e;
+}
+
+.dark .surface-search-stop-code,
+.dark .surface-search-stop-count {
+  color: white;
+}
+
+/* The badge column is wider than the icon column: stop numbers run to five digits. */
+.surface-search-stop-result {
+  grid-template-columns: minmax(30px, auto) minmax(0, 1fr) 18px;
+}
+
+.surface-search-route-badges {
+  display: flex;
+  min-height: 16px;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.surface-search-route-badge {
+  display: inline-flex;
+  min-width: 24px;
+  height: 16px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 0 3px;
+  font-size: 9.5px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.surface-search-route-badge.is-large {
+  min-width: 30px;
+  height: 24px;
+  border-radius: 5px;
+  font-size: 11px;
+}
+
+.surface-search-route-more {
+  color: rgb(71, 85, 105);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.dark .surface-search-route-more {
+  color: rgb(148, 163, 184);
+}
+
+.surface-search-stop-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.surface-search-expand-icon {
+  transition: transform 160ms ease;
+}
+
+[aria-expanded="true"] > .surface-search-expand-icon {
+  transform: rotate(180deg);
+}
+
+.surface-search-poles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-left: 2px solid rgba(100, 116, 139, 0.25);
+  margin-left: 14px;
+  padding-left: 8px;
+}
+
+.surface-search-stop-result.is-pole {
+  min-height: 42px;
+}
+
+.global-search-show-all {
+  min-height: 36px;
+  border-radius: 8px;
+  color: rgb(37, 99, 235);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.global-search-show-all:hover,
+.global-search-show-all:focus-visible {
+  background: rgba(37, 99, 235, 0.1);
+  outline: none;
+}
+
+.dark .global-search-show-all {
+  color: rgb(147, 197, 253);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface-search-expand-icon {
+    transition: none;
+  }
+}
+
+/* A pole's name ends in its side of the street ("… East Side"): wrap, never cut it. */
+.surface-search-stop-result strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+}
