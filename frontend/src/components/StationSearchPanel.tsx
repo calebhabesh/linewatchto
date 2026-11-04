@@ -16,6 +16,8 @@ import {
 } from "../app/surface-search";
 import { useSurfaceSearchIndexes } from "../hooks/useSurfaceSearchIndexes";
 import { SurfaceRouteResult, SurfaceStopGroupResult, type ResultKeyboard } from "./SurfaceSearchResults";
+import { StopsNearMe } from "./StopsNearMe";
+import { searchPlaceStore } from "../app/search-return";
 import {
   IMPACT_SEARCH_CATEGORIES,
   matchImpactCategories,
@@ -426,6 +428,13 @@ function StationButton({
   );
 }
 
+/** The open panel's scroller: the results, or the empty box's list. One panel renders at a time. */
+function searchPanelScroller(): HTMLElement | null {
+  if (typeof document === "undefined") return null;
+  return document.getElementById("station-search-panel")
+    ?.querySelector<HTMLElement>(".station-search-results, .station-search-lines-column") ?? null;
+}
+
 export function StationSearchPanel({
   open,
   isClosing = false,
@@ -584,12 +593,40 @@ export function StationSearchPanel({
   const stationsColumnRef = useRef<HTMLDivElement>(null);
 
   const resultButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const quickButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const lineTriggerRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const stationButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const mobileInputRef = useRef<HTMLInputElement>(null);
   const lastExpandedLineIdRef = useRef<string | null>(null);
 
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+
+  // Back to search (plan 14, U7): once shown with the saved query, put back
+  // its expanded groups, then its scroll and focused row after they render.
+  const searchShown = open && !isClosing;
+  useEffect(() => {
+    if (!searchShown) return;
+    const place = searchPlaceStore.pendingRestore(query);
+    if (!place) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (place.expansion) setExpandedSurfaceGroups(place.expansion);
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        searchPlaceStore.finishRestore();
+        const scroller = searchPanelScroller();
+        if (!scroller) return;
+        scroller.scrollTop = place.scrollTop;
+        if (place.focusIndex !== null) {
+          scroller.querySelectorAll("button")[place.focusIndex]?.focus({ preventScroll: true });
+        }
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+    };
+  }, [query, searchShown]);
 
   useEffect(() => {
     if (!open || !surfaceSearchEnabled || surfaceNoticesRequestedNetworkRef.current === currentNetwork) return;
@@ -663,6 +700,8 @@ export function StationSearchPanel({
       return; // Do not auto-focus on mobile to prevent automatic keyboard popup
     }
 
+    // Back to search puts focus back on the row that was opened instead.
+    if (searchPlaceStore.pendingRestore(query)?.focusIndex != null) return;
     const targetInput = inputRef.current;
     const focusTimer = window.setTimeout(() => targetInput?.focus(), 60);
     return () => window.clearTimeout(focusTimer);
@@ -699,8 +738,34 @@ export function StationSearchPanel({
 
   let nextResultButtonIndex = 0;
 
+  // Back from a stop or route (plan 14, U7) returns to this place: the
+  // query, its expanded groups, the scroll and the focused row.
+  function searchScroller() {
+    return searchPanelScroller();
+  }
+  function rememberSearchPlace() {
+    const scroller = searchScroller();
+    const active = typeof document !== "undefined" ? document.activeElement : null;
+    const focusIndex = scroller && active instanceof HTMLButtonElement && scroller.contains(active)
+      ? Array.from(scroller.querySelectorAll("button")).indexOf(active)
+      : -1;
+    searchPlaceStore.save({
+      query,
+      scrollTop: scroller?.scrollTop ?? 0,
+      expansion: query.trim() ? surfaceExpansion : null,
+      focusIndex: focusIndex >= 0 ? focusIndex : null,
+    });
+  }
+  function openStopFromSearch(code: string, network?: NetworkId, position?: { lon: number; lat: number }) {
+    rememberSearchPlace();
+    onOpenSurfaceStop?.(code, network, position);
+  }
+  function openRouteFromSearch(route: SurfaceSearchRoute) {
+    rememberSearchPlace();
+    onOpenSurfaceRoute?.(route);
+  }
   function openSurfaceStop(stop: SurfaceSearchStop) {
-    onOpenSurfaceStop?.(stop.code, stop.network, { lon: stop.lon, lat: stop.lat });
+    openStopFromSearch(stop.code, stop.network, { lon: stop.lon, lat: stop.lat });
   }
 
   const resultKeyboard: ResultKeyboard = () => {
@@ -708,6 +773,16 @@ export function StationSearchPanel({
     return {
       ref: (element) => { resultButtonRefs.current[keyboardIndex] = element; },
       onKeyDown: (event) => handleResultKeyDown(keyboardIndex, event),
+    };
+  };
+
+  // Stops Near Me and Recent Stops (plan 14, U6): the empty box's first rows.
+  let nextQuickButtonIndex = 0;
+  const quickKeyboard: ResultKeyboard = () => {
+    const keyboardIndex = nextQuickButtonIndex++;
+    return {
+      ref: (element) => { quickButtonRefs.current[keyboardIndex] = element; },
+      onKeyDown: (event) => handleQuickKeyDown(keyboardIndex, event),
     };
   };
 
@@ -724,7 +799,7 @@ export function StationSearchPanel({
           type="button"
           className="global-search-resource-result"
           data-surface-stop-result={surfaceStopResult.stopCode}
-          onClick={() => onOpenSurfaceStop(surfaceStopResult.stopCode, "ttc")}
+          onClick={() => openStopFromSearch(surfaceStopResult.stopCode, "ttc")}
           onKeyDown={onKeyDown}
         >
           <span className="global-search-resource-icon"><Bus size={18} /></span>
@@ -801,7 +876,7 @@ export function StationSearchPanel({
               <SurfaceRouteResult
                 key={`${result.route.network}:${result.route.kind}:${result.route.route}`}
                 route={result.route}
-                onOpen={onOpenSurfaceRoute}
+                onOpen={openRouteFromSearch}
                 keyboard={resultKeyboard}
               />
             ))}
@@ -825,14 +900,14 @@ export function StationSearchPanel({
       key: "surface-stops",
       tier: surfaceStopSearch.exactNumber || surfaceStopResult ? "stop-number" : "stop-name",
       first: surfaceStopResult && onOpenSurfaceStop
-        ? () => onOpenSurfaceStop(surfaceStopResult.stopCode, "ttc")
+        ? () => openStopFromSearch(surfaceStopResult.stopCode, "ttc")
         : surfaceStopSearch.groups[0] ? () => openSurfaceStop(surfaceStopSearch.groups[0].stops[0]) : null,
       render: renderSurfaceStops,
     },
     {
       key: "surface-routes",
       tier: surfaceRouteResults[0]?.match === "exact-number" ? "route-number" : "route-name",
-      first: surfaceRouteResults[0] && onOpenSurfaceRoute ? () => onOpenSurfaceRoute(surfaceRouteResults[0].route) : null,
+      first: surfaceRouteResults[0] && onOpenSurfaceRoute ? () => openRouteFromSearch(surfaceRouteResults[0].route) : null,
       render: renderSurfaceRoutes,
     },
     {
@@ -1081,6 +1156,8 @@ export function StationSearchPanel({
       event.preventDefault();
       if (query.trim()) {
         focusItem(resultButtonRefs, 0);
+      } else if (quickButtonRefs.current.some(Boolean)) {
+        focusItem(quickButtonRefs, 0);
       } else {
         focusItem(lineTriggerRefs, 0);
       }
@@ -1139,6 +1216,27 @@ export function StationSearchPanel({
     }
   }
 
+  function handleQuickKeyDown(index: number, event: KeyboardEvent<HTMLButtonElement>) {
+    const quick = quickButtonRefs.current.filter((button): button is HTMLButtonElement => Boolean(button));
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onClose();
+      onClosedFocusTarget?.();
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (index + 1 < quick.length) quick[index + 1].focus();
+      else focusItem(lineTriggerRefs, 0);
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (index === 0) inputRef.current?.focus();
+      else quick[index - 1]?.focus();
+    }
+  }
+
   function handleLineTriggerKeyDown(index: number, event: KeyboardEvent<HTMLButtonElement>) {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -1153,10 +1251,13 @@ export function StationSearchPanel({
     }
     if (event.key === "ArrowUp") {
       event.preventDefault();
-      if (index === 0) {
-        inputRef.current?.focus();
-      } else {
+      const quick = quickButtonRefs.current.filter((button): button is HTMLButtonElement => Boolean(button));
+      if (index > 0) {
         focusItem(lineTriggerRefs, index - 1);
+      } else if (quick.length > 0) {
+        quick[quick.length - 1].focus();
+      } else {
+        inputRef.current?.focus();
       }
       return;
     }
@@ -1483,6 +1584,14 @@ export function StationSearchPanel({
         ) : (
           <div className="station-search-browse-container" aria-label="Browse stations by line">
             <div className="station-search-lines-column" aria-hidden={isExpanded ? "true" : undefined}>
+              {onOpenSurfaceStop ? (
+                <StopsNearMe
+                  indexes={surfaceIndexes}
+                  keyboard={quickKeyboard}
+                  routeLookup={surfaceRouteLookup}
+                  onOpenStop={openStopFromSearch}
+                />
+              ) : null}
               <div className="global-search-browse-alerts" aria-label="Browse alert categories">
                 <span>Browse Alerts</span>
                 <div>

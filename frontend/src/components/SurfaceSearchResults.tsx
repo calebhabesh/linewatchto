@@ -39,7 +39,7 @@ export function surfaceRouteKindLabel(route: Pick<SurfaceSearchRoute, "kind" | "
 
 const MAX_STOP_ROUTE_BADGES = 6;
 
-function RouteBadges({ stop, routes, routeLookup }: {
+export function RouteBadges({ stop, routes, routeLookup }: {
   stop: Pick<SurfaceSearchStop, "network">;
   routes: string[];
   routeLookup: (network: NetworkId, route: string) => SurfaceSearchRoute | null;
@@ -65,7 +65,7 @@ function RouteBadges({ stop, routes, routeLookup }: {
   );
 }
 
-function StopCode({ stop }: { stop: Pick<SurfaceSearchStop, "code" | "network"> }) {
+export function StopCode({ stop }: { stop: Pick<SurfaceSearchStop, "code" | "network"> }) {
   return <span className={`surface-search-stop-code is-${stop.network}`} aria-hidden="true">{stop.code}</span>;
 }
 

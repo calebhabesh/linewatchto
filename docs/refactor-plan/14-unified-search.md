@@ -64,8 +64,8 @@ plan reads.
 | U3 | Stop and route results in search | Done (2026-11-04) |
 | U4 | Selection on the Map View (stops, routes) | Done (2026-11-04) |
 | U5 | Route panel | Done (2026-11-04) |
-| U6 | Stops Near Me and recent stops | Not started |
-| U7 | Phone flow and stop links | Not started |
+| U6 | Stops Near Me and recent stops | Done (2026-11-04) |
+| U7 | Phone flow and stop links | Done (2026-11-04) |
 | U8 | Coverage and close | Not started |
 
 ### U0 — Invariants and privacy copy
@@ -481,6 +481,94 @@ Done (2026-11-04):
 - Works on both networks. Stops from both are listed together and marked by
   network.
 
+Done (2026-11-04):
+
+- The empty search box (both search panels) starts with a Stops Near Me row,
+  then Recent Stops, then Browse Alerts and the lines as before
+  (`StopsNearMe.tsx`). Arrow keys run from the box through these rows into
+  the lines and back.
+- Logic (`src/app/stops-near-me.ts`):
+  - One `getCurrentPosition` per tap (high accuracy, 10 s timeout,
+    `maximumAge: 0`). Nothing is asked for on load or when search opens.
+  - `nearestStops` scans both loaded indexes (bounding box first, then
+    distance): up to 8 stops within 500 m, nearest first, both networks in one
+    list. With none, `findStopsNearMe` widens once to 1 km.
+  - The position is used inside the callback and dropped. The store keeps the
+    stops picked, their distances and the fix's accuracy radius, never the
+    coordinates (a unit test checks the snapshot). Nothing is written to
+    storage.
+  - States: asking, denied (how to allow it; search still works), no fix
+    (timeout or unavailable), unsupported browser, stop list not downloaded,
+    nothing within 1 km, widened to 1 km, and low accuracy (radius over
+    150 m, said with the radius).
+  - A list expires after 5 minutes and the row comes back. Tapping again
+    updates it.
+- Departures: the nearest 3 request theirs at once; each row shows the next
+  two times with the route badge and the live or schedule icon (the screen
+  reader name says "live estimate" or "scheduled"). Past an hour, a time
+  shows the clock. A stop the source cannot answer (off, failed, unknown
+  number) shows no line and still opens. The rest request departures when
+  opened, through the stop panel as before.
+- **Request cap decision:** a stop asked for in the last minute is not asked
+  again, and at most 6 departure requests go out in any 2 minutes, however
+  often the rider taps. A rider who taps every few steps sends a handful of
+  requests. GO stops also sit under the backend's per-minute upstream budget.
+- Other network: each row shows its stop badge (red edge TTC, green GO) and a
+  TTC or GO label. Opening the other network's stop switches network, as U3
+  does.
+- Recent Stops (`src/app/recent-stops.ts`): the last 5 stops opened from
+  anywhere (map, search, route panel, station bay), newest first, in
+  `linewatch-recent-stops-v1`. Only `{ network, code }` is stored. Every
+  read and write is in try/catch; a blocked, full or corrupt store reads
+  as empty, and a failed write keeps the list for the page. Names and routes
+  come from the search index; before it loads a row reads "Stop 1234".
+- **Route panel decision:** U6 feeds the U5 seam. The prop is now
+  `nearbyStopCodes` (the Near Me list on the route's network, nearest first)
+  instead of one code, so each direction and branch marks its own nearest
+  pole: the first listed code that branch serves. The list is every stop
+  within the radius up to 8, so that stop is the branch's nearest. Nothing is
+  marked without a showing list, and the panel never asks for location.
+- The privacy copy from U0 already matched; it is unchanged.
+- Production build, desktop, 4× CPU, two runs each, index loaded: tapping
+  Stops Near Me with a position showed long tasks of 50–62 ms, and the denied
+  tap (no scan) 50–63 ms. That is the panel render; the scan adds no long
+  task. Unthrottled, the scan over both indexes at 1 km takes 0.09 ms.
+- Checked on the dev server at 360 and 1440 px, light and dark: the empty box
+  with Recent Stops, asking, a list with times, denied (TTC and GO tabs),
+  nothing within 1 km, low accuracy, and a GO stop listed from the GO tab
+  with TTC poles. No horizontal overflow and no page errors.
+- Tests: `stops-near-me.test.mjs` (18 cases: nearest order and radius on the
+  shipped index, both networks, widening, nothing nearby, distance and time
+  labels, the request cap, previews keep live or scheduled, store states,
+  position options, no position kept, no repeat requests on a second tap, a
+  late fix ignored, expiry) and `recent-stops.test.mjs` (5 cases: order and
+  limit, only numbers and networks stored, missing, corrupt, foreign and
+  throwing storage, memory fallback). `stops-near-me.spec.ts` with
+  Playwright geolocation, desktop-chrome and mobile-chromium: granted (stop
+  100 with labelled times, 3 departure reads and none more on a second tap,
+  open, Recent Stops after reload with only `{ network, code }` stored),
+  GO 00008 listed with TTC poles and opening it switches network, the 29's
+  route panel marks 2034 (desktop), denied with no permission (message, then
+  "100" still finds the stop), and nothing within 1 km.
+- Checks: test:fast 2,261 passed, typecheck, lint (0 errors; the 16 existing
+  warnings), build. Smoke on desktop-chrome and mobile-chromium:
+  `stops-near-me` 9 passed (1 phone skip); `surface-stop`, `surface-buses`,
+  `go-buses`, `night-routes`, `search-close-*`, `mobile-app-layout` and
+  `account-view-transitions` passed. Failing, and not from U6:
+  `desktop-search-entry` ("Back to More", known). `sidebar-list-scroll`:
+  station browsing passes once service workers are blocked (its `page.route`
+  data is read through the service worker); the regional line impacts test
+  still fails on its notice count in the Status panel, which U6 does not
+  touch.
+- Not done:
+  - Opening a listed stop requests its departures again (the stop panel's own
+    read) instead of reusing the preview.
+  - The previews are not refreshed while the list shows; times count down
+    from the read and past times drop off. Tapping again refreshes them,
+    within the cap.
+  - Phone flow back to the list after opening a stop is U7. The list stays
+    while search is closed, until it expires.
+
 ### U7 — Phone flow and stop links
 
 - On phones, opening a result closes search and shows the stop sheet over the
@@ -490,6 +578,75 @@ Done (2026-11-04):
   navigation handling before adding the parameter.
 - Inspect at 360 and 1440 px in both themes. Test with the keyboard, a screen
   reader name on each row, and no overlap with the iOS top chrome.
+
+Done (2026-11-04):
+
+- **Back to search.** A stop or route opened from search (results, typed
+  number, Enter, Stops Near Me, Recent Stops) shows a first row, "← Back to
+  Search, Results for “dufferin”" (empty box: "Stops Near Me and Recent
+  Stops"; screen reader name "Back to search results for dufferin"). It
+  returns to search with the query, Show All and expanded corners, the
+  scroll position and focus on the row that was opened. The search panel
+  saves that place as a result opens (`searchPlaceStore`,
+  `src/app/search-return.ts`) and restores it once, only for that query.
+  Desktop gets the same row; its input no longer takes focus over the
+  restored row.
+- **Browser and phone Back.** Each step adds one history entry: search →
+  route → stop. `useNavigationTransitions` gained an `onBrowserBack` hook,
+  which the shell answers while a surface panel holds entries
+  (`surfaceBackStep`): stop → its route (U5's place kept) → search. The
+  in-app Back rows take their entry back, and closing a stop or route takes
+  all of them, so Back never lands on a dead state. The installed iOS app
+  has no system Back, so the rows are the phone path there.
+- **Decision, other network:** Back to search keeps the network the result
+  switched to. The query comes back; results reorder (current network
+  first), so the scroll is restored to the same offset, not the same row.
+- **Stop links (decision):** `?stop=7658` opens a TTC stop and
+  `?network=regional&stop=00008` a GO stop, following the existing
+  `network` + `station` form (`src/app/surface-stop-link.ts`,
+  `parseNavigationDeepLinks().stopDeepLink`). A GO number may drop its
+  leading zeros. Impact, station and line links come first; a stop link
+  beats `panel=`. The link waits for its network (the stored default
+  network can land after it), switches a System Map to the Map View as U3
+  does, and never asks for location. While a stop is open the address is its
+  link (`replaceState`, history state kept), so a reload, Share or Add to
+  Home Screen keeps it; closing the stop takes `stop` off. An unknown number
+  opens the panel's "not in the … stop list"; a value that is not 1–8 digits
+  says the same without a request and is not added to Recent Stops.
+- Checked on the dev server at 360 and 1440 px, light and dark: dufferin →
+  Show All → stop 983 → Back (row and browser), 29 → stop 2034 → Back →
+  Back to search, the empty box's Near Me and recent rows, and a GO link. At
+  360 px with `--mobile-safe-top` forced to 48 px (iOS standalone plus blur
+  depth), the top bar sits at 54 px and the sheets stay at the bottom; no
+  horizontal overflow, no page errors. Keyboard: Enter opens the top result,
+  the Back row is reachable and named, Enter on it returns focus to the
+  input (or to the row, when the row was opened).
+- Tests: `surface-stop-link.test.mjs` (10 cases: TTC and GO forms, leading
+  zeros, malformed and empty values, address write and removal, deep-link
+  precedence, back steps, the place store's once-only restore, Back
+  labels). `search-back-and-stop-links.spec.ts` on desktop-chrome and
+  mobile-chromium (12 passed): results → stop → Back row and browser Back
+  with query, scroll and focus kept, close leaves search closed; route →
+  stop → Back → Back to search; Near Me and Recent Stops rows → Back;
+  `?stop=100` (departures, Map View, no location call, survives reload,
+  close removes it); `?network=regional&stop=8`; `?stop=424242` and a
+  malformed value with no request. `surface-stop.spec.ts`'s station-link
+  locator now skips the Back row.
+- Checks: test:fast 2,271 passed, typecheck, lint (0 errors; the 16 existing
+  warnings), build. Smoke on desktop-chrome and mobile-chromium passed:
+  `search-back-and-stop-links`, `surface-stop`, `stops-near-me`, `go-buses`,
+  `surface-buses`, `night-routes`, `search-close-*`, `mobile-app-layout`,
+  `account-view-transitions`, `desktop-more-navigation`. Failing, not from
+  U7: `desktop-search-entry` and `sidebar-list-scroll` (known);
+  `impact-navigation` phone tests fail on the impact card's arrow colour
+  before any Back; `offline-dashboard` fails on desktop-chrome only, and its
+  script runs it on mobile-chromium, where it passes. `dashboard.spec.ts:860`
+  failed once in the full run and passed alone.
+- Not done:
+  - No Share button on the stop panel; the browser's Share uses the address.
+  - Route panels have no link (only stops do).
+  - The phone sheet still opens at its saved height (U5 note).
+  - Opening a notice from a route panel still does not come back to it (U5).
 
 ### U8 — Coverage and close
 

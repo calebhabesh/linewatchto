@@ -15,7 +15,8 @@ import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-noti
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { StationDetailHeader } from "./StationDetailHeader";
-import { SurfaceRouteBackLink, type SurfaceRouteBack } from "./SurfaceRoutePanel";
+import { SurfaceRouteBackLink, SurfaceSearchBackLink, type SurfaceRouteBack, type SurfaceSearchBack } from "./SurfaceRoutePanel";
+import { isWellFormedStopCode } from "../app/surface-stop-link";
 import { SurfaceRouteCard } from "./SurfaceConnectionsSection";
 import { ttcRouteBadgeStyle } from "../app/ttc-route-badge";
 
@@ -31,6 +32,8 @@ type Props = {
   reducedMotion: boolean;
   /** Set when the stop was opened from a route panel (plan 14, U5). */
   routeBack?: SurfaceRouteBack | null;
+  /** Set when the stop was opened from search (U7); a route's Back comes first. */
+  searchBack?: SurfaceSearchBack | null;
 };
 
 /**
@@ -47,6 +50,7 @@ export function SurfaceStopPanel({
   onClose,
   reducedMotion,
   routeBack = null,
+  searchBack = null,
 }: Props) {
   const [result, setResult] = useState<SurfaceStopResult | null>(null);
   // The stop whose departures are shown; a different stop is still loading.
@@ -59,6 +63,14 @@ export function SurfaceStopPanel({
   const { sheetRef, isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
 
   useEffect(() => {
+    if (!isWellFormedStopCode(stopCode)) {
+      // A stop link whose value cannot be a stop number (U7): say so without asking the server.
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setResult({ kind: "not-found", stopCode });
+      setLoadedStopCode(stopCode);
+      /* eslint-enable react-hooks/set-state-in-effect */
+      return;
+    }
     let active = true;
     let controller: AbortController | null = null;
     // Only the first read shows "Updating": a background refresh swaps the
@@ -150,7 +162,7 @@ export function SurfaceStopPanel({
       />
 
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-2 md:mt-3.5 pb-3 station-detail-scroll">
-        {routeBack ? <SurfaceRouteBackLink back={routeBack} /> : null}
+        {routeBack ? <SurfaceRouteBackLink back={routeBack} /> : searchBack ? <SurfaceSearchBackLink back={searchBack} /> : null}
         {data?.stationId && linkedStation && onOpenStation ? (
           <button type="button" className="surface-stop-station-link" onClick={() => onOpenStation(data.stationId as string)}>
             <span>

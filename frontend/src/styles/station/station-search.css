@@ -1797,3 +1797,135 @@
   -webkit-line-clamp: 2;
   white-space: normal;
 }
+
+/* Stops Near Me and Recent Stops in the empty search box (plan 14, U6). */
+.stops-near-me {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 4px 14px;
+}
+
+.stops-near-me::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: -16px;
+  height: 1px;
+  background: rgba(15, 23, 42, 0.1);
+  content: "";
+}
+
+.dark .stops-near-me::after {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.stops-near-me-status {
+  margin: 2px 2px 4px;
+  color: rgb(71, 85, 105);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.stops-near-me-status:empty {
+  display: none;
+}
+
+.stops-near-me-status[data-near-me-state="denied"],
+.stops-near-me-status[data-near-me-state="no-fix"],
+.stops-near-me-status[data-near-me-state="unsupported"],
+.stops-near-me-status[data-near-me-low-accuracy="true"] {
+  border-left: 3px solid #d97706;
+  padding-left: 7px;
+}
+
+.dark .stops-near-me-status {
+  color: rgb(203, 213, 225);
+}
+
+.stops-near-me-list,
+.stops-near-me-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stops-near-me-recent {
+  margin-top: 8px;
+}
+
+.stops-near-me-meta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+}
+
+.stops-near-me-network {
+  flex: 0 0 auto;
+  color: #b91c1c;
+  font-size: 9.5px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+}
+
+.stops-near-me-network.is-regional {
+  color: #00703c;
+}
+
+.dark .stops-near-me-network {
+  color: #fca5a5;
+}
+
+.dark .stops-near-me-network.is-regional {
+  color: #6ee7b7;
+}
+
+.stops-near-me-distance {
+  flex: 0 0 auto;
+  color: rgb(71, 85, 105);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.dark .stops-near-me-distance {
+  color: rgb(148, 163, 184);
+}
+
+.stops-near-me-departures {
+  display: flex;
+  min-height: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 10px;
+  color: rgb(15, 23, 42);
+  font-size: 10.5px;
+  font-weight: 850;
+}
+
+.stops-near-me-departures.is-loading {
+  color: rgb(100, 116, 139);
+  font-weight: 700;
+}
+
+.dark .stops-near-me-departures {
+  color: white;
+}
+
+.dark .stops-near-me-departures.is-loading {
+  color: rgb(148, 163, 184);
+}
+
+.stops-near-me-departure {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stops-near-me-minutes {
+  font-variant-numeric: tabular-nums;
+}

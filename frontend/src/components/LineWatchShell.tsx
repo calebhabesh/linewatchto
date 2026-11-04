@@ -77,7 +77,11 @@ import { cachedStreetcarCatalog, streetcarStopByCode } from "../app/geographic-s
 import { SurfaceStopPanel } from "./SurfaceStopPanel";
 import { GoBusStopPanel } from "./GoBusStopPanel";
 import { SurfaceRoutePanel, type SurfaceRoutePanelPlace } from "./SurfaceRoutePanel";
+import { recentStopsStore, useStopsNearMe } from "../hooks/useStopsNearMe";
+import { nearbyStopCodes } from "../app/stops-near-me";
 import type { SurfaceSearchRoute } from "../app/surface-search";
+import { searchPlaceStore, surfaceBackStep } from "../app/search-return";
+import { isWellFormedStopCode, searchWithStopLink, type SurfaceStopLink } from "../app/surface-stop-link";
 import { surfaceRouteSelection, type SurfaceMapSelection } from "../app/surface-map-selection";
 const SurfaceNoticesPanel = preloadablePanel(() => import("./SurfaceNoticesPanel").then((mod) => mod.SurfaceNoticesPanel));
 const TtcAnnouncementsPanel = preloadablePanel(() => import("./TtcAnnouncementsPanel").then((mod) => mod.TtcAnnouncementsPanel));
@@ -567,6 +571,7 @@ export function LineWatchShell({
     onNetworkChange: (networkId) => {
       handleNetworkChange(networkId);
     },
+    onBrowserBack: () => handleSurfaceBrowserBack(),
     onClearPersistedCommuteDraft: () => {
       setCommutesActiveTab("saved");
       setCommutesDraft(null);
@@ -751,6 +756,12 @@ export function LineWatchShell({
     : null;
   const setSelectedSurfaceStopCode = useCallback((code: null) => setSelectedSurfaceStop(code), []);
   useEffect(() => {
+    // Recent Stops (plan 14, U6): every stop opened, from the map, search, a route or a station bay.
+    if (selectedSurfaceStop && isWellFormedStopCode(selectedSurfaceStop.code)) {
+      recentStopsStore.record({ network: selectedSurfaceStop.network, code: selectedSurfaceStop.code });
+    }
+  }, [selectedSurfaceStop]);
+  useEffect(() => {
     if (!selectedSurfaceStop) return;
     if (selectedStationId || selection || selectedNetwork !== selectedSurfaceStop.network || selectedSurfaceStop.view !== activeView) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -828,6 +839,19 @@ export function LineWatchShell({
     : null;
   // A stop or route found on the other network opens once that network is shown.
   const pendingSurfaceOpenRef = useRef<{ network: NetworkId; stopCode?: string; route?: SurfaceSearchRoute } | null>(null);
+  // A stop or route opened from search (plan 14, U7): its Back row and the
+  // browser's Back return to search with the query, scroll and row kept
+  // (searchPlaceStore). Each step (search → route → stop) adds one history
+  // entry; this counts the ones still ours, so closing the panel takes them back.
+  const [surfaceSearchReturn, setSurfaceSearchReturn] = useState<{ query: string } | null>(null);
+  const surfaceHistoryDepthRef = useRef(0);
+  useEffect(() => {
+    if (selectedSurfaceStop || selectedSurfaceRoute || pendingSurfaceOpenRef.current) return;
+    // Nothing open any more, however it closed: this way back has ended.
+    surfaceHistoryDepthRef.current = 0;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (surfaceSearchReturn) setSurfaceSearchReturn(null);
+  }, [selectedSurfaceRoute, selectedSurfaceStop, surfaceSearchReturn]);
 
   const [desktopMapFocus, setDesktopMapFocus] = useState<{
     selection: NonNullable<ImpactSelection>;
@@ -1202,10 +1226,30 @@ export function LineWatchShell({
     [stationSummaries],
   );
 
+  // A route panel marks the stop nearest the rider while a Near Me list is showing (plan 14, U6).
+  const nearMe = useStopsNearMe();
   const routeShownOnMap = Boolean(visibleSurfaceRoute && surfaceMapSelection?.owner === "route" && shownSurfaceSelection?.route);
-  const handleSurfaceRouteBack = () => {
+  /** Takes back up to `count` of the surface panels' history entries (in-app Back or close). */
+  const consumeSurfaceHistory = (count: number) => {
+    const taken = Math.min(count, surfaceHistoryDepthRef.current);
+    if (taken <= 0) return;
+    surfaceHistoryDepthRef.current -= taken;
+    consumeBrowserNavigationEntries(taken);
+  };
+  /** Closing a stop or route panel closes the whole way back. */
+  const closeSurfacePanels = () => {
+    consumeSurfaceHistory(surfaceHistoryDepthRef.current);
+    setSelectedSurfaceStop(null);
+    setSelectedSurfaceRoute(null);
+    setSurfaceMapSelection(null);
+    setSurfaceRoutePlace(null);
+    setSurfaceRouteReturn(null);
+    setSurfaceSearchReturn(null);
+  };
+  const handleSurfaceRouteBack = (fromBrowser = false) => {
     const back = surfaceRouteBackFor;
     if (!back) return;
+    if (!fromBrowser) consumeSurfaceHistory(1);
     setSurfaceRouteReturn(null);
     setSelectedSurfaceStop(null);
     setSurfaceRoutePlace(back.place);
@@ -1214,26 +1258,63 @@ export function LineWatchShell({
     setSurfaceMapSelection(shown ? { selection: { stopCodes: [], route: shown }, owner: "route", view: "map", network: back.route.network } : null);
   };
   const surfaceStopRouteBack = surfaceRouteBackFor
-    ? { route: surfaceRouteBackFor.route.route, name: surfaceRouteBackFor.route.name, onBack: handleSurfaceRouteBack }
+    ? { route: surfaceRouteBackFor.route.route, name: surfaceRouteBackFor.route.name, onBack: () => handleSurfaceRouteBack() }
     : null;
+  const handleSurfaceSearchBack = (fromBrowser = false) => {
+    const back = surfaceSearchReturn;
+    if (!back) return;
+    if (!fromBrowser) consumeSurfaceHistory(1);
+    const place = searchPlaceStore.requestRestore();
+    setSurfaceSearchReturn(null);
+    setSelectedSurfaceStop(null);
+    setSelectedSurfaceRoute(null);
+    setSurfaceMapSelection(null);
+    setSurfaceRoutePlace(null);
+    setSurfaceRouteReturn(null);
+    setStationSearchQuery(place?.query ?? back.query);
+    if (!isMobile && desktopSidebarCollapsed) setDesktopSidebarCollapsed(false);
+    // Search opened the result as a drill-down from itself; step back to it.
+    restoreMapDrilldownOrigin();
+  };
+  const surfaceSearchBack = surfaceSearchReturn
+    ? { query: surfaceSearchReturn.query, onBack: () => handleSurfaceSearchBack() }
+    : null;
+  /** Browser or phone Back while a surface panel holds history entries. */
+  const handleSurfaceBrowserBack = (): boolean => {
+    if (surfaceHistoryDepthRef.current <= 0) return false;
+    const stopOpen = Boolean(selectedSurfaceStopCode);
+    const routeOpen = Boolean(visibleSurfaceRoute) && !stopOpen;
+    if (!stopOpen && !routeOpen) return false;
+    surfaceHistoryDepthRef.current -= 1;
+    const step = surfaceBackStep({
+      stopOpen,
+      routeOpen,
+      routeReturn: Boolean(surfaceRouteBackFor),
+      searchReturn: Boolean(surfaceSearchReturn),
+    });
+    if (step === "route") handleSurfaceRouteBack(true);
+    else if (step === "search") handleSurfaceSearchBack(true);
+    else closeSurfacePanels();
+    return true;
+  };
 
   const renderSurfaceStopPanel = () => visibleSurfaceRoute && !selectedSurfaceStopCode ? (
     <SurfaceRoutePanel
       key={`route:${visibleSurfaceRoute.network}:${visibleSurfaceRoute.kind}:${visibleSurfaceRoute.route}`}
       route={visibleSurfaceRoute}
-      onClose={() => {
-        setSelectedSurfaceRoute(null);
-        setSurfaceMapSelection(null);
-        setSurfaceRoutePlace(null);
-      }}
+      onClose={closeSurfacePanels}
       reducedMotion={reducedMotion}
       initialPlace={surfaceRoutePlace}
+      searchBack={surfaceSearchBack}
+      nearbyStopCodes={nearbyStopCodes(nearMe.state, visibleSurfaceRoute.network)}
       shownOnMap={routeShownOnMap}
       onToggleMap={(show) => {
         const shown = show ? surfaceRouteSelection(visibleSurfaceRoute) : null;
         showSurfaceSelectionOnMap(shown ? { stopCodes: [], route: shown } : null, "route");
       }}
       onOpenStop={(stopCode, place) => {
+        pushBrowserNavigationEntry();
+        surfaceHistoryDepthRef.current += 1;
         setSurfaceRouteReturn({ route: visibleSurfaceRoute, place, shownOnMap: routeShownOnMap, stopCode });
         setSurfaceRoutePlace(null);
         setSelectedSurfaceRoute(null);
@@ -1253,9 +1334,10 @@ export function LineWatchShell({
         const summary = cachedGoBusCatalog()?.routes.find((candidate) => candidate.route === route);
         return summary ? { color: summary.color, textColor: summary.textColor } : null;
       }}
-      onClose={() => setSelectedSurfaceStopCode(null)}
+      onClose={closeSurfacePanels}
       reducedMotion={reducedMotion}
       routeBack={surfaceStopRouteBack}
+      searchBack={surfaceSearchBack}
     />
   ) : selectedSurfaceStopCode ? (
     <SurfaceStopPanel
@@ -1271,9 +1353,10 @@ export function LineWatchShell({
         setStationInitialSection({ stationId, section: "surface-connections" });
         handleSelectStationId(stationId);
       }}
-      onClose={() => setSelectedSurfaceStopCode(null)}
+      onClose={closeSurfacePanels}
       reducedMotion={reducedMotion}
       routeBack={surfaceStopRouteBack}
+      searchBack={surfaceSearchBack}
     />
   ) : null;
 
@@ -1453,6 +1536,8 @@ export function LineWatchShell({
     selectedNetworkRef.current = selectedNetwork;
   }, [selectedNetwork]);
 
+  // A stop link waiting for its network (plan 14, U7).
+  const [pendingStopLink, setPendingStopLink] = useState<SurfaceStopLink | null>(null);
   const switchNetworkForDeepLink = useCallback((network: NetworkId) => {
     if (network === selectedNetworkRef.current) return;
     cancelNetworkTransition();
@@ -1511,6 +1596,9 @@ export function LineWatchShell({
         setDesktopSidebarCollapsed(false);
       }
       openLineImpacts(deepLink.lineDeepLink.lineId);
+    } else if (deepLink.stopDeepLink) {
+      // Opened once its network shows: the stored default network can land after the link.
+      setPendingStopLink(deepLink.stopDeepLink);
     } else if (deepLink.panelView) {
       if (!isMobile) {
         setDesktopSidebarCollapsed(false);
@@ -1522,6 +1610,40 @@ export function LineWatchShell({
       replaceBrowserSearchParams(nextParams);
     }
   }, [isMobile, navigateForward, openAccountDialog, openLineImpacts, setActiveView, setSelectedStationId, setStationPanelActivationKey, setSurfaceNoticeInitialContent, selectedStationIdRef, switchNetworkForDeepLink]);
+
+  // A stop link (plan 14, U7) opens that stop's departures on the Map View.
+  // It never asks for location; an unknown number says so in the stop panel.
+  useEffect(() => {
+    if (!pendingStopLink) return;
+    if (pendingStopLink.network !== selectedNetwork) {
+      switchNetworkForDeepLink(pendingStopLink.network);
+      return;
+    }
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setPendingStopLink(null);
+    setMapViewPreference("geographic");
+    setSelectedSurfaceRoute(null);
+    setSelectedSurfaceStop({ code: pendingStopLink.code, view: "map", network: pendingStopLink.network });
+    setStationSheetRatio(readStoredSheetHeightRatio(window.localStorage));
+    if (!isMobile) setDesktopSidebarCollapsed(false);
+    setActiveView("map");
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [isMobile, pendingStopLink, selectedNetwork, setActiveView, switchNetworkForDeepLink]);
+
+  // While a stop is open the address is its link, so Share and Add to Home
+  // Screen keep it; closing the stop takes the link off. The first run only
+  // records the starting state, so a launch link is not removed before it opens.
+  const linkedStopKey = selectedSurfaceStopCode ? `${selectedNetwork}:${selectedSurfaceStopCode}` : null;
+  const lastLinkedStopKeyRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    const previous = lastLinkedStopKeyRef.current;
+    lastLinkedStopKeyRef.current = linkedStopKey;
+    if (previous === undefined || previous === linkedStopKey) return;
+    const stop = selectedSurfaceStopCode ? { network: selectedNetwork, code: selectedSurfaceStopCode } : null;
+    const search = searchWithStopLink(window.location.search, stop);
+    if (search === window.location.search) return;
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}${search}${window.location.hash}`);
+  }, [linkedStopKey, selectedNetwork, selectedSurfaceStopCode]);
 
   const launchDeepLinkHandledRef = useRef(false);
   useEffect(() => {
@@ -2234,11 +2356,18 @@ export function LineWatchShell({
     if (mapViewPreference !== "geographic") setMapViewPreference("geographic");
   };
 
+  // One history entry per result opened, so Back returns to search (U7).
+  const beginSurfaceFromSearch = () => {
+    setSurfaceSearchReturn(activeView === "search" ? { query: stationSearchQuery } : null);
+    pushBrowserNavigationEntry();
+    surfaceHistoryDepthRef.current = 1;
+  };
+
   const handleSearchOpenSurfaceStop = (stopCode: string, network: NetworkId = selectedNetwork) => {
+    beginSurfaceFromSearch();
     closeSearchForSurfaceResult();
     navigateToMapDrilldown();
     if (network !== selectedNetwork) {
-      pushBrowserNavigationEntry();
       pendingSurfaceOpenRef.current = { network, stopCode };
       recordPwaInstallEngagement();
       handleNetworkChange(network);
@@ -2250,10 +2379,10 @@ export function LineWatchShell({
   };
 
   const handleSearchOpenSurfaceRoute = (route: SurfaceSearchRoute) => {
+    beginSurfaceFromSearch();
     closeSearchForSurfaceResult();
     navigateToMapDrilldown();
     if (route.network !== selectedNetwork) {
-      pushBrowserNavigationEntry();
       pendingSurfaceOpenRef.current = { network: route.network, route };
       recordPwaInstallEngagement();
       handleNetworkChange(route.network);

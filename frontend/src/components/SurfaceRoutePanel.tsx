@@ -20,6 +20,7 @@ import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { StationDetailHeader } from "./StationDetailHeader";
 import { surfaceRouteBadgeStyle, surfaceRouteKindLabel } from "./SurfaceSearchResults";
 import { ttcRouteBadgeColors } from "../app/ttc-route-badge";
+import { searchBackLabel } from "../app/search-return";
 
 /** Where the rider was in the panel, so Back from a stop returns there. */
 export type SurfaceRoutePanelPlace = {
@@ -40,9 +41,17 @@ type Props = {
   onToggleMap: (show: boolean) => void;
   shownOnMap: boolean;
   initialPlace?: SurfaceRoutePanelPlace | null;
-  /** The stop nearest the rider, once location is known (U6). Never requested here. */
-  nearestStopCode?: string | null;
+  /**
+   * Stops near the rider, nearest first, from a Stops Near Me list (U6). The
+   * first one on the shown branch is marked Nearest. Location is never
+   * requested here.
+   */
+  nearbyStopCodes?: readonly string[];
+  /** Set when the route was opened from search (U7): Back returns to the results. */
+  searchBack?: SurfaceSearchBack | null;
 };
+
+const NO_STOPS: readonly string[] = [];
 
 type StopsState =
   | { status: "loading" }
@@ -66,7 +75,8 @@ export function SurfaceRoutePanel({
   onToggleMap,
   shownOnMap,
   initialPlace = null,
-  nearestStopCode = null,
+  nearbyStopCodes = NO_STOPS,
+  searchBack = null,
 }: Props) {
   const [isClosing, setIsClosing] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
@@ -156,6 +166,8 @@ export function SurfaceRoutePanel({
   // The rail takes the badge's identity colour; a night badge's is its blue edge.
   const ttcBadge = route.network === "ttc" ? ttcRouteBadgeColors(route.route) : null;
   const railColor = ttcBadge ? ttcBadge.edge ?? ttcBadge.fill : route.color;
+  // Every listed nearby stop is at most 1 km away; the first one this branch serves is its nearest.
+  const nearestStopCode = branch ? nearbyStopCodes.find((code) => branch.stops.includes(code)) ?? null : null;
 
   return (
     <aside
@@ -178,6 +190,7 @@ export function SurfaceRoutePanel({
         closeLabel="Close route"
       />
       <div ref={scrollRef} className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-2 md:mt-3.5 pb-3 station-detail-scroll">
+        {searchBack ? <SurfaceSearchBackLink back={searchBack} /> : null}
         <div className="surface-route-panel-summary">
           <span className="surface-stop-route-badge" style={surfaceRouteBadgeStyle(route)} aria-hidden="true">{route.route}</span>
           <p>
@@ -269,7 +282,7 @@ export function SurfaceRoutePanel({
             <ol className="surface-route-stop-list" style={{ "--surface-route-color": railColor } as CSSProperties}>
               {branch.stops.map((code, at) => {
                 const name = stopName(code) ?? `Stop ${code}`;
-                const nearest = code === nearestStopCode;
+                const nearest = code === nearestStopCode && at === branch.stops.indexOf(code);
                 return (
                   <li key={`${code}:${at}`} data-nearest={nearest ? "true" : undefined}>
                     <button
@@ -315,6 +328,28 @@ export function SurfaceRouteBackLink({ back }: { back: SurfaceRouteBack }) {
       <span>
         <strong>{back.route} {back.name}</strong>
         <small>Back to all stops on this route</small>
+      </span>
+    </button>
+  );
+}
+
+export type SurfaceSearchBack = { query: string; onBack: () => void };
+
+/** A stop or route opened from search (plan 14, U7): back to the results, query and scroll kept. */
+export function SurfaceSearchBackLink({ back }: { back: SurfaceSearchBack }) {
+  const label = searchBackLabel(back.query);
+  return (
+    <button
+      type="button"
+      className="surface-stop-station-link surface-route-back-link"
+      onClick={back.onBack}
+      aria-label={label.ariaLabel}
+      data-search-back
+    >
+      <ArrowLeft size={16} aria-hidden="true" />
+      <span>
+        <strong>{label.title}</strong>
+        <small>{label.detail}</small>
       </span>
     </button>
   );

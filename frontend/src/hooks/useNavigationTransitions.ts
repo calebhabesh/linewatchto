@@ -56,6 +56,8 @@ export interface UseNavigationTransitionsOptions {
   onAnnounceDesktop?: (message: string) => void;
   onDesktopEscapeSearch?: () => void;
   isSearchFocused?: () => boolean;
+  /** Browser Back for state the shell owns (a surface stop or route panel); true when handled. */
+  onBrowserBack?: () => boolean;
   viewForImpactSelection: (selection: NonNullable<ImpactSelection>) => ActiveView;
 }
 
@@ -76,6 +78,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     onAnnounceDesktop: announceDesktop,
     onDesktopEscapeSearch,
     isSearchFocused,
+    onBrowserBack,
     viewForImpactSelection,
   } = options;
 
@@ -875,6 +878,8 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
       suppressedPopstateCountRef.current -= 1;
       return;
     }
+
+    if (!accountDialogOpen && onBrowserBack?.()) return;
 
     setNavDirection("back");
     onResetMapPresentation?.();

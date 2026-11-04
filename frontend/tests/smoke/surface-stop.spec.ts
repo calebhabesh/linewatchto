@@ -183,8 +183,8 @@ test.describe("Surface stop departures on the Map View", () => {
     await input.fill("14999");
     await input.press("Enter");
     const stop = page.locator("[data-surface-stop-panel='14999']");
-    await expect(stop.locator(".surface-stop-station-link")).toContainText("Stub Station");
-    await stop.locator(".surface-stop-station-link").click();
+    await expect(stop.locator(".surface-stop-station-link:not([data-search-back])")).toContainText("Stub Station");
+    await stop.locator(".surface-stop-station-link:not([data-search-back])").click();
 
     const station = page.getByRole("complementary", { name: "Stub Station station details" });
     const surface = station.locator('[data-station-section="surface-connections"]');

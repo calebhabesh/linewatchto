@@ -15,6 +15,7 @@ import {
   GOOGLE_LINK_SUCCESS_PARAM,
   GOOGLE_LINK_SUCCESS_VALUE,
 } from "../components/account-dialog-state.ts";
+import { parseSurfaceStopLink, type SurfaceStopLink } from "./surface-stop-link.ts";
 
 export type ActiveView =
   | "map"
@@ -353,6 +354,8 @@ export interface NavigationDeepLinkResult {
   impactSelection: ImpactSelection;
   stationDeepLink: { stationId: string; network: NetworkId } | null;
   lineDeepLink: { lineId: string; network: NetworkId } | null;
+  /** `?stop=` (plan 14, U7), when no impact, station or line link comes first. */
+  stopDeepLink: SurfaceStopLink | null;
   panelView: ActiveView | null;
   surfaceNoticeInitialContent?: "notices" | "trip-changes";
   cleanedParams: URLSearchParams;
@@ -429,7 +432,9 @@ export function parseNavigationDeepLinks(
   const resolvedLineDeepLink = resolveLineDeepLink(requestedLineParam);
 
   let lineDeepLink: { lineId: string; network: NetworkId } | null = null;
+  let stopDeepLink: SurfaceStopLink | null = null;
   let panelView: ActiveView | null = null;
+  const requestedStop = parseSurfaceStopLink(params);
 
   if (impactSelection) {
     if (panel) {
@@ -444,6 +449,13 @@ export function parseNavigationDeepLinks(
     nextParams.delete("lineId");
     if (panel) nextParams.delete("panel");
     shouldReplaceUrl = true;
+  } else if (requestedStop) {
+    // The link stays in the address while the stop is open.
+    stopDeepLink = requestedStop;
+    if (panel) {
+      nextParams.delete("panel");
+      shouldReplaceUrl = true;
+    }
   } else if (panel && panelToView[panel]) {
     panelView = panelToView[panel];
     nextParams.delete("panel");
@@ -457,6 +469,7 @@ export function parseNavigationDeepLinks(
     impactSelection,
     stationDeepLink,
     lineDeepLink,
+    stopDeepLink,
     panelView,
     surfaceNoticeInitialContent,
     cleanedParams: nextParams,
