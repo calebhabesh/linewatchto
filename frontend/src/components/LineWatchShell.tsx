@@ -76,9 +76,9 @@ import type { SurfaceNoticeDetail } from "../app/surface-notice-data";
 import { cachedStreetcarCatalog, streetcarStopByCode } from "../app/geographic-surface-catalog";
 import { SurfaceStopPanel } from "./SurfaceStopPanel";
 import { GoBusStopPanel } from "./GoBusStopPanel";
-import { SurfaceRoutePanel } from "./SurfaceRoutePanel";
+import { SurfaceRoutePanel, type SurfaceRoutePanelPlace } from "./SurfaceRoutePanel";
 import type { SurfaceSearchRoute } from "../app/surface-search";
-import type { SurfaceMapSelection } from "../app/surface-map-selection";
+import { surfaceRouteSelection, type SurfaceMapSelection } from "../app/surface-map-selection";
 const SurfaceNoticesPanel = preloadablePanel(() => import("./SurfaceNoticesPanel").then((mod) => mod.SurfaceNoticesPanel));
 const TtcAnnouncementsPanel = preloadablePanel(() => import("./TtcAnnouncementsPanel").then((mod) => mod.TtcAnnouncementsPanel));
 const StationDetailPanel = preloadablePanel(() => import("./StationDetailPanel").then((mod) => mod.StationDetailPanel));
@@ -803,6 +803,29 @@ export function LineWatchShell({
     window.__linewatchSurfaceSelectionDebug = { show: showSurfaceSelectionOnMap };
     return () => { delete window.__linewatchSurfaceSelectionDebug; };
   }, [showSurfaceSelectionOnMap]);
+  // A stop opened from the route panel (plan 14, U5): its Back returns to the
+  // route panel where the rider left it, and redraws the route if View on Map
+  // was on. The route's selection is cleared while the stop is open, since
+  // the route panel is not.
+  const [surfaceRouteReturn, setSurfaceRouteReturn] = useState<{
+    route: SurfaceSearchRoute;
+    place: SurfaceRoutePanelPlace;
+    shownOnMap: boolean;
+    stopCode: string;
+  } | null>(null);
+  const [surfaceRoutePlace, setSurfaceRoutePlace] = useState<SurfaceRoutePanelPlace | null>(null);
+  useEffect(() => {
+    // Another stop, or none: this way back no longer applies.
+    if (surfaceRouteReturn && selectedSurfaceStop?.code !== surfaceRouteReturn.stopCode) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSurfaceRouteReturn(null);
+    }
+  }, [selectedSurfaceStop, surfaceRouteReturn]);
+  const surfaceRouteBackFor = surfaceRouteReturn
+    && surfaceRouteReturn.stopCode === selectedSurfaceStopCode
+    && surfaceRouteReturn.route.network === selectedNetwork
+    ? surfaceRouteReturn
+    : null;
   // A stop or route found on the other network opens once that network is shown.
   const pendingSurfaceOpenRef = useRef<{ network: NetworkId; stopCode?: string; route?: SurfaceSearchRoute } | null>(null);
 
@@ -1179,6 +1202,21 @@ export function LineWatchShell({
     [stationSummaries],
   );
 
+  const routeShownOnMap = Boolean(visibleSurfaceRoute && surfaceMapSelection?.owner === "route" && shownSurfaceSelection?.route);
+  const handleSurfaceRouteBack = () => {
+    const back = surfaceRouteBackFor;
+    if (!back) return;
+    setSurfaceRouteReturn(null);
+    setSelectedSurfaceStop(null);
+    setSurfaceRoutePlace(back.place);
+    setSelectedSurfaceRoute({ route: back.route, view: "map" });
+    const shown = back.shownOnMap ? surfaceRouteSelection(back.route) : null;
+    setSurfaceMapSelection(shown ? { selection: { stopCodes: [], route: shown }, owner: "route", view: "map", network: back.route.network } : null);
+  };
+  const surfaceStopRouteBack = surfaceRouteBackFor
+    ? { route: surfaceRouteBackFor.route.route, name: surfaceRouteBackFor.route.name, onBack: handleSurfaceRouteBack }
+    : null;
+
   const renderSurfaceStopPanel = () => visibleSurfaceRoute && !selectedSurfaceStopCode ? (
     <SurfaceRoutePanel
       key={`route:${visibleSurfaceRoute.network}:${visibleSurfaceRoute.kind}:${visibleSurfaceRoute.route}`}
@@ -1186,8 +1224,22 @@ export function LineWatchShell({
       onClose={() => {
         setSelectedSurfaceRoute(null);
         setSurfaceMapSelection(null);
+        setSurfaceRoutePlace(null);
       }}
       reducedMotion={reducedMotion}
+      initialPlace={surfaceRoutePlace}
+      shownOnMap={routeShownOnMap}
+      onToggleMap={(show) => {
+        const shown = show ? surfaceRouteSelection(visibleSurfaceRoute) : null;
+        showSurfaceSelectionOnMap(shown ? { stopCodes: [], route: shown } : null, "route");
+      }}
+      onOpenStop={(stopCode, place) => {
+        setSurfaceRouteReturn({ route: visibleSurfaceRoute, place, shownOnMap: routeShownOnMap, stopCode });
+        setSurfaceRoutePlace(null);
+        setSelectedSurfaceRoute(null);
+        handleSelectSurfaceStop(stopCode, "map");
+      }}
+      onOpenNotice={(notice) => handleSearchOpenSurfaceNotice(notice)}
     />
   ) : selectedSurfaceStopCode && selectedNetwork === "regional" ? (
     <GoBusStopPanel
@@ -1203,6 +1255,7 @@ export function LineWatchShell({
       }}
       onClose={() => setSelectedSurfaceStopCode(null)}
       reducedMotion={reducedMotion}
+      routeBack={surfaceStopRouteBack}
     />
   ) : selectedSurfaceStopCode ? (
     <SurfaceStopPanel
@@ -1220,6 +1273,7 @@ export function LineWatchShell({
       }}
       onClose={() => setSelectedSurfaceStopCode(null)}
       reducedMotion={reducedMotion}
+      routeBack={surfaceStopRouteBack}
     />
   ) : null;
 
@@ -2191,6 +2245,7 @@ export function LineWatchShell({
       return;
     }
     setSelectedSurfaceRoute(null);
+    setSurfaceRouteReturn(null);
     handleSelectSurfaceStop(stopCode, "map");
   };
 
@@ -2208,6 +2263,8 @@ export function LineWatchShell({
     setSelection(null);
     setSelectedSurfaceStop(null);
     setSurfaceMapSelection(null);
+    setSurfaceRouteReturn(null);
+    setSurfaceRoutePlace(null);
     setSelectedSurfaceRoute({ route, view: "map" });
     if (!isMobile && desktopSidebarCollapsed) setDesktopSidebarCollapsed(false);
     recordPwaInstallEngagement();

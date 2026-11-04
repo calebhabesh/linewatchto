@@ -15,6 +15,7 @@ import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-noti
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { StationDetailHeader } from "./StationDetailHeader";
+import { SurfaceRouteBackLink, type SurfaceRouteBack } from "./SurfaceRoutePanel";
 import { SurfaceRouteCard } from "./SurfaceConnectionsSection";
 import { ttcRouteBadgeStyle } from "../app/ttc-route-badge";
 
@@ -28,6 +29,8 @@ type Props = {
   onOpenStation?: (stationId: string) => void;
   onClose: () => void;
   reducedMotion: boolean;
+  /** Set when the stop was opened from a route panel (plan 14, U5). */
+  routeBack?: SurfaceRouteBack | null;
 };
 
 /**
@@ -43,6 +46,7 @@ export function SurfaceStopPanel({
   onOpenStation,
   onClose,
   reducedMotion,
+  routeBack = null,
 }: Props) {
   const [result, setResult] = useState<SurfaceStopResult | null>(null);
   // The stop whose departures are shown; a different stop is still loading.
@@ -146,6 +150,7 @@ export function SurfaceStopPanel({
       />
 
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-2 md:mt-3.5 pb-3 station-detail-scroll">
+        {routeBack ? <SurfaceRouteBackLink back={routeBack} /> : null}
         {data?.stationId && linkedStation && onOpenStation ? (
           <button type="button" className="surface-stop-station-link" onClick={() => onOpenStation(data.stationId as string)}>
             <span>

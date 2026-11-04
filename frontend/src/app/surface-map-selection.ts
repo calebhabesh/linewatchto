@@ -25,14 +25,18 @@ export type SurfaceMapSelection = {
 
 type Coordinate = [number, number];
 
+/** The Map View layer a route kind belongs to (express and community buses are buses). */
+export function surfaceRouteLayer(kind: SurfaceRouteKind): SurfaceSelectionLayer {
+  return kind === "streetcar" ? "streetcar"
+    : kind === "go-bus" ? "go-bus"
+    : kind === "night-streetcar" || kind === "night-bus" ? "night"
+    : "bus";
+}
+
 /** The layer that draws a search route, or null when no trip of it is drawn this period. */
 export function surfaceRouteSelection(route: { kind: SurfaceRouteKind; route: string; drawn: boolean }): SurfaceSelectionRoute | null {
   if (!route.drawn) return null;
-  const layer: SurfaceSelectionLayer = route.kind === "streetcar" ? "streetcar"
-    : route.kind === "go-bus" ? "go-bus"
-    : route.kind === "night-streetcar" || route.kind === "night-bus" ? "night"
-    : "bus";
-  return { layer, route: route.route };
+  return { layer: surfaceRouteLayer(route.kind), route: route.route };
 }
 
 /**

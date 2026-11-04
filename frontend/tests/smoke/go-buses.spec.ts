@@ -104,4 +104,53 @@ test.describe("GO buses on the GO/UP Map View", () => {
     await expect(geoMap).not.toHaveAttribute("data-go-buses", "on");
     await expect(page.locator("#map-view-layers-row .map-layer-switch-label")).toHaveText(["Train Markers", "Streetcars", "Buses", "Live GPS"]);
   });
+
+  test("a GO route panel lists its stops, shows the route with GO Buses off, and opens a stop", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop search entry");
+    // Plan 14, U5: the 67 calls at 00008 (Yonge St. @ Sheppard Ave.), which the stub serves.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    const geoMap = page.locator(".geographic-network-map");
+    await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 20_000 });
+    await expect(geoMap).toHaveAttribute("data-network", "regional");
+    const mapSurface = geoMap.locator(':scope > [role="region"]');
+
+    const input = page.getByPlaceholder(/Search all stations/);
+    await input.click();
+    await input.fill("67");
+    await page.locator("[data-search-group='routes'] [data-surface-route-result='regional:67']").click();
+    const route = page.locator("[data-surface-route-panel='regional:67']");
+    await expect(route).toContainText("Not live service.");
+    await expect(route.getByRole("button", { name: /^To / }).first()).toHaveAttribute("aria-pressed", "true");
+
+    await route.getByRole("button", { name: "View on Map" }).click();
+    await expect(mapSurface).toHaveAttribute("data-surface-selection-layers", /selected-line/, { timeout: 15_000 });
+    await expect(geoMap).not.toHaveAttribute("data-go-buses", "on");
+
+    await route.locator("[data-surface-route-stop='00008']").click();
+    const stop = page.locator("[data-go-bus-stop-panel='00008']");
+    await expect(stop.locator("[data-departure-status='live']").first()).toBeVisible();
+    await stop.getByRole("button", { name: /^Back to route 67 / }).click();
+    await expect(route).toBeVisible();
+    await expect(mapSurface).toHaveAttribute("data-surface-selection-layers", /selected-line/);
+  });
+
+  test("a GO route panel lists the route's notices, each opening its notice", async ({ page, request, isMobile }) => {
+    test.skip(isMobile, "Desktop search entry");
+    await setStubMode(request, "regional-live");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    const input = page.getByPlaceholder(/Search all stations/);
+    await input.click();
+    await input.fill("31");
+    await page.locator("[data-search-group='routes'] [data-surface-route-result='regional:31']").click();
+    const route = page.locator("[data-surface-route-panel='regional:31']");
+    const notice = route.getByRole("button", { name: /Route 31 buses are detouring/ });
+    await expect(notice).toBeVisible();
+    // A GO train notice that shares no route stays out.
+    await expect(route).not.toContainText("Barrie station construction notice");
+    await notice.click();
+    await expect(route).toHaveCount(0);
+    await expect(page.getByText("Route 31 buses are detouring").first()).toBeVisible();
+  });
 });

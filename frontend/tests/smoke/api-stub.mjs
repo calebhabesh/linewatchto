@@ -1137,26 +1137,37 @@ const server = createServer(async (request, response) => {
   if (request.method === "GET" && surfaceStopMatch) {
     const stopCode = decodeURIComponent(surfaceStopMatch[1]);
     // 14999 is a bay at Stub Station (plan 13, S7 review): its panel links back to the station.
-    if (stopCode !== "100" && stopCode !== "14999") {
+    // 2034 is a bus-only pole on the 29 Dufferin (plan 14, U5: route panel to departures).
+    if (stopCode !== "100" && stopCode !== "14999" && stopCode !== "2034") {
       sendJson(request, response, 404, { error: "Unknown stop" });
       return;
     }
     const atStation = stopCode === "14999";
+    const busStop = stopCode === "2034";
     sendJson(request, response, 200, {
       networkId: "ttc",
       stopCode,
       stopId: stopCode,
-      stopName: atStation ? "Stub Station at Bay 7" : "Bathurst St at Fort York Blvd",
+      stopName: atStation ? "Stub Station at Bay 7" : busStop ? "Dufferin St at College St" : "Bathurst St at Fort York Blvd",
       stationId: atStation ? "stub-station" : null,
-      latitude: 43.638947,
-      longitude: -79.400771,
+      latitude: busStop ? 43.65266 : 43.638947,
+      longitude: busStop ? -79.43266 : -79.400771,
       availability: "available",
       message: null,
       generatedAt: "2026-08-14T16:00:00Z",
       horizonMinutes: 120,
       live: { state: "live", sourceUpdatedAt: "2026-08-14T15:59:50Z", maxAgeSeconds: 120, source: "TTC GTFS-RT bus and streetcar trip updates" },
       schedule: { state: "available", serviceStart: "2026-08-02", serviceEnd: "2026-09-05", source: "TTC published GTFS schedule" },
-      routes: [{
+      routes: [busStop ? {
+        route: "29",
+        routeName: "Dufferin",
+        mode: "bus",
+        destination: "South - 29 Dufferin towards Exhibition",
+        departures: [
+          { status: "live", at: "2026-08-14T16:03:00Z", predictedAt: "2026-08-14T16:03:00Z", scheduledAt: "2026-08-14T16:02:00Z", minutes: 3 },
+          { status: "scheduled", at: "2026-08-14T16:12:00Z", predictedAt: null, scheduledAt: "2026-08-14T16:12:00Z", minutes: 12 },
+        ],
+      } : {
         route: "511",
         routeName: "Bathurst",
         mode: "streetcar",

@@ -63,7 +63,7 @@ plan reads.
 | U2 | Matching and ranking | Done (2026-11-04) |
 | U3 | Stop and route results in search | Done (2026-11-04) |
 | U4 | Selection on the Map View (stops, routes) | Done (2026-11-04) |
-| U5 | Route panel | Not started |
+| U5 | Route panel | Done (2026-11-04) |
 | U6 | Stops Near Me and recent stops | Not started |
 | U7 | Phone flow and stop links | Not started |
 | U8 | Coverage and close | Not started |
@@ -398,6 +398,76 @@ sheet):
   open, and the layer switch is unchanged.
 - Undrawn routes (for example 503, all buses this period) say so instead of
   showing a View action.
+
+Done (2026-11-04):
+
+- Data (`src/app/surface-route-stops.ts`): one route-stop file per layer
+  (`surfaceRouteLayer`, now shared with `surfaceRouteSelection`), loaded
+  through `cachedLoader` the first time a route panel of that layer opens.
+  `routeDirections` groups patterns by direction (id order) with branches
+  busiest first. A direction is labelled from the compass word ("Southbound")
+  or, for GO, the busiest branch's destination ("To Union Station"). Branch
+  labels drop the route name ("29A towards Exhibition (Dufferin Gate)"). When
+  the feed repeats a headsign, the label adds where the branch starts, then a
+  stop only it visits, then its stop count. The 329 needs the "via" step.
+- Notices: `surfaceNoticesForRoute` keeps a fresh server list only, as the
+  stop panel does. It drops timetable announcements and notices outside their
+  start and end. Route ids match by route number, so the 29C counts for the 29
+  and never for the 129, 329 or 929. GO routes count only GO Bus notices.
+  Each notice opens through the shell's notice handler.
+- Panel (`SurfaceRoutePanel.tsx`, stop panel container):
+  - Header and schedule line from U3.
+  - View on Map toggles `showSurfaceSelectionOnMap(…, "route")`. Its pressed
+    state ("Shown on Map", Hide) uses the selection's neutral colours.
+  - Service Notices, then Stops: direction tabs, a branch picker when a
+    direction has several branches (the busiest is the default), and an
+    ordered list on a rail in the route's badge colour. A night route uses
+    its blue edge, and dark mode lightens the rail. Each row shows the stop
+    name (from the search index), its number, and opens its departures.
+  - `nearestStopCode` is the U6 seam. It marks the row "Nearest", and the
+    panel never asks for location.
+  - Undrawn routes (503, GO 35: no stop sequence this period) say so, with
+    no View on Map and no stop list. They still show their notices.
+- **Back decision:** a stop opened from the route panel shows a first row,
+  "← 29 Dufferin, Back to all stops on this route". It returns to the route
+  panel with the same direction, branch and scroll position. If View on Map
+  was on, it redraws the route and frames it again. While the stop is open,
+  the route's selection is cleared and only the stop is selected, because the
+  invariant allows a route selection only while its panel is open. The stop's
+  close button closes everything. Route → stop → departures stays two taps.
+  Browser and phone Back are U7 (phone flow).
+- Smoke stub: stop 2034 (a bus-only pole on the 29) now returns labelled
+  departures.
+- Production build, desktop, 4× CPU, two runs each. From the route row click
+  to the first stop row: 29 (bus file, 174 KB raw from the local stub server,
+  39 KB gzipped) 420 and 445 ms; 504 (streetcar file, 9 KB) 419 and 398 ms.
+  Long tasks were 52–67 ms in both cases, so the bus file adds no task of its
+  own. The time is mostly the search close and panel render.
+- Checked on the dev server at 360 and 1440 px, light and dark: 29 (bus, with
+  Buses off), 504 (streetcar), 503 (undrawn) and GO 67, plus 329 (night) at
+  1440 dark. No horizontal overflow and no page errors.
+- Tests: `surface-route-stops.test.mjs` (12 cases: direction and branch order,
+  labels, GO labels, disambiguation, every drawn route in the shipped indexes
+  has a stop list with named stops and unique branch labels, file validation,
+  kind → layer, notice route matching, time window and network).
+  `surface-stop.spec.ts`: search → 29 → View on Map with Buses off
+  (`data-surface-selection-layers` and the framed camera) → stop 2034 →
+  labelled departures → Back → close clears; and 503 has no View on Map.
+  `go-buses.spec.ts`: GO 67 → View on Map with GO Buses off → stop 00008 →
+  Back; GO 31 lists its notice (and not a GO train notice) and opens it.
+- Checks: test:fast 2,238 passed, typecheck, lint (0 errors; the 16 existing
+  warnings), build. Smoke on desktop-chrome and mobile-chromium: 46 passed
+  (`surface-stop`, `surface-buses`, `go-buses`, `night-routes`,
+  `geographic-map-lifecycle`, `bus-positions`, `go-bus-positions`,
+  `streetcar-positions`, `search-close-*`). The new tests are desktop only;
+  the phone flow is U7.
+- Not done:
+  - Opening a notice leaves the Map View for Service Notices. Coming back
+    does not reopen the route panel.
+  - Notice titles are provider text. Some TTC titles start with "- " (the
+    feed drops the route name). They are shown as sent, as in search.
+  - The phone sheet opens at its saved height, so the stop list starts below
+    the notices and needs a scroll.
 
 ### U6 — Stops Near Me and recent stops
 

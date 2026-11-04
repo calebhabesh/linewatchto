@@ -100,6 +100,80 @@ test.describe("Surface stop departures on the Map View", () => {
     await expect(mapSurface).not.toHaveAttribute("data-surface-selection-layers");
   });
 
+  test("route panel: View on Map with Bus Routes off, a stop's departures in two taps, and Back", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop search entry");
+    // Plan 14, U5: the 29 Dufferin, a bus route, with the Buses switch off.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    const geoMap = page.locator(".geographic-network-map");
+    await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 20_000 });
+    const busesSwitch = page.locator("[data-bus-toggle]").first();
+    await expect(busesSwitch).toHaveAttribute("data-checked", "false");
+    const mapSurface = geoMap.locator(':scope > [role="region"]');
+
+    const input = page.getByPlaceholder(/Search all stations/);
+    await input.click();
+    await input.fill("29");
+    await page.locator("[data-search-group='routes'] [data-surface-route-result='ttc:29']").click();
+    const route = page.locator("[data-surface-route-panel='ttc:29']");
+    await expect(route).toContainText("Not live service.");
+    await expect(route.getByRole("button", { name: "Southbound" })).toHaveAttribute("aria-pressed", "true");
+    const stop = route.locator("[data-surface-route-stop='2034']");
+    await expect(stop).toContainText("Dufferin St at College St");
+    // Nothing is drawn until the rider asks.
+    await expect(mapSurface).not.toHaveAttribute("data-surface-selection-layers");
+
+    const viewOnMap = route.getByRole("button", { name: "View on Map" });
+    await viewOnMap.click();
+    await expect(route.getByRole("button", { name: /Shown on Map/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(mapSurface).toHaveAttribute("data-surface-selection-layers", /transit-bus-selected-line/, { timeout: 15_000 });
+    await expect(busesSwitch).toHaveAttribute("data-checked", "false");
+    // Framed: the whole route (Exhibition to Wilson, about 16 km) at a city zoom. The camera
+    // reports the canvas centre, which sits west of the route: the full-width map keeps the
+    // sidebar clear (about 0.07 degrees at this zoom).
+    await expect.poll(async () => {
+      const camera = await page.evaluate(() => window.__linewatchGeographicMapLifecycle?.getCamera() ?? null);
+      return Boolean(camera && camera.zoom > 10.5 && camera.zoom < 13
+        && camera.lng > -79.56 && camera.lng < -79.40 && camera.lat > 43.64 && camera.lat < 43.76);
+    }, { timeout: 15_000 }).toBe(true);
+
+    // Second tap: the stop's departures, each labelled.
+    await stop.click();
+    const stopPanel = page.locator("[data-surface-stop-panel='2034']");
+    await expect(stopPanel.locator("[data-departure-status='live']")).toBeVisible();
+    await expect(stopPanel.locator("[data-departure-status='scheduled']")).toBeVisible();
+    await expect(route).toHaveCount(0);
+    // The route panel is closed, so its route is no longer drawn; the stop is.
+    await expect(mapSurface).toHaveAttribute("data-surface-selection-layers", /transit-bus-selected-stops/);
+
+    // Back returns to the route panel where the rider left it, drawn again.
+    await stopPanel.getByRole("button", { name: "Back to route 29 Dufferin" }).click();
+    await expect(stopPanel).toHaveCount(0);
+    await expect(route).toBeVisible();
+    await expect(route.getByRole("button", { name: /Shown on Map/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(route.locator("[data-surface-route-stop='2034']")).toBeInViewport();
+    await expect(mapSurface).toHaveAttribute("data-surface-selection-layers", /transit-bus-selected-line/);
+
+    await route.getByRole("button", { name: "Close route" }).click();
+    await expect(route).toHaveCount(0);
+    await expect(mapSurface).not.toHaveAttribute("data-surface-selection-layers");
+    await expect(busesSwitch).toHaveAttribute("data-checked", "false");
+  });
+
+  test("an undrawn route says so instead of offering View on Map", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop search entry");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    const input = page.getByPlaceholder(/Search all stations/);
+    await input.click();
+    await input.fill("503");
+    await page.locator("[data-search-group='routes'] [data-surface-route-result='ttc:503']").click();
+    const route = page.locator("[data-surface-route-panel='ttc:503']");
+    await expect(route).toContainText("Not on the map");
+    await expect(route.getByRole("button", { name: "View on Map" })).toHaveCount(0);
+    await expect(route.locator("[data-surface-route-stop]")).toHaveCount(0);
+  });
+
   test("a station bay's stop links back to the station's Surface Connections, open and in view", async ({ page, isMobile }) => {
     test.skip(isMobile, "Desktop search entry");
     await page.setViewportSize({ width: 1440, height: 900 });

@@ -13,6 +13,7 @@ import { parseSurfaceRouteDetails, SURFACE_ARRIVAL_COUNTDOWN_TICK_MS } from "../
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { StationDetailHeader } from "./StationDetailHeader";
+import { SurfaceRouteBackLink, type SurfaceRouteBack } from "./SurfaceRoutePanel";
 import { SurfaceRouteCard } from "./SurfaceConnectionsSection";
 
 /** Next Service answers are cached for 30 s on the server; reading faster gains nothing. */
@@ -26,6 +27,8 @@ type Props = {
   routeColor?: (route: string) => { color: string; textColor: string } | null;
   onClose: () => void;
   reducedMotion: boolean;
+  /** Set when the stop was opened from a route panel (plan 14, U5). */
+  routeBack?: SurfaceRouteBack | null;
 };
 
 /**
@@ -34,7 +37,7 @@ type Props = {
  * live or schedule icon, and a stale, failed or switched-off source shows no
  * times.
  */
-export function GoBusStopPanel({ stopCode, fallbackName = null, routeColor, onClose, reducedMotion }: Props) {
+export function GoBusStopPanel({ stopCode, fallbackName = null, routeColor, onClose, reducedMotion, routeBack = null }: Props) {
   const [result, setResult] = useState<GoBusStopResult | null>(null);
   const [loadedStopCode, setLoadedStopCode] = useState<string | null>(null);
   const loading = loadedStopCode !== stopCode;
@@ -113,6 +116,7 @@ export function GoBusStopPanel({ stopCode, fallbackName = null, routeColor, onCl
       />
 
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-2 md:mt-3.5 pb-3 station-detail-scroll">
+        {routeBack ? <SurfaceRouteBackLink back={routeBack} /> : null}
         {!result ? (
           <div className="surface-stop-message" role="status">
             <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />
