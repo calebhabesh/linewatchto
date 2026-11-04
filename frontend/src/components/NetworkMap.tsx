@@ -74,6 +74,9 @@ type NetworkMapProps = SystemMapShellProps & {
   goBusesEnabled?: boolean;
   onToggleGoBuses?: () => void;
   trainMarkersControl?: GeographicNetworkMapProps["trainMarkersControl"];
+  layersSheetOpen?: boolean;
+  onCloseLayersSheet?: () => void;
+  onLayersCustomizedChange?: (customized: boolean) => void;
 };
 
 export function NetworkMap({
@@ -95,6 +98,9 @@ export function NetworkMap({
   goBusesEnabled = false,
   onToggleGoBuses,
   trainMarkersControl,
+  layersSheetOpen = false,
+  onCloseLayersSheet,
+  onLayersCustomizedChange,
   ...shellProps
 }: NetworkMapProps) {
   // Timed GO/UP markers keep moving toward their next station between polls.
@@ -148,6 +154,9 @@ export function NetworkMap({
           goBusesEnabled={goBusesEnabled}
           onToggleGoBuses={onToggleGoBuses}
           trainMarkersControl={trainMarkersControl}
+          layersSheetOpen={layersSheetOpen}
+          onCloseLayersSheet={onCloseLayersSheet}
+          onLayersCustomizedChange={onLayersCustomizedChange}
         />
         <NetworkMapLegend
           mode={network}

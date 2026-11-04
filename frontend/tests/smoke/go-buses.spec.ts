@@ -30,10 +30,12 @@ test.describe("GO buses on the GO/UP Map View", () => {
     const geoMap = page.locator(".geographic-network-map");
     await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 20_000 });
     await expect(geoMap).toHaveAttribute("data-network", "regional");
-    const toggle = page.locator(".mobile-bus-toggle");
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
-    await expect(toggle).toHaveAttribute("aria-label", "Show GO bus routes and stops");
-    await expect(toggle).toContainText("GO Buses");
+    const layers = page.locator(".mobile-layers-toggle");
+    const sheet = page.locator("[data-map-layers-sheet]");
+    const toggle = sheet.getByRole("switch", { name: "Show GO bus routes and stops" });
+    await layers.click();
+    await expect(toggle).not.toBeChecked();
+    await expect(sheet).toContainText("GO Buses");
     expect(assets, "nothing loads while GO buses are off").toEqual([]);
 
     await toggle.click();
@@ -44,7 +46,7 @@ test.describe("GO buses on the GO/UP Map View", () => {
 
     await page.reload();
     await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 20_000 });
-    await expect(page.locator(".mobile-bus-toggle")).toHaveAttribute("aria-pressed", "true");
+    await expect(geoMap).toHaveAttribute("data-go-buses", "on");
 
     const canvas = geoMap.locator("canvas");
     const panel = page.locator(`[data-go-bus-stop-panel="${STOP.code}"]`);
@@ -64,7 +66,8 @@ test.describe("GO buses on the GO/UP Map View", () => {
     await panel.getByRole("button", { name: "Close stop departures" }).click();
     await expect(panel).toHaveCount(0);
 
-    await page.locator(".mobile-bus-toggle").click();
+    await layers.click();
+    await toggle.click();
     await expect(geoMap).not.toHaveAttribute("data-go-buses", "on");
     expect(await page.evaluate(() => localStorage.getItem("linewatch-map-view-go-buses-v1"))).toBe("off");
   });
@@ -80,19 +83,19 @@ test.describe("GO buses on the GO/UP Map View", () => {
     await expect(row.locator(".map-layer-switch-label")).toHaveText(["Train Markers", "GO Buses", "Live GPS"]);
     // Live GO buses (S9): on by default, drawn only once GO Buses is on.
     const liveGps = row.locator("#map-layer-go-bus-positions");
-    await expect(liveGps).toHaveAttribute("aria-checked", "true");
+    await expect(liveGps).toBeChecked();
     await expect(row.locator(".map-layer-switch").nth(2)).toContainText("With GO Buses");
     await expect(row.getByRole("switch", { name: /Toggle estimated train markers/ })).toBeVisible();
     await expect(page.locator(".desktop-train-toggle-btn")).toBeHidden();
 
     const goBuses = row.locator("#map-layer-go-bus-routes");
-    await expect(goBuses).toHaveAttribute("aria-checked", "false");
+    await expect(goBuses).not.toBeChecked();
     await goBuses.click();
     await expect(geoMap).toHaveAttribute("data-go-buses", "on");
     expect(await page.evaluate(() => localStorage.getItem("linewatch-map-view-go-buses-v1"))).toBe("on");
     await expect(row.locator(".map-layer-switch").nth(2)).not.toContainText("With GO Buses");
     await liveGps.click();
-    await expect(liveGps).toHaveAttribute("aria-checked", "false");
+    await expect(liveGps).not.toBeChecked();
     expect(await page.evaluate(() => localStorage.getItem("linewatch-map-view-go-bus-positions-v1"))).toBe("off");
     // TTC's Live GPS is its own switch.
     expect(await page.evaluate(() => localStorage.getItem("linewatch-map-view-streetcar-positions-v1"))).toBeNull();

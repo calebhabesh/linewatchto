@@ -112,7 +112,7 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     await page.goto("/");
     await expect(page.locator(".geographic-network-map")).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
 
-    const toggle = page.locator(".mobile-train-toggle:not(.mobile-bus-toggle)");
+    const toggle = page.locator(".mobile-train-toggle:not(.mobile-layers-toggle)");
     await expect(toggle).toBeEnabled();
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
     const response = page.waitForResponse((candidate) => (

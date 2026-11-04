@@ -2161,7 +2161,7 @@ test("opens an impact notification deep link in the focused map view", async ({ 
     await expect(shell).toHaveClass(/mobile-map-inspector-impact/);
     await expect(inspector).toBeVisible();
     await expect(inspector).toHaveCSS("background-color", "rgb(10, 12, 16)");
-    await expect(page.locator(".mobile-train-toggle:not(.mobile-bus-toggle)")).toBeHidden();
+    await expect(page.locator(".mobile-train-toggle:not(.mobile-layers-toggle)")).toBeHidden();
     await expect(inspector).toContainText("Delay");
     await expect(inspector).toContainText("Sheppard-Yonge");
     await expect(mapViewport).toHaveCSS("bottom", "0px");
@@ -3214,7 +3214,7 @@ test("station detail shows accessibility facilities and active outage warning", 
 
   if (isMobile) {
     await expect(page.locator(".linewatch-shell.mobile-map-inspector-station")).toBeVisible();
-    await expect(page.locator(".mobile-train-toggle:not(.mobile-bus-toggle)")).toBeHidden();
+    await expect(page.locator(".mobile-train-toggle:not(.mobile-layers-toggle)")).toBeHidden();
     await expect(page.getByRole("button", { name: "Map", exact: true })).toHaveCount(0);
   }
   const lineDetailCard = stationPanel.locator('[data-station-header-line-details] > div').first();
@@ -3424,7 +3424,7 @@ test("mobile map legend summarizes line impacts and opens the all-types line vie
   await expect.poll(async () => {
     const [legendBox, trainBox] = await Promise.all([
       page.locator(".mobile-legend-pill").boundingBox(),
-      page.locator(".mobile-train-toggle:not(.mobile-bus-toggle)").boundingBox(),
+      page.locator(".mobile-train-toggle:not(.mobile-layers-toggle)").boundingBox(),
     ]);
     return legendBox && trainBox ? Math.round(trainBox.y - (legendBox.y + legendBox.height)) : null;
   }).toBeGreaterThanOrEqual(7);
@@ -5758,7 +5758,7 @@ test("mobile train toggle changes its label and blue foreground without changing
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto("/");
 
-  const toggle = page.locator(".mobile-train-toggle:not(.mobile-bus-toggle)");
+  const toggle = page.locator(".mobile-train-toggle:not(.mobile-layers-toggle)");
   await expect(toggle).toContainText(/View\s*Trains/);
   const before = await toggle.evaluate((button) => {
     const style = getComputedStyle(button);

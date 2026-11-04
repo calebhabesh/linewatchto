@@ -94,7 +94,7 @@ import { useNetworkServiceFeeds } from "../hooks/useNetworkServiceFeeds";
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { MOBILE_PERFORMANCE_QUERY, MOBILE_VIEWPORT_QUERY, useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Accessibility, Activity, X, Train, Bus, AlertTriangle, Bookmark, MapPin, Navigation, BarChart3, Search, UserRound, Sun, Moon, History, FileText, Megaphone, Loader2 } from "lucide-react";
+import { Accessibility, Activity, X, Train, Layers, AlertTriangle, Bookmark, MapPin, Navigation, BarChart3, Search, UserRound, Sun, Moon, History, FileText, Megaphone, Loader2 } from "lucide-react";
 import { readBusLayerPreference, writeBusLayerPreference } from "../app/geographic-bus-catalog";
 import {
   cachedGoBusCatalog,
@@ -3495,13 +3495,23 @@ export function LineWatchShell({
     stationSheetRatio,
   ]);
 
-  // Bus toggles belong to the Map View (TTC buses on TTC, GO buses on GO/UP);
-  // the System Maps have no bus layer.
-  const busToggleShown = mapViewPreference === "geographic";
+  // Layer switches belong to the Map View; the System Maps have no such layers.
+  const mapViewLayersShown = mapViewPreference === "geographic";
+  // The phone Layers sheet (plan 15, L2): it closes with the view it belongs to.
+  const [mapLayersSheetOpen, setMapLayersSheetOpen] = useState(false);
+  const [mapLayersCustomized, setMapLayersCustomized] = useState(false);
+  const mapLayersButtonRef = useRef<HTMLButtonElement | null>(null);
+  const closeMapLayersSheet = useCallback(() => {
+    setMapLayersSheetOpen(false);
+    mapLayersButtonRef.current?.focus({ preventScroll: true });
+  }, []);
+  if (mapLayersSheetOpen && !(isMobile && mapViewLayersShown && activeView === "map" && !showClosedScreen && !rotatedMapMode)) {
+    setMapLayersSheetOpen(false);
+  }
   // On the desktop Map View (either network) the Train Markers switch lives in
   // the toolbar's layer deck with the bus switches (the same setting);
   // elsewhere it stays with the right-hand buttons.
-  const trainMarkersInLayerDeck = busToggleShown && !isMobile;
+  const trainMarkersInLayerDeck = mapViewLayersShown && !isMobile;
   // It folds away (and back) as the view changes, so the buttons beside it close up smoothly.
   const desktopTrainToggleRef = useRef<HTMLDivElement | null>(null);
   // Its open width depends on whether the buttons beside it drop their captions,
@@ -4030,6 +4040,9 @@ export function LineWatchShell({
                 goBusesEnabled={goBusesEnabled}
                 onToggleGoBuses={handleToggleGoBuses}
                 trainMarkersControl={trainMarkersControl}
+                layersSheetOpen={mapLayersSheetOpen}
+                onCloseLayersSheet={closeMapLayersSheet}
+                onLayersCustomizedChange={setMapLayersCustomized}
                 isDark={isDark}
                 highContrast={highContrast}
                 layoutResetSignal={mapLayoutSignal}
@@ -4098,6 +4111,9 @@ export function LineWatchShell({
             goBusesEnabled={goBusesEnabled}
             onToggleGoBuses={handleToggleGoBuses}
             trainMarkersControl={trainMarkersControl}
+            layersSheetOpen={mapLayersSheetOpen}
+            onCloseLayersSheet={closeMapLayersSheet}
+            onLayersCustomizedChange={setMapLayersCustomized}
             isDark={isDark}
             highContrast={highContrast}
             layoutResetSignal={mapLayoutSignal}
@@ -4182,26 +4198,21 @@ export function LineWatchShell({
               />
             ) : null}
           </button>
-          {busToggleShown ? (() => {
-            const goBuses = selectedNetwork === "regional";
-            const enabled = goBuses ? goBusesEnabled : busesEnabled;
-            return (
-              <button
-                type="button"
-                onClick={goBuses ? handleToggleGoBuses : handleToggleBuses}
-                className={`mobile-train-toggle mobile-bus-toggle ${enabled ? "active" : ""}`}
-                aria-pressed={enabled}
-                aria-label={goBuses ? "Show GO bus routes and stops" : "Show TTC bus routes and stops"}
-                data-bus-toggle
-                data-bus-network={selectedNetwork}
-              >
-                <Bus size={16} />
-                <span>
-                  {enabled ? "Viewing" : "View"}<br />{goBuses ? "GO Buses" : "Buses"}
-                </span>
-              </button>
-            );
-          })() : null}
+          {mapViewLayersShown ? (
+            <button
+              ref={mapLayersButtonRef}
+              type="button"
+              onClick={() => setMapLayersSheetOpen(true)}
+              className="mobile-train-toggle mobile-layers-toggle"
+              aria-haspopup="dialog"
+              aria-expanded={mapLayersSheetOpen}
+              aria-label={mapLayersCustomized ? "Map layers, changed from defaults" : "Map layers"}
+              data-customized={mapLayersCustomized ? "true" : undefined}
+            >
+              <Layers size={16} aria-hidden="true" />
+              <span>Layers</span>
+            </button>
+          ) : null}
           {showMobileStatusPeek && (
             <MapViewSelector
               view={mapViewPreference}

@@ -636,6 +636,175 @@
   color: #94a3b8;
 }
 
+/* The same switches as a vertical list (plan 15, L1), for the phone Layers sheet
+   (L2): full-width rows at least 44px tall, each switch at the row's end. */
+.map-layer-switch-list[data-layout="sheet"] {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.map-layer-switch-list[data-layout="sheet"] > .map-layer-switch {
+  gap: 10px;
+  height: auto;
+  min-height: 44px;
+  padding: 6px 4px;
+}
+
+.map-layer-switch-list[data-layout="sheet"] .map-layer-switch-icon {
+  flex-shrink: 0;
+}
+
+.map-layer-switch-list[data-layout="sheet"] .map-layer-switch-copy {
+  flex: 1;
+}
+
+/* The phone Layers sheet (plan 15, L2): above the bottom nav and any stop sheet,
+   with a light scrim so the map still reads while switches apply. */
+.map-layers-sheet-root {
+  inset: 0;
+  position: fixed;
+  z-index: 46;
+}
+
+.map-layers-sheet-scrim {
+  animation: linewatch-backdrop-enter 200ms ease-out;
+  background: rgb(15 23 42 / 14%);
+  inset: 0;
+  position: absolute;
+  transition: opacity 200ms ease;
+}
+
+.map-layers-sheet {
+  animation: mobile-impact-inspector-enter 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  background: var(--panel-opaque);
+  border-radius: 22px 22px 0 0;
+  bottom: 0;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 85%),
+    0 -18px 44px rgb(0 0 0 / 28%);
+  color: #0f172a;
+  display: flex;
+  flex-direction: column;
+  left: 0;
+  max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top, 0px) - 48px);
+  padding: 6px var(--mobile-sheet-gutter, 16px) calc(12px + var(--mobile-safe-bottom, 0px));
+  position: absolute;
+  right: 0;
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.map-layers-sheet:focus {
+  outline: none;
+}
+
+.dark .map-layers-sheet {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 10%),
+    0 -18px 44px rgb(0 0 0 / 44%);
+  color: #f8fafc;
+}
+
+.high-contrast .map-layers-sheet {
+  background: #000000;
+  border-top: 1px solid #ffffff;
+  box-shadow: none;
+}
+
+.map-layers-sheet-root[data-closing="true"] {
+  pointer-events: none;
+}
+
+.map-layers-sheet-root[data-closing="true"] .map-layers-sheet {
+  transform: translate3d(0, 100%, 0);
+  transition-timing-function: cubic-bezier(0.4, 0, 1, 1);
+}
+
+.map-layers-sheet-root[data-closing="true"] .map-layers-sheet-scrim {
+  opacity: 0;
+}
+
+.map-layers-sheet-header {
+  align-items: center;
+  cursor: grab;
+  display: flex;
+  flex-shrink: 0;
+  justify-content: space-between;
+  margin-top: -4px;
+  min-height: 44px;
+  touch-action: none;
+  user-select: none;
+}
+
+.map-layers-sheet-title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.map-layers-sheet-close {
+  align-items: center;
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  margin-right: -10px;
+  width: 44px;
+}
+
+.map-layers-sheet-close:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -4px;
+}
+
+.map-layers-sheet-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The dot on the Layers button: drawn outside the flow, so the button keeps its size. */
+.mobile-layers-toggle[data-customized="true"]::after {
+  background: #2563eb;
+  border-radius: 50%;
+  content: "";
+  height: 7px;
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  width: 7px;
+}
+
+.dark .mobile-layers-toggle[data-customized="true"]::after {
+  background: #93c5fd;
+}
+
+.high-contrast .mobile-layers-toggle[data-customized="true"]::after {
+  background: #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-layers-sheet,
+  .map-layers-sheet-scrim {
+    animation: none;
+    transition: none;
+  }
+}
+
+.motion-paused .map-layers-sheet,
+.motion-paused .map-layers-sheet-scrim {
+  animation: none;
+  transition: none;
+}
+
+@media (min-width: 768px) {
+  .map-layers-sheet-root {
+    display: none;
+  }
+}
+
 /* useCollapseWidth: while a control folds away or back, its contents keep
    their size and are clipped at its edge instead of squeezing together. */
 [data-collapsing="true"] > * {

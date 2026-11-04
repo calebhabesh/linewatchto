@@ -19,7 +19,7 @@ test.describe("TTC buses on the Map View", () => {
     }, STOP);
   });
 
-  test("the phone toggle is off by default, remembered, and opens bus stops", async ({ page, isMobile }) => {
+  test("the phone Layers sheet's Buses switch is off by default, remembered, and opens bus stops", async ({ page, isMobile }) => {
     test.skip(!isMobile, "The saved Map View camera is restored on phones");
     const assets: string[] = [];
     page.on("request", (request) => {
@@ -28,20 +28,21 @@ test.describe("TTC buses on the Map View", () => {
     await page.goto("/");
     const geoMap = page.locator(".geographic-network-map");
     await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 20_000 });
-    const toggle = page.locator(".mobile-bus-toggle");
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    const layers = page.locator(".mobile-layers-toggle");
+    const toggle = page.locator("[data-map-layers-sheet]").getByRole("switch", { name: "Show TTC bus routes and stops" });
+    await layers.click();
+    await expect(toggle).not.toBeChecked();
     await expect(geoMap).not.toHaveAttribute("data-buses", "on");
     expect(assets, "nothing loads while buses are off").toEqual([]);
 
     await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-pressed", "true");
-    await expect(toggle).toContainText("Viewing");
+    await expect(toggle).toBeChecked();
     await expect(geoMap).toHaveAttribute("data-buses", "on");
     expect(await page.evaluate(() => localStorage.getItem("linewatch-map-view-buses-v1"))).toBe("on");
 
     await page.reload();
     await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 20_000 });
-    await expect(page.locator(".mobile-bus-toggle")).toHaveAttribute("aria-pressed", "true");
+    await expect(geoMap).toHaveAttribute("data-buses", "on");
 
     // The bus stop sits at the centre of the saved camera; press it until its departures open.
     const canvas = geoMap.locator("canvas");
@@ -56,7 +57,8 @@ test.describe("TTC buses on the Map View", () => {
     expect(assets).toContain("ttc-surface-bus-stops.json");
     await panel.getByRole("button", { name: "Close stop departures" }).click();
 
-    await page.locator(".mobile-bus-toggle").click();
+    await layers.click();
+    await toggle.click();
     await expect(geoMap).not.toHaveAttribute("data-buses", "on");
     expect(await page.evaluate(() => localStorage.getItem("linewatch-map-view-buses-v1"))).toBe("off");
   });
@@ -77,7 +79,7 @@ test.describe("TTC buses on the Map View", () => {
     await expect(page.locator(".desktop-train-toggle-btn")).toBeHidden();
 
     const buses = row.locator("#map-layer-bus-routes");
-    await expect(buses).toHaveAttribute("aria-checked", "false");
+    await expect(buses).not.toBeChecked();
     await buses.click();
     await expect(geoMap).toHaveAttribute("data-buses", "on");
     expect(await page.evaluate(() => localStorage.getItem("linewatch-map-view-buses-v1"))).toBe("on");

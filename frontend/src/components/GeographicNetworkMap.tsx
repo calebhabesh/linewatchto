@@ -1,11 +1,11 @@
 "use client";
 
 import { CommuteRouteLabel } from "./CommuteRouteLabel";
-import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo, type RefObject } from "react";
 import { Map as MapLibreMap, AttributionControl, getVersion, setWorkerUrl, type VectorTileSource } from "maplibre-gl";
 import { installTilePrefetch, type PrefetchSource } from "./map-tile-prefetch";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { AlertCircle, RefreshCw, Layers, Locate, Bus, Route, SatelliteDish, TrainFrontTunnel, ZoomIn, ZoomOut } from "lucide-react";
+import { AlertCircle, RefreshCw, Layers, Locate, ZoomIn, ZoomOut } from "lucide-react";
 import { cachedGeographicCatalog, loadGeographicCatalog } from "../app/geographic-catalog-loader";
 import type { MapFadeController } from "../app/map-surface-transition";
 import { createGeographicMapFade, installTransitOpacity, setTransitPaintProperty } from "./geographic-network-transition";
@@ -101,7 +101,6 @@ import {
   GO_BUS_VEHICLE_MIN_ZOOM,
   findGoBusVehicle,
   getGoBusPositions,
-  goBusPositionsDetail,
   goBusVehicleFeatures,
   goBusVehicleFeaturesSignature,
   goBusVehicleState,
@@ -228,12 +227,18 @@ import {
 import {
   STREETCAR_POSITIONS_STORAGE_KEY,
   STREETCAR_ROUTES_STORAGE_KEY,
-  estimatedTrainsDetail,
   readLayerPreference,
-  vehiclePositionsDetail,
   writeLayerPreference,
 } from "../app/map-view-layers";
-import SquishSwitch from "./SquishSwitch";
+import {
+  mapLayerSwitchRows,
+  mapLayersDifferFromDefaults,
+  type MapLayerSwitchHandlers,
+  type MapLayerSwitchState,
+  type MapLayerTrainMarkersControl,
+} from "../app/map-layer-switches";
+import { MapLayerSwitchList } from "./MapLayerSwitchList";
+import { MapLayersSheet } from "./MapLayersSheet";
 import {
   STATION_PLAN_BAY_LAYER,
   addMissingStationBayImage,
@@ -378,14 +383,15 @@ export type GeographicNetworkMapProps = {
    * The shell's estimated train markers switch, also shown in the Map View's
    * layer deck on both networks (one setting, so both always agree).
    */
-  trainMarkersControl?: {
-    checked: boolean;
-    disabled: boolean;
-    pending: boolean;
-    status: string;
-    ariaLabel: string;
-    onToggle: () => void;
-  };
+  trainMarkersControl?: MapLayerTrainMarkersControl;
+  /**
+   * The phone Layers sheet (plan 15, L2): the shell owns the button and whether
+   * it is open; the map renders it, because it holds the position reads behind
+   * the captions, and reports whether the button shows its dot.
+   */
+  layersSheetOpen?: boolean;
+  onCloseLayersSheet?: () => void;
+  onLayersCustomizedChange?: (customized: boolean) => void;
 };
 
 const EMPTY_SEGMENTS: NetworkSegment[] = [];
@@ -726,54 +732,6 @@ function busVehicleNearestStop(vehicle: BusVehicle): StreetcarStopFeature | BusS
   return stops ? nearestBusStop(stops, coordinate, [vehicle.route])?.stop ?? null : null;
 }
 
-/**
- * One switch in the Map View's layer deck, in the Train Markers switch's
- * design: the mode on top, and below it what the switch controls (or why it
- * cannot show anything now). The switch itself carries on or off.
- */
-function MapLayerSwitch({ id, icon, label, detail, checked, disabled = false, pending = false, ariaLabel, title, onChange, dataBusToggle = false }: {
-  id: string;
-  icon: ReactNode;
-  label: string;
-  detail: string;
-  checked: boolean;
-  disabled?: boolean;
-  pending?: boolean;
-  ariaLabel: string;
-  title: string;
-  onChange: () => void;
-  dataBusToggle?: boolean;
-}) {
-  return (
-    <div
-      className="map-layer-switch"
-      data-checked={checked ? "true" : "false"}
-      data-disabled={disabled ? "true" : undefined}
-      data-bus-toggle={dataBusToggle ? "" : undefined}
-      title={title}
-    >
-      <span className="map-layer-switch-icon">{icon}</span>
-      <label htmlFor={id} className="map-layer-switch-copy">
-        <span className="map-layer-switch-label">{label}</span>
-        <span className="map-layer-switch-status">{detail}</span>
-      </label>
-      <SquishSwitch
-        id={id}
-        checked={checked}
-        disabled={disabled}
-        ariaBusy={pending}
-        ariaLabel={ariaLabel}
-        className="shrink-0"
-        trackOnColor="#10b981"
-        width={34}
-        height={20}
-        onChange={onChange}
-        title={title}
-      />
-    </div>
-  );
-}
-
 export function GeographicNetworkMap({
   network,
   networkFadeRef,
@@ -815,6 +773,9 @@ export function GeographicNetworkMap({
   goBusesEnabled = false,
   onToggleGoBuses,
   trainMarkersControl,
+  layersSheetOpen = false,
+  onCloseLayersSheet,
+  onLayersCustomizedChange,
 }: GeographicNetworkMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sliderRef = useRef<HTMLInputElement | null>(null);
@@ -3536,6 +3497,38 @@ export function GeographicNetworkMap({
 
   const networkBounds = getGeographicBounds(network);
 
+  const layerSwitchState: MapLayerSwitchState = {
+    trainMarkers: trainMarkersControl,
+    streetcarRoutes: streetcarRoutesShown,
+    buses: busesEnabled,
+    vehiclePositions: streetcarPositionsShown,
+    streetcarPositionsState: streetcarPositions?.data.state ?? null,
+    busPositionsState: busPositionsWanted ? busPositions?.data.state ?? null : null,
+    goBuses: goBusesEnabled,
+    goBusPositions: goBusPositionsShown,
+    goBusPositionsState: goBusPositionsWanted ? goBusPositions?.data.state ?? null : null,
+  };
+  const layerSwitchHandlers: MapLayerSwitchHandlers = {
+    streetcarRoutes: () => setStreetcarRoutesShown((current) => {
+      writeLayerPreference(window.localStorage, STREETCAR_ROUTES_STORAGE_KEY, !current);
+      return !current;
+    }),
+    buses: onToggleBuses,
+    vehiclePositions: () => setStreetcarPositionsShown((current) => {
+      writeLayerPreference(window.localStorage, STREETCAR_POSITIONS_STORAGE_KEY, !current);
+      return !current;
+    }),
+    goBuses: onToggleGoBuses,
+    goBusPositions: () => setGoBusPositionsShown((current) => {
+      writeGoBusPositionsPreference(window.localStorage, !current);
+      return !current;
+    }),
+  };
+  const layersCustomized = mapLayersDifferFromDefaults(mapLayerSwitchRows(network, "sheet", layerSwitchState, layerSwitchHandlers));
+  useEffect(() => {
+    onLayersCustomizedChange?.(layersCustomized);
+  }, [layersCustomized, onLayersCustomizedChange]);
+
   return (
     <div
       className="geographic-network-map w-full h-full relative overflow-hidden"
@@ -3791,111 +3784,17 @@ export function GeographicNetworkMap({
         )}
 
         {(network === "ttc" || network === "regional") && (
-          <div
+          <MapLayerSwitchList
             ref={layerDeckRef}
             id="map-view-layers-row"
             className="map-view-layers-row"
-            data-network={network}
             data-deck-waiting={layerDeckWaiting ? "true" : undefined}
             data-map-chooser-keepout
-            role="group"
-            aria-label="Map layers"
-          >
-            {trainMarkersControl ? (
-              <MapLayerSwitch
-                id="map-layer-train-markers"
-                icon={<TrainFrontTunnel size={20} aria-hidden="true" />}
-                label="Train Markers"
-                detail={estimatedTrainsDetail(trainMarkersControl.checked, trainMarkersControl.status)}
-                checked={trainMarkersControl.checked}
-                disabled={trainMarkersControl.disabled}
-                pending={trainMarkersControl.pending}
-                ariaLabel={trainMarkersControl.ariaLabel}
-                title="Estimated Train Markers"
-                onChange={trainMarkersControl.onToggle}
-              />
-            ) : null}
-            {network === "regional" && onToggleGoBuses ? (
-              <MapLayerSwitch
-                id="map-layer-go-bus-routes"
-                icon={<Bus size={20} aria-hidden="true" />}
-                label="GO Buses"
-                detail="Routes"
-                checked={goBusesEnabled}
-                ariaLabel="Show GO bus routes and stops"
-                title="GO Bus Routes"
-                onChange={onToggleGoBuses}
-                dataBusToggle
-              />
-            ) : null}
-            {network === "regional" && onToggleGoBuses ? (
-              <MapLayerSwitch
-                id="map-layer-go-bus-positions"
-                icon={<SatelliteDish size={20} aria-hidden="true" />}
-                label="Live GPS"
-                detail={goBusPositionsDetail(
-                  goBusesEnabled,
-                  goBusPositionsShown,
-                  goBusPositionsWanted ? goBusPositions?.data.state ?? null : null,
-                )}
-                checked={goBusPositionsShown}
-                ariaLabel="Show live GO bus GPS positions"
-                title={goBusesEnabled
-                  ? `Live GO Buses (from zoom ${GO_BUS_VEHICLE_MIN_ZOOM})`
-                  : "Live GO Buses (with GO Buses on)"}
-                onChange={() => setGoBusPositionsShown((current) => {
-                  writeGoBusPositionsPreference(window.localStorage, !current);
-                  return !current;
-                })}
-              />
-            ) : null}
-            {network === "ttc" ? (<>
-            <MapLayerSwitch
-              id="map-layer-streetcar-routes"
-              icon={<Route size={20} aria-hidden="true" />}
-              label="Streetcars"
-              detail="Routes"
-              checked={streetcarRoutesShown}
-              ariaLabel="Show TTC streetcar routes and stops"
-              title="Streetcar Routes"
-              onChange={() => setStreetcarRoutesShown((current) => {
-                writeLayerPreference(window.localStorage, STREETCAR_ROUTES_STORAGE_KEY, !current);
-                return !current;
-              })}
-            />
-            {onToggleBuses ? (
-              <MapLayerSwitch
-                id="map-layer-bus-routes"
-                icon={<Bus size={20} aria-hidden="true" />}
-                label="Buses"
-                detail="Routes"
-                checked={busesEnabled}
-                ariaLabel="Show TTC bus routes and stops"
-                title="Bus Routes"
-                onChange={onToggleBuses}
-                dataBusToggle
-              />
-            ) : null}
-            <MapLayerSwitch
-              id="map-layer-streetcar-positions"
-              icon={<SatelliteDish size={20} aria-hidden="true" />}
-              label="Live GPS"
-              detail={vehiclePositionsDetail(
-                streetcarPositionsShown,
-                streetcarPositions?.data.state ?? null,
-                busPositionsWanted ? busPositions?.data.state ?? null : null,
-                busesEnabled,
-              )}
-              checked={streetcarPositionsShown}
-              ariaLabel="Show live streetcar and bus GPS positions"
-              title={busesEnabled ? `Live Vehicles (buses from zoom ${BUS_VEHICLE_MIN_ZOOM})` : "Live Vehicles"}
-              onChange={() => setStreetcarPositionsShown((current) => {
-                writeLayerPreference(window.localStorage, STREETCAR_POSITIONS_STORAGE_KEY, !current);
-                return !current;
-              })}
-            />
-            </>) : null}
-          </div>
+            network={network}
+            layout="deck"
+            state={layerSwitchState}
+            handlers={layerSwitchHandlers}
+          />
         )}
       </div>
 
@@ -3922,6 +3821,16 @@ export function GeographicNetworkMap({
           )}
         </div>
       )}
+
+      {layersSheetOpen && onCloseLayersSheet ? (
+        <MapLayersSheet
+          network={network}
+          state={layerSwitchState}
+          handlers={layerSwitchHandlers}
+          reducedMotion={reducedMotion}
+          onClose={onCloseLayersSheet}
+        />
+      ) : null}
 
       {/* Error Recovery Overlay */}
       {loadStatus === "error" && (
