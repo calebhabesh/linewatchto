@@ -31,6 +31,7 @@ jobs:
       frontend_image: ${{ steps.images.outputs.frontend_image }}
       backend_image: ${{ steps.images.outputs.backend_image }}
       postgres_image: ${{ steps.images.outputs.postgres_image }}
+      schedule_assets_image: ${{ steps.images.outputs.schedule_assets_image }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v5
@@ -106,6 +107,8 @@ jobs:
       FRONTEND_IMAGE: ${{ needs.verify.outputs.frontend_image }}
       BACKEND_IMAGE: ${{ needs.verify.outputs.backend_image }}
       POSTGRES_IMAGE: ${{ needs.verify.outputs.postgres_image }}
+      # Empty for releases before plan 16.
+      SCHEDULE_ASSETS_IMAGE: ${{ needs.verify.outputs.schedule_assets_image }}
       VPS_HOST: ${{ secrets.VPS_HOST }}
       VPS_USER: ${{ secrets.VPS_USER }}
       VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '22' }}
@@ -154,7 +157,7 @@ jobs:
             -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
             bash -c "'"'tmp="$(mktemp)" && cat > "$tmp" && bash "$tmp" "$@" < /dev/null; res=$?; rm -f "$tmp"; exit $res'"'" bash \
             "$RELEASE_SHA" "$VPS_DEPLOY_PATH" \
-            "$FRONTEND_IMAGE" "$BACKEND_IMAGE" "$POSTGRES_IMAGE" \
+            "$FRONTEND_IMAGE" "$BACKEND_IMAGE" "$POSTGRES_IMAGE" ${SCHEDULE_ASSETS_IMAGE:+"$SCHEDULE_ASSETS_IMAGE"} \
             < scripts/prod-remote-release.sh
 
       - name: Verify public production endpoints

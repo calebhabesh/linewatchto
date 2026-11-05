@@ -6,6 +6,8 @@ ROOT_DIR="${2:-/home/ubuntu/apps/linewatchto}"
 FRONTEND_IMAGE="${3:-}"
 BACKEND_IMAGE="${4:-}"
 POSTGRES_IMAGE="${5:-}"
+# Optional sixth: releases before plan 16 have no schedule-assets image.
+SCHEDULE_ASSETS_IMAGE="${6:-}"
 STATUS=""
 
 [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'Expected a full lowercase Git SHA.' >&2; exit 1; }
@@ -22,6 +24,13 @@ if [[ -n "$FRONTEND_IMAGE" || -n "$BACKEND_IMAGE" || -n "$POSTGRES_IMAGE" ]]; th
   export LINEWATCH_FRONTEND_IMAGE="$FRONTEND_IMAGE"
   export LINEWATCH_BACKEND_IMAGE="$BACKEND_IMAGE"
   export LINEWATCH_POSTGRES_IMAGE="$POSTGRES_IMAGE"
+fi
+if [[ -n "$SCHEDULE_ASSETS_IMAGE" ]]; then
+  [[ -n "$FRONTEND_IMAGE" && "$SCHEDULE_ASSETS_IMAGE" =~ ^ghcr\.io/calebhabesh/linewatch-schedule-assets@sha256:[0-9a-f]{64}$ ]] || {
+    echo 'Invalid pinned schedule-assets image.' >&2
+    exit 1
+  }
+  export LINEWATCH_SCHEDULE_ASSETS_IMAGE="$SCHEDULE_ASSETS_IMAGE"
 fi
 cd "$ROOT_DIR"
 [[ -f .env.production && -f .env.release ]] || { echo 'Production and release env files are required.' >&2; exit 1; }

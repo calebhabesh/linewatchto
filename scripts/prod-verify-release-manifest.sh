@@ -16,8 +16,16 @@ linewatch_validate_image_tag "$SHA"
 [[ "$(linewatch_read_release_value "$MANIFEST" LINEWATCH_IMAGE_TAG)" == "$SHA" ]] || \
   linewatch_die "release manifest SHA does not match $SHA"
 
-for component in frontend backend postgres; do
-  key="LINEWATCH_${component^^}_IMAGE"
+components=(frontend backend postgres)
+# Plan 16: the schedule-assets image. Required for a release that contains the service, so its
+# Compose service never falls back to a mutable tag; absent for releases before it.
+if [[ -n "$(linewatch_read_release_value "$MANIFEST" LINEWATCH_SCHEDULE_ASSETS_IMAGE)" ]] || \
+  git -C "$ROOT_DIR" cat-file -e "$SHA:services/schedule-assets/Dockerfile" 2>/dev/null; then
+  components+=(schedule-assets)
+fi
+for component in "${components[@]}"; do
+  name="${component//-/_}"
+  key="LINEWATCH_${name^^}_IMAGE"
   image="$(linewatch_read_release_value "$MANIFEST" "$key")"
   linewatch_validate_pinned_image "$REGISTRY" "$component" "$image"
 
@@ -33,7 +41,7 @@ for component in frontend backend postgres; do
   ' <<< "$image_json" >/dev/null || linewatch_die "$component image is not ARM64 for $SHA"
 
   if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
-    printf '%s_image=%s\n' "$component" "$image" >> "$GITHUB_OUTPUT"
+    printf '%s_image=%s\n' "$name" "$image" >> "$GITHUB_OUTPUT"
   fi
   printf 'Verified %s\n' "$image"
 done

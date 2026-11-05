@@ -135,6 +135,8 @@ test_renders_immutable_release_images() {
   assert_contains "$output" "name: linewatchto_caddy_data"
   assert_contains "$output" "name: linewatchto_caddy_config"
   assert_contains "$output" "name: linewatchto_alloy_prod_data"
+  assert_contains "$output" "ghcr.io/calebhabesh/linewatch-schedule-assets:$TEST_SHA"
+  assert_contains "$output" "name: linewatchto_schedule_assets_data"
   assert_contains "$output" "external: true"
   assert_not_contains "$output" "build:"
 }
@@ -146,11 +148,12 @@ test_renders_digest_pinned_release_images() {
   linewatch_write_release_env "$release_env" "ghcr.io/calebhabesh" "$TEST_SHA" \
     "ghcr.io/calebhabesh/linewatch-frontend@$TEST_DIGEST" \
     "ghcr.io/calebhabesh/linewatch-backend@$TEST_DIGEST" \
-    "ghcr.io/calebhabesh/linewatch-postgres@$TEST_DIGEST"
+    "ghcr.io/calebhabesh/linewatch-postgres@$TEST_DIGEST" \
+    "ghcr.io/calebhabesh/linewatch-schedule-assets@$TEST_DIGEST"
 
   output="$(
     env -u LINEWATCH_IMAGE_REGISTRY -u LINEWATCH_IMAGE_TAG \
-      -u LINEWATCH_FRONTEND_IMAGE -u LINEWATCH_BACKEND_IMAGE -u LINEWATCH_POSTGRES_IMAGE \
+      -u LINEWATCH_FRONTEND_IMAGE -u LINEWATCH_BACKEND_IMAGE -u LINEWATCH_POSTGRES_IMAGE -u LINEWATCH_SCHEDULE_ASSETS_IMAGE \
       LINEWATCH_PROD_ENV_FILE="$PROD_ENV" \
       docker compose --env-file "$PROD_ENV" --env-file "$release_env" \
         -f docker-compose.prod.yml config 2>&1
@@ -159,7 +162,9 @@ test_renders_digest_pinned_release_images() {
   assert_contains "$output" "ghcr.io/calebhabesh/linewatch-frontend@$TEST_DIGEST"
   assert_contains "$output" "ghcr.io/calebhabesh/linewatch-backend@$TEST_DIGEST"
   assert_contains "$output" "ghcr.io/calebhabesh/linewatch-postgres@$TEST_DIGEST"
+  assert_contains "$output" "ghcr.io/calebhabesh/linewatch-schedule-assets@$TEST_DIGEST"
   assert_not_contains "$output" "linewatch-frontend:$TEST_SHA"
+  assert_not_contains "$output" "linewatch-schedule-assets:$TEST_SHA"
 }
 
 test_release_env_rejects_partial_or_bad_pins() {
@@ -183,6 +188,24 @@ test_release_env_rejects_partial_or_bad_pins() {
   set -e
   assert_equals "$status" "1"
   assert_not_contains "$(cat "$release_env")" "LINEWATCH_FRONTEND_IMAGE"
+
+  set +e
+  linewatch_write_release_env "$release_env" "ghcr.io/calebhabesh" "$TEST_SHA" "" "" "" \
+    "ghcr.io/calebhabesh/linewatch-schedule-assets@$TEST_DIGEST" >/dev/null 2>&1
+  status=$?
+  set -e
+  assert_equals "$status" "1"
+
+  set +e
+  linewatch_write_release_env "$release_env" "ghcr.io/calebhabesh" "$TEST_SHA" \
+    "ghcr.io/calebhabesh/linewatch-frontend@$TEST_DIGEST" \
+    "ghcr.io/calebhabesh/linewatch-backend@$TEST_DIGEST" \
+    "ghcr.io/calebhabesh/linewatch-postgres@$TEST_DIGEST" \
+    "ghcr.io/calebhabesh/linewatch-frontend@$TEST_DIGEST" >/dev/null 2>&1
+  status=$?
+  set -e
+  assert_equals "$status" "1"
+  assert_not_contains "$(cat "$release_env")" "LINEWATCH_SCHEDULE_ASSETS_IMAGE"
 }
 
 test_initializes_only_missing_external_volumes() {
@@ -389,6 +412,9 @@ EOF
   assert_contains "$(cat "$log")" "linewatch-frontend:$TEST_SHA"
   assert_contains "$(cat "$log")" "linewatch-backend:$TEST_SHA"
   assert_contains "$(cat "$log")" "linewatch-postgres:$TEST_SHA"
+  assert_contains "$(cat "$log")" "--file $ROOT_DIR/services/schedule-assets/Dockerfile"
+  assert_contains "$(cat "$log")" "linewatch-schedule-assets:$TEST_SHA"
+  assert_contains "$output" "linewatch-schedule-assets:$TEST_SHA"
   assert_contains "$output" "scripts/prod-deploy.sh $TEST_SHA"
 }
 
@@ -429,11 +455,14 @@ test_publish_records_and_validates_exact_image_digests() {
   make_fake_release_registry "$fake_docker"
   sha="$(git -C "$ROOT_DIR" rev-parse HEAD)"
   FAKE_DOCKER_LOG="$log" FAKE_DIGEST="$TEST_DIGEST" FAKE_RELEASE_SHA="$sha" \
-    DOCKER_BIN="$fake_docker" LINEWATCH_SKIP_CLEAN_CHECK=true \
+    DOCKER_BIN="$fake_docker" LINEWATCH_SKIP_CLEAN_CHECK=true LINEWATCH_RELEASE_HAS_SCHEDULE_ASSETS=true \
     LINEWATCH_RELEASE_MANIFEST_FILE="$manifest" \
       "$ROOT_DIR/scripts/prod-publish-release.sh" >/dev/null
 
   assert_equals "$(linewatch_read_release_value "$manifest" LINEWATCH_IMAGE_TAG)" "$sha"
+  assert_equals "$(linewatch_read_release_value "$manifest" LINEWATCH_SCHEDULE_ASSETS_IMAGE)" \
+    "ghcr.io/calebhabesh/linewatch-schedule-assets@$TEST_DIGEST"
+  assert_contains "$(cat "$log")" "imagetools inspect ghcr.io/calebhabesh/linewatch-schedule-assets@$TEST_DIGEST"
   assert_equals "$(linewatch_read_release_value "$manifest" LINEWATCH_FRONTEND_IMAGE)" \
     "ghcr.io/calebhabesh/linewatch-frontend@$TEST_DIGEST"
   assert_contains "$(cat "$log")" "--platform linux/arm64"
@@ -865,6 +894,9 @@ printf 'deploy %s\n' "$1" >> "${FAKE_RELEASE_LOG:?}"
 if [[ -n "${LINEWATCH_FRONTEND_IMAGE:-}" ]]; then
   printf 'pin %s\n' "$LINEWATCH_FRONTEND_IMAGE" >> "${FAKE_RELEASE_LOG:?}"
 fi
+if [[ -n "${LINEWATCH_SCHEDULE_ASSETS_IMAGE:-}" ]]; then
+  printf 'pin %s\n' "$LINEWATCH_SCHEDULE_ASSETS_IMAGE" >> "${FAKE_RELEASE_LOG:?}"
+fi
 EOF
   chmod +x "$bin_dir/git" \
     "$checkout/scripts/prod-backup-postgres.sh" "$checkout/scripts/prod-deploy.sh"
@@ -937,6 +969,16 @@ test_remote_release_passes_verified_image_pins() {
       "ghcr.io/calebhabesh/linewatch-backend@$TEST_DIGEST" \
       "ghcr.io/calebhabesh/linewatch-postgres@$TEST_DIGEST"
   assert_contains "$(cat "$log")" "pin ghcr.io/calebhabesh/linewatch-frontend@$TEST_DIGEST"
+  assert_not_contains "$(cat "$log")" "linewatch-schedule-assets"
+
+  : > "$log"
+  FAKE_RELEASE_LOG="$log" PATH="$bin_dir:$PATH" \
+    bash "$ROOT_DIR/scripts/prod-remote-release.sh" "$TEST_SHA" "$checkout" \
+      "ghcr.io/calebhabesh/linewatch-frontend@$TEST_DIGEST" \
+      "ghcr.io/calebhabesh/linewatch-backend@$TEST_DIGEST" \
+      "ghcr.io/calebhabesh/linewatch-postgres@$TEST_DIGEST" \
+      "ghcr.io/calebhabesh/linewatch-schedule-assets@$TEST_DIGEST"
+  assert_contains "$(cat "$log")" "pin ghcr.io/calebhabesh/linewatch-schedule-assets@$TEST_DIGEST"
 }
 
 test_remote_release_rejects_bad_image_before_backup() {
@@ -957,6 +999,50 @@ test_remote_release_rejects_bad_image_before_backup() {
   set -e
   assert_equals "$status" "1"
   [[ ! -e "$log" ]] || assert_not_contains "$(cat "$log")" "backup"
+
+  set +e
+  FAKE_RELEASE_LOG="$log" PATH="$bin_dir:$PATH" \
+    bash "$ROOT_DIR/scripts/prod-remote-release.sh" "$TEST_SHA" "$checkout" \
+      "ghcr.io/calebhabesh/linewatch-frontend@$TEST_DIGEST" \
+      "ghcr.io/calebhabesh/linewatch-backend@$TEST_DIGEST" \
+      "ghcr.io/calebhabesh/linewatch-postgres@$TEST_DIGEST" \
+      "ghcr.io/calebhabesh/linewatch-schedule-assets@sha256:bad" >/dev/null 2>&1
+  status=$?
+  set -e
+  assert_equals "$status" "1"
+  [[ ! -e "$log" ]] || assert_not_contains "$(cat "$log")" "backup"
+}
+
+test_manifest_verification_covers_schedule_assets() {
+  local temp_dir="$TEST_TMP/manifest-schedule-assets"
+  local fake_docker="$temp_dir/docker"
+  local log="$temp_dir/docker.log"
+  local manifest="$temp_dir/release-images.env"
+  local output
+
+  mkdir -p "$temp_dir"
+  make_fake_release_registry "$fake_docker"
+  # A release from before plan 16 (TEST_SHA is not a commit here): three images verify.
+  linewatch_write_release_env "$manifest" "ghcr.io/calebhabesh" "$TEST_SHA" \
+    "ghcr.io/calebhabesh/linewatch-frontend@$TEST_DIGEST" \
+    "ghcr.io/calebhabesh/linewatch-backend@$TEST_DIGEST" \
+    "ghcr.io/calebhabesh/linewatch-postgres@$TEST_DIGEST"
+  output="$(FAKE_DOCKER_LOG="$log" FAKE_DIGEST="$TEST_DIGEST" FAKE_RELEASE_SHA="$TEST_SHA" \
+    DOCKER_BIN="$fake_docker" GITHUB_OUTPUT="$temp_dir/out" \
+      "$ROOT_DIR/scripts/prod-verify-release-manifest.sh" "$manifest" "$TEST_SHA")"
+  assert_not_contains "$output" "schedule-assets"
+
+  linewatch_write_release_env "$manifest" "ghcr.io/calebhabesh" "$TEST_SHA" \
+    "ghcr.io/calebhabesh/linewatch-frontend@$TEST_DIGEST" \
+    "ghcr.io/calebhabesh/linewatch-backend@$TEST_DIGEST" \
+    "ghcr.io/calebhabesh/linewatch-postgres@$TEST_DIGEST" \
+    "ghcr.io/calebhabesh/linewatch-schedule-assets@$TEST_DIGEST"
+  : > "$temp_dir/out"
+  output="$(FAKE_DOCKER_LOG="$log" FAKE_DIGEST="$TEST_DIGEST" FAKE_RELEASE_SHA="$TEST_SHA" \
+    DOCKER_BIN="$fake_docker" GITHUB_OUTPUT="$temp_dir/out" \
+      "$ROOT_DIR/scripts/prod-verify-release-manifest.sh" "$manifest" "$TEST_SHA")"
+  assert_contains "$output" "Verified ghcr.io/calebhabesh/linewatch-schedule-assets@$TEST_DIGEST"
+  assert_contains "$(cat "$temp_dir/out")" "schedule_assets_image=ghcr.io/calebhabesh/linewatch-schedule-assets@$TEST_DIGEST"
 }
 
 verify_test_harness
@@ -989,6 +1075,7 @@ run_test "remote release stops when backup fails" test_remote_release_stops_afte
 run_test "remote release stops when checkout status is unavailable" test_remote_release_stops_when_checkout_cannot_be_inspected
 run_test "remote release passes the selected image digests" test_remote_release_passes_verified_image_pins
 run_test "remote release rejects a bad image before backup" test_remote_release_rejects_bad_image_before_backup
+run_test "manifest verification covers the schedule-assets image when a release has one" test_manifest_verification_covers_schedule_assets
 
 printf '%s tests passed\n' "$TEST_COUNT"
 

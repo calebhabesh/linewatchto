@@ -29,8 +29,14 @@ resolve_image() {
 FRONTEND_IMAGE="$(resolve_image frontend)"
 BACKEND_IMAGE="$(resolve_image backend)"
 POSTGRES_IMAGE="$(resolve_image postgres)"
+# Plan 16 added the schedule-assets image; a release from before it has none.
+SCHEDULE_ASSETS_IMAGE=""
+if [[ "${LINEWATCH_RELEASE_HAS_SCHEDULE_ASSETS:-}" == "true" ]] || \
+  git -C "$ROOT_DIR" cat-file -e "$SHA:services/schedule-assets/Dockerfile" 2>/dev/null; then
+  SCHEDULE_ASSETS_IMAGE="$(resolve_image schedule-assets)"
+fi
 mkdir -p "$(dirname "$MANIFEST")"
 linewatch_write_release_env "$MANIFEST" "$REGISTRY" "$SHA" \
-  "$FRONTEND_IMAGE" "$BACKEND_IMAGE" "$POSTGRES_IMAGE"
+  "$FRONTEND_IMAGE" "$BACKEND_IMAGE" "$POSTGRES_IMAGE" "$SCHEDULE_ASSETS_IMAGE"
 "$ROOT_DIR/scripts/prod-verify-release-manifest.sh" "$MANIFEST" "$SHA"
 printf 'Recorded image digests for %s in %s\n' "$SHA" "$MANIFEST"

@@ -189,6 +189,30 @@ jobs:
           docker logs linewatch-ci-frontend
           exit 1
 
+      # Plan 16: the image publishes its baked-in files on an empty volume and reports healthy.
+      # SCHEDULE_ASSETS_NETWORKS=none skips the feed checks, so CI reads no TTC or GO feed.
+      - name: Check the published schedule-assets image
+        env:
+          RELEASE_MANIFEST: ${{ runner.temp }}/release-images.env
+        shell: bash
+        run: |
+          set -euo pipefail
+          source scripts/lib/prod-release.sh
+          image="$(linewatch_read_release_value "$RELEASE_MANIFEST" LINEWATCH_SCHEDULE_ASSETS_IMAGE)"
+          docker run -d --name linewatch-ci-schedule-assets -e SCHEDULE_ASSETS_NETWORKS=none "$image" >/dev/null
+          trap 'docker rm -f linewatch-ci-schedule-assets >/dev/null 2>&1 || true' EXIT
+          for attempt in {1..30}; do
+            if docker exec linewatch-ci-schedule-assets wget -qO- http://127.0.0.1:8095/healthz |
+              jq -e '.status == "ok"' >/dev/null &&
+              docker exec linewatch-ci-schedule-assets cat /srv/schedule/manifest.json |
+              jq -e '.networks.ttc.origin == "release" and .networks.go.origin == "release"' >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs linewatch-ci-schedule-assets
+          exit 1
+
       - name: Save exact release image digests
         uses: actions/upload-artifact@v6
         with:

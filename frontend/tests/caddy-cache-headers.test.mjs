@@ -57,6 +57,39 @@ function assertRawDiagnosticsBlocked(source, label) {
   );
 }
 
+/** Plan 16: the schedule-assets volume at /data/schedule/, in every site that serves the app. */
+function assertScheduleAssets(source, label, siteBlock) {
+  const snippet = source.match(/\(linewatch_schedule_assets\) \{[\s\S]*?\n\}\n/)?.[0] ?? "";
+  assert.ok(snippet, `${label} should define the schedule assets snippet`);
+  assert.match(snippet, /handle \/data\/schedule\/\* \{\s*root \* \/srv\/linewatch/, `${label} should serve the volume's mount`);
+  assert.match(snippet, /@linewatch_schedule_manifest \{\s*path \/data\/schedule\/manifest\.json\s*file\s*\}/, `${label} should match only an existing manifest`);
+  assert.match(snippet, /header @linewatch_schedule_manifest Cache-Control "public, max-age=60"/, `${label} should keep the manifest short-lived`);
+  assert.match(snippet, /path_regexp \^\/data\/schedule\/files\/\[A-Za-z0-9_-\]\+\\\.\[0-9a-f\]\{16\}\\\.json\$\s*file/, `${label} should serve only existing hashed JSON files`);
+  assert.match(snippet, /header @linewatch_schedule_file Cache-Control "public, max-age=31536000, immutable"/, `${label} should cache hashed files forever`);
+  assert.match(snippet, /precompressed br gzip/, `${label} should serve the precompressed copies`);
+  assert.match(snippet, /handle \{\s*header Cache-Control "no-store"\s*respond 404\s*\}/, `${label} should answer anything else with an uncached 404`);
+  const site = source.slice(source.indexOf(`\n${siteBlock}\n`));
+  assert.match(site.slice(0, site.indexOf("\n}\n")), /import linewatch_schedule_assets/, `${label} ${siteBlock} should import it`);
+}
+
+describe("Caddy schedule assets (plan 16)", () => {
+  it("serves the manifest briefly and hashed files immutably in every configuration", () => {
+    assertScheduleAssets(prodCaddyfile, "Caddyfile", "linewatchto.ca {");
+    assertScheduleAssets(stagingCaddyfile, "Caddyfile.staging", ":8080 {");
+    assertScheduleAssets(awsLabCaddyfile, "Caddyfile.aws-lab", ":8080 {");
+  });
+
+  it("mounts the volume read-only into Caddy and the backend, and gives the service its memory", () => {
+    for (const [compose, label] of [[productionCompose, "production"], [stagingCompose, "staging"]]) {
+      assert.match(compose, /\n  schedule-assets:\n/, `${label} should run the schedule-assets service`);
+      assert.match(compose, /- schedule_assets_\w+:\/srv\/linewatch\/data\/schedule:ro/, `${label} Caddy should mount the volume read-only`);
+      assert.match(compose, /- schedule_assets_\w+:\/srv\/schedule:ro/, `${label} backend should mount the volume read-only`);
+      assert.match(compose, /LINEWATCH_SCHEDULE_ASSETS_DIR: \/srv\/schedule/, `${label} backend should read the volume`);
+      assert.match(compose, /mem_limit: 3g/, `${label} schedule-assets needs about 2 GB to generate`);
+    }
+  });
+});
+
 describe("Caddy cache headers", () => {
   it("sets public and private cache headers in production", () => {
     assertCachePolicy(prodCaddyfile, "Caddyfile");

@@ -8,6 +8,7 @@ VOLUMES=(
   linewatchto_caddy_data
   linewatchto_caddy_config
   linewatchto_alloy_prod_data
+  linewatchto_schedule_assets_data
 )
 
 for volume_name in "${VOLUMES[@]}"; do

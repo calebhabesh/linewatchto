@@ -37,7 +37,7 @@ linewatch_image_ref() {
   registry="$(linewatch_normalize_registry "${1-}")" || return 1
 
   case "$component" in
-    frontend|backend|postgres) ;;
+    frontend|backend|postgres|schedule-assets) ;;
     *)
       linewatch_die "unsupported image component: $component"
       return 1
@@ -57,7 +57,7 @@ linewatch_validate_pinned_image() {
 
   registry="$(linewatch_normalize_registry "${1-}")" || return 1
   case "$component" in
-    frontend|backend|postgres) ;;
+    frontend|backend|postgres|schedule-assets) ;;
     *) linewatch_die "unsupported image component: $component"; return 1 ;;
   esac
   prefix="$registry/linewatch-$component@"
@@ -91,6 +91,8 @@ linewatch_write_release_env() {
   local frontend_image="${4-}"
   local backend_image="${5-}"
   local postgres_image="${6-}"
+  # Optional: releases before plan 16 have no schedule-assets image.
+  local schedule_assets_image="${7-}"
   local parent
   local basename
   local temp
@@ -106,6 +108,13 @@ linewatch_write_release_env() {
     linewatch_validate_pinned_image "$registry" frontend "$frontend_image" || return 1
     linewatch_validate_pinned_image "$registry" backend "$backend_image" || return 1
     linewatch_validate_pinned_image "$registry" postgres "$postgres_image" || return 1
+  fi
+  if [[ -n "$schedule_assets_image" ]]; then
+    if [[ -z "$frontend_image" ]]; then
+      linewatch_die "a pinned schedule-assets image needs the other pinned images"
+      return 1
+    fi
+    linewatch_validate_pinned_image "$registry" schedule-assets "$schedule_assets_image" || return 1
   fi
 
   if [[ -z "$output" ]]; then
@@ -152,6 +161,9 @@ linewatch_write_release_env() {
     if [[ -n "$frontend_image" ]]; then
       printf 'LINEWATCH_FRONTEND_IMAGE=%s\nLINEWATCH_BACKEND_IMAGE=%s\nLINEWATCH_POSTGRES_IMAGE=%s\n' \
         "$frontend_image" "$backend_image" "$postgres_image"
+    fi
+    if [[ -n "$schedule_assets_image" ]]; then
+      printf 'LINEWATCH_SCHEDULE_ASSETS_IMAGE=%s\n' "$schedule_assets_image"
     fi
   } > "$temp"; then
     umask "$old_umask"

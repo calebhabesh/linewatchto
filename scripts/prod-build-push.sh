@@ -62,6 +62,7 @@ build_and_push() {
 
 build_and_push backend "$ROOT_DIR/backend/Dockerfile" "$ROOT_DIR"
 build_and_push postgres "$ROOT_DIR/infra/postgres/Dockerfile" "$ROOT_DIR"
+build_and_push schedule-assets "$ROOT_DIR/services/schedule-assets/Dockerfile" "$ROOT_DIR"
 build_and_push frontend "$ROOT_DIR/frontend/Dockerfile" "$ROOT_DIR/frontend" \
   --build-arg "NEXT_PUBLIC_LINEWATCH_APP_VERSION=$FRONTEND_APP_VERSION" \
   --build-arg "NEXT_PUBLIC_LINEWATCH_BUILD_LABEL=prod-$SHORT_SHA" \
@@ -76,6 +77,7 @@ Available LineWatchTO release:
   $REGISTRY/linewatch-frontend:$SHA
   $REGISTRY/linewatch-backend:$SHA
   $REGISTRY/linewatch-postgres:$SHA
+  $REGISTRY/linewatch-schedule-assets:$SHA
 
 Deploy on the VPS:
   scripts/prod-deploy.sh $SHA

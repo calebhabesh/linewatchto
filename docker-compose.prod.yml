@@ -55,6 +55,9 @@ services:
       SERVER_PORT: 8080
       MANAGEMENT_SERVER_PORT: 9090
       LINEWATCH_ENVIRONMENT: ${LINEWATCH_ENVIRONMENT:-production}
+      LINEWATCH_SCHEDULE_ASSETS_DIR: /srv/schedule
+    volumes:
+      - schedule_assets_prod_data:/srv/schedule:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,6 +100,29 @@ services:
       retries: 5
       start_period: 30s
 
+  # Schedule-derived map and search files (plan 16): checks the TTC and GO GTFS, regenerates
+  # and publishes into its volume, which Caddy serves at /data/schedule/ and the backend reads.
+  schedule-assets:
+    image: ${LINEWATCH_SCHEDULE_ASSETS_IMAGE:-${LINEWATCH_IMAGE_REGISTRY:-ghcr.io/calebhabesh}/linewatch-schedule-assets:${LINEWATCH_IMAGE_TAG:?Set LINEWATCH_IMAGE_TAG in .env.release}}
+    restart: unless-stopped
+    # The TTC bus generator peaks near 1.5 GB.
+    mem_limit: 3g
+    volumes:
+      - schedule_assets_prod_data:/srv/schedule
+    networks:
+      - linewatch-net
+    logging: *default-logging
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:8095/healthz', {signal: AbortSignal.timeout(3000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -104,6 +130,7 @@ services:
     # No published ports: the cloudflared service reaches Caddy over linewatch-net.
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - schedule_assets_prod_data:/srv/linewatch/data/schedule:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
@@ -197,6 +224,9 @@ volumes:
     external: true
   alloy_prod_data:
     name: linewatchto_alloy_prod_data
+    external: true
+  schedule_assets_prod_data:
+    name: linewatchto_schedule_assets_data
     external: true
 
 networks:

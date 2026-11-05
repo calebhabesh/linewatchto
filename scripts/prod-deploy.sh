@@ -30,7 +30,8 @@ mkdir -p "$(dirname "$RELEASE_ENV")"
 CANDIDATE="$(mktemp "${RELEASE_ENV}.candidate.XXXXXX")"
 trap 'rm -f -- "$CANDIDATE"' EXIT
 linewatch_write_release_env "$CANDIDATE" "$REGISTRY" "$TAG" \
-  "${LINEWATCH_FRONTEND_IMAGE:-}" "${LINEWATCH_BACKEND_IMAGE:-}" "${LINEWATCH_POSTGRES_IMAGE:-}"
+  "${LINEWATCH_FRONTEND_IMAGE:-}" "${LINEWATCH_BACKEND_IMAGE:-}" "${LINEWATCH_POSTGRES_IMAGE:-}" \
+  "${LINEWATCH_SCHEDULE_ASSETS_IMAGE:-}"
 
 export LINEWATCH_PROD_ENV_FILE="$PROD_ENV"
 export LINEWATCH_RELEASE_ENV_FILE="$CANDIDATE"
@@ -39,7 +40,7 @@ if [[ "${LINEWATCH_DEPLOY_SKIP_CONFIG_CHECK:-false}" != "true" ]]; then
   linewatch_compose config > /dev/null
 fi
 
-linewatch_compose pull postgres backend frontend
+linewatch_compose pull postgres backend frontend schedule-assets
 
 if ! linewatch_compose up \
   -d \
@@ -49,7 +50,7 @@ if ! linewatch_compose up \
   --wait-timeout "${LINEWATCH_DEPLOY_WAIT_SECONDS:-240}"; then
   printf 'Deployment failed for release %s.\n' "$TAG" >&2
   linewatch_compose ps >&2 || true
-  linewatch_compose logs --tail 150 postgres redis backend frontend caddy >&2 || true
+  linewatch_compose logs --tail 150 postgres redis backend frontend schedule-assets caddy >&2 || true
   if [[ -n "$PREVIOUS_TAG" ]]; then
     printf 'Previous release remains recorded as %s.\n' "$PREVIOUS_TAG" >&2
     printf 'Rollback command: scripts/prod-deploy.sh %s\n' "$PREVIOUS_TAG" >&2

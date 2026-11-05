@@ -52,6 +52,12 @@ check "runs main's release script, not the client's" "release $MAIN_SHA $TEST_TM
   "$(run_gate "$RUNNER $MAIN_SHA $TEST_TMP/checkout")"
 check "passes pinned images through" "release $MAIN_SHA $TEST_TMP/checkout $images" \
   "$(run_gate "$RUNNER $MAIN_SHA $TEST_TMP/checkout $images")"
+check "passes a fourth (schedule-assets) image through" "release $MAIN_SHA $TEST_TMP/checkout $images ghcr.io/calebhabesh/linewatch-schedule-assets$IMG_SUFFIX" \
+  "$(run_gate "$RUNNER $MAIN_SHA $TEST_TMP/checkout $images ghcr.io/calebhabesh/linewatch-schedule-assets$IMG_SUFFIX")"
+check "rejects an unpinned fourth image" "invalid pinned schedule-assets image" \
+  "$(run_gate "$RUNNER $MAIN_SHA $TEST_TMP/checkout $images ghcr.io/calebhabesh/linewatch-frontend$IMG_SUFFIX" || true)"
+check "rejects a seventh argument" "expected SHA" \
+  "$(run_gate "$RUNNER $MAIN_SHA $TEST_TMP/checkout $images ghcr.io/calebhabesh/linewatch-schedule-assets$IMG_SUFFIX x" || true)"
 check "rejects commits not on main" "release is not on main" \
   "$(run_gate "$RUNNER $SIDE_SHA $TEST_TMP/checkout" || true)"
 check "rejects other deploy paths" "deploy path must be" \

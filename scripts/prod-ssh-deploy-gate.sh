@@ -5,7 +5,7 @@
 #   sudo install -m 755 scripts/prod-ssh-deploy-gate.sh /usr/local/sbin/linewatch-deploy-gate
 #   command="/usr/local/sbin/linewatch-deploy-gate",from="10.0.0.3",restrict ssh-ed25519 ...
 #
-# The workflow still sends `bash -c '<runner>' bash SHA PATH [FRONTEND BACKEND POSTGRES]` with
+# The workflow still sends `bash -c '<runner>' bash SHA PATH [FRONTEND BACKEND POSTGRES [SCHEDULE_ASSETS]]` with
 # the release script on stdin. The gate discards that script, keeps only the arguments, and runs
 # prod-remote-release.sh as committed on origin/main, so the key can only deploy main commits.
 set -euo pipefail
@@ -30,14 +30,15 @@ for ((i = ${#words[@]} - 1; i >= 0; i--)); do
   fi
 done
 
-[[ ${#args[@]} -eq 2 || ${#args[@]} -eq 5 ]] || die 'expected SHA, path and zero or three images.'
+# Six: plan 16's schedule-assets image; five for releases before it.
+[[ ${#args[@]} -eq 2 || ${#args[@]} -eq 5 || ${#args[@]} -eq 6 ]] || die 'expected SHA, path and zero, three or four images.'
 sha="${args[0]}"
 path="${args[1]}"
 [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || die 'expected a full lowercase Git SHA.'
 [[ "$path" == "$ROOT_DIR" ]] || die "deploy path must be $ROOT_DIR."
-if [[ ${#args[@]} -eq 5 ]]; then
-  components=(frontend backend postgres)
-  for n in 0 1 2; do
+if [[ ${#args[@]} -ge 5 ]]; then
+  components=(frontend backend postgres schedule-assets)
+  for ((n = 0; n < ${#args[@]} - 2; n++)); do
     [[ "${args[n + 2]}" =~ ^ghcr\.io/calebhabesh/linewatch-${components[n]}@sha256:[0-9a-f]{64}$ ]] \
       || die "invalid pinned ${components[n]} image."
   done

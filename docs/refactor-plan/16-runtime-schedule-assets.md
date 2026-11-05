@@ -123,7 +123,7 @@ surface line of [domain invariants](../domain-invariants.md),
 | R1 | Service: detection, generation, validation, publishing, status | Done (2026-11-05) |
 | R2 | Client manifest resolver and service worker | Done (2026-11-05) |
 | R3 | Backend GO stop reload and health endpoint | Done (2026-11-05) |
-| R4 | Image, Compose, Caddy, release pipeline and deploy gate | |
+| R4 | Image, Compose, Caddy, release pipeline and deploy gate | Done (2026-11-05) |
 | R5 | Staging end to end | |
 | R6 | Production: Cloudflare rule, gate, deploy and checks (owner go-ahead) | |
 | R7 | Remove the interim PR workflow; docs | |
@@ -236,6 +236,42 @@ Compose service and volume in production and staging; Caddy route and headers
 in all three Caddyfiles with tests; the release scripts, digest manifest,
 remote release, deploy gate and workflows learn the fourth image; their Bash
 suites stay green.
+
+**Done (2026-11-05).**
+
+- `services/schedule-assets/Dockerfile` (context: repository root): Node 24
+  Alpine with `unzip`, the three generators and `scripts/lib`, the service, and
+  the release's files in `/app/baked`; runs as `node` with `/srv/schedule`
+  owned by it (Docker copies that ownership into an empty named volume, also
+  when another container mounted it read-only first; checked). 177 MB. In a
+  container with a 3 GB limit and an empty volume it bootstrapped, then
+  regenerated TTC in 63 s and GO in 4 s, to the same generation as on the host.
+- Compose: `schedule-assets` in production (pinned image, `mem_limit: 3g`,
+  external volume `linewatchto_schedule_assets_data`, created by
+  `scripts/prod-init-volumes.sh`) and staging (built locally; feed and interval
+  overrides `LINEWATCH_STAGING_SCHEDULE_*`). The backend mounts the volume
+  read-only at `/srv/schedule` with `LINEWATCH_SCHEDULE_ASSETS_DIR`; Caddy at
+  `/srv/linewatch/data/schedule`. Nothing depends on the service's health, so a
+  failing service never holds back the site; `up --wait` still fails the deploy.
+  The AWS lab gets the Caddy route but no service: its manifest is a 404 and
+  clients use the release's files.
+- Caddy (`linewatch_schedule_assets`, all three Caddyfiles, imported by the app
+  site only): the manifest `public, max-age=60`; hashed JSON
+  `public, max-age=31536000, immutable`, served from the `.br`/`.gz` copies;
+  anything else under `/data/schedule/` (status, state, the CSV, a missing hash)
+  a `no-store` 404. Checked against the container's volume: the 1.6 MB TTC stop
+  file is sent as 116 KB of brotli. `caddy validate` passes for all three.
+- Release pipeline: `schedule-assets` is a fourth component. It is optional
+  wherever an older release can appear (its digest file has three images), and
+  required by `prod-verify-release-manifest.sh` for any commit that contains
+  the service, so a new release cannot fall back to a mutable tag. The deploy
+  gate accepts two, five or six arguments; the sixth must be a pinned
+  `linewatch-schedule-assets` image. CI checks the published image bootstraps
+  and reports healthy without reading any feed (`SCHEDULE_ASSETS_NETWORKS=none`).
+- Tests: `prod-release-tools.test.sh` 30 (new: verification with and without
+  the image, plus image cases in the render, pin, build, publish and remote
+  release tests), `prod-ssh-deploy-gate.test.sh` 10 (3 new),
+  `caddy-cache-headers.test.mjs` 7 (2 new), staging and AWS lab suites pass.
 
 ### R5 — Staging
 

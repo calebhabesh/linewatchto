@@ -65,6 +65,39 @@
 	}
 }
 
+(linewatch_schedule_assets) {
+	# Schedule-derived map and search files (plan 16): the schedule-assets service publishes them
+	# into a volume mounted read-only at /srv/linewatch/data/schedule. Only the manifest and the
+	# hashed JSON files are served; status, state and anything missing are a no-store 404, so a
+	# missing hashed file is never cached as immutable. Without the volume every request is a 404
+	# and the client uses the release's files.
+	handle /data/schedule/* {
+		root * /srv/linewatch
+		@linewatch_schedule_manifest {
+			path /data/schedule/manifest.json
+			file
+		}
+		@linewatch_schedule_file {
+			path_regexp ^/data/schedule/files/[A-Za-z0-9_-]+\.[0-9a-f]{16}\.json$
+			file
+		}
+		header @linewatch_schedule_manifest Cache-Control "public, max-age=60"
+		header @linewatch_schedule_file Cache-Control "public, max-age=31536000, immutable"
+		handle @linewatch_schedule_manifest {
+			file_server
+		}
+		handle @linewatch_schedule_file {
+			file_server {
+				precompressed br gzip
+			}
+		}
+		handle {
+			header Cache-Control "no-store"
+			respond 404
+		}
+	}
+}
+
 www.linewatchto.ca {
 	redir https://linewatchto.ca{uri} 308
 }
@@ -73,6 +106,7 @@ linewatchto.ca {
 	encode gzip zstd
 	import linewatch_security_headers
 	import linewatch_cache_headers
+	import linewatch_schedule_assets
 
 	handle /api/admin/* {
 		respond 404

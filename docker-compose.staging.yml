@@ -57,6 +57,9 @@ services:
       MANAGEMENT_SERVER_PORT: 9090
       LINEWATCH_ENVIRONMENT: ${LINEWATCH_ENVIRONMENT:-staging}
       LINEWATCH_DIAGNOSTICS_RAW_ALERTS_ENABLED: "true"
+      LINEWATCH_SCHEDULE_ASSETS_DIR: /srv/schedule
+    volumes:
+      - schedule_assets_staging_data:/srv/schedule:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -106,6 +109,37 @@ services:
       retries: 5
       start_period: 45s
 
+  # Schedule-derived map and search files (plan 16): checks the TTC and GO GTFS, regenerates
+  # and publishes into its volume, which Caddy serves at /data/schedule/ and the backend reads.
+  schedule-assets:
+    build:
+      context: .
+      dockerfile: services/schedule-assets/Dockerfile
+    restart: unless-stopped
+    # The TTC bus generator peaks near 1.5 GB.
+    mem_limit: 3g
+    environment:
+      # Feed overrides for the end-to-end check (http(s) or file: inside the container); empty uses the real feeds.
+      SCHEDULE_ASSETS_TTC_PACKAGE_URL: ${LINEWATCH_STAGING_SCHEDULE_TTC_PACKAGE_URL:-}
+      SCHEDULE_ASSETS_GO_GTFS_URL: ${LINEWATCH_STAGING_SCHEDULE_GO_GTFS_URL:-}
+      SCHEDULE_ASSETS_TTC_INTERVAL_SECONDS: ${LINEWATCH_STAGING_SCHEDULE_TTC_INTERVAL_SECONDS:-3600}
+      SCHEDULE_ASSETS_GO_INTERVAL_SECONDS: ${LINEWATCH_STAGING_SCHEDULE_GO_INTERVAL_SECONDS:-21600}
+    volumes:
+      - schedule_assets_staging_data:/srv/schedule
+    networks:
+      - linewatch-staging-net
+    logging: *default-logging
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:8095/healthz', {signal: AbortSignal.timeout(3000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -113,6 +147,7 @@ services:
       - "127.0.0.1:${LINEWATCH_STAGING_HTTP_PORT:-8090}:8080"
     volumes:
       - ./Caddyfile.staging:/etc/caddy/Caddyfile:ro
+      - schedule_assets_staging_data:/srv/linewatch/data/schedule:ro
       - caddy_staging_data:/data
       - caddy_staging_config:/config
     depends_on:
@@ -196,6 +231,7 @@ services:
     logging: *default-logging
 
 volumes:
+  schedule_assets_staging_data:
   postgres_staging_data:
   redis_staging_data:
   caddy_staging_data:
