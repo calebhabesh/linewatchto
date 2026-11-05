@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { NetworkId } from "../app/dashboard-contract";
 import { cachedSurfaceSearchIndex, loadSurfaceSearchIndex } from "../app/surface-search-index";
 import type { PreparedSurfaceIndex } from "../app/surface-search";
@@ -13,8 +13,8 @@ const NETWORKS: NetworkId[] = ["ttc", "regional"];
  * stops are simply absent; a typed stop number still opens its departures.
  */
 export function useSurfaceSearchIndexes(active: boolean): PreparedSurfaceIndex[] {
-  const [indexes, setIndexes] = useState<PreparedSurfaceIndex[]>(() =>
-    NETWORKS.map(cachedSurfaceSearchIndex).filter((index): index is PreparedSurfaceIndex => index !== null));
+  // Indexes live in a module cache, filled here or by the idle prefetch; a load only re-renders.
+  const [, setLoads] = useState(0);
 
   useEffect(() => {
     if (!active) return;
@@ -22,8 +22,7 @@ export function useSurfaceSearchIndexes(active: boolean): PreparedSurfaceIndex[]
     for (const network of NETWORKS) {
       if (cachedSurfaceSearchIndex(network)) continue;
       loadSurfaceSearchIndex(network).then(() => {
-        if (cancelled) return;
-        setIndexes(NETWORKS.map(cachedSurfaceSearchIndex).filter((index): index is PreparedSurfaceIndex => index !== null));
+        if (!cancelled) setLoads((count) => count + 1);
       }, () => {
         // Offline or unavailable: search keeps stations, lines, notices and stop numbers.
       });
@@ -33,7 +32,9 @@ export function useSurfaceSearchIndexes(active: boolean): PreparedSurfaceIndex[]
     };
   }, [active]);
 
-  return indexes;
+  const ttc = cachedSurfaceSearchIndex("ttc");
+  const regional = cachedSurfaceSearchIndex("regional");
+  return useMemo(() => [ttc, regional].filter((index): index is PreparedSurfaceIndex => index !== null), [ttc, regional]);
 }
 
 /**

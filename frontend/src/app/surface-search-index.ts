@@ -56,3 +56,59 @@ export function loadSurfaceSearchIndex(network: NetworkId): Promise<PreparedSurf
     });
   return pending[network];
 }
+
+type PrefetchEnvironment = {
+  onLine: boolean;
+  saveData: boolean;
+  effectiveType: string | undefined;
+  /** Runs `task` once the page has loaded and gone idle; returns a cancel. */
+  whenIdle: (task: () => void) => () => void;
+  load: (network: NetworkId) => Promise<unknown>;
+};
+
+function browserPrefetchEnvironment(): PrefetchEnvironment {
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  return {
+    onLine: navigator.onLine,
+    saveData: connection?.saveData === true,
+    effectiveType: connection?.effectiveType,
+    whenIdle: (task) => {
+      let idleHandle: number | null = null;
+      let timer: number | null = null;
+      const schedule = () => {
+        if (typeof window.requestIdleCallback === "function") idleHandle = window.requestIdleCallback(task, { timeout: 5_000 });
+        else timer = window.setTimeout(task, 2_000);
+      };
+      if (document.readyState === "complete") schedule();
+      else window.addEventListener("load", schedule, { once: true });
+      return () => {
+        window.removeEventListener("load", schedule);
+        if (idleHandle !== null) window.cancelIdleCallback(idleHandle);
+        if (timer !== null) window.clearTimeout(timer);
+      };
+    },
+    load: loadSurfaceSearchIndex,
+  };
+}
+
+/**
+ * Loads both networks' indexes once the page is idle, `first` before the other, so the first
+ * search answers at once (about 125 KB compressed together, then cached per release by the
+ * service worker). Not offline, with Save-Data on, or on a 2G connection; search then loads on
+ * focus as before. Returns a cancel for anything not yet started.
+ */
+export function prefetchSurfaceSearchIndexes(first: NetworkId, environment: PrefetchEnvironment = browserPrefetchEnvironment()): () => void {
+  if (!environment.onLine || environment.saveData || /(^|-)2g$/.test(environment.effectiveType ?? "")) return () => {};
+  let cancelled = false;
+  const cancelIdle = environment.whenIdle(() => {
+    const order: NetworkId[] = first === "ttc" ? ["ttc", "regional"] : ["regional", "ttc"];
+    void order.reduce<Promise<unknown>>(
+      (previous, network) => previous.then(() => (cancelled ? undefined : environment.load(network).catch(() => undefined))),
+      Promise.resolve(),
+    );
+  });
+  return () => {
+    cancelled = true;
+    cancelIdle();
+  };
+}

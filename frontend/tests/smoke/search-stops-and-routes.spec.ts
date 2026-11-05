@@ -33,6 +33,16 @@ test.describe("Search for stops and routes", () => {
     });
   });
 
+  test("both search indexes load once the page idles, before search is touched", async ({ page }) => {
+    const indexes: string[] = [];
+    page.on("request", (request) => {
+      const name = new URL(request.url()).pathname.split("/").pop() ?? "";
+      if (name.startsWith("search-index-")) indexes.push(name);
+    });
+    await page.goto("/");
+    await expect.poll(() => indexes, { timeout: 20_000 }).toEqual(["search-index-ttc.json", "search-index-go.json"]);
+  });
+
   test("a stop number opens its departures, each labelled live or scheduled", async ({ page, isMobile }) => {
     await page.goto("/");
     const input = await openSearch(page, isMobile);
