@@ -10,6 +10,7 @@
  * period; night routes and short turns are not drawn.
  */
 
+import { releaseAssetUrl } from "./app-build.ts";
 import type { GeographicCoordinate } from "./geographic-catalog.ts";
 import { readLayerPreference, writeLayerPreference } from "./map-view-layers.ts";
 
@@ -114,7 +115,7 @@ export function cachedLoader<T>(url: string, validate: (value: unknown) => value
     load(): Promise<T> {
       if (cached) return Promise.resolve(cached);
       if (pending) return pending;
-      pending = fetch(url).then(async (response) => {
+      pending = fetch(releaseAssetUrl(url)).then(async (response) => {
         if (!response.ok) throw new Error(`Unable to load ${label} (${response.status}).`);
         const value: unknown = await response.json();
         if (!validate(value)) throw new Error(`Invalid ${label}.`);

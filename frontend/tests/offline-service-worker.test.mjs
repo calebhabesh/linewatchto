@@ -103,3 +103,33 @@ test('launch shell refreshes acknowledge the requesting page after storing the s
  await Promise.all(pending);
  assert.deepEqual(acks,[JSON.stringify([{type:'linewatch-refresh-launch-shell-ack'},[w.LAUNCH_SHELL_KEY]])]);
 });
+
+function releaseCacheWorker(fetcher, urls) {
+ const entries=new Map(urls.map(url=>[url,new Response(url)])), deleted=[];
+ const cache={
+  match:async(key,options={})=>{ const url=typeof key==='string'?key:key.url; if(entries.has(url)) return entries.get(url).clone(); if(!options.ignoreSearch) return undefined; const path=new URL(url).pathname; for(const [k,v] of entries) if(new URL(k).pathname===path) return v.clone(); },
+  put:async(key,response)=>{entries.set(key.url,response)},
+  keys:async()=>[...entries.keys()].map(url=>new Request(url)),
+  delete:async key=>{deleted.push(key.url); return entries.delete(key.url)},
+ };
+ const listeners=new Map();
+ const context={URL,Response,Request,AbortSignal,Promise,fetch:fetcher,caches:{match:cache.match,open:async()=>cache},self:{location:new URL('https://linewatch.test/sw.js?build=release-b'),addEventListener:(name,fn)=>listeners.set(name,fn)}};
+ const methods=runInNewContext(source+';({networkFirstStatic})',context);
+ return {...methods,entries,deleted,listeners};
+}
+const geo=(file,v)=>`https://linewatch.test/assets/linewatch/geographic/${file}${v?`?v=${v}`:''}`;
+test('a release of a geographic file replaces only older copies of that file',async()=>{
+ const w=releaseCacheWorker(async()=>new Response('new index'),[geo('search-index-ttc.json','release-a'),geo('search-index-ttc.json'),geo('ttc-surface-bus.json','release-a')]);
+ assert.equal(await(await w.networkFirstStatic(new Request(geo('search-index-ttc.json','release-b')))).text(),'new index');
+ assert.deepEqual([...w.entries.keys()].sort(),[geo('search-index-ttc.json','release-b'),geo('ttc-surface-bus.json','release-a')].sort());
+});
+test('versioned geographic files are served from cache without a request',async()=>{
+ let requests=0; const w=releaseCacheWorker(async()=>{requests++; return new Response('network')},[geo('ttc-surface-bus-stops.json','release-b')]);
+ let result; w.listeners.get('fetch')({request:new Request(geo('ttc-surface-bus-stops.json','release-b')),respondWith:p=>{result=p}});
+ assert.equal(await(await result).text(),geo('ttc-surface-bus-stops.json','release-b')); assert.equal(requests,0);
+});
+test('offline, a geographic file falls back to the previous release',async()=>{
+ const w=releaseCacheWorker(async()=>{throw Error('offline')},[geo('go-surface-bus.json','release-a')]);
+ assert.equal(await(await w.networkFirstStatic(new Request(geo('go-surface-bus.json','release-b')))).text(),geo('go-surface-bus.json','release-a'));
+ assert.deepEqual(w.deleted,[]);
+});

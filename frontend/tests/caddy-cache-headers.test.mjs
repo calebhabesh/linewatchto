@@ -25,6 +25,10 @@ function assertCachePolicy(source, label) {
   assert.match(source, /@linewatch_station_api_no_store\s*\{\s*path \/api\/stations\/\* \/api\/regional\/stations\/\*\s*\}/, `${label} should isolate dynamic station APIs`);
   assert.match(source, /@linewatch_station_api_no_store Cache-Control "no-store"/, `${label} should keep station arrivals uncached`);
   assert.match(source, /not path \/api\/stations\/\* \/api\/regional\/stations\/\*/, `${label} should explicitly exclude dynamic station APIs from public caching`);
+  assert.match(source, /@linewatch_vehicle_position_api_cache\s*\{\s*path \/api\/surface\/streetcars\/positions \/api\/surface\/buses\/positions \/api\/regional\/buses\/positions\s*\}/, `${label} should cache live vehicle positions at the train marker cadence`);
+  assert.match(source, /@linewatch_vehicle_position_api_cache Cache-Control "public, max-age=0, s-maxage=4, stale-while-revalidate=4"/, `${label} should keep vehicle positions to a few seconds at the edge`);
+  assert.match(source, /@linewatch_stop_api_no_store\s*\{\s*path \/api\/surface\/stops\/\* \/api\/regional\/bus-stops\/\*\s*\}/, `${label} should isolate stop departure APIs`);
+  assert.match(source, /@linewatch_stop_api_no_store Cache-Control "no-store"/, `${label} should keep stop departures uncached`);
   assert.match(source, /\/api\/alert-history/, `${label} should cache public alert history endpoint`);
   assert.match(source, /\/api\/reliability\/lines/, `${label} should cache line reliability aggregates`);
   assert.match(source, /\/api\/reliability\/stations\/\*/, `${label} should cache station reliability aggregates`);
@@ -32,6 +36,7 @@ function assertCachePolicy(source, label) {
   const publicApiMatcher = source.match(/@linewatch_public_api_cache\s*\{\s*path ([^\n]+)\s*\}/)?.[1] ?? "";
   assert.doesNotMatch(publicApiMatcher, /\/api\/trains|\/api\/regional\/trains/, `${label} should not apply dashboard TTLs to train markers`);
   assert.doesNotMatch(publicApiMatcher, /\/api\/stations\/\*|\/api\/regional\/stations\/\*/, `${label} should not cache dynamic station APIs`);
+  assert.doesNotMatch(publicApiMatcher, /\/api\/surface\/|\/api\/regional\/bus/, `${label} should not apply dashboard TTLs to vehicles or stop departures`);
   assert.doesNotMatch(publicApiMatcher, /\/api\/(status|map|alerts|performance)(\s|$)/, `${label} should not list retired per-part dashboard routes`);
   assert.match(source, /@linewatch_private_api_no_store/, `${label} should define private API no-store matcher`);
   assert.match(source, /\/api\/auth\/\*/, `${label} should keep auth uncached`);

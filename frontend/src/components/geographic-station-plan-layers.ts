@@ -20,6 +20,7 @@
  */
 
 import type { Map as MapLibreMap } from "maplibre-gl";
+import { releaseAssetUrl } from "../app/app-build.ts";
 import {
   STATION_BAY_IMAGE_PREFIX,
   STATION_ENTRANCE_LABEL_EXPRESSION,
@@ -433,7 +434,8 @@ const MAIN_ICON_EXPRESSION = [
 
 /** The asset as an absolute URL: the worker resolves relative URLs against its own script. */
 function stationPlansUrl(): string {
-  return typeof window === "undefined" ? STATION_PLANS_URL : new URL(STATION_PLANS_URL, window.location.origin).href;
+  const url = releaseAssetUrl(STATION_PLANS_URL);
+  return typeof window === "undefined" ? url : new URL(url, window.location.origin).href;
 }
 
 /**

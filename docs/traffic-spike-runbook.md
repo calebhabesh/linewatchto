@@ -92,6 +92,8 @@ Expression:
 (starts_with(http.request.uri.path, "/api/health")) or
 (starts_with(http.request.uri.path, "/api/stations/")) or
 (starts_with(http.request.uri.path, "/api/regional/stations/")) or
+(starts_with(http.request.uri.path, "/api/surface/stops/")) or
+(starts_with(http.request.uri.path, "/api/regional/bus-stops/")) or
 (starts_with(http.request.uri.path, "/actuator"))
 ```
 
@@ -103,20 +105,29 @@ Cache eligibility: Bypass cache
 
 ### Rule 2: Cache Static Assets
 
-Expression:
+Two rules. Next chunks are content-hashed:
 
 ```text
-(starts_with(http.request.uri.path, "/_next/static/")) or
-(starts_with(http.request.uri.path, "/assets/"))
-```
+(starts_with(http.request.uri.path, "/_next/static/"))
 
-Action:
-
-```text
 Cache eligibility: Eligible for cache
-Edge TTL: 1 month
+Edge TTL: 1 month (ignore origin)
 Browser TTL: Respect origin
 ```
+
+Authored public assets keep fixed names, so the edge holds them for a day, and errors are not pinned there:
+
+```text
+(starts_with(http.request.uri.path, "/assets/"))
+
+Cache eligibility: Eligible for cache
+Edge TTL: 1 day (ignore origin); status 400-499: 60 seconds; status 500-599: no-store
+Browser TTL: Respect origin
+```
+
+Caddy marks `/assets/*` `immutable` for a year, so a file whose content changes between releases must be requested by a per-release URL. The map artwork does this, and so does the geographic JSON under `/assets/linewatch/geographic/` (routes, stops, catalogs and the search indexes) via `releaseAssetUrl` (`?v=<build label>`). The default cache key includes the query string. A file fetched by its bare name would keep the previous release in browsers for a year.
+
+Smart Tiered Cache is on (free), so a miss at one colo is filled from an upper tier, not the VPS.
 
 ### Rule 3: Cache Public Dashboard APIs
 
@@ -136,6 +147,9 @@ Expression:
     "/api/reliability/lines"
     "/api/regional/trains"
     "/api/regional/trip-changes"
+    "/api/surface/streetcars/positions"
+    "/api/surface/buses/positions"
+    "/api/regional/buses/positions"
   }
   or starts_with(http.request.uri.path, "/api/reliability/stations/")
 )
@@ -153,7 +167,8 @@ Cache key: include query string
 `/api/dashboard?network=ttc` and `/api/dashboard?network=regional` share the same path but must remain distinct by query string.
 `/api/announcements` also supports query parameters. Keep the query string in the cache key for direct API consumers; the LineWatchTO panel and menu count share one unfiltered read, and the panel searches that result locally to avoid creating an edge-cache entry for every search term.
 The origin gives `/api/trains` and `/api/regional/trains` a separate `max-age=0, s-maxage=4, stale-while-revalidate=4` policy. Keep Rule 3 set to respect origin so a newly enabled marker layer is not held behind the dashboard's 30-second shared-cache cadence.
-Dynamic `/api/stations/*` and `/api/regional/stations/*` responses contain independently refreshed arrivals and must remain in Rule 1's cache-bypass set. The station-list endpoint `/api/stations` remains cacheable.
+The three vehicle-position endpoints take the train-marker policy from Caddy (`s-maxage=4`): every response carries each vehicle's report time and the source's freshness, and clients poll every 15 s. The bus endpoints take a `bbox` that the client rounds outward to 0.01°, so nearby views share a cache entry; keep the query string in the key.
+Dynamic `/api/stations/*` and `/api/regional/stations/*` responses contain independently refreshed arrivals and must remain in Rule 1's cache-bypass set. So do stop departures, `/api/surface/stops/*` and `/api/regional/bus-stops/*`: they mix live and scheduled times per stop, and GO stops are already cached 30 s in the backend under a per-minute upstream budget. The station-list endpoint `/api/stations` remains cacheable.
 
 ## WAF And Rate Limiting Rules
 
@@ -292,7 +307,7 @@ cache-control: public, max-age=15, s-maxage=30, stale-while-revalidate=30
 cf-cache-status: HIT
 ```
 
-The train-marker endpoints should instead report:
+The train-marker and vehicle-position endpoints (`/api/surface/streetcars/positions`, `/api/surface/buses/positions`, `/api/regional/buses/positions`) should instead report:
 
 ```text
 cache-control: public, max-age=0, s-maxage=4, stale-while-revalidate=4
@@ -306,6 +321,8 @@ curl -I https://linewatchto.ca/api/account/commutes
 curl -I https://linewatchto.ca/api/feedback
 curl -I https://linewatchto.ca/api/stations/union
 curl -I https://linewatchto.ca/api/regional/stations/bloor/arrivals
+curl -I https://linewatchto.ca/api/surface/stops/1234/arrivals
+curl -I https://linewatchto.ca/api/regional/bus-stops/00008/departures
 ```
 
 Expected:

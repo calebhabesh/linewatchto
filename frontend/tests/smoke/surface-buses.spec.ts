@@ -23,7 +23,7 @@ test.describe("TTC buses on the Map View", () => {
     test.skip(!isMobile, "The saved Map View camera is restored on phones");
     const assets: string[] = [];
     page.on("request", (request) => {
-      if (/ttc-surface-bus/.test(request.url())) assets.push(request.url().split("/").pop() ?? "");
+      if (/ttc-surface-bus/.test(request.url())) assets.push(new URL(request.url()).pathname.split("/").pop() ?? "");
     });
     await page.goto("/");
     const geoMap = page.locator(".geographic-network-map");

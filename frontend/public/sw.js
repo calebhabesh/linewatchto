@@ -127,7 +127,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (isVersionedMapAsset(url)) {
+  if (isVersionedMapAsset(url) || isVersionedGeographicAsset(url)) {
     event.respondWith(cacheFirstMapAsset(request));
     return;
   }
@@ -319,6 +319,23 @@ function isVersionedMapAsset(url) {
     || (url.pathname.startsWith("/assets/linewatch/raster-maps/") && url.pathname.endsWith(".png"));
 }
 
+// Routes, stops, catalogs and search indexes: fixed names, addressed per release by ?v=.
+function isVersionedGeographicAsset(url) {
+  const version = url.searchParams.get("v");
+  if (!version || version === "local" || version === "dev") return false;
+  return url.pathname.startsWith("/assets/linewatch/geographic/") && url.pathname.endsWith(".json");
+}
+
+// Keep one release of each geographic file: every deploy adds a new ?v= copy of several MB.
+async function dropOtherGeographicReleases(cache, request) {
+  const url = new URL(request.url);
+  if (!isVersionedGeographicAsset(url)) return;
+  for (const key of await cache.keys()) {
+    const cachedUrl = new URL(key.url);
+    if (cachedUrl.pathname === url.pathname && cachedUrl.search !== url.search) await cache.delete(key);
+  }
+}
+
 async function cacheFirstMapAsset(request) {
   // Match the complete URL: a new release must never reuse an older map.
   const cachedResponse = await caches.match(request);
@@ -339,6 +356,7 @@ async function networkFirstStatic(request) {
       try {
         const cache = await caches.open(STATIC_CACHE);
         await cache.put(request, networkResponse.clone());
+        await dropOtherGeographicReleases(cache, request);
       } catch { /* Quota/private mode must not discard a successful response. */ }
     }
 
@@ -347,6 +365,11 @@ async function networkFirstStatic(request) {
     const cachedResponse = await caches.match(request);
     if (cachedResponse) return cachedResponse;
     const url = new URL(request.url);
+    if (isVersionedGeographicAsset(url)) {
+      // Offline before this release's copy arrived: the previous release's routes beat none.
+      const previous = await caches.match(request, { ignoreSearch: true });
+      if (previous) return previous;
+    }
     if (url.pathname.startsWith("/assets/linewatch/") && url.pathname.endsWith(".svg")) {
       const map = await caches.match(url.pathname);
       if (map) return map;

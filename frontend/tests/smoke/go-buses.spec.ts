@@ -24,7 +24,7 @@ test.describe("GO buses on the GO/UP Map View", () => {
     test.skip(!isMobile, "The saved Map View camera is restored on phones");
     const assets: string[] = [];
     page.on("request", (request) => {
-      if (/surface-bus/.test(request.url())) assets.push(request.url().split("/").pop() ?? "");
+      if (/surface-bus/.test(request.url())) assets.push(new URL(request.url()).pathname.split("/").pop() ?? "");
     });
     await page.goto("/");
     const geoMap = page.locator(".geographic-network-map");

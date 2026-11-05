@@ -1,3 +1,4 @@
+import { releaseAssetUrl } from "./app-build.ts";
 import type { GeographicCatalog } from "./geographic-catalog.ts";
 import { getCatalogUrl } from "./geographic-config.ts";
 import type { NetworkId } from "./regional-data.ts";
@@ -14,7 +15,7 @@ export function loadGeographicCatalog(network: NetworkId): Promise<GeographicCat
   if (cached) return Promise.resolve(cached);
   const pending = requests.get(network);
   if (pending) return pending;
-  const request = fetch(getCatalogUrl(network)).then(async response => {
+  const request = fetch(releaseAssetUrl(getCatalogUrl(network))).then(async response => {
     if (!response.ok) throw new Error(`Unable to load map routes (${response.status}).`);
     const catalog: GeographicCatalog = await response.json();
     if (catalog.network !== network || !Array.isArray(catalog.features)) {
