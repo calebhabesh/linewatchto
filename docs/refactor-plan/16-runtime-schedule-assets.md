@@ -125,8 +125,8 @@ surface line of [domain invariants](../domain-invariants.md),
 | R3 | Backend GO stop reload and health endpoint | Done (2026-11-05) |
 | R4 | Image, Compose, Caddy, release pipeline and deploy gate | Done (2026-11-05) |
 | R5 | Staging end to end | Done (2026-11-05) |
-| R6 | Production: Cloudflare rule, gate, deploy and checks (owner go-ahead) | |
-| R7 | Remove the interim PR workflow; docs | |
+| R6 | Production: Cloudflare rule, gate, deploy and checks (owner go-ahead) | Done (2026-11-05) |
+| R7 | Remove the interim PR workflow; docs | Done (2026-11-05) |
 
 ### R1 — Service
 
@@ -344,6 +344,37 @@ Cloudflare rule; run Deploy Production with the new SHA; then the checks above.
 Do not curl `/data/schedule/` through Cloudflare before the deploy: the 404
 would be held at the edge for 60 s.
 
+**Done (2026-11-05)**, with the owner's go-ahead.
+
+- `main` fast-forwarded to `2d2e760d`; its push CI passed (Backend, Frontend
+  with `test:surface`, and Publish, including the new schedule-assets image
+  check) and recorded four digests.
+- VPS: created `linewatchto_schedule_assets_data` (production label) and
+  installed the gate from `origin/main` as the root copy (the previous one kept
+  as `/usr/local/sbin/linewatch-deploy-gate.before-plan16`); the checkout was
+  left clean for the deploy.
+- Cloudflare: rule "Schedule Assets" (`6b8a13eedde44a9695a383327c55f0d9`)
+  created in the cache ruleset; the API placed it last, which is harmless since
+  no other rule matches `/data/schedule/`. Mirrored as Rule 4 in the
+  traffic-spike runbook.
+- Deploy Production for `2d2e760d` succeeded; `.env.release` pins the
+  schedule-assets digest. The service bootstrapped, then published both
+  networks from the live feeds (TTC 171 s on the 4-core ARM host, GO 9 s; the
+  generation stayed `e62d8014a768fc04`, the release's data), back to 64 MB at
+  rest.
+- Through Cloudflare: the manifest `max-age=60`, MISS then HIT; a hashed file
+  `immutable`, brotli, MISS then HIT; `status.json` a `no-store` 404.
+- Feeds agree: `/api/health/schedule-assets` is `ok` with TTC S1000544
+  (2026-11-01 to 2026-12-19, `feed_info`) and GO 20261104201520 (2026-11-04 to
+  2026-11-27). `/api/health/regional-schedule` has the same GO period;
+  `/api/health/schedule` has the same TTC start, with the calendar's end
+  (2026-12-21), a different field of the same feed. The backend's GO stop list
+  is the published one (813 stops, same feed); sampled published stops 00005,
+  01446 and 08049 answered, an unknown stop 404s.
+- Browser: Map View on desktop and phone loads the manifest, then the hashed
+  streetcar file; search answers through the hashed indexes, and again offline
+  from the service worker after a reload.
+
 ### R7 — Close
 
 Delete `.github/workflows/refresh-schedule-assets.yml`; keep
@@ -351,3 +382,10 @@ Delete `.github/workflows/refresh-schedule-assets.yml`; keep
 copies; decide on `ci.yml`'s `workflow_dispatch`. Update the README, feature
 reference, operations guide, production VPS guide, script inventory,
 traffic-spike runbook, testing guide and launch gates.
+
+**Done (2026-11-05).** `.github/workflows/refresh-schedule-assets.yml` is
+deleted; no `automation/schedule-assets` branch or pull request remained.
+`scripts/refresh-schedule-assets.sh` stays, documented as the way to refresh the
+committed bootstrap copies by hand. `ci.yml` keeps `workflow_dispatch` for manual
+runs on any branch; publishing stays limited to pushes to main. The docs were
+updated in R5 and the runbook's Rule 4 in R6.

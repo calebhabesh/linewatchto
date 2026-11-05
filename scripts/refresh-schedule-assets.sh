@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Rebuild the schedule-derived Map View and search assets from the current published GTFS.
+# Rebuild the committed schedule-derived Map View and search assets from the current published GTFS.
+#
+# Riders get new schedules from the schedule-assets service at runtime (plan 16); these committed
+# copies are its bootstrap generation on an empty volume and the client's fallback without a
+# manifest. Refresh them by hand now and then, so a fresh volume does not start far behind.
 #
 # Downloads the current TTC GTFS (the zip resource Open Data Toronto's CKAN package lists, the
 # same lookup the backend's daily schedule refresh makes) and the current GO GTFS (Metrolinx

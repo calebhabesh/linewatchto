@@ -125,7 +125,7 @@ Edge TTL: 1 day (ignore origin); status 400-499: 60 seconds; status 500-599: no-
 Browser TTL: Respect origin
 ```
 
-Caddy marks `/assets/*` `immutable` for a year, so a file whose content changes between releases must be requested by a per-release URL. The map artwork does this, and so does the geographic JSON under `/assets/linewatch/geographic/` (routes, stops, catalogs and the search indexes) via `releaseAssetUrl` (`?v=<build label>`). The default cache key includes the query string. A file fetched by its bare name would keep the previous release in browsers for a year.
+Caddy marks `/assets/*` `immutable` for a year, so a file whose content changes between releases must be requested by a per-release URL. The map artwork does this, and so do the geographic catalogs, station plans and bays under `/assets/linewatch/geographic/` via `releaseAssetUrl` (`?v=<build label>`); the schedule-derived routes, stops and search indexes normally come from `/data/schedule/` (Rule 4) and fall back to these release copies only without a manifest. The default cache key includes the query string. A file fetched by its bare name would keep the previous release in browsers for a year.
 
 Smart Tiered Cache is on (free), so a miss at one colo is filled from an upper tier, not the VPS.
 
@@ -169,6 +169,20 @@ Cache key: include query string
 The origin gives `/api/trains` and `/api/regional/trains` a separate `max-age=0, s-maxage=4, stale-while-revalidate=4` policy. Keep Rule 3 set to respect origin so a newly enabled marker layer is not held behind the dashboard's 30-second shared-cache cadence.
 The three vehicle-position endpoints take the train-marker policy from Caddy (`s-maxage=4`): every response carries each vehicle's report time and the source's freshness, and clients poll every 15 s. The bus endpoints take a `bbox` that the client rounds outward to 0.01°, so nearby views share a cache entry; keep the query string in the key.
 Dynamic `/api/stations/*` and `/api/regional/stations/*` responses contain independently refreshed arrivals and must remain in Rule 1's cache-bypass set. So do stop departures, `/api/surface/stops/*` and `/api/regional/bus-stops/*`: they mix live and scheduled times per stop, and GO stops are already cached 30 s in the backend under a per-minute upstream budget. The station-list endpoint `/api/stations` remains cacheable.
+
+### Rule 4: Schedule Assets
+
+Added 2026-11-05 (plan 16). The schedule-assets service publishes content-hashed files and a manifest; Caddy sends `public, max-age=31536000, immutable` for `/data/schedule/files/*`, `public, max-age=60` for `/data/schedule/manifest.json`, and `no-store` 404s for anything else there, so the edge follows the origin:
+
+```text
+(starts_with(http.request.uri.path, "/data/schedule/"))
+
+Cache eligibility: Eligible for cache
+Edge TTL: Respect origin; status 400-499: 60 seconds; status 500-599: no-store
+Browser TTL: Respect origin
+```
+
+JSON is not a default cacheable extension on Cloudflare, so the rule is what makes the hashed files and the manifest edge-cacheable. A new schedule changes the manifest within a minute at the edge. Do not request a not-yet-published hashed path through Cloudflare: its 404 is held for 60 s.
 
 ## WAF And Rate Limiting Rules
 
@@ -298,6 +312,8 @@ curl -I 'https://linewatchto.ca/api/reliability/lines?network=regional'
 curl -I 'https://linewatchto.ca/api/reliability/lines?network=regional'
 curl -I https://linewatchto.ca/assets/linewatch/ttc-subway-map-custom.svg
 curl -I https://linewatchto.ca/assets/linewatch/ttc-subway-map-custom.svg
+curl -I https://linewatchto.ca/data/schedule/manifest.json
+curl -I https://linewatchto.ca/data/schedule/manifest.json
 ```
 
 Check headers:
