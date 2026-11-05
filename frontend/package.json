@@ -31,6 +31,7 @@
     "test:smoke": "playwright test smoke.spec.ts --project=desktop-chrome --project=mobile-chromium",
     "test:browser-compat": "playwright test browser-compat.spec.ts animation-budget.spec.ts --project=desktop-chrome --project=desktop-firefox --project=desktop-webkit --project=mobile-chromium",
     "test:map-fit": "playwright test mobile-map-fit.spec.ts --project=mobile-chromium --project=mobile-webkit",
+    "test:surface": "playwright test surface-buses.spec.ts surface-stop.spec.ts surface-notice-view.spec.ts streetcar-positions.spec.ts bus-positions.spec.ts go-buses.spec.ts go-bus-positions.spec.ts night-routes.spec.ts map-layers-sheet.spec.ts search-stops-and-routes.spec.ts search-back-and-stop-links.spec.ts stops-near-me.spec.ts --project=desktop-chrome --project=mobile-chromium",
     "test:map-interactions": "playwright test map-mode-regressions.spec.ts map-background-camera.spec.ts --project=desktop-chrome --project=mobile-chromium",
     "test:map-zoom-memory": "playwright test map-zoom-tile-memory.spec.ts --project=desktop-chrome",
     "test:map-budgets": "playwright test map-budgets.spec.ts --project=desktop-chrome --workers=1",

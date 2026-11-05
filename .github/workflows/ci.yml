@@ -104,6 +104,11 @@ jobs:
         env:
           LINEWATCH_PLAYWRIGHT_REUSE_BUILD: "true"
 
+      - name: Surface routes, stops, vehicles and search
+        run: npm --prefix frontend run test:surface
+        env:
+          LINEWATCH_PLAYWRIGHT_REUSE_BUILD: "true"
+
       - name: Drop-in System Map proof
         run: npm --prefix frontend run test:drop-in-map
         env:

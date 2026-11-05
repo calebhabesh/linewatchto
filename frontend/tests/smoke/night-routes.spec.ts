@@ -17,7 +17,7 @@ test.describe("TTC night routes on the Map View", () => {
   async function open(page: import("@playwright/test").Page, buses: "on" | "off") {
     const assets: string[] = [];
     page.on("request", (request) => {
-      if (/ttc-surface-/.test(request.url())) assets.push(request.url().split("/").pop() ?? "");
+      if (/ttc-surface-/.test(request.url())) assets.push(new URL(request.url()).pathname.split("/").pop() ?? "");
     });
     await page.addInitScript(({ point, buses }) => {
       localStorage.setItem("linewatch-map-view-v1", "geographic");
