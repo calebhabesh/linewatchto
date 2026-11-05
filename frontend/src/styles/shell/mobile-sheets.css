@@ -1932,4 +1932,13 @@
     min-height: 44px;
     background: transparent;
   }
+
+  /* The close button's top is level with the kicker's: both start at the padding. */
+  .mobile-status-sheet .mobile-status-content-scroll .mobile-sheet-heading {
+    padding-top: 16px;
+  }
+
+  .mobile-status-sheet .mobile-sheet-kicker {
+    display: flex;
+  }
 }

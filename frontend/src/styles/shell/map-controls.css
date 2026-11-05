@@ -724,20 +724,39 @@
   opacity: 0;
 }
 
-/* Starts where the station sheet's header does: title level with the close button's top. */
+/*
+ * The pill sits where the Current Service sheet's does, in a 24 px band at the very
+ * top, out of the flow. The title and close button start 16 px down, centred on each other.
+ */
+.map-layers-sheet .station-sheet-drag-handle-container {
+  height: 24px;
+  left: 0;
+  margin: 0;
+  min-height: 0;
+  padding: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
 .map-layers-sheet-header {
-  align-items: flex-start;
+  align-items: center;
+  margin-bottom: 12px;
+  margin-top: 10px;
+  position: relative;
   cursor: grab;
   display: flex;
   flex-shrink: 0;
   justify-content: space-between;
+  /* In line with the switch rows' icons and toggles. */
+  padding-inline: 4px;
   touch-action: none;
   user-select: none;
 }
 
 .map-layers-sheet-title {
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 900;
   letter-spacing: -0.01em;
   line-height: 1.2;
 }
