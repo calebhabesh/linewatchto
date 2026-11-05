@@ -43,7 +43,8 @@ Read first: the surface and freshness lines of
   switches (revised the same day from a slide-out row behind a Layers button).
   Live streetcar (and later live bus) markers get
   their own switches, not the Train Markers one: train markers are schematic
-  estimates, cars are GPS. Phones keep "View Buses" only.
+  estimates, cars are GPS. Phones keep "View Buses" only (until plan 15, L2:
+  a Layers sheet with the same switches replaced it, 2026-11-04).
 - **Bus lines draw at every zoom when on** (2026-11-03): they are off by
   default, so the default view stays clear.
 - **One Live GPS switch** (2026-11-03, S8): the deck's Live Streetcars switch
@@ -51,7 +52,7 @@ Read first: the surface and freshness lines of
   Routes is on), covering live streetcars and, while Bus Routes is on, live
   buses; the deck stays four switches (Train Markers, Streetcars, Buses, Live
   GPS). A fifth switch did not fit (measured in S8). Phones keep View Buses
-  only, which also shows live buses.
+  only, which also shows live buses. Plan 15, L2 replaced View Buses with a Layers sheet.
 
 ## Findings
 

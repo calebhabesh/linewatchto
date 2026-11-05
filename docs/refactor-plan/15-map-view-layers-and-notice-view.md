@@ -62,7 +62,7 @@ positions from its index (U1) and reuses its Map View selection (U4).
 | L2 | Phone Layers button and sheet | Done (2026-11-04) |
 | L3 | Selection on the Map View (stops, routes) | Moved to plan 14 U4 |
 | L4 | View on surface notices | Done (2026-11-04) |
-| L5 | Coverage and close | Not started |
+| L5 | Coverage and close | Done (2026-11-04) |
 
 ### L0 — Invariant amendment
 
@@ -258,6 +258,41 @@ return), notice View/Back on desktop and phone, and View from a System Map.
 Check that the desktop deck is unchanged. Update the feature reference,
 README and plan 13's phone note. Measure phone cost on the production build:
 opening the sheet, and a notice View with Bus Routes off.
+
+**Done (2026-11-04).**
+
+- Coverage: the target unit tests and the smoke specs moved to L4 and shipped there.
+- Desktop deck unchanged since L2: DOM, geometry, a set of computed styles and
+  screenshot bytes match a production build of a86d47af at 1680, 1440 and 1024 px, on
+  both networks and in both themes (12 of 12). Not compared: high contrast, or a
+  switch's on and off states, which the smoke specs cover.
+- Docs: the feature reference gains the Layers sheet and notice View and loses "View
+  Buses"; the README's notices row and plan 13's phone note follow.
+- Phone cost. Production build, Pixel 5 viewport, 4x CPU through CDP, service workers
+  blocked, Bus Routes off, two runs per row. Slow 4G is 1.6 Mbps with 150 ms latency.
+  "To first drawn" runs from the tap to two frames after the first selection layer
+  appears. Long tasks are counted for 3 s after that, so they include the camera move.
+
+  | Tap | To first drawn | Slow 4G | Longest task | Slowest event | Files |
+  | --- | --- | --- | --- | --- | --- |
+  | Layers button | 134–179 ms | n/a | 0–54 ms | 64–72 ms | none |
+  | View, one bus route | 436–440 ms | 950–966 ms | 62–82 ms | 64–80 ms | bus lines, 116 KB |
+  | View, five routes, bus and night | 408–414 ms | 766–773 ms | 59–71 ms | 64 ms | bus 116 KB, night 43 KB |
+  | View, bus, night and streetcar | 163–166 ms | 157–159 ms | 62–64 ms | 64–80 ms | bus 116 KB, night 43 KB |
+  | View, two bus stops | 454 ms | 1,309–1,313 ms | 62–74 ms | 64–72 ms | bus stops, 175 KB |
+
+  - Opening the sheet downloads nothing, and its longest task is 54 ms.
+  - Several routes cost about the same as one: long tasks and slowest events stay in
+    the same range, and only the night file is added. Routes appear layer by layer. In the mixed row the streetcar draws at once
+    from its loaded file, and on Slow 4G the bus lines follow about 1 s later, with
+    the camera framing once all files are in.
+  - Limits: throttled desktop Chrome, not a real phone; event durations round to 8 ms;
+    the local server, not production behind Cloudflare; files were cold in memory, and
+    a second View in a session was not measured.
+- Left for later:
+  - `surface-notice-view.spec.ts`, like plans 13 and 14's smoke specs, is in no named
+    script, so CI does not run it.
+  - Not checked on a real Android or iOS device, nor in high contrast (L4's gaps).
 
 ## Order
 
