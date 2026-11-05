@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext, type Page } from "@playwright/test";
+import { expect, type APIRequestContext, type Locator, type Page } from "@playwright/test";
 import { currentReleaseNote, RELEASE_NOTES_SEEN_STORAGE_KEY } from "../../src/app/release-notes";
 
 const appPort = process.env.LINEWATCH_APP_PORT ?? (process.env.LINEWATCH_SMOKE_APP_URL ? new URL(process.env.LINEWATCH_SMOKE_APP_URL).port : "4175");
@@ -60,4 +60,32 @@ export async function waitForNetworkTransition(page: Page, network: "ttc" | "reg
   await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", network);
   await expect(page.locator(".network-map-transition-surface")).not.toHaveAttribute("data-map-surface-transition");
   await expect(page.locator(".linewatch-shell")).not.toHaveAttribute("data-network-switch-target");
+}
+
+/**
+ * Presses a map position until `target` shows, for something that draws only once
+ * its data arrives. A press before then reaches what is under it: a stop, which flies
+ * the camera away and opens a sheet, or a line, whose card can cover the position. So
+ * each try clears those and presses where the position is now, not the screen's centre.
+ */
+export async function pressMapPoint(page: Page, point: { lng: number; lat: number }, target: Locator) {
+  const lifecycle = () => page.evaluate(() => window.__linewatchGeographicMapLifecycle?.isMoving() ?? false);
+  await expect.poll(async () => {
+    if (await target.isVisible()) return true;
+    const stopPanel = page.locator("[data-surface-stop-panel], [data-go-bus-stop-panel]");
+    if (await stopPanel.isVisible()) {
+      await stopPanel.getByRole("button", { name: /^Close/ }).first().click();
+      await expect(stopPanel).toHaveCount(0);
+    }
+    const openCard = page.locator(".overlap-chooser-close");
+    if (await openCard.isVisible()) {
+      await openCard.click();
+      await expect(openCard).toHaveCount(0);
+    }
+    await expect.poll(lifecycle).toBe(false);
+    const at = await page.evaluate(({ lng, lat }) => window.__linewatchGeographicMapLifecycle?.projectPoint(lng, lat) ?? null, point);
+    const box = await page.locator(".geographic-network-map canvas").boundingBox();
+    if (at && box) await page.mouse.click(box.x + at.x, box.y + at.y);
+    return target.isVisible();
+  }, { timeout: 20_000, intervals: [1_000] }).toBe(true);
 }

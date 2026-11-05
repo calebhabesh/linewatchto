@@ -3331,9 +3331,14 @@ export function GeographicNetworkMap({
       const center = map.getCenter();
       return { lng: center.lng, lat: center.lat, zoom: map.getZoom() };
     };
+    stats.projectPoint = (lng, lat) => {
+      const point = mapRef.current?.project([lng, lat]);
+      return point ? { x: point.x, y: point.y } : null;
+    };
     return () => {
       stats.isMoving = () => false;
       stats.getCamera = () => null;
+      stats.projectPoint = () => null;
     };
   }, []);
 

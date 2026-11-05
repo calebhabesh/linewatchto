@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { installDismissedTransientUi, setStubMode } from "./test-support";
+import { installDismissedTransientUi, pressMapPoint, setStubMode } from "./test-support";
 
 // Plan 13, S8: live bus positions on the Map View, read for the area in view from zoom 13 while
 // bus routes and live vehicles are on. The bus sits on Dufferin St north of Davenport (29 and
@@ -64,19 +64,8 @@ async function openCamera(page: Page, { zoom = 16, buses = "on" }: { zoom?: numb
 
 async function pressBus(page: Page) {
   const card = page.locator("[data-bus-vehicle-card]");
-  const canvas = page.locator(".geographic-network-map canvas");
-  // The bus draws once its first read arrives; press it until its card opens. A press that lands
-  // on a stop label first opens that stop: close it so its sheet does not cover the bus.
-  await expect.poll(async () => {
-    const stopPanel = page.locator("[data-surface-stop-panel]");
-    if (await stopPanel.isVisible()) {
-      await stopPanel.getByRole("button", { name: "Close stop departures" }).click();
-      await expect(stopPanel).toHaveCount(0);
-    }
-    const box = await canvas.boundingBox();
-    if (box) await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-    return card.isVisible();
-  }, { timeout: 20_000, intervals: [1_000] }).toBe(true);
+  // The bus draws once its first read arrives.
+  await pressMapPoint(page, BUS, card);
   return card;
 }
 

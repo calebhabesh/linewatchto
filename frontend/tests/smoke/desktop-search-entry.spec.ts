@@ -23,7 +23,7 @@ test("desktop search opens on click, preserves focus-only navigation, and aligns
   await expect(page.locator("#station-search-panel")).not.toBeVisible();
   await page.locator('[data-dest="more"]').click();
   await input.click();
-  await expect(page.getByRole("button", { name: "Back to More", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Back to Settings", exact: true })).toBeVisible();
   await page.locator(".station-search-line-trigger").first().click();
   const back = page.getByRole("button", { name: "Back to Lines", exact: true });
   await expect(back).toBeVisible();
@@ -37,7 +37,7 @@ test("desktop search opens on click, preserves focus-only navigation, and aligns
   await expect(back).toHaveCSS("margin-bottom", "12px");
   await page.screenshot({ path: "/tmp/search-list-aligned.png" });
   await back.click();
-  await page.getByRole("button", { name: "Back to More", exact: true }).click();
+  await page.getByRole("button", { name: "Back to Settings", exact: true }).click();
   await expect(page.locator("#station-search-panel")).not.toBeVisible();
 
   await page.locator('[data-dest="commutes"]').click();

@@ -37,6 +37,8 @@ interface GeographicMapLifecycleStats {
   getProjectedStation: (stationId: string) => GeographicProjectedStation | null;
   isMoving: () => boolean;
   getCamera: () => { lng: number; lat: number; zoom: number } | null;
+  /** Where a map position is now, in map-container pixels. */
+  projectPoint: (lng: number, lat: number) => { x: number; y: number } | null;
   reset: () => void;
 }
 
@@ -63,6 +65,7 @@ export function getGeographicMapLifecycle(): GeographicMapLifecycleStats {
       getProjectedStation: () => null,
       isMoving: () => false,
       getCamera: () => null,
+      projectPoint: () => null,
       reset() {},
     };
   }
@@ -81,6 +84,7 @@ export function getGeographicMapLifecycle(): GeographicMapLifecycleStats {
     getProjectedStation: () => null,
     isMoving: () => false,
     getCamera: () => null,
+    projectPoint: () => null,
     reset() {
       this.constructors = 0;
       this.removals = 0;

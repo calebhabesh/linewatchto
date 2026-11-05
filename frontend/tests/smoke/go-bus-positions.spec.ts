@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { installDismissedTransientUi, setStubMode } from "./test-support";
+import { installDismissedTransientUi, pressMapPoint, setStubMode } from "./test-support";
 
 // Plan 13, S9: live GO bus positions on the GO/UP Map View, read for the area in view from
 // zoom 10 while GO Buses and the GO/UP Live GPS switch are on. The bus is on Yonge St at
@@ -74,17 +74,8 @@ async function openCamera(
 
 async function pressBus(page: Page) {
   const card = page.locator("[data-go-bus-vehicle-card]");
-  const canvas = page.locator(".geographic-network-map canvas");
-  await expect.poll(async () => {
-    const stopPanel = page.locator("[data-go-bus-stop-panel]");
-    if (await stopPanel.isVisible()) {
-      await stopPanel.getByRole("button", { name: /Close/ }).first().click();
-      await expect(stopPanel).toHaveCount(0);
-    }
-    const box = await canvas.boundingBox();
-    if (box) await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-    return card.isVisible();
-  }, { timeout: 20_000, intervals: [1_000] }).toBe(true);
+  // The bus draws once its first read arrives.
+  await pressMapPoint(page, BUS, card);
   return card;
 }
 

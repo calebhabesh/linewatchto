@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { installDismissedTransientUi, setStubMode } from "./test-support";
+import { installDismissedTransientUi, pressMapPoint, setStubMode } from "./test-support";
 
 // Plan 13, S4: live streetcar positions on the Map View, with their age and stale state.
 // The car sits on King St West (504 only), at the centre of the saved phone camera.
@@ -41,20 +41,6 @@ async function servePositions(page: Page, body: ReturnType<typeof positions>) {
   return () => requests;
 }
 
-async function pressCentre(page: Page) {
-  // A press that lands on a stop label before the car draws opens that stop;
-  // close it so its sheet does not cover the car for the next press.
-  const stopPanel = page.locator("[data-surface-stop-panel]");
-  if (await stopPanel.isVisible()) {
-    await stopPanel.getByRole("button", { name: "Close stop departures" }).click();
-    await expect(stopPanel).toHaveCount(0);
-  }
-  const canvas = page.locator(".geographic-network-map canvas");
-  const box = await canvas.boundingBox();
-  if (!box) return;
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-}
-
 test.describe("Live streetcar positions on the Map View", () => {
   // Requests a service worker handles bypass page.route; this spec answers the positions read itself.
   test.use({ serviceWorkers: "block" });
@@ -78,11 +64,8 @@ test.describe("Live streetcar positions on the Map View", () => {
     await expect.poll(requests, { timeout: 20_000 }).toBeGreaterThan(0);
 
     const card = page.locator("[data-streetcar-vehicle-card]");
-    // The car draws once the streetcar asset and its first read arrive; press it until the card opens.
-    await expect.poll(async () => {
-      await pressCentre(page);
-      return card.isVisible();
-    }, { timeout: 20_000, intervals: [1_000] }).toBe(true);
+    // The car draws once the streetcar asset and its first read arrive.
+    await pressMapPoint(page, CAR, card);
 
     await expect(card).toContainText("Live Streetcar");
     await expect(card).toContainText("King");
@@ -111,10 +94,7 @@ test.describe("Live streetcar positions on the Map View", () => {
     await expect.poll(requests, { timeout: 20_000 }).toBeGreaterThan(0);
 
     const card = page.locator("[data-streetcar-vehicle-card]");
-    await expect.poll(async () => {
-      await pressCentre(page);
-      return card.isVisible();
-    }, { timeout: 20_000, intervals: [1_000] }).toBe(true);
+    await pressMapPoint(page, CAR, card);
     await expect(card.locator(".streetcar-vehicle-status")).toHaveAttribute("data-state", "stale");
     await expect(card).toContainText("Stale · Last Report 3 min ago");
     await expect(card).not.toContainText("Live GPS");
@@ -129,10 +109,7 @@ test.describe("Live streetcar positions on the Map View", () => {
 
     // Where the car would be, the press reaches what is drawn under it (a stop pill or
     // the King St line), never a car's card.
-    await expect.poll(async () => {
-      await pressCentre(page);
-      return page.locator("[data-surface-stop-panel], [data-streetcar-card]").first().isVisible();
-    }, { timeout: 20_000, intervals: [1_000] }).toBe(true);
+    await pressMapPoint(page, CAR, page.locator("[data-surface-stop-panel], [data-streetcar-card]").first());
     await expect(page.locator("[data-streetcar-vehicle-card]")).toHaveCount(0);
     expect(requests()).toBe(1);
   });
