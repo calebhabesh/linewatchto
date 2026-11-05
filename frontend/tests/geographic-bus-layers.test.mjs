@@ -287,7 +287,9 @@ describe("bus catalog helpers", () => {
   it("list a corridor's routes for the card and load the corridors once", async () => {
     assert.deepEqual(busCardRows(busCatalog, ["29", "929", "999"]).map((row) => row.route), ["29", "929"]);
     let requests = 0;
-    globalThis.fetch = async () => {
+    globalThis.fetch = async (url) => {
+      // No schedule manifest here (plan 16): the release's copy is read.
+      if (url === "/data/schedule/manifest.json") return { ok: false, status: 404 };
       requests += 1;
       return { ok: true, json: async () => busCatalog };
     };

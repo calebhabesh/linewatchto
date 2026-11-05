@@ -10,9 +10,9 @@
  * period; night routes and short turns are not drawn.
  */
 
-import { releaseAssetUrl } from "./app-build.ts";
 import type { GeographicCoordinate } from "./geographic-catalog.ts";
 import { readLayerPreference, writeLayerPreference } from "./map-view-layers.ts";
+import { fetchScheduleAsset } from "./schedule-assets.ts";
 
 export const BUS_CATALOG_URL = "/assets/linewatch/geographic/ttc-surface-bus.json";
 export const BUS_STOPS_URL = "/assets/linewatch/geographic/ttc-surface-bus-stops.json";
@@ -106,7 +106,10 @@ export function writeBusLayerPreference(storage: Pick<Storage, "setItem"> | null
   writeLayerPreference(storage, BUS_LAYER_STORAGE_KEY, enabled);
 }
 
-/** A JSON asset fetched once, validated, then kept for the visit. */
+/**
+ * A JSON asset fetched once, validated, then kept for the visit. Schedule-derived files come
+ * through the schedule manifest (plan 16); the rest from the release.
+ */
 export function cachedLoader<T>(url: string, validate: (value: unknown) => value is T, label: string) {
   let cached: T | null = null;
   let pending: Promise<T> | null = null;
@@ -115,7 +118,7 @@ export function cachedLoader<T>(url: string, validate: (value: unknown) => value
     load(): Promise<T> {
       if (cached) return Promise.resolve(cached);
       if (pending) return pending;
-      pending = fetch(releaseAssetUrl(url)).then(async (response) => {
+      pending = fetchScheduleAsset(url).then(async (response) => {
         if (!response.ok) throw new Error(`Unable to load ${label} (${response.status}).`);
         const value: unknown = await response.json();
         if (!validate(value)) throw new Error(`Invalid ${label}.`);

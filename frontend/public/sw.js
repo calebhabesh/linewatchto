@@ -117,6 +117,17 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Schedule-derived map and search files (plan 16): public generated data, never an API response.
+  if (isScheduleManifest(url)) {
+    event.respondWith(networkFirstScheduleManifest(request));
+    return;
+  }
+
+  if (isScheduleFile(url)) {
+    event.respondWith(cacheFirstScheduleFile(request));
+    return;
+  }
+
   if (event.request.mode === "navigate") {
     event.respondWith(isLaunchNavigation(url) ? cachedLaunchNavigation(event) : networkFirstNavigation(request));
     return;
@@ -334,6 +345,56 @@ async function dropOtherGeographicReleases(cache, request) {
     const cachedUrl = new URL(key.url);
     if (cachedUrl.pathname === url.pathname && cachedUrl.search !== url.search) await cache.delete(key);
   }
+}
+
+const SCHEDULE_MANIFEST_PATH = "/data/schedule/manifest.json";
+const SCHEDULE_FILE_PATTERN = /^\/data\/schedule\/files\/([A-Za-z0-9_-]+)\.[0-9a-f]{16}\.json$/;
+
+function isScheduleManifest(url) {
+  return url.pathname === SCHEDULE_MANIFEST_PATH && url.search === "";
+}
+
+function isScheduleFile(url) {
+  return SCHEDULE_FILE_PATTERN.test(url.pathname) && url.search === "";
+}
+
+// The manifest changes when a new schedule is published: always ask, and offline (or when the
+// server fails) answer with the last one read, whose hashed files this cache also holds. A 404
+// means this deployment serves no manifest, and the page uses the release's files.
+async function networkFirstScheduleManifest(request) {
+  let networkResponse = null;
+  try {
+    networkResponse = await fetch(request, { signal: AbortSignal.timeout(4_000) });
+    if (networkResponse.ok && networkResponse.headers.get("content-type")?.includes("json")) {
+      try {
+        const cache = await caches.open(STATIC_CACHE);
+        await cache.put(SCHEDULE_MANIFEST_PATH, networkResponse.clone());
+      } catch { /* Quota/private mode must not discard a successful response. */ }
+      return networkResponse;
+    }
+    if (networkResponse.status === 404) return networkResponse;
+  } catch { /* Offline or slow: use the last manifest. */ }
+  const cached = await caches.match(SCHEDULE_MANIFEST_PATH, { cacheName: STATIC_CACHE }).catch(() => undefined);
+  return cached || networkResponse || Response.error();
+}
+
+// Hashed schedule files never change: cache-first by full URL, one copy per file name.
+async function cacheFirstScheduleFile(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.ok) {
+    try {
+      const cache = await caches.open(STATIC_CACHE);
+      await cache.put(request, response.clone());
+      const name = SCHEDULE_FILE_PATTERN.exec(new URL(request.url).pathname)[1];
+      for (const key of await cache.keys()) {
+        const match = SCHEDULE_FILE_PATTERN.exec(new URL(key.url).pathname);
+        if (match && match[1] === name && key.url !== request.url) await cache.delete(key);
+      }
+    } catch { /* Quota/private mode must not discard a successful response. */ }
+  }
+  return response;
 }
 
 async function cacheFirstMapAsset(request) {

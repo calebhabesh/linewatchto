@@ -133,3 +133,59 @@ test('offline, a geographic file falls back to the previous release',async()=>{
  assert.equal(await(await w.networkFirstStatic(new Request(geo('go-surface-bus.json','release-b')))).text(),geo('go-surface-bus.json','release-a'));
  assert.deepEqual(w.deleted,[]);
 });
+
+// Schedule-derived files through the schedule manifest (plan 16).
+function scheduleWorker(fetcher, initial=[]) {
+ const origin='https://linewatch.test';
+ const key=k=>typeof k==='string'?new URL(k,origin).href:k.url;
+ const entries=new Map(initial.map(([url,body])=>[key(url),new Response(body,{headers:{'content-type':'application/json'}})])), deleted=[];
+ const cache={
+  match:async k=>entries.get(key(k))?.clone(),
+  put:async(k,response)=>{entries.set(key(k),response)},
+  keys:async()=>[...entries.keys()].map(url=>new Request(url)),
+  delete:async k=>{deleted.push(key(k)); return entries.delete(key(k))},
+ };
+ const listeners=new Map();
+ const context={URL,Response,Request,AbortSignal,Promise,fetch:fetcher,caches:{match:cache.match,open:async()=>cache},self:{location:new URL(`${origin}/sw.js?build=release-b`),addEventListener:(name,fn)=>listeners.set(name,fn)}};
+ runInNewContext(source,context);
+ const request=async url=>{ let result; listeners.get('fetch')({request:new Request(origin+url),respondWith:p=>{result=p}}); return result; };
+ return {entries,deleted,request};
+}
+const MANIFEST='/data/schedule/manifest.json';
+const hashedFile=(name,hash)=>`/data/schedule/files/${name}.${hash.repeat(16)}.json`;
+const json=(body,status=200)=>new Response(body,{status,headers:{'content-type':'application/json'}});
+test('the schedule manifest is read from the network and kept for offline use',async()=>{
+ const w=scheduleWorker(async()=>json('{"generation":"b"}'),[[MANIFEST,'{"generation":"a"}']]);
+ assert.equal(await(await w.request(MANIFEST)).text(),'{"generation":"b"}');
+ assert.equal(await w.entries.get('https://linewatch.test'+MANIFEST).text(),'{"generation":"b"}');
+});
+test('offline, or when the server fails, the last schedule manifest answers',async()=>{
+ for(const fetcher of [async()=>{throw Error('offline')},async()=>new Response('',{status:502})]){
+  const w=scheduleWorker(fetcher,[[MANIFEST,'{"generation":"a"}']]);
+  assert.equal(await(await w.request(MANIFEST)).text(),'{"generation":"a"}');
+ }
+});
+test('a deployment without a schedule manifest answers 404, not an old copy',async()=>{
+ const w=scheduleWorker(async()=>new Response('',{status:404}),[[MANIFEST,'{"generation":"a"}']]);
+ assert.equal((await w.request(MANIFEST)).status,404);
+ const html=scheduleWorker(async()=>new Response('<!doctype html>',{headers:{'content-type':'text/html'}}));
+ await w.request(MANIFEST); await html.request(MANIFEST);
+ assert.equal(html.entries.size,0,'an HTML answer is never kept as the manifest');
+});
+test('hashed schedule files are cache-first and keep one copy per file name',async()=>{
+ let requests=0;
+ const w=scheduleWorker(async()=>{requests++; return json('new')},[[hashedFile('ttc-surface-bus','a'),'old'],[hashedFile('search-index-ttc','a'),'index']]);
+ assert.equal(await(await w.request(hashedFile('ttc-surface-bus','a'))).text(),'old');
+ assert.equal(requests,0);
+ assert.equal(await(await w.request(hashedFile('ttc-surface-bus','b'))).text(),'new');
+ assert.deepEqual([...w.entries.keys()].map(url=>new URL(url).pathname).sort(),[hashedFile('search-index-ttc','a'),hashedFile('ttc-surface-bus','b')].sort());
+ const missing=scheduleWorker(async()=>new Response('',{status:404}));
+ assert.equal((await missing.request(hashedFile('ttc-surface-night','c'))).status,404);
+ assert.equal(missing.entries.size,0,'a 404 is never cached');
+});
+test('schedule reads are never treated as API responses or release assets',async()=>{
+ const w=scheduleWorker(async()=>json('{}'));
+ await w.request('/api/dashboard');
+ await w.request('/data/schedule/status.json');
+ assert.equal(w.entries.size,0);
+});

@@ -169,7 +169,9 @@ describe("streetcars with the transit layers", () => {
     assert.equal(before.getLayer(STREETCAR_LINE_LAYER), undefined, "nothing to draw before the catalog loads");
 
     let requests = 0;
-    globalThis.fetch = async () => {
+    globalThis.fetch = async (url) => {
+      // No schedule manifest here (plan 16): the release's copy is read.
+      if (url === "/data/schedule/manifest.json") return { ok: false, status: 404 };
       requests += 1;
       return { ok: true, json: async () => catalog };
     };

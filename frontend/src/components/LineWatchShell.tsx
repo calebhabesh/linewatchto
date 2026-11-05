@@ -87,6 +87,7 @@ import { searchPlaceStore, surfaceBackStep } from "../app/search-return";
 import { isWellFormedStopCode, searchWithStopLink, type SurfaceStopLink } from "../app/surface-stop-link";
 import { surfaceRouteLayer, surfaceRouteSelection, type SurfaceMapSelection, type SurfaceSelectionLayer, type SurfaceSelectionRoute } from "../app/surface-map-selection";
 import { loadSurfaceSearchIndex, prefetchSurfaceSearchIndexes } from "../app/surface-search-index";
+import { loadScheduleManifest } from "../app/schedule-assets";
 import { SEARCH_PLACEHOLDER, SEARCH_PLACEHOLDER_COMPACT } from "../app/unified-search";
 const SurfaceNoticesPanel = preloadablePanel(() => import("./SurfaceNoticesPanel").then((mod) => mod.SurfaceNoticesPanel));
 const TtcAnnouncementsPanel = preloadablePanel(() => import("./TtcAnnouncementsPanel").then((mod) => mod.TtcAnnouncementsPanel));
@@ -376,6 +377,11 @@ export function LineWatchShell({
   const lastSavedViewRef = useRef<"my-stations" | "commutes">("my-stations");
 
   const [initialMapReady, setInitialMapReady] = useState(false);
+  // The schedule manifest names the Map View's route and search files (plan 16); read it at once,
+  // so the first layer does not wait an extra round trip for it.
+  useEffect(() => {
+    void loadScheduleManifest();
+  }, []);
   // Stop and route search answers on first focus: load its indexes once the map is up and the page idles.
   useEffect(() => {
     if (!initialMapReady) return;

@@ -9,7 +9,7 @@
  * schedule period, so diversions in that period are drawn as scheduled.
  */
 
-import { releaseAssetUrl } from "./app-build.ts";
+import { fetchScheduleAsset } from "./schedule-assets.ts";
 import type { GeographicCoordinate } from "./geographic-catalog.ts";
 
 export const STREETCAR_CATALOG_URL = "/assets/linewatch/geographic/ttc-surface-streetcar.json";
@@ -143,7 +143,7 @@ export function cachedStreetcarCatalog(): StreetcarCatalog | null {
 export function loadStreetcarCatalog(): Promise<StreetcarCatalog> {
   if (cachedCatalog) return Promise.resolve(cachedCatalog);
   if (pendingCatalog) return pendingCatalog;
-  pendingCatalog = fetch(releaseAssetUrl(STREETCAR_CATALOG_URL)).then(async (response) => {
+  pendingCatalog = fetchScheduleAsset(STREETCAR_CATALOG_URL).then(async (response) => {
     if (!response.ok) throw new Error(`Unable to load streetcar routes (${response.status}).`);
     const catalog = (await response.json()) as StreetcarCatalog;
     if (catalog.layer !== "streetcar" || catalog.network !== "ttc" || !Array.isArray(catalog.features)) {
