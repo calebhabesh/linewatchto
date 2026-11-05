@@ -180,11 +180,20 @@ const stopPoint = stopId => {
   return [Number(stop.stop_lon), Number(stop.stop_lat)];
 };
 
-// Trips with the same route, shape and stops are one pattern.
+const isRailStation = stopId => /^[A-Z]+$/.test(stopId);
+
+// Trips with the same route, shape and stops are one pattern. A trip with
+// fewer than two bus stops runs between rail stations (a rail replacement,
+// such as 35B for UP Express): counted, not drawn, as TTC replacement buses.
 const patternsByKey = new Map();
+let railReplacementTrips = 0;
 for (const [tripId, trip] of busTrips) {
   const stops = (tripStops.get(tripId) ?? []).sort((a, b) => a[0] - b[0]).map(([, stopId]) => stopId);
   if (stops.length < 2) continue;
+  if (stops.filter(stopId => !isRailStation(stopId)).length < 2) {
+    railReplacementTrips++;
+    continue;
+  }
   const key = `${trip.routeShortName}|${trip.shapeId}|${stops.join(" ")}`;
   let pattern = patternsByKey.get(key);
   if (!pattern) {
@@ -233,8 +242,6 @@ const { corridors, stopRoutes } = buildSurfaceCorridors(patterns, {
 });
 
 const routeOrder = (a, b) => a.localeCompare(b, "en", { numeric: true });
-const isRailStation = stopId => /^[A-Z]+$/.test(stopId);
-
 const corridorFeatures = [];
 const perRouteSet = new Map();
 for (const corridor of corridors) {
@@ -358,7 +365,7 @@ const km = corridors.reduce((sum, c) => {
   return sum + total;
 }, 0);
 console.log(`[GO bus catalog] feed ${feedInfo.feed_version} (${source.feedStartDate} to ${source.feedEndDate}), week ${source.sampleWeek.join(" to ")}`);
-console.log(`  Patterns: ${patterns.length} from ${busTrips.size} trips (${tripsWithoutShape} without a shape; ${misplaced.length} patterns dropped, a stop over ${MAX_STOP_OFFSET_METERS} m from the shape)`);
+console.log(`  Patterns: ${patterns.length} from ${busTrips.size} trips (${tripsWithoutShape} without a shape; ${misplaced.length} patterns dropped, a stop over ${MAX_STOP_OFFSET_METERS} m from the shape; ${railReplacementTrips} rail replacement trips counted, not drawn)`);
 for (const m of misplaced) console.log(`    dropped ${m.route} shape ${m.shapeId}: ${m.trips} trips, a stop ${m.worst} m off`);
 console.log(`  Corridors: ${corridorFeatures.length}, ${Math.round(km)} km; bus stops: ${stopFeatures.length}; most routes on one corridor: ${Math.max(...corridors.map(c => c.routes.length))}`);
 for (const route of routeSummaries) {

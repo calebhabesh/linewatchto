@@ -749,7 +749,7 @@ stop_code,name,routes
 02809,Guelph St. @ Mountainview Rd. S.,31 33
 02815,Cornell Bus Terminal,52 56
 02816,Scarborough Centre Bus Terminal,41 92 94 96
-02818,Victoria St. N. @ Frederick St.,17
+02818,Victoria St. N. @ Frederick St.,17 31
 02819,Victoria St. N. @ Frederick St.,17
 02821,Yonge St. @ Poyntz Ave.,19 27 67 94 96
 02829,Yonge St. @ John St.,32
@@ -762,7 +762,7 @@ stop_code,name,routes
 02845,Gordon St. @ Clair Rd. W.,17 29 48
 02846,Toronto St. @ Elgin Park Dr.,70 71
 02847,Thomas St. @ Highbank Rd.,21
-02848,Woodlawn Rd. W. @ Regal Rd.,17
+02848,Woodlawn Rd. W. @ Regal Rd.,17 31
 02849,Woodlawn Rd. W. @ Regal Rd.,17
 02850,Sour Springs Rd. @ Mohawk Rd.,15
 02851,Sour Springs Rd. @ Mohawk Rd.,15
@@ -788,7 +788,7 @@ stop_code,name,routes
 02873,Gibb St. @ Oshawa Centre,52 56 92
 02874,University Ave. E. @ Weber St. N.,17 25 30
 02875,University Ave. E. @ Weber St. N.,17 25 30
-02876,Victoria St. N. @ Bingemans Centre Dr.,17
+02876,Victoria St. N. @ Bingemans Centre Dr.,17 31
 02877,Victoria St. N. @ Lackner Blvd.,17
 02878,Meadowvale Blvd. @ Mississauga Rd.,27
 02879,Meadowvale Blvd. @ Financial Dr.,27
