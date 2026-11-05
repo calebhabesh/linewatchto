@@ -101,7 +101,7 @@ test("incident borders draw once at idle, animate on focus, and honor app Reduce
   expect(await borderDraws(page)).toBe(idle);
   await border.locator("button").first().focus();
   await expect.poll(() => borderDraws(page)).toBeGreaterThan(idle);
-  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("switch", { name: "Toggle reduced motion", exact: true }).click();
   await expect(page.locator(".linewatch-shell")).toHaveClass(/motion-paused/);
   await page.getByRole("button", { name: /^Status, / }).click();
@@ -110,7 +110,7 @@ test("incident borders draw once at idle, animate on focus, and honor app Reduce
   await border.locator("button").first().focus();
   await page.waitForTimeout(250);
   expect(await borderDraws(page)).toBe(stopped);
-  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("switch", { name: "Toggle reduced motion", exact: true }).click();
   await page.getByRole("button", { name: /^Status, / }).click();
   await border.locator("button").first().focus();

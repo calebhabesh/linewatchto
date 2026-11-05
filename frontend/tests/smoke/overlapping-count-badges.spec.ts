@@ -587,7 +587,7 @@ for (const network of ["TTC", "GO/UP"] as const) {
     await expect.poll(() => stage.getAttribute("style")).not.toBe(before);
     await expect(chooser).toBeVisible();
 
-    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: isMobile ? "More" : "Settings", exact: true }).click();
     await expect(chooser).toBeVisible();
     if (isMobile) {
       await page.getByRole("button", { name: "Map", exact: true }).click();

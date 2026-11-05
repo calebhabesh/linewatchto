@@ -88,7 +88,7 @@ test("saved commute preview leaves room around its route", async ({ page, isMobi
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
-  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: isMobile ? "More" : "Settings", exact: true }).click();
   await page.getByRole("button", { name: "Demo Account", exact: true }).click();
   const card = page.locator('[data-commute-card-id="commute_demo_finch_union"]');
   await expect(card).toBeVisible();
