@@ -19,8 +19,8 @@ export type SurfaceSelectionRoute = { layer: SurfaceSelectionLayer; route: strin
 export type SurfaceMapSelection = {
   /** Stop numbers marked in the selected style. */
   stopCodes: readonly string[];
-  /** One route drawn with the selected outline. */
-  route: SurfaceSelectionRoute | null;
+  /** Routes drawn with the selected outline: a route panel's one, or all a notice names. */
+  routes: readonly SurfaceSelectionRoute[];
 };
 
 type Coordinate = [number, number];
@@ -48,17 +48,17 @@ export function mergeSurfaceSelection(
   shown: SurfaceMapSelection | null | undefined,
 ): SurfaceMapSelection | null {
   const stopCodes = [...new Set([...(openStopCode ? [openStopCode] : []), ...(shown?.stopCodes ?? [])])];
-  const route = shown?.route ?? null;
-  if (stopCodes.length === 0 && !route) return null;
-  return { stopCodes, route };
+  const routes = shown?.routes ?? [];
+  if (stopCodes.length === 0 && routes.length === 0) return null;
+  return { stopCodes, routes };
 }
 
 /** Same key, same selection: the camera frames a selection once. "" for none. */
 export function surfaceSelectionKey(selection: SurfaceMapSelection | null | undefined): string {
   if (!selection) return "";
   const stops = [...selection.stopCodes].sort().join(",");
-  const route = selection.route ? `${selection.route.layer}:${selection.route.route}` : "";
-  return stops || route ? `${route}|${stops}` : "";
+  const routes = selection.routes.map(({ layer, route }) => `${layer}:${route}`).sort().join(",");
+  return stops || routes ? `${routes}|${stops}` : "";
 }
 
 /** A corridor's routes as one string, so a filter can find a route with `in`. */
@@ -66,11 +66,15 @@ export function surfaceRouteKey(routes: readonly string[]): string {
   return `|${routes.join("|")}|`;
 }
 
-/** Corridors carrying the route; matches nothing without one. */
-export function selectedRouteFilter(route: string | null): unknown[] {
-  return route
-    ? ["in", `|${route}|`, ["get", "routeKey"]]
-    : ["==", ["get", "routeKey"], "\u0000"];
+/** The selection's routes that one layer draws. */
+export function selectedRoutesInLayer(selection: SurfaceMapSelection | null | undefined, layer: SurfaceSelectionLayer): string[] {
+  return (selection?.routes ?? []).filter((route) => route.layer === layer).map((route) => route.route);
+}
+
+/** Corridors carrying any of the routes; matches nothing without one. */
+export function selectedRouteFilter(routes: readonly string[]): unknown[] {
+  if (routes.length === 0) return ["==", ["get", "routeKey"], "\u0000"];
+  return ["any", ...routes.map((route) => ["in", `|${route}|`, ["get", "routeKey"]])];
 }
 
 /** The selected stops. */
@@ -131,9 +135,9 @@ export function assignSelectedTtcStops(stopCodes: readonly string[], sets: TtcSt
 
 type LineFeature = { geometry: { coordinates: Coordinate[] }; properties: { routes: readonly string[] } };
 
-/** The corridors carrying a route. */
-export function routeCorridors<T extends LineFeature>(features: readonly T[], route: string): T[] {
-  return features.filter((feature) => feature.properties.routes.includes(route));
+/** The corridors carrying any of the routes. */
+export function routeCorridors<T extends LineFeature>(features: readonly T[], routes: readonly string[]): T[] {
+  return features.filter((feature) => feature.properties.routes.some((route) => routes.includes(route)));
 }
 
 /** South-west and north-east corners around the points, or null without any. */
@@ -152,7 +156,7 @@ export function surfaceSelectionBounds(points: readonly Coordinate[]): [Coordina
   return [[west, south], [east, north]];
 }
 
-/** Every vertex of the route's corridors, for the camera. */
-export function routeCoordinates(features: readonly LineFeature[], route: string): Coordinate[] {
-  return routeCorridors(features, route).flatMap((feature) => feature.geometry.coordinates);
+/** Every vertex of the routes' corridors, for the camera. */
+export function routeCoordinates(features: readonly LineFeature[], routes: readonly string[]): Coordinate[] {
+  return routeCorridors(features, routes).flatMap((feature) => feature.geometry.coordinates);
 }

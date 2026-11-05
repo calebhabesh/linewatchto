@@ -24,6 +24,88 @@
 }
 
 /* ==========================================================================
+   Notice View on the Map View (plan 15, L4)
+   ========================================================================== */
+
+.surface-notice-map-action {
+  flex-shrink: 0;
+}
+
+.surface-notice-map-action .impact-card-map-btn--labeled {
+  width: auto;
+}
+
+.surface-notice-map-strip {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  /* The bottom nav's own footprint and shape, so nothing above it moves and the
+     camera's phone padding already clears it. Neutral: no service colour. */
+  .surface-notice-map-strip {
+    align-items: center;
+    animation: mobile-impact-inspector-enter 240ms cubic-bezier(0.16, 1, 0.3, 1);
+    background: var(--panel-opaque);
+    bottom: var(--mobile-bottom-nav-bottom-offset);
+    box-shadow: 0 -3px 10px rgba(15, 23, 42, 0.1);
+    color: var(--text);
+    display: flex;
+    gap: 10px;
+    height: var(--mobile-bottom-nav-height);
+    left: 0;
+    padding: 0 max(8px, var(--mobile-safe-right)) 0 max(14px, var(--mobile-safe-left));
+    position: fixed;
+    right: 0;
+    z-index: 46;
+  }
+}
+
+.surface-notice-map-strip-more {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 800;
+  margin-left: -4px;
+}
+
+.surface-notice-map-strip-title {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.surface-notice-map-strip-back {
+  align-items: center;
+  background: var(--panel-muted, rgb(148 163 184 / 18%));
+  border: none;
+  border-radius: 999px;
+  color: var(--text);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 14px 0 10px;
+}
+
+.high-contrast .surface-notice-map-strip {
+  background: #000000;
+  border-top: 1px solid #ffffff;
+}
+
+.high-contrast .surface-notice-map-strip-back {
+  background: #000000;
+  border: 1px solid #ffffff;
+  color: #ffffff;
+}
+
+/* ==========================================================================
    Mobile Sheet Padding Override
    ========================================================================== */
 

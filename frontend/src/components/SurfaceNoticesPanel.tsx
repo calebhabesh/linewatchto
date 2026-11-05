@@ -1,14 +1,12 @@
 "use client";
 
-import { ttcRouteBadgeStyle } from "../app/ttc-route-badge";
 import { FilterSearchRow, FilterResultCount } from "./FilterSearchRow";
 
 import { availableFilterOptions } from "../app/filter-options";
-import { goBusRouteColor, goBusRouteTextColor } from "../app/go-bus-route-colors";
 import { canonicalNoticeRoute, matchesNoticeFilters, noticeFacetRows } from "../app/notice-filters";
 import { FilterOptionCount } from "./FilterOptionCount";
 
-import React, { useState, useEffect, useRef, useId } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useId } from "react";
 import Image from "next/image";
 import { ArrowRight, ArrowUpDown, CalendarClock, ChevronDown, CircleAlert, ExternalLink, MapPin, Megaphone, Search, Bus } from "lucide-react";
 import { PanelHeader } from "./PanelHeader";
@@ -27,6 +25,10 @@ import { RegionalTripChangesList } from "./RegionalTripChangesList";
 import { NotificationTapNotice } from "./NotificationTapNotice";
 import { DropdownMenuPortal } from "./DropdownMenuPortal";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
+import { ImpactCardMapButton } from "./ImpactCardFields";
+import { NoticeRouteBadge } from "./SurfaceNoticeMapStrip";
+import { noticeHasSurfaceTarget, surfaceNoticeMapTarget, type SurfaceNoticeMapTarget } from "../app/surface-notice-target";
+import { useSurfaceSearchIndex } from "../hooks/useSurfaceSearchIndexes";
 
 function NoticeFilter({ label, prefix, value, options, onChange }: {
   label: string;
@@ -118,7 +120,30 @@ interface Props {
   networkId?: NetworkId;
   /** Trip change named by a notification tap; highlighted, or explained when no longer listed. */
   focusTripChangeId?: string | null;
+  /** A card's View (plan 15, L4): shows the notice's stops or route on the Map View. */
+  onViewOnMap?: (notice: SurfaceNoticeDetail, target: SurfaceNoticeMapTarget, place: SurfaceNoticePlace) => void;
+  /** The card whose notice is on the map shows Back instead. */
+  mapNoticeId?: string | null;
+  onReturnFromMap?: () => void;
+  /** Names where that Back goes, for its accessible name and tooltip. */
+  mapBackLabel?: string;
+  /** Where the list was when a View left it; Back from the map puts it back. */
+  initialPlace?: SurfaceNoticePlace | null;
 }
+
+/** Filters, scroll and rows as they were when a card's View was pressed. */
+export type SurfaceNoticePlace = {
+  noticeId: string;
+  category: SurfaceNoticeCategory | "all";
+  serviceType: string;
+  route: string;
+  timing: string;
+  query: string;
+  sortOrder: "importance" | "recent" | "route" | "location" | "start";
+  regionalContent: "notices" | "trip-changes";
+  scrollTop: number;
+  data: SurfaceNoticeResponse | null;
+};
 
 const TRIP_NO_LONGER_LISTED_NOTICE = {
   tone: "unlisted",
@@ -139,18 +164,27 @@ export function SurfaceNoticesPanel({
   initialRegionalContent = "notices",
   networkId = "ttc",
   focusTripChangeId = null,
+  onViewOnMap,
+  mapNoticeId = null,
+  onReturnFromMap,
+  mapBackLabel,
+  initialPlace = null,
 }: Props) {
   const regional = networkId === "regional";
-  const [category, setCategory] = useState<SurfaceNoticeCategory | "all">("all");
-  const [serviceType, setServiceType] = useState("all");
-  const [route, setRoute] = useState("all");
-  const [timing, setTiming] = useState("all");
-  const [regionalContent, setRegionalContent] = useState<"notices" | "trip-changes">(initialRegionalContent);
-  const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
-  const [data, setData] = useState<SurfaceNoticeResponse | null>(null);
+  const [category, setCategory] = useState<SurfaceNoticeCategory | "all">(initialPlace?.category ?? "all");
+  const [serviceType, setServiceType] = useState(initialPlace?.serviceType ?? "all");
+  const [route, setRoute] = useState(initialPlace?.route ?? "all");
+  const [timing, setTiming] = useState(initialPlace?.timing ?? "all");
+  const [regionalContent, setRegionalContent] = useState<"notices" | "trip-changes">(initialPlace?.regionalContent ?? initialRegionalContent);
+  const [searchQuery, setSearchQuery] = useState(initialPlace?.query ?? initialQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialPlace?.query ?? initialQuery);
+  const [data, setData] = useState<SurfaceNoticeResponse | null>(initialPlace?.data ?? null);
   const [loading, setLoading] = useState(false);
-  const [sortOrder, setSortOrder] = useState<"importance" | "recent" | "route" | "location" | "start">("importance");
+  const [sortOrder, setSortOrder] = useState<"importance" | "recent" | "route" | "location" | "start">(initialPlace?.sortOrder ?? "importance");
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  // A refresh of a list already showing keeps its rows, so a card and the scroll stay put.
+  const shownNetworkRef = useRef<NetworkId | null>(initialPlace?.data ? networkId : null);
+  const { index: surfaceIndex, failed: surfaceIndexFailed } = useSurfaceSearchIndex(networkId, Boolean(onViewOnMap));
   const [tripChangesState, setTripChangesState] = useState<{
     query: string;
     response: RegionalTripChangeResponse;
@@ -167,6 +201,28 @@ export function SurfaceNoticesPanel({
     && debouncedQuery === ""
     && tripChanges?.fresh === true
     && !tripChanges.changes.some((change) => change.id === focusTripChangeId);
+
+  useLayoutEffect(() => {
+    // Back from the map: the same rows are in place on this first render.
+    if (!initialPlace) return;
+    const scroller = scrollRef.current;
+    if (!scroller) return;
+    scroller.scrollTop = initialPlace.scrollTop;
+    scroller.querySelector<HTMLElement>(`[data-notice-map-action="${CSS.escape(initialPlace.noticeId)}"] button`)?.focus({ preventScroll: true });
+    // On a phone the sheet is still settling here and can clamp a row near the end; set it again once it has.
+    let secondFrame: number | null = null;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        scroller.scrollTop = initialPlace.scrollTop;
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame !== null) window.cancelAnimationFrame(secondFrame);
+    };
+    // Only the place this panel opened with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!initialNoticeId || !selectedNoticeRef.current) return;
@@ -203,11 +259,12 @@ export function SurfaceNoticesPanel({
     let active = true;
     async function load() {
       if (regional && regionalContent === "trip-changes") return;
-      setLoading(true);
+      if (shownNetworkRef.current !== networkId) setLoading(true);
       const res = await getSurfaceNotices({
         networkId,
       });
       if (active) {
+        shownNetworkRef.current = networkId;
         setData(res.data);
         setLoading(false);
       }
@@ -232,6 +289,13 @@ export function SurfaceNoticesPanel({
     });
     return () => { active = false; };
   }, [debouncedQuery, regional, regionalContent]);
+
+  useEffect(() => {
+    // The notice on the map has gone from the source: nothing is left to go back from.
+    if (mapNoticeId && data && !embeddedNotices && !data.notices.some((notice) => notice.id === mapNoticeId)) {
+      onReturnFromMap?.();
+    }
+  }, [data, embeddedNotices, mapNoticeId, onReturnFromMap]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -405,14 +469,40 @@ export function SurfaceNoticesPanel({
         </span>
       );
     }
+    return <NoticeRouteBadge key={routeId} routeId={routeId} regional={regional} />;
+  };
+
+  const renderMapAction = (notice: SurfaceNoticeGroupItem) => {
+    if (!onViewOnMap) return null;
+    const onMap = mapNoticeId === notice.id;
+    const target: SurfaceNoticeMapTarget | null = !noticeHasSurfaceTarget(notice, networkId) || surfaceIndexFailed
+      ? { kind: "none" }
+      : surfaceIndex ? surfaceNoticeMapTarget(notice, networkId, surfaceIndex) : null;
+    const unavailable = target?.kind === "none";
     return (
-      <span key={routeId} aria-label={regional ? `GO Bus ${routeId}` : `Route ${routeId}`}
-        className="notice-route-badge inline-flex shrink-0 items-center justify-center rounded px-2 py-0.5 text-xs font-black"
-        style={regional
-          ? { backgroundColor: goBusRouteColor(routeId), color: goBusRouteTextColor(routeId) }
-          : ttcRouteBadgeStyle(routeId)}>
-        {routeId}
-      </span>
+      <div className="surface-notice-map-action" data-notice-map-action={notice.id}>
+        <ImpactCardMapButton
+          title={notice.title}
+          disabled={!target || unavailable}
+          actionLabel={onMap ? "Back" : unavailable ? "No Map Location" : "View"}
+          backLabel={mapBackLabel}
+          onClick={() => {
+            if (onMap) onReturnFromMap?.();
+            else if (target) onViewOnMap(notice, target, {
+              noticeId: notice.id,
+              category,
+              serviceType,
+              route,
+              timing,
+              query: searchQuery,
+              sortOrder,
+              regionalContent,
+              scrollTop: scrollRef.current?.scrollTop ?? 0,
+              data,
+            });
+          }}
+        />
+      </div>
     );
   };
 
@@ -552,7 +642,7 @@ export function SurfaceNoticesPanel({
         </div>}
 
         {/* Notices Content */}
-        <div className="flex-1 overflow-y-auto min-w-0 px-3 pb-3 sm:px-4 sm:pb-4 pt-0 surface-notices-scroll">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto min-w-0 px-3 pb-3 sm:px-4 sm:pb-4 pt-0 surface-notices-scroll">
           {regional && regionalContent === "trip-changes" ? (
             <>
               {tripNoLongerListed && !tripTapNoticeDismissed ? (
@@ -636,10 +726,15 @@ export function SurfaceNoticesPanel({
                           className="surface-notice-stop-row"
                         >
                           {!regional ? (
-                            <div className="flex w-full flex-wrap items-center gap-x-2 gap-y-1.5 px-3.5 py-3 text-left">
+                            <div className="flex w-full items-center justify-between gap-2 px-3.5 py-3 text-left">
                               <span className="min-w-0 flex items-center gap-2">
                                 {renderStopDisplay(notice)}
                               </span>
+                              {renderMapAction(notice)}
+                            </div>
+                          ) : onViewOnMap ? (
+                            <div className="flex w-full justify-end px-3.5 pb-2">
+                              {renderMapAction(notice)}
                             </div>
                           ) : null}
 

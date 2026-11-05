@@ -29,6 +29,7 @@ import {
   ttcSelectedStopBefore,
   type BusLineStyle,
 } from "./geographic-bus-layers.ts";
+import { routeCorridors } from "../app/surface-map-selection.ts";
 import { removeSurfaceSelectionLayers, type SurfaceSelectionTarget } from "./geographic-surface-selection-layers.ts";
 import { STREETCAR_BADGE_LAYER, STREETCAR_CASING_LAYER } from "./geographic-streetcar-layers.ts";
 
@@ -129,14 +130,12 @@ export function updateNightFilter(map: MapLibreMap, activeFilteredLine: string |
 export const NIGHT_SELECTION_TARGETS: SurfaceSelectionTarget[] = KINDS.map((kind) => kits[kind].selectionTarget);
 
 /**
- * With Bus Routes off, a selected night route still draws: each kind's
- * source holds only that route's corridors (none for the other kind).
+ * With Bus Routes off, selected night routes still draw: each kind's
+ * source holds only those routes' corridors (none for the other kind).
  */
-export function installNightSelectionSources(map: MapLibreMap, catalog: NightCatalog, route: string | null): void {
+export function installNightSelectionSources(map: MapLibreMap, catalog: NightCatalog, routes: readonly string[]): void {
   for (const kind of KINDS) {
-    const corridors = route
-      ? nightCorridors(catalog, kind).features.filter((feature) => feature.properties.routes.includes(route))
-      : [];
+    const corridors = routeCorridors(nightCorridors(catalog, kind).features, routes);
     kits[kind].installSelectionSources(map, { corridors, stops: [] });
   }
 }

@@ -333,6 +333,27 @@ export function SurfaceRouteBackLink({ back }: { back: SurfaceRouteBack }) {
   );
 }
 
+export type SurfaceNoticeBack = { title: string; onBack: () => void };
+
+/** A stop opened by a notice's View (plan 15, L4): back to the notice list where it was. */
+export function SurfaceNoticeBackLink({ back }: { back: SurfaceNoticeBack }) {
+  return (
+    <button
+      type="button"
+      className="surface-stop-station-link surface-route-back-link surface-notice-back-link"
+      onClick={back.onBack}
+      aria-label={`Back to notices: ${back.title}`}
+      data-notice-back
+    >
+      <ArrowLeft size={16} aria-hidden="true" />
+      <span>
+        <strong>Back to Notices</strong>
+        <small>{back.title}</small>
+      </span>
+    </button>
+  );
+}
+
 export type SurfaceSearchBack = { query: string; onBack: () => void };
 
 /** A stop or route opened from search (plan 14, U7): back to the results, query and scroll kept. */

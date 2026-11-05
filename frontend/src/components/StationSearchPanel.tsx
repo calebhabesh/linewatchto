@@ -50,6 +50,8 @@ import {
 } from "../app/station-data";
 import { stationImpactKindsByStation } from "../app/station-impact-types";
 import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
+import { noticeHasSurfaceTarget, surfaceNoticeMapTarget, type SurfaceNoticeMapTarget } from "../app/surface-notice-target";
+import { ImpactCardMapButton } from "./ImpactCardFields";
 import type { AccountSavedCommute } from "../app/commute-data";
 import type { NetworkId } from "../app/regional-data";
 import {
@@ -131,6 +133,8 @@ type Props = {
   onOpenDestination: (view: GlobalDestinationView) => void;
   onOpenSavedCommute: (commuteId: string) => void;
   onOpenSurfaceNotice: (notice: SurfaceNoticeDetail) => void;
+  /** A notice row's View (plan 15, L4): shows its stops or route on the Map View. */
+  onViewSurfaceNotice?: (notice: SurfaceNoticeDetail, target: SurfaceNoticeMapTarget) => void;
   /**
    * Opens a surface stop's departures by stop number (plan 13, S3): a TTC
    * stop, or a GO bus stop; the network defaults to the current one.
@@ -440,6 +444,7 @@ export function StationSearchPanel({
   isClosing = false,
   stationCatalogs,
   currentNetwork,
+  onViewSurfaceNotice,
   selectedStationId,
   onSelectStation,
   onSelectImpact,
@@ -1114,9 +1119,13 @@ export function StationSearchPanel({
                     {surfaceNoticeResults.map(({ notice }) => {
                       const keyboardIndex = nextResultButtonIndex++;
                       const routes = notice.routeIds.length > 0 ? `Route ${notice.routeIds.join(", ")}` : notice.routeType;
+                      const surfaceIndex = surfaceIndexes.find((index) => index.network === currentNetwork);
+                      const mapTarget: SurfaceNoticeMapTarget | null = !noticeHasSurfaceTarget(notice, currentNetwork)
+                        ? { kind: "none" }
+                        : surfaceIndex ? surfaceNoticeMapTarget(notice, currentNetwork, surfaceIndex) : null;
                       return (
+                        <div key={notice.id} className="global-search-notice-row" data-notice-map-action={notice.id}>
                         <button
-                          key={notice.id}
                           ref={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
                           type="button"
                           className="global-search-resource-result"
@@ -1132,6 +1141,19 @@ export function StationSearchPanel({
                           </span>
                           <ChevronRight size={17} aria-hidden="true" />
                         </button>
+                        {onViewSurfaceNotice ? (
+                          <ImpactCardMapButton
+                            title={notice.title}
+                            disabled={!mapTarget || mapTarget.kind === "none"}
+                            actionLabel={mapTarget?.kind === "none" ? "No Map Location" : "View"}
+                            onClick={() => {
+                              if (!mapTarget) return;
+                              rememberSearchPlace();
+                              onViewSurfaceNotice(notice, mapTarget);
+                            }}
+                          />
+                        ) : null}
+                        </div>
                       );
                     })}
                   </section>

@@ -15,7 +15,7 @@ import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-noti
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { StationDetailHeader } from "./StationDetailHeader";
-import { SurfaceRouteBackLink, SurfaceSearchBackLink, type SurfaceRouteBack, type SurfaceSearchBack } from "./SurfaceRoutePanel";
+import { SurfaceNoticeBackLink, SurfaceRouteBackLink, SurfaceSearchBackLink, type SurfaceNoticeBack, type SurfaceRouteBack, type SurfaceSearchBack } from "./SurfaceRoutePanel";
 import { isWellFormedStopCode } from "../app/surface-stop-link";
 import { SurfaceRouteCard } from "./SurfaceConnectionsSection";
 import { ttcRouteBadgeStyle } from "../app/ttc-route-badge";
@@ -34,6 +34,8 @@ type Props = {
   routeBack?: SurfaceRouteBack | null;
   /** Set when the stop was opened from search (U7); a route's Back comes first. */
   searchBack?: SurfaceSearchBack | null;
+  /** Set when the stop was opened by a notice's View (plan 15, L4). */
+  noticeBack?: SurfaceNoticeBack | null;
 };
 
 /**
@@ -51,6 +53,7 @@ export function SurfaceStopPanel({
   reducedMotion,
   routeBack = null,
   searchBack = null,
+  noticeBack = null,
 }: Props) {
   const [result, setResult] = useState<SurfaceStopResult | null>(null);
   // The stop whose departures are shown; a different stop is still loading.
@@ -162,7 +165,7 @@ export function SurfaceStopPanel({
       />
 
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-2 md:mt-3.5 pb-3 station-detail-scroll">
-        {routeBack ? <SurfaceRouteBackLink back={routeBack} /> : searchBack ? <SurfaceSearchBackLink back={searchBack} /> : null}
+        {routeBack ? <SurfaceRouteBackLink back={routeBack} /> : searchBack ? <SurfaceSearchBackLink back={searchBack} /> : noticeBack ? <SurfaceNoticeBackLink back={noticeBack} /> : null}
         {data?.stationId && linkedStation && onOpenStation ? (
           <button type="button" className="surface-stop-station-link" onClick={() => onOpenStation(data.stationId as string)}>
             <span>

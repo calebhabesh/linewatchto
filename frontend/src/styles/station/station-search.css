@@ -449,6 +449,32 @@
   background: rgba(30, 58, 138, 0.35);
 }
 
+.global-search-notice-row {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.global-search-notice-row > .global-search-resource-result {
+  flex: 1;
+  min-width: 0;
+}
+
+.global-search-notice-row > .impact-card-map-btn {
+  flex-shrink: 0;
+}
+
+/* Two lines, so a row's title keeps its room on a phone. */
+.global-search-notice-row > .impact-card-map-btn--labeled:disabled {
+  width: 108px;
+}
+
+.global-search-notice-row > .impact-card-map-btn--labeled:disabled .impact-card-map-btn__label {
+  line-height: 1.1;
+  text-align: left;
+  white-space: normal;
+}
+
 .global-search-resource-result {
   display: grid;
   width: 100%;

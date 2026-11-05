@@ -58,6 +58,8 @@ export interface UseNavigationTransitionsOptions {
   isSearchFocused?: () => boolean;
   /** Browser Back for state the shell owns (a surface stop or route panel); true when handled. */
   onBrowserBack?: () => boolean;
+  /** Desktop Escape for state the shell owns (a notice's View); true when handled. */
+  onDesktopEscape?: () => boolean;
   viewForImpactSelection: (selection: NonNullable<ImpactSelection>) => ActiveView;
 }
 
@@ -79,6 +81,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     onDesktopEscapeSearch,
     isSearchFocused,
     onBrowserBack,
+    onDesktopEscape,
     viewForImpactSelection,
   } = options;
 
@@ -1032,6 +1035,11 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
         return;
       }
 
+      if (onDesktopEscape?.()) {
+        event.preventDefault();
+        return;
+      }
+
       if (selectedStationIdRef.current) {
         event.preventDefault();
         closeSelectedStation(selectedStationIdRef.current);
@@ -1053,7 +1061,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
 
     window.addEventListener("keydown", handleDesktopKeyDown);
     return () => window.removeEventListener("keydown", handleDesktopKeyDown);
-  }, [closeSelectedStation, handleCloseSearch, handleSubmenuBack, isMobile, isSearchFocused, onDesktopEscapeSearch]);
+  }, [closeSelectedStation, handleCloseSearch, handleSubmenuBack, isMobile, isSearchFocused, onDesktopEscape, onDesktopEscapeSearch]);
 
   const { destination: searchReturnDestination, label: searchReturnLabel } = searchReturnDestinationAndLabel(searchReturnContext, { desktop: !isMobile });
 

@@ -6,6 +6,7 @@ import { readShellSource } from "./helpers/shell-source.mjs";
 
 const shellSource = readShellSource();
 const panelSource = readFileSync(new URL("../src/components/SurfaceNoticesPanel.tsx", import.meta.url), "utf8");
+const noticeBadgeSource = readFileSync(new URL("../src/components/SurfaceNoticeMapStrip.tsx", import.meta.url), "utf8");
 const statusSheetSource = readFileSync(new URL("../src/components/MobileStatusSheet.tsx", import.meta.url), "utf8");
 const overviewSource = readFileSync(new URL("../src/components/DesktopStatusOverview.tsx", import.meta.url), "utf8");
 const stylesSource = readAppStylesheet();
@@ -77,7 +78,7 @@ describe("surface notices panel and routing source verification", () => {
     assert.match(panelSource, /displayRouteGroups/);
     assert.match(panelSource, /notices: \[notice\]/);
     assert.match(panelSource, /group\.routeType !== "GO Bus"/);
-    assert.match(panelSource, /goBusRouteColor\(routeId\)/);
+    assert.match(noticeBadgeSource, /goBusRouteColor\(routeId\)/);
     assert.match(panelSource, /regional \? "pt-3" : ""/);
     assert.match(panelSource, /Filter GO \/ UP notices by service/);
     assert.match(panelSource, /value: "train", label: "Train"/);

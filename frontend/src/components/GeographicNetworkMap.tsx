@@ -141,6 +141,7 @@ import {
   mergeSurfaceSelection,
   routeCorridors,
   routeCoordinates,
+  selectedRoutesInLayer,
   surfaceSelectionBounds,
   surfaceSelectionKey,
   type SurfaceMapSelection,
@@ -339,7 +340,7 @@ export type GeographicNetworkMapProps = {
   selectedSurfaceStopCode?: string | null;
   onSelectSurfaceStop?: (stopCode: string | null) => void;
   /**
-   * Stops or a route an open panel shows on the map (plan 14, U4: a route
+   * Stops or routes an open panel shows on the map (plan 14, U4: a route
    * panel's View on Map, a notice's View). Drawn with the open stop in the
    * neutral selected style, and framed once.
    */
@@ -403,10 +404,6 @@ const EMPTY_TRAIN_MARKERS: EstimatedTrainMarker[] = [];
 declare global {
   interface Window {
     __geographicMapDebug?: { map: MapLibreMap };
-    /** Dev only (LineWatchShell): shows a surface selection on the Map View. */
-    __linewatchSurfaceSelectionDebug?: {
-      show: (selection: SurfaceMapSelection | null, owner: "route" | "notice") => void;
-    };
   }
 }
 
@@ -477,7 +474,7 @@ type SurfaceSelectionFiles = {
 };
 
 /**
- * The points a selection covers (its stops and its route's corridors), or
+ * The points a selection covers (its stops and its routes' corridors), or
  * null while a file it needs is still loading.
  */
 function surfaceSelectionPoints(
@@ -486,7 +483,6 @@ function surfaceSelectionPoints(
   files: SurfaceSelectionFiles,
 ): Array<[number, number]> | null {
   const points: Array<[number, number]> = [];
-  const route = selection.route;
   const stopsIn = (features: ReadonlyArray<{ geometry: { coordinates: [number, number] }; properties: { stopCode?: string } }>, codes: readonly string[]) => {
     const wanted = new Set(codes);
     for (const feature of features) if (wanted.has(feature.properties.stopCode ?? "")) points.push(feature.geometry.coordinates);
@@ -496,9 +492,10 @@ function surfaceSelectionPoints(
       if (!files.goStops) return null;
       stopsIn(files.goStops.features, selection.stopCodes);
     }
-    if (route?.layer === "go-bus") {
+    const goRoutes = selectedRoutesInLayer(selection, "go-bus");
+    if (goRoutes.length > 0) {
       if (!files.goCorridors) return null;
-      points.push(...routeCoordinates(files.goCorridors.features, route.route));
+      points.push(...routeCoordinates(files.goCorridors.features, goRoutes));
     }
     return points;
   }
@@ -511,12 +508,17 @@ function surfaceSelectionPoints(
   if (files.streetcars) stopsIn(files.streetcars.features.filter(isStreetcarStopFeature), assigned.streetcar);
   if (files.busStops) stopsIn(files.busStops.features, assigned.bus);
   if (files.nightStops) stopsIn(files.nightStops.features, assigned.night);
-  const corridors = route?.layer === "streetcar" ? files.streetcars?.features.filter(isStreetcarCorridorFeature)
-    : route?.layer === "bus" ? files.busCorridors?.features
-    : route?.layer === "night" ? files.nightCorridors?.features
-    : [];
-  if (!corridors) return null;
-  if (route) points.push(...routeCoordinates(corridors, route.route));
+  const layers: Array<[SurfaceSelectionLayer, ReadonlyArray<{ geometry: { coordinates: [number, number][] }; properties: { routes: readonly string[] } }> | undefined]> = [
+    ["streetcar", files.streetcars?.features.filter(isStreetcarCorridorFeature)],
+    ["bus", files.busCorridors?.features],
+    ["night", files.nightCorridors?.features],
+  ];
+  for (const [layer, corridors] of layers) {
+    const routes = selectedRoutesInLayer(selection, layer);
+    if (routes.length === 0) continue;
+    if (!corridors) return null;
+    points.push(...routeCoordinates(corridors, routes));
+  }
   return points;
 }
 
@@ -527,7 +529,9 @@ function surfaceSelectionPoints(
 function geographicMobileSurfaceSelectionPadding(container: HTMLElement) {
   const height = container.clientHeight;
   const top = Math.max(104, Math.ceil(readMobilePillBottom(container) + 16));
-  const bottom = Math.max(96, Math.ceil(height - readMobileStationSubmenuTop(container, height) + 24));
+  // A notice's View has no sheet, only the strip in the nav's place, which 96 px clears.
+  const sheetOpen = Boolean(container.closest(".linewatch-shell")?.querySelector(".station-detail-panel"));
+  const bottom = sheetOpen ? Math.max(96, Math.ceil(height - readMobileStationSubmenuTop(container, height) + 24)) : 96;
   // Never below the minimum visible height: a tall sheet gives way first.
   const available = Math.max(0, height - GEOGRAPHIC_FOCUS_MIN_VISIBLE_PX);
   const scale = top + bottom > available && top + bottom > 0 ? available / (top + bottom) : 1;
@@ -2232,7 +2236,6 @@ export function GeographicNetworkMap({
     if (!map || isStyleLoadingRef.current || loadStatusRef.current !== "ready") return;
     const selection = surfaceSelectionRef.current;
     const stopCodes = selection?.stopCodes ?? [];
-    const routeOn = (layer: SurfaceSelectionLayer) => (selection?.route?.layer === layer ? selection.route.route : null);
     const dark = isDarkRef.current;
     const network = appliedCatalogRef.current?.network;
     if (network === "ttc") {
@@ -2245,11 +2248,11 @@ export function GeographicNetworkMap({
         night: nightStopFile ? stopCodeSetOf(nightStopFile) : null,
       });
 
-      const streetcarRoute = routeOn("streetcar");
+      const streetcarRoutes = selectedRoutesInLayer(selection, "streetcar");
       const streetcarsOn = streetcarRoutesShownRef.current;
       if (!streetcarsOn) {
-        if (streetcars && (streetcarRoute || assigned.streetcar.length > 0)) {
-          installStreetcarSelectionSources(map, streetcars, { route: streetcarRoute, stopCodes: assigned.streetcar });
+        if (streetcars && (streetcarRoutes.length > 0 || assigned.streetcar.length > 0)) {
+          installStreetcarSelectionSources(map, streetcars, { routes: streetcarRoutes, stopCodes: assigned.streetcar });
         } else {
           removeStreetcarLayers(map);
         }
@@ -2257,17 +2260,17 @@ export function GeographicNetworkMap({
         updateStreetcarStopSelection(map, stopCodes);
       }
       applySurfaceSelectionLayers(map, STREETCAR_SELECTION_TARGET, {
-        route: streetcarRoute, stopCodes: assigned.streetcar, routeLine: !streetcarsOn, dark,
+        routes: streetcarRoutes, stopCodes: assigned.streetcar, routeLine: !streetcarsOn, dark,
       });
 
-      const busRoute = routeOn("bus");
+      const busRoutes = selectedRoutesInLayer(selection, "bus");
       const busesOn = busesShownRef.current;
       if (!busesOn) {
         const corridors = cachedBusCatalog();
-        if ((busRoute && corridors) || assigned.bus.length > 0) {
+        if ((busRoutes.length > 0 && corridors) || assigned.bus.length > 0) {
           const codes = new Set(assigned.bus);
           installBusSelectionSources(map, {
-            corridors: busRoute && corridors ? routeCorridors(corridors.features, busRoute) : [],
+            corridors: corridors ? routeCorridors(corridors.features, busRoutes) : [],
             stops: busStopFile ? busStopFile.features.filter((feature) => codes.has(feature.properties.stopCode)) : [],
           });
         } else {
@@ -2277,39 +2280,39 @@ export function GeographicNetworkMap({
         updateBusStopSelection(map, stopCodes);
       }
       applySurfaceSelectionLayers(map, BUS_SELECTION_TARGET, {
-        route: busRoute, stopCodes: assigned.bus, routeLine: !busesOn, dark,
+        routes: busRoutes, stopCodes: assigned.bus, routeLine: !busesOn, dark,
       });
 
-      const nightRoute = routeOn("night");
+      const selectedNightRoutes = selectedRoutesInLayer(selection, "night");
       const nightRoutes = cachedNightCatalog();
       if (!busesOn) {
-        if (nightRoute && nightRoutes) installNightSelectionSources(map, nightRoutes, nightRoute);
+        if (selectedNightRoutes.length > 0 && nightRoutes) installNightSelectionSources(map, nightRoutes, selectedNightRoutes);
         else removeNightLayers(map);
       }
       for (const target of NIGHT_SELECTION_TARGETS) {
-        applySurfaceSelectionLayers(map, target, { route: nightRoute, stopCodes: [], routeLine: !busesOn, dark });
+        applySurfaceSelectionLayers(map, target, { routes: selectedNightRoutes, stopCodes: [], routeLine: !busesOn, dark });
       }
       // Night-only poles have no layer of their own: only a selected one draws.
       if (assigned.night.length > 0 && nightStopFile) {
         const codes = new Set(assigned.night);
         installNightStopSelectionSource(map, nightStopFile.features.filter((feature) => codes.has(feature.properties.stopCode)));
         applySurfaceSelectionLayers(map, NIGHT_STOP_SELECTION_TARGET, {
-          route: null, stopCodes: assigned.night, routeLine: false, dark,
+          routes: [], stopCodes: assigned.night, routeLine: false, dark,
         });
       } else {
         removeNightStopSelection(map);
       }
     } else if (network === "regional") {
-      const goRoute = routeOn("go-bus");
+      const goRoutes = selectedRoutesInLayer(selection, "go-bus");
       const goStopFile = cachedGoBusStops();
       const goStopCodes = goStopFile ? stopCodes.filter((code) => stopCodeSetOf(goStopFile).has(code)) : [];
       const goBusesOn = goBusesShownRef.current;
       if (!goBusesOn) {
         const corridors = cachedGoBusCatalog();
-        if ((goRoute && corridors) || goStopCodes.length > 0) {
+        if ((goRoutes.length > 0 && corridors) || goStopCodes.length > 0) {
           const codes = new Set(goStopCodes);
           installGoBusSelectionSources(map, {
-            corridors: goRoute && corridors ? routeCorridors(corridors.features, goRoute) : [],
+            corridors: corridors ? routeCorridors(corridors.features, goRoutes) : [],
             stops: goStopFile ? goStopFile.features.filter((feature) => codes.has(feature.properties.stopCode)) : [],
           });
         } else {
@@ -2319,7 +2322,7 @@ export function GeographicNetworkMap({
         updateGoBusStopSelection(map, stopCodes);
       }
       applySurfaceSelectionLayers(map, GO_BUS_SELECTION_TARGET, {
-        route: goRoute, stopCodes: goStopCodes, routeLine: !goBusesOn, dark,
+        routes: goRoutes, stopCodes: goStopCodes, routeLine: !goBusesOn, dark,
       });
     }
     if (selection) installTransitOpacity(map);
@@ -2344,7 +2347,9 @@ export function GeographicNetworkMap({
 
   // The files a selection needs, loaded even with its layer's switch off: a
   // stop the streetcar file lacks needs the bus stops, then the night-only poles.
-  const selectedRouteLayer = mapSurfaceSelection?.route?.layer ?? null;
+  const busRoutesSelected = selectedRoutesInLayer(mapSurfaceSelection, "bus").length > 0;
+  const nightRoutesSelected = selectedRoutesInLayer(mapSurfaceSelection, "night").length > 0;
+  const goRoutesSelected = selectedRoutesInLayer(mapSurfaceSelection, "go-bus").length > 0;
   const ttcStopFileNeeded = network === "ttc" && mapSurfaceSelection
     ? assignSelectedTtcStops(mapSurfaceSelection.stopCodes, {
       streetcar: streetcarCatalog ? streetcarStopCodeSet(streetcarCatalog) : null,
@@ -2362,15 +2367,15 @@ export function GeographicNetworkMap({
     };
     if (ttcStopFileNeeded === "bus") loadBusStops().then(keep(setBusStops), optional);
     if (ttcStopFileNeeded === "night") loadNightStops().then(keep(setNightStops), optional);
-    if (network === "ttc" && selectedRouteLayer === "bus") loadBusCatalog().then(keep(setBusCatalog), optional);
-    if (network === "ttc" && selectedRouteLayer === "night") loadNightCatalog().then(keep(setNightCatalog), optional);
-    if (network === "regional" && selectedRouteLayer === "go-bus") loadGoBusCatalog().then(keep(setGoBusCatalog), optional);
+    if (network === "ttc" && busRoutesSelected) loadBusCatalog().then(keep(setBusCatalog), optional);
+    if (network === "ttc" && nightRoutesSelected) loadNightCatalog().then(keep(setNightCatalog), optional);
+    if (network === "regional" && goRoutesSelected) loadGoBusCatalog().then(keep(setGoBusCatalog), optional);
     if (goStopFileNeeded) loadGoBusStops().then(keep(setGoBusStops), optional);
     return () => { cancelled = true; };
-  }, [goStopFileNeeded, loadStatus, network, selectedRouteLayer, ttcStopFileNeeded]);
+  }, [busRoutesSelected, goRoutesSelected, goStopFileNeeded, loadStatus, network, nightRoutesSelected, ttcStopFileNeeded]);
 
   // A new selection is framed once its files are in: one stop is flown to
-  // like a station, at street level; a route or several stops are fitted with
+  // like a station, at street level; routes or several stops are fitted with
   // alert View's padding (full-width map, toolbar, legend and sheet kept clear).
   // The camera moves whether or not the selection's layer is switched on.
   useEffect(() => {
@@ -2389,7 +2394,7 @@ export function GeographicNetworkMap({
     if (!target) return; // a file it needs is still loading
     lastFramedSurfaceSelectionRef.current = surfaceSelectionKeyValue;
     if (target.length === 0) return;
-    if (!selection.route && target.length === 1) {
+    if (selection.routes.length === 0 && target.length === 1) {
       const zoom = network === "regional" ? GO_BUS_STOP_FOCUS_ZOOM : SURFACE_STOP_FOCUS_ZOOM;
       focusGeographicCamera(map, containerRef.current, target[0], zoom, reducedMotion);
       return;
@@ -2412,7 +2417,7 @@ export function GeographicNetworkMap({
         left: Math.max(0, padding.left - (held.left ?? 0)),
         right: Math.max(0, padding.right - (held.right ?? 0)),
       },
-      maxZoom: selection.route ? (isMobile ? GEOGRAPHIC_MOBILE_SELECTION_MAX_ZOOM : 15) : SURFACE_STOP_FOCUS_ZOOM,
+      maxZoom: selection.routes.length > 0 ? (isMobile ? GEOGRAPHIC_MOBILE_SELECTION_MAX_ZOOM : 15) : SURFACE_STOP_FOCUS_ZOOM,
       animate: !reducedMotion,
     });
   }, [

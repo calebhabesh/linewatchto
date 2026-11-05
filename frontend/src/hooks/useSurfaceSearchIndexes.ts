@@ -35,3 +35,24 @@ export function useSurfaceSearchIndexes(active: boolean): PreparedSurfaceIndex[]
 
   return indexes;
 }
+
+/**
+ * One network's index, for a surface notice's View (plan 15, L4). `failed`
+ * says it could not load this time, so the caller can stop waiting for it.
+ */
+export function useSurfaceSearchIndex(network: NetworkId, active: boolean): { index: PreparedSurfaceIndex | null; failed: boolean } {
+  const [loaded, setLoaded] = useState<{ network: NetworkId; ok: boolean } | null>(null);
+  useEffect(() => {
+    if (!active || cachedSurfaceSearchIndex(network)) return;
+    let cancelled = false;
+    loadSurfaceSearchIndex(network).then(
+      () => { if (!cancelled) setLoaded({ network, ok: true }); },
+      () => { if (!cancelled) setLoaded({ network, ok: false }); },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [active, network]);
+  const index = active ? cachedSurfaceSearchIndex(network) : null;
+  return { index, failed: !index && loaded?.network === network && !loaded.ok };
+}

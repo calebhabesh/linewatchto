@@ -19,7 +19,7 @@ import {
   type StreetcarCorridorFeature,
   type StreetcarStopFeature,
 } from "../app/geographic-surface-catalog.ts";
-import { surfaceRouteKey, unselectedStopFilter } from "../app/surface-map-selection.ts";
+import { routeCorridors, surfaceRouteKey, unselectedStopFilter } from "../app/surface-map-selection.ts";
 import { setTransitPaintProperty } from "./geographic-network-transition.ts";
 import {
   removeSurfaceSelectionLayers,
@@ -374,13 +374,12 @@ export const STREETCAR_SELECTION_TARGET: SurfaceSelectionTarget = {
 export function installStreetcarSelectionSources(
   map: MapLibreMap,
   catalog: StreetcarCatalog,
-  selection: { route: string | null; stopCodes: readonly string[] },
+  selection: { routes: readonly string[]; stopCodes: readonly string[] },
 ): void {
-  const route = selection.route;
   const codes = new Set(selection.stopCodes);
-  setSourceData(map, SOURCE_ID, corridorCollection(route
-    ? catalog.features.filter(isStreetcarCorridorFeature).filter((feature) => feature.properties.routes.includes(route))
-    : []));
+  setSourceData(map, SOURCE_ID, corridorCollection(
+    routeCorridors(catalog.features.filter(isStreetcarCorridorFeature), selection.routes),
+  ));
   setSourceData(map, STOP_SOURCE_ID, stopCollection(
     catalog.features.filter(isStreetcarStopFeature).filter((feature) => codes.has(feature.properties.stopCode ?? "")),
   ));

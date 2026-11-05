@@ -805,6 +805,22 @@
   justify-content: flex-start;
 }
 
+/* A notice title can run long; the stop's departures stay in view. */
+.surface-notice-back-link > svg {
+  flex-shrink: 0;
+}
+
+.surface-notice-back-link > span {
+  min-width: 0;
+}
+
+.surface-notice-back-link small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Dark routes (GO navy, night blue) would vanish on the dark panel. */
 .dark .surface-route-stop-list li::before {
   background: color-mix(in srgb, var(--surface-route-color, #64748b) 72%, #ffffff);

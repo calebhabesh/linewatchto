@@ -13,7 +13,7 @@ import { parseSurfaceRouteDetails, SURFACE_ARRIVAL_COUNTDOWN_TICK_MS } from "../
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { StationDetailHeader } from "./StationDetailHeader";
-import { SurfaceRouteBackLink, SurfaceSearchBackLink, type SurfaceRouteBack, type SurfaceSearchBack } from "./SurfaceRoutePanel";
+import { SurfaceNoticeBackLink, SurfaceRouteBackLink, SurfaceSearchBackLink, type SurfaceNoticeBack, type SurfaceRouteBack, type SurfaceSearchBack } from "./SurfaceRoutePanel";
 import { isWellFormedStopCode } from "../app/surface-stop-link";
 import { SurfaceRouteCard } from "./SurfaceConnectionsSection";
 
@@ -32,6 +32,8 @@ type Props = {
   routeBack?: SurfaceRouteBack | null;
   /** Set when the stop was opened from search (U7); a route's Back comes first. */
   searchBack?: SurfaceSearchBack | null;
+  /** Set when the stop was opened by a notice's View (plan 15, L4). */
+  noticeBack?: SurfaceNoticeBack | null;
 };
 
 /**
@@ -40,7 +42,7 @@ type Props = {
  * live or schedule icon, and a stale, failed or switched-off source shows no
  * times.
  */
-export function GoBusStopPanel({ stopCode, fallbackName = null, routeColor, onClose, reducedMotion, routeBack = null, searchBack = null }: Props) {
+export function GoBusStopPanel({ stopCode, fallbackName = null, routeColor, onClose, reducedMotion, routeBack = null, searchBack = null, noticeBack = null }: Props) {
   const [result, setResult] = useState<GoBusStopResult | null>(null);
   const [loadedStopCode, setLoadedStopCode] = useState<string | null>(null);
   const loading = loadedStopCode !== stopCode;
@@ -127,7 +129,7 @@ export function GoBusStopPanel({ stopCode, fallbackName = null, routeColor, onCl
       />
 
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-2 md:mt-3.5 pb-3 station-detail-scroll">
-        {routeBack ? <SurfaceRouteBackLink back={routeBack} /> : searchBack ? <SurfaceSearchBackLink back={searchBack} /> : null}
+        {routeBack ? <SurfaceRouteBackLink back={routeBack} /> : searchBack ? <SurfaceSearchBackLink back={searchBack} /> : noticeBack ? <SurfaceNoticeBackLink back={noticeBack} /> : null}
         {!result ? (
           <div className="surface-stop-message" role="status">
             <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />

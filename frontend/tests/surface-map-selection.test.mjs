@@ -9,6 +9,7 @@ import {
   routeCoordinates,
   routeCorridors,
   selectedRouteFilter,
+  selectedRoutesInLayer,
   selectedStopFilter,
   surfaceRouteKey,
   surfaceRouteSelection,
@@ -126,32 +127,46 @@ describe("surface selection inputs (plan 14, U4)", () => {
 
   it("merges the open stop with what a panel shows, once each, and is empty without either", () => {
     assert.equal(mergeSurfaceSelection(null, null), null);
-    assert.equal(mergeSurfaceSelection(null, { stopCodes: [], route: null }), null);
-    assert.deepEqual(mergeSurfaceSelection("100", null), { stopCodes: ["100"], route: null });
+    assert.equal(mergeSurfaceSelection(null, { stopCodes: [], routes: [] }), null);
+    assert.deepEqual(mergeSurfaceSelection("100", null), { stopCodes: ["100"], routes: [] });
     assert.deepEqual(
-      mergeSurfaceSelection("100", { stopCodes: ["2040", "100"], route: { layer: "bus", route: "29" } }),
-      { stopCodes: ["100", "2040"], route: { layer: "bus", route: "29" } },
+      mergeSurfaceSelection("100", { stopCodes: ["2040", "100"], routes: [{ layer: "bus", route: "29" }] }),
+      { stopCodes: ["100", "2040"], routes: [{ layer: "bus", route: "29" }] },
     );
   });
 
   it("keys a selection by content, so the camera frames it once whatever the stop order", () => {
-    const a = surfaceSelectionKey({ stopCodes: ["2040", "100"], route: null });
-    assert.equal(a, surfaceSelectionKey({ stopCodes: ["100", "2040"], route: null }));
-    assert.notEqual(a, surfaceSelectionKey({ stopCodes: ["100", "2040"], route: { layer: "bus", route: "29" } }));
+    const a = surfaceSelectionKey({ stopCodes: ["2040", "100"], routes: [] });
+    assert.equal(a, surfaceSelectionKey({ stopCodes: ["100", "2040"], routes: [] }));
+    assert.notEqual(a, surfaceSelectionKey({ stopCodes: ["100", "2040"], routes: [{ layer: "bus", route: "29" }] }));
     assert.notEqual(
-      surfaceSelectionKey({ stopCodes: [], route: { layer: "bus", route: "29" } }),
-      surfaceSelectionKey({ stopCodes: [], route: { layer: "night", route: "29" } }),
+      surfaceSelectionKey({ stopCodes: [], routes: [{ layer: "bus", route: "29" }] }),
+      surfaceSelectionKey({ stopCodes: [], routes: [{ layer: "night", route: "29" }] }),
     );
     assert.equal(surfaceSelectionKey(null), "");
-    assert.equal(surfaceSelectionKey({ stopCodes: [], route: null }), "");
+    assert.equal(surfaceSelectionKey({ stopCodes: [], routes: [] }), "");
   });
 
   it("finds a route among a corridor's routes by whole number, never by a longer one", () => {
-    const filter = selectedRouteFilter("29");
+    const filter = selectedRouteFilter(["29"]);
     assert.equal(matches(filter, { routeKey: surfaceRouteKey(["29", "929"]) }), true);
     assert.equal(matches(filter, { routeKey: surfaceRouteKey(["129", "290"]) }), false);
     assert.equal(matches(filter, { routeKey: surfaceRouteKey(["929"]) }), false);
-    assert.equal(matches(selectedRouteFilter(null), { routeKey: surfaceRouteKey(["29"]) }), false);
+    assert.equal(matches(selectedRouteFilter([]), { routeKey: surfaceRouteKey(["29"]) }), false);
+  });
+
+  it("finds any of several routes, whole numbers only, and keys them whatever the order", () => {
+    const filter = selectedRouteFilter(["29", "41"]);
+    assert.equal(matches(filter, { routeKey: surfaceRouteKey(["41"]) }), true);
+    assert.equal(matches(filter, { routeKey: surfaceRouteKey(["29", "929"]) }), true);
+    assert.equal(matches(filter, { routeKey: surfaceRouteKey(["129", "410"]) }), false);
+    const bus = { layer: "bus", route: "29" };
+    const night = { layer: "night", route: "329" };
+    assert.equal(surfaceSelectionKey({ stopCodes: [], routes: [bus, night] }), surfaceSelectionKey({ stopCodes: [], routes: [night, bus] }));
+    const both = { stopCodes: [], routes: [bus, night, { layer: "bus", route: "41" }] };
+    assert.deepEqual(selectedRoutesInLayer(both, "bus"), ["29", "41"]);
+    assert.deepEqual(selectedRoutesInLayer(both, "streetcar"), []);
+    assert.deepEqual(selectedRoutesInLayer(null, "bus"), []);
   });
 
   it("splits stops between the selection layer and the ordinary labels", () => {
@@ -190,10 +205,10 @@ describe("surface selection inputs (plan 14, U4)", () => {
   });
 
   it("frames a route's corridors and the stops around them", () => {
-    const corridors = routeCorridors(buses.features, "29");
+    const corridors = routeCorridors(buses.features, ["29"]);
     assert.ok(corridors.length > 0);
     assert.ok(corridors.every((feature) => feature.properties.routes.includes("29")));
-    const [[west, south], [east, north]] = surfaceSelectionBounds(routeCoordinates(buses.features, "29"));
+    const [[west, south], [east, north]] = surfaceSelectionBounds(routeCoordinates(buses.features, ["29"]));
     // The 29 Dufferin runs up Dufferin St from Exhibition Place to Wilson.
     assert.ok(west > -79.5 && east < -79.38, `${west}..${east}`);
     assert.ok(south < 43.64 && north > 43.72, `${south}..${north}`);
@@ -206,21 +221,21 @@ describe("surface selection layers (plan 14, U4)", () => {
   it("outline a route under its layer's casing and leave the layer's line to draw it", () => {
     const map = createMockMap(BASE);
     installBusLayers(map, buses, { dark: false, activeFilteredLine: null });
-    applySurfaceSelectionLayers(map, BUS_SELECTION_TARGET, { route: "29", stopCodes: [], routeLine: false, dark: false });
+    applySurfaceSelectionLayers(map, BUS_SELECTION_TARGET, { routes: ["29"], stopCodes: [], routeLine: false, dark: false });
     const sel = surfaceSelectionLayerIds("transit-bus");
     const order = ids(map);
     assert.ok(order.indexOf(sel.halo) < order.indexOf(sel.outline), "white edge under the dark band");
     assert.ok(order.indexOf(sel.outline) < order.indexOf(BUS_CASING_LAYER), "under the casing");
     assert.equal(map.getLayer(sel.line), undefined, "the bus line itself draws the route");
-    assert.deepEqual(map.getLayer(sel.outline).filter, selectedRouteFilter("29"));
+    assert.deepEqual(map.getLayer(sel.outline).filter, selectedRouteFilter(["29"]));
     // Neutral: the stop panel's selected colours, constant, never from data.
     assert.equal(map.getLayer(sel.outline).paint["line-color"], "#0f172a");
     assert.equal(map.getLayer(sel.halo).paint["line-color"], "#ffffff");
     const shown = map.sources["transit-bus-corridors"].data.features.filter((feature) =>
-      matches(selectedRouteFilter("29"), feature.properties));
-    assert.equal(shown.length, routeCorridors(buses.features, "29").length);
+      matches(selectedRouteFilter(["29"]), feature.properties));
+    assert.equal(shown.length, routeCorridors(buses.features, ["29"]).length);
 
-    applySurfaceSelectionLayers(map, BUS_SELECTION_TARGET, { route: null, stopCodes: [], routeLine: false, dark: false });
+    applySurfaceSelectionLayers(map, BUS_SELECTION_TARGET, { routes: [], stopCodes: [], routeLine: false, dark: false });
     assert.equal(map.getLayer(sel.outline), undefined, "cleared with the selection");
     assert.equal(map.getLayer(sel.halo), undefined);
   });
@@ -229,12 +244,12 @@ describe("surface selection layers (plan 14, U4)", () => {
     const map = createMockMap(BASE);
     const codes = new Set(["2040"]);
     installBusSelectionSources(map, {
-      corridors: routeCorridors(buses.features, "29"),
+      corridors: routeCorridors(buses.features, ["29"]),
       stops: busStops.features.filter((feature) => codes.has(feature.properties.stopCode)),
     });
-    applySurfaceSelectionLayers(map, BUS_SELECTION_TARGET, { route: "29", stopCodes: ["2040"], routeLine: true, dark: true });
+    applySurfaceSelectionLayers(map, BUS_SELECTION_TARGET, { routes: ["29"], stopCodes: ["2040"], routeLine: true, dark: true });
     const sel = surfaceSelectionLayerIds("transit-bus");
-    assert.equal(map.sources["transit-bus-corridors"].data.features.length, routeCorridors(buses.features, "29").length);
+    assert.equal(map.sources["transit-bus-corridors"].data.features.length, routeCorridors(buses.features, ["29"]).length);
     assert.deepEqual(map.sources["transit-bus-stops"].data.features.map((feature) => feature.properties.stopCode), ["2040"]);
     assert.equal(map.getLayer(BUS_CASING_LAYER), undefined, "the switch's own layers stay off");
     assert.equal(map.getLayer(sel.line).paint["line-color"], "#ED1C24", "the route in its layer's own paint");
@@ -261,7 +276,7 @@ describe("surface selection layers (plan 14, U4)", () => {
     const map = createMockMap(BASE);
     installBusLayers(map, buses, { dark: false, activeFilteredLine: null });
     installBusStopLayers(map, busStops, { activeFilteredLine: null, selectedStopCodes: ["2040"], streetcarStopCodes: new Set() });
-    applySurfaceSelectionLayers(map, BUS_SELECTION_TARGET, { route: null, stopCodes: ["2040"], routeLine: false, dark: false });
+    applySurfaceSelectionLayers(map, BUS_SELECTION_TARGET, { routes: [], stopCodes: ["2040"], routeLine: false, dark: false });
     assert.equal(matches(map.getLayer(BUS_STOP_LAYER).filter, { stopCode: "2040" }), false);
     const sel = surfaceSelectionLayerIds("transit-bus");
     assert.ok(ids(map).indexOf(sel.stops) > ids(map).indexOf(BUS_STOP_LAYER), "over the ordinary labels");
@@ -269,11 +284,14 @@ describe("surface selection layers (plan 14, U4)", () => {
 
   it("draw a streetcar route with Streetcar Routes off, and come off cleanly", () => {
     const map = createMockMap(BASE);
-    installStreetcarSelectionSources(map, streetcars, { route: "504", stopCodes: [] });
-    applySurfaceSelectionLayers(map, STREETCAR_SELECTION_TARGET, { route: "504", stopCodes: [], routeLine: true, dark: false });
+    installStreetcarSelectionSources(map, streetcars, { routes: ["504"], stopCodes: [] });
+    applySurfaceSelectionLayers(map, STREETCAR_SELECTION_TARGET, { routes: ["504"], stopCodes: [], routeLine: true, dark: false });
     const corridors = map.sources["transit-streetcar-corridors"].data.features;
     assert.ok(corridors.length > 0 && corridors.every((feature) => feature.properties.routes.includes("504")));
     assert.deepEqual(map.sources["transit-streetcar-stops"].data.features, []);
+    installStreetcarSelectionSources(map, streetcars, { routes: ["504", "501"], stopCodes: [] });
+    const both = map.sources["transit-streetcar-corridors"].data.features;
+    assert.ok(both.some((feature) => feature.properties.routes.includes("501")) && both.some((feature) => feature.properties.routes.includes("504")));
     assert.equal(map.getLayer(surfaceSelectionLayerIds("transit-streetcar").line).paint["line-dasharray"], undefined, "solid");
     removeStreetcarLayers(map);
     assert.deepEqual(ids(map), BASE);
@@ -282,9 +300,9 @@ describe("surface selection layers (plan 14, U4)", () => {
   it("draw a night route only on its own kind, and night-only poles from their own source", () => {
     const map = createMockMap(BASE);
     const route = night.routes.find((candidate) => candidate.kind === "bus" && candidate.drawn).route;
-    installNightSelectionSources(map, night, route);
+    installNightSelectionSources(map, night, [route]);
     for (const target of NIGHT_SELECTION_TARGETS) {
-      applySurfaceSelectionLayers(map, target, { route, stopCodes: [], routeLine: true, dark: true });
+      applySurfaceSelectionLayers(map, target, { routes: [route], stopCodes: [], routeLine: true, dark: true });
     }
     assert.equal(map.sources["transit-night-streetcar-corridors"].data.features.length, 0);
     assert.ok(map.sources["transit-night-bus-corridors"].data.features.length > 0);
@@ -293,7 +311,7 @@ describe("surface selection layers (plan 14, U4)", () => {
     const pole = nightStops.features[0];
     installNightStopSelectionSource(map, [pole]);
     applySurfaceSelectionLayers(map, NIGHT_STOP_SELECTION_TARGET, {
-      route: null, stopCodes: [pole.properties.stopCode], routeLine: false, dark: false,
+      routes: [], stopCodes: [pole.properties.stopCode], routeLine: false, dark: false,
     });
     assert.ok(map.getLayer("transit-night-selected-stops"));
     assert.equal(surfaceSelectionStopCodeAtPoint(map, { x: 0, y: 0 }, NIGHT_STOP_SELECTION_TARGET.prefix), "96");

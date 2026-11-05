@@ -165,7 +165,7 @@ export function routeDirections(
 }
 
 /** The route number a notice's route id names: "29C" → "29", "52F" → "52". */
-function noticeRouteBase(id: string): string {
+export function noticeRouteBase(id: string): string {
   return id.trim().toUpperCase().replace(/^(\d+)[A-Z]$/, "$1");
 }
 

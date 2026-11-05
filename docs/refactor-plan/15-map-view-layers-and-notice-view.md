@@ -32,9 +32,9 @@ positions from its index (U1) and reuses its Map View selection (U4).
 - **Performance:** the selected style reads the existing sources, with no new
   geometry. Corrected in L1 to match what plan 14 U4 shipped, which L4 reuses:
   with a layer on, filters select within its full sources; with a layer off,
-  those sources hold only the selected route's corridors and the selected
+  those sources hold only the selected routes' corridors and the selected
   stops (a subset, not a filter on the full file). The phone sheet renders only
-  while open. No layer data loads until its switch is on, except the one route
+  while open. No layer data loads until its switch is on, except the routes
   or stop set a View or route panel needs.
 
 ## Findings
@@ -61,7 +61,7 @@ positions from its index (U1) and reuses its Map View selection (U4).
 | L1 | Shared layer switch list | Done (2026-11-04) |
 | L2 | Phone Layers button and sheet | Done (2026-11-04) |
 | L3 | Selection on the Map View (stops, routes) | Moved to plan 14 U4 |
-| L4 | View on surface notices | Not started |
+| L4 | View on surface notices | Done (2026-11-04) |
 | L5 | Coverage and close | Not started |
 
 ### L0 — Invariant amendment
@@ -158,7 +158,7 @@ per-device keys. The desktop deck should look the same; check it against the
 
 ### L3 — Selection on the Map View
 
-Moved to plan 14 U4 (2026-11-04). L4 uses that selection as it is.
+Moved to plan 14 U4 (2026-11-04). L4 uses that selection, with one change: it holds a list of routes.
 
 ### L4 — View on surface notices
 
@@ -175,6 +175,80 @@ Moved to plan 14 U4 (2026-11-04). L4 uses that selection as it is.
   scroll position, as alert View does.
 - On phones, View closes the list to the map with a compact notice strip
   (route badge, title, Back), following `MobileImpactInspector`.
+
+**Done (2026-11-04).**
+
+- `src/app/surface-notice-target.ts` (`surfaceNoticeMapTarget`) resolves a notice
+  to stops, a route or nothing from the plan 14 index. Selection and framing are
+  U4's: `showSurfaceSelectionOnMap` (now with an optional view) and owner `notice`.
+- The phone strip is `SurfaceNoticeMapStrip.tsx`, in the bottom nav's footprint, so
+  the controls above it don't move. It replaces the status peek while shown, because
+  the peek covered half the framed map.
+- Stop ids, checked against the live API and a TTC `stops.txt` (the plan's question):
+  - TTC GTFS-RT notices carry pole numbers. All 9 seen equal both `stop_code` and
+    `stop_id`. In that file 42 stops have a differing `stop_id`, none is another
+    stop's `stop_code` and none is in the index, so a number cannot select the wrong pole.
+  - TTC Live Alerts notices repeat the stop name as the id. The same alert can
+    appear in both forms and name different poles (11321 and 9149); that is existing
+    backend output and L4 does not merge them.
+  - A name matches only poles on the notice's route, and can select both sides of an
+    intersection. Without a route it counts only if one pole has that name. An
+    unknown number falls back to its paired name, so no id table was needed.
+  - GO/UP rail notices carry station and line codes and always get No Map Location
+    (20 of 41 live). Only GO Bus notices resolve there, as in `surfaceNoticesForRoute`.
+    No live GO Bus notice carries stops, so GO stop numbers have unit coverage only.
+- Corrections to this plan:
+  - `MapActionButton` is `ImpactCardMapButton`. It is unchanged; its fixed 78 px width
+    is overridden from the notice card and search row, as the outage list does.
+  - "The other network" cannot happen: the notice list and search only show the
+    selected network's notices, so no network switch was built. Add one if a surface
+    ever lists another network's notices.
+  - U4's phone padding reserved half the screen when no sheet was open, by falling
+    back to the saved sheet height. It now reserves that only with a sheet up.
+- Decisions:
+  - A notice for several routes selects and frames every one the map draws (10 of 38
+    live notices name several routes and no stops), across layers. U4's selection
+    went from one route to a list for this; a route panel passes a list of one. The
+    strip shows two badges and "+N". Undrawn routes (503) are left out.
+  - Back returns a System Map to the System Map and restores the saved preference: it
+    undoes all View did. A searched stop still leaves the Map View on, as it opens a
+    place rather than a look from a list. A station or alert ending View stays on the
+    Map View, where it is shown.
+  - A search row's View with one stop opens it as a searched stop, with Back to Search.
+    On a phone other targets go to the map with the strip. On desktop they open the
+    list at that notice with View on, and Back steps on to search.
+  - A pole pressed during View opens its stop, which clears the other selected stops;
+    Back from that stop returns to the list.
+- Back, added here (decided by the owner, not in the plan above):
+  - Android or browser Back closes the Layers sheet with its exit animation and stays
+    on the map. Opening the sheet adds one history entry; any other close gives it back.
+  - View adds one entry. Back from the card, strip, stop panel, browser or desktop
+    Escape all end View and spend that entry, and the list's own Back or Close takes
+    it too. Selection clears with the notice, as for U4's other owner.
+  - If a station or alert ends View, its entry stays under theirs, so one later Back
+    press does nothing visible (same as other surface panels).
+- Other changes: the list's 30-second refresh no longer blanks loaded rows, which reset
+  the scroll. The list keeps filters, scroll and focus through Back (`SurfaceNoticePlace`).
+  The dev-only `__linewatchSurfaceSelectionDebug` hook is gone, as its comment planned.
+- Inspected on :3000 with live notices at 360, 767 and 1440 px, both networks and both
+  themes: no page overflow, no service colour or badge on the map, no drawn detour.
+  High contrast styles were not inspected. Desktop search rows show no notices on dev
+  (not investigated; a React strict-mode double run of the existing fetch is the likely
+  cause), so search rows were inspected on the production build with stubbed notices:
+  360 px dark and 1440 px light by eye, 767 px and 1440 px dark for page overflow only.
+- Not checked: a real Android or iOS device (Back is `page.goBack()` in Chromium), the
+  iOS bottom strip. Moved from L5 and done here: target unit tests, and smoke for notice
+  View and Back, View from a System Map and Back on the sheet. L5 keeps the cost
+  measurements, feature reference, README and plan 13's phone note.
+- Tests: `surface-notice-target.test.mjs` (14), `surface-notice-view.spec.ts` (10 cases on
+  desktop-chrome and mobile-chromium, 1 phone only). `test:fast`, typecheck, lint
+  (0 errors, 16 existing warnings) and build pass. Smoke on both projects across
+  `surface-notice-view`, `map-layers-sheet`, `surface-stop`, `go-buses`,
+  `search-back-and-stop-links`, `stops-near-me`, `search-stops-and-routes`,
+  `surface-buses`, `night-routes`, `geographic-map-lifecycle`, `bus-positions` and
+  `network-fade`: 114 passed, 42 skipped (`surface-notice-view` was fixed and rerun alone).
+  `dashboard.spec` notice cases: 10 passed. The several-routes strip and framing were
+  checked by eye at 360 px and 1440 px light, with no page overflow at 360 px dark.
 
 ### L5 — Coverage and close
 

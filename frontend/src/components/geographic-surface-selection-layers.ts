@@ -105,15 +105,15 @@ function removeLayers(map: MapLibreMap, ids: string[]) {
 export function applySurfaceSelectionLayers(
   map: MapLibreMap,
   target: SurfaceSelectionTarget,
-  selection: { route: string | null; stopCodes: readonly string[]; routeLine: boolean; dark: boolean },
+  selection: { routes: readonly string[]; stopCodes: readonly string[]; routeLine: boolean; dark: boolean },
 ): void {
   const ids = surfaceSelectionLayerIds(target.prefix);
-  const routeShown = Boolean(selection.route && target.corridorSource && target.style && map.getSource(target.corridorSource));
+  const routeShown = Boolean(selection.routes.length > 0 && target.corridorSource && target.style && map.getSource(target.corridorSource));
   if (!routeShown) {
     removeLayers(map, [ids.line, ids.outline, ids.halo]);
   } else {
     const style = target.style!;
-    const filter = selectedRouteFilter(selection.route) as FilterSpecification;
+    const filter = selectedRouteFilter(selection.routes) as FilterSpecification;
     const before = target.lineBefore(map);
     const lines: Array<{ id: string; color: string; width: unknown[]; dash?: number[] | null }> = [
       { id: ids.halo, color: SELECTED_EDGE, width: widenLineWidth(style.casingWidth, 4.5) },

@@ -326,6 +326,7 @@
 .motion-paused .commute-body,
 .motion-paused .accessibility-outages-scroll,
 .motion-paused .floating-panel-shell,
+.motion-paused .surface-notice-map-strip,
 .motion-paused .mobile-impact-inspector,
 .motion-paused .mobile-impact-inspector-scroll,
 .motion-paused .mobile-impact-inspector-metadata {
@@ -346,6 +347,7 @@
   .commute-body,
   .accessibility-outages-scroll,
   .floating-panel-shell,
+  .surface-notice-map-strip,
   .mobile-impact-inspector,
   .mobile-impact-inspector-scroll,
   .mobile-impact-inspector-metadata {

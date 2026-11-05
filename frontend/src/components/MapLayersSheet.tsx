@@ -56,6 +56,12 @@ export function MapLayersSheet({ network, state, handlers, reducedMotion, onClos
   }, []);
 
   useEffect(() => {
+    // Phone or browser Back: the shell keeps the view and the entry this sheet added is spent.
+    window.addEventListener("popstate", requestClose);
+    return () => window.removeEventListener("popstate", requestClose);
+  }, [requestClose]);
+
+  useEffect(() => {
     // On the document, so Escape and the focus loop still work if the focused switch becomes disabled.
     const handleKeyDown = (event: KeyboardEvent) => {
       const sheet = sheetRef.current;
