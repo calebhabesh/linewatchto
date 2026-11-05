@@ -180,6 +180,11 @@ linewatch:
     regional-stop-fetches-per-minute: ${LINEWATCH_REGIONAL_SURFACE_ARRIVALS_STOP_FETCHES_PER_MINUTE:60}
     horizon: ${LINEWATCH_SURFACE_ARRIVALS_HORIZON:PT2H}
     max-arrivals-per-route: ${LINEWATCH_SURFACE_ARRIVALS_MAX_PER_ROUTE:3}
+  # The schedule-assets service's volume, mounted read-only (plan 16): the GO stop list stop
+  # departures accept is reloaded from its manifest. Empty: the classpath list only.
+  schedule-assets:
+    dir: ${LINEWATCH_SCHEDULE_ASSETS_DIR:}
+    reload-interval: ${LINEWATCH_SCHEDULE_ASSETS_RELOAD_INTERVAL:PT1M}
   # Live TTC streetcar positions on the Map View (plan 13, S4). Its own flag and freshness:
   # surface trip updates or alerts being fresh says nothing about vehicle positions.
   streetcar-positions:

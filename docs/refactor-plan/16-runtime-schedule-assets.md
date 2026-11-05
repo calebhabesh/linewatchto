@@ -121,8 +121,8 @@ surface line of [domain invariants](../domain-invariants.md),
 | Phase | Owns | Detail |
 | --- | --- | --- |
 | R1 | Service: detection, generation, validation, publishing, status | Done (2026-11-05) |
-| R2 | Client manifest resolver and service worker | |
-| R3 | Backend GO stop reload and health endpoint | |
+| R2 | Client manifest resolver and service worker | Done (2026-11-05) |
+| R3 | Backend GO stop reload and health endpoint | Done (2026-11-05) |
 | R4 | Image, Compose, Caddy, release pipeline and deploy gate | |
 | R5 | Staging end to end | |
 | R6 | Production: Cloudflare rule, gate, deploy and checks (owner go-ahead) | |
@@ -169,11 +169,66 @@ Tests: resolver fallback and retry in `test:fast`, the service worker cases in
 `offline-service-worker.test.mjs`, and a smoke case that the map and search
 load through a routed manifest. `test:surface` stays green.
 
+**Done (2026-11-05).**
+
+- `src/app/schedule-assets.ts`: `loadScheduleManifest` (one read per page, 5 s
+  timeout; a 404, HTML, invalid or unreachable manifest is null),
+  `scheduleAssetUrl` (a name the manifest lists resolves to
+  `/data/schedule/files/...`, anything else to `releaseAssetUrl`) and
+  `fetchScheduleAsset` (a hashed file's 404 rereads the manifest once; a
+  failed reread keeps the page's choice). `cachedLoader` and the streetcar
+  loader use it, so every schedule-derived load goes through the manifest and
+  station bays keep the release's copy. `LineWatchShell` starts the manifest
+  read on mount. Manifest paths must match `files/<safe name>`.
+- `sw.js`: the manifest is network-first (4 s), kept on a JSON 200 and served
+  from cache offline or on a 5xx; a 404 passes through (no manifest at this
+  deployment), and HTML is never kept. Hashed files (`<name>.<16 hex>.json`, no
+  query) are cache-first by URL, one copy per name. Both sit in the static
+  cache, which outlives a release.
+- Tests: `schedule-assets.test.mjs` (10), five service worker cases in
+  `offline-service-worker.test.mjs`, `release-asset-url.test.mjs` updated (the
+  manifest read comes first), and the bus and streetcar loader tests no longer
+  count the manifest read as a catalog request. `test:fast` 2,361, typecheck
+  and lint (no errors) pass.
+- `tests/smoke/schedule-manifest.spec.ts` (in `test:surface`): with a routed
+  manifest, the streetcar catalog and both search indexes load from hashed
+  URLs, a stop search answers, no schedule file comes from the release and the
+  manifest is read once; without one, the release's copies load. `test:surface`
+  on the Playwright production build: 95 passed, 42 skipped, 1 failed
+  (`surface-notice-view` "Back returns to the list", mobile-chromium, the map
+  not ready in 20 s); that spec and the new one then passed 81 of 81 over three
+  repeats on both projects.
+- Phone cost: one manifest request (about 0.6 KB compressed) started on mount,
+  before the Map View asks for its first layer; the hashed files are the same
+  bytes as before, now precompressed at the origin. Not yet traced on the
+  production build under Slow 4G; R5 does that against staging.
+
 ### R3 — Backend
 
 `GoBusStopCatalog` reloads from the manifest; `ScheduleAssetsHealthController`
 reads the manifest and `status.json`. Tests for reload, fallback, shrink guard
 and the health contract; `mvn -f backend/pom.xml test` in a scratch copy.
+
+**Done (2026-11-05).**
+
+- `scheduleassets/ScheduleAssetsVolume` reads `manifest.json` and `status.json`
+  from `linewatch.schedule-assets.dir` (`LINEWATCH_SCHEDULE_ASSETS_DIR`, empty
+  by default: disabled) and resolves only `files/<safe name>` inside the volume.
+- `GoBusStopCatalog` keeps an immutable snapshot with its source (`bundled` or
+  `published`, path, feed version, size). `refresh()` runs at start and every
+  `linewatch.schedule-assets.reload-interval` (1 min) and swaps in the
+  manifest's `go-bus-stops.csv` when its path changes; an unreadable, empty or
+  under-half list keeps the current one, with a warning.
+- `GET /api/health/schedule-assets` (`ScheduleAssetsHealthController`):
+  `disabled`, `unavailable` (no manifest), `pending`, `ok`, `failing` or
+  `stale` (no successful check for three intervals); per network the published
+  origin, feed version and period, last check, success, publish and failure
+  time, failure stage and count; and the GO stop list's origin, size and feed.
+  Failure messages are not returned. `/api/health*` is already `no-store`.
+- Tests: `GoBusStopCatalogReloadTest` (5) and
+  `ScheduleAssetsHealthControllerTest` (5).
+- TTC: unchanged. The TTC stop departures catalog (V91) comes from the
+  backend's own hourly import of the same CKAN resource.
 
 ### R4 — Deployment
 
