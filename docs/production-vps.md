@@ -69,6 +69,7 @@ Compose services:
 - `backend`: Spring Boot API on the private Compose network.
 - `postgres`: PostgreSQL 17 with PostGIS on a persistent volume.
 - `redis`: Redis 7 with append-only persistence on a persistent volume.
+- `schedule-assets`: keeps the schedule-derived Map View and search files current with the TTC and GO GTFS (plan 16; see [Schedule assets](#schedule-assets)).
 
 Production Compose sets memory ceilings for the always-on services so a leak or runaway query cannot consume the full 24 GB host. Current caps are:
 
@@ -78,6 +79,7 @@ backend: 6 GB
 frontend: 1 GB
 redis: 1 GB
 caddy: 512 MB
+schedule-assets: 3 GB (the TTC bus generator peaks near 1.5 GB for about a minute)
 alloy: 512 MB, only when the observability profile is enabled
 ```
 
@@ -109,6 +111,7 @@ Compose project lifecycle and cannot be removed by `docker compose down --volume
 - `linewatchto_caddy_data`
 - `linewatchto_caddy_config`
 - `linewatchto_alloy_prod_data`
+- `linewatchto_schedule_assets_data` (generated, public files; safe to recreate, see [Schedule assets](#schedule-assets))
 
 Initialize them once on a new production host before the first deployment:
 
@@ -297,6 +300,37 @@ gzip -dc tmp/prod-backups/linewatch-postgres-YYYYMMDDTHHMMSSZ.sql.gz | \
   scripts/prod-compose.sh exec -T postgres \
   sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 ```
+
+## Schedule assets
+
+The `schedule-assets` service (plan 16, `services/schedule-assets/`) checks the TTC CKAN package
+hourly and the GO GTFS zip every 6 hours, regenerates the Map View routes and stops, the search
+indexes and the GO stop list when the extracted tables change, validates them, and publishes
+content-hashed files plus `manifest.json` into `linewatchto_schedule_assets_data`. Caddy serves the
+manifest and hashed files at `/data/schedule/` (read-only mount); the backend reads the GO stop
+list from the same volume (read-only, every minute). A new schedule needs no release.
+
+- Bootstrap: on an empty volume the service first publishes the files baked into its image (the
+  release's committed copies, `origin: "release"`), then checks both feeds.
+- Health: `curl -s https://linewatchto.ca/api/health/schedule-assets | jq` (feed versions and
+  periods, last check and success per network, `failing` or `stale`). Compare `feedVersion` and
+  the period with `/api/health/schedule` and `/api/health/regional-schedule`.
+- Logs: `scripts/prod-compose.sh logs --tail 100 schedule-assets` (one JSON line per event:
+  `checked`, `published`, `rejected`, `check-failed`); Alloy ships them with the other containers.
+- A rejected feed keeps the last good files in service and is not regenerated again until the
+  feed or the generator changes. The rejection's problems are in the log and in
+  `/srv/schedule/.state/state.json` inside the container.
+- Force a full regeneration from the cached archives (for example after a manual fix):
+  `scripts/prod-compose.sh exec schedule-assets rm /srv/schedule/.state/state.json` then
+  `scripts/prod-compose.sh restart schedule-assets`.
+- Reset: stop the service, remove and recreate the volume (`docker volume rm
+  linewatchto_schedule_assets_data && scripts/prod-init-volumes.sh`), then deploy or start it
+  again. The site keeps working meanwhile: without a manifest, pages use the release's files.
+  Open pages that already read the manifest reread it when a hashed file is gone.
+- First deploy of a four-image release: create the volume (`scripts/prod-init-volumes.sh`) and
+  reinstall the deploy gate's root copy, which must accept the fourth image:
+  `sudo install -m 755 scripts/prod-ssh-deploy-gate.sh /usr/local/sbin/linewatch-deploy-gate`.
+  The old gate rejects six arguments, so a deploy before the reinstall fails without changes.
 
 ## Monitoring & Observability
 

@@ -12,6 +12,7 @@ operational workflow. Routine frontend styling does not require these documents.
 - Load incidents: [traffic-spike runbook](traffic-spike-runbook.md).
 - Performance measurements: `node scripts/measure-portfolio-performance.mjs --help`; retain workload/environment/success/failure metadata.
 - Script and tooling catalog: [script inventory](script-inventory.md).
+- Schedule-derived map and search files: the `schedule-assets` service publishes them at runtime ([production VPS](production-vps.md#schedule-assets), [plan 16](refactor-plan/16-runtime-schedule-assets.md)); new TTC or GO schedules need no release. Its health is `/api/health/schedule-assets`.
 
 ## Alert scenarios
 

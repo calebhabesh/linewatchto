@@ -1,6 +1,6 @@
 # Source Licensing and Naming Launch Gates
 
-Last reviewed: 2026-11-03
+Last reviewed: 2026-11-05
 
 LineWatchTO is an unofficial, independent project. Technical readiness does not by itself authorize public use of a source, name, map, or mark.
 
@@ -33,6 +33,10 @@ Owner decision, 2026-11-03: station floor plans may be drawn from the TTC's publ
 ## GO bus routes and stop departures (plan 13, S6)
 
 Recorded 2026-11-03. GO bus corridors and stops on the GO/UP Map View come from the GO Transit static GTFS archive (Metrolinx Open Data, the archive the regional rail catalog already uses). GO bus stop departures widen the existing Metrolinx API use: the backend calls GO Next Service (`Stop/NextService/{stopCode}`, the call already made for GO Bus rows at GO/UP stations) for any GO stop number in `backend/src/main/resources/regional/go-bus-stops.csv`, on demand when a rider opens that stop, instead of only the stop codes listed at stations. It is off unless `LINEWATCH_REGIONAL_SURFACE_ARRIVALS_ENABLED=true`, caches each stop for 30 s, and makes at most `LINEWATCH_REGIONAL_SURFACE_ARRIVALS_STOP_FETCHES_PER_MINUTE` (60) upstream reads across all stops. Only normalized departures are returned (route, route name, destination, times, bay when published, trip number, live or scheduled); the raw payload is not stored or returned and the key stays backend-only. The owner confirmed on 2026-11-05 that the registered Metrolinx API agreement covers per-stop reads at this scope: any GO stop a rider opens on the GO/UP Map View, as any TTC stop can be opened on the TTC Map View.
+
+## Runtime schedule assets (plan 16)
+
+Recorded 2026-11-05. The `schedule-assets` service reads the same two public static GTFS archives the generators already used, at runtime instead of at build time: the TTC *Merged GTFS - TTC Routes and Schedules* zip listed by Open Data Toronto's CKAN package (Open Government Licence – Toronto; the OGL–Toronto acknowledgement above covers it), checked hourly as the backend's schedule import does, and the GO Transit GTFS zip from Metrolinx Open Data, checked every 6 hours with conditional requests. Archives stay in the service's private volume state and are never served. Only the normalized generated files (route corridors, stops with pole numbers and names, route stop lists, search indexes, each carrying its source name, licence, feed version and period) are public, at `/data/schedule/files/` with `/data/schedule/manifest.json`, as they were before under `/assets/linewatch/geographic/`. The backend's GO stop list for stop departures is read from the same output; the Metrolinx API use it gates is unchanged (S6 above). No new source, credential or API call is added.
 
 ## GO bus positions (plan 13, S9)
 

@@ -124,7 +124,7 @@ surface line of [domain invariants](../domain-invariants.md),
 | R2 | Client manifest resolver and service worker | Done (2026-11-05) |
 | R3 | Backend GO stop reload and health endpoint | Done (2026-11-05) |
 | R4 | Image, Compose, Caddy, release pipeline and deploy gate | Done (2026-11-05) |
-| R5 | Staging end to end | |
+| R5 | Staging end to end | Done (2026-11-05) |
 | R6 | Production: Cloudflare rule, gate, deploy and checks (owner go-ahead) | |
 | R7 | Remove the interim PR workflow; docs | |
 
@@ -279,6 +279,32 @@ suites stay green.
 simulated new feed (a local feed override), a new manifest, and a client that
 picks it up without a deploy.
 
+**Done (2026-11-05)**, on the owner's machine, staging rebuilt from this branch
+with `scripts/staging-up.sh`.
+
+- Empty volume: the service bootstrapped the release's files, the backend took
+  the published GO stop list at start (813 stops), and Caddy served the manifest
+  (`max-age=60`) and 404'd `status.json` (`no-store`). The first real checks
+  downloaded both feeds and regenerated TTC in 52 s and GO in 3 s; the data
+  matched the release, so every URL stayed the same.
+- Browser (Chromium, service worker in control): search read both hashed
+  indexes and showed GO stop 00008 as "Yonge St. @ Sheppard Ave.".
+- Simulated new GO feed (the real archive with `feed_version` 20261105990000 and
+  stop 00008 renamed "… (Staging Test)"), given to the running service as a
+  `file:` override and a service restart, nothing rebuilt: GO published a new
+  generation 3 s later and TTC stayed `unchanged`. The backend's GO stop list
+  followed within the minute, and `/api/regional/bus-stops/00008/departures`
+  named the stop "… (Staging Test)". The same browser profile, reopened after the
+  manifest's 60 s, loaded the new GO index (the TTC index URL unchanged) and
+  search showed the new name. Health: `ok`, both networks `runtime`. Staging was
+  then returned to the real GO feed.
+- Phone cost on staging's production build (Pixel 7, Slow 4G, 4x CPU, cold,
+  service worker blocked, three runs each): the manifest read ends about 10.4 s
+  in, some 11 s before the Map View asks for its first layer, so nothing waits
+  on it; Map View ready 21.3–21.6 s with the manifest and 21.3–21.9 s with it
+  answered 404. The streetcar file moved 13.6 KB (precompressed brotli) instead
+  of 21.2 KB (gzip on the fly). The added cost is one request of under 1 KB.
+
 ### R6 — Production
 
 With the owner's go-ahead: create the volume, reinstall the gate, add the
@@ -286,6 +312,37 @@ Cloudflare rule (snapshot, `--validate-only`), deploy from green main CI, then
 check headers and HIT through Cloudflare, feed versions against
 `/api/health/schedule` and `/api/health/regional-schedule`, search and Map
 View, and GO stop departures for the published stop list.
+
+Prepared (2026-11-05): the cache ruleset was snapshotted and the rule below
+passes `cf rulesets rules create ... --validate-only` (placed after "Authored
+Public Assets"); the live ruleset is unchanged. To apply, drop `--validate-only`
+and record it in the traffic-spike runbook.
+
+```json
+{
+  "description": "Schedule Assets",
+  "expression": "(starts_with(http.request.uri.path, \"/data/schedule/\"))",
+  "action": "set_cache_settings",
+  "action_parameters": {
+    "cache": true,
+    "edge_ttl": {
+      "mode": "respect_origin",
+      "status_code_ttl": [
+        { "status_code_range": { "from": 400, "to": 499 }, "value": 60 },
+        { "status_code_range": { "from": 500, "to": 599 }, "value": -1 }
+      ]
+    },
+    "browser_ttl": { "mode": "respect_origin" }
+  },
+  "enabled": true
+}
+```
+
+Order for the go-ahead: merge to main and let CI publish the four images; on
+the VPS run `scripts/prod-init-volumes.sh` and reinstall the gate; add the
+Cloudflare rule; run Deploy Production with the new SHA; then the checks above.
+Do not curl `/data/schedule/` through Cloudflare before the deploy: the 404
+would be held at the edge for 60 s.
 
 ### R7 — Close
 
