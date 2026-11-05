@@ -87,7 +87,7 @@ export const dataPracticeSections: NoticeSection[] = [
   },
   {
     title: "Location for Stops Near Me",
-    body: "Stops Near Me asks your browser for your location only when you tap it, never when the page loads. Your position is used on your device to find nearby stops from the stop list LineWatchTO has already downloaded; it is never sent to LineWatchTO or anyone else, stored, or logged. Only the departures of the stops you choose are requested, by stop number.",
+    body: "Stops Near Me asks your browser for your location only when you tap it, never when the page loads. Your position is used on your device to find nearby stops from the stop list LineWatchTO has already downloaded; it is never sent to LineWatchTO or anyone else, stored, or logged. To show next departures, LineWatchTO then requests them by stop number for up to three of the nearest stops, and for any stop you open. Those requests do not include your position, but the stops they name are near it.",
   },
   {
     title: "Browser Storage and PWA Cache",

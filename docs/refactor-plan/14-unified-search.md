@@ -32,7 +32,8 @@ plan reads.
 - **Stops Near Me uses location on the device only.** It asks for location
   only when the rider taps it, never on load. The position never leaves the
   phone: nearest stops come from the local index, and only the chosen stops'
-  departures are requested, by stop number, as today.
+  departures are requested, by stop number, as today. (Corrected in U8: U6
+  also requests the nearest 3 listed stops' departures as soon as they list.)
 - **Recent stops** (the last 5 opened, per device, in browser storage) show in
   the empty search box. This is a per-device convenience only: storage can
   fail, and search works without it.
@@ -66,7 +67,7 @@ plan reads.
 | U5 | Route panel | Done (2026-11-04) |
 | U6 | Stops Near Me and recent stops | Done (2026-11-04) |
 | U7 | Phone flow and stop links | Done (2026-11-04) |
-| U8 | Coverage and close | Not started |
+| U8 | Coverage and close | Done (2026-11-04) |
 
 ### U0 — Invariants and privacy copy
 
@@ -257,7 +258,8 @@ Done (2026-11-04):
   that says it is not in the TTC stop list.
 - Loading: `surface-search-index.ts` fetches both networks' files the first
   time search opens, through the catalogs' `cachedLoader` (same HTTP caching
-  as the other Map View assets; the service worker does not cache them).
+  as the other Map View assets). Corrected in U8: the service worker's
+  static cache does hold them after the first load.
   Tokens are built by `prepareSurfaceSearchIndexInSlices`, which hands the
   page a turn every 6 ms.
 - Opening: a stop calls the shell with its network. A route opens
@@ -528,7 +530,8 @@ Done (2026-11-04):
   pole: the first listed code that branch serves. The list is every stop
   within the radius up to 8, so that stop is the branch's nearest. Nothing is
   marked without a showing list, and the panel never asks for location.
-- The privacy copy from U0 already matched; it is unchanged.
+- The privacy copy from U0 already matched; it is unchanged. (Corrected in
+  U8: it did not match the nearest-3 requests. U8 changed it.)
 - Production build, desktop, 4× CPU, two runs each, index loaded: tapping
   Stops Near Me with a position showed long tasks of 50–62 ms, and the denied
   tap (no scan) 50–63 ms. That is the panel render; the scan adds no long
@@ -655,3 +658,85 @@ intersection, a route, Near Me with a mocked position (desktop-chrome and
 mobile-chromium). Update the feature reference, README claims and the
 privacy page. Measure phone cost on the production build: the index download,
 first-focus parse time and keystroke time.
+
+Done (2026-11-04):
+
+- **Audit.** Unit coverage of the index script and matching was already
+  complete, on the shipped index files (`search-index`, `surface-search`),
+  with "Dufferin Street and Steeles Avenue" and either word order. Near Me
+  with a mocked position and a route already ran on both projects. Nothing
+  searched an intersection in a browser, and stop-by-number ran on desktop
+  only.
+- **New smoke spec,** `search-stops-and-routes.spec.ts` (3 tests, desktop-chrome
+  and mobile-chromium): stop 100 by number with live and scheduled labels and
+  its link; "dufferin king" and "king and dufferin" as one row of poles 2066
+  and 2067, then "bathurst at fort york" → pole 100 → departures; "504" with
+  routes first → panel with stops. The feed has no separate King St pole at
+  Dufferin, so 29, 329 and 929 are right for that row.
+- **Privacy correction (decision).** The page and the location invariant said
+  only chosen stops' departures are requested, but the nearest 3 are requested
+  on tap, and those stop numbers are near the rider. The copy now says so, and
+  `privacy-acknowledgements.test.mjs` checks it. The previews stay: they are
+  what makes Near Me a one-tap answer. The position itself is still never
+  sent.
+- **Docs.** The feature reference gains search, selection, route panel, Stops
+  Near Me, Recent Stops, and Back to Search with stop links, and loses three
+  claims U4 and U7 made stale (bus stops not flown to with buses off; Back
+  never closing a stop). The README gains a search row.
+- **Offline, checked with service workers on (Pixel 5, production build).**
+  After one online search, both index files are in `linewatch-pwa-v4-static`.
+  Offline after a reload, "dufferin" lists 5 rows, "7658" finds its stop, and
+  the Near Me row shows. Nothing precaches them, so a device that has never
+  opened search has no stop list offline.
+- **Phone cost.** Production build, Pixel 5 viewport, 4× CPU through CDP,
+  service workers blocked, two runs per row. Slow 4G is 1.6 Mbps with 150 ms
+  latency. Files are gzipped by the local Next server.
+
+  | Measure | No network limit | Slow 4G | Index blocked |
+  | --- | --- | --- | --- |
+  | TTC file: 109.7 KB, download | 10–12 ms | 1,929–2,247 ms | n/a |
+  | GO file: 14.2 KB, download | 3 ms | 848–944 ms | n/a |
+  | First focus → first stop row | 556–621 ms | 1,289–1,312 ms (GO) | n/a |
+  | First focus → first TTC row | 653–669 ms | 2,077–2,609 ms | n/a |
+  | TTC file parsed → TTC row | 424–435 ms | 122–333 ms | n/a |
+  | Longest task, focus → TTC row | 61–63 ms | 69–73 ms | 63 ms |
+  | Keystroke, median (17 keys) | 72 ms | 64–72 ms | 64 ms |
+  | Keystroke, worst | 104 ms | 104–112 ms | 128–152 ms |
+  | Longest task while typing | 63–74 ms | 70–72 ms | 73–99 ms |
+
+  - `JSON.parse` alone, timed apart: TTC 1.9–3.6 ms, GO under 1 ms. Most of
+    "parsed → row" is the 6 ms token slices sharing the thread with the
+    panel's render, then that render.
+  - The index adds no measurable keystroke cost or long task: with it blocked,
+    both are the same or worse, so they belong to the panel's existing render.
+  - A later visit revalidates (`Cache-Control: public, max-age=0`): about
+    0.2 KB and 155 ms on Slow 4G.
+  - Limits: throttled desktop Chrome, not a real phone; event durations round
+    to 8 ms; the local server, not production behind Cloudflare.
+- Checks: test:fast 2,271 passed, typecheck, lint (0 errors; the 16 existing
+  warnings), build. Smoke on desktop-chrome and mobile-chromium, 53 passed, 22
+  skipped: `search-stops-and-routes`, `surface-stop`, `stops-near-me`,
+  `search-back-and-stop-links`, `go-buses`. 9 failed, none from plan 14:
+  `desktop-search-entry` (both projects), `sidebar-list-scroll` (regional line
+  impacts and station browsing, both projects; station browsing here finds 1
+  of 8 saved commutes, and U6 traced that to its `page.route` data going
+  through the service worker), and phone `impact-navigation` (3).
+  `GeographicNetworkMap` was not edited.
+- Left for plan 15 or later:
+  - **Owner call:** Near Me's automatic previews tell the server stops near
+    the rider. Asking before requesting would remove that and cost a tap.
+  - None of plans 13 and 14's smoke specs are in `test:e2e` or another named
+    script, so CI does not run them.
+  - The TTC file takes about 2 s on Slow 4G; GO rows can arrive first and TTC
+    rows then take the top. Precaching would also give first-time offline
+    search.
+  - Selection (U4): search's stop position is unused, so the camera waits for
+    the bus stop file; a selection keeps full opacity under a line filter; a
+    route drawn with its layer off has no badges; no phone re-fit after the
+    sheet resizes.
+  - Route panel (U5, U7): opening a notice does not come back; provider titles
+    starting "- " show as sent; the phone sheet opens at its saved height;
+    route panels have no link.
+  - Near Me (U6): opening a listed stop requests its departures again;
+    previews do not refresh while listed.
+  - No Share button on the stop panel (U7).

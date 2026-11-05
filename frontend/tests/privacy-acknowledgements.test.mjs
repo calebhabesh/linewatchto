@@ -46,6 +46,9 @@ describe("privacy and acknowledgement content", () => {
     assert.ok(section, "location has its own data-practice section");
     assert.match(section.body, /only when you tap it, never when the page loads/);
     assert.match(section.body, /never sent to LineWatchTO or anyone else, stored, or logged/);
+    // The nearest stops' departures are requested on tap, so the copy cannot say only chosen stops are.
+    assert.match(section.body, /up to three of the nearest stops/);
+    assert.doesNotMatch(section.body, /stops you choose/);
     assert.match(JSON.stringify(dataPracticeSections), /Recent Stops/);
   });
 
