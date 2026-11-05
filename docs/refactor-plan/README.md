@@ -57,6 +57,7 @@ unused export, defect, or publication issue has been found.
 | [Surface network](13-surface-network.md) | TTC streetcars, stop numbers and stop departures on the Map View; outlines for live streetcar positions, TTC and GO buses behind a toggle, and gated station plans (owner request, 2026-11-02) |
 | [Unified search](14-unified-search.md) | Search for TTC and GO routes and every surface stop by number or street names, Map View selection, a route panel, Stops Near Me and recent stops; runs before plan 15 (owner request, 2026-11-04) |
 | [Map View layers and notice View](15-map-view-layers-and-notice-view.md) | Phone Layers sheet sharing the desktop deck's switches; View on streetcar and bus notices frames and selects stops or routes without service colour (owner request, 2026-11-04) |
+| [Runtime schedule assets](16-runtime-schedule-assets.md) | New TTC and GO schedules reach the Map View, search and GO stop departures without a release: a schedule-assets service regenerates, validates and publishes hashed files and a manifest that the client, service worker and backend read (owner request, 2026-11-05) |
 
 Root and scoped `AGENTS.md` remain authoritative. Read
 [domain invariants](../domain-invariants.md) for the affected behavior and
