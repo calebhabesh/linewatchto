@@ -5,6 +5,7 @@ import { createExpression } from "@maplibre/maplibre-gl-style-spec";
 
 import {
   assignSelectedTtcStops,
+  branchCorridors,
   mergeSurfaceSelection,
   routeCoordinates,
   routeCorridors,
@@ -16,10 +17,11 @@ import {
   surfaceSelectionBounds,
   surfaceSelectionKey,
   unselectedStopFilter,
-  widenLineWidth,
 } from "../src/app/surface-map-selection.ts";
 import {
+  SELECTED_STOP_OUTLINE_IMAGE,
   SELECTED_STOP_PILL_IMAGE,
+  applySurfaceSelectionAttentionFrame,
   applySurfaceSelectionLayers,
   surfaceSelectionLayerIds,
   surfaceSelectionStopCodeAtPoint,
@@ -177,12 +179,6 @@ describe("surface selection inputs (plan 14, U4)", () => {
     assert.equal(unselectedStopFilter([]), null, "no filter with nothing selected");
   });
 
-  it("widens a zoom-interpolated width at every stop and leaves the zooms alone", () => {
-    const width = ["interpolate", ["linear"], ["zoom"], 9, 1.4, 12, 1.9, 14, 2.8];
-    assert.deepEqual(widenLineWidth(width, 2), ["interpolate", ["linear"], ["zoom"], 9, 3.4, 12, 3.9, 14, 4.8]);
-    assert.deepEqual(width, ["interpolate", ["linear"], ["zoom"], 9, 1.4, 12, 1.9, 14, 2.8], "input unchanged");
-  });
-
   it("gives each selected TTC stop to one layer and waits for the file it needs", () => {
     const sets = { streetcar: new Set(["9037"]), bus: new Set(["9037", "2040"]), night: new Set(["96"]) };
     assert.deepEqual(assignSelectedTtcStops(["9037", "2040", "96", "424242"], sets),
@@ -224,13 +220,13 @@ describe("surface selection layers (plan 14, U4)", () => {
     applySurfaceSelectionLayers(map, BUS_SELECTION_TARGET, { routes: ["29"], stopCodes: [], routeLine: false, dark: false });
     const sel = surfaceSelectionLayerIds("transit-bus");
     const order = ids(map);
-    assert.ok(order.indexOf(sel.halo) < order.indexOf(sel.outline), "white edge under the dark band");
+    assert.ok(order.indexOf(sel.halo) < order.indexOf(sel.outline), "glow under the band");
     assert.ok(order.indexOf(sel.outline) < order.indexOf(BUS_CASING_LAYER), "under the casing");
     assert.equal(map.getLayer(sel.line), undefined, "the bus line itself draws the route");
     assert.deepEqual(map.getLayer(sel.outline).filter, selectedRouteFilter(["29"]));
-    // Neutral: the stop panel's selected colours, constant, never from data.
-    assert.equal(map.getLayer(sel.outline).paint["line-color"], "#0f172a");
-    assert.equal(map.getLayer(sel.halo).paint["line-color"], "#ffffff");
+    // The Map View's train selection colours, constant, never from data.
+    assert.equal(map.getLayer(sel.outline).paint["line-color"], "#38bdf8");
+    assert.equal(map.getLayer(sel.halo).paint["line-color"], "#0ea5e9");
     const shown = map.sources["transit-bus-corridors"].data.features.filter((feature) =>
       matches(selectedRouteFilter(["29"]), feature.properties));
     assert.equal(shown.length, routeCorridors(buses.features, ["29"]).length);
@@ -238,6 +234,36 @@ describe("surface selection layers (plan 14, U4)", () => {
     applySurfaceSelectionLayers(map, BUS_SELECTION_TARGET, { routes: [], stopCodes: [], routeLine: false, dark: false });
     assert.equal(map.getLayer(sel.outline), undefined, "cleared with the selection");
     assert.equal(map.getLayer(sel.halo), undefined);
+  });
+
+  it("outline a selected stop in blue under its solid pill and flash only the blue", () => {
+    const map = createMockMap(BASE);
+    const paints = [];
+    map.setPaintProperty = (id, property, value) => paints.push([id, property, value]);
+    installBusSelectionSources(map, {
+      corridors: routeCorridors(buses.features, ["29"]),
+      stops: busStops.features.filter((feature) => feature.properties.stopCode === "2040"),
+    });
+    applySurfaceSelectionLayers(map, BUS_SELECTION_TARGET, { routes: ["29"], stopCodes: ["2040"], routeLine: false, dark: false });
+    const sel = surfaceSelectionLayerIds("transit-bus");
+    const order = ids(map);
+    assert.ok(order.indexOf(sel.stopRing) < order.indexOf(sel.stopDots), "ring around the dot");
+    assert.ok(order.indexOf(sel.stopOutline) < order.indexOf(sel.stops), "outline around the pill");
+    assert.equal(map.getLayer(sel.stopRing).paint["circle-stroke-color"], "#38bdf8");
+    assert.equal(map.getLayer(sel.stopOutline).layout["icon-image"], SELECTED_STOP_OUTLINE_IMAGE);
+    assert.deepEqual(map.getLayer(sel.stopOutline).filter, map.getLayer(sel.stops).filter);
+
+    applySurfaceSelectionAttentionFrame(map, ["transit-bus", "transit-streetcar"], { opacity: 0.4, widthMultiplier: 1.2, state: "intro", active: true });
+    const painted = new Set(paints.map(([id]) => id));
+    assert.deepEqual([...painted].sort(), [sel.halo, sel.outline, sel.stopOutline, sel.stopRing].sort(), "only drawn layers, never the pill or number");
+    const band = paints.find(([id, property]) => id === sel.outline && property === "line-opacity");
+    assert.ok(JSON.stringify(band[2]).includes("0.4"), "the band takes the frame's opacity");
+    const width = paints.find(([id, property]) => id === sel.outline && property === "line-width");
+    assert.deepEqual(width[2].map((value) => (typeof value === "number" ? Number(value.toFixed(3)) : value)),
+      ["interpolate", ["linear"], ["zoom"], 9, 7.2, 14, 13.2, 17, 21.6], "and its widths");
+
+    applySurfaceSelectionLayers(map, BUS_SELECTION_TARGET, { routes: [], stopCodes: [], routeLine: false, dark: false });
+    for (const id of Object.values(sel)) assert.equal(map.getLayer(id), undefined, id);
   });
 
   it("with Bus Routes off, hold only the selected route and stops and draw just those", () => {
@@ -319,5 +345,38 @@ describe("surface selection layers (plan 14, U4)", () => {
     removeNightLayers(map);
     assert.deepEqual(ids(map), BASE);
     assert.deepEqual(Object.keys(map.sources), []);
+  });
+});
+
+describe("branchCorridors", () => {
+  const corridor = (id, coordinates, routes = ["52"]) => ({ id, geometry: { coordinates }, properties: { routes } });
+  // Lawrence runs east along 43.7; Dixon Rd turns off north at -79.5.
+  const trunk = corridor("trunk", [[-79.5, 43.7], [-79.4, 43.7]]);
+  const dixon = corridor("dixon", [[-79.5, 43.7], [-79.5, 43.75]]);
+  const west = corridor("west", [[-79.6, 43.7], [-79.5, 43.7]]);
+  const other = corridor("other", [[-79.5, 43.7], [-79.4, 43.7]], ["29"]);
+  const features = [trunk, dixon, west, other];
+  const alongTrunk = [[-79.5, 43.7001], [-79.45, 43.7001], [-79.4, 43.7001]];
+
+  it("keeps the route's corridors that follow the branch's stops", () => {
+    assert.deepEqual(branchCorridors(features, "52", [alongTrunk]).map((item) => item.id), ["trunk"]);
+    const toDixon = [[-79.4, 43.7001], [-79.5, 43.7001], [-79.5001, 43.75]];
+    assert.deepEqual(branchCorridors(features, "52", [toDixon]).map((item) => item.id), ["trunk", "dixon"]);
+  });
+
+  it("never takes another route's corridor", () => {
+    assert.ok(!branchCorridors(features, "52", [alongTrunk]).some((item) => item.id === "other"));
+  });
+
+  it("falls back to the whole route when the stops are not known or match nothing", () => {
+    assert.deepEqual(branchCorridors(features, "52", [[]]).map((item) => item.id), ["trunk", "dixon", "west"]);
+    assert.deepEqual(branchCorridors(features, "52", [[[-79, 44]]]).map((item) => item.id), ["trunk", "dixon", "west"]);
+  });
+
+  it("gives a branch its own selection key, so changing branch frames it", () => {
+    const route = { layer: "bus", route: "52" };
+    const key = (branch) => surfaceSelectionKey({ stopCodes: [], routes: [{ ...route, ...(branch ? { branch: { id: branch, path: [] } } : {}) }] });
+    assert.notEqual(key("52A"), key("52F"));
+    assert.notEqual(key(), key("52F"));
   });
 });

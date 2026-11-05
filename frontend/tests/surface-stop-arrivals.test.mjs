@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   getSurfaceStopArrivals,
   surfaceNoticesForStop,
+  surfaceNoticesNameStop,
   surfaceStopCodeFromQuery,
   surfaceStopDisclaimer,
   surfaceStopGroups,
@@ -138,5 +139,20 @@ describe("stop notices", () => {
     ];
     assert.deepEqual(surfaceNoticesForStop(notices, { stopId: "2120", routes: ["504", "510"] }, now).map((item) => item.id),
       ["stop", "route"]);
+  });
+
+  it("matches a branch's notice to its route number, as a route panel does", () => {
+    const notices = [notice("branch", { routeIds: ["29C"] }), notice("night", { routeIds: ["329"] })];
+    assert.deepEqual(surfaceNoticesForStop(notices, { stopId: null, routes: ["29"] }, now).map((item) => item.id), ["branch"]);
+  });
+});
+
+describe("surfaceNoticesNameStop", () => {
+  it("tells a notice naming this stop from one naming only its route", () => {
+    const stopNotice = { stopIds: ["2034"] };
+    const routeNotice = { stopIds: [] };
+    assert.equal(surfaceNoticesNameStop([routeNotice, stopNotice], "2034"), true);
+    assert.equal(surfaceNoticesNameStop([routeNotice, { stopIds: ["7897"] }], "2034"), false);
+    assert.equal(surfaceNoticesNameStop([stopNotice], null), false);
   });
 });

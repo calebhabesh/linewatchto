@@ -11,13 +11,14 @@ import {
   type SurfaceStopResult,
 } from "../app/surface-stop-arrivals";
 import { parseSurfaceRouteDetails, SURFACE_ARRIVAL_COUNTDOWN_TICK_MS } from "../app/surface-arrivals";
-import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
+import type { SurfaceNoticeDetail } from "../app/surface-notice-data";
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { StationDetailHeader } from "./StationDetailHeader";
 import { SurfaceNoticeBackLink, SurfaceRouteBackLink, SurfaceSearchBackLink, type SurfaceNoticeBack, type SurfaceRouteBack, type SurfaceSearchBack } from "./SurfaceRoutePanel";
 import { isWellFormedStopCode } from "../app/surface-stop-link";
 import { SurfaceRouteCard } from "./SurfaceConnectionsSection";
+import { SurfaceStopDisruption, SurfaceStopImpacts, useFreshSurfaceNotices } from "./SurfaceStopImpacts";
 import { ttcRouteBadgeStyle } from "../app/ttc-route-badge";
 
 const REFRESH_MS = 15_000;
@@ -36,6 +37,8 @@ type Props = {
   searchBack?: SurfaceSearchBack | null;
   /** Set when the stop was opened by a notice's View (plan 15, L4). */
   noticeBack?: SurfaceNoticeBack | null;
+  /** A Stop Impacts card's View Details: its card in the notice list. */
+  onOpenNotice?: (notice: SurfaceNoticeDetail) => void;
 };
 
 /**
@@ -54,12 +57,13 @@ export function SurfaceStopPanel({
   routeBack = null,
   searchBack = null,
   noticeBack = null,
+  onOpenNotice,
 }: Props) {
   const [result, setResult] = useState<SurfaceStopResult | null>(null);
   // The stop whose departures are shown; a different stop is still loading.
   const [loadedStopCode, setLoadedStopCode] = useState<string | null>(null);
   const loading = loadedStopCode !== stopCode;
-  const [notices, setNotices] = useState<SurfaceNoticeDetail[]>([]);
+  const notices = useFreshSurfaceNotices("ttc");
   const [now, setNow] = useState(() => Date.now());
   const [isClosing, setIsClosing] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
@@ -103,15 +107,6 @@ export function SurfaceStopPanel({
   useEffect(() => {
     const tick = window.setInterval(() => setNow(Date.now()), SURFACE_ARRIVAL_COUNTDOWN_TICK_MS);
     return () => window.clearInterval(tick);
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    void getSurfaceNotices({ networkId: "ttc" }).then((response) => {
-      // Only a fresh notice list is shown; an old saved one could name cleared notices.
-      if (active) setNotices(response.source === "backend" && response.data.fresh ? response.data.notices : []);
-    });
-    return () => { active = false; };
   }, []);
 
   useEffect(() => () => {
@@ -167,7 +162,7 @@ export function SurfaceStopPanel({
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-2 md:mt-3.5 pb-3 station-detail-scroll">
         {routeBack ? <SurfaceRouteBackLink back={routeBack} /> : searchBack ? <SurfaceSearchBackLink back={searchBack} /> : noticeBack ? <SurfaceNoticeBackLink back={noticeBack} /> : null}
         {data?.stationId && linkedStation && onOpenStation ? (
-          <button type="button" className="surface-stop-station-link" onClick={() => onOpenStation(data.stationId as string)}>
+          <button type="button" className="impact-card-map-btn surface-stop-station-link" onClick={() => onOpenStation(data.stationId as string)}>
             <span>
               <strong>{linkedStation} Station</strong>
               <small>All bays and platforms at this station</small>
@@ -175,6 +170,7 @@ export function SurfaceStopPanel({
             <ArrowRight size={16} aria-hidden="true" />
           </button>
         ) : null}
+        <SurfaceStopDisruption notices={stopNotices} stopId={data?.stopId ?? null} reducedMotion={reducedMotion} />
 
         {!result ? (
           <div className="surface-stop-message" role="status">
@@ -260,20 +256,7 @@ export function SurfaceStopPanel({
           </section>
         ) : null}
 
-        {stopNotices.length > 0 ? (
-          <section className="surface-stop-notices" aria-labelledby="surface-stop-notices-heading">
-            <h3 id="surface-stop-notices-heading">Service Notices</h3>
-            <ul>
-              {stopNotices.map((notice) => (
-                <li key={notice.id}>
-                  <strong>{notice.title}</strong>
-                  {notice.location ? <span>{notice.location}</span> : null}
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
+        <SurfaceStopImpacts notices={stopNotices} stopId={data?.stopId ?? null} routeBadgeStyle={ttcRouteBadgeStyle} onOpenNotice={onOpenNotice} />
       </div>
     </aside>
   );

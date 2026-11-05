@@ -235,66 +235,65 @@
     0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
-.surface-stop-station-link {
-  align-items: center;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 8px;
+/* The site's button surface (.impact-card-map-btn), full width with two lines. */
+.impact-card-map-btn.surface-stop-station-link {
   color: inherit;
-  display: flex;
   gap: 8px;
+  height: auto;
   justify-content: space-between;
-  min-height: 44px;
   /* The scroll area's gap is 12px; the title's line box already adds space
      above, so this evens the space above and below the link. */
   margin-bottom: 8px;
-  padding: 6px 10px;
+  padding: 10px 12px;
   text-align: left;
-  transition: background-color 150ms ease, border-color 150ms ease;
+  width: 100%;
 }
 
 .surface-stop-station-link span {
   display: grid;
-  gap: 1px;
+  gap: 2px;
+  min-width: 0;
 }
 
 .surface-stop-station-link strong {
   font-size: 13.5px;
   font-weight: 800;
+  line-height: 1.2;
 }
 
 .surface-stop-station-link small {
   color: #475569;
   font-size: 12px;
-}
-
-/* Hover and focus stay inside the link's own edge: it is the first thing in a
-   scrolling area, which clipped an outline drawn outside it. */
-.surface-stop-station-link:hover {
-  background: rgba(15, 23, 42, 0.06);
-  border-color: rgba(15, 23, 42, 0.24);
-}
-
-.surface-stop-station-link:focus-visible {
-  background: rgba(15, 23, 42, 0.06);
-  outline: 2px solid #38bdf8;
-  outline-offset: -2px;
-}
-
-.dark .surface-stop-station-link {
-  border-color: rgba(255, 255, 255, 0.14);
+  line-height: 1.25;
 }
 
 .dark .surface-stop-station-link small {
   color: #cbd5e1;
 }
 
-.dark .surface-stop-station-link:hover,
-.dark .surface-stop-station-link:focus-visible {
-  background: rgba(255, 255, 255, 0.08);
+/* It is the first thing in a scrolling area, which clipped an outline drawn outside it. */
+.impact-card-map-btn.surface-stop-station-link:focus-visible,
+.impact-card-map-btn.surface-route-map-button:focus-visible {
+  outline-offset: -2px;
 }
 
-.dark .surface-stop-station-link:hover {
-  border-color: rgba(255, 255, 255, 0.26);
+/* A press scales from the centre: at this width the shared 0.95 reads as a jump. */
+.impact-card-map-btn.surface-stop-station-link:active,
+.impact-card-map-btn.surface-route-map-button:active {
+  transform: scale(0.985);
+}
+
+.high-contrast .impact-card-map-btn.surface-stop-station-link,
+.high-contrast .impact-card-map-btn.surface-route-map-button {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.surface-stop-impact-routes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .surface-stop-message {
@@ -497,6 +496,128 @@
   gap: 10px;
 }
 
+.station-detail-name-with-badge {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.surface-route-title-badge {
+  align-items: center;
+  border-radius: 8px;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 0.68em;
+  height: 1.2em;
+  justify-content: center;
+  letter-spacing: 0;
+  min-width: 1.5em;
+  padding: 0 0.3em;
+}
+
+.surface-route-variants {
+  display: grid;
+  gap: 6px;
+}
+
+.surface-route-variants > div {
+  display: grid;
+  gap: 4px;
+}
+
+/* A variant: its badge and what it is called, centred on one another. */
+.surface-route-variant {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: inherit;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  min-height: 44px;
+  padding: 6px 10px;
+  text-align: left;
+  width: 100%;
+}
+
+button.surface-route-variant {
+  cursor: pointer;
+}
+
+button.surface-route-variant:hover {
+  background: rgba(15, 23, 42, 0.09);
+}
+
+.surface-route-variant[aria-pressed="true"] {
+  background: rgba(14, 165, 233, 0.12);
+  border-color: #0284c7;
+}
+
+.dark .surface-route-variant {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark button.surface-route-variant:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .surface-route-variant[aria-pressed="true"] {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: #38bdf8;
+}
+
+.high-contrast .surface-route-variant[aria-pressed="true"] {
+  background: transparent;
+  border: 2px solid #ffffff;
+}
+
+.surface-route-variant:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: -2px;
+}
+
+.surface-route-variant-badge {
+  align-items: center;
+  border-radius: 5px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  height: 26px;
+  justify-content: center;
+  min-width: 48px;
+  padding: 0 4px;
+}
+
+.surface-route-variant-name {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.surface-route-linked-action {
+  align-items: center;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.surface-route-variant-arrow {
+  display: inline-block;
+  margin: 0 5px;
+  opacity: 0.75;
+  vertical-align: -2px;
+}
+
+/* A phone's title gives up size so a route's name stays on one line beside its badge. */
+@media (max-width: 767px) {
+  .station-detail-name-with-badge {
+    font-size: 26px;
+  }
+}
+
 .surface-route-panel-summary p {
   color: rgb(71, 85, 105);
   font-size: 12px;
@@ -509,17 +630,12 @@
 }
 
 /* Route panel (plan 14, U5): View on Map, notices, and stops by direction. */
-.surface-route-map-button {
-  align-items: center;
-  border: 1px solid rgba(15, 23, 42, 0.16);
-  border-radius: 8px;
-  color: inherit;
-  display: flex;
+.impact-card-map-btn.surface-route-map-button {
   font-size: 13.5px;
   font-weight: 800;
   gap: 8px;
-  min-height: 44px;
-  padding: 6px 12px;
+  justify-content: flex-start;
+  padding: 0 12px;
   width: 100%;
 }
 
@@ -530,52 +646,26 @@
   margin-left: auto;
 }
 
-.surface-route-map-button:hover,
-.surface-route-map-button:focus-visible {
-  background: rgba(15, 23, 42, 0.06);
+.dark .surface-route-map-button small {
+  color: #cbd5e1;
 }
 
-.surface-route-map-button:focus-visible,
 .surface-route-directions button:focus-visible,
-.surface-route-branches button:focus-visible,
 .surface-route-stop-list button:focus-visible,
 .surface-route-notices button:focus-visible {
   outline: 2px solid #38bdf8;
   outline-offset: -2px;
 }
 
-/* Shown: the neutral selected colours the map draws the route in. */
-.surface-route-map-button[aria-pressed="true"] {
-  background: #0f172a;
-  border-color: #0f172a;
-  color: #ffffff;
+/* Shown: the blue the map draws the route in. Same surface, so the button keeps its size. */
+.impact-card-map-btn.surface-route-map-button[aria-pressed="true"] {
+  background: rgba(14, 165, 233, 0.16);
+  box-shadow: inset 0 0 0 1.5px #0284c7, 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
-.surface-route-map-button[aria-pressed="true"] small {
-  color: #cbd5e1;
-}
-
-.dark .surface-route-map-button {
-  border-color: rgba(255, 255, 255, 0.16);
-}
-
-.dark .surface-route-map-button small {
-  color: #cbd5e1;
-}
-
-.dark .surface-route-map-button:hover,
-.dark .surface-route-map-button:focus-visible {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.dark .surface-route-map-button[aria-pressed="true"] {
-  background: #ffffff;
-  border-color: #ffffff;
-  color: #0f172a;
-}
-
-.dark .surface-route-map-button[aria-pressed="true"] small {
-  color: #475569;
+.dark .impact-card-map-btn.surface-route-map-button[aria-pressed="true"] {
+  background: rgba(56, 189, 248, 0.16);
+  box-shadow: inset 0 0 0 1.5px #38bdf8, 0 2px 6px rgba(0, 0, 0, 0.28);
 }
 
 .surface-route-undrawn {
@@ -625,6 +715,82 @@
   text-transform: uppercase;
 }
 
+.surface-route-filter .filter-search-row {
+  margin: 0;
+}
+
+.surface-route-filter .impact-list-search {
+  flex: 1;
+  height: 38px;
+}
+
+.surface-route-filter .impact-list-search input {
+  font-size: 13px;
+}
+
+.surface-route-filter-count {
+  background: rgba(15, 23, 42, 0.1);
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 16px;
+  margin-left: 6px;
+  min-width: 18px;
+  padding: 0 5px;
+}
+
+.dark .surface-route-filter-count {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* The chosen direction is white in the dark theme too. */
+.dark [aria-pressed="true"] > .surface-route-filter-count {
+  background: rgba(15, 23, 42, 0.12);
+}
+
+.surface-route-filter-status {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.dark .surface-route-filter-status {
+  color: #94a3b8;
+}
+
+.surface-route-filter-empty {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 0;
+}
+
+.surface-route-filter-empty p {
+  margin: 0;
+}
+
+.surface-route-filter-empty button {
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 40px;
+  padding: 8px 12px;
+}
+
+.surface-route-stop-mark {
+  background: rgba(56, 189, 248, 0.32);
+  border-radius: 2px;
+  color: inherit;
+}
+
+.high-contrast .surface-route-stop-mark {
+  background: transparent;
+  text-decoration: underline;
+}
+
 .surface-route-directions {
   border: 1px solid rgba(15, 23, 42, 0.16);
   border-radius: 8px;
@@ -660,41 +826,6 @@
 .dark .surface-route-directions button[aria-pressed="true"] {
   background: #ffffff;
   color: #0f172a;
-}
-
-.surface-route-branches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.surface-route-branches button {
-  border: 1px solid rgba(15, 23, 42, 0.16);
-  border-radius: 8px;
-  color: #334155;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.3;
-  min-height: 36px;
-  padding: 5px 9px;
-  text-align: left;
-}
-
-.surface-route-branches button[aria-pressed="true"] {
-  border-color: #0f172a;
-  box-shadow: inset 0 0 0 1px #0f172a;
-  color: #0f172a;
-}
-
-.dark .surface-route-branches button {
-  border-color: rgba(255, 255, 255, 0.16);
-  color: #cbd5e1;
-}
-
-.dark .surface-route-branches button[aria-pressed="true"] {
-  border-color: #ffffff;
-  box-shadow: inset 0 0 0 1px #ffffff;
-  color: #ffffff;
 }
 
 .surface-route-branch-label,
@@ -740,6 +871,30 @@
   bottom: 50%;
 }
 
+/*
+ * Filtered, the list's ends may be mid-route: the rail runs off them unless the
+ * stop is the route's own end, and breaks where stops were skipped.
+ */
+.surface-route-stop-list.is-filtered li:first-child::before {
+  top: 0;
+}
+
+.surface-route-stop-list.is-filtered li:last-child::before {
+  bottom: 0;
+}
+
+.surface-route-stop-list.is-filtered li[data-terminal="first"]::before {
+  top: 50%;
+}
+
+.surface-route-stop-list.is-filtered li[data-terminal="last"]::before {
+  bottom: 50%;
+}
+
+.surface-route-stop-list li[data-skipped-before] {
+  margin-top: 10px;
+}
+
 .surface-route-stop-list button {
   align-items: center;
   border-radius: 6px;
@@ -777,6 +932,16 @@
   width: 16px;
 }
 
+.surface-route-stop-list.is-filtered li:not([data-terminal]) .surface-route-stop-dot {
+  height: 14px;
+  width: 14px;
+}
+
+.surface-route-stop-list.is-filtered li[data-terminal] .surface-route-stop-dot {
+  height: 16px;
+  width: 16px;
+}
+
 .surface-route-stop-name {
   font-size: 13.5px;
   font-weight: 700;
@@ -801,7 +966,7 @@
   color: #0f172a;
 }
 
-.surface-route-back-link {
+.impact-card-map-btn.surface-route-back-link {
   justify-content: flex-start;
 }
 

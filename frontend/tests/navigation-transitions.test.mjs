@@ -310,6 +310,24 @@ describe("Navigation Transition Table — Required Rows", () => {
     assert.equal(searchReturnDestinationAndLabel(fromMore).label, "Back to More");
     assert.equal(searchReturnDestinationAndLabel(fromMore, { desktop: true }).label, "Back to Settings");
 
+    // Every page goes by the title its own header shows.
+    const fromNotices = { activeView: "surface-notices", selectedStationId: null };
+    assert.equal(searchReturnDestinationAndLabel({ ...fromNotices, selectedNetwork: "ttc" }).label, "Back to Streetcar & Bus Notices");
+    assert.equal(searchReturnDestinationAndLabel({ ...fromNotices, selectedNetwork: "regional" }).label, "Back to GO / UP Notices");
+    const fromStatusPage = { activeView: "source-status", selectedStationId: null };
+    assert.equal(searchReturnDestinationAndLabel({ ...fromStatusPage, selectedNetwork: "ttc" }).label, "Back to TTC Source Status");
+    assert.equal(searchReturnDestinationAndLabel({ ...fromStatusPage, selectedNetwork: "regional" }).label, "Back to GO / UP Source Status");
+    for (const [activeView, title] of [
+      ["accessibility-outages", "Accessibility Outages"],
+      ["announcements", "TTC Announcements"],
+      ["analytics", "Reliability Analytics"],
+      ["feedback", "Leave Feedback"],
+      ["release-notes", "What's New"],
+      ["privacy-acknowledgements", "Privacy & Acknowledgements"],
+    ]) {
+      assert.equal(searchReturnDestinationAndLabel({ activeView, selectedStationId: null, selectedNetwork: "ttc" }).label, `Back to ${title}`);
+    }
+
     // 3. User selects station and closes search
     const closeSearch = transitionCloseSearch(state, {
       destination: "status",

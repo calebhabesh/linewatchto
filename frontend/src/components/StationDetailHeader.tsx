@@ -1,11 +1,13 @@
 "use client";
 
 import { Bookmark, LoaderCircle, X } from "lucide-react";
-import type { PointerEventHandler } from "react";
+import type { PointerEventHandler, ReactNode } from "react";
 
 type Props = {
   onPointerDown?: PointerEventHandler<HTMLElement>;
   stationName: string;
+  /** Drawn before the name: a route's badge. */
+  nameBadge?: ReactNode;
   /** The small label over the name; "Station" unless a stop panel says otherwise. */
   eyebrow?: string;
   updating?: boolean;
@@ -21,6 +23,7 @@ type Props = {
 export function StationDetailHeader({
   onPointerDown,
   stationName,
+  nameBadge = null,
   eyebrow = "Station",
   updating = false,
   saved = false,
@@ -37,7 +40,7 @@ export function StationDetailHeader({
           {eyebrow}
         </span>
         <h2 className="my-0.5 md:mb-0 md:mt-0.5 break-words text-[32px] sm:text-4xl font-black tracking-tight leading-[1.1] text-slate-950 dark:text-white">
-          {stationName}
+          {nameBadge ? <span className="station-detail-name-with-badge">{nameBadge}{" "}<span>{stationName}</span></span> : stationName}
         </h2>
         {updating ? (
           <span className="station-detail-updating" role="status">

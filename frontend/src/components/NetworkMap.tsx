@@ -66,6 +66,7 @@ type NetworkMapProps = SystemMapShellProps & {
   /** Map View only: the TTC surface stop whose departures are open (plan 13, S3). */
   selectedSurfaceStopCode?: string | null;
   onSelectSurfaceStop?: (stopCode: string | null) => void;
+  onOpenSurfaceRoute?: GeographicNetworkMapProps["onOpenSurfaceRoute"];
   /** Map View only: stops or a route an open panel shows (plan 14, U4). */
   surfaceSelection?: SurfaceMapSelection | null;
   /** Map View only: TTC buses (plan 13, S5), the rider's toggle. */
@@ -92,6 +93,7 @@ export function NetworkMap({
   geographicFadeRef,
   selectedSurfaceStopCode = null,
   onSelectSurfaceStop,
+  onOpenSurfaceRoute,
   surfaceSelection = null,
   busesEnabled = false,
   onToggleBuses,
@@ -126,6 +128,7 @@ export function NetworkMap({
           onSelectStationId={props.onSelectStationId}
           selectedSurfaceStopCode={selectedSurfaceStopCode}
           onSelectSurfaceStop={onSelectSurfaceStop}
+          onOpenSurfaceRoute={onOpenSurfaceRoute}
           surfaceSelection={surfaceSelection}
           selection={props.selection}
           onSelectImpact={(next) => {

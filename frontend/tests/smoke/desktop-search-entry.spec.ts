@@ -61,4 +61,22 @@ test("desktop search opens on click, preserves focus-only navigation, and aligns
   await expect(page.locator("#station-search-panel")).not.toBeVisible();
 });
 
-
+test("the search return row draws the page it returns to", async ({ page, request }) => {
+  await installDismissedTransientUi(page);
+  await setStubMode(request, "seeded");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const input = page.getByRole("searchbox", { name: "Station Search" });
+  for (const [dest, label, icon] of [
+    ["delays", "Back to Delays", "delays"],
+    ["alerts", "Back to Suspensions", "alerts"],
+    ["surface-notices", "Back to Streetcar & Bus Notices", "surface-notices"],
+  ] as const) {
+    await page.locator(`[data-dest="${dest}"], [data-alert-kind="${dest}"]`).first().click();
+    await input.click();
+    await expect(page.getByRole("button", { name: label, exact: true })).toBeVisible();
+    await expect(page.locator(`.station-search-return .station-search-return-icon--${icon}`)).toBeVisible();
+    await page.getByRole("button", { name: label, exact: true }).click();
+    await expect(page.locator("#station-search-panel")).not.toBeVisible();
+  }
+});

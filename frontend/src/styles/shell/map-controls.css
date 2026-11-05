@@ -724,14 +724,13 @@
   opacity: 0;
 }
 
+/* Starts where the station sheet's header does: title level with the close button's top. */
 .map-layers-sheet-header {
-  align-items: center;
+  align-items: flex-start;
   cursor: grab;
   display: flex;
   flex-shrink: 0;
   justify-content: space-between;
-  margin-top: -4px;
-  min-height: 44px;
   touch-action: none;
   user-select: none;
 }
@@ -740,23 +739,7 @@
   font-size: 16px;
   font-weight: 800;
   letter-spacing: -0.01em;
-}
-
-.map-layers-sheet-close {
-  align-items: center;
-  border-radius: 8px;
-  color: inherit;
-  cursor: pointer;
-  display: inline-flex;
-  height: 44px;
-  justify-content: center;
-  margin-right: -10px;
-  width: 44px;
-}
-
-.map-layers-sheet-close:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: -4px;
+  line-height: 1.2;
 }
 
 .map-layers-sheet-scroll {

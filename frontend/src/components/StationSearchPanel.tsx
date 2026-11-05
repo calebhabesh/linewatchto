@@ -3,8 +3,7 @@
 import Image from "next/image";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MutableRefObject, ReactNode } from "react";
-import { Activity, AlertTriangle, ArrowLeft, BarChart3, History, MapPin, Menu, Bookmark, Bus, ChevronRight, LoaderCircle, Megaphone, MessageSquareText, Navigation, Search, X } from "lucide-react";
-import { desktopRailDestinationForView, type DesktopRailDestination } from "../app/desktop-sidebar-state";
+import { ArrowLeft, Bookmark, Bus, ChevronRight, LoaderCircle, Megaphone, Navigation, Search, X } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import { cachedStreetcarCatalog, streetcarStopByCode } from "../app/geographic-surface-catalog";
 import { surfaceStopCodeFromQuery } from "../app/surface-stop-arrivals";
@@ -62,39 +61,17 @@ import {
   SEARCH_GROUP_LIMIT,
   capSearchGroup,
   orderSearchGroups,
+  SEARCH_PLACEHOLDER,
+  SEARCH_PLACEHOLDER_COMPACT,
   type GlobalDestinationView,
   type SearchGroupTier,
 } from "../app/unified-search";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
+import { SearchReturnIcon } from "./SearchReturnIcon";
 import { LineBadge } from "./ImpactCardFields";
 import { TransitLineBadge } from "./TransitLineBadge";
 import { StationImpactTypeBadges } from "./StationImpactTypeBadges";
 import { StationOutageBadge } from "./StationOutageBadge";
-
-const RETURN_MENU_ICONS: Record<DesktopRailDestination, typeof AlertTriangle> = {
-  status: AlertTriangle,
-  alerts: AlertTriangle,
-  delays: AlertTriangle,
-  "reduced-speed-zones": AlertTriangle,
-  closures: AlertTriangle,
-  "trip-changes": AlertTriangle,
-  "accessibility-outages": AlertTriangle,
-  "surface-notices": Bus,
-  announcements: Megaphone,
-  stations: MapPin,
-  commutes: Navigation,
-  "alert-history": History,
-  more: Menu,
-  "source-status": Activity,
-  analytics: BarChart3,
-  feedback: MessageSquareText,
-};
-
-function SearchReturnIcon({ destination }: { destination: string }) {
-  const menu = desktopRailDestinationForView(destination);
-  const Icon = RETURN_MENU_ICONS[menu] ?? AlertTriangle;
-  return <Icon size={16} aria-hidden="true" className={`station-search-return-icon station-search-return-icon--${menu}`} />;
-}
 
 const BROWSE_IMPACT_CATEGORIES = (
   ["suspension", "delay", "planned-closure", "reduced-speed-zone"] satisfies ImpactKind[]
@@ -476,7 +453,7 @@ export function StationSearchPanel({
   onExpandedLineIdChange,
 }: Props) {
   const dashboardData = useDashboardData();
-  const searchPlaceholder = "Search all stations and alerts...";
+  const searchPlaceholder = isMobile ? SEARCH_PLACEHOLDER_COMPACT : SEARCH_PLACEHOLDER;
   const stationImpactKinds = useMemo(
     () => stationImpactKindsByStation(dashboardData),
     [dashboardData],
@@ -1370,7 +1347,7 @@ export function StationSearchPanel({
         <button type="button" className="station-search-return" onClick={onDismiss ?? onClose}>
           <ArrowLeft size={17} aria-hidden="true" className="station-search-back-arrow" />
           <span className="station-search-back-label">
-            <SearchReturnIcon destination={desktopReturnDestination} />
+            <SearchReturnIcon destination={desktopReturnDestination} network={currentNetwork} />
             {desktopReturnLabel}
           </span>
         </button>

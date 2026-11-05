@@ -51,6 +51,8 @@ type SurfaceBaySection = {
 
 type SurfaceRouteDetails = {
   displayRouteName: string;
+  /** The route as signed on this trip: "52F" where `route` is "52". */
+  branchCode: string;
   destinationTarget: string;
   cleanDestination: string;
   direction: string;
@@ -196,6 +198,12 @@ export function parseSurfaceRouteDetails(
     working = working.slice(cardinalMatch[0].length).trim();
   }
 
+  // The full code on the trip's sign ("52F"): the badge's, while the route stays "52".
+  const signed = working.match(/^(\d+[a-zA-Z]*)(?=[\s:–—-]|$)/)?.[1]?.toUpperCase() ?? "";
+  const branchCode = rawRoute && signed.startsWith(rawRoute.toUpperCase()) && /^[A-Z]*$/.test(signed.slice(rawRoute.length))
+    ? signed
+    : group.route;
+
   // 2. Strip leading route number / branch (e.g. "935 ", "935A - ", "504 ", etc.)
   if (rawRoute) {
     const escapedRoute = rawRoute.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -270,6 +278,7 @@ export function parseSurfaceRouteDetails(
   }
 
   return {
+    branchCode,
     displayRouteName,
     destinationTarget,
     cleanDestination,

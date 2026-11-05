@@ -90,10 +90,13 @@ export function isStreetcarStopFeature(
 export const STREETCAR_BADGE_MIN_ZOOM = 13;
 
 /**
- * Stop-number pills (S3) start deeper than the badges: at 15 a block's stops
- * are far enough apart that most pills place; the rest hide on collision.
+ * Stop dots (S3) start deeper than the badges, and their number pills deeper
+ * still, where a block's stops are far enough apart for most to place; the
+ * rest hide on collision.
  */
 export const STREETCAR_STOP_MIN_ZOOM = 15;
+/** Stop numbers wait until here: their dots are enough while the street still reads as a whole. */
+export const STREETCAR_STOP_LABEL_MIN_ZOOM = 16.5;
 
 /** The catalog stop with this pole number, if the streetcar asset has it. */
 export function streetcarStopByCode(catalog: StreetcarCatalog, stopCode: string): StreetcarStopFeature | null {

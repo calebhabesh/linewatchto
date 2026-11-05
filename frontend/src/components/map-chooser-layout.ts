@@ -17,8 +17,9 @@ export function overlapChooserSize(impactCount: number, viewportWidth = OVERLAP_
 const STREETCAR_CARD_WIDTH = 300;
 
 /**
- * The Map View streetcar card's size (GeographicStreetcarCard): padding and header, each route row (taller with its
- * replacement-bus note, which wraps on phones), the nearest-stop button when there is one, and the schedule note.
+ * The Map View streetcar card's size (GeographicStreetcarCard): padding and header, each route row with room for its
+ * branch caption (taller with its replacement-bus note, which wraps on phones), the nearest-stop button when there is
+ * one, and the schedule note.
  */
 export function streetcarCardSize(
   rows: readonly { replacementBuses: boolean }[],
@@ -27,7 +28,7 @@ export function streetcarCardSize(
 ) {
   const width = Math.max(220, Math.min(STREETCAR_CARD_WIDTH, viewportWidth - 32));
   const compact = viewportWidth <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT;
-  const rowHeights = rows.reduce((sum, row) => sum + (row.replacementBuses ? (compact ? 76 : 62) : 44) + 4, 0);
+  const rowHeights = rows.reduce((sum, row) => sum + (row.replacementBuses ? (compact ? 92 : 78) : 50) + 4, 0);
   const stopHeight = withStop ? 56 : 0;
   return { width, height: Math.min(420, 24 + 46 + rowHeights + stopHeight + (compact ? 54 : 46)) };
 }

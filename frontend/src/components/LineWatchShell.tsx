@@ -85,7 +85,9 @@ import { nearbyStopCodes } from "../app/stops-near-me";
 import type { SurfaceSearchRoute } from "../app/surface-search";
 import { searchPlaceStore, surfaceBackStep } from "../app/search-return";
 import { isWellFormedStopCode, searchWithStopLink, type SurfaceStopLink } from "../app/surface-stop-link";
-import { surfaceRouteSelection, type SurfaceMapSelection } from "../app/surface-map-selection";
+import { surfaceRouteLayer, surfaceRouteSelection, type SurfaceMapSelection, type SurfaceSelectionLayer, type SurfaceSelectionRoute } from "../app/surface-map-selection";
+import { loadSurfaceSearchIndex } from "../app/surface-search-index";
+import { SEARCH_PLACEHOLDER, SEARCH_PLACEHOLDER_COMPACT } from "../app/unified-search";
 const SurfaceNoticesPanel = preloadablePanel(() => import("./SurfaceNoticesPanel").then((mod) => mod.SurfaceNoticesPanel));
 const TtcAnnouncementsPanel = preloadablePanel(() => import("./TtcAnnouncementsPanel").then((mod) => mod.TtcAnnouncementsPanel));
 const StationDetailPanel = preloadablePanel(() => import("./StationDetailPanel").then((mod) => mod.StationDetailPanel));
@@ -814,8 +816,27 @@ export function LineWatchShell({
     restoreMapView: MapViewPreference | null;
   } | null>(null);
   const [surfaceNoticeRestore, setSurfaceNoticeRestore] = useState<SurfaceNoticePlace | null>(null);
+  // A Stop Impacts card's View Details: the notice list opens at its card, and any
+  // way back returns to the stop as it was. The stop's ways back are kept meanwhile.
+  const [surfaceStopNoticeReturn, setSurfaceStopNoticeReturn] = useState<{
+    stop: { code: string; view: ActiveView; network: NetworkId };
+    noticeId: string;
+    returning: boolean;
+  } | null>(null);
+  useEffect(() => {
+    if (!surfaceStopNoticeReturn) return;
+    if (surfaceStopNoticeReturn.returning && activeView === surfaceStopNoticeReturn.stop.view) {
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setSelectedSurfaceStop(surfaceStopNoticeReturn.stop);
+      setSurfaceStopNoticeReturn(null);
+      /* eslint-enable react-hooks/set-state-in-effect */
+    } else if (activeView !== "surface-notices") {
+      // Left the list for somewhere else.
+      setSurfaceStopNoticeReturn(null);
+    }
+  }, [activeView, surfaceStopNoticeReturn]);
   // Stops or routes an open panel shows on the Map View (plan 14, U4): a
-  // route panel's View on Map (U5) or a notice's View (plan 15). The neutral
+  // route panel's View on Map (U5) or a notice's View (plan 15). The
   // selection lasts only while its panel is open: closing the route panel, a
   // stop, a station, an alert, or another view or network clears it.
   const [surfaceMapSelection, setSurfaceMapSelection] = useState<{
@@ -847,18 +868,21 @@ export function LineWatchShell({
   // the route panel is not.
   const [surfaceRouteReturn, setSurfaceRouteReturn] = useState<{
     route: SurfaceSearchRoute;
+    /** The page the route panel sits over: the map, or a desktop page beside it. */
+    view: ActiveView;
     place: SurfaceRoutePanelPlace;
-    shownOnMap: boolean;
+    /** What View on Map was drawing, redrawn on Back; null when it was off. */
+    shown: SurfaceSelectionRoute | null;
     stopCode: string;
   } | null>(null);
   const [surfaceRoutePlace, setSurfaceRoutePlace] = useState<SurfaceRoutePanelPlace | null>(null);
   useEffect(() => {
     // Another stop, or none: this way back no longer applies.
-    if (surfaceRouteReturn && selectedSurfaceStop?.code !== surfaceRouteReturn.stopCode) {
+    if (surfaceRouteReturn && !surfaceStopNoticeReturn && selectedSurfaceStop?.code !== surfaceRouteReturn.stopCode) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSurfaceRouteReturn(null);
     }
-  }, [selectedSurfaceStop, surfaceRouteReturn]);
+  }, [selectedSurfaceStop, surfaceRouteReturn, surfaceStopNoticeReturn]);
   const surfaceRouteBackFor = surfaceRouteReturn
     && surfaceRouteReturn.stopCode === selectedSurfaceStopCode
     && surfaceRouteReturn.route.network === selectedNetwork
@@ -873,19 +897,19 @@ export function LineWatchShell({
   const [surfaceSearchReturn, setSurfaceSearchReturn] = useState<{ query: string } | null>(null);
   const surfaceHistoryDepthRef = useRef(0);
   useEffect(() => {
-    if (selectedSurfaceStop || selectedSurfaceRoute || surfaceNoticeView || pendingSurfaceOpenRef.current) return;
+    if (selectedSurfaceStop || selectedSurfaceRoute || surfaceNoticeView || surfaceStopNoticeReturn || pendingSurfaceOpenRef.current) return;
     // Nothing open any more, however it closed: this way back has ended.
     surfaceHistoryDepthRef.current = 0;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (surfaceSearchReturn) setSurfaceSearchReturn(null);
-  }, [selectedSurfaceRoute, selectedSurfaceStop, surfaceNoticeView, surfaceSearchReturn]);
+  }, [selectedSurfaceRoute, selectedSurfaceStop, surfaceNoticeView, surfaceSearchReturn, surfaceStopNoticeReturn]);
   useEffect(() => {
     // Its selection and stop are gone, however they cleared: the notice is no longer shown.
-    if (surfaceNoticeView && surfaceMapSelection?.owner !== "notice" && !selectedSurfaceStop) {
+    if (surfaceNoticeView && surfaceMapSelection?.owner !== "notice" && !selectedSurfaceStop && !surfaceStopNoticeReturn) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSurfaceNoticeView(null);
     }
-  }, [selectedSurfaceStop, surfaceMapSelection, surfaceNoticeView]);
+  }, [selectedSurfaceStop, surfaceMapSelection, surfaceNoticeView, surfaceStopNoticeReturn]);
   useEffect(() => {
     // The list has mounted with the place Back gave it; it is used once.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -1292,9 +1316,8 @@ export function LineWatchShell({
     setSurfaceRouteReturn(null);
     setSelectedSurfaceStop(null);
     setSurfaceRoutePlace(back.place);
-    setSelectedSurfaceRoute({ route: back.route, view: "map" });
-    const shown = back.shownOnMap ? surfaceRouteSelection(back.route) : null;
-    setSurfaceMapSelection(shown ? { selection: { stopCodes: [], routes: [shown] }, owner: "route", view: "map", network: back.route.network } : null);
+    setSelectedSurfaceRoute({ route: back.route, view: back.view });
+    setSurfaceMapSelection(back.shown ? { selection: { stopCodes: [], routes: [back.shown] }, owner: "route", view: back.view, network: back.route.network } : null);
   };
   const surfaceStopRouteBack = surfaceRouteBackFor
     ? { route: surfaceRouteBackFor.route.route, name: surfaceRouteBackFor.route.name, onBack: () => handleSurfaceRouteBack() }
@@ -1336,9 +1359,36 @@ export function LineWatchShell({
       return;
     }
     setSurfaceNoticeRestore(shown.place);
+    // A card opened from the stop meanwhile must not narrow the list it left.
+    setSurfaceNoticeInitialQuery("");
+    setSurfaceNoticeInitialId(null);
     restoreMapDrilldownOrigin();
   };
+  const handleStopNoticeReturn = () => {
+    if (!surfaceStopNoticeReturn) return;
+    setSurfaceStopNoticeReturn({ ...surfaceStopNoticeReturn, returning: true });
+    // A stop over the list itself added no view to leave, only its history entry.
+    if (surfaceStopNoticeReturn.stop.view !== activeView) handleSubmenuBack();
+    else consumeBrowserNavigationEntries(1);
+  };
+  const handleStopOpenNotice = (notice: SurfaceNoticeDetail) => {
+    // The notice whose View opened this stop: back to its card, where it was.
+    if (surfaceNoticeView?.notice.id === notice.id) {
+      handleSurfaceNoticeBack();
+      return;
+    }
+    if (!selectedSurfaceStop) return;
+    setSurfaceStopNoticeReturn({ stop: selectedSurfaceStop, noticeId: notice.id, returning: false });
+    setSelectedSurfaceStop(null);
+    // Already on the list, opening the card changes no view, so Back needs its own entry.
+    if (selectedSurfaceStop.view === activeView) pushBrowserNavigationEntry();
+    handleSearchOpenSurfaceNotice(notice);
+  };
   const handleSurfaceNoticeEscape = (): boolean => {
+    if (surfaceStopNoticeReturn) {
+      handleStopNoticeReturn();
+      return true;
+    }
     if (!surfaceNoticeView) return false;
     handleSurfaceNoticeBack();
     return true;
@@ -1349,6 +1399,12 @@ export function LineWatchShell({
       // The sheet's own popstate listener closes it, with its exit.
       layersSheetHistoryRef.current = false;
       return true;
+    }
+    if (surfaceStopNoticeReturn && activeView === "surface-notices") {
+      // The ordinary Back leaves the list and the stop opens once it has; a stop
+      // over the list itself has nothing to leave, and this entry was its own.
+      setSurfaceStopNoticeReturn({ ...surfaceStopNoticeReturn, returning: true });
+      return surfaceStopNoticeReturn.stop.view === activeView;
     }
     if (surfaceHistoryDepthRef.current <= 0) return false;
     if (surfaceNoticeView) {
@@ -1386,17 +1442,23 @@ export function LineWatchShell({
       searchBack={surfaceSearchBack}
       nearbyStopCodes={nearbyStopCodes(nearMe.state, visibleSurfaceRoute.network)}
       shownOnMap={routeShownOnMap}
-      onToggleMap={(show) => {
+      onToggleMap={(show, branch) => {
         const shown = show ? surfaceRouteSelection(visibleSurfaceRoute) : null;
-        showSurfaceSelectionOnMap(shown ? { stopCodes: [], routes: [shown] } : null, "route");
+        showSurfaceSelectionOnMap(shown ? { stopCodes: [], routes: [{ ...shown, ...(branch ? { branch } : {}) }] } : null, "route");
+      }}
+      onOpenRoute={(next) => {
+        setSurfaceMapSelection(null);
+        setSurfaceRoutePlace(null);
+        setSurfaceRouteReturn(null);
+        setSelectedSurfaceRoute({ route: next, view: activeView });
       }}
       onOpenStop={(stopCode, place) => {
         pushBrowserNavigationEntry();
         surfaceHistoryDepthRef.current += 1;
-        setSurfaceRouteReturn({ route: visibleSurfaceRoute, place, shownOnMap: routeShownOnMap, stopCode });
+        setSurfaceRouteReturn({ route: visibleSurfaceRoute, view: activeView, place, shown: routeShownOnMap ? shownSurfaceSelection?.routes[0] ?? null : null, stopCode });
         setSurfaceRoutePlace(null);
         setSelectedSurfaceRoute(null);
-        handleSelectSurfaceStop(stopCode, "map");
+        handleSelectSurfaceStop(stopCode, activeView);
       }}
       onOpenNotice={(notice) => handleSearchOpenSurfaceNotice(notice)}
     />
@@ -1417,6 +1479,7 @@ export function LineWatchShell({
       routeBack={surfaceStopRouteBack}
       searchBack={surfaceSearchBack}
       noticeBack={surfaceStopNoticeBack}
+      onOpenNotice={handleStopOpenNotice}
     />
   ) : selectedSurfaceStopCode ? (
     <SurfaceStopPanel
@@ -1437,6 +1500,7 @@ export function LineWatchShell({
       routeBack={surfaceStopRouteBack}
       searchBack={surfaceSearchBack}
       noticeBack={surfaceStopNoticeBack}
+      onOpenNotice={handleStopOpenNotice}
     />
   ) : null;
 
@@ -2479,6 +2543,44 @@ export function LineWatchShell({
     recordPwaInstallEngagement();
   };
 
+  // A route on a map card opens its panel over whatever is showing, as a stop on
+  // the map does; closing it returns there. The route comes from the search index,
+  // the panel's one source. One history entry, unless one is already held.
+  const showMapRoutePanel = (route: SurfaceSearchRoute) => {
+    if (route.network !== selectedNetwork) return false;
+    if (surfaceHistoryDepthRef.current === 0) {
+      pushBrowserNavigationEntry();
+      surfaceHistoryDepthRef.current = 1;
+    }
+    if (selectedStationId) navSelectStationId(null);
+    setSelection(null);
+    setSelectedSurfaceStop(null);
+    setSurfaceMapSelection(null);
+    setSurfaceNoticeView(null);
+    setSurfaceRouteReturn(null);
+    setSurfaceRoutePlace(null);
+    setSurfaceSearchReturn(null);
+    setSelectedSurfaceRoute({ route, view: activeView });
+    if (!isMobile && desktopSidebarCollapsed) setDesktopSidebarCollapsed(false);
+    recordPwaInstallEngagement();
+    return true;
+  };
+  const showMapRoutePanelRef = useRef(showMapRoutePanel);
+  useLayoutEffect(() => {
+    showMapRoutePanelRef.current = showMapRoutePanel;
+  });
+  const handleMapOpenSurfaceRoute = useCallback(async (routeNumber: string, layer: SurfaceSelectionLayer) => {
+    try {
+      const { routes } = await loadSurfaceSearchIndex(selectedNetwork);
+      const route = routes.find((candidate) => candidate.route === routeNumber && surfaceRouteLayer(candidate.kind) === layer)
+        // A replacement bus reports its streetcar route's number.
+        ?? routes.find((candidate) => candidate.route === routeNumber);
+      return route ? showMapRoutePanelRef.current(route) : false;
+    } catch {
+      return false; // The card stays, and a later press can try again.
+    }
+  }, [selectedNetwork]);
+
   // A notice's View (plan 15, L4) selects and frames, nothing more. On a phone it
   // closes the list to the map; on desktop the list stays beside it. One entry
   // for Back, however many stops. A System Map switches to the Map View first, and back with Back.
@@ -2511,6 +2613,7 @@ export function LineWatchShell({
   const handleViewSurfaceNotice = (notice: SurfaceNoticeDetail, target: SurfaceNoticeMapTarget, place: SurfaceNoticePlace) => {
     pushBrowserNavigationEntry();
     surfaceHistoryDepthRef.current = 1;
+    setSurfaceStopNoticeReturn(null);
     if (isMobile) navigateToMapDrilldown();
     showSurfaceNoticeOnMap(notice, target, place, isMobile ? "map" : activeView);
   };
@@ -3076,6 +3179,10 @@ export function LineWatchShell({
             focusTripChangeId={focusTripChangeId}
             networkId={selectedNetwork}
             onBack={() => {
+              if (surfaceStopNoticeReturn) {
+                handleStopNoticeReturn();
+                return;
+              }
               consumeSurfaceHistory(surfaceHistoryDepthRef.current);
               handleSubmenuBack();
             }}
@@ -3084,9 +3191,11 @@ export function LineWatchShell({
               handleClosePanel();
             }}
             onViewOnMap={handleViewSurfaceNotice}
-            mapNoticeId={surfaceNoticeView?.notice.id ?? null}
-            onReturnFromMap={handleSurfaceNoticeBack}
-            mapBackLabel={surfaceNoticeView?.fromSearch ? "Back to Search Results" : "Back to Notice List"}
+            mapNoticeId={surfaceStopNoticeReturn?.noticeId ?? surfaceNoticeView?.notice.id ?? null}
+            onReturnFromMap={surfaceStopNoticeReturn ? handleStopNoticeReturn : handleSurfaceNoticeBack}
+            mapBackLabel={surfaceStopNoticeReturn
+              ? `Back to Stop ${surfaceStopNoticeReturn.stop.code}`
+              : surfaceNoticeView?.fromSearch ? "Back to Search Results" : "Back to Notice List"}
             initialPlace={surfaceNoticeRestore}
           />
         );
@@ -3337,6 +3446,11 @@ export function LineWatchShell({
   ]);
 
 
+  // Trip Changes shares the notices view; the rail tells them apart the same way.
+  const returningToTripChanges = searchReturnDestination === "surface-notices"
+    && selectedNetwork === "regional"
+    && surfaceNoticeInitialContent === "trip-changes";
+
   const renderDesktopSidebarContent = () => {
     const renderDesktopActivePanel = () => {
       if ((selectedSurfaceStopCode || visibleSurfaceRoute) && !selectedStationId) {
@@ -3401,8 +3515,8 @@ export function LineWatchShell({
             onSelectImpact={handleSearchSelectImpact}
             onOpenImpactCategory={handleSearchOpenImpactCategory}
             onClose={handleCloseSearch}
-            desktopReturnLabel={searchReturnLabel}
-            desktopReturnDestination={searchReturnDestination}
+            desktopReturnLabel={returningToTripChanges ? "Back to Trip Changes" : searchReturnLabel}
+            desktopReturnDestination={returningToTripChanges ? "trip-changes" : searchReturnDestination}
             onDismiss={handleCloseSearch}
             query={stationSearchQuery}
             onQueryChange={setStationSearchQuery}
@@ -3752,7 +3866,7 @@ export function LineWatchShell({
               type="search"
               aria-label="Station Search"
               aria-controls="station-search-panel"
-              placeholder="Search all stations and alerts..."
+              placeholder={SEARCH_PLACEHOLDER_COMPACT}
               value={stationSearchQuery}
               onFocus={handleOpenSearch}
               onChange={(event) => setStationSearchQuery(event.target.value)}
@@ -4120,7 +4234,7 @@ export function LineWatchShell({
                       }
                       stationKeyDownHandlerRef.current?.(e);
                     }}
-                    placeholder="Search all stations and alerts..."
+                    placeholder={SEARCH_PLACEHOLDER}
                     aria-label="Station Search"
                     aria-controls="station-search-panel"
                     className="desktop-sidebar-search-field"
@@ -4181,6 +4295,7 @@ export function LineWatchShell({
                 onSelectStationId={handleSelectStationId}
                 selectedSurfaceStopCode={selectedSurfaceStopCode}
                 onSelectSurfaceStop={handleSelectSurfaceStop}
+                onOpenSurfaceRoute={handleMapOpenSurfaceRoute}
                 surfaceSelection={shownSurfaceSelection}
                 busesEnabled={busesEnabled}
                 onToggleBuses={handleToggleBuses}
@@ -4252,6 +4367,7 @@ export function LineWatchShell({
             onSelectStationId={handleSelectStationId}
             selectedSurfaceStopCode={selectedSurfaceStopCode}
             onSelectSurfaceStop={handleSelectSurfaceStop}
+            onOpenSurfaceRoute={handleMapOpenSurfaceRoute}
             surfaceSelection={shownSurfaceSelection}
             busesEnabled={busesEnabled}
             onToggleBuses={handleToggleBuses}

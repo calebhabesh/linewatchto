@@ -7,6 +7,7 @@ import {
   STREETCAR_CASING_LAYER,
   STREETCAR_HIT_LAYER,
   STREETCAR_LINE_LAYER,
+  STREETCAR_STOP_DOT_LAYER,
   STREETCAR_STOP_LAYER,
   installStreetcarLayers,
   streetcarStopCodeAtPoint,
@@ -221,6 +222,7 @@ describe("streetcar stop pills", () => {
     const order = ids(map);
     const stops = map.getLayer(STREETCAR_STOP_LAYER);
     assert.ok(stops.minzoom > STREETCAR_BADGE_MIN_ZOOM);
+    assert.ok(stops.minzoom > map.getLayer(STREETCAR_STOP_DOT_LAYER).minzoom, "numbers wait for a closer zoom than their dots");
     assert.ok(order.indexOf(STREETCAR_STOP_LAYER) > order.indexOf(STREETCAR_BADGE_LAYER));
     assert.ok(order.indexOf(STREETCAR_STOP_LAYER) < order.indexOf("transit-stations-outer"));
     assert.equal(stops.layout["icon-allow-overlap"], false);

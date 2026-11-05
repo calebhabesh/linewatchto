@@ -13,14 +13,16 @@ type StationDisruptionBadge = {
 
 type StationDisruptionSummaryProps = {
   badges: StationDisruptionBadge[];
+  /** Title Case; a surface stop can say what its notices actually cover. */
+  title?: string;
   onJump?: (origin: HTMLElement) => void;
 };
 
-export function StationDisruptionSummary({ badges, onJump }: StationDisruptionSummaryProps) {
+export function StationDisruptionSummary({ badges, title = "Schedule May Be Disrupted", onJump }: StationDisruptionSummaryProps) {
   const heading = (
     <span className="station-banner-heading station-disruption-heading">
       <AlertCircle size={19} className="station-banner-heading-icon animate-terminating-blink" aria-hidden="true" />
-      <span>Schedule May Be Disrupted</span>
+      <span>{title}</span>
     </span>
   );
 
@@ -40,7 +42,7 @@ export function StationDisruptionSummary({ badges, onJump }: StationDisruptionSu
       onClick={(event) => onJump?.(event.currentTarget)}
       className="station-detail-disruption-card"
       data-station-disruption-warning
-      aria-label={`Schedule may be disrupted: ${summary}. Press for details.`}
+      aria-label={`${title.charAt(0)}${title.slice(1).toLowerCase()}: ${summary}. Press for details.`}
     >
       <span className="station-disruption-summary-main">
         {heading}

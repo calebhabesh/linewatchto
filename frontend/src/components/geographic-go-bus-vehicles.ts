@@ -19,6 +19,7 @@ import {
 import { drawBusGlyph } from "./geographic-bus-vehicles.ts";
 import { setTransitPaintProperty } from "./geographic-network-transition.ts";
 import { glyphPaint } from "./geographic-streetcar-vehicles.ts";
+import { MAP_LABEL_FONT_BOLD } from "../app/geographic-config.ts";
 
 export const GO_BUS_VEHICLE_SOURCE = "transit-go-bus-vehicles";
 export const GO_BUS_VEHICLE_HALO_LAYER = "transit-go-bus-vehicles-halo";
@@ -120,7 +121,7 @@ export function installGoBusVehicleLayers(
       minzoom: GO_BUS_VEHICLE_LABEL_MIN_ZOOM,
       layout: {
         "text-field": ["get", "route"],
-        "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+        "text-font": [MAP_LABEL_FONT_BOLD],
         "text-size": 10,
         "text-variable-anchor": ["left", "right"],
         "text-radial-offset": 1.4,

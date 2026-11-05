@@ -48,6 +48,26 @@ test.describe("TTC night routes on the Map View", () => {
     expect(assets()).toContain("ttc-surface-night.json");
   });
 
+  test("a route on the card opens its panel, and phone Back closes the panel to the map", async ({ page }) => {
+    await open(page, "on");
+    const card = page.locator("[data-night-card]");
+    const canvas = page.locator(".geographic-network-map canvas");
+    await expect.poll(async () => {
+      const box = await canvas.boundingBox();
+      if (box) await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      return card.isVisible();
+    }, { timeout: 20_000, intervals: [1_000] }).toBe(true);
+
+    await card.getByRole("button", { name: /^Open route 322 / }).click();
+    const panel = page.locator("[data-surface-route-panel='ttc:322']");
+    await expect(panel).toBeVisible();
+    await expect(card).toHaveCount(0);
+
+    await page.goBack();
+    await expect(panel).toHaveCount(0);
+    await expect(page.locator(".geographic-network-map")).toHaveAttribute("data-status", "ready");
+  });
+
   test("nothing of the night network loads while Bus Routes is off", async ({ page }) => {
     const assets = await open(page, "off");
     await page.waitForTimeout(2_000);

@@ -884,8 +884,10 @@
   font-size: 18px;
 }
 
+/* The list scrolls; the stop row and the "Not live service" note stay in view. */
 .streetcar-card-list {
   display: grid;
+  flex: 1 1 auto;
   gap: 4px;
   list-style: none;
   margin: 0;
@@ -913,6 +915,29 @@
 .high-contrast .streetcar-card-row {
   background: transparent;
   box-shadow: inset 0 0 0 1px #ffffff;
+}
+
+/* A route that opens its panel: the Nearest Stop row's press states. */
+.streetcar-card-row--action {
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  text-align: left;
+  width: 100%;
+}
+
+.streetcar-card-row--action:hover,
+.streetcar-card-row--action:focus-visible {
+  background: rgba(15, 23, 42, 0.09);
+  outline: 2px solid #38bdf8;
+  /* Inside the row: the scrolling list would clip it outside. */
+  outline-offset: -2px;
+}
+
+.dark .streetcar-card-row--action:hover,
+.dark .streetcar-card-row--action:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .streetcar-card-badge {
@@ -955,6 +980,7 @@
 
 .streetcar-card-source {
   color: #475569;
+  flex: 0 0 auto;
   font-size: 12.5px;
   line-height: 1.35;
   margin: 10px 2px 0;
@@ -970,6 +996,7 @@
 .streetcar-card-stop {
   align-items: center;
   background: rgba(15, 23, 42, 0.04);
+  flex: 0 0 auto;
   border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 8px;
   color: inherit;

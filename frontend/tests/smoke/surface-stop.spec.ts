@@ -160,6 +160,144 @@ test.describe("Surface stop departures on the Map View", () => {
     await expect(busesSwitch).toHaveAttribute("data-checked", "false");
   });
 
+  test("Search Stops narrows a route's stops, offers the other direction, and survives a stop and Back", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop search entry");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await expect(page.locator(".geographic-network-map")).toHaveAttribute("data-status", "ready", { timeout: 20_000 });
+    const search = page.getByPlaceholder(/Search all stations/);
+    await search.click();
+    await search.fill("29");
+    await page.locator("[data-search-group='routes'] [data-surface-route-result='ttc:29']").click();
+    const route = page.locator("[data-surface-route-panel='ttc:29']");
+    const filter = route.getByPlaceholder("Search Stops");
+    const stops = route.locator("[data-surface-route-stop]");
+    await expect(route.locator("[data-surface-route-stop='2034']")).toBeVisible();
+    const total = await stops.count();
+    expect(total).toBeGreaterThan(5);
+
+    // By name, in the stop's long or short form, with a count on the direction.
+    await filter.fill("dufferin college");
+    await expect(route.locator("[data-surface-route-stop='2034']")).toBeVisible();
+    expect(await stops.count()).toBeLessThan(total);
+    await expect(route.getByRole("button", { name: /^Southbound/ }).locator(".surface-route-filter-count")).not.toHaveText("0");
+    await expect(route.locator("[data-surface-route-stop='2034'] mark").first()).toBeVisible();
+
+    // Enter opens the top match; Back returns to the same filtered list.
+    await filter.fill("2034");
+    await expect(stops).toHaveCount(1);
+    await filter.press("Enter");
+    const stop = page.locator("[data-surface-stop-panel='2034']");
+    await expect(stop).toBeVisible();
+    await stop.locator(".surface-route-back-link").first().click();
+    await expect(filter).toHaveValue("2034");
+    await expect(stops).toHaveCount(1);
+
+    // In the other direction it says where the stop is, and goes there.
+    await route.getByRole("button", { name: /^Northbound/ }).click();
+    await expect(stops).toHaveCount(0);
+    await expect(route).toContainText("No matching stops on this list.");
+    await route.getByRole("button", { name: /^Show .*Southbound/ }).first().click();
+    await expect(route.locator("[data-surface-route-stop='2034']")).toBeVisible();
+
+    // Nothing on the route; Escape clears before it does anything else.
+    await filter.fill("zzzzz");
+    await expect(route).toContainText("No stops on this route match.");
+    await filter.press("Escape");
+    await expect(filter).toHaveValue("");
+    await expect(route).toBeVisible();
+    await expect(stops).toHaveCount(total);
+  });
+
+  async function openRoute(page: import("@playwright/test").Page, number: string) {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await expect(page.locator(".geographic-network-map")).toHaveAttribute("data-status", "ready", { timeout: 20_000 });
+    const search = page.getByPlaceholder(/Search all stations/);
+    await search.click();
+    await search.fill(number);
+    await page.locator(`[data-search-group='routes'] [data-surface-route-result='ttc:${number}']`).click();
+    return page.locator(`[data-surface-route-panel='ttc:${number}']`);
+  }
+
+  test("a route's branches are named and selectable, each way has one stop list, and Back keeps the branch", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop search entry");
+    const route = await openRoute(page, "52");
+    await expect(route.locator(".surface-route-title-badge")).toHaveText("52");
+    await expect(route.getByRole("heading", { name: "Branches" })).toBeVisible();
+    const branch = (id: string) => route.locator(`[data-route-variant="${id}"]`);
+    // The plain "52" return trips belong to the branches they run back along.
+    await expect(branch("52")).toHaveCount(0);
+    await expect(branch("52A")).toContainText("Pearson Airport via Dixon Rd");
+    await expect(branch("52F")).toContainText("Sunnybrook Hospital via Lawrence Station");
+
+    await branch("52F").click();
+    await expect(branch("52F")).toHaveAttribute("aria-pressed", "true");
+    await expect(route.locator(".surface-route-branch-label")).toContainText("52F towards Sunnybrook Hospital");
+    const firstStop = route.locator("[data-surface-route-stop]").first();
+    const eastFirst = await firstStop.getAttribute("data-surface-route-stop");
+    await route.getByRole("button", { name: /^Westbound/ }).click();
+    await expect(route.locator(".surface-route-branch-label")).toContainText("52F towards Royal York");
+    await expect(branch("52F")).toHaveAttribute("aria-pressed", "true");
+    await expect(firstStop).not.toHaveAttribute("data-surface-route-stop", eastFirst!);
+
+    const stopCode = await firstStop.getAttribute("data-surface-route-stop");
+    await firstStop.click();
+    await page.locator(`[data-surface-stop-panel="${stopCode}"] .surface-route-back-link`).first().click();
+    await expect(branch("52F")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("View on Map draws the chosen branch and follows it; Back from a stop redraws it", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop search entry");
+    const route = await openRoute(page, "52");
+    const mapSurface = page.locator(".geographic-network-map > [role='region']");
+    await route.locator('[data-route-variant="52F"]').click();
+    await route.getByRole("button", { name: "View on Map" }).click();
+    await expect(mapSurface).toHaveAttribute("data-surface-selection-layers", /transit-bus-selected-line/, { timeout: 15_000 });
+    const camera = () => page.evaluate(() => window.__linewatchGeographicMapLifecycle?.getCamera() ?? null);
+    await expect.poll(() => page.evaluate(() => window.__linewatchGeographicMapLifecycle?.isMoving())).toBe(false);
+    const on52F = await camera();
+
+    // Another branch is framed again, without turning View on Map off.
+    await route.locator('[data-route-variant="52A"]').click();
+    await expect(route.getByRole("button", { name: /Shown on Map/ })).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(async () => {
+      const current = await camera();
+      return Boolean(current && on52F && (current.lng !== on52F.lng || current.zoom !== on52F.zoom));
+    }, { timeout: 15_000 }).toBe(true);
+
+    await route.locator("[data-surface-route-stop]").first().click();
+    await page.locator(".surface-route-back-link").first().click();
+    await expect(route.locator('[data-route-variant="52A"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(route.getByRole("button", { name: /Shown on Map/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(mapSurface).toHaveAttribute("data-surface-selection-layers", /transit-bus-selected-line/);
+  });
+
+  test("an express variant and its regular route jump to each other; an unrelated number does not", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop search entry");
+    const route = await openRoute(page, "89");
+    await expect(route.getByRole("heading", { name: "Express Variant" })).toBeVisible();
+    await route.getByRole("button", { name: /^Jump to route 989 / }).click();
+    const express = page.locator("[data-surface-route-panel='ttc:989']");
+    await expect(express).toBeVisible();
+    await expect(express.getByRole("heading", { name: "Regular Route" })).toBeVisible();
+    // Still reached from search.
+    await expect(express.locator("[data-search-back]")).toBeVisible();
+    await express.getByRole("button", { name: /^Jump to route 89 / }).click();
+    await expect(route).toBeVisible();
+  });
+
+  test("a direction the branch does not run opens the busiest branch that does", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop search entry");
+    const route = await openRoute(page, "939");
+    const branch = (id: string) => route.locator(`[data-route-variant="${id}"]`);
+    await branch("939A").click();
+    await expect(route.getByRole("button", { name: /^Westbound/ })).toHaveAttribute("aria-pressed", "true");
+    await route.getByRole("button", { name: /^Eastbound/ }).click();
+    await expect(branch("939A")).toHaveAttribute("aria-pressed", "false");
+    await expect(route.getByRole("button", { name: /^Eastbound/ })).toHaveAttribute("aria-pressed", "true");
+  });
+
   test("an undrawn route says so instead of offering View on Map", async ({ page, isMobile }) => {
     test.skip(isMobile, "Desktop search entry");
     await page.setViewportSize({ width: 1440, height: 900 });

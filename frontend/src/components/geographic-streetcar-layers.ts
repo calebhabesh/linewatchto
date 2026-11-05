@@ -10,6 +10,7 @@
 import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import {
   STREETCAR_BADGE_MIN_ZOOM,
+  STREETCAR_STOP_LABEL_MIN_ZOOM,
   STREETCAR_STOP_MIN_ZOOM,
   isStreetcarCorridorFeature,
   isStreetcarStopFeature,
@@ -26,6 +27,7 @@ import {
   surfaceSelectionStopLayers,
   type SurfaceSelectionTarget,
 } from "./geographic-surface-selection-layers.ts";
+import { MAP_LABEL_FONT_BOLD } from "../app/geographic-config.ts";
 
 const SOURCE_ID = "transit-streetcar-corridors";
 const STOP_SOURCE_ID = "transit-streetcar-stops";
@@ -66,8 +68,13 @@ const SOURCES = ["transit-streetcar-corridors", "transit-streetcar-stops"];
 
 const BADGE_PIXEL_RATIO = 2;
 /** Badge height in CSS pixels; widths follow the route number. */
-const BADGE_HEIGHT = 16;
+const BADGE_HEIGHT = 20;
 const BADGE_GAP = 2;
+/**
+ * The map's badge sizes, largest first: a route number (13.5), a selected stop
+ * (11), then every other stop, which grows a little toward street level.
+ */
+export const STOP_NUMBER_SIZE = ["interpolate", ["linear"], ["zoom"], 16.5, 9.5, 18, 10.5];
 
 function lineOpacity(activeFilteredLine: string | null): number {
   return activeFilteredLine ? 0.25 : 1;
@@ -85,12 +92,12 @@ function drawBadgeRow(routes: readonly string[], color: string, textColor: strin
   if (typeof document === "undefined") return null;
   const scale = BADGE_PIXEL_RATIO;
   const height = BADGE_HEIGHT * scale;
-  const font = `800 ${11 * scale}px Arial, Helvetica, sans-serif`;
+  const font = `800 ${13.5 * scale}px Arial, Helvetica, sans-serif`;
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
   ctx.font = font;
-  const widths = routes.map((route) => Math.ceil(ctx.measureText(route).width) + 8 * scale);
+  const widths = routes.map((route) => Math.ceil(ctx.measureText(route).width) + 10 * scale);
   canvas.width = widths.reduce((sum, width) => sum + width, 0) + BADGE_GAP * scale * (routes.length - 1);
   canvas.height = height;
   ctx.font = font;
@@ -101,7 +108,7 @@ function drawBadgeRow(routes: readonly string[], color: string, textColor: strin
     const width = widths[index];
     const inset = scale; // half the edge, so it stays inside the image
     ctx.beginPath();
-    ctx.roundRect(x + inset, inset, width - 2 * inset, height - 2 * inset, 3 * scale);
+    ctx.roundRect(x + inset, inset, width - 2 * inset, height - 2 * inset, 4 * scale);
     ctx.fillStyle = color;
     ctx.fill();
     ctx.lineWidth = 1.5 * scale;
@@ -309,19 +316,19 @@ export function installStreetcarLayers(
       id: STREETCAR_STOP_LAYER,
       type: "symbol",
       source: STOP_SOURCE_ID,
-      minzoom: STREETCAR_STOP_MIN_ZOOM,
+      minzoom: STREETCAR_STOP_LABEL_MIN_ZOOM,
       ...(unselected ? { filter: unselected as never } : {}),
       layout: {
         "text-field": ["get", "stopCode"],
-        "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-        "text-size": 11,
+        "text-font": [MAP_LABEL_FONT_BOLD],
+        "text-size": STOP_NUMBER_SIZE as never,
         // Above the dot, clear of the street.
         "text-anchor": "bottom",
         "text-offset": [0, -0.75],
         "icon-anchor": "bottom",
         "icon-image": STOP_PILL_IMAGE,
         "icon-text-fit": "both",
-        "icon-text-fit-padding": [1, 3, 1, 3],
+        "icon-text-fit-padding": [0.5, 2.5, 0.5, 2.5],
         // Collide and hide: a pill that would overlap another, a station name
         // or a route badge is left out until the map zooms in further.
         "icon-allow-overlap": false,

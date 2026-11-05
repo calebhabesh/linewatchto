@@ -16,7 +16,7 @@ import {
   SurfaceNoticeCategory,
   SurfaceNoticeDetail,
 } from "../app/surface-notice-data";
-import { groupSurfaceNoticesByRoute, compareSurfaceNotices, surfaceNoticeEmphasis, SurfaceNoticeGroupItem } from "../app/surface-notice-groups";
+import { groupSurfaceNoticesByRoute, compareSurfaceNotices, surfaceNoticeCategoryLabel, surfaceNoticeEmphasis, SurfaceNoticeGroupItem } from "../app/surface-notice-groups";
 import { formatImpactTimestamp, formatOperationalDateTime } from "../app/impact-time";
 import type { NetworkId } from "../app/regional-data";
 import { REGIONAL_STATION_SEARCH_LINES } from "../app/station-search";
@@ -226,7 +226,10 @@ export function SurfaceNoticesPanel({
 
   useEffect(() => {
     if (!initialNoticeId || !selectedNoticeRef.current) return;
-    selectedNoticeRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
+    // A card taller than the list starts at its top, where its Back button is.
+    const card = selectedNoticeRef.current;
+    const fits = !scrollRef.current || card.offsetHeight <= scrollRef.current.clientHeight;
+    card.scrollIntoView({ block: fits ? "center" : "start", behavior: "smooth" });
   }, [initialNoticeId, data]);
 
   useEffect(() => {
@@ -314,21 +317,6 @@ export function SurfaceNoticesPanel({
         return "bg-blue-500/20 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-500/40 dark:border-blue-500/30";
       default:
         return "bg-slate-500/20 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300 border border-slate-500/40 dark:border-slate-500/30";
-    }
-  };
-
-  const getCategoryLabel = (cat: string) => {
-    switch (cat.toLowerCase()) {
-      case "bypass":
-        return "Bypass";
-      case "no-service":
-        return "No Service";
-      case "detour":
-        return "Detour";
-      case "service-change":
-        return "Service Change";
-      default:
-        return "Notice";
     }
   };
 
@@ -483,7 +471,7 @@ export function SurfaceNoticesPanel({
       <div className="surface-notice-map-action" data-notice-map-action={notice.id}>
         <ImpactCardMapButton
           title={notice.title}
-          disabled={!target || unavailable}
+          disabled={!onMap && (!target || unavailable)}
           actionLabel={onMap ? "Back" : unavailable ? "No Map Location" : "View"}
           backLabel={mapBackLabel}
           onClick={() => {
@@ -619,7 +607,7 @@ export function SurfaceNoticesPanel({
                 options={[{ value: "all", label: "All Types", count: data ? totalCount : undefined },
                   ...visibleCategories.map((cat) => ({
                     value: cat,
-                    label: getCategoryLabel(cat),
+                    label: surfaceNoticeCategoryLabel(cat),
                     count: data ? getCategoryCount(cat) : undefined,
                     icon: <SurfaceCategoryIcon category={cat} size={12} className="shrink-0" />,
                   }))]} />
@@ -714,7 +702,7 @@ export function SurfaceNoticesPanel({
                     </div>
                     <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider ${getCategoryBadgeColor(group.category)}`}>
                       <SurfaceCategoryIcon category={group.category} size={11} className="shrink-0" />
-                      {getCategoryLabel(group.category)}
+                      {surfaceNoticeCategoryLabel(group.category)}
                     </span>
                   </div>
 

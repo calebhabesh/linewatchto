@@ -159,7 +159,7 @@ export function SurfaceRouteCard({
             }`}
             style={networkId === "regional" ? undefined : ttcRouteBadgeStyle(group.route)}
           >
-            {group.route}
+            {details.branchCode}
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 min-w-0">
@@ -342,7 +342,7 @@ function SurfaceCompactRouteRow({
           }`}
           style={networkId === "regional" ? undefined : ttcRouteBadgeStyle(group.route)}
         >
-          {group.route}
+          {details.branchCode}
         </span>
         <div className="saved-station-arrival-direction min-w-0 flex-1 overflow-hidden" style={{ minWidth: 0, width: 0 }}>
           <div className="flex items-center gap-1.5 min-w-0">

@@ -1,25 +1,46 @@
 /**
- * The neutral selected style for surface routes and stops on the Map View
- * (plan 14, U4), shared by the streetcar, bus, night and GO bus layers. It
- * reads each layer's own sources; it adds no geometry.
+ * The selected style for surface routes and stops on the Map View (plan 14, U4),
+ * shared by the streetcar, bus, night and GO bus layers. It reads each layer's
+ * own sources; it adds no geometry.
  *
- * - A selected route gets the stop panel's selected look as an outline under
- *   its line: a dark band with a white edge, in both themes. With the route's
- *   layer off, its line is drawn here too (only that route).
+ * Selection looks the way it does for a train or LRT alert: a thick blue band
+ * with a glow, flashing fast and then breathing on the same clock
+ * (GeographicSelectionAttention).
+ *
+ * - A selected route gets the band under its line. With the route's layer off,
+ *   its line is drawn here too (only that route).
  * - Selected stops get the selected pill (dark, white edge, white number) and
- *   dot at every zoom, over other stop labels.
+ *   dot at every zoom, over other stop labels, each inside a thick blue outline.
  *
- * Constant paint: selection never uses a service colour or badge.
+ * Selection never uses a service colour or badge.
  */
 
 import type { FilterSpecification, Map as MapLibreMap } from "maplibre-gl";
-import { selectedRouteFilter, selectedStopFilter, widenLineWidth } from "../app/surface-map-selection.ts";
+import type { SelectionAttentionFrame } from "../app/geographic-selection-attention.ts";
+import { selectedRouteFilter, selectedStopFilter, surfaceRouteKey } from "../app/surface-map-selection.ts";
+import { setTransitPaintProperty } from "./geographic-network-transition.ts";
+import { MAP_LABEL_FONT_BOLD } from "../app/geographic-config.ts";
 
 export const SELECTED_STOP_PILL_IMAGE = "surface-stop-pill-selected";
+export const SELECTED_STOP_OUTLINE_IMAGE = "surface-stop-pill-selected-outline";
 /** The stop panel's selected pill: the same in both themes. */
 const SELECTED_FILL = "#0f172a";
 const SELECTED_EDGE = "#ffffff";
+/** The Map View's train and LRT selection colours (transit-impacts-selection and its glow). */
+const SELECTION_BAND = "#38bdf8";
+const SELECTION_GLOW = "#0ea5e9";
 const PIXEL_RATIO = 2;
+
+/** Thinner than a rail selection's, for lines a third as wide; as [zoom, width]. The flash scales them. */
+const ROUTE_BAND_WIDTHS = [[9, 6], [14, 11], [17, 18]] as const;
+const ROUTE_GLOW_WIDTHS = [[9, 13], [14, 24], [17, 36]] as const;
+const ROUTE_GLOW_OPACITY = 0.55;
+const STOP_RING_RADII = [[10, 7], [15, 9], [19, 11]] as const;
+const STOP_RING_WIDTH = 4;
+
+function widthsAtZoom(stops: ReadonlyArray<readonly [number, number]>, multiplier = 1) {
+  return ["interpolate", ["linear"], ["zoom"], ...stops.flatMap(([zoom, width]) => [zoom, width * multiplier])];
+}
 
 export type SurfaceSelectionLineStyle = {
   color: string;
@@ -46,7 +67,9 @@ export function surfaceSelectionLayerIds(prefix: string) {
     halo: `${prefix}-selected-halo`,
     outline: `${prefix}-selected-outline`,
     line: `${prefix}-selected-line`,
+    stopRing: `${prefix}-selected-stop-ring`,
     stopDots: `${prefix}-selected-stop-dots`,
+    stopOutline: `${prefix}-selected-stop-outline`,
     stops: `${prefix}-selected-stops`,
   };
 }
@@ -76,22 +99,81 @@ function drawSelectedPill(): ImageData | null {
   return ctx.getImageData(0, 0, size, size);
 }
 
+/** How far the blue outline image reaches past the pill it surrounds, in map pixels. */
+const OUTLINE_REACH = 8;
+
+/** The pill's shape as a thick blue outline with a soft glow; the same stretch and fit as the pill. */
+function drawSelectedPillOutline(): ImageData | null {
+  if (typeof document === "undefined") return null;
+  const scale = PIXEL_RATIO;
+  const size = (20 + 2 * OUTLINE_REACH) * scale;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  const inset = (OUTLINE_REACH - 2) * scale;
+  ctx.beginPath();
+  ctx.roundRect(inset, inset, size - 2 * inset, size - 2 * inset, 7 * scale);
+  ctx.shadowColor = SELECTION_GLOW;
+  ctx.shadowBlur = 4 * scale;
+  ctx.lineWidth = 4.5 * scale;
+  ctx.strokeStyle = SELECTION_BAND;
+  ctx.stroke();
+  return ctx.getImageData(0, 0, size, size);
+}
+
 function registerSelectedPill(map: MapLibreMap) {
-  if (map.hasImage(SELECTED_STOP_PILL_IMAGE)) return;
   const scale = PIXEL_RATIO;
   try {
-    const image = drawSelectedPill();
-    if (image) {
-      map.addImage(SELECTED_STOP_PILL_IMAGE, image, {
-        pixelRatio: scale,
-        stretchX: [[7 * scale, 13 * scale]],
-        stretchY: [[7 * scale, 13 * scale]],
-        content: [5 * scale, 4 * scale, 15 * scale, 16 * scale],
-      });
+    if (!map.hasImage(SELECTED_STOP_PILL_IMAGE)) {
+      const image = drawSelectedPill();
+      if (image) {
+        map.addImage(SELECTED_STOP_PILL_IMAGE, image, {
+          pixelRatio: scale,
+          stretchX: [[7 * scale, 13 * scale]],
+          stretchY: [[7 * scale, 13 * scale]],
+          content: [5 * scale, 4 * scale, 15 * scale, 16 * scale],
+        });
+      }
+    }
+    if (!map.hasImage(SELECTED_STOP_OUTLINE_IMAGE)) {
+      const outline = drawSelectedPillOutline();
+      if (outline) {
+        const reach = OUTLINE_REACH * scale;
+        map.addImage(SELECTED_STOP_OUTLINE_IMAGE, outline, {
+          pixelRatio: scale,
+          stretchX: [[reach + 7 * scale, reach + 13 * scale]],
+          stretchY: [[reach + 7 * scale, reach + 13 * scale]],
+          content: [reach + 5 * scale, reach + 4 * scale, reach + 15 * scale, reach + 16 * scale],
+        });
+      }
     }
   } catch {
     // Without the pill the number still shows over its dot.
   }
+}
+
+/** The corridors of one selected branch, whichever layer's route it belongs to. */
+export const BRANCH_SELECTION_SOURCE = "transit-selected-branch";
+
+/** Holds a selected branch's corridors, or goes with none (after its layers have). */
+export function setBranchSelectionSource(map: MapLibreMap, corridors: ReadonlyArray<{ geometry: unknown; properties: { routes: readonly string[] } }> | null): void {
+  const source = map.getSource(BRANCH_SELECTION_SOURCE) as { setData?: (data: unknown) => void } | undefined;
+  if (!corridors) {
+    if (source) map.removeSource(BRANCH_SELECTION_SOURCE);
+    return;
+  }
+  const data = {
+    type: "FeatureCollection",
+    features: corridors.map((feature) => ({
+      type: "Feature",
+      geometry: feature.geometry,
+      properties: { routeKey: surfaceRouteKey(feature.properties.routes) },
+    })),
+  };
+  if (source?.setData) source.setData(data);
+  else map.addSource(BRANCH_SELECTION_SOURCE, { type: "geojson", data: data as never });
 }
 
 function removeLayers(map: MapLibreMap, ids: string[]) {
@@ -115,17 +197,20 @@ export function applySurfaceSelectionLayers(
     const style = target.style!;
     const filter = selectedRouteFilter(selection.routes) as FilterSpecification;
     const before = target.lineBefore(map);
-    const lines: Array<{ id: string; color: string; width: unknown[]; dash?: number[] | null }> = [
-      { id: ids.halo, color: SELECTED_EDGE, width: widenLineWidth(style.casingWidth, 4.5) },
-      { id: ids.outline, color: SELECTED_FILL, width: widenLineWidth(style.casingWidth, 2) },
+    const lines: Array<{ id: string; color: string; width: unknown[]; opacity?: number; blur?: unknown[]; dash?: number[] | null }> = [
+      { id: ids.halo, color: SELECTION_GLOW, width: widthsAtZoom(ROUTE_GLOW_WIDTHS), opacity: ROUTE_GLOW_OPACITY, blur: widthsAtZoom(ROUTE_GLOW_WIDTHS, 0.45) },
+      { id: ids.outline, color: SELECTION_BAND, width: widthsAtZoom(ROUTE_BAND_WIDTHS) },
       ...(selection.routeLine ? [{ id: ids.line, color: (selection.dark ? style.dark?.color : undefined) ?? style.color, width: style.width, dash: style.dash }] : []),
     ];
     if (!selection.routeLine) removeLayers(map, [ids.line]);
     for (const line of lines) {
-      if (map.getLayer(line.id)) {
+      const existing = map.getLayer(line.id) as { source?: string } | undefined;
+      if (existing && existing.source === target.corridorSource) {
         map.setFilter(line.id, filter);
         continue;
       }
+      // Moved between a layer's own corridors and a branch's.
+      if (existing) map.removeLayer(line.id);
       map.addLayer({
         id: line.id,
         type: "line",
@@ -135,6 +220,8 @@ export function applySurfaceSelectionLayers(
         paint: {
           "line-color": line.color,
           "line-width": line.width as never,
+          ...(line.opacity !== undefined ? { "line-opacity": line.opacity } : {}),
+          ...(line.blur ? { "line-blur": line.blur as never } : {}),
           ...(line.dash ? { "line-dasharray": line.dash } : {}),
         },
       }, before);
@@ -143,12 +230,27 @@ export function applySurfaceSelectionLayers(
 
   const stopsShown = selection.stopCodes.length > 0 && Boolean(target.stopSource && map.getSource(target.stopSource));
   if (!stopsShown) {
-    removeLayers(map, [ids.stops, ids.stopDots]);
+    removeLayers(map, [ids.stops, ids.stopOutline, ids.stopDots, ids.stopRing]);
     return;
   }
   registerSelectedPill(map);
   const filter = selectedStopFilter(selection.stopCodes) as FilterSpecification;
   const before = target.stopBefore(map);
+  if (map.getLayer(ids.stopRing)) map.setFilter(ids.stopRing, filter);
+  else {
+    map.addLayer({
+      id: ids.stopRing,
+      type: "circle",
+      source: target.stopSource!,
+      filter,
+      paint: {
+        "circle-radius": widthsAtZoom(STOP_RING_RADII) as never,
+        "circle-opacity": 0,
+        "circle-stroke-color": SELECTION_BAND,
+        "circle-stroke-width": STOP_RING_WIDTH,
+      },
+    }, before);
+  }
   if (map.getLayer(ids.stopDots)) map.setFilter(ids.stopDots, filter);
   else {
     map.addLayer({
@@ -164,6 +266,32 @@ export function applySurfaceSelectionLayers(
       },
     }, before);
   }
+  // The pill and its outline share a layout, so the same number sizes both to one box.
+  const pillLayout = (image: string) => ({
+    "text-field": ["get", "stopCode"],
+    "text-font": [MAP_LABEL_FONT_BOLD],
+    "text-size": 11,
+    "text-anchor": "bottom",
+    "text-offset": [0, -0.75],
+    "icon-anchor": "bottom",
+    "icon-image": image,
+    "icon-text-fit": "both",
+    "icon-text-fit-padding": [1, 3, 1, 3],
+    // A selected stop always shows, at every zoom, over other labels.
+    "icon-allow-overlap": true,
+    "text-allow-overlap": true,
+  }) as never;
+  if (map.getLayer(ids.stopOutline)) map.setFilter(ids.stopOutline, filter);
+  else {
+    map.addLayer({
+      id: ids.stopOutline,
+      type: "symbol",
+      source: target.stopSource!,
+      filter,
+      layout: pillLayout(SELECTED_STOP_OUTLINE_IMAGE),
+      paint: { "text-opacity": 0 },
+    }, before);
+  }
   if (map.getLayer(ids.stops)) map.setFilter(ids.stops, filter);
   else {
     map.addLayer({
@@ -171,20 +299,7 @@ export function applySurfaceSelectionLayers(
       type: "symbol",
       source: target.stopSource!,
       filter,
-      layout: {
-        "text-field": ["get", "stopCode"],
-        "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-        "text-size": 11,
-        "text-anchor": "bottom",
-        "text-offset": [0, -0.75],
-        "icon-anchor": "bottom",
-        "icon-image": SELECTED_STOP_PILL_IMAGE,
-        "icon-text-fit": "both",
-        "icon-text-fit-padding": [1, 3, 1, 3],
-        // A selected stop always shows, at every zoom, over other labels.
-        "icon-allow-overlap": true,
-        "text-allow-overlap": true,
-      },
+      layout: pillLayout(SELECTED_STOP_PILL_IMAGE),
       paint: { "text-color": SELECTED_EDGE },
     }, before);
   }
@@ -193,7 +308,37 @@ export function applySurfaceSelectionLayers(
 /** Removes one layer's selection (before its sources go). */
 export function removeSurfaceSelectionLayers(map: MapLibreMap, prefix: string): void {
   const ids = surfaceSelectionLayerIds(prefix);
-  removeLayers(map, [ids.stops, ids.stopDots, ids.line, ids.outline, ids.halo]);
+  removeLayers(map, [ids.stops, ids.stopOutline, ids.stopDots, ids.stopRing, ids.line, ids.outline, ids.halo]);
+}
+
+/**
+ * One step of the selection flash, on whichever of these layers' selections are
+ * drawn. Only paint changes; the pill and its number stay solid so the number
+ * can always be read.
+ */
+export function applySurfaceSelectionAttentionFrame(
+  map: MapLibreMap,
+  prefixes: readonly string[],
+  frame: SelectionAttentionFrame,
+): void {
+  for (const prefix of prefixes) {
+    const ids = surfaceSelectionLayerIds(prefix);
+    if (map.getLayer(ids.outline)) {
+      setTransitPaintProperty(map, ids.outline, "line-opacity", frame.opacity);
+      setTransitPaintProperty(map, ids.outline, "line-width", widthsAtZoom(ROUTE_BAND_WIDTHS, frame.widthMultiplier) as never);
+    }
+    if (map.getLayer(ids.halo)) {
+      setTransitPaintProperty(map, ids.halo, "line-opacity", ROUTE_GLOW_OPACITY * frame.opacity);
+      setTransitPaintProperty(map, ids.halo, "line-width", widthsAtZoom(ROUTE_GLOW_WIDTHS, frame.widthMultiplier) as never);
+    }
+    if (map.getLayer(ids.stopRing)) {
+      setTransitPaintProperty(map, ids.stopRing, "circle-stroke-opacity", frame.opacity);
+      setTransitPaintProperty(map, ids.stopRing, "circle-stroke-width", STOP_RING_WIDTH * frame.widthMultiplier);
+    }
+    if (map.getLayer(ids.stopOutline)) {
+      setTransitPaintProperty(map, ids.stopOutline, "icon-opacity", frame.opacity);
+    }
+  }
 }
 
 /** The selected stop number under a press, for a layer with no stop layer of its own (night-only poles). */

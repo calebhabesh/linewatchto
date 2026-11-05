@@ -25,8 +25,10 @@ export const BUS_LAYER_STORAGE_KEY = "linewatch-map-view-buses-v1";
  */
 /** Route badges along bus lines, a zoom after the streetcar badges (13). */
 export const BUS_BADGE_MIN_ZOOM = 14;
-/** Bus stop dots and numbers, at the streetcar stop zoom. */
+/** Bus stop dots, at the streetcar stop zoom. */
 export const BUS_STOP_MIN_ZOOM = 15;
+/** Stop numbers wait until here: their dots are enough while the street still reads as a whole. */
+export const BUS_STOP_LABEL_MIN_ZOOM = 16.5;
 /** The stop file loads a zoom before stops draw, so they are ready on arrival. */
 export const BUS_STOPS_LOAD_ZOOM = BUS_STOP_MIN_ZOOM - 1;
 

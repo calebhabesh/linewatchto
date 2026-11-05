@@ -25,6 +25,7 @@ import {
   TTC_EXPRESS_ROUTE_GREEN,
   TTC_NIGHT_ROUTE_BLUE,
 } from "../app/ttc-route-badge.ts";
+import { MAP_LABEL_FONT_BOLD } from "../app/geographic-config.ts";
 
 export const BUS_VEHICLE_SOURCE = "transit-bus-vehicles";
 export const BUS_VEHICLE_HALO_LAYER = "transit-bus-vehicles-halo";
@@ -208,7 +209,7 @@ export function installBusVehicleLayers(
       minzoom: BUS_VEHICLE_LABEL_MIN_ZOOM,
       layout: {
         "text-field": ["get", "route"],
-        "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+        "text-font": [MAP_LABEL_FONT_BOLD],
         "text-size": 10,
         "text-variable-anchor": ["left", "right"],
         "text-radial-offset": 1.4,

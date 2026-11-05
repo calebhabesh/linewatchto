@@ -13,8 +13,8 @@ import { cachedLoader } from "./geographic-bus-catalog.ts";
 
 export const NIGHT_CATALOG_URL = "/assets/linewatch/geographic/ttc-surface-night.json";
 export const NIGHT_STOPS_URL = "/assets/linewatch/geographic/ttc-surface-night-stops.json";
-/** Night route badges along the lines; a daytime streetcar's badges also start at 13. */
-export const NIGHT_BADGE_MIN_ZOOM = 13;
+/** Night routes are named last, after the streetcars (13) and daytime buses (14). */
+export const NIGHT_BADGE_MIN_ZOOM = 15;
 export const NIGHT_BADGE_MAX_ROUTES = 5;
 
 export type NightRouteKind = "streetcar" | "bus";

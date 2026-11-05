@@ -232,10 +232,60 @@ test.describe("Notice View", () => {
     await action(page, "route-only").click();
     await expect(page.locator(".geographic-network-map")).toHaveAttribute("data-status", "ready", { timeout: 20_000 });
     await expect(mapSurface(page)).toHaveAttribute("data-surface-selection-layers", /selected-line/, { timeout: 15_000 });
+    // A map that mounts with a selection frames it, or the highlight is off screen.
+    await expect.poll(() => page.evaluate(() => window.__linewatchGeographicMapLifecycle?.events
+      ?.some((event) => event.type === "focus" && event.detail?.startsWith("surface:")))).toBe(true);
     await page.goBack();
     await expect(page.locator(".geographic-network-map")).toHaveCount(0);
     await expect(list(page)).toBeVisible();
     await expect.poll(() => page.evaluate(() => localStorage.getItem("linewatch-map-view-v1"))).toBe("diagram");
+  });
+
+  test("with notices naming only its route, a stop's warning and section are the route's", async ({ page }) => {
+    await stubTtcNotices(page, [ROUTE_ONLY]);
+    await page.addInitScript(() => localStorage.setItem("linewatch-default-network-v1", "ttc"));
+    await page.goto("/?stop=2034");
+    const stop = page.locator('[data-surface-stop-panel="2034"]');
+    await expect(stop.locator('[data-station-section="station-impacts"]')).toContainText("Route Impacts");
+    await expect(stop.locator("[data-station-disruption-warning]")).toContainText("Route Service May Be Disrupted");
+  });
+
+  test("a stop's Stop Impacts open the notice's card, and every way back returns to the stop", async ({ page, isMobile }) => {
+    const other = { ...ONE_STOP, id: "same-stop", title: "29 Dufferin: Second notice at this stop", routeIds: ["29C"] };
+    await stubTtcNotices(page, [ONE_STOP, other]);
+    await openMap(page, "ttc");
+    await openNotices(page, isMobile);
+    await action(page, "one-stop").click();
+    const stop = page.locator('[data-surface-stop-panel="2034"]');
+    await expect(stop).toBeVisible();
+
+    const impacts = stop.locator('[data-station-section="station-impacts"]');
+    await expect(impacts).toContainText("Stop Impacts");
+    await expect(stop.locator("[data-station-disruption-warning]")).toContainText("Schedule May Be Disrupted");
+    await expect(impacts.locator(".station-impact-card")).toHaveCount(2);
+
+    // The banner jumps to the cards, as a station's does.
+    await stop.locator("[data-station-disruption-warning]").click();
+    await expect(impacts).toBeInViewport();
+
+    const openOther = () => impacts.locator('[data-stop-impact="same-stop"] button').click();
+    await openOther();
+    const cardBack = action(page, "same-stop");
+    await expect(cardBack).toHaveAccessibleName(/^Back to Stop 2034/);
+    await expect(cardBack).toBeInViewport();
+    await cardBack.click();
+    await expect(stop).toBeVisible();
+    await expect(stop.locator("[data-notice-back]")).toContainText(ONE_STOP.title);
+
+    await openOther();
+    await expect(cardBack).toBeVisible();
+    await page.goBack();
+    await expect(stop).toBeVisible();
+
+    // The notice whose View opened this stop goes back to its card in the list.
+    await impacts.locator('[data-stop-impact="one-stop"] button').click();
+    await expect(stop).toHaveCount(0);
+    await expect(action(page, "one-stop")).toBeVisible();
   });
 
   test("a notice for several routes selects each one the map draws", async ({ page, isMobile }) => {

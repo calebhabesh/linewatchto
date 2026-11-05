@@ -47,7 +47,7 @@ describe("night route helpers", () => {
     assert.deepEqual(nightBadgeRoutes("streetcar", id), ["301", "304"]);
     assert.equal(nightBadgeRoutes("bus", id), null);
     assert.equal(nightBadgeRoutes("bus", "bus-badges:29"), null);
-    assert.equal(NIGHT_BADGE_MIN_ZOOM <= BUS_BADGE_MIN_ZOOM, true);
+    assert.ok(NIGHT_BADGE_MIN_ZOOM > BUS_BADGE_MIN_ZOOM, "night routes are named after the daytime buses");
   });
 
   it("list the night routes on a line, noting a night streetcar's replacement buses", () => {

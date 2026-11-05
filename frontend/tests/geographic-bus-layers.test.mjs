@@ -40,6 +40,7 @@ import {
 import {
   BUS_BADGE_MIN_ZOOM,
   BUS_LAYER_STORAGE_KEY,
+  BUS_STOP_LABEL_MIN_ZOOM,
   BUS_STOP_MIN_ZOOM,
   busBadgeImageId,
   busBadgeRoutes,
@@ -183,7 +184,9 @@ describe("bus layers on the Map View (plan 13, S5)", () => {
     assert.ok(BUS_BADGE_MIN_ZOOM > getGeographicDefaultZoom("ttc"));
     assert.equal(map.getLayer(BUS_BADGE_LAYER).minzoom, BUS_BADGE_MIN_ZOOM);
     assert.ok(BUS_BADGE_MIN_ZOOM > STREETCAR_BADGE_MIN_ZOOM);
-    assert.equal(map.getLayer(BUS_STOP_LAYER).minzoom, BUS_STOP_MIN_ZOOM);
+    assert.equal(map.getLayer(BUS_STOP_DOT_LAYER).minzoom, BUS_STOP_MIN_ZOOM);
+    assert.equal(map.getLayer(BUS_STOP_LAYER).minzoom, BUS_STOP_LABEL_MIN_ZOOM);
+    assert.ok(BUS_STOP_LABEL_MIN_ZOOM > BUS_STOP_MIN_ZOOM, "numbers wait for a closer zoom than their dots");
     const streetcar = ["interpolate", ["linear"], ["zoom"], 9, 1.1, 12, 1.8, 14, 2.6, 17, 4.6];
     const width = map.getLayer(BUS_LINE_LAYER).paint["line-width"];
     for (const zoom of [9, getGeographicDefaultZoom("ttc"), 12, 14, 17]) assert.ok(evaluate(width, zoom) < evaluate(streetcar, zoom), `thinner at ${zoom}`);

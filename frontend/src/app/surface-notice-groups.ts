@@ -663,3 +663,34 @@ export function compareSurfaceNotices(
     : 0;
   return alertClassPriority || priority || route || timestamp(b.updatedAt) - timestamp(a.updatedAt) || a.id.localeCompare(b.id);
 }
+
+export function surfaceNoticeCategoryLabel(category: string): string {
+  switch (category.toLowerCase()) {
+    case "bypass": return "Bypass";
+    case "no-service": return "No Service";
+    case "detour": return "Detour";
+    case "service-change": return "Service Change";
+    default: return "Notice";
+  }
+}
+
+export type SurfaceNoticeImpactTone = "no-service" | "planned" | "caution";
+
+/** The station impact card tone a notice takes in a stop panel. */
+export function surfaceNoticeImpactTone(notice: SurfaceNoticeDetail): SurfaceNoticeImpactTone {
+  const emphasis = surfaceNoticeEmphasis(notice);
+  if (emphasis === "no-service") return "no-service";
+  return emphasis === "service-change" ? "planned" : "caution";
+}
+
+/** A stop's notices by category, for its warning banner: no service first, then most frequent. */
+export function surfaceNoticeImpactGroups(notices: readonly SurfaceNoticeDetail[]) {
+  const counts = new Map<string, number>();
+  for (const notice of notices) {
+    const category = notice.category.toLowerCase();
+    counts.set(category, (counts.get(category) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort(([a, countA], [b, countB]) => Number(b === "no-service") - Number(a === "no-service") || countB - countA || a.localeCompare(b))
+    .map(([category, count]) => ({ category, count, label: surfaceNoticeCategoryLabel(category) }));
+}

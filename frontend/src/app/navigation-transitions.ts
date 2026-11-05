@@ -222,14 +222,14 @@ export const SEARCH_RETURN_LABELS: Record<string, string> = {
   "reduced-speed-zones": "Reduced Speed Zones",
   "alert-history": "Alert History",
   "line-impacts": "Line Impacts",
-  "accessibility-outages": "Accessibility",
-  "surface-notices": "Service Notices",
-  announcements: "Announcements",
-  analytics: "Analytics",
+  "accessibility-outages": "Accessibility Outages",
+  "surface-notices": "GO / UP Notices",
+  announcements: "TTC Announcements",
+  analytics: "Reliability Analytics",
   notifications: "Notifications",
-  "release-notes": "Release Notes",
-  "privacy-acknowledgements": "Privacy",
-  feedback: "Feedback",
+  "release-notes": "What's New",
+  "privacy-acknowledgements": "Privacy & Acknowledgements",
+  feedback: "Leave Feedback",
 };
 
 /** `desktop`: the "more" destination is Settings in the desktop rail (More on phones). */
@@ -245,7 +245,11 @@ export function searchReturnDestinationAndLabel(
     ? "Back to Station Details"
     : options.desktop && context.activeView === "more"
       ? "Back to Settings"
-      : `Back to ${SEARCH_RETURN_LABELS[context.activeView] ?? "previous page"}`;
+      : context.activeView === "surface-notices" && context.selectedNetwork === "ttc"
+        ? "Back to Streetcar & Bus Notices"
+        : context.activeView === "source-status"
+          ? `Back to ${context.selectedNetwork === "regional" ? "GO / UP" : "TTC"} Source Status`
+          : `Back to ${SEARCH_RETURN_LABELS[context.activeView] ?? "previous page"}`;
   return { destination, label };
 }
 

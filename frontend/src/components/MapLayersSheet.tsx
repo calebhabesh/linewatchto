@@ -149,7 +149,7 @@ export function MapLayersSheet({ network, state, handlers, reducedMotion, onClos
         <MobileSheetDragHandle dragHandleProps={dragProps} />
         <header className="map-layers-sheet-header" {...dragProps}>
           <h2 id={titleId} className="map-layers-sheet-title">Map Layers</h2>
-          <button type="button" className="map-layers-sheet-close" onClick={requestClose} aria-label="Close map layers">
+          <button type="button" className="station-detail-close-button h-11 w-11 shrink-0" onClick={requestClose} aria-label="Close map layers">
             <X size={20} aria-hidden="true" />
           </button>
         </header>

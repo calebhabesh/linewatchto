@@ -30,6 +30,7 @@ import {
   STATION_PLAN_MINOR_ICON_FADE_ZOOMS,
   stationBayFromImageId,
 } from "../app/geographic-station-plans.ts";
+import { MAP_LABEL_FONT_REGULAR } from "../app/geographic-config.ts";
 
 /**
  * One source for every plan feature, given as a URL: MapLibre's worker
@@ -523,7 +524,7 @@ export function installStationPlanLayers(map: MapLibreMap, options: { dark: bool
       filter: featureType("station-entrance") as never,
       layout: {
         "text-field": STATION_ENTRANCE_LABEL_EXPRESSION as never,
-        "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
+        "text-font": [MAP_LABEL_FONT_REGULAR],
         "text-size": 11,
         "text-max-width": 9,
         "text-variable-anchor": ["left", "right", "top", "bottom"],

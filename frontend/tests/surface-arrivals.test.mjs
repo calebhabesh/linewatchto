@@ -351,3 +351,19 @@ describe("surface station arrivals", () => {
     assert.match(css, /\.saved-station-rich-content \.surface-connections-details\s*\{[^}]*margin-top:\s*0;/s);
   });
 });
+
+describe("parseSurfaceRouteDetails branch code", () => {
+  const code = (route, destination) => parseSurfaceRouteDetails({ mode: "bus", route, routeName: "Name", destination, bayPlatform: "" }, "ttc").branchCode;
+
+  it("shows the full code on the trip's sign", () => {
+    assert.equal(code("52", "West - 52F Lawrence West towards Royal York"), "52F");
+    assert.equal(code("29", "South - 29C Dufferin towards Exhibition (Princes' Gates)"), "29C");
+    assert.equal(code("18", "18G - Union Station"), "18G");
+  });
+
+  it("stays the route when the sign has no letter, names another route, or is blank", () => {
+    assert.equal(code("27", "South - 27 Jane South towards Jane Station"), "27");
+    assert.equal(code("52", "West - 152 Lawrence towards Somewhere"), "52");
+    assert.equal(code("52", ""), "52");
+  });
+});

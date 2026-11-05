@@ -4404,7 +4404,7 @@ test("global search opens a condensed alert result in its detailed card and mobi
   await page.getByRole("searchbox", { name: "Station Search" }).click();
 
   const searchbox = page.getByRole("searchbox", { name: "Station Search" });
-  await expect(searchbox).toHaveAttribute("placeholder", "Search all stations and alerts...");
+  await expect(searchbox).toHaveAttribute("placeholder", /^Search (all )?stations, routes,( and)? alerts\.\.\.$/);
   const searchPanel = page.locator("[data-station-search-panel]");
   await expect(searchPanel).toBeVisible();
   if (!isMobile) {

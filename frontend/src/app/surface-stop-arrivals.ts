@@ -10,6 +10,7 @@
 import { apiUrl } from "./api-client.ts";
 import { formatSurfaceArrivalClockTime, type SurfaceArrivalGroup } from "./surface-arrivals.ts";
 import type { SurfaceNoticeDetail } from "./surface-notice-data.ts";
+import { noticeRouteBase } from "./surface-route-stops.ts";
 
 export type SurfaceStopAvailability = "available" | "no-departures" | "disabled" | "not-in-schedule" | "unavailable";
 export type SurfaceStopLiveState = "live" | "stale" | "unavailable" | "disabled";
@@ -154,6 +155,11 @@ export function surfaceStopSchedulePeriod(schedule: SurfaceStopArrivals["schedul
   return `${label(schedule.serviceStart)} – ${label(schedule.serviceEnd)}`;
 }
 
+/** Whether any of these notices names the stop, rather than only one of its routes. */
+export function surfaceNoticesNameStop(notices: readonly SurfaceNoticeDetail[], stopId: string | null): boolean {
+  return stopId !== null && notices.some((notice) => notice.stopIds.includes(stopId));
+}
+
 /** Active notices naming one of the stop's routes or the stop itself, newest first. Display only. */
 export function surfaceNoticesForStop(
   notices: readonly SurfaceNoticeDetail[],
@@ -161,7 +167,7 @@ export function surfaceNoticesForStop(
   now: number | Date = Date.now(),
 ): SurfaceNoticeDetail[] {
   const nowMs = now instanceof Date ? now.getTime() : now;
-  const routes = new Set(stop.routes);
+  const routes = new Set(stop.routes.map((route) => route.trim().toUpperCase()));
   const active = (notice: SurfaceNoticeDetail) => {
     const start = notice.startAt ? Date.parse(notice.startAt) : Number.NaN;
     const end = notice.endAt ? Date.parse(notice.endAt) : Number.NaN;
@@ -171,7 +177,8 @@ export function surfaceNoticesForStop(
   };
   return notices
     .filter(active)
-    .filter((notice) => notice.routeIds.some((route) => routes.has(route))
+    // By route number, as a route panel does: the 29C's notice is the 29's, never the 329's.
+    .filter((notice) => notice.routeIds.some((route) => routes.has(noticeRouteBase(route)) || routes.has(route.trim().toUpperCase()))
       || (stop.stopId !== null && notice.stopIds.includes(stop.stopId)))
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }

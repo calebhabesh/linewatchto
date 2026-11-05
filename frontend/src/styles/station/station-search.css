@@ -1450,15 +1450,44 @@
 .dark .station-search-return-icon { color: #38bdf8; }
 .station-search-return-icon--status { color: #d97706; }
 .dark .station-search-return-icon--status { color: #f59e0b; }
-.station-search-return-icon--commutes { color: #059669; }
-.dark .station-search-return-icon--commutes { color: #34d399; }
+/* A page's rail colour, so the row reads as the page it returns to. */
+.station-search-return-icon--alerts { color: #dc2626; }
+.dark .station-search-return-icon--alerts { color: #f87171; }
+.station-search-return-icon--delays { color: #ca8a04; }
+.dark .station-search-return-icon--delays { color: #fde047; }
+.station-search-return-icon--reduced-speed-zones,
+.station-search-return-icon--trip-changes { color: #ea580c; }
+.dark .station-search-return-icon--reduced-speed-zones,
+.dark .station-search-return-icon--trip-changes { color: #fb923c; }
+.station-search-return-icon--closures,
+.station-search-return-icon--accessibility-outages { color: #2563eb; }
+.dark .station-search-return-icon--closures,
+.dark .station-search-return-icon--accessibility-outages { color: #60a5fa; }
+.station-search-return-icon--commutes,
+.station-search-return-icon--alert-history,
+.station-search-return-icon--notifications,
+.station-search-return-icon--source-status-regional { color: #059669; }
+.dark .station-search-return-icon--commutes,
+.dark .station-search-return-icon--alert-history,
+.dark .station-search-return-icon--notifications,
+.dark .station-search-return-icon--source-status-regional { color: #34d399; }
 .station-search-return-icon--stations { color: #0284c7; }
 .dark .station-search-return-icon--stations { color: #38bdf8; }
-.station-search-return-icon--alert-history { color: #7c3aed; }
-.dark .station-search-return-icon--alert-history { color: #a78bfa; }
-.station-search-return-icon--source-status { color: #0284c7; }
-.dark .station-search-return-icon--source-status { color: #38bdf8; }
-.station-search-return-icon--more { color: currentColor; }
+.station-search-return-icon--source-status-ttc { color: #dc2626; }
+.dark .station-search-return-icon--source-status-ttc { color: #f87171; }
+.station-search-return-icon--analytics { color: #a855f7; }
+.station-search-return-icon--release-notes { color: #f59e0b; }
+.station-search-return-icon--feedback,
+.station-search-return-icon--privacy-acknowledgements { color: #3b82f6; }
+.station-search-return-icon--surface-notices { color: #059669; }
+.dark .station-search-return-icon--surface-notices { color: #34d399; }
+.dark .station-search-return-icon--analytics { color: #a855f7; }
+.dark .station-search-return-icon--release-notes { color: #f59e0b; }
+.dark .station-search-return-icon--feedback,
+.dark .station-search-return-icon--privacy-acknowledgements { color: #3b82f6; }
+.station-search-return-icon--more,
+.dark .station-search-return-icon--more { color: currentColor; }
+.high-contrast .station-search-return-icon { color: currentColor; }
 
 @media (min-width: 768px) {
   .station-search-return {

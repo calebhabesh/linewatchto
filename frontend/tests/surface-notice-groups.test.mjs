@@ -4,7 +4,10 @@ import { describe, it } from "node:test";
 import {
   deriveSurfaceNoticeCause,
   compareSurfaceNotices,
+  surfaceNoticeCategoryLabel,
   surfaceNoticeEmphasis,
+  surfaceNoticeImpactGroups,
+  surfaceNoticeImpactTone,
   groupSurfaceNoticesByRoute,
   hasExactRouteMatch,
   surfaceNoticePreviewLocation,
@@ -421,5 +424,31 @@ describe("surface notice route search relevance", () => {
     // Both match route 8: recent sort puts newer update first
     assert.ok(compareSurfaceNotices(route8Older, route8Newer, "recent", "8") > 0);
     assert.ok(compareSurfaceNotices(route8Newer, route8Older, "recent", "8") < 0);
+  });
+});
+
+describe("a stop panel's notices", () => {
+  const notice = (category, id = category) => ({
+    id, category, routeType: "Bus", routeIds: ["82"], title: id, description: "", stopIds: [], updatedAt: "2026-11-05T00:00:00Z", source: "TTC",
+  });
+
+  it("names and tones each category", () => {
+    assert.equal(surfaceNoticeCategoryLabel("service-change"), "Service Change");
+    assert.equal(surfaceNoticeCategoryLabel("anything-else"), "Notice");
+    assert.equal(surfaceNoticeImpactTone(notice("no-service")), "no-service");
+    assert.equal(surfaceNoticeImpactTone(notice("service-change")), "planned");
+    assert.equal(surfaceNoticeImpactTone(notice("detour")), "caution");
+    assert.equal(surfaceNoticeImpactTone(notice("bypass")), "caution");
+  });
+
+  it("groups the banner's badges with no service first, then by count", () => {
+    const groups = surfaceNoticeImpactGroups([
+      notice("detour", "a"), notice("bypass", "b"), notice("bypass", "c"), notice("no-service", "d"),
+    ]);
+    assert.deepEqual(groups.map((group) => [group.category, group.count, group.label]), [
+      ["no-service", 1, "No Service"],
+      ["bypass", 2, "Bypass"],
+      ["detour", 1, "Detour"],
+    ]);
   });
 });

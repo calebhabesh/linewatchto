@@ -15,6 +15,7 @@ import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import {
   BUS_BADGE_MAX_ROUTES,
   BUS_BADGE_MIN_ZOOM,
+  BUS_STOP_LABEL_MIN_ZOOM,
   BUS_STOP_MIN_ZOOM,
   busBadgeImageId,
   busBadgeRoutes,
@@ -33,8 +34,10 @@ import {
   STREETCAR_BADGE_LAYER,
   STREETCAR_CASING_LAYER,
   STREETCAR_STOP_DOT_LAYER,
+  STOP_NUMBER_SIZE,
 } from "./geographic-streetcar-layers.ts";
 import { STREETCAR_VEHICLE_HALO_LAYER } from "./geographic-streetcar-vehicles.ts";
+import { MAP_LABEL_FONT_BOLD } from "../app/geographic-config.ts";
 
 /** Under the subway (or GO/UP rail) lines. */
 const RAIL_LINE_BEFORE = "transit-routes-casing";
@@ -42,7 +45,7 @@ const RAIL_LINE_BEFORE = "transit-routes-casing";
 const STATION_BEFORE = "transit-stations-outer";
 
 const BADGE_PIXEL_RATIO = 2;
-const BADGE_HEIGHT = 15;
+const BADGE_HEIGHT = 20;
 const BADGE_GAP = 2;
 
 export type BusLineStyle = {
@@ -75,6 +78,8 @@ export type BusLayerConfig = {
   style: BusLineStyle;
   badgeMinZoom: number;
   stopMinZoom: number;
+  /** Where stop numbers start, when later than the dots. */
+  stopLabelMinZoom?: number;
   badgeMaxRoutes: number;
   badgeImageId: (routes: readonly string[]) => string;
   badgeRoutes: (imageId: string) => string[] | null;
@@ -101,7 +106,7 @@ function drawBadgeRow(routes: readonly string[], maxRoutes: number, colorsFor: (
   if (typeof document === "undefined") return null;
   const scale = BADGE_PIXEL_RATIO;
   const height = BADGE_HEIGHT * scale;
-  const font = `800 ${10.5 * scale}px Arial, Helvetica, sans-serif`;
+  const font = `800 ${13.5 * scale}px Arial, Helvetica, sans-serif`;
   const shown = routes.length > maxRoutes ? routes.slice(0, maxRoutes - 1) : routes.slice();
   const more = routes.length - shown.length;
   const labels = more > 0 ? [...shown, `+${more}`] : shown;
@@ -109,7 +114,7 @@ function drawBadgeRow(routes: readonly string[], maxRoutes: number, colorsFor: (
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
   ctx.font = font;
-  const widths = labels.map((label) => Math.ceil(ctx.measureText(label).width) + 7 * scale);
+  const widths = labels.map((label) => Math.ceil(ctx.measureText(label).width) + 10 * scale);
   canvas.width = widths.reduce((sum, width) => sum + width, 0) + BADGE_GAP * scale * (labels.length - 1);
   canvas.height = height;
   ctx.font = font;
@@ -122,7 +127,7 @@ function drawBadgeRow(routes: readonly string[], maxRoutes: number, colorsFor: (
     const colors = isMore ? { fill: "#1f2937", text: "#ffffff", edge: null } : colorsFor(label);
     const inset = scale;
     ctx.beginPath();
-    ctx.roundRect(x + inset, inset, width - 2 * inset, height - 2 * inset, 3 * scale);
+    ctx.roundRect(x + inset, inset, width - 2 * inset, height - 2 * inset, 4 * scale);
     ctx.fillStyle = colors.fill;
     ctx.fill();
     ctx.lineWidth = 1.5 * scale;
@@ -342,18 +347,18 @@ export function createBusLayerKit(config: BusLayerConfig) {
         id: STOP_LAYER,
         type: "symbol",
         source: STOP_SOURCE_ID,
-        minzoom: config.stopMinZoom,
+        minzoom: config.stopLabelMinZoom ?? config.stopMinZoom,
         ...(unselected ? { filter: unselected as never } : {}),
         layout: {
           "text-field": ["get", "stopCode"],
-          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-          "text-size": 10.5,
+          "text-font": [MAP_LABEL_FONT_BOLD],
+          "text-size": STOP_NUMBER_SIZE as never,
           "text-anchor": "bottom",
           "text-offset": [0, -0.75],
           "icon-anchor": "bottom",
           "icon-image": STOP_PILL_IMAGE,
           "icon-text-fit": "both",
-          "icon-text-fit-padding": [1, 3, 1, 3],
+          "icon-text-fit-padding": [0.5, 2.5, 0.5, 2.5],
           // Under other stops and station names: a label that would overlap
           // one of them waits for a deeper zoom.
           "icon-allow-overlap": false,
@@ -519,6 +524,7 @@ const ttcBusKit = createBusLayerKit({
   style: BUS_LINE_STYLE,
   badgeMinZoom: BUS_BADGE_MIN_ZOOM,
   stopMinZoom: BUS_STOP_MIN_ZOOM,
+  stopLabelMinZoom: BUS_STOP_LABEL_MIN_ZOOM,
   badgeMaxRoutes: BUS_BADGE_MAX_ROUTES,
   badgeImageId: busBadgeImageId,
   badgeRoutes: busBadgeRoutes,

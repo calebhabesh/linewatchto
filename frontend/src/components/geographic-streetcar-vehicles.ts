@@ -15,6 +15,7 @@ import type { StreetcarVehicleFeatureProperties } from "../app/streetcar-positio
 import { setTransitPaintProperty } from "./geographic-network-transition.ts";
 import { readTrainMarkerPaint } from "./train-marker-art.ts";
 import { TTC_NIGHT_ROUTE_BLUE } from "../app/ttc-route-badge.ts";
+import { MAP_LABEL_FONT_BOLD } from "../app/geographic-config.ts";
 
 export const STREETCAR_VEHICLE_SOURCE = "transit-streetcar-vehicles";
 export const STREETCAR_VEHICLE_HALO_LAYER = "transit-streetcar-vehicles-halo";
@@ -252,7 +253,7 @@ export function installStreetcarVehicleLayers(
       minzoom: STREETCAR_VEHICLE_LABEL_MIN_ZOOM,
       layout: {
         "text-field": ["get", "route"],
-        "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+        "text-font": [MAP_LABEL_FONT_BOLD],
         "text-size": 10,
         "text-variable-anchor": ["left", "right"],
         "text-radial-offset": 1.8,

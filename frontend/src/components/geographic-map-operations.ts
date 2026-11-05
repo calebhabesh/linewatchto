@@ -39,6 +39,7 @@ import {
   variableAnchorOffset,
 } from "../app/geographic-station-label-placement.ts";
 import { installTransitOpacity, setTransitPaintProperty } from "./geographic-network-transition.ts";
+import { MAP_LABEL_FONT_BOLD, MAP_LABEL_FONT_REGULAR } from "../app/geographic-config.ts";
 
 export const EMPTY_GEOJSON_FEATURE_COLLECTION: GeoJSON.FeatureCollection = {
   type: "FeatureCollection",
@@ -1450,7 +1451,7 @@ export function installTransitLayers(
       minzoom: 13.0,
       layout: {
         "text-field": ["get", "label"],
-        "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+        "text-font": [MAP_LABEL_FONT_BOLD],
         "text-size": [
           "interpolate",
           ["linear"],
@@ -1484,7 +1485,7 @@ export function installTransitLayers(
       minzoom: GEOGRAPHIC_STATION_LABEL_MIN_ZOOM[network],
       layout: {
         "text-field": ["get", "name"],
-        "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
+        "text-font": [MAP_LABEL_FONT_REGULAR],
         "text-size": GEOGRAPHIC_STATION_LABEL_SIZE,
         // Beside the station, clear of its lines; the next placement when an
         // alert badge or another name takes the best one.
@@ -1524,7 +1525,7 @@ export function installTransitLayers(
       filter: ["==", ["get", "stationId"], ""],
       layout: {
         "text-field": ["get", "name"],
-        "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
+        "text-font": [MAP_LABEL_FONT_REGULAR],
         "text-size": GEOGRAPHIC_STATION_LABEL_SIZE,
         "text-offset": GEOGRAPHIC_STATION_LABEL_OFFSET,
         "text-anchor": GEOGRAPHIC_STATION_LABEL_ANCHOR,

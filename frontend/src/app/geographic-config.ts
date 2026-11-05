@@ -5,6 +5,14 @@
  * one place so hosting can change without touching transit rendering logic.
  */
 
+/**
+ * Fonts for our own map labels, from the basemap's glyph server. OpenFreeMap
+ * serves Noto Sans, and answers 404 for Open Sans. One font each: MapLibre asks
+ * for a list as a single joined name, which the server would not have.
+ */
+export const MAP_LABEL_FONT_REGULAR = "Noto Sans Regular";
+export const MAP_LABEL_FONT_BOLD = "Noto Sans Bold";
+
 export const OPENFREEMAP_STYLES = {
   light: "https://tiles.openfreemap.org/styles/positron",
   dark: "https://tiles.openfreemap.org/styles/dark",

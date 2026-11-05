@@ -17,6 +17,7 @@ import {
   type StreetcarVehicle,
   type StreetcarVehicleState,
 } from "../app/streetcar-positions";
+import { StreetcarCardRouteRow } from "./GeographicStreetcarCard";
 
 /** GO green, for a GO route the catalog does not list. */
 const GO_BUS_BADGE_FALLBACK = "#00853E";
@@ -42,6 +43,7 @@ export function GeographicStreetcarVehicleCard({
   offRoute,
   nearestStop = null,
   onOpenStop,
+  onOpenRoute,
   selectionKey,
   layout,
   follower,
@@ -63,6 +65,8 @@ export function GeographicStreetcarVehicleCard({
   offRoute: boolean;
   nearestStop?: StreetcarStopFeature | BusStopFeature | GoBusStopFeature | null;
   onOpenStop?: (stopCode: string) => void;
+  /** Opens the route's panel: its stops, notices and schedule. */
+  onOpenRoute?: (route: string) => void;
   selectionKey: string | null;
   layout: OverlapChooserScreenLayout;
   follower: MapChooserFollower;
@@ -165,18 +169,14 @@ export function GeographicStreetcarVehicleCard({
             <X size={20} aria-hidden="true" />
           </button>
         </div>
-        <div className="streetcar-card-row" data-streetcar-route={vehicle.route}>
-          <span
-            className="streetcar-card-badge"
-            style={badgeStyle}
-            aria-hidden="true"
-          >
-            {vehicle.route}
-          </span>
-          <span className="streetcar-card-copy">
-            <strong>{routeName}</strong>
-            {destination ? <span className="streetcar-card-note">{destination}</span> : null}
-          </span>
+        <div className="streetcar-card-item" data-streetcar-route={vehicle.route}>
+          <StreetcarCardRouteRow
+            route={vehicle.route}
+            name={routeName}
+            badgeStyle={badgeStyle}
+            note={destination}
+            onOpen={onOpenRoute}
+          />
         </div>
         <p className="streetcar-vehicle-status" data-state={state}>
           <span className="streetcar-vehicle-status-dot" aria-hidden="true" />

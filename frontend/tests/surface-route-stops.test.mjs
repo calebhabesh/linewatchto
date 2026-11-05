@@ -5,7 +5,11 @@ import { readFileSync } from "node:fs";
 import {
   isRouteStopsFile,
   ROUTE_STOPS_URLS,
+  busiestVariantFor,
+  expressCounterpart,
+  routeBranchCodes,
   routeDirections,
+  routeVariants,
   surfaceNoticesForRoute,
 } from "../src/app/surface-route-stops.ts";
 import { surfaceRouteLayer, surfaceRouteSelection } from "../src/app/surface-map-selection.ts";
@@ -177,5 +181,141 @@ describe("surfaceNoticesForRoute", () => {
     ];
     assert.deepEqual(surfaceNoticesForRoute(notices, { network: "regional", route: "31" }, now).map((n) => n.id), ["go-bus"]);
     assert.deepEqual(surfaceNoticesForRoute(notices, { network: "ttc", route: "31" }, now), []);
+  });
+});
+
+describe("routeVariants", () => {
+  // Along Lawrence, west to east: a stop every 1 km, with the eastbound pole across the street.
+  const westEnd = (at) => ({ lat: 43.7, lon: -79.6 + at * 0.0125 });
+  const points = Object.fromEntries([
+    ...[0, 1, 2, 3, 4, 5, 6, 7].map((at) => [`e${at}`, westEnd(at)]),
+    ...[0, 1, 2, 3, 4, 5, 6, 7].map((at) => [`w${at}`, { ...westEnd(at), lat: 43.7002 }]),
+  ]);
+  const stopPoint = (code) => points[code] ?? null;
+  const east = (from) => [0, 1, 2, 3, 4, 5, 6, 7].filter((at) => at >= from).map((at) => `e${at}`);
+  const west = (from) => east(from).map((code) => code.replace("e", "w")).reverse();
+  const fiftyTwo = [
+    { direction: 0, headsign: "East - 52 Lawrence West towards Lawrence Station", trips: 53, stops: east(0) },
+    { direction: 0, headsign: "East - 52 Lawrence West towards Lawrence Station", trips: 75, stops: east(4) },
+    { direction: 0, headsign: "East - 52F Lawrence West towards Sunnybrook Hospital via Lawrence Station", trips: 67, stops: east(2) },
+    { direction: 1, headsign: "West - 52A Lawrence West towards Pearson Airport via Dixon Rd", trips: 77, stops: west(0) },
+    { direction: 1, headsign: "West - 52B Lawrence West towards Westwood", trips: 70, stops: west(4) },
+    { direction: 1, headsign: "West - 52F Lawrence West towards Royal York", trips: 64, stops: west(2) },
+  ];
+  const variants = () => routeVariants(fiftyTwo, "52", () => null, stopPoint);
+
+  it("pairs plain return trips with the lettered branch they run back along, so each way has one list", () => {
+    assert.deepEqual(variants().map((variant) => variant.code), ["52A", "52B", "52F"]);
+    for (const variant of variants()) {
+      assert.deepEqual(variant.directions.map((direction) => direction.branches.length), [1, 1], variant.code);
+    }
+    const [a, b] = variants();
+    assert.deepEqual(a.directions[0].branches[0].stops, east(0));
+    assert.deepEqual(b.directions[0].branches[0].stops, east(4));
+  });
+
+  it("names a branch by where it goes each way, with its via", () => {
+    const [a, , f] = variants();
+    assert.equal(a.name, "Lawrence Station ↔ Pearson Airport via Dixon Rd");
+    assert.equal(f.name, "Sunnybrook Hospital via Lawrence Station ↔ Royal York");
+  });
+
+  it("the stop list still carries the sign as published", () => {
+    const [a] = variants();
+    assert.match(a.directions[0].branches[0].label, /^52 towards Lawrence Station/);
+    assert.equal(a.directions[0].label, "Eastbound");
+    assert.equal(a.directions[1].label, "Westbound");
+  });
+
+  it("does not pair lists on different streets: each stays a one-way branch", () => {
+    const far = { lat: 43.8, lon: -79.2 };
+    const list = routeVariants([
+      { direction: 0, headsign: "East - 86A Scarborough towards Zoo", trips: 10, stops: ["e0", "e1"] },
+      { direction: 0, headsign: "East - 86 Scarborough towards Zoo", trips: 10, stops: ["e2", "e3"] },
+      { direction: 1, headsign: "West - 86C Scarborough towards Kennedy", trips: 9, stops: ["x"] },
+    ], "86", () => null, (code) => (code === "x" ? far : stopPoint(code)));
+    assert.deepEqual(list.map((variant) => [variant.code, variant.directions.length]), [["86", 1], ["86A", 1], ["86C", 1]]);
+  });
+
+  it("pairs a code's only list each way even without stop locations", () => {
+    const list = routeVariants([
+      { direction: 0, headsign: "South - 27 Jane South towards Jane Station", trips: 123, stops: ["1"] },
+      { direction: 1, headsign: "North - 27 Jane South towards Mount Dennis Station", trips: 122, stops: ["2"] },
+    ], "27");
+    assert.deepEqual(list.map((variant) => variant.code), ["27"]);
+    assert.equal(list[0].name, "Jane Station ↔ Mount Dennis Station");
+  });
+
+  it("splits a code with several lists, with unique ids, telling alike ones apart by where they start", () => {
+    const list = routeVariants([
+      { direction: 0, headsign: "East - 86 Scarborough towards Kennedy", trips: 5, stops: ["1"] },
+      { direction: 0, headsign: "East - 86 Scarborough towards Kennedy", trips: 4, stops: ["2"] },
+    ], "86", (code) => `Stop ${code} Name`);
+    assert.deepEqual(list.map((variant) => variant.id), ["86/1", "86/2"]);
+    assert.deepEqual(list.map((variant) => variant.name), ["Kennedy, from Stop 1 Name", "Kennedy, from Stop 2 Name"]);
+  });
+
+  it("reads GO headsigns, and treats a sign that names no code as the route", () => {
+    assert.deepEqual(routeVariants([
+      { direction: 0, headsign: "18G - Union Station", trips: 1, stops: ["1"] },
+      { direction: 1, headsign: "18J - West Harbour GO", trips: 10, stops: ["2"] },
+      { direction: 1, headsign: "West Harbour Express", trips: 2, stops: ["3"] },
+    ], "18").map((variant) => variant.code), ["18", "18G", "18J"]);
+  });
+
+  it("a direction opens its busiest branch, by its trips that way", () => {
+    const list = routeVariants([
+      { direction: 0, headsign: "East - 52F Lawrence towards A", trips: 90, stops: ["1"] },
+      { direction: 1, headsign: "West - 52F Lawrence towards B", trips: 10, stops: ["2"] },
+      { direction: 1, headsign: "West - 52A Lawrence towards C", trips: 50, stops: ["3"] },
+    ], "52");
+    assert.equal(busiestVariantFor(list, 0).code, "52F");
+    assert.equal(busiestVariantFor(list, 1).code, "52A");
+    assert.equal(busiestVariantFor(list, 9), null);
+  });
+});
+
+describe("expressCounterpart", () => {
+  const ttc = (route, name) => ({ network: "ttc", route, name });
+  const routes = [
+    ttc("89", "Weston"), ttc("989", "Weston Express"),
+    ttc("39", "Finch East"), ttc("939", "Finch Express"),
+    ttc("27", "Jane South"), ttc("927", "Highway 27 Express"),
+    ttc("900", "Airport Express"), ttc("52", "Lawrence West"),
+  ];
+  const find = (number) => routes.find((route) => route.route === number);
+
+  it("links an express and its regular route, both ways", () => {
+    assert.deepEqual(expressCounterpart(find("89"), routes), { route: find("989"), isExpress: true });
+    assert.deepEqual(expressCounterpart(find("989"), routes), { route: find("89"), isExpress: false });
+    assert.equal(expressCounterpart(find("39"), routes).route.route, "939");
+  });
+
+  it("needs the names to agree: a shared number is not enough", () => {
+    assert.equal(expressCounterpart(find("27"), routes), null);
+    assert.equal(expressCounterpart(find("927"), routes), null);
+  });
+
+  it("gives nothing for a route with no counterpart, or outside the TTC", () => {
+    assert.equal(expressCounterpart(find("900"), routes), null);
+    assert.equal(expressCounterpart(find("52"), routes), null);
+    const go = [{ network: "regional", route: "89", name: "A" }, { network: "regional", route: "989", name: "A Express" }];
+    assert.equal(expressCounterpart(go[0], go), null);
+  });
+});
+
+describe("routeBranchCodes", () => {
+  it("lists a route's lettered branches once each, in order, without the plain route", () => {
+    assert.deepEqual(routeBranchCodes([
+      { direction: 0, headsign: "East - 52 Lawrence West towards Lawrence Station", trips: 1, stops: ["1"] },
+      { direction: 1, headsign: "West - 52F Lawrence West towards Royal York", trips: 1, stops: ["2"] },
+      { direction: 0, headsign: "East - 52F Lawrence West towards Sunnybrook Hospital", trips: 1, stops: ["3"] },
+      { direction: 1, headsign: "West - 52A Lawrence West towards Pearson Airport", trips: 1, stops: ["4"] },
+    ], "52"), ["52A", "52F"]);
+  });
+
+  it("is empty for a route with no letters, or not loaded", () => {
+    assert.deepEqual(routeBranchCodes([{ direction: 0, headsign: "South - 27 Jane South towards Jane Station", trips: 1, stops: ["1"] }], "27"), []);
+    assert.deepEqual(routeBranchCodes(undefined, "27"), []);
   });
 });

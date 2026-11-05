@@ -164,6 +164,186 @@ export function routeDirections(
     });
 }
 
+/**
+ * One way of running a route, shown to riders as a branch: at most one stop
+ * list per direction, under the code on its signs ("52F", or the plain "52").
+ */
+export type RouteVariant = {
+  /** Unique within the route: the code, plus a number when the code has several. */
+  id: string;
+  code: string;
+  /** Where it goes: "Sunnybrook Hospital via Lawrence Station ↔ Royal York". */
+  name: string;
+  /** Each with one stop list, under the whole route's labels. */
+  directions: RouteDirection[];
+};
+
+/** The code a headsign starts with, when it is this route's; else the route itself. */
+function variantCodeOf(headsign: string, route: string): string {
+  const token = splitHeadsign(headsign).rest.match(/^\S+/)?.[0].toUpperCase() ?? route;
+  return token.startsWith(route) && /^[A-Z]*$/.test(token.slice(route.length)) ? token : route;
+}
+
+/** The lettered branches on a route's signs, in order: "52A", "52B". Empty for a route with none. */
+export function routeBranchCodes(patterns: readonly RouteStopPattern[] | null | undefined, route: string): string[] {
+  const codes = (patterns ?? []).map((pattern) => variantCodeOf(pattern.headsign, route)).filter((code) => code !== route);
+  return [...new Set(codes)].sort((a, b) => a.length - b.length || a.localeCompare(b));
+}
+
+/** Where a headsign goes, with its "via" when it has one. */
+function destinationWithVia(rest: string): string {
+  return rest.match(/\btowards (.+)$/i)?.[1] ?? destination(rest);
+}
+
+type StopPoint = { lat: number; lon: number };
+
+function metersBetween(a: StopPoint, b: StopPoint): number {
+  const x = (b.lon - a.lon) * 111_320 * Math.cos((a.lat * Math.PI) / 180);
+  const y = (b.lat - a.lat) * 110_540;
+  return Math.hypot(x, y);
+}
+
+/** Stops this close are the same place on opposite sides of a street, or staggered along it. */
+const SAME_STREET_METERS = 300;
+/** A terminal's arrivals and departures can be a loop apart. */
+const SAME_TERMINAL_METERS = 1000;
+/** Signed alike, opposite lists may differ more: one-way streets, loops. */
+const MIN_SHARE_SIGNED_ALIKE = 0.6;
+const MIN_SHARE_PLAIN = 0.7;
+
+/**
+ * How alike two opposite stop lists are: the share of stops the other passes,
+ * if one starts about where the other ends. A short turn may end far from the
+ * other's start, so one end is enough. Null when they are not a pair.
+ */
+function returnTripShare(a: readonly StopPoint[], b: readonly StopPoint[], minimum: number): number | null {
+  if (a.length === 0 || b.length === 0) return null;
+  if (metersBetween(a[0], b[b.length - 1]) > SAME_TERMINAL_METERS
+    && metersBetween(a[a.length - 1], b[0]) > SAME_TERMINAL_METERS) return null;
+  const passed = (from: readonly StopPoint[], by: readonly StopPoint[]) =>
+    from.filter((stop) => by.some((other) => metersBetween(stop, other) <= SAME_STREET_METERS)).length / from.length;
+  const share = Math.min(passed(a, b), passed(b, a));
+  return share >= minimum ? share : null;
+}
+
+/**
+ * A route's branches, the plain route first and then by letter. The feed signs
+ * branches per trip and often one way only: every eastbound 52 reads "52", its
+ * westbound ones 52A, 52B and 52G. So opposite stop lists pair up: first those
+ * signed alike, then a plain one with the lettered branch whose stops it runs
+ * back along. This is an inference from the stops, for finding a stop list; the
+ * list's own label still gives the sign as published. What finds no pair is a
+ * branch running one way.
+ */
+export function routeVariants(
+  patterns: readonly RouteStopPattern[] | null | undefined,
+  route: string,
+  stopName: (code: string) => string | null = () => null,
+  stopPoint: (code: string) => StopPoint | null = () => null,
+): RouteVariant[] {
+  const usable = (patterns ?? []).filter((pattern) => pattern.stops.length > 0);
+  const whole = routeDirections(usable, stopName);
+  const items = usable.map((pattern) => ({
+    pattern,
+    code: variantCodeOf(pattern.headsign, route),
+    points: pattern.stops.flatMap((code) => stopPoint(code) ?? []),
+  }));
+  const directionIds = [...new Set(usable.map((pattern) => pattern.direction))].sort((a, b) => a - b);
+  const paired = new Map<(typeof items)[number], (typeof items)[number]>();
+  if (directionIds.length === 2) {
+    const [ones, others] = directionIds.map((id) => items.filter((item) => item.pattern.direction === id));
+    const candidates: { one: (typeof items)[number]; other: (typeof items)[number]; share: number; alike: boolean }[] = [];
+    for (const one of ones) {
+      for (const other of others) {
+        const alike = one.code === other.code;
+        if (!alike && one.code !== route && other.code !== route) continue;
+        const onlyPair = alike && ones.filter((item) => item.code === one.code).length === 1
+          && others.filter((item) => item.code === one.code).length === 1;
+        const share = returnTripShare(one.points, other.points, alike ? MIN_SHARE_SIGNED_ALIKE : MIN_SHARE_PLAIN);
+        if (onlyPair) candidates.push({ one, other, share: 2, alike });
+        else if (share !== null) candidates.push({ one, other, share, alike });
+      }
+    }
+    candidates.sort((a, b) => Number(b.alike) - Number(a.alike) || b.share - a.share);
+    for (const { one, other } of candidates) {
+      if (paired.has(one) || paired.has(other)) continue;
+      paired.set(one, other);
+      paired.set(other, one);
+    }
+  }
+
+  const groups: (typeof items)[] = [];
+  for (const item of items) {
+    const partner = paired.get(item);
+    if (!partner) groups.push([item]);
+    else if (item.pattern.direction === directionIds[0]) groups.push([item, partner]);
+  }
+  const wholeBranch = (pattern: RouteStopPattern) => whole
+    .find((direction) => direction.direction === pattern.direction)?.branches
+    .find((branch) => branch.stops === pattern.stops);
+  const rows = groups.map((group) => {
+    const code = group.find((item) => item.code !== route)?.code ?? route;
+    const name = [...new Set(group.map((item) => destinationWithVia(splitHeadsign(item.pattern.headsign).rest)))].join(" ↔ ");
+    const directions = group.map(({ pattern }) => {
+      const direction = whole.find((candidate) => candidate.direction === pattern.direction)!;
+      const branch = wholeBranch(pattern)!;
+      return { direction: direction.direction, label: direction.label, branches: [branch] };
+    });
+    return { code, name, directions };
+  });
+  rows.sort((a, b) => a.code.length - b.code.length || a.code.localeCompare(b.code));
+  const repeats = (row: (typeof rows)[number]) => rows.filter((other) => other.code === row.code && other.name === row.name).length > 1;
+  return rows.map((row, at) => {
+    const sameCode = rows.filter((other) => other.code === row.code);
+    return {
+      ...row,
+      // Signed alike and going to the same place: where each starts tells them apart.
+      name: repeats(row)
+        ? `${row.name}, from ${stopName(row.directions[0].branches[0].stops[0]) ?? `stop ${row.directions[0].branches[0].stops[0]}`}`
+        : row.name,
+      id: sameCode.length > 1 ? `${row.code}/${sameCode.indexOf(rows[at]) + 1}` : row.code,
+    };
+  });
+}
+
+/** The busiest variant running this direction: what a direction opens by itself. */
+export function busiestVariantFor(variants: readonly RouteVariant[], direction: number): RouteVariant | null {
+  let best: RouteVariant | null = null;
+  let bestTrips = 0;
+  for (const variant of variants) {
+    const trips = variant.directions
+      .filter((candidate) => candidate.direction === direction)
+      .flatMap((candidate) => candidate.branches)
+      .reduce((sum, branch) => sum + branch.trips, 0);
+    if (trips > bestTrips) {
+      best = variant;
+      bestTrips = trips;
+    }
+  }
+  return best;
+}
+
+/**
+ * A route's express or regular counterpart. TTC express routes number 900 above
+ * their regular route (989 Weston Express, 89 Weston), but not all do: 927
+ * Highway 27 Express has nothing to do with 27 Jane South, so the names must
+ * agree too ("Finch Express" and "Finch East" do).
+ */
+export function expressCounterpart<T extends { route: string; name: string; network: string }>(
+  route: T,
+  routes: readonly T[],
+): { route: T; isExpress: boolean } | null {
+  if (route.network !== "ttc" || !/^\d+$/.test(route.route)) return null;
+  const number = Number(route.route);
+  const named = (express: T, regular: T) => regular.name.toLowerCase().startsWith(express.name.replace(/\s+Express$/i, "").toLowerCase());
+  if (number > 900 && /\bExpress$/i.test(route.name)) {
+    const regular = routes.find((candidate) => candidate.route === String(number - 900));
+    return regular && named(route, regular) ? { route: regular, isExpress: false } : null;
+  }
+  const express = routes.find((candidate) => candidate.route === String(number + 900) && /\bExpress$/i.test(candidate.name));
+  return express && named(express, route) ? { route: express, isExpress: true } : null;
+}
+
 /** The route number a notice's route id names: "29C" → "29", "52F" → "52". */
 export function noticeRouteBase(id: string): string {
   return id.trim().toUpperCase().replace(/^(\d+)[A-Z]$/, "$1");
