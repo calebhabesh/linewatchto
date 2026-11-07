@@ -75,9 +75,13 @@ export function formatClosureScheduleValue(value: string) {
         .replace(/([A-Za-z]{3},?)\s+([A-Za-z]{3})\s+(\d{1,2})/g, "$1\u00A0$2\u00A0$3")
         .replace(/([A-Za-z]{3})\s+(\d{1,2})/g, "$1\u00A0$2")
         .replace(/\s+·/g, "\u00A0·")
-        .replace(/·\s+/g, "·\u00A0")
+        // A line may break after "·" but never inside "All Day".
+        .replace(/·\s+/g, "· ")
+        .replace(/\bAll\s+Day\b/g, "All\u00A0Day")
         .replace(/([A-Za-z]{3})\s+(\d{1,2}:\d{2})/g, "$1\u00A0$2")
         .replace(/(\d{1,2}:\d{2})\s+([AP]M)/g, "$1\u00A0$2")
+        // "Resumes Mon, Nov 16 6:00 AM" may break after "Resumes" in a narrow column.
+        .replace(/\bResumes\u00A0/g, "Resumes ")
     )
     .join(" – ");
 }
@@ -232,6 +236,20 @@ export function ImpactRouteHeader({
   );
 }
 
+/**
+ * Each "·" piece stays whole, but a narrow column may break between pieces, so a
+ * long window ("Sun, Nov 15 · All Day · Resumes Mon 6:00 AM") wraps inside its
+ * column instead of running into the next one.
+ */
+function closureWindowSegments(text: string, className: string): ReactNode[] {
+  const pieces = text.split(/[\s\u00A0]*·[\s\u00A0]*/).filter(Boolean);
+  return pieces.map((piece, index) => (
+    <span key={`${className}-${index}`} className={className}>
+      {index < pieces.length - 1 ? `${piece}\u00A0·` : piece}
+    </span>
+  ));
+}
+
 export function renderClosureScheduleValue(value: ReactNode, isWindowField: boolean): ReactNode {
   if (!isWindowField || typeof value !== "string") {
     return value;
@@ -243,8 +261,8 @@ export function renderClosureScheduleValue(value: ReactNode, isWindowField: bool
 
     return (
       <span className="closure-window-value">
-        <span className="closure-window-date">{rangeStart} {separator}</span>
-        <span className="closure-window-time">{rangeEnd}</span>
+        {closureWindowSegments(`${rangeStart} ${separator}`, "closure-window-date")}
+        {closureWindowSegments(rangeEnd, "closure-window-time")}
       </span>
     );
   }
@@ -260,7 +278,7 @@ export function renderClosureScheduleValue(value: ReactNode, isWindowField: bool
   return (
     <span className="closure-window-value">
       <span className="closure-window-date">{datePart}</span>
-      <span className="closure-window-time">{timePart}</span>
+      {closureWindowSegments(timePart, "closure-window-time")}
     </span>
   );
 }
@@ -278,6 +296,7 @@ export function MetadataGrid({
   leadingRows,
   extraRows,
   trailingRows,
+  omitStarted = false,
   className = "",
 }: {
   cause?: string | null;
@@ -292,6 +311,8 @@ export function MetadataGrid({
   leadingRows?: Array<{ label: string; value?: ReactNode }>;
   extraRows?: Array<{ label: string; labelSuffix?: ReactNode; value?: ReactNode }>;
   trailingRows?: Array<{ label: string; value?: ReactNode }>;
+  /** Planned advisories show their start in the schedule block instead. */
+  omitStarted?: boolean;
   className?: string;
 }) {
   const causeValue = formatCause(cause ?? reason);
@@ -311,7 +332,7 @@ export function MetadataGrid({
     causeValue ? ["Source Cause", causeValue, null] as const : null,
     resolutionValue ? ["Est. Resolution", resolutionValue, null] as const : null,
     ...renderedExtraRows,
-    ["Started", startedValue ?? <ImpactTimestamp key="started" timestamp={startedAt} />, null] as const,
+    omitStarted ? null : ["Started", startedValue ?? <ImpactTimestamp key="started" timestamp={startedAt} />, null] as const,
     [
       "Updated",
       updatedValue ?? (updatedAt

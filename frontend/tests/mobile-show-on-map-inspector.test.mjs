@@ -51,11 +51,12 @@ describe("mobile Show on Map inspector", () => {
     assert.doesNotMatch(inspectorSource, /Active Advisory Window|categoryLabel: "Active Closure"/);
   });
 
-  it("matches desktop cards: title narrative, limited-service badge, and shuttle badge", () => {
+  it("matches desktop cards: title narrative, planned effect badge, and shuttle badge", () => {
     assert.match(inspectorSource, /<strong className="impact-card-title">\{details\.title\}<\/strong>/);
     assert.match(inspectorSource, /details\.description && details\.description !== details\.title/);
     assert.match(inspectorSource, /title:\s*zone\.description\?\.trim\(\)\s*\?\s*zone\.description\s*:\s*zone\.title/);
-    assert.match(inspectorSource, /details\.serviceEffect === "limited-service" && selection\.kind === "planned-closure"/);
+    assert.match(inspectorSource, /selection\.kind === "planned-closure" \? <PlannedEffectBadge incident=\{\{ serviceEffect: details\.serviceEffect \}\} \/>/);
+    assert.match(inspectorSource, /cause: plannedAdvisoryCause\(closure\.cause\)/);
     assert.match(inspectorSource, /className="impact-card-service-badge shuttle"/);
   });
 

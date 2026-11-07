@@ -287,7 +287,9 @@ describe("floating menu layout", () => {
     assert.match(impactCardFieldsSource, /export function formatClosureScheduleValue/);
     assert.match(impactCardFieldsSource, /replace\(\/\\s\*\[–—\]\\s\*\/g, " – "\)/);
     assert.match(plannedClosuresSource, /formatClosureScheduleValue\(specificWindowLabel\)/);
-    assert.match(plannedClosuresSource, /<MetadataGrid[\s\S]*?leadingRows=\{\[/s);
+    // Exact windows render as the schedule block; the published labels are the fallback.
+    assert.match(plannedClosuresSource, /\{schedule \? <PlannedAdvisorySchedule schedule=\{schedule\} \/> : null\}\s*<MetadataGrid/);
+    assert.match(plannedClosuresSource, /<MetadataGrid[\s\S]*?omitStarted=\{Boolean\(schedule\)\}[\s\S]*?leadingRows=\{schedule \? undefined : \[/s);
     assert.match(plannedClosuresSource, /label:\s*"Advisory Hours"/);
     assert.match(plannedClosuresSource, /label:\s*"Advisory Dates"/);
     assert.match(plannedClosuresSource, /label:\s*specificWindowHeading/);
@@ -308,7 +310,9 @@ describe("floating menu layout", () => {
     assert.match(impactCardFieldsSource, /isWindowField \? " is-window-row" : ""/);
     assert.match(impactCardFieldsSource, /renderClosureScheduleValue/);
     assert.match(impactCardFieldsSource, /rangeMatch = value\.match/);
-    assert.match(impactCardFieldsSource, /\{rangeStart\} \{separator\}/);
+    assert.match(impactCardFieldsSource, /closureWindowSegments\(`\$\{rangeStart\} \$\{separator\}`, "closure-window-date"\)/);
+    // Long windows break between "·" pieces rather than overflowing into the next column.
+    assert.match(impactCardFieldsSource, /closureWindowSegments\(rangeEnd, "closure-window-time"\)/);
     assert.match(globalCss, /\.impact-metadata-grid > \.is-window-row\s*\{[^}]*grid-column:\s*1 \/ -1/s);
     assert.match(globalCss, /\.closure-window-value\s*\{[^}]*display:\s*inline-flex;[^}]*white-space:\s*nowrap/s);
     assert.match(globalCss, /\.closure-window-date\s*\{[^}]*white-space:\s*nowrap/s);

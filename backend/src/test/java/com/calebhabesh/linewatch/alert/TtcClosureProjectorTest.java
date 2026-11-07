@@ -38,11 +38,29 @@ class TtcClosureProjectorTest {
         assertThat(upcoming.canonicalClosure().windowDates()).isEqualTo("Mon, Sep 28 – Thu, Oct 1");
         assertThat(upcoming.canonicalClosure().nextWindowStart()).isEqualTo(start);
         assertThat(upcoming.canonicalClosure().nextWindowEnd()).isEqualTo(start.plusHours(3));
+        // The listed Thursday night is the last published night, so it says when regular service returns.
+        assertThat(upcoming.canonicalClosure().lastWindowEnd()).isEqualTo(start.plusDays(2).plusHours(3));
         assertThat(upcoming.activeNow()).isFalse();
         ClosureProjection active = projector.project(List.of(parent), periods, List.of(), start.plusHours(1)).getFirst();
         assertThat(active.canonicalClosure().windowDates()).isEqualTo(upcoming.canonicalClosure().windowDates());
         assertThat(active.canonicalClosure().activeWindowLabel()).contains("Tue, Sep 29").contains("Wed, Sep 30");
         assertThat(active.activeNow()).isTrue();
+    }
+
+    @Test
+    void lastWindowEndIsWithheldWhenTheFeedListsOnlyPartOfThePublishedNights() {
+        OffsetDateTime start = OffsetDateTime.parse("2026-09-28T23:00:00-04:00");
+        AlertEntity parent = withLine(alert("partial-nights", "planned-closure", "planned",
+            "Limited nightly service from Monday, September 28 to Thursday, October 1, 2026",
+            "There will be limited nightly service.", "vaughan", "finch-west", start.minusDays(4), null), "line-1", "1");
+        ReflectionTestUtils.setField(parent, "impactKind", "limited-service");
+        ReflectionTestUtils.setField(parent, "activePeriodEnd", start.plusDays(4));
+        Map<String, List<AlertPeriod>> periods = Map.of(parent.getId(), List.of(
+            new AlertPeriod(parent.getId(), "mon", start, start.plusHours(3), 0),
+            new AlertPeriod(parent.getId(), "tue", start.plusDays(1), start.plusDays(1).plusHours(3), 1)));
+        PlannedClosureDto dto = projector.project(List.of(parent), periods, List.of(), start.minusHours(10)).getFirst().canonicalClosure();
+        assertThat(dto.windowDates()).isEqualTo("Mon, Sep 28 – Thu, Oct 1");
+        assertThat(dto.lastWindowEnd()).isNull();
     }
 
     @Test
@@ -490,6 +508,9 @@ class TtcClosureProjectorTest {
             assertThat(dto.nextWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-06-02T10:00:00Z"));
             assertThat(dto.windowHours()).isEqualTo("11:00 PM – 6:00 AM");
             assertThat(dto.windowDates()).isEqualTo("Mon, Jun 1 – Tue, Jun 2");
+            // Cards show the series line only when the advisory has more than one window.
+            assertThat(dto.windowCount()).isEqualTo(2);
+            assertThat(dto.lastWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-06-03T10:00:00Z"));
         });
 
         // Evaluated at 1:00 AM EDT during window 1 (June 2, 05:00 UTC): active-now
@@ -916,6 +937,25 @@ class TtcClosureProjectorTest {
 
         assertThat(dto.windowDates()).isEqualTo("Sat, Oct 24 – Sun, Oct 25");
         assertThat(dto.window()).isEqualTo("Sat, Oct 24 – Sun, Oct 25 · All Day · Resumes Mon 6:00 AM");
+        assertThat(dto.windowCount()).isEqualTo(1);
+        assertThat(dto.lastWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-10-26T06:00:00-04:00"));
+    }
+
+    @Test
+    void weekendClosureStartingBeforeTheFirstTrainCoversWholeDays() {
+        PlannedClosureDto dto = websiteClosure("Line 2 – St George to Broadview stations – Full weekend closure",
+            OffsetDateTime.parse("2026-11-07T05:00:00-05:00"), OffsetDateTime.parse("2026-11-09T05:00:00-05:00"));
+
+        assertThat(dto.windowDates()).isEqualTo("Sat, Nov 7 – Sun, Nov 8");
+        assertThat(dto.windowHours()).isEqualTo("All Day · Resumes Mon 5:00 AM");
+    }
+
+    @Test
+    void closureStartingAfterTheFirstTrainIsNotAWholeDay() {
+        PlannedClosureDto dto = websiteClosure("Line 2 – St George to Broadview stations – Weekend closure",
+            OffsetDateTime.parse("2026-11-07T10:00:00-05:00"), OffsetDateTime.parse("2026-11-09T05:00:00-05:00"));
+
+        assertThat(dto.windowHours() == null || !dto.windowHours().startsWith("All Day")).isTrue();
     }
 
     @Test

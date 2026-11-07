@@ -228,6 +228,7 @@
 }
 
 .impact-card-type-badge,
+.impact-card-effect-badge,
 .impact-card-service-badge {
   align-items: center;
   border: 1px solid rgba(100, 116, 139, 0.2);
@@ -267,9 +268,35 @@
   color: #dc2626;
 }
 
+/* Planned effect: an outlined pink tint, never the solid red "Active Now" fill. */
+.impact-card-effect-badge.closure {
+  background: rgba(236, 72, 153, 0.1);
+  border-color: rgba(219, 39, 119, 0.32);
+  color: #be185d;
+}
+
+.impact-card-effect-badge.limited-service {
+  background: rgba(250, 204, 21, 0.14);
+  border-color: rgba(202, 138, 4, 0.36);
+  color: #854d0e;
+}
+
 .impact-card-service-badge.nightly {
-  background: rgba(100, 116, 139, 0.08);
-  color: var(--muted);
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(124, 58, 237, 0.28);
+  color: #6d28d9;
+}
+
+.dark .impact-card-effect-badge.closure {
+  color: #f472b6;
+}
+
+.dark .impact-card-effect-badge.limited-service {
+  color: #fde047;
+}
+
+.dark .impact-card-service-badge.nightly {
+  color: #c4b5fd;
 }
 
 .dark .impact-card-type-badge.planned-closure,
@@ -621,6 +648,76 @@
 
 .planned-closure-metadata .is-emphasized dd {
   font-weight: 850;
+}
+
+/* Planned advisory schedule: one window as Starts / Regular Service Resumes;
+   a series as Nights, Each Night, the next window, and the final return. */
+.planned-schedule {
+  margin: 0 0 14px;
+  min-width: 0;
+}
+
+.planned-schedule-heading {
+  color: var(--color-logo-blue);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  line-height: 1.25;
+  margin: 0 0 6px;
+  text-shadow: 0 0 4px rgba(129, 201, 255, 0.35);
+  text-transform: uppercase;
+}
+
+.planned-schedule-rows {
+  column-gap: 16px;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  margin: 0;
+  row-gap: 4px;
+}
+
+.planned-schedule-row {
+  display: contents;
+}
+
+.planned-schedule-row dt {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.planned-schedule-row dd {
+  color: var(--text);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 850;
+  line-height: 1.35;
+  margin: 0;
+  min-width: 0;
+}
+
+/* Phone-width cards: each label sits above its value. */
+@container impact-details (max-width: 24rem) {
+  .planned-schedule-rows {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0;
+  }
+
+  .planned-schedule-row dd {
+    margin-bottom: 6px;
+  }
+
+  .planned-schedule-row:last-child dd {
+    margin-bottom: 0;
+  }
+}
+
+/* Spacing alone separates the schedule from the metadata below; no second divider. */
+.planned-schedule + .impact-metadata-grid {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .impact-metadata-grid > .is-window-row {

@@ -65,6 +65,8 @@ public class TtcClosureProjector {
     // A window ending by this time belongs to the previous service day (overnight
     // closures resume around 6 a.m.; whole-day closures end at midnight).
     private static final java.time.LocalTime LATEST_OVERNIGHT_END = java.time.LocalTime.of(8, 0);
+    // No subway train runs before 6:00 AM, so a window starting by then closes that whole service day.
+    private static final java.time.LocalTime LATEST_WHOLE_DAY_START = java.time.LocalTime.of(6, 0);
     private static final String ALL_DAY = "All Day";
     private static final DateTimeFormatter RESUME_FORMATTER = DateTimeFormatter.ofPattern("EEE h:mm a", Locale.ENGLISH);
     private static final Pattern TRUNCATED_CLOSURE_START = Pattern.compile(
@@ -336,6 +338,15 @@ public class TtcClosureProjector {
         String windowHours = closureWindowHours(reliablePeriods);
         String windowDates = closureWindowDates(alert, reliablePeriods, nightly, now);
 
+        OffsetDateTime lastWindowEnd = reliablePeriods.stream()
+            .map(AlertPeriod::endsAt)
+            .filter(java.util.Objects::nonNull)
+            .max(Comparator.naturalOrder())
+            // Only a window that is the last one the card names may say when regular service returns;
+            // a feed listing part of a published range must not imply the series ends early.
+            .filter(end -> windowDates != null && windowDates.endsWith(formattedClosureDate(lastServiceDate(end), now)))
+            .orElse(null);
+
         Optional<AlertPeriod> active = reliablePeriods.stream()
             .filter(period -> !isParentPeriod(period)
                 || isBoundedSingleWindow(period)
@@ -348,7 +359,7 @@ public class TtcClosureProjector {
             AlertPeriod period = active.orElseThrow();
             return new WindowState(true, "active-now", nightly,
                 period.startsAt(), period.endsAt(), window(period.startsAt(), period.endsAt(), now),
-                null, null, null, windowHours, windowDates, period.sourcePeriodId(), reliablePeriods.size());
+                null, null, null, windowHours, windowDates, period.sourcePeriodId(), reliablePeriods.size(), lastWindowEnd);
         }
 
         Optional<AlertPeriod> next = reliablePeriods.stream()
@@ -363,11 +374,11 @@ public class TtcClosureProjector {
             return new WindowState(false, "upcoming", nightly,
                 null, null, null,
                 period.startsAt(), period.endsAt(), window(period.startsAt(), period.endsAt(), now),
-                windowHours, windowDates, null, reliablePeriods.size());
+                windowHours, windowDates, null, reliablePeriods.size(), lastWindowEnd);
         }
 
         return new WindowState(false, "unknown", nightly,
-            null, null, null, null, null, null, windowHours, windowDates, null, reliablePeriods.size());
+            null, null, null, null, null, null, windowHours, windowDates, null, reliablePeriods.size(), lastWindowEnd);
     }
 
     private boolean isReliableClosureWindow(
@@ -471,11 +482,12 @@ public class TtcClosureProjector {
         return end.toLocalTime().isAfter(LATEST_OVERNIGHT_END) ? end.toLocalDate() : end.toLocalDate().minusDays(1);
     }
 
-    // Whole service days start at midnight and end at midnight or at a published
+    // Whole service days start before the day's first train (midnight, or a published
+    // early-morning start such as 5:00 AM) and end at midnight or at a published
     // next-morning resumption.
     private static boolean isWholeServiceDays(OffsetDateTime startsAt, OffsetDateTime endsAt) {
         if (startsAt == null || endsAt == null || !endsAt.isAfter(startsAt)
-            || !startsAt.atZoneSameInstant(TORONTO_ZONE).toLocalTime().equals(java.time.LocalTime.MIDNIGHT)) {
+            || startsAt.atZoneSameInstant(TORONTO_ZONE).toLocalTime().isAfter(LATEST_WHOLE_DAY_START)) {
             return false;
         }
         java.time.LocalTime endTime = endsAt.atZoneSameInstant(TORONTO_ZONE).toLocalTime();
@@ -637,7 +649,8 @@ public class TtcClosureProjector {
             plannedClosureTravelDirection(alert, previewSegmentIds, segments)
         ).withServiceEffect("limited-service".equals(alert.getImpactKind()) ? "limited-service" : "suspension")
             .withPreviewStationIds(previewSegmentIds.isEmpty() ? alert.getStationIds() : List.of())
-            .withDisplayLocation(AlertDashboardService.displayLocation(segmentMatcher, alert, segments));
+            .withDisplayLocation(AlertDashboardService.displayLocation(segmentMatcher, alert, segments))
+            .withWindowSeries(ws.occurrenceCount() > 0 ? ws.occurrenceCount() : null, ws.lastWindowEnd());
     }
 
     private PlannedClosureDto activeClosurePresentation(
@@ -696,7 +709,8 @@ public class TtcClosureProjector {
         ).withServiceEffect("limited-service".equals(currentSourceAlert.getImpactKind()) ? "limited-service"
             : "delay".equals(currentSourceAlert.getImpactKind()) ? "delay" : "suspension")
             .withPreviewStationIds(previewSegmentIds.isEmpty() ? currentSourceAlert.getStationIds() : List.of())
-            .withDisplayLocation(AlertDashboardService.displayLocation(segmentMatcher, currentSourceAlert, segments));
+            .withDisplayLocation(AlertDashboardService.displayLocation(segmentMatcher, currentSourceAlert, segments))
+            .withWindowSeries(closure.windowCount(), closure.lastWindowEnd());
     }
 
     private ActiveAlertDto toActiveClosureAlert(
@@ -1040,7 +1054,8 @@ public class TtcClosureProjector {
         String windowHours,
         String windowDates,
         String activeSourcePeriodId,
-        int occurrenceCount
+        int occurrenceCount,
+        OffsetDateTime lastWindowEnd
     ) {}
 
     /**

@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
 import { ArrowRight, Bus } from "lucide-react";
-import { serviceEffectLabel } from "../app/alert-categories";
+import { plannedAdvisoryCause, plannedAdvisoryEffect, serviceEffectLabel } from "../app/alert-categories";
+import { NightlyBadge, PlannedEffectBadge } from "./PlannedEffectBadge";
 import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/commute-data";
@@ -14,6 +15,8 @@ import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-co
 import { ImpactListToolbar } from "./ImpactListToolbar";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { PlannedAdvisoryStatus } from "./PlannedAdvisoryStatus";
+import { PlannedAdvisorySchedule } from "./PlannedAdvisorySchedule";
+import { plannedAdvisorySchedule } from "../app/planned-advisory-schedule";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { dashboardImpactSourcesLabel } from "../app/dashboard-source-label";
 import { CompactImpactListItem, CompactImpactTimeValue } from "./CompactImpactListItem";
@@ -142,6 +145,7 @@ export function PlannedClosuresPanel({
             const hasScheduleDetails = Boolean(
               closure.windowHours || closure.windowDates || specificWindowLabel,
             );
+            const schedule = plannedAdvisorySchedule(closure);
             const overlappingImpacts = getOverlappingImpactRefs(
               { kind: "planned-closure", id: closure.id, segmentIds: closure.previewSegmentIds ?? [] },
               { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },
@@ -155,7 +159,7 @@ export function PlannedClosuresPanel({
                   impactId={closure.id}
                   lineId={closure.lineId}
                   lineNumber={closure.lineNumber}
-                  title={serviceEffectLabel(closure, true)}
+                  title={plannedAdvisoryEffect(closure) === "closure" ? "Planned Closure" : serviceEffectLabel(closure, true)}
                   locationFirst
                   details={<><p>{closure.title}</p><p>Direction: {closure.displayDirection || "Not Reported"}</p><p>Started: <CompactImpactTimeValue timestamp={closure.startedAt} /></p></>}
                   location={closure.location}
@@ -163,7 +167,7 @@ export function PlannedClosuresPanel({
                     ...((closure.windowDates || closure.windowHours) ? [{ label: "Schedule", value: [closure.windowDates, closure.windowHours].filter(Boolean).map(value => formatClosureScheduleValue(value!)).join(" · "), emphasized: true }] : []),
                     {
                       column: 1,
-                      label: specificWindowLabel ? listWindowHeading : "Advisory Window",
+                      label: schedule?.windowLabel ?? (specificWindowLabel ? listWindowHeading : "Advisory Window"),
                       emphasized: true,
                       value: specificWindowLabel ? formatClosureScheduleValue(specificWindowLabel) : closure.window,
                     },
@@ -225,15 +229,15 @@ export function PlannedClosuresPanel({
                           <PlannedAdvisoryStatus closure={closure} />
                         </span>
                       )}
-                      {(showImpactTypeIndicator || closure.serviceEffect === "limited-service") ? (
+                      {plannedAdvisoryEffect(closure) ? (
+                        <PlannedEffectBadge incident={closure} planned={showImpactTypeIndicator} />
+                      ) : showImpactTypeIndicator ? (
                         <span className="impact-card-type-badge planned-closure">
                           <ImpactTypeIcon kind="planned-closure" size={13} />
                           {serviceEffectLabel(closure, true)}
                         </span>
                       ) : null}
-                      {closure.nightly ? (
-                        <span className="impact-card-service-badge nightly">Nightly</span>
-                      ) : null}
+                      {closure.nightly ? <NightlyBadge /> : null}
                       {closure.shuttle ? (
                         <span className="impact-card-service-badge shuttle">
                           <Bus size={11} />
@@ -252,16 +256,18 @@ export function PlannedClosuresPanel({
                 />
 
                 <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 w-full min-w-0">
+                  {schedule ? <PlannedAdvisorySchedule schedule={schedule} /> : null}
                   <MetadataGrid
                     className="no-border planned-closure-metadata"
-                    cause={closure.cause}
+                    cause={plannedAdvisoryCause(closure.cause)}
                     resolution={closure.resolution}
                     reason={closure.reason}
                     targetRemoval={closure.targetRemoval}
                     startedAt={closure.startedAt}
                     updatedAt={closure.updatedAt}
                     updatedAgo={closure.updatedAgo}
-                    leadingRows={[
+                    omitStarted={Boolean(schedule)}
+                    leadingRows={schedule ? undefined : [
                       {
                         label: "Advisory Dates",
                         value: closure.windowDates

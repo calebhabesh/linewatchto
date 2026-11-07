@@ -208,6 +208,10 @@ export type PlannedClosure = IncidentRiderDetails & {
   nextWindowLabel?: string | null;
   windowHours?: string | null;
   windowDates?: string | null;
+  /** Reliable windows the source still lists; absent when the source has no window list. */
+  windowCount?: number | null;
+  /** End of the last listed window, sent only when it is the last date the card names. */
+  lastWindowEnd?: string | null;
 };
 
 export type CommuteSummary = {

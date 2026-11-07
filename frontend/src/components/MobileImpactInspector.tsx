@@ -1,6 +1,9 @@
 "use client";
 
-import { serviceEffectLabel } from "../app/alert-categories";
+import { plannedAdvisoryCause, serviceEffectLabel } from "../app/alert-categories";
+import { NightlyBadge, PlannedEffectBadge } from "./PlannedEffectBadge";
+import { PlannedAdvisorySchedule } from "./PlannedAdvisorySchedule";
+import { plannedAdvisorySchedule, type PlannedScheduleView } from "../app/planned-advisory-schedule";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AlertTriangle, ArrowLeft, ArrowRight, Bus, ChevronDown, ChevronUp, Construction, ExternalLink, X } from "lucide-react";
@@ -45,6 +48,7 @@ type SelectedImpactDetails = {
   closureDateLabel?: string;
   closureTimeLabel?: string;
   serviceEffect?: "suspension" | "delay" | "limited-service" | null;
+  plannedSchedule?: PlannedScheduleView | null;
   startedAt?: string | null;
   updatedAt?: string | null;
   updatedAgo?: string | null;
@@ -270,6 +274,7 @@ export function getSelectedImpactDetails(
   const hasScheduleDetails = Boolean(
     closure.windowHours || closure.windowDates || specificWindowLabel,
   );
+  const schedule = plannedAdvisorySchedule(closure);
 
   return {
     id: closure.id,
@@ -293,11 +298,12 @@ export function getSelectedImpactDetails(
     startedAt: closure.startedAt,
     updatedAt: closure.updatedAt,
     updatedAgo: closure.updatedAgo,
-    cause: closure.cause,
+    cause: plannedAdvisoryCause(closure.cause),
     resolution: closure.resolution,
     reason: closure.reason,
     targetRemoval: closure.targetRemoval,
-    leadingRows: [
+    plannedSchedule: schedule,
+    leadingRows: schedule ? undefined : [
       {
         label: "Advisory Dates",
         value: closure.windowDates ? formatClosureScheduleValue(closure.windowDates) : null,
@@ -473,13 +479,8 @@ export function MobileImpactInspector({
         <div className="mobile-impact-inspector-badges">
           {details.statusAction}
           {details.relatedPlannedClosureId ? <RelatedPlannedClosureButton closureId={details.relatedPlannedClosureId} onSelectImpact={onSelectImpact} /> : null}
-          {details.serviceEffect === "limited-service" && selection.kind === "planned-closure" ? (
-            <span className="impact-card-type-badge planned-closure">
-              <ImpactTypeIcon kind="planned-closure" size={13} />
-              {serviceEffectLabel({ serviceEffect: details.serviceEffect }, true)}
-            </span>
-          ) : null}
-          {details.nightly ? <span className="impact-card-service-badge nightly">Nightly</span> : null}
+          {selection.kind === "planned-closure" ? <PlannedEffectBadge incident={{ serviceEffect: details.serviceEffect }} /> : null}
+          {details.nightly ? <NightlyBadge /> : null}
           {details.shuttle ? (
             <span className="impact-card-service-badge shuttle">
               <Bus size={11} />
@@ -510,6 +511,8 @@ export function MobileImpactInspector({
           label="Overlap:"
         />
 
+        {showDetailedMetadata && details.plannedSchedule ? <PlannedAdvisorySchedule schedule={details.plannedSchedule} /> : null}
+
         {showDetailedMetadata ? (
           <MetadataGrid
             className={`mobile-impact-inspector-metadata${selection.kind === "planned-closure" ? " planned-closure-metadata" : ""}`}
@@ -523,6 +526,7 @@ export function MobileImpactInspector({
             startedValue={details.startedValue}
             updatedValue={details.updatedValue}
             leadingRows={details.leadingRows}
+            omitStarted={Boolean(details.plannedSchedule)}
             extraRows={details.extraRows}
             trailingRows={details.trailingRows}
           />
