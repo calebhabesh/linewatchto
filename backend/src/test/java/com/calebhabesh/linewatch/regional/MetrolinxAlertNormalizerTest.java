@@ -1151,6 +1151,110 @@ class MetrolinxAlertNormalizerTest {
     }
 
     @Test
+    void foldsARestatedLineNoticeSoItsStationCopiesHaveOneNoticeToFoldInto() throws Exception {
+        // Metrolinx's Nov. 7-8 Stouffville and Lakeshore East closures, as published (English text only):
+        // each line notice was restated under a later ID with one sentence changed ("If you are taking
+        // the TTC ..."), and each line had two station copies listing its stops. Before restatements
+        // folded, every stop showed three stacked closures.
+        var normalizer = new MetrolinxAlertNormalizer(
+            Clock.fixed(Instant.parse("2026-11-07T18:00:00Z"), ZoneOffset.UTC));
+        String stouffville = "On Saturday, Nov. 7 and Sunday, Nov. 8, planned construction is taking place on the "
+            + "Stouffville line.There will be no GO train service on the Stouffville line.GO buses will serve Old Elm "
+            + "GO making all stops to Unionville GO, then running direct to Union Station Bus Terminal.There will be "
+            + "no GO Transit service at Milliken, Agincourt, and Kennedy GO.";
+        String lakeshoreEast = "There will be no GO train service on Lakeshore East. GO buses will replace train "
+            + "service.There will be no GO Transit service at Rouge Hill, Guildwood, Eglinton, Scarborough or "
+            + "Danforth GO.";
+        String ttc = "If you are taking the TTC, please note there is a Line 2 service adjustment. Visit their "
+            + "website for details.";
+        String learnMore = "Learn more about this and upcoming construction on ";
+        String trainStation = "No GO train service at this station due to planned construction. Sign up for On the GO alerts.";
+        String transitStation = "No GO Transit service at this station due to planned construction. Sign up for On the GO alerts.";
+        var feed = new MetrolinxFeed(OffsetDateTime.parse("2026-11-07T17:48:27Z"), List.of(
+            publishedNotice(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000530060", "Station General Information",
+                "ST", "2026-10-15 18:10:53", "Nov. 7-8: Service adjustments",
+                stouffville + learnMore + "the Stouffville line.", "AG", "KE", "MK"),
+            publishedNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000530377", "Information",
+                "ST", "2026-11-07 12:17:14", "Nov. 7- 8: Service adjustments",
+                stouffville + ttc + learnMore + "the Stouffville line."),
+            publishedNotice(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000530068", "Station General Information",
+                "LE", "2026-10-15 18:13:01", "Nov. 7-8: Service adjustments",
+                lakeshoreEast + "There will also be some late-evening service adjustments on Friday, Nov. 6."
+                    + learnMore + "Lakeshore East.", "DA", "SC", "EG", "GU", "RO"),
+            publishedNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000530261", "Information",
+                "LE", "2026-11-07 11:35:39", "Nov. 7-8: Service adjustments",
+                lakeshoreEast + ttc + learnMore + "Lakeshore East."),
+            publishedNotice(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000531881", "E-Ticket", null,
+                "2026-11-02 14:31:25", "Lakeshore East Service Adjustments Nov. 7-8", trainStation,
+                "PIN", "AJ", "WH", "OS"),
+            publishedNotice(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000531885", "E-Ticket", null,
+                "2026-11-02 14:31:56", "Lakeshore East Service Adjustments Nov. 7-8 ", transitStation,
+                "DA", "SC", "EG", "GU", "RO"),
+            publishedNotice(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000531887", "E-Ticket", null,
+                "2026-11-02 14:31:46", "Stouffville Line Service Adjustments Nov. 7-8", trainStation,
+                "UI", "CE", "MR", "MJ", "ST", "LI"),
+            publishedNotice(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000531889", "E-Ticket", null,
+                "2026-11-02 14:31:35", "Stouffville Line Service Adjustments Nov. 7-8", transitStation,
+                "KE", "AG", "MK")
+        ), java.util.Map.of());
+
+        var result = normalizer.consolidate(feed);
+
+        assertThat(result.events()).extracting(RegionalAlertClassification::canonicalEventId)
+            .containsExactlyInAnyOrder("go-530060", "go-530068");
+        assertThat(result.merges()).containsExactlyInAnyOrder(
+            new MetrolinxNoticeConsolidator.Merge("go-530060", "go-530377",
+                MetrolinxNoticeConsolidator.MergeReason.RESTATED),
+            new MetrolinxNoticeConsolidator.Merge("go-530068", "go-530261",
+                MetrolinxNoticeConsolidator.MergeReason.RESTATED),
+            new MetrolinxNoticeConsolidator.Merge("go-530060", "go-531887",
+                MetrolinxNoticeConsolidator.MergeReason.STATION_LIST),
+            new MetrolinxNoticeConsolidator.Merge("go-530060", "go-531889",
+                MetrolinxNoticeConsolidator.MergeReason.STATION_LIST),
+            new MetrolinxNoticeConsolidator.Merge("go-530068", "go-531881",
+                MetrolinxNoticeConsolidator.MergeReason.STATION_LIST),
+            new MetrolinxNoticeConsolidator.Merge("go-530068", "go-531885",
+                MetrolinxNoticeConsolidator.MergeReason.STATION_LIST));
+        assertThat(result.nearDuplicates()).isEmpty();
+        assertThat(result.events()).filteredOn(event -> "go-530068".equals(event.canonicalEventId())).singleElement()
+            .satisfies(event -> {
+                assertThat(event.scope()).isEqualTo("corridor");
+                assertThat(event.sources()).extracting(RegionalAlertClassification.SourceReference::sourceId)
+                    .contains("M0000530068", "M0000530261", "M0000531881", "M0000531885");
+            });
+        // One closure per line on the map, with no station rings stacked on it.
+        assertThat(normalizer.normalize(feed)).filteredOn(alert -> !"advisory".equals(alert.impactKind()))
+            .hasSize(2)
+            .allSatisfy(alert -> assertThat(alert.listsStationClosures()).isFalse());
+    }
+
+    @Test
+    void keepsLineNoticesThatShareATitleButStateDifferentFactsSeparate() throws Exception {
+        var lineNotice = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528122", LAKESHORE_TITLE,
+            LAKESHORE_BODY, "Information");
+        String closureOnly = "On Saturday, Aug. 8 and Sunday, Aug. 9, there will be no GO train service between "
+            + "Aldershot GO and Union Station.";
+        var closure = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528120", LAKESHORE_TITLE,
+            closureOnly, "Information");
+        var shuttle = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528130", LAKESHORE_TITLE,
+            closureOnly + " GO buses will replace trains.", "Information");
+        var extraStation = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528131", LAKESHORE_TITLE,
+            LAKESHORE_BODY + " There will be no GO Transit service at Exhibition GO.", "Information");
+        var restated = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528132", LAKESHORE_TITLE,
+            LAKESHORE_BODY + " Please plan ahead.", "Information");
+
+        assertThat(normalizer.consolidate(feed(closure, shuttle)).events())
+            .as("a later notice stating a replacement service the earlier one does not stays separate")
+            .hasSize(2);
+        assertThat(normalizer.consolidate(feed(lineNotice, extraStation)).events())
+            .as("a later notice naming a station the earlier one does not stays separate")
+            .hasSize(2);
+        assertThat(normalizer.consolidate(feed(restated, lineNotice)).merges()).containsExactly(
+            new MetrolinxNoticeConsolidator.Merge("go-528122", "go-528132",
+                MetrolinxNoticeConsolidator.MergeReason.RESTATED));
+    }
+
+    @Test
     void reportsDifferentlyWordedNoticesForOneEventWithoutMergingThem() throws Exception {
         var lineNotice = goNotice(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528122", LAKESHORE_TITLE,
             LAKESHORE_BODY, "Information");
@@ -1168,6 +1272,10 @@ class MetrolinxAlertNormalizerTest {
         assertThat(result.events()).hasSize(3);
         assertThat(result.nearDuplicates()).containsExactly(
             new MetrolinxNoticeConsolidator.NearDuplicate("go-528122", "go-528130"));
+        // The poll keeps them for /api/health/regional-ingestion.
+        normalizer.classify(feed(lineNotice, reworded, elsewhere));
+        assertThat(normalizer.possibleDuplicates()).containsExactly(new MetrolinxAlertNormalizer.PossibleDuplicate(
+            "go-528122", "go-528130", List.of("regional-lw"), "no-service"));
     }
 
     @Test
@@ -1218,6 +1326,27 @@ class MetrolinxAlertNormalizerTest {
     private static final String LAKESHORE_BODY = "On Saturday, Aug. 8 and Sunday, Aug. 9, GO trains will run between "
         + "Niagara Falls and Aldershot GO. There will be no GO train service between Aldershot GO and Union Station. "
         + "GO buses will run between West Harbour GO and Union Station Bus Terminal";
+
+    private MetrolinxFetchedRecord publishedNotice(
+        String sourceSystem, String code, String subcategory, String line, String posted, String title, String body,
+        String... stops
+    ) throws Exception {
+        String json = objectMapper.writeValueAsString(java.util.Map.of(
+            "Code", code,
+            "Status", "INIT",
+            "PostedDateTime", posted,
+            "SubjectEnglish", title,
+            "BodyEnglish", body,
+            "Category", GO_INFORMATION_ALERTS_CATEGORY.getOrDefault(sourceSystem, "Service Disruption"),
+            "SubCategory", subcategory,
+            "Lines", line == null ? List.of() : List.of(java.util.Map.of("Code", line)),
+            "Stops", java.util.Arrays.stream(stops).map(stop -> java.util.Map.of("Code", stop)).toList()
+        ));
+        return new MetrolinxFetchedRecord(sourceSystem, code, json);
+    }
+
+    private static final java.util.Map<String, String> GO_INFORMATION_ALERTS_CATEGORY =
+        java.util.Map.of(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "General Information");
 
     private MetrolinxFetchedRecord goNotice(
         String sourceSystem, String code, String title, String body, String subcategory, String... stops

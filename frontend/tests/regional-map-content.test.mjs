@@ -85,6 +85,56 @@ describe("GO/UP map content", () => {
     assert.equal(twice.length, regionalStationAlertImpacts(input()).length);
   });
 
+  it("draws no station rings or station badges for station lists a line closure already shows", () => {
+    // Nov. 7-8 in production: Stouffville closed by two line notices, and
+    // two station-list notices covering every stop on it.
+    const clear = regionalDashboardDataForScenario("none");
+    const template = data.activeAlerts.find((alert) => alert.severity === "suspension");
+    const card = (id) => ({ ...template, id, lineId: "regional-st", lineNumber: "ST", affectedSegmentIds: [] });
+    const lineCards = ["regional-go-530060-st", "regional-go-530377-st"];
+    const stouffville = clear.networkSegments.filter((segment) => segment.lineId === "regional-st");
+    const stops = [...new Set(stouffville.flatMap((segment) => [segment.stationAId, segment.stationBId]))]
+      .filter((stationId) => stationId !== "union");
+    const nov7 = input({
+      networkSegments: clear.networkSegments.map((segment) => (segment.lineId === "regional-st"
+        ? {
+            ...segment,
+            overlay: "suspension",
+            impacts: lineCards.map((cardId) => ({
+              kind: "suspension", cardId, travelDirection: "bidirectional", sourceAlertIds: [cardId],
+            })),
+          }
+        : segment)),
+      activeAlerts: [...lineCards, "regional-go-531887-st", "regional-go-531889-st"].map(card),
+      delays: [],
+      reducedSpeedZones: [],
+      plannedClosures: [],
+      stationNodeImpacts: stops.map((stationId, index) => ({
+        stationId,
+        kind: "suspension",
+        cardId: index < 3 ? "regional-go-531889-st" : "regional-go-531887-st",
+        title: "Stouffville Line Service Adjustments Nov. 7-8",
+      })),
+    });
+    assert.ok(stops.length >= 9);
+
+    const content = regionalMapContent(geometry, nov7);
+    assert.deepEqual(content.stationAlerts, []);
+    assert.deepEqual(
+      [...new Set(content.lineAlerts.map((alert) => alert.impactId))].sort(),
+      lineCards,
+      "a hidden station list is still station-only, never drawn along the line",
+    );
+    assert.deepEqual(
+      content.overlapBadges.map((badge) => badge.label),
+      ["Union to Old Elm"],
+      "the two line notices share one badge; no stop gets its own",
+    );
+
+    const selected = regionalMapContent(geometry, { ...nov7, selection: { kind: "suspension", id: "regional-go-531889-st" } });
+    assert.equal(selected.stationAlerts.length, 3, "selecting a station list draws its stops");
+  });
+
   it("emphasizes the selected line alert", () => {
     const content = regionalMapContent(geometry, input({ selection: { kind: "suspension", id: "regional-demo-suspension" } }));
     assert.deepEqual(content.selectedLineAlerts.map((alert) => alert.impactId), ["regional-demo-suspension"]);

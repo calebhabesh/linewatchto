@@ -111,8 +111,9 @@ function scenario(overrides = {}) {
 // Current service: a suspension over all of line A with a delay over the same
 // stretch, a southbound reduced speed zone on Dogwood to Birch (through Birch,
 // an interchange, which gets no arrow from it), station-only delays at a regular dot
-// (Alder) and a large interchange dot (Birch), and a commute from Alder to
-// Cedar. Station badges at Alder and Birch explain the shared stretch.
+// (Dogwood, which the one-way zone does not cover) and a large interchange dot
+// (Birch), and a commute from Alder to Cedar. A station badge at Birch explains
+// the shared stretch.
 const service = () => scenario({
   networkSegments: networkSegments({
     [A1]: [impact("suspension", "s1"), impact("delay", "d1")],
@@ -124,12 +125,12 @@ const service = () => scenario({
   })],
   delays: [
     delay("d1", "line-a", "Delay", [A1, A2]),
-    delay("sd1", "line-a", "Station delay", [], { displayDirection: "Eastbound" }),
+    delay("sd1", "line-b", "Station delay", [], { displayDirection: "Southbound" }),
     delay("sd2", "line-b", "Interchange delay", []),
   ],
   reducedSpeedZones: [rsz("r1", "line-b", [B1], { displayDirection: "Southbound" })],
   stationNodeImpacts: [
-    { stationId: "alder", kind: "delay", cardId: "sd1", title: "Station delay" },
+    { stationId: "dogwood", kind: "delay", cardId: "sd1", title: "Station delay" },
     { stationId: "birch", kind: "delay", cardId: "sd2", title: "Interchange delay" },
   ],
   commutePathPreview: {
@@ -375,9 +376,33 @@ describe("map content parity: station alerts", () => {
   it("sizes station alerts the same relative to their dot", () => same(service, stationAlertSizes));
   it("points station alert arrows the same ways, and none for line alerts through a station", () => {
     same(service, glyphDirections);
-    // Alder's own eastbound delay points; Birch's undirected delay does not,
+    // Dogwood's own southbound delay points; Birch's undirected delay does not,
     // and the reduced speed zone through Birch adds no arrow there.
-    assert.deepEqual(glyphDirections(ttc(service())).map(([station]) => station), ["alder"]);
+    assert.deepEqual(glyphDirections(ttc(service())).map(([station]) => station), ["dogwood"]);
+  });
+  it("draws no station alert a line alert on its line already shows, on either map", () => {
+    // Line A is suspended end to end; a station list repeats it at every stop.
+    const repeated = () => scenario({
+      ...overlap(),
+      activeAlerts: [
+        activeAlert("s1", "line-a", "suspension", "No service", [A1, A2]),
+        activeAlert("list", "line-a", "suspension", "No service at these stations", []),
+      ],
+      stationNodeImpacts: ["alder", "birch", "cedar"].map((stationId) => ({
+        stationId, kind: "suspension", cardId: "list", title: "No service at these stations",
+      })),
+    });
+    same(repeated, stationAlertAnchors);
+    same(repeated, badges);
+    assert.deepEqual(stationAlertAnchors(ttc(repeated())), []);
+    // A hidden station list stays station-only: it never becomes a line-wide alert.
+    same(repeated, visualStates);
+    assert.deepEqual([...new Set(visualStates(ttc(repeated())).map(([, impactId]) => impactId))].sort(), ["d1", "s1"]);
+    assert.deepEqual(badges(ttc(repeated())).map(({ impacts }) => impacts), badges(ttc(overlap())).map(({ impacts }) => impacts));
+    // Selecting the list draws its stops on both maps.
+    const selected = () => scenario({ ...repeated(), selection: { kind: "suspension", id: "list" } });
+    same(selected, stationAlertAnchors);
+    assert.equal(stationAlertAnchors(ttc(selected())).length, 3);
   });
   it("sizes direction arrows the same relative to their dot", () => (
     same(service, glyphSizes)

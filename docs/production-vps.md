@@ -287,6 +287,8 @@ curl https://api.linewatchto.ca/api/health/schedule
 curl https://api.linewatchto.ca/api/health/regional-ingestion
 ```
 
+A non-empty `possibleDuplicates` in the regional-ingestion response lists GO/UP events from the latest poll that may be one rider event published twice. Concurrent incidents can match too, so review the pairs (`scripts/audit-metrolinx-duplicates.sh` against a local copy of the feed shows why each stays separate) rather than treating them as failures.
+
 Create a database backup:
 
 ```bash

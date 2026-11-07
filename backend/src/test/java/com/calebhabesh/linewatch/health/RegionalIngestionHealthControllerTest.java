@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
+import com.calebhabesh.linewatch.regional.MetrolinxAlertNormalizer;
 import com.calebhabesh.linewatch.regional.MetrolinxProperties;
 import com.calebhabesh.linewatch.regional.MetrolinxSourceSystem;
 import com.calebhabesh.linewatch.regional.RegionalIngestionFreshness;
@@ -40,7 +41,7 @@ class RegionalIngestionHealthControllerTest {
         ));
 
         RegionalIngestionHealthController.RegionalIngestionHealthResponse response =
-            new RegionalIngestionHealthController(properties, runStore, freshness, availabilityService).health();
+            new RegionalIngestionHealthController(properties, runStore, freshness, availabilityService, normalizer()).health();
 
         assertThat(response.collections()).hasSize(MetrolinxSourceSystem.descriptors().size());
         assertThat(response.collections())
@@ -85,7 +86,7 @@ class RegionalIngestionHealthControllerTest {
         when(runStore.findSourceStatuses(42)).thenReturn(List.of());
 
         String json = JsonMapper.builder().findAndAddModules().build().writeValueAsString(
-            new RegionalIngestionHealthController(properties, runStore, freshness, availabilityService).health()
+            new RegionalIngestionHealthController(properties, runStore, freshness, availabilityService, normalizer()).health()
         );
 
         assertThat(json).doesNotContain("errorMessage", "internal-upstream-host");
@@ -102,10 +103,32 @@ class RegionalIngestionHealthControllerTest {
         when(availabilityService.summarize()).thenReturn(availability());
 
         var response = new RegionalIngestionHealthController(
-            properties, runStore, freshness, availabilityService
+            properties, runStore, freshness, availabilityService, normalizer()
         ).health();
 
         assertThat(response.sourceEndpoints()).isEmpty();
+    }
+
+    @Test
+    void reportsTheLatestPollsPossibleDuplicates() {
+        RegionalIngestionRunStore runStore = mock(RegionalIngestionRunStore.class);
+        RegionalFeedAvailabilityService availabilityService = mock(RegionalFeedAvailabilityService.class);
+        when(runStore.findLatest()).thenReturn(Optional.empty());
+        when(availabilityService.summarize()).thenReturn(availability());
+        MetrolinxAlertNormalizer normalizer = mock(MetrolinxAlertNormalizer.class);
+        var pair = new MetrolinxAlertNormalizer.PossibleDuplicate(
+            "go-530060", "go-530377", List.of("regional-st"), "no-service");
+        when(normalizer.possibleDuplicates()).thenReturn(List.of(pair));
+
+        var response = new RegionalIngestionHealthController(
+            new MetrolinxProperties(), runStore, mock(RegionalIngestionFreshness.class), availabilityService, normalizer
+        ).health();
+
+        assertThat(response.possibleDuplicates()).containsExactly(pair);
+    }
+
+    private static MetrolinxAlertNormalizer normalizer() {
+        return new MetrolinxAlertNormalizer(java.time.Clock.systemUTC());
     }
 
     private RegionalFeedAvailabilityService.RegionalFeedAvailability availability() {

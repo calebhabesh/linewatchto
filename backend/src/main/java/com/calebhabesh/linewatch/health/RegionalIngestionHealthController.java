@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.health;
 
 import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
+import com.calebhabesh.linewatch.regional.MetrolinxAlertNormalizer;
 import com.calebhabesh.linewatch.regional.MetrolinxProperties;
 import com.calebhabesh.linewatch.regional.MetrolinxSourceSystem;
 import com.calebhabesh.linewatch.regional.RegionalIngestionFreshness;
@@ -27,17 +28,20 @@ public class RegionalIngestionHealthController {
     private final RegionalIngestionRunStore runStore;
     private final RegionalIngestionFreshness freshness;
     private final RegionalFeedAvailabilityService availabilityService;
+    private final MetrolinxAlertNormalizer normalizer;
 
     public RegionalIngestionHealthController(
         MetrolinxProperties properties,
         RegionalIngestionRunStore runStore,
         RegionalIngestionFreshness freshness,
-        RegionalFeedAvailabilityService availabilityService
+        RegionalFeedAvailabilityService availabilityService,
+        MetrolinxAlertNormalizer normalizer
     ) {
         this.properties = properties;
         this.runStore = runStore;
         this.freshness = freshness;
         this.availabilityService = availabilityService;
+        this.normalizer = normalizer;
     }
 
     @GetMapping
@@ -66,7 +70,8 @@ public class RegionalIngestionHealthController {
             run == null ? 0 : run.recordsNormalized(),
             collections,
             availabilityService.summarize(),
-            publicSourceEndpoints()
+            publicSourceEndpoints(),
+            normalizer.possibleDuplicates()
         );
     }
 
@@ -118,7 +123,9 @@ public class RegionalIngestionHealthController {
         int recordsNormalized,
         List<CollectionHealth> collections,
         RegionalFeedAvailabilityService.RegionalFeedAvailability feedAvailability,
-        List<String> sourceEndpoints
+        List<String> sourceEndpoints,
+        /** Events from the latest poll that may be one rider event but stay separate; for review. */
+        List<MetrolinxAlertNormalizer.PossibleDuplicate> possibleDuplicates
     ) {}
 
     public record CollectionHealth(

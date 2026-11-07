@@ -29,7 +29,6 @@ import {
   type MapPoint,
 } from "./map-geometry.ts";
 import { ttcAnchorPoints, ttcGuidePaths, ttcStationCenters } from "./ttc-map-geometry.ts";
-import { plannedAdvisoryStationImpacts } from "./map-alert-selector.ts";
 import {
   mapImpactContext,
   overlapBadgeGroups,
@@ -45,6 +44,7 @@ import { mapBadgeArtwork } from "./map-badge-artwork.ts";
 import { mapTrainMarkerPlacement } from "./train-marker-placement.ts";
 import type { MapContent, MapOverlapBadgeInput } from "./map-content.ts";
 import { lineAlertPathsByImpact } from "../components/map-overlays/line-alert-model.ts";
+import { mapStationAlertImpacts } from "../components/map-overlays/redundant-station-impacts.ts";
 import {
   stationDirectionGlyphs,
   type MapStationAlert,
@@ -169,11 +169,8 @@ export function ttcMapContent(geometry: PreparedMapGeometry, input: TtcMapConten
     selection,
     commutePathPreview,
   } = input;
-  const stationNodeImpacts = [
-    ...input.stationNodeImpacts,
-    ...plannedAdvisoryStationImpacts(plannedClosures, activeAlerts, delays, selection),
-  ];
   const { context, segmentOverlapGroups } = ttcCorridors(geometry, networkSegments, mapStations, activeAlerts, delays, plannedClosures);
+  const stationNodeImpacts = mapStationAlertImpacts(input);
   const stationCenterPoints = ttcStationCenterPoints(geometry, stations);
   const { dots, medianDot } = preparedTtc(geometry);
   // A station placed where the artwork draws no dot is drawn as a regular one.

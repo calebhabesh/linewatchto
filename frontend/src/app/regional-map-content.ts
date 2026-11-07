@@ -19,7 +19,6 @@ import type {
 import type { AccountCommutePathPreview } from "./commute-data.ts";
 import type { PreparedMapGeometry } from "./map-geometry-data.ts";
 import type { MapContent } from "./map-content.ts";
-import { plannedAdvisoryStationImpacts } from "./map-alert-selector.ts";
 import { regionalStationAlerts, regionalStationPill } from "./regional-station-alerts.ts";
 import { regionalBadgePlacement, regionalOverlapBadges } from "./regional-map-overlays.ts";
 import {
@@ -36,6 +35,7 @@ import { mapCommutePreview, mapLineAlerts, type MapCommuteEndpointDot } from "./
 import { mapTrainMarkerPlacement } from "./train-marker-placement.ts";
 import type { MapTrainMarkerPlacement } from "../components/map-overlays/TrainMarkerLayer.tsx";
 import { lineAlertPathsByImpact } from "../components/map-overlays/line-alert-model.ts";
+import { mapStationAlertImpacts } from "../components/map-overlays/redundant-station-impacts.ts";
 
 export type RegionalMapContentInput = {
   networkSegments: NetworkSegment[];
@@ -50,24 +50,14 @@ export type RegionalMapContentInput = {
   commutePathPreview?: AccountCommutePathPreview | null;
 };
 
-/**
- * Station alerts to draw: the current ones, and station-only planned
- * advisories by TTC's rule (upcoming ones always, a current one only while
- * selected), each once.
- */
+/** Station alerts to draw, by every map's rule (`mapStationAlertImpacts`). */
 export function regionalStationAlertImpacts(
-  input: Pick<RegionalMapContentInput, "stationNodeImpacts" | "plannedClosures" | "activeAlerts" | "delays" | "selection">,
+  input: Pick<
+    RegionalMapContentInput,
+    "networkSegments" | "stationNodeImpacts" | "plannedClosures" | "activeAlerts" | "delays" | "reducedSpeedZones" | "selection"
+  >,
 ): StationNodeImpact[] {
-  const seen = new Set<string>();
-  return [
-    ...input.stationNodeImpacts,
-    ...plannedAdvisoryStationImpacts(input.plannedClosures, input.activeAlerts, input.delays, input.selection),
-  ].filter((impact) => {
-    const key = `${impact.kind}:${impact.cardId}:${impact.stationId}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  return mapStationAlertImpacts(input);
 }
 
 /** What the GO/UP System Map draws over its artwork. */

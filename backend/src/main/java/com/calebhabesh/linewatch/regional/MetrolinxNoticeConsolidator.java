@@ -23,8 +23,9 @@ import java.util.regex.Pattern;
  *
  * <p>Each notice has a role. Line notices are the events riders see. Station lists and banners are
  * supplementary: they fold into the one line notice they describe and never lead. Any notice can be a
- * republication of another with identical rider content. Updates and resolutions change the title or
- * body, so they never match the notice they follow and need no role of their own.
+ * republication of another with identical rider content, and a line notice can be restated by a later
+ * one that changes a sentence but states the same facts. Updates and resolutions change the title,
+ * place, window, or facts, so they never match the notice they follow and need no role of their own.
  */
 final class MetrolinxNoticeConsolidator {
     private static final Pattern TRAILING_DIGITS = Pattern.compile("(\\d+)$");
@@ -35,6 +36,8 @@ final class MetrolinxNoticeConsolidator {
     enum MergeReason {
         /** Identical rider content republished under another notice ID. */
         REPUBLISHED,
+        /** A later line notice restating the same event with a sentence added or changed. */
+        RESTATED,
         /** Station-information list of stops inside the line notice's span. */
         STATION_LIST,
         /** Top Red Banner restating the line notice. */
@@ -67,6 +70,8 @@ final class MetrolinxNoticeConsolidator {
                 : "listed-stations".equals(event.scope()) ? NoticeRole.STATION_LIST
                 : NoticeRole.LINE_NOTICE);
         }
+        // Restatements fold first, so a station list describing a restated notice has one lead.
+        consolidated = foldRestatements(consolidated, roles, merges);
         consolidated = foldInto(consolidated, MergeReason.STATION_LIST, merges, (detail, lead) ->
             roles.get(detail.canonicalEventId()) == NoticeRole.STATION_LIST
                 && roles.get(lead.canonicalEventId()) == NoticeRole.LINE_NOTICE
@@ -137,6 +142,80 @@ final class MetrolinxNoticeConsolidator {
         }
         // A lead that is itself folded elsewhere would chain events together; keep both separate.
         leadByDetail.values().removeIf(leadByDetail::containsKey);
+        return absorb(events, leadByDetail, reason, merges);
+    }
+
+    /**
+     * Metrolinx sometimes restates a line notice under a later notice ID with a sentence added,
+     * changed, or dropped ("If you are taking the TTC, please note ...") and leaves the earlier one in
+     * the feed. A later line notice with the same lines, trips, effect, place, and active period and a
+     * matching title restates the earliest such notice when it states no impact window, station,
+     * replacement service, or delay that notice does not. The earliest notice leads with its own
+     * content, as for republications, so a restatement never becomes a new event for push and
+     * history; the restatements add their source references.
+     */
+    private static List<RegionalAlertClassification> foldRestatements(
+        List<RegionalAlertClassification> events,
+        Map<String, NoticeRole> roles,
+        List<Merge> merges
+    ) {
+        List<List<RegionalAlertClassification>> clusters = new ArrayList<>();
+        events.stream()
+            .filter(event -> roles.get(event.canonicalEventId()) == NoticeRole.LINE_NOTICE)
+            .sorted(Comparator.comparing((RegionalAlertClassification event) -> noticeNumber(event.canonicalEventId()))
+                .thenComparing(RegionalAlertClassification::canonicalEventId))
+            .forEach(event -> clusters.stream()
+                .filter(cluster -> restates(event, cluster.getFirst()))
+                .findFirst()
+                .ifPresentOrElse(cluster -> cluster.add(event),
+                    () -> clusters.add(new ArrayList<>(List.of(event)))));
+        Map<String, String> leadByDetail = new LinkedHashMap<>();
+        for (List<RegionalAlertClassification> cluster : clusters) {
+            String lead = cluster.getFirst().canonicalEventId();
+            cluster.stream().skip(1).forEach(detail -> leadByDetail.put(detail.canonicalEventId(), lead));
+        }
+        return absorb(events, leadByDetail, MergeReason.RESTATED, merges);
+    }
+
+    private static boolean restates(RegionalAlertClassification later, RegionalAlertClassification lead) {
+        return later.lineIds().equals(lead.lineIds())
+            && later.tripNumbers().equals(lead.tripNumbers())
+            && Objects.equals(later.serviceEffect(), lead.serviceEffect())
+            && Objects.equals(later.scope(), lead.scope())
+            && later.spanStationIds().equals(lead.spanStationIds())
+            && compatibleStops(later.stationIds(), lead.stationIds())
+            && later.activePeriodStart() != null
+            && Objects.equals(instant(later.activePeriodStart()), instant(lead.activePeriodStart()))
+            && Objects.equals(instant(later.activePeriodEnd()), instant(lead.activePeriodEnd()))
+            && titlesMatch(later, lead)
+            && impactWindows(lead).containsAll(impactWindows(later))
+            && (later.replacementService() == null || later.replacementService().equals(lead.replacementService()))
+            && (later.maximumDelayMinutes() == null || later.maximumDelayMinutes().equals(lead.maximumDelayMinutes()))
+            && mentionedStations(lead).containsAll(mentionedStations(later));
+    }
+
+    /** An event's impacts by effect, scope, and window, without their positional IDs or stop lists. */
+    private static Set<List<Object>> impactWindows(RegionalAlertClassification event) {
+        Set<List<Object>> windows = new LinkedHashSet<>();
+        for (RegionalAlertClassification.Impact impact : event.impacts()) {
+            windows.add(java.util.Arrays.asList(impact.serviceEffect(), impact.scope(), instant(impact.start()),
+                instant(impact.endExclusive()), impact.basis()));
+        }
+        return windows;
+    }
+
+    private static Set<String> mentionedStations(RegionalAlertClassification event) {
+        return Set.copyOf(MetrolinxAlertNormalizer.mentionedStations(
+            event.title() + " " + event.description(), event.lineIds()));
+    }
+
+    /** Removes each detail and gives its lead the detail's source references. */
+    private static List<RegionalAlertClassification> absorb(
+        List<RegionalAlertClassification> events,
+        Map<String, String> leadByDetail,
+        MergeReason reason,
+        List<Merge> merges
+    ) {
         leadByDetail.forEach((detail, lead) -> merges.add(new Merge(lead, detail, reason)));
         Map<String, List<RegionalAlertClassification.SourceReference>> absorbed = new LinkedHashMap<>();
         for (RegionalAlertClassification event : events) {
@@ -163,13 +242,18 @@ final class MetrolinxNoticeConsolidator {
             && ("segment-span".equals(lead.scope()) || "corridor".equals(lead.scope()))
             && detail.lineIds().equals(lead.lineIds())
             && Objects.equals(detail.serviceEffect(), lead.serviceEffect())
-            && (RepublicationKey.comparableText(detail.title()).equalsIgnoreCase(RepublicationKey.comparableText(lead.title()))
-                || datedClosure(detail) && datedClosure(lead)
-                    && titleTopic(detail).equals(titleTopic(lead)) && !titleTopic(lead).isEmpty())
+            && titlesMatch(detail, lead)
             && detail.activePeriodStart() != null
             && detail.activePeriodStart().isEqual(nullSafe(lead.activePeriodStart()))
             && Objects.equals(instant(detail.activePeriodEnd()), instant(lead.activePeriodEnd()))
             && lead.lineIds().stream().allMatch(lineId -> stationsWithin(lineId, detail.stationIds(), lead));
+    }
+
+    /** Equal titles, or for dated closures equal once the line name and dates are left out. */
+    private static boolean titlesMatch(RegionalAlertClassification left, RegionalAlertClassification right) {
+        return RepublicationKey.comparableText(left.title()).equalsIgnoreCase(RepublicationKey.comparableText(right.title()))
+            || datedClosure(left) && datedClosure(right)
+                && titleTopic(left).equals(titleTopic(right)) && !titleTopic(right).isEmpty();
     }
 
     /** A no-service notice whose window comes from dates stated in its own text. */

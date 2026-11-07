@@ -690,8 +690,9 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalStationAlertsSource, /regionalStationImpactAnchors\(station, lineId\)/);
     // Union's pill keeps its filled outline in place of a ring and beacon.
     assert.match(regionalStationAlertsSource, /pill: regionalStationPill\(/);
-    // Station-only planned closures are station alerts, by TTC's rule.
-    assert.match(regionalContentSource, /plannedAdvisoryStationImpacts\(input\.plannedClosures, input\.activeAlerts, input\.delays, input\.selection\)/);
+    // Station-only planned closures are station alerts, by TTC's rule, through
+    // every map's shared station-alert list.
+    assert.match(regionalContentSource, /return mapStationAlertImpacts\(input\);/);
     assert.doesNotMatch(regionalOverlaysSource, /regional-station-impact-(?:beacon-group|fill|direction-glyph)/);
     assert.doesNotMatch(regionalAssetSource, /effectsLayer|stationRingLayer/);
   });

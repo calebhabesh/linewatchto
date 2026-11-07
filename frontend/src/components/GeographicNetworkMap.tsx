@@ -24,7 +24,6 @@ import type {
 } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/commute-data";
 import { useOptionalDashboardData } from "../app/DataContext";
-import { plannedAdvisoryStationImpacts } from "../app/map-alert-selector";
 import { NetworkSelector } from "./NetworkSelector";
 import { MapViewSelector } from "./MapViewSelector";
 import { observeDesktopControlRail } from "../app/desktop-sidebar-state";
@@ -41,6 +40,7 @@ import {
   getPointAlongPolyline,
 } from "../app/geographic-overlays";
 import type { EstimatedTrainMarker } from "../app/train-markers";
+import { mapStationAlertImpacts } from "./map-overlays/redundant-station-impacts";
 import {
   OPENFREEMAP_STYLES,
   GEOGRAPHIC_LOAD_TIMEOUT_MS,
@@ -1194,10 +1194,15 @@ export function GeographicNetworkMap({
         selection,
       },
     );
-    const impactedStations = projectImpactedStations(catalog, [
-      ...resolvedStationNodeImpacts,
-      ...plannedAdvisoryStationImpacts(resolvedPlannedClosures, resolvedActiveAlerts, dashboardData?.delays, selection),
-    ], network);
+    const impactedStations = projectImpactedStations(catalog, mapStationAlertImpacts({
+      networkSegments: resolvedNetworkSegments,
+      activeAlerts: resolvedActiveAlerts,
+      delays: dashboardData?.delays,
+      reducedSpeedZones: dashboardData?.reducedSpeedZones,
+      plannedClosures: resolvedPlannedClosures,
+      stationNodeImpacts: resolvedStationNodeImpacts,
+      selection,
+    }), network);
     const rawBadges = projectImpactBadges(catalog, impactedLinks.features, impactedStations.features, network, selection);
     const impactBadges = {
       ...rawBadges,
@@ -1259,6 +1264,7 @@ export function GeographicNetworkMap({
     resolvedPlannedClosures,
     resolvedActiveAlerts,
     dashboardData?.delays,
+    dashboardData?.reducedSpeedZones,
     selection,
     hoveredOverlapImpact,
     commutePathPreview,

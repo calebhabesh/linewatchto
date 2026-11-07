@@ -114,6 +114,15 @@ public class MetrolinxAlertNormalizer {
     private final Clock clock;
     private final Set<MetrolinxNoticeConsolidator.NearDuplicate> warnedNearDuplicates =
         java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private volatile List<PossibleDuplicate> possibleDuplicates = List.of();
+
+    /**
+     * Two events from the latest poll that may describe one rider event but stay separate (same line,
+     * effect, and trips, overlapping windows and places). Distinct concurrent incidents can match, so
+     * these are for review: a new Metrolinx republication shape shows up here before it shows up as
+     * stacked alerts.
+     */
+    public record PossibleDuplicate(String firstEventId, String secondEventId, List<String> lineIds, String serviceEffect) {}
 
     public MetrolinxAlertNormalizer(Clock clock) {
         this(JsonMapper.builder().findAndAddModules().build(), clock);
@@ -190,10 +199,24 @@ public class MetrolinxAlertNormalizer {
         );
     }
 
-    /** Warns once per pair while it stays in the feed, so a new republication shape gets noticed. */
+    /** Possible duplicates among the latest poll's events; see {@link PossibleDuplicate}. */
+    public List<PossibleDuplicate> possibleDuplicates() {
+        return possibleDuplicates;
+    }
+
+    /**
+     * Records the poll's possible duplicates and warns once per pair while it stays in the feed, so a
+     * new republication shape gets noticed.
+     */
     private void warnNearDuplicates(MetrolinxNoticeConsolidator.Result result) {
         Map<String, RegionalAlertClassification> events = new LinkedHashMap<>();
         result.events().forEach(event -> events.put(event.canonicalEventId(), event));
+        possibleDuplicates = result.nearDuplicates().stream().map(pair -> {
+            RegionalAlertClassification first = events.get(pair.firstEventId());
+            RegionalAlertClassification second = events.get(pair.secondEventId());
+            return new PossibleDuplicate(pair.firstEventId(), pair.secondEventId(),
+                first.lineIds().stream().filter(second.lineIds()::contains).toList(), first.serviceEffect());
+        }).toList();
         warnedNearDuplicates.retainAll(result.nearDuplicates());
         for (MetrolinxNoticeConsolidator.NearDuplicate pair : result.nearDuplicates()) {
             if (!warnedNearDuplicates.add(pair)) continue;
