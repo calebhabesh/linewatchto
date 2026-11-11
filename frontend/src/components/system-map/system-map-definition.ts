@@ -62,8 +62,9 @@ export type SystemMapNetworkAdapter = Pick<SystemMapDefinition, "placesUndrawnSt
 /**
  * Where a map draws its overlays, from its manifest and prepared geometry: its
  * id and overlay unit, map-wide masks over the view box with a view box of
- * margin on every side (outlines near the edge are not clipped), and an
- * outline cutout per pill station the manifest names (`outlineCutouts`).
+ * margin on every side (outlines near the edge are not clipped), an
+ * outline cutout per pill station the manifest names (`outlineCutouts`), and
+ * every other station's dot for outline ends (`outlineDots`).
  */
 export function mapOverlayPlane(manifest: MapManifest<string>, geometry: PreparedMapGeometry): MapOverlayPlane {
   const { viewBox } = manifest;
@@ -83,6 +84,10 @@ export function mapOverlayPlane(manifest: MapManifest<string>, geometry: Prepare
     unit: manifest.overlayUnit,
     maskBounds: { x: viewBox.x - viewBox.width, y: viewBox.y - viewBox.height, width: viewBox.width * 3, height: viewBox.height * 3 },
     outlineCutouts,
+    // Pill stations are cut out instead; a dot's edge includes half its border.
+    outlineDots: geometry.stations
+      .filter((station) => !stationIds.some((stationId) => station.id === `station-${stationId}`))
+      .flatMap((station) => station.anchors.map(({ x, y, radius, outline }) => ({ x, y, radius: radius + outline / 2 }))),
   };
 }
 

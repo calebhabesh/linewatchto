@@ -1,4 +1,4 @@
-import { MAP_HOVER_OUTLINE_WIDTHS, mapOverlayId, type MapOverlayPlane } from "./overlay-plane.ts";
+import { MAP_HOVER_OUTLINE_WIDTHS, mapOutlineEndConnectors, mapOverlayId, type MapOverlayPlane } from "./overlay-plane.ts";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -18,8 +18,9 @@ export function renderMapPreviewOutline(
   plane: MapOverlayPlane,
 ) {
   layer.replaceChildren();
-  const paths = keys.flatMap((key) => pathsByImpact.get(key) ?? []);
-  if (paths.length === 0) return;
+  const alertPaths = keys.flatMap((key) => pathsByImpact.get(key) ?? []);
+  if (alertPaths.length === 0) return;
+  const paths = [...alertPaths, ...mapOutlineEndConnectors(alertPaths, plane.outlineDots)];
   const documentNode = layer.ownerDocument;
   const element = <K extends keyof SVGElementTagNameMap>(tag: K, attributes: Record<string, string | number>) => {
     const node = documentNode.createElementNS(SVG_NS, tag);

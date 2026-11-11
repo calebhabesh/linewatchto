@@ -14,7 +14,7 @@ import {
   lineAlertPaintOrder,
   type MapLineAlert,
 } from "./line-alert-model";
-import { MAP_HOVER_OUTLINE_WIDTHS, mapOverlayId, type MapOverlayPlane } from "./overlay-plane";
+import { MAP_HOVER_OUTLINE_WIDTHS, mapOutlineEndConnectors, mapOverlayId, type MapOverlayPlane } from "./overlay-plane";
 
 export type { MapLineAlert, MapOverlayVisualState } from "./line-alert-model";
 
@@ -352,10 +352,13 @@ export function MapHoverOutline({
   plane: MapOverlayPlane;
   visualState?: string;
 }) {
+  const pathKey = paths.join("|");
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the paths' content
+  const outlinePaths = useMemo(() => [...paths, ...mapOutlineEndConnectors(paths, plane.outlineDots)], [pathKey, plane.outlineDots]);
   const outerMaskId = `${maskId}-outer`;
   const bounds = plane.maskBounds;
   const width = (value: number) => value * plane.unit;
-  const maskStrokes = (className: string, stroke: string, strokeWidth: number) => paths.map((d, index) => (
+  const maskStrokes = (className: string, stroke: string, strokeWidth: number) => outlinePaths.map((d, index) => (
     <path
       key={`${className}:${index}`}
       className={className}
@@ -377,7 +380,7 @@ export function MapHoverOutline({
   );
   const outlineStrokes = (className: string, maskRef: string, style: CSSProperties) => (
     <g mask={`url(#${maskRef})`}>
-      {paths.map((d, index) => (
+      {outlinePaths.map((d, index) => (
         <path key={index} className={`map-impact-hover-outline ${className} ${visualState}`.trim()} d={d} style={style} />
       ))}
     </g>
