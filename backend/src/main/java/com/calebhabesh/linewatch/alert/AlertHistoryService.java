@@ -134,8 +134,23 @@ public class AlertHistoryService {
             lastUpdatedAt,
             clearedAt,
             durationMinutes,
-            events
+            events,
+            stationIds(latest)
         );
+    }
+
+    private List<String> stationIds(AlertHistoryRepository.AlertHistoryRow row) {
+        List<String> ids = new ArrayList<>();
+        List<String> named = row.stationIds().isEmpty()
+            ? java.util.Arrays.asList(row.startStationId(), row.endStationId())
+            : row.stationIds();
+        for (String id : named) {
+            String normalized = firstNonBlank(id);
+            if (normalized != null && !ids.contains(normalized)) {
+                ids.add(normalized);
+            }
+        }
+        return List.copyOf(ids);
     }
 
     private String incidentId(

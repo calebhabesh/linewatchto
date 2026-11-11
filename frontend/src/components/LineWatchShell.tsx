@@ -176,6 +176,8 @@ import {
   type NotificationTarget,
 } from "../app/notification-target";
 import type { AlertHistoryFocus } from "./AlertHistoryTimeline";
+import type { AlertHistoryIncident } from "../app/alert-history-data";
+import { alertHistoryMapTarget, type AlertHistoryMapTarget } from "../app/alert-history-map-target";
 
 export type ActiveView = "map" | "search" | "status" | "line-impacts" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "announcements" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes" | "source-status";
 import {
@@ -2049,6 +2051,41 @@ export function LineWatchShell({
     }
   };
 
+  // Alert History's View: a listed alert opens like a map tap; any other is drawn from history.
+  const resolveAlertHistoryMapTarget = useCallback(
+    (incident: AlertHistoryIncident) => alertHistoryMapTarget(incident, selectedNetwork === "regional" ? regionalData : ttcData),
+    [regionalData, selectedNetwork, ttcData],
+  );
+
+  const handleViewAlertHistoryTarget = (target: AlertHistoryMapTarget) => {
+    if (target.type === "live") {
+      // Opens the live card in its alert type's list, as search does; the
+      // card's Back ("Back to Alert History") returns to the list where it was.
+      // A drawn past alert goes first: a step taken from a preview records no Back.
+      if (commutePathPreviewRef.current) {
+        commutePathPreviewRef.current = null;
+        setCommutePathPreview(null);
+      }
+      handleSelectImpactDetails(target.selection);
+      return;
+    }
+    pushBrowserNavigationEntry();
+    commutePathPreviewRef.current = target.preview;
+    setCommutePathPreview(target.preview);
+    setSelection(null);
+    setSelectedStationId(null);
+    if (isMobile) {
+      navigateToMapDrilldown();
+    } else if (desktopMetrics.mode === "overlay" && !desktopSidebarCollapsed) {
+      setDesktopSidebarCollapsed(true);
+      requestAnimationFrame(() => {
+        desktopRailToggleRef.current?.focus();
+      });
+    } else {
+      setMapLayoutSignal((prev) => prev + 1);
+    }
+  };
+
   const handleViewCommuteImpactOnPath = (
     commute: AccountSavedCommute,
     legId: AccountCommuteLegId,
@@ -2458,9 +2495,11 @@ export function LineWatchShell({
     ? () => handleMapSelectImpact(null)
     : impactBackContext ? handleImpactStepBack : undefined;
   // An impact opened from search steps back to the search results, not the map.
-  const impactReturnLabel = !desktopImpactIsMapFocused && impactBackContext?.origin.activeView === "search"
-    ? "Back to Search Results"
-    : "Back to Map";
+  const impactReturnLabel = desktopImpactIsMapFocused
+    ? "Back to Map"
+    : impactBackContext?.origin.activeView === "search"
+      ? "Back to Search Results"
+      : impactBackContext?.origin.activeView === "alert-history" ? "Back to Alert History" : "Back to Map";
 
   const handleSearchSelectStation = (stationId: string, networkId: NetworkId) => {
     if (searchClosingTimeoutRef.current) {
@@ -3302,6 +3341,11 @@ export function LineWatchShell({
             onClose={handleClosePanel}
             network={selectedNetwork}
             destination={alertHistoryFocus}
+            restoreView={navDirection === "back"}
+            resolveMapTarget={resolveAlertHistoryMapTarget}
+            onViewMapTarget={handleViewAlertHistoryTarget}
+            viewedPreviewId={commutePathPreview?.returnView === "alert-history" ? commutePathPreview.id : null}
+            onClearMapTarget={handleClearCommutePathPreview}
           />
         );
       case "source-status":

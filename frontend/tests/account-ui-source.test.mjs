@@ -281,8 +281,8 @@ describe("account UI source", () => {
   it("renders a prominent saved-commute map preview banner", () => {
     assert.match(globalCss, /\.commute-path-preview-chip\s*\{[^}]*min-width:\s*min\(560px, calc\(100vw - 2rem\)\);/s);
     assert.match(globalCss, /\.commute-path-preview-chip\s*\{[^}]*bottom:\s*calc\(1\.5rem \+ 64px \+ 28px\);/s);
-    assert.match(globalCss, /\.commute-path-preview-chip span\s*\{[^}]*font-size:\s*0\.9rem;/s);
-    assert.match(globalCss, /@media \(max-width: 767px\)[\s\S]*?\.commute-path-preview-chip\s*\{[^}]*left:\s*1rem;[^}]*right:\s*1rem;/s);
+    assert.match(globalCss, /\.commute-path-preview-chip > span\s*\{[^}]*font-size:\s*0\.9rem;/s);
+    assert.match(globalCss, /@media \(max-width: 767px\)[\s\S]*?\.commute-path-preview-chip\s*\{[^}]*left:\s*0\.75rem;[^}]*right:\s*0\.75rem;/s);
     assert.match(
       globalCss,
       /\.linewatch-shell\.mobile-map-inspector-impact \.commute-path-preview-chip\s*\{[^}]*bottom:\s*calc\(var\(--mobile-inspector-total-height\) \+ 10px\);[^}]*top:\s*auto;/s,

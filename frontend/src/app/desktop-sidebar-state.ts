@@ -260,6 +260,8 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
   const container = rail.offsetParent instanceof HTMLElement ? rail.offsetParent : rail.parentElement;
   if (!container) return () => {};
   const shell = rail.closest<HTMLElement>(".linewatch-shell");
+  // The map workspace learns the toolbar's centre, so the preview chip lines up under it.
+  const workspace = rail.closest<HTMLElement>(".desktop-map-workspace");
   let frame: number | null = null;
 
   const place = () => {
@@ -272,6 +274,7 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
       delete rail.dataset.hideNetwork;
       const cluster = shell?.querySelector<HTMLElement>(".map-utility-cluster");
       if (cluster) delete cluster.dataset.compact;
+      workspace?.style.removeProperty("--desktop-rail-center");
       return;
     }
     const containerRect = container.getBoundingClientRect();
@@ -326,6 +329,10 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
     rail.style.setProperty("--desktop-rail-left", `${placement.left}px`);
     rail.style.setProperty("--desktop-rail-top", `${placement.top}px`);
     rail.style.setProperty("--desktop-rail-translate", "0 0");
+    if (workspace) {
+      const center = containerRect.left + placement.left + rail.offsetWidth / 2 - workspace.getBoundingClientRect().left;
+      workspace.style.setProperty("--desktop-rail-center", `${Math.round(center)}px`);
+    }
   };
   const schedule = () => {
     if (frame === null) frame = window.requestAnimationFrame(place);
@@ -354,6 +361,7 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
     resizeObserver.disconnect();
     classObserver.disconnect();
     window.removeEventListener("resize", schedule);
+    workspace?.style.removeProperty("--desktop-rail-center");
   };
 }
 

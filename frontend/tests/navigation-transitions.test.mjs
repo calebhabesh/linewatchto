@@ -58,6 +58,18 @@ describe("mobile split view Back and Close", () => {
     assert.deepEqual(back.selection, { kind: "planned-closure", id: "advisory" });
   });
 
+  it("opens an active alert from Alert History in its list, and Back returns to Alert History", () => {
+    const history = transitionNavigateRoot(INITIAL_NAVIGATION_STATE, "alert-history").nextState;
+    const opened = transitionSelectImpactDetails(history, { kind: "reduced-speed-zone", id: "rsz-1" }, "reduced-speed-zones").nextState;
+    assert.equal(opened.activeView, "reduced-speed-zones");
+    assert.deepEqual(backTarget(opened), { kind: "impact-step", label: "Back to Alert History" });
+    for (const isMobile of [false, true]) {
+      const back = transitionSubmenuBack(opened, { isMobile }).nextState;
+      assert.equal(back.activeView, "alert-history");
+      assert.equal(back.selection, null);
+    }
+  });
+
   it("hides Back when it would only repeat Close", () => {
     const onMap = transitionSelectImpact(INITIAL_NAVIGATION_STATE, {
       selection: { kind: "delay", id: "a" }, targetView: "delays", isMobile: true,
@@ -445,6 +457,21 @@ describe("Navigation Transition Table — Required Rows", () => {
     assert.equal(back2.actionTaken, "close-commute-preview");
     assert.equal(back2.nextState.activeView, "commutes");
     assert.equal(back2.nextState.commutePathPreview, null);
+
+    // 2b. A past alert's preview (Alert History's View) returns to Alert History, not My Commutes
+    const historyPreviewState = {
+      ...INITIAL_NAVIGATION_STATE,
+      commutesFocusedCommuteId: "saved-1",
+      commutePathPreview: { id: "alert-history-a", commuteId: "alert-history-a", returnView: "alert-history" },
+    };
+    const back2b = transitionBrowserBack(historyPreviewState, { isMobile: true });
+    assert.equal(back2b.actionTaken, "close-commute-preview");
+    assert.equal(back2b.nextState.activeView, "alert-history");
+    assert.equal(back2b.nextState.commutePathPreview, null);
+    assert.equal(back2b.nextState.commutesFocusedCommuteId, "saved-1");
+    const submenuBack = transitionSubmenuBack({ ...historyPreviewState, activeView: "map" }, { isMobile: true });
+    assert.equal(submenuBack.nextState.activeView, "alert-history");
+    assert.equal(submenuBack.nextState.commutePathPreview, null);
 
     // 3. Subview open -> popstate navigates view back
     const subviewState = {

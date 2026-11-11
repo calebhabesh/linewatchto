@@ -1031,7 +1031,7 @@ function SystemMapComponent({
       {commutePathPreview && !selection ? (
         <div className="commute-path-preview-chip" role="status" aria-live="polite" data-map-chooser-keepout>
           <span>
-            Viewing <strong><CommuteRouteLabel label={commutePathPreview.routeLabel} /></strong>
+            <span className="commute-path-preview-chip__caption">Viewing{commutePathPreview.chipLabel ? ` ${commutePathPreview.chipLabel}` : null}<span className="commute-path-preview-chip__colon">{commutePathPreview.chipLabel ? ":" : null}</span></span>{" "}<strong><CommuteRouteLabel label={commutePathPreview.routeLabel} /></strong>
           </span>
           <button
             type="button"
@@ -1039,7 +1039,7 @@ function SystemMapComponent({
               event.stopPropagation();
               onClearCommutePathPreview?.();
             }}
-            aria-label="Back to My Commutes"
+            aria-label={commutePathPreview.returnView === "alert-history" ? "Back to Alert History" : "Back to My Commutes"}
           >
             Back
           </button>

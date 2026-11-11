@@ -74,6 +74,16 @@ describe("System Map selection framing", () => {
     assert.deepEqual(route.queries, ['[data-commute-path-preview="commute-1"]']);
   });
 
+  it("frames a one-station preview (a past station alert) by its end marker, which draws no route", () => {
+    const blip = { selector: "blip" };
+    const root = {
+      querySelector: () => null,
+      querySelectorAll: (selector) => (selector === '[data-commute-path-preview-endpoint="alert-history-x"]' ? [blip] : []),
+    };
+    const preview = { id: "alert-history-x", legId: "outbound" };
+    assert.deepEqual(selectedMapElements(root, { selection: null, selectedStationId: null, commutePathPreview: preview }), [blip]);
+  });
+
   it("is the only framing code: both maps call it and keep no copy", () => {
     for (const mapSource of [ttcMapSource, regionalMapSource]) {
       assert.match(mapSource, /useDesktopMapInsets\(/);

@@ -507,6 +507,15 @@
   min-width: 0;
 }
 
+/* View sits at the badges' end, as on the alert cards. */
+.alert-history-heading-badges:has(.alert-history-map-btn) {
+  justify-self: stretch;
+}
+
+.alert-history-heading-badges .alert-history-map-btn {
+  margin-left: auto;
+}
+
 .alert-history-line-identity {
   align-items: center;
   display: flex;

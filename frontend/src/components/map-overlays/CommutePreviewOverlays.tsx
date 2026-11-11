@@ -44,7 +44,8 @@ export function MapCommutePreviewRoute({ preview }: { preview: MapCommutePreview
 }
 
 /**
- * A green flash over each end's station, above station artwork. A pill
+ * A green flash over each end's station, above station artwork; a past
+ * alert's span marks its ends with a still green blip instead. A pill
  * (Union) swells its own outline by a fixed distance instead of scaling,
  * which would stretch a long pill far past the station.
  */
@@ -59,7 +60,7 @@ export function MapCommuteEndpointFlashes({
   return (
     <g aria-hidden="true" pointerEvents="none">
       {preview.endpoints.map((endpoint) => (
-        <CommuteEndpointFlash key={endpoint.key} endpoint={endpoint} unit={plane.unit} />
+        <CommuteEndpointFlash key={endpoint.key} endpoint={endpoint} unit={plane.unit} still={preview.endpointStyle === "static"} previewId={preview.id} />
       ))}
     </g>
   );
@@ -69,11 +70,54 @@ export function MapCommuteEndpointFlashes({
 const PILL_FLASH_FROM = -25;
 const PILL_FLASH_TO = 15;
 
-function CommuteEndpointFlash({ endpoint, unit }: { endpoint: MapCommuteEndpoint; unit: number }) {
+/** A still blip's reach past its station's dot, as a share of the beacon's radius, and a pill's, in overlay units. */
+const BLIP_RADIUS_SCALE = 1.3;
+const PILL_BLIP_OUTSET = 15;
+
+function CommuteEndpointFlash({
+  endpoint,
+  unit,
+  still = false,
+  previewId,
+}: {
+  endpoint: MapCommuteEndpoint;
+  unit: number;
+  still?: boolean;
+  previewId: string;
+}) {
   const shared = {
     "data-map-highlight-id": endpoint.stationId,
     "data-commute-path-endpoint": endpoint.role,
+    // The camera frames the ends with the route: a one-station preview has no route.
+    "data-commute-path-preview-endpoint": previewId,
   };
+  if (still) {
+    if (!endpoint.pill) {
+      return (
+        <circle
+          {...shared}
+          className="station-endpoint-blip"
+          cx={endpoint.center.x}
+          cy={endpoint.center.y}
+          r={endpoint.flashRadius * BLIP_RADIUS_SCALE}
+        />
+      );
+    }
+    const box = outsetStationPill(endpoint.pill, PILL_BLIP_OUTSET * unit);
+    return (
+      <rect
+        {...shared}
+        className="station-endpoint-blip"
+        x={box.x}
+        y={box.y}
+        width={box.width}
+        height={box.height}
+        rx={box.rx}
+        ry={box.ry}
+        transform={endpoint.pill.transform}
+      />
+    );
+  }
   if (!endpoint.pill) {
     return (
       <circle

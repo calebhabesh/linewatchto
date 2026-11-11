@@ -576,7 +576,7 @@ export function CommutePathPreviewCardBanner({
       data-commute-path-preview-embedded
     >
       <span>
-        Viewing <strong>{commutePathPreview.routeLabel}</strong>
+        <span className="commute-path-preview-chip__caption">Viewing{commutePathPreview.chipLabel ? ` ${commutePathPreview.chipLabel}` : null}<span className="commute-path-preview-chip__colon">{commutePathPreview.chipLabel ? ":" : null}</span></span>{" "}<strong>{commutePathPreview.routeLabel}</strong>
       </span>
       <button
         type="button"
@@ -584,7 +584,7 @@ export function CommutePathPreviewCardBanner({
           event.stopPropagation();
           onClearCommutePathPreview?.();
         }}
-        aria-label="Back to My Commutes"
+        aria-label={commutePathPreview.returnView === "alert-history" ? "Back to Alert History" : "Back to My Commutes"}
       >
         Back
       </button>

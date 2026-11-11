@@ -276,5 +276,11 @@ export function mapCommutePreview<S extends NetworkSegment>(
       };
     });
   });
-  return { id: preview.id, label: preview.routeLabel, pathD, endpoints };
+  return {
+    id: preview.id,
+    label: preview.routeLabel,
+    pathD,
+    endpoints,
+    endpointStyle: preview.returnView === "alert-history" ? "static" : "beacon",
+  };
 }

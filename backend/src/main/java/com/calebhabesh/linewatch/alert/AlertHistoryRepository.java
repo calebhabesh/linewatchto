@@ -80,7 +80,8 @@ public class AlertHistoryRepository {
                    c.title, c.description, c.snapshot_time, c.active, c.source_updated_at,
                    c.event_type, c.source_alert_type, c.impact_kind, c.start_station_id,
                    c.end_station_id, c.direction, c.cause, c.cause_description,
-                   c.lifecycle_state, c.occurrence_number
+                   c.lifecycle_state, c.occurrence_number,
+                   null::text[] as station_ids
             from lifecycle c
             join matching_occurrences m
               on m.alert_id = c.alert_id
@@ -113,6 +114,7 @@ public class AlertHistoryRepository {
                        s.active,
                        a.source_updated_at,
                        s.impact_kind,
+                       s.station_ids,
                        case when jsonb_array_length(s.station_ids) > 0
                            then s.station_ids ->> 0 end as start_station_id,
                        case when jsonb_array_length(s.station_ids) > 0
@@ -159,7 +161,8 @@ public class AlertHistoryRepository {
                    c.impact_kind as event_type, c.source_system as source_alert_type,
                    c.impact_kind, c.start_station_id, c.end_station_id,
                    null::varchar as direction, c.cause, null::varchar as cause_description,
-                   c.lifecycle_state, c.occurrence_number
+                   c.lifecycle_state, c.occurrence_number,
+                   array(select jsonb_array_elements_text(c.station_ids)) as station_ids
             from lifecycle c
             join matching_occurrences m
               on m.alert_id = c.alert_id
@@ -197,8 +200,23 @@ public class AlertHistoryRepository {
             rs.getString("cause"),
             rs.getString("cause_description"),
             rs.getString("lifecycle_state"),
-            rs.getLong("occurrence_number")
+            rs.getLong("occurrence_number"),
+            stationIds(rs.getArray("station_ids"))
         );
+    }
+
+    private static List<String> stationIds(java.sql.Array array) throws java.sql.SQLException {
+        if (array == null) {
+            return List.of();
+        }
+        Object values = array.getArray();
+        if (!(values instanceof Object[] items)) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(items)
+            .filter(String.class::isInstance)
+            .map(String.class::cast)
+            .toList();
     }
 
     public Optional<OffsetDateTime> findLatestClearedSnapshotTime(String alertId) {
@@ -264,6 +282,24 @@ public class AlertHistoryRepository {
         String cause,
         String causeDescription,
         String lifecycleState,
-        Long occurrenceNumber
-    ) {}
+        Long occurrenceNumber,
+        /** Every station the snapshot names, in source order (GO/UP); empty for TTC, which names only its ends. */
+        List<String> stationIds
+    ) {
+        public AlertHistoryRow {
+            stationIds = stationIds == null ? List.of() : List.copyOf(stationIds);
+        }
+
+        public AlertHistoryRow(
+            Long id, String alertId, String sourceId, String lineId, String lineNumber, String lineName,
+            String title, String description, OffsetDateTime snapshotTime, boolean active,
+            OffsetDateTime sourceUpdatedAt, String eventType, String sourceAlertType, String impactKind,
+            String startStationId, String endStationId, String direction, String cause,
+            String causeDescription, String lifecycleState, Long occurrenceNumber
+        ) {
+            this(id, alertId, sourceId, lineId, lineNumber, lineName, title, description, snapshotTime,
+                active, sourceUpdatedAt, eventType, sourceAlertType, impactKind, startStationId,
+                endStationId, direction, cause, causeDescription, lifecycleState, occurrenceNumber, List.of());
+        }
+    }
 }

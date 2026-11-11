@@ -160,6 +160,10 @@ export type AccountSavedCommute = {
   updatedAt: string;
 };
 
+/**
+ * A route drawn on the map with a "Viewing …" chip: a saved commute's leg, or
+ * where a past alert was (Alert History's View), which sets `returnView`.
+ */
 export type AccountCommutePathPreview = {
   id: string;
   commuteId: string;
@@ -168,6 +172,10 @@ export type AccountCommutePathPreview = {
   routeLabel: string;
   stationIds: string[];
   segmentIds: string[];
+  /** The panel Back returns to; My Commutes when unset. */
+  returnView?: "alert-history";
+  /** Names what is shown before the route ("Cleared Alert"); commutes show the route alone. */
+  chipLabel?: string;
 };
 
 export function commuteLegsForCommute(commute: AccountSavedCommute): AccountCommuteLeg[] {

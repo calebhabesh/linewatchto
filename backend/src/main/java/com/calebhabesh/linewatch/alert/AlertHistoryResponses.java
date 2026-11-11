@@ -34,7 +34,9 @@ public final class AlertHistoryResponses {
         OffsetDateTime lastUpdatedAt,
         OffsetDateTime clearedAt,
         Long durationMinutes,
-        List<AlertHistoryEventDto> events
+        List<AlertHistoryEventDto> events,
+        /** Station ids the latest snapshot names along the line, for drawing where it was. */
+        List<String> stationIds
     ) {}
 
     public record AlertHistoryEventDto(

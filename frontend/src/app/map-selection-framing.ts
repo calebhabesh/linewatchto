@@ -48,10 +48,12 @@ export function selectedMapElements(
     )];
   }
   if (commutePathPreview) {
-    const preview = root.querySelector<SVGGraphicsElement>(
-      `[data-commute-path-preview="${CSS.escape(commutePathPreview.id)}"]`,
-    );
-    return preview ? [preview] : [];
+    // The route; a preview of one station (a past station alert) draws no
+    // route, so it frames its end marker instead.
+    const id = CSS.escape(commutePathPreview.id);
+    const route = root.querySelector<SVGGraphicsElement>(`[data-commute-path-preview="${id}"]`);
+    if (route) return [route];
+    return [...root.querySelectorAll<SVGGraphicsElement>(`[data-commute-path-preview-endpoint="${id}"]`)];
   }
   return [];
 }

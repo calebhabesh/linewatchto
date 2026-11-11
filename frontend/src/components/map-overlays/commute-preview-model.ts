@@ -24,6 +24,8 @@ export type MapCommutePreview = {
   /** The route's centre line, in overlay coordinates. */
   pathD: string;
   endpoints: MapCommuteEndpoint[];
+  /** How the ends are marked: a commute's pulsing beacon, or a still blip (a past alert's span). */
+  endpointStyle: "beacon" | "static";
 };
 
 /** TTC's endpoint dot (34) and green flash (38) around its 32-unit station dot. */

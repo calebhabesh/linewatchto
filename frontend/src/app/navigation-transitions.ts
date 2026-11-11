@@ -10,6 +10,7 @@ import { popViewHistory, pushViewHistory, resolveInAppBackAction, type InAppBack
 import type { ImpactSelection, ImpactKind } from "./linewatch-data.ts";
 import type { NetworkId } from "./regional-data.ts";
 import type { AccountCommutePathPreview } from "./commute-data.ts";
+import { pathPreviewCommuteId, pathPreviewReturnView } from "./path-preview.ts";
 import { accountOAuthErrorState, type AccountOAuthErrorState } from "./account-oauth-error.ts";
 import {
   GOOGLE_LINK_SUCCESS_PARAM,
@@ -616,17 +617,16 @@ export function transitionSubmenuBack(
     };
   }
 
-  const fallback = state.commutePathPreview
-    ? ("commutes" as ActiveView)
-    : defaultSubmenuBackFallback(state.activeView, options.isMobile);
+  const previewReturnView = state.commutePathPreview ? pathPreviewReturnView(state.commutePathPreview) : null;
+  const fallback = previewReturnView ?? defaultSubmenuBackFallback(state.activeView, options.isMobile);
 
   const previous = popViewHistory(state.viewHistory, fallback);
-  const targetView: ActiveView = state.commutePathPreview ? "commutes" : previous.view;
-  const returningToCommutesFromPreview = Boolean(state.commutePathPreview) && targetView === "commutes";
+  const targetView: ActiveView = previewReturnView ?? previous.view;
+  const returningToCommutesFromPreview = previewReturnView !== null;
   const returningToSelectedMap = targetView === "map" && Boolean(state.selection) && !stationOriginId;
 
-  const nextCommutesFocusedId = returningToCommutesFromPreview
-    ? state.commutePathPreview?.commuteId ?? state.commutePathPreview?.id ?? null
+  const nextCommutesFocusedId = state.commutePathPreview
+    ? pathPreviewCommuteId(state.commutePathPreview) ?? state.commutesFocusedCommuteId
     : state.commutesFocusedCommuteId;
 
   const nextHistory = previous.history.length > 0
@@ -1002,14 +1002,14 @@ export function transitionBrowserBack(
     }
 
     case "close-commute-preview": {
-      const focusedId = state.commutePathPreview?.commuteId ?? state.commutePathPreview?.id ?? null;
+      const preview = state.commutePathPreview;
       return {
         nextState: {
           ...state,
           commutePathPreview: null,
-          commutesFocusedCommuteId: focusedId,
+          commutesFocusedCommuteId: preview ? pathPreviewCommuteId(preview) ?? state.commutesFocusedCommuteId : null,
           selection: null,
-          activeView: "commutes",
+          activeView: preview ? pathPreviewReturnView(preview) : "commutes",
           navDirection: "back",
         },
         actionTaken: action,
@@ -1044,13 +1044,13 @@ export function transitionBrowserBack(
         };
       }
       if (state.commutePathPreview) {
-        const focusedId = state.commutePathPreview.commuteId ?? state.commutePathPreview.id;
+        const preview = state.commutePathPreview;
         return {
           nextState: {
             ...state,
             commutePathPreview: null,
-            commutesFocusedCommuteId: focusedId,
-            activeView: "commutes",
+            commutesFocusedCommuteId: pathPreviewCommuteId(preview) ?? state.commutesFocusedCommuteId,
+            activeView: pathPreviewReturnView(preview),
             selection: null,
             selectionBackBehavior: "clear",
             navDirection: "back",

@@ -25,6 +25,7 @@ import { popViewHistory, pushViewHistory } from "../app/view-navigation";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { NetworkId } from "../app/regional-data";
 import type { AccountCommutePathPreview } from "../app/commute-data";
+import { pathPreviewCommuteId, pathPreviewReturnView } from "../app/path-preview";
 import { currentBrowserLocalPath } from "../components/account-dialog-state";
 import { skipNextImpactCardGlow } from "./useScrollSelectedImpactCard";
 
@@ -424,11 +425,11 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
       setActiveView(targetView);
       setIsGoingBack(false);
 
-      const returningToCommutesFromPreview = Boolean(commutePathPreviewRef.current) && targetView === "commutes";
-      if (returningToCommutesFromPreview) {
-        if (commutePathPreviewRef.current) {
-          setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
-        }
+      const leavingPreview = commutePathPreviewRef.current;
+      const returningFromPreview = Boolean(leavingPreview) && targetView === pathPreviewReturnView(leavingPreview!);
+      if (returningFromPreview) {
+        const returnCommuteId = pathPreviewCommuteId(leavingPreview!);
+        if (returnCommuteId) setCommutesFocusedCommuteId(returnCommuteId);
         commutePathPreviewRef.current = null;
         setCommutePathPreview(null);
       }
@@ -484,8 +485,9 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
   }, []);
 
   const restorePreviousView = useCallback(() => {
-    const fallback: ActiveView = commutePathPreviewRef.current
-      ? "commutes"
+    const preview = commutePathPreviewRef.current;
+    const fallback: ActiveView = preview
+      ? pathPreviewReturnView(preview)
       : isMobile
         ? "map"
         : "status";
@@ -493,8 +495,9 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     viewHistoryRef.current = previous.history;
     setViewHistory(previous.history);
     activeViewRef.current = previous.view;
-    if (commutePathPreviewRef.current && previous.view === "commutes") {
-      setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
+    if (preview && previous.view === pathPreviewReturnView(preview)) {
+      const returnCommuteId = pathPreviewCommuteId(preview);
+      if (returnCommuteId) setCommutesFocusedCommuteId(returnCommuteId);
       commutePathPreviewRef.current = null;
       setCommutePathPreview(null);
     }
@@ -659,7 +662,10 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     if (commuteId && (!commutePathPreviewRef.current || (commutePathPreviewRef.current.id !== commuteId && commutePathPreviewRef.current.commuteId !== commuteId))) {
       return;
     }
-    if (activeViewRef.current === "commutes") {
+    const preview = commutePathPreviewRef.current;
+    const returnView = preview ? pathPreviewReturnView(preview) : "commutes";
+    const returnCommuteId = preview ? pathPreviewCommuteId(preview) : null;
+    if (activeViewRef.current === returnView) {
       commutePathPreviewRef.current = null;
       setCommutePathPreview(null);
       selectionRef.current = null;
@@ -669,9 +675,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
       setAccessibilityOutageTarget(null);
       return;
     }
-    if (commutePathPreviewRef.current) {
-      setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
-    }
+    if (returnCommuteId) setCommutesFocusedCommuteId(returnCommuteId);
     consumeBrowserNavigationEntries();
     setNavDirection("back");
     setIsGoingBack(true);
@@ -679,9 +683,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
       window.clearTimeout(backTimeoutRef.current);
     }
     backTimeoutRef.current = window.setTimeout(() => {
-      if (commutePathPreviewRef.current) {
-        setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
-      }
+      if (returnCommuteId) setCommutesFocusedCommuteId(returnCommuteId);
       commutePathPreviewRef.current = null;
       setCommutePathPreview(null);
       selectionRef.current = null;
@@ -690,8 +692,8 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
       setSelectedStationId(null);
       setAccessibilityOutageTarget(null);
       viewHistoryRef.current = isMobile ? ["more"] : ["status"];
-      activeViewRef.current = "commutes";
-      setActiveView("commutes");
+      activeViewRef.current = returnView;
+      setActiveView(returnView);
       setIsGoingBack(false);
     }, reducedMotion ? 0 : 380);
   }, [consumeBrowserNavigationEntries, isMobile, reducedMotion]);
@@ -916,17 +918,20 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
         }
         return;
 
-      case "close-commute-preview":
-        if (commutePathPreviewRef.current) {
-          setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
+      case "close-commute-preview": {
+        // The reducer names where the preview returns: My Commutes, or Alert History.
+        const returnView = backResult.nextState.activeView;
+        if (backResult.nextState.commutesFocusedCommuteId) {
+          setCommutesFocusedCommuteId(backResult.nextState.commutesFocusedCommuteId);
         }
         commutePathPreviewRef.current = null;
         setCommutePathPreview(null);
         selectionRef.current = null;
         setSelection(null);
-        activeViewRef.current = "commutes";
-        setActiveView("commutes");
+        activeViewRef.current = returnView;
+        setActiveView(returnView);
         return;
+      }
 
       case "navigate-view":
         if (stationDrilldownOriginRef.current) {
@@ -951,11 +956,13 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
           return;
         }
         if (commutePathPreviewRef.current) {
-          setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
+          const returnView = pathPreviewReturnView(commutePathPreviewRef.current);
+          const returnCommuteId = pathPreviewCommuteId(commutePathPreviewRef.current);
+          if (returnCommuteId) setCommutesFocusedCommuteId(returnCommuteId);
           commutePathPreviewRef.current = null;
           setCommutePathPreview(null);
-          setActiveView("commutes");
-          activeViewRef.current = "commutes";
+          setActiveView(returnView);
+          activeViewRef.current = returnView;
           selectionRef.current = null;
           setSelection(null);
           setSelectionBackBehavior("clear");
@@ -965,7 +972,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
         }
 
         const previous = { view: backResult.nextState.activeView, history: backResult.nextState.viewHistory };
-        if (commutePathPreviewRef.current && previous.view === "commutes") {
+        if (commutePathPreviewRef.current && previous.view === pathPreviewReturnView(commutePathPreviewRef.current)) {
           commutePathPreviewRef.current = null;
           setCommutePathPreview(null);
         }

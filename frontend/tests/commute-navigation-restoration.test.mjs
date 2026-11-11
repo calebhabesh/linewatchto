@@ -49,14 +49,16 @@ describe("My Commutes navigation and state restoration", () => {
   });
 
   it("resets commutePathPreview cleanly when returning to commutes via dialog back or popstate", () => {
-    assert.match(navSource, /const returningToCommutesFromPreview = Boolean\(commutePathPreviewRef\.current\) && targetView === "commutes";/);
-    assert.match(navSource, /if \(returningToCommutesFromPreview\) \{[\s\S]*?commutePathPreviewRef\.current = null;\s*setCommutePathPreview\(null\);/);
-    assert.match(navSource, /if \(commutePathPreviewRef\.current && previous\.view === "commutes"\) \{[\s\S]*?commutePathPreviewRef\.current = null;\s*setCommutePathPreview\(null\);/);
-    assert.match(navSource, /if \(commutePathPreviewRef\.current\) \{[\s\S]*?commutePathPreviewRef\.current = null;\s*setCommutePathPreview\(null\);\s*setActiveView\("commutes"\);/);
+    // A preview returns to its own panel: My Commutes, or Alert History for a past alert.
+    assert.match(navSource, /const returningFromPreview = Boolean\(leavingPreview\) && targetView === pathPreviewReturnView\(leavingPreview!\);/);
+    assert.match(navSource, /if \(returningFromPreview\) \{[\s\S]*?commutePathPreviewRef\.current = null;\s*setCommutePathPreview\(null\);/);
+    assert.match(navSource, /if \(preview && previous\.view === pathPreviewReturnView\(preview\)\) \{[\s\S]*?commutePathPreviewRef\.current = null;\s*setCommutePathPreview\(null\);/);
+    assert.match(navSource, /if \(commutePathPreviewRef\.current\) \{\s*const returnView = pathPreviewReturnView\(commutePathPreviewRef\.current\);[\s\S]*?commutePathPreviewRef\.current = null;\s*setCommutePathPreview\(null\);\s*setActiveView\(returnView\);/);
   });
 
   it("deletes a commute without triggering navigation animation when already in commutes panel", () => {
-    assert.match(shellSource + navSource, /if \(activeViewRef\.current === "commutes"\) \{\s*commutePathPreviewRef\.current = null;\s*setCommutePathPreview\(null\);/);
+    assert.match(navSource, /const returnView = preview \? pathPreviewReturnView\(preview\) : "commutes";/);
+    assert.match(shellSource + navSource, /if \(activeViewRef\.current === returnView\) \{\s*commutePathPreviewRef\.current = null;\s*setCommutePathPreview\(null\);/);
     assert.match(panelSource, /if \(viewedCommuteId === id\) \{\s*onClearViewedPath\(id\);\s*\}/);
   });
 

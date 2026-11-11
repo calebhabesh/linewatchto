@@ -59,6 +59,39 @@ class AlertHistoryServiceTest {
     }
 
     @Test
+    void namesTheStationsEachIncidentCoveredForDrawingItOnTheMap() {
+        when(repository.findLifecycleRows(
+            OffsetDateTime.parse("2026-06-23T00:00:00-04:00"),
+            OffsetDateTime.parse("2026-06-23T12:30:00-04:00"),
+            300
+        )).thenReturn(List.of(
+            row(1L, "ttc-route-1", true, "opened", "2026-06-23T12:05:00-04:00")
+        ));
+        when(repository.findRegionalLifecycleRows(
+            OffsetDateTime.parse("2026-06-23T00:00:00-04:00"),
+            OffsetDateTime.parse("2026-06-23T12:30:00-04:00"),
+            300
+        )).thenReturn(List.of(
+            new AlertHistoryRepository.AlertHistoryRow(
+                1L, "regional-alert-1", "source-1", "regional-st", null, null,
+                "Stouffville station closures", "Stations are closed.",
+                OffsetDateTime.parse("2026-06-23T12:05:00-04:00"), true,
+                OffsetDateTime.parse("2026-06-23T12:05:00-04:00"), "suspension", "metrolinx-go-service-alerts",
+                "suspension", "unionville", "old-elm", null, null, null, "opened", 1L,
+                List.of("unionville", "centennial", "markham", "old-elm")
+            )
+        ));
+
+        // A single-station TTC alert names the station once.
+        assertThat(service.history("today", 300).incidents()).singleElement()
+            .satisfies(incident -> assertThat(incident.stationIds()).containsExactly("warden"));
+        // GO/UP keeps every station the snapshot listed, in order.
+        assertThat(service.history("regional", "today", 300).incidents()).singleElement()
+            .satisfies(incident -> assertThat(incident.stationIds())
+                .containsExactly("unionville", "centennial", "markham", "old-elm"));
+    }
+
+    @Test
     void separatesRepeatedOccurrencesThatReuseTheSameAlertId() {
         when(repository.findLifecycleRows(
             OffsetDateTime.parse("2026-06-23T00:00:00-04:00"),
@@ -127,6 +160,7 @@ class AlertHistoryServiceTest {
             assertThat(incident.lineNumber()).isEqualTo("LE");
             assertThat(incident.lineName()).isEqualTo("Lakeshore East");
             assertThat(incident.location()).isEqualTo("Union to Pickering");
+            assertThat(incident.stationIds()).containsExactly("union", "pickering");
             assertThat(incident.source()).isEqualTo("Metrolinx Open API");
         });
         verify(repository).findRegionalLifecycleRows(

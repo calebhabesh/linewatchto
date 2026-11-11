@@ -37,6 +37,8 @@ export type AlertHistoryIncident = {
   clearedAt: string | null;
   durationMinutes: number | null;
   events: AlertHistoryEvent[];
+  /** Stations the alert named along its line (GO/UP: every one listed; TTC: its ends). */
+  stationIds?: string[];
 };
 
 type AlertHistoryResponse = {

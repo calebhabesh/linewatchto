@@ -6,7 +6,7 @@ import { availableFilterOptions } from "../app/filter-options";
 
 import { FilterOptionCount } from "./FilterOptionCount";
 
-import { memo, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -37,7 +37,8 @@ import { NotificationTapNotice } from "./NotificationTapNotice";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatFullImpactTimestamp, formatImpactTimestamp } from "../app/impact-time";
 import type { NetworkId } from "../app/regional-data";
-import { CompactImpactLocation, formatCause } from "./ImpactCardFields";
+import { CompactImpactLocation, ImpactCardMapButton, formatCause } from "./ImpactCardFields";
+import { alertHistoryPreviewId, type AlertHistoryMapTarget } from "../app/alert-history-map-target";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
@@ -166,33 +167,136 @@ export type AlertHistoryFocus = {
   notice: TapNoticeValue;
 };
 
+/** View on each card: where the alert is (still listed) or was (drawn from history). */
+export type AlertHistoryMapProps = {
+  resolveMapTarget?: (incident: AlertHistoryIncident) => AlertHistoryMapTarget | null;
+  onViewMapTarget?: (target: AlertHistoryMapTarget) => void;
+  /** The past alert drawn on the map now (its preview id); its card's View reads Back. */
+  viewedPreviewId?: string | null;
+  /** Back: takes the drawn past alert off the map. */
+  onClearMapTarget?: () => void;
+};
+
+/**
+ * The list as it was when last left (filters, pages shown, loaded incidents,
+ * scroll), so returning to it (Back from a card's View, or from a live alert's
+ * card) opens where the rider was. Kept for this page session only.
+ */
+type SavedHistoryView = {
+  network: NetworkId;
+  period: AlertHistoryPeriod;
+  filter: AlertHistoryStatusFilter;
+  searchQuery: string;
+  selectedLineId: string;
+  selectedTypeId: string;
+  selectedSortBy: string;
+  pagination: { key: string; visibleCount: number };
+  history: AlertHistoryIncident[];
+  historyWindow: { since: string; until: string };
+  loadedQuery: string | null;
+  /** The card at the top of the list and how far it sat above the list's top edge. */
+  scrollAnchor: { key: string; offset: number } | null;
+};
+let savedHistoryView: SavedHistoryView | null = null;
+
 export function AlertHistoryTimeline({
   network,
   destination = null,
+  restoreView = false,
+  resolveMapTarget,
+  onViewMapTarget,
+  viewedPreviewId = null,
+  onClearMapTarget,
 }: {
   network: NetworkId;
   /** Set when a notification tap landed here because its alert is no longer current. */
   destination?: AlertHistoryFocus | null;
-}) {
-  const [period, setPeriod] = useState<AlertHistoryPeriod>("today");
-  const [filter, setFilter] = useState<AlertHistoryStatusFilter>("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLineId, setSelectedLineId] = useState(destination?.lineId ?? ALL_LINES_VALUE);
-  const [selectedTypeId, setSelectedTypeId] = useState(ALL_TYPES_VALUE);
+  /** Reopen the list as it was left (navigating back to it); a fresh open starts at the top. */
+  restoreView?: boolean;
+} & AlertHistoryMapProps) {
+  const [restored] = useState(() => (
+    restoreView && !destination && savedHistoryView?.network === network ? savedHistoryView : null
+  ));
+  const [period, setPeriod] = useState<AlertHistoryPeriod>(restored?.period ?? "today");
+  const [filter, setFilter] = useState<AlertHistoryStatusFilter>(restored?.filter ?? "all");
+  const [searchQuery, setSearchQuery] = useState(restored?.searchQuery ?? "");
+  const [selectedLineId, setSelectedLineId] = useState(restored?.selectedLineId ?? destination?.lineId ?? ALL_LINES_VALUE);
+  const [selectedTypeId, setSelectedTypeId] = useState(restored?.selectedTypeId ?? ALL_TYPES_VALUE);
   const [tapNoticeDismissed, setTapNoticeDismissed] = useState(false);
   const [focusSearch, setFocusSearch] = useState<"searching" | "widened" | "settled">(destination ? "searching" : "settled");
-  const [selectedSortBy, setSelectedSortBy] = useState(MOST_RECENT_SORT_VALUE);
+  const [selectedSortBy, setSelectedSortBy] = useState(restored?.selectedSortBy ?? MOST_RECENT_SORT_VALUE);
   const [isLineDropdownOpen, setIsLineDropdownOpen] = useState(false);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
-  const [history, setHistory] = useState<AlertHistoryIncident[]>([]);
-  const [historyWindow, setHistoryWindow] = useState({ since: "", until: "" });
-  const [pagination, setPagination] = useState({ key: "", visibleCount: HISTORY_PAGE_SIZE });
-  const [loadedQuery, setLoadedQuery] = useState<string | null>(null);
+  const [history, setHistory] = useState<AlertHistoryIncident[]>(restored?.history ?? []);
+  const [historyWindow, setHistoryWindow] = useState(restored?.historyWindow ?? { since: "", until: "" });
+  const [pagination, setPagination] = useState(restored?.pagination ?? { key: "", visibleCount: HISTORY_PAGE_SIZE });
+  const [loadedQuery, setLoadedQuery] = useState<string | null>(restored?.loadedQuery ?? null);
   const lineDropdownRef = useRef<HTMLDivElement>(null);
   const typeDropdownRef = useRef<HTMLDivElement>(null);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollAnchorRef = useRef(restored?.scrollAnchor ?? null);
+  const anchorFrameRef = useRef<number | null>(null);
+  // Remember the list as it is, for when the rider comes back to it.
+  const viewSnapshot: SavedHistoryView = {
+    network, period, filter, searchQuery, selectedLineId, selectedTypeId, selectedSortBy,
+    pagination, history, historyWindow, loadedQuery, scrollAnchor: null,
+  };
+  const viewSnapshotRef = useRef(viewSnapshot);
+  useLayoutEffect(() => {
+    viewSnapshotRef.current = viewSnapshot;
+  });
+  useEffect(() => () => {
+    if (anchorFrameRef.current !== null) window.cancelAnimationFrame(anchorFrameRef.current);
+    savedHistoryView = { ...viewSnapshotRef.current, scrollAnchor: scrollAnchorRef.current };
+  }, []);
+  // Cards render at a placeholder height until near the viewport
+  // (content-visibility), so a saved scrollTop would land on another card:
+  // bring the saved top card back to where it was instead.
+  useLayoutEffect(() => {
+    const container = scrollContainerRef.current;
+    const anchor = restored?.scrollAnchor;
+    if (!container || !anchor) return;
+    const placeAnchor = () => {
+      const row = container.querySelector<HTMLElement>(`[data-history-key="${CSS.escape(anchor.key)}"]`);
+      if (!row) return;
+      const drift = row.getBoundingClientRect().top - container.getBoundingClientRect().top + anchor.offset;
+      if (Math.abs(drift) >= 1) container.scrollTop += drift;
+    };
+    placeAnchor();
+    // Cards near the anchor take their real height over the next frames; hold
+    // the anchor until they settle, unless the rider takes over first.
+    let frames = 0;
+    let frame = window.requestAnimationFrame(function settle() {
+      placeAnchor();
+      frames += 1;
+      if (frames < 20) frame = window.requestAnimationFrame(settle);
+    });
+    const stop = () => window.cancelAnimationFrame(frame);
+    const interactions = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
+    interactions.forEach((type) => container.addEventListener(type, stop, { passive: true, once: true }));
+    return () => {
+      stop();
+      interactions.forEach((type) => container.removeEventListener(type, stop));
+    };
+  }, [restored]);
+  const recordScrollAnchor = useCallback(() => {
+    anchorFrameRef.current = null;
+    const container = scrollContainerRef.current;
+    // A list being hidden (leaving for the map) has no top card; keep the last one.
+    if (!container || container.clientHeight === 0) return;
+    if (container.scrollTop === 0) {
+      scrollAnchorRef.current = null;
+      return;
+    }
+    const top = container.getBoundingClientRect().top;
+    const row = [...container.querySelectorAll<HTMLElement>("[data-history-key]")]
+      .find((candidate) => candidate.getBoundingClientRect().bottom > top);
+    scrollAnchorRef.current = row?.dataset.historyKey
+      ? { key: row.dataset.historyKey, offset: top - row.getBoundingClientRect().top }
+      : null;
+  }, []);
 
   const requestedQuery = `${network}:${period}`;
 
@@ -309,6 +413,25 @@ export function AlertHistoryTimeline({
     () => visibleItems.slice(0, effectiveVisibleCount),
     [effectiveVisibleCount, visibleItems],
   );
+  // Which cards can show a map location; recomputed as the live data changes.
+  const viewableKeys = useMemo(() => {
+    if (!resolveMapTarget) return null;
+    const keys = new Set<string>();
+    for (const item of displayedItems) {
+      if (resolveMapTarget(item.incident)) keys.add(historyIncidentKey(item.incident));
+    }
+    return keys;
+  }, [displayedItems, resolveMapTarget]);
+  const mapActionsRef = useRef({ resolveMapTarget, onViewMapTarget, onClearMapTarget });
+  useLayoutEffect(() => {
+    mapActionsRef.current = { resolveMapTarget, onViewMapTarget, onClearMapTarget };
+  });
+  const clearView = useCallback(() => mapActionsRef.current.onClearMapTarget?.(), []);
+  const viewIncident = useCallback((incident: AlertHistoryIncident) => {
+    const { resolveMapTarget: resolve, onViewMapTarget: view } = mapActionsRef.current;
+    const target = resolve?.(incident);
+    if (target) view?.(target);
+  }, []);
 
   const selectedLineOption = useMemo(() => {
     return lineOptions.find((o) => o.value === selectedLineId);
@@ -322,7 +445,11 @@ export function AlertHistoryTimeline({
     return sortOptions.find((o) => o.value === selectedSortBy) ?? sortOptions[0];
   }, [sortOptions, selectedSortBy]);
 
+  // A new result set starts at the top; the first one keeps a restored position.
+  const shownResultSetKeyRef = useRef(resultSetKey);
   useEffect(() => {
+    if (shownResultSetKeyRef.current === resultSetKey) return;
+    shownResultSetKeyRef.current = resultSetKey;
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = 0;
     }
@@ -570,7 +697,14 @@ export function AlertHistoryTimeline({
         </div>
       </div>
 
-      <div ref={scrollContainerRef} className="alert-history-scroll" aria-label="Alert history incidents">
+      <div
+        ref={scrollContainerRef}
+        className="alert-history-scroll"
+        aria-label="Alert history incidents"
+        onScroll={() => {
+          if (anchorFrameRef.current === null) anchorFrameRef.current = window.requestAnimationFrame(recordScrollAnchor);
+        }}
+      >
         {loading ? (
           <p className="notification-settings-message alert-history-loading" role="status">
             <Loader2 size={13} className="animate-spin" aria-hidden="true" />
@@ -591,6 +725,12 @@ export function AlertHistoryTimeline({
                   latestEvent={item.latestEvent}
                   cleared={item.cleared}
                   highlighted={historyIncidentKey(item.incident) === focusIncidentKey}
+                  mapAction={viewableKeys
+                    ? viewableKeys.has(historyIncidentKey(item.incident)) ? "available" : "unavailable"
+                    : null}
+                  viewing={viewedPreviewId !== null && viewedPreviewId === alertHistoryPreviewId(item.incident)}
+                  onView={viewIncident}
+                  onClearView={clearView}
                 />
               ))}
             </ol>
@@ -619,7 +759,19 @@ const HistoryIncident = memo(function HistoryIncident({
   latestEvent,
   cleared,
   highlighted = false,
-}: AlertHistoryViewItem & { highlighted?: boolean }) {
+  mapAction = null,
+  viewing = false,
+  onView,
+  onClearView,
+}: AlertHistoryViewItem & {
+  highlighted?: boolean;
+  /** Whether View can show this alert on the map; no button without a map. */
+  mapAction?: "available" | "unavailable" | null;
+  /** This card's past location is drawn on the map now: View reads Back and takes it off. */
+  viewing?: boolean;
+  onView?: (incident: AlertHistoryIncident) => void;
+  onClearView?: () => void;
+}) {
   const [lifecycleExpanded, setLifecycleExpanded] = useState(
     incident.events.length <= COLLAPSED_LIFECYCLE_THRESHOLD,
   );
@@ -669,6 +821,16 @@ const HistoryIncident = memo(function HistoryIncident({
               )}
               {statusLabel}
             </span>
+            {mapAction ? (
+              <ImpactCardMapButton
+                className="alert-history-map-btn"
+                title={`${lineLabel(incident)} ${formatAlertTypeName(incident.eventType.trim().toLowerCase())}${incident.location ? `, ${incident.location}` : ""}`}
+                disabled={mapAction === "unavailable"}
+                onClick={() => (viewing ? onClearView?.() : onView?.(incident))}
+                actionLabel={viewing ? "Back" : undefined}
+                backLabel="Hide from Map"
+              />
+            ) : null}
           </div>
         </div>
         <strong className="alert-history-title">{title}</strong>
