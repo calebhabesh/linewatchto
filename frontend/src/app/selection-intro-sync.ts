@@ -1,6 +1,6 @@
 /*
  * Keeps a selected alert's card glow in step with its map flash. Both play the
- * same four fast pulses (--selection-fast-cycle-duration, four cycles of
+ * same intro (selection-card-glow and map-selection-path-intro, over
  * --selection-intro-duration), but the map's flash starts when its camera
  * lands (settled-selection.ts), after the card has already been selected.
  * A map that will flash a selection says so (`announceMapSelectionIntro`),

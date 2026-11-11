@@ -1,7 +1,9 @@
 /**
  * Pure selection-attention controller for the geographic map.
  * Implements the system-map attention cadence:
- * - 2.4s intro with four bright peaks (every 0.6s at 12.5%, 37.5%, 62.5%, 87.5%)
+ * - 2s intro: it eases in from what was drawn, flashes three times (peaks at
+ *   0.5s, 1.1s and 1.7s) at a constant width, and the last flash falls fully
+ *   before the breathe eases up from that trough
  * - 1.2s alternate breathe afterwards
  * - Static legible halo during the selection's camera flight and in fallback modes
  * - Keeps its cadence through user pans and zooms, as the System Map's pulses
@@ -33,8 +35,7 @@ interface SelectionAttentionRequest {
   continueAttention?: boolean;
 }
 
-export const ATTENTION_INTRO_DURATION_MS = 2400;
-const ATTENTION_INTRO_CYCLE_MS = 600;
+export const ATTENTION_INTRO_DURATION_MS = 2000;
 const ATTENTION_BREATHE_DURATION_MS = 1200;
 
 export const ATTENTION_TROUGH_OPACITY = 0.40;
@@ -42,11 +43,49 @@ export const ATTENTION_PEAK_OPACITY = 1.0;
 export const ATTENTION_BREATHE_HIGH_OPACITY = 0.92;
 
 const ATTENTION_TROUGH_WIDTH_MULTIPLIER = 1.0;
-const ATTENTION_PEAK_WIDTH_MULTIPLIER = 1.20;
-const ATTENTION_BREATHE_HIGH_WIDTH_MULTIPLIER = 1.10;
+// The band keeps its width while breathing, as on the System Maps: only
+// brightness pulses, so the selection never looks like it grows.
+const ATTENTION_BREATHE_HIGH_WIDTH_MULTIPLIER = 1.0;
 
 export const ATTENTION_STATIC_OPACITY = 0.90;
 export const ATTENTION_STATIC_WIDTH_MULTIPLIER = 1.0;
+
+/**
+ * The intro's keyframes after its start (the System Map's
+ * map-selection-path-intro): three full flashes at the breathe's starting
+ * width, ending on the trough the breathe starts from.
+ */
+const ATTENTION_INTRO_KEYFRAMES = [
+  { at: 500, opacity: ATTENTION_PEAK_OPACITY, width: ATTENTION_TROUGH_WIDTH_MULTIPLIER },
+  { at: 800, opacity: ATTENTION_TROUGH_OPACITY, width: ATTENTION_TROUGH_WIDTH_MULTIPLIER },
+  { at: 1100, opacity: ATTENTION_PEAK_OPACITY, width: ATTENTION_TROUGH_WIDTH_MULTIPLIER },
+  { at: 1400, opacity: ATTENTION_TROUGH_OPACITY, width: ATTENTION_TROUGH_WIDTH_MULTIPLIER },
+  { at: 1700, opacity: ATTENTION_PEAK_OPACITY, width: ATTENTION_TROUGH_WIDTH_MULTIPLIER },
+  { at: ATTENTION_INTRO_DURATION_MS, opacity: ATTENTION_TROUGH_OPACITY, width: ATTENTION_TROUGH_WIDTH_MULTIPLIER },
+] as const;
+
+/** Every step eases in and out, so the first flash starts gently. */
+const easeInOut = (t: number) => 0.5 - 0.5 * Math.cos(t * Math.PI);
+
+/** Opacity and width `elapsed` ms into the intro, starting from what was drawn. */
+export function attentionIntroValues(
+  elapsed: number,
+  start: { opacity: number; width: number },
+): { opacity: number; width: number } {
+  let from = { at: 0, opacity: start.opacity, width: start.width };
+  for (const to of ATTENTION_INTRO_KEYFRAMES) {
+    if (elapsed < to.at) {
+      const progress = (elapsed - from.at) / (to.at - from.at);
+      const eased = easeInOut(progress);
+      return {
+        opacity: from.opacity + (to.opacity - from.opacity) * eased,
+        width: from.width + (to.width - from.width) * eased,
+      };
+    }
+    from = to;
+  }
+  return { opacity: from.opacity, width: from.width };
+}
 
 export class GeographicSelectionAttention {
   private state: SelectionAttentionState = "idle";
@@ -55,6 +94,8 @@ export class GeographicSelectionAttention {
   private startTime = 0;
   private breatheBaseTime = 0;
   private flightResumesBreathe = false;
+  /** What the intro eases in from: nothing for a new overlay, the flight's halo after a flight. */
+  private introStart = { opacity: 0, width: ATTENTION_TROUGH_WIDTH_MULTIPLIER };
 
   public getState(): SelectionAttentionState {
     return this.state;
@@ -125,6 +166,7 @@ export class GeographicSelectionAttention {
 
     this.state = "intro";
     this.startTime = now;
+    this.introStart = { opacity: 0, width: ATTENTION_TROUGH_WIDTH_MULTIPLIER };
     return this.computeFrame(now);
   }
 
@@ -143,6 +185,8 @@ export class GeographicSelectionAttention {
       } else {
         this.state = "intro";
         this.startTime = now;
+        // The halo was drawn still through the flight; ease on from it.
+        this.introStart = { opacity: ATTENTION_STATIC_OPACITY, width: ATTENTION_STATIC_WIDTH_MULTIPLIER };
       }
       this.flightResumesBreathe = false;
     }
@@ -182,15 +226,7 @@ export class GeographicSelectionAttention {
           return this.computeFrame(now);
         }
 
-        // 4 quick cycles over 2.4s (600ms per cycle)
-        // Peaks at 12.5% (300ms), 37.5% (900ms), 62.5% (1500ms), 87.5% (2100ms)
-        const cycleElapsed = elapsed % ATTENTION_INTRO_CYCLE_MS;
-        const cycleProgress = cycleElapsed / ATTENTION_INTRO_CYCLE_MS;
-        // Cosine wave: 0 at start/end of 600ms cycle, 1 at mid-cycle (300ms)
-        const peakPhase = 0.5 - 0.5 * Math.cos(cycleProgress * 2 * Math.PI);
-
-        const opacity = ATTENTION_TROUGH_OPACITY + (ATTENTION_PEAK_OPACITY - ATTENTION_TROUGH_OPACITY) * peakPhase;
-        const widthMultiplier = ATTENTION_TROUGH_WIDTH_MULTIPLIER + (ATTENTION_PEAK_WIDTH_MULTIPLIER - ATTENTION_TROUGH_WIDTH_MULTIPLIER) * peakPhase;
+        const { opacity, width: widthMultiplier } = attentionIntroValues(elapsed, this.introStart);
 
         return {
           opacity: Number(opacity.toFixed(3)),

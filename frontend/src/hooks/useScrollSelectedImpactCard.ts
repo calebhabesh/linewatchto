@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { MOBILE_VIEWPORT_QUERY } from "./useMobilePerformanceMode";
 import { whenMapSelectionIntroStarts } from "../app/selection-intro-sync";
+import { MAP_SELECTION_INTRO_MS } from "../components/map-overlays/selection-intro";
 
 // Shared across panels: the badge that swaps between a planned advisory and its
 // current impact moves the selection to another panel, and the outgoing and
@@ -51,16 +52,16 @@ export function useScrollSelectedImpactCard(
       if (flashStartTime !== null && typeof card.getAnimations === "function") {
         const now = document.timeline?.currentTime;
         const glow = card.getAnimations({ subtree: true }).find((animation) => (
-          (animation as CSSAnimation).animationName === "highlight-glow"
+          (animation as CSSAnimation).animationName === "selection-card-glow"
         ));
-        if (glow && typeof now === "number" && now - flashStartTime < 2400) {
+        if (glow && typeof now === "number" && now - flashStartTime < MAP_SELECTION_INTRO_MS) {
           glow.startTime = flashStartTime;
           elapsedMs = Math.max(0, now - flashStartTime);
         }
       }
       highlightTimeout = window.setTimeout(() => {
         card.classList.remove("highlight-active-card");
-      }, 2500 - elapsedMs);
+      }, MAP_SELECTION_INTRO_MS + 100 - elapsedMs);
     };
 
     const scrollToCard = () => {

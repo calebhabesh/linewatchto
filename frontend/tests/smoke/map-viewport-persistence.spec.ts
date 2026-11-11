@@ -64,3 +64,32 @@ for (const network of ['ttc', 'regional']) {
   await expect.poll(()=>page.evaluate(key=>localStorage.getItem(key),key)).toBeNull();
  });
 }
+
+test('desktop camera stays where a cleared selection framed it when the map resizes', async ({ page, request, isMobile }) => {
+  test.skip(isMobile);
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await setStubMode(request, 'seeded');
+  await installDismissedTransientUi(page);
+  await page.addInitScript(() => localStorage.setItem('linewatch-seen-release-notes-version', '1.3.0'));
+  await page.goto('/');
+  const stage = page.locator('[data-system-map=ttc] .map-stage');
+  await expect(stage).toHaveAttribute('data-raster-map-ready', 'true');
+  const scaleOf = () => stage.evaluate((element) => new DOMMatrix(getComputedStyle(element).transform).a);
+  const fitted = await scaleOf();
+
+  await page.locator('.desktop-status-rail-section')
+    .getByRole('button', { name: /Sheppard-Yonge to Don Mills/i }).first().click();
+  await expect.poll(scaleOf).toBeGreaterThan(fitted * 1.2);
+  await page.waitForTimeout(1200);
+  const framed = await scaleOf();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[data-impact-card-id="stub-delay-line-4"]')).not.toHaveClass(/selected/);
+  await page.waitForTimeout(400);
+  expect(await scaleOf()).toBeCloseTo(framed, 4);
+
+  // The selection's framing was not the rider's gesture, but it is where they
+  // were left; a resize once refit it and snapped back to the whole map.
+  await page.setViewportSize({ width: 1600, height: 960 });
+  await page.waitForTimeout(800);
+  expect(await scaleOf()).toBeCloseTo(framed, 4);
+});

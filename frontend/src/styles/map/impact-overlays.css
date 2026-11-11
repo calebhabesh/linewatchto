@@ -410,10 +410,6 @@
   }
 }
 
-.asset-alert-path.selected {
-  stroke-width: calc(118px * var(--map-overlay-unit, 1));
-}
-
 .connected-corridor .asset-alert-path,
 .connected-corridor .asset-alert-path-glow {
   stroke-linecap: round;

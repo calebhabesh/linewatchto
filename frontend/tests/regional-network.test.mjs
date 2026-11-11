@@ -789,7 +789,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(framingSource, /SELECTION_FIT_COMFORT_RATIO = 0\.82/);
     assert.match(framingSource, /computeInsetViewportFocus\(logicalWidth, logicalHeight, insets\)/);
     assert.match(framingSource, /animateTransformTo\(\{ x: focusX - mapX \* scale, y: focusY - mapY \* scale, scale \}, fitScale\)/);
-    assert.match(framingSource, /if \(preserveCameraOnSelectionClear\) return;[\s\S]*moveToDefaultCamera\(true, false\)/);
+    assert.match(framingSource, /if \(preserveCameraOnSelectionClear\) \{[\s\S]*?keepCameraAsAdjusted\(\);\s*return;\s*\}[\s\S]*moveToDefaultCamera\(true, false\)/);
   });
 
   it("preserves station activation across viewport pointer capture", () => {

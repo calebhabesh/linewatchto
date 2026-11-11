@@ -1279,6 +1279,13 @@ export function usePanZoom({
   const clearCameraAdjustment = useCallback(() => {
     cameraAdjustedByUserRef.current = false;
   }, []);
+  /**
+   * Treats the camera as the rider's, so layout changes keep it rather than
+   * refitting: a cleared selection leaves the rider where it framed them.
+   */
+  const keepCameraAsAdjusted = useCallback(() => {
+    cameraAdjustedByUserRef.current = true;
+  }, []);
 
   return {
     cameraStore,
@@ -1286,6 +1293,7 @@ export function usePanZoom({
     isCameraInitialized,
     activePointerCount,
     clearCameraAdjustment,
+    keepCameraAsAdjusted,
     isGestureActive,
     isCameraInteracting,
     recenterFeedbackKey,

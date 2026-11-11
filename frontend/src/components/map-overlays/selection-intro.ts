@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import type { ImpactSelection } from "../../app/linewatch-data.ts";
 
 /** How long a new selection flashes before it settles into breathing. */
-export const MAP_SELECTION_INTRO_MS = 2400;
+export const MAP_SELECTION_INTRO_MS = 2000;
 
 /**
  * What the selection intro belongs to. A new key replays the intro; the same

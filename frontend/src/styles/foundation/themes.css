@@ -1,8 +1,8 @@
 .linewatch-shell {
   color-scheme: light;
-  --selection-fast-cycle-duration: 0.6s;
-  --selection-intro-duration: 2.4s;
   --selection-breathe-duration: 1.2s;
+  /* MAP_SELECTION_INTRO_MS; no longer than one breathe cycle (there and back). */
+  --selection-intro-duration: 2s;
   --panel: rgba(255, 255, 255, 0.94);
   --panel-opaque: #ffffff;
   --panel-strong: rgba(255, 255, 255, 0.98);

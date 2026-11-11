@@ -225,6 +225,19 @@
   }
 }
 
+/* The selected card glows with its map flash (map-selection-path-intro):
+   it fades in, flashes three times and fades out as the map starts breathing. */
+@keyframes selection-card-glow {
+  0%, 40%, 70%, 100% {
+    opacity: 0;
+    animation-timing-function: ease-in-out;
+  }
+  25%, 55%, 85% {
+    opacity: 1;
+    animation-timing-function: ease-in-out;
+  }
+}
+
 .highlight-active-card {
   position: relative;
 }
@@ -238,7 +251,7 @@
   opacity: 0;
   pointer-events: none;
   /* Its start time follows the map's flash (useScrollSelectedImpactCard). */
-  animation: highlight-glow var(--selection-fast-cycle-duration) ease-in-out 4 forwards;
+  animation: selection-card-glow var(--selection-intro-duration) linear 1 forwards;
 }
 
 .motion-paused .highlight-active-card::after {

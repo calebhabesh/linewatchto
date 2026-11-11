@@ -133,7 +133,7 @@ describe("floating menu layout", () => {
     assert.match(selectedImpactScrollSource, /const alignmentOffset = isMobile/);
     assert.match(selectedImpactScrollSource, /list\.scrollTo\(/);
     assert.match(globalCss, /\.alert-card\s*\{[^}]*scroll-margin-top:\s*10px/s);
-    assert.match(globalCss, /\.highlight-active-card::after\s*\{[^}]*animation:\s*highlight-glow var\(--selection-fast-cycle-duration\)/s);
+    assert.match(globalCss, /\.highlight-active-card::after\s*\{[^}]*animation:\s*selection-card-glow var\(--selection-intro-duration\) linear 1 forwards/s);
     // Opacity only, so the compositor runs it without repainting the list.
     assert.match(globalCss, /@keyframes highlight-glow\s*\{\s*0%, 100% \{\s*opacity: 0;\s*\}\s*50% \{\s*opacity: 1;\s*\}\s*\}/);
   });

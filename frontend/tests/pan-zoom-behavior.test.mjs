@@ -543,7 +543,7 @@ describe("pan zoom behavior guardrails", () => {
 
     assert.match(noTargetBranch, /lastFocusedTargetKeyRef\.current = null/);
     assert.match(mapSource, /preserveCameraOnSelectionClear/);
-    assert.match(noTargetBranch, /if \(preserveCameraOnSelectionClear\) return;[\s\S]*moveToDefaultCamera\(true, false\)/);
+    assert.match(noTargetBranch, /if \(preserveCameraOnSelectionClear\) \{[\s\S]*?keepCameraAsAdjusted\(\);\s*return;\s*\}[\s\S]*moveToDefaultCamera\(true, false\)/);
     assert.match(shellSource, /preserveCameraOnSelectionClear\s/);
   });
 

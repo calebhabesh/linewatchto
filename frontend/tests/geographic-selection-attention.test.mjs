@@ -12,7 +12,7 @@ import {
 } from "../src/app/geographic-selection-attention.ts";
 
 test("Geographic Selection Attention Controller", async (t) => {
-  await t.test("four intro peaks over 2.4s transition seamlessly into 1.2s alternate breathe", () => {
+  await t.test("intro eases in, flashes three times in full, then eases into the 1.2s alternate breathe", () => {
     const attention = new GeographicSelectionAttention();
     const t0 = 1000;
 
@@ -22,44 +22,53 @@ test("Geographic Selection Attention Controller", async (t) => {
       t0,
     );
 
+    // A new overlay eases in from nothing rather than starting at the trough.
     assert.equal(frame0.state, "intro");
     assert.equal(frame0.active, true);
-    assert.equal(frame0.opacity, ATTENTION_TROUGH_OPACITY);
+    assert.equal(frame0.opacity, 0);
+    const early = attention.computeFrame(t0 + 50).opacity;
+    assert.ok(early > 0 && early < 0.4, `early ${early}`);
 
-    // Peak 1 at 300ms (12.5% of 2400ms)
-    const framePeak1 = attention.computeFrame(t0 + 300);
-    assert.equal(framePeak1.state, "intro");
-    assert.equal(framePeak1.active, true);
-    assert.equal(framePeak1.opacity, ATTENTION_PEAK_OPACITY);
-    assert.equal(framePeak1.widthMultiplier, 1.2);
+    // Three full flashes, peaks at 500ms, 1100ms and 1700ms, at a constant width: the
+    // band never looks like it grows as the flash begins.
+    for (const [at, opacity] of [[500, ATTENTION_PEAK_OPACITY], [800, ATTENTION_TROUGH_OPACITY], [1100, ATTENTION_PEAK_OPACITY], [1400, ATTENTION_TROUGH_OPACITY], [1700, ATTENTION_PEAK_OPACITY]]) {
+      const frame = attention.computeFrame(t0 + at);
+      assert.equal(frame.state, "intro");
+      assert.equal(frame.opacity, opacity, `${at}ms`);
+    }
+    for (let at = 0; at < 5000; at += 50) assert.equal(attention.computeFrame(t0 + at).widthMultiplier, 1, `${at}ms`);
 
-    // Trough 1 at 600ms
-    const frameTrough1 = attention.computeFrame(t0 + 600);
-    assert.equal(frameTrough1.state, "intro");
-    assert.equal(frameTrough1.opacity, ATTENTION_TROUGH_OPACITY);
-
-    // Peak 2 at 900ms (37.5% of 2400ms)
-    const framePeak2 = attention.computeFrame(t0 + 900);
-    assert.equal(framePeak2.opacity, ATTENTION_PEAK_OPACITY);
-
-    // Peak 3 at 1500ms (62.5% of 2400ms)
-    const framePeak3 = attention.computeFrame(t0 + 1500);
-    assert.equal(framePeak3.opacity, ATTENTION_PEAK_OPACITY);
-
-    // Peak 4 at 2100ms (87.5% of 2400ms)
-    const framePeak4 = attention.computeFrame(t0 + 2100);
-    assert.equal(framePeak4.opacity, ATTENTION_PEAK_OPACITY);
-
-    // Trough at 2400ms -> transition to breathe
+    // The last flash falls all the way, then the breathe eases up from the trough.
+    assert.equal(ATTENTION_INTRO_DURATION_MS, 2000);
     const frameBreatheStart = attention.computeFrame(t0 + ATTENTION_INTRO_DURATION_MS);
     assert.equal(frameBreatheStart.state, "breathe");
-    assert.equal(frameBreatheStart.active, true);
+    assert.equal(frameBreatheStart.opacity, ATTENTION_TROUGH_OPACITY);
+    assert.ok(attention.computeFrame(t0 + ATTENTION_INTRO_DURATION_MS + 100).opacity < 0.42, "breathe starts gently");
 
-    // Breathe peak at 1200ms after breathe start (t0 + 2400 + 1200 = t0 + 3600)
     const frameBreathePeak = attention.computeFrame(t0 + ATTENTION_INTRO_DURATION_MS + 1200);
     assert.equal(frameBreathePeak.state, "breathe");
-    assert.equal(frameBreathePeak.active, true);
     assert.equal(frameBreathePeak.opacity, ATTENTION_BREATHE_HIGH_OPACITY);
+  });
+
+  await t.test("every intro step is small, so the cadence never jumps", () => {
+    for (const hasCameraFlight of [false, true]) {
+      const attention = new GeographicSelectionAttention();
+      let previous = attention.requestAttention({ id: "a", generation: 1, hasCameraFlight }, false, 0).opacity;
+      if (hasCameraFlight) previous = attention.onCameraFlightEnd(1, 0).opacity;
+      for (let now = 16; now <= 6000; now += 16) {
+        const { opacity } = attention.computeFrame(now);
+        assert.ok(Math.abs(opacity - previous) < 0.08, `${hasCameraFlight ? "after flight" : "fresh"}: ${previous} -> ${opacity} at ${now}ms`);
+        previous = opacity;
+      }
+    }
+  });
+
+  await t.test("after a camera flight the intro eases on from the still halo", () => {
+    const attention = new GeographicSelectionAttention();
+    attention.requestAttention({ id: "a", generation: 1, hasCameraFlight: true }, false, 0);
+    const landed = attention.onCameraFlightEnd(1, 500);
+    assert.equal(landed.state, "intro");
+    assert.equal(landed.opacity, ATTENTION_STATIC_OPACITY);
   });
 
   await t.test("new explicit request and same-alert reselect restart intro, while same-key poll preserves phase", () => {
@@ -93,7 +102,7 @@ test("Geographic Selection Attention Controller", async (t) => {
       t0 + 4000,
     );
     assert.equal(attention.getState(), "intro", "Reselecting same alert with new generation restarts intro");
-    const frameRestart = attention.computeFrame(t0 + 4300); // 300ms after restart
+    const frameRestart = attention.computeFrame(t0 + 4500); // 500ms after restart
     assert.equal(frameRestart.opacity, ATTENTION_PEAK_OPACITY, "Restarts at first peak");
   });
 
@@ -121,8 +130,8 @@ test("Geographic Selection Attention Controller", async (t) => {
     assert.equal(frameArrival.state, "intro");
     assert.equal(frameArrival.active, true, "Intro animation starts on camera arrival");
 
-    // Peak 1 arrives 300ms after arrival (t0 + 600 + 300 = t0 + 900)
-    const framePostArrivalPeak = attention.computeFrame(t0 + 900);
+    // Peak 1 arrives 500ms after arrival (t0 + 600 + 500 = t0 + 1100)
+    const framePostArrivalPeak = attention.computeFrame(t0 + 1100);
     assert.equal(framePostArrivalPeak.opacity, ATTENTION_PEAK_OPACITY);
   });
 
@@ -138,7 +147,7 @@ test("Geographic Selection Attention Controller", async (t) => {
     // The controller has no gesture hooks: frames during and after a pan or
     // zoom follow the same clock, so the intro ends into breathe on time.
     assert.equal(typeof attention.onUserGestureStart, "undefined");
-    assert.equal(attention.computeFrame(t0 + 900).opacity, ATTENTION_PEAK_OPACITY);
+    assert.equal(attention.computeFrame(t0 + 500).opacity, ATTENTION_PEAK_OPACITY);
     const afterIntro = attention.computeFrame(t0 + 3000);
     assert.equal(afterIntro.state, "breathe");
     assert.equal(afterIntro.active, true);

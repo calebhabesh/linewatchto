@@ -173,6 +173,7 @@ type MapCamera = Pick<
   | "animateTransformTo"
   | "moveToDefaultCamera"
   | "clearCameraAdjustment"
+  | "keepCameraAsAdjusted"
   | "isGestureActive"
   | "recenter"
   | "recenterWithFeedback"
@@ -242,6 +243,7 @@ export function useMapFraming({
     animateTransformTo,
     moveToDefaultCamera,
     clearCameraAdjustment,
+    keepCameraAsAdjusted,
     isGestureActive,
     recenter,
     recenterWithFeedback,
@@ -355,7 +357,13 @@ export function useMapFraming({
       if (lastFocusedTargetKeyRef.current === null) return;
       lastFocusedTargetKeyRef.current = null;
       lastFocusLayoutKeyRef.current = layoutKey;
-      if (preserveCameraOnSelectionClear) return;
+      if (preserveCameraOnSelectionClear) {
+        // The selection's framing was programmatic, so the camera still reads
+        // as untouched; without this the next toolbar, legend or window
+        // resize refit it and snapped the rider back to the whole map.
+        keepCameraAsAdjusted();
+        return;
+      }
       // Clearing a selection flies back to the fitted map, which counts as untouched.
       clearCameraAdjustment();
       moveToDefaultCamera(true, false);
@@ -391,6 +399,7 @@ export function useMapFraming({
     focusSelection,
     focusTargetKey,
     isGestureActive,
+    keepCameraAsAdjusted,
     layoutResetSignal,
     mobilePerformanceMode,
     moveToDefaultCamera,
