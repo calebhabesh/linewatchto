@@ -106,19 +106,19 @@ test("saved commute preview leaves room around its route", async ({ page, isMobi
   const arrow = page.locator(".commute-path-preview-chip .commute-route-direction-arrow");
   await expect(arrow).toHaveAttribute("stroke-width", "3");
   if (!isMobile) {
+    // The chip centres under the map toolbar, which keeps clear of the sidebar
+    // and the right-hand buttons, so it follows the toolbar rather than the
+    // viewport's centre (observeDesktopControlRail, --desktop-rail-center).
     const banner = page.locator(".commute-path-preview-chip");
-    await expect.poll(async () => {
+    const offsetFromToolbar = async () => {
       const bannerBox = (await banner.boundingBox())!;
-      const sidebar = (await page.locator("#desktop-sidebar-container").boundingBox())!;
-      const viewport = (await page.locator("[data-system-map=ttc] .system-map-viewport").boundingBox())!;
-      return Math.abs(bannerBox.x + bannerBox.width / 2 - (sidebar.x + sidebar.width + viewport.x + viewport.width) / 2);
-    }).toBeLessThan(2);
+      const toolbar = (await page.locator(".desktop-map-control-rail:visible").first().boundingBox())!;
+      return Math.abs(bannerBox.x + bannerBox.width / 2 - (toolbar.x + toolbar.width / 2));
+    };
+    await expect.poll(offsetFromToolbar).toBeLessThan(2);
     await page.getByRole("button", { name: "Collapse sidebar", exact: true }).click();
-    await expect.poll(async () => {
-      const bannerBox = (await banner.boundingBox())!;
-      const viewport = (await page.locator("[data-system-map=ttc] .system-map-viewport").boundingBox())!;
-      return Math.abs(bannerBox.x + bannerBox.width / 2 - viewport.x - viewport.width / 2);
-    }).toBeLessThan(2);
+    await expect(page.locator("#desktop-sidebar-container")).toHaveClass(/desktop-sidebar-container--collapsed/);
+    await expect.poll(offsetFromToolbar).toBeLessThan(2);
     await page.getByRole("button", { name: "Expand sidebar", exact: true }).click();
   }
   const routeBounds = (await route.boundingBox())!;
