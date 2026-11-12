@@ -210,27 +210,23 @@
 }
 .regional-trip-change-card.notification-target-highlight {
   --highlight-color: var(--notice-edge);
-  --highlight-glow: color-mix(in srgb, var(--notice-edge) 45%, transparent);
 }
 
+/* The opened notice's frame flash, in its own edge colour (station-impact-card-highlight-pulse). */
 .surface-notice-selection-glow {
   --highlight-color: var(--notice-edge);
-  --highlight-glow: color-mix(in srgb, var(--notice-edge) 45%, transparent);
   animation: station-impact-card-highlight-pulse 1.6s ease-in-out 1 forwards;
-  border-radius: 6px;
-  position: relative;
-  z-index: 1;
 }
 
 .motion-paused .surface-notice-selection-glow {
   animation: none;
-  box-shadow: inset 0 0 0 2px var(--notice-edge);
+  outline-color: var(--notice-edge);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .surface-notice-selection-glow {
     animation: none;
-    box-shadow: inset 0 0 0 2px var(--notice-edge);
+    outline-color: var(--notice-edge);
   }
 }
 .surface-notice-filters { flex-wrap: wrap; }

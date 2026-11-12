@@ -82,9 +82,12 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /arrivalContext\.scheduleMayBeDisrupted/);
     assert.match(panelSource, /onJump=\{\(origin\) => jumpToStationImpactsSection\(origin, reducedMotion\)\}/);
     assert.match(stationImpactsJumpSource, /scroller\.addEventListener\("scrollend", startHighlight, \{ once: true \}\)/);
-    assert.match(globalCss, /\.station-impact-card::after\s*\{[^}]*box-shadow:\s*0 0 0 2px color-mix\([^}]*opacity:\s*0;/s);
-    assert.match(globalCss, /\.station-impact-card-highlight-soft::after\s*\{[^}]*animation:\s*highlight-glow 1\.6s ease-in-out 1 both;/s);
-    assert.doesNotMatch(globalCss, /\.station-impact-card-highlight-soft::after\s*\{[^}]*station-impact-card-highlight-pulse/s);
+    // The flash frame lies just inside the card's edge, so neither its list nor the card clips it.
+    assert.match(globalCss, /\.station-impact-card-highlight-soft,\s*\.notification-target-highlight,\s*\.surface-notice-selection-glow\s*\{\s*outline:\s*2px solid transparent;\s*outline-offset:\s*-2px;/);
+    assert.match(globalCss, /@keyframes station-impact-card-highlight-pulse\s*\{[^@]*outline-color:[^@]*\}\s*\}/);
+    assert.doesNotMatch(globalCss, /@keyframes station-impact-card-highlight-pulse\s*\{[^@]*box-shadow/);
+    assert.match(globalCss, /\.station-impact-card-highlight-soft\s*\{[^}]*animation:\s*station-impact-card-highlight-pulse 1\.6s ease-in-out 1 both;/s);
+    assert.doesNotMatch(globalCss, /\.station-impact-card::after/);
     assert.match(disruptionSummarySource, /<OverlappingCountBadge className="station-access-outage-count station-disruption-count"/);
     assert.match(panelSource, /data-station-impact-tone=\{impactTone\}/);
     assert.match(globalCss, /--highlight-color:\s*rgba\(239,\s*68,\s*68/);

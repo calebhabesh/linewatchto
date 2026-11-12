@@ -1605,56 +1605,49 @@
   }
 }
 
+/* A card's flash frame: a ring just inside the card's own edge. An outline
+   follows the card's corner radius and lies over whatever edge it has (the
+   1.5px tone edge, high contrast's frame), so the ring is even all round;
+   inside the card, neither the card's overflow nor its scrolling list clips
+   it, and the card keeps its own edge light and shadow. Only the ring's
+   colour animates. Each user sets the outline below. */
 @keyframes station-impact-card-highlight-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 transparent;
+    outline-color: transparent;
   }
   30%,
   60% {
-    box-shadow:
-      0 0 0 var(--highlight-ring, 3.5px) color-mix(in srgb, var(--highlight-color, rgba(245, 158, 11, 0.9)) var(--highlight-strength, 100%), transparent),
-      0 0 16px var(--highlight-glow, rgba(245, 158, 11, 0.5));
-    border-color: var(--highlight-color, rgba(245, 158, 11, 0.9));
+    outline-color: color-mix(in srgb, var(--highlight-color, rgba(245, 158, 11, 0.9)) var(--highlight-strength, 100%), transparent);
   }
+}
+
+.station-impact-card-highlight,
+.station-impact-card-highlight-soft,
+.notification-target-highlight,
+.surface-notice-selection-glow {
+  outline: 2px solid transparent;
+  outline-offset: -2px;
 }
 
 .station-impact-card-highlight {
   animation: station-impact-card-highlight-pulse 2s ease-in-out 1 forwards;
-  position: relative;
-  z-index: 5;
 }
 
 .motion-paused .station-impact-card-highlight {
   animation: none;
-  box-shadow: 0 0 0 3px var(--highlight-color, rgba(245, 158, 11, 0.9)) !important;
-  border-color: var(--highlight-color, rgba(245, 158, 11, 0.9)) !important;
+  outline-color: var(--highlight-color, rgba(245, 158, 11, 0.9));
 }
 
-/* Softer pulse applied to every card when the disruption banner jumps to the whole section.
-   The ring is drawn once on ::after and only its opacity animates via highlight-glow, so the
-   compositor runs it without repainting the cards or their scrolling container. */
-.station-impact-card {
-  position: relative;
+/* Softer pulse on every card when the disruption banner jumps to the whole section. */
+.station-impact-card-highlight-soft {
+  --highlight-strength: 70%;
+  animation: station-impact-card-highlight-pulse 1.6s ease-in-out 1 both;
 }
 
-.station-impact-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--highlight-color, rgba(245, 158, 11, 0.9)) 50%, transparent);
-  opacity: 0;
-}
-
-.station-impact-card-highlight-soft::after {
-  animation: highlight-glow 1.6s ease-in-out 1 both;
-}
-
-.motion-paused .station-impact-card-highlight-soft::after {
+.motion-paused .station-impact-card-highlight-soft {
   animation: none;
-  opacity: 1;
+  outline-color: color-mix(in srgb, var(--highlight-color, rgba(245, 158, 11, 0.9)) 70%, transparent);
 }
 
 @media (max-width: 767px) {
@@ -2226,14 +2219,11 @@
   color: #ffffff;
 }
 
-/* The notified row, found after a tap: one pulse, then a quiet resting ring. */
+/* The notified row, found after a tap: one pulse of its frame (station-impact-card-highlight-pulse). */
 .notification-target-highlight {
   --highlight-color: rgba(59, 130, 246, 0.9);
-  --highlight-glow: rgba(59, 130, 246, 0.45);
   animation: station-impact-card-highlight-pulse 1.6s ease-in-out 1 forwards;
-  position: relative;
   scroll-margin: 12px;
-  z-index: 1;
 }
 
 .motion-paused .notification-tap-notice,
@@ -2242,7 +2232,7 @@
 }
 
 .motion-paused .notification-target-highlight {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--highlight-color, rgba(245, 158, 11, 0.9)) 50%, transparent);
+  outline-color: color-mix(in srgb, var(--highlight-color, rgba(245, 158, 11, 0.9)) 70%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2252,7 +2242,7 @@
   }
 
   .notification-target-highlight {
-    box-shadow: 0 0 0 2px var(--highlight-color);
+    outline-color: var(--highlight-color);
   }
 }
 
