@@ -75,6 +75,12 @@ describe("alert history timeline UI", () => {
     assert.match(cssSource, /\.alert-history-divider/);
   });
 
+  it("shades the card whose past alert is on the map, as a selected alert card", () => {
+    assert.match(timelineSource, /\$\{viewing \? " is-active" : ""\}/);
+    assert.match(cssSource, /\.alert-history-item\.is-active\s*\{[^}]*background:\s*rgb\(239, 246, 255\)/);
+    assert.match(cssSource, /\.dark \.alert-history-item\.is-active\s*\{[^}]*background:\s*#172554/);
+  });
+
   it("uses compact card-like rows with the authored TTC legend badges", () => {
     assert.match(timelineSource, /TransitLineBadge/);
     assert.match(timelineSource, /CompactImpactLocation/);

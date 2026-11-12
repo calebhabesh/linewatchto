@@ -796,7 +796,7 @@ const HistoryIncident = memo(function HistoryIncident({
         cleared
           ? "alert-history-event-cleared"
           : `alert-history-event-suspension-history-tone-${historyAlertTypeTone(incident.eventType)}`
-      } transition-all${highlighted ? " notification-target-highlight" : ""}`}
+      } transition-all${viewing ? " is-active" : ""}${highlighted ? " notification-target-highlight" : ""}`}
       data-history-key={historyIncidentKey(incident)}
       aria-current={highlighted ? "true" : undefined}
     >
