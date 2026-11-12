@@ -103,7 +103,10 @@ function createMockMap(existingLayers = []) {
     addImage: (id, image) => images.set(id, image),
     removeImage: (id) => images.delete(id),
     setPaintProperty: () => {},
-    setLayoutProperty: () => {},
+    setLayoutProperty: (id, property, value) => {
+      const layer = layers.find((candidate) => candidate.id === id);
+      layer.layout = { ...layer.layout, [property]: value };
+    },
     queryRenderedFeatures: (_box, options) => (options.layers.some((id) => id.endsWith("-selected-stops"))
       ? [{ properties: { stopCode: "96" } }]
       : []),
@@ -264,6 +267,7 @@ describe("surface selection layers (plan 14, U4)", () => {
 
     applySurfaceSelectionLayers(map, BUS_SELECTION_TARGET, { routes: [], stopCodes: [], routeLine: false, dark: false });
     for (const id of Object.values(sel)) assert.equal(map.getLayer(id), undefined, id);
+    assert.equal(map.getLayer(sel.badges), undefined, "with the switch on, the layer's own badges label the route");
   });
 
   it("with Bus Routes off, hold only the selected route and stops and draw just those", () => {
@@ -280,8 +284,14 @@ describe("surface selection layers (plan 14, U4)", () => {
     assert.equal(map.getLayer(BUS_CASING_LAYER), undefined, "the switch's own layers stay off");
     assert.equal(map.getLayer(sel.line).paint["line-color"], "#ED1C24", "the route in its layer's own paint");
     assert.ok(map.getLayer(sel.line).paint["line-dasharray"], "dashed as a bus line");
+    const badges = map.getLayer(sel.badges);
+    assert.equal(badges.layout["icon-image"], "bus-badges:29", "labelled with only the selected route");
+    assert.equal(badges.minzoom, undefined, "at every zoom, where the route is framed");
+    assert.equal(badges.layout["symbol-placement"], "line");
     const order = ids(map);
     assert.ok(order.indexOf(sel.outline) < order.indexOf(sel.line));
+    assert.ok(order.indexOf(sel.line) < order.indexOf(sel.badges), "badges over the line");
+    assert.ok(order.indexOf(sel.badges) < order.indexOf(sel.stopRing), "and under the selected stops");
     assert.ok(order.indexOf(sel.line) < order.indexOf("transit-routes-casing"), "under the subway");
 
     const pill = map.getLayer(sel.stops);
@@ -318,7 +328,15 @@ describe("surface selection layers (plan 14, U4)", () => {
     installStreetcarSelectionSources(map, streetcars, { routes: ["504", "501"], stopCodes: [] });
     const both = map.sources["transit-streetcar-corridors"].data.features;
     assert.ok(both.some((feature) => feature.properties.routes.includes("501")) && both.some((feature) => feature.properties.routes.includes("504")));
-    assert.equal(map.getLayer(surfaceSelectionLayerIds("transit-streetcar").line).paint["line-dasharray"], undefined, "solid");
+    const sel = surfaceSelectionLayerIds("transit-streetcar");
+    assert.equal(map.getLayer(sel.line).paint["line-dasharray"], undefined, "solid");
+    assert.equal(map.getLayer(sel.badges).layout["icon-image"], "streetcar-badges:504", "labelled with its route");
+    applySurfaceSelectionLayers(map, STREETCAR_SELECTION_TARGET, { routes: ["504", "501"], stopCodes: [], routeLine: true, dark: false });
+    const image = map.getLayer(sel.badges).layout["icon-image"];
+    const imageFor = (routes) => createExpression(image, { type: "resolvedImage" }).value
+      .evaluate({ zoom: 14, globalState: {} }, { properties: { routeKey: surfaceRouteKey(routes) } });
+    assert.equal(imageFor(["501"]), "streetcar-badges:501", "each corridor shows a selected route it carries");
+    assert.equal(imageFor(["504", "505"]), "streetcar-badges:504", "never another route sharing the street");
     removeStreetcarLayers(map);
     assert.deepEqual(ids(map), BASE);
   });

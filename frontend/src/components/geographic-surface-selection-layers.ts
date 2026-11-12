@@ -8,7 +8,8 @@
  * (GeographicSelectionAttention).
  *
  * - A selected route gets the band under its line. With the route's layer off,
- *   its line is drawn here too (only that route).
+ *   its line is drawn here too (only that route), with its route badges, so the
+ *   route stays labelled as it is with the layer on.
  * - Selected stops get the selected pill (dark, white edge, white number) and
  *   dot at every zoom, over other stop labels, each inside a thick blue outline.
  *
@@ -57,6 +58,13 @@ export type SurfaceSelectionTarget = {
   corridorSource: string | null;
   stopSource: string | null;
   style: SurfaceSelectionLineStyle | null;
+  /** The layer's route badges: an image id for a set of routes, and their spacing along the line. */
+  badge?: {
+    imageId: (routes: readonly string[]) => string;
+    spacing: number;
+    /** Draws one route's badge now, for a layer whose images are not drawn on demand. */
+    ensureImage?: (map: MapLibreMap, route: string) => void;
+  };
   /** Where the outline and line go: under the layer's casing when it is drawn. */
   lineBefore: (map: MapLibreMap) => string | undefined;
   stopBefore: (map: MapLibreMap) => string | undefined;
@@ -67,6 +75,7 @@ export function surfaceSelectionLayerIds(prefix: string) {
     halo: `${prefix}-selected-halo`,
     outline: `${prefix}-selected-outline`,
     line: `${prefix}-selected-line`,
+    badges: `${prefix}-selected-badges`,
     stopRing: `${prefix}-selected-stop-ring`,
     stopDots: `${prefix}-selected-stop-dots`,
     stopOutline: `${prefix}-selected-stop-outline`,
@@ -192,7 +201,7 @@ export function applySurfaceSelectionLayers(
   const ids = surfaceSelectionLayerIds(target.prefix);
   const routeShown = Boolean(selection.routes.length > 0 && target.corridorSource && target.style && map.getSource(target.corridorSource));
   if (!routeShown) {
-    removeLayers(map, [ids.line, ids.outline, ids.halo]);
+    removeLayers(map, [ids.badges, ids.line, ids.outline, ids.halo]);
   } else {
     const style = target.style!;
     const filter = selectedRouteFilter(selection.routes) as FilterSpecification;
@@ -202,7 +211,7 @@ export function applySurfaceSelectionLayers(
       { id: ids.outline, color: SELECTION_BAND, width: widthsAtZoom(ROUTE_BAND_WIDTHS) },
       ...(selection.routeLine ? [{ id: ids.line, color: (selection.dark ? style.dark?.color : undefined) ?? style.color, width: style.width, dash: style.dash }] : []),
     ];
-    if (!selection.routeLine) removeLayers(map, [ids.line]);
+    if (!selection.routeLine) removeLayers(map, [ids.line, ids.badges]);
     for (const line of lines) {
       const existing = map.getLayer(line.id) as { source?: string } | undefined;
       if (existing && existing.source === target.corridorSource) {
@@ -226,6 +235,7 @@ export function applySurfaceSelectionLayers(
         },
       }, before);
     }
+    if (selection.routeLine && target.badge) applySelectedBadges(map, target, ids, selection.routes, filter);
   }
 
   const stopsShown = selection.stopCodes.length > 0 && Boolean(target.stopSource && map.getSource(target.stopSource));
@@ -305,10 +315,52 @@ export function applySurfaceSelectionLayers(
   }
 }
 
+/**
+ * The selected routes' badges along their line, for a layer whose switch is
+ * off. Each corridor shows the badge of a selected route it carries, never
+ * another route's sharing the street. At every zoom, under the selected stops.
+ */
+function applySelectedBadges(
+  map: MapLibreMap,
+  target: SurfaceSelectionTarget,
+  ids: ReturnType<typeof surfaceSelectionLayerIds>,
+  routes: readonly string[],
+  filter: FilterSpecification,
+) {
+  const badge = target.badge!;
+  if (badge.ensureImage) for (const route of routes) badge.ensureImage(map, route);
+  const image = routes.length === 1
+    ? badge.imageId(routes)
+    : ["case", ...routes.flatMap((route) => [["in", `|${route}|`, ["get", "routeKey"]], badge.imageId([route])]), badge.imageId([routes[0]])];
+  const existing = map.getLayer(ids.badges) as { source?: string } | undefined;
+  if (existing && existing.source === target.corridorSource) {
+    map.setFilter(ids.badges, filter);
+    map.setLayoutProperty(ids.badges, "icon-image", image as never);
+    return;
+  }
+  if (existing) map.removeLayer(ids.badges);
+  const before = map.getLayer(ids.stopRing) ? ids.stopRing : target.stopBefore(map);
+  map.addLayer({
+    id: ids.badges,
+    type: "symbol",
+    source: target.corridorSource!,
+    filter,
+    // At every zoom, as the selected stops: the route is framed well below the layer's own badge zoom.
+    layout: {
+      "symbol-placement": "line",
+      "symbol-spacing": badge.spacing,
+      "icon-image": image as never,
+      "icon-rotation-alignment": "viewport",
+      "icon-allow-overlap": false,
+      "icon-padding": 4,
+    },
+  }, before);
+}
+
 /** Removes one layer's selection (before its sources go). */
 export function removeSurfaceSelectionLayers(map: MapLibreMap, prefix: string): void {
   const ids = surfaceSelectionLayerIds(prefix);
-  removeLayers(map, [ids.stops, ids.stopOutline, ids.stopDots, ids.stopRing, ids.line, ids.outline, ids.halo]);
+  removeLayers(map, [ids.stops, ids.stopOutline, ids.stopDots, ids.stopRing, ids.badges, ids.line, ids.outline, ids.halo]);
 }
 
 /**

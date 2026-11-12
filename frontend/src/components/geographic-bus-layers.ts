@@ -411,6 +411,7 @@ export function createBusLayerKit(config: BusLayerConfig) {
     corridorSource: SOURCE_ID,
     stopSource: STOP_SOURCE_ID,
     style: config.style,
+    badge: { imageId: config.badgeImageId, spacing: 360 },
     lineBefore: (map) => (map.getLayer(CASING_LAYER) ? CASING_LAYER : config.lineBefore(map)),
     stopBefore: (map) => (config.selectedStopBefore ?? config.stopBefore)(map),
   };

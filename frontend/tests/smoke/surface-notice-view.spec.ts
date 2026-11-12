@@ -216,6 +216,8 @@ test.describe("Notice View", () => {
     await action(page, "route-only").click();
     await expect(mapSurface(page)).toHaveAttribute("data-surface-selection-layers", /transit-bus-selected-line/, { timeout: 15_000 });
     await expect(geoMap).not.toHaveAttribute("data-buses", "on");
+    // With Bus Routes off, the route keeps its badges.
+    await expect(mapSurface(page)).toHaveAttribute("data-surface-selection-layers", /transit-bus-selected-badges/);
     if (isMobile) {
       await expect(strip(page)).toContainText("29");
       // Framed in the whole map above the strip: there is no sheet to leave room for.

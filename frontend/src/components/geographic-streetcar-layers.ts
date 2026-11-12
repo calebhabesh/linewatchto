@@ -203,19 +203,28 @@ function setSourceData(map: MapLibreMap, id: string, data: GeoJSON.FeatureCollec
   else map.addSource(id, { type: "geojson", data });
 }
 
-function registerBadgeImages(map: MapLibreMap, catalog: StreetcarCatalog) {
-  const color = catalog.routes.find((route) => route.drawn)?.color ?? "#ED1C24";
-  const textColor = catalog.routes.find((route) => route.drawn)?.textColor ?? "#FFFFFF";
-  for (const routes of streetcarRouteSets(catalog)) {
-    const id = streetcarBadgeImageId(routes);
-    if (map.hasImage(id)) continue;
-    try {
-      const image = drawBadgeRow(routes, color, textColor);
-      if (image) map.addImage(id, image, { pixelRatio: BADGE_PIXEL_RATIO });
-    } catch {
-      // A missing badge leaves the line itself readable.
-    }
+/** The catalog's badge colours, kept for a selected route's badge drawn without the catalog at hand. */
+let badgeColors = { color: "#ED1C24", textColor: "#FFFFFF" };
+
+function rememberBadgeColors(catalog: StreetcarCatalog) {
+  const drawn = catalog.routes.find((route) => route.drawn);
+  badgeColors = { color: drawn?.color ?? "#ED1C24", textColor: drawn?.textColor ?? "#FFFFFF" };
+}
+
+function registerBadgeImage(map: MapLibreMap, routes: readonly string[]) {
+  const id = streetcarBadgeImageId(routes);
+  if (map.hasImage(id)) return;
+  try {
+    const image = drawBadgeRow(routes, badgeColors.color, badgeColors.textColor);
+    if (image) map.addImage(id, image, { pixelRatio: BADGE_PIXEL_RATIO });
+  } catch {
+    // A missing badge leaves the line itself readable.
   }
+}
+
+function registerBadgeImages(map: MapLibreMap, catalog: StreetcarCatalog) {
+  rememberBadgeColors(catalog);
+  for (const routes of streetcarRouteSets(catalog)) registerBadgeImage(map, routes);
 }
 
 /** Adds the streetcar source, images and layers (again after a style change). Idempotent. */
@@ -364,6 +373,11 @@ export const STREETCAR_SELECTION_TARGET: SurfaceSelectionTarget = {
   corridorSource: SOURCE_ID,
   stopSource: STOP_SOURCE_ID,
   style: { color: STREETCAR_RED, dash: null, width: LINE_WIDTH, casingWidth: CASING_WIDTH },
+  badge: {
+    imageId: streetcarBadgeImageId,
+    spacing: 320,
+    ensureImage: (map, route) => registerBadgeImage(map, [route]),
+  },
   lineBefore: (map) => {
     for (const layer of [STREETCAR_CASING_LAYER, LINE_BEFORE]) if (map.getLayer(layer)) return layer;
     return undefined;
@@ -384,6 +398,7 @@ export function installStreetcarSelectionSources(
   selection: { routes: readonly string[]; stopCodes: readonly string[] },
 ): void {
   const codes = new Set(selection.stopCodes);
+  rememberBadgeColors(catalog);
   setSourceData(map, SOURCE_ID, corridorCollection(
     routeCorridors(catalog.features.filter(isStreetcarCorridorFeature), selection.routes),
   ));
