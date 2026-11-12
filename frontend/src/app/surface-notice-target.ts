@@ -1,6 +1,7 @@
 /**
  * What a surface notice's View shows on the Map View (plan 15, L4): the stops
- * the notice names, else all of its routes the map draws, else nothing.
+ * the notice names, else all of its routes the map draws, else nothing, with
+ * why when its routes explain it.
  * Positions come from the search index (plan 14, U1). The result selects and
  * frames only; it says nothing about service.
  *
@@ -25,7 +26,17 @@ import type { PreparedSurfaceIndex, SurfaceSearchStop } from "./surface-search.t
 export type SurfaceNoticeMapTarget =
   | { kind: "stops"; stopCodes: string[] }
   | { kind: "routes"; routes: SurfaceSelectionRoute[] }
-  | { kind: "none" };
+  | { kind: "none"; reason?: SurfaceNoticeNoMapReason };
+
+/**
+ * Why a notice's routes give the map nothing to show:
+ * - `not-scheduled`: none of them is in the published schedule the map is
+ *   drawn from (TTC drops a suspended seasonal route, such as 203 High Park,
+ *   from its periods off).
+ * - `not-drawn`: a route is in that schedule, but the map draws none of its
+ *   trips (503 Kingston Rd while it runs only as buses).
+ */
+export type SurfaceNoticeNoMapReason = "not-scheduled" | "not-drawn";
 
 const NONE: SurfaceNoticeMapTarget = { kind: "none" };
 const GO_STOP_CODE_LENGTH = 5;
@@ -61,6 +72,19 @@ function stopsNamed(index: PreparedSurfaceIndex, name: string, routes: ReadonlyS
   return named.filter((stop) => stop.routes.some((route) => routes.has(route)));
 }
 
+/**
+ * The disabled View's label, and why it has nothing to show (its tooltip and
+ * accessible name). Both reasons read Not on Map, which says what the button
+ * cannot do; the tooltip says why.
+ */
+export function surfaceNoticeNoMapCopy(target: SurfaceNoticeMapTarget, network: NetworkId): { label: string; reason?: string } {
+  const reason = target.kind === "none" ? target.reason : undefined;
+  const schedule = network === "regional" ? "the current GO schedule" : "TTC's current schedule";
+  if (reason === "not-scheduled") return { label: "Not on Map", reason: `not in ${schedule}, so there is no route to show` };
+  if (reason === "not-drawn") return { label: "Not on Map", reason: `in ${schedule}, but none of its trips are drawn on the map this period` };
+  return { label: "No Map Location" };
+}
+
 /** A notice belongs to the network that publishes it; GO/UP rail notices have no surface stops or routes. */
 export function noticeHasSurfaceTarget(notice: SurfaceNoticeDetail, network: NetworkId): boolean {
   if (network === "regional") return notice.routeType === "GO Bus";
@@ -94,10 +118,14 @@ export function surfaceNoticeMapTarget(
   if (stopCodes.size > 0) return { kind: "stops", stopCodes: [...stopCodes] };
 
   const drawn: SurfaceSelectionRoute[] = [];
+  let scheduled = false;
   for (const base of routes) {
     const route = index.routes.find((candidate) => candidate.route === base);
+    if (route) scheduled = true;
     const selection = route ? surfaceRouteSelection(route) : null;
     if (selection) drawn.push(selection);
   }
-  return drawn.length > 0 ? { kind: "routes", routes: drawn } : NONE;
+  if (drawn.length > 0) return { kind: "routes", routes: drawn };
+  if (routes.size === 0) return NONE;
+  return { kind: "none", reason: scheduled ? "not-drawn" : "not-scheduled" };
 }

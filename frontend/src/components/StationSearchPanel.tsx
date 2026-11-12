@@ -49,7 +49,7 @@ import {
 } from "../app/station-data";
 import { stationImpactKindsByStation } from "../app/station-impact-types";
 import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
-import { noticeHasSurfaceTarget, surfaceNoticeMapTarget, type SurfaceNoticeMapTarget } from "../app/surface-notice-target";
+import { noticeHasSurfaceTarget, surfaceNoticeMapTarget, surfaceNoticeNoMapCopy, type SurfaceNoticeMapTarget } from "../app/surface-notice-target";
 import { ImpactCardMapButton } from "./ImpactCardFields";
 import type { AccountSavedCommute } from "../app/commute-data";
 import type { NetworkId } from "../app/regional-data";
@@ -1122,7 +1122,8 @@ export function StationSearchPanel({
                           <ImpactCardMapButton
                             title={notice.title}
                             disabled={!mapTarget || mapTarget.kind === "none"}
-                            actionLabel={mapTarget?.kind === "none" ? "No Map Location" : "View"}
+                            actionLabel={mapTarget?.kind === "none" ? surfaceNoticeNoMapCopy(mapTarget, currentNetwork).label : "View"}
+                            disabledReason={mapTarget?.kind === "none" ? surfaceNoticeNoMapCopy(mapTarget, currentNetwork).reason : undefined}
                             onClick={() => {
                               if (!mapTarget) return;
                               rememberSearchPlace();

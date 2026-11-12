@@ -27,7 +27,7 @@ import { DropdownMenuPortal } from "./DropdownMenuPortal";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { ImpactCardMapButton } from "./ImpactCardFields";
 import { NoticeRouteBadge } from "./SurfaceNoticeMapStrip";
-import { noticeHasSurfaceTarget, surfaceNoticeMapTarget, type SurfaceNoticeMapTarget } from "../app/surface-notice-target";
+import { noticeHasSurfaceTarget, surfaceNoticeMapTarget, surfaceNoticeNoMapCopy, type SurfaceNoticeMapTarget } from "../app/surface-notice-target";
 import { useSurfaceSearchIndex } from "../hooks/useSurfaceSearchIndexes";
 
 function NoticeFilter({ label, prefix, value, options, onChange }: {
@@ -467,12 +467,14 @@ export function SurfaceNoticesPanel({
       ? { kind: "none" }
       : surfaceIndex ? surfaceNoticeMapTarget(notice, networkId, surfaceIndex) : null;
     const unavailable = target?.kind === "none";
+    const noMap = target?.kind === "none" ? surfaceNoticeNoMapCopy(target, networkId) : null;
     return (
       <div className="surface-notice-map-action" data-notice-map-action={notice.id}>
         <ImpactCardMapButton
           title={notice.title}
           disabled={!onMap && (!target || unavailable)}
-          actionLabel={onMap ? "Back" : unavailable ? "No Map Location" : "View"}
+          actionLabel={onMap ? "Back" : noMap ? noMap.label : "View"}
+          disabledReason={!onMap ? noMap?.reason : undefined}
           backLabel={mapBackLabel}
           onClick={() => {
             if (onMap) onReturnFromMap?.();
@@ -695,15 +697,19 @@ export function SurfaceNoticesPanel({
                         </div>
                       )}
                       {!regional && group.routeName && group.routeName.trim() !== "-" && group.routeName.trim() !== "–" && group.routeName.trim() !== "—" ? (
-                        <p className="truncate text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        <p className="break-words text-xs font-semibold text-slate-600 dark:text-slate-300">
                           {group.routeName}
                         </p>
                       ) : null}
                     </div>
-                    <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider ${getCategoryBadgeColor(group.category)}`}>
-                      <SurfaceCategoryIcon category={group.category} size={11} className="shrink-0" />
-                      {surfaceNoticeCategoryLabel(group.category)}
-                    </span>
+                    {/* A TTC route's only notice puts its View under the badge; several keep one per stop row. */}
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider ${getCategoryBadgeColor(group.category)}`}>
+                        <SurfaceCategoryIcon category={group.category} size={11} className="shrink-0" />
+                        {surfaceNoticeCategoryLabel(group.category)}
+                      </span>
+                      {!regional && group.notices.length === 1 ? renderMapAction(group.notices[0]) : null}
+                    </div>
                   </div>
 
                   <div className="divide-y divide-black/5 dark:divide-white/5">
@@ -718,7 +724,7 @@ export function SurfaceNoticesPanel({
                               <span className="min-w-0 flex items-center gap-2">
                                 {renderStopDisplay(notice)}
                               </span>
-                              {renderMapAction(notice)}
+                              {group.notices.length > 1 ? renderMapAction(notice) : null}
                             </div>
                           ) : onViewOnMap ? (
                             <div className="flex w-full justify-end px-3.5 pb-2">

@@ -404,6 +404,8 @@ export interface ImpactCardMapButtonProps {
   variant?: "icon-only" | "labeled";
   className?: string;
   disabled?: boolean;
+  /** Why a disabled action has nothing to show, for its tooltip and accessible name. */
+  disabledReason?: string;
 }
 
 export function ImpactCardMapButton({
@@ -414,11 +416,12 @@ export function ImpactCardMapButton({
   variant = "labeled",
   className = "",
   disabled = false,
+  disabledReason,
 }: ImpactCardMapButtonProps) {
   const labelText = actionLabel ?? "View";
   const isBack = labelText.toLowerCase().includes("back") || labelText.toLowerCase().includes("unfocus");
   const ariaText = disabled
-    ? `${title}: location unavailable on map`
+    ? `${title}: ${disabledReason ?? "location unavailable on map"}`
     : isBack ? `${backLabel}: ${title}` : `View ${title} on map`;
   const tooltipText = isBack ? backLabel : "View on Map";
 
@@ -431,7 +434,7 @@ export function ImpactCardMapButton({
       }}
       className={`impact-card-map-btn ${variant === "icon-only" ? "impact-card-map-btn--icon-only" : "impact-card-map-btn--labeled"} ${className}`.trim()}
       aria-label={ariaText}
-      title={disabled ? "Location unavailable on map" : tooltipText}
+      title={disabled ? (disabledReason ? disabledReason.charAt(0).toUpperCase() + disabledReason.slice(1) : "Location unavailable on map") : tooltipText}
       disabled={disabled}
       data-variant={variant}
     >

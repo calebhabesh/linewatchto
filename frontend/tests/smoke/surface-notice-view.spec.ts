@@ -204,13 +204,14 @@ test.describe("Notice View", () => {
     await expect(mapSurface(page)).not.toHaveAttribute("data-surface-selection-layers");
   });
 
-  test("a route-wide notice selects the route, and an undrawn one has No Map Location", async ({ page, isMobile }) => {
+  test("a route-wide notice selects the route, and an undrawn one is Not on Map", async ({ page, isMobile }) => {
     await stubTtcNotices(page, [ROUTE_ONLY, NOT_DRAWN]);
     const geoMap = await openMap(page, "ttc");
     await openNotices(page, isMobile);
 
     const none = action(page, "not-drawn");
-    await expect(none).toHaveText("No Map Location");
+    await expect(none).toHaveText("Not on Map");
+    await expect(none).toHaveAttribute("title", /^In TTC's current schedule, but none of its trips are drawn/);
     await expect(none).toBeDisabled();
 
     await action(page, "route-only").click();

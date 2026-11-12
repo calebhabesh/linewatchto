@@ -2,7 +2,7 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { prepareSurfaceSearchIndex } from "../src/app/surface-search.ts";
-import { surfaceNoticeMapTarget } from "../src/app/surface-notice-target.ts";
+import { surfaceNoticeMapTarget, surfaceNoticeNoMapCopy } from "../src/app/surface-notice-target.ts";
 
 const asset = (name) => JSON.parse(readFileSync(new URL(`../public/assets/linewatch/geographic/${name}`, import.meta.url), "utf8"));
 const ttc = prepareSurfaceSearchIndex(asset("search-index-ttc.json"));
@@ -107,8 +107,10 @@ describe("surfaceNoticeMapTarget on TTC", () => {
   });
 
   test("neither: an undrawn route, an unknown route, or nothing", () => {
-    assert.deepEqual(surfaceNoticeMapTarget(notice({ routeType: "Streetcar", routeIds: ["503"] }), "ttc", ttc), { kind: "none" });
-    assert.deepEqual(surfaceNoticeMapTarget(notice({ routeIds: ["124"] }), "ttc", ttc), { kind: "none" });
+    assert.deepEqual(surfaceNoticeMapTarget(notice({ routeType: "Streetcar", routeIds: ["503"] }), "ttc", ttc), { kind: "none", reason: "not-drawn" });
+    assert.deepEqual(surfaceNoticeMapTarget(notice({ routeIds: ["124"] }), "ttc", ttc), { kind: "none", reason: "not-scheduled" });
+    assert.deepEqual(surfaceNoticeMapTarget(notice({ routeIds: ["203"] }), "ttc", ttc), { kind: "none", reason: "not-scheduled" }, "a suspended seasonal route");
+    assert.deepEqual(surfaceNoticeMapTarget(notice({ routeIds: ["203", "503"] }), "ttc", ttc), { kind: "none", reason: "not-drawn" }, "a scheduled route explains it first");
     assert.deepEqual(surfaceNoticeMapTarget(notice({}), "ttc", ttc), { kind: "none" });
   });
 });
@@ -135,5 +137,15 @@ describe("surfaceNoticeMapTarget keeps the networks apart", () => {
     assert.deepEqual(surfaceNoticeMapTarget(notice({ routeType: "GO Bus", routeIds: ["29"] }), "ttc", ttc), { kind: "none" });
     assert.deepEqual(surfaceNoticeMapTarget(notice({ routeType: "Bus", routeIds: ["31"] }), "regional", go), { kind: "none" });
     assert.deepEqual(surfaceNoticeMapTarget(notice({ routeIds: ["29"] }), "ttc", go), { kind: "none" });
+  });
+});
+
+describe("surfaceNoticeNoMapCopy", () => {
+  test("says why a notice has nothing to show, in Title Case", () => {
+    assert.deepEqual(surfaceNoticeNoMapCopy({ kind: "none", reason: "not-scheduled" }, "ttc"),
+      { label: "Not on Map", reason: "not in TTC's current schedule, so there is no route to show" });
+    assert.equal(surfaceNoticeNoMapCopy({ kind: "none", reason: "not-drawn" }, "ttc").label, "Not on Map");
+    assert.match(surfaceNoticeNoMapCopy({ kind: "none", reason: "not-scheduled" }, "regional").reason, /current GO schedule/);
+    assert.deepEqual(surfaceNoticeNoMapCopy({ kind: "none" }, "regional"), { label: "No Map Location" }, "a rail notice has no surface route");
   });
 });
