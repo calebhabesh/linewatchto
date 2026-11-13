@@ -897,14 +897,18 @@ test.describe("regional overlay reconciliation", () => {
 
     // Drop one alert, then restore it, through the dashboard refresh path. Only
     // that alert's nodes (its tube, hover copy and hover outline) may be rebuilt.
+    // An "online" event is skipped while a poll is already in flight, so ask
+    // again until the refresh lands; repeated refreshes rebuild nothing else.
+    const refreshUntil = (count: number) => expect.poll(async () => {
+      await page.evaluate(() => window.dispatchEvent(new Event("online")));
+      return removed.count();
+    }, { intervals: [300, 600, 1_000] }).toBe(count);
     removedCardId = "regional-demo-planned";
-    await page.evaluate(() => window.dispatchEvent(new Event("online")));
-    await expect(removed).toHaveCount(0);
+    await refreshUntil(0);
     expect(await unmarkedCount()).toBe(0);
 
     removedCardId = null;
-    await page.evaluate(() => window.dispatchEvent(new Event("online")));
-    await expect(removed).toBeAttached();
+    await refreshUntil(1);
     expect(await unmarkedCount()).toBe(3);
     await expect(removed).not.toHaveAttribute("data-smoke-mounted", "true");
   });
@@ -1136,16 +1140,24 @@ test("regional segment selections flash quickly then breathe", async ({ page, re
     '[data-system-map=regional] .map-segment-hit-target[data-map-impact-kind="delay"][data-map-impact-id="regional-demo-delay"]',
   );
   await expect(delayHitTarget).toHaveCount(1);
+  // A short flight can start and land between two polls, so record it as it happens.
+  await page.evaluate(() => {
+    const root = document.querySelector<HTMLElement>("[data-system-map=regional]");
+    if (!root) throw new Error("Missing regional map");
+    const observer = new MutationObserver(() => {
+      if (root.dataset.mapCameraMoving !== "true") return;
+      root.dataset.smokeCameraFlew = "true";
+      observer.disconnect();
+    });
+    observer.observe(root, { attributes: true, attributeFilter: ["data-map-camera-moving"] });
+  });
   await delayHitTarget.dispatchEvent("click");
   const selectedDelayGlow = page.locator(
     '#regional-dynamic-selected-segment-layer [data-selected-impact-emphasis="regional-demo-delay"]',
   ).first();
   // The camera flies to the alert with the map's drawing unchanged; the
   // emphasis appears once it lands (settled-selection.ts).
-  await expect(page.locator("[data-system-map=regional]")).toHaveAttribute(
-    "data-map-camera-moving",
-    "true",
-  );
+  await expect(page.locator("[data-system-map=regional]")).toHaveAttribute("data-smoke-camera-flew", "true");
   await expect(page.locator("[data-system-map=regional]")).toHaveAttribute(
     "data-map-camera-moving",
     "false",
@@ -1159,9 +1171,10 @@ test("regional segment selections flash quickly then breathe", async ({ page, re
       animationDelay: style.animationDelay,
     };
   })).toEqual({
+    // --selection-intro-duration (themes.css): three flashes in 2s, then the breathe.
     animationName: "map-selection-path-intro, map-selection-path-breathe",
-    animationDuration: "2.4s, 1.2s",
-    animationDelay: "0s, 2.4s",
+    animationDuration: "2s, 1.2s",
+    animationDelay: "0s, 2s",
   });
   await expect(selectedDelayGlow).toHaveCSS("stroke", "rgb(2, 132, 199)");
   expect(Number(await selectedDelayGlow.evaluate(
@@ -1201,7 +1214,9 @@ test("regional segment selections flash quickly then breathe", async ({ page, re
   });
   expect(introSamples).not.toBeNull();
   expect(introSamples!.flashing.opacity).toBeGreaterThan(introSamples!.resting.opacity + 0.4);
-  expect(introSamples!.flashing.strokeWidth).toBeGreaterThan(introSamples!.resting.strokeWidth + 20);
+  // Selection pulses brightness only: the band stays the alert's tube width, so the
+  // alert never looks like it grows when selected (map-selection.css, f634ea43).
+  expect(introSamples!.flashing.strokeWidth).toBe(introSamples!.resting.strokeWidth);
 });
 
 test("renders fresh Metrolinx impacts in regional mode", async ({ page, request, isMobile }) => {
@@ -2545,11 +2560,11 @@ test("desktop TTC station focus keeps one camera target while the SVG settles", 
   const focusTarget = await mapStage.evaluate((element) => (element as HTMLElement).style.transform);
   const stationAttention = page.locator(".station-selection-flash.map-selection-attention").first();
   await expect(stationAttention).toBeAttached();
-  // Selection attention holds its frame while the camera flies (base-map.css),
-  // and plays once it lands.
+  // Desktop keeps selection attention playing while the camera flies; only phones
+  // (mobile performance mode) hold its frame (base-map.css, cd622f0e).
   expect(await stationAttention.evaluate(
     (element) => getComputedStyle(element).animationPlayState,
-  )).toContain("paused");
+  )).not.toContain("paused");
   expect(await stationAttention.evaluate(
     (element) => getComputedStyle(element).animationName,
   )).toContain("map-selection-station-intro");
@@ -2621,7 +2636,7 @@ test("desktop TTC overlay press arms the camera before the next frame", async ({
   )).not.toContain("paused");
 });
 
-test("desktop map gestures pause overlay pulses and suppress expensive glows", async ({ page, request, isMobile }) => {
+test("desktop map gestures keep overlay motion and suppress expensive glows", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "desktop map gesture paint behavior");
   await setStubMode(request, "seeded");
   await page.goto("/");
@@ -2653,7 +2668,10 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
   });
   await expect(page.locator("[data-map-gesture-active=true]")).toBeAttached();
   expect(await stationGlow.evaluate((element) => getComputedStyle(element).filter)).toBe("none");
-  expect(await plannedPath.evaluate((element) => getComputedStyle(element).transitionDuration)).toBe("0s");
+  // Desktop overlays keep their transitions and animations through a drag; only
+  // phones (mobile performance mode) pause them (base-map.css, cd622f0e).
+  expect(await plannedPath.evaluate((element) => getComputedStyle(element).transitionDuration)).not.toBe("0s");
+  expect(await plannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).not.toContain("paused");
   await expect(authoredMap).toHaveCSS("shape-rendering", "geometricprecision");
   await expect(authoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
 
@@ -2756,7 +2774,8 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
   await expect(regionalMap).toHaveAttribute("data-map-camera-moving", "false");
   expect(await regionalGlow.evaluate((element) => getComputedStyle(element).filter)).toBe("none");
   expect(Number(await regionalGlow.evaluate((element) => getComputedStyle(element).opacity))).toBe(0);
-  expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).transitionDuration)).toBe("0s");
+  // As on TTC, desktop keeps overlay transitions through a drag (base-map.css, cd622f0e).
+  expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).transitionDuration)).not.toBe("0s");
   await expect(regionalAuthoredMap).toHaveCSS("shape-rendering", "geometricprecision");
   await expect(regionalAuthoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
 
@@ -2796,8 +2815,9 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
     cameraMoving: "false",
     glowFilter: "none",
     glowOpacity: "0",
-    plannedTransitionDuration: "0s",
   });
+  // Desktop overlays keep their transitions while zooming (base-map.css, cd622f0e).
+  expect(regionalZoomPaint.plannedTransitionDuration).not.toBe("0s");
   await expect(regionalMap).toHaveAttribute("data-map-zoom-active", "false");
   expect(Number(await regionalGlow.evaluate((element) => getComputedStyle(element).opacity))).toBeGreaterThan(0);
 

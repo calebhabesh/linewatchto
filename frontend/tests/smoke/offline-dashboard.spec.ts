@@ -67,6 +67,10 @@ test('offline shell without a snapshot shows an unknown state and usable map', a
   await page.goto('/');
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await expect.poll(() => page.evaluate(async () => Boolean(await caches.match('/offline')))).toBe(true);
+  // GO/UP's map code loads on demand; the shell warms it once the first map is up
+  // and the page idles. Going offline before that made the GO/UP switch fail (and
+  // revert) on some runs, so wait for the warmed map as a rider's session would have.
+  await expect(page.locator('.network-diagram-layer[data-network-map-layer="regional"][data-map-ready="true"]')).toBeAttached({ timeout: 15_000 });
   await context.setOffline(true);
   await page.evaluate(() => { localStorage.removeItem('linewatch-dashboard-snapshot-v1:ttc'); localStorage.removeItem('linewatch-dashboard-snapshot-v1:regional'); });
   await page.reload();
