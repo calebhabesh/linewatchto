@@ -20,6 +20,16 @@ export async function setStubMode(request: APIRequestContext, mode: StubMode) {
   expect(response.ok()).toBeTruthy();
 }
 
+/**
+ * The newest release note announces itself on launch ("What's new"); a test that
+ * sets up its own onboarding keys still needs this, or the dialog covers the app.
+ */
+export async function markReleaseNotesSeen(page: Page) {
+  await page.addInitScript(({ releaseNotesKey, releaseVersion }) => {
+    if (releaseVersion) window.localStorage.setItem(releaseNotesKey, releaseVersion);
+  }, { releaseNotesKey: RELEASE_NOTES_SEEN_STORAGE_KEY, releaseVersion: currentReleaseNote?.version });
+}
+
 export async function installDismissedTransientUi(page: Page, isoTime = "2026-08-14T16:00:00.000Z") {
   await page.addInitScript(({ releaseNotesKey, releaseVersion, isoTime }) => {
     window.localStorage.setItem("linewatch-welcome-seen-v1", "true");

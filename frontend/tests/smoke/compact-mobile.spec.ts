@@ -1,8 +1,19 @@
 import { expect, test } from "@playwright/test";
-import { installDismissedTransientUi } from "./test-support";
+import { RASTER_MAP_PLANES_BY_MAP } from "../../src/app/map-raster-manifest";
+import { installDismissedTransientUi, markReleaseNotesSeen, waitForNetworkTransition } from "./test-support";
+
+// Raster planes per map, from the manifest (TTC adds a line-badge plane).
+const TTC_RASTER_PLANES = RASTER_MAP_PLANES_BY_MAP.ttc.length;
+const REGIONAL_RASTER_PLANES = RASTER_MAP_PLANES_BY_MAP.regional.length;
 
 const stubUrl = process.env.LINEWATCH_SMOKE_STUB_URL ?? "http://127.0.0.1:4174";
 const openMapPreviewUrl = "/?previewTime=2026-08-14T16:00:00.000Z";
+
+// Since 1.3.0 the release note opens on launch and covered every control these
+// tests press (they set their own onboarding keys, not the release-notes one).
+test.beforeEach(async ({ page }) => {
+  await markReleaseNotesSeen(page);
+});
 
 test("iPhone SE uses compact chrome and contained onboarding and status sheets", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "compact phone coverage runs in the touch-device project");
@@ -57,24 +68,27 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   await expect(mobileMapStage).toHaveCSS("opacity", "1");
   await expect(mobileMapStage).toHaveCSS("will-change", "auto");
   await expect(mobileMapStage).toHaveCSS("transition-duration", "0s");
-  await expect(mobileMapStage.locator(".raster-map-plane")).toHaveCount(3);
+  await expect(mobileMapStage.locator(".raster-map-plane")).toHaveCount(TTC_RASTER_PLANES);
   await expect(page.locator("[data-system-map=ttc]")).toHaveAttribute("data-map-camera-moving", "false");
 
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
+  await waitForNetworkTransition(page, "regional");
   const regionalMap = page.locator("[data-system-map=regional]");
   const regionalMapStage = regionalMap.locator(".map-stage");
   await expect(regionalMap).toBeVisible();
   await page.getByRole("button", { name: "Center map view" }).click();
   await expect(regionalMapStage).toHaveCSS("transition-duration", "0s");
   await expect(regionalMapStage).toHaveCSS("will-change", "auto");
-  await expect(regionalMapStage.locator(".raster-map-plane")).toHaveCount(3);
+  await expect(regionalMapStage.locator(".raster-map-plane")).toHaveCount(REGIONAL_RASTER_PLANES);
   await expect(regionalMap).toHaveAttribute("data-map-camera-moving", "false");
 
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "TTC", exact: true })
     .click();
+  // The switch lands by returning the phone to the map; a Status tap before then is undone.
+  await waitForNetworkTransition(page, "ttc");
   const returnedTtcStage = page.locator("[data-system-map=ttc] .map-stage");
   await expect(returnedTtcStage).toHaveAttribute("data-raster-map-ready", "true");
   await expect(returnedTtcStage).toHaveCSS("opacity", "1");
@@ -112,7 +126,7 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
 
   const stage = page.locator("[data-system-map=ttc] .map-stage");
   await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
-  await expect(stage.locator(".raster-map-plane")).toHaveCount(3);
+  await expect(stage.locator(".raster-map-plane")).toHaveCount(TTC_RASTER_PLANES);
   await expect(stage.locator(".raster-map-plane--labels")).toHaveCount(1);
   await expect(stage.locator(".overlay-segment-group").first()).toBeAttached();
   const cycleResults = await page.evaluate(async () => {
@@ -196,8 +210,8 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
       stageWillChange: "auto",
       stageAnimations: 0,
       recenterLayerCount: 0,
-      rasterPlaneCount: 3,
-      flattenedRasterPlanes: 3,
+      rasterPlaneCount: TTC_RASTER_PLANES,
+      flattenedRasterPlanes: TTC_RASTER_PLANES,
     });
   }
   expect(cycleResults.cycles.some((cycle) => cycle.cameraChanged)).toBe(true);
@@ -211,15 +225,21 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
+  // A zoom pressed before the switch lands is dropped, which read as an unchanged camera.
+  await waitForNetworkTransition(page, "regional");
   const regionalStage = page.locator("[data-system-map=regional] .map-stage");
   await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
-  await expect(regionalStage.locator(".raster-map-plane")).toHaveCount(3);
-  const regionalCycles = await regionalStage.evaluate(async (originalStage) => {
+  await expect(regionalStage.locator(".raster-map-plane")).toHaveCount(REGIONAL_RASTER_PLANES);
+  const regionalCycles = await regionalStage.evaluate(async (originalStage, expectedPlanes) => {
     const root = originalStage.closest<HTMLElement>("[data-system-map=regional]");
-    const recenter = root?.querySelector<HTMLButtonElement>('button[aria-label="Fit regional network"]');
-    const zoomIn = root?.querySelector<HTMLButtonElement>('button[aria-label="Zoom in"]');
+    // The controls live outside the map root; take the visible ones, not the first in the
+    // document (which can belong to the hidden TTC map).
+    const visibleButton = (label: string) => Array.from(document.querySelectorAll<HTMLButtonElement>(`button[aria-label="${label}"]`))
+      .find((button) => button.getClientRects().length > 0 && getComputedStyle(button).visibility !== "hidden");
+    const recenter = visibleButton("Center map view");
+    const zoomIn = visibleButton("Zoom in");
     const rasterPlanes = Array.from(originalStage.querySelectorAll(".raster-map-plane"));
-    if (!root || !recenter || !zoomIn || rasterPlanes.length !== 3) {
+    if (!root || !recenter || !zoomIn || rasterPlanes.length !== expectedPlanes) {
       throw new Error("Missing regional mobile recenter durability elements");
     }
 
@@ -235,7 +255,7 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
     for (let cycle = 0; cycle < 12; cycle += 1) {
       const centeredTransform = originalStage.style.transform;
       zoomIn.click();
-      const zoomDeadline = performance.now() + 750;
+      const zoomDeadline = performance.now() + 1_500;
       while (
         originalStage.style.transform === centeredTransform
         && performance.now() < zoomDeadline
@@ -244,6 +264,14 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
       }
       const zoomedTransform = originalStage.style.transform;
       recenter.click();
+      // The shared rail's Center eases the camera; wait for it as the TTC cycle does.
+      const recenterDeadline = performance.now() + 1_500;
+      while (
+        originalStage.style.transform === zoomedTransform
+        && performance.now() < recenterDeadline
+      ) {
+        await new Promise((resolve) => window.setTimeout(resolve, 16));
+      }
       results.push({
         cameraChanged: zoomedTransform !== originalStage.style.transform,
         stageWillChange: getComputedStyle(originalStage).willChange,
@@ -252,21 +280,25 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
         rasterPlanesPreserved: Array.from(originalStage.querySelectorAll(".raster-map-plane"))
           .every((plane, index) => plane === rasterPlanes[index]),
       });
+      await new Promise((resolve) => window.setTimeout(resolve, 32));
     }
     return results;
-  });
+  }, REGIONAL_RASTER_PLANES);
   expect(regionalCycles).toHaveLength(12);
-  expect(regionalCycles.every((cycle) => (
-    cycle.cameraChanged
-    && cycle.stageWillChange === "auto"
-    && cycle.stageAnimations === 0
-    && cycle.recenterLayerCount === 0
-    && cycle.rasterPlanesPreserved
-  ))).toBe(true);
+  for (const cycle of regionalCycles) {
+    expect(cycle).toMatchObject({
+      cameraChanged: true,
+      stageWillChange: "auto",
+      stageAnimations: 0,
+      recenterLayerCount: 0,
+      rasterPlanesPreserved: true,
+    });
+  }
 
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "TTC", exact: true })
     .click();
+  await waitForNetworkTransition(page, "ttc");
   await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
 
   await page.getByRole("button", { name: "Center map view" }).click();
@@ -294,7 +326,7 @@ test("fixed mobile pinch zoom keeps one stable camera surface across both networ
       ? page.locator("[data-system-map=ttc] .map-stage")
       : page.locator("[data-system-map=regional] .map-stage");
     await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
-    await expect(stage.locator(".raster-map-plane")).toHaveCount(3);
+    await expect(stage.locator(".raster-map-plane")).toHaveCount(network === "ttc" ? TTC_RASTER_PLANES : REGIONAL_RASTER_PLANES);
 
     const result = await page.evaluate(async ({ activeNetwork }) => {
       const gestureTarget = activeNetwork === "ttc"
@@ -370,7 +402,7 @@ test("fixed mobile pinch zoom keeps one stable camera surface across both networ
     }, { activeNetwork: network });
 
     expect(result).toMatchObject({
-      flattenedRasterPlanes: 3,
+      flattenedRasterPlanes: network === "ttc" ? TTC_RASTER_PLANES : REGIONAL_RASTER_PLANES,
       mapChildrenPreserved: true,
       mapStagePreserved: true,
       rasterPlanesPreserved: true,
@@ -439,7 +471,7 @@ test("rotated mobile pinch zoom keeps one oriented map camera across both networ
       ? page.locator("[data-system-map=ttc] .map-stage")
       : page.locator("[data-system-map=regional] .map-stage");
     await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
-    await expect(stage.locator(".raster-map-plane")).toHaveCount(3);
+    await expect(stage.locator(".raster-map-plane")).toHaveCount(network === "ttc" ? TTC_RASTER_PLANES : REGIONAL_RASTER_PLANES);
 
     const result = await page.evaluate(async ({ activeNetwork }) => {
       const shellElement = document.querySelector<HTMLElement>(".linewatch-shell.mobile-map-rotated");
@@ -548,7 +580,7 @@ test("rotated mobile pinch zoom keeps one oriented map camera across both networ
     }, { activeNetwork: network });
 
     expect(result).toMatchObject({
-      flattenedRasterPlanes: 3,
+      flattenedRasterPlanes: network === "ttc" ? TTC_RASTER_PLANES : REGIONAL_RASTER_PLANES,
       isolation: "isolate",
       mainTransform: "none",
       mapChildrenPreserved: true,
@@ -682,7 +714,9 @@ for (const width of [320, 375, 412]) {
       const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
       const rail = rect(".mobile-map-network-switch");
       const legend = rect(".mobile-legend-pill");
-      const trains = rect(".mobile-train-toggle");
+      // View Trains and the Map View toggle stack on the left; the stack's bottom
+      // lines up with the zoom controls on the right.
+      const trains = rect(".mobile-train-left-cluster");
       const controls = rect(".mobile-map-controls-group");
       const status = rect(".mobile-status-peek");
       return trains.top >= legend.bottom + 8
