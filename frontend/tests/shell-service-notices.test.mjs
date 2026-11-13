@@ -32,6 +32,13 @@ describe("shell connection notice", () => {
     });
   });
 
+  it("shows no reconnect spinner when the server answered but the source is unavailable", () => {
+    const notice = connection({ snapshot: { savedAt: 0, reason: "stale" }, requestState: "source-unavailable", snapshotClock: 60_000 });
+    assert.equal(notice.showSpinner, false);
+    assert.match(notice.message, /^Updates Unavailable — /);
+    assert.equal(connection({ snapshot: { savedAt: 0, reason: "reconnecting" }, requestState: "reconnecting" }).showSpinner, true);
+  });
+
   it("orders reconnecting before degraded and unavailable sources", () => {
     assert.deepEqual(connection({ requestState: "reconnecting", availability: "unavailable" }), {
       message: "Connection issue — Showing cached snapshot",

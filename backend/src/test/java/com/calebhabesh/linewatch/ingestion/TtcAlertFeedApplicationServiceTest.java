@@ -76,7 +76,8 @@ class TtcAlertFeedApplicationServiceTest {
             surfaceStore,
             announcementNormalizer,
             announcementStore,
-            CLOCK
+            CLOCK,
+            IngestionSavepoints.NONE
         );
         when(store.upsertSource("routes", route, NOW)).thenReturn("routes:route-source");
         when(store.upsertSource("accessibility", outage, NOW))
@@ -109,7 +110,7 @@ class TtcAlertFeedApplicationServiceTest {
     }
 
     @Test
-    void persistenceFailureNamesTheOffendingSourceRecord() {
+    void persistenceFailureOfTheOnlyRecordFailsTheRunNamingIt() {
         when(normalizer.normalizeRoute(route))
             .thenReturn(NormalizationResult.matched(normalizedAlert));
         doThrow(new org.springframework.dao.DataIntegrityViolationException("insert into alerts",
@@ -118,8 +119,88 @@ class TtcAlertFeedApplicationServiceTest {
 
         assertThatThrownBy(() -> service.apply(routeOnlyFeed))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessage("Unable to persist TTC route alert route-source: "
+            .hasMessage("TTC ingestion quarantined 1 items from 1 provider records; first: route alert:route-source: "
                 + "ERROR: value too long for type character varying(500)");
+    }
+
+    // Nov 13, 2026: one untitled bus detour failed its insert and rolled back every TTC refresh.
+    @Test
+    void oneFailingSurfaceNoticeIsQuarantinedAndTheRestOfTheFeedApplies() {
+        List<TtcFetchedRecord> routes = java.util.stream.IntStream.range(0, 4)
+            .mapToObj(index -> fetchedRoute("route-" + index))
+            .toList();
+        for (TtcFetchedRecord record : routes) {
+            when(normalizer.normalizeRoute(record)).thenReturn(NormalizationResult.matched(
+                TestAlertRecords.normalizedRoute(record.record().id())));
+        }
+        var badNotice = surfaceNotice("route-2");
+        when(surfaceNormalizer.normalize(routes.get(2))).thenReturn(Optional.of(badNotice));
+        doThrow(new org.springframework.dao.DataIntegrityViolationException("insert into surface_service_notices",
+            new java.sql.SQLException("ERROR: null value in column \"title\"")))
+            .when(surfaceStore).upsertNotice(badNotice, NOW);
+
+        FeedApplicationCounts counts = service.apply(new TtcAlertFeed(feed.lastUpdated(), routes, List.of()));
+
+        assertThat(counts.recordsNormalized()).isEqualTo(4);
+        assertThat(counts.quarantined()).containsExactly(new QuarantinedRecord(
+            "surface notice", "route-2", "ERROR: null value in column \"title\""));
+        routes.forEach(record -> verify(store).upsertRouteAlert(
+            TestAlertRecords.normalizedRoute(record.record().id()), NOW));
+        // The quarantined notice keeps its last-good row instead of reading as cleared.
+        verify(surfaceStore).deactivateMissingNotices(Set.of("route-2"), NOW);
+    }
+
+    @Test
+    void aNormalizerCrashQuarantinesThatRecordAndKeepsItsLastGoodAlert() {
+        List<TtcFetchedRecord> routes = List.of(fetchedRoute("ok-1"), fetchedRoute("crash"), fetchedRoute("ok-2"));
+        when(normalizer.normalizeRoute(routes.get(0)))
+            .thenReturn(NormalizationResult.matched(TestAlertRecords.normalizedRoute("ok-1")));
+        when(normalizer.normalizeRoute(routes.get(1))).thenThrow(new NullPointerException("stopStart"));
+        when(normalizer.normalizeRoute(routes.get(2)))
+            .thenReturn(NormalizationResult.matched(TestAlertRecords.normalizedRoute("ok-2")));
+
+        FeedApplicationCounts counts = service.apply(new TtcAlertFeed(feed.lastUpdated(), routes, List.of()));
+
+        assertThat(counts.recordsNormalized()).isEqualTo(2);
+        assertThat(counts.quarantined()).extracting(QuarantinedRecord::label).containsExactly("route record:crash");
+        verify(store).deactivateMissingAlerts(Set.of("ok-1", "crash", "ok-2"), NOW);
+    }
+
+    @Test
+    void anUnreadableRecordIsQuarantinedAndKeepsItsLastGoodRows() {
+        List<TtcFetchedRecord> routes = List.of(fetchedRoute("ok-1"), fetchedRoute("ok-2"));
+        routes.forEach(record -> when(normalizer.normalizeRoute(record)).thenReturn(NormalizationResult.matched(
+            TestAlertRecords.normalizedRoute(record.record().id()))));
+        TtcAlertFeed withUnparsed = new TtcAlertFeed(feed.lastUpdated(), routes, List.of(), List.of(), List.of(),
+            List.of(new TtcAlertFeed.UnparsedRecord(TtcAlertFeed.ROUTES, "bad-1", "Cannot deserialize stopIDList")));
+        when(store.upsertSource(any(), any(), any())).thenAnswer(call ->
+            TtcAlertStore.sourceKey(call.getArgument(0), call.getArgument(1)));
+
+        FeedApplicationCounts counts = service.apply(withUnparsed);
+
+        assertThat(counts.recordsFetched()).isEqualTo(3);
+        assertThat(counts.quarantined()).containsExactly(new QuarantinedRecord(
+            "routes record", "bad-1", "unreadable provider record: Cannot deserialize stopIDList"));
+        verify(store).deactivateMissingAlerts(Set.of("ok-1", "ok-2", "bad-1"), NOW);
+        verify(surfaceStore).deactivateMissingNotices(Set.of("bad-1"), NOW);
+        verify(store).deactivateMissingSources(
+            Set.of("routes:ok-1", "routes:ok-2", "routes:bad-1"),
+            Set.of("routes", "accessibility", "site-wide-announcements", "general-announcements"));
+    }
+
+    @Test
+    void tooManyQuarantinedRecordsFailTheRunSoStaleDataIsNotCalledFresh() {
+        List<TtcFetchedRecord> routes = java.util.stream.IntStream.range(0, 30)
+            .mapToObj(index -> fetchedRoute("route-" + index))
+            .toList();
+        for (TtcFetchedRecord record : routes) {
+            when(normalizer.normalizeRoute(record)).thenThrow(new IllegalArgumentException("schema drift"));
+        }
+
+        assertThatThrownBy(() -> service.apply(new TtcAlertFeed(feed.lastUpdated(), routes, List.of())))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageStartingWith("TTC ingestion quarantined 30 items from 30 provider records; first: route record:route-0");
+        verify(store, never()).deactivateMissingAlerts(any(), any());
     }
 
     @Test
@@ -437,6 +518,14 @@ class TtcAlertFeedApplicationServiceTest {
         verify(store, never()).upsertRouteAlert(websiteClosure, NOW);
         verify(store).deactivateMissingWebsiteAdvisories(Set.of(), NOW);
         assertThat(counts).isEqualTo(new FeedApplicationCounts(2, 2, 1, 0));
+    }
+
+    private com.calebhabesh.linewatch.surface.SurfaceServiceNotice surfaceNotice(String sourceId) {
+        return new com.calebhabesh.linewatch.surface.SurfaceServiceNotice(
+            "ttc-surface-" + sourceId, sourceId, "detour", "Bus", null, "", "", "", "DETOUR", "Detour",
+            null, null, null, null, null, NOW, true, "{}", List.of("79"), List.of(),
+            com.calebhabesh.linewatch.surface.SurfaceServiceNotice.SERVICE_ALERT
+        );
     }
 
     private TtcFetchedRecord fetchedRoute(String sourceId) {

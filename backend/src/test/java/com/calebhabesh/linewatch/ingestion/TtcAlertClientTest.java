@@ -262,6 +262,36 @@ class TtcAlertClientTest {
     }
 
     @Test
+    void oneRecordOfAnUnexpectedShapeIsCarriedAsUnparsedInsteadOfFailingTheFeed() {
+        server.expect(requestTo("https://alerts.ttc.ca/api/alerts/live-alerts"))
+            .andRespond(withSuccess("""
+                {
+                  "lastUpdated": "2026-11-13T10:00:00",
+                  "routes": [
+                    {"id": "ok-1", "route": "1", "routeType": "Subway", "title": "Delay"},
+                    {"id": "bad-1", "route": "29", "routeType": "Bus", "stopIDList": {"not": "a list"}},
+                    {"id": "ok-2", "route": "2", "routeType": "Subway", "title": "Delay"}
+                  ],
+                  "accessibility": [
+                    {"id": "bad-2", "activePeriod": "soon"}
+                  ],
+                  "generalCustom": {"id": "bad-3", "lastUpdated": "not a time"}
+                }
+                """, MediaType.APPLICATION_JSON));
+
+        TtcAlertFeed feed = client.fetch();
+
+        assertThat(feed.routes()).extracting(record -> record.record().id()).containsExactly("ok-1", "ok-2");
+        assertThat(feed.accessibility()).isEmpty();
+        assertThat(feed.unparsed()).extracting(TtcAlertFeed.UnparsedRecord::section, TtcAlertFeed.UnparsedRecord::sourceId)
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple(TtcAlertFeed.ROUTES, "bad-1"),
+                org.assertj.core.groups.Tuple.tuple(TtcAlertFeed.ACCESSIBILITY, "bad-2"),
+                org.assertj.core.groups.Tuple.tuple(TtcAlertFeed.GENERAL_ANNOUNCEMENTS, "bad-3"));
+        assertThat(feed.fetchedCount()).isEqualTo(5);
+    }
+
+    @Test
     void fetchWrapsUpstreamHttpFailure() {
         server.expect(requestTo("https://alerts.ttc.ca/api/alerts/live-alerts"))
             .andRespond(withServerError());

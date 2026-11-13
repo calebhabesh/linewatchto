@@ -55,7 +55,8 @@ public class TtcAlertClient {
                 List.copyOf(routes),
                 feed.accessibility(),
                 feed.siteWideAnnouncements(),
-                feed.generalAnnouncements()
+                feed.generalAnnouncements(),
+                feed.unparsed()
             );
         } catch (TtcAlertClientException exception) {
             throw exception;
@@ -84,15 +85,17 @@ public class TtcAlertClient {
             if (root == null || !root.isObject()) {
                 throw TtcAlertClientException.invalidResponse("TTC Live Alerts payload must be an object");
             }
+            List<TtcAlertFeed.UnparsedRecord> unparsed = new ArrayList<>();
             return new TtcAlertFeed(
                 parseOptionalTimestamp(root.get("lastUpdated")),
-                parseSection(root, "routes"),
-                parseSection(root, "accessibility"),
+                parseSection(root, "routes", TtcAlertFeed.ROUTES, unparsed),
+                parseSection(root, "accessibility", TtcAlertFeed.ACCESSIBILITY, unparsed),
                 combine(
-                    parseOptionalSection(root, "siteWide"),
-                    parseOptionalSection(root, "siteWideCustom")
+                    parseOptionalSection(root, "siteWide", TtcAlertFeed.SITE_WIDE_ANNOUNCEMENTS, unparsed),
+                    parseOptionalSection(root, "siteWideCustom", TtcAlertFeed.SITE_WIDE_ANNOUNCEMENTS, unparsed)
                 ),
-                parseOptionalSection(root, "generalCustom")
+                parseOptionalSection(root, "generalCustom", TtcAlertFeed.GENERAL_ANNOUNCEMENTS, unparsed),
+                unparsed
             );
         } catch (TtcAlertClientException exception) {
             throw exception;
@@ -101,28 +104,58 @@ public class TtcAlertClient {
         }
     }
 
-    private List<TtcFetchedRecord> parseSection(JsonNode root, String section) throws Exception {
+    private List<TtcFetchedRecord> parseSection(
+        JsonNode root,
+        String section,
+        String stagingSection,
+        List<TtcAlertFeed.UnparsedRecord> unparsed
+    ) {
         JsonNode records = root.get(section);
         if (records == null || !records.isArray()) {
             throw TtcAlertClientException.invalidResponse("TTC Live Alerts payload requires array: " + section);
         }
         List<TtcFetchedRecord> parsed = new ArrayList<>();
         for (JsonNode node : records) {
-            parsed.add(new TtcFetchedRecord(
-                objectMapper.treeToValue(node, TtcAlertRecord.class),
-                objectMapper.writeValueAsString(node)
-            ));
+            parseInto(node, stagingSection, parsed, unparsed);
         }
         return List.copyOf(parsed);
     }
 
-    private List<TtcFetchedRecord> parseOptionalSection(JsonNode root, String section) throws Exception {
+    // One record of an unexpected shape must not fail the whole feed (a missing or malformed
+    // section still does). Its ID, when readable, lets the run keep that record's last-good rows.
+    private void parseInto(
+        JsonNode node,
+        String stagingSection,
+        List<TtcFetchedRecord> parsed,
+        List<TtcAlertFeed.UnparsedRecord> unparsed
+    ) {
+        try {
+            parsed.add(parseRecord(node));
+        } catch (Exception exception) {
+            JsonNode id = node == null ? null : node.get("id");
+            String sourceId = id == null || id.isNull() || id.isContainer() ? null : id.asText();
+            String message = exception instanceof tools.jackson.core.JacksonException jackson
+                ? jackson.getOriginalMessage()
+                : exception.getMessage();
+            unparsed.add(new TtcAlertFeed.UnparsedRecord(stagingSection, sourceId,
+                message == null ? exception.getClass().getSimpleName() : message));
+        }
+    }
+
+    private List<TtcFetchedRecord> parseOptionalSection(
+        JsonNode root,
+        String section,
+        String stagingSection,
+        List<TtcAlertFeed.UnparsedRecord> unparsed
+    ) {
         JsonNode records = root.get(section);
         if (records == null || records.isNull()) {
             return List.of();
         }
         if (records.isObject()) {
-            return List.of(parseRecord(records));
+            List<TtcFetchedRecord> single = new ArrayList<>();
+            parseInto(records, stagingSection, single, unparsed);
+            return List.copyOf(single);
         }
         if (!records.isArray()) {
             throw TtcAlertClientException.invalidResponse(
@@ -131,7 +164,7 @@ public class TtcAlertClient {
         }
         List<TtcFetchedRecord> parsed = new ArrayList<>();
         for (JsonNode node : records) {
-            parsed.add(parseRecord(node));
+            parseInto(node, stagingSection, parsed, unparsed);
         }
         return List.copyOf(parsed);
     }

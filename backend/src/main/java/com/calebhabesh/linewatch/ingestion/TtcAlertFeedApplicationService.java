@@ -13,7 +13,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +33,7 @@ public class TtcAlertFeedApplicationService {
     private final TtcAnnouncementNormalizer announcementNormalizer;
     private final TtcAnnouncementStore announcementStore;
     private final Clock clock;
+    private final IngestionSavepoints savepoints;
 
     public TtcAlertFeedApplicationService(
         TtcAlertStore store,
@@ -43,7 +43,8 @@ public class TtcAlertFeedApplicationService {
         SurfaceServiceNoticeStore surfaceStore,
         TtcAnnouncementNormalizer announcementNormalizer,
         TtcAnnouncementStore announcementStore,
-        Clock clock
+        Clock clock,
+        IngestionSavepoints savepoints
     ) {
         this.store = store;
         this.normalizer = normalizer;
@@ -53,6 +54,7 @@ public class TtcAlertFeedApplicationService {
         this.announcementNormalizer = announcementNormalizer;
         this.announcementStore = announcementStore;
         this.clock = clock;
+        this.savepoints = savepoints;
     }
 
     @Transactional
@@ -60,12 +62,22 @@ public class TtcAlertFeedApplicationService {
         return apply(feed, TtcSubwayClosureSnapshot.unavailable());
     }
 
+    /**
+     * Applies one fetched feed in one transaction. Each provider record's normalization and writes
+     * run in their own savepoint: a record that fails is set aside (quarantined) with its kind,
+     * source ID and cause, its last-good rows stay as they were, and the rest of the feed still
+     * applies. Section-wide failures, or more quarantined records than the limit, still fail the
+     * run, so a broken schema or normalizer cannot pass for fresh data. Without this, one malformed
+     * provider record (Oct 19-20 and Nov 13, 2026) rolled back every poll and took the whole TTC
+     * dashboard offline.
+     */
     @Transactional
     public FeedApplicationCounts apply(
         TtcAlertFeed feed,
         TtcSubwayClosureSnapshot subwayClosures
     ) {
         OffsetDateTime now = OffsetDateTime.now(clock);
+        IngestionRecordIsolation isolation = new IngestionRecordIsolation("TTC", savepoints);
         Set<String> seenSourceKeys = new HashSet<>();
         Set<String> seenAlertSourceIds = new HashSet<>();
         Set<String> seenOutageSourceIds = new HashSet<>();
@@ -77,25 +89,56 @@ public class TtcAlertFeedApplicationService {
         int normalized = 0;
         int unmatched = 0;
 
+        for (TtcAlertFeed.UnparsedRecord record : feed.unparsed()) {
+            isolation.reject(record.section() + " record", record.sourceId(),
+                "unreadable provider record: " + record.message());
+            if (!usableRecordId(record.sourceId())) {
+                continue;
+            }
+            String sourceId = record.sourceId().strip();
+            seenSourceKeys.add(record.section() + ":" + sourceId);
+            switch (record.section()) {
+                case TtcAlertFeed.ROUTES -> {
+                    seenAlertSourceIds.add(sourceId);
+                    seenNoticeSourceIds.add(sourceId);
+                }
+                case TtcAlertFeed.ACCESSIBILITY -> seenOutageSourceIds.add(sourceId);
+                case TtcAlertFeed.SITE_WIDE_ANNOUNCEMENTS -> seenAnnouncementSourceIds.add("site-wide:" + sourceId);
+                case TtcAlertFeed.GENERAL_ANNOUNCEMENTS -> seenAnnouncementSourceIds.add("general:" + sourceId);
+                default -> { }
+            }
+        }
+
         for (TtcFetchedRecord fetched : feed.routes()) {
-            seenSourceKeys.add(store.upsertSource("routes", fetched, now));
+            if (!stageSource("routes", fetched, now, seenSourceKeys, isolation)) {
+                continue;
+            }
+            String recordId = fetched.record().id();
 
             // Rapid transit alerts
             NormalizationResult<NormalizedRouteAlert> result =
-                normalizer.normalizeRoute(fetched);
-            if (result.shouldPersist()) {
-                routeCandidates.add(result.projection().orElseThrow());
-            }
-            if (result.countsAsUnmatched()) {
-                unmatched++;
+                isolation.compute("route record", recordId, () -> normalizer.normalizeRoute(fetched));
+            if (result == null) {
+                // Keep this record's last-good alert rather than reading our failure as a clearance.
+                keepLastGood(seenAlertSourceIds, recordId);
+            } else {
+                if (result.shouldPersist()) {
+                    routeCandidates.add(result.projection().orElseThrow());
+                }
+                if (result.countsAsUnmatched()) {
+                    unmatched++;
+                }
             }
 
             // Surface service notices
-            Optional<SurfaceServiceNotice> noticeOpt = surfaceNormalizer.normalize(fetched);
-            if (noticeOpt.isPresent()) {
+            Optional<SurfaceServiceNotice> noticeOpt =
+                isolation.compute("surface record", recordId, () -> surfaceNormalizer.normalize(fetched));
+            if (noticeOpt == null) {
+                keepLastGood(seenNoticeSourceIds, recordId);
+            } else if (noticeOpt.isPresent()) {
                 SurfaceServiceNotice notice = noticeOpt.get();
-                persist("surface notice", notice.sourceId(), () -> surfaceStore.upsertNotice(notice, now));
                 seenNoticeSourceIds.add(notice.sourceId());
+                isolation.run("surface notice", notice.sourceId(), () -> surfaceStore.upsertNotice(notice, now));
             }
         }
 
@@ -111,18 +154,27 @@ public class TtcAlertFeedApplicationService {
                     live -> duplicateMatcher.isGtfsRtDuplicateOfLive(alert, live)
                 );
             if (!duplicateGtfsRt) {
-                persist("route alert", alert.sourceId(), () -> store.upsertRouteAlert(alert, now));
                 seenAlertSourceIds.add(alert.sourceId());
-                persistedFeedAlerts.add(alert);
-                normalized++;
+                if (isolation.run("route alert", alert.sourceId(), () -> store.upsertRouteAlert(alert, now))) {
+                    persistedFeedAlerts.add(alert);
+                    normalized++;
+                }
             }
         }
 
         if (subwayClosures.available()) {
             List<NormalizedRouteAlert> websiteCandidates = new ArrayList<>();
             for (TtcFetchedRecord fetched : subwayClosures.records()) {
-                seenWebsiteSourceKeys.add(store.upsertSource(WEBSITE_ADVISORY_SECTION, fetched, now));
-                NormalizationResult<NormalizedRouteAlert> result = normalizer.normalizeRoute(fetched);
+                if (!stageSource(WEBSITE_ADVISORY_SECTION, fetched, now, seenWebsiteSourceKeys, isolation)) {
+                    continue;
+                }
+                String recordId = fetched.record().id();
+                NormalizationResult<NormalizedRouteAlert> result = isolation.compute(
+                    "website advisory record", recordId, () -> normalizer.normalizeRoute(fetched));
+                if (result == null) {
+                    keepLastGood(seenWebsiteAlertSourceIds, recordId);
+                    continue;
+                }
                 if (result.shouldPersist()) {
                     websiteCandidates.add(result.projection().orElseThrow());
                 }
@@ -135,9 +187,11 @@ public class TtcAlertFeedApplicationService {
                 boolean coveredByFeed = persistedFeedAlerts.stream()
                     .anyMatch(feedAlert -> sameAdvisory(feedAlert, websiteAlert, now));
                 if (!coveredByFeed) {
-                    persist("route alert", websiteAlert.sourceId(), () -> store.upsertRouteAlert(websiteAlert, now));
                     seenWebsiteAlertSourceIds.add(websiteAlert.sourceId());
-                    normalized++;
+                    if (isolation.run("route alert", websiteAlert.sourceId(),
+                        () -> store.upsertRouteAlert(websiteAlert, now))) {
+                        normalized++;
+                    }
                 }
             }
             store.deactivateMissingSources(
@@ -148,14 +202,23 @@ public class TtcAlertFeedApplicationService {
         }
 
         for (TtcFetchedRecord fetched : feed.accessibility()) {
-            seenSourceKeys.add(store.upsertSource("accessibility", fetched, now));
-            NormalizationResult<NormalizedAccessibilityOutage> result =
-                normalizer.normalizeAccessibility(fetched);
+            if (!stageSource("accessibility", fetched, now, seenSourceKeys, isolation)) {
+                continue;
+            }
+            String recordId = fetched.record().id();
+            NormalizationResult<NormalizedAccessibilityOutage> result = isolation.compute(
+                "accessibility record", recordId, () -> normalizer.normalizeAccessibility(fetched));
+            if (result == null) {
+                keepLastGood(seenOutageSourceIds, recordId);
+                continue;
+            }
             if (result.shouldPersist()) {
                 NormalizedAccessibilityOutage outage = result.projection().orElseThrow();
-                persist("accessibility outage", outage.sourceId(), () -> store.upsertAccessibilityOutage(outage, now));
                 seenOutageSourceIds.add(outage.sourceId());
-                normalized++;
+                if (isolation.run("accessibility outage", outage.sourceId(),
+                    () -> store.upsertAccessibilityOutage(outage, now))) {
+                    normalized++;
+                }
             }
             if (result.countsAsUnmatched()) {
                 unmatched++;
@@ -168,7 +231,8 @@ public class TtcAlertFeedApplicationService {
             "site-wide-announcements",
             seenSourceKeys,
             seenAnnouncementSourceIds,
-            now
+            now,
+            isolation
         );
         normalized += applyAnnouncements(
             feed.generalAnnouncements(),
@@ -176,8 +240,13 @@ public class TtcAlertFeedApplicationService {
             "general-announcements",
             seenSourceKeys,
             seenAnnouncementSourceIds,
-            now
+            now,
+            isolation
         );
+
+        int attempted = feed.fetchedCount()
+            + (subwayClosures.available() ? subwayClosures.records().size() : 0);
+        isolation.failIfTooMany(attempted);
 
         store.deactivateMissingSources(seenSourceKeys, LIVE_SOURCE_SECTIONS);
         store.deactivateMissingAlerts(seenAlertSourceIds, now);
@@ -189,20 +258,47 @@ public class TtcAlertFeedApplicationService {
             feed.fetchedCount() + (subwayClosures.available() ? subwayClosures.records().size() : 0),
             seenSourceKeys.size() + seenWebsiteSourceKeys.size(),
             normalized,
-            unmatched
+            unmatched,
+            isolation.quarantined()
         );
     }
 
-    // Name the offending provider record so a failed run is diagnosable from ingestion_runs alone.
-    private static void persist(String kind, String sourceId, Runnable write) {
-        try {
-            write.run();
-        } catch (DataAccessException exception) {
-            throw new IllegalStateException(
-                "Unable to persist TTC " + kind + " " + sourceId + ": "
-                    + exception.getMostSpecificCause().getMessage(),
-                exception
-            );
+    /**
+     * Stages the raw record and reports whether it can be applied. A record without a usable ID
+     * cannot be upserted or tracked between polls, so it is quarantined before any write.
+     */
+    private boolean stageSource(
+        String section,
+        TtcFetchedRecord fetched,
+        OffsetDateTime now,
+        Set<String> seenSourceKeys,
+        IngestionRecordIsolation isolation
+    ) {
+        String recordId = fetched.record().id();
+        if (!usableRecordId(recordId)) {
+            isolation.reject(section + " record", recordId, recordId == null || recordId.isBlank()
+                ? "provider record has no id"
+                : "provider record id is " + recordId.strip().length() + " characters (limit " + MAX_RECORD_ID_LENGTH + ")");
+            return false;
+        }
+        // The key is derived from the record, so a failed staging write still keeps its last-good row active.
+        String sourceKey = TtcAlertStore.sourceKey(section, fetched);
+        seenSourceKeys.add(sourceKey);
+        isolation.run("source record", sourceKey, () -> store.upsertSource(section, fetched, now));
+        return true;
+    }
+
+    // Every table keyed by a TTC record ID allows at least 100 characters once its prefix
+    // ("ttc-route-", "ttc-surface-", "general:") is added; real TTC IDs are short numbers.
+    static final int MAX_RECORD_ID_LENGTH = 100;
+
+    private static boolean usableRecordId(String recordId) {
+        return recordId != null && !recordId.isBlank() && recordId.strip().length() <= MAX_RECORD_ID_LENGTH;
+    }
+
+    private static void keepLastGood(Set<String> seenSourceIds, String sourceId) {
+        if (sourceId != null && !sourceId.isBlank()) {
+            seenSourceIds.add(sourceId.trim());
         }
     }
 
@@ -298,17 +394,30 @@ public class TtcAlertFeedApplicationService {
         String sourceSection,
         Set<String> seenSourceKeys,
         Set<String> seenAnnouncementSourceIds,
-        OffsetDateTime now
+        OffsetDateTime now,
+        IngestionRecordIsolation isolation
     ) {
         int normalized = 0;
         for (TtcFetchedRecord fetched : records) {
-            seenSourceKeys.add(store.upsertSource(sourceSection, fetched, now));
-            Optional<TtcAnnouncement> result = announcementNormalizer.normalize(fetched, scope);
+            if (!stageSource(sourceSection, fetched, now, seenSourceKeys, isolation)) {
+                continue;
+            }
+            String recordId = fetched.record().id();
+            Optional<TtcAnnouncement> result = isolation.compute(
+                "announcement record", recordId, () -> announcementNormalizer.normalize(fetched, scope));
+            if (result == null) {
+                if (recordId != null && !recordId.isBlank()) {
+                    seenAnnouncementSourceIds.add(scope + ":" + recordId.trim());
+                }
+                continue;
+            }
             if (result.isPresent()) {
                 TtcAnnouncement announcement = result.orElseThrow();
-                persist("announcement", announcement.sourceId(), () -> announcementStore.upsert(announcement, now));
                 seenAnnouncementSourceIds.add(announcement.sourceId());
-                normalized++;
+                if (isolation.run("announcement", announcement.sourceId(),
+                    () -> announcementStore.upsert(announcement, now))) {
+                    normalized++;
+                }
             }
         }
         return normalized;

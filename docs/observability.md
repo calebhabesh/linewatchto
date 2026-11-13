@@ -73,7 +73,13 @@ We expose custom gauges in [LinewatchHealthMetrics.java](../backend/src/main/jav
 - `linewatch_ingestion_records_normalized`: Total records normalized.
 - `linewatch_ingestion_records_unmatched`: Total records unmatched.
 - `linewatch_ingestion_latest_status{status="success|failed|running|not-run"}`: A set of gauges indicating the latest run state.
+- `linewatch_ingestion_records_quarantined`: Provider records the latest successful run set aside because they failed to normalize or persist; the rest of the feed applied. `/api/health/ingestion` lists them and `ingestion_runs.quarantined_records` holds each cause ([provider feed incident runbook](provider-feed-incident-runbook.md)).
 - `linewatch_ingestion_processing_failures_since_success`: Failed runs since the last success whose TTC source fetch succeeded. A non-zero value means LineWatch could not process a feed TTC served normally (for example, a persistence error), not a TTC outage. Run `error_message` names the offending source record.
+
+#### GO/UP Ingestion Gauges
+[RegionalIngestionHealthMetrics.java](../backend/src/main/java/com/calebhabesh/linewatch/observability/RegionalIngestionHealthMetrics.java) reads NaN while Metrolinx ingestion is disabled or unconfigured.
+- `linewatch_regional_ingestion_live`: `1.0` while GO/UP has a fresh successful Metrolinx run, `0.0` otherwise.
+- `linewatch_regional_ingestion_records_quarantined`: Metrolinx records the latest successful run set aside.
 
 #### GTFS Schedule Status Gauges
 - `linewatch_schedule_active`: `1.0` if a GTFS schedule import is active and not expired, `0.0` otherwise.
@@ -139,13 +145,18 @@ Query constraints in this stack:
 | --- | --- | --- | --- |
 | TTC ingestion stale | `max(linewatch_ingestion_dashboard_live)` | `< 1` for 5m, or no data | critical |
 | TTC ingestion processing failing | `max(linewatch_ingestion_processing_failures_since_success)` | `>= 3` for 2m | critical |
+| TTC records quarantined | `max(linewatch_ingestion_records_quarantined)` | `> 0` for 15m | warning |
+| GO/UP ingestion stale | `max(linewatch_regional_ingestion_live)` | `< 1` for 15m | critical |
+| GO/UP records quarantined | `max(linewatch_regional_ingestion_records_quarantined)` | `> 0` for 15m | warning |
 | Backend metrics missing | `max(up{job="prometheus.scrape.backend"})` | `< 1` for 3m, or no data | critical |
 | GTFS schedule inactive | `max(linewatch_schedule_active)` | `< 1` for 15m | critical |
 | GTFS schedule expiring soon | `min(linewatch_schedule_service_days_remaining)` | `< 7` for 30m | warning |
 
 All queries filter `environment="production"`. On Oct 19-20, 2026, a single over-long TTC
 alert title failed every poll for 4.5 hours with no rules provisioned; the first two rules
-would each have fired within minutes.
+would each have fired within minutes. On Nov 13, 2026 an untitled TTC bus detour failed every
+poll for about 2 hours; ingestion now quarantines such a record and keeps the rest of the feed
+live, and the quarantine rules report it.
 
 ### Not yet provisioned
 - Uptime synthetic checks for `https://linewatchto.ca/` and `https://api.linewatchto.ca/api/health`

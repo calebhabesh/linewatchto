@@ -66,6 +66,7 @@ import { DesktopNoticeBanner, type DesktopNotice } from "./DesktopNoticeBanner";
 import {
   useDashboardSession,
   dashboardRefreshIntervalMs,
+  isRetryingDashboard,
 } from "../hooks/useDashboardSession";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
@@ -329,7 +330,7 @@ export function LineWatchShell({
   const pollText = generatedAt.lastPoll.replace(/succeeded\s*/i, "");
   const isLive = displayData.generatedAt.live && displayData.availability !== "unavailable" && displayData.availability !== "fixture";
   const isConnectionIssue = snapshotReason !== "refreshing" && (
-    Boolean(displayData.snapshot) || dashboardRequestState === "reconnecting" || displayData.availability === "degraded"
+    Boolean(displayData.snapshot) || isRetryingDashboard(dashboardRequestState) || displayData.availability === "degraded"
   );
   const [desktopLiveAnnouncement, setDesktopLiveAnnouncement] = useState("");
   const announceDesktop = useCallback((message: string) => {
@@ -2223,7 +2224,7 @@ export function LineWatchShell({
         const statusReady = new Promise<void>(resolve => {
           // A known unavailable source remains explicitly unknown while its
           // retry runs; it should not hold up every return to a prepared map.
-          if (dashboardRequestStates[network] === "reconnecting") {
+          if (isRetryingDashboard(dashboardRequestStates[network])) {
             void fetchDashboard(network);
             resolve();
             return;
@@ -4739,7 +4740,8 @@ export function LineWatchShell({
       {isMobile && (!showClosedScreen || displayData.snapshot) && dashboardAvailabilityNotice ? (
         <div
           className={`dashboard-availability-notice ${isMobile && (!displayData.snapshot || showMobileStatusPeek && !showClosedScreen) ? "dashboard-availability-notice--mobile-hidden" : ""}`}
-          data-state={dashboardRequestState === "reconnecting" ? "reconnecting" : displayData.availability}
+          data-state={dashboardRequestState === "reconnecting" ? "reconnecting"
+            : dashboardRequestState === "source-unavailable" ? "unavailable" : displayData.availability}
           role="status"
           aria-live="polite"
         >

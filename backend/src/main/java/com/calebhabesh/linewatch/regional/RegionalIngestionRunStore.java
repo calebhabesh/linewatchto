@@ -40,13 +40,16 @@ public class RegionalIngestionRunStore {
                 records_processed = :normalized, records_fetched = :fetched,
                 records_staged = :staged, records_normalized = :normalized,
                 records_unmatched = :unmatched, source_feed_updated_at = :sourceUpdatedAt,
+                records_quarantined = :quarantined, quarantined_records = :quarantinedRecords,
                 error_message = null
             where id = :id
             """, new MapSqlParameterSource()
                 .addValue("id", id).addValue("completedAt", completedAt)
                 .addValue("fetched", counts.recordsFetched()).addValue("staged", counts.recordsStaged())
                 .addValue("normalized", counts.recordsNormalized()).addValue("unmatched", counts.recordsUnmatched())
-                .addValue("sourceUpdatedAt", sourceUpdatedAt));
+                .addValue("sourceUpdatedAt", sourceUpdatedAt)
+                .addValue("quarantined", counts.quarantined().size())
+                .addValue("quarantinedRecords", com.calebhabesh.linewatch.ingestion.IngestionRunStore.quarantineDetail(counts.quarantined())));
     }
 
     public void markFailed(long id, OffsetDateTime completedAt, String errorMessage) {
@@ -110,7 +113,8 @@ public class RegionalIngestionRunStore {
     public Optional<IngestionRunSnapshot> findLatest() {
         return findOne("""
             select id, status, started_at, completed_at, records_fetched, records_staged,
-                   records_normalized, records_unmatched, source_feed_updated_at, error_message
+                   records_normalized, records_unmatched, source_feed_updated_at, error_message,
+                   records_quarantined, quarantined_records
             from ingestion_runs where run_type = :runType order by started_at desc limit 1
             """);
     }
@@ -118,7 +122,8 @@ public class RegionalIngestionRunStore {
     public Optional<IngestionRunSnapshot> findLatestSuccessful() {
         return findOne("""
             select id, status, started_at, completed_at, records_fetched, records_staged,
-                   records_normalized, records_unmatched, source_feed_updated_at, error_message
+                   records_normalized, records_unmatched, source_feed_updated_at, error_message,
+                   records_quarantined, quarantined_records
             from ingestion_runs
             where run_type = :runType and status = 'success' and completed_at is not null
             order by completed_at desc limit 1
@@ -133,7 +138,12 @@ public class RegionalIngestionRunStore {
                 resultSet.getInt("records_fetched"), resultSet.getInt("records_staged"),
                 resultSet.getInt("records_normalized"), resultSet.getInt("records_unmatched"),
                 resultSet.getObject("source_feed_updated_at", OffsetDateTime.class),
-                resultSet.getString("error_message")
+                resultSet.getString("error_message"),
+                false,
+                0,
+                resultSet.getInt("records_quarantined"),
+                com.calebhabesh.linewatch.ingestion.IngestionRunStore.quarantineLabels(
+                    resultSet.getString("quarantined_records"))
             ));
         return rows.stream().findFirst();
     }

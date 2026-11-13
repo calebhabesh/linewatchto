@@ -74,6 +74,10 @@ public class LinewatchHealthMetrics implements MeterBinder {
                 .description("Number of records unmatched in the latest ingestion run")
                 .register(registry);
 
+        Gauge.builder("linewatch_ingestion_records_quarantined", this, LinewatchHealthMetrics::getIngestionRecordsQuarantined)
+                .description("Provider records the latest successful ingestion run set aside because they failed to normalize or persist")
+                .register(registry);
+
         Gauge.builder("linewatch_ingestion_processing_failures_since_success", this,
                         LinewatchHealthMetrics::getIngestionProcessingFailuresSinceSuccess)
                 .description("Failed ingestion runs since the last success where the TTC source fetch succeeded")
@@ -144,6 +148,12 @@ public class LinewatchHealthMetrics implements MeterBinder {
         return ingestionRunStore.findLatest()
                 .map(run -> (double) run.recordsUnmatched())
                 .orElse(Double.NaN);
+    }
+
+    private double getIngestionRecordsQuarantined() {
+        return ingestionRunStore.findLatestSuccessful()
+                .map(run -> (double) run.recordsQuarantined())
+                .orElse(0.0);
     }
 
     private double getIngestionProcessingFailuresSinceSuccess() {

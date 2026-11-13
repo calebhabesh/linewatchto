@@ -87,6 +87,24 @@ class IngestionHealthControllerTest {
     }
 
     @Test
+    void reportsQuarantinedRecordsByLabelOnlyWhileStayingLive() {
+        OffsetDateTime started = OffsetDateTime.parse("2026-06-01T11:58:00Z");
+        IngestionRunSnapshot successful = new IngestionRunSnapshot(
+            43L, "success", started, started.plusSeconds(2),
+            44, 44, 12, 3, started.minusMinutes(1), null, true, 1,
+            1, java.util.List.of("surface notice:gtfsrt-80206")
+        );
+        when(store.findLatest()).thenReturn(Optional.of(successful));
+        when(store.findLatestSuccessful()).thenReturn(Optional.of(successful));
+
+        IngestionHealthController.IngestionHealthResponse response = controller.ingestion();
+
+        assertThat(response.dashboardLive()).isTrue();
+        assertThat(response.recordsQuarantined()).isEqualTo(1);
+        assertThat(response.quarantinedRecords()).containsExactly("surface notice:gtfsrt-80206");
+    }
+
+    @Test
     void reportsDashboardNotLiveWhenSuccessfulRunIsStale() {
         OffsetDateTime started = OffsetDateTime.parse("2026-06-01T11:00:00Z");
         IngestionRunSnapshot successful = new IngestionRunSnapshot(

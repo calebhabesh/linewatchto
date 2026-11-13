@@ -38,6 +38,42 @@
       "description": "This is a LineWatch bug or data problem, not a TTC outage. ingestion_runs.error_message names the offending source record."
     },
     {
+      "uid": "linewatch-ttc-records-quarantined",
+      "title": "TTC records quarantined",
+      "expr": "max(linewatch_ingestion_records_quarantined{environment=\"production\"})",
+      "op": "gt",
+      "threshold": 0,
+      "for": "15m",
+      "noData": "OK",
+      "severity": "warning",
+      "summary": "TTC ingestion is setting aside provider records it cannot process; the rest of the feed is live.",
+      "description": "Riders are missing those alerts or notices. /api/health/ingestion lists them (quarantinedRecords); ingestion_runs.quarantined_records has each cause. Fix the normalizer or schema; TtcProviderRecordContractIntegrationTest should reproduce it."
+    },
+    {
+      "uid": "linewatch-regional-ingestion-stale",
+      "title": "GO/UP ingestion stale",
+      "expr": "max(linewatch_regional_ingestion_live{environment=\"production\"})",
+      "op": "lt",
+      "threshold": 1,
+      "for": "15m",
+      "noData": "OK",
+      "severity": "critical",
+      "summary": "GO/UP alerts have had no fresh successful Metrolinx ingestion run for 15 minutes.",
+      "description": "Check /api/health/regional-ingestion (collections, status) and the backend log for Metrolinx fetch or processing errors. Metrolinx 401s and 503s are intermittent; this rule waits 15 minutes for that reason."
+    },
+    {
+      "uid": "linewatch-regional-records-quarantined",
+      "title": "GO/UP records quarantined",
+      "expr": "max(linewatch_regional_ingestion_records_quarantined{environment=\"production\"})",
+      "op": "gt",
+      "threshold": 0,
+      "for": "15m",
+      "noData": "OK",
+      "severity": "warning",
+      "summary": "Metrolinx ingestion is setting aside records it cannot persist; the rest of the feed is live.",
+      "description": "/api/health/regional-ingestion lists them (quarantinedRecords); ingestion_runs.quarantined_records has each cause."
+    },
+    {
       "uid": "linewatch-backend-scrape-missing",
       "title": "Backend metrics missing",
       "expr": "max(up{job=\"prometheus.scrape.backend\", environment=\"production\"})",

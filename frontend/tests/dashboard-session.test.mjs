@@ -175,6 +175,12 @@ describe("useDashboardSession unit tests", () => {
       assert.equal(computeSnapshotReason({ ...baseParams, requestState: "reconnecting" }), "reconnecting");
     });
 
+    // Nov 13, 2026: TTC ingestion failed for hours while the server answered normally; the
+    // banner said "Reconnecting" as if the rider's connection were the problem.
+    it("returns 'stale' when the server answers but the network's source is unavailable", () => {
+      assert.equal(computeSnapshotReason({ ...baseParams, requestState: "source-unavailable" }), "stale");
+    });
+
     it("returns 'refreshing' when session is not yet verified", () => {
       assert.equal(computeSnapshotReason({ ...baseParams, sessionVerified: false }), "refreshing");
     });
@@ -314,6 +320,21 @@ describe("useDashboardSession unit tests", () => {
   });
 
   describe("computeEffectiveDashboards independent network isolation", () => {
+    it("labels a reachable server with unavailable source data as Updates Unavailable, not Reconnecting", () => {
+      const dashboards = computeEffectiveDashboards({
+        ttcData: sampleLiveTtcData(),
+        regionalData: regionalDashboardData,
+        verifiedAt: { ttc: 100_000, regional: 200_000 },
+        dashboardRequestStates: { ttc: "source-unavailable", regional: "ready" },
+        connectionOffline: false,
+      });
+
+      assert.equal(dashboards.ttc.snapshot.reason, "stale");
+      assert.ok(computeDashboardAvailabilityNotice(dashboards.ttc, "source-unavailable", 160_000)
+        .startsWith("Updates Unavailable — Saved"));
+      assert.equal(dashboards.regional.snapshot, undefined);
+    });
+
     it("preserves independent network snapshot state when one reconnects", () => {
       const ttc = sampleLiveTtcData();
       const regional = regionalDashboardData;

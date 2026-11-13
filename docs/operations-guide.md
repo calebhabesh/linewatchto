@@ -10,6 +10,7 @@ operational workflow. Routine frontend styling does not require these documents.
 - Staging: [staging runbook](staging.md). Keep `.env.staging`, volumes, and locally built images isolated. Never point staging at `.env.production`, `.env.release`, production volumes/tags, or copy production secrets into staging.
 - Metrics/logging: [observability](observability.md). Actuator is private on port 9090 and blocked at Caddy; configured collectors/tokens are required for data claims.
 - Load incidents: [traffic-spike runbook](traffic-spike-runbook.md).
+- Provider feed incidents (a TTC or Metrolinx record LineWatch cannot process, quarantined records, source switches): [provider feed incident runbook](provider-feed-incident-runbook.md).
 - Performance measurements: `node scripts/measure-portfolio-performance.mjs --help`; retain workload/environment/success/failure metadata.
 - Script and tooling catalog: [script inventory](script-inventory.md).
 - Schedule-derived map and search files: the `schedule-assets` service publishes them at runtime ([production VPS](production-vps.md#schedule-assets), [plan 16](refactor-plan/16-runtime-schedule-assets.md)); new TTC or GO schedules need no release. Its health is `/api/health/schedule-assets`.

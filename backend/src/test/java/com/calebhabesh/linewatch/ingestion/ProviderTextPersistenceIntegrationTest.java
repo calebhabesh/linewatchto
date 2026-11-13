@@ -98,6 +98,28 @@ class ProviderTextPersistenceIntegrationTest {
         });
     }
 
+    // Nov 13, 2026: a quarantined record is recorded on the successful run; causes stay in the
+    // table and only "kind:sourceId" labels are read back for health responses.
+    @Test
+    void recordsQuarantinedItemsOnTheSuccessfulRun() {
+        var runs = new IngestionRunStore(jdbc);
+        OffsetDateTime started = OffsetDateTime.parse("2100-01-02T00:00:00Z");
+
+        inRolledBackTransaction(() -> {
+            long id = runs.createRunning(started);
+            runs.markSuccess(id, started.plusSeconds(1), new FeedApplicationCounts(3, 3, 2, 0, java.util.List.of(
+                new QuarantinedRecord("surface notice", "gtfsrt-80206", "ERROR: null value in column \"title\""),
+                new QuarantinedRecord("route record", "crash", "stopStart"))), started);
+
+            IngestionRunSnapshot latest = runs.findLatestSuccessful().orElseThrow();
+            assertThat(latest.id()).isEqualTo(id);
+            assertThat(latest.recordsQuarantined()).isEqualTo(2);
+            assertThat(latest.quarantinedRecords()).containsExactly("surface notice:gtfsrt-80206", "route record:crash");
+            assertThat(jdbc.queryForObject("select quarantined_records from ingestion_runs where id = :id",
+                Map.of("id", id), String.class)).contains("ERROR: null value in column \"title\"");
+        });
+    }
+
     private void insertRun(OffsetDateTime startedAt, String status, String sourceFetchStatus) {
         jdbc.update("""
             insert into ingestion_runs (run_type, status, started_at, completed_at, source_fetch_status)

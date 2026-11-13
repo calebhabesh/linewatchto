@@ -69,6 +69,8 @@ class BootRuntimeIntegrationTest {
                 assertThat(mapper.readTree(dashboard.body()).path("status").path("generatedAt").path("live").asBoolean()).isFalse();
                 assertThat(dashboard.body()).doesNotContain("rawPayload");
 
+                assertIngestionSavepointsContainAFailedWriteUnderTheAppTransactionManager(context);
+
                 // Read a pre-upgrade cache shape and keep ISO timestamps/null fields on the wire.
                 var details = mapper.readValue("{\"replacementService\":null,\"maximumDelayMinutes\":5,"
                     + "\"publishedAt\":\"2026-06-01T12:00:00Z\"}", DashboardResponses.IncidentDetails.class);
@@ -106,5 +108,32 @@ class BootRuntimeIntegrationTest {
 
     private String setting(String property, String environment, String fallback) {
         return System.getProperty(property, System.getenv().getOrDefault(environment, fallback));
+    }
+
+    // Production runs ingestion under Boot's JpaTransactionManager, which disallows nested
+    // transactions by default; the savepoint must still undo a failed write and leave the
+    // run transaction usable (PostgreSQL otherwise aborts it on the first error).
+    private static void assertIngestionSavepointsContainAFailedWriteUnderTheAppTransactionManager(
+        org.springframework.context.ApplicationContext context
+    ) {
+        var transactionManager = context.getBean(org.springframework.transaction.PlatformTransactionManager.class);
+        assertThat(transactionManager).isInstanceOf(org.springframework.orm.jpa.JpaTransactionManager.class);
+        var savepoints = context.getBean(com.calebhabesh.linewatch.ingestion.IngestionSavepoints.class);
+        var jdbc = context.getBean(org.springframework.jdbc.core.JdbcTemplate.class);
+        new org.springframework.transaction.support.TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            status.setRollbackOnly();
+            savepoints.run(() -> jdbc.update(
+                "insert into ttc_announcements (id, source_id, scope, title, description, raw_payload, active, created_at, updated_at) "
+                    + "values ('savepoint-kept', 'general:kept', 'general', 'Kept', '', '{}', true, now(), now())"));
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> savepoints.run(() -> jdbc.update(
+                "insert into ttc_announcements (id, source_id, scope, title, description, raw_payload, active, created_at, updated_at) "
+                    + "values ('savepoint-bad', 'general:bad', 'general', null, '', '{}', true, now(), now())")))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+            jdbc.update(
+                "insert into ttc_announcements (id, source_id, scope, title, description, raw_payload, active, created_at, updated_at) "
+                    + "values ('savepoint-after', 'general:after', 'general', 'After', '', '{}', true, now(), now())");
+            assertThat(jdbc.queryForList("select id from ttc_announcements where id like 'savepoint-%' order by id", String.class))
+                .containsExactly("savepoint-after", "savepoint-kept");
+        });
     }
 }

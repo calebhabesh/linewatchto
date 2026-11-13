@@ -35,7 +35,15 @@ export function dashboardRefreshIntervalMs(): number {
   return Math.max(configured, MIN_DASHBOARD_REFRESH_MS);
 }
 
-export type DashboardRequestState = "ready" | "reconnecting";
+// "reconnecting": the dashboard request failed (network or server error).
+// "source-unavailable": the server answered, but this network's source data is unavailable or
+// stale (for example, its ingestion is failing). Both keep the last saved snapshot and retry;
+// only the first is a connection problem, so riders are not told to wait for a reconnect.
+export type DashboardRequestState = "ready" | "reconnecting" | "source-unavailable";
+
+export function isRetryingDashboard(state: DashboardRequestState): boolean {
+  return state !== "ready";
+}
 
 // Polling pauses while the tab is hidden, so returning to it always finds an
 // old snapshot. Give the resume refresh this long before calling it stale.
@@ -91,6 +99,7 @@ export function computeSnapshotReason({
 }): NonNullable<DashboardData["snapshot"]>["reason"] | null {
   if (connectionOffline) return "offline";
   if (requestState === "reconnecting") return "reconnecting";
+  if (requestState === "source-unavailable") return "stale";
   if (!sessionVerified) return "refreshing";
   if (storedVerifiedAt !== null && snapshotClock - storedVerifiedAt >= DASHBOARD_VERIFICATION_MS) {
     return "stale";
@@ -149,12 +158,15 @@ export function computeEffectiveDashboards({
   dashboardRequestStates: Record<NetworkId, DashboardRequestState>;
   connectionOffline: boolean;
 }): Record<NetworkId, DashboardData> {
+  const reasonFor = (state: DashboardRequestState) => connectionOffline
+    ? "offline"
+    : state === "source-unavailable" ? "stale" : "reconnecting";
   return {
-    ttc: connectionOffline || dashboardRequestStates.ttc === "reconnecting"
-      ? snapshotDashboard(ttcData, verifiedAt.ttc, connectionOffline ? "offline" : "reconnecting")
+    ttc: connectionOffline || isRetryingDashboard(dashboardRequestStates.ttc)
+      ? snapshotDashboard(ttcData, verifiedAt.ttc, reasonFor(dashboardRequestStates.ttc))
       : ttcData,
-    regional: connectionOffline || dashboardRequestStates.regional === "reconnecting"
-      ? snapshotDashboard(regionalData, verifiedAt.regional, connectionOffline ? "offline" : "reconnecting")
+    regional: connectionOffline || isRetryingDashboard(dashboardRequestStates.regional)
+      ? snapshotDashboard(regionalData, verifiedAt.regional, reasonFor(dashboardRequestStates.regional))
       : regionalData,
   };
 }
@@ -410,8 +422,9 @@ export function useDashboardSession({
           });
         }
       } else if (verifiedAtRef.current[networkId] !== null) {
-        // A valid unavailable response must not overwrite the last real observation.
-        setDashboardRequestStates((current) => ({ ...current, [networkId]: "reconnecting" }));
+        // A valid unavailable response must not overwrite the last real observation. The
+        // server is reachable, so this is the source being unavailable, not a reconnect.
+        setDashboardRequestStates((current) => ({ ...current, [networkId]: "source-unavailable" }));
         setResumeSyncPending(false);
       } else {
         setSessionVerified((current) => ({ ...current, [networkId]: true }));

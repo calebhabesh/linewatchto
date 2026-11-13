@@ -35,7 +35,7 @@ export function serviceConnectionNotice({
 }: {
   snapshot: DashboardData["snapshot"];
   availability: DashboardData["availability"];
-  requestState: "ready" | "reconnecting";
+  requestState: "ready" | "reconnecting" | "source-unavailable";
   snapshotClock: number;
   offline: boolean;
 }): ServiceConnectionNotice | null {
@@ -45,7 +45,8 @@ export function serviceConnectionNotice({
       snapshot: true,
       hasSavedSnapshot: snapshot.savedAt !== null,
       message: snapshotNotice(snapshot, snapshotClock),
-      showSpinner: !offline,
+      // Unavailable source data is not a connection attempt; no reconnect spinner.
+      showSpinner: !offline && requestState !== "source-unavailable",
       reason: snapshot.reason,
     };
   }

@@ -54,7 +54,7 @@ public class IngestionHealthController {
         return store.findLatest()
             .map(this::toResponse)
             .orElseGet(() -> new IngestionHealthResponse(
-                "not-run", false, null, null, 0, 0, 0, 0, null,
+                "not-run", false, null, null, 0, 0, 0, 0, 0, java.util.List.of(), null,
                 ingestionProperties.isSubwayClosureSupplementEnabled(), false, 0,
                 availabilityService.summarize(), publicSourceEndpoint()
             ));
@@ -70,6 +70,8 @@ public class IngestionHealthController {
             run.recordsStaged(),
             run.recordsNormalized(),
             run.recordsUnmatched(),
+            run.recordsQuarantined(),
+            run.quarantinedRecords(),
             run.sourceFeedUpdatedAt(),
             ingestionProperties.isSubwayClosureSupplementEnabled(),
             run.subwayClosureSupplementAvailable(),
@@ -101,6 +103,9 @@ public class IngestionHealthController {
         int recordsStaged,
         int recordsNormalized,
         int recordsUnmatched,
+        // Records the latest run set aside (kind:sourceId only; causes stay in ingestion_runs).
+        int recordsQuarantined,
+        java.util.List<String> quarantinedRecords,
         OffsetDateTime sourceFeedUpdatedAt,
         boolean subwayClosureSupplementEnabled,
         boolean subwayClosureSupplementAvailable,

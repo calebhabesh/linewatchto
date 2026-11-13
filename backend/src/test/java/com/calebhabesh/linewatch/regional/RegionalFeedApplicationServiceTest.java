@@ -7,6 +7,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.calebhabesh.linewatch.ingestion.FeedApplicationCounts;
+import com.calebhabesh.linewatch.ingestion.IngestionSavepoints;
+import com.calebhabesh.linewatch.ingestion.QuarantinedRecord;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -24,7 +26,7 @@ class RegionalFeedApplicationServiceTest {
     void stagesOperationalCollectionsSeparatelyAndDeactivatesOnlyCompleteSnapshots() {
         RegionalAlertStore alertStore = mock(RegionalAlertStore.class);
         RegionalOperationalSourceStore operationalStore = mock(RegionalOperationalSourceStore.class);
-        RegionalFeedApplicationService service = new RegionalFeedApplicationService(alertStore, operationalStore, CLOCK);
+        RegionalFeedApplicationService service = new RegionalFeedApplicationService(alertStore, operationalStore, CLOCK, IngestionSavepoints.NONE);
         MetrolinxFetchedRecord alertRecord = new MetrolinxFetchedRecord(
             MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M1", "{\"Code\":\"M1\"}"
         );
@@ -77,7 +79,7 @@ class RegionalFeedApplicationServiceTest {
     void revisionRemovesObsoleteImpactsButFailedSupplementalCollectionKeepsLastGoodRows() {
         RegionalAlertStore alertStore = mock(RegionalAlertStore.class);
         RegionalFeedApplicationService service = new RegionalFeedApplicationService(
-            alertStore, mock(RegionalOperationalSourceStore.class), CLOCK);
+            alertStore, mock(RegionalOperationalSourceStore.class), CLOCK, IngestionSavepoints.NONE);
         MetrolinxFetchedRecord revised = new MetrolinxFetchedRecord(
             MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M1", "{\"Code\":\"M1\"}");
         MetrolinxFeed feed = new MetrolinxFeed(NOW, List.of(revised), Map.of(
@@ -97,7 +99,7 @@ class RegionalFeedApplicationServiceTest {
     void republishedAdvisoryKeepsOneActiveAlertAndRetiresThePreviouslyStoredCopy() {
         RegionalAlertStore alertStore = mock(RegionalAlertStore.class);
         RegionalFeedApplicationService service = new RegionalFeedApplicationService(
-            alertStore, mock(RegionalOperationalSourceStore.class), CLOCK);
+            alertStore, mock(RegionalOperationalSourceStore.class), CLOCK, IngestionSavepoints.NONE);
         String body = """
             {"Code":"%s","Status":"INIT","PostedDateTime":"2026-07-30 09:00:00",
              "SubjectEnglish":"Aug. 8-9: Kitchener line service adjustments",
@@ -123,5 +125,36 @@ class RegionalFeedApplicationServiceTest {
             classifications.getFirst());
         verify(alertStore).deactivateMissingAlerts(
             MetrolinxSourceSystem.GO_SERVICE_ALERTS, Set.of("regional-go-529156-ki"), NOW);
+    }
+
+    @Test
+    void oneFailingMetrolinxAlertIsQuarantinedAndKeepsItsLastGoodRow() {
+        RegionalAlertStore alertStore = mock(RegionalAlertStore.class);
+        RegionalFeedApplicationService service = new RegionalFeedApplicationService(
+            alertStore, mock(RegionalOperationalSourceStore.class), CLOCK, IngestionSavepoints.NONE);
+        List<MetrolinxFetchedRecord> records = java.util.stream.IntStream.range(0, 4)
+            .mapToObj(index -> new MetrolinxFetchedRecord(
+                MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M" + index, "{\"Code\":\"M" + index + "\"}"))
+            .toList();
+        MetrolinxFeed feed = new MetrolinxFeed(NOW, records, Map.of(MetrolinxSourceSystem.GO_SERVICE_ALERTS, true));
+        List<RegionalNormalizedAlert> alerts = records.stream()
+            .map(record -> {
+                RegionalNormalizedAlert alert = org.mockito.Mockito.mock(RegionalNormalizedAlert.class);
+                return alert;
+            })
+            .toList();
+        when(alertStore.sourceIdsBySystem(feed)).thenReturn(Map.of(
+            MetrolinxSourceSystem.GO_SERVICE_ALERTS, Set.of("M0", "M1", "M2", "M3")));
+        org.mockito.Mockito.doThrow(new org.springframework.dao.DataIntegrityViolationException("insert",
+                new java.sql.SQLException("ERROR: value too long")))
+            .when(alertStore).upsertAlert(alerts.get(1), NOW);
+
+        FeedApplicationCounts counts = service.apply(feed, alerts, List.of());
+
+        assertThat(counts.recordsNormalized()).isEqualTo(3);
+        assertThat(counts.quarantined()).extracting(QuarantinedRecord::message).containsExactly("ERROR: value too long");
+        alerts.forEach(alert -> verify(alertStore).upsertAlert(alert, NOW));
+        verify(alertStore).deactivateMissingSources(
+            MetrolinxSourceSystem.GO_SERVICE_ALERTS, Set.of("M0", "M1", "M2", "M3"));
     }
 }

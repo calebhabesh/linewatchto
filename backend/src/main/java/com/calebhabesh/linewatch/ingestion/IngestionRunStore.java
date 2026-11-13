@@ -62,6 +62,8 @@ public class IngestionRunStore {
                 source_feed_updated_at = :sourceFeedUpdatedAt,
                 ttc_subway_closure_supplement_available = :subwayClosureAvailable,
                 ttc_subway_closure_records_fetched = :subwayClosureRecordsFetched,
+                records_quarantined = :recordsQuarantined,
+                quarantined_records = :quarantinedRecords,
                 error_message = null
             where id = :id
             """, new MapSqlParameterSource()
@@ -73,7 +75,9 @@ public class IngestionRunStore {
                 .addValue("recordsUnmatched", counts.recordsUnmatched())
                 .addValue("sourceFeedUpdatedAt", sourceFeedUpdatedAt)
                 .addValue("subwayClosureAvailable", subwayClosures.available())
-                .addValue("subwayClosureRecordsFetched", subwayClosures.records().size()));
+                .addValue("subwayClosureRecordsFetched", subwayClosures.records().size())
+                .addValue("recordsQuarantined", counts.quarantined().size())
+                .addValue("quarantinedRecords", quarantineDetail(counts.quarantined())));
     }
 
     public void markFailed(long id, OffsetDateTime completedAt, String errorMessage) {
@@ -150,7 +154,7 @@ public class IngestionRunStore {
             select id, status, started_at, completed_at, records_fetched, records_staged,
                    records_normalized, records_unmatched, source_feed_updated_at, error_message,
                    ttc_subway_closure_supplement_available,
-                   ttc_subway_closure_records_fetched
+                   ttc_subway_closure_records_fetched, records_quarantined, quarantined_records
             from ingestion_runs
             where run_type = 'alerts'
             order by started_at desc
@@ -180,7 +184,7 @@ public class IngestionRunStore {
             select id, status, started_at, completed_at, records_fetched, records_staged,
                    records_normalized, records_unmatched, source_feed_updated_at, error_message,
                    ttc_subway_closure_supplement_available,
-                   ttc_subway_closure_records_fetched
+                   ttc_subway_closure_records_fetched, records_quarantined, quarantined_records
             from ingestion_runs
             where run_type = 'alerts' and status = 'success' and completed_at is not null
             order by completed_at desc
@@ -201,9 +205,41 @@ public class IngestionRunStore {
                 resultSet.getObject("source_feed_updated_at", OffsetDateTime.class),
                 resultSet.getString("error_message"),
                 resultSet.getBoolean("ttc_subway_closure_supplement_available"),
-                resultSet.getInt("ttc_subway_closure_records_fetched")
+                resultSet.getInt("ttc_subway_closure_records_fetched"),
+                resultSet.getInt("records_quarantined"),
+                quarantineLabels(resultSet.getString("quarantined_records"))
             ));
         return runs.stream().findFirst();
+    }
+
+    private static final int MAX_QUARANTINE_DETAIL_LENGTH = 8000;
+
+    /** One line per record: "kind<TAB>sourceId<TAB>cause". */
+    public static String quarantineDetail(List<QuarantinedRecord> quarantined) {
+        if (quarantined.isEmpty()) {
+            return null;
+        }
+        StringBuilder detail = new StringBuilder();
+        for (QuarantinedRecord record : quarantined) {
+            String line = record.kind() + "\t" + record.sourceId() + "\t" + record.message() + "\n";
+            if (detail.length() + line.length() > MAX_QUARANTINE_DETAIL_LENGTH) {
+                break;
+            }
+            detail.append(line);
+        }
+        return detail.toString();
+    }
+
+    /** Payload-free "kind:sourceId" labels from the stored detail. */
+    public static List<String> quarantineLabels(String detail) {
+        if (detail == null || detail.isBlank()) {
+            return List.of();
+        }
+        return detail.lines()
+            .map(line -> line.split("\t", 3))
+            .filter(parts -> parts.length >= 2)
+            .map(parts -> parts[0] + ":" + parts[1])
+            .toList();
     }
 
     public record SourceFetchDailyCount(

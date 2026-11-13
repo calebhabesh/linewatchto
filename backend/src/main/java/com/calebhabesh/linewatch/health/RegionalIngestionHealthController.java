@@ -68,6 +68,8 @@ public class RegionalIngestionHealthController {
             run == null ? null : run.sourceFeedUpdatedAt(),
             run == null ? 0 : run.recordsFetched(),
             run == null ? 0 : run.recordsNormalized(),
+            run == null ? 0 : run.recordsQuarantined(),
+            run == null ? List.of() : run.quarantinedRecords(),
             collections,
             availabilityService.summarize(),
             publicSourceEndpoints(),
@@ -121,6 +123,9 @@ public class RegionalIngestionHealthController {
         OffsetDateTime sourceUpdatedAt,
         int recordsFetched,
         int recordsNormalized,
+        // Records the latest run set aside (kind:sourceId only; causes stay in ingestion_runs).
+        int recordsQuarantined,
+        List<String> quarantinedRecords,
         List<CollectionHealth> collections,
         RegionalFeedAvailabilityService.RegionalFeedAvailability feedAvailability,
         List<String> sourceEndpoints,

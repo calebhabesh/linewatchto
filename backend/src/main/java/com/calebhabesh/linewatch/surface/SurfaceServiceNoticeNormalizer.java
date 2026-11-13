@@ -15,6 +15,10 @@ import java.util.Optional;
 public class SurfaceServiceNoticeNormalizer {
 
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
+    // Bounded by surface_service_notice_routes.route_id and surface_service_notice_stops.stop_id.
+    // A longer token is not a TTC route or stop, so it is left off rather than failing the notice.
+    static final int MAX_ROUTE_ID_LENGTH = 32;
+    static final int MAX_STOP_ID_LENGTH = 80;
 
     public Optional<SurfaceServiceNotice> normalize(TtcFetchedRecord fetched) {
         if (fetched == null || fetched.record() == null) {
@@ -82,7 +86,10 @@ public class SurfaceServiceNoticeNormalizer {
         }
 
         // Route IDs
-        List<String> routeIds = routeIdsFor(record);
+        List<String> routeIds = routeIdsFor(record).stream()
+            .filter(routeId -> routeId != null && !routeId.isBlank() && routeId.length() <= MAX_ROUTE_ID_LENGTH)
+            .distinct()
+            .toList();
 
         // Stop details
         List<SurfaceServiceNotice.StopDetail> stops = new ArrayList<>();
@@ -90,8 +97,8 @@ public class SurfaceServiceNoticeNormalizer {
         if (stopIdList != null) {
             for (int i = 0; i < stopIdList.size(); i++) {
                 String s = stopIdList.get(i);
-                String trimmed = s.trim();
-                if (!trimmed.isEmpty()) {
+                String trimmed = s == null ? "" : s.trim();
+                if (!trimmed.isEmpty() && trimmed.length() <= MAX_STOP_ID_LENGTH) {
                     if (trimmed.matches("\\d+")) {
                         stops.add(new SurfaceServiceNotice.StopDetail(trimmed, stopNameForIndex(record, i, trimmed)));
                     } else {
@@ -101,10 +108,12 @@ public class SurfaceServiceNoticeNormalizer {
             }
         }
         if (stops.isEmpty()) {
-            if (record.stopStart() != null && !record.stopStart().isBlank()) {
+            if (record.stopStart() != null && !record.stopStart().isBlank()
+                && record.stopStart().length() <= MAX_STOP_ID_LENGTH) {
                 stops.add(new SurfaceServiceNotice.StopDetail(record.stopStart(), record.stopStart()));
             }
-            if (record.stopEnd() != null && !record.stopEnd().isBlank()) {
+            if (record.stopEnd() != null && !record.stopEnd().isBlank()
+                && record.stopEnd().length() <= MAX_STOP_ID_LENGTH) {
                 stops.add(new SurfaceServiceNotice.StopDetail(record.stopEnd(), record.stopEnd()));
             }
         }
