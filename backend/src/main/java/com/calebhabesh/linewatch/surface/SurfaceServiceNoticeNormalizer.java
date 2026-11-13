@@ -113,6 +113,12 @@ public class SurfaceServiceNoticeNormalizer {
         OffsetDateTime end = sourceTimeToInstant(record, record.activePeriod() != null ? record.activePeriod().end() : null);
         OffsetDateTime sourceUpdated = sourceTimeToInstant(record, record.lastUpdated());
 
+        String noticeTitle = firstNonBlank(record.title(), record.headerText(), record.description());
+        if (noticeTitle == null) {
+            // surface_service_notices.title is NOT NULL; one untitled record must not fail the whole TTC refresh.
+            return Optional.empty();
+        }
+
         String id = "ttc-surface-" + record.id();
 
         return Optional.of(new SurfaceServiceNotice(
@@ -120,7 +126,7 @@ public class SurfaceServiceNoticeNormalizer {
             record.id(),
             category,
             record.routeType(),
-            record.title(),
+            noticeTitle,
             record.description() != null ? record.description() : "",
             record.headerText() != null ? record.headerText() : "",
             record.url() != null ? record.url() : "",
@@ -140,6 +146,15 @@ public class SurfaceServiceNoticeNormalizer {
                 ? SurfaceServiceNotice.SERVICE_ALERT
                 : SurfaceServiceNotice.SERVICE_ADVISORY
         ));
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private boolean isServiceAlert(String alertType) {

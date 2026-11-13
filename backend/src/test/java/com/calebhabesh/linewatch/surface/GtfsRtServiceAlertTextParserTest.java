@@ -210,4 +210,32 @@ class GtfsRtServiceAlertTextParserTest {
             .isEqualTo(OffsetDateTime.parse("2026-03-15T04:00:00Z"));
         assertThat(records.get(1).record().routeType()).isEqualTo("Streetcar");
     }
+
+    @Test
+    void skipsAlertsWithNoRiderText() {
+        // TTC bus feed entity 80206 (2026-11-13): effect and stop only, no header or description.
+        String text = """
+            entity {
+              id: "80206"
+              alert {
+                active_period { start: 1794579244 }
+                informed_entity { route_id: "79" stop_id: "7068" }
+                cause: CONSTRUCTION
+                effect: DETOUR
+              }
+            }
+            entity {
+              id: "80205"
+              alert {
+                informed_entity { route_id: "79" stop_id: "7069" }
+                effect: DETOUR
+                header_text { translation { text: "79 Scarlett Rd: Detour southbound." language: "en" } }
+              }
+            }
+            """;
+
+        assertThat(parser.parse(text))
+            .extracting(fetched -> fetched.record().id())
+            .containsExactly("gtfsrt-80205");
+    }
 }

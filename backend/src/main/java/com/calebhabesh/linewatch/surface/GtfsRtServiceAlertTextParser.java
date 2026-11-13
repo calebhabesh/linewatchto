@@ -65,6 +65,11 @@ public class GtfsRtServiceAlertTextParser {
             String cause = firstToken(CAUSE, alert);
             String headerText = translatedText(alert, "header_text");
             String descriptionText = translatedText(alert, "description_text");
+            if (isBlank(headerText) && isBlank(descriptionText)) {
+                // TTC sometimes publishes an alert with only an effect and stops; with no rider
+                // text there is nothing honest to show, and a null title would fail persistence.
+                continue;
+            }
             String url = translatedText(alert, "url");
             List<String> stopIds = new ArrayList<>(quotedSet(STOP_ID, alert));
             String joinedRouteIds = String.join(",", routeIds);
@@ -290,6 +295,10 @@ public class GtfsRtServiceAlertTextParser {
             .replace("\\n", "\n")
             .replace("\\\"", "\"")
             .replace("\\\\", "\\");
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private String blankToNull(String value) {

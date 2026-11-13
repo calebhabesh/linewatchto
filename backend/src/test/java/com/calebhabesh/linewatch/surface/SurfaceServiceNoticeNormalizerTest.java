@@ -289,4 +289,22 @@ class SurfaceServiceNoticeNormalizerTest {
         Optional<SurfaceServiceNotice> noticeOpt = normalizer.normalize(fetched(record));
         assertThat(noticeOpt).isEmpty();
     }
+
+    @Test
+    void untitledRecordFallsBackToDescriptionOrIsSkipped() {
+        TtcAlertRecord descriptionOnly = withAlertType(createRecord(
+            "gtfsrt-1", "79", "Bus", null, "79 Scarlett Rd: Detour southbound.", "", null,
+            "DETOUR", "Detour", List.of("7069"), null, null
+        ), "GTFS-RT");
+        TtcAlertRecord noText = withAlertType(createRecord(
+            "gtfsrt-2", "79", "Bus", null, "", "", null,
+            "DETOUR", "Detour", List.of("7068"), null, null
+        ), "GTFS-RT");
+
+        assertThat(normalizer.normalize(fetched(descriptionOnly)))
+            .get()
+            .extracting(SurfaceServiceNotice::title)
+            .isEqualTo("79 Scarlett Rd: Detour southbound.");
+        assertThat(normalizer.normalize(fetched(noText))).isEmpty();
+    }
 }
