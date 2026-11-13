@@ -19,8 +19,8 @@ import { MAP_HOVER_OUTLINE_WIDTHS, mapOutlineEndConnectors, mapOverlayId, type M
 export type { MapLineAlert, MapOverlayVisualState } from "./line-alert-model";
 
 export const RSZ_IMPACT_COLOR = "#F59E0B";
-const SUSPENSION_COLOR = "#ef4444";
-const DELAY_RAIL_COLOR = "#0ea5e9";
+export const SUSPENSION_COLOR = "#ef4444";
+export const DELAY_RAIL_COLOR = "#0ea5e9";
 function lineAlertVisualId(plane: MapOverlayPlane, alert: MapLineAlert, suffix = "") {
   return mapOverlayId(plane, "overlay-visual", alert.key + suffix);
 }
@@ -75,7 +75,7 @@ export const MapLineAlertTube = memo(function MapLineAlertTube({
   const { pathD, visualState, travelDirection } = alert;
   const unit = plane.unit;
   const { step } = useMemo(() => (
-    (visualState === "reduced-speed-zone" || visualState === "delay-static") && pathD
+    (visualState === "reduced-speed-zone" || visualState === "delay-static" || visualState === "suspension") && pathD
       ? samplePath(pathD, 56 * unit)
       : { step: 56 * unit }
   ), [pathD, unit, visualState]);
@@ -192,7 +192,7 @@ export const MapLineAlertTube = memo(function MapLineAlertTube({
             <g className="map-glyph-lane">
               <SuspensionGlyphLane
                 pathD={pathD}
-                step={48}
+                step={laneStep}
                 direction={travelDirection}
                 travelDirection={travelDirection}
                 unit={unit}

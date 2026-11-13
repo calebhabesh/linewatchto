@@ -329,12 +329,22 @@
   stroke: var(--planned-preview-ink) !important;
 }
 
-.planned-closure-direction-chevron {
+/* Every lane's direction chevron is the Reduced Speed Zone design
+   (DirectionChevron in GlyphLanes.tsx); kinds differ only in colour. */
+.map-direction-chevron {
   fill: none;
-  stroke: var(--planned-preview-ink);
+  stroke-width: 6;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 7;
+}
+
+.delay-direction-chevron,
+.suspension-direction-chevron {
+  stroke: #ffffff;
+}
+
+.planned-closure-direction-chevron {
+  stroke: var(--planned-preview-ink);
 }
 
 .asset-alert-path.planned-preview:hover,
@@ -409,6 +419,55 @@
     opacity: 0.95;
   }
 }
+
+/* --- Glyph motion prototype (glyph-motion-prototype.ts), opt-in only ---
+   The direction arrows of one-way line alerts (and both lanes of a two-way
+   Reduced Speed Zone) stay where they are; a swell travels along each lane
+   the alert's way. One shared timer writes each on-screen lane's
+   --ripple-tick once per step; the arrow whose phase the tick reaches is the
+   head (--glyph-ripple-head 1, every other arrow 0): it grows to 1.45x, full
+   ink and (speed-zone chevrons) near-black brown, and the rest sit at their
+   resting size, floor opacity and ink. Only paint properties change
+   (stroke-opacity, stroke, and `scale` on an SVG child, measured to promote
+   no layers). Desktop with a fine pointer only; never in mobile performance
+   mode or reduced motion.
+
+   "ripple" eases while the arrows on screen fit the budget
+   (data-glyph-ripple-eased, set by the timer): a head rises over 0.9 of a
+   step and falls back over 1.4 steps in one continuous curve, so the tail
+   is the overlap of falling arrows, not a staircase. Above the budget, and
+   in "ripple-stepped", arrows jump with no work between steps. It keeps
+   running while the camera moves, like every desktop map animation
+   (base-map.css; measured in camera-motion-animations.spec.ts). */
+@media (hover: hover) and (pointer: fine) and (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  :root[data-glyph-motion^="ripple"] .linewatch-shell:not(.mobile-performance-mode):not(.motion-paused) [data-glyph-ripple] [data-ripple-phase] .map-direction-chevron {
+    --glyph-ripple-head: max(0, 1 - max(var(--ripple-tick, 0) - var(--glyph-ripple-phase, 0), var(--glyph-ripple-phase, 0) - var(--ripple-tick, 0)));
+    stroke-opacity: calc(var(--glyph-ripple-floor, 0.65) + (1 - var(--glyph-ripple-floor, 0.65)) * var(--glyph-ripple-head));
+    /* About the glyph's own centre, its local origin. */
+    transform-origin: 0 0;
+    scale: calc(1 + 0.45 * var(--glyph-ripple-head));
+  }
+
+  :root[data-glyph-motion="ripple"][data-glyph-ripple-eased="true"] .linewatch-shell:not(.mobile-performance-mode):not(.motion-paused) [data-glyph-ripple] [data-ripple-phase] .map-direction-chevron {
+    /* A transition takes the new state's duration: rising (head 1) over
+       0.9 of a step, so it peaks just before it hands over, falling (head 0)
+       over 1.4 steps. */
+    transition-property: stroke-opacity, stroke, scale;
+    transition-duration: calc(var(--glyph-ripple-step, 550ms) * (1.4 - 0.5 * var(--glyph-ripple-head)));
+    transition-timing-function: ease-in-out;
+  }
+
+  /* Speed-zone chevrons: the head also darkens towards near-black brown, so
+     it stands out against the resting chevrons. */
+  :root[data-glyph-motion^="ripple"] .linewatch-shell:not(.mobile-performance-mode):not(.motion-paused) [data-glyph-ripple] [data-ripple-phase] .rsz-chevron {
+    stroke: color-mix(in srgb, #1c0a02 calc(70% * var(--glyph-ripple-head)), var(--impact-rsz-ink));
+  }
+}
+
+/* White arrows on the light delay and planned tubes need a higher floor
+   than the dark Reduced Speed Zone chevrons to stay legible when dim. */
+.map-direction-chevron:not(.rsz-chevron) { --glyph-ripple-floor: 0.7; }
+
 
 .connected-corridor .asset-alert-path,
 .connected-corridor .asset-alert-path-glow {

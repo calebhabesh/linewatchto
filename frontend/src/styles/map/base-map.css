@@ -249,11 +249,12 @@
   }
 }
 
-/* Static authored artwork no longer paints after its raster planes decode.
-   Motion only pauses the small refresh-owned SVG effect layers; promoting and
-   demoting those layers during every gesture would still create needless
-   compositor churn. */
-[data-map-camera-moving="true"] .map-stage :is(
+/* Phones (mobile performance mode) hold map animations while the camera
+   moves. Desktop keeps them running: with every GO/UP corridor's alerts
+   selected and flashing, a 2560 px zoom burst, drag and camera flights
+   logged no tile-memory warnings and no long frames
+   (tests/smoke/camera-motion-animations.spec.ts). */
+.mobile-performance-mode [data-map-camera-moving="true"] .map-stage :is(
   .station-impact-dot-red-glow,
   .commute-path-preview-glow,
   .commute-path-preview-path,
@@ -398,30 +399,29 @@
 /* ============================================================
    Direct pan and user-zoom overlay simplification
    ============================================================ */
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path-glow:not(.map-selection-attention),
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .interactive-glow:not(.map-selection-attention),
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.delay-candy,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.suspension-candy,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.delay-static-base,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.planned-preview,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .delay-static-path,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-ring:not(.map-selection-attention),
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-dot-red-glow,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-commute-green-flash,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .commute-path-preview-glow,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .commute-path-preview-path {
+.mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path-glow:not(.map-selection-attention),
+.mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .interactive-glow:not(.map-selection-attention),
+.mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.delay-candy,
+.mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.suspension-candy,
+.mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.delay-static-base,
+.mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.planned-preview,
+.mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .delay-static-path,
+.mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-ring:not(.map-selection-attention),
+.mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-dot-red-glow,
+.mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-commute-green-flash,
+.mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .commute-path-preview-glow,
+.mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .commute-path-preview-path {
   animation-play-state: paused !important;
   transition: none !important;
 }
 
-/* Freeze selection attention at its current frame too. Keeping filters and
-   opacity untouched preserves every authored glow during a pan or zoom.
-   Camera flights pause it as well: a selected line alert's flash animates a
-   drop-shadow along the whole alert, and repainting a full-line delay's glow
-   on every frame of a scaling flight overflowed tile memory and flickered
-   the map. The intro resumes where it paused once the camera lands
-   (selection-intro.ts). */
-:is(
+/* Phones freeze selection attention at its current frame too; the intro
+   resumes where it paused once the camera lands (selection-intro.ts).
+   Desktop keeps it running: the flash used to animate a drop-shadow along
+   the whole alert, which overflowed tile memory on scaling flights, but it
+   now pulses only its brightness over a fixed glow, and the worst case
+   measures clean (camera-motion-animations.spec.ts). */
+.mobile-performance-mode :is(
   .map-gesture-active,
   [data-map-gesture-active="true"],
   [data-map-zoom-active="true"],
@@ -481,21 +481,19 @@
   will-change: transform;
 }
 
-/* Programmatic camera flights freeze pulse motion while preserving selection
-   emphasis. Unlike direct input, these short flights do not compete with a
-   stream of pointer frames. */
-[data-map-camera-moving="true"] .asset-alert-path-glow:not(.map-selection-attention),
-[data-map-camera-moving="true"] .interactive-glow:not(.map-selection-attention),
-[data-map-camera-moving="true"] .asset-alert-path.delay-candy,
-[data-map-camera-moving="true"] .asset-alert-path.suspension-candy,
-[data-map-camera-moving="true"] .asset-alert-path.delay-static-base,
-[data-map-camera-moving="true"] .asset-alert-path.planned-preview,
-[data-map-camera-moving="true"] .delay-static-path,
-[data-map-camera-moving="true"] .station-impact-ring:not(.map-selection-attention),
-[data-map-camera-moving="true"] .station-impact-dot-red-glow,
-[data-map-camera-moving="true"] .station-commute-green-flash,
-[data-map-camera-moving="true"] .commute-path-preview-glow,
-[data-map-camera-moving="true"] .commute-path-preview-path {
+/* Phones freeze pulse motion during programmatic camera flights too. */
+.mobile-performance-mode [data-map-camera-moving="true"] .asset-alert-path-glow:not(.map-selection-attention),
+.mobile-performance-mode [data-map-camera-moving="true"] .interactive-glow:not(.map-selection-attention),
+.mobile-performance-mode [data-map-camera-moving="true"] .asset-alert-path.delay-candy,
+.mobile-performance-mode [data-map-camera-moving="true"] .asset-alert-path.suspension-candy,
+.mobile-performance-mode [data-map-camera-moving="true"] .asset-alert-path.delay-static-base,
+.mobile-performance-mode [data-map-camera-moving="true"] .asset-alert-path.planned-preview,
+.mobile-performance-mode [data-map-camera-moving="true"] .delay-static-path,
+.mobile-performance-mode [data-map-camera-moving="true"] .station-impact-ring:not(.map-selection-attention),
+.mobile-performance-mode [data-map-camera-moving="true"] .station-impact-dot-red-glow,
+.mobile-performance-mode [data-map-camera-moving="true"] .station-commute-green-flash,
+.mobile-performance-mode [data-map-camera-moving="true"] .commute-path-preview-glow,
+.mobile-performance-mode [data-map-camera-moving="true"] .commute-path-preview-path {
   animation-play-state: paused !important;
   transition: none !important;
 }

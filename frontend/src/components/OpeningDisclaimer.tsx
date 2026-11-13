@@ -21,6 +21,7 @@ import {
 } from "../app/release-notes";
 import { ReleaseNoteCard } from "./ReleaseNoteCard";
 import Stepper, { Step } from "./Stepper";
+import { OverlayLaneSample } from "./map-overlays/OverlayLaneSample";
 
 export const WELCOME_SEEN_STORAGE_KEY = "linewatch-welcome-seen-v1";
 export const DISCLAIMER_ACK_STORAGE_KEY = "linewatch-unofficial-notice-ack-v1";
@@ -66,47 +67,19 @@ function MapOverlayLegend() {
   return (
     <ul className="opening-welcome-map-legend" aria-label="Live map overlay guide">
       <li>
-        <Image
-          src="/assets/linewatch/info-map-overlays/1-way-delay.svg"
-          alt=""
-          aria-hidden="true"
-          width={72}
-          height={24}
-          className="opening-welcome-legend-asset"
-        />
+        <OverlayLaneSample kind="delay" oneWay className="opening-welcome-legend-asset" />
         <span>Delay</span>
       </li>
       <li>
-        <Image
-          src="/assets/linewatch/info-map-overlays/1-way-active-alert.svg"
-          alt=""
-          aria-hidden="true"
-          width={72}
-          height={24}
-          className="opening-welcome-legend-asset"
-        />
+        <OverlayLaneSample kind="suspension" oneWay className="opening-welcome-legend-asset" />
         <span>Suspended or Closed</span>
       </li>
       <li>
-        <Image
-          src="/assets/linewatch/info-map-overlays/1-way-rsz.svg"
-          alt=""
-          aria-hidden="true"
-          width={72}
-          height={24}
-          className="opening-welcome-legend-asset"
-        />
+        <OverlayLaneSample kind="reduced-speed-zone" oneWay className="opening-welcome-legend-asset" />
         <span>Reduced Speed Zone</span>
       </li>
       <li>
-        <Image
-          src="/assets/linewatch/info-map-overlays/info-one-way-closure.svg"
-          alt=""
-          aria-hidden="true"
-          width={72}
-          height={24}
-          className="opening-welcome-legend-asset"
-        />
+        <OverlayLaneSample kind="planned-closure" oneWay className="opening-welcome-legend-asset" />
         <span>Planned Advisory</span>
       </li>
       <li>

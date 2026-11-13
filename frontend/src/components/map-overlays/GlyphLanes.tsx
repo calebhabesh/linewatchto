@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { extrapolatedPathFrame, samplePath, type MapPoint } from "../../app/map-geometry";
 import type { TravelDirection } from "../../app/linewatch-data";
 import { PlannedClosureIcon } from "../PlannedClosureIcon";
+import { glyphRipplePhase, installGlyphMotionPrototype, registerGlyphRippleLane } from "./glyph-motion-prototype";
 
 // Glyph art and spacing are designed in TTC overlay units. `unit` scales them
 // to a map's own units (MapOverlayPlane.unit), so both maps draw one design.
@@ -93,6 +94,27 @@ function glyphLaneTransform(
     : `translate(${frame.x} ${frame.y})${scaled(unit)}`;
 }
 
+/**
+ * The one direction chevron every line-alert lane draws: the Reduced Speed
+ * Zone design (20 x 20 units, 6-unit round stroke), coloured by kind
+ * (impact-overlays.css, .map-direction-chevron). Lanes space their glyphs
+ * at the same 56-unit pitch.
+ */
+function DirectionChevron({ kind }: { kind: "rsz" | "delay" | "suspension" | "planned" }) {
+  const kindClass = {
+    rsz: "rsz-chevron",
+    delay: "delay-direction-chevron",
+    suspension: "suspension-direction-chevron",
+    planned: "planned-closure-direction-chevron",
+  }[kind];
+  return <path d="M -12 -10 L 8 0 L -12 10" className={`map-direction-chevron ${kindClass}`} aria-hidden="true" />;
+}
+
+// Prototype ripple phases: every glyph is an arrow, or arrows alternate with
+// icons from the second glyph. Lane indexes already count the travel way.
+const everyGlyph = (index: number) => index;
+const oddGlyphs = (index: number) => (index % 2 === 1 ? (index - 1) / 2 : null);
+
 /** Alert glyphs at rest along a lane; alert overlays never move (map-renderer-parity.md). */
 function GlyphLane({
   pathD,
@@ -102,6 +124,7 @@ function GlyphLane({
   renderGlyph,
   rotateGlyph = true,
   unit,
+  ripplePhase,
 }: {
   pathD: string;
   step: number;
@@ -110,8 +133,16 @@ function GlyphLane({
   renderGlyph: (index: number) => ReactNode;
   rotateGlyph?: boolean | ((index: number) => boolean);
   unit: number;
+  /** Prototype: each ripple arrow's order along travel, null for icons (glyph-motion-prototype.ts). */
+  ripplePhase?: (index: number) => number | null;
 }) {
   const [mounted, setMounted] = useState(false);
+  const laneRef = useRef<SVGGElement>(null);
+
+  const ripple = ripplePhase !== undefined;
+  useEffect(() => {
+    if (ripple) installGlyphMotionPrototype();
+  }, [ripple]);
 
   useEffect(() => {
     const handle = setTimeout(() => setMounted(true), 0);
@@ -126,16 +157,27 @@ function GlyphLane({
     [direction, mounted, normalOffset, pathD, step, unit],
   );
 
+  const rippleArrows = metrics && ripplePhase
+    ? Array.from({ length: metrics.count }, (_, index) => ripplePhase(index)).filter((phase) => phase !== null).length
+    : 0;
+  useEffect(() => {
+    if (rippleArrows === 0 || !laneRef.current) return;
+    return registerGlyphRippleLane(laneRef.current, rippleArrows);
+  }, [rippleArrows]);
+
   if (!metrics) return null;
 
   return (
-    <g data-glyph-lane>
+    <g ref={laneRef} data-glyph-lane data-glyph-ripple={ripple ? "" : undefined}>
       {Array.from({ length: metrics.count }, (_, index) => {
         const shouldRotate = typeof rotateGlyph === "function" ? rotateGlyph(index) : rotateGlyph;
+        const phase = ripplePhase?.(index) ?? null;
         return (
           <g
             key={index}
             data-index={index}
+            data-ripple-phase={phase === null ? undefined : ""}
+            style={phase === null ? undefined : { "--glyph-ripple-phase": glyphRipplePhase(phase) } as CSSProperties}
             transform={glyphLaneTransform(metrics, index, shouldRotate, unit)}
           >
             {renderGlyph(index)}
@@ -152,12 +194,15 @@ export function ChevronGlyphLane({
   direction,
   travelDirection,
   unit = 1,
+  still = false,
 }: {
   pathD: string;
   step: number;
   direction: "forward" | "reverse";
   travelDirection: string;
   unit?: number;
+  /** Never ripples (the site guide's still samples). */
+  still?: boolean;
 }) {
   return (
     <GlyphLane
@@ -166,13 +211,8 @@ export function ChevronGlyphLane({
       direction={direction}
       travelDirection={travelDirection}
       unit={unit}
-      renderGlyph={() => (
-        <path
-          d="M -12 -10 L 8 0 L -12 10"
-          className="rsz-chevron"
-          aria-hidden="true"
-        />
-      )}
+      ripplePhase={still ? undefined : everyGlyph}
+      renderGlyph={() => <DirectionChevron kind="rsz" />}
     />
   );
 }
@@ -183,12 +223,15 @@ export function SuspensionGlyphLane({
   direction,
   travelDirection,
   unit = 1,
+  still = false,
 }: {
   pathD: string;
   step: number;
   direction: "forward" | "reverse";
   travelDirection: string;
   unit?: number;
+  /** Never ripples (the site guide's still samples). */
+  still?: boolean;
 }) {
   return (
     <GlyphLane
@@ -198,19 +241,11 @@ export function SuspensionGlyphLane({
       travelDirection={travelDirection}
       unit={unit}
       rotateGlyph={(index) => index % 2 !== 0}
+      ripplePhase={still ? undefined : oddGlyphs}
       renderGlyph={(index) => index % 2 === 0 ? (
         <SuspensionNoEntryGlyph />
       ) : (
-        <g transform="scale(1.1)">
-          <path
-            d="M -14 -14 L 10 0 L -14 14"
-            stroke="#ffffff"
-            strokeWidth="6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-        </g>
+        <DirectionChevron kind="suspension" />
       )}
     />
   );
@@ -281,6 +316,7 @@ export function HourglassGlyphLane({
   travelDirection,
   onlyHourglasses = false,
   unit = 1,
+  still = false,
 }: {
   pathD: string;
   step: number;
@@ -288,6 +324,8 @@ export function HourglassGlyphLane({
   travelDirection: string;
   onlyHourglasses?: boolean;
   unit?: number;
+  /** Never ripples (the site guide's still samples). */
+  still?: boolean;
 }) {
   return (
     <GlyphLane
@@ -296,6 +334,7 @@ export function HourglassGlyphLane({
       direction={direction}
       travelDirection={travelDirection}
       unit={unit}
+      ripplePhase={onlyHourglasses || still ? undefined : oddGlyphs}
       renderGlyph={(index) => {
         const isHourglass = index % 2 === 0;
         if (!isHourglass && onlyHourglasses) return null;
@@ -329,17 +368,7 @@ export function HourglassGlyphLane({
                 <path d="M768 179.2h25.6v665.6h-25.6z" fill="#0369a1" />
           </g>
         ) : (
-          <g transform="scale(1.1)">
-            <path
-              d="M -12 -10 L 8 0 L -12 10"
-              fill="none"
-              stroke="#ffffff"
-              strokeWidth={3.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            />
-          </g>
+          <DirectionChevron kind="delay" />
         );
       }}
     />
@@ -350,10 +379,13 @@ export function PlannedClosureIconLane({
   pathD,
   travelDirection,
   unit = 1,
+  still = false,
 }: {
   pathD: string;
   travelDirection: TravelDirection;
   unit?: number;
+  /** Never ripples (the site guide's still samples). */
+  still?: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -372,7 +404,7 @@ export function PlannedClosureIconLane({
       if (length <= 0) return { length: 0, points: [] };
 
       const isDirectional = travelDirection !== "bidirectional";
-      const count = Math.max(1, isDirectional ? Math.round(length / (124 * unit)) : Math.floor(length / (112 * unit)));
+      const count = Math.max(1, isDirectional ? Math.round(length / (112 * unit)) : Math.floor(length / (112 * unit)));
       const step = length / count;
       return {
         length,
@@ -399,10 +431,27 @@ export function PlannedClosureIconLane({
     }
   }, [mounted, pathD, travelDirection, unit]);
 
+  // Prototype ripple: a one-way closure's chevrons, counted the travel way
+  // (points run from the path's start for both directions).
+  const laneRef = useRef<SVGGElement>(null);
+  const rippleArrows = !still && travelDirection !== "bidirectional" && !Array.isArray(pathMetrics) ? pathMetrics.points.length : 0;
+  useEffect(() => {
+    if (rippleArrows > 0) installGlyphMotionPrototype();
+  }, [rippleArrows]);
+  useEffect(() => {
+    if (rippleArrows === 0 || !laneRef.current) return;
+    return registerGlyphRippleLane(laneRef.current, rippleArrows);
+  }, [rippleArrows]);
+
   if (Array.isArray(pathMetrics) || pathMetrics.points.length === 0) return null;
 
   return (
-    <g className="planned-closure-icon-lane" aria-hidden="true">
+    <g
+      ref={laneRef}
+      className="planned-closure-icon-lane"
+      aria-hidden="true"
+      data-glyph-ripple={rippleArrows > 0 ? "" : undefined}
+    >
       {pathMetrics.points.map((point, index) => {
         if (travelDirection === "bidirectional") {
           return (
@@ -426,6 +475,8 @@ export function PlannedClosureIconLane({
           <g
             key={`${point.x}-${point.y}-${index}`}
             className={`planned-closure-lane-glyph planned-closure-lane-glyph--${direction}`}
+            data-ripple-phase=""
+            style={{ "--glyph-ripple-phase": glyphRipplePhase(direction === "reverse" ? pathMetrics.points.length - 1 - index : index) } as CSSProperties}
           >
             <g transform={`translate(${point.x} ${point.y})${scaled(unit)}`}>
               <PlannedClosureIcon
@@ -438,10 +489,7 @@ export function PlannedClosureIconLane({
               />
             </g>
             <g transform={`translate(${point.chevronX} ${point.chevronY}) rotate(${staticAngle})${scaled(unit)}`}>
-              <path
-                className="planned-closure-direction-chevron"
-                d="M -10 -13 L 10 0 L -10 13"
-              />
+              <DirectionChevron kind="planned" />
             </g>
           </g>
         );

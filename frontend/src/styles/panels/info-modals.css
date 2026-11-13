@@ -977,7 +977,8 @@
 
 @media (min-width: 640px) {
   .site-guide-panel {
-    top: 64px;
+    /* About 16px below the top-right buttons. */
+    top: 72px;
   }
 }
 
@@ -1002,11 +1003,16 @@
   min-width: 0;
 }
 
+/* "Guide" matches the LineWatchTO wordmark beside it (1.3em of 15px). */
 .site-guide-title h2 {
-  font-size: 15px;
+  font-size: 19.5px;
   font-weight: 900;
   line-height: 1.1;
   margin: 0;
+}
+
+.site-guide-title h2 .linewatch-wordmark {
+  font-size: 1em;
 }
 
 .site-guide-title p {

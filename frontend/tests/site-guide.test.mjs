@@ -154,7 +154,9 @@ describe("site guide dropdown", () => {
     assert.match(guideSource, /\/assets\/linewatch\/site-guide\.svg/);
     assert.match(guideSource, /\/assets\/linewatch\/logo\.svg/);
     assert.match(guideSource, /\/assets\/linewatch\/info-map-overlays\//);
-    for (const assetName of infoOverlayAssetNames) {
+    // Line-alert previews are drawn live by the map's lanes (OverlayLaneSample);
+    // station rings and overlap badges keep their authored assets.
+    for (const assetName of infoOverlayAssetNames.filter((name) => /station-ring|overlapping/.test(name))) {
       assert.match(guideSource, new RegExp(assetName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     }
     assert.doesNotMatch(guideSource, /<MapOverlaySample kind="suspension"/);
@@ -189,15 +191,18 @@ describe("site guide dropdown", () => {
     assert.match(guideSource, /Tap a Colored Overlay/);
     assert.match(guideSource, /Both Ways/);
     assert.match(guideSource, /Suspended or Closed Service/);
-    assert.match(guideSource, /both ways shows centered no-entry icons/);
+    assert.match(guideSource, /both ways shows no-entry signs only/);
     assert.doesNotMatch(guideSource, /both ways shows a red-and-white striped lane/);
     assert.match(guideSource, /"Delay"/);
     assert.match(guideSource, /Reduced Speed Zone/);
     assert.match(guideSource, /Planned Advisory Preview/);
-    assert.match(guideSource, /Both ways stays static/);
-    assert.match(guideSource, /explicitly one-way closure uses slowly moving calendars followed by evenly spaced chevrons/);
-    assert.match(guideSource, /info-one-way-closure\.svg" label="One Way"/);
-    assert.match(guideSource, /info-upcoming-closure\.svg" label="Both Ways"/);
+    // Line-alert previews are drawn by the map's own lanes, never moving.
+    assert.match(guideSource, /One direction alternates calendars with chevrons pointing the affected way, while both ways shows calendars only/);
+    assert.doesNotMatch(guideSource, /slowly moving/);
+    for (const kind of ["suspension", "delay", "reduced-speed-zone", "planned-closure"]) {
+      assert.match(guideSource, new RegExp(`<OverlayLanePreview kind="${kind}" oneWay />`));
+      assert.match(guideSource, new RegExp(`<OverlayLanePreview kind="${kind}" oneWay=\\{false\\} />`));
+    }
     assert.match(guideSource, /block w-full text-center text-\[9px\] leading-tight/);
     assert.match(guideSource, /Station Impact Ring/);
     assert.match(guideSource, /Overlap Badge/);

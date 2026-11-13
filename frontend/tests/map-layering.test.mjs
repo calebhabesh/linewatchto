@@ -262,14 +262,15 @@ describe("asset-backed map layering", () => {
     assert.match(ttcGlyphLanesSource, /function PlannedClosureIconLane\(/);
     assert.match(ttcGlyphLanesSource, /className="planned-closure-icon-lane"/);
     assert.match(ttcGlyphLanesSource, /<PlannedClosureIcon[\s\S]*?className="planned-closure-map-icon"/);
-    assert.match(ttcGlyphLanesSource, /isDirectional \? Math\.round\(length \/ \(124 \* unit\)\) : Math\.floor\(length \/ \(112 \* unit\)\)/);
+    assert.match(ttcGlyphLanesSource, /isDirectional \? Math\.round\(length \/ \(112 \* unit\)\) : Math\.floor\(length \/ \(112 \* unit\)\)/);
     assert.match(ttcGlyphLanesSource, /const step = length \/ count/);
     assert.match(ttcGlyphLanesSource, /const chevronDistance = \(distance \+ step \/ 2\) % length/);
     assert.match(plannedClosureIconSource, /<rect[\s\S]*?x="3"[\s\S]*?y="5"[\s\S]*?width="18"[\s\S]*?height="16"[\s\S]*?rx="3"/);
     assert.match(plannedClosureIconSource, /M3 9H21M12 12V15M12 18H12\.01M7 3V5M17 3V5/);
     assert.match(ttcGlyphLanesSource, /travelDirection === "bidirectional"[\s\S]*?planned-closure-map-icon planned-closure-map-icon--static/);
-    assert.match(ttcGlyphLanesSource, /className="planned-closure-direction-chevron"/);
-    assert.match(ttcGlyphLanesSource, /d="M -10 -13 L 10 0 L -10 13"/);
+    // One-way closures draw the shared direction chevron (the speed-zone design).
+    assert.match(ttcGlyphLanesSource, /planned: "planned-closure-direction-chevron"/);
+    assert.match(ttcGlyphLanesSource, /<DirectionChevron kind="planned" \/>/);
     assert.match(ttcGlyphLanesSource, /transform=\{`translate\(\$\{point\.chevronX\} \$\{point\.chevronY\}\) rotate\(\$\{staticAngle\}\)\$\{scaled\(unit\)\}`\}/);
     assert.match(ttcGlyphLanesSource, /x=\{-36\}[\s\S]*?y=\{-36\}[\s\S]*?width=\{72\}[\s\S]*?height=\{72\}/);
     assert.match(interactiveMapSource, /<PlannedClosureIconLane pathD=\{pathD\} travelDirection=\{travelDirection\} unit=\{unit\} \/>/);
@@ -335,8 +336,9 @@ describe("asset-backed map layering", () => {
   });
 
   it("renders still visual effects for delays, closures, and station impacts", () => {
-    assert.match(ttcGlyphLanesSource, /className="rsz-chevron"/);
-    assert.match(ttcGlyphLanesSource, /d="M -12 -10 L 8 0 L -12 10"/);
+    assert.match(ttcGlyphLanesSource, /rsz: "rsz-chevron"/);
+    assert.match(ttcGlyphLanesSource, /function DirectionChevron\([\s\S]*?d="M -12 -10 L 8 0 L -12 10"/);
+    assert.match(ttcGlyphLanesSource, /renderGlyph=\{\(\) => <DirectionChevron kind="rsz" \/>\}/);
     assert.match(interactiveMapSource, /<HourglassGlyphLane/);
     assert.match(interactiveMapSource, /className="asset-alert-path delay-candy pointer-events-none"/);
     assert.match(interactiveMapSource, /style=\{\{\s*pointerEvents:\s*"none",\s*stroke:\s*RSZ_IMPACT_COLOR\s*\}\}/);
@@ -497,7 +499,7 @@ describe("asset-backed map layering", () => {
     assert.match(laneBlock, /rotateGlyph=\{\(index\) => index % 2 !== 0\}/);
     assert.match(laneBlock, /renderGlyph=\{\(index\) => index % 2 === 0 \? \(/);
     assert.match(laneBlock, /<SuspensionNoEntryGlyph \/>/);
-    assert.match(laneBlock, /d="M -14 -14 L 10 0 L -14 14"/);
+    assert.match(laneBlock, /<DirectionChevron kind="suspension" \/>/);
   });
 
   it("renders bidirectional suspension marks as evenly spaced no-entry icons", () => {
@@ -511,7 +513,7 @@ describe("asset-backed map layering", () => {
     assert.ok(suspensionEnd > suspensionStart, "bidirectional suspension branch should end before one-way branch");
     assert.match(suspensionBlock, /<SuspensionNoEntryLane/);
     assert.doesNotMatch(suspensionBlock, /stroke:\s*"url\(#suspension-hash\)"/);
-    assert.doesNotMatch(suspensionBlock, /d="M -14 -14 L 10 0 L -14 14"/);
+    assert.doesNotMatch(suspensionBlock, /DirectionChevron/);
     assert.doesNotMatch(ttcMapRendererSource, /fixedStripePathDForPath/);
     assert.match(ttcGlyphLanesSource, /className="suspension-no-entry-lane"/);
     assert.match(ttcGlyphLanesSource, /className=\{\`suspension-no-entry-glyph/);

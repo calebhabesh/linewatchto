@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
+import { OverlayLaneSample, type OverlayLaneSampleKind } from "./map-overlays/OverlayLaneSample";
 
 const INFO_OVERLAY_ASSET_BASE = "/assets/linewatch/info-map-overlays/";
 
@@ -144,6 +145,18 @@ function OverlayGuideRow({
         <span>{text}</span>
       </span>
     </li>
+  );
+}
+
+/** A line alert's overlay drawn by the map's own lanes (OverlayLaneSample). */
+function OverlayLanePreview({ kind, oneWay }: { kind: OverlayLaneSampleKind; oneWay: boolean }) {
+  return (
+    <div className="flex flex-col items-center">
+      <OverlayLaneSample kind={kind} oneWay={oneWay} className="site-guide-overlay-asset site-guide-overlay-lane" />
+      <span className="block w-full text-center text-[9px] leading-tight text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+        {oneWay ? "One Way" : "Both Ways"}
+      </span>
+    </div>
   );
 }
 
@@ -463,44 +476,44 @@ export function SiteGuideDropdown({
                 <OverlayGuideRow
                   icon={<ImpactTypeIcon kind="suspension" size={16} />}
                   title="Suspended or Closed Service"
-                  text="Red lane indicates suspended service. One direction displays no-entry and arrow icons, while both ways shows centered no-entry icons."
+                  text="Red lane indicates suspended service. One direction alternates no-entry signs with chevrons pointing the affected way, while both ways shows no-entry signs only."
                   previews={
                     <>
-                      <OverlayAssetPreview fileName="1-way-active-alert.svg" label="One Way" />
-                      <OverlayAssetPreview fileName="2-way-active.svg" label="Both Ways" />
+                      <OverlayLanePreview kind="suspension" oneWay />
+                      <OverlayLanePreview kind="suspension" oneWay={false} />
                     </>
                   }
                 />
                 <OverlayGuideRow
                   icon={<ImpactTypeIcon kind="delay" size={16} />}
                   title="Delay"
-                  text="Blue lane indicates a delay. One direction displays arrows and hourglasses, while both ways shows hourglasses only."
+                  text="Blue lane indicates a delay. One direction alternates hourglasses with chevrons pointing the affected way, while both ways shows hourglasses only."
                   previews={
                     <>
-                      <OverlayAssetPreview fileName="1-way-delay.svg" label="One Way" />
-                      <OverlayAssetPreview fileName="2-way-delay.svg" label="Both Ways" />
+                      <OverlayLanePreview kind="delay" oneWay />
+                      <OverlayLanePreview kind="delay" oneWay={false} />
                     </>
                   }
                 />
                 <OverlayGuideRow
                   icon={<ImpactTypeIcon kind="reduced-speed-zone" size={16} />}
                   title="Reduced Speed Zone"
-                  text="Amber lane with chevrons indicates trains are slowed. One direction shows chevrons pointing forward, while both ways shows offset opposing chevrons."
+                  text="Amber lane with chevrons indicates trains are slowed. One direction shows chevrons pointing the affected way, while both ways shows two offset rows pointing in opposite directions."
                   previews={
                     <>
-                      <OverlayAssetPreview fileName="1-way-rsz.svg" label="One Way" />
-                      <OverlayAssetPreview fileName="2-way-rsz.svg" label="Both Ways" />
+                      <OverlayLanePreview kind="reduced-speed-zone" oneWay />
+                      <OverlayLanePreview kind="reduced-speed-zone" oneWay={false} />
                     </>
                   }
                 />
                 <OverlayGuideRow
                   icon={<ImpactTypeIcon kind="planned-closure" size={16} />}
                   title="Planned Advisory Preview"
-                  text="Smoky-white lane with blue calendar-alert icons previews scheduled closures. Both ways stays static. An explicitly one-way closure uses slowly moving calendars followed by evenly spaced chevrons."
+                  text="Smoky-white lane with blue calendar icons previews a scheduled closure. One direction alternates calendars with chevrons pointing the affected way, while both ways shows calendars only."
                   previews={
                     <>
-                      <OverlayAssetPreview fileName="info-one-way-closure.svg" label="One Way" />
-                      <OverlayAssetPreview fileName="info-upcoming-closure.svg" label="Both Ways" />
+                      <OverlayLanePreview kind="planned-closure" oneWay />
+                      <OverlayLanePreview kind="planned-closure" oneWay={false} />
                     </>
                   }
                 />
