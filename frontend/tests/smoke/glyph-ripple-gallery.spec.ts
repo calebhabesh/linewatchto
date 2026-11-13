@@ -5,7 +5,7 @@ import { installRippleScenario, RIPPLE_SCENARIOS } from "./glyph-ripple-scenario
 import { installDismissedTransientUi, setStubMode } from "./test-support";
 
 /**
- * PROTOTYPE gallery for the glyph ripple: records a short clip of every
+ * Gallery for the glyph ripple: records a short clip of every
  * overlay variant (glyph-ripple-scenarios.ts) on both System Maps, zoomed in
  * on its first lane, in the eased ripple mode. Clips land in
  * LINEWATCH_RIPPLE_GALLERY_DIR (default test-results/glyph-ripple-gallery)

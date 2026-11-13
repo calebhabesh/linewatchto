@@ -117,6 +117,12 @@ final class SurfaceRouteLabeler {
         if (trimmedBranch.toLowerCase().startsWith(trimmedRoute.toLowerCase())) {
             return trimmedBranch;
         }
+        // TTC Live Alerts can send the branch in both fields (route "24B", routeBranch "B"):
+        // the route already names its branch, so appending it again made "24BB" (Nov 13, 2026).
+        if (trimmedRoute.matches("\\d+[A-Za-z]{1,3}")
+            && trimmedRoute.replaceFirst("^\\d+", "").equalsIgnoreCase(trimmedBranch)) {
+            return trimmedRoute.toUpperCase();
+        }
         if (trimmedBranch.matches("[A-Za-z]{1,3}")) {
             return trimmedRoute + trimmedBranch.toUpperCase();
         }

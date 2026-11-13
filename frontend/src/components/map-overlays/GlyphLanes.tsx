@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import { extrapolatedPathFrame, samplePath, type MapPoint } from "../../app/map-geometry";
 import type { TravelDirection } from "../../app/linewatch-data";
 import { PlannedClosureIcon } from "../PlannedClosureIcon";
-import { glyphRipplePhase, installGlyphMotionPrototype, registerGlyphRippleLane } from "./glyph-motion-prototype";
+import { glyphRipplePhase, installGlyphMotion, registerGlyphRippleLane } from "./glyph-motion";
 
 // Glyph art and spacing are designed in TTC overlay units. `unit` scales them
 // to a map's own units (MapOverlayPlane.unit), so both maps draw one design.
@@ -110,7 +110,7 @@ function DirectionChevron({ kind }: { kind: "rsz" | "delay" | "suspension" | "pl
   return <path d="M -12 -10 L 8 0 L -12 10" className={`map-direction-chevron ${kindClass}`} aria-hidden="true" />;
 }
 
-// Prototype ripple phases: every glyph is an arrow, or arrows alternate with
+// Ripple phases: every glyph is an arrow, or arrows alternate with
 // icons from the second glyph. Lane indexes already count the travel way.
 const everyGlyph = (index: number) => index;
 const oddGlyphs = (index: number) => (index % 2 === 1 ? (index - 1) / 2 : null);
@@ -133,7 +133,7 @@ function GlyphLane({
   renderGlyph: (index: number) => ReactNode;
   rotateGlyph?: boolean | ((index: number) => boolean);
   unit: number;
-  /** Prototype: each ripple arrow's order along travel, null for icons (glyph-motion-prototype.ts). */
+  /** Each ripple arrow's order along travel, null for icons (glyph-motion.ts). */
   ripplePhase?: (index: number) => number | null;
 }) {
   const [mounted, setMounted] = useState(false);
@@ -141,7 +141,7 @@ function GlyphLane({
 
   const ripple = ripplePhase !== undefined;
   useEffect(() => {
-    if (ripple) installGlyphMotionPrototype();
+    if (ripple) installGlyphMotion();
   }, [ripple]);
 
   useEffect(() => {
@@ -431,12 +431,12 @@ export function PlannedClosureIconLane({
     }
   }, [mounted, pathD, travelDirection, unit]);
 
-  // Prototype ripple: a one-way closure's chevrons, counted the travel way
+  // Ripple: a one-way closure's chevrons, counted the travel way
   // (points run from the path's start for both directions).
   const laneRef = useRef<SVGGElement>(null);
   const rippleArrows = !still && travelDirection !== "bidirectional" && !Array.isArray(pathMetrics) ? pathMetrics.points.length : 0;
   useEffect(() => {
-    if (rippleArrows > 0) installGlyphMotionPrototype();
+    if (rippleArrows > 0) installGlyphMotion();
   }, [rippleArrows]);
   useEffect(() => {
     if (rippleArrows === 0 || !laneRef.current) return;

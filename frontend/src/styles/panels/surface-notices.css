@@ -252,6 +252,11 @@
 
 
 
+/* Columns follow the controls' own width, not the viewport: the desktop panel is
+   about 530px wide, where three filters per row cut most values short. */
+.surface-notices-controls {
+  container-type: inline-size;
+}
 .surface-notices-controls .surface-notice-filters {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -263,7 +268,7 @@
 .surface-notices-controls .surface-notice-filters .alert-history-control-prefix {
   display: inline;
 }
-@media (min-width: 640px) {
+@container (min-width: 720px) {
   .surface-notices-controls .surface-notice-filters {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -275,10 +280,43 @@
   width: auto;
 }
 
-.notice-route-badge {
-  min-width: 28px;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.25;
+/* Notice cards: the shared route-code-badge shape at a larger size, to balance the
+   type pill and View button on the card's right. */
+.notice-route-badge.route-code-badge {
+  --route-badge-size: 34px;
+  border-radius: 7px;
+  font-size: 14px;
+}
+
+/* In a filter (its trigger and its menu) a route badge is an option label, sized like
+   Alert History's 20px line badge so it never outweighs the control around it. */
+.alert-history-line-filter .notice-route-badge.route-code-badge {
+  --route-badge-size: 20px;
+  border-radius: 5px;
+  font-size: 11px;
+  padding: 0 4px;
+}
+.alert-history-line-filter-options .notice-route-badge.route-code-badge {
+  --route-badge-size: 24px;
+  border-radius: 5px;
+  font-size: 11px;
+  padding: 0 4px;
+}
+
+/* A filter's selected value takes the room left beside its count and chevron; text
+   that still does not fit fades out (useOverflowFade) instead of being cut mid-letter. */
+.filter-trigger-value {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0.375rem;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.filter-trigger-value[data-overflowing="true"] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
 }
 .surface-notices-panel .panel-header {
   min-width: 0;

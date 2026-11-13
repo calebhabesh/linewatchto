@@ -2385,42 +2385,6 @@
   outline-offset: 1px;
 }
 
-.desktop-status-surface-list .current-service-routes {
-  align-items: flex-start;
-  display: grid;
-  flex: 0 0 51px;
-  flex-shrink: 0;
-  gap: 3px;
-  grid-template-columns: repeat(2, 24px);
-  min-width: 51px;
-  width: 51px;
-}
-
-.desktop-status-surface-list .current-service-route {
-  align-items: center;
-  background: #da291c;
-  border-radius: 4px;
-  color: #fff;
-  display: inline-flex;
-  font-size: 11px;
-  font-weight: 700;
-  height: 24px;
-  justify-content: center;
-  line-height: 1;
-  min-width: 24px;
-  padding: 0 2px;
-  text-align: center;
-  white-space: nowrap;
-  width: 100%;
-}
-
-.desktop-status-surface-list .current-service-route:only-child {
-  grid-column: 1 / -1;
-  max-width: 51px;
-  padding: 0 4.5px;
-  width: auto;
-}
-
 .desktop-status-surface-list .current-service-notice-copy {
   display: grid;
   flex: 1 1 0;

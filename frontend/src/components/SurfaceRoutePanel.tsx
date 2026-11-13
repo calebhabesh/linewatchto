@@ -330,7 +330,7 @@ export function SurfaceRoutePanel({
                   aria-pressed={candidate.id === variant?.id}
                   onClick={() => chooseVariant(candidate)}
                 >
-                  <span className="surface-route-variant-badge" style={surfaceRouteBadgeStyle(route)}>{candidate.code}</span>
+                  <span className="surface-route-variant-badge route-code-badge" style={surfaceRouteBadgeStyle(route)}>{candidate.code}</span>
                   <VariantName name={candidate.name} />
                   {filtering ? <small className="surface-route-filter-count">{countVariantMatches(filterTokens, candidate, shownName)}</small> : null}
                 </button>
@@ -339,7 +339,7 @@ export function SurfaceRoutePanel({
           </section>
         ) : variant && variant.code !== route.route ? (
           <div className="surface-route-variant" data-route-variant={variant.id}>
-            <span className="surface-route-variant-badge" style={surfaceRouteBadgeStyle(route)}>{variant.code}</span>
+            <span className="surface-route-variant-badge route-code-badge" style={surfaceRouteBadgeStyle(route)}>{variant.code}</span>
             <VariantName name={variant.name} />
           </div>
         ) : null}
@@ -355,7 +355,7 @@ export function SurfaceRoutePanel({
               aria-label={`Jump to route ${linked.route.route} ${linked.route.name}`}
               onClick={() => onOpenRoute(linked.route)}
             >
-              <span className="surface-route-variant-badge" style={surfaceRouteBadgeStyle(linked.route)}>{linked.route.route}</span>
+              <span className="surface-route-variant-badge route-code-badge" style={surfaceRouteBadgeStyle(linked.route)}>{linked.route.route}</span>
               <span className="surface-route-variant-name">{linked.route.name}</span>
               <span className="surface-route-linked-action">Jump To<ChevronRight size={15} aria-hidden="true" /></span>
             </button>

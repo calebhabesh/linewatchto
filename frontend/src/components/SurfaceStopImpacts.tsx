@@ -1,13 +1,19 @@
 "use client";
 
-import { AlertCircle, BadgeInfo, ChevronDown } from "lucide-react";
+import { AlertCircle, ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, ArrowUpDown, BadgeInfo, ChevronDown, type LucideIcon } from "lucide-react";
 import { useEffect, useState, type CSSProperties } from "react";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import type { NetworkId } from "../app/dashboard-contract";
 import { formatImpactTimestamp } from "../app/impact-time";
 import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
 import { surfaceNoticesNameStop } from "../app/surface-stop-arrivals";
-import { surfaceNoticeCategoryLabel, surfaceNoticeImpactGroups, surfaceNoticeImpactTone } from "../app/surface-notice-groups";
+import {
+  surfaceNoticeCategoryLabel,
+  surfaceNoticeImpactGroups,
+  surfaceNoticeImpactTone,
+  surfaceStopImpactGroups,
+  type SurfaceStopImpactCard,
+} from "../app/surface-notice-groups";
 import { StationDisruptionSummary } from "./StationDisruptionSummary";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { jumpToStationImpactsSection } from "./station-impacts-jump";
@@ -62,11 +68,29 @@ const BUTTON_TONE_CLASS = {
   caution: "border-[#F59E0B]/35 bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 hover:border-[#F59E0B]/65",
 } as const;
 
+const DIRECTION_ICON: Record<string, LucideIcon> = {
+  Northbound: ArrowUp,
+  Southbound: ArrowDown,
+  Eastbound: ArrowRight,
+  Westbound: ArrowLeft,
+};
+
+function directionIcon(direction: string, cards: readonly SurfaceStopImpactCard[]): LucideIcon {
+  if (DIRECTION_ICON[direction]) return DIRECTION_ICON[direction];
+  // "Both Ways": the axis the routes run on, when the text names one.
+  const text = cards.flatMap((card) => card.notices.map((notice) => notice.title)).join(" ").toLowerCase();
+  return /\b(east|west)bound\b/.test(text) ? ArrowLeftRight : ArrowUpDown;
+}
+
 /**
  * A stop's notices in the station panel's Station Impacts design. Each card's
  * View Details opens its card in the notice list, whose Back returns here.
  * A notice can name the route rather than this stop, so the card shows its
  * routes, and with none naming the stop the section is Route Impacts.
+ *
+ * With notices for more than one direction, cards sit under a header per
+ * direction, and routes sharing a notice's text at the stop share one card
+ * (surfaceStopImpactGroups), so a detour posted for each route reads once.
  */
 export function SurfaceStopImpacts({ notices, stopId, routeBadgeStyle, onOpenNotice }: {
   notices: readonly SurfaceNoticeDetail[];
@@ -75,6 +99,9 @@ export function SurfaceStopImpacts({ notices, stopId, routeBadgeStyle, onOpenNot
   onOpenNotice?: (notice: SurfaceNoticeDetail) => void;
 }) {
   if (notices.length === 0) return null;
+  const groups = surfaceStopImpactGroups(notices);
+  const cardCount = groups.reduce((total, group) => total + group.cards.length, 0);
+  const showDirections = groups.length > 1;
   return (
     <details
       data-station-section="station-impacts"
@@ -86,58 +113,91 @@ export function SurfaceStopImpacts({ notices, stopId, routeBadgeStyle, onOpenNot
           <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
           <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" aria-hidden="true" />
           <span className="truncate">{surfaceNoticesNameStop(notices, stopId) ? "Stop Impacts" : "Route Impacts"}</span>
-          <span className={`desktop-menu-count-badge desktop-menu-count-rsz flex h-6 ${notices.length < 10 ? "w-6" : "min-w-[24px] px-1.5"} shrink-0 items-center justify-center rounded-full text-[11px] font-bold`}>
-            {notices.length}
+          <span className={`desktop-menu-count-badge desktop-menu-count-rsz flex h-6 ${cardCount < 10 ? "w-6" : "min-w-[24px] px-1.5"} shrink-0 items-center justify-center rounded-full text-[11px] font-bold`}>
+            {cardCount}
           </span>
         </div>
         <ChevronDown size={18} aria-hidden="true" className="station-impacts-chevron shrink-0 text-slate-500 dark:text-slate-300 transition-transform duration-200" />
       </summary>
-      <div className="pt-3 flex flex-col gap-2">
-        {notices.map((notice) => {
-          const tone = surfaceNoticeImpactTone(notice);
-          const label = surfaceNoticeCategoryLabel(notice.category);
+      <div className="pt-3 flex flex-col gap-3">
+        {groups.map((group) => {
+          const label = group.direction ?? "Direction Not Stated";
+          const Icon = group.direction ? directionIcon(group.direction, group.cards) : null;
+          const headingId = `stop-impacts-${stopId ?? "stop"}-${label.replace(/\W+/g, "-").toLowerCase()}`;
           return (
-            <div
-              key={notice.id}
-              data-stop-impact={notice.id}
-              data-station-impact-tone={tone}
-              className={`station-impact-card flex flex-col gap-2.5 rounded-lg p-3 text-sm transition-colors ${CARD_TONE_CLASS[tone]}`}
+            <section
+              key={label}
+              data-stop-impact-direction={group.direction ?? "none"}
+              aria-labelledby={showDirections ? headingId : undefined}
+              className="flex flex-col gap-2"
             >
-              <div className="flex items-center gap-2.5 font-bold text-sm text-slate-900 dark:text-white">
-                <SurfaceCategoryIcon category={notice.category} size={26} className="shrink-0" />
-                <span className="leading-none flex items-center">{label}</span>
-                <span className="surface-stop-impact-routes">
-                  {notice.routeIds.map((route) => (
-                    <span key={route} className="surface-stop-route-badge is-small is-bus" style={routeBadgeStyle(route)}>{route}</span>
-                  ))}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <strong className="block font-bold text-slate-900 dark:text-white">{notice.title}</strong>
-                {notice.location && notice.location !== notice.title ? (
-                  <p className="text-slate-700 dark:text-slate-200 leading-snug">{notice.location}</p>
-                ) : null}
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 min-w-0">
-                  {normalizeDashboardSourceLabel(notice.source)} / {formatImpactTimestamp(notice.updatedAt)}
-                </p>
-                {onOpenNotice ? (
-                  <button
-                    type="button"
-                    onClick={() => onOpenNotice(notice)}
-                    aria-label={`Open ${label} details: ${notice.title}`}
-                    className={`ml-auto inline-flex min-h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-bold leading-none text-slate-900 dark:text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 active:scale-95 ${BUTTON_TONE_CLASS[tone]}`}
-                  >
-                    <BadgeInfo size={16} className="shrink-0 text-current" aria-hidden="true" />
-                    <span className="truncate leading-none flex items-center">View Details</span>
-                  </button>
-                ) : null}
-              </div>
-            </div>
+              {showDirections ? (
+                <h4 id={headingId} className="flex items-center gap-1.5 px-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  {Icon ? <Icon size={13} className="shrink-0" aria-hidden="true" /> : null}
+                  <span>{label}</span>
+                  <span className="text-slate-400 dark:text-slate-500" aria-label={`${group.cards.length} ${group.cards.length === 1 ? "impact" : "impacts"}`}>
+                    · {group.cards.length}
+                  </span>
+                </h4>
+              ) : null}
+              {group.cards.map((card) => (
+                <StopImpactCard key={card.key} card={card} routeBadgeStyle={routeBadgeStyle} onOpenNotice={onOpenNotice} />
+              ))}
+            </section>
           );
         })}
       </div>
     </details>
+  );
+}
+
+function StopImpactCard({ card, routeBadgeStyle, onOpenNotice }: {
+  card: SurfaceStopImpactCard;
+  routeBadgeStyle: (route: string) => CSSProperties | undefined;
+  onOpenNotice?: (notice: SurfaceNoticeDetail) => void;
+}) {
+  // Every notice on a card shares its kind, text and stop; the newest stands for it.
+  const notice = card.notices.reduce((newest, next) => (next.updatedAt > newest.updatedAt ? next : newest));
+  const tone = surfaceNoticeImpactTone(notice);
+  const label = surfaceNoticeCategoryLabel(notice.category);
+  return (
+    <div
+      data-stop-impact={card.notices[0].id}
+      data-stop-impact-notices={card.notices.length > 1 ? card.notices.map((entry) => entry.id).join(" ") : undefined}
+      data-station-impact-tone={tone}
+      className={`station-impact-card flex flex-col gap-2.5 rounded-lg p-3 text-sm transition-colors ${CARD_TONE_CLASS[tone]}`}
+    >
+      <div className="flex items-center gap-2.5 font-bold text-sm text-slate-900 dark:text-white">
+        <SurfaceCategoryIcon category={notice.category} size={26} className="shrink-0" />
+        <span className="leading-none flex items-center">{label}</span>
+        <span className="surface-stop-impact-routes">
+          {card.routeIds.map((route) => (
+            <span key={route} className="surface-stop-route-badge is-small is-bus" style={routeBadgeStyle(route)}>{route}</span>
+          ))}
+        </span>
+      </div>
+      <div className="flex flex-col gap-1">
+        <strong className="block font-bold text-slate-900 dark:text-white">{card.title}</strong>
+        {notice.location && notice.location !== card.title ? (
+          <p className="text-slate-700 dark:text-slate-200 leading-snug">{notice.location}</p>
+        ) : null}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 min-w-0">
+          {normalizeDashboardSourceLabel(notice.source)} / {formatImpactTimestamp(notice.updatedAt)}
+        </p>
+        {onOpenNotice ? (
+          <button
+            type="button"
+            onClick={() => onOpenNotice(notice)}
+            aria-label={`Open ${label} details: ${card.title}${card.routeIds.length > 1 ? ` (routes ${card.routeIds.join(", ")})` : ""}`}
+            className={`ml-auto inline-flex min-h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-bold leading-none text-slate-900 dark:text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 active:scale-95 ${BUTTON_TONE_CLASS[tone]}`}
+          >
+            <BadgeInfo size={16} className="shrink-0 text-current" aria-hidden="true" />
+            <span className="truncate leading-none flex items-center">View Details</span>
+          </button>
+        ) : null}
+      </div>
+    </div>
   );
 }

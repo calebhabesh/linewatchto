@@ -10,7 +10,7 @@ export function NoticeRouteBadge({ routeId, regional }: { routeId: string; regio
   return (
     <span
       aria-label={regional ? `GO Bus ${routeId}` : `Route ${routeId}`}
-      className="notice-route-badge inline-flex shrink-0 items-center justify-center rounded px-2 py-0.5 text-xs font-black"
+      className="notice-route-badge route-code-badge"
       style={regional
         ? { backgroundColor: goBusRouteColor(routeId), color: goBusRouteTextColor(routeId) }
         : ttcRouteBadgeStyle(routeId)}

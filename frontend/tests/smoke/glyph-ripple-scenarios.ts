@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 
 /**
- * PROTOTYPE scenarios for the glyph ripple (glyph-motion-prototype.ts): every
+ * Scenarios for the glyph ripple (glyph-motion.ts): every
  * segment of a network carries one alert of a single kind and direction, so
  * each scenario shows one overlay variant everywhere it can draw.
  */

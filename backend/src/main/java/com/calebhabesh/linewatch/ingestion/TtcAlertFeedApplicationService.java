@@ -4,6 +4,7 @@ import com.calebhabesh.linewatch.announcement.TtcAnnouncement;
 import com.calebhabesh.linewatch.announcement.TtcAnnouncementNormalizer;
 import com.calebhabesh.linewatch.announcement.TtcAnnouncementStore;
 import com.calebhabesh.linewatch.surface.SurfaceServiceNotice;
+import com.calebhabesh.linewatch.surface.SurfaceServiceNoticeMerger;
 import com.calebhabesh.linewatch.surface.SurfaceServiceNoticeNormalizer;
 import com.calebhabesh.linewatch.surface.SurfaceServiceNoticeStore;
 import java.time.Clock;
@@ -84,6 +85,7 @@ public class TtcAlertFeedApplicationService {
         Set<String> seenNoticeSourceIds = new HashSet<>();
         Set<String> seenAnnouncementSourceIds = new HashSet<>();
         List<NormalizedRouteAlert> routeCandidates = new ArrayList<>();
+        List<SurfaceServiceNotice> surfaceNotices = new ArrayList<>();
         Set<String> seenWebsiteSourceKeys = new HashSet<>();
         Set<String> seenWebsiteAlertSourceIds = new HashSet<>();
         int normalized = 0;
@@ -135,11 +137,15 @@ public class TtcAlertFeedApplicationService {
                 isolation.compute("surface record", recordId, () -> surfaceNormalizer.normalize(fetched));
             if (noticeOpt == null) {
                 keepLastGood(seenNoticeSourceIds, recordId);
-            } else if (noticeOpt.isPresent()) {
-                SurfaceServiceNotice notice = noticeOpt.get();
-                seenNoticeSourceIds.add(notice.sourceId());
-                isolation.run("surface notice", notice.sourceId(), () -> surfaceStore.upsertNotice(notice, now));
+            } else {
+                noticeOpt.ifPresent(surfaceNotices::add);
             }
+        }
+
+        // One alert published in both TTC Live Alerts and GTFS-RT becomes one notice.
+        for (SurfaceServiceNotice notice : SurfaceServiceNoticeMerger.merge(surfaceNotices)) {
+            seenNoticeSourceIds.add(notice.sourceId());
+            isolation.run("surface notice", notice.sourceId(), () -> surfaceStore.upsertNotice(notice, now));
         }
 
         List<NormalizedRouteAlert> reconciledRouteCandidates =

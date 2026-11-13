@@ -5,7 +5,7 @@ import { MEASURED_PROJECT, registerRealChrome } from "./real-chrome";
 import { installDismissedTransientUi, setStubMode } from "./test-support";
 
 /**
- * PROTOTYPE measurement for the glyph ripple (glyph-motion-prototype.ts).
+ * Measurement for the glyph ripple (glyph-motion.ts).
  * For each overlay variant (glyph-ripple-scenarios.ts: every segment carries
  * one alert of that kind and direction) and each mode, it records at rest
  * the style, paint and raster work over a fixed window, whether arrows

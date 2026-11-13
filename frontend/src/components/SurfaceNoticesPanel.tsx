@@ -27,6 +27,7 @@ import { DropdownMenuPortal } from "./DropdownMenuPortal";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { ImpactCardMapButton } from "./ImpactCardFields";
 import { NoticeRouteBadge } from "./SurfaceNoticeMapStrip";
+import { useOverflowFade } from "../hooks/useOverflowFade";
 import { noticeHasSurfaceTarget, surfaceNoticeMapTarget, surfaceNoticeNoMapCopy, type SurfaceNoticeMapTarget } from "../app/surface-notice-target";
 import { useSurfaceSearchIndex } from "../hooks/useSurfaceSearchIndexes";
 
@@ -42,6 +43,7 @@ function NoticeFilter({ label, prefix, value, options, onChange }: {
   const trigger = useRef<HTMLButtonElement>(null);
   const menuId = useId();
   const selectedOption = options.find((option) => option.value === value);
+  const valueRef = useOverflowFade<HTMLSpanElement>([value, selectedOption?.label]);
 
   return (
     <div className="alert-history-line-filter relative" ref={root}>
@@ -62,8 +64,8 @@ function NoticeFilter({ label, prefix, value, options, onChange }: {
           }
         }}
       >
-        <span className="truncate inline-flex items-center gap-1.5">
-          <span className="inline-flex min-w-0 items-center" aria-hidden="true">{selectedOption?.icon}</span>
+        <span className="filter-trigger-value" ref={valueRef}>
+          <span className="inline-flex shrink-0 items-center" aria-hidden="true">{selectedOption?.icon}</span>
           <span className={selectedOption?.badgeOnly ? "sr-only" : undefined}>{selectedOption?.label}</span>
         </span>
         <FilterOptionCount count={selectedOption?.count} />

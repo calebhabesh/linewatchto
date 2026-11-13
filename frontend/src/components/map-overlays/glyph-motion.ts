@@ -1,10 +1,16 @@
 /**
- * PROTOTYPE (not shipped behaviour): a light ripple along the direction
- * arrows of one-way line alerts (Reduced Speed Zone chevrons, both lanes of a
- * two-way zone, and the arrows between a one-way delay's hourglasses, a
- * one-way suspension's no-entry signs and a one-way planned closure's
- * calendars) on the System Maps, desktop only. Icons and two-way delays,
- * suspensions and closures stay still.
+ * Glyph ripple: a light swell along the direction arrows of one-way line
+ * alerts (Reduced Speed Zone chevrons, both lanes of a two-way zone, and the
+ * arrows between a one-way delay's hourglasses, a one-way suspension's
+ * no-entry signs and a one-way planned closure's calendars) on the System
+ * Maps, on desktop. Icons and two-way delays, suspensions and closures stay
+ * still.
+ *
+ * On by default. It stops when the rider turns on Reduce Animations in
+ * Settings (.motion-paused on the shell), under the system reduced-motion
+ * preference, in mobile performance mode, and without a fine pointer (phones),
+ * the same gates as the other map animations (impact-overlays.css applies
+ * them in CSS too).
  *
  * Glyphs never move. Each arrow carries a phase that counts up the way the
  * alert travels. One shared timer advances each lane's --ripple-tick once per
@@ -12,21 +18,20 @@
  * arrow whose phase the tick reaches, so a single wave travels the alert's
  * way. Only paint properties change, no layers.
  *
- * "ripple" eases each step with a CSS transition: work runs while arrows
- * ease, only for lanes on screen (an IntersectionObserver culls the rest,
- * and lanes in the hidden network's map are skipped),
- * and only while the on-screen arrows fit EASED_ARROW_BUDGET; above it the
- * ripple steps (no per-frame work between steps). "ripple-stepped" always
- * steps. It keeps running while the camera moves (desktop map animations do;
- * base-map.css). The timer skips steps while the tab is hidden or the
- * desktop/motion gates fail; impact-overlays.css applies the same gates.
+ * "ripple" (the default) eases each step with a CSS transition: work runs
+ * while arrows ease, only for lanes on screen (an IntersectionObserver culls
+ * the rest, and lanes in the hidden network's map are skipped), and only
+ * while the on-screen arrows fit EASED_ARROW_BUDGET; above it the ripple
+ * steps (no per-frame work between steps). "ripple-stepped" always steps. It
+ * keeps running while the camera moves (desktop map animations do;
+ * base-map.css). The timer skips steps while the tab is hidden or a gate
+ * fails.
  *
- * Turn it on from the URL (remembered in localStorage):
- *   ?glyphMotion=ripple           eased ripple (the candidate)
+ * Developer overrides from the URL (remembered in localStorage):
  *   ?glyphMotion=ripple-stepped   stepped ripple
- *   ?glyphMotion=off              back to still glyphs
- *   &rippleStep=550               milliseconds per step (80-1000), every
- *                                 alert kind alike
+ *   ?glyphMotion=off              still glyphs (tests and comparisons)
+ *   ?glyphMotion=ripple           back to the default
+ *   &rippleStep=550               milliseconds per step (80-1000)
  */
 
 /**
@@ -49,9 +54,10 @@ function rippleCycle(arrows: number) {
 /** Most arrows that ease at once; more on screen and the ripple steps. */
 export const EASED_ARROW_BUDGET = 160;
 
-const MODE_KEY = "linewatch-glyph-motion-prototype-v1";
+const MODE_KEY = "linewatch-glyph-motion-v1";
 const STEP_KEY = "linewatch-glyph-motion-step-v1";
 const MODES = new Set(["ripple", "ripple-stepped"]);
+const DEFAULT_MODE = "ripple";
 const DEFAULT_STEP_MS = 550;
 // Must match the media gate in impact-overlays.css.
 const DESKTOP_MOTION_QUERY = "(hover: hover) and (pointer: fine) and (min-width: 768px) and (prefers-reduced-motion: no-preference)";
@@ -81,24 +87,29 @@ function writeStored(key: string, value: string | null) {
   }
 }
 
-/** Applies the prototype's mode and step to <html> once per page load. */
-export function installGlyphMotionPrototype() {
+/** Applies the ripple's mode and step to <html> once per page load. */
+export function installGlyphMotion() {
   if (installed || typeof window === "undefined") return;
   installed = true;
 
   const params = new URLSearchParams(window.location.search);
   const requestedMode = params.get("glyphMotion");
-  if (requestedMode !== null) writeStored(MODE_KEY, MODES.has(requestedMode) ? requestedMode : null);
+  if (requestedMode !== null) {
+    // Only a developer "off" (or "ripple-stepped") is remembered; anything else returns to the default.
+    writeStored(MODE_KEY, requestedMode === "off" || (MODES.has(requestedMode) && requestedMode !== DEFAULT_MODE)
+      ? requestedMode
+      : null);
+  }
   const requestedStep = params.get("rippleStep");
   if (requestedStep !== null) writeStored(STEP_KEY, requestedStep);
 
   const stored = readStored(MODE_KEY);
   const root = document.documentElement;
-  if (!stored || !MODES.has(stored)) {
+  if (stored === "off") {
     delete root.dataset.glyphMotion;
     return;
   }
-  mode = stored;
+  mode = stored && MODES.has(stored) ? stored : DEFAULT_MODE;
   const step = Number(readStored(STEP_KEY));
   stepMs = Number.isFinite(step) && step >= 80 && step <= 1000 ? step : DEFAULT_STEP_MS;
   desktopMotion = window.matchMedia(DESKTOP_MOTION_QUERY);

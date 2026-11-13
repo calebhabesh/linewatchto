@@ -1,3 +1,32 @@
+/* One shape for every surface route code badge (TTC bus and streetcar, GO Bus):
+   square for a code of up to two characters, and only as much wider as a longer
+   code ("24B", "300A") needs. Sizes are in pixels on purpose: the root font size is
+   17px, so rem-based utilities (h-7, min-w-7) drew a 28px-wide badge 29.75px tall.
+   The station panel's surface connection badges are the reference shape. */
+.route-code-badge {
+  --route-badge-size: 28px;
+  align-items: center;
+  border-radius: 6px;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  height: var(--route-badge-size);
+  justify-content: center;
+  line-height: 1;
+  min-width: var(--route-badge-size);
+  padding: 0 5px;
+  white-space: nowrap;
+}
+
+.route-code-badge.is-large {
+  --route-badge-size: 32px;
+  border-radius: 7px;
+  font-size: 13px;
+}
+
 /**
  * Station Surface Connections & Connected Network Styles
  *
@@ -389,11 +418,15 @@
   gap: 6px;
 }
 
+/* Stop Impacts cards: the shared route-code-badge shape (station/surface-connections.css). */
 .surface-stop-route-badge.is-small {
-  border-radius: 5px;
-  font-size: 11px;
-  height: 24px;
-  min-width: 34px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  height: 28px;
+  line-height: 1;
+  min-width: 28px;
+  padding: 0 5px;
 }
 
 /* Stop departures arrive with a short fade and rise, each route a beat after
@@ -577,16 +610,10 @@ button.surface-route-variant:hover {
   outline-offset: -2px;
 }
 
+/* The 48px column keeps branch names aligned; the badge (route-code-badge) hugs its
+   code inside it instead of stretching to the column. */
 .surface-route-variant-badge {
-  align-items: center;
-  border-radius: 5px;
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 900;
-  height: 26px;
-  justify-content: center;
-  min-width: 48px;
-  padding: 0 4px;
+  justify-self: start;
 }
 
 .surface-route-variant-name {

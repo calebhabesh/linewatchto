@@ -144,7 +144,7 @@ export function deriveSurfaceNoticeCause(notice: SurfaceNoticeDetail): string | 
   return firstSentence(notice.title || notice.description);
 }
 
-function deriveSurfaceNoticeDirection(notice: SurfaceNoticeDetail): string | null {
+export function deriveSurfaceNoticeDirection(notice: SurfaceNoticeDetail): string | null {
   if (notice.direction && notice.direction.trim()) {
     return normalizeDirection(notice.direction);
   }
@@ -693,4 +693,57 @@ export function surfaceNoticeImpactGroups(notices: readonly SurfaceNoticeDetail[
   return [...counts.entries()]
     .sort(([a, countA], [b, countB]) => Number(b === "no-service") - Number(a === "no-service") || countB - countA || a.localeCompare(b))
     .map(([category, count]) => ({ category, count, label: surfaceNoticeCategoryLabel(category) }));
+}
+
+/** One card in a stop panel: one notice, or several routes' notices with the same text at the stop. */
+export type SurfaceStopImpactCard = {
+  key: string;
+  notices: SurfaceNoticeDetail[];
+  /** The provider title; without its "71 Runnymede: " route prefix when the card holds several routes. */
+  title: string;
+  routeIds: string[];
+};
+
+export type SurfaceStopImpactDirectionGroup = {
+  /** "Southbound", "Both Ways", or null when the notices state no direction. */
+  direction: string | null;
+  cards: SurfaceStopImpactCard[];
+};
+
+// "71 Runnymede: ", "504A King: ", "300 Bloor-Danforth: " at the start of a TTC title.
+const ROUTE_PREFIX = /^\s*\d{1,3}[A-Z]?\s+[^:]{1,40}:\s+/;
+
+/**
+ * A stop's notices for its Stop Impacts list, grouped by the direction they
+ * affect, in the order each direction first appears. Within a direction, notices
+ * of the same kind with the same text (once the route prefix is set aside) at the
+ * same stop are one card with every route's badge: TTC posts one notice per
+ * route for a shared detour (Nov 13, 2026: 71 and 79 southbound at Runnymede Rd).
+ */
+export function surfaceStopImpactGroups(notices: readonly SurfaceNoticeDetail[]): SurfaceStopImpactDirectionGroup[] {
+  const groups = new Map<string, SurfaceStopImpactDirectionGroup>();
+  const cards = new Map<string, SurfaceStopImpactCard>();
+  for (const notice of notices) {
+    const direction = deriveSurfaceNoticeDirection(notice);
+    const groupKey = direction ?? "";
+    let group = groups.get(groupKey);
+    if (!group) {
+      group = { direction, cards: [] };
+      groups.set(groupKey, group);
+    }
+    const sharedText = notice.title.replace(ROUTE_PREFIX, "").trim();
+    const cardKey = [groupKey, notice.category.toLowerCase(), (notice.location ?? "").toLowerCase(), sharedText.toLowerCase()].join("\u0000");
+    const card = cards.get(cardKey);
+    if (card) {
+      card.notices.push(notice);
+      card.title = sharedText;
+      card.routeIds = [...new Set([...card.routeIds, ...notice.routeIds])]
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    } else {
+      const next = { key: notice.id, notices: [notice], title: notice.title, routeIds: [...notice.routeIds] };
+      cards.set(cardKey, next);
+      group.cards.push(next);
+    }
+  }
+  return [...groups.values()];
 }

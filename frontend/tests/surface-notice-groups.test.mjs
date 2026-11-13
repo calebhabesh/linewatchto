@@ -8,6 +8,7 @@ import {
   surfaceNoticeEmphasis,
   surfaceNoticeImpactGroups,
   surfaceNoticeImpactTone,
+  surfaceStopImpactGroups,
   groupSurfaceNoticesByRoute,
   hasExactRouteMatch,
   surfaceNoticePreviewLocation,
@@ -450,5 +451,54 @@ describe("a stop panel's notices", () => {
       ["bypass", 2, "Bypass"],
       ["detour", 1, "Detour"],
     ]);
+  });
+});
+
+// Nov 13, 2026, Runnymede Rd at St Clair Ave West: six cards for three detours,
+// each in both TTC feeds, with 71 and 79 sharing the southbound detour.
+describe("surfaceStopImpactGroups", () => {
+  const SOUTH_SIDE = "Runnymede Rd at St Clair Ave West South Side";
+  const NORTH = "Runnymede Rd at St Clair Ave West";
+  const detour = (id, routeIds, title, location, updatedAt, direction = null) => ({
+    id, category: "detour", routeType: "Bus", routeIds, title, description: "", location, stopIds: [],
+    direction, updatedAt, source: "TTC Live Alerts + GTFS-RT",
+  });
+  const notices = [
+    detour("ttc-surface-gtfsrt-80209", ["71"], "71 Runnymede: Detour southbound via Castleton Ave and Liverpool St due to construction.", SOUTH_SIDE, "2026-11-13T17:56:34Z"),
+    detour("ttc-surface-gtfsrt-80210", ["71"], "71 Runnymede: Detour northbound via Runnymede Rd, St Clair Ave W and Castleton Ave due to construction.", NORTH, "2026-11-13T17:56:34Z"),
+    detour("ttc-surface-gtfsrt-80205", ["79"], "79 Scarlett Rd: Detour southbound via Castleton Ave and Liverpool St due to construction.", SOUTH_SIDE, "2026-11-13T17:56:34Z"),
+    detour("ttc-surface-80210", ["71"], "Detour northbound via Runnymede Rd, St Clair Ave W and Castleton Ave due to construction.", NORTH, "2026-11-13T14:17:01Z", "Northbound"),
+    detour("ttc-surface-80209", ["71"], "Detour southbound via Castleton Ave and Liverpool St due to construction.", SOUTH_SIDE, "2026-11-13T14:16:21Z", "Southbound"),
+    detour("ttc-surface-80205", ["79"], "Detour southbound via Castleton Ave and Liverpool St due to construction.", SOUTH_SIDE, "2026-11-13T14:16:20Z", "Southbound"),
+  ];
+
+  it("groups by direction and gives each shared detour one card with every route", () => {
+    const groups = surfaceStopImpactGroups(notices);
+    assert.deepEqual(groups.map((group) => group.direction), ["Southbound", "Northbound"]);
+    const [south, north] = groups;
+    assert.equal(south.cards.length, 1);
+    assert.deepEqual(south.cards[0].routeIds, ["71", "79"]);
+    assert.equal(south.cards[0].title, "Detour southbound via Castleton Ave and Liverpool St due to construction.");
+    assert.equal(south.cards[0].notices.length, 4);
+    assert.equal(north.cards.length, 1);
+    assert.deepEqual(north.cards[0].routeIds, ["71"]);
+  });
+
+  it("keeps a single route's provider title, prefix included", () => {
+    const [group] = surfaceStopImpactGroups([notices[0]]);
+    assert.equal(group.cards[0].title, notices[0].title);
+  });
+
+  it("keeps different detours, stops and kinds apart", () => {
+    const other = detour("x", ["29"], "29 Dufferin: Detour southbound via Lansdowne Ave", SOUTH_SIDE, "2026-11-13T15:00:00Z");
+    const elsewhere = { ...notices[2], id: "y", location: "Scarlett Rd at Eglinton Ave West" };
+    const bypass = { ...notices[0], id: "z", category: "bypass" };
+    const [south] = surfaceStopImpactGroups([notices[0], other, elsewhere, bypass]);
+    assert.equal(south.cards.length, 4);
+  });
+
+  it("collects notices without a stated direction in their own group", () => {
+    const plain = detour("p", ["7"], "7 Bathurst: Stop closed for construction", NORTH, "2026-11-13T15:00:00Z");
+    assert.deepEqual(surfaceStopImpactGroups([notices[0], plain]).map((group) => group.direction), ["Southbound", null]);
   });
 });

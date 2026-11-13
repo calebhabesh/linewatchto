@@ -473,8 +473,13 @@ test("sub-badges and surface routes use flex alignment with safe wrapping", () =
   const currentServiceStyles = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
   const desktopChromeStyles = readFileSync(new URL("../src/styles/shell/desktop-chrome.css", import.meta.url), "utf8");
 
-  assert.match(currentServiceStyles, /\.current-service-routes\s*\{[^}]*display:\s*grid;/s);
-  assert.match(currentServiceStyles, /\.current-service-route\s*\{[^}]*white-space:\s*nowrap;/s);
+  // Route badges share one pixel-sized shape (square up to two characters) and are never
+  // stretched to the column; the column arranges them by data-route-layout.
+  const routeBadgeStyles = readFileSync(new URL("../src/styles/station/surface-connections.css", import.meta.url), "utf8");
+  assert.match(routeBadgeStyles, /\.route-code-badge\s*\{[^}]*--route-badge-size:\s*28px;[^}]*height:\s*var\(--route-badge-size\);[^}]*min-width:\s*var\(--route-badge-size\);[^}]*white-space:\s*nowrap;/s);
+  assert.match(currentServiceStyles, /\.current-service-routes\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(2,\s*28px\);[^}]*justify-items:\s*center;/s);
+  assert.doesNotMatch(currentServiceStyles + desktopChromeStyles, /\.current-service-route\s*\{[^}]*width:\s*100%/s);
+  assert.doesNotMatch(desktopChromeStyles, /\.current-service-route\b/);
   assert.match(currentServiceStyles, /\.current-service-planned-pill\s*\{[^}]*white-space:\s*nowrap;/s);
   assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*padding-left:\s*0;/s);
   assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*flex-direction:\s*row;/s);
@@ -507,10 +512,8 @@ test("sub-badges and surface routes use flex alignment with safe wrapping", () =
   assert.match(desktopChromeStyles, /\.desktop-status-incident-direction\s*\{[^}]*font-size:\s*13px;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-incident-timing\s*\{[^}]*font-size:\s*13px;/s);
 
-  // Surface route badge column has 2-column grid layout (51px width)
-  assert.match(currentServiceStyles, /\.current-service-routes\s*\{[^}]*display:\s*grid;/s);
-  assert.match(currentServiceStyles, /\.current-service-routes\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*24px\);/s);
-  assert.match(desktopChromeStyles, /\.desktop-status-surface-list \.current-service-routes\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*24px\);/s);
+  // Surface route badge column: fixed width (59px, two 28px squares and a gap) so text aligns
+  assert.match(currentServiceStyles, /\.current-service-routes\s*\{[^}]*width:\s*59px;/s);
 
   // Surface notice descriptions are left-aligned with colored vertical indicator div (no colored container)
   assert.match(desktopChromeStyles, /\.desktop-status-surface-list \.current-service-notice-copy\s*\{[^}]*padding-left:\s*14px;/s);

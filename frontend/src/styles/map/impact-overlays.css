@@ -420,7 +420,7 @@
   }
 }
 
-/* --- Glyph motion prototype (glyph-motion-prototype.ts), opt-in only ---
+/* --- Glyph ripple (glyph-motion.ts), on by default ---
    The direction arrows of one-way line alerts (and both lanes of a two-way
    Reduced Speed Zone) stay where they are; a swell travels along each lane
    the alert's way. One shared timer writes each on-screen lane's

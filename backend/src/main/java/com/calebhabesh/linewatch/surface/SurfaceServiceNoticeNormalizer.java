@@ -113,7 +113,8 @@ public class SurfaceServiceNoticeNormalizer {
                 stops.add(new SurfaceServiceNotice.StopDetail(record.stopStart(), record.stopStart()));
             }
             if (record.stopEnd() != null && !record.stopEnd().isBlank()
-                && record.stopEnd().length() <= MAX_STOP_ID_LENGTH) {
+                && record.stopEnd().length() <= MAX_STOP_ID_LENGTH
+                && !record.stopEnd().equals(record.stopStart())) {
                 stops.add(new SurfaceServiceNotice.StopDetail(record.stopEnd(), record.stopEnd()));
             }
         }
