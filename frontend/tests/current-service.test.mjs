@@ -218,11 +218,12 @@ test("surface notices button text uses 'streetcar and bus notices' and CSS style
 test("service notices route badges use GO colours in GO/UP mode and TTC route-family colours on TTC", () => {
   const currentServicePanelSource = readFileSync(new URL("../src/components/CurrentServicePanel.tsx", import.meta.url), "utf8");
   const desktopOverviewSource = readFileSync(new URL("../src/components/DesktopStatusOverview.tsx", import.meta.url), "utf8");
+  const routeBadgesSource = readFileSync(new URL("../src/components/CurrentServiceRouteBadges.tsx", import.meta.url), "utf8");
 
-  assert.match(currentServicePanelSource, /goNoticeRouteBadgeStyle/);
-  assert.match(currentServicePanelSource, /data\.networkId === "regional" \? goNoticeRouteBadgeStyle\(route\) : ttcRouteBadgeStyle\(route\)/);
-  assert.match(desktopOverviewSource, /goNoticeRouteBadgeStyle/);
-  assert.match(desktopOverviewSource, /regional \? goNoticeRouteBadgeStyle\(route\) : ttcRouteBadgeStyle\(route\)/);
+  // Both lists draw their badges with one component, which picks GO or TTC colours.
+  assert.match(routeBadgesSource, /regional \? goNoticeRouteBadgeStyle\(route\) : ttcRouteBadgeStyle\(route\)/);
+  assert.match(currentServicePanelSource, /<CurrentServiceRouteBadges routeIds=\{notice\.routeIds\} regional=\{data\.networkId === "regional"\} \/>/);
+  assert.match(desktopOverviewSource, /<CurrentServiceRouteBadges routeIds=\{notice\.routeIds\} regional=\{regional\} \/>/);
 });
 
 test("historical service reports remain readable without an all-clear claim", () => {
@@ -477,7 +478,7 @@ test("sub-badges and surface routes use flex alignment with safe wrapping", () =
   // stretched to the column; the column arranges them by data-route-layout.
   const routeBadgeStyles = readFileSync(new URL("../src/styles/station/surface-connections.css", import.meta.url), "utf8");
   assert.match(routeBadgeStyles, /\.route-code-badge\s*\{[^}]*--route-badge-size:\s*28px;[^}]*height:\s*var\(--route-badge-size\);[^}]*min-width:\s*var\(--route-badge-size\);[^}]*white-space:\s*nowrap;/s);
-  assert.match(currentServiceStyles, /\.current-service-routes\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(2,\s*28px\);[^}]*justify-items:\s*center;/s);
+  assert.match(currentServiceStyles, /\.current-service-routes\s*\{[^}]*align-self:\s*center;[^}]*flex-wrap:\s*wrap;[^}]*justify-content:\s*center;/s);
   assert.doesNotMatch(currentServiceStyles + desktopChromeStyles, /\.current-service-route\s*\{[^}]*width:\s*100%/s);
   assert.doesNotMatch(desktopChromeStyles, /\.current-service-route\b/);
   assert.match(currentServiceStyles, /\.current-service-planned-pill\s*\{[^}]*white-space:\s*nowrap;/s);

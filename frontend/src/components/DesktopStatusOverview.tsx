@@ -29,9 +29,7 @@ import { LineAdvisorySummary, LineServiceStatus } from "./LineServiceStatus";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { NetworkSelector } from "./NetworkSelector";
-import { goNoticeRouteBadgeStyle, goNoticeRouteLabel } from "../app/go-bus-route-colors";
-import { currentServiceRouteLayout } from "../app/route-badge-layout";
-import { ttcRouteBadgeStyle } from "../app/ttc-route-badge";
+import { CurrentServiceRouteBadges } from "./CurrentServiceRouteBadges";
 import { surfaceNoticePreviewLocation } from "../app/surface-notice-groups";
 
 import type { NetworkId } from "../app/regional-data";
@@ -451,20 +449,7 @@ export function DesktopStatusOverview({
                 }
               }}
             >
-              {notice.routeIds.length ? <span className="current-service-routes" data-route-layout={currentServiceRouteLayout(notice.routeIds)}>
-                {notice.routeIds.map(
-                  (route) => (
-                    <span
-                      className={`current-service-route route-code-badge${notice.routeIds.length === 1 ? " is-large" : ""}`}
-                      key={route}
-                      style={regional ? goNoticeRouteBadgeStyle(route) : ttcRouteBadgeStyle(route)}
-                      aria-label={regional ? goNoticeRouteLabel(route) : undefined}
-                    >
-                      {route}
-                    </span>
-                  ),
-                )}
-              </span> : null}
+              <CurrentServiceRouteBadges routeIds={notice.routeIds} regional={regional} />
               <span className="current-service-notice-copy" data-category={notice.category}>
                 <span className="current-service-notice-heading">
                   <strong data-category={notice.category}>

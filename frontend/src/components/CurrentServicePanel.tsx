@@ -22,9 +22,7 @@ import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { LineAdvisorySummary, LineServiceStatus } from "./LineServiceStatus";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
-import { goNoticeRouteBadgeStyle, goNoticeRouteLabel } from "../app/go-bus-route-colors";
-import { currentServiceRouteLayout } from "../app/route-badge-layout";
-import { ttcRouteBadgeStyle } from "../app/ttc-route-badge";
+import { CurrentServiceRouteBadges } from "./CurrentServiceRouteBadges";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { surfaceNoticePreviewLocation } from "../app/surface-notice-groups";
 
@@ -464,18 +462,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
         </h3>
         <ServiceList>
           {surfaceRows.slice(0, visibleNoticeCount).map((notice) => <button type="button" className="current-service-notice" key={notice.id} onClick={() => onNotice(notice)}>
-            {notice.routeIds.length ? <span className="current-service-routes" data-route-layout={currentServiceRouteLayout(notice.routeIds)}>
-              {notice.routeIds.map((route) => (
-                <span
-                  className={`current-service-route route-code-badge${notice.routeIds.length === 1 ? " is-large" : ""}`}
-                  key={route}
-                  style={data.networkId === "regional" ? goNoticeRouteBadgeStyle(route) : ttcRouteBadgeStyle(route)}
-                  aria-label={data.networkId === "regional" ? goNoticeRouteLabel(route) : undefined}
-                >
-                  {route}
-                </span>
-              ))}
-            </span> : null}
+            <CurrentServiceRouteBadges routeIds={notice.routeIds} regional={data.networkId === "regional"} />
             <span className="current-service-notice-copy" data-category={notice.category}>
               <span className="current-service-notice-heading">
                 <strong data-category={notice.category}>

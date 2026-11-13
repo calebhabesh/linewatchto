@@ -118,12 +118,16 @@
 .current-service-impact small { font-size: 10px; color: var(--muted); }
 .current-service-notice { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 4px 0 7px; text-align: left; }
 /* Route badges: the shared route-code-badge shape (station/surface-connections.css), never
-   stretched. The column keeps a fixed width so the notice text lines up; the badges
-   are arranged in it by data-route-layout (app/route-badge-layout.ts), and the column
-   is centred on the row, so the badges sit level with the middle of the divider. */
-.current-service-routes { align-self: center; display: grid; grid-template-columns: repeat(2, 28px); justify-content: center; justify-items: center; align-content: start; gap: 3px; min-width: 59px; width: 59px; flex: 0 0 59px; flex-shrink: 0; }
-.current-service-routes:is([data-route-layout="single"], [data-route-layout="stack"]) { grid-template-columns: minmax(0, 1fr); }
+   stretched, in a fixed-width column so the notice text lines up. The column is centred on
+   the row, beside the middle of the divider, and wraps two badges per line, each line
+   centred: 1 alone (larger), 2 side by side, 3 as two over one, 4 as a 2x2; past four the
+   list shows three and a "+N" (app/route-badge-layout.ts sets data-route-layout). */
+.current-service-routes { align-self: center; display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 3px; min-width: 59px; width: 59px; flex: 0 0 59px; flex-shrink: 0; }
+/* Two three-character codes ("11C", "124") side by side: the compact size fits 28px each. */
+.current-service-routes[data-route-layout="grid-compact"] .route-code-badge { --route-badge-size: 28px; font-size: 11px; letter-spacing: -0.02em; padding: 0 2px; }
 .current-service-route { background: #da291c; color: #fff; text-align: center; }
+.current-service-route.is-overflow { background: rgba(100, 116, 139, 0.22); color: rgb(51, 65, 85); box-shadow: inset 0 0 0 1px rgba(100, 116, 139, 0.35); }
+.dark .current-service-route.is-overflow, .high-contrast .current-service-route.is-overflow { color: rgb(226, 232, 240); }
 .current-service-notice-copy {
   display: grid;
   flex: 1 1 0;
