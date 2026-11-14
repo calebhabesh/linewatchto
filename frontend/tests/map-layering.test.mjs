@@ -463,7 +463,7 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /--map-overlay-pulse-easing:\s*cubic-bezier\(0\.37, 0, 0\.63, 1\)/);
     assert.match(globalCss, /@keyframes map-overlay-rail-pulse\s*\{[\s\S]*var\(--map-overlay-rail-width\)[\s\S]*var\(--map-overlay-rail-pulse-width\)/);
     assert.match(globalCss, /--map-pulse-offset/);
-    assert.match(interactiveMapSource, /SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set\(\[\s*"aura-pulse",\s*"map-overlay-rail-pulse",\s*"station-selected-pulse",\s*\]\)/);
+    assert.match(interactiveMapSource, /SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set\(\[\s*"aura-pulse",\s*"map-overlay-rail-pulse",\s*"station-selected-pulse",\s*"station-alert-beacon-ping",\s*\]\)/);
     assert.match(interactiveMapSource, /root\.getAnimations\(\{ subtree: true \}\)/);
     assert.match(interactiveMapSource, /document\.timeline\?\.currentTime/);
     assert.match(interactiveMapSource, /--map-pulse-offset", "0ms"/);

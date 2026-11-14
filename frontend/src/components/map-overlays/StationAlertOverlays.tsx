@@ -1,7 +1,13 @@
 import type { CSSProperties, ReactNode, SVGProps } from "react";
 import type { ImpactSelection } from "../../app/linewatch-data";
 import { stationImpactDirectionPath, stationImpactDirectionStrokeWidth } from "../station-impact-direction";
-import { STATION_IMPACT_BEACON_STROKE_RATIO } from "../station-impact-beacon";
+import {
+  STATION_ALERT_PING_OVERSHOOT,
+  STATION_ALERT_PING_PILL_SCALE,
+  STATION_ALERT_PING_STROKE_RATIO,
+  STATION_IMPACT_BEACON_STROKE_RATIO,
+  stationAlertPings,
+} from "../station-impact-beacon";
 import type { MapOverlayPlane } from "./overlay-plane";
 import {
   STATION_ALERT_HOVER_RING_GAP,
@@ -64,8 +70,10 @@ function AnchorOutline({
  * Every station alert's idle ring (also its pointer and keyboard target; the
  * map's viewport selects from its identity, useMapTaps.ts), shaded beacon and
  * still core, in its kind's colour. A pill hub draws its filled outline
- * instead of a ring and beacon. Nothing here animates (map-renderer-parity.md,
- * rule 12).
+ * instead of a ring and beacon. Nothing here moves (map-renderer-parity.md,
+ * rules 3 and 12): a current suspension or delay also carries a ping ring
+ * that swells from the core past the beacon's edge and fades, which only the
+ * desktop motion gates in station-markers.css show.
  */
 export function MapStationAlertRings({
   alerts,
@@ -83,6 +91,14 @@ export function MapStationAlertRings({
         const selected = isSelectedStationAlert(alert, selection);
         const color = stationAlertColor(alert.kind);
         const glow = (radius: number) => `drop-shadow(0 0 ${radius * plane.unit}px ${color})`;
+        const pings = !exiting && stationAlertPings(alert.kind);
+        // Hidden, not removed, while selected, so it stays on the pulse clock.
+        const pingClass = `station-alert-beacon-ping${selected ? " selected" : ""}`;
+        const pingStyle = (from: number, to: number) => ({
+          ...(color ? { "--station-impact-glow": color } : null),
+          "--station-alert-ping-from": from,
+          "--station-alert-ping-to": to,
+        }) as CSSProperties;
         const targetProps = {
           "aria-label": alert.label,
           className: `station-impact-ring ${alert.kind}${selected ? " selected" : ""}`,
@@ -109,6 +125,20 @@ export function MapStationAlertRings({
                       pill={outsetStationPill(anchor.pill, STATION_ALERT_PILL_RING_GAP * plane.unit)}
                       style={{ strokeWidth: STATION_ALERT_PILL_TARGET_WIDTH * plane.unit / (anchor.pill.scale || 1) }}
                     />
+                    {pings ? (
+                      // The pill's own transform on a group, so the ring
+                      // scales about the pill's centre in marker units.
+                      <g transform={anchor.pill.transform} aria-hidden="true" pointerEvents="none">
+                        <PillShape
+                          className={pingClass}
+                          pill={{ ...outsetStationPill(anchor.pill, STATION_ALERT_PILL_RING_GAP * plane.unit), transform: "" }}
+                          style={{
+                            ...pingStyle(1, STATION_ALERT_PING_PILL_SCALE),
+                            strokeWidth: STATION_ALERT_PILL_TARGET_WIDTH * plane.unit / (anchor.pill.scale || 1) / 2,
+                          }}
+                        />
+                      </g>
+                    ) : null}
                     <PillShape
                       className="station-impact-dot-red-glow station-impact-core--pill"
                       pill={anchor.pill}
@@ -138,6 +168,21 @@ export function MapStationAlertRings({
                       strokeWidth={anchor.coreRadius * STATION_IMPACT_BEACON_STROKE_RATIO}
                       pointerEvents="none"
                     />
+                    {pings ? (
+                      <circle
+                        className={pingClass}
+                        style={pingStyle(
+                          anchor.coreRadius / anchor.beaconRadius,
+                          1 + STATION_ALERT_PING_OVERSHOOT * anchor.coreRadius / anchor.beaconRadius,
+                        )}
+                        cx={anchor.center.x}
+                        cy={anchor.center.y}
+                        r={anchor.beaconRadius}
+                        strokeWidth={anchor.coreRadius * STATION_ALERT_PING_STROKE_RATIO}
+                        pointerEvents="none"
+                        aria-hidden="true"
+                      />
+                    ) : null}
                     <circle
                       className="station-impact-dot-red-glow"
                       style={color ? { fill: color, filter: glow(6), "--station-impact-glow": color } as CSSProperties : undefined}

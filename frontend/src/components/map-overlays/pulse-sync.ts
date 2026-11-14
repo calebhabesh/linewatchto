@@ -7,13 +7,15 @@ import { useLayoutEffect, type RefObject } from "react";
 export const MAP_PULSE_CYCLE_MS = 2400;
 
 /**
- * Alert overlays never animate (map-renderer-parity.md). The pulses that
- * remain, a commute preview and a selected station, share one clock.
+ * Alert overlays never move (map-renderer-parity.md). The pulses that remain,
+ * a commute preview, a selected station and the station alert beacon ping,
+ * share one clock, so every beacon pings together.
  */
 export const SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
   "aura-pulse",
   "map-overlay-rail-pulse",
   "station-selected-pulse",
+  "station-alert-beacon-ping",
 ]);
 
 /**

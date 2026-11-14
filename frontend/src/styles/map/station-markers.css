@@ -137,7 +137,8 @@
 
 /* ============================================================
    Section 4: Station Impact Core & Beacon
-   Alert overlays never animate, on either map (map-renderer-parity.md).
+   Alert overlays never move, on either map (map-renderer-parity.md); the
+   only idle motion is the beacon ping below, paint only.
    ============================================================ */
 .station-impact-dot-red-glow {
   fill: #ff3b30; /* Vivid bright red core */
@@ -153,6 +154,61 @@
   stroke: var(--station-impact-glow, #ff3b30);
   stroke-opacity: 0.65;
   pointer-events: none;
+}
+
+/* Beacon ping (StationAlertOverlays.tsx): a bright ring that swells from the
+   core past the beacon's edge (a pill hub's from its outline) and fades,
+   once per shared 2.4s pulse cycle (pulse-sync.ts), at current suspensions,
+   delays and speed zones. It fades out half a core radius past the beacon,
+   inside the gap badges keep from the alert (BADGE_FEATURE_GAPS.alertOverlay).
+   Only `scale` and opacity change on a small SVG child: no filter, no layer,
+   the same cost class as the glyph ripple, and like it it keeps running while
+   the camera moves on desktop. Hidden (display: none, no animation work)
+   under the same gates as the ripple: phones and coarse pointers, mobile
+   performance mode, Reduce Animations and the system reduced-motion
+   preference; the selected alert's flash replaces it; the hidden network's
+   map pauses it (motion.css). */
+.station-alert-beacon-ping {
+  display: none;
+  fill: none;
+  stroke: color-mix(in srgb, var(--station-impact-glow, #ff3b30) 72%, #ffffff);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .linewatch-shell:not(.mobile-performance-mode):not(.motion-paused) .station-alert-beacon-ping {
+    display: inline;
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: station-alert-beacon-ping calc(var(--map-overlay-pulse-half-cycle) * 2) linear infinite;
+    animation-delay: var(--map-pulse-offset);
+  }
+}
+
+/* The selected alert's flash replaces it; hidden, it keeps its phase. */
+.station-alert-beacon-ping.selected {
+  visibility: hidden;
+}
+
+/* Out to the beacon's edge (scale 1) still bright, then past it fading;
+   the rest of the cycle is still. */
+@keyframes station-alert-beacon-ping {
+  0% {
+    scale: var(--station-alert-ping-from, 0.5);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.3, 0.5, 0.5, 1);
+  }
+  45% {
+    scale: 1;
+    opacity: 0.85;
+    animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1);
+  }
+  72%,
+  100% {
+    scale: var(--station-alert-ping-to, 1.2);
+    opacity: 0;
+  }
 }
 
 /* ============================================================
