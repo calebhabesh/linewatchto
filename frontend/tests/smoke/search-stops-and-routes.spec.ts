@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { installDismissedTransientUi, setStubMode } from "./test-support";
+import { SEARCH_PLACEHOLDER } from "../../src/app/unified-search";
 
 // Plan 14, U8: the search paths a rider takes, on desktop and phone: a stop by
 // number, a stop by its two street names in either order, and a route number.
@@ -11,7 +12,7 @@ test.use({ serviceWorkers: "block" });
 function searchInput(page: Page, isMobile: boolean) {
   return isMobile
     ? page.getByRole("searchbox", { name: "Station Search" })
-    : page.getByPlaceholder(/Search all stations/);
+    : page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true });
 }
 
 async function openSearch(page: Page, isMobile: boolean) {

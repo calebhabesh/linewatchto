@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { installDismissedTransientUi, setStubMode } from "./test-support";
+import { SEARCH_PLACEHOLDER } from "../../src/app/unified-search";
 
 // Plan 14, U7: Back from a stop or route opened in search returns to the
 // results with the query, scroll and row kept, and ?stop= links open a stop.
@@ -12,7 +13,7 @@ test.use({ serviceWorkers: "block" });
 function searchInput(page: Page, isMobile: boolean) {
   return isMobile
     ? page.getByRole("searchbox", { name: "Station Search" })
-    : page.getByPlaceholder(/Search all stations/);
+    : page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true });
 }
 
 async function openSearch(page: Page, isMobile: boolean) {

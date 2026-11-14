@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { installDismissedTransientUi, setStubMode } from "./test-support";
+import { SEARCH_PLACEHOLDER } from "../../src/app/unified-search";
 
 // Plan 13, S3: a streetcar stop's departures, each time labelled live or scheduled.
 const STOP = { code: "100", lng: -79.400771, lat: 43.638947 };
@@ -53,7 +54,7 @@ test.describe("Surface stop departures on the Map View", () => {
     test.skip(isMobile, "Desktop search entry");
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
-    const input = page.getByPlaceholder(/Search all stations/);
+    const input = page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true });
     await input.click();
     await input.fill("100");
     // 100 is also a bus route (plan 14, U3): the route number leads and the stop is listed under Stops.
@@ -78,7 +79,7 @@ test.describe("Surface stop departures on the Map View", () => {
     const busesSwitch = page.locator("[data-bus-toggle]").first();
     await expect(busesSwitch).toHaveAttribute("data-checked", "false");
 
-    const input = page.getByPlaceholder(/Search all stations/);
+    const input = page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true });
     await input.click();
     await input.fill(busStop.code);
     await page.locator(`[data-search-group='stops'] [data-surface-stop-result='${busStop.code}']`).click();
@@ -111,7 +112,7 @@ test.describe("Surface stop departures on the Map View", () => {
     await expect(busesSwitch).toHaveAttribute("data-checked", "false");
     const mapSurface = geoMap.locator(':scope > [role="region"]');
 
-    const input = page.getByPlaceholder(/Search all stations/);
+    const input = page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true });
     await input.click();
     await input.fill("29");
     await page.locator("[data-search-group='routes'] [data-surface-route-result='ttc:29']").click();
@@ -165,7 +166,7 @@ test.describe("Surface stop departures on the Map View", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
     await expect(page.locator(".geographic-network-map")).toHaveAttribute("data-status", "ready", { timeout: 20_000 });
-    const search = page.getByPlaceholder(/Search all stations/);
+    const search = page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true });
     await search.click();
     await search.fill("29");
     await page.locator("[data-search-group='routes'] [data-surface-route-result='ttc:29']").click();
@@ -213,7 +214,7 @@ test.describe("Surface stop departures on the Map View", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
     await expect(page.locator(".geographic-network-map")).toHaveAttribute("data-status", "ready", { timeout: 20_000 });
-    const search = page.getByPlaceholder(/Search all stations/);
+    const search = page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true });
     await search.click();
     await search.fill(number);
     await page.locator(`[data-search-group='routes'] [data-surface-route-result='ttc:${number}']`).click();
@@ -302,7 +303,7 @@ test.describe("Surface stop departures on the Map View", () => {
     test.skip(isMobile, "Desktop search entry");
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
-    const input = page.getByPlaceholder(/Search all stations/);
+    const input = page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true });
     await input.click();
     await input.fill("503");
     await page.locator("[data-search-group='routes'] [data-surface-route-result='ttc:503']").click();
@@ -316,7 +317,7 @@ test.describe("Surface stop departures on the Map View", () => {
     test.skip(isMobile, "Desktop search entry");
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
-    const input = page.getByPlaceholder(/Search all stations/);
+    const input = page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true });
     await input.click();
     await input.fill("14999");
     await input.press("Enter");

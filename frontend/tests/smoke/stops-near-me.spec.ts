@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { installDismissedTransientUi, setStubMode } from "./test-support";
+import { SEARCH_PLACEHOLDER } from "../../src/app/unified-search";
 
 // Plan 14, U6: Stops Near Me with a mocked position (never a real one), and Recent Stops.
 // Stop 100 (Bathurst St at Fort York Blvd) and GO stop 00008 (Yonge St. @ Sheppard Ave.)
@@ -15,7 +16,7 @@ test.use({ serviceWorkers: "block" });
 async function openSearch(page: Page, isMobile: boolean) {
   const input = isMobile
     ? page.getByRole("searchbox", { name: "Station Search" })
-    : page.getByPlaceholder(/Search all stations/);
+    : page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true });
   await input.click();
   return input;
 }

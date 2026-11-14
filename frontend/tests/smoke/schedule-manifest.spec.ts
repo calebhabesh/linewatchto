@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "@playwright/test";
 import { installDismissedTransientUi, setStubMode } from "./test-support";
+import { SEARCH_PLACEHOLDER } from "../../src/app/unified-search";
 
 // Plan 16: with a schedule manifest, the Map View and search read the schedule-derived files
 // through its hashed URLs and never the release's copies; without one (every other spec, and
@@ -74,7 +75,7 @@ test.describe("Schedule manifest", () => {
 
     const input = isMobile
       ? page.getByRole("searchbox", { name: "Station Search" })
-      : page.getByPlaceholder(/Search all stations/);
+      : page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true });
     await input.click();
     await input.fill("100");
     await expect(page.locator("[data-search-group='stops']:visible [data-surface-stop-result='100']")).toBeVisible();

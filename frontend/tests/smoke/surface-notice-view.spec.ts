@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { installDismissedTransientUi, setStubMode } from "./test-support";
+import { SEARCH_PLACEHOLDER } from "../../src/app/unified-search";
 
 // Plan 15, L4: View on surface notices, and phone Back on the Layers sheet.
 // TTC notices are stubbed per test; the GO/UP stub serves a rail notice and a
@@ -332,7 +333,7 @@ test.describe("Notice View", () => {
   test("a notice result in search has View", async ({ page, isMobile }) => {
     await stubTtcNotices(page, [ROUTE_ONLY, NOT_DRAWN]);
     await openMap(page, "ttc");
-    const input = isMobile ? page.getByRole("searchbox", { name: "Station Search" }) : page.getByPlaceholder(/Search all stations/);
+    const input = isMobile ? page.getByRole("searchbox", { name: "Station Search" }) : page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true });
     await input.click();
     await input.fill("Temporary route change");
     const row = page.locator('.global-search-notice-row[data-notice-map-action="route-only"]');

@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { installDismissedTransientUi, setStubMode, waitForNetworkTransition } from "./test-support";
+import { SEARCH_PLACEHOLDER } from "../../src/app/unified-search";
 
 // Plan 13, S6: GO buses on the GO/UP Map View behind their own toggle, off by
 // default and remembered on the device. Stop 00008 is Yonge St. @ Sheppard Ave.
@@ -118,7 +119,7 @@ test.describe("GO buses on the GO/UP Map View", () => {
     await expect(geoMap).toHaveAttribute("data-network", "regional");
     const mapSurface = geoMap.locator(':scope > [role="region"]');
 
-    const input = page.getByPlaceholder(/Search all stations/);
+    const input = page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true });
     await input.click();
     await input.fill("67");
     await page.locator("[data-search-group='routes'] [data-surface-route-result='regional:67']").click();
@@ -143,7 +144,7 @@ test.describe("GO buses on the GO/UP Map View", () => {
     await setStubMode(request, "regional-live");
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
-    const input = page.getByPlaceholder(/Search all stations/);
+    const input = page.getByPlaceholder(SEARCH_PLACEHOLDER, { exact: true });
     await input.click();
     await input.fill("31");
     await page.locator("[data-search-group='routes'] [data-surface-route-result='regional:31']").click();
