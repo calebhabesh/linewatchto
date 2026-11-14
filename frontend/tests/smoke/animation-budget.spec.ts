@@ -53,9 +53,13 @@ test("diagram keeps every alert symbol at rest, selected or not, at the same gly
   await expect(page.locator("[data-system-map=ttc] .map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await expect(page.locator("[data-glyph-lane] > g").first()).toBeAttached();
   await expect(page.locator("[data-system-map=ttc] .map-stage animateMotion")).toHaveCount(0);
+  // The station beacon ping is the one idle loop (paint only; it moves
+  // nothing). No other overlay runs one at rest.
   await expect.poll(() => page.locator("[data-system-map=ttc] .map-stage").evaluate(element => element.getAnimations({ subtree: true })
-    .filter(animation => animation.playState === "running" && animation.effect?.getTiming().iterations === Infinity).length))
-    .toBe(0);
+    .filter(animation => animation.playState === "running" && animation.effect?.getTiming().iterations === Infinity)
+    .map(animation => ("animationName" in animation ? String(animation.animationName) : "unnamed"))
+    .filter(name => name !== "station-alert-beacon-ping")))
+    .toEqual([]);
   const corridor = page.locator('.overlay-segment-group[data-map-impact-id="reduced-speed-zone-stub-union-curve"]');
   const glyphs = corridor.locator("[data-glyph-lane] > g");
   const count = await glyphs.count();
