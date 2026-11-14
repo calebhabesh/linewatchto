@@ -1386,7 +1386,7 @@
 .site-guide-divider {
   border: 0;
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-  margin: 14px 0;
+  margin: 14px 0 0;
 }
 
 .site-guide-section:has(.site-guide-source-link) + .site-guide-divider {

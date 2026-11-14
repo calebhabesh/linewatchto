@@ -22,6 +22,7 @@ import {
 import { JsonLd } from "../../components/JsonLd";
 import { TransitLineBadge } from "../../components/TransitLineBadge";
 import { getLineWatchSiteOrigin } from "../seo";
+import { lineWatchSourceRepositoryUrl } from "../privacy-acknowledgements-data";
 import {
   adjacentStationsForGuideStation,
   regionalGuideRoutes,
@@ -445,7 +446,8 @@ function SourceDisclaimer({ networkSlug }: { networkSlug?: TransitGuideNetworkSl
         </div>
       </div>
       <p>
-        <strong>Unofficial:</strong> LineWatchTO is not a TTC or Metrolinx product. Static guide pages explain the mapped network; they are not a current service guarantee. The interactive dashboard identifies source and freshness and only presents supported current information when ingestion is fresh.
+        <strong>Unofficial:</strong> LineWatchTO is not a TTC or Metrolinx product. Static guide pages explain the mapped network; they are not a current service guarantee. The interactive dashboard identifies source and freshness and only presents supported current information when ingestion is fresh. LineWatchTO is{" "}
+        <a className={styles.link} href={lineWatchSourceRepositoryUrl} rel="noreferrer">open source on GitHub</a>.
       </p>
       <p>
         Check the official {networkSlug === "ttc" ? (

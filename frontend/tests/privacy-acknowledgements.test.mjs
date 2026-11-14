@@ -22,6 +22,17 @@ describe("privacy and acknowledgement content", () => {
     assert.match(copy, /does not mean it is working/);
   });
 
+  it("discloses the public MIT-licensed source without extending it to third-party terms", () => {
+    const section = acknowledgementSections.find((entry) => entry.title === "Open Source Code");
+    assert.ok(section, "open source has its own acknowledgement");
+    const copy = JSON.stringify(section);
+    assert.match(copy, /open source/);
+    assert.match(copy, /MIT license/);
+    assert.match(copy, /keep their own terms/);
+    const link = privacyAcknowledgementLinks.find((entry) => entry.label === "LineWatchTO on GitHub");
+    assert.equal(link?.href, "https://github.com/calebhabesh/linewatchto");
+  });
+
   it("credits the TTC and Metrolinx map references while keeping LineWatchTO clearly unofficial", () => {
     const combinedCopy = JSON.stringify(acknowledgementSections);
 

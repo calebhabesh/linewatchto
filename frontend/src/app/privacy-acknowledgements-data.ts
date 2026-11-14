@@ -10,6 +10,8 @@ export type NoticeLink = {
   description: string;
 };
 
+export const lineWatchSourceRepositoryUrl = "https://github.com/calebhabesh/linewatchto";
+
 export const acknowledgementSections: NoticeSection[] = [
   {
     title: "Unofficial Independent Project",
@@ -17,6 +19,14 @@ export const acknowledgementSections: NoticeSection[] = [
     bullets: [
       "LineWatchTO uses TTC service information only to help riders understand disruptions, saved-commute impacts, accessibility outages, and public notices.",
       "For travel decisions, riders should still confirm current service details with official TTC channels.",
+    ],
+  },
+  {
+    title: "Open Source Code",
+    body: "LineWatchTO is open source. Its code is public on GitHub under the MIT license, so anyone can read how the app handles alerts, accounts, saved commutes, and notifications, report issues, or contribute.",
+    bullets: [
+      "The MIT license covers project code and original documentation only. Transit data, TTC station plans, the re-created maps, and TTC, GO, UP Express, and Metrolinx names and marks keep their own terms.",
+      "Provider credentials, account data, and downloaded source responses are kept out of the public repository.",
     ],
   },
   {
@@ -104,6 +114,11 @@ export const dataPracticeSections: NoticeSection[] = [
 ];
 
 export const privacyAcknowledgementLinks: NoticeLink[] = [
+  {
+    label: "LineWatchTO on GitHub",
+    href: lineWatchSourceRepositoryUrl,
+    description: "LineWatchTO's public source code, MIT license, third-party notices, and issue tracker.",
+  },
   {
     label: "TTC GTFS Realtime Dataset",
     href: "https://open.toronto.ca/dataset/ttc-gtfs-realtime-gtfs-rt/",

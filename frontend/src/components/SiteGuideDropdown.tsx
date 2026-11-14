@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { lineWatchSourceRepositoryUrl } from "../app/privacy-acknowledgements-data";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import {
@@ -364,7 +365,7 @@ export function SiteGuideDropdown({
               </p>
               <a
                 className="site-guide-source-link"
-                href="https://github.com/calebhabesh/linewatchto"
+                href={lineWatchSourceRepositoryUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >

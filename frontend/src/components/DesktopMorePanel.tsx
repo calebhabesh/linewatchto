@@ -315,20 +315,6 @@ export function DesktopMorePanel({
             </div>
             <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
           </button>
-          <a href="/explore" className="desktop-more-nav-item">
-            <div className="desktop-more-nav-item-main">
-              <BookOpen size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
-              <span>Transit Guides</span>
-            </div>
-            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
-          </a>
-          <button type="button" className="desktop-more-nav-item" onClick={onOpenGuide}>
-            <div className="desktop-more-nav-item-main">
-              <Info size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
-              <span>Site Guide</span>
-            </div>
-            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
-          </button>
           <button type="button" className="desktop-more-nav-item" onClick={onShareApp}>
             <div className="desktop-more-nav-item-main">
               <Share2 size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
@@ -336,6 +322,20 @@ export function DesktopMorePanel({
             </div>
             <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
           </button>
+          <button type="button" className="desktop-more-nav-item" onClick={onOpenGuide}>
+            <div className="desktop-more-nav-item-main">
+              <Info size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              <span>Site Guide</span>
+            </div>
+            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
+          </button>
+          <a href="/explore" className="desktop-more-nav-item">
+            <div className="desktop-more-nav-item-main">
+              <BookOpen size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              <span>Transit Guides</span>
+            </div>
+            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
+          </a>
         </div>
       </section>
 
