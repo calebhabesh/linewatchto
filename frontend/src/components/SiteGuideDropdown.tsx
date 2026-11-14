@@ -8,6 +8,7 @@ import {
   Apple,
   Bus,
   Download,
+  ExternalLink,
   Earth,
   Info,
   Map as MapIcon,
@@ -361,6 +362,22 @@ export function SiteGuideDropdown({
               <p>
                 LineWatchTO covers TTC subway/LRT and GO/UP rail, showing alerts, delays, reduced speed zones, planned advisories, and station details across both networks. Save stations to My Stations and set up My Commutes to track how disruptions affect your regular routes. It displays live backend updates when ingestion is running, and falls back to demo fixtures otherwise.
               </p>
+              <a
+                className="site-guide-source-link"
+                href="https://github.com/calebhabesh/linewatchto"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
+                  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                </svg>
+                <span>
+                  <strong>LineWatchTO is open source on GitHub!</strong>
+                  <span>MIT licensed. Browse the code, report issues, or contribute.</span>
+                </span>
+                <ExternalLink size={13} aria-hidden="true" />
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>
             </GuideSection>
 
             <hr className="site-guide-divider" />
@@ -574,7 +591,7 @@ export function SiteGuideDropdown({
             <div className="site-guide-note">
               <AlertTriangle size={14} aria-hidden="true" />
               <p>
-                LineWatchTO is a personal project, not an official TTC or Metrolinx app. Always verify critical travel decisions with official TTC and GO Transit sources.
+                LineWatchTO is an open-source personal project, not an official TTC or Metrolinx app. Always verify critical travel decisions with official TTC and GO Transit sources.
               </p>
             </div>
           </div>
