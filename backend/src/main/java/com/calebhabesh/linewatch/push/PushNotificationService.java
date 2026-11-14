@@ -349,6 +349,27 @@ public class PushNotificationService {
         return preferenceService.updatePreferences(account, request);
     }
 
+    /**
+     * The state of one of the account's endpoints, without changing it. A periodic
+     * background check uses it: the browser can keep an endpoint for days after the
+     * push service answered 410, and a re-save would re-enable an endpoint the rider
+     * turned off, so the worker asks first and replaces only a {@code gone} one.
+     */
+    @Transactional(readOnly = true)
+    public PushResponses.PushSubscriptionStatusResponse subscriptionStatus(
+        AccountEntity account,
+        PushRequests.SubscriptionEndpointRequest request
+    ) {
+        String endpointHash = hashEndpoint(endpointPolicy.requireAllowed(request.endpoint()));
+        String state = subscriptionRepository.findByAccountIdAndEndpointHash(account.getId(), endpointHash)
+            .map(subscription -> {
+                if (subscription.isEnabled()) return "enabled";
+                return isHardInvalidReason(subscription.getDisabledReason()) ? "gone" : "disabled";
+            })
+            .orElse("unknown");
+        return new PushResponses.PushSubscriptionStatusResponse(state);
+    }
+
     @Transactional
     public void disableSubscription(AccountEntity account, PushRequests.SubscriptionEndpointRequest request) {
         String endpointHash = hashEndpoint(endpointPolicy.requireAllowed(request.endpoint()));

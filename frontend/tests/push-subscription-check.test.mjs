@@ -44,6 +44,11 @@ describe("push subscription check", () => {
       [{ hasSubscription: false, savedEndpointHash: "aaa", currentEndpointHash: null }, "restore"],
       // A rider who turned the device off cleared the saved hash: never restore.
       [{ hasSubscription: false, savedEndpointHash: undefined, currentEndpointHash: null }, "none"],
+      // The periodic sync asks the server about an unchanged endpoint; nothing else does.
+      [{ hasSubscription: true, savedEndpointHash: "aaa", currentEndpointHash: "aaa", verifyUnchanged: true }, "verify"],
+      [{ hasSubscription: true, savedEndpointHash: "aaa", currentEndpointHash: "bbb", verifyUnchanged: true }, "save"],
+      [{ hasSubscription: false, savedEndpointHash: "aaa", currentEndpointHash: null, verifyUnchanged: true }, "restore"],
+      [{ hasSubscription: true, savedEndpointHash: undefined, currentEndpointHash: "bbb", verifyUnchanged: true }, "none"],
     ];
     for (const [input, expected] of cases) {
       assert.equal(page.subscriptionCheckAction(input), expected, JSON.stringify(input));

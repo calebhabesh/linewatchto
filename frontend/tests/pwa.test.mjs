@@ -510,6 +510,110 @@ async function serviceWorkerPushSubscriptionChange({
   return { fetchRequests, subscribeCalls, storage };
 }
 
+// Fires the periodic background sync with the browser still holding
+// `currentEndpoint`; `statusState` is what the server reports for it.
+async function serviceWorkerPeriodicSync({
+  currentEndpoint = "https://fcm.googleapis.com/fcm/send/saved-subscription",
+  savedSubscriptionState,
+  statusState = "enabled",
+  statusOk = true,
+  saveBody = { enabled: true },
+  subscribeResult = fakePushSubscription("https://fcm.googleapis.com/fcm/send/replacement"),
+  permission = "granted",
+  tag = "linewatch-subscription-check",
+} = {}) {
+  const listeners = new Map();
+  const fetchRequests = [];
+  const subscribeCalls = [];
+  const operations = [];
+  let identityResponse = null;
+  let current = currentEndpoint ? fakePushSubscription(currentEndpoint) : null;
+  if (current) {
+    current.unsubscribe = async () => {
+      operations.push("unsubscribe");
+      current = null;
+      return true;
+    };
+  }
+  const bodies = {
+    "/api/account/push/subscription/status": { state: statusState },
+    "/api/account/push/config": { webPushAvailable: true, vapidPublicKey: "AQIDBA" },
+    "/api/account/push/subscription": saveBody,
+  };
+  const context = {
+    URL,
+    Promise,
+    Response: globalThis.Response,
+    Uint8Array,
+    atob: (value) => Buffer.from(value, "base64").toString("binary"),
+    caches: {
+      keys: async () => [],
+      delete: async () => true,
+      match: async () => undefined,
+      open: async () => ({
+        addAll: async () => undefined,
+        match: async () => identityResponse,
+        put: async (_key, response) => {
+          identityResponse = response;
+        },
+      }),
+    },
+    fetch: async (url, options = {}) => {
+      fetchRequests.push({ url, options });
+      operations.push(`fetch:${url}`);
+      const ok = url === "/api/account/push/subscription/status" ? statusOk : true;
+      return { ok, status: ok ? 200 : 401, json: async () => bodies[url] ?? {} };
+    },
+    self: {
+      location: new URL("https://linewatch.test/sw.js"),
+      Notification: { permission },
+      crypto: {
+        randomUUID: () => "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324",
+      },
+      addEventListener: (type, listener) => {
+        listeners.set(type, listener);
+      },
+      skipWaiting: async () => undefined,
+      clients: {
+        claim: async () => undefined,
+        matchAll: async () => [],
+        openWindow: async () => undefined,
+      },
+      registration: {
+        pushManager: {
+          getSubscription: async () => current,
+          subscribe: async (options) => {
+            subscribeCalls.push(options);
+            operations.push("subscribe");
+            current = subscribeResult;
+            return subscribeResult;
+          },
+        },
+        showNotification: async () => undefined,
+      },
+    },
+  };
+
+  const storage = installSharedSubscriptionCheck(context, savedSubscriptionState);
+  runInNewContext(serviceWorkerSource, context, { filename: "sw.js" });
+
+  const periodicSyncListener = listeners.get("periodicsync");
+  assert.equal(typeof periodicSyncListener, "function");
+  const waitUntilPromises = [];
+  periodicSyncListener({
+    tag,
+    waitUntil: (promise) => {
+      waitUntilPromises.push(Promise.resolve(promise));
+    },
+  });
+  await Promise.all(waitUntilPromises);
+
+  const stages = fetchRequests
+    .filter((request) => request.url === "/api/account/push/subscription/worker-stage")
+    .map((request) => JSON.parse(request.options.body));
+  return { fetchRequests, subscribeCalls, operations, storage, stages };
+}
+
 async function serviceWorkerMessage({
   fetchBody = {
     activeTags: ["saved-commute-impact|commute_1|dedupe-1|active"],
@@ -980,6 +1084,97 @@ describe("LineWatch PWA configuration", () => {
     });
 
     assert.equal(fetchRequests.some((request) => request.url === "/api/account/push/subscription"), false);
+  });
+
+  // Production, 2026-11-09 to 11-12: the push service answered 410, the server
+  // disabled the endpoint, and Chrome kept handing the worker that same
+  // endpoint, so daily checks did nothing for three days.
+  it("replaces an unchanged endpoint the server reports gone during the periodic sync", async () => {
+    const goneEndpoint = "https://fcm.googleapis.com/fcm/send/saved-subscription";
+    const goneHash = await sha256Hex(goneEndpoint);
+    const { fetchRequests, operations, subscribeCalls, storage, stages } = await serviceWorkerPeriodicSync({
+      savedSubscriptionState: { endpointHash: goneHash, displayMode: "standalone" },
+      statusState: "gone",
+    });
+
+    const status = fetchRequests.find((request) => request.url === "/api/account/push/subscription/status");
+    assert.equal(JSON.parse(status.options.body).endpoint, goneEndpoint);
+    // Asks before acting, and never re-saves the gone endpoint itself.
+    const saves = fetchRequests.filter((request) => request.url === "/api/account/push/subscription");
+    assert.equal(saves.length, 1);
+    const saved = JSON.parse(saves[0].options.body);
+    assert.equal(saved.endpoint, "https://fcm.googleapis.com/fcm/send/replacement");
+    assert.equal(saved.reason, "invalid-endpoint-replacement");
+    assert.equal(saved.previousEndpointHash, goneHash);
+    assert.equal(saved.displayMode, "standalone");
+    // Still subscribed, the browser would hand back the dead endpoint: unsubscribe first.
+    assert.ok(operations.indexOf("unsubscribe") < operations.indexOf("subscribe"));
+    assert.equal(subscribeCalls.length, 1);
+    assert.equal(subscribeCalls[0].userVisibleOnly, true);
+    assert.equal(storage.state.endpointHash, await sha256Hex("https://fcm.googleapis.com/fcm/send/replacement"));
+    assert.deepEqual(stages.map((stage) => stage.stage), ["periodic-sync-fired", "check-replaced"]);
+    assert.equal(stages[1].message, "periodic-sync: invalid-endpoint-replacement");
+  });
+
+  for (const statusState of ["enabled", "disabled", "unknown"]) {
+    it(`leaves an unchanged endpoint the server reports ${statusState} alone`, async () => {
+      // "disabled" covers a rider who turned the device off on the dashboard:
+      // re-saving would switch it back on.
+      const { fetchRequests, operations, stages } = await serviceWorkerPeriodicSync({
+        savedSubscriptionState: { endpointHash: await sha256Hex("https://fcm.googleapis.com/fcm/send/saved-subscription") },
+        statusState,
+      });
+
+      assert.equal(fetchRequests.some((request) => request.url === "/api/account/push/subscription"), false);
+      assert.equal(operations.includes("unsubscribe"), false);
+      assert.equal(operations.includes("subscribe"), false);
+      assert.deepEqual(stages.map((stage) => stage.stage), ["periodic-sync-fired"]);
+    });
+  }
+
+  it("reports a status check the server could not answer and keeps the endpoint", async () => {
+    const { operations, stages } = await serviceWorkerPeriodicSync({
+      savedSubscriptionState: { endpointHash: await sha256Hex("https://fcm.googleapis.com/fcm/send/saved-subscription") },
+      statusOk: false,
+    });
+
+    assert.equal(operations.includes("unsubscribe"), false);
+    assert.deepEqual(stages.map((stage) => stage.stage), ["periodic-sync-fired", "check-failed"]);
+    assert.equal(stages[1].message, "periodic-sync: status unavailable");
+  });
+
+  it("keeps a gone endpoint without notification permission", async () => {
+    const { operations, stages } = await serviceWorkerPeriodicSync({
+      savedSubscriptionState: { endpointHash: await sha256Hex("https://fcm.googleapis.com/fcm/send/saved-subscription") },
+      statusState: "gone",
+      permission: "denied",
+    });
+
+    assert.equal(operations.includes("unsubscribe"), false);
+    assert.equal(operations.includes("subscribe"), false);
+    assert.deepEqual(stages.map((stage) => stage.stage), ["periodic-sync-fired"]);
+  });
+
+  it("does not ask the server about a device that never saved a subscription", async () => {
+    const { fetchRequests } = await serviceWorkerPeriodicSync({ savedSubscriptionState: null, statusState: "gone" });
+
+    assert.deepEqual(fetchRequests.map((request) => request.url), ["/api/account/push/subscription/worker-stage"]);
+  });
+
+  it("asks the server only during the periodic sync, not when a push arrives", async () => {
+    const { fetchRequests } = await serviceWorkerPush({
+      pushData: {
+        title: "⚠️ Line 1 Yonge-University Delay",
+        body: "Finch to Union.",
+        url: "/",
+        tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+        state: "ACTIVE",
+        timestamp: "2026-06-05T15:00:00Z",
+      },
+      savedSubscriptionState: { endpointHash: await sha256Hex("https://fcm.googleapis.com/fcm/send/subscription") },
+    });
+
+    assert.equal(fetchRequests.some((request) => request.url === "/api/account/push/subscription/status"), false);
   });
 
   it("refreshes a catch-up alert already in the tray without alerting again", async () => {

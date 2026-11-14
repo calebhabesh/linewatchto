@@ -178,6 +178,18 @@ class PushNotificationControllerTest {
     }
 
     @Test
+    void reportsSubscriptionStatusForCurrentAccount() {
+        PushRequests.SubscriptionEndpointRequest request = new PushRequests.SubscriptionEndpointRequest(
+            "https://fcm.googleapis.com/fcm/send/subscription"
+        );
+        PushResponses.PushSubscriptionStatusResponse expected = new PushResponses.PushSubscriptionStatusResponse("gone");
+        when(accountService.requireAccount("raw-token")).thenReturn(account);
+        when(pushNotificationService.subscriptionStatus(account, request)).thenReturn(expected);
+
+        assertThat(controller.subscriptionStatus("raw-token", request)).isEqualTo(expected);
+    }
+
+    @Test
     void marksPayloadNotificationDisplayedForCurrentSubscription() {
         PushRequests.DisplayedNotificationRequest request = new PushRequests.DisplayedNotificationRequest(
             "https://fcm.googleapis.com/fcm/send/subscription",

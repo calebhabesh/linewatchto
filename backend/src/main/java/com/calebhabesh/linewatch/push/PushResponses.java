@@ -133,6 +133,13 @@ public final class PushResponses {
         }
     }
 
+    /**
+     * What the server knows about one of the account's endpoints: {@code enabled},
+     * {@code gone} (the push service answered 404/410), {@code disabled} for any
+     * other reason (rider, replacement, another account), or {@code unknown}.
+     */
+    public record PushSubscriptionStatusResponse(String state) {}
+
     public record PushSubscriptionResponse(
         String id,
         boolean enabled,

@@ -54,6 +54,16 @@ public class PushNotificationController {
         return pushNotificationService.saveSubscription(account, request);
     }
 
+    /** Read-only: lets the service worker learn the push service has dropped its endpoint. */
+    @PostMapping("/subscription/status")
+    public PushResponses.PushSubscriptionStatusResponse subscriptionStatus(
+        @SessionToken String rawSessionToken,
+        @RequestBody PushRequests.SubscriptionEndpointRequest request
+    ) {
+        AccountEntity account = accountService.requireAccount(rawSessionToken);
+        return pushNotificationService.subscriptionStatus(account, request);
+    }
+
     @PostMapping("/subscription/worker-stage")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void recordWorkerStage(

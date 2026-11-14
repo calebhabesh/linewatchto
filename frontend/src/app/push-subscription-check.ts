@@ -35,10 +35,12 @@ export function subscriptionCheckAction(input: {
   hasSubscription: boolean;
   savedEndpointHash: string | null | undefined;
   currentEndpointHash: string | null | undefined;
-}): "none" | "save" | "restore" {
+  verifyUnchanged?: boolean;
+}): "none" | "save" | "restore" | "verify" {
   if (!input.hasSubscription) return input.savedEndpointHash ? "restore" : "none";
   if (!input.savedEndpointHash) return "none";
-  return input.savedEndpointHash === input.currentEndpointHash ? "none" : "save";
+  if (input.savedEndpointHash !== input.currentEndpointHash) return "save";
+  return input.verifyUnchanged ? "verify" : "none";
 }
 
 type UserAgentBrands = { brands?: { brand?: string; version?: string }[] } | undefined;

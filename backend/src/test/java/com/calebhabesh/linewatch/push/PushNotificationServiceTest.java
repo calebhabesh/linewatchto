@@ -766,6 +766,66 @@ class PushNotificationServiceTest {
     }
 
     @Test
+    void subscriptionStatusReportsGoneOnlyForPushServiceRejectionsWithoutChangingAnything() {
+        PushSubscriptionEntity gone = statusSubscription("https://fcm.googleapis.com/fcm/send/gone");
+        gone.disable(Instant.parse("2026-06-05T14:30:00Z"), "push-service-410");
+        PushSubscriptionEntity notFound = statusSubscription("https://fcm.googleapis.com/fcm/send/not-found");
+        notFound.disable(Instant.parse("2026-06-05T14:30:00Z"), "push-service-404");
+        // The rider turned this device off from the dashboard: never "gone", so the worker leaves it off.
+        PushSubscriptionEntity riderDisabled = statusSubscription("https://fcm.googleapis.com/fcm/send/rider");
+        riderDisabled.disable(Instant.parse("2026-06-05T14:30:00Z"), "dashboard-disable");
+        PushSubscriptionEntity superseded = statusSubscription("https://fcm.googleapis.com/fcm/send/superseded");
+        superseded.disable(Instant.parse("2026-06-05T14:30:00Z"), "superseded-by-installation");
+        PushSubscriptionEntity enabled = statusSubscription("https://fcm.googleapis.com/fcm/send/enabled");
+
+        assertThat(service.subscriptionStatus(account, statusRequest(gone)).state()).isEqualTo("gone");
+        assertThat(service.subscriptionStatus(account, statusRequest(notFound)).state()).isEqualTo("gone");
+        assertThat(service.subscriptionStatus(account, statusRequest(riderDisabled)).state()).isEqualTo("disabled");
+        assertThat(service.subscriptionStatus(account, statusRequest(superseded)).state()).isEqualTo("disabled");
+        assertThat(service.subscriptionStatus(account, statusRequest(enabled)).state()).isEqualTo("enabled");
+        assertThat(service.subscriptionStatus(
+            account,
+            new PushRequests.SubscriptionEndpointRequest("https://fcm.googleapis.com/fcm/send/elsewhere")
+        ).state()).isEqualTo("unknown");
+
+        assertThat(gone.isEnabled()).isFalse();
+        assertThat(riderDisabled.getDisabledReason()).isEqualTo("dashboard-disable");
+        verify(subscriptionRepository, never()).save(any(PushSubscriptionEntity.class));
+        verifyNoInteractions(lifecycleService, webPushClient);
+    }
+
+    @Test
+    void subscriptionStatusRejectsEndpointsOutsideThePushServices() {
+        assertThatThrownBy(() -> service.subscriptionStatus(
+            account,
+            new PushRequests.SubscriptionEndpointRequest("https://attacker.example/push")
+        )).isInstanceOf(com.calebhabesh.linewatch.account.AccountException.class);
+        verifyNoInteractions(subscriptionRepository);
+    }
+
+    private PushSubscriptionEntity statusSubscription(String endpoint) {
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_" + Integer.toHexString(endpoint.hashCode()),
+            account,
+            endpoint,
+            PushNotificationService.hashEndpoint(endpoint),
+            "p256dh",
+            "auth",
+            "Chrome Android",
+            "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324",
+            "refreshed",
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        when(subscriptionRepository.findByAccountIdAndEndpointHash("user_1", PushNotificationService.hashEndpoint(endpoint)))
+            .thenReturn(Optional.of(subscription));
+        return subscription;
+    }
+
+    private static PushRequests.SubscriptionEndpointRequest statusRequest(PushSubscriptionEntity subscription) {
+        return new PushRequests.SubscriptionEndpointRequest(subscription.getEndpoint());
+    }
+
+    @Test
     void rejectsArbitraryPushEndpointBeforePersistence() {
         assertThatThrownBy(() -> service.saveSubscription(
             account,

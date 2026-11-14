@@ -20,11 +20,15 @@
 
   // What a background check (worker wake, push, periodic sync) should do.
   // "restore" only when this device had saved an endpoint and the browser
-  // dropped it; the page owns first enablement and rider choices.
+  // dropped it; the page owns first enablement and rider choices. With
+  // verifyUnchanged (the periodic sync), an unchanged endpoint is "verify":
+  // ask the server, because the browser can hold an endpoint for days after
+  // the push service answered 410.
   function subscriptionCheckAction(input) {
     if (!input.hasSubscription) return input.savedEndpointHash ? "restore" : "none";
     if (!input.savedEndpointHash) return "none";
-    return input.savedEndpointHash === input.currentEndpointHash ? "none" : "save";
+    if (input.savedEndpointHash !== input.currentEndpointHash) return "save";
+    return input.verifyUnchanged ? "verify" : "none";
   }
 
   function browserMajorVersion(userAgent, userAgentData) {

@@ -790,7 +790,10 @@ async function handlePushSubscriptionChange(event) {
 
 // The background subscription check (worker wake, push received, periodic
 // sync): save only when the browser's endpoint differs from the one this
-// device last saved, or restore one the browser dropped.
+// device last saved, or restore one the browser dropped. The periodic sync
+// also asks the server about an unchanged endpoint: Chrome on Android kept
+// endpoints the push service had answered 410 for up to three days
+// (2026-11-09 to 11-12), and the phone got nothing until Chrome dropped them.
 async function checkPushSubscription(trigger) {
   const check = self.LineWatchPushSubscriptionCheck;
   if (isDev || !check || !self.registration?.pushManager) return;
@@ -802,18 +805,75 @@ async function checkPushSubscription(trigger) {
       hasSubscription: Boolean(subscription),
       savedEndpointHash: saved?.endpointHash,
       currentEndpointHash,
+      verifyUnchanged: trigger === "periodic-sync",
     });
     if (action === "none") return;
     const outcome = action === "save"
       ? await saveCheckedSubscription(subscription, saved, "")
-      : await restoreDroppedSubscription("");
+      : action === "verify"
+        ? await replaceGoneSubscription(subscription, saved)
+        : await restoreDroppedSubscription("");
     if (outcome.saved) {
-      await reportWorkerStage(action === "save" ? "check-replaced" : "check-restored", `${trigger}: ${outcome.reason}`, outcome.endpoint);
-    } else if (outcome.detail !== "not-restorable") {
+      await reportWorkerStage(action === "restore" ? "check-restored" : "check-replaced", `${trigger}: ${outcome.reason}`, outcome.endpoint);
+    } else if (outcome.detail !== "not-restorable" && outcome.detail !== "not-gone") {
       await reportWorkerStage("check-failed", `${trigger}: ${outcome.detail}`, outcome.endpoint);
     }
   } catch (error) {
     await reportWorkerStage("check-failed", `${trigger}: ${clientEventErrorMessage(error)}`);
+  }
+}
+
+// Replaces an endpoint only when the server says the push service rejected
+// it (404/410). It never re-saves first: that would re-enable an endpoint the
+// rider turned off on the dashboard. A browser that is still subscribed hands
+// back the same endpoint from subscribe(), so it unsubscribes first.
+async function replaceGoneSubscription(subscription, saved) {
+  const state = await fetchSubscriptionState(subscription.endpoint);
+  if (state === null) return { saved: false, detail: "status unavailable", endpoint: subscription.endpoint };
+  if (state !== "gone") return { saved: false, detail: "not-gone" };
+  if (self.Notification && self.Notification.permission !== "granted") {
+    return { saved: false, detail: "not-restorable" };
+  }
+  const config = await fetchPushConfigForSubscriptionRepair();
+  if (!config?.webPushAvailable || typeof config.vapidPublicKey !== "string" || config.vapidPublicKey.length === 0) {
+    return { saved: false, detail: "gone; push config unavailable", endpoint: subscription.endpoint };
+  }
+  const check = self.LineWatchPushSubscriptionCheck;
+  const goneEndpointHash = await check.endpointHash(subscription.endpoint);
+  await subscription.unsubscribe();
+  // If this fails, the next check finds no subscription and restores one.
+  const replacement = await self.registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: base64UrlToUint8Array(config.vapidPublicKey),
+  });
+  const reason = "invalid-endpoint-replacement";
+  const result = await saveChangedPushSubscription(replacement, reason, goneEndpointHash, saved?.displayMode);
+  if (result.status !== "saved") {
+    return { saved: false, detail: `gone; ${result.detail}`, endpoint: replacement.endpoint };
+  }
+  await check.writeSavedSubscriptionState({
+    endpointHash: await check.endpointHash(replacement.endpoint),
+    savedAt: new Date().toISOString(),
+  });
+  return { saved: true, reason, endpoint: replacement.endpoint };
+}
+
+// "enabled", "gone", "disabled" or "unknown"; null when the server can't say
+// (signed out, offline), which never triggers a replacement.
+async function fetchSubscriptionState(endpoint) {
+  try {
+    const response = await fetch("/api/account/push/subscription/status", {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json", "accept": "application/json" },
+      body: JSON.stringify({ endpoint }),
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    const body = await response.json();
+    return typeof body?.state === "string" ? body.state : null;
+  } catch {
+    return null;
   }
 }
 
