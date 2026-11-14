@@ -6,6 +6,8 @@ import { AlertCircle, AlertTriangle, ArrowRight, BadgeInfo, Bus, ChevronDown, Co
 import Image from "next/image";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
+import type { StationPanelPosition } from "../app/station-panel-position";
+import { useStationPanelRestore } from "../hooks/useStationPanelRestore";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import {
   isRegionalStationWheelchairAccessible,
@@ -89,6 +91,9 @@ type Props = {
   accessibilityOutages: AccessibilityOutageDetail[];
   accessibilityFresh: boolean;
   reducedMotion?: boolean;
+  /** Where the rider left this panel for one of its impacts; Back restores it. */
+  restorePosition?: StationPanelPosition | null;
+  onRestorePositionApplied?: () => void;
 };
 
 type RegionalStationImpact = {
@@ -297,6 +302,8 @@ export function RegionalStationDetailPanel({
   accessibilityOutages,
   accessibilityFresh,
   reducedMotion = false,
+  restorePosition,
+  onRestorePositionApplied,
 }: Props) {
   const { pinnedLineIds, togglePin } = useArrivalLinePins("regional", station.id);
   const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
@@ -304,6 +311,8 @@ export function RegionalStationDetailPanel({
   const [expandedArrivalGroups, setExpandedArrivalGroups] = useState<ReadonlySet<string>>(() => new Set());
 
   const dashboard = useDashboardData();
+  const scrollBodyRef = useRef<HTMLDivElement>(null);
+  useStationPanelRestore(scrollBodyRef, restorePosition, true, onRestorePositionApplied);
   const [isClosing, setIsClosing] = useState(false);
   const { sheetRef, isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
   const [arrivalTick, setArrivalTick] = useState(() => Date.now());
@@ -743,7 +752,7 @@ export function RegionalStationDetailPanel({
             onJumpToSection={handleJumpToSection}
           />
 
-          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto md:mt-3.5 mt-2 pb-3 station-detail-scroll station-detail-section-stack">
+          <div ref={scrollBodyRef} className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto md:mt-3.5 mt-2 pb-3 station-detail-scroll station-detail-section-stack">
             {impacts.length > 0 && (
               <StationDisruptionSummary
                 badges={disruptionGroups.map((group) => ({

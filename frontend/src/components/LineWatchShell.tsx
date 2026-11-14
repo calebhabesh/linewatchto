@@ -650,6 +650,9 @@ export function LineWatchShell({
     activeViewRef,
     selectedStationIdRef,
     stationDrilldownOriginRef,
+    stationDrilldownOrigin,
+    stationPanelRestore,
+    clearStationPanelRestore,
     selectionRef,
     selectionBackBehaviorRef,
     commutePathPreviewRef,
@@ -2492,15 +2495,22 @@ export function LineWatchShell({
     && desktopMapFocus.attentionGeneration === selectionAttentionGeneration
     && desktopMapFocus.selection.kind === selection?.kind
     && desktopMapFocus.selection.id === selection?.id;
-  const handleReturnImpactToMap = desktopImpactIsMapFocused
-    ? () => handleMapSelectImpact(null)
-    : impactBackContext ? handleImpactStepBack : undefined;
+  // A card opened from a station's details (View Details) steps back to that
+  // station, as the panel's Back does: the alert clears, the station stays.
+  const impactOpenedFromStation = Boolean(stationDrilldownOrigin && selection);
+  const handleReturnImpactToMap = impactOpenedFromStation
+    ? handleImpactStepBack
+    : desktopImpactIsMapFocused
+      ? () => handleMapSelectImpact(null)
+      : impactBackContext ? handleImpactStepBack : undefined;
   // An impact opened from search steps back to the search results, not the map.
-  const impactReturnLabel = desktopImpactIsMapFocused
-    ? "Back to Map"
-    : impactBackContext?.origin.activeView === "search"
-      ? "Back to Search Results"
-      : impactBackContext?.origin.activeView === "alert-history" ? "Back to Alert History" : "Back to Map";
+  const impactReturnLabel = impactOpenedFromStation
+    ? "Back to Station"
+    : desktopImpactIsMapFocused
+      ? "Back to Map"
+      : impactBackContext?.origin.activeView === "search"
+        ? "Back to Search Results"
+        : impactBackContext?.origin.activeView === "alert-history" ? "Back to Alert History" : "Back to Map";
 
   const handleSearchSelectStation = (stationId: string, networkId: NetworkId) => {
     if (searchClosingTimeoutRef.current) {
@@ -3526,6 +3536,8 @@ export function LineWatchShell({
               selectedStationName={stationSummaries.find((station) => station.id === selectedStationId)?.name}
               onClose={() => closeSelectedStation(selectedStationId)}
               onSelectImpact={handleStationSelectImpact}
+              restorePosition={stationPanelRestore?.stationId === selectedStationId ? stationPanelRestore : null}
+              onRestorePositionApplied={clearStationPanelRestore}
               reducedMotion={reducedMotion}
               authenticated={accountState.authenticated || accountState.source === "unavailable"}
               saved={savedStationIds.has(selectedStationId)}
@@ -3550,6 +3562,8 @@ export function LineWatchShell({
             reducedMotion={reducedMotion}
             onClose={() => closeSelectedStation(selectedStationId)}
             onSelectImpact={handleStationSelectImpact}
+              restorePosition={stationPanelRestore?.stationId === selectedStationId ? stationPanelRestore : null}
+              onRestorePositionApplied={clearStationPanelRestore}
             authenticated={accountState.authenticated || accountState.source === "unavailable"}
             saved={savedStationIds.has(selectedStationId)}
             savePending={pendingSavedStationIds.has(selectedStationId)}
@@ -4568,6 +4582,8 @@ export function LineWatchShell({
           selectedStationName={stationSummaries.find((station) => station.id === selectedStationId)?.name}
           onClose={() => closeSelectedStation(selectedStationId)}
           onSelectImpact={handleStationSelectImpact}
+              restorePosition={stationPanelRestore?.stationId === selectedStationId ? stationPanelRestore : null}
+              onRestorePositionApplied={clearStationPanelRestore}
           reducedMotion={reducedMotion}
           authenticated={accountState.authenticated || accountState.source === "unavailable"}
           saved={savedStationIds.has(selectedStationId)}
@@ -4592,6 +4608,8 @@ export function LineWatchShell({
           reducedMotion={reducedMotion}
           onClose={() => closeSelectedStation(selectedStationId)}
           onSelectImpact={handleStationSelectImpact}
+              restorePosition={stationPanelRestore?.stationId === selectedStationId ? stationPanelRestore : null}
+              onRestorePositionApplied={clearStationPanelRestore}
           authenticated={accountState.authenticated || accountState.source === "unavailable"}
           saved={savedStationIds.has(selectedStationId)}
           savePending={pendingSavedStationIds.has(selectedStationId)}

@@ -3300,6 +3300,13 @@ test("station detail shows accessibility facilities and active outage warning", 
   const activeClosureImpact = stationPanel.locator("#station-impact-stub-closure-line-1");
   await expect(activeClosureImpact.getByText("Active Closure", { exact: true })).toBeVisible();
   await expect(activeClosureImpact.getByText("Planned Advisory", { exact: true })).toHaveCount(0);
+  // A section the rider opened (Accessibility starts closed) stays open on Back.
+  if (!isMobile) {
+    await stationPanel.locator('details[data-station-section="accessibility"] > summary').click();
+    await expect(stationPanel.locator('details[data-station-section="accessibility"]')).toHaveJSProperty("open", true);
+    await activeClosureImpact.scrollIntoViewIfNeeded();
+  }
+  const stationScrollTop = await stationPanel.locator(".station-detail-scroll").evaluate((scroller) => scroller.scrollTop);
   await activeClosureImpact.getByRole("button", { name: "Open Active Closure details" }).click();
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');
@@ -3307,7 +3314,23 @@ test("station detail shows accessibility facilities and active outage warning", 
     await inspector.getByRole("button", { name: "View in List" }).click();
   }
   await expect(page.getByRole("heading", { name: "Suspensions" })).toBeVisible();
-  await expect(page.locator('[data-impact-card-id="stub-active-closure-child-line-1"]')).toBeVisible();
+  const openedCard = page.locator('[data-impact-card-id="stub-active-closure-child-line-1"]');
+  await expect(openedCard).toBeVisible();
+  if (isMobile) return;
+
+  // Desktop: the card opened from the station is the active one, so its map
+  // button reads Back, and Back returns to the station where the rider was
+  // (scroll offset, the sections they opened) with the alert cleared.
+  expect(stationScrollTop).toBeGreaterThan(100);
+  const cardBack = openedCard.locator(".impact-card-map-btn");
+  await expect(cardBack).toHaveText("Back");
+  await expect(cardBack).toHaveAttribute("title", "Back to Station");
+  await cardBack.click();
+  await expect(page.getByRole("heading", { name: "Suspensions" })).toHaveCount(0);
+  const returnedScroller = page.locator(".station-detail-scroll");
+  await expect(returnedScroller.locator('details[data-station-section="accessibility"]')).toHaveJSProperty("open", true);
+  await expect.poll(() => returnedScroller.evaluate((scroller) => scroller.scrollTop)).toBe(stationScrollTop);
+  await expect(page.locator("[data-station-impact-selection-id]")).toHaveCount(0);
 });
 
 test("LineLegend clicks open a temporary line-focused view without highlighting a card", async ({ page, request, isMobile }) => {
@@ -4424,7 +4447,7 @@ test("global search opens a condensed alert result in its detailed card and mobi
   await page.getByRole("searchbox", { name: "Station Search" }).click();
 
   const searchbox = page.getByRole("searchbox", { name: "Station Search" });
-  await expect(searchbox).toHaveAttribute("placeholder", /^Search (all )?stations, routes,( and)? alerts\.\.\.$/);
+  await expect(searchbox).toHaveAttribute("placeholder", /^Search stations, stops, (routes, and )?alerts\.\.\.$/);
   const searchPanel = page.locator("[data-station-search-panel]");
   await expect(searchPanel).toBeVisible();
   if (!isMobile) {

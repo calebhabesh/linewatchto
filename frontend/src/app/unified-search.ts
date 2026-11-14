@@ -6,9 +6,9 @@ import {
 } from "./station-search.ts";
 
 /** What the search box says it covers, wherever it is drawn. */
-export const SEARCH_PLACEHOLDER = "Search all stations, routes, and alerts...";
+export const SEARCH_PLACEHOLDER = "Search stations, stops, routes, and alerts...";
 /** The phone's: the full one is cut off beside the logo and account button at 360 px. */
-export const SEARCH_PLACEHOLDER_COMPACT = "Search stations, routes, alerts...";
+export const SEARCH_PLACEHOLDER_COMPACT = "Search stations, stops, alerts...";
 
 export type GlobalDestinationView =
   | "accessibility-outages"

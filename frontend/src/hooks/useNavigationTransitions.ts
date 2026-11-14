@@ -28,6 +28,7 @@ import type { AccountCommutePathPreview } from "../app/commute-data";
 import { pathPreviewCommuteId, pathPreviewReturnView } from "../app/path-preview";
 import { currentBrowserLocalPath } from "../components/account-dialog-state";
 import { skipNextImpactCardGlow } from "./useScrollSelectedImpactCard";
+import { captureStationPanelPosition, STATION_PANEL_SCROLL_SELECTOR, type StationPanelPosition } from "../app/station-panel-position";
 
 const BROWSER_NAVIGATION_STATE_KEY = "linewatchNavigation";
 
@@ -130,6 +131,14 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
   const viewHistoryRef = useRef<readonly ActiveView[]>(viewHistory);
   const selectedStationIdRef = useRef<string | null>(selectedStationId);
   const stationDrilldownOriginRef = useRef<string | null>(null);
+  // Mirrors the ref for rendering: a card opened from a station's details
+  // shows Back to that station (LineWatchShell's handleReturnImpactToMap).
+  const [stationDrilldownOrigin, setStationDrilldownOriginState] = useState<string | null>(null);
+  // Where the rider was in the origin station's details; restored when Back
+  // returns there (stationPanelRestore), dropped on any other way out.
+  const stationReturnPositionRef = useRef<StationPanelPosition | null>(null);
+  const [stationPanelRestore, setStationPanelRestore] = useState<StationPanelPosition | null>(null);
+  const clearStationPanelRestore = useCallback(() => setStationPanelRestore(null), []);
   const selectionRef = useRef<ImpactSelection>(selection);
   const selectionBackBehaviorRef = useRef<"clear" | "restore-view">(selectionBackBehavior);
   const commutePathPreviewRef = useRef<AccountCommutePathPreview | null>(commutePathPreview);
@@ -334,6 +343,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
 
     viewHistoryRef.current = result.nextState.viewHistory;
     stationDrilldownOriginRef.current = null;
+    setStationDrilldownOriginState(stationDrilldownOriginRef.current);
     searchReturnContextRef.current = result.nextState.searchReturnContext;
     setSearchReturnContext(result.nextState.searchReturnContext);
     activeViewRef.current = result.nextState.activeView;
@@ -394,6 +404,13 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     }, reducedMotion ? 0 : isMobile ? 240 : 380);
   }, [consumeBrowserNavigationEntries, isClosingPanel, isMobile, onClearPersistedCommuteDraft, onResetMapPresentation, onSetMobileInspectorDetent, reducedMotion]);
 
+  /** Hands the saved position to the station panel Back is returning to. */
+  const restoreStationPanelPosition = useCallback((stationId: string) => {
+    const position = stationReturnPositionRef.current;
+    stationReturnPositionRef.current = null;
+    setStationPanelRestore(position?.stationId === stationId ? position : null);
+  }, []);
+
   // Submenu Back
   const submenuBack = useCallback((stepOnly: boolean) => {
     if (isGoingBack) return;
@@ -417,7 +434,11 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
 
     const finishBackNavigation = () => {
       backTimeoutRef.current = null;
+      if (stationOriginId && result.nextState.selectedStationId === stationOriginId) {
+        restoreStationPanelPosition(stationOriginId);
+      }
       stationDrilldownOriginRef.current = null;
+      setStationDrilldownOriginState(stationDrilldownOriginRef.current);
       viewHistoryRef.current = result.nextState.viewHistory;
       setViewHistory(result.nextState.viewHistory);
       const targetView = result.nextState.activeView;
@@ -465,7 +486,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
 
     setIsGoingBack(true);
     backTimeoutRef.current = window.setTimeout(finishBackNavigation, 240);
-  }, [applyImpactBack, consumeBrowserNavigationEntries, getCurrentNavigationState, isGoingBack, isMobile, reducedMotion, syncImpactHistory]);
+  }, [applyImpactBack, consumeBrowserNavigationEntries, getCurrentNavigationState, isGoingBack, isMobile, reducedMotion, restoreStationPanelPosition, syncImpactHistory]);
 
   /** Header Back: leaves a list in one press even when a card is selected (desktop). */
   const handleSubmenuBack = useCallback(() => submenuBack(false), [submenuBack]);
@@ -521,6 +542,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
 
     selectedStationIdRef.current = id;
     stationDrilldownOriginRef.current = null;
+    setStationDrilldownOriginState(stationDrilldownOriginRef.current);
     if (id) {
       setNavDirection("forward");
       setStationPanelActivationKey((current) => current + 1);
@@ -550,6 +572,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     consumeBrowserNavigationEntries();
     setNavDirection("back");
     stationDrilldownOriginRef.current = null;
+    setStationDrilldownOriginState(stationDrilldownOriginRef.current);
     selectedStationIdRef.current = null;
     setSelectedStationId((current) => current === expectedStationId ? null : current);
     if (announceDesktop) announceDesktop("Station details closed");
@@ -639,7 +662,12 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
   // Station Select Impact
   const handleStationSelectImpact = useCallback((nextSelection: ImpactSelection) => {
     if (selectedStationIdRef.current) {
+      stationReturnPositionRef.current = captureStationPanelPosition(
+        selectedStationIdRef.current,
+        document.querySelector<HTMLElement>(STATION_PANEL_SCROLL_SELECTOR),
+      );
       stationDrilldownOriginRef.current = selectedStationIdRef.current;
+      setStationDrilldownOriginState(stationDrilldownOriginRef.current);
     }
     handleMapSelectImpact(nextSelection, { related: true });
   }, [handleMapSelectImpact]);
@@ -872,6 +900,7 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     setCommutePathPreview(null);
     setAccessibilityOutageTarget(null);
     stationDrilldownOriginRef.current = null;
+    setStationDrilldownOriginState(stationDrilldownOriginRef.current);
   }, []);
 
   // Popstate Listener
@@ -936,7 +965,9 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
       case "navigate-view":
         if (stationDrilldownOriginRef.current) {
           const originStationId = stationDrilldownOriginRef.current;
+          restoreStationPanelPosition(originStationId);
           stationDrilldownOriginRef.current = null;
+          setStationDrilldownOriginState(stationDrilldownOriginRef.current);
           viewHistoryRef.current = [];
           setViewHistory([]);
           activeViewRef.current = "map";
@@ -1109,6 +1140,9 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     viewHistoryRef,
     selectedStationIdRef,
     stationDrilldownOriginRef,
+    stationDrilldownOrigin,
+    stationPanelRestore,
+    clearStationPanelRestore,
     selectionRef,
     selectionBackBehaviorRef,
     commutePathPreviewRef,

@@ -4,6 +4,8 @@ import { serviceEffectLabel } from "../app/alert-categories";
 
 
 import { Fragment, useEffect, useRef, useState } from "react";
+import type { StationPanelPosition } from "../app/station-panel-position";
+import { useStationPanelRestore } from "../hooks/useStationPanelRestore";
 import { AlertCircle, AlertTriangle, ArrowRight, BadgeInfo, Bus, ChevronDown, ConciergeBell, Construction, ExternalLink, FileText, GitMerge, Train } from "lucide-react";
 import Image from "next/image";
 import { StationSubmenuNavButtons, type StationSubmenuNavItem } from "./StationSubmenuNavButtons";
@@ -86,6 +88,9 @@ type Props = {
    */
   initialSection?: string;
   onInitialSectionShown?: () => void;
+  /** Where the rider left this panel for one of its impacts; Back restores it. */
+  restorePosition?: StationPanelPosition | null;
+  onRestorePositionApplied?: () => void;
   reducedMotion?: boolean;
   authenticated?: boolean;
   saved?: boolean;
@@ -317,7 +322,7 @@ function arrivalSourceTitle(arrivals: StationArrival[]) {
   return sources.length > 0 ? `Source: ${sources.join(" / ")}` : "Source unavailable";
 }
 
-export function StationDetailPanel({ stationResult, loading, updating, selectedStationName, onClose, onSelectImpact, onOpenSurfaceStop, initialSection, onInitialSectionShown, reducedMotion, authenticated = false, saved = false, savePending = false, onToggleSaved, onRequestSignIn }: Props) {
+export function StationDetailPanel({ stationResult, loading, updating, selectedStationName, onClose, onSelectImpact, onOpenSurfaceStop, initialSection, onInitialSectionShown, restorePosition, onRestorePositionApplied, reducedMotion, authenticated = false, saved = false, savePending = false, onToggleSaved, onRequestSignIn }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, snapshot } = useDashboardData();
   const subwayOperatingState = useSubwayOperatingState();
   const rawStation = stationResult?.data ?? null;
@@ -467,6 +472,8 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
   // Open the requested section once the station's content is on screen.
   const initialSectionShownRef = useRef<string | null>(null);
   const stationLoaded = Boolean(station);
+  const scrollBodyRef = useRef<HTMLDivElement>(null);
+  useStationPanelRestore(scrollBodyRef, restorePosition, stationLoaded, onRestorePositionApplied);
   useEffect(() => {
     if (!initialSection || !stationLoaded || initialSectionShownRef.current === initialSection) return;
     const frame = window.requestAnimationFrame(() => {
@@ -669,7 +676,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
             />
           )}
 
-          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto md:mt-3.5 mt-2 pb-3 station-detail-scroll station-detail-section-stack">
+          <div ref={scrollBodyRef} className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto md:mt-3.5 mt-2 pb-3 station-detail-scroll station-detail-section-stack">
             {station && (station.arrivalContext?.scheduleMayBeDisrupted || stationPlannedClosures.length > 0) && (
               <StationDisruptionSummary
                 badges={disruptionGroups.map((group) => ({
