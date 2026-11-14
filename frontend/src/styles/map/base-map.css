@@ -138,6 +138,23 @@
   --map-center-feedback-color: rgb(0, 0, 0);
 }
 
+/* On the Map View the wash is the basemap's own ground (OpenFreeMap Positron and Dark). */
+.geographic-network-map .map-center-feedback {
+  --map-center-feedback-color: rgb(242, 243, 240);
+}
+
+.dark .geographic-network-map .map-center-feedback {
+  --map-center-feedback-color: rgb(12, 12, 12);
+}
+
+.high-contrast .geographic-network-map .map-center-feedback {
+  --map-center-feedback-color: rgb(255, 255, 255);
+}
+
+.dark.high-contrast .geographic-network-map .map-center-feedback {
+  --map-center-feedback-color: rgb(0, 0, 0);
+}
+
 @keyframes map-center-feedback-fade {
   from { background-color: var(--map-center-feedback-color, rgb(248, 250, 252)); }
   to { background-color: transparent; }

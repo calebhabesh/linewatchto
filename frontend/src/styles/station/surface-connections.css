@@ -993,6 +993,70 @@ button.surface-route-variant:hover {
   color: #0f172a;
 }
 
+/* A stop a notice names: the notice's category on its own line under the name,
+   flush with it. Upcoming reads dashed. */
+.surface-route-stop-notice {
+  align-items: center;
+  border: 1px solid rgba(100, 116, 139, 0.35);
+  border-radius: 4px;
+  display: flex;
+  font-size: 10px;
+  font-weight: 800;
+  gap: 3px;
+  line-height: 1;
+  margin-top: 6px;
+  padding: 2px 5px;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.surface-route-stop-notice.is-upcoming {
+  border-style: dashed;
+}
+
+.dark .surface-route-stop-notice {
+  border-color: rgba(203, 213, 225, 0.3);
+}
+
+/* An upcoming notice's start on a stop card or a route's notice row. */
+.surface-notice-starts-chip,
+.surface-stop-notices .surface-notice-starts-chip {
+  align-items: center;
+  align-self: flex-start;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 5px;
+  color: #1d4ed8;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 5px;
+  justify-self: start;
+  line-height: 1.2;
+  padding: 3px 7px;
+}
+
+.surface-notice-starts-chip span,
+.surface-stop-notices .surface-notice-starts-chip span {
+  color: inherit;
+  font-size: inherit;
+}
+
+.surface-notice-starts-chip strong {
+  font-size: inherit;
+  font-weight: 900;
+}
+
+.dark .surface-notice-starts-chip,
+.dark .surface-stop-notices .surface-notice-starts-chip,
+.dark .surface-stop-notices .surface-notice-starts-chip span {
+  background: rgba(96, 165, 250, 0.14);
+  color: #93c5fd;
+}
+
+.dark .surface-stop-notices .surface-notice-starts-chip span {
+  background: none;
+}
+
 .impact-card-map-btn.surface-route-back-link {
   justify-content: flex-start;
 }

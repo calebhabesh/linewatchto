@@ -11,6 +11,7 @@ import {
   routeDirections,
   routeVariants,
   surfaceNoticesForRoute,
+  surfaceNoticeTiming,
 } from "../src/app/surface-route-stops.ts";
 import { surfaceRouteLayer, surfaceRouteSelection } from "../src/app/surface-map-selection.ts";
 import { prepareSurfaceSearchIndex } from "../src/app/surface-search.ts";
@@ -163,15 +164,25 @@ describe("surfaceNoticesForRoute", () => {
     assert.deepEqual(surfaceNoticesForRoute(notices, { network: "ttc", route: "300" }, now).map((n) => n.id), ["shared"]);
   });
 
-  it("keeps only notices in effect now, and no timetable announcements", () => {
+  it("keeps notices in effect and upcoming ones after them, never ended notices or timetable announcements", () => {
     const notices = [
-      notice("now", { routeIds: ["38"], startAt: "2026-11-01T00:00:00Z", endAt: "2026-12-01T00:00:00Z" }),
       notice("later", { routeIds: ["38"], startAt: "2026-11-09T11:00:00Z" }),
+      notice("now", { routeIds: ["38"], startAt: "2026-11-01T00:00:00Z", endAt: "2026-12-01T00:00:00Z" }),
+      notice("sooner", { routeIds: ["38"], startAt: "2026-11-05T11:00:00Z", endAt: "2026-11-05T14:00:00Z" }),
       notice("over", { routeIds: ["38"], endAt: "2026-11-04T14:59:00Z" }),
       notice("announcement", { routeIds: ["38"], scheduleAnnouncement: true }),
       notice("open-ended", { routeIds: ["38"] }),
     ];
-    assert.deepEqual(surfaceNoticesForRoute(notices, { network: "ttc", route: "38" }, now).map((n) => n.id).sort(), ["now", "open-ended"]);
+    const ids = surfaceNoticesForRoute(notices, { network: "ttc", route: "38" }, now).map((n) => n.id);
+    assert.deepEqual(ids.slice(0, 2).sort(), ["now", "open-ended"]);
+    assert.deepEqual(ids.slice(2), ["sooner", "later"]);
+  });
+
+  it("reads a notice's window as active, upcoming or ended", () => {
+    assert.equal(surfaceNoticeTiming({}, now), "active");
+    assert.equal(surfaceNoticeTiming({ startAt: "2026-11-04T14:00:00Z", endAt: "2026-11-04T16:00:00Z" }, now), "active");
+    assert.equal(surfaceNoticeTiming({ startAt: "2026-11-04T15:30:00Z" }, now), "upcoming");
+    assert.equal(surfaceNoticeTiming({ endAt: "2026-11-04T15:00:00Z" }, now), "ended");
   });
 
   it("counts only GO bus notices for a GO route, and none for a TTC route", () => {

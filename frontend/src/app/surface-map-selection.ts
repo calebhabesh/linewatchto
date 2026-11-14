@@ -4,6 +4,9 @@
  * mark stops or a route in the stop panel's selected style, only while that
  * panel is open. The open stop is the one-stop case of the same selection.
  * Selection never carries service status: no service colour, badge or detour.
+ * A notice's View may add the stretch its source names (surface-notice-stretch):
+ * the regular route between its first and last stops, hatched in the
+ * selection blue, never a detour's streets.
  *
  * Pure inputs for the map layers: which layer draws each selected stop, the
  * MapLibre filters, and the area the camera frames.
@@ -26,6 +29,14 @@ export type SurfaceMapSelection = {
   stopCodes: readonly string[];
   /** Routes drawn with the selected outline: a route panel's one, or all a notice names. */
   routes: readonly SurfaceSelectionRoute[];
+  /** A notice's named stretches of route, hatched; they arrive after the stops and never move the camera. */
+  stretches?: readonly SurfaceSelectionStretch[];
+};
+
+export type SurfaceSelectionStretch = {
+  route: string;
+  /** The route's own streets from the first named stop to the last. */
+  path: readonly Coordinate[];
 };
 
 type Coordinate = [number, number];
@@ -55,7 +66,7 @@ export function mergeSurfaceSelection(
   const stopCodes = [...new Set([...(openStopCode ? [openStopCode] : []), ...(shown?.stopCodes ?? [])])];
   const routes = shown?.routes ?? [];
   if (stopCodes.length === 0 && routes.length === 0) return null;
-  return { stopCodes, routes };
+  return shown?.stretches?.length ? { stopCodes, routes, stretches: shown.stretches } : { stopCodes, routes };
 }
 
 /** Same key, same selection: the camera frames a selection once. "" for none. */
@@ -64,6 +75,11 @@ export function surfaceSelectionKey(selection: SurfaceMapSelection | null | unde
   const stops = [...selection.stopCodes].sort().join(",");
   const routes = selection.routes.map(({ layer, route, branch }) => `${layer}:${route}${branch ? `:${branch.id}` : ""}`).sort().join(",");
   return stops || routes ? `${routes}|${stops}` : "";
+}
+
+/** Which stretches are drawn, for redrawing; the camera key leaves them out. "" for none. */
+export function surfaceStretchKey(selection: SurfaceMapSelection | null | undefined): string {
+  return (selection?.stretches ?? []).map(({ route, path }) => `${route}:${path.length}:${path[0]?.join(",")}`).join("|");
 }
 
 /** A corridor's routes as one string, so a filter can find a route with `in`. */

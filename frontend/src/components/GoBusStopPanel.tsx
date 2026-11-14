@@ -144,7 +144,7 @@ export function GoBusStopPanel({ stopCode, fallbackName = null, routeColor, onCl
 
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-2 md:mt-3.5 pb-3 station-detail-scroll">
         {routeBack ? <SurfaceRouteBackLink back={routeBack} /> : searchBack ? <SurfaceSearchBackLink back={searchBack} /> : noticeBack ? <SurfaceNoticeBackLink back={noticeBack} /> : null}
-        <SurfaceStopDisruption notices={stopNotices} stopId={data?.stopCode ?? null} reducedMotion={reducedMotion} />
+        <SurfaceStopDisruption notices={stopNotices} stopId={data?.stopCode ?? null} reducedMotion={reducedMotion} now={now} />
         {!result ? (
           <div className="surface-stop-message" role="status">
             <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />
@@ -222,7 +222,7 @@ export function GoBusStopPanel({ stopCode, fallbackName = null, routeColor, onCl
             ) : null}
           </section>
         ) : null}
-        <SurfaceStopImpacts notices={stopNotices} stopId={data?.stopCode ?? null} routeBadgeStyle={routeBadgeStyle} onOpenNotice={onOpenNotice} />
+        <SurfaceStopImpacts notices={stopNotices} stopId={data?.stopCode ?? null} now={now} routeBadgeStyle={routeBadgeStyle} onOpenNotice={onOpenNotice} />
       </div>
     </aside>
   );

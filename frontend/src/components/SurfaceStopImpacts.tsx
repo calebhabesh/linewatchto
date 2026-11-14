@@ -1,12 +1,13 @@
 "use client";
 
-import { AlertCircle, ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, ArrowUpDown, BadgeInfo, ChevronDown, type LucideIcon } from "lucide-react";
+import { AlertCircle, ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, ArrowUpDown, BadgeInfo, CalendarClock, ChevronDown, type LucideIcon } from "lucide-react";
 import { useEffect, useState, type CSSProperties } from "react";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import type { NetworkId } from "../app/dashboard-contract";
-import { formatImpactTimestamp } from "../app/impact-time";
+import { formatImpactTimestamp, formatOperationalDateTime } from "../app/impact-time";
 import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
 import { surfaceNoticesNameStop } from "../app/surface-stop-arrivals";
+import { surfaceNoticeTiming } from "../app/surface-route-stops";
 import {
   surfaceNoticeCategoryLabel,
   surfaceNoticeImpactGroups,
@@ -34,18 +35,21 @@ export function useFreshSurfaceNotices(networkId: NetworkId): SurfaceNoticeDetai
 /**
  * A stop panel's warning over its departures: the station panel's, and its jump
  * to the cards. A notice naming only the route may not touch this stop, so
- * then the warning is about the route.
+ * then the warning is about the route. Only notices in effect warn; upcoming
+ * ones wait in the cards below with their start.
  */
-export function SurfaceStopDisruption({ notices, stopId, reducedMotion }: {
+export function SurfaceStopDisruption({ notices, stopId, reducedMotion, now }: {
   notices: readonly SurfaceNoticeDetail[];
   stopId: string | null;
   reducedMotion: boolean;
+  now: number;
 }) {
-  if (notices.length === 0) return null;
+  const active = notices.filter((notice) => surfaceNoticeTiming(notice, now) === "active");
+  if (active.length === 0) return null;
   return (
     <StationDisruptionSummary
-      title={surfaceNoticesNameStop(notices, stopId) ? undefined : "Route Service May Be Disrupted"}
-      badges={surfaceNoticeImpactGroups(notices).map((group) => ({
+      title={surfaceNoticesNameStop(active, stopId) ? undefined : "Route Service May Be Disrupted"}
+      badges={surfaceNoticeImpactGroups(active).map((group) => ({
         key: group.category,
         label: group.label,
         count: group.count,
@@ -92,9 +96,10 @@ function directionIcon(direction: string, cards: readonly SurfaceStopImpactCard[
  * direction, and routes sharing a notice's text at the stop share one card
  * (surfaceStopImpactGroups), so a detour posted for each route reads once.
  */
-export function SurfaceStopImpacts({ notices, stopId, routeBadgeStyle, onOpenNotice }: {
+export function SurfaceStopImpacts({ notices, stopId, now, routeBadgeStyle, onOpenNotice }: {
   notices: readonly SurfaceNoticeDetail[];
   stopId: string | null;
+  now: number;
   routeBadgeStyle: (route: string) => CSSProperties | undefined;
   onOpenNotice?: (notice: SurfaceNoticeDetail) => void;
 }) {
@@ -141,7 +146,7 @@ export function SurfaceStopImpacts({ notices, stopId, routeBadgeStyle, onOpenNot
                 </h4>
               ) : null}
               {group.cards.map((card) => (
-                <StopImpactCard key={card.key} card={card} routeBadgeStyle={routeBadgeStyle} onOpenNotice={onOpenNotice} />
+                <StopImpactCard key={card.key} card={card} now={now} routeBadgeStyle={routeBadgeStyle} onOpenNotice={onOpenNotice} />
               ))}
             </section>
           );
@@ -151,8 +156,9 @@ export function SurfaceStopImpacts({ notices, stopId, routeBadgeStyle, onOpenNot
   );
 }
 
-function StopImpactCard({ card, routeBadgeStyle, onOpenNotice }: {
+function StopImpactCard({ card, now, routeBadgeStyle, onOpenNotice }: {
   card: SurfaceStopImpactCard;
+  now: number;
   routeBadgeStyle: (route: string) => CSSProperties | undefined;
   onOpenNotice?: (notice: SurfaceNoticeDetail) => void;
 }) {
@@ -160,11 +166,13 @@ function StopImpactCard({ card, routeBadgeStyle, onOpenNotice }: {
   const notice = card.notices.reduce((newest, next) => (next.updatedAt > newest.updatedAt ? next : newest));
   const tone = surfaceNoticeImpactTone(notice);
   const label = surfaceNoticeCategoryLabel(notice.category);
+  const upcoming = surfaceNoticeTiming(notice, now) === "upcoming" && notice.startAt;
   return (
     <div
       data-stop-impact={card.notices[0].id}
       data-stop-impact-notices={card.notices.length > 1 ? card.notices.map((entry) => entry.id).join(" ") : undefined}
       data-station-impact-tone={tone}
+      data-stop-impact-upcoming={upcoming ? "true" : undefined}
       className={`station-impact-card flex flex-col gap-2.5 rounded-lg p-3 text-sm transition-colors ${CARD_TONE_CLASS[tone]}`}
     >
       <div className="flex items-center gap-2.5 font-bold text-sm text-slate-900 dark:text-white">
@@ -182,6 +190,7 @@ function StopImpactCard({ card, routeBadgeStyle, onOpenNotice }: {
           <p className="text-slate-700 dark:text-slate-200 leading-snug">{notice.location}</p>
         ) : null}
       </div>
+      {upcoming ? <SurfaceNoticeStartsChip startAt={upcoming} now={now} /> : null}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 min-w-0">
           {normalizeDashboardSourceLabel(notice.source)} / {formatImpactTimestamp(notice.updatedAt)}
@@ -199,5 +208,15 @@ function StopImpactCard({ card, routeBadgeStyle, onOpenNotice }: {
         ) : null}
       </div>
     </div>
+  );
+}
+
+/** An upcoming notice's start, so a card or row never reads as service changed now. */
+export function SurfaceNoticeStartsChip({ startAt, now }: { startAt: string; now: number }) {
+  return (
+    <span className="surface-notice-starts-chip" data-notice-upcoming>
+      <CalendarClock size={13} aria-hidden="true" />
+      <span><strong>Upcoming</strong> · Starts {formatOperationalDateTime(startAt, { now: new Date(now) })}</span>
+    </span>
   );
 }

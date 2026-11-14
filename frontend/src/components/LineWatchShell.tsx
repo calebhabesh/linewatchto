@@ -88,6 +88,7 @@ import { searchPlaceStore, surfaceBackStep } from "../app/search-return";
 import { isWellFormedStopCode, searchWithStopLink, type SurfaceStopLink } from "../app/surface-stop-link";
 import { surfaceRouteLayer, surfaceRouteSelection, type SurfaceMapSelection, type SurfaceSelectionLayer, type SurfaceSelectionRoute } from "../app/surface-map-selection";
 import { loadSurfaceSearchIndex, prefetchSurfaceSearchIndexes } from "../app/surface-search-index";
+import { loadNoticeStretches } from "../app/surface-notice-stretch-loader";
 import { loadScheduleManifest } from "../app/schedule-assets";
 import { SEARCH_PLACEHOLDER, SEARCH_PLACEHOLDER_COMPACT } from "../app/unified-search";
 const SurfaceNoticesPanel = preloadablePanel(() => import("./SurfaceNoticesPanel").then((mod) => mod.SurfaceNoticesPanel));
@@ -2664,9 +2665,19 @@ export function LineWatchShell({
       handleSelectSurfaceStop(target.stopCodes[0], view);
     } else {
       setSelectedSurfaceStop(null);
-      showSurfaceSelectionOnMap(target.kind === "routes"
+      const shown: SurfaceMapSelection = target.kind === "routes"
         ? { stopCodes: [], routes: target.routes }
-        : { stopCodes: target.stopCodes, routes: [] }, "notice", view);
+        : { stopCodes: target.stopCodes, routes: [] };
+      showSurfaceSelectionOnMap(shown, "notice", view);
+      // The stretch the source names follows once its files load, onto this same View only.
+      if (target.kind === "stops") {
+        void loadNoticeStretches(notice, selectedNetwork).then((stretches) => {
+          if (stretches.length === 0) return;
+          setSurfaceMapSelection((current) => (current?.selection === shown
+            ? { ...current, selection: { ...shown, stretches } }
+            : current));
+        });
+      }
     }
     recordPwaInstallEngagement();
   };

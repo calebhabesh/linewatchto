@@ -134,7 +134,8 @@ describe("unified search alert group headings", () => {
 
     assert.match(globalCss, /\.global-search-category-shortcuts button,\s*\.global-search-browse-alerts button\s*\{[\s\S]*?border:\s*none\s*!important;/);
     assert.match(globalCss, /\.global-search-impact-result\s*\{[\s\S]*?border:\s*none\s*!important;/);
-    assert.match(globalCss, /\.global-search-impact-result\s*\{[\s\S]*?border-left:\s*2px solid var\(--impact-accent/);
+    // The alert menus' filament: a thin tinted left edge in the alert type's colour.
+    assert.match(globalCss, /\.global-search-impact-result\s*\{[\s\S]*?border-left:\s*1\.5px solid rgba\(var\(--impact-accent-rgb\)/);
 
     // Header container is completely opaque
     assert.match(globalCss, /\.station-search-stations-column-header\s*\{[\s\S]*?opacity:\s*1\s*!important;/);

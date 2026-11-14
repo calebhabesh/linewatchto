@@ -409,19 +409,25 @@
   outline: none;
 }
 
+/* Alert rows carry the alert menus' left-edge filament: a thin tinted edge with a soft inner glow.
+   They own their shadow, so card-elevation's generic sheen list leaves them out. */
 .global-search-impact-result {
+  --impact-accent-rgb: 100, 116, 139;
   display: grid;
   width: 100%;
   grid-template-columns: 28px minmax(0, 1fr) 18px;
   align-items: center;
   gap: 8px;
   border: none !important;
-  border-left: 2px solid var(--impact-accent, rgb(100, 116, 139)) !important;
+  border-left: 1.5px solid rgba(var(--impact-accent-rgb), 0.85) !important;
   border-radius: 8px;
   box-shadow:
+    inset 2px 0 6px -1px rgba(var(--impact-accent-rgb), 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
     0 1px 3px rgba(0, 0, 0, 0.08);
-  background: rgba(255, 255, 255, 0.95);
+  background:
+    linear-gradient(90deg, rgba(var(--impact-accent-rgb), 0.07) 0%, rgba(var(--impact-accent-rgb), 0.02) 12px, transparent 24px),
+    rgba(255, 255, 255, 0.95);
   padding: 9px 8px;
   color: rgb(15, 23, 42);
   text-align: left;
@@ -430,23 +436,30 @@
 
 .global-search-impact-result:hover,
 .global-search-impact-result:focus-visible {
-  background: rgba(239, 246, 255, 0.95);
+  background:
+    linear-gradient(90deg, rgba(var(--impact-accent-rgb), 0.07) 0%, rgba(var(--impact-accent-rgb), 0.02) 12px, transparent 24px),
+    rgba(239, 246, 255, 0.95);
   outline: none;
 }
 
 .dark .global-search-impact-result {
   border: none !important;
-  border-left: 2px solid var(--impact-accent, rgb(100, 116, 139)) !important;
+  border-left: 1.5px solid rgba(var(--impact-accent-rgb), 0.85) !important;
   box-shadow:
+    inset 2px 0 6px -1px rgba(var(--impact-accent-rgb), 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 1px 3px rgba(0, 0, 0, 0.3);
-  background: #161a23;
+  background:
+    linear-gradient(90deg, rgba(var(--impact-accent-rgb), 0.12) 0%, rgba(var(--impact-accent-rgb), 0.04) 14px, transparent 30px),
+    #161a23;
   color: white;
 }
 
 .dark .global-search-impact-result:hover,
 .dark .global-search-impact-result:focus-visible {
-  background: rgba(30, 58, 138, 0.35);
+  background:
+    linear-gradient(90deg, rgba(var(--impact-accent-rgb), 0.12) 0%, rgba(var(--impact-accent-rgb), 0.04) 14px, transparent 30px),
+    rgba(30, 58, 138, 0.35);
 }
 
 .global-search-notice-row {
@@ -471,7 +484,7 @@
 
 .global-search-notice-row > .impact-card-map-btn--labeled:disabled .impact-card-map-btn__label {
   line-height: 1.1;
-  text-align: left;
+  text-align: center;
   white-space: normal;
 }
 
@@ -579,31 +592,45 @@
   background: transparent;
 }
 
+/* Same filament colours as the alert menus' cards (card-elevation.css). */
 .global-search-impact-result.suspension {
-  --impact-accent: #ef4444;
-  border-left-color: #ef4444;
+  --impact-accent-rgb: 239, 68, 68;
 }
 
 .global-search-impact-result.delay {
-  --impact-accent: #FEEC41;
-  border-left-color: #FEEC41;
+  --impact-accent-rgb: 254, 236, 65;
 }
 
 .global-search-impact-result.reduced-speed-zone {
-  --impact-accent: var(--impact-rsz);
-  border-left-color: var(--impact-rsz);
+  --impact-accent-rgb: 245, 158, 11;
 }
 
 .global-search-impact-result.planned-closure {
-  --impact-accent: #3b82f6;
-  border-left-color: #3b82f6;
+  --impact-accent-rgb: 59, 130, 246;
 }
 
-.global-search-impact-result:hover,
-.global-search-impact-result:focus-visible,
-.dark .global-search-impact-result:hover,
-.dark .global-search-impact-result:focus-visible {
-  border-left-color: var(--impact-accent);
+
+.global-search-notice-icon {
+  color: #059669;
+}
+
+.dark .global-search-notice-icon,
+.dark .global-search-notice-heading-icon {
+  color: #34d399;
+}
+
+.global-search-notice-heading-icon {
+  display: inline-flex;
+  color: #059669;
+}
+
+.global-search-group-heading .global-search-notice-heading-icon svg,
+.dark .global-search-group-heading .global-search-notice-heading-icon svg {
+  color: inherit;
+}
+
+.global-search-notice-routes {
+  flex: 0 0 auto;
 }
 
 .global-search-impact-icon {
@@ -639,14 +666,55 @@
   white-space: nowrap;
 }
 
+/* Station names at a readable size, a step brighter than the direction after them. */
 .global-search-impact-location {
-  overflow: hidden;
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
   color: rgb(71, 85, 105);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.25;
-  text-overflow: ellipsis;
+}
+
+.global-search-impact-location .compact-impact-location {
+  gap: 4px;
+}
+
+/* Plain names here: the alert history's chip boxes are too heavy for a search row. */
+.global-search-impact-location .compact-impact-location__station,
+.dark .global-search-impact-location .compact-impact-location__station,
+.high-contrast .global-search-impact-location .compact-impact-location__station {
+  background: none;
+  border: none;
+  color: rgb(30, 41, 59);
+  font-weight: 800;
+  padding: 0;
+}
+
+.dark .global-search-impact-location .compact-impact-location__station {
+  color: rgb(226, 232, 240);
+}
+
+.high-contrast .global-search-impact-location .compact-impact-location__station {
+  color: #fff;
+}
+
+.global-search-impact-location .compact-impact-location__arrow {
+  height: 13px;
+  width: 13px;
+}
+
+.global-search-impact-direction {
+  font-size: 11px;
   white-space: nowrap;
+}
+
+/* Shuttle and Nightly sit as far below the station chips as the chips sit below the title. */
+.global-search-impact-copy .global-search-impact-badges {
+  margin-top: 3px;
 }
 
 .dark .global-search-impact-location {

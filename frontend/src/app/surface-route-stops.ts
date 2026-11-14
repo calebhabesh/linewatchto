@@ -350,29 +350,48 @@ export function noticeRouteBase(id: string): string {
 }
 
 /**
- * Notices for a route that apply now: route ids match by route number, so a
- * notice for the 29C is the 29's and never the 129's or 329's. GO notices
- * count only for GO buses (train line codes are not bus routes). Timetable
- * announcements and notices outside their start and end are left out, as
- * the stop panel does. The caller passes only a fresh notice list.
+ * Notices for a route in effect now or still to come: route ids match by
+ * route number, so a notice for the 29C is the 29's and never the 129's or
+ * 329's. GO notices count only for GO buses (train line codes are not bus
+ * routes). Timetable announcements and ended notices are left out, as the
+ * stop panel does; callers label upcoming ones (surfaceNoticeTiming) and keep
+ * them out of any "service may be disrupted" claim. The caller passes only a
+ * fresh notice list.
  */
 export function surfaceNoticesForRoute(
   notices: readonly SurfaceNoticeDetail[],
   route: { network: "ttc" | "regional"; route: string },
   now: number | Date = Date.now(),
 ): SurfaceNoticeDetail[] {
-  const nowMs = now instanceof Date ? now.getTime() : now;
   const target = route.route.trim().toUpperCase();
-  return notices
-    .filter((notice) => {
-      if (notice.scheduleAnnouncement) return false;
-      if (route.network === "regional" && notice.routeType !== "GO Bus") return false;
-      if (route.network === "ttc" && (notice.routeType === "GO Bus" || notice.routeType === "GO / UP")) return false;
-      const start = notice.startAt ? Date.parse(notice.startAt) : Number.NaN;
-      const end = notice.endAt ? Date.parse(notice.endAt) : Number.NaN;
-      if (!Number.isNaN(start) && start > nowMs) return false;
-      if (!Number.isNaN(end) && end <= nowMs) return false;
-      return notice.routeIds.some((id) => noticeRouteBase(id) === target || id.trim().toUpperCase() === target);
-    })
+  return orderByTiming(notices.filter((notice) => {
+    if (notice.scheduleAnnouncement) return false;
+    if (route.network === "regional" && notice.routeType !== "GO Bus") return false;
+    if (route.network === "ttc" && (notice.routeType === "GO Bus" || notice.routeType === "GO / UP")) return false;
+    if (surfaceNoticeTiming(notice, now) === "ended") return false;
+    return notice.routeIds.some((id) => noticeRouteBase(id) === target || id.trim().toUpperCase() === target);
+  }), now);
+}
+
+export type SurfaceNoticeTiming = "active" | "upcoming" | "ended";
+
+/**
+ * Where a notice's window stands: a missing start counts as begun and a
+ * missing end as open, as the source leaves them.
+ */
+export function surfaceNoticeTiming(notice: Pick<SurfaceNoticeDetail, "startAt" | "endAt">, now: number | Date = Date.now()): SurfaceNoticeTiming {
+  const nowMs = now instanceof Date ? now.getTime() : now;
+  const start = notice.startAt ? Date.parse(notice.startAt) : Number.NaN;
+  const end = notice.endAt ? Date.parse(notice.endAt) : Number.NaN;
+  if (!Number.isNaN(end) && end <= nowMs) return "ended";
+  return !Number.isNaN(start) && start > nowMs ? "upcoming" : "active";
+}
+
+/** Notices in effect first (newest update first), then upcoming ones (soonest start first). */
+export function orderByTiming(notices: readonly SurfaceNoticeDetail[], now: number | Date = Date.now()): SurfaceNoticeDetail[] {
+  const active = notices.filter((notice) => surfaceNoticeTiming(notice, now) === "active")
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const upcoming = notices.filter((notice) => surfaceNoticeTiming(notice, now) === "upcoming")
+    .sort((a, b) => Date.parse(a.startAt ?? "") - Date.parse(b.startAt ?? "") || b.updatedAt.localeCompare(a.updatedAt));
+  return [...active, ...upcoming];
 }

@@ -13,6 +13,10 @@
  * - Selected stops get the selected pill (dark, white edge, white number) and
  *   dot at every zoom, over other stop labels, each inside a thick blue outline.
  *
+ * - A notice's named stretch (surface-notice-stretch) is a hatched band in the
+ *   same blue between two edge lines, along the regular route between the
+ *   stops the source lists. It marks where the notice applies, not a detour.
+ *
  * Selection never uses a service colour or badge.
  */
 
@@ -357,6 +361,116 @@ function applySelectedBadges(
   }, before);
 }
 
+/** A notice's named stretches: their own source and layers, over route lines and under selected stops. */
+export const STRETCH_SOURCE = "transit-notice-stretch";
+export const STRETCH_LAYERS = {
+  glow: "transit-notice-stretch-glow",
+  hatch: "transit-notice-stretch-hatch",
+  edges: "transit-notice-stretch-edges",
+} as const;
+const STRETCH_HATCH_IMAGE = "transit-notice-stretch-hatch";
+/** Close to the basemap's street width, so the band sits on the street rather than over the block. */
+const STRETCH_WIDTHS = [[9, 5], [14, 9], [17, 15]] as const;
+const STRETCH_GLOW_OPACITY = 0.35;
+
+/** Diagonal blue stripes on a clear ground: a tile the band repeats along its length. */
+function drawStretchHatch(): ImageData | null {
+  if (typeof document === "undefined") return null;
+  const size = 16 * PIXEL_RATIO;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.fillStyle = "rgba(56, 189, 248, 0.18)";
+  ctx.fillRect(0, 0, size, size);
+  ctx.strokeStyle = SELECTION_BAND;
+  ctx.lineWidth = 2.5 * PIXEL_RATIO;
+  ctx.lineCap = "square";
+  const period = size / 2;
+  for (let offset = -size; offset <= size * 2; offset += period) {
+    ctx.beginPath();
+    ctx.moveTo(offset, size);
+    ctx.lineTo(offset + size, 0);
+    ctx.stroke();
+  }
+  return ctx.getImageData(0, 0, size, size);
+}
+
+/**
+ * Draws, updates or clears a notice's named stretches. Idempotent; `before`
+ * is the first selected-stop layer, so the stops stay on top.
+ */
+export function applySurfaceStretchLayers(
+  map: MapLibreMap,
+  stretches: ReadonlyArray<{ route: string; path: readonly (readonly [number, number])[] }>,
+  before: string | undefined,
+): void {
+  const ids = [STRETCH_LAYERS.edges, STRETCH_LAYERS.hatch, STRETCH_LAYERS.glow];
+  if (stretches.length === 0) {
+    removeLayers(map, ids);
+    if (map.getSource(STRETCH_SOURCE)) map.removeSource(STRETCH_SOURCE);
+    return;
+  }
+  const data = {
+    type: "FeatureCollection",
+    features: stretches.map((stretch) => ({
+      type: "Feature",
+      geometry: { type: "LineString", coordinates: stretch.path.map(([lon, lat]) => [lon, lat]) },
+      properties: { route: stretch.route },
+    })),
+  };
+  const source = map.getSource(STRETCH_SOURCE) as { setData?: (value: unknown) => void } | undefined;
+  if (source?.setData) source.setData(data);
+  else map.addSource(STRETCH_SOURCE, { type: "geojson", data: data as never });
+  try {
+    if (!map.hasImage(STRETCH_HATCH_IMAGE)) {
+      const image = drawStretchHatch();
+      if (image) map.addImage(STRETCH_HATCH_IMAGE, image, { pixelRatio: PIXEL_RATIO });
+    }
+  } catch {
+    // Without the stripes the edges still mark the stretch.
+  }
+  // Round ends: the band and its edge lines close in a soft half-circle at each stop.
+  const layout = { "line-cap": "round", "line-join": "round" } as const;
+  if (!map.getLayer(STRETCH_LAYERS.glow)) {
+    map.addLayer({
+      id: STRETCH_LAYERS.glow,
+      type: "line",
+      source: STRETCH_SOURCE,
+      layout,
+      paint: {
+        "line-color": SELECTION_GLOW,
+        "line-width": widthsAtZoom(STRETCH_WIDTHS, 2) as never,
+        "line-opacity": STRETCH_GLOW_OPACITY,
+        "line-blur": widthsAtZoom(STRETCH_WIDTHS, 0.8) as never,
+      },
+    }, before);
+  }
+  if (!map.getLayer(STRETCH_LAYERS.hatch) && map.hasImage(STRETCH_HATCH_IMAGE)) {
+    map.addLayer({
+      id: STRETCH_LAYERS.hatch,
+      type: "line",
+      source: STRETCH_SOURCE,
+      layout,
+      paint: { "line-pattern": STRETCH_HATCH_IMAGE, "line-width": widthsAtZoom(STRETCH_WIDTHS) as never },
+    }, before);
+  }
+  if (!map.getLayer(STRETCH_LAYERS.edges)) {
+    map.addLayer({
+      id: STRETCH_LAYERS.edges,
+      type: "line",
+      source: STRETCH_SOURCE,
+      layout,
+      paint: {
+        "line-color": SELECTION_BAND,
+        "line-width": 2,
+        "line-gap-width": widthsAtZoom(STRETCH_WIDTHS) as never,
+      },
+    }, before);
+  }
+}
+
 /** Removes one layer's selection (before its sources go). */
 export function removeSurfaceSelectionLayers(map: MapLibreMap, prefix: string): void {
   const ids = surfaceSelectionLayerIds(prefix);
@@ -390,6 +504,10 @@ export function applySurfaceSelectionAttentionFrame(
     if (map.getLayer(ids.stopOutline)) {
       setTransitPaintProperty(map, ids.stopOutline, "icon-opacity", frame.opacity);
     }
+  }
+  // The stretch's glow breathes with the selection; its stripes and edges stay solid to read.
+  if (map.getLayer(STRETCH_LAYERS.glow)) {
+    setTransitPaintProperty(map, STRETCH_LAYERS.glow, "line-opacity", STRETCH_GLOW_OPACITY * frame.opacity);
   }
 }
 

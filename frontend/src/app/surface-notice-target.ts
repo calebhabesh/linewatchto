@@ -91,6 +91,19 @@ export function noticeHasSurfaceTarget(notice: SurfaceNoticeDetail, network: Net
   return notice.routeType !== "GO Bus" && notice.routeType !== "GO / UP";
 }
 
+/**
+ * The poles one notice stop names: by pole number, else by name among the
+ * notice's routes' poles (a name can cover both sides of an intersection).
+ */
+export function noticeStopPoles(
+  index: PreparedSurfaceIndex,
+  entry: { stopId: string; stopName: string },
+  routes: ReadonlySet<string>,
+): SurfaceSearchStop[] {
+  const numbered = stopByNumber(index, entry.stopId.trim());
+  return numbered ? [numbered] : stopsNamed(index, entry.stopName || entry.stopId, routes);
+}
+
 export function surfaceNoticeMapTarget(
   notice: SurfaceNoticeDetail,
   network: NetworkId,
@@ -107,13 +120,8 @@ export function surfaceNoticeMapTarget(
       .map((stopId) => ({ stopId, stopName: "" })),
   ];
   const stopCodes = new Set<string>();
-  for (const { stopId, stopName } of entries) {
-    const numbered = stopByNumber(index, stopId.trim());
-    if (numbered) {
-      stopCodes.add(numbered.code);
-      continue;
-    }
-    for (const stop of stopsNamed(index, stopName || stopId, routes)) stopCodes.add(stop.code);
+  for (const entry of entries) {
+    for (const stop of noticeStopPoles(index, entry, routes)) stopCodes.add(stop.code);
   }
   if (stopCodes.size > 0) return { kind: "stops", stopCodes: [...stopCodes] };
 

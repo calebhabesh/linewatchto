@@ -133,10 +133,12 @@ import {
 } from "./geographic-night-layers";
 import {
   applySurfaceSelectionLayers,
+  applySurfaceStretchLayers,
   drawnSurfaceSelectionLayers,
   applySurfaceSelectionAttentionFrame,
   surfaceSelectionStopCodeAtPoint,
   surfaceSelectionStopLayers,
+  surfaceSelectionLayerIds,
   BRANCH_SELECTION_SOURCE,
   setBranchSelectionSource,
   type SurfaceSelectionTarget,
@@ -151,6 +153,7 @@ import {
   selectedRoutesInLayer,
   surfaceSelectionBounds,
   surfaceSelectionKey,
+  surfaceStretchKey,
   type SurfaceMapSelection,
   type SurfaceSelectionLayer,
 } from "../app/surface-map-selection";
@@ -294,6 +297,11 @@ import {
   GeographicSelectionAttention,
   type SelectionAttentionFrame,
 } from "../app/geographic-selection-attention";
+import {
+  announceMapSelectionIntro,
+  forgetMapSelectionIntro,
+  settleMapSelectionIntro,
+} from "../app/selection-intro-sync";
 import {
   observeMapChooserKeepouts,
   visibleMapChooserKeepouts,
@@ -520,6 +528,7 @@ function surfaceSelectionPoints(
   if (files.streetcars) stopsIn(files.streetcars.features.filter(isStreetcarStopFeature), assigned.streetcar);
   if (files.busStops) stopsIn(files.busStops.features, assigned.bus);
   if (files.nightStops) stopsIn(files.nightStops.features, assigned.night);
+  for (const stretch of selection.stretches ?? []) points.push(...stretch.path.map(([lon, lat]): [number, number] => [lon, lat]));
   const layers: Array<[SurfaceSelectionLayer, ReadonlyArray<{ geometry: { coordinates: [number, number][] }; properties: { routes: readonly string[] } }> | undefined]> = [
     ["streetcar", files.streetcars?.features.filter(isStreetcarCorridorFeature)],
     ["bus", files.busCorridors?.features],
@@ -841,6 +850,8 @@ export function GeographicNetworkMap({
     return () => flight.cancel();
   }, []);
   const lastSelectionIntroKeyRef = useRef<string | null>(null);
+  /** The selection whose flash start the card has been told, so a poll update does not restart its glow. */
+  const settledIntroKeyRef = useRef<string | null>(null);
 
   const stopAttentionLoop = useCallback(() => {
     if (rafIdRef.current !== null) {
@@ -1127,6 +1138,7 @@ export function GeographicNetworkMap({
   // (plan 14, U4), drawn by syncSurfaceSelection and framed once.
   const mapSurfaceSelection = mergeSurfaceSelection(selectedSurfaceStopCode, surfaceSelection);
   const surfaceSelectionKeyValue = surfaceSelectionKey(mapSurfaceSelection);
+  const surfaceStretchKeyValue = network === "ttc" ? surfaceStretchKey(mapSurfaceSelection) : "";
   const surfaceSelectionRef = useRef(mapSurfaceSelection);
   useLayoutEffect(() => {
     surfaceSelectionRef.current = mapSurfaceSelection;
@@ -1327,8 +1339,12 @@ export function GeographicNetworkMap({
       if (pendingCameraFlightGenRef.current !== null) {
         const flightGen = pendingCameraFlightGenRef.current;
         pendingCameraFlightGenRef.current = null;
-        const frame = selectionAttentionRef.current.onCameraFlightEnd(flightGen);
+        const landedAt = performance.now();
+        const frame = selectionAttentionRef.current.onCameraFlightEnd(flightGen, landedAt);
         attentionHandlersRef.current.applyAttentionFrame(frame);
+        // The card's glow starts with the flash, the moment the camera lands.
+        const landed = selectionRef.current;
+        if (landed) settleMapSelectionIntro(landed, frame.state === "intro" ? landedAt : null);
         if (frame.active) {
           attentionHandlersRef.current.startAttentionLoop();
         }
@@ -2443,6 +2459,9 @@ export function GeographicNetworkMap({
         routes: drawnRoutesIn("go-bus"), stopCodes: goStopCodes, routeLine: !goBusesOn, dark,
       });
     }
+    // A notice's named stretch, under every selected stop.
+    const stretchBefore = SURFACE_SELECTION_PREFIXES.map((prefix) => surfaceSelectionLayerIds(prefix).stopRing).find((id) => map.getLayer(id));
+    applySurfaceStretchLayers(map, network === "ttc" ? selection?.stretches ?? [] : [], stretchBefore);
     if (!branch) setBranchSelectionSource(map, null);
     if (selection) {
       installTransitOpacity(map);
@@ -2465,7 +2484,7 @@ export function GeographicNetworkMap({
     syncSurfaceSelection();
   }, [
     busCatalog, busStops, busesShown, goBusCatalog, goBusStops, goBusesShown, loadStatus, network, nightCatalog,
-    nightStops, streetcarCatalog, streetcarRoutesShown, styleRevision, surfaceSelectionKeyValue, syncSurfaceSelection,
+    nightStops, streetcarCatalog, streetcarRoutesShown, styleRevision, surfaceSelectionKeyValue, surfaceStretchKeyValue, syncSurfaceSelection,
   ]);
 
   // The files a selection needs, loaded even with its layer's switch off: a
@@ -3059,6 +3078,19 @@ export function GeographicNetworkMap({
     lastSelectedStationIdRef.current = selectedStationId ?? null;
   }, [selectedStationId, loadStatus, reducedMotion, startSelectionFlight]);
 
+  // The selected alert's card glows on this map's flash clock (app/selection-intro-sync.ts),
+  // as on the System Maps: the active map says a flash is coming before the card checks,
+  // then reports when it starts (now, or when its camera lands).
+  const announcesIntro = Boolean(selection && isMapActive && loadStatus === "ready" && !reducedMotion && !mobilePerformanceMode);
+  const announcedKind = selection?.kind;
+  const announcedId = selection?.id;
+  useLayoutEffect(() => {
+    if (!announcesIntro || !announcedKind || !announcedId) return;
+    const identity = { kind: announcedKind, id: announcedId };
+    announceMapSelectionIntro(identity);
+    return () => forgetMapSelectionIntro(identity);
+  }, [announcesIntro, announcedId, announcedKind, selectionAttentionGeneration]);
+
   // React to impact selection changes (focus camera on affected corridor/station and drive attention controller)
   useEffect(() => {
     const map = mapRef.current;
@@ -3069,6 +3101,7 @@ export function GeographicNetworkMap({
     if (!selection) {
       lastSelectionRef.current = null;
       lastSelectionIntroKeyRef.current = null;
+      settledIntroKeyRef.current = null;
       pendingCameraFlightGenRef.current = null;
       selectionFlightRef.current.cancel("rail");
       stopAttentionLoop();
@@ -3125,6 +3158,7 @@ export function GeographicNetworkMap({
 
     const continueAttention = Boolean(selectionIntroKey && selectionIntroKey === lastSelectionIntroKeyRef.current);
     lastSelectionIntroKeyRef.current = selectionIntroKey;
+    const requestedAt = performance.now();
     const frame = selectionAttentionRef.current.requestAttention(
       {
         id: selection.id,
@@ -3134,8 +3168,17 @@ export function GeographicNetworkMap({
         continueAttention,
       },
       staticFallback,
+      requestedAt,
     );
     applyAttentionFrame(frame);
+    // Once per selection: with no flight to wait for, the flash starts now, or
+    // (a linked hop keeping its cadence, or a still fallback) the card glows on its own.
+    if (currentSelectionKey !== settledIntroKeyRef.current) {
+      settledIntroKeyRef.current = currentSelectionKey;
+      if (frame.state !== "camera-flight") {
+        settleMapSelectionIntro(selection, frame.state === "intro" && !continueAttention ? requestedAt : null);
+      }
+    }
     if (frame.active) {
       startAttentionLoop();
     } else {
@@ -3499,21 +3542,31 @@ export function GeographicNetworkMap({
     lastCommutePreviewIdRef.current = commutePathPreview.id;
   }, [commutePathPreview, loadStatus, reducedMotion]);
 
-  // Recenter signal reaction (fits current network bounds)
+  // Center, as on the System Maps (usePanZoom's recenterWithFeedback): the camera
+  // snaps to the fitted network and a wash in the map's colour fades off it, rather
+  // than a flight that zooms out and back in on its way.
+  // The shell's toolbar (recenterSignal) and the map's own Center button share it.
+  const [centerFeedbackKey, setCenterFeedbackKey] = useState(0);
+  const centerOnNetwork = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || loadStatusRef.current !== "ready") return;
+    cameraAdjustedByUserRef.current = false;
+    clearGeographicMapViewport(window.localStorage, network);
+    map.stop();
+    map.fitBounds(getGeographicBounds(network), {
+      padding: { top: 70, bottom: 90, left: 40, right: 40 },
+      animate: false,
+    });
+    if (!reducedMotion) setCenterFeedbackKey((current) => current + 1);
+  }, [network, reducedMotion]);
   useEffect(() => {
     if (recenterSignal === undefined || recenterSignal === lastRecenterSignalRef.current) return;
     lastRecenterSignalRef.current = recenterSignal;
-
-    const map = mapRef.current;
-    if (!map || loadStatus !== "ready") return;
-
-    cameraAdjustedByUserRef.current = false;
-    clearGeographicMapViewport(window.localStorage, network);
-    map.fitBounds(getGeographicBounds(network), {
-      padding: { top: 70, bottom: 90, left: 40, right: 40 },
-      animate: !reducedMotion,
-    });
-  }, [recenterSignal, loadStatus, network, reducedMotion]);
+    if (loadStatus !== "ready") return;
+    // A camera command from the toolbar, run as the map's own button runs it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    centerOnNetwork();
+  }, [centerOnNetwork, recenterSignal, loadStatus]);
 
   // Zoom In signal reaction
   useEffect(() => {
@@ -3672,8 +3725,6 @@ export function GeographicNetworkMap({
     onNetworkChange?.(next);
   }, [network, onNetworkChange, playLayerDeckExit]);
 
-  const networkBounds = getGeographicBounds(network);
-
   const layerSwitchState: MapLayerSwitchState = {
     trainMarkers: trainMarkersControl,
     streetcarRoutes: streetcarRoutesShown,
@@ -3722,6 +3773,9 @@ export function GeographicNetworkMap({
         role="region"
         aria-label={network === "regional" ? "Regional Rail Geographic Map" : "TTC Geographic Map"}
       />
+      {centerFeedbackKey > 0 ? (
+        <div key={centerFeedbackKey} aria-hidden="true" className="map-center-feedback" data-map-center-feedback="geographic" />
+      ) : null}
 
       {overlapChooser && overlapChooserLayout ? (
         <MapOverlapChooser
@@ -3872,17 +3926,7 @@ export function GeographicNetworkMap({
         <div className="map-control-recenter-container">
           <button
             type="button"
-            onClick={() => {
-              const map = mapRef.current;
-              if (map) {
-                cameraAdjustedByUserRef.current = false;
-                clearGeographicMapViewport(window.localStorage, network);
-                map.fitBounds(networkBounds, {
-                  padding: { top: 70, bottom: 90, left: 40, right: 40 },
-                  animate: !reducedMotion,
-                });
-              }
-            }}
+            onClick={centerOnNetwork}
             className="map-control-button group"
             title="Center view"
             aria-label="Center map view"
@@ -3979,6 +4023,20 @@ export function GeographicNetworkMap({
         )}
       </div>
 
+
+      {surfaceStretchKeyValue ? (
+        <div className="geographic-stretch-caption" role="note" data-surface-stretch={surfaceStretchKeyValue}>
+          <span className="geographic-stretch-caption__key" aria-hidden="true">
+            <span className="geographic-stretch-caption__stop" />
+            <span className="geographic-stretch-caption__band" />
+            <span className="geographic-stretch-caption__stop" />
+          </span>
+          <span className="geographic-stretch-caption__copy">
+            <strong>Affected Stretch</strong>
+            <span>Regular route between the stops this notice names. Detour streets aren&apos;t drawn.</span>
+          </span>
+        </div>
+      ) : null}
 
       {/* Floating Commute Path Preview Banner */}
       {commutePathPreview && !selection && (

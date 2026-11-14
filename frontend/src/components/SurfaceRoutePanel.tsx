@@ -13,6 +13,7 @@ import {
   routeDirections,
   routeVariants,
   surfaceNoticesForRoute,
+  surfaceNoticeTiming,
   type RouteStopsFile,
   type RouteVariant,
 } from "../app/surface-route-stops";
@@ -26,6 +27,9 @@ import {
 } from "../app/route-stop-filter";
 import { cachedSurfaceSearchIndex, loadSurfaceSearchIndex } from "../app/surface-search-index";
 import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
+import { surfaceNoticeCategoryLabel } from "../app/surface-notice-groups";
+import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
+import { SurfaceNoticeStartsChip } from "./SurfaceStopImpacts";
 import type { PreparedSurfaceIndex } from "../app/surface-search";
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
 import { FilterSearchRow } from "./FilterSearchRow";
@@ -142,6 +146,7 @@ export function SurfaceRoutePanel({
   });
   const [index, setIndex] = useState<PreparedSurfaceIndex | null>(() => cachedSurfaceSearchIndex(route.network));
   const [notices, setNotices] = useState<SurfaceNoticeDetail[]>([]);
+  const [now] = useState(() => Date.now());
   const [directionId, setDirectionId] = useState<number | null>(initialPlace?.direction ?? null);
   const [variantCode, setVariantCode] = useState<string | null>(initialPlace?.variant ?? null);
   const [filter, setFilter] = useState(initialPlace?.filter ?? "");
@@ -218,7 +223,7 @@ export function SurfaceRoutePanel({
     if (!variant?.directions.some((candidate) => candidate.direction === next)) chooseVariant(busiestVariantFor(variants, next));
   };
   const linked = index ? expressCounterpart(route, index.routes) : null;
-  const routeNotices = surfaceNoticesForRoute(notices, route);
+  const routeNotices = surfaceNoticesForRoute(notices, route, now);
 
   // Back from a stop lands where the rider left the list.
   const restoredScrollRef = useRef(false);
@@ -247,6 +252,7 @@ export function SurfaceRoutePanel({
   const filterTokens = routeStopFilterTokens(filter);
   const filtering = filterTokens.length > 0;
   const shownName = (code: string) => stopName(code) ?? `Stop ${code}`;
+  const stopNotice = (code: string) => noticeNamingStop(routeNotices, code, stopName(code), now);
   // Every stop of the branch in order, with its place, so the rail can show what was skipped.
   const listedStops = (branch?.stops ?? []).flatMap((code, at) => {
     const match = filtering ? matchRouteStop(filterTokens, code, shownName(code)) : null;
@@ -396,6 +402,7 @@ export function SurfaceRoutePanel({
                     <span>
                       <strong>{notice.title}</strong>
                       {notice.location ? <span>{notice.location}</span> : null}
+                      {notice.startAt && surfaceNoticeTiming(notice, now) === "upcoming" ? <SurfaceNoticeStartsChip startAt={notice.startAt} now={now} /> : null}
                     </span>
                     <ChevronRight size={16} aria-hidden="true" />
                   </button>
@@ -482,6 +489,10 @@ export function SurfaceRoutePanel({
                 const nearest = code === nearestStopCode && at === branch.stops.indexOf(code);
                 const skippedBefore = position > 0 && listedStops[position - 1].at !== at - 1;
                 const terminal = at === 0 ? "first" : at === branch.stops.length - 1 ? "last" : undefined;
+                const named = stopNotice(code);
+                const namedLabel = named
+                  ? `${named.upcoming ? "Upcoming " : ""}${surfaceNoticeCategoryLabel(named.notice.category)}`
+                  : null;
                 return (
                   <li
                     key={`${code}:${at}`}
@@ -492,13 +503,20 @@ export function SurfaceRoutePanel({
                     <button
                       type="button"
                       data-surface-route-stop={code}
-                      aria-label={`Stop ${code}, ${name}${nearest ? ", nearest to you" : ""}: departures`}
+                      aria-label={`Stop ${code}, ${name}${nearest ? ", nearest to you" : ""}${namedLabel ? `, named in ${namedLabel.toLowerCase()} notice` : ""}: departures`}
+                      data-stop-notice={named ? named.notice.id : undefined}
                       onClick={() => onOpenStop(code, place())}
                     >
                       <span className="surface-route-stop-dot" aria-hidden="true" />
                       <span className="surface-route-stop-name">
                         <MarkedText text={name} ranges={match?.name ?? []} />
                         {nearest ? <small>Nearest</small> : null}
+                        {named && namedLabel ? (
+                          <span className={`surface-route-stop-notice${named.upcoming ? " is-upcoming" : ""}`} aria-hidden="true">
+                            <SurfaceCategoryIcon category={named.notice.category} size={12} />
+                            {namedLabel}
+                          </span>
+                        ) : null}
                       </span>
                       <span className={stopBadgeClass} aria-hidden="true"><MarkedText text={code} ranges={match?.code ?? []} /></span>
                       <ChevronRight size={16} aria-hidden="true" />
@@ -515,6 +533,17 @@ export function SurfaceRoutePanel({
       </div>
     </aside>
   );
+}
+
+/**
+ * The notice that names a stop on this route, by pole number or (TTC Live
+ * Alerts repeat the name as the id) by name; in-effect notices before
+ * upcoming ones, as routeNotices is ordered.
+ */
+function noticeNamingStop(notices: readonly SurfaceNoticeDetail[], code: string, name: string | null, now: number) {
+  const lowerName = name?.trim().toLowerCase();
+  const notice = notices.find((candidate) => candidate.stopIds.some((id) => id === code || (lowerName && id.trim().toLowerCase() === lowerName)));
+  return notice ? { notice, upcoming: surfaceNoticeTiming(notice, now) === "upcoming" } : null;
 }
 
 /** The way back from a stop opened in a route panel: a stop panel's first row. */

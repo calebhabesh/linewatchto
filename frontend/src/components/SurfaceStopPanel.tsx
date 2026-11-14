@@ -170,7 +170,7 @@ export function SurfaceStopPanel({
             <ArrowRight size={16} aria-hidden="true" />
           </button>
         ) : null}
-        <SurfaceStopDisruption notices={stopNotices} stopId={data?.stopId ?? null} reducedMotion={reducedMotion} />
+        <SurfaceStopDisruption notices={stopNotices} stopId={data?.stopId ?? null} reducedMotion={reducedMotion} now={now} />
 
         {!result ? (
           <div className="surface-stop-message" role="status">
@@ -256,7 +256,7 @@ export function SurfaceStopPanel({
           </section>
         ) : null}
 
-        <SurfaceStopImpacts notices={stopNotices} stopId={data?.stopId ?? null} routeBadgeStyle={ttcRouteBadgeStyle} onOpenNotice={onOpenNotice} />
+        <SurfaceStopImpacts notices={stopNotices} stopId={data?.stopId ?? null} now={now} routeBadgeStyle={ttcRouteBadgeStyle} onOpenNotice={onOpenNotice} />
       </div>
     </aside>
   );

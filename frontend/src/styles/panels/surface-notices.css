@@ -350,3 +350,129 @@
 .embedded-line-notices .surface-notices-scroll {
   padding-inline: 0;
 }
+
+/* A notice's View with a named stretch: a legend card whose key is the band
+   itself in miniature (stop, hatched stretch, stop), saying what it is and is not. */
+.geographic-stretch-caption {
+  align-items: center;
+  /* VisionOS frosted glass, as the map's status notice: neutral filament, no service colour. */
+  background: var(--mobile-chrome-background, rgb(14, 16, 22));
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.02) 50%,
+    rgba(0, 0, 0, 0.12) 100%
+  );
+  backdrop-filter: blur(24px) saturate(180%) contrast(105%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%) contrast(105%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  bottom: 28px;
+  box-shadow:
+    0 10px 32px rgba(0, 0, 0, 0.48),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.45);
+  color: #f1f5f9;
+  display: flex;
+  gap: 12px;
+  left: 50%;
+  max-width: min(420px, calc(100% - 32px));
+  padding: 10px 16px 10px 12px;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-50%);
+  width: max-content;
+  z-index: 25;
+}
+
+.linewatch-shell:not(.dark) .geographic-stretch-caption {
+  background: rgba(255, 255, 255, 0.88);
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.70) 0%,
+    rgba(255, 255, 255, 0.25) 55%,
+    rgba(15, 23, 42, 0.04) 100%
+  );
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.14),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.08);
+  color: #0f172a;
+}
+
+.geographic-stretch-caption__key {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+}
+
+/* The selected stop's dot: dark fill, white edge, blue ring. */
+.geographic-stretch-caption__stop {
+  background: #0f172a;
+  border: 1.5px solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px #38bdf8;
+  height: 9px;
+  position: relative;
+  width: 9px;
+  z-index: 1;
+}
+
+.geographic-stretch-caption__band {
+  background: repeating-linear-gradient(-45deg, #38bdf8 0 2px, rgba(56, 189, 248, 0.16) 2px 5px);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1.5px #38bdf8, 0 0 6px rgba(14, 165, 233, 0.45);
+  height: 10px;
+  margin-inline: -3px;
+  width: 34px;
+}
+
+.geographic-stretch-caption__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.geographic-stretch-caption__copy strong {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+.geographic-stretch-caption__copy span {
+  color: rgb(148, 163, 184);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.linewatch-shell:not(.dark) .geographic-stretch-caption__copy span {
+  color: #475569;
+}
+
+.linewatch-shell.high-contrast .geographic-stretch-caption,
+.high-contrast .geographic-stretch-caption {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: #000;
+  background-image: none;
+  border-color: #fff;
+  box-shadow: none;
+  color: #fff;
+}
+
+.linewatch-shell.high-contrast .geographic-stretch-caption__copy span,
+.high-contrast .geographic-stretch-caption__copy span {
+  color: #fff;
+}
+
+/* Phones show the hatched band alone: the notice strip already names the notice,
+   and a card this size would cover the stretch it explains. */
+@media (max-width: 767px) {
+  .geographic-stretch-caption {
+    display: none;
+  }
+}

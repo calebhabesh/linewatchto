@@ -128,7 +128,7 @@ describe("stop notices", () => {
   });
   const now = Date.parse("2026-11-02T21:00:00Z");
 
-  it("lists active notices for the stop's routes or the stop itself, never announcements", () => {
+  it("lists active then upcoming notices for the stop's routes or the stop itself, never announcements", () => {
     const notices = [
       notice("route", { routeIds: ["504"], updatedAt: "2026-11-02T19:00:00Z" }),
       notice("stop", { stopIds: ["2120"] }),
@@ -138,7 +138,7 @@ describe("stop notices", () => {
       notice("ended", { routeIds: ["504"], endAt: "2026-11-02T20:30:00Z" }),
     ];
     assert.deepEqual(surfaceNoticesForStop(notices, { stopId: "2120", routes: ["504", "510"] }, now).map((item) => item.id),
-      ["stop", "route"]);
+      ["stop", "route", "later"]);
   });
 
   it("matches a branch's notice to its route number, as a route panel does", () => {

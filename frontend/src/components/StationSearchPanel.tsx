@@ -14,7 +14,8 @@ import {
   type SurfaceSearchStop,
 } from "../app/surface-search";
 import { useSurfaceSearchIndexes } from "../hooks/useSurfaceSearchIndexes";
-import { SurfaceRouteResult, SurfaceStopGroupResult, type ResultKeyboard } from "./SurfaceSearchResults";
+import { SurfaceRouteResult, SurfaceStopGroupResult, surfaceRouteBadgeStyle, type ResultKeyboard } from "./SurfaceSearchResults";
+import { goNoticeRouteBadgeStyle } from "../app/go-bus-route-colors";
 import { StopsNearMe } from "./StopsNearMe";
 import { searchPlaceStore } from "../app/search-return";
 import {
@@ -68,7 +69,7 @@ import {
 } from "../app/unified-search";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { SearchReturnIcon } from "./SearchReturnIcon";
-import { LineBadge } from "./ImpactCardFields";
+import { CompactImpactLocation, LineBadge } from "./ImpactCardFields";
 import { TransitLineBadge } from "./TransitLineBadge";
 import { StationImpactTypeBadges } from "./StationImpactTypeBadges";
 import { StationOutageBadge } from "./StationOutageBadge";
@@ -152,7 +153,8 @@ function ImpactSearchButton({
           <strong>{result.title}</strong>
         </span>
         <span className="global-search-impact-location">
-          {result.location}{result.displayDirection ? ` · ${result.displayDirection}` : ""}
+          <CompactImpactLocation location={result.location} direction={result.displayDirection} />
+          {result.displayDirection ? <span className="global-search-impact-direction">{result.displayDirection}</span> : null}
         </span>
         {result.activeNow || result.shuttle || result.nightly ? (
           <span className="global-search-impact-badges">
@@ -164,6 +166,30 @@ function ImpactSearchButton({
       </span>
       <ChevronRight size={17} aria-hidden="true" />
     </button>
+  );
+}
+
+const MAX_NOTICE_ROUTE_BADGES = 3;
+
+/** A notice row's routes as badges, like the line badge on an alert row; the text line still names every route. */
+function NoticeRouteBadges({ routeIds, regional }: { routeIds: readonly string[]; regional: boolean }) {
+  if (routeIds.length === 0) return null;
+  const shown = routeIds.slice(0, MAX_NOTICE_ROUTE_BADGES);
+  return (
+    <span className="surface-search-route-badges global-search-notice-routes">
+      <span className="sr-only">{routeIds.length === 1 ? "Route" : "Routes"} {routeIds.join(", ")}: </span>
+      {shown.map((route) => (
+        <span
+          key={route}
+          aria-hidden="true"
+          className="surface-search-route-badge"
+          style={regional ? goNoticeRouteBadgeStyle(route) : surfaceRouteBadgeStyle({ network: "ttc", route, color: "", textColor: "" }, 1.5)}
+        >
+          {route}
+        </span>
+      ))}
+      {routeIds.length > shown.length ? <span className="surface-search-route-more" aria-hidden="true">+{routeIds.length - shown.length}</span> : null}
+    </span>
   );
 }
 
@@ -1090,12 +1116,18 @@ export function StationSearchPanel({
       render: () => (surfaceNoticeResults.length > 0 ? (
                   <section className="global-search-group" aria-labelledby="global-search-surface-heading">
                     <div className="global-search-group-heading">
-                      <h3 id="global-search-surface-heading">{currentNetwork === "regional" ? "GO / UP Notices" : "Streetcar & Bus Notices"}</h3>
+                      <h3 id="global-search-surface-heading">
+                        <span className="global-search-notice-heading-icon" aria-hidden="true">
+                          {currentNetwork === "regional" ? <Megaphone size={14} /> : <Bus size={14} />}
+                        </span>
+                        {currentNetwork === "regional" ? "GO / UP Notices" : "Streetcar & Bus Notices"}
+                      </h3>
                       <button type="button" onClick={() => onOpenDestination("surface-notices")}>View All</button>
                     </div>
                     {surfaceNoticeResults.map(({ notice }) => {
                       const keyboardIndex = nextResultButtonIndex++;
-                      const routes = notice.routeIds.length > 0 ? `Route ${notice.routeIds.join(", ")}` : notice.routeType;
+                      // The badges name up to three routes; past that the line names them all.
+                      const routes = notice.routeIds.length > MAX_NOTICE_ROUTE_BADGES ? `Routes ${notice.routeIds.join(", ")}` : notice.routeType;
                       const surfaceIndex = surfaceIndexes.find((index) => index.network === currentNetwork);
                       const mapTarget: SurfaceNoticeMapTarget | null = !noticeHasSurfaceTarget(notice, currentNetwork)
                         ? { kind: "none" }
@@ -1109,11 +1141,14 @@ export function StationSearchPanel({
                           onClick={() => onOpenSurfaceNotice(notice)}
                           onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
                         >
-                          <span className="global-search-resource-icon">
-                            {currentNetwork === "regional" ? <Megaphone size={18} /> : <Bus size={18} />}
+                          <span className="global-search-impact-icon global-search-notice-icon" aria-hidden="true">
+                            {currentNetwork === "regional" ? <Megaphone size={17} /> : <Bus size={17} />}
                           </span>
                           <span>
-                            <strong>{notice.title}</strong>
+                            <span className="global-search-impact-heading">
+                              <NoticeRouteBadges routeIds={notice.routeIds} regional={currentNetwork === "regional"} />
+                              <strong>{notice.title}</strong>
+                            </span>
                             <small>{routes}{notice.location ? ` · ${notice.location}` : ""}</small>
                           </span>
                           <ChevronRight size={17} aria-hidden="true" />
