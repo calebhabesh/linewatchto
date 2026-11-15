@@ -10,6 +10,13 @@ import type {
   ReducedSpeedZone,
   StationNodeImpact,
 } from "../app/linewatch-data";
+import { stationImpactDirectionSource } from "./station-impact-direction.ts";
+import {
+  anyStationTouchesMeet,
+  segmentStationTouches,
+  stationLineDotLookup,
+  type StationTouch,
+} from "./station-dots.ts";
 
 type CurrentImpact = {
   kind: ImpactKind;
@@ -65,18 +72,8 @@ function segmentsOverlap(a: string[], b: string[]): boolean {
   return b.some((segmentId) => aIds.has(segmentId));
 }
 
-function idsOverlap(a: string[], b: string[]): boolean {
-  if (a.length === 0 || b.length === 0) return false;
-  const aIds = new Set(a);
-  return b.some((id) => aIds.has(id));
-}
-
 function uniqueSegmentIds(segmentIds: string[]): string[] {
   return Array.from(new Set(segmentIds.filter(Boolean)));
-}
-
-function uniqueIds(ids: string[]): string[] {
-  return Array.from(new Set(ids.filter(Boolean)));
 }
 
 function impactMatchesSelection(
@@ -112,44 +109,52 @@ function segmentIdsForSelection(
   ]);
 }
 
-function stationIdsForSegments(
+/** Where the selected segments end, each on the dot it is drawn on (station-dots.ts). */
+function stationTouchesForSegments(
   segmentIds: string[],
   networkSegments: NetworkSegment[],
-): string[] {
+): StationTouch[] {
   const selectedSegmentIds = new Set(segmentIds);
-  return uniqueIds(
-    networkSegments
-      .filter((segment) => selectedSegmentIds.has(segment.id))
-      .flatMap((segment) => [segment.stationAId, segment.stationBId].filter((stationId): stationId is string => Boolean(stationId))),
-  );
+  return networkSegments
+    .filter((segment) => selectedSegmentIds.has(segment.id))
+    .flatMap(segmentStationTouches);
 }
 
-function stationIdsForSelection(
+/** A selection's station alerts, on their line's dot where the station has one per line. */
+function stationTouchesForSelection(
   selection: NonNullable<ImpactSelection>,
-  stationNodeImpacts: StationNodeImpact[],
-): string[] {
-  return uniqueIds(
-    stationNodeImpacts
-      .filter((impact) => impactMatchesSelection(impact, selection))
-      .map((impact) => impact.stationId),
-  );
+  data: Pick<OverlapSourceData, "stationNodeImpacts" | "activeAlerts" | "delays" | "reducedSpeedZones" | "plannedClosures">,
+  lineDot: (stationId: string, lineId: string | null | undefined) => string | null,
+): StationTouch[] {
+  return data.stationNodeImpacts
+    .filter((impact) => impactMatchesSelection(impact, selection))
+    .map((impact) => ({
+      stationId: impact.stationId,
+      dotId: lineDot(impact.stationId, stationImpactDirectionSource(impact, data)?.lineId),
+    }));
 }
 
 function footprintForSelection(
   selection: NonNullable<ImpactSelection>,
   explicitSegmentIds: string[],
-  data: Pick<OverlapSourceData, "networkSegments" | "stationNodeImpacts">,
-): { segmentIds: string[]; stationIds: string[] } {
+  data: OverlapSourceData,
+  lineDot: (stationId: string, lineId: string | null | undefined) => string | null,
+): { segmentIds: string[]; stationTouches: StationTouch[] } {
   const segmentIds = segmentIdsForSelection(selection, explicitSegmentIds, data.networkSegments);
   return {
     segmentIds,
-    stationIds: uniqueIds([
-      ...stationIdsForSegments(segmentIds, data.networkSegments),
-      ...stationIdsForSelection(selection, data.stationNodeImpacts),
-    ]),
+    stationTouches: [
+      ...stationTouchesForSegments(segmentIds, data.networkSegments),
+      ...stationTouchesForSelection(selection, data, lineDot),
+    ],
   };
 }
 
+/**
+ * Alerts that share a stretch of line or meet at a station's drawn mark, as
+ * the map's overlap badges count them: KI and UP alerts that only meet at
+ * Bloor's separate KI and UP dots do not overlap.
+ */
 export function getOverlappingImpactRefs(
   currentImpact: CurrentImpact,
   data: OverlapSourceData,
@@ -157,10 +162,12 @@ export function getOverlappingImpactRefs(
   const refs: OverlappingImpactRef[] = [];
   const seen = new Set<string>();
   const currentSelection = { kind: currentImpact.kind, id: currentImpact.id };
+  const lineDot = stationLineDotLookup(data.networkSegments);
   const currentFootprint = footprintForSelection(
     currentSelection,
     currentImpact.segmentIds,
     data,
+    lineDot,
   );
   const currentActiveAlert = data.activeAlerts.find((alert) => alert.id === currentImpact.id);
   const relatedPlannedClosureId = currentActiveAlert?.relatedPlannedClosureId
@@ -177,10 +184,10 @@ export function getOverlappingImpactRefs(
     if (ref.selection.id === currentImpact.id) {
       return;
     }
-    const refFootprint = footprintForSelection(ref.selection, segmentIds, data);
+    const refFootprint = footprintForSelection(ref.selection, segmentIds, data, lineDot);
     if (
       !segmentsOverlap(currentFootprint.segmentIds, refFootprint.segmentIds) &&
-      !idsOverlap(currentFootprint.stationIds, refFootprint.stationIds)
+      !anyStationTouchesMeet(currentFootprint.stationTouches, refFootprint.stationTouches)
     ) {
       return;
     }

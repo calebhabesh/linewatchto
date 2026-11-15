@@ -143,6 +143,92 @@ export function regionalStationPillShape(geometry: PreparedMapGeometry, anchorId
   return { shape, matrix: found.station.transform };
 }
 
+/**
+ * A pill hub (Union) as a station badge sees it: the pill as a stadium (the
+ * outline its connector lands on), and the middle of the widest open gap
+ * between the routes that end at its sides, at the pill's edge. Every GO/UP
+ * route ends at Union, so a badge there nestles between two of them, beside
+ * the pill, instead of hugging whichever route it found first.
+ */
+export type RegionalPillHub = {
+  /** The pill's outer edge: its spine with the half-width out to the outline's edge. */
+  mark: { polyline: MapPoint[]; halfWidth: number };
+  /** Where a badge for the hub aims: the open gap's middle, at the pill's edge. */
+  gapTarget: MapPoint;
+};
+
+const pillHubs = new WeakMap<PreparedMapGeometry, Map<string, RegionalPillHub | null>>();
+
+export function regionalPillHub(geometry: PreparedMapGeometry, anchorId: string): RegionalPillHub | null {
+  let hubs = pillHubs.get(geometry);
+  if (!hubs) {
+    hubs = new Map();
+    pillHubs.set(geometry, hubs);
+  }
+  if (!hubs.has(anchorId)) hubs.set(anchorId, computePillHub(geometry, anchorId));
+  return hubs.get(anchorId) ?? null;
+}
+
+function computePillHub(geometry: PreparedMapGeometry, anchorId: string): RegionalPillHub | null {
+  const pill = regionalStationPillShape(geometry, anchorId);
+  if (!pill) return null;
+  const { shape, matrix } = pill;
+  const [a, b, c, d, e, f] = matrix;
+  const corners = [
+    [shape.x, shape.y],
+    [shape.x + shape.width, shape.y],
+    [shape.x, shape.y + shape.height],
+    [shape.x + shape.width, shape.y + shape.height],
+  ].map(([x, y]) => ({ x: a * x + c * y + e, y: b * x + d * y + f }));
+  const minX = Math.min(...corners.map((point) => point.x));
+  const maxX = Math.max(...corners.map((point) => point.x));
+  const minY = Math.min(...corners.map((point) => point.y));
+  const maxY = Math.max(...corners.map((point) => point.y));
+  const vertical = maxY - minY >= maxX - minX;
+  const radius = (vertical ? maxX - minX : maxY - minY) / 2;
+  const outline = (shape.strokeWidth ?? 0) * Math.hypot(a, b) / 2;
+  const center = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+  const reach = Math.max(0, (vertical ? maxY - minY : maxX - minX) / 2 - radius);
+  const mark = {
+    polyline: vertical
+      ? [{ x: center.x, y: center.y - reach }, { x: center.x, y: center.y + reach }]
+      : [{ x: center.x - reach, y: center.y }, { x: center.x + reach, y: center.y }],
+    halfWidth: radius + outline,
+  };
+
+  // Routes ending inside the pill, by the side they leave from and where
+  // along the pill they end (y for an upright pill).
+  const inside = (point: MapPoint) => point.x >= minX - outline && point.x <= maxX + outline
+    && point.y >= minY - outline && point.y <= maxY + outline;
+  const sides = new Map<number, number[]>([[-1, []], [1, []]]);
+  for (const points of lookup(geometry).routes.values()) {
+    for (const [end, next] of [[points[0], points[1]], [points.at(-1), points.at(-2)]] as const) {
+      if (!end || !next || !inside(end)) continue;
+      const side = Math.sign(vertical ? next.x - center.x : next.y - center.y);
+      if (side !== 0) sides.get(side)!.push(vertical ? end.y : end.x);
+    }
+  }
+  let best: { side: number; middle: number; width: number } | null = null;
+  for (const [side, ends] of sides) {
+    const sorted = [...new Set(ends.map((value) => Math.round(value)))].sort((first, second) => first - second);
+    for (let index = 1; index < sorted.length; index += 1) {
+      const width = sorted[index] - sorted[index - 1];
+      const middle = (sorted[index] + sorted[index - 1]) / 2;
+      const centre = vertical ? center.y : center.x;
+      if (!best || width > best.width
+        || (width === best.width && Math.abs(middle - centre) < Math.abs(best.middle - centre))) {
+        best = { side, middle, width };
+      }
+    }
+  }
+  if (!best) return null;
+  const edge = (vertical ? radius : reach + radius) + outline;
+  const gapTarget = vertical
+    ? { x: center.x + best.side * edge, y: best.middle }
+    : { x: best.middle, y: center.y + best.side * edge };
+  return { mark, gapTarget };
+}
+
 export function regionalRoutePathIds(lineId: string): string[] {
   const routeCode = lineId.replace(/^regional-|^line-/, "").toLowerCase();
   if (routeCode === "lw") {

@@ -34,6 +34,12 @@ export type MapOverlapBadgeInput = {
   placementTargets: MapPoint[];
   /** A station badge's station, where its alerts meet. */
   stationPoint?: MapPoint;
+  /**
+   * A station drawn as one large mark that every line ends at (GO/UP's Union
+   * pill): the badge's connector lands on the mark, not on an alert beside it,
+   * and placement aims only at `placementTargets`.
+   */
+  stationMark?: ConnectorOutline;
   /** Layout size, before the map's badge scale. */
   size: MapOverlapIndicatorSize;
 };
@@ -85,6 +91,7 @@ export function placeMapOverlapBadges(
       size: { width: badge.size.width * badgeScale, height: badge.size.height * badgeScale },
       targets: badge.placementTargets,
       stationPoint: badge.stationPoint,
+      stationMark: badge.stationMark,
     })),
     artwork,
     corridors: mapBadgeAlertCorridors(content.lineAlerts, unit),

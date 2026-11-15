@@ -5,6 +5,8 @@ import {
   type MapPoint,
 } from "../../app/map-geometry.ts";
 import {
+  BADGE_FEATURE_GAPS,
+  badgeObstacleReach,
   placeOverlapBadges,
   withoutAlertedStretches,
   type PlacementObstacle,
@@ -87,6 +89,8 @@ export type MapOverlapBadgeRequest = {
   targets: MapPoint[];
   /** A station badge's station, where its alerts meet. */
   stationPoint?: MapPoint;
+  /** A station's own large mark (Union's pill): the connector lands on it and placement aims only at `targets`. */
+  stationMark?: ConnectorOutline;
 };
 
 export type MapOverlapBadgeLayout = {
@@ -135,6 +139,7 @@ function layoutRequestSignature(request: LayoutRequest): string {
       badge.size.height,
       roundedPoints(badge.targets),
       badge.stationPoint ? roundedPoints([badge.stationPoint]) : null,
+      badge.stationMark ?? null,
     ]),
     request.corridors.map((corridor) => [corridor.impactKey, roundedPoints(corridor.polyline)]),
     request.stationAlerts.map((alert) => [alert.impactKey, roundedPoints([alert.center]), alert.obstacleRadius, alert.outlineRadius]),
@@ -202,11 +207,23 @@ function computeMapOverlapBadgeLayout({
     ...corridors.map(({ polyline }) => ({ polyline, radius: lineAlertBadgeObstacleRadius(unit, badgeScale) })),
     ...stationAlertPlacementObstacles(stationAlerts),
   ];
+  // A station's large mark keeps badges an alert overlay's gap away, so a
+  // badge beside it (Union's) has room for the connector that meets it.
+  const stationMarkObstacles: PlacementObstacle[] = badges.flatMap(({ stationMark }) => {
+    if (!stationMark) return [];
+    const [polyline, halfWidth] = "center" in stationMark
+      ? [[stationMark.center], stationMark.radius]
+      : [stationMark.polyline, stationMark.halfWidth];
+    return [{ polyline, radius: badgeObstacleReach(halfWidth, BADGE_FEATURE_GAPS.alertOverlay, badgeScale) }];
+  });
   const stationTargetRadius = STATION_BADGE_TARGET_RADIUS * badgeScale;
   const dotRadius = OVERLAP_BADGE_CONNECTOR_DOT_RADIUS * badgeScale;
 
   // One set of connector rules for placement and for drawing: a badge's line
   // crosses only open space.
+  const affectedOutlinesOf = (badge: MapOverlapBadgeRequest) => (
+    badge.impacts.flatMap((impact) => outlines.get(impactKeyOf(impact)) ?? [])
+  );
   const connectorOptionsFor = (
     badge: MapOverlapBadgeRequest,
     position: MapPoint,
@@ -214,11 +231,17 @@ function computeMapOverlapBadgeLayout({
   ): OverlapBadgeConnectorOptions => ({
     position,
     size: badge.size,
-    outlines: badge.impacts.flatMap((impact) => outlines.get(impactKeyOf(impact)) ?? []),
+    // A badge for a station drawn as one large mark points at the mark itself;
+    // any other station badge points at its overlays right beside the station.
+    outlines: badge.stationMark ? [badge.stationMark] : affectedOutlinesOf(badge),
     minimumLength: OVERLAP_BADGE_CONNECTOR_MIN_LENGTH * badgeScale,
-    // A station badge points at its overlays right beside the station.
-    within: badge.stationPoint ? { center: badge.stationPoint, radius: stationTargetRadius } : undefined,
-    avoid: [...stationDots],
+    within: badge.stationPoint && !badge.stationMark
+      ? { center: badge.stationPoint, radius: stationTargetRadius }
+      : undefined,
+    // The mark's own dot is the landing, not something to keep clear of.
+    avoid: badge.stationMark
+      ? stationDots.filter((dot) => !insideOutline(dot.center, badge.stationMark!))
+      : [...stationDots],
     endRadius: dotRadius,
     keepOut: [
       ...artwork.connectorKeepOut,
@@ -231,9 +254,10 @@ function computeMapOverlapBadgeLayout({
   const placements = new Map(placeOverlapBadges({
     badges: badges.map((badge) => {
       const ownKeys = new Set(badge.impacts.map(impactKeyOf));
-      const { stationPoint } = badge;
-      // A station badge aims for the station and its own overlays right beside it.
-      const nearby = stationPoint
+      const { stationPoint, stationMark } = badge;
+      // A station badge aims for the station and its own overlays right beside
+      // it; one for a large mark aims only where its adapter says (Union's gap).
+      const nearby = stationPoint && !stationMark
         ? [...ownKeys].flatMap((key) => samples.get(key) ?? [])
           .filter((point) => Math.hypot(point.x - stationPoint.x, point.y - stationPoint.y) <= stationTargetRadius)
         : [];
@@ -241,11 +265,11 @@ function computeMapOverlapBadgeLayout({
         id: badge.id,
         size: badge.size,
         targets: [...badge.targets, ...nearby],
-        anchor: stationPoint,
+        anchor: stationMark ? undefined : stationPoint,
         foreignTargets: [...samples.entries()].filter(([key]) => !ownKeys.has(key)).flatMap(([, points]) => points),
       };
     }),
-    obstacleLayers: [artwork.obstacles, unalertedLines(artwork, corridors), alertObstacles],
+    obstacleLayers: [artwork.obstacles, unalertedLines(artwork, corridors), alertObstacles, stationMarkObstacles],
     mapBounds,
     siblingGap: OVERLAP_BADGE_SIBLING_CLEARANCE * badgeScale,
     unitScale: badgeScale,
@@ -270,9 +294,25 @@ function computeMapOverlapBadgeLayout({
       position,
       collisionAvoided: placements.get(badge.id)?.collisionAvoided ?? false,
       connector: overlapBadgeConnector(options),
-      affectedOutlines: options.outlines,
+      affectedOutlines: affectedOutlinesOf(badge),
     }];
   }));
+}
+
+function insideOutline(point: MapPoint, outline: ConnectorOutline): boolean {
+  if ("center" in outline) return Math.hypot(point.x - outline.center.x, point.y - outline.center.y) < outline.radius;
+  const { polyline, halfWidth } = outline;
+  if (polyline.length === 1) return Math.hypot(point.x - polyline[0].x, point.y - polyline[0].y) < halfWidth;
+  for (let index = 1; index < polyline.length; index += 1) {
+    const start = polyline[index - 1];
+    const end = polyline[index];
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const lengthSquared = dx * dx + dy * dy;
+    const t = lengthSquared > 0 ? Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared)) : 0;
+    if (Math.hypot(point.x - (start.x + dx * t), point.y - (start.y + dy * t)) < halfWidth) return true;
+  }
+  return false;
 }
 
 /**

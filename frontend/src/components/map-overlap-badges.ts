@@ -11,6 +11,7 @@ import {
   OVERLAP_BADGE_PILL_THICKNESS,
   OVERLAP_INDICATOR_SCALE,
 } from "./map-overlap-svg.ts";
+import { clusterByStationDot, segmentStationTouches, stationLineDotLookup } from "./station-dots.ts";
 
 export type MapOverlapChooserLayout = {
   left: number;
@@ -36,11 +37,17 @@ export type OverlapBadgeSourceSegment = Pick<
   | "reducedSpeedZoneIds"
   | "alertId"
   | "travelDirection"
->;
+> & Partial<Pick<NetworkSegment, "lineId" | "stationAAnchorId" | "stationBAnchorId">>;
 
 export type StationOverlapBadgeGroup = {
   signature: string;
   stationId: string;
+  /**
+   * The dots the badge belongs to at a station drawn with a dot per line
+   * (GO/UP's Bloor KI dot); empty where the station is one mark or the
+   * alerts cover all of it.
+   */
+  dotIds: string[];
   impacts: MapImpact[];
   impactKinds: MapImpactKind[];
 };
@@ -133,10 +140,6 @@ export function activeImpactsForSegment(segment: OverlapBadgeSourceSegment): Map
   return segment.impacts?.length ? segment.impacts : legacyImpactsForSegment(segment);
 }
 
-function stationIdsForSegment(segment: OverlapBadgeSourceSegment): string[] {
-  return [segment.stationAId, segment.stationBId].filter((stationId): stationId is string => Boolean(stationId));
-}
-
 function impactKey(impact: Pick<MapImpact, "kind" | "cardId">): string {
   return `${impact.kind}:${impact.cardId}`;
 }
@@ -192,29 +195,44 @@ export function coveredSegmentOverlapBadgeSignatures(
   return coveredSignatures;
 }
 
+type StationImpactEntry = { item: MapImpact; key: string; dotId: string | null };
+
 function addStationImpact(
-  impactsByStation: Map<string, Map<string, MapImpact>>,
+  impactsByStation: Map<string, StationImpactEntry[]>,
   stationId: string,
+  dotId: string | null,
   impact: MapImpact,
 ) {
-  const impacts = impactsByStation.get(stationId) ?? new Map<string, MapImpact>();
-  impacts.set(impactKey(impact), impact);
-  impactsByStation.set(stationId, impacts);
+  const entries = impactsByStation.get(stationId) ?? [];
+  entries.push({ item: impact, key: impactKey(impact), dotId });
+  impactsByStation.set(stationId, entries);
 }
 
+/**
+ * Alerts that meet at a station without sharing a stretch of line, one group
+ * per drawn mark they share. Alerts on different dots of a station drawn with
+ * a dot per line (GO/UP's Weston, Mount Dennis and Bloor; TTC's Spadina) are
+ * separate marks on separate lines and get no badge together; a station alert
+ * whose line is unknown covers every dot.
+ */
 export function buildStationOverlapBadgeGroups({
   segments,
   plannedClosures,
   stationNodeImpacts,
   suppressedSignatures = new Set<string>(),
+  stationImpactLineId,
 }: {
   segments: OverlapBadgeSourceSegment[];
   plannedClosures: PlannedClosureSegmentSource[];
   stationNodeImpacts: StationNodeImpact[];
   suppressedSignatures?: Set<string>;
+  /** The line a station alert belongs to, which picks its dot; unknown covers the station. */
+  stationImpactLineId?: (impact: StationNodeImpact) => string | null | undefined;
 }): StationOverlapBadgeGroup[] {
-  const impactsByStation = new Map<string, Map<string, MapImpact>>();
+  const impactsByStation = new Map<string, StationImpactEntry[]>();
   const plannedClosuresBySegmentId = new Map<string, PlannedClosureSegmentSource[]>();
+  const dotsByStation = new Map<string, Set<string>>();
+  const lineDot = stationLineDotLookup(segments);
 
   for (const closure of plannedClosures) {
     for (const segmentId of closure.previewSegmentIds ?? []) {
@@ -225,8 +243,14 @@ export function buildStationOverlapBadgeGroups({
   }
 
   for (const segment of segments) {
-    const stationIds = stationIdsForSegment(segment);
-    if (stationIds.length === 0) continue;
+    const touches = segmentStationTouches(segment);
+    for (const touch of touches) {
+      if (!touch.dotId) continue;
+      const dots = dotsByStation.get(touch.stationId) ?? new Set<string>();
+      dots.add(touch.dotId);
+      dotsByStation.set(touch.stationId, dots);
+    }
+    if (touches.length === 0) continue;
 
     const impacts = [
       ...activeImpactsForSegment(segment),
@@ -238,37 +262,45 @@ export function buildStationOverlapBadgeGroups({
       })),
     ];
 
-    for (const stationId of stationIds) {
+    for (const touch of touches) {
       for (const impact of impacts) {
-        addStationImpact(impactsByStation, stationId, impact);
+        addStationImpact(impactsByStation, touch.stationId, touch.dotId, impact);
       }
     }
   }
 
   for (const impact of stationNodeImpacts) {
-    addStationImpact(impactsByStation, impact.stationId, {
-      kind: impact.kind,
-      cardId: impact.cardId,
-      travelDirection: "bidirectional",
-      sourceAlertIds: [impact.cardId],
-    });
+    addStationImpact(
+      impactsByStation,
+      impact.stationId,
+      lineDot(impact.stationId, stationImpactLineId?.(impact)),
+      {
+        kind: impact.kind,
+        cardId: impact.cardId,
+        travelDirection: "bidirectional",
+        sourceAlertIds: [impact.cardId],
+      },
+    );
   }
 
   return Array.from(impactsByStation.entries())
-    .map(([stationId, impactsByKey]) => {
-      const impacts = Array.from(impactsByKey.values());
-      const impactKinds = getUniqueImpactKinds(impacts);
-      if (!hasOverlappingImpacts(impacts)) return null;
+    .flatMap(([stationId, entries]) => {
+      // Only a station drawn with more than one dot can split its alerts.
+      const splitStation = (dotsByStation.get(stationId)?.size ?? 0) > 1;
+      return clusterByStationDot(entries).map(({ items: impacts, dotIds }) => {
+        if (!hasOverlappingImpacts(impacts)) return null;
 
-      const signature = overlapBadgeSignature(impacts);
-      if (suppressedSignatures.has(signature)) return null;
+        const signature = overlapBadgeSignature(impacts);
+        if (suppressedSignatures.has(signature)) return null;
 
-      return {
-        signature,
-        stationId,
-        impacts,
-        impactKinds,
-      };
+        return {
+          signature,
+          stationId,
+          dotIds: splitStation ? dotIds : [],
+          impacts,
+          impactKinds: getUniqueImpactKinds(impacts),
+        };
+      });
     })
     .filter((group): group is StationOverlapBadgeGroup => Boolean(group))
     .sort((a, b) => a.stationId.localeCompare(b.stationId) || a.signature.localeCompare(b.signature));

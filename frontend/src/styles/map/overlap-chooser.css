@@ -400,6 +400,7 @@
 }
 
 .overlap-chooser-choice-copy {
+  --chooser-choice-heading-size: 17px;
   display: grid;
   min-width: 0;
 }
@@ -419,22 +420,46 @@
   min-width: 0;
 }
 
+/* The 22px badge hangs below a heading line shorter than it, so the heading
+   row is only as tall as its text and the rows under it stay evenly spaced. */
 .overlap-chooser-choice-line-badge {
   flex: 0 0 auto;
+  margin-bottom: min(0px, calc(var(--chooser-choice-heading-size) * 1.15 - 22px));
 }
 
 .overlap-chooser-choice-copy strong {
-  font-size: 17px;
+  font-size: var(--chooser-choice-heading-size);
   font-weight: 850;
   letter-spacing: -0.015em;
   line-height: 1.15;
 }
 
+/* The line on its own row, quieter than the stations under it. */
+.overlap-chooser-choice-line {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  margin-top: 1px;
+  overflow-wrap: anywhere;
+}
+
+.dark .overlap-chooser-choice-line {
+  color: #94a3b8;
+}
+
+.high-contrast .overlap-chooser-choice-line {
+  color: #ffffff;
+}
+
+/* Every row under the heading sits 1px below the one above it. */
 .overlap-chooser-choice-location {
   color: #64748b;
   font-size: 14px;
   font-weight: 600;
   line-height: 1.25;
+  margin-top: 1px;
   overflow-wrap: anywhere;
 }
 
@@ -464,7 +489,7 @@
   font-weight: 700;
   letter-spacing: 0.01em;
   line-height: 1.2;
-  margin: 1px 0 2px;
+  margin: 1px 0 0;
   overflow-wrap: anywhere;
 }
 
@@ -537,8 +562,8 @@
     width: 38px;
   }
 
-  .overlap-chooser-choice-copy strong {
-    font-size: 14px;
+  .overlap-chooser-choice-copy {
+    --chooser-choice-heading-size: 14px;
   }
 
   .overlap-chooser-choice-location {
@@ -549,7 +574,7 @@
   .overlap-chooser-choice-date {
     font-size: 12px;
     line-height: 1.2;
-    margin: 1px 0 2px;
+    margin: 1px 0 0;
   }
 }
 

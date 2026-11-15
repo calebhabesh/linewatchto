@@ -135,6 +135,91 @@ describe("GO/UP map content", () => {
     assert.equal(selected.stationAlerts.length, 3, "selecting a station list draws its stops");
   });
 
+  describe("station overlap badges at connector stations", () => {
+    // Nov. 14-15 in production: Kitchener suspended Union to Mount Dennis and
+    // UP Express suspended end to end. KI and UP run on separate drawn tracks
+    // with a dot each at Bloor, Mount Dennis and Weston; only Union's pill is shared.
+    const clear = regionalDashboardDataForScenario("none");
+    const template = data.activeAlerts.find((alert) => alert.severity === "suspension");
+    const suspension = (cardId) => ({
+      kind: "suspension", cardId, travelDirection: "bidirectional", sourceAlertIds: [cardId],
+    });
+    const card = (id, lineNumber) => ({
+      ...template, id, lineId: `regional-${lineNumber.toLowerCase()}`, lineNumber, affectedSegmentIds: [],
+    });
+    const closures = (extra = {}) => input({
+      networkSegments: clear.networkSegments.map((segment) => {
+        const kiClosed = extra.kiClosed ?? ["segment-ki-union-bloor", "segment-ki-bloor-mount-dennis"];
+        const impacts = [
+          ...(kiClosed.includes(segment.id) ? [suspension("ki-union-mount-dennis")] : []),
+          ...(segment.lineId === "regional-up" ? [suspension("up-entire-line")] : []),
+          ...(extra.impacts?.(segment) ?? []),
+        ];
+        return impacts.length > 0 ? { ...segment, overlay: "suspension", impacts } : segment;
+      }),
+      activeAlerts: [card("ki-union-mount-dennis", "KI"), card("up-entire-line", "UP"), ...(extra.activeAlerts ?? [])],
+      delays: [],
+      reducedSpeedZones: [],
+      plannedClosures: [],
+      stationNodeImpacts: extra.stationNodeImpacts ?? [],
+    });
+    const stationBadges = (content) => content.overlapBadges
+      .filter((badge) => badge.markerId.startsWith("regional-overlap-station-"))
+      .map((badge) => ({ label: badge.label, cards: badge.impacts.map((impact) => impact.cardId).sort() }));
+
+    it("gives KI and UP alerts that meet at Bloor and Mount Dennis no badge; Union keeps one", () => {
+      assert.deepEqual(stationBadges(regionalMapContent(geometry, closures())), [
+        { label: "Union", cards: ["ki-union-mount-dennis", "up-entire-line"] },
+      ]);
+    });
+
+    it("nestles Union's badge in the middle of the gap beside the pill, its connector meeting the pill", () => {
+      const content = regionalMapContent(geometry, closures());
+      const union = placeMapOverlapBadges(content, { unit: REGIONAL_OVERLAY_UNIT, mapBounds: REGIONAL_MAP_VIEWBOX })
+        .find((badge) => badge.label === "Union");
+      // East of the pill, Stouffville and Lakeshore East end with the widest gap between them.
+      const endY = (id) => geometry.lines.find((line) => line.id === id).points[1];
+      const gapMiddle = (endY("regional-route-st-path") + endY("regional-route-le-path")) / 2;
+      const pill = geometry.stations.find((station) => station.id === "station-union").anchors[0];
+      const pillEdge = pill.x + pill.radius + pill.outline / 2;
+      assert.ok(Math.abs(union.position.y - gapMiddle) <= 10, `badge centred between ST and LE (y ${union.position.y}, gap ${gapMiddle})`);
+      assert.ok(union.position.x > pillEdge, "badge sits east of the pill");
+      assert.ok(union.connector, "the badge has a connector");
+      assert.ok(Math.abs(union.connector.to.x - pillEdge) <= 1, "the connector ends on the pill's edge");
+      assert.ok(Math.abs(union.connector.to.y - union.position.y) <= 2, "the connector runs straight to the pill");
+      assert.ok(union.affectedOutlines.length > 0, "its chooser still keeps the alerts' overlays uncovered");
+    });
+
+    it("badges two alerts that meet on the same line's dot, beside that dot", () => {
+      // KI suspended Union to Bloor and delayed Bloor to Mount Dennis: they meet
+      // on Bloor's KI dot. UP's suspension through Bloor is on its own dot.
+      const content = regionalMapContent(geometry, closures({
+        kiClosed: ["segment-ki-union-bloor"],
+        impacts: (segment) => (segment.id === "segment-ki-bloor-mount-dennis"
+          ? [{ ...suspension("ki-bloor-mount-dennis-delay"), kind: "delay" }]
+          : []),
+        activeAlerts: [{ ...card("ki-bloor-mount-dennis-delay", "KI"), severity: "delay" }],
+      }));
+      assert.deepEqual(stationBadges(content), [
+        { label: "Bloor", cards: ["ki-bloor-mount-dennis-delay", "ki-union-mount-dennis"] },
+        { label: "Union", cards: ["ki-union-mount-dennis", "up-entire-line"] },
+      ]);
+      const bloor = content.overlapBadges.find((badge) => badge.label === "Bloor");
+      const kiDot = geometry.stations.find((station) => station.id === "station-bloor")
+        .anchors.find((anchor) => anchor.id === "station-bloor-ki");
+      assert.deepEqual(bloor.anchor, { x: kiDot.x, y: kiDot.y }, "the badge sits on the KI dot, not between KI and UP");
+    });
+
+    it("joins both lines at a station alert whose line is unknown, which rings both dots", () => {
+      const content = regionalMapContent(geometry, closures({
+        stationNodeImpacts: [{ stationId: "mount-dennis", kind: "delay", cardId: "mount-dennis-notice", title: "Station notice" }],
+      }));
+      assert.deepEqual(stationBadges(content).find((badge) => badge.label === "Mount Dennis")?.cards, [
+        "ki-union-mount-dennis", "mount-dennis-notice", "up-entire-line",
+      ]);
+    });
+  });
+
   it("emphasizes the selected line alert", () => {
     const content = regionalMapContent(geometry, input({ selection: { kind: "suspension", id: "regional-demo-suspension" } }));
     assert.deepEqual(content.selectedLineAlerts.map((alert) => alert.impactId), ["regional-demo-suspension"]);

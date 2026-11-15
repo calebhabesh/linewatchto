@@ -158,6 +158,57 @@ describe("TTC map content", () => {
     assert.equal(after.badgePlacement.artwork, before.badgePlacement.artwork);
     assert.equal(ttcRenderedNetworkSegments(geometry, input), ttcRenderedNetworkSegments(geometry, input));
   });
+
+  describe("station overlap badges at Spadina's two dots", () => {
+    // Production's adjacent segments name Spadina's Line 1 and Line 2 dots
+    // (V7 topology); Line 1 and Line 2 run through separate dots there.
+    const spadina = (id, lineId, stationAId, stationBId, anchors, cardId) => ({
+      id, lineId, label: `${stationAId} to ${stationBId}`, stationAId, stationBId,
+      stationAAnchorId: anchors.a, stationBAnchorId: anchors.b, pathD: "",
+      overlay: "delay", impacts: [impact("delay", cardId)],
+    });
+    const delay = (id, lineId) => ({
+      id, lineId, lineNumber: lineId.slice(-1), title: id, location: "", description: "", affectedSegmentIds: [], source: "TTC",
+    });
+    const run = (segments, delays, stationNodeImpacts = [], activeAlerts = []) => ttcMapContent(geometry, scenario({
+      networkSegments: segments,
+      activeAlerts,
+      delays,
+      plannedClosures: [],
+      stationNodeImpacts,
+      stations: [summary("spadina", "Spadina", true), summary("dupont", "Dupont"), summary("bathurst", "Bathurst")],
+      commutePathPreview: null,
+    })).overlapBadges.map((badge) => ({ label: badge.label, layoutId: badge.layoutId, cards: badge.impacts.map((item) => item.cardId).sort() }));
+    const line1 = spadina("line-1-dupont-spadina", "line-1", "dupont", "spadina", { a: "station-dupont", b: "station-spadina-1" }, "line-1-delay");
+    const line2 = spadina("line-2-bathurst-spadina", "line-2", "bathurst", "spadina", { a: "station-bathurst", b: "station-spadina-2" }, "line-2-delay");
+    const delays = [delay("line-1-delay", "line-1"), delay("line-2-delay", "line-2")];
+
+    it("draws both segments, each ending on its own dot", () => {
+      assert.deepEqual(
+        ttcRenderedNetworkSegments(geometry, { networkSegments: [line1, line2], mapStations }).map((segment) => segment.id),
+        [line1.id, line2.id],
+      );
+    });
+
+    it("gives Line 1 and Line 2 alerts that only meet at Spadina no badge", () => {
+      assert.deepEqual(run([line1, line2], delays), []);
+    });
+
+    it("badges a Line 2 station alert with the Line 2 alert, on the Line 2 dot", () => {
+      assert.deepEqual(
+        run(
+          [line1, line2],
+          delays,
+          [{ stationId: "spadina", kind: "suspension", cardId: "spadina-line-2", title: "No service at Spadina" }],
+          [{
+            id: "spadina-line-2", lineId: "line-2", lineNumber: "2", title: "No service at Spadina", severity: "major",
+            location: "Spadina", description: "", affectedSegmentIds: [], shuttle: false, source: "TTC",
+          }],
+        ),
+        [{ label: "Spadina", layoutId: "station:spadina:station-spadina-2", cards: ["line-2-delay", "spadina-line-2"] }],
+      );
+    });
+  });
 });
 
 describe("map content reuse", () => {

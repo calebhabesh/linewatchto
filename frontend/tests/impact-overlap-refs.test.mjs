@@ -185,4 +185,76 @@ describe("overlapping impact refs", () => {
       ["suspension", "delay", "reduced-speed-zone", "planned-closure"],
     );
   });
+
+  describe("at stations drawn with a dot per line", () => {
+    // GO/UP: KI and UP each have their own dot at Bloor, Mount Dennis and
+    // Weston, and share Union's pill.
+    const card = (id, lineNumber, severity = "suspension") => ({
+      id,
+      lineId: `regional-${lineNumber.toLowerCase()}`,
+      lineNumber,
+      title: id,
+      severity,
+      location: id,
+      description: id,
+      affectedSegmentIds: [],
+      shuttle: false,
+      source: "Test",
+    });
+    const segment = (line, stationAId, stationBId, cardId) => ({
+      id: `${line}-${stationAId}-${stationBId}`,
+      lineId: `regional-${line}`,
+      label: `${stationAId} to ${stationBId}`,
+      stationAId,
+      stationBId,
+      stationAAnchorId: ["bloor", "mount-dennis", "weston"].includes(stationAId)
+        ? `station-${stationAId}-${line}` : `station-${stationAId}`,
+      stationBAnchorId: ["bloor", "mount-dennis", "weston"].includes(stationBId)
+        ? `station-${stationBId}-${line}` : `station-${stationBId}`,
+      pathD: "",
+      overlay: cardId ? "suspension" : "clear",
+      impacts: cardId
+        ? [{ kind: "suspension", cardId, travelDirection: "bidirectional", sourceAlertIds: [cardId] }]
+        : [],
+    });
+    const data = (networkSegments, activeAlerts, stationNodeImpacts = []) => ({
+      networkSegments,
+      activeAlerts,
+      delays: [],
+      reducedSpeedZones: [],
+      plannedClosures: [],
+      stationNodeImpacts,
+    });
+    const overlaps = (id, source) => getOverlappingImpactRefs({ kind: "suspension", id, segmentIds: [] }, source)
+      .map((ref) => ref.selection.id);
+
+    const kiBloorWeston = [segment("ki", "bloor", "mount-dennis", "ki-alert"), segment("ki", "mount-dennis", "weston", "ki-alert")];
+    const upBloorWeston = [segment("up", "bloor", "mount-dennis", "up-alert"), segment("up", "mount-dennis", "weston", "up-alert")];
+
+    it("does not list KI and UP alerts that only meet at Bloor, Mount Dennis and Weston", () => {
+      const source = data([...kiBloorWeston, ...upBloorWeston], [card("ki-alert", "KI"), card("up-alert", "UP")]);
+      assert.deepEqual(overlaps("ki-alert", source), []);
+      assert.deepEqual(overlaps("up-alert", source), []);
+    });
+
+    it("lists them when they meet at Union", () => {
+      const source = data(
+        [segment("ki", "union", "bloor", "ki-alert"), segment("up", "union", "bloor", "up-alert")],
+        [card("ki-alert", "KI"), card("up-alert", "UP")],
+      );
+      assert.deepEqual(overlaps("ki-alert", source), ["up-alert"]);
+    });
+
+    it("lists a station alert only beside its own line's alerts, or beside both when its line is unknown", () => {
+      const stationAlert = (cardId) => ({ stationId: "bloor", kind: "suspension", cardId, title: cardId });
+      const segments = [segment("ki", "union", "bloor"), ...kiBloorWeston, segment("up", "union", "bloor"), ...upBloorWeston];
+      const upStation = data(segments, [card("ki-alert", "KI"), card("up-alert", "UP"), card("up-bloor", "UP")], [stationAlert("up-bloor")]);
+      assert.deepEqual(overlaps("ki-alert", upStation), []);
+      assert.deepEqual(overlaps("up-alert", upStation), ["up-bloor"]);
+
+      const unknown = data(segments, [card("ki-alert", "KI"), card("up-alert", "UP")], [stationAlert("bloor-notice")]);
+      assert.deepEqual(overlaps("ki-alert", unknown), []);
+      assert.deepEqual(overlaps("bloor-notice", unknown).sort(), ["ki-alert", "up-alert"]);
+    });
+  });
 });

@@ -86,18 +86,16 @@ function impactKindLabel(kind: MapImpactKind): string {
   }
 }
 
-function formatLocation(
-  details: ReturnType<typeof getSelectedImpactDetails>,
-  fallbackLocation: string,
-): string {
-  if (!details) return fallbackLocation;
+/** The alert's line, named on its own row above the stations ("Lakeshore East Line", "UP Express", "Line 1 Yonge-University"). */
+function formatLineLabel(details: ReturnType<typeof getSelectedImpactDetails>): string | null {
+  if (!details) return null;
+  const lineName = transitLineName(details.lineId);
   if (details.lineId.startsWith("regional-")) {
-    const lineName = transitLineName(details.lineId) ?? details.lineNumber;
-    const lineLabel = details.lineId === "regional-up" ? lineName : `${lineName} Line`;
-    return `${lineLabel}: ${details.location || fallbackLocation}`;
+    const name = lineName ?? details.lineNumber;
+    return details.lineId === "regional-up" ? name : `${name} Line`;
   }
-  const linePrefix = details.lineNumber ? `Line ${details.lineNumber}: ` : "";
-  return `${linePrefix}${details.location || fallbackLocation}`;
+  if (!details.lineNumber) return lineName ?? null;
+  return lineName ? `Line ${details.lineNumber} ${lineName}` : `Line ${details.lineNumber}`;
 }
 
 function formatDirection(
@@ -261,6 +259,7 @@ export function MapOverlapChooser({
             const isRegional = details?.lineId.startsWith("regional-");
             const dateLabel = details?.closureDateLabel || (isRegional ? details?.window?.trim() : undefined);
             const directionLabel = formatDirection(details);
+            const lineLabel = formatLineLabel(details);
             return (
               <button
                 key={`${impact.kind}-${impact.cardId}`}
@@ -305,7 +304,11 @@ export function MapOverlapChooser({
                   {impact.kind === "planned-closure" && dateLabel ? (
                     <span className="overlap-chooser-choice-date">{dateLabel}{details?.closureTimeLabel ? <><span className="sr-only">, </span><span className="overlap-chooser-choice-time">{details.closureTimeLabel}</span></> : null}</span>
                   ) : null}
-                  <span className="overlap-chooser-choice-location"><IncidentStationSpan location={formatLocation(details, label)} direction={directionLabel} />{directionLabel ? <span className="overlap-chooser-choice-direction"> {directionLabel}</span> : null}</span>
+                  {lineLabel ? (
+                    // Its own row, so the line and its stations don't run together; screen readers hear "Line: stations".
+                    <span className="overlap-chooser-choice-line">{lineLabel}<span className="sr-only">: </span></span>
+                  ) : null}
+                  <span className="overlap-chooser-choice-location"><IncidentStationSpan location={details?.location || label} direction={directionLabel} />{directionLabel ? <span className="overlap-chooser-choice-direction"> {directionLabel}</span> : null}</span>
                 </span>
               </button>
             );

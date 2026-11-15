@@ -649,7 +649,7 @@ describe("asset-backed map layering", () => {
     assert.match(regionalOverlaysSource, /badgeScale: REGIONAL_BADGE_SCALE,/);
     assert.match(badgeLayoutSource, /placeOverlapBadges\(\{/);
     assert.match(badgeLayoutSource, /siblingGap: OVERLAP_BADGE_SIBLING_CLEARANCE \* badgeScale/);
-    assert.match(badgeLayoutSource, /obstacleLayers: \[artwork\.obstacles, unalertedLines\(artwork, corridors\), alertObstacles\]/);
+    assert.match(badgeLayoutSource, /obstacleLayers: \[artwork\.obstacles, unalertedLines\(artwork, corridors\), alertObstacles, stationMarkObstacles\]/);
     // Artwork obstacles are prepared from the authored SVG, not measured, by
     // one builder for every map (map-badge-artwork.ts): artwork and base routes.
     assert.match(interactiveMapSource, /artwork: mapBadgeArtwork\(geometry, TTC_BADGE_ARTWORK_SCALE\)/);
@@ -736,7 +736,8 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /@media \(max-width: 640px\)[\s\S]*?\.overlap-chooser-list\s*\{[^}]*grid-auto-rows:\s*max-content;/);
     assert.match(globalCss, /@media \(max-width: 640px\)[\s\S]*?\.overlap-chooser-choice\s*\{[^}]*min-height:\s*82px;/);
     assert.match(overlapChooserSource, /overlap-chooser-portal/);
-    assert.match(overlapChooserSource, /function formatLocation\(/);
+    assert.match(overlapChooserSource, /function formatLineLabel\(/);
+    assert.match(overlapChooserSource, /className="overlap-chooser-choice-line"/);
     assert.match(overlapChooserSource, /overlap-chooser-header-count/);
     assert.match(overlapChooserSource, /impacts\.length/);
     assert.match(overlapChooserSource, /transformOrigin:/);
@@ -763,7 +764,7 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.overlap-chooser-list\s*\{[^}]*grid-auto-rows:\s*max-content;[^}]*margin-right:\s*-6px;[^}]*padding-right:\s*6px;/s);
     assert.match(globalCss, /\.overlap-chooser-choice\.reduced-speed-zone\s*\{[^}]*rgba\(245,\s*158,\s*11,\s*0\.42\)/s);
     assert.match(globalCss, /\.motion-paused \.overlap-chooser-surface/);
-    assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.overlap-chooser-choice-copy strong\s*\{[^}]*font-size:\s*14px;/s);
+    assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.overlap-chooser-choice-copy\s*\{[^}]*--chooser-choice-heading-size:\s*14px;/s);
     assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.overlap-chooser-object\.open \.overlap-chooser-surface\s*\{[^}]*animation:\s*none;/s);
     assert.doesNotMatch(ttcMapRendererSource, /selectPrimaryImpact/);
   });

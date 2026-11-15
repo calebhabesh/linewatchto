@@ -58,7 +58,11 @@ import {
   overlapBadgeKindCounts,
   overlapBadgeVisualItemCount,
 } from "../components/map-overlap-badges.ts";
-import { stationImpactDirectionForImpact } from "../components/station-impact-direction.ts";
+import {
+  stationImpactDirectionForImpact,
+  stationImpactDirectionSource,
+  type StationImpactDirectionData,
+} from "../components/station-impact-direction.ts";
 import {
   stationImpactVisualAnchors,
   stationVisualAnchorsFor,
@@ -269,6 +273,7 @@ export function ttcMapContent(geometry: PreparedMapGeometry, input: TtcMapConten
       stationNodeImpacts,
       stationById,
       stationCenterPoints,
+      directionData,
     ),
     badgePlacement: {
       artwork: mapBadgeArtwork(geometry, TTC_BADGE_ARTWORK_SCALE),
@@ -307,12 +312,16 @@ function ttcOverlapBadges(
   stationNodeImpacts: StationNodeImpact[],
   stationById: Map<string, StationSummary>,
   stationCenterPoints: Map<string, MapPoint>,
+  directionData: StationImpactDirectionData,
 ): MapOverlapBadgeInput[] {
+  // Line 1 and Line 2 alerts at Spadina sit on their own line's dot there, so
+  // they do not meet; Bloor-Yonge and St George are one dot for both lines.
   const stationGroups = buildStationOverlapBadgeGroups({
     segments,
     plannedClosures: overlapPreviewClosures(context),
     stationNodeImpacts,
     suppressedSignatures: new Set(rawSegmentGroups.map((group) => group.signature)),
+    stationImpactLineId: (impact) => stationImpactDirectionSource(impact, directionData)?.lineId,
   });
   const covered = coveredSegmentOverlapBadgeSignatures(rawSegmentGroups, stationGroups);
   const segmentBadges = rawSegmentGroups
@@ -343,11 +352,23 @@ function ttcOverlapBadges(
     const station = stationById.get(group.stationId);
     if (!station) return [];
     // The badge explains where these alerts meet, so it aims for the station
-    // (and its own overlays beside it: the shared layout).
-    const point = stationCenterPoints.get(station.id) ?? { x: station.mapX, y: station.mapY };
+    // (and its own overlays beside it: the shared layout), or for the one
+    // line's dot at Spadina. Dot ids name the artwork shape (station-spadina-1).
+    const dotPoints = group.dotIds.flatMap((dotId) => {
+      const point = stationCenterPoints.get(dotId.replace(/^station-/, ""));
+      return point ? [point] : [];
+    });
+    const point = dotPoints.length > 0
+      ? {
+          x: dotPoints.reduce((sum, dotPoint) => sum + dotPoint.x, 0) / dotPoints.length,
+          y: dotPoints.reduce((sum, dotPoint) => sum + dotPoint.y, 0) / dotPoints.length,
+        }
+      : stationCenterPoints.get(station.id) ?? { x: station.mapX, y: station.mapY };
     return [{
       markerId: `station-${group.stationId}-${group.signature}`,
-      layoutId: `station:${group.stationId}`,
+      layoutId: group.dotIds.length > 0
+        ? `station:${group.stationId}:${group.dotIds.join("+")}`
+        : `station:${group.stationId}`,
       label: station.name,
       impacts: group.impacts,
       anchor: point,

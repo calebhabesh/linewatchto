@@ -16,6 +16,7 @@ import {
   regionalStationVisualAnchors,
   resolvedRegionalSegmentPath,
   regionalOverlapBadgeAnchor,
+  regionalPillHub,
   REGIONAL_MAP_VIEWBOX,
 } from "./regional-map-geometry.ts";
 import {
@@ -35,6 +36,7 @@ import type { MapLineAlert } from "../components/map-overlays/line-alert-model.t
 import { overlapBadgeTargetsAlong } from "../components/map-overlays/overlap-badge-layout.ts";
 import type { MapStationAlert } from "../components/map-overlays/station-alert-model.ts";
 import { CONNECTOR_STATION_CLEARANCE } from "../components/map-overlays/overlay-obstacles.ts";
+import { stationImpactDirectionSource } from "../components/station-impact-direction.ts";
 import {
   placeMapOverlapBadges,
   type MapBadgePlacement,
@@ -74,12 +76,16 @@ export function regionalOverlapBadges(
   const segmentGroups = overlapBadgeGroups(context);
   // Same rules as the TTC map: alerts that only meet at a station get a station
   // badge, and a segment badge fully explained by a station badge is dropped.
+  // KI and UP alerts at Weston, Mount Dennis or Bloor sit on their own line's
+  // dot there, so they do not meet; Union's one pill is shared by every line.
+  const directionData = { ...closures, reducedSpeedZones: [] };
   const stationGroups = stationContext
     ? buildStationOverlapBadgeGroups({
         segments: context.segments,
         plannedClosures: overlapPreviewClosures(context),
         stationNodeImpacts: stationContext.stationNodeImpacts,
         suppressedSignatures: new Set(segmentGroups.map((group) => group.signature)),
+        stationImpactLineId: (impact) => stationImpactDirectionSource(impact, directionData)?.lineId,
       })
     : [];
   const coveredSignatures = coveredSegmentOverlapBadgeSignatures(segmentGroups, stationGroups);
@@ -122,22 +128,30 @@ function regionalStationOverlapBadges(
   const stationNames = new Map(stations.map((station) => [station.id, station.name]));
   return groups.flatMap((group) => {
     const station = regionalStation(geometry, group.stationId);
-    const anchors = station ? regionalStationVisualAnchors(station) : [];
+    const stationAnchors = station ? regionalStationVisualAnchors(station) : [];
+    // A badge for one line's dot (Bloor's KI dot) sits by that dot.
+    const groupAnchors = stationAnchors.filter((anchor) => group.dotIds.includes(anchor.id));
+    const anchors = groupAnchors.length > 0 ? groupAnchors : stationAnchors;
     if (anchors.length === 0) return [];
     const point = {
       x: anchors.reduce((sum, anchor) => sum + anchor.point.x, 0) / anchors.length,
       y: anchors.reduce((sum, anchor) => sum + anchor.point.y, 0) / anchors.length,
     };
     const markerId = `regional-overlap-station-${group.stationId}-${group.signature}`;
+    // Union's pill: every route ends at it, so the badge nestles in the widest
+    // gap between them beside the pill, and its connector meets the pill.
+    const hub = anchors.length === 1 ? regionalPillHub(geometry, anchors[0].id) : null;
+    const target = hub?.gapTarget ?? point;
     return [{
       markerId,
       layoutId: markerId,
       label: stationNames.get(group.stationId) ?? group.stationId,
       impacts: group.impacts,
-      anchor: point,
-      position: point,
-      placementTargets: [point],
+      anchor: target,
+      position: target,
+      placementTargets: [target],
       stationPoint: point,
+      ...(hub ? { stationMark: hub.mark } : {}),
       size: mapOverlapIndicatorSize(group.impacts),
     }];
   });

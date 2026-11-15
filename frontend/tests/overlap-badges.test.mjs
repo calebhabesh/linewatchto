@@ -254,4 +254,74 @@ describe("map overlap badge grouping", () => {
     ]);
     assert.deepEqual([...coveredSignatures], [overlapBadgeSignature(segmentImpacts)]);
   });
+
+  describe("stations drawn with a dot per line", () => {
+    const impact = (cardId, kind = "suspension") => ({
+      kind, cardId, travelDirection: "bidirectional", sourceAlertIds: [cardId],
+    });
+    const segment = (lineId, stationAId, stationBId, cardIds, anchors = {}) => ({
+      id: `${lineId}-${stationAId}-${stationBId}`,
+      label: `${stationAId} to ${stationBId}`,
+      lineId,
+      stationAId,
+      stationBId,
+      stationAAnchorId: anchors.a,
+      stationBAnchorId: anchors.b,
+      impacts: cardIds.map((cardId) => impact(cardId)),
+    });
+    const groups = (segments, stationNodeImpacts = [], stationImpactLineId) => buildStationOverlapBadgeGroups({
+      segments, plannedClosures: [], stationNodeImpacts, stationImpactLineId,
+    }).map((group) => ({
+      stationId: group.stationId,
+      dotIds: group.dotIds,
+      cards: group.impacts.map((item) => item.cardId).sort(),
+    }));
+
+    // TTC: Spadina draws Line 1 and Line 2 as two dots joined by a connector.
+    const line1 = segment("line-1", "dupont", "spadina", ["line-1-alert"], { b: "station-spadina-1" });
+    const line2 = segment("line-2", "spadina", "bathurst", ["line-2-alert"], { a: "station-spadina-2" });
+
+    it("gives alerts on different lines' dots no badge together", () => {
+      assert.deepEqual(groups([line1, line2]), []);
+    });
+
+    it("keeps one badge where both lines share one dot", () => {
+      assert.deepEqual(groups([
+        segment("line-1", "wellesley", "bloor-yonge", ["line-1-alert"]),
+        segment("line-2", "bloor-yonge", "sherbourne", ["line-2-alert"]),
+      ]), [{ stationId: "bloor-yonge", dotIds: [], cards: ["line-1-alert", "line-2-alert"] }]);
+      // GO/UP's Union: every line names the same pill.
+      assert.deepEqual(groups([
+        segment("regional-ki", "union", "bloor", ["ki"], { a: "station-union", b: "station-bloor-ki" }),
+        segment("regional-up", "union", "bloor", ["up"], { a: "station-union", b: "station-bloor-up" }),
+        segment("regional-le", "union", "danforth", ["le"], { a: "station-union", b: "station-danforth" }),
+      ]), [{ stationId: "union", dotIds: [], cards: ["ki", "le", "up"] }]);
+    });
+
+    it("badges alerts that meet on one line's dot, naming that dot", () => {
+      assert.deepEqual(groups([
+        line1,
+        segment("line-1", "spadina", "st-george", ["line-1-other"], { a: "station-spadina-1" }),
+        line2,
+      ]), [{ stationId: "spadina", dotIds: ["station-spadina-1"], cards: ["line-1-alert", "line-1-other"] }]);
+    });
+
+    it("puts a station alert on its line's dot", () => {
+      const stationAlert = { stationId: "spadina", kind: "delay", cardId: "spadina-delay", title: "Delay at Spadina" };
+      assert.deepEqual(
+        groups([line1, line2], [stationAlert], () => "line-2"),
+        [{ stationId: "spadina", dotIds: ["station-spadina-2"], cards: ["line-2-alert", "spadina-delay"] }],
+      );
+    });
+
+    it("lets a station alert whose line is unknown meet every dot", () => {
+      const stationAlert = { stationId: "spadina", kind: "delay", cardId: "spadina-delay", title: "Delay at Spadina" };
+      for (const lineId of [undefined, () => null, () => "line-4"]) {
+        assert.deepEqual(
+          groups([line1, line2], [stationAlert], lineId),
+          [{ stationId: "spadina", dotIds: [], cards: ["line-1-alert", "line-2-alert", "spadina-delay"] }],
+        );
+      }
+    });
+  });
 });
