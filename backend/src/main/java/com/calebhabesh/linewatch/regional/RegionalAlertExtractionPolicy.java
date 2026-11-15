@@ -14,7 +14,8 @@ import java.util.Set;
  * replacement and skipped stops; dates, timing, delay minutes and rider text stay deterministic
  * because the model does not produce them. The deterministic classification stands when there is
  * no high-confidence reading, when Metrolinx's structure already decides the event (structured
- * trip cancellations, explicit resolution notices), or when the reading cannot say what happened.
+ * trip cancellations, explicit resolution notices), when the reading cannot say what happened, or
+ * when it would turn a closure into a service adjustment or a one-train notice into a whole-line one.
  */
 final class RegionalAlertExtractionPolicy {
     /** Deterministic effects that come from Metrolinx structure or an explicit title status. */
@@ -88,6 +89,20 @@ final class RegionalAlertExtractionPolicy {
         if (extraction == null || !extraction.highConfidence()) return classification;
         if (STRUCTURAL_EFFECTS.contains(classification.serviceEffect())) return classification;
         if (!READING_EFFECTS.contains(extraction.effect())) return classification;
+        // Service adjustments are not drawn, so a reading that turns a stated closure into one would
+        // hide it. Nov. 14-15: "GO trains will run between Mount Pleasant and Mount Dennis GO ... no GO
+        // Transit service at Bloor GO" was read as a Bloor service adjustment and the Kitchener
+        // closure vanished. Readings may still move a closure's place or call it a delay.
+        if ("no-service".equals(classification.serviceEffect()) && "service-adjustment".equals(extraction.effect())) {
+            return classification;
+        }
+        // A notice about one train cannot affect every train on the line: "Train moving - Union Station
+        // 22:34 - Kitchener GO 00:26" was read as a whole-line delay and drawn over the entire line.
+        if ("corridor".equals(extraction.scope()) && !"corridor".equals(classification.scope())
+            && MetrolinxAlertNormalizer.namesOneTrip(classification.title(), classification.tripNumbers(),
+                classification.lineIds())) {
+            return classification;
+        }
 
         String effect = extraction.effect();
         String scope = extraction.scope();

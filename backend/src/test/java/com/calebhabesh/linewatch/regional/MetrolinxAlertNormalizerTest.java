@@ -1315,6 +1315,220 @@ class MetrolinxAlertNormalizerTest {
             .satisfies(event -> assertThat(event.scope()).isEqualTo("corridor"));
     }
 
+    // Metrolinx's Nov. 14-15 UP notices, as published (English text only). 532111 is a Broadcast
+    // Message whose title is about Friday night while its body restates the weekend closure.
+    private static final String UP_WEEKEND_BODY = "On Saturday, Nov. 14 and Sunday, Nov. 15, planned construction is "
+        + "taking place on UP Express.There will be no UP Express train service.GO buses will run direct between Union "
+        + "Station Bus Terminal and Pearson Airport Terminal 1.There will be no UP Express service at Bloor, Mount "
+        + "Dennis or Weston stations.There are some late-night service adjustments on Friday, Nov. 13.Learn more about "
+        + "these and upcoming service adjustments on UP Express.";
+    private static final String UP_BROADCAST_BODY = "This weekend, GO buses replace UP Express trains due to planned "
+        + "construction. GO buses will run direct between Union Station Bus Terminal and Pearson Airport Terminal 1.GO "
+        + "buses will not stop at Bloor, Mount Dennis or Weston stations.Please check your schedules before "
+        + "travelling.Learn more about these and upcoming service adjustments on UP Express.";
+
+    private MetrolinxFetchedRecord upNotice(
+        String code, String posted, String category, String subcategory, String title, String body
+    ) throws Exception {
+        return serviceAlert(objectMapper.writeValueAsString(java.util.Map.of(
+            "Code", code, "Status", "INIT", "PostedDateTime", posted, "SubjectEnglish", title, "BodyEnglish", body,
+            "Category", category, "SubCategory", subcategory, "Lines", List.of(java.util.Map.of("Code", "UP")),
+            "Stops", List.of(), "Trips", List.of())));
+    }
+
+    private MetrolinxFetchedRecord upPeriod(String id, String title, String body, long start, long end) throws Exception {
+        return upAlert(id, objectMapper.writeValueAsString(java.util.Map.of("id", id, "is_deleted", false,
+            "alert", java.util.Map.of(
+                "active_period", List.of(java.util.Map.of("start", start, "end", end)),
+                "effect", "MODIFIED_SERVICE",
+                "header_text", java.util.Map.of("translation", List.of(java.util.Map.of("text", title, "language", "en"))),
+                "description_text", java.util.Map.of("translation", List.of(java.util.Map.of("text", body, "language", "en"))),
+                "informed_entity", List.of(java.util.Map.of("route_id", "UP", "agency_id", "UPExpress"))))));
+    }
+
+    @Test
+    void foldsADifferentlyTitledBroadcastThatRestatesADatedClosure() throws Exception {
+        String weekendTitle = "Nov. 14-15: Service adjustments";
+        String broadcastTitle = "Tonight, there are some late-evening service adjustments.";
+        var weekend = upNotice("M0000530822", "2026-11-13 20:01:01", "Service Disruption", "Information",
+            weekendTitle, UP_WEEKEND_BODY);
+        var weekendGtfs = upPeriod("530822", weekendTitle, UP_WEEKEND_BODY, 1794600000L, 1794793916L);
+        var broadcast = upNotice("M0000532111", "2026-11-13 03:01:59", "Disruptions", "Broadcast Message",
+            broadcastTitle, UP_BROADCAST_BODY);
+        // The GTFS copy's window starts when the broadcast was posted, Friday 3:01 AM, while UP still ran.
+        var broadcastGtfs = upPeriod("532111", broadcastTitle, UP_BROADCAST_BODY, 1794556860L, 1794793916L);
+        var saturday = OffsetDateTime.parse("2026-11-14T00:00:00-05:00");
+        var monday = OffsetDateTime.parse("2026-11-16T00:00:00-05:00");
+        var sundayNight = new MetrolinxAlertNormalizer(Clock.fixed(Instant.parse("2026-11-15T06:50:00Z"), ZoneOffset.UTC));
+
+        // Alone, "This weekend" dates the broadcast to Saturday and Sunday of the week it was posted.
+        assertThat(sundayNight.classify(feed(broadcast, broadcastGtfs))).singleElement().satisfies(event -> {
+            assertThat(event.serviceEffect()).isEqualTo("no-service");
+            assertThat(event.activePeriodBasis()).isEqualTo("text-date-range");
+            assertThat(event.activePeriodStart()).isEqualTo(saturday);
+            assertThat(event.activePeriodEnd()).isEqualTo(monday);
+        });
+
+        var result = sundayNight.consolidate(feed(weekend, weekendGtfs, broadcast, broadcastGtfs));
+        assertThat(result.events()).singleElement().satisfies(event -> {
+            assertThat(event.canonicalEventId()).isEqualTo("up-530822");
+            assertThat(event.title()).isEqualTo(weekendTitle);
+            assertThat(event.sources()).extracting(RegionalAlertClassification.SourceReference::sourceId)
+                .contains("M0000530822", "530822", "M0000532111", "532111");
+        });
+        assertThat(result.merges()).containsExactly(new MetrolinxNoticeConsolidator.Merge("up-530822", "up-532111",
+            MetrolinxNoticeConsolidator.MergeReason.RESTATED));
+        assertThat(result.nearDuplicates()).isEmpty();
+        assertThat(sundayNight.normalize(feed(weekend, weekendGtfs, broadcast, broadcastGtfs)))
+            .filteredOn(alert -> "planned-closure".equals(alert.impactKind()))
+            .extracting(RegionalNormalizedAlert::id).containsExactly("regional-up-530822-up");
+
+        // A broadcast about another weekend stays separate.
+        var otherFacts = upNotice("M0000532112", "2026-11-13 03:01:59", "Disruptions", "Broadcast Message",
+            broadcastTitle, UP_BROADCAST_BODY.replace("This weekend", "On Saturday, Nov. 21 and Sunday, Nov. 22"));
+        assertThat(sundayNight.classify(feed(weekend, otherFacts))).hasSize(2);
+    }
+
+    // Metrolinx's Nov. 14 Kitchener train delay, as published (English text only): one late train,
+    // listing the stops it still had to serve.
+    private static final String KITCHENER_DELAY_TITLE = "Final - Train moving - Union Station 22:34 - Kitchener GO 00:31";
+    private static final String KITCHENER_DELAY_BODY = "The Union Station 22:34 - Kitchener GO 00:31 train is on the "
+        + "move and is delayed 47 minutes at Georgetown GO due to freight train traffic. Subscribe to On the GO alerts "
+        + "and receive customized, real-time alerts for schedule changes, construction updates and more. Sign up for "
+        + "On The GO alerts here.";
+
+    private MetrolinxFeed kitchenerDelay(String title, String body, String posted, String... stops) throws Exception {
+        var rest = serviceAlert(objectMapper.writeValueAsString(java.util.Map.of(
+            "Code", "M0000533340", "Status", "UPD", "PostedDateTime", posted, "SubjectEnglish", title,
+            "BodyEnglish", body, "Category", "Service Disruption", "SubCategory", "Train Delay",
+            "Lines", List.of(java.util.Map.of("Code", "GT")),
+            "Stops", java.util.Arrays.stream(stops).map(stop -> java.util.Map.of("Code", stop)).toList(),
+            "Trips", List.of(java.util.Map.of("TripNumber", "3837")))));
+        // Metrolinx leaves the delay with a rolling end, here a day after the train arrived.
+        var gtfs = new MetrolinxFetchedRecord(MetrolinxSourceSystem.GO_GTFS_ALERTS, "533340",
+            objectMapper.writeValueAsString(java.util.Map.of("id", "533340", "is_deleted", false,
+                "alert", java.util.Map.of(
+                    "active_period", List.of(java.util.Map.of("start", 1794633720L, "end", 1794794037L)),
+                    "effect", "SIGNIFICANT_DELAYS",
+                    "header_text", java.util.Map.of("translation", List.of(java.util.Map.of("text", title, "language", "en"))),
+                    "description_text", java.util.Map.of("translation", List.of(java.util.Map.of("text", body, "language", "en"))),
+                    "informed_entity", List.of(java.util.Map.of("route_id", "09261126-GT", "agency_id", "GO"))))));
+        return feed(rest, gtfs);
+    }
+
+    @Test
+    void drawsOneLateTrainAsTheStretchItStillCoversAndEndsItWithTheTrip() throws Exception {
+        var feed = kitchenerDelay(KITCHENER_DELAY_TITLE, KITCHENER_DELAY_BODY, "2026-11-14 00:27:14", "AC", "GL", "KI");
+        var whileLate = new MetrolinxAlertNormalizer(Clock.fixed(Instant.parse("2026-11-14T05:40:00Z"), ZoneOffset.UTC));
+        // Arrival 00:31 plus the stated 47 minutes plus the 90-minute grace.
+        var tripEnd = OffsetDateTime.parse("2026-11-14T02:48:00-05:00");
+
+        assertThat(whileLate.classify(feed)).singleElement().satisfies(event -> {
+            assertThat(event.serviceEffect()).isEqualTo("delay");
+            // The listed stops and where the train is held bound one stretch, not three station delays.
+            assertThat(event.scope()).isEqualTo("segment-span");
+            assertThat(event.spanStationIds()).containsExactly("georgetown", "kitchener");
+            assertThat(event.fieldSources()).containsKeys(MetrolinxAlertNormalizer.TRIP_SPAN_FIELD, "tripEnd");
+            assertThat(event.activePeriodEnd()).isEqualTo(tripEnd);
+            assertThat(event.impacts()).allSatisfy(impact -> assertThat(impact.endExclusive()).isEqualTo(tripEnd));
+        });
+        assertThat(whileLate.normalize(feed)).singleElement().satisfies(alert -> {
+            assertThat(alert.impactKind()).isEqualTo("delay");
+            assertThat(alert.affectedSegmentIds()).containsExactlyElementsOf(
+                RegionalNetworkCatalog.segmentIds("regional-ki", List.of("georgetown", "kitchener")));
+            assertThat(alert.listsStationClosures()).isFalse();
+            var span = RegionalStationSpan.describe(alert);
+            assertThat(span.displayLocation()).isEqualTo("Georgetown → Kitchener");
+            assertThat(span.displayDirection()).isEqualTo("Towards Kitchener");
+        });
+
+        // A day later the train has long arrived; the rolling source end no longer keeps it up.
+        var nextNight = new MetrolinxAlertNormalizer(Clock.fixed(Instant.parse("2026-11-15T06:48:00Z"), ZoneOffset.UTC));
+        assertThat(nextNight.normalize(feed)).isEmpty();
+        assertThat(nextNight.classify(feed)).singleElement()
+            .satisfies(event -> assertThat(event.timing()).isEqualTo("ended"));
+    }
+
+    @Test
+    void aOneTripDelayKeepsASingleStopAndEndsWithTheNextRunOfThatTrip() throws Exception {
+        // Posted the afternoon before, about the next morning's trip: that run bounds the window.
+        var feed = kitchenerDelay("Train delay - Stratford GO 06:16 - Union Station 08:47",
+            "The Stratford GO 06:16 - Union Station 08:47 train is estimated to be delayed 30 minutes from Stratford GO "
+                + "due to an operational issue.", "2026-11-13 15:00:00", "SF");
+        var afternoon = new MetrolinxAlertNormalizer(Clock.fixed(Instant.parse("2026-11-13T20:30:00Z"), ZoneOffset.UTC));
+
+        assertThat(afternoon.classify(feed)).singleElement().satisfies(event -> {
+            assertThat(event.scope()).isEqualTo("listed-stations");
+            assertThat(event.stationIds()).containsExactly("stratford");
+            // Posted Nov. 13 at 3 PM, after that day's run had arrived, so the Nov. 14 run is meant.
+            assertThat(event.activePeriodEnd()).isEqualTo(OffsetDateTime.parse("2026-11-14T10:47:00-05:00"));
+        });
+    }
+
+    @Test
+    void aOneTripDelayWithoutStopsRunsFromWhereItIsHeldToItsDestinationNotTheWholeLine() throws Exception {
+        // "Train delay - Stratford GO 6:16 AM - Union Station 8:47 AM" was drawn over the entire line:
+        // its terminals bounded the span as if every train were late.
+        var feed = kitchenerDelay("Train delay - Stratford GO 06:16 - Union Station 08:47",
+            "The Stratford GO 06:16 - Union Station 08:47 train is estimated to be delayed 30 minutes from Guelph "
+                + "Central GO due to an operational issue.", "2026-11-14 06:40:00");
+        var morning = new MetrolinxAlertNormalizer(Clock.fixed(Instant.parse("2026-11-14T11:45:00Z"), ZoneOffset.UTC));
+
+        assertThat(morning.classify(feed)).singleElement().satisfies(event -> {
+            assertThat(event.scope()).isEqualTo("segment-span");
+            assertThat(event.spanStationIds()).containsExactly("union", "guelph-central");
+        });
+        assertThat(morning.normalize(feed)).singleElement().satisfies(alert -> {
+            var span = RegionalStationSpan.describe(alert);
+            assertThat(span.displayLocation()).isEqualTo("Guelph Central → Union");
+            assertThat(span.displayDirection()).isEqualTo("Towards Union Station");
+            assertThat(RegionalStationSpan.coversWholeLine(alert)).isFalse();
+        });
+
+        // A holding train is placed where it holds.
+        var holding = kitchenerDelay("Train holding - Union Station 22:34 - Kitchener GO 00:31",
+            "The Union Station 22:34 - Kitchener GO 00:31 train will hold at Acton GO until further notice due to a "
+                + "person being struck by train. Customers may board a GO bus shuttle.", "2026-11-14 00:27:14");
+        assertThat(new MetrolinxAlertNormalizer(Clock.fixed(Instant.parse("2026-11-14T05:40:00Z"), ZoneOffset.UTC))
+            .classify(holding)).singleElement()
+            .satisfies(event -> assertThat(event.spanStationIds()).containsExactly("acton", "kitchener"));
+
+        // Nowhere named: an advisory, never the whole line.
+        var unplaced = kitchenerDelay("Train delay - Stratford GO 06:16 - Union Station 08:47",
+            "The Stratford GO 06:16 - Union Station 08:47 train is delayed due to an operational issue.",
+            "2026-11-14 06:40:00");
+        assertThat(morning.classify(unplaced)).singleElement()
+            .satisfies(event -> assertThat(event.scope()).isEqualTo("unknown"));
+        assertThat(morning.normalize(unplaced)).allSatisfy(alert -> {
+            assertThat(alert.impactKind()).isEqualTo("advisory");
+            assertThat(alert.affectedSegmentIds()).isEmpty();
+        });
+    }
+
+    @Test
+    void clockTimesInHoursAreNotADelay() throws Exception {
+        // "23:45 hrs" is a clock time; read as 45 hours it would keep the delay up for two days.
+        var feed = kitchenerDelay("Train holding - Union Station 22:34 - Kitchener GO 00:31",
+            "The Union Station 22:34 - Kitchener GO 00:31 train will hold at Acton GO until further notice. GO buses "
+                + "depart Union Station between 23:45 hrs until 02:30 hrs.", "2026-11-14 00:27:14", "GL", "KI");
+
+        assertThat(new MetrolinxAlertNormalizer(Clock.fixed(Instant.parse("2026-11-14T05:40:00Z"), ZoneOffset.UTC))
+            .classify(feed)).singleElement()
+            .satisfies(event -> assertThat(event.activePeriodEnd()).isEqualTo(OffsetDateTime.parse("2026-11-14T02:01:00-05:00")));
+    }
+
+    @Test
+    void aTimeWindowInATitleIsNotATrip() throws Exception {
+        var feed = kitchenerDelay("Kitchener line delays 21:00 - 23:30",
+            "Trains are delayed up to 20 minutes between Bramalea GO and Georgetown GO.", "2026-11-14 00:27:14");
+
+        assertThat(new MetrolinxAlertNormalizer(Clock.fixed(Instant.parse("2026-11-14T05:40:00Z"), ZoneOffset.UTC))
+            .classify(feed)).singleElement().satisfies(event -> {
+                assertThat(event.fieldSources()).doesNotContainKey("tripEnd");
+                assertThat(event.activePeriodEnd()).isEqualTo(OffsetDateTime.parse("2026-11-16T01:53:57Z"));
+            });
+    }
+
     private MetrolinxFetchedRecord bannerPeriod(String id) {
         return new MetrolinxFetchedRecord(MetrolinxSourceSystem.GO_GTFS_ALERTS, id, """
             {"id":"%s","alert":{"active_period":[{"start":1786183200}],

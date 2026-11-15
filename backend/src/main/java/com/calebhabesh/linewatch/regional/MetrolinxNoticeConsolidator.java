@@ -30,6 +30,9 @@ import java.util.regex.Pattern;
 final class MetrolinxNoticeConsolidator {
     private static final Pattern TRAILING_DIGITS = Pattern.compile("(\\d+)$");
     private static final Set<String> AUDITED_EFFECTS = Set.of("no-service", "delay");
+    /** A follow-up to an earlier notice, which is its own event: "Update: ...", "Final - ...", "... resolved". */
+    private static final Pattern FOLLOW_UP_TITLE = Pattern.compile(
+        "^\\s*(?:update|final)\\b|\\bresolved\\b", Pattern.CASE_INSENSITIVE);
 
     enum NoticeRole { LINE_NOTICE, STATION_LIST, BANNER }
 
@@ -149,7 +152,8 @@ final class MetrolinxNoticeConsolidator {
      * Metrolinx sometimes restates a line notice under a later notice ID with a sentence added,
      * changed, or dropped ("If you are taking the TTC, please note ...") and leaves the earlier one in
      * the feed. A later line notice with the same lines, trips, effect, place, and active period and a
-     * matching title restates the earliest such notice when it states no impact window, station,
+     * matching title (or, when both windows are dated in the notices' text, any title) restates the
+     * earliest such notice when it states no impact window, station,
      * replacement service, or delay that notice does not. The earliest notice leads with its own
      * content, as for republications, so a restatement never becomes a new event for push and
      * history; the restatements add their source references.
@@ -187,11 +191,28 @@ final class MetrolinxNoticeConsolidator {
             && later.activePeriodStart() != null
             && Objects.equals(instant(later.activePeriodStart()), instant(lead.activePeriodStart()))
             && Objects.equals(instant(later.activePeriodEnd()), instant(lead.activePeriodEnd()))
-            && titlesMatch(later, lead)
+            && (titlesMatch(later, lead) || statedSameDates(later, lead))
             && impactWindows(lead).containsAll(impactWindows(later))
             && (later.replacementService() == null || later.replacementService().equals(lead.replacementService()))
             && (later.maximumDelayMinutes() == null || later.maximumDelayMinutes().equals(lead.maximumDelayMinutes()))
             && mentionedStations(lead).containsAll(mentionedStations(later));
+    }
+
+    /**
+     * Both notices take their window from dates stated in their own text, and those windows are
+     * equal (restates() compares them). Metrolinx restates a dated notice under an unrelated title:
+     * Nov. 13 "Tonight, there are some late-evening service adjustments." whose body says "This
+     * weekend, GO buses replace UP Express trains" restated "Nov. 14-15: Service adjustments". One
+     * line cannot have the same effect over the same place twice in one stated window, so the
+     * title need not match; every other restatement condition still applies. A title marking an
+     * update or resolution ("Update: ...", "Final - ...") always keeps its notice separate.
+     */
+    private static boolean statedSameDates(RegionalAlertClassification later, RegionalAlertClassification lead) {
+        return !FOLLOW_UP_TITLE.matcher(nullToEmpty(later.title())).find()
+            && !FOLLOW_UP_TITLE.matcher(nullToEmpty(lead.title())).find()
+            && "text-date-range".equals(later.activePeriodBasis())
+            && "text-date-range".equals(lead.activePeriodBasis())
+            && later.activePeriodStart() != null && later.activePeriodEnd() != null;
     }
 
     /** An event's impacts by effect, scope, and window, without their positional IDs or stop lists. */
@@ -378,6 +399,10 @@ final class MetrolinxNoticeConsolidator {
         boolean rightStartsBeforeLeftEnds = left.activePeriodEnd() == null
             || right.activePeriodStart().isBefore(left.activePeriodEnd());
         return leftStartsBeforeRightEnds && rightStartsBeforeLeftEnds;
+    }
+
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     private static OffsetDateTime nullSafe(OffsetDateTime value) {

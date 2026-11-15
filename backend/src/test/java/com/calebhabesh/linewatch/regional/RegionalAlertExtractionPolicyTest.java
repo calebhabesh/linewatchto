@@ -207,6 +207,45 @@ class RegionalAlertExtractionPolicyTest {
     }
 
     @Test
+    void aReadingNeverTurnsAClosureIntoAServiceAdjustment() {
+        // Nov. 14-15 Kitchener: "GO trains will run between Mount Pleasant and Mount Dennis GO ... There
+        // will be no GO Transit service at Bloor GO" was read, with high confidence, as a service
+        // adjustment at Bloor; applied, the closure left the map.
+        RegionalAlertClassification closure = classification("no-service", "segment-span",
+            List.of("union", "mount-dennis"), List.of("bloor"), "go-bus");
+
+        assertThat(RegionalAlertExtractionPolicy.refine(closure,
+            new RegionalAlertExtraction("service-adjustment", "listed-stations", List.of(), List.of("bloor"),
+                "unknown", List.of(), "Nov. 14-15", "high"), "m")).isSameAs(closure);
+        // A closure can still be read as a delay, and a delay as a service adjustment.
+        assertThat(RegionalAlertExtractionPolicy.refine(closure,
+            extraction("delay", "corridor", null, null, "none", "high", List.of()), "m").serviceEffect())
+            .isEqualTo("delay");
+        assertThat(RegionalAlertExtractionPolicy.refine(
+            classification("delay", "corridor", List.of(), List.of(), null),
+            extraction("service-adjustment", "corridor", null, null, "none", "high", List.of()), "m").serviceEffect())
+            .isEqualTo("service-adjustment");
+    }
+
+    @Test
+    void aReadingNeverWidensAOneTrainNoticeToTheWholeLine() {
+        RegionalAlertClassification oneTrain = new RegionalAlertClassification("go-1",
+            List.of(new RegionalAlertClassification.SourceReference("go-service-alerts", "M1")), List.of("regional-ki"),
+            List.of("3837"), "current", "delay", null, "unknown", null, null, null,
+            "Train moving - Union Station 22:34 - Kitchener GO 00:26", "The train is on the move.", START, END,
+            "source-active-period", START, END, START, List.of(), List.of(), Map.of(), Map.of(), "{}",
+            List.of(new RegionalAlertClassification.Impact("timing-unknown", "delay", "unknown", List.of(), null, null,
+                "unknown", "notice wording", "Timing not verified")));
+
+        assertThat(RegionalAlertExtractionPolicy.refine(oneTrain,
+            extraction("delay", "corridor", null, null, "none", "high", List.of()), "m")).isSameAs(oneTrain);
+        // A section it names still applies.
+        assertThat(RegionalAlertExtractionPolicy.refine(oneTrain,
+            extraction("delay", "segment-span", "georgetown", "kitchener", "none", "high", List.of()), "m").scope())
+            .isEqualTo("segment-span");
+    }
+
+    @Test
     void explicitResolutionNoticesKeepTheirDeterministicStatus() {
         RegionalAlertClassification resolved = classification("service-resumed", "corridor", List.of(), List.of(), null);
 

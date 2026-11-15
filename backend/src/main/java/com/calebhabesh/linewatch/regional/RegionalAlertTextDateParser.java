@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.regional;
 
 import java.time.DateTimeException;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -21,6 +22,8 @@ final class RegionalAlertTextDateParser {
             + "(?:\\s*(?:-|–|—|to|and)\\s*(?:" + MONTH + "\\.?\\s+)?(\\d{1,2}))?"
             + "(?:,?\\s+(20\\d{2}))?\\b"
     );
+    /** "This weekend" or "this coming weekend", without a stated date. */
+    private static final Pattern THIS_WEEKEND = Pattern.compile("(?i)\\bthis (?:coming )?weekend\\b");
     private static final Map<String, Integer> MONTHS = Map.ofEntries(
         Map.entry("jan", 1), Map.entry("january", 1),
         Map.entry("feb", 2), Map.entry("february", 2),
@@ -59,6 +62,22 @@ final class RegionalAlertTextDateParser {
             ));
         }
         return List.copyOf(ranges);
+    }
+
+    /**
+     * "This weekend" or "this coming weekend": the Saturday and Sunday of the week the text was
+     * published, or the current weekend when published on one. For notices that state no date
+     * ("This weekend, GO buses replace UP Express trains"); stated dates always win.
+     */
+    static List<DateRange> thisWeekend(String text, OffsetDateTime publishedAt) {
+        if (text == null || publishedAt == null) return List.of();
+        Matcher weekend = THIS_WEEKEND.matcher(text);
+        if (!weekend.find()) return List.of();
+        LocalDate anchor = publishedAt.atZoneSameInstant(TORONTO).toLocalDate();
+        LocalDate saturday = anchor.getDayOfWeek() == DayOfWeek.SUNDAY ? anchor.minusDays(1)
+            : anchor.plusDays(DayOfWeek.SATURDAY.getValue() - anchor.getDayOfWeek().getValue());
+        return List.of(new DateRange(saturday.atStartOfDay(TORONTO).toOffsetDateTime(),
+            saturday.plusDays(2).atStartOfDay(TORONTO).toOffsetDateTime(), weekend.start(), weekend.end()));
     }
 
     private static LocalDateRange localRange(Matcher matcher, LocalDate anchor) {

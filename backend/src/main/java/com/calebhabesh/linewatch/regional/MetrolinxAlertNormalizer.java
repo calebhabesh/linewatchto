@@ -4,8 +4,11 @@ import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -101,6 +104,28 @@ public class MetrolinxAlertNormalizer {
         "(?:delays? (?:of )?(?:up to|approximately|about)|up to)\\s+(\\d{1,3})\\s+minutes?",
         Pattern.CASE_INSENSITIVE
     );
+    private static final String CLOCK_GROUPS = "(\\d{1,2}):(\\d{2})(?:\\s*([ap])\\.?\\s?m\\b\\.?)?";
+    /** A titled trip's clock times: "Union Station 22:34 - Kitchener GO 00:31", "Stratford GO 6:16 AM - ...". */
+    private static final Pattern TRIP_TIMES = Pattern.compile(
+        "(?<![\\d:])" + CLOCK_GROUPS + "\\s*[-–—]\\s*(\\D{1,80}?)(?<![\\d:])" + CLOCK_GROUPS,
+        Pattern.CASE_INSENSITIVE);
+    /**
+     * A stated delay; a range counts its upper end: "delayed 47 minutes", "15 to 20 minutes", "1 hour".
+     * Clock times are not amounts: Metrolinx writes "between 23:45 hrs until 02:30 hrs".
+     */
+    private static final Pattern DELAY_AMOUNT = Pattern.compile(
+        "(?<![\\d:])(?:\\d{1,3}\\s*(?:to|-|–)\\s*)?(?<![\\d:])(\\d{1,3})\\s*(minutes?|mins?\\b|hours?|hrs?\\b)",
+        Pattern.CASE_INSENSITIVE);
+    /** Where a late train is: "delayed 47 minutes at Georgetown GO", "delayed 30 minutes from Stratford GO". */
+    private static final Pattern DELAY_LOCATION = Pattern.compile(
+        "\\b(?:at|from|near|approaching|departing|leaving)\\s+([^.;,]{1,60})", Pattern.CASE_INSENSITIVE);
+    /** A sentence about where a late train is: "is delayed ... at", "will hold at", "on the move from". */
+    private static final Pattern LATE_TRAIN_SENTENCE = Pattern.compile(
+        "\\bdelay|\\bhold(?:s|ing)?\\b|\\bheld\\b|\\bon the move\\b", Pattern.CASE_INSENSITIVE);
+    /** How long after a delayed trip's expected arrival its notice stays up. */
+    private static final Duration TRIP_END_GRACE = Duration.ofMinutes(90);
+    /** The most stated delay that can extend a trip's end; longer figures are not a train's delay. */
+    private static final Duration LONGEST_TRIP_DELAY = Duration.ofHours(6);
     private static final Pattern RAIL_REPLACED_BY_BUS = Pattern.compile(
         "(?:go )?buses? (?:will )?(?:replace|replaces|are replacing) "
             + "(?:all |the |up express )?trains?"
@@ -359,6 +384,12 @@ public class MetrolinxAlertNormalizer {
             .toLowerCase(Locale.CANADA);
         List<RegionalAlertTextDateParser.DateRange> titleDates = RegionalAlertTextDateParser.ranges(title, publishedAt);
         List<RegionalAlertTextDateParser.DateRange> bodyDates = RegionalAlertTextDateParser.ranges(description, publishedAt);
+        if (titleDates.isEmpty() && bodyDates.isEmpty()) {
+            // No stated date: "This weekend, GO buses replace UP Express trains" names the weekend it was
+            // posted in. Without this the window started at posting (Friday 3:01 AM, while UP ran).
+            titleDates = RegionalAlertTextDateParser.thisWeekend(title, publishedAt);
+            if (titleDates.isEmpty()) bodyDates = RegionalAlertTextDateParser.thisWeekend(description, publishedAt);
+        }
         RegionalAlertTextDateParser.DateRange textDateRange = !titleDates.isEmpty() ? titleDates.getFirst()
             : bodyDates.size() == 1 ? bodyDates.getFirst() : null;
         boolean textOverridesSourcePeriod = textDateRange != null;
@@ -382,6 +413,14 @@ public class MetrolinxAlertNormalizer {
             String resolution = resolutionEffect(title, description);
             if (resolution != null) serviceEffect = resolution;
         }
+        // A delay or closure of one timed trip ends with that trip. Metrolinx leaves such notices in
+        // the feed with a rolling end ("Final - Train moving ..." stayed up 25 hours after the train
+        // arrived), so the trip's own end bounds the window unless the notice states its dates.
+        OffsetDateTime tripEnd = !textOverridesSourcePeriod
+            && ("delay".equals(serviceEffect) || "no-service".equals(serviceEffect))
+            ? tripEnd(title, description, lineIds, earliest(publishedAt, sourceStartsAt)) : null;
+        if (tripEnd != null && (endsAt == null || tripEnd.isBefore(endsAt))) endsAt = tripEnd;
+        else tripEnd = null;
         String operatingChange = "trip-cancellation".equals(serviceEffect)
             ? "cancelled-trip"
             : searchable.contains("reduced speed") ? "reduced-speed" : null;
@@ -393,6 +432,9 @@ public class MetrolinxAlertNormalizer {
         String replacementService = replacementService(searchable);
         Integer maximumDelayMinutes = maximumDelay(searchable);
         List<String> disruptedSpan = disruptedSpanStations(description, lineIds);
+        // A one-train delay names its trip's terminals ("Stratford GO 6:16 AM - Union Station 8:47 AM");
+        // they are where the trip runs, not where it is late, so they never bound its span.
+        boolean oneTripDelay = "delay".equals(serviceEffect) && namesOneTrip(title, tripNumbers, lineIds);
         String lowerDescription = description.toLowerCase(Locale.CANADA);
         boolean continuingServiceClause = lowerDescription.contains("trains run")
             || lowerDescription.contains("trains will run")
@@ -406,11 +448,18 @@ public class MetrolinxAlertNormalizer {
             : !disruptedSpan.isEmpty() ? disruptedSpan
                 : !outsideRunning.isEmpty() ? outsideRunning
                 : "no-service".equals(serviceEffect) && continuingServiceClause ? List.of()
-                    : spanStations(searchable, lineIds);
+                    : spanStations(searchable, lineIds, !oneTripDelay);
         String scope = scheduleAnnouncement ? "corridor"
             : scope(searchable, serviceEffect, lineIds, structuredStations, spanStations);
         if ("no-service".equals(serviceEffect) && continuingServiceClause
             && disruptedSpan.isEmpty() && outsideRunning.isEmpty()) scope = "unknown";
+        // One late train's remaining stops are a stretch of its line, not separate station problems.
+        List<String> tripSpan = oneTripDelay && ("listed-stations".equals(scope) || "unknown".equals(scope))
+            ? tripDelaySpan(title, description, lineIds, structuredStations) : List.of();
+        if (!tripSpan.isEmpty()) {
+            spanStations = tripSpan;
+            scope = "segment-span";
+        }
         Map<String, String> stationRoles = stationRoles(
             searchable, lineIds, serviceEffect, scope, replacementService, structuredStations
         );
@@ -429,6 +478,9 @@ public class MetrolinxAlertNormalizer {
         addSources(fieldSources, "title", ordered, value -> !value.title().isBlank() && value.title().equals(title));
         addSources(fieldSources, "description", ordered, value -> !value.description().isBlank() && riderDescription(title, value).equals(description));
         addSources(fieldSources, "classification", ordered, value -> true);
+        if (!tripSpan.isEmpty()) addSources(fieldSources, TRIP_SPAN_FIELD, ordered,
+            value -> !value.stationIds().isEmpty() || structuredStations.isEmpty());
+        if (tripEnd != null) addSources(fieldSources, "tripEnd", ordered, value -> value.title().equals(title));
         if (!outsideRunning.isEmpty() && outsideRunning.equals(spanStations)) {
             // Sections stated by the notice's running section; a model reading does not move them.
             addSources(fieldSources, RUNNING_SECTION_FIELD, ordered,
@@ -439,6 +491,7 @@ public class MetrolinxAlertNormalizer {
             title, description, serviceEffect, scope, spanStations, structuredStations,
             startsAt, endsAt, activePeriodBasis, titleDates, bodyDates, ordered, publishedAt
         );
+        if (tripEnd != null) impacts = endingBy(impacts, tripEnd);
         return new RegionalAlertClassification(
             primary.canonicalEventId(),
             ordered.stream().map(value -> new RegionalAlertClassification.SourceReference(
@@ -449,6 +502,124 @@ public class MetrolinxAlertNormalizer {
             structuredStations, spanStations, Map.copyOf(stationRoles), Map.copyOf(fieldSources),
             primary.record().rawPayload(), impacts
         );
+    }
+
+    /** fieldSources key marking a span drawn from one late trip's listed stops. */
+    static final String TRIP_SPAN_FIELD = "tripSpan";
+
+    /** A notice about one train: one listed trip number, or none and a timed trip in the title. */
+    static boolean namesOneTrip(String title, List<String> tripNumbers, List<String> lineIds) {
+        return tripNumbers.size() == 1 || tripNumbers.isEmpty() && titledTrip(title, lineIds) != null;
+    }
+
+    /** The title's timed trip, whose destination station follows the departure time; null if none. */
+    private static Matcher titledTrip(String title, List<String> lineIds) {
+        Matcher trip = TRIP_TIMES.matcher(title);
+        while (trip.find()) {
+            // "9:00 PM - 11:00 PM" is a time window, not a trip: a trip names its destination.
+            if (!mentionedStations(trip.group(4), lineIds).isEmpty()) return trip;
+        }
+        return null;
+    }
+
+    /**
+     * A one-trip delay notice lists the stops the late train still has to serve ("Stops": Acton, Guelph
+     * Central, Kitchener) and says where it is held ("delayed 47 minutes at Georgetown GO"). Together
+     * they bound the stretch of line that train covers late: Georgetown to Kitchener. Without listed
+     * stops, the stretch runs from where it is held to the titled trip's destination. Empty unless the
+     * notice is on one line, every listed stop is on it, and at least two stations bound the stretch.
+     */
+    private List<String> tripDelaySpan(
+        String title, String description, List<String> lineIds, List<String> structuredStations
+    ) {
+        if (lineIds.size() != 1) return List.of();
+        RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(lineIds.getFirst()).orElse(null);
+        if (route == null || !route.stationIds().containsAll(structuredStations)) return List.of();
+        Set<String> stations = new LinkedHashSet<>(structuredStations);
+        for (String sentence : description.split("[.;\\n]")) {
+            if (!LATE_TRAIN_SENTENCE.matcher(sentence).find()) continue;
+            Matcher location = DELAY_LOCATION.matcher(sentence);
+            String held = null;
+            while (held == null && location.find()) {
+                List<String> named = mentionedStations(location.group(1), lineIds);
+                if (!named.isEmpty()) held = named.getFirst();
+            }
+            if (held != null) {
+                stations.add(held);
+                break;
+            }
+        }
+        if (structuredStations.isEmpty() && stations.size() == 1) {
+            Matcher trip = titledTrip(title, lineIds);
+            if (trip != null) stations.add(mentionedStations(trip.group(4), lineIds).getFirst());
+        }
+        if (stations.size() < 2) return List.of();
+        List<Integer> indexes = stations.stream().map(route.stationIds()::indexOf).sorted().toList();
+        return List.of(route.stationIds().get(indexes.getFirst()), route.stationIds().get(indexes.getLast()));
+    }
+
+    /**
+     * When the title names one timed trip, the end of the run of that trip that had not finished when
+     * the notice appeared: its scheduled arrival, plus the largest delay the notice states, plus a
+     * grace period. Null when the title names no timed trip or nothing dates the notice.
+     */
+    private static OffsetDateTime tripEnd(
+        String title, String description, List<String> lineIds, OffsetDateTime noticedAt
+    ) {
+        if (noticedAt == null) return null;
+        Matcher trip = titledTrip(title, lineIds);
+        if (trip == null) return null;
+        LocalTime departure = clockTime(trip.group(1), trip.group(2), trip.group(3));
+        LocalTime arrival = clockTime(trip.group(5), trip.group(6), trip.group(7));
+        if (departure == null || arrival == null) return null;
+        Duration allowance = statedDelay(title + ". " + description).plus(TRIP_END_GRACE);
+        LocalDate noticed = noticedAt.atZoneSameInstant(TORONTO_ZONE).toLocalDate();
+        for (int days = -1; days <= 1; days++) {
+            LocalDate departs = noticed.plusDays(days);
+            LocalDate arrives = arrival.isBefore(departure) ? departs.plusDays(1) : departs;
+            OffsetDateTime end = arrival.atDate(arrives).atZone(TORONTO_ZONE).plus(allowance).toOffsetDateTime();
+            if (end.isAfter(noticedAt)) return end;
+        }
+        return null;
+    }
+
+    private static LocalTime clockTime(String hours, String minutes, String meridiem) {
+        int hour = Integer.parseInt(hours);
+        int minute = Integer.parseInt(minutes);
+        if (meridiem != null) {
+            if (hour < 1 || hour > 12) return null;
+            hour = hour % 12 + ("p".equalsIgnoreCase(meridiem) ? 12 : 0);
+        }
+        return hour > 23 || minute > 59 ? null : LocalTime.of(hour, minute);
+    }
+
+    private static Duration statedDelay(String text) {
+        Matcher amount = DELAY_AMOUNT.matcher(text);
+        Duration longest = Duration.ZERO;
+        while (amount.find()) {
+            long value = Long.parseLong(amount.group(1));
+            Duration delay = amount.group(2).toLowerCase(Locale.CANADA).startsWith("h")
+                ? Duration.ofHours(value) : Duration.ofMinutes(value);
+            if (delay.compareTo(longest) > 0) longest = delay;
+        }
+        return longest.compareTo(LONGEST_TRIP_DELAY) > 0 ? LONGEST_TRIP_DELAY : longest;
+    }
+
+    private static OffsetDateTime earliest(OffsetDateTime first, OffsetDateTime second) {
+        if (first == null) return second;
+        return second == null || first.isBefore(second) ? first : second;
+    }
+
+    /** Impacts ending no later than {@code end}; one starting after it is dropped. */
+    private static List<RegionalAlertClassification.Impact> endingBy(
+        List<RegionalAlertClassification.Impact> impacts, OffsetDateTime end
+    ) {
+        return impacts.stream()
+            .filter(impact -> impact.start() == null || impact.start().isBefore(end))
+            .map(impact -> impact.endExclusive() != null && !impact.endExclusive().isAfter(end) ? impact
+                : new RegionalAlertClassification.Impact(impact.id(), impact.serviceEffect(), impact.scope(),
+                    impact.stationIds(), impact.start(), end, impact.basis(), impact.evidence(), impact.uncertainty()))
+            .toList();
     }
 
     private String serviceEffect(
@@ -531,7 +702,11 @@ public class MetrolinxAlertNormalizer {
             .anyMatch(route -> endpoints.equals(Set.of(route.stationIds().getFirst(), route.stationIds().getLast())));
     }
 
-    private List<String> spanStations(String searchable, List<String> lineIds) {
+    /**
+     * @param fromMentions when no clause states the span, bound it by the first and last stations the
+     *     notice mentions; off for one-train delays, whose mentions are mostly the trip's terminals
+     */
+    private List<String> spanStations(String searchable, List<String> lineIds, boolean fromMentions) {
         if (!(searchable.contains(" between ") || searchable.contains(" from "))) return List.of();
         // The clause that states the span ("between X and Y") names its endpoints. Stations named
         // elsewhere, such as stops a replacement bus skips, must not stretch or shrink the span.
@@ -542,6 +717,7 @@ public class MetrolinxAlertNormalizer {
             List<String> named = mentionedStations(clause.substring(marker), lineIds);
             if (named.size() >= 2) return List.of(named.getFirst(), named.get(1));
         }
+        if (!fromMentions) return List.of();
         Set<String> skipped = Set.copyOf(skippedStations(searchable, lineIds));
         List<String> mentioned = new ArrayList<>();
         for (String lineId : lineIds) {
