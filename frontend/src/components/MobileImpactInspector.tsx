@@ -1,6 +1,6 @@
 "use client";
 
-import { plannedAdvisoryCause, serviceEffectLabel } from "../app/alert-categories";
+import { serviceEffectLabel } from "../app/alert-categories";
 import { NightlyBadge, PlannedEffectBadge } from "./PlannedEffectBadge";
 import { PlannedAdvisorySchedule } from "./PlannedAdvisorySchedule";
 import { plannedAdvisorySchedule, type PlannedScheduleView } from "../app/planned-advisory-schedule";
@@ -298,7 +298,7 @@ export function getSelectedImpactDetails(
     startedAt: closure.startedAt,
     updatedAt: closure.updatedAt,
     updatedAgo: closure.updatedAgo,
-    cause: plannedAdvisoryCause(closure.cause),
+    cause: closure.cause,
     resolution: closure.resolution,
     reason: closure.reason,
     targetRemoval: closure.targetRemoval,

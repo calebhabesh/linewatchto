@@ -56,7 +56,6 @@ describe("mobile Show on Map inspector", () => {
     assert.match(inspectorSource, /details\.description && details\.description !== details\.title/);
     assert.match(inspectorSource, /title:\s*zone\.description\?\.trim\(\)\s*\?\s*zone\.description\s*:\s*zone\.title/);
     assert.match(inspectorSource, /selection\.kind === "planned-closure" \? <PlannedEffectBadge incident=\{\{ serviceEffect: details\.serviceEffect \}\} \/>/);
-    assert.match(inspectorSource, /cause: plannedAdvisoryCause\(closure\.cause\)/);
     assert.match(inspectorSource, /className="impact-card-service-badge shuttle"/);
   });
 

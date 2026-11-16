@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
 import { ArrowRight, Bus } from "lucide-react";
-import { plannedAdvisoryCause, plannedAdvisoryEffect, serviceEffectLabel } from "../app/alert-categories";
+import { plannedAdvisoryEffect, serviceEffectLabel } from "../app/alert-categories";
 import { NightlyBadge, PlannedEffectBadge } from "./PlannedEffectBadge";
 import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
@@ -259,7 +259,7 @@ export function PlannedClosuresPanel({
                   {schedule ? <PlannedAdvisorySchedule schedule={schedule} /> : null}
                   <MetadataGrid
                     className="no-border planned-closure-metadata"
-                    cause={plannedAdvisoryCause(closure.cause)}
+                    cause={closure.cause}
                     resolution={closure.resolution}
                     reason={closure.reason}
                     targetRemoval={closure.targetRemoval}

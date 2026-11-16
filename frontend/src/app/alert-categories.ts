@@ -23,14 +23,3 @@ export function plannedAdvisoryEffect(incident: IncidentRiderDetails): "closure"
   if (incident.serviceEffect === "limited-service") return "limited-service";
   return null;
 }
-
-/**
- * TTC files planned work under a "CLOSURE - <reason>" cause even when trains keep
- * running (limited service). The category prefix contradicts the advisory's effect
- * badge, so planned advisory cards show only the reason.
- */
-export function plannedAdvisoryCause(cause: string | null | undefined): string | null | undefined {
-  if (!cause) return cause;
-  const reason = cause.replace(/^\s*closure\s*[-–—:]\s*/i, "").trim();
-  return reason || cause;
-}

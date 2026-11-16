@@ -16,7 +16,7 @@ import { CompactImpactListItem, CompactImpactTimeValue } from "./CompactImpactLi
 import { useImpactListView } from "../hooks/useImpactListView";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { relatedPlannedClosureId } from "../app/related-planned-closure";
-import { suppliedAlertCause } from "../app/alert-cause";
+import { alertCauseReason } from "../app/alert-cause";
 
 interface Props {
   selection: ImpactSelection;
@@ -130,7 +130,7 @@ export function ActiveAlertsPanel({
           </div>
         ) : (
           visibleAlerts.map((alert) => {
-            const cause = suppliedAlertCause(alert.cause);
+            const cause = alertCauseReason(alert.cause);
             const alertImpactKind = impactKindForAlert(alert);
             const closureId = relatedPlannedClosureId(alert, plannedClosures);
             const isActive = selection?.id === alert.id && selection?.kind === alertImpactKind;

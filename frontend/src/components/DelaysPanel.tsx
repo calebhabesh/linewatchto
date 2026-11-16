@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Bus } from "lucide-react";
 import { serviceEffectLabel } from "../app/alert-categories";
-import { suppliedAlertCause } from "../app/alert-cause";
+import { alertCauseReason } from "../app/alert-cause";
 import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/commute-data";
@@ -121,7 +121,7 @@ export function DelaysPanel({
           </div>
         ) : (
           visibleDelays.map((delay) => {
-            const cause = suppliedAlertCause(delay.cause);
+            const cause = alertCauseReason(delay.cause);
             const isActive = selection?.kind === "delay" && selection.id === delay.id;
             const overlappingImpacts = getOverlappingImpactRefs(
               { kind: "delay", id: delay.id, segmentIds: delay.affectedSegmentIds ?? [] },

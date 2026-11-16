@@ -4,7 +4,7 @@ import type { AccountCommutePathPreview } from "../app/commute-data";
 import type { ImpactSelection, PlannedClosure } from "../app/linewatch-data";
 import { skipNextImpactCardGlow } from "../hooks/useScrollSelectedImpactCard";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
-import { suppliedAlertCause } from "../app/alert-cause";
+import { alertCauseReason } from "../app/alert-cause";
 import { formatImpactLocation } from "../app/impact-location";
 import { replacementServiceLabel, skippedStationsLabel } from "../app/current-service";
 import type { IncidentRiderDetails } from "../app/linewatch-data";
@@ -22,7 +22,7 @@ export const MapPinned = createLucideIcon("MapPinned", [
 ]);
 
 export function formatCause(cause: string | null | undefined): string {
-  cause = suppliedAlertCause(cause);
+  cause = alertCauseReason(cause);
   if (!cause) return "";
   const commonWords = new Set(["CLOSURE", "DELAY", "SUSPENSION", "EMERGENCY", "ALARM", "SIGNAL", "PROBLEM", "TRACK", "WORK", "PLANNED", "ROUTE", "SERVICE", "ADVISORY"]);
   const minorWords = new Set(["AND", "OR", "FOR", "THE", "BUT", "NOR", "YET", "SO", "A", "AN", "OF", "IN", "ON", "AT", "TO", "BY", "WITH", "FROM"]);
