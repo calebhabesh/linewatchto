@@ -48,7 +48,7 @@ describe("crawlable transit guides", () => {
     assert.equal(regionalGuideRoutes.length, 8);
     assert.equal(ttcGuideStations.length, 109);
     assert.equal(regionalGuideStations.length, 72);
-    assert.equal(paths.length, 200);
+    assert.equal(paths.length, 202);
     assert.equal(new Set(paths).size, paths.length, "sitemap paths must be unique");
     assert.ok(paths.includes("/ttc/stations/greenwood"));
     assert.ok(paths.includes("/ttc/stations/o-connor"));

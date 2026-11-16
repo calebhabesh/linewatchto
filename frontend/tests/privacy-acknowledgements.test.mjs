@@ -6,6 +6,7 @@ import {
   acknowledgementSections,
   dataPracticeSections,
   privacyAcknowledgementLinks,
+  termsSections,
 } from "../src/app/privacy-acknowledgements-data.ts";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 import { readShellSource } from "./helpers/shell-source.mjs";
@@ -86,6 +87,35 @@ describe("privacy and acknowledgement content", () => {
     assert.ok(urls.includes("https://www.ttc.ca/customer-service/contact-us"));
     assert.ok(urls.includes("https://www.priv.gc.ca/en/privacy-topics/privacy-laws-in-canada/the-personal-information-protection-and-electronic-documents-act-pipeda/p_principle/"));
     assert.ok(urls.includes("https://developers.cloudflare.com/web-analytics/data-metrics/data-origin-and-collection/"));
+  });
+});
+
+describe("public privacy policy and terms", () => {
+  it("discloses Google sign-in data use as Google's consent screen requires", () => {
+    const section = dataPracticeSections.find((entry) => entry.title === "Sign in with Google");
+    assert.ok(section, "Google sign-in has its own privacy section");
+    const copy = JSON.stringify(section);
+    // Must match the scopes GoogleOAuthService requests.
+    assert.match(copy, /openid, email, and profile/);
+    assert.match(copy, /Limited Use/);
+    assert.match(copy, /does not keep Google access or refresh tokens/);
+  });
+
+  it("tells riders how to delete their account and whom to contact", () => {
+    const copy = JSON.stringify(dataPracticeSections);
+    assert.match(copy, /delete your account/);
+    assert.match(copy, /feedback@linewatchto\.ca/);
+    assert.ok(termsSections.some((entry) => entry.title === "No Warranty"));
+  });
+
+  it("serves both notices as public pages linked from the guide footer", () => {
+    for (const route of ["privacy", "terms"]) {
+      const source = readFileSync(new URL(`../src/app/(transit-guides)/${route}/page.tsx`, import.meta.url), "utf8");
+      assert.match(source, new RegExp(`path: "/${route}"`));
+    }
+    const layout = readFileSync(new URL("../src/app/(transit-guides)/layout.tsx", import.meta.url), "utf8");
+    assert.match(layout, /href="\/privacy"/);
+    assert.match(layout, /href="\/terms"/);
   });
 });
 

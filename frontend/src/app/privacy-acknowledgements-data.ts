@@ -80,6 +80,15 @@ export const dataPracticeSections: NoticeSection[] = [
     body: "If you create an account, LineWatchTO uses your email address, display name, login method, and authentication state to sign you in and connect My Stations, My Commutes, and notification settings to your account.",
   },
   {
+    title: "Sign in with Google",
+    body: "If you choose Sign in with Google, LineWatchTO asks Google only for the basic sign-in scopes (openid, email, and profile). From Google it receives your Google account identifier, email address, whether Google has verified that address, and your name, and uses them only to create or sign in to your LineWatchTO account and show your display name.",
+    bullets: [
+      "LineWatchTO does not request access to your Gmail, contacts, calendar, Drive, or any other Google data, and does not keep Google access or refresh tokens after sign-in.",
+      "Google user data is not sold, shared with third parties, used for advertising, or used to train AI models.",
+      "LineWatchTO's use of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.",
+    ],
+  },
+  {
     title: "My Stations",
     body: "My Stations stores the stable station IDs you choose and the time each station was saved. Removing a station deletes that account preference. Station conditions shown beside it follow the same source and freshness limits as the station dashboard.",
   },
@@ -111,7 +120,66 @@ export const dataPracticeSections: NoticeSection[] = [
     title: "Public Transit Source Data",
     body: "TTC alerts, schedule-derived estimates, performance metrics, accessibility outages, and public notices are used as transit-information inputs subject to their distinct source terms. Alert text can be vague, source formats can change, and inferred map segments can be imperfect.",
   },
+  {
+    title: "Service Providers",
+    body: "LineWatchTO does not sell personal information or use it for advertising. It relies on a few providers to run the service:",
+    bullets: [
+      "Cloudflare delivers the site and its traffic, and provides the optional Web Analytics described above.",
+      "Resend sends account emails such as address verification and password resets.",
+      "Your browser's push service (for example Google, Mozilla, or Apple) delivers push notifications you turn on.",
+      "Google handles Sign in with Google when you choose it.",
+    ],
+  },
+  {
+    title: "Retention and Deletion",
+    body: "Account data, My Stations, My Commutes, and notification settings are kept while your account exists. You can remove saved stations, commutes, and push subscriptions in the app at any time. To delete your account and the data connected to it, including any Google sign-in link, email feedback@linewatchto.ca from the address on your account; the account is deleted within 30 days.",
+  },
+  {
+    title: "Contact",
+    body: "Questions or requests about this notice or your data can be sent to feedback@linewatchto.ca. LineWatchTO aims to handle personal information consistently with Canada's PIPEDA fair information principles.",
+  },
 ];
+
+export const termsSections: NoticeSection[] = [
+  {
+    title: "Unofficial Information Service",
+    body: "LineWatchTO is an independent, unofficial dashboard. It is not affiliated with, endorsed by, or operated by the TTC, the City of Toronto, or Metrolinx. Service information is provided for general reference and can be delayed, incomplete, estimated, or wrong.",
+    bullets: [
+      "Confirm time-sensitive travel information with official TTC and GO Transit channels.",
+      "Train markers and some map placements are schematic estimates, not vehicle tracking.",
+    ],
+  },
+  {
+    title: "No Warranty",
+    body: "LineWatchTO is provided free of charge, as is and as available, without warranties of any kind. Features, data sources, and availability can change or stop at any time.",
+  },
+  {
+    title: "Limitation of Liability",
+    body: "To the extent permitted by law, LineWatchTO and its developer are not liable for missed trips, delays, or any other loss arising from use of, or reliance on, the service or its notifications.",
+  },
+  {
+    title: "Accounts",
+    body: "You are responsible for keeping your sign-in details secure and for activity on your account. Accounts that abuse the service may be suspended or removed. You can ask for your account to be deleted at any time, as described in the Privacy Policy.",
+  },
+  {
+    title: "Acceptable Use",
+    body: "Do not attempt to disrupt the service, bypass its security or rate limits, access other people's accounts, or collect its data in ways that place an unreasonable load on it.",
+  },
+  {
+    title: "Third-Party Data and Marks",
+    body: "Transit data, station plans, map references, and the TTC, GO Transit, UP Express, and Metrolinx names and marks belong to their respective owners and keep their own terms. LineWatchTO's open-source license covers only its own code and original documentation.",
+  },
+  {
+    title: "Changes and Governing Law",
+    body: "These terms may be updated; the date at the top shows the latest version, and continued use means you accept it. These terms are governed by the laws of Ontario and the federal laws of Canada that apply there.",
+  },
+  {
+    title: "Contact",
+    body: "Questions about these terms can be sent to feedback@linewatchto.ca.",
+  },
+];
+
+export const legalNoticesUpdated = "November 16, 2026";
 
 export const privacyAcknowledgementLinks: NoticeLink[] = [
   {

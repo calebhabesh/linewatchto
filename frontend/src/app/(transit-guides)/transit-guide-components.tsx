@@ -22,7 +22,13 @@ import {
 import { JsonLd } from "../../components/JsonLd";
 import { TransitLineBadge } from "../../components/TransitLineBadge";
 import { getLineWatchSiteOrigin } from "../seo";
-import { lineWatchSourceRepositoryUrl } from "../privacy-acknowledgements-data";
+import {
+  dataPracticeSections,
+  legalNoticesUpdated,
+  lineWatchSourceRepositoryUrl,
+  termsSections,
+  type NoticeSection,
+} from "../privacy-acknowledgements-data";
 import {
   adjacentStationsForGuideStation,
   regionalGuideRoutes,
@@ -1033,6 +1039,67 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
             <p>A 100% affected-line observation means at least one counted alert existed somewhere on that line during all observed service minutes. It does not mean every station or segment was disrupted.</p>
           </section>
         </aside>
+      </div>
+    </main>
+  );
+}
+
+const legalNotices = {
+  privacy: {
+    path: "/privacy",
+    label: "Privacy Policy",
+    title: "LineWatchTO Privacy Policy",
+    sections: dataPracticeSections,
+    lede: "What LineWatchTO collects when you use the dashboard, sign in, or turn on notifications, and how it is used. The same notice is in the app under Privacy & Acknowledgements.",
+    other: { href: "/terms", label: "Terms of Use" },
+  },
+  terms: {
+    path: "/terms",
+    label: "Terms of Use",
+    title: "LineWatchTO Terms of Use",
+    sections: termsSections,
+    lede: "The terms for using LineWatchTO, an unofficial and independent Toronto transit dashboard.",
+    other: { href: "/privacy", label: "Privacy Policy" },
+  },
+} as const;
+
+function noticeSectionId(section: NoticeSection) {
+  return section.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+export function LegalNoticePage({ notice }: { notice: keyof typeof legalNotices }) {
+  const page = legalNotices[notice];
+  const breadcrumbs = [{ label: "Dashboard", href: "/" }, { label: page.label }];
+
+  return (
+    <main className={styles.main}>
+      <Breadcrumbs items={breadcrumbs} />
+      <BreadcrumbJsonLd items={breadcrumbs} />
+      <JsonLd data={{
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: page.title,
+        url: absoluteUrl(page.path),
+        dateModified: "2026-11-16",
+      }} />
+      <PageHero eyebrow={`Last updated ${legalNoticesUpdated}`} title={page.title}>
+        {page.lede}
+      </PageHero>
+      <div className={styles.legalContent}>
+        {page.sections.map((section) => (
+          <section key={section.title} className={styles.section} id={noticeSectionId(section)}>
+            <h2>{section.title}</h2>
+            <p>{section.body}</p>
+            {section.bullets?.length ? (
+              <ul className={styles.plainList}>
+                {section.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}
+              </ul>
+            ) : null}
+          </section>
+        ))}
+        <p className={styles.note}>
+          See also the <a className={styles.link} href={page.other.href}>{page.other.label}</a>.
+        </p>
       </div>
     </main>
   );

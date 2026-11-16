@@ -295,6 +295,8 @@ export function transitGuideSitemapPages() {
     { path: "/go-up", changeFrequency: "monthly" as const, priority: 0.9 },
     { path: "/ttc/reliability", changeFrequency: "monthly" as const, priority: 0.7 },
     { path: "/go-up/reliability", changeFrequency: "monthly" as const, priority: 0.7 },
+    { path: "/privacy", changeFrequency: "yearly" as const, priority: 0.3 },
+    { path: "/terms", changeFrequency: "yearly" as const, priority: 0.3 },
   ];
   const routePages = allTransitGuideRoutes.map((route) => ({
     path: routeGuidePath(route),

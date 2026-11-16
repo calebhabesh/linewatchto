@@ -41,7 +41,9 @@ export function GuideNav() {
       ? "ttc"
       : pathname.startsWith("/go-up")
         ? "go-up"
-        : "explore";
+        : pathname.startsWith("/explore")
+          ? "explore"
+          : null;
 
   function toggleTheme() {
     const currentTheme = readVisualPreferencesFromStorage(window.localStorage).theme ?? defaultVisualPreferences.theme;

@@ -92,6 +92,11 @@ export default function TransitGuideLayout({ children }: Readonly<{ children: Re
           <div className={styles.footerBottomInner}>
             <span>Times are shown in Toronto local time.</span>
             <span>Static guides do not guarantee current service.</span>
+            <span>
+              <a href="/privacy" className={styles.footerAgencyLink}>Privacy Policy</a>
+              {" · "}
+              <a href="/terms" className={styles.footerAgencyLink}>Terms of Use</a>
+            </span>
           </div>
         </div>
       </footer>
