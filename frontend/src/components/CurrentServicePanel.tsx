@@ -20,7 +20,7 @@ import {
 import { LineBadge } from "./ImpactCardFields";
 import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
-import { LineAdvisorySummary, LineServiceStatus } from "./LineServiceStatus";
+import { AdvisorySpine, LineAdvisorySummary, LineServiceStatus } from "./LineServiceStatus";
 import { UpcomingAdvisoryCards } from "./UpcomingAdvisoryCards";
 import { useAdvisoryTrunkEnds } from "../hooks/useAdvisoryTrunkEnds";
 import { CardDetailsCue } from "./CardDetailsCue";
@@ -294,7 +294,8 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
         <ServiceList rail>
           {affectedLines.map((item) => (
             <div className="current-service-line" data-has-advisories={item.upcoming.length > 0 || item.rszCount > 0} key={item.line.id}>
-              <div className="current-service-line-badge-wrap">
+              {(item.upcoming.length > 0 || item.rszCount > 0) && <AdvisorySpine />}
+              <div className="current-service-line-badge-wrap" data-spine-start="">
                 <LineBadge lineId={item.line.id} lineNumber={item.rows[0].lineNumber} size={28} />
               </div>
               <div className="current-service-line-copy">
@@ -341,7 +342,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                 />
                 {item.rszCount > 0 && (
                   <div className="current-service-sub-badges">
-                    <LineAdvisorySummary />
+                    <LineAdvisorySummary count={item.rszCount} />
                     {item.rszCount > 0 && (
                       <button
                         type="button"
@@ -365,8 +366,9 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
           ))}
 
           {remainingLines.map(({ line, presentation, upcoming }) => (
-            <div className={`current-service-line current-service-line--${presentation.state}`} key={line.id}>
-              <div className="current-service-line-badge-wrap">
+            <div className={`current-service-line current-service-line--${presentation.state}`} data-has-advisories={upcoming.length > 0 || presentation.hasRsz} key={line.id}>
+              {(upcoming.length > 0 || presentation.hasRsz) && <AdvisorySpine />}
+              <div className="current-service-line-badge-wrap" data-spine-start="">
                 <LineBadge lineId={line.id} lineNumber={line.number} size={28} />
               </div>
               <div className="current-service-line-copy">
@@ -410,6 +412,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                 )}
                 {presentation.hasRsz && (
                   <div className="current-service-sub-badges current-service-remaining-sub-badges">
+                    <LineAdvisorySummary count={presentation.rszCount ?? 0} />
                     {presentation.hasRsz && (
                       <button
                         type="button"

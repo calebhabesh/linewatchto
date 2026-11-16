@@ -1677,21 +1677,6 @@
   width: 100%;
 }
 
-/* Ends on the line's last advisory heading (useAdvisoryTrunkEnds sets --trunk-end);
-   the half pixel centres the 1px stroke on the heading. */
-.desktop-status-rail-line-group[data-has-advisories="true"]::before {
-  border-bottom: 1px solid var(--border-strong);
-  border-left: 1px solid var(--border-strong);
-  border-bottom-left-radius: 4px;
-  bottom: calc(var(--trunk-end, 12.5px) - 0.5px);
-  content: "";
-  left: 14px;
-  pointer-events: none;
-  position: absolute;
-  top: 35px;
-  width: 19px;
-}
-
 .desktop-status-line-badge-btn {
   align-items: center;
   background: transparent;
@@ -2136,32 +2121,6 @@
   width: calc(100% - 38px);
 }
 
-/* Ends on the middle of the Upcoming label (6.5px down: its top margin collapses
-   through this wrapper), like the advisory pills' connector. */
-.desktop-status-remaining-upcoming::before {
-  border-bottom: 1px solid var(--border-strong);
-  border-left: 1px solid var(--border-strong);
-  border-bottom-left-radius: 4px;
-  content: "";
-  height: 11px;
-  left: -24px;
-  pointer-events: none;
-  position: absolute;
-  top: -4px;
-  width: 19px;
-}
-
-/* Carries the connector on to Reduced Speed Zone pills below. */
-.desktop-status-remaining-upcoming:not(:last-child)::after {
-  border-left: 1px solid var(--border-strong);
-  bottom: 0;
-  content: "";
-  left: -24px;
-  pointer-events: none;
-  position: absolute;
-  top: 6px;
-}
-
 .desktop-status-remaining-list {
   display: flex;
   flex-direction: column;
@@ -2171,6 +2130,7 @@
 }
 
 .desktop-status-remaining-group {
+  position: relative;
   width: 100%;
 }
 
@@ -2193,19 +2153,6 @@
   margin-left: 38px;
   position: relative;
   width: calc(100% - 38px);
-}
-
-.desktop-status-remaining-sub-badges::before {
-  border-bottom: 1px solid var(--border-strong);
-  border-left: 1px solid var(--border-strong);
-  border-bottom-left-radius: 4px;
-  content: "";
-  height: calc(50% + 4px);
-  left: -24px;
-  pointer-events: none;
-  position: absolute;
-  top: -4px;
-  width: 19px;
 }
 
 .desktop-status-remaining-row:hover {

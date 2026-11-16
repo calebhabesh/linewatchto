@@ -25,7 +25,7 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { GoodServiceCheckIcon } from "./CurrentServicePanel";
-import { LineAdvisorySummary, LineServiceStatus } from "./LineServiceStatus";
+import { AdvisorySpine, LineAdvisorySummary, LineServiceStatus } from "./LineServiceStatus";
 import { UpcomingAdvisoryCards } from "./UpcomingAdvisoryCards";
 import { CardDetailsCue } from "./CardDetailsCue";
 import type { ImpactCommute } from "../app/commute-data";
@@ -128,7 +128,7 @@ export function DesktopStatusOverview({
   // Each incident line's elbow ends on its last advisory heading. The section is
   // always rendered; the incident list inside it mounts once data arrives.
   const railSectionRef = useRef<HTMLElement>(null);
-  useAdvisoryTrunkEnds(railSectionRef, '.desktop-status-rail-line-group[data-has-advisories="true"]');
+  useAdvisoryTrunkEnds(railSectionRef, '.desktop-status-rail-line-group[data-has-advisories="true"], .desktop-status-remaining-group[data-has-advisories="true"]');
   useEffect(() => {
     const update = () => setNow(Date.now());
     update();
@@ -240,9 +240,11 @@ export function DesktopStatusOverview({
           <div className="desktop-status-rail-incident-list">
             {qualifyingLines.map((item) => (
               <div className="desktop-status-rail-line-group" data-has-advisories={item.upcoming.length > 0 || item.rszCount > 0} key={item.line.id}>
+                {(item.upcoming.length > 0 || item.rszCount > 0) && <AdvisorySpine />}
                 <button
                   type="button"
                   className="desktop-status-line-badge-btn"
+                  data-spine-start=""
                   onClick={() => onOpenCategory("line-impacts", item.line.id)}
                   aria-label={`View ${item.line.name} line impacts`}
                   title={`View ${item.line.name} line impacts`}
@@ -312,7 +314,7 @@ export function DesktopStatusOverview({
                   />
                   {item.rszCount > 0 && (
                     <div className="desktop-status-sub-badges">
-                      <LineAdvisorySummary />
+                      <LineAdvisorySummary count={item.rszCount} />
                       {item.rszCount > 0 && (
                         <button
                           type="button"
@@ -341,7 +343,8 @@ export function DesktopStatusOverview({
         {remainingLines.length > 0 && (
           <div className="desktop-status-remaining-list">
             {remainingLines.map(({ line, presentation, upcoming }) => (
-              <div className="desktop-status-remaining-group" key={line.id}>
+              <div className="desktop-status-remaining-group" data-has-advisories={upcoming.length > 0 || presentation.hasRsz} key={line.id}>
+                {(upcoming.length > 0 || presentation.hasRsz) && <AdvisorySpine />}
                 <button
                   type="button"
                   className="desktop-status-remaining-row"
@@ -349,7 +352,7 @@ export function DesktopStatusOverview({
                   aria-label={`View ${line.name} line impacts: ${lineStatusDescription(presentation)}`}
                   title={`View ${line.name} menu: ${lineStatusDescription(presentation)}`}
                 >
-                  <div className="desktop-status-line-badge-btn" aria-hidden="true">
+                  <div className="desktop-status-line-badge-btn" aria-hidden="true" data-spine-start="">
                     <TransitLineBadge
                       lineId={line.id}
                       lineNumber={line.number}
@@ -393,6 +396,7 @@ export function DesktopStatusOverview({
                 )}
                 {presentation.hasRsz && (
                   <div className="desktop-status-sub-badges desktop-status-remaining-sub-badges">
+                    <LineAdvisorySummary count={presentation.rszCount ?? 0} />
                     {presentation.hasRsz && (
                       <button
                         type="button"

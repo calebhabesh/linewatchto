@@ -735,62 +735,25 @@
   position: relative;
 }
 
-.current-service-remaining-sub-badges::before {
-  border-bottom: 1px solid var(--border-strong);
-  border-left: 1px solid var(--border-strong);
-  border-bottom-left-radius: 4px;
-  content: "";
-  height: calc(50% + 3px);
-  left: calc(-1 * (var(--service-line-gap) + var(--service-line-badge-width) / 2));
-  pointer-events: none;
-  position: absolute;
-  top: -3px;
-  width: calc(var(--service-line-gap) + var(--service-line-badge-width) / 2 - 5px);
-}
-
 .current-service-remaining-upcoming {
   position: relative;
 }
 
-/* Ends on the middle of the Upcoming label (8.5px down: its 2px top margin stays
-   inside this wrapper here), like the advisory pills' connector. */
-.current-service-remaining-upcoming::before {
-  border-bottom: 1px solid var(--border-strong);
-  border-left: 1px solid var(--border-strong);
-  border-bottom-left-radius: 4px;
-  content: "";
-  height: 12px;
-  left: calc(-1 * (var(--service-line-gap) + var(--service-line-badge-width) / 2));
+/* A line's spine to its advisory headings: one measured path (useAdvisoryTrunkEnds),
+   so branches curve smoothly and the translucent stroke never double-paints. */
+.advisory-spine {
+  height: 100%;
+  inset: 0;
+  overflow: visible;
   pointer-events: none;
   position: absolute;
-  top: -3px;
-  width: calc(var(--service-line-gap) + var(--service-line-badge-width) / 2 - 5px);
+  width: 100%;
 }
 
-/* Carries the connector on to Reduced Speed Zone pills below. */
-.current-service-remaining-upcoming:not(:last-child)::after {
-  border-left: 1px solid var(--border-strong);
-  bottom: -3px;
-  content: "";
-  left: calc(-1 * (var(--service-line-gap) + var(--service-line-badge-width) / 2));
-  pointer-events: none;
-  position: absolute;
-  top: 8px;
-}
-
-/* Ends on the line's last advisory heading (useAdvisoryTrunkEnds sets --trunk-end);
-   the half pixel centres the 1px stroke on the heading. */
-.current-service-line[data-has-advisories="true"]::before {
-  border-bottom: 1px solid var(--border-strong);
-  border-left: 1px solid var(--border-strong);
-  border-bottom-left-radius: 4px;
-  bottom: calc(var(--trunk-end, calc(var(--service-line-padding) + 10.5px)) - 0.5px);
-  content: "";
-  left: calc(var(--service-line-badge-width) / 2);
-  pointer-events: none;
-  position: absolute;
-  top: calc(var(--service-line-padding) + 33px);
-  width: calc(var(--service-line-gap) + var(--service-line-badge-width) / 2 - 5px);
+.advisory-spine path {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1.5px;
 }
 
 .current-service-badge-incident-button {
