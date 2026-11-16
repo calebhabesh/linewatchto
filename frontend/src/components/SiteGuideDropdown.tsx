@@ -190,6 +190,24 @@ function OverlayAssetPreview({
   );
 }
 
+/** A Current Service card's commute icon (CommuteImpactTag), drawn with its own styles. */
+function CommuteBadgePreview({ outsideTripTimes, label }: { outsideTripTimes: boolean; label: string }) {
+  return (
+    <div className="flex flex-col items-center">
+      <span
+        className="commute-impact-hint"
+        data-outside-trip-times={outsideTripTimes ? "true" : undefined}
+        aria-hidden="true"
+      >
+        <Navigation size={12} strokeWidth={2.5} />
+      </span>
+      <span className="block w-full text-center text-[9px] leading-tight text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-1">
+        {label}
+      </span>
+    </div>
+  );
+}
+
 const SITE_GUIDE_SEEN_STORAGE_KEY = "linewatch-site-guide-seen-v1";
 
 export interface SiteGuideDropdownProps {
@@ -558,6 +576,28 @@ export function SiteGuideDropdown({
                   }
                 />
               </ul>
+            </GuideSection>
+
+            <hr className="site-guide-divider" />
+
+            <GuideSection icon={<Navigation size={15} />} title="Commute Badges">
+              <ul className="site-guide-overlay-list">
+                <OverlayGuideRow
+                  icon={<Navigation size={14} className="text-emerald-500" />}
+                  title="Affects Your Commute"
+                  text="On a saved commute's route and in effect now, or upcoming during your trip times."
+                  previews={<CommuteBadgePreview outsideTripTimes={false} label="Affects" />}
+                />
+                <OverlayGuideRow
+                  icon={<Navigation size={14} className="text-slate-500 dark:text-slate-400" />}
+                  title="Outside Your Trip Times"
+                  text="Upcoming work on your route that misses every trip time you set. Not pushed."
+                  previews={<CommuteBadgePreview outsideTripTimes label="Outside" />}
+                />
+              </ul>
+              <p>
+                Set each leg&apos;s trip times under Edit Alerts in My Commutes.
+              </p>
             </GuideSection>
 
             <hr className="site-guide-divider" />

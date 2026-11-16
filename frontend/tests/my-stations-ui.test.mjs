@@ -171,7 +171,9 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.saved-station-rich-heading \.my-stations-line-badges\s*\{[^}]*align-items:\s*center;[^}]*flex:\s*0 1 auto;/s);
     assert.doesNotMatch(styles, /\.saved-station-rich-heading \.my-stations-row-heading\s*\{[^}]*grid-template-columns:/s);
     assert.match(transitLineBadge, /\/assets\/linewatch\/\$\{assetId\}-legend\.svg\?v=3/);
-    assert.match(styles, /\.saved-station-disruption-total\s*\{[^}]*height:\s*24px;[^}]*min-width:\s*24px;/s);
+    // Active Disruptions shares My Commutes' heading, count and List View sizing.
+    assert.doesNotMatch(styles, /\.saved-station-disruption-(total|action)\b/);
+    assert.match(panel, /<strong>\{disruptionCount > 0 \? "Active Disruptions"[\s\S]*?className="saved-commute-impact-summary-action">/);
     assert.match(panel, /saved-station-arrival-line-header/);
     assert.match(panel, /formatArrivalLineHeaderLabel/);
     assert.match(styles, /\.saved-station-arrival-line-header\s*\{[^}]*justify-content:\s*space-between;/s);
@@ -192,7 +194,9 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.saved-station-rich-content\s*\{[^}]*padding:\s*var\(--saved-station-section-space\) 12px;/s);
     assert.match(panel, /<div className="station-arrival-line-divider saved-station-section-divider saved-station-surface-divider" aria-hidden="true" \/>\s*<SurfaceConnectionsSection variant="saved-station" networkId="regional"/);
     assert.match(panel, /<div className="station-arrival-line-divider saved-station-section-divider saved-station-surface-divider" aria-hidden="true" \/>\s*<SurfaceConnectionsSection variant="saved-station" networkId="ttc"/);
-    assert.match(styles, /\.saved-station-disruption-list\s*\{[^}]*margin-top:\s*0;\s*padding:\s*var\(--saved-station-content-gap\) 0 0;/s);
+    assert.match(styles, /\.saved-station-disruption-list\s*\{[^}]*margin-top:\s*0;\s*padding:\s*calc\(var\(--saved-station-content-gap\) \* 2\) 0 var\(--saved-station-content-gap\);/s);
+    // The animated wrapper leaves room for icon count badges.
+    assert.match(styles, /\.saved-station-disruption-disclosure \.saved-commute-impact-content-wrapper\s*\{[^}]*margin-inline:\s*-6px;[^}]*padding-inline:\s*6px;/s);
     assert.doesNotMatch(styles, /\.saved-station-disruption-list\s*\{[^}]*border-top:/s);
   });
 
@@ -200,8 +204,10 @@ describe("My Stations UI", () => {
     assert.match(panel, />Open Station</);
     assert.match(panel, /saved-station-open-action/);
     assert.doesNotMatch(panel, /> View on Map/);
-    assert.match(panel, /> View Details/);
-    assert.match(panel, /<FileText size=\{12\} aria-hidden="true" \/>/);
+    // My Commutes' wording: "View Alert" for alerts, "View Outage" for elevator and escalator outages.
+    assert.match(panel, /<MapPinned size=\{12\} aria-hidden="true" \/> View Alert/);
+    assert.match(panel, /<MapPinned size=\{12\} aria-hidden="true" \/> View Outage/);
+    assert.match(panel, /onClick=\{handleAnimatedDisclosureClick\}/);
     assert.match(panel, /stationImpactSelection/);
     assert.match(panel, /if \(selection\) onSelectImpactDetails\(selection\)/);
     assert.match(panel, /aria-label=\{`View \$\{saved\.station\.name\} alert details`\}/);

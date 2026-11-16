@@ -6,9 +6,8 @@ import { DirectionalZoneCount } from "./DirectionalZoneCount";
 import { Construction } from "lucide-react";
 import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
-import type { AccountCommutePathPreview } from "../app/commute-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { MetadataGrid, CardSource, CommutePathPreviewCardBanner, ImpactCardShell } from "./ImpactCardFields";
+import { MetadataGrid, CardSource, ImpactCardShell } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -44,8 +43,6 @@ interface Props {
   externalQuery?: string;
   externalSort?: ImpactListSort;
   showImpactTypeIndicator?: boolean;
-  commutePathPreview?: AccountCommutePathPreview | null;
-  onClearCommutePathPreview?: () => void;
   mapActionVariant?: "icon-only" | "labeled";
 }
 
@@ -63,8 +60,6 @@ export function ReducedSpeedZonesPanel({
   externalQuery,
   externalSort,
   showImpactTypeIndicator = false,
-  commutePathPreview,
-  onClearCommutePathPreview,
   mapActionVariant,
 }: Props) {
   const dashboard = useDashboardData();
@@ -191,6 +186,7 @@ export function ReducedSpeedZonesPanel({
                 }`}
               >
                 <ImpactCardShell
+                  impactId={zone.id}
                   lineId={zone.lineId}
                   lineNumber={zone.lineNumber}
                   lineBadgeSize={34}
@@ -260,12 +256,6 @@ export function ReducedSpeedZonesPanel({
                   />
                 </div>
 
-                {isActive && commutePathPreview ? (
-                  <CommutePathPreviewCardBanner
-                    commutePathPreview={commutePathPreview}
-                    onClearCommutePathPreview={onClearCommutePathPreview}
-                  />
-                ) : null}
               </div>
             );
           })

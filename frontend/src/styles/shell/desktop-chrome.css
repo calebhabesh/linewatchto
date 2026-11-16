@@ -1402,6 +1402,22 @@
   color: #f8fafc;
 }
 
+.desktop-status-subtitle {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  margin: -4px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.dark .desktop-status-subtitle {
+  color: #94a3b8;
+}
+
 .desktop-status-categories-section {
   display: flex;
   flex-direction: column;
@@ -1643,23 +1659,6 @@
   width: 100%;
 }
 
-.desktop-status-kicker-header {
-  align-items: center;
-  display: flex;
-  margin-top: -6px;
-  margin-bottom: -2px;
-  width: 100%;
-}
-
-.desktop-status-rail-kicker {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  line-height: 1.2;
-  opacity: 0.75;
-}
-
 .desktop-status-rail-incident-list {
   display: flex;
   flex-direction: column;
@@ -1678,11 +1677,13 @@
   width: 100%;
 }
 
+/* Ends on the line's last advisory heading (useAdvisoryTrunkEnds sets --trunk-end);
+   the half pixel centres the 1px stroke on the heading. */
 .desktop-status-rail-line-group[data-has-advisories="true"]::before {
   border-bottom: 1px solid var(--border-strong);
   border-left: 1px solid var(--border-strong);
   border-bottom-left-radius: 4px;
-  bottom: 12px;
+  bottom: calc(var(--trunk-end, 12.5px) - 0.5px);
   content: "";
   left: 14px;
   pointer-events: none;
@@ -1833,12 +1834,14 @@
   filter: blur(4px);
 }
 
+/* One even colour: a corner-to-corner gradient left the card's middle clear
+   and its corners tinted, which hover's stronger glow turned into blotches. */
 .eb-background-glow {
   z-index: -1;
   transform: scale(1.05);
   filter: blur(20px);
   opacity: 0.1;
-  background: linear-gradient(-30deg, var(--electric-border-color, #3b82f6), transparent, var(--electric-border-color, #3b82f6));
+  background: var(--electric-border-color, #3b82f6);
 }
 
 .electric-border:hover .eb-glow-1,
@@ -1847,17 +1850,7 @@
   filter: blur(0.5px);
 }
 
-.electric-border:hover .eb-glow-2,
-.electric-border:focus-within .eb-glow-2 {
-  opacity: 0.45;
-  filter: blur(6px);
-}
-
-.electric-border:hover .eb-background-glow,
-.electric-border:focus-within .eb-background-glow {
-  opacity: 0.25;
-  transform: scale(1.07);
-}
+/* Hover only tints the card itself (its own background); the glow stays as at rest. */
 
 @media (prefers-reduced-motion: reduce) {
   .eb-canvas-container {
@@ -2092,52 +2085,9 @@
   border-color: rgba(245, 158, 11, 0.50);
 }
 
-.desktop-status-badge-incident-button:hover .desktop-status-planned-pill {
-  background: rgba(37, 99, 235, 0.18);
-  border-color: rgba(37, 99, 235, 0.45);
-}
-
-.dark .desktop-status-badge-incident-button:hover .desktop-status-planned-pill {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: rgba(59, 130, 246, 0.50);
-}
-
 .desktop-status-badge-incident-button:focus-visible {
   outline: 2px solid var(--logo-blue, #2563eb);
   outline-offset: 1px;
-}
-
-.desktop-status-planned-pill {
-  align-items: center;
-  background: rgba(37, 99, 235, 0.10);
-  border: 1px solid rgba(37, 99, 235, 0.28);
-  border-radius: 9999px;
-  box-sizing: border-box;
-  color: #1d4ed8;
-  display: inline-flex;
-  flex-shrink: 0;
-  font-size: clamp(11.5px, 3.8cqi, 12px);
-  font-weight: 600;
-  gap: 3.5px;
-  letter-spacing: -0.015em;
-  line-height: 1.2;
-  margin-left: 0;
-  min-height: 24px;
-  padding: 3px 5px;
-  white-space: nowrap;
-}
-
-.dark .desktop-status-planned-pill {
-  background: rgba(59, 130, 246, 0.16);
-  border-color: rgba(59, 130, 246, 0.32);
-  color: #93c5fd;
-}
-
-.desktop-status-planned-pill svg {
-  flex-shrink: 0;
-  height: 12px;
-  opacity: 0.9;
-  width: 12px;
 }
 
 .desktop-status-rsz-pill {
@@ -2174,11 +2124,42 @@
 }
 
 @container (max-width: 320px) {
-  .desktop-status-planned-pill,
   .desktop-status-rsz-pill {
     gap: 2px;
     padding-inline: 3px;
   }
+}
+
+.desktop-status-remaining-upcoming {
+  margin-left: 38px;
+  position: relative;
+  width: calc(100% - 38px);
+}
+
+/* Ends on the middle of the Upcoming label (6.5px down: its top margin collapses
+   through this wrapper), like the advisory pills' connector. */
+.desktop-status-remaining-upcoming::before {
+  border-bottom: 1px solid var(--border-strong);
+  border-left: 1px solid var(--border-strong);
+  border-bottom-left-radius: 4px;
+  content: "";
+  height: 11px;
+  left: -24px;
+  pointer-events: none;
+  position: absolute;
+  top: -4px;
+  width: 19px;
+}
+
+/* Carries the connector on to Reduced Speed Zone pills below. */
+.desktop-status-remaining-upcoming:not(:last-child)::after {
+  border-left: 1px solid var(--border-strong);
+  bottom: 0;
+  content: "";
+  left: -24px;
+  pointer-events: none;
+  position: absolute;
+  top: 6px;
 }
 
 .desktop-status-remaining-list {

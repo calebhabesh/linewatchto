@@ -7,7 +7,7 @@ test("mobile Current Service badges open their matching impact panels", async ({
   await installDismissedTransientUi(page);
 
   // The seeded closure is active/past its next-window label. Give this test a
-  // future window so the same line renders the planned-closure sub-badge.
+  // future window so the same line renders its Upcoming card.
   await page.route("**/api/dashboard?network=ttc", async (route) => {
     const response = await route.fetch();
     const payload = await response.json();
@@ -27,12 +27,13 @@ test("mobile Current Service badges open their matching impact panels", async ({
   await page.getByRole("button", { name: "Expand service sheet" }).click();
   const service = page.getByRole("region", { name: "Current Service", exact: true });
 
-  const plannedClosureBadge = service.locator(".current-service-badge-incident-button").filter({ hasText: "Planned Advisory" });
+  const plannedClosureBadge = service.locator(".upcoming-advisory");
   await expect(plannedClosureBadge).toBeVisible();
   await plannedClosureBadge.click();
-  await expect(page.getByRole("heading", { name: "Planned Advisories", exact: true })).toBeVisible();
+  // An Upcoming card opens its advisory's inspector over the map, as current alert cards do.
+  await expect(page.getByRole("button", { name: "View in List" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await page.getByRole("button", { name: "Close Details", exact: true }).click();
   await page.getByRole("button", { name: "Expand service sheet" }).click();
   const reducedSpeedZoneBadge = page.locator(".current-service-badge-incident-button").filter({ hasText: "Reduced Speed Zone" });
   await expect(reducedSpeedZoneBadge).toBeVisible();

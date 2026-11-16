@@ -705,26 +705,26 @@ export function useNavigationTransitions(options: UseNavigationTransitionsOption
     }
     if (returnCommuteId) setCommutesFocusedCommuteId(returnCommuteId);
     consumeBrowserNavigationEntries();
+    // As submenuBack: switch views now and let the returning panel's own
+    // "back" entrance be the only slide. Holding the old view behind
+    // isGoingBack first played an exit slide, then that entrance (two slides).
     setNavDirection("back");
-    setIsGoingBack(true);
     if (backTimeoutRef.current) {
       window.clearTimeout(backTimeoutRef.current);
+      backTimeoutRef.current = null;
     }
-    backTimeoutRef.current = window.setTimeout(() => {
-      if (returnCommuteId) setCommutesFocusedCommuteId(returnCommuteId);
-      commutePathPreviewRef.current = null;
-      setCommutePathPreview(null);
-      selectionRef.current = null;
-      setSelection(null);
-      selectedStationIdRef.current = null;
-      setSelectedStationId(null);
-      setAccessibilityOutageTarget(null);
-      viewHistoryRef.current = isMobile ? ["more"] : ["status"];
-      activeViewRef.current = returnView;
-      setActiveView(returnView);
-      setIsGoingBack(false);
-    }, reducedMotion ? 0 : 380);
-  }, [consumeBrowserNavigationEntries, isMobile, reducedMotion]);
+    setIsGoingBack(false);
+    commutePathPreviewRef.current = null;
+    setCommutePathPreview(null);
+    selectionRef.current = null;
+    setSelection(null);
+    selectedStationIdRef.current = null;
+    setSelectedStationId(null);
+    setAccessibilityOutageTarget(null);
+    viewHistoryRef.current = isMobile ? ["more"] : ["status"];
+    activeViewRef.current = returnView;
+    setActiveView(returnView);
+  }, [consumeBrowserNavigationEntries, isMobile]);
 
   // Open Impact Category
   const openImpactCategory = useCallback((view: ImpactCategoryView, lineId?: string) => {

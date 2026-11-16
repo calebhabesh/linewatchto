@@ -13,8 +13,6 @@
   --map-pulse-offset: 0ms;
   --map-overlay-pulse-half-cycle: 1.2s;
   --map-overlay-pulse-easing: cubic-bezier(0.37, 0, 0.63, 1);
-  --map-overlay-rail-width: 102px;
-  --map-overlay-rail-pulse-width: 114px;
   /* TTC alert rails are a tube 8 units past each edge of the authored 80-unit
      line, so an alert reads apart from a line of a similar colour (GO/UP's
      196-unit rails do the same on its 175-unit corridors). */

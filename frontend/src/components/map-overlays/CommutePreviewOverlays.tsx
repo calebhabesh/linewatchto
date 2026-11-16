@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import type { MapCommuteEndpoint, MapCommutePreview } from "./commute-preview-model";
 import type { MapOverlayPlane } from "./overlay-plane";
 import { outsetStationPill } from "./station-alert-model";
@@ -44,12 +43,11 @@ export function MapCommutePreviewRoute({ preview }: { preview: MapCommutePreview
 }
 
 /**
- * A green flash over each end's station, above station artwork; a past
- * alert's span marks its ends with a still green blip instead. A pill
- * (Union) swells its own outline by a fixed distance instead of scaling,
- * which would stretch a long pill far past the station.
+ * A still green blip over each end's station, above station artwork. A pill
+ * (Union) is outlined at a fixed distance instead of scaled, which would
+ * stretch a long pill far past the station.
  */
-export function MapCommuteEndpointFlashes({
+export function MapCommuteEndpointBlips({
   preview,
   plane,
 }: {
@@ -60,29 +58,23 @@ export function MapCommuteEndpointFlashes({
   return (
     <g aria-hidden="true" pointerEvents="none">
       {preview.endpoints.map((endpoint) => (
-        <CommuteEndpointFlash key={endpoint.key} endpoint={endpoint} unit={plane.unit} still={preview.endpointStyle === "static"} previewId={preview.id} />
+        <CommuteEndpointBlip key={endpoint.key} endpoint={endpoint} unit={plane.unit} previewId={preview.id} />
       ))}
     </g>
   );
 }
 
-/** How far a pill's flash starts inside and swells past its outline, in overlay units. */
-const PILL_FLASH_FROM = -25;
-const PILL_FLASH_TO = 15;
-
-/** A still blip's reach past its station's dot, as a share of the beacon's radius, and a pill's, in overlay units. */
+/** A blip's reach past its station's dot, as a share of the endpoint's flash radius, and a pill's, in overlay units. */
 const BLIP_RADIUS_SCALE = 1.3;
 const PILL_BLIP_OUTSET = 15;
 
-function CommuteEndpointFlash({
+function CommuteEndpointBlip({
   endpoint,
   unit,
-  still = false,
   previewId,
 }: {
   endpoint: MapCommuteEndpoint;
   unit: number;
-  still?: boolean;
   previewId: string;
 }) {
   const shared = {
@@ -91,67 +83,29 @@ function CommuteEndpointFlash({
     // The camera frames the ends with the route: a one-station preview has no route.
     "data-commute-path-preview-endpoint": previewId,
   };
-  if (still) {
-    if (!endpoint.pill) {
-      return (
-        <circle
-          {...shared}
-          className="station-endpoint-blip"
-          cx={endpoint.center.x}
-          cy={endpoint.center.y}
-          r={endpoint.flashRadius * BLIP_RADIUS_SCALE}
-        />
-      );
-    }
-    const box = outsetStationPill(endpoint.pill, PILL_BLIP_OUTSET * unit);
-    return (
-      <rect
-        {...shared}
-        className="station-endpoint-blip"
-        x={box.x}
-        y={box.y}
-        width={box.width}
-        height={box.height}
-        rx={box.rx}
-        ry={box.ry}
-        transform={endpoint.pill.transform}
-      />
-    );
-  }
   if (!endpoint.pill) {
     return (
       <circle
         {...shared}
-        className="station-commute-green-flash"
+        className="station-endpoint-blip"
         cx={endpoint.center.x}
         cy={endpoint.center.y}
-        r={endpoint.flashRadius}
+        r={endpoint.flashRadius * BLIP_RADIUS_SCALE}
       />
     );
   }
-  const frame = (distance: number) => outsetStationPill(endpoint.pill!, distance * unit);
-  const from = frame(PILL_FLASH_FROM);
-  const to = frame(PILL_FLASH_TO);
-  const style: Record<string, string> = {};
-  for (const [name, box] of [["from", from], ["to", to]] as const) {
-    style[`--flash-${name}-x`] = `${box.x}px`;
-    style[`--flash-${name}-y`] = `${box.y}px`;
-    style[`--flash-${name}-width`] = `${box.width}px`;
-    style[`--flash-${name}-height`] = `${box.height}px`;
-    style[`--flash-${name}-r`] = `${Math.min(box.rx, box.width / 2, box.height / 2)}px`;
-  }
+  const box = outsetStationPill(endpoint.pill, PILL_BLIP_OUTSET * unit);
   return (
     <rect
       {...shared}
-      className="station-commute-green-flash station-commute-green-flash--pill"
-      x={to.x}
-      y={to.y}
-      width={to.width}
-      height={to.height}
-      rx={to.rx}
-      ry={to.ry}
+      className="station-endpoint-blip"
+      x={box.x}
+      y={box.y}
+      width={box.width}
+      height={box.height}
+      rx={box.rx}
+      ry={box.ry}
       transform={endpoint.pill.transform}
-      style={style as CSSProperties}
     />
   );
 }

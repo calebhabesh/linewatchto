@@ -4,7 +4,9 @@ import { regionalLineLabel } from "../app/regional-data";
 
 import type { CSSProperties, ReactNode } from "react";
 import {
+  AlertCircle,
   AlertTriangle,
+  ArrowLeft,
   Check,
   ChevronDown,
   Clock,
@@ -17,7 +19,12 @@ import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { SavedCommuteNotificationRuleEditor } from "./SavedCommuteNotificationRuleEditor";
 import { transitLineBadgeColors, transitLineName } from "./TransitLineBadge";
+import { PLANNED_CLOSURE_IN_EFFECT, plannedClosuresInEffectCountLabel } from "../app/alert-categories";
 import { commuteStopSpine } from "../app/commute-stop-spine.ts";
+import { handleAnimatedDisclosureClick } from "./disclosure-motion";
+import { DisruptionRowFacts } from "./DisruptionRowFacts";
+import { dashboardDisruptionFacts, matchedImpactFacts } from "../app/disruption-row-facts";
+import { useOptionalDashboardData } from "../app/DataContext";
 import {
   commuteLegsForCommute,
   commutePathPreviewFromCommute,
@@ -35,6 +42,8 @@ import {
   formatEstimateRange,
   formatExtraTimeRange,
   formatTravelTimeHeadline,
+  reportedRouteCondition,
+  routeConditionVerdict,
 } from "../app/commute-duration.ts";
 import {
   formatEventTypes,
@@ -257,13 +266,19 @@ export function impactKindLabel(kind: AccountMatchedImpact["kind"], activeClosur
     case "reduced-speed-zone":
       return "Reduced Speed Zone";
     case "planned-closure":
-      return activeClosure ? "Active Closure" : "Planned Advisory";
+      return activeClosure ? PLANNED_CLOSURE_IN_EFFECT : "Planned Advisory";
     case "suspension":
       return "Suspension";
     case "delay":
     default:
       return "Delay";
   }
+}
+
+/** A disruption row's title, as Current Service names it ("Limited Service" for a delay that limits service). */
+export function matchedImpactTitle(impact: AccountMatchedImpact) {
+  if (impact.serviceEffect === "limited-service") return impact.status === "planned" ? "Planned Limited Service" : "Limited Service";
+  return impactKindLabel(impact.kind, impact.kind === "planned-closure" && impact.status === "current");
 }
 
 export const IMPACT_KIND_ORDER: AccountMatchedImpact["kind"][] = [
@@ -400,6 +415,10 @@ export function TravelTimeEstimateBlock({ leg }: { leg: AccountCommuteLeg }) {
     return null;
   }
 
+  const verdict = estimate.status === "unreliable"
+    ? routeConditionVerdict(reportedRouteCondition(leg.impact.matchedImpacts))
+    : "Unavailable";
+
   return (
     <div
       className={`saved-commute-time-estimate ${estimate.status} severity-${severity}`}
@@ -410,19 +429,19 @@ export function TravelTimeEstimateBlock({ leg }: { leg: AccountCommuteLeg }) {
         <Clock size={13} aria-hidden="true" />
         <strong>Travel Time</strong>
       </div>
-      <p>
-        <strong>
-          Typical <b className="saved-commute-time-status-value">{formatEstimateDuration(estimate.baselineSeconds)}</b>
-        </strong>
-        <em className="saved-commute-time-verdict">
-          {estimate.status === "unreliable"
-            ? "Major Disruption on Route — Travel Time Not Reliable"
-            : "Travel Time Estimate Unavailable"}
-        </em>
+      {/* No estimate to give: the estimate box's own layout, with the usual
+          time beside what the impacts do to it ("Route Blocked"). The line
+          under the headline says what is reported, and where. */}
+      <div className="saved-commute-time-estimate-grid">
         <span>
-          Confidence: <b className="saved-commute-time-status-value">{formatConfidenceLabel(estimate.confidence)}</b>
+          <strong>Typical</strong>
+          <em>{formatEstimateDuration(estimate.baselineSeconds)}</em>
         </span>
-      </p>
+        <span>
+          <strong>With Impacts</strong>
+          <em className="saved-commute-time-verdict">{verdict}</em>
+        </span>
+      </div>
     </div>
   );
 }
@@ -435,8 +454,11 @@ export interface SavedCommuteCardProps {
   toggleCount: number;
   onClearSwapAnimation: (commuteId: string) => void;
   stationNameFor: (stationId: string, commuteNetworkId: NetworkId) => string;
-  viewedCommuteId?: string | null;
+  /** The route preview on the map now (`${commuteId}-${legId}`); its leg's View on Map turns to Back. */
+  viewedPathPreviewId?: string | null;
   onViewPath: (commute: AccountSavedCommute, legId?: AccountCommuteLegId) => void;
+  /** Takes this commute's route off the map, as the map chip's Back does. */
+  onClearPath: (commuteId: string) => void;
   onViewImpactOnPath: (commute: AccountSavedCommute, legId: AccountCommuteLegId, impact: AccountMatchedImpact) => void;
   stopsExpanded: boolean;
   onToggleStops: (commuteId: string) => void;
@@ -461,8 +483,9 @@ export function SavedCommuteCard({
   toggleCount,
   onClearSwapAnimation,
   stationNameFor,
-  viewedCommuteId,
+  viewedPathPreviewId,
   onViewPath,
+  onClearPath,
   onViewImpactOnPath,
   stopsExpanded,
   onToggleStops,
@@ -480,16 +503,23 @@ export function SavedCommuteCard({
 }: SavedCommuteCardProps) {
   const legs = commuteLegs(commute);
   const selectedLeg = legs.find((leg) => leg.id === selectedLegId) ?? legs[0];
+  // Rows take the full alert record when the dashboard on screen is this
+  // commute's network; otherwise what the commute API sends.
+  const dashboard = useOptionalDashboardData();
+  const commuteDashboard = dashboard && dashboard.networkId === (commute.networkId ?? "ttc") ? dashboard : null;
   const routeStops = selectedLeg.path.stationIds;
   const canViewPath = selectedLeg.path.status === "available" && selectedLeg.path.segmentIds.length > 0;
   const selectedPreview = commutePathPreviewFromCommute(commute, selectedLeg.id);
-  const viewingPath = Boolean(selectedPreview && viewedCommuteId === selectedPreview.id);
+  const viewingPath = Boolean(selectedPreview && viewedPathPreviewId === selectedPreview.id);
   const notificationRule = ruleForCommute(commute);
   const activeNotificationDraft = notificationDraft ?? notificationRule;
   const notificationRuleStatus = notificationRule.enabled ? "On" : "Off";
   const selectedTravelTimeEstimate = selectedLeg.impact.travelTimeEstimate ?? fallbackTravelTimeEstimate(selectedLeg);
   const selectedTravelTimeSeverity = travelTimeSeverity(selectedTravelTimeEstimate);
-  const travelTimeHeadline = formatTravelTimeHeadline(selectedTravelTimeEstimate);
+  const travelTimeHeadline = formatTravelTimeHeadline(
+    selectedTravelTimeEstimate,
+    reportedRouteCondition(selectedLeg.impact.matchedImpacts),
+  );
   const selectedLegClearByFilters = legIsClearByFilters(selectedLeg);
   const selectedLegImpactSummary = summarizeMatchedImpacts(selectedLeg.impact.matchedImpacts);
   const disclosureKey = `${commute.id}-${selectedLeg.id}`;
@@ -513,44 +543,50 @@ export function SavedCommuteCard({
   const destinationStationName =
     selectedLeg.toStationName || commute.destinationStationName || stationNameFor(commute.destinationStationId, commute.networkId ?? "ttc");
 
+  // Rows the route's filter ignores sink to the bottom, dimmed; the rest keep the backend's order.
+  const orderedMatchedImpacts = [
+    ...selectedLeg.impact.matchedImpacts.filter((impact) => !impact.ignoredByRule),
+    ...selectedLeg.impact.matchedImpacts.filter((impact) => impact.ignoredByRule),
+  ];
   const renderedMatchedImpacts: ReactNode[] = [];
-  for (const impact of selectedLeg.impact.matchedImpacts) {
+  for (const impact of orderedMatchedImpacts) {
+    const inEffect = impact.kind === "planned-closure" && impact.status === "current";
+    const location = impact.displayLocation || impact.location;
     renderedMatchedImpacts.push(
       <li key={`${impact.kind}-${impact.id}`} className={impact.ignoredByRule ? "saved-commute-impact-ignored" : undefined}>
         <span className="saved-commute-impact-icon" aria-hidden="true">
-          <ImpactIcon
-            kind={impact.kind}
-            activeClosure={impact.kind === "planned-closure" && impact.status === "current"}
-            className="shrink-0"
-          />
+          <ImpactIcon kind={impact.kind} activeClosure={inEffect} className="shrink-0" />
         </span>
         <div className="saved-commute-impact-copy">
           <div className="saved-commute-impact-details">
             <div className="saved-commute-impact-heading">
               <strong className="text-slate-800 dark:text-slate-200">
-                <span className="saved-commute-impact-kind-label">
-                  {impact.serviceEffect === "limited-service" ? impact.status === "planned" ? "Planned Limited Service" : "Limited Service" : toTitleCase(impactKindLabel(impact.kind, impact.kind === "planned-closure" && impact.status === "current"))}
-                </span>
+                <span className="saved-commute-impact-kind-label">{matchedImpactTitle(impact)}</span>
                 {impact.ignoredByRule ? (
                   <em className="saved-commute-impact-filter-note">(Ignored by Route Filter)</em>
+                ) : impact.outsideTripTimes ? (
+                  <em className="saved-commute-impact-filter-note">(Outside Trip Times)</em>
                 ) : null}
               </strong>
             </div>
             <span className="text-slate-600 dark:text-slate-400">
               {toTitleCase(impactLineLabel(impact))}
-              {impact.displayLocation || impact.location ? <>: <IncidentStationSpan location={toTitleCase(impact.displayLocation || impact.location || "")} direction={impact.displayDirection} /></> : null}
+              {location ? <>: <IncidentStationSpan location={toTitleCase(location)} direction={impact.displayDirection} /></> : null}
               {impact.displayDirection ? ` (${toTitleCase(impact.displayDirection)})` : ""}
             </span>
+            <DisruptionRowFacts
+              facts={(commuteDashboard ? dashboardDisruptionFacts(impact.id, commuteDashboard) : null) ?? matchedImpactFacts(impact)}
+            />
           </div>
           <div className="saved-commute-impact-action">
             <button
               type="button"
               className="saved-commute-map-action saved-commute-impact-map-button"
               onClick={() => onViewImpactOnPath(commute, selectedLeg.id, impact)}
-              aria-label={`View ${impactKindLabel(impact.kind, impact.kind === "planned-closure" && impact.status === "current")} on the map for ${commute.label}`}
+              aria-label={`View ${impactKindLabel(impact.kind, inEffect)} on the map for ${commute.label}`}
             >
               <MapPinned size={12} aria-hidden="true" />
-              View on Map
+              View Alert
             </button>
           </div>
         </div>
@@ -727,7 +763,7 @@ export function SavedCommuteCard({
         </div>
 
         <div
-          className={`mt-1 text-center text-[11px] font-bold tracking-wide ${
+          className={`mt-1 text-center text-[12.5px] font-bold tracking-wide ${
             selectedTravelTimeEstimate.status === "standard"
               ? "text-emerald-600 dark:text-emerald-400"
               : selectedTravelTimeEstimate.status === "estimated"
@@ -746,46 +782,35 @@ export function SavedCommuteCard({
 
         {selectedLeg.impact.matchedImpacts.length > 0 ? (
           <details
-            className="saved-commute-impact-disclosure"
+            className="saved-commute-impact-disclosure commute-disruptions"
             open={isDisclosureOpen}
-            onClick={(event) => {
-              const summary = (event.target as HTMLElement).closest("summary");
-              if (!summary) return;
-              const details = event.currentTarget;
-              if (details.open) {
-                event.preventDefault();
-                details.classList.add("collapsing");
-                window.setTimeout(() => {
-                  details.open = false;
-                  details.classList.remove("collapsing");
-                  onToggleDisclosure(disclosureKey, false);
-                }, 220);
-              }
-            }}
+            onClick={handleAnimatedDisclosureClick}
             onToggle={(event) => {
               onToggleDisclosure(disclosureKey, event.currentTarget.open);
             }}
           >
             <summary className="saved-commute-impact-summary">
               <span className="saved-commute-impact-summary-heading">
-                <ExclaimAlertIcon className="saved-commute-impact-summary-icon" />
-                <strong>Active Commute Disruptions</strong>
+                <AlertCircle className="saved-commute-impact-summary-icon" size={18} aria-hidden="true" />
+                <strong>Active Disruptions</strong>
                 <span className={`desktop-menu-count-badge saved-commute-impact-total${selectedLeg.impact.matchedImpacts.length > 0 ? " is-affected" : ""}`}>
                   {selectedLeg.impact.matchedImpacts.length}
                 </span>
               </span>
-              <span className="saved-commute-impact-summary-chips">
-                {selectedLegImpactSummary.map(({ key, kind, activeClosure, count }) => (
-                  <span
-                    key={key}
-                    className={`saved-commute-impact-summary-chip kind-${activeClosure ? "suspension" : kind}`}
-                  >
-                    <ImpactIcon kind={kind} activeClosure={activeClosure} className="shrink-0" />
-                    {activeClosure
-                      ? `${count} Active Closure${count === 1 ? "" : "s"}`
-                      : impactKindCountLabel(kind, count)}
-                  </span>
-                ))}
+              <span className="saved-commute-impact-summary-chips-row">
+                <span className="saved-commute-impact-summary-chips">
+                  {selectedLegImpactSummary.map(({ key, kind, activeClosure, count }) => (
+                    <span
+                      key={key}
+                      className={`saved-commute-impact-summary-chip kind-${activeClosure ? "suspension" : kind}`}
+                    >
+                      <ImpactIcon kind={kind} activeClosure={activeClosure} className="shrink-0" />
+                      {activeClosure
+                        ? plannedClosuresInEffectCountLabel(count)
+                        : impactKindCountLabel(kind, count)}
+                    </span>
+                  ))}
+                </span>
               </span>
               <span className="saved-commute-impact-summary-action">
                 <span className="saved-commute-impact-summary-action-collapsed">List View</span>
@@ -886,14 +911,14 @@ export function SavedCommuteCard({
           <button
             type="button"
             className="saved-commute-map-action commute-route-map-button"
-            onClick={() => onViewPath(commute, selectedLeg.id)}
+            onClick={() => (viewingPath ? onClearPath(commute.id) : onViewPath(commute, selectedLeg.id))}
             disabled={!canViewPath}
-            aria-pressed={viewingPath}
-            aria-label={viewingPath ? `Viewing on map for ${commute.label}` : `View on map for ${commute.label}`}
+            data-viewing={viewingPath ? "true" : undefined}
+            aria-label={viewingPath ? `Back: stop viewing ${commute.label} on the map` : `View on map for ${commute.label}`}
           >
-            <MapPinned size={14} aria-hidden="true" />
-            <span className="commute-action-label-full">{viewingPath ? "Viewing on Map" : "View on Map"}</span>
-            <span className="commute-action-label-short" aria-hidden="true">{viewingPath ? "Viewing on Map" : "View on Map"}</span>
+            {viewingPath ? <ArrowLeft size={14} aria-hidden="true" /> : <MapPinned size={14} aria-hidden="true" />}
+            <span className="commute-action-label-full">{viewingPath ? "Back" : "View on Map"}</span>
+            <span className="commute-action-label-short" aria-hidden="true">{viewingPath ? "Back" : "View on Map"}</span>
           </button>
         </div>
 

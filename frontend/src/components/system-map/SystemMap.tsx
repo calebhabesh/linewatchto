@@ -13,7 +13,7 @@
  */
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent, type RefObject, type WheelEvent } from "react";
 import { Locate, ZoomIn, ZoomOut } from "lucide-react";
-import { CommuteRouteLabel } from "../CommuteRouteLabel";
+import { CommutePreviewChipText } from "../CommuteRouteLabel";
 import { CardinalNorthIcon } from "../CardinalNorthIcon";
 import { NetworkSelector } from "../NetworkSelector";
 import { SharedMapControlRail } from "../SharedMapControlRail";
@@ -49,9 +49,10 @@ import {
   MapStationAlertRings,
   MapStationDirectionGlyphs,
 } from "../map-overlays/StationAlertOverlays";
-import { MapCommuteEndpointFlashes, MapCommutePreviewRoute } from "../map-overlays/CommutePreviewOverlays";
+import { MapCommuteEndpointBlips, MapCommutePreviewRoute } from "../map-overlays/CommutePreviewOverlays";
 import { MapTrainMarkerLayer } from "../map-overlays/TrainMarkerLayer";
 import { installMapHoverController, type MapHoverController } from "../map-overlays/map-hover-controller";
+import { subscribePanelImpactHover } from "../map-overlays/panel-impact-hover";
 import { mapOverlayUnitStyle } from "../map-overlays/overlay-plane";
 import { useMapPulseSync } from "../map-overlays/pulse-sync";
 import {
@@ -648,7 +649,10 @@ function SystemMapComponent({
       isPointerGestureActive: isGestureActive,
     });
     hoverControllerRef.current = controller;
+    // A hovered Upcoming row in Current Service raises its alert here too.
+    const unsubscribePanelHover = subscribePanelImpactHover((impact) => controller.setPanelHover(impact));
     return () => {
+      unsubscribePanelHover();
       controller.dispose();
       hoverControllerRef.current = null;
     };
@@ -948,7 +952,7 @@ function SystemMapComponent({
               onHoverChange={onStationHoverChange}
             />
             <g aria-label="Commute endpoint highlights">
-              <MapCommuteEndpointFlashes preview={commutePreview} plane={overlayPlane} />
+              <MapCommuteEndpointBlips preview={commutePreview} plane={overlayPlane} />
             </g>
             <g id={layerId("top-station-impact")} aria-label="Station impact rings">
               <MapStationAlertRings alerts={stationAlerts} plane={overlayPlane} selection={selection} />
@@ -1033,7 +1037,7 @@ function SystemMapComponent({
       {commutePathPreview && !selection ? (
         <div className="commute-path-preview-chip" role="status" aria-live="polite" data-map-chooser-keepout>
           <span>
-            <span className="commute-path-preview-chip__caption">Viewing{commutePathPreview.chipLabel ? ` ${commutePathPreview.chipLabel}` : null}<span className="commute-path-preview-chip__colon">{commutePathPreview.chipLabel ? ":" : null}</span></span>{" "}<strong><CommuteRouteLabel label={commutePathPreview.routeLabel} /></strong>
+            <CommutePreviewChipText preview={commutePathPreview} />
           </span>
           <button
             type="button"

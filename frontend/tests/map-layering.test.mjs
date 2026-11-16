@@ -8,6 +8,7 @@ import { readRegionalMapSource, readTtcMapSource } from "./helpers/map-source.mj
 
 const globalCss = readAppStylesheet();
 const lineAlertOverlaysSource = readFileSync(new URL("../src/components/map-overlays/LineAlertOverlays.tsx", import.meta.url), "utf8");
+const commuteOverlaySourceForLayering = readFileSync(new URL("../src/components/map-overlays/CommutePreviewOverlays.tsx", import.meta.url), "utf8");
 // The shared overlay layer both maps draw alerts with (components/map-overlays).
 const sharedOverlaySource = [
   "map-overlays/LineAlertOverlays.tsx",
@@ -458,12 +459,12 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.map-segment-hit-target\s*\{[^}]*pointer-events:\s*stroke;/s);
   });
 
-  it("keeps the remaining pulses (commute preview, selected station) on one shared phase", () => {
+  it("keeps the remaining pulses (selected station, station alert beacon) on one shared phase", () => {
     assert.match(globalCss, /--map-overlay-pulse-half-cycle:\s*1\.2s/);
     assert.match(globalCss, /--map-overlay-pulse-easing:\s*cubic-bezier\(0\.37, 0, 0\.63, 1\)/);
-    assert.match(globalCss, /@keyframes map-overlay-rail-pulse\s*\{[\s\S]*var\(--map-overlay-rail-width\)[\s\S]*var\(--map-overlay-rail-pulse-width\)/);
+    assert.doesNotMatch(globalCss, /@keyframes map-overlay-rail-pulse/);
     assert.match(globalCss, /--map-pulse-offset/);
-    assert.match(interactiveMapSource, /SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set\(\[\s*"aura-pulse",\s*"map-overlay-rail-pulse",\s*"station-selected-pulse",\s*"station-alert-beacon-ping",\s*\]\)/);
+    assert.match(interactiveMapSource, /SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set\(\[\s*"aura-pulse",\s*"station-selected-pulse",\s*"station-alert-beacon-ping",\s*\]\)/);
     assert.match(interactiveMapSource, /root\.getAnimations\(\{ subtree: true \}\)/);
     assert.match(interactiveMapSource, /document\.timeline\?\.currentTime/);
     assert.match(interactiveMapSource, /--map-pulse-offset", "0ms"/);
@@ -862,34 +863,16 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /className="asset-alert-path commute-path-preview-path"/);
     assert.match(globalCss, /\.commute-path-preview-path/);
     assert.match(globalCss, /\.commute-path-preview-chip/);
+    // The route and its ends are still: no pulse, no beacon.
     assert.match(
       globalCss,
-      /\n\.commute-path-preview-path\s*\{(?=[^}]*--map-overlay-rail-width:\s*calc\(102px \* var\(--map-overlay-unit, 1\)\);)(?=[^}]*opacity:\s*0\.72;)(?=[^}]*animation:\s*map-overlay-rail-pulse var\(--map-overlay-pulse-half-cycle\) infinite alternate var\(--map-overlay-pulse-easing\);)[^}]*\}/s,
+      /\n\.commute-path-preview-path\s*\{(?=[^}]*stroke-width:\s*calc\(102px \* var\(--map-overlay-unit, 1\)\);)(?=[^}]*opacity:\s*0\.72;)[^}]*\}/s,
     );
-    assert.match(
-      globalCss,
-      /\n\.commute-path-preview-glow\s*\{(?=[^}]*stroke-width:\s*calc\(155px \* var\(--map-overlay-unit, 1\)\);)(?=[^}]*animation:\s*aura-pulse var\(--map-overlay-pulse-half-cycle\) infinite alternate var\(--map-overlay-pulse-easing\);)[^}]*\}/s,
-    );
-    assert.match(
-      globalCss,
-      /\.station-commute-green-flash\s*\{(?=[^}]*animation:\s*station-commute-green-flash-anim 1\.2s infinite alternate ease-in-out;)(?=[^}]*animation-delay:\s*var\(--map-pulse-offset\);)[^}]*\}/s,
-    );
-    assert.match(
-      globalCss,
-      /\.motion-paused \.commute-path-preview-path\s*\{[^}]*animation:\s*none\s*!important;[^}]*stroke-width:\s*var\(--map-overlay-rail-width\)[^}]*opacity:\s*0\.72 !important;/s,
-    );
-    assert.match(
-      globalCss,
-      /@media \(prefers-reduced-motion:\s*reduce\) \{[\s\S]*?\.commute-path-preview-path\s*\{[^}]*animation:\s*none\s*!important;[^}]*stroke-width:\s*var\(--map-overlay-rail-width\)[^}]*opacity:\s*0\.72 !important;/,
-    );
-    assert.match(
-      globalCss,
-      /@media \(prefers-reduced-motion:\s*reduce\) \{[\s\S]*?\.station-commute-green-flash[\s\S]*?animation:\s*none\s*!important;/,
-    );
-    assert.match(
-      globalCss,
-      /@media \(max-width:\s*767px\) \{[\s\S]*?\.station-commute-green-flash\s*\{(?=[^}]*fill:\s*#4ade80\s*!important;)(?=[^}]*stroke-width:\s*calc\(3\.5px \* var\(--map-overlay-unit, 1\)\)\s*!important;)(?=[^}]*transform:\s*scale\(1\.4\);)[^}]*\}/,
-    );
+    assert.match(globalCss, /\n\.commute-path-preview-glow\s*\{(?=[^}]*stroke-width:\s*calc\(155px \* var\(--map-overlay-unit, 1\)\);)[^}]*\}/s);
+    assert.doesNotMatch(globalCss, /\.commute-path-preview-(?:path|glow)\s*\{[^}]*animation:(?!\s*none)/s);
+    assert.doesNotMatch(globalCss, /station-commute-green-flash/);
+    assert.doesNotMatch(commuteOverlaySourceForLayering, /station-commute-green-flash/);
+    assert.match(commuteOverlaySourceForLayering, /className="station-endpoint-blip"/);
 
     const impactLayerIndex = interactiveMapSource.indexOf("retainedImpactLayers.map");
     const previewGroupIndex = interactiveMapSource.indexOf('aria-label="Commute route preview"', impactLayerIndex);

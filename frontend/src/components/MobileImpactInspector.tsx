@@ -16,6 +16,7 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { PlannedAdvisoryStatus } from "./PlannedAdvisoryStatus";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { relatedPlannedClosureId } from "../app/related-planned-closure";
+import { AffectedCommuteLinks } from "./AffectedCommutes";
 import { CardSource, ImpactRouteHeader, LineBadge, MetadataGrid, RelatedPlannedClosureButton, CommutePathPreviewCardBanner, formatClosureScheduleValue, plannedAdvisoryWindowRows, replacementServiceRows } from "./ImpactCardFields";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { DirectionalZoneCount } from "./DirectionalZoneCount";
@@ -481,6 +482,7 @@ export function MobileImpactInspector({
           {details.relatedPlannedClosureId ? <RelatedPlannedClosureButton closureId={details.relatedPlannedClosureId} onSelectImpact={onSelectImpact} /> : null}
           {selection.kind === "planned-closure" ? <PlannedEffectBadge incident={{ serviceEffect: details.serviceEffect }} /> : null}
           {details.nightly ? <NightlyBadge /> : null}
+          <AffectedCommuteLinks impactId={selection.id} />
           {details.shuttle ? (
             <span className="impact-card-service-badge shuttle">
               <Bus size={11} />

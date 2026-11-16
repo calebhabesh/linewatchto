@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.push;
 import com.calebhabesh.linewatch.account.SavedCommuteAlertRules;
 import com.calebhabesh.linewatch.account.SavedCommuteEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteNotificationSchedule;
+import com.calebhabesh.linewatch.account.SavedCommuteTripTimes;
 import com.calebhabesh.linewatch.commute.CommuteImpactService;
 import com.calebhabesh.linewatch.commute.CommutePathService;
 import com.calebhabesh.linewatch.commute.CommuteResponses;
@@ -148,10 +149,17 @@ public class SavedCommutePushPlanner {
             : impact.matchedImpacts()) {
             if ("current".equals(match.status())) {
                 String eventType = match.relatedPlannedClosureId() != null ? "planned-closure" : match.kind();
-                candidates.add(candidateFor(commute, legId, path, match, "saved-commute-current", eventType, "on-change"));
+                candidates.add(candidateFor(commute, legId, path, match, "saved-commute-current", eventType, "on-change", null));
             } else if ("planned".equals(match.status())) {
                 String eventType = "planned-closure";
-                OffsetDateTime eventStartAt = match.eventStartAt();
+                // The push is about the first listed window that meets this leg's trip times: its
+                // identity, reminders, and start/end line follow that occurrence, not the next one.
+                CommuteResponses.ServiceWindow meeting = SavedCommuteTripTimes.firstMeetingWindow(commute, legId, match)
+                    .orElse(null);
+                CommuteResponses.MatchedImpactResponse occurrence = meeting == null
+                    ? match
+                    : match.withEventStartAt(meeting.startsAt());
+                OffsetDateTime eventStartAt = occurrence.eventStartAt();
                 String reminderBucket = "on-change";
                 if (eventStartAt != null) {
                     Instant startInstant = eventStartAt.toInstant();
@@ -164,10 +172,11 @@ public class SavedCommutePushPlanner {
                     commute,
                     legId,
                     path,
-                    match,
+                    occurrence,
                     "saved-commute-planned",
                     eventType,
-                    reminderBucket
+                    reminderBucket,
+                    regional || meeting == null || meeting.datesOnly() ? null : meeting.endsAt()
                 ));
             }
         }
@@ -259,7 +268,8 @@ public class SavedCommutePushPlanner {
         CommuteResponses.MatchedImpactResponse match,
         String category,
         String eventType,
-        String reminderBucket
+        String reminderBucket,
+        OffsetDateTime windowEndAt
     ) {
         boolean regional = "regional".equals(commute.getNetworkId());
         boolean plannedClosure = "planned-closure".equals(eventType);
@@ -283,7 +293,7 @@ public class SavedCommutePushPlanner {
             match.description(),
             match.closureHours(),
             match.closureDates(),
-            null,
+            windowEndAt == null || dateOnlyServiceWindow ? null : windowEndAt.toInstant(),
             plannedClosure && "current".equals(match.status())
                 && ("suspension".equals(match.kind()) || "delay".equals(match.kind())) ? match.kind() : null
         ));
@@ -377,17 +387,8 @@ public class SavedCommutePushPlanner {
         if (!SavedCommuteAlertRules.eventTypeAllowed(commute, eventType)) {
             return false;
         }
-        if ("planned".equals(match.status()) && match.eventStartAt() != null) {
-            boolean dateOnlyServiceWindow = "regional".equals(commute.getNetworkId())
-                && match.notificationServiceEndAt() != null;
-            boolean relevantToLeg = dateOnlyServiceWindow
-                ? SavedCommuteNotificationSchedule.overlapsServiceDates(
-                    commute, legId, match.eventStartAt(), match.notificationServiceEndAt()
-                )
-                : SavedCommuteNotificationSchedule.matches(commute, legId, match.eventStartAt().toInstant());
-            if (!relevantToLeg) {
-                return false;
-            }
+        if ("planned".equals(match.status()) && !SavedCommuteTripTimes.pushRelevant(commute, legId, match)) {
+            return false;
         }
         return SavedCommuteNotificationSchedule.matches(commute, legId, clock.instant());
     }

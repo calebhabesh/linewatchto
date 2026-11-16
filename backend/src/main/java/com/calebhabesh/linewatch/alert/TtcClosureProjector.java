@@ -346,6 +346,11 @@ public class TtcClosureProjector {
             // a feed listing part of a published range must not imply the series ends early.
             .filter(end -> windowDates != null && windowDates.endsWith(formattedClosureDate(lastServiceDate(end), now)))
             .orElse(null);
+        // Commute matching checks these against a rider's trip times; lastWindowEnd says whether the list is complete.
+        List<PlannedClosureDto.Window> upcomingWindows = reliablePeriods.stream()
+            .filter(period -> period.startsAt() != null && endsAfter(period.endsAt(), now))
+            .map(period -> new PlannedClosureDto.Window(period.startsAt(), period.endsAt()))
+            .toList();
 
         Optional<AlertPeriod> active = reliablePeriods.stream()
             .filter(period -> !isParentPeriod(period)
@@ -359,7 +364,7 @@ public class TtcClosureProjector {
             AlertPeriod period = active.orElseThrow();
             return new WindowState(true, "active-now", nightly,
                 period.startsAt(), period.endsAt(), window(period.startsAt(), period.endsAt(), now),
-                null, null, null, windowHours, windowDates, period.sourcePeriodId(), reliablePeriods.size(), lastWindowEnd);
+                null, null, null, windowHours, windowDates, period.sourcePeriodId(), reliablePeriods.size(), lastWindowEnd, upcomingWindows);
         }
 
         Optional<AlertPeriod> next = reliablePeriods.stream()
@@ -374,11 +379,11 @@ public class TtcClosureProjector {
             return new WindowState(false, "upcoming", nightly,
                 null, null, null,
                 period.startsAt(), period.endsAt(), window(period.startsAt(), period.endsAt(), now),
-                windowHours, windowDates, null, reliablePeriods.size(), lastWindowEnd);
+                windowHours, windowDates, null, reliablePeriods.size(), lastWindowEnd, upcomingWindows);
         }
 
         return new WindowState(false, "unknown", nightly,
-            null, null, null, null, null, null, windowHours, windowDates, null, reliablePeriods.size(), lastWindowEnd);
+            null, null, null, null, null, null, windowHours, windowDates, null, reliablePeriods.size(), lastWindowEnd, upcomingWindows);
     }
 
     private boolean isReliableClosureWindow(
@@ -650,7 +655,8 @@ public class TtcClosureProjector {
         ).withServiceEffect("limited-service".equals(alert.getImpactKind()) ? "limited-service" : "suspension")
             .withPreviewStationIds(previewSegmentIds.isEmpty() ? alert.getStationIds() : List.of())
             .withDisplayLocation(AlertDashboardService.displayLocation(segmentMatcher, alert, segments))
-            .withWindowSeries(ws.occurrenceCount() > 0 ? ws.occurrenceCount() : null, ws.lastWindowEnd());
+            .withWindowSeries(ws.occurrenceCount() > 0 ? ws.occurrenceCount() : null, ws.lastWindowEnd())
+            .withUpcomingWindows(ws.upcomingWindows());
     }
 
     private PlannedClosureDto activeClosurePresentation(
@@ -710,7 +716,8 @@ public class TtcClosureProjector {
             : "delay".equals(currentSourceAlert.getImpactKind()) ? "delay" : "suspension")
             .withPreviewStationIds(previewSegmentIds.isEmpty() ? currentSourceAlert.getStationIds() : List.of())
             .withDisplayLocation(AlertDashboardService.displayLocation(segmentMatcher, currentSourceAlert, segments))
-            .withWindowSeries(closure.windowCount(), closure.lastWindowEnd());
+            .withWindowSeries(closure.windowCount(), closure.lastWindowEnd())
+            .withUpcomingWindows(closure.upcomingWindows());
     }
 
     private ActiveAlertDto toActiveClosureAlert(
@@ -1055,7 +1062,8 @@ public class TtcClosureProjector {
         String windowDates,
         String activeSourcePeriodId,
         int occurrenceCount,
-        OffsetDateTime lastWindowEnd
+        OffsetDateTime lastWindowEnd,
+        List<PlannedClosureDto.Window> upcomingWindows
     ) {}
 
     /**

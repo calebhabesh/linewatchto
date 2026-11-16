@@ -1226,8 +1226,33 @@ public class AlertDashboardService {
         // Reliable windows the source still lists for this advisory; null when the source has no window list.
         Integer windowCount,
         // End of the advisory's last listed window, when regular service returns for good.
-        OffsetDateTime lastWindowEnd
+        OffsetDateTime lastWindowEnd,
+        // Every listed reliable window not yet over; complete when lastWindowEnd is set.
+        @com.fasterxml.jackson.annotation.JsonIgnore List<Window> upcomingWindows
     ) {
+        public record Window(OffsetDateTime startsAt, OffsetDateTime endsAt) {}
+
+        public PlannedClosureDto(
+            String id, String lineId, String lineNumber, String title, String window, String location,
+            String displayDirection, String description, OffsetDateTime startedAt, OffsetDateTime updatedAt,
+            List<String> previewSegmentIds, boolean shuttle, String source, String cause, String resolution,
+            boolean activeNow, String timingStatus, boolean nightly, OffsetDateTime activeWindowStart,
+            OffsetDateTime activeWindowEnd, String activeWindowLabel, OffsetDateTime nextWindowStart,
+            OffsetDateTime nextWindowEnd, String nextWindowLabel, String windowHours, String windowDates,
+            String notificationTitle, String travelDirection, List<String> previewStationIds, String serviceEffect,
+            String displayLocation, Integer windowCount, OffsetDateTime lastWindowEnd
+        ) {
+            this(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt,
+                updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly,
+                activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd,
+                nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, previewStationIds,
+                serviceEffect, displayLocation, windowCount, lastWindowEnd, null);
+        }
+
+        public PlannedClosureDto withUpcomingWindows(List<Window> windows) {
+            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, previewStationIds, serviceEffect, displayLocation, windowCount, lastWindowEnd, windows == null ? null : List.copyOf(windows));
+        }
+
         public PlannedClosureDto(
             String id, String lineId, String lineNumber, String title, String window, String location,
             String displayDirection, String description, OffsetDateTime startedAt, OffsetDateTime updatedAt,
@@ -1296,19 +1321,19 @@ public class AlertDashboardService {
         }
 
         public PlannedClosureDto withServiceEffect(String effect) {
-            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, previewStationIds, effect, displayLocation, windowCount, lastWindowEnd);
+            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, previewStationIds, effect, displayLocation, windowCount, lastWindowEnd, upcomingWindows);
         }
 
         public PlannedClosureDto withPreviewStationIds(List<String> stationIds) {
-            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, stationIds, serviceEffect, displayLocation, windowCount, lastWindowEnd);
+            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, stationIds, serviceEffect, displayLocation, windowCount, lastWindowEnd, upcomingWindows);
         }
 
         public PlannedClosureDto withWindowSeries(Integer count, OffsetDateTime lastEnd) {
-            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, previewStationIds, serviceEffect, displayLocation, count, lastEnd);
+            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, previewStationIds, serviceEffect, displayLocation, count, lastEnd, upcomingWindows);
         }
 
         public PlannedClosureDto withDisplayLocation(String value) {
-            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, previewStationIds, serviceEffect, value, windowCount, lastWindowEnd);
+            return new PlannedClosureDto(id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates, notificationTitle, travelDirection, previewStationIds, serviceEffect, value, windowCount, lastWindowEnd, upcomingWindows);
         }
 
         public PlannedClosureDto(

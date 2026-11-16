@@ -300,11 +300,11 @@ export function AccessibilityOutagesPanel({
               filteredGroups.map((group) => (
                 <div
                   key={group.lineId}
-                  className="rounded-lg border border-transparent shadow-xs overflow-hidden"
+                  className="accessibility-outage-group rounded-lg overflow-hidden"
                 >
                   {/* Line Header */}
                   <div
-                    className="px-3 py-2 flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-[#161a23] border-b border-black/5 dark:border-white/5 text-sm border-l-2"
+                    className="px-3 py-2 flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200 bg-black/[0.03] dark:bg-white/[0.04] border-b border-black/5 dark:border-white/[0.06] text-sm border-l-2"
                     style={{ borderLeftColor: group.color }}
                   >
                     {lineBadge(group)}
@@ -312,7 +312,7 @@ export function AccessibilityOutagesPanel({
                   </div>
 
                   {/* Stations Accordeon */}
-                  <div className="divide-y divide-black/5 dark:divide-white/5 bg-slate-50/50 dark:bg-[#0c0f14]">
+                  <div className="divide-y divide-black/5 dark:divide-white/[0.06]">
                     {group.stations.map((station) => {
                       const expandedKey = `${group.lineId}-${station.stationId}`;
                       const expanded = !!expandedStations[expandedKey];

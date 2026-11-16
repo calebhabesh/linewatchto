@@ -748,11 +748,43 @@
   width: calc(var(--service-line-gap) + var(--service-line-badge-width) / 2 - 5px);
 }
 
+.current-service-remaining-upcoming {
+  position: relative;
+}
+
+/* Ends on the middle of the Upcoming label (8.5px down: its 2px top margin stays
+   inside this wrapper here), like the advisory pills' connector. */
+.current-service-remaining-upcoming::before {
+  border-bottom: 1px solid var(--border-strong);
+  border-left: 1px solid var(--border-strong);
+  border-bottom-left-radius: 4px;
+  content: "";
+  height: 12px;
+  left: calc(-1 * (var(--service-line-gap) + var(--service-line-badge-width) / 2));
+  pointer-events: none;
+  position: absolute;
+  top: -3px;
+  width: calc(var(--service-line-gap) + var(--service-line-badge-width) / 2 - 5px);
+}
+
+/* Carries the connector on to Reduced Speed Zone pills below. */
+.current-service-remaining-upcoming:not(:last-child)::after {
+  border-left: 1px solid var(--border-strong);
+  bottom: -3px;
+  content: "";
+  left: calc(-1 * (var(--service-line-gap) + var(--service-line-badge-width) / 2));
+  pointer-events: none;
+  position: absolute;
+  top: 8px;
+}
+
+/* Ends on the line's last advisory heading (useAdvisoryTrunkEnds sets --trunk-end);
+   the half pixel centres the 1px stroke on the heading. */
 .current-service-line[data-has-advisories="true"]::before {
   border-bottom: 1px solid var(--border-strong);
   border-left: 1px solid var(--border-strong);
   border-bottom-left-radius: 4px;
-  bottom: calc(var(--service-line-padding) + 10px);
+  bottom: calc(var(--trunk-end, calc(var(--service-line-padding) + 10.5px)) - 0.5px);
   content: "";
   left: calc(var(--service-line-badge-width) / 2);
   pointer-events: none;
@@ -785,52 +817,9 @@
   border-color: rgba(245, 158, 11, 0.50);
 }
 
-.current-service-badge-incident-button:hover .current-service-planned-pill {
-  background: rgba(37, 99, 235, 0.18);
-  border-color: rgba(37, 99, 235, 0.45);
-}
-
-.dark .current-service-badge-incident-button:hover .current-service-planned-pill {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: rgba(59, 130, 246, 0.50);
-}
-
 .current-service-badge-incident-button:focus-visible {
   outline: 2px solid var(--logo-blue, #2563eb);
   outline-offset: 1px;
-}
-
-.current-service-planned-pill {
-  align-items: center;
-  background: rgba(37, 99, 235, 0.10);
-  border: 1px solid rgba(37, 99, 235, 0.28);
-  border-radius: 9999px;
-  box-sizing: border-box;
-  color: #1d4ed8;
-  display: inline-flex;
-  flex-shrink: 0;
-  font-size: clamp(11.5px, 3.8cqi, 12px);
-  font-weight: 600;
-  gap: 3.5px;
-  letter-spacing: -0.015em;
-  line-height: 1.2;
-  margin-left: 0;
-  min-height: 24px;
-  padding: 3px 5px;
-  white-space: nowrap;
-}
-
-.dark .current-service-planned-pill {
-  background: rgba(59, 130, 246, 0.16);
-  border-color: rgba(59, 130, 246, 0.32);
-  color: #93c5fd;
-}
-
-.current-service-planned-pill svg {
-  flex-shrink: 0;
-  height: 12px;
-  opacity: 0.9;
-  width: 12px;
 }
 
 .current-service-rsz-pill {
@@ -867,7 +856,6 @@
 }
 
 @container (max-width: 320px) {
-  .current-service-planned-pill,
   .current-service-rsz-pill {
     gap: 2px;
     padding-inline: 3px;
@@ -1541,9 +1529,10 @@
     box-shadow: none;
   }
   .mobile-service-sheet .current-service-impact-heading strong { font-size: 18px; font-weight: 700; gap: 5px; line-height: 20px; }
-  .mobile-service-sheet .current-service-impact-location { margin-top: 4px; background: var(--panel-soft); border-left: 2px solid currentColor; padding: 3px 6px; font-size: 16px; font-weight: 650; line-height: 22px; color: var(--text); }
-  .mobile-service-sheet .current-service-impact-direction { margin-top: 4px; font-size: 13px; font-weight: 600; line-height: 16px; color: var(--incident-direction-text); }
+  .mobile-service-sheet .current-service-impact-location { margin: 4px 0 3px; background: var(--panel-soft); border-left: 2px solid currentColor; padding: 3px 6px; font-size: 16px; font-weight: 650; line-height: 22px; color: var(--text); }
+  .mobile-service-sheet .current-service-impact-direction { font-size: 13px; font-weight: 600; line-height: 16px; color: var(--incident-direction-text); }
   .mobile-service-sheet .current-service-impact-timing { font-size: 13px; font-weight: 600; line-height: 16px; color: var(--text); }
+  .mobile-service-sheet .current-service-impact .incident-shuttle { margin-top: 3px; }
   .mobile-service-sheet .current-service-normal-label strong { font-size: 14px; font-weight: 700; }
   .mobile-service-sheet .current-service-notice {
     display: flex;
@@ -2190,4 +2179,295 @@
   color: var(--muted);
   font-size: 12px;
   font-weight: 400;
+}
+
+/* -------------------------------------------------------------------------
+   Upcoming planned advisories (UpcomingAdvisoryCards): advisories starting
+   beyond the 24h card window, in the desktop sidebar and the mobile sheet.
+   ------------------------------------------------------------------------- */
+
+/* Equal space above and below the Upcoming label (the line column adds 4px above). */
+.upcoming-advisories {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+  width: 100%;
+}
+
+.upcoming-advisories .upcoming-advisories-label {
+  padding-top: 0;
+}
+
+/* The alert menus' left-edge filament (card-elevation.css), in planned blue. */
+.upcoming-advisory {
+  --upcoming-accent: var(--planned);
+  background:
+    linear-gradient(90deg, rgba(59, 130, 246, 0.07) 0%, rgba(59, 130, 246, 0.02) 12px, transparent 24px),
+    #f8fafc;
+  border: none;
+  border-left: 1.5px solid rgba(59, 130, 246, 0.85);
+  border-radius: 8px;
+  box-shadow: inset 2px 0 6px -1px rgba(59, 130, 246, 0.2), var(--mobile-card-shadow);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px 9px 11px;
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+
+.dark .upcoming-advisory {
+  background:
+    linear-gradient(90deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 14px, transparent 30px),
+    #12151c;
+}
+
+.upcoming-advisory:hover {
+  filter: brightness(1.05);
+}
+
+.dark .upcoming-advisory:hover {
+  filter: brightness(1.1);
+}
+
+.upcoming-advisory:focus-visible {
+  outline: 2px solid var(--logo-blue, #2563eb);
+  outline-offset: 1px;
+}
+
+.high-contrast .upcoming-advisory {
+  border-color: currentColor;
+}
+
+/* My Commutes' icon when a card's impact lies on a saved commute
+   (CommuteImpactTag): its green (the panel header's emerald-500 icon,
+   SavedCommutesPanel) in a green-tinted circle, which reads the same on red,
+   amber and blue cards, with a small red dot on its bottom-right edge for "affected".
+   Incident cards pin it to the top-right corner, level with the title and
+   inset as the Details cue is at the bottom-right; upcoming cards keep it in
+   the title row before the countdown, which holds that corner. */
+.commute-impact-hint {
+  align-items: center;
+  background: rgba(16, 185, 129, 0.16);
+  border: 1px solid rgba(16, 185, 129, 0.55);
+  border-radius: 9999px;
+  box-sizing: border-box;
+  color: #10b981;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 20px;
+  justify-content: center;
+  position: relative;
+  width: 20px;
+}
+
+/* Bottom-right: the arrow points to the top-right, where a dot would cover its tip. */
+.commute-impact-hint::after {
+  background: #ef4444;
+  border-radius: 9999px;
+  bottom: -1px;
+  content: "";
+  height: 6px;
+  position: absolute;
+  right: -1px;
+  width: 6px;
+}
+
+/* On the route only outside its trip times: grey, with a grey dot in place of the red "affected" one. */
+.commute-impact-hint[data-outside-trip-times] {
+  background: rgba(100, 116, 139, 0.14);
+  border-color: rgba(100, 116, 139, 0.5);
+  color: #64748b;
+}
+
+.dark .commute-impact-hint[data-outside-trip-times] {
+  color: #94a3b8;
+}
+
+.commute-impact-hint[data-outside-trip-times]::after {
+  background: #64748b;
+}
+
+.dark .commute-impact-hint[data-outside-trip-times]::after {
+  background: #94a3b8;
+}
+
+/* The upcoming title row is 17px; a smaller circle keeps it from growing. */
+.upcoming-advisory-head > .commute-impact-hint {
+  height: 17px;
+  width: 17px;
+}
+
+.upcoming-advisory-head > .commute-impact-hint > svg {
+  height: 10px;
+  width: 10px;
+}
+
+:is(.desktop-status-incident-row, .current-service-impact--compact) > .commute-impact-hint {
+  position: absolute;
+  right: var(--details-cue-inset-x, 8px);
+  top: var(--details-cue-inset-y, 8px);
+}
+
+/* The title wraps short of the corner icon. */
+.desktop-status-incident-row:has(> .commute-impact-hint) > .desktop-status-incident-header,
+.current-service-impact--compact:has(> .commute-impact-hint) > .current-service-impact-heading {
+  padding-right: 26px;
+}
+
+.high-contrast .commute-impact-hint,
+.high-contrast .commute-impact-hint[data-outside-trip-times] {
+  background: transparent;
+  border-color: currentColor;
+  color: currentColor;
+}
+
+/* Type on the left, countdown pinned right. */
+.upcoming-advisory-head {
+  align-items: center;
+  column-gap: 5px;
+  display: flex;
+  font-size: 12.5px;
+  line-height: 17px;
+}
+
+.upcoming-advisory-head > svg {
+  color: var(--upcoming-accent);
+  flex-shrink: 0;
+}
+
+.upcoming-advisory-head > strong {
+  color: var(--upcoming-accent);
+  flex: 1 1 auto;
+  font-weight: 800;
+  min-width: 0;
+}
+
+.upcoming-advisory-countdown {
+  background: color-mix(in srgb, var(--upcoming-accent) 16%, transparent);
+  border-radius: 9999px;
+  color: var(--upcoming-accent);
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 16px;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+/* Further out (more than 7 days): the same pill, in grey, so every dated
+   advisory carries one and the blue marks the ones that are close. */
+.upcoming-advisory[data-horizon="later"] .upcoming-advisory-countdown {
+  background: color-mix(in srgb, var(--muted) 16%, transparent);
+  color: var(--muted);
+}
+
+/* The stretch in the incident cards' shaded band (desktop-status-incident-location), two sizes down. */
+.upcoming-advisory-span {
+  background: var(--panel-soft);
+  border-left: 2px solid currentColor;
+  color: var(--text);
+  display: block;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 18px;
+  margin: 2px 0;
+  padding: 2px 7px;
+}
+
+/* The direction, in the incident cards' amber (desktop-status-incident-direction), then the cause, muted. */
+.upcoming-advisory-direction {
+  color: var(--incident-direction-text);
+  display: block;
+  position: relative;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+/* One unit: beside the direction when it fits, else wholly on the next line. */
+.upcoming-advisory-cause {
+  color: var(--muted);
+  display: inline-block;
+  font-weight: 600;
+}
+
+/* The dot between direction and cause, muted as the cause; hidden once the
+   cause has wrapped to its own line (DirectionAndCause). */
+.upcoming-advisory-cause-separator {
+  color: var(--muted);
+}
+
+.upcoming-advisory-direction[data-cause-wrapped="true"] .upcoming-advisory-cause-separator {
+  display: none;
+}
+
+/* When it happens, and what replaces trains: one line each, as the incident cards' timing rows. */
+.upcoming-advisory-line {
+  color: var(--text);
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+/* -------------------------------------------------------------------------
+   "Details →" (CardDetailsCue) in every Current Service card's bottom-right
+   corner, desktop and mobile. The card's last line wraps short of it.
+   ------------------------------------------------------------------------- */
+.desktop-status-incident-row { --details-cue-inset-x: 12px; --details-cue-inset-y: 12px; }
+.current-service-impact--compact { --details-cue-inset-x: 8px; --details-cue-inset-y: 5px; }
+.mobile-service-sheet .current-service-impact--compact { --details-cue-inset-x: 10px; --details-cue-inset-y: 10px; }
+.upcoming-advisory { --details-cue-inset-x: 10px; --details-cue-inset-y: 9px; }
+
+.card-details-cue {
+  align-items: center;
+  bottom: var(--details-cue-inset-y, 8px);
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 11.5px;
+  font-weight: 700;
+  gap: 2px;
+  line-height: 16px;
+  pointer-events: none;
+  position: absolute;
+  right: var(--details-cue-inset-x, 8px);
+  transition: color 120ms ease;
+  white-space: nowrap;
+}
+
+/* The arrow's shaft runs through the middle of the lowercase letters of
+   "Details" (Switzer at 11.5px), 0.5px below the line box's middle; a 1px top
+   margin in this centring flex row lowers it that 0.5px. */
+.card-details-cue > svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  transition: transform 120ms ease;
+}
+
+:is(.desktop-status-incident-row, .current-service-impact--compact, .upcoming-advisory):is(:hover, :focus-visible) .card-details-cue {
+  color: var(--text);
+}
+
+:is(.desktop-status-incident-row, .current-service-impact--compact, .upcoming-advisory):is(:hover, :focus-visible) .card-details-cue > svg {
+  transform: translateX(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.desktop-status-incident-row, .current-service-impact--compact, .upcoming-advisory):is(:hover, :focus-visible) .card-details-cue > svg {
+    transform: none;
+  }
+}
+
+.reduced-motion :is(.desktop-status-incident-row, .current-service-impact--compact, .upcoming-advisory):is(:hover, :focus-visible) .card-details-cue > svg {
+  transform: none;
+}
+
+/* The line just above the cue keeps clear of it. */
+:is(.desktop-status-incident-row, .current-service-impact--compact, .upcoming-advisory) > :nth-last-child(2) {
+  padding-right: 64px;
 }

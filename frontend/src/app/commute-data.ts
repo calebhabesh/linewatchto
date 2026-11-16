@@ -51,7 +51,13 @@ export type AccountMatchedImpact = {
   window?: string | null;
   timingStatus?: "active-now" | "upcoming" | "unknown" | null;
   eventStartAt?: string | null;
+  /** A planned advisory's published dates and hours ("Mon, Nov 16 – Wed, Nov 18", "11:00 PM – 3:30 AM"). */
+  closureDates?: string | null;
+  closureHours?: string | null;
+  /** The route's alert-type filters leave it out of the commute's status (notifications on only). */
   ignoredByRule?: boolean;
+  /** Upcoming planned work whose complete window list misses this leg's trip times (SavedCommuteTripTimes). */
+  outsideTripTimes?: boolean;
 };
 
 export type AccountCommuteTravelTimeEstimate = {
@@ -190,6 +196,43 @@ export function commuteLegsForCommute(commute: AccountSavedCommute): AccountComm
     impact: commute.impact,
   };
   return commute.watchReturnTrip && commute.returnLeg ? [outbound, commute.returnLeg] : [outbound];
+}
+
+/** A saved commute an impact lies on; outsideTripTimes when it is upcoming work that misses every watched leg's trip times. */
+export type ImpactCommute = { id: string; label: string; outsideTripTimes: boolean };
+
+/**
+ * The saved commutes each impact lies on, by impact id: a watched leg's path
+ * crosses it (the backend matches current alerts and delays and every planned
+ * closure, current or upcoming). A match the route's alert-type filters ignore
+ * on every leg links nothing, as My Commutes leaves it out. Notification
+ * switches and trip times never hide one; upcoming work outside every leg's
+ * trip times is marked so the cards can show it quietly. Commutes keep their
+ * saved order, each once.
+ */
+export function impactCommutes(commutes: AccountSavedCommute[]): Map<string, ImpactCommute[]> {
+  const byImpact = new Map<string, ImpactCommute[]>();
+  for (const commute of commutes) {
+    const legMatches = new Map<string, AccountMatchedImpact[]>();
+    for (const leg of commuteLegsForCommute(commute)) {
+      for (const impact of leg.impact.matchedImpacts) {
+        if (impact.ignoredByRule) continue;
+        legMatches.set(impact.id, [...(legMatches.get(impact.id) ?? []), impact]);
+      }
+    }
+    for (const [impactId, matches] of legMatches) {
+      const list = byImpact.get(impactId) ?? [];
+      list.push({ id: commute.id, label: commute.label, outsideTripTimes: matches.every((match) => match.outsideTripTimes === true) });
+      byImpact.set(impactId, list);
+    }
+  }
+  return byImpact;
+}
+
+/** Commutes an impact meets during their trip times, before those it meets only outside them. */
+export function commutesByTripTimes(commutes: ImpactCommute[] | undefined) {
+  const list = commutes ?? [];
+  return { during: list.filter((entry) => !entry.outsideTripTimes), outside: list.filter((entry) => entry.outsideTripTimes) };
 }
 
 export type SavedCommuteSort = "impact" | "recent" | "oldest" | "name";

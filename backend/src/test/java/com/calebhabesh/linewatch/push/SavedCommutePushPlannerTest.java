@@ -509,6 +509,75 @@ class SavedCommutePushPlannerTest {
     }
 
     @Test
+    void plannedPushFollowsTheFirstListedWindowThatMeetsTheTripTimes() {
+        // Now is Fri Jun 5, 11:00 AM; weekday trips run 7:00 AM to noon.
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_series", account, "Work", "finch", "union", false, Instant.parse("2026-06-05T14:30:00Z"));
+        commute.updateNotificationRule(
+            true, 62, 7 * 60, 12 * 60, true, true, true, true, true, true, true, Instant.parse("2026-06-05T14:31:00Z"));
+        CommuteResponses.PathResponse outboundPath = path("finch", "union", "line-1-finch-union");
+        when(commutePathService.path("finch", "union")).thenReturn(outboundPath);
+        // Monday night ends at 5:00 AM, before the trip; Tuesday night runs to 8:00 AM Wednesday.
+        CommuteResponses.ServiceWindow monday = new CommuteResponses.ServiceWindow(
+            OffsetDateTime.parse("2026-06-08T23:00:00-04:00"), OffsetDateTime.parse("2026-06-09T05:00:00-04:00"), false);
+        CommuteResponses.ServiceWindow tuesday = new CommuteResponses.ServiceWindow(
+            OffsetDateTime.parse("2026-06-09T23:00:00-04:00"), OffsetDateTime.parse("2026-06-10T08:00:00-04:00"), false);
+        CommuteResponses.MatchedImpactResponse series = new CommuteResponses.MatchedImpactResponse(
+            "closure-series", "planned-closure", "planned", "planned", "Planned Closure",
+            "line-1", "1", "Finch to Union", null, null, "TTC Service Advisory",
+            List.of("line-1-finch-union"), List.of(), monday.startsAt(), monday.startsAt(),
+            "Mon 11:00 PM", "upcoming", monday.startsAt());
+
+        when(commuteImpactService.impactFor(outboundPath)).thenReturn(impactWith(
+            series.withServiceWindows(new CommuteResponses.ServiceWindows(List.of(monday, tuesday), true))));
+        PushNotificationCandidate meeting = planner.candidatesFor(commute).getFirst();
+
+        assertThat(meeting.deliveryAllowed()).isTrue();
+        // The push is about Tuesday night, the occurrence in the rider's way, with its end.
+        assertThat(meeting.notification().sourceEventAt()).isEqualTo(tuesday.startsAt().toInstant());
+        assertThat(meeting.notification().body()).contains("Until");
+
+        // Only Monday night listed, and the list complete: nothing meets the trip, so nothing is pushed.
+        when(commuteImpactService.impactFor(outboundPath)).thenReturn(impactWith(
+            series.withServiceWindows(new CommuteResponses.ServiceWindows(List.of(monday), true))));
+        PushNotificationCandidate outside = planner.candidatesFor(commute).getFirst();
+        assertThat(outside.deliveryAllowed()).isFalse();
+        assertThat(outside.notification().sourceEventAt()).isEqualTo(monday.startsAt().toInstant());
+        // Each occurrence keeps its own identity, so the later push is not deduplicated against this one.
+        assertThat(outside.sourceIncidentKey()).isNotEqualTo(meeting.sourceIncidentKey());
+    }
+
+    @Test
+    void plannedPushRemindersCountDownToTheMeetingOccurrence() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_reminder", account, "Work", "finch", "union", false, Instant.parse("2026-06-05T14:30:00Z"));
+        // Weekday trips 7:00 AM to noon, so delivery is open now (Fri 11:00 AM).
+        commute.updateNotificationRule(
+            true, 62, 7 * 60, 12 * 60, 127, null, null, true, true, true, true, true, true, true,
+            Instant.parse("2026-06-05T14:31:00Z"));
+        CommuteResponses.PathResponse outboundPath = path("finch", "union", "line-1-finch-union");
+        when(commutePathService.path("finch", "union")).thenReturn(outboundPath);
+        // Tonight's window misses weekday mornings; next Thursday night's runs to 9:00 AM Friday.
+        CommuteResponses.ServiceWindow tonight = new CommuteResponses.ServiceWindow(
+            OffsetDateTime.parse("2026-06-05T23:00:00-04:00"), OffsetDateTime.parse("2026-06-06T05:00:00-04:00"), false);
+        CommuteResponses.ServiceWindow nextThursdayNight = new CommuteResponses.ServiceWindow(
+            OffsetDateTime.parse("2026-06-11T23:00:00-04:00"), OffsetDateTime.parse("2026-06-12T09:00:00-04:00"), false);
+        when(commuteImpactService.impactFor(outboundPath)).thenReturn(impactWith(new CommuteResponses.MatchedImpactResponse(
+            "closure-friday", "planned-closure", "planned", "planned", "Planned Closure",
+            "line-1", "1", "Finch to Union", null, null, "TTC Service Advisory",
+            List.of("line-1-finch-union"), List.of(), tonight.startsAt(), tonight.startsAt(),
+            "Tonight", "upcoming", tonight.startsAt())
+            .withServiceWindows(new CommuteResponses.ServiceWindows(List.of(tonight, nextThursdayNight), true))));
+
+        // Tonight is within 24 hours, but it misses the trip: no "tonight" reminder, only an announcement of next week's.
+        assertThat(planner.candidatesFor(commute, PlannedClosureFollowUpPolicy.SMART)).singleElement().satisfies(candidate -> {
+            assertThat(candidate.reminderBucket()).isEqualTo("on-change");
+            assertThat(candidate.notification().sourceEventAt()).isEqualTo(nextThursdayNight.startsAt().toInstant());
+            assertThat(candidate.deliveryAllowed()).isTrue();
+        });
+    }
+
+    @Test
     void wholeRouteMatchingAllowsAnImpactOnAnySavedRouteSegment() {
         SavedCommuteEntity commute = SavedCommuteEntity.create(
             "commute_5",

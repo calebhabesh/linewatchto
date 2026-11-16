@@ -41,6 +41,10 @@ class TtcClosureProjectorTest {
         // The listed Thursday night is the last published night, so it says when regular service returns.
         assertThat(upcoming.canonicalClosure().lastWindowEnd()).isEqualTo(start.plusDays(2).plusHours(3));
         assertThat(upcoming.activeNow()).isFalse();
+        // Commute matching checks every listed night against trip times.
+        assertThat(upcoming.canonicalClosure().upcomingWindows())
+            .extracting(PlannedClosureDto.Window::startsAt)
+            .containsExactly(start, start.plusDays(1), start.plusDays(2));
         ClosureProjection active = projector.project(List.of(parent), periods, List.of(), start.plusHours(1)).getFirst();
         assertThat(active.canonicalClosure().windowDates()).isEqualTo(upcoming.canonicalClosure().windowDates());
         assertThat(active.canonicalClosure().activeWindowLabel()).contains("Tue, Sep 29").contains("Wed, Sep 30");
@@ -61,6 +65,9 @@ class TtcClosureProjectorTest {
         PlannedClosureDto dto = projector.project(List.of(parent), periods, List.of(), start.minusHours(10)).getFirst().canonicalClosure();
         assertThat(dto.windowDates()).isEqualTo("Mon, Sep 28 – Thu, Oct 1");
         assertThat(dto.lastWindowEnd()).isNull();
+        // The listed nights still reach commute matching; the missing lastWindowEnd marks the list partial.
+        assertThat(dto.upcomingWindows()).extracting(PlannedClosureDto.Window::startsAt)
+            .containsExactly(start, start.plusDays(1));
     }
 
     @Test

@@ -710,9 +710,8 @@ describe("network-scoped regional dashboard", () => {
   it("draws the shared commute preview, with Union's endpoints in its pill shape", () => {
     const commuteOverlaySource = readFileSync(new URL("../src/components/map-overlays/CommutePreviewOverlays.tsx", import.meta.url), "utf8");
     assert.match(regionalLineAlertsSource, /const pill = regionalStationPill\(geometry, dot\.id\);/);
-    // A pill's flash swells its outline instead of scaling the whole pill.
-    assert.match(commuteOverlaySource, /station-commute-green-flash station-commute-green-flash--pill/);
-    assert.match(globalsCss, /@keyframes map-commute-pill-flash/);
+    // A pill's blip outlines it at a fixed distance instead of scaling the whole pill.
+    assert.match(commuteOverlaySource, /outsetStationPill\(endpoint\.pill, PILL_BLIP_OUTSET \* unit\)/);
   });
 
   it("selects the regional alert under the pointer", () => {

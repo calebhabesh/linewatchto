@@ -66,6 +66,44 @@ class CommuteImpactServiceTest {
     }
 
     @Test
+    void upcomingAdvisoryCarriesItsListedWindowsForTripTimeChecksButKeepsThemOutOfTheResponse() throws Exception {
+        List<AlertDashboardService.PlannedClosureDto.Window> nights = List.of(
+            new AlertDashboardService.PlannedClosureDto.Window(
+                OffsetDateTime.parse("2026-11-17T04:00:00Z"), OffsetDateTime.parse("2026-11-17T10:30:00Z")),
+            new AlertDashboardService.PlannedClosureDto.Window(
+                OffsetDateTime.parse("2026-11-18T04:00:00Z"), OffsetDateTime.parse("2026-11-18T10:30:00Z")));
+        AlertDashboardService.PlannedClosureDto upcoming = new AlertDashboardService.PlannedClosureDto(
+            "nightly", "line-1", "1", "Planned Closure", "Tonight", "York Mills to Eglinton", "Both directions",
+            "Nightly closure.", null, null, List.of("affected"), true, "Synthetic fixture", null, null,
+            false, "upcoming", true, null, null, null, nights.getFirst().startsAt(), nights.getFirst().endsAt(),
+            "Tonight", "11:00 PM - 5:30 AM", "Mon, Nov 16 - Tue, Nov 17", "Planned Closure", "bidirectional")
+            .withUpcomingWindows(nights);
+        when(dashboardService.plannedClosures()).thenReturn(List.of(upcoming));
+
+        CommuteResponses.MatchedImpactResponse match = service.impactFor(path(List.of("york-mills", "eglinton"), List.of("affected")))
+            .matchedImpacts().getFirst();
+
+        assertThat(match.status()).isEqualTo("planned");
+        assertThat(match.serviceWindows().windows()).extracting(CommuteResponses.ServiceWindow::startsAt)
+            .containsExactly(nights.get(0).startsAt(), nights.get(1).startsAt());
+        assertThat(match.serviceWindows().windows()).noneMatch(CommuteResponses.ServiceWindow::datesOnly);
+        // No lastWindowEnd: the source may list more nights later.
+        assertThat(match.serviceWindows().complete()).isFalse();
+        String json = JsonMapper.builder().build().writeValueAsString(match);
+        assertThat(json).doesNotContain("serviceWindows").contains("\"outsideTripTimes\":false");
+
+        // What is in effect now is judged as current service, never by its windows.
+        when(dashboardService.plannedClosures()).thenReturn(List.of(new AlertDashboardService.PlannedClosureDto(
+            "nightly", "line-1", "1", "Planned Closure", "Tonight", "York Mills to Eglinton", "Both directions",
+            "Nightly closure.", null, null, List.of("affected"), true, "Synthetic fixture", null, null,
+            true, "active-now", true, nights.getFirst().startsAt(), nights.getFirst().endsAt(), "Tonight", null, null,
+            null, "11:00 PM - 5:30 AM", "Mon, Nov 16 - Tue, Nov 17", "Planned Closure", "bidirectional")
+            .withUpcomingWindows(nights)));
+        assertThat(service.impactFor(path(List.of("york-mills", "eglinton"), List.of("affected")))
+            .matchedImpacts().getFirst().serviceWindows()).isNull();
+    }
+
+    @Test
     void returnsClearImpactWhenNoDashboardImpactsMatchThePath() {
         when(dashboardService.activeAlerts()).thenReturn(List.of());
         when(dashboardService.delays()).thenReturn(List.of());

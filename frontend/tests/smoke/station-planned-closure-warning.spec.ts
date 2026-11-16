@@ -27,7 +27,7 @@ test("TTC station disruption warning includes a planned closure from preview geo
   await expect(panel).toBeVisible();
   const summary = panel.locator("[data-station-disruption-warning]");
   await expect(summary).toContainText("Schedule May Be Disrupted");
-  await expect(summary).toHaveAttribute("aria-label", /Active Closure/);
+  await expect(summary).toHaveAttribute("aria-label", /Planned Closure · In Effect/);
   await expect(summary.locator(".station-disruption-badge").first()).toBeVisible();
 });
 

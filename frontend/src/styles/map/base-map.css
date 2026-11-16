@@ -425,7 +425,6 @@
 .mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .delay-static-path,
 .mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-ring:not(.map-selection-attention),
 .mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-dot-red-glow,
-.mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-commute-green-flash,
 .mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .commute-path-preview-glow,
 .mobile-performance-mode :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .commute-path-preview-path {
   animation-play-state: paused !important;
@@ -458,7 +457,6 @@
   .station-impact-dot-red-glow,
   .station-impact-dot-red-beacon,
   .station-selection-flash,
-  .station-commute-green-flash,
   .commute-path-preview-glow
 ) {
   filter: none !important;
@@ -508,7 +506,6 @@
 .mobile-performance-mode [data-map-camera-moving="true"] .delay-static-path,
 .mobile-performance-mode [data-map-camera-moving="true"] .station-impact-ring:not(.map-selection-attention),
 .mobile-performance-mode [data-map-camera-moving="true"] .station-impact-dot-red-glow,
-.mobile-performance-mode [data-map-camera-moving="true"] .station-commute-green-flash,
 .mobile-performance-mode [data-map-camera-moving="true"] .commute-path-preview-glow,
 .mobile-performance-mode [data-map-camera-moving="true"] .commute-path-preview-path {
   animation-play-state: paused !important;

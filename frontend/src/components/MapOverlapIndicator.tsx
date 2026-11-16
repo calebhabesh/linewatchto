@@ -22,6 +22,7 @@ import {
   OVERLAP_INDICATOR_SCALE,
   type MapBadgeGlyph,
 } from "./map-overlap-svg";
+import { PLANNED_CLOSURE_IN_EFFECT } from "../app/alert-categories";
 
 const restoringIndicatorFocus = new WeakSet<SVGGElement>();
 
@@ -41,7 +42,7 @@ function labelForImpactKind(kind: MapImpactKind): string {
     case "suspension":
       return "Suspension";
     case "planned-closure":
-      return "Active Closure";
+      return PLANNED_CLOSURE_IN_EFFECT;
     case "delay":
       return "Delay";
     case "reduced-speed-zone":

@@ -7,9 +7,8 @@ import { plannedAdvisoryEffect, serviceEffectLabel } from "../app/alert-categori
 import { NightlyBadge, PlannedEffectBadge } from "./PlannedEffectBadge";
 import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
-import type { AccountCommutePathPreview } from "../app/commute-data";
 import { skipNextImpactCardGlow, useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { MetadataGrid, CardSource, CommutePathPreviewCardBanner, ImpactCardShell, formatClosureScheduleValue, replacementServiceRows } from "./ImpactCardFields";
+import { MetadataGrid, CardSource, ImpactCardShell, formatClosureScheduleValue, replacementServiceRows } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -37,8 +36,6 @@ interface Props {
   externalQuery?: string;
   externalSort?: ImpactListSort;
   showImpactTypeIndicator?: boolean;
-  commutePathPreview?: AccountCommutePathPreview | null;
-  onClearCommutePathPreview?: () => void;
   mapActionVariant?: "icon-only" | "labeled";
 }
 
@@ -57,8 +54,6 @@ export function PlannedClosuresPanel({
   externalQuery,
   externalSort,
   showImpactTypeIndicator = false,
-  commutePathPreview,
-  onClearCommutePathPreview,
   mapActionVariant,
 }: Props) {
   const dashboard = useDashboardData();
@@ -192,6 +187,7 @@ export function PlannedClosuresPanel({
                 }`}
               >
                 <ImpactCardShell
+                  impactId={closure.id}
                   lineId={closure.lineId}
                   lineNumber={closure.lineNumber}
                   title={closure.title}
@@ -295,12 +291,6 @@ export function PlannedClosuresPanel({
                   />
                 </div>
 
-                {isActive && commutePathPreview ? (
-                  <CommutePathPreviewCardBanner
-                    commutePathPreview={commutePathPreview}
-                    onClearCommutePathPreview={onClearCommutePathPreview}
-                  />
-                ) : null}
               </div>
             );
           })

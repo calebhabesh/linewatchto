@@ -298,7 +298,7 @@ describe("stylesheet-graph helper", () => {
     assert.match(commutePreviewContent, /\.commute-path-preview-glow/);
     assert.match(commutePreviewContent, /\.commute-path-preview-path/);
     assert.match(commutePreviewContent, /\.commute-path-preview-endpoint/);
-    assert.match(commutePreviewContent, /@keyframes map-commute-pill-flash/);
+    assert.match(commutePreviewContent, /\.station-endpoint-blip/);
     assert.match(commutePreviewContent, /@keyframes commute-preview-chip-enter/);
     assert.match(commutePreviewContent, /\.commute-path-preview-chip/);
     assert.match(commutePreviewContent, /\.commute-path-preview-chip\.commute-path-preview-embedded/);
@@ -715,8 +715,6 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.commute-station-line-chevron/);
     assert.match(content, /mini-search-expansion-slide-in/);
     assert.match(content, /mini-search-list-slide-in/);
-    assert.match(content, /\.station-commute-green-flash/);
-    assert.match(content, /station-commute-green-flash-anim/);
     assert.match(content, /\.saved-commute-return-toggle/);
     assert.match(content, /\.saved-commute-customize-toggle/);
     assert.match(content, /\.saved-commute-notification-summary/);

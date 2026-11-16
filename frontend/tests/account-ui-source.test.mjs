@@ -237,7 +237,14 @@ describe("account UI source", () => {
   });
 
   it("collapses saved-commute disruptions behind alert-type summary chips", () => {
-    assert.match(savedCommuteCardSource, /<details[\s\S]*?className="saved-commute-impact-disclosure"/);
+    assert.match(savedCommuteCardSource, /<details[\s\S]*?className="saved-commute-impact-disclosure commute-disruptions"/);
+    // The chips preview the list while it is closed; open, the rows replace them.
+    // Their row folds on the list's curve (and takes the gap above it), so the
+    // card never jumps shorter before the list grows.
+    assert.match(globalCss, /\.saved-commute-impact-disclosure\[open\]:not\(\.collapsing\) \.saved-commute-impact-summary-chips-row\s*\{(?=[^}]*grid-template-rows:\s*0fr;)(?=[^}]*margin-top:\s*0;)(?=[^}]*visibility:\s*hidden;)[^}]*\}/s);
+    assert.match(globalCss, /\.saved-commute-impact-summary-chips-row\s*\{(?=[^}]*margin-top:\s*var\(--impact-summary-row-gap)(?=[^}]*transition:[^}]*grid-template-rows 240ms)[^}]*\}/s);
+    assert.match(globalCss, /\.saved-commute-impact-summary\s*\{[^}]*gap:\s*0 0\.75rem;/s);
+    assert.doesNotMatch(globalCss, /\.saved-commute-impact-summary-chips\s*\{[^}]*display:\s*none;/s);
     assert.match(savedCommuteCardSource, /saved-commute-impact-summary-chips/);
     assert.match(savedCommuteCardSource, /summarizeMatchedImpacts/);
     assert.match(savedCommuteCardSource, /<summary className="saved-commute-impact-summary">/);
@@ -262,11 +269,11 @@ describe("account UI source", () => {
     assert.match(globalCss, /\.saved-commute-impact-summary-action\s*\{(?=[^}]*align-self:\s*flex-start;)(?=[^}]*justify-self:\s*end;)[^}]*\}/s);
     assert.match(
       globalCss,
-      /@media \(max-width:\s*30rem\)\s*\{(?=[\s\S]*?\.saved-commute-impact-summary-heading strong\s*\{[^}]*white-space:\s*nowrap;)(?=[\s\S]*?\.saved-commute-impact-summary-action\s*\{[^}]*grid-row:\s*1;)(?=[\s\S]*?\.saved-commute-impact-summary-chips\s*\{[^}]*grid-column:\s*1 \/ -1;)/s,
+      /@media \(max-width:\s*30rem\)\s*\{(?=[\s\S]*?\.saved-commute-impact-summary-heading strong\s*\{[^}]*white-space:\s*nowrap;)(?=[\s\S]*?\.saved-commute-impact-summary-action\s*\{[^}]*grid-row:\s*1;)(?=[\s\S]*?\.saved-commute-impact-summary-chips-row\s*\{[^}]*grid-column:\s*1 \/ -1;)/s,
     );
     assert.match(
       globalCss,
-      /@media \(max-width:\s*23\.5rem\)\s*\{(?=[\s\S]*?\.saved-commute-impact-summary-heading strong\s*\{[^}]*font-size:\s*0\.76rem;)(?=[\s\S]*?\.saved-commute-impact-summary-action\s*\{[^}]*font-size:\s*0\.52rem;)/s,
+      /@media \(max-width:\s*23\.5rem\)\s*\{(?=[\s\S]*?\.saved-commute-impact-summary-heading strong\s*\{[^}]*font-size:\s*0\.85rem;)(?=[\s\S]*?\.saved-commute-impact-summary-action\s*\{[^}]*font-size:\s*0\.52rem;)/s,
     );
     assert.match(globalCss, /\.dark \.saved-commute-impact-summary-chip\.kind-delay\s*\{(?=[^}]*#FEEC41)(?=[^}]*rgba\(254, 236, 65, 0\.14\))[^}]*\}/s);
     assert.match(savedCommuteCardSource, /selectedLeg\.impact\.matchedImpacts\.length === 0 \? \(/);
@@ -298,17 +305,15 @@ describe("account UI source", () => {
     assert.match(savedCommuteCardSource, /With Impacts/);
     assert.match(savedCommuteCardSource, /Extra Time/);
     assert.match(savedCommuteCardSource, /Confidence/);
-    assert.match(savedCommuteCardSource, /Major Disruption on Route — Travel Time Not Reliable/);
+    assert.match(savedCommuteCardSource, /routeConditionVerdict\(reportedRouteCondition\(leg\.impact\.matchedImpacts\)\)/);
+    assert.doesNotMatch(savedCommuteCardSource, /Usually <b/);
+    assert.doesNotMatch(savedCommuteCardSource, /Not Reliable/);
     assert.match(savedCommuteCardSource, /function travelTimeSeverity/);
     assert.match(savedCommuteCardSource, /data-travel-time-severity/);
     assert.match(globalCss, /\.saved-commute-time-estimate/);
     assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable/);
-    assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable p\s*\{(?=[^}]*justify-items:\s*center)(?=[^}]*padding:\s*0\.75rem 0\.5rem 0)(?=[^}]*text-align:\s*center)[^}]*\}/s);
-    assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable \.saved-commute-time-verdict\s*\{[^}]*text-align:\s*center;[^}]*width:\s*100%;/s);
-    assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable p > strong,[\s\S]*?\.saved-commute-time-estimate\.unreliable p > span\s*\{(?=[^}]*font-size:\s*1rem !important)(?=[^}]*font-weight:\s*850)(?=[^}]*text-transform:\s*none !important)[^}]*\}/s);
-    assert.match(savedCommuteCardSource, /saved-commute-time-status-value/);
-    assert.match(globalCss, /\.dark \.saved-commute-time-estimate \.saved-commute-time-status-value,[\s\S]*?color:\s*#fff;/s);
-    assert.match(globalCss, /\.saved-commute-time-estimate \.saved-commute-time-status-value\s*\{[^}]*text-transform:\s*none;/s);
+    // No estimate: the estimate grid (Typical | With Impacts); no separate status layout.
+    assert.doesNotMatch(globalCss, /\.saved-commute-time-(status|note|usual)\b/);
     assert.match(globalCss, /\.severity-good \.saved-commute-time-verdict/);
     assert.match(globalCss, /\.severity-decent \.saved-commute-time-verdict/);
     assert.match(globalCss, /\.severity-moderate \.saved-commute-time-verdict/);

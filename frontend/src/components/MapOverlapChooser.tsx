@@ -28,6 +28,7 @@ import { TransitLineBadge, transitLineName } from "./TransitLineBadge";
 import type { ChooserFollowAnchor, MapChooserFollower } from "./map-chooser-follow";
 import { OVERLAP_CHOOSER_MOBILE_BREAKPOINT } from "./map-chooser-layout";
 import type { OverlapChooserScreenLayout } from "./map-chooser-placement";
+import { PLANNED_CLOSURE_IN_EFFECT } from "../app/alert-categories";
 
 /**
  * Positions a chooser portal at its solved layout and hands it to the map's
@@ -78,7 +79,7 @@ function impactKindLabel(kind: MapImpactKind): string {
     case "suspension":
       return "Suspension";
     case "planned-closure":
-      return "Active Closure";
+      return PLANNED_CLOSURE_IN_EFFECT;
     case "delay":
       return "Delay";
     case "reduced-speed-zone":

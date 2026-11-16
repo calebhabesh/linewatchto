@@ -13,7 +13,6 @@
 
 .linewatch-shell.mobile-performance-mode .station-impact-ring,
 .linewatch-shell.mobile-performance-mode .station-impact-dot-red-glow,
-.linewatch-shell.mobile-performance-mode .station-commute-green-flash,
 .linewatch-shell.mobile-performance-mode .commute-path-preview-glow {
   animation: none !important;
   filter: none !important;

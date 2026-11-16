@@ -83,8 +83,17 @@ test("desktop Current Service badges open their matching impact panels", async (
   await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
 
   const sidebar = page.locator("#desktop-sidebar-container");
-  const plannedClosureBadge = sidebar.locator(".desktop-status-badge-incident-button").filter({ hasText: "Planned Advisory" });
+  const plannedClosureBadge = sidebar.locator(".upcoming-advisory");
   await expect(plannedClosureBadge).toBeVisible();
+  // Hovering a Current Service card raises the alert it selects on the map, then lets go.
+  const raised = page.locator('[data-map-hover-owner^="panel:"]');
+  const incident = sidebar.locator(".desktop-status-incident-row").first();
+  await incident.hover();
+  await expect(raised.first()).toBeAttached();
+  await plannedClosureBadge.hover();
+  await expect(page.locator('[data-map-hover-owner="panel:planned-closure:stub-upcoming-closure-line-1"]').first()).toBeAttached();
+  await page.mouse.move(2, 2);
+  await expect(raised).toHaveCount(0);
   await plannedClosureBadge.click();
   await expect(page.getByRole("heading", { name: "Planned Advisories", exact: true })).toBeVisible();
 

@@ -82,6 +82,8 @@ export interface MapHoverController {
   setOutlineSource(plane: MapOverlayPlane | null, pathsByImpact: Map<string, string[]>): void;
   /** A hovered chooser row raises its alert as a map hover would; null ends it. */
   setChooserHover(impact: ImpactIdentity | null): void;
+  /** A hovered or focused side panel row (Current Service's Upcoming) raises its alert; null ends it. */
+  setPanelHover(impact: ImpactIdentity | null): void;
   /**
    * Group previews (an open chooser with no row hovered, a hovered or focused
    * badge) outline the union of their alerts and light their station rings,
@@ -97,7 +99,8 @@ export interface MapHoverController {
 
 /**
  * Both maps' hover: one alert hovered on the map, by pointer or keyboard
- * focus, or as a chooser row, is raised above the others with its outline.
+ * focus, as a chooser row, or as a side panel row, is raised above the others
+ * with its outline.
  * Hover state is written straight to the DOM (`setMapImpactHovered`), so it
  * shows before the next paint without rendering the map, and survives the
  * map's own re-renders. See map-renderer-parity.md, rule 8.
@@ -106,6 +109,7 @@ export function installMapHoverController(root: HTMLElement, options: MapHoverCo
   let pointerImpact: ImpactIdentity | null = null;
   let focusImpact: ImpactIdentity | null = null;
   let chooserImpact: ImpactIdentity | null = null;
+  let panelImpact: ImpactIdentity | null = null;
   const previewed = new Set<string>();
   let plane: MapOverlayPlane | null = null;
   let pathsByImpact = new Map<string, string[]>();
@@ -117,9 +121,11 @@ export function installMapHoverController(root: HTMLElement, options: MapHoverCo
   const apply = (impact: ImpactIdentity) => {
     const owner: MapImpactHoverIdentity | null = sameImpact(chooserImpact, impact)
       ? { ...impact, activationKey: `chooser:${impactKey(impact)}` }
-      : sameImpact(mapImpact(), impact)
-        ? { ...impact, activationKey: `map:${impactKey(impact)}` }
-        : null;
+      : sameImpact(panelImpact, impact)
+        ? { ...impact, activationKey: `panel:${impactKey(impact)}` }
+        : sameImpact(mapImpact(), impact)
+          ? { ...impact, activationKey: `map:${impactKey(impact)}` }
+          : null;
     setMapImpactHovered(root, owner ?? impact, Boolean(owner));
     if (!owner && previewed.has(impactKey(impact))) {
       setMapImpactHovered(root, impact, true, "station-rings");
@@ -184,7 +190,7 @@ export function installMapHoverController(root: HTMLElement, options: MapHoverCo
       const separator = key.indexOf(":");
       apply({ kind: key.slice(0, separator) as MapImpactKind, id: key.slice(separator + 1) });
     }
-    for (const owner of [mapImpact(), chooserImpact]) {
+    for (const owner of [mapImpact(), chooserImpact, panelImpact]) {
       if (owner) apply(owner);
     }
   };
@@ -201,6 +207,12 @@ export function installMapHoverController(root: HTMLElement, options: MapHoverCo
       if (previous) apply(previous);
       if (chooserImpact) apply(chooserImpact);
     },
+    setPanelHover(impact) {
+      const previous = panelImpact;
+      panelImpact = impact ? { kind: impact.kind, id: impact.id } : null;
+      if (previous) apply(previous);
+      if (panelImpact) apply(panelImpact);
+    },
     setGroupPreview(impacts, isPreviewed) {
       for (const impact of impacts) {
         if (isPreviewed) previewed.add(impactKey(impact));
@@ -214,6 +226,7 @@ export function installMapHoverController(root: HTMLElement, options: MapHoverCo
       pointerImpact = null;
       focusImpact = null;
       chooserImpact = null;
+      panelImpact = null;
       previewed.clear();
       clearMapImpactHover(root);
       renderOutline();

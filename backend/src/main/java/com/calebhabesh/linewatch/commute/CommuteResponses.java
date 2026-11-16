@@ -71,6 +71,19 @@ public final class CommuteResponses {
         ImpactResponse impact
     ) {}
 
+    /**
+     * One window a planned closure runs in: datesOnly means whole service days from startsAt's to
+     * endsAt's (exclusive); a null endsAt runs on with no stated end.
+     */
+    public record ServiceWindow(OffsetDateTime startsAt, OffsetDateTime endsAt, boolean datesOnly) {}
+
+    /** The windows an upcoming closure's source lists; complete when they cover every date it names. */
+    public record ServiceWindows(List<ServiceWindow> windows, boolean complete) {
+        public ServiceWindows {
+            windows = windows == null ? List.of() : List.copyOf(windows);
+        }
+    }
+
     public record MatchedImpactResponse(
         String id,
         String kind,
@@ -99,8 +112,37 @@ public final class CommuteResponses {
         @com.fasterxml.jackson.annotation.JsonIgnore OffsetDateTime notificationServiceEndAt,
         String serviceEffect,
         String relatedPlannedClosureId,
-        String displayLocation
+        String displayLocation,
+        // The windows an upcoming planned closure still runs in (SavedCommuteTripTimes); null when none are known.
+        @com.fasterxml.jackson.annotation.JsonIgnore ServiceWindows serviceWindows,
+        // Upcoming planned work whose complete window list misses the leg's trip times (SavedCommuteTripTimes.outside).
+        boolean outsideTripTimes
     ) {
+        public MatchedImpactResponse(
+            String id, String kind, String status, String severity, String title, String lineId,
+            String lineNumber, String location, String displayDirection, String description, String source,
+            List<String> matchedSegmentIds, List<String> matchedStationIds, OffsetDateTime startedAt,
+            OffsetDateTime updatedAt, String window, String timingStatus, OffsetDateTime eventStartAt,
+            String closureHours, String closureDates, boolean ignoredByRule, String notificationTitle,
+            String notificationCause, boolean notificationShuttle, OffsetDateTime notificationServiceEndAt,
+            String serviceEffect, String relatedPlannedClosureId, String displayLocation
+        ) {
+            this(id, kind, status, severity, title, lineId, lineNumber, location, displayDirection, description, source, matchedSegmentIds, matchedStationIds, startedAt, updatedAt, window, timingStatus, eventStartAt, closureHours, closureDates, ignoredByRule, notificationTitle, notificationCause, notificationShuttle, notificationServiceEndAt, serviceEffect, relatedPlannedClosureId, displayLocation, null, false);
+        }
+
+        public MatchedImpactResponse withServiceWindows(ServiceWindows windows) {
+            return new MatchedImpactResponse(id, kind, status, severity, title, lineId, lineNumber, location, displayDirection, description, source, matchedSegmentIds, matchedStationIds, startedAt, updatedAt, window, timingStatus, eventStartAt, closureHours, closureDates, ignoredByRule, notificationTitle, notificationCause, notificationShuttle, notificationServiceEndAt, serviceEffect, relatedPlannedClosureId, displayLocation, windows, outsideTripTimes);
+        }
+
+        /** The occurrence a commute push is about: the first window meeting the leg's trip times. */
+        public MatchedImpactResponse withEventStartAt(OffsetDateTime value) {
+            return new MatchedImpactResponse(id, kind, status, severity, title, lineId, lineNumber, location, displayDirection, description, source, matchedSegmentIds, matchedStationIds, startedAt, updatedAt, window, timingStatus, value, closureHours, closureDates, ignoredByRule, notificationTitle, notificationCause, notificationShuttle, notificationServiceEndAt, serviceEffect, relatedPlannedClosureId, displayLocation, serviceWindows, outsideTripTimes);
+        }
+
+        public MatchedImpactResponse withOutsideTripTimes(boolean value) {
+            return new MatchedImpactResponse(id, kind, status, severity, title, lineId, lineNumber, location, displayDirection, description, source, matchedSegmentIds, matchedStationIds, startedAt, updatedAt, window, timingStatus, eventStartAt, closureHours, closureDates, ignoredByRule, notificationTitle, notificationCause, notificationShuttle, notificationServiceEndAt, serviceEffect, relatedPlannedClosureId, displayLocation, serviceWindows, value);
+        }
+
         public MatchedImpactResponse(
             String id, String kind, String status, String severity, String title, String lineId,
             String lineNumber, String location, String displayDirection, String description, String source,
@@ -114,7 +156,7 @@ public final class CommuteResponses {
         }
 
         public MatchedImpactResponse withDisplayLocation(String value) {
-            return new MatchedImpactResponse(id, kind, status, severity, title, lineId, lineNumber, location, displayDirection, description, source, matchedSegmentIds, matchedStationIds, startedAt, updatedAt, window, timingStatus, eventStartAt, closureHours, closureDates, ignoredByRule, notificationTitle, notificationCause, notificationShuttle, notificationServiceEndAt, serviceEffect, relatedPlannedClosureId, value);
+            return new MatchedImpactResponse(id, kind, status, severity, title, lineId, lineNumber, location, displayDirection, description, source, matchedSegmentIds, matchedStationIds, startedAt, updatedAt, window, timingStatus, eventStartAt, closureHours, closureDates, ignoredByRule, notificationTitle, notificationCause, notificationShuttle, notificationServiceEndAt, serviceEffect, relatedPlannedClosureId, value, serviceWindows, outsideTripTimes);
         }
 
         public MatchedImpactResponse(
@@ -148,7 +190,7 @@ public final class CommuteResponses {
         }
 
         public MatchedImpactResponse withServiceEffect(String effect, String plannedId) {
-            return new MatchedImpactResponse(id, kind, status, severity, title, lineId, lineNumber, location, displayDirection, description, source, matchedSegmentIds, matchedStationIds, startedAt, updatedAt, window, timingStatus, eventStartAt, closureHours, closureDates, ignoredByRule, notificationTitle, notificationCause, notificationShuttle, notificationServiceEndAt, effect, plannedId, displayLocation);
+            return new MatchedImpactResponse(id, kind, status, severity, title, lineId, lineNumber, location, displayDirection, description, source, matchedSegmentIds, matchedStationIds, startedAt, updatedAt, window, timingStatus, eventStartAt, closureHours, closureDates, ignoredByRule, notificationTitle, notificationCause, notificationShuttle, notificationServiceEndAt, effect, plannedId, displayLocation, serviceWindows, outsideTripTimes);
         }
 
         public MatchedImpactResponse(
@@ -339,7 +381,7 @@ public final class CommuteResponses {
                 notificationTitle,
                 notificationCause,
                 notificationShuttle,
-                notificationServiceEndAt, serviceEffect, relatedPlannedClosureId, displayLocation
+                notificationServiceEndAt, serviceEffect, relatedPlannedClosureId, displayLocation, serviceWindows, outsideTripTimes
             );
         }
     }

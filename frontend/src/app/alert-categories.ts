@@ -1,5 +1,13 @@
 import type { ImpactKind, IncidentRiderDetails } from "./linewatch-data.ts";
 
+/** The canonical name of a planned closure in effect, on every card, panel, chooser and list. */
+export const PLANNED_CLOSURE_IN_EFFECT = "Planned Closure · In Effect";
+
+/** "1 Planned Closure · In Effect", "2 Planned Closures · In Effect". */
+export function plannedClosuresInEffectCountLabel(count: number) {
+  return `${count} Planned Closure${count === 1 ? "" : "s"} · In Effect`;
+}
+
 /** Display buckets; persisted preferences and route keys remain compatible. */
 export const ALERT_CATEGORIES: Record<ImpactKind, { label: string; singular: string }> = {
   suspension: { label: "Suspensions", singular: "Suspension" },

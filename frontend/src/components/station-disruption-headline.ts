@@ -9,7 +9,7 @@ const TONE_PRIORITY: Record<StationDisruptionTone, number> = {
 
 type StationDisruptionGroup<T> = {
   key: string;
-  /** Distinct classifications in the group, e.g. "Active Closure, Suspension". */
+  /** Distinct classifications in the group, e.g. "Planned Closure · In Effect, Suspension". */
   label: string;
   tone: StationDisruptionTone;
   items: T[];

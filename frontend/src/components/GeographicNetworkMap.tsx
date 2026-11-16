@@ -1,6 +1,6 @@
 "use client";
 
-import { CommuteRouteLabel } from "./CommuteRouteLabel";
+import { CommutePreviewChipText } from "./CommuteRouteLabel";
 import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo, type RefObject } from "react";
 import { Map as MapLibreMap, AttributionControl, getVersion, setWorkerUrl, type VectorTileSource } from "maplibre-gl";
 import { installTilePrefetch, type PrefetchSource } from "./map-tile-prefetch";
@@ -4046,8 +4046,8 @@ export function GeographicNetworkMap({
           className="geographic-commute-preview-banner absolute bottom-16 sm:bottom-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-4 py-2 rounded-xl bg-slate-900/90 dark:bg-slate-800/90 text-white text-xs font-semibold shadow-xl backdrop-blur-xs border-2 border-blue-500/80"
         >
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-            <span><span className="commute-path-preview-chip__caption">Viewing{commutePathPreview.chipLabel ? ` ${commutePathPreview.chipLabel}` : null}<span className="commute-path-preview-chip__colon">{commutePathPreview.chipLabel ? ":" : null}</span></span>{" "}<strong><CommuteRouteLabel label={commutePathPreview.routeLabel} /></strong></span>
+            <span className="w-2 h-2 rounded-full bg-cyan-400" />
+            <span><CommutePreviewChipText preview={commutePathPreview} /></span>
           </span>
           {onClearCommutePathPreview && (
             <button

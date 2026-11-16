@@ -16,8 +16,7 @@
  * .commute-station-stations-column, .commute-station-stations-scroll,
  * .commute-station-stations-scroll-content, .commute-station-line-chevron,
  * @keyframes mini-search-expansion-slide-in, @keyframes mini-search-list-slide-in),
- * station selection green flash beacon (.station-commute-green-flash,
- * @keyframes station-commute-green-flash-anim), return toggle (.saved-commute-return-toggle,
+ * return toggle (.saved-commute-return-toggle,
  * .saved-commute-customize-toggle,
  * .saved-commute-loading-icon, @keyframes saved-commute-spin), notification summary card
  * and rule editor (.saved-commute-notification-summary, .saved-commute-notification-rule,
@@ -1631,29 +1630,6 @@
   transform: translateX(4px);
 }
 
-@keyframes station-commute-green-flash-anim {
-  0% {
-    transform: scale(0.2);
-    opacity: 0;
-    filter: drop-shadow(0 0 0px transparent);
-  }
-  100% {
-    transform: scale(1.8);
-    opacity: 0.9;
-    filter: drop-shadow(0 0 8px #86efac);
-  }
-}
-
-.station-commute-green-flash {
-  fill: rgba(134, 239, 172, 0.85); /* brighter green-300 fill pulse */
-  stroke: #86efac; /* bright green-300 stroke */
-  stroke-width: calc(2px * var(--map-overlay-unit, 1)); /* clean, crisp outline weight */
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: station-commute-green-flash-anim 1.2s infinite alternate ease-in-out;
-  animation-delay: var(--map-pulse-offset);
-}
-
 /* ==========================================================================
    Saved Commute Customize Toggle
    ========================================================================== */
@@ -1726,16 +1702,6 @@
    Consolidated Responsive & Motion Overrides
    ========================================================================== */
 
-@media (max-width: 767px) {
-  .station-commute-green-flash {
-    fill: #4ade80 !important;
-    opacity: 1;
-    stroke: #dcfce7;
-    stroke-width: calc(3.5px * var(--map-overlay-unit, 1)) !important;
-    transform: scale(1.4);
-  }
-}
-
 @media (max-width: 30rem) {
   .saved-commute-notification-segmented {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1763,21 +1729,5 @@
 
   .saved-commute-schedule-copy .saved-commute-route-label {
     justify-content: center;
-  }
-}
-
-.motion-paused .station-commute-green-flash {
-  animation: none;
-  filter: none;
-  opacity: 0.95;
-  transform: scale(1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .station-commute-green-flash {
-    animation: none !important;
-    filter: none;
-    opacity: 0.95;
-    transform: scale(1);
   }
 }

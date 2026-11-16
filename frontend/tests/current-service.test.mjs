@@ -481,7 +481,6 @@ test("sub-badges and surface routes use flex alignment with safe wrapping", () =
   assert.match(currentServiceStyles, /\.current-service-routes\s*\{[^}]*align-self:\s*center;[^}]*flex-wrap:\s*wrap;[^}]*justify-content:\s*center;/s);
   assert.doesNotMatch(currentServiceStyles + desktopChromeStyles, /\.current-service-route\s*\{[^}]*width:\s*100%/s);
   assert.doesNotMatch(desktopChromeStyles, /\.current-service-route\b/);
-  assert.match(currentServiceStyles, /\.current-service-planned-pill\s*\{[^}]*white-space:\s*nowrap;/s);
   assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*padding-left:\s*0;/s);
   assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*flex-direction:\s*row;/s);
   assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*flex-wrap:\s*wrap;/s);
@@ -490,8 +489,6 @@ test("sub-badges and surface routes use flex alignment with safe wrapping", () =
   assert.match(desktopChromeStyles, /\.desktop-status-sub-badges\s*\{[^}]*flex-direction:\s*row;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-sub-badges\s*\{[^}]*flex-wrap:\s*wrap;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-sub-badges\s*\{[^}]*margin-top:\s*5px;/s);
-  assert.match(desktopChromeStyles, /\.desktop-status-kicker-header\s*\{[^}]*margin-top:\s*-6px;/s);
-  assert.match(desktopChromeStyles, /\.desktop-status-kicker-header\s*\{[^}]*margin-bottom:\s*-2px;/s);
 
   // Normal service text is white in dark mode
   assert.match(desktopChromeStyles, /\.dark \.desktop-status-remaining-status--normal strong\s*\{[^}]*color:\s*#ffffff;/s);
@@ -504,8 +501,6 @@ test("sub-badges and surface routes use flex alignment with safe wrapping", () =
   // Text ladder: Current Service 22px > section 20px > incident type 18px > stations 16px
   assert.match(desktopChromeStyles, /\.desktop-status-title\s*\{[^}]*font-size:\s*22px;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-section-title[^{]*\{[^}]*font-size:\s*15\.5px;/s);
-  assert.match(desktopChromeStyles, /\.desktop-status-rail-kicker\s*\{[^}]*font-size:\s*11px;/s);
-  assert.match(desktopChromeStyles, /\.desktop-status-rail-kicker\s*\{[^}]*opacity:\s*0\.75;/s);
 
   // Location leads; supporting direction and timing remain readable
   assert.match(desktopChromeStyles, /\.desktop-status-incident-title\s*\{[^}]*font-size:\s*18px;/s);
@@ -729,4 +724,25 @@ test("whole-line GO/UP impacts say Entire Line under their terminal span", async
   assert.equal(withIncidentDetails({ ...closure, displayDirection: "Towards Union Station" }, { wholeLine: false }).displayDirection,
     "Towards Union Station");
   assert.equal(withIncidentDetails(closure, undefined), closure);
+});
+
+test("planned windows that have not begun word replacement service in the future tense", async () => {
+  const { shuttleServiceLabel, replacementServiceLabel } = await import("../src/app/current-service.ts");
+  const now = Date.parse("2026-09-28T16:00:00Z");
+  const closure = impact("tonight", "1", {
+    severity: "planned", shuttle: true, replacementService: "go-bus",
+    nextWindowStart: "2026-09-29T03:00:00Z", nextWindowEnd: "2026-09-29T08:00:00Z",
+  });
+  const [upcoming] = currentServiceSummary(data({ plannedClosures: [closure] }), now).rows;
+  assert.equal(upcoming.notStarted, true);
+  assert.equal(incidentFacts(upcoming).service, "GO Buses Will Replace Trains");
+
+  const [started] = currentServiceSummary(data({ plannedClosures: [closure] }), Date.parse("2026-09-29T04:00:00Z")).rows;
+  assert.equal(started.notStarted, false);
+  assert.equal(incidentFacts(started).service, "GO Buses Replace Trains");
+
+  assert.equal(shuttleServiceLabel(), "Shuttle Buses Running");
+  assert.equal(shuttleServiceLabel(true), "Shuttle Buses Will Run");
+  assert.equal(replacementServiceLabel("bus", true), "Buses Will Replace Trains");
+  assert.equal(replacementServiceLabel(null, true), undefined);
 });

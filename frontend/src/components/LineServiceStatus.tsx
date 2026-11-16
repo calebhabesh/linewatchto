@@ -10,11 +10,11 @@ function LineAdvisoryCount({ count }: { count: number }) {
   );
 }
 
-export function LineAdvisorySummary({ count }: { count: number }) {
+/** Heads a line's Reduced Speed Zone pills; the pills carry their own count. */
+export function LineAdvisorySummary() {
   return (
     <div className="line-service-advisory-summary">
-      <span>Other Advisories</span>
-      <LineAdvisoryCount count={count} />
+      <span data-trunk-end="">Other Advisories</span>
     </div>
   );
 }

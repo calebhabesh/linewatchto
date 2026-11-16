@@ -162,7 +162,7 @@ describe("station impact type badges", () => {
     assert.match(myStations, /classifiedActiveImpacts/);
     assert.match(myStations, /impact\.type === "active-alert" \|\| impact\.type === "planned-closure"/);
     assert.match(myStations, /stationImpactSelectionsByStation/);
-    assert.match(myStations, /case "active-closure": return "Active Closure"/);
+    assert.match(myStations, /case "active-closure": return PLANNED_CLOSURE_IN_EFFECT/);
     assert.match(myStations, /Reduced Speed Zone/);
     assert.match(outageBadge, /\/assets\/linewatch\/outages\/elevator\.svg/);
     assert.match(outageBadge, /\/assets\/linewatch\/outages\/escalator\.svg/);

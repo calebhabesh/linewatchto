@@ -10,35 +10,19 @@
   stroke-linejoin: round;
 }
 
-/* Both maps draw the same route; sizes scale by the map's overlay unit
+/* Both maps draw the same route, still; sizes scale by the map's overlay unit
    (TTC 1, GO/UP 196 / 96), as for alerts. */
 .commute-path-preview-glow {
-  animation: aura-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
-  animation-delay: var(--map-pulse-offset);
   filter: blur(calc(16px * var(--map-overlay-unit, 1)));
   opacity: 0.4;
   stroke: rgba(37, 99, 235, 0.7);
   stroke-width: calc(155px * var(--map-overlay-unit, 1));
 }
 
-@keyframes map-overlay-rail-pulse {
-  from {
-    stroke-width: var(--map-overlay-rail-width);
-  }
-  to {
-    stroke-width: var(--map-overlay-rail-pulse-width);
-  }
-}
-
 .commute-path-preview-path {
-  /* The shared rail pulse reads these; scale them for this map. */
-  --map-overlay-rail-width: calc(102px * var(--map-overlay-unit, 1));
-  --map-overlay-rail-pulse-width: calc(114px * var(--map-overlay-unit, 1));
-  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
-  animation-delay: var(--map-pulse-offset);
   opacity: 0.72;
   stroke: #1d4ed8;
-  stroke-width: var(--map-overlay-rail-width);
+  stroke-width: calc(102px * var(--map-overlay-unit, 1));
   transition: none;
 }
 
@@ -47,36 +31,6 @@
   pointer-events: none;
   stroke: #1d4ed8;
   stroke-width: calc(12px * var(--map-overlay-unit, 1));
-}
-
-.linewatch-shell.mobile-performance-mode .commute-path-preview-path {
-  animation: none !important;
-  stroke-width: calc(112px * var(--map-overlay-unit, 1));
-  transition: none;
-}
-
-.motion-paused .commute-path-preview-glow {
-  animation: none;
-  opacity: 0.12;
-}
-
-.motion-paused .commute-path-preview-path {
-  animation: none !important;
-  stroke-width: var(--map-overlay-rail-width);
-  opacity: 0.72 !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .commute-path-preview-glow {
-    animation: none;
-    opacity: 0.12;
-  }
-
-  .commute-path-preview-path {
-    animation: none !important;
-    stroke-width: var(--map-overlay-rail-width);
-    opacity: 0.72 !important;
-  }
 }
 
 @keyframes commute-preview-chip-enter {
@@ -150,14 +104,21 @@
 }
 
 /* A small caption over the route (as card field labels sit over their
-   values), so a long route gets the chip's whole width. */
-.commute-path-preview-chip__caption {
+   values), so a long route gets the chip's whole width; a saved commute's
+   name follows it on the same line. */
+.commute-path-preview-chip__heading {
   display: block;
+  line-height: 1.2;
+  margin-bottom: 0.15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commute-path-preview-chip__caption {
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  line-height: 1.2;
-  margin-bottom: 0.15rem;
   opacity: 0.72;
   text-transform: uppercase;
 }
@@ -169,6 +130,20 @@
 .commute-path-preview-chip strong,
 .geographic-commute-preview-banner strong {
   display: block;
+}
+
+/* The saved commute's name, beside the caption in the route's weight. */
+.commute-path-preview-chip__name {
+  color: #0f172a;
+  font-size: 0.8rem;
+  font-weight: 800;
+  margin-left: 0.2rem;
+}
+
+.dark .commute-path-preview-chip__name,
+.high-contrast .commute-path-preview-chip__name,
+.geographic-commute-preview-banner .commute-path-preview-chip__name {
+  color: #f8fafc;
 }
 
 .commute-path-preview-chip button {
@@ -364,8 +339,8 @@
   }
 }
 
-/* A past alert's span (Alert History's View) marks its ends with a still
-   green blip, not the commute beacon's pulse. */
+/* A still green blip marks each end of a previewed route: a commute's, or a
+   past alert's span (Alert History's View). */
 .station-endpoint-blip {
   fill: rgba(34, 197, 94, 0.32);
   stroke: #22c55e;
@@ -375,35 +350,4 @@
 .high-contrast .station-endpoint-blip {
   fill: rgba(34, 197, 94, 0.45);
   stroke: #16a34a;
-}
-
-/* A pill-shaped endpoint (GO/UP's Union) swells its outline by a fixed
-   distance instead of scaling, which would stretch a long pill far past the
-   station. Geometry comes from inline custom properties. */
-.station-commute-green-flash.station-commute-green-flash--pill {
-  animation-name: map-commute-pill-flash;
-  transform: none !important;
-}
-
-@keyframes map-commute-pill-flash {
-  0% {
-    x: var(--flash-from-x);
-    y: var(--flash-from-y);
-    width: var(--flash-from-width);
-    height: var(--flash-from-height);
-    rx: var(--flash-from-r);
-    ry: var(--flash-from-r);
-    opacity: 0;
-    filter: drop-shadow(0 0 0px transparent);
-  }
-  100% {
-    x: var(--flash-to-x);
-    y: var(--flash-to-y);
-    width: var(--flash-to-width);
-    height: var(--flash-to-height);
-    rx: var(--flash-to-r);
-    ry: var(--flash-to-r);
-    opacity: 0.9;
-    filter: drop-shadow(0 0 calc(8px * var(--map-overlay-unit, 1)) #86efac);
-  }
 }

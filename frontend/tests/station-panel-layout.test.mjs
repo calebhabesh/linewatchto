@@ -367,7 +367,7 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /getStationImpactDetailsTarget/);
     assert.match(panelSource, /sourceAlertIds\?\.includes\(impact\.id\)/);
     assert.match(panelSource, /alert\.relatedPlannedClosureId === impact\.id/);
-    assert.match(panelSource, /label:\s*"Active Closure"/);
+    assert.match(panelSource, /label:\s*PLANNED_CLOSURE_IN_EFFECT/);
     assert.match(panelSource, /label:\s*serviceEffectLabel\(plannedClosure, true\)/);
     assert.doesNotMatch(panelSource, /"Upcoming Closure"/);
     assert.match(panelSource, /kind === "planned-closure" && tone === "active"[\s\S]*AlertTriangle/);

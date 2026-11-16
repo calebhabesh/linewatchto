@@ -5,7 +5,7 @@ import { IncidentFacts, IncidentPostedTime } from "./IncidentDetails";
 import { IncidentTiming } from "./IncidentTiming";
 import { ServiceFreshnessBadge } from "./ServiceFreshnessBadge";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -26,6 +26,12 @@ import { TransitLineBadge } from "./TransitLineBadge";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { GoodServiceCheckIcon } from "./CurrentServicePanel";
 import { LineAdvisorySummary, LineServiceStatus } from "./LineServiceStatus";
+import { UpcomingAdvisoryCards } from "./UpcomingAdvisoryCards";
+import { CardDetailsCue } from "./CardDetailsCue";
+import type { ImpactCommute } from "../app/commute-data";
+import { CommuteImpactTag } from "./CommuteImpactTag";
+import { usePanelImpactHover } from "../hooks/usePanelImpactHover";
+import { useAdvisoryTrunkEnds } from "../hooks/useAdvisoryTrunkEnds";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { NetworkSelector } from "./NetworkSelector";
@@ -42,7 +48,7 @@ import {
   currentServiceIncidentPresentation,
   getLineStatusPresentation,
   lineStatusDescription,
-  getPlannedClosureCountBadgeLabel,
+  withUpcomingListedSeparately,
 } from "../app/current-service";
 
 type StatusCategory =
@@ -78,6 +84,8 @@ type Props = {
   onSelectImpact?: (selection: ImpactSelection) => void;
   onSelectSurfaceNotice?: (notice: SurfaceNoticeDetail) => void;
   onNetworkChange?: (network: NetworkId) => void;
+  /** Saved commutes each impact lies on, by impact id; their cards are tagged and Upcoming ones lead. */
+  commutesByImpact?: Map<string, ImpactCommute[]>;
 };
 
 const noticeLabels: Record<string, string> = {
@@ -101,6 +109,7 @@ export function DesktopStatusOverview({
   onSelectImpact,
   onSelectSurfaceNotice,
   onNetworkChange,
+  commutesByImpact,
 }: Props) {
   const dashboardData = useDashboardData();
   const {
@@ -114,6 +123,12 @@ export function DesktopStatusOverview({
   } = dashboardData;
 
   const [now, setNow] = useState(0);
+  // Hovering a card raises its alert on the map, the same alert a press selects.
+  const hoverProps = usePanelImpactHover();
+  // Each incident line's elbow ends on its last advisory heading. The section is
+  // always rendered; the incident list inside it mounts once data arrives.
+  const railSectionRef = useRef<HTMLElement>(null);
+  useAdvisoryTrunkEnds(railSectionRef, '.desktop-status-rail-line-group[data-has-advisories="true"]');
   useEffect(() => {
     const update = () => setNow(Date.now());
     update();
@@ -142,17 +157,11 @@ export function DesktopStatusOverview({
   const qualifyingLines = lineStatuses
     .map((line) => {
       const rows = summary.rows.filter((r) => r.lineId === line.id);
-      const closureCount = (summary.upcoming ?? []).filter((c) => c.lineId === line.id).length;
+      const upcoming = (summary.upcoming ?? []).filter((c) => c.lineId === line.id);
       const rszCount = countReducedSpeedZones(
         (dashboardData.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id),
       );
-      return {
-        line,
-        rows,
-        closureCount,
-        rszCount,
-        advisoryCount: closureCount + rszCount,
-      };
+      return { line, rows, upcoming, rszCount };
     })
     .filter((item) => item.rows.length > 0);
 
@@ -160,9 +169,14 @@ export function DesktopStatusOverview({
     .filter((line) => !affectedLineIds.has(line.id))
     .map((line) => ({
       line,
-      presentation: getLineStatusPresentation(line, dashboardData, summary),
-      closureCount: (summary.upcoming ?? []).filter((c) => c.lineId === line.id).length,
+      presentation: withUpcomingListedSeparately(getLineStatusPresentation(line, dashboardData, summary)),
+      upcoming: (summary.upcoming ?? []).filter((c) => c.lineId === line.id),
     }));
+
+  const selectUpcoming = (lineId: string) => (closureId: string) => {
+    if (onSelectImpact) onSelectImpact({ kind: "planned-closure", id: closureId });
+    else onOpenCategory("closures", lineId);
+  };
 
   const surfaceRows =
     surfaceNotices?.fresh && now > 0
@@ -188,17 +202,18 @@ export function DesktopStatusOverview({
         <h2 className="desktop-status-title">Current Service</h2>
         <ServiceFreshnessBadge state={badgeState} />
       </div>
+      <p className="desktop-status-subtitle">
+        {regional
+          ? "Rail disruptions, planned work, and service notices"
+          : "Rail disruptions, planned work, and streetcar/bus alerts"}
+      </p>
 
       {/* Rail Incidents Overview (imminent within 24h) */}
       <section
+        ref={railSectionRef}
         className="desktop-status-rail-section"
         aria-label={regional ? "GO & UP Rail current service" : "Subway & Light Rail current service"}
       >
-        <div className="desktop-status-kicker-header">
-          <span className="desktop-status-rail-kicker">
-            Current alerts, delays & closures starting within 24h
-          </span>
-        </div>
         {notice ? (
           <div className="desktop-status-notice-wrapper">
             {notice}
@@ -224,7 +239,7 @@ export function DesktopStatusOverview({
         {qualifyingLines.length > 0 && (
           <div className="desktop-status-rail-incident-list">
             {qualifyingLines.map((item) => (
-              <div className="desktop-status-rail-line-group" data-has-advisories={item.closureCount > 0 || item.rszCount > 0} key={item.line.id}>
+              <div className="desktop-status-rail-line-group" data-has-advisories={item.upcoming.length > 0 || item.rszCount > 0} key={item.line.id}>
                 <button
                   type="button"
                   className="desktop-status-line-badge-btn"
@@ -250,6 +265,7 @@ export function DesktopStatusOverview({
                             type="button"
                             className="desktop-status-incident-row"
                             data-impact-kind={alertKind}
+                            {...hoverProps({ kind: row.kind, id: row.id })}
                             onClick={() => {
                               if (onSelectImpact) {
                                 onSelectImpact({ kind: row.kind, id: row.id });
@@ -258,6 +274,7 @@ export function DesktopStatusOverview({
                               }
                             }}
                           >
+                            <CommuteImpactTag commutes={commutesByImpact?.get(row.id)} />
                             <div className="desktop-status-incident-header">
                               <strong
                                 className="desktop-status-incident-title"
@@ -276,32 +293,26 @@ export function DesktopStatusOverview({
                             <IncidentFacts row={row} className="desktop-status-incident-timing" />
                             {(incident.timing || row.shuttle) && (
                               <div className="desktop-status-incident-timing">
-                                <IncidentTiming timing={incident.timing} target={row.timingTarget} now={now} shuttle={row.shuttle} />
+                                <IncidentTiming timing={incident.timing} target={row.timingTarget} now={now} shuttle={row.shuttle} notStarted={row.notStarted} />
                               </div>
                             )}
                             <IncidentPostedTime row={row} className="desktop-status-incident-timing" now={now} saved={Boolean(snapshot)} />
+                            <CardDetailsCue />
                           </button>
                         </IncidentElectricBorder>
                       );
                     })}
                   </div>
-                  {(item.closureCount > 0 || item.rszCount > 0) && (
+                  <UpcomingAdvisoryCards
+                    lineName={item.line.name}
+                    closures={item.upcoming}
+                    now={now}
+                    commutesByImpact={commutesByImpact}
+                    onSelect={selectUpcoming(item.line.id)}
+                  />
+                  {item.rszCount > 0 && (
                     <div className="desktop-status-sub-badges">
-                      <LineAdvisorySummary count={item.advisoryCount} />
-                      {item.closureCount > 0 && (
-                        <button
-                          type="button"
-                          className="desktop-status-badge-incident-button"
-                          onClick={() => onOpenCategory("closures", item.line.id)}
-                          title={`View ${item.line.name} Planned Advisories`}
-                          aria-label={`${item.line.name}: ${getPlannedClosureCountBadgeLabel(item.closureCount)}`}
-                        >
-                          <span className="desktop-status-planned-pill">
-                            <ImpactTypeIcon kind="planned-closure" size={11} />
-                            <span>{getPlannedClosureCountBadgeLabel(item.closureCount)}</span>
-                          </span>
-                        </button>
-                      )}
+                      <LineAdvisorySummary />
                       {item.rszCount > 0 && (
                         <button
                           type="button"
@@ -329,7 +340,7 @@ export function DesktopStatusOverview({
         {/* Remaining lines without qualifying incidents */}
         {remainingLines.length > 0 && (
           <div className="desktop-status-remaining-list">
-            {remainingLines.map(({ line, presentation, closureCount }) => (
+            {remainingLines.map(({ line, presentation, upcoming }) => (
               <div className="desktop-status-remaining-group" key={line.id}>
                 <button
                   type="button"
@@ -369,22 +380,19 @@ export function DesktopStatusOverview({
                     </div>
                   </div>
                 </button>
-                {(closureCount > 0 || presentation.hasRsz) && (
+                {upcoming.length > 0 && (
+                  <div className="desktop-status-remaining-upcoming">
+                    <UpcomingAdvisoryCards
+                      lineName={line.name}
+                      closures={upcoming}
+                      now={now}
+                      commutesByImpact={commutesByImpact}
+                      onSelect={selectUpcoming(line.id)}
+                    />
+                  </div>
+                )}
+                {presentation.hasRsz && (
                   <div className="desktop-status-sub-badges desktop-status-remaining-sub-badges">
-                    {closureCount > 0 && (
-                      <button
-                        type="button"
-                        className="desktop-status-badge-incident-button"
-                        onClick={() => onOpenCategory("closures", line.id)}
-                        title={`View ${line.name} Planned Advisories`}
-                        aria-label={`${line.name}: ${getPlannedClosureCountBadgeLabel(closureCount)}`}
-                      >
-                        <span className="desktop-status-planned-pill">
-                          <ImpactTypeIcon kind="planned-closure" size={11} />
-                          <span>{getPlannedClosureCountBadgeLabel(closureCount)}</span>
-                        </span>
-                      </button>
-                    )}
                     {presentation.hasRsz && (
                       <button
                         type="button"

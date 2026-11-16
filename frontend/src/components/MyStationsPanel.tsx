@@ -5,7 +5,7 @@ import { FilterSearchRow } from "./FilterSearchRow";
 
 import { Fragment, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { AlertCircle, Bookmark, ChevronDown, ChevronRight, FileText, LoaderCircle, MapPin, Plus, Search, Train, X } from "lucide-react";
+import { AlertCircle, Bookmark, ChevronDown, ChevronRight, LoaderCircle, MapPin, MapPinned, Plus, Search, Train, X } from "lucide-react";
 import { PanelHeader } from "./PanelHeader";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import type { AccountSavedStation } from "../app/saved-station-data";
@@ -67,6 +67,10 @@ import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { SurfaceConnectionsSection } from "./SurfaceConnectionsSection";
 import { RegionalArrivalDelayBadge } from "./RegionalArrivalDelayBadge";
+import { PLANNED_CLOSURE_IN_EFFECT, plannedClosuresInEffectCountLabel } from "../app/alert-categories";
+import { handleAnimatedDisclosureClick } from "./disclosure-motion";
+import { DisruptionRowFacts } from "./DisruptionRowFacts";
+import { dashboardDisruptionFacts } from "../app/disruption-row-facts";
 
 type Props = {
   accountState?: AccountState;
@@ -135,13 +139,14 @@ function disruptionKindLabel(kind: SavedStationDisruptionKind) {
     case "delay": return "Delay";
     case "reduced-speed-zone": return "Reduced Speed Zone";
     case "planned-closure": return "Planned Advisory";
-    case "active-closure": return "Active Closure";
+    case "active-closure": return PLANNED_CLOSURE_IN_EFFECT;
     case "elevator": return "Elevator Outage";
     case "escalator": return "Escalator Outage";
   }
 }
 
 function disruptionKindCountLabel(kind: SavedStationDisruptionKind, count: number) {
+  if (kind === "active-closure") return plannedClosuresInEffectCountLabel(count);
   const label = count !== 1 && kind === "planned-closure"
     ? "Planned Advisories"
     : `${disruptionKindLabel(kind)}${count === 1 ? "" : "s"}`;
@@ -407,39 +412,45 @@ function SavedStationRow({
           <details
             className={`saved-commute-impact-disclosure saved-station-disruption-disclosure${disruptionCount === 0 ? " is-clear" : ""}`}
             open={disruptionExpanded}
+            onClick={handleAnimatedDisclosureClick}
             onToggle={(event) => onDisruptionExpandedChange(event.currentTarget.open)}
           >
             <summary className="saved-commute-impact-summary saved-station-disruption-summary">
               <span className="saved-commute-impact-summary-heading saved-station-disruption-heading saved-station-section-title">
                 {disruptionCount > 0 ? <AlertCircle className="saved-commute-impact-summary-icon" size={18} aria-hidden="true" /> : <span className="saved-station-clear-dot" aria-hidden="true" />}
                 <strong>{disruptionCount > 0 ? "Active Disruptions" : "No Active Disruptions"}</strong>
-                <span className={`desktop-menu-count-badge saved-commute-impact-total saved-station-disruption-total${disruptionCount > 0 ? " is-affected" : ""}`}>{disruptionCount}</span>
+                <span className={`desktop-menu-count-badge saved-commute-impact-total ${disruptionCount > 0 ? " is-affected" : ""}`}>{disruptionCount}</span>
               </span>
               {disruptionCount > 0 ? (
-                <span className="saved-commute-impact-summary-chips saved-station-disruption-chips">
-                  {disruptionSummary.map(({ kind, count }) => (
-                    <span key={kind} className={`saved-commute-impact-summary-chip kind-${disruptionKindClassName(kind)}`}>
-                      <DisruptionIcon kind={kind} size={16} />
-                      {disruptionKindCountLabel(kind, count)}
-                    </span>
-                  ))}
+                <span className="saved-commute-impact-summary-chips-row">
+                  <span className="saved-commute-impact-summary-chips saved-station-disruption-chips">
+                    {disruptionSummary.map(({ kind, count }) => (
+                      <span key={kind} className={`saved-commute-impact-summary-chip kind-${disruptionKindClassName(kind)}`}>
+                        <DisruptionIcon kind={kind} size={14} />
+                        {disruptionKindCountLabel(kind, count)}
+                      </span>
+                    ))}
+                  </span>
                 </span>
               ) : null}
-              <span className="saved-commute-impact-summary-action saved-station-disruption-action">
+              <span className="saved-commute-impact-summary-action">
                 <span className="saved-commute-impact-summary-action-collapsed">List View</span>
                 <span className="saved-commute-impact-summary-action-expanded">Hide List</span>
                 <ChevronDown className="saved-commute-impact-summary-chevron" size={16} aria-hidden="true" />
               </span>
             </summary>
+            <div className="saved-commute-impact-content-wrapper">
+            <div className="saved-commute-impact-content">
             {disruptionCount > 0 ? (
               <ul className="saved-commute-impact-list saved-station-disruption-list">
                 {classifiedActiveImpacts.map(({ impactId, kind, selection }) => (
                   <li key={selection ? `${selection.kind}-${selection.id}` : impactId} className={`kind-${disruptionKindClassName(kind)}`}>
-                    <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={kind} size={15} /></span>
+                    <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={kind} size={14} /></span>
                     <div className="saved-commute-impact-copy">
                       <div className="saved-commute-impact-details">
                         <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{dashboard.delays.find(item => item.id === (selection?.id ?? impactId))?.serviceEffect === "limited-service" ? "Limited Service" : disruptionKindLabel(kind)}</span></strong></div>
                         <span><IncidentStationSpan location={stationImpactContext(selection?.id ?? impactId, saved.station.name, dashboard)} /></span>
+                        <DisruptionRowFacts facts={dashboardDisruptionFacts(selection?.id ?? impactId, dashboard)} />
                       </div>
                       <div className="saved-commute-impact-action">
                         <button
@@ -448,7 +459,7 @@ function SavedStationRow({
                           onClick={() => selection ? onSelectImpactDetails(selection) : onOpen()}
                           aria-label={`View ${saved.station.name} alert details`}
                         >
-                          <FileText size={12} aria-hidden="true" /> View Details
+                          <MapPinned size={12} aria-hidden="true" /> View Alert
                         </button>
                       </div>
                     </div>
@@ -456,7 +467,7 @@ function SavedStationRow({
                 ))}
                 {accessOutages.map((outage) => (
                   <li key={outage.id} className={`kind-${disruptionKindClassName(outage.assetType)}`}>
-                    <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={outage.assetType} size={15} /></span>
+                    <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={outage.assetType} size={14} /></span>
                     <div className="saved-commute-impact-copy">
                       <div className="saved-commute-impact-details">
                         <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{disruptionKindLabel(outage.assetType)}</span></strong></div>
@@ -468,7 +479,7 @@ function SavedStationRow({
                           onClick={() => onSelectAccessibilityOutageDetails(outage.assetType, saved.station.id)}
                           aria-label={`View ${saved.station.name} ${outage.assetType} outage details`}
                         >
-                          <FileText size={12} aria-hidden="true" /> View Details
+                          <MapPinned size={12} aria-hidden="true" /> View Outage
                         </button>
                       </div>
                     </div>
@@ -476,6 +487,8 @@ function SavedStationRow({
                 ))}
               </ul>
             ) : <p className="saved-station-disruption-clear-copy">No directly linked service impacts or accessibility outages.</p>}
+            </div>
+            </div>
           </details>
 
           <section className="saved-station-arrivals" aria-label={`Arrivals at ${saved.station.name}`}>
@@ -759,39 +772,45 @@ function SavedStationRow({
           <details
             className={`saved-commute-impact-disclosure saved-station-disruption-disclosure${disruptionCount === 0 ? " is-clear" : ""}`}
             open={disruptionExpanded}
+            onClick={handleAnimatedDisclosureClick}
             onToggle={(event) => onDisruptionExpandedChange(event.currentTarget.open)}
           >
             <summary className="saved-commute-impact-summary saved-station-disruption-summary">
               <span className="saved-commute-impact-summary-heading saved-station-disruption-heading saved-station-section-title">
                 {disruptionCount > 0 ? <AlertCircle className="saved-commute-impact-summary-icon" size={18} aria-hidden="true" /> : <span className="saved-station-clear-dot" aria-hidden="true" />}
                 <strong>{disruptionCount > 0 ? "Active Disruptions" : "No Active Disruptions"}</strong>
-                <span className={`desktop-menu-count-badge saved-commute-impact-total saved-station-disruption-total${disruptionCount > 0 ? " is-affected" : ""}`}>{disruptionCount}</span>
+                <span className={`desktop-menu-count-badge saved-commute-impact-total ${disruptionCount > 0 ? " is-affected" : ""}`}>{disruptionCount}</span>
               </span>
               {disruptionCount > 0 ? (
-                <span className="saved-commute-impact-summary-chips saved-station-disruption-chips">
-                  {disruptionSummary.map(({ kind, count }) => (
-                    <span key={kind} className={`saved-commute-impact-summary-chip kind-${disruptionKindClassName(kind)}`}>
-                      <DisruptionIcon kind={kind} size={16} />
-                      {disruptionKindCountLabel(kind, count)}
-                    </span>
-                  ))}
+                <span className="saved-commute-impact-summary-chips-row">
+                  <span className="saved-commute-impact-summary-chips saved-station-disruption-chips">
+                    {disruptionSummary.map(({ kind, count }) => (
+                      <span key={kind} className={`saved-commute-impact-summary-chip kind-${disruptionKindClassName(kind)}`}>
+                        <DisruptionIcon kind={kind} size={14} />
+                        {disruptionKindCountLabel(kind, count)}
+                      </span>
+                    ))}
+                  </span>
                 </span>
               ) : null}
-              <span className="saved-commute-impact-summary-action saved-station-disruption-action">
+              <span className="saved-commute-impact-summary-action">
                 <span className="saved-commute-impact-summary-action-collapsed">List View</span>
                 <span className="saved-commute-impact-summary-action-expanded">Hide List</span>
                 <ChevronDown className="saved-commute-impact-summary-chevron" size={16} aria-hidden="true" />
               </span>
             </summary>
+            <div className="saved-commute-impact-content-wrapper">
+            <div className="saved-commute-impact-content">
             {disruptionCount > 0 ? (
               <ul className="saved-commute-impact-list saved-station-disruption-list">
                 {classifiedActiveImpacts.map(({ impactId, kind, selection }) => (
                   <li key={selection ? `${selection.kind}-${selection.id}` : impactId} className={`kind-${disruptionKindClassName(kind)}`}>
-                    <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={kind} size={15} /></span>
+                    <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={kind} size={14} /></span>
                     <div className="saved-commute-impact-copy">
                       <div className="saved-commute-impact-details">
                         <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{dashboard.delays.find(item => item.id === (selection?.id ?? impactId))?.serviceEffect === "limited-service" ? "Limited Service" : disruptionKindLabel(kind)}</span></strong></div>
                         <span><IncidentStationSpan location={stationImpactContext(selection?.id ?? impactId, saved.station.name, dashboard)} /></span>
+                        <DisruptionRowFacts facts={dashboardDisruptionFacts(selection?.id ?? impactId, dashboard)} />
                       </div>
                       <div className="saved-commute-impact-action">
                         <button
@@ -803,7 +822,7 @@ function SavedStationRow({
                           }}
                           aria-label={`View ${saved.station.name} alert details`}
                         >
-                          <FileText size={12} aria-hidden="true" /> View Details
+                          <MapPinned size={12} aria-hidden="true" /> View Alert
                         </button>
                       </div>
                     </div>
@@ -811,7 +830,7 @@ function SavedStationRow({
                 ))}
                 {accessOutages.map((outage) => (
                   <li key={outage.id} className={`kind-${disruptionKindClassName(outage.assetType)}`}>
-                    <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={outage.assetType} size={15} /></span>
+                    <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={outage.assetType} size={14} /></span>
                     <div className="saved-commute-impact-copy">
                       <div className="saved-commute-impact-details">
                         <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{disruptionKindLabel(outage.assetType)}</span></strong></div>
@@ -823,7 +842,7 @@ function SavedStationRow({
                           onClick={() => onSelectAccessibilityOutageDetails(outage.assetType, saved.station.id)}
                           aria-label={`View ${saved.station.name} ${outage.assetType} outage details`}
                         >
-                          <FileText size={12} aria-hidden="true" /> View Details
+                          <MapPinned size={12} aria-hidden="true" /> View Outage
                         </button>
                       </div>
                     </div>
@@ -831,6 +850,8 @@ function SavedStationRow({
                 ))}
               </ul>
             ) : <p className="saved-station-disruption-clear-copy">No directly linked service impacts or accessibility outages.</p>}
+            </div>
+            </div>
           </details>
 
           <section className="saved-station-arrivals" aria-label={`Arrivals at ${saved.station.name}`}>

@@ -3298,7 +3298,7 @@ test("station detail shows accessibility facilities and active outage warning", 
     .not.toContain('"lineId":"line-1"');
 
   const activeClosureImpact = stationPanel.locator("#station-impact-stub-closure-line-1");
-  await expect(activeClosureImpact.getByText("Active Closure", { exact: true })).toBeVisible();
+  await expect(activeClosureImpact.getByText("Planned Closure · In Effect", { exact: true })).toBeVisible();
   await expect(activeClosureImpact.getByText("Planned Advisory", { exact: true })).toHaveCount(0);
   // A section the rider opened (Accessibility starts closed) stays open on Back.
   if (!isMobile) {
@@ -3307,7 +3307,7 @@ test("station detail shows accessibility facilities and active outage warning", 
     await activeClosureImpact.scrollIntoViewIfNeeded();
   }
   const stationScrollTop = await stationPanel.locator(".station-detail-scroll").evaluate((scroller) => scroller.scrollTop);
-  await activeClosureImpact.getByRole("button", { name: "Open Active Closure details" }).click();
+  await activeClosureImpact.getByRole("button", { name: "Open Planned Closure · In Effect details" }).click();
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');
     await expect(inspector.getByRole("heading", { name: "Suspension", exact: true })).toBeVisible();
@@ -3726,7 +3726,7 @@ test("shows an active planned closure in both current and scheduled views", asyn
   await expect(upcomingClosureCard).toBeVisible();
   await expect(upcomingClosureCard.getByText("Overlapping Impacts")).toBeVisible();
   await expect(upcomingClosureCard.getByText("Suspension", { exact: true })).toHaveCount(2);
-  await expect(upcomingClosureCard.getByText("Active Closure", { exact: true })).toHaveCount(0);
+  await expect(upcomingClosureCard.getByText("Planned Closure · In Effect", { exact: true })).toHaveCount(0);
 });
 
 for (const sameIdProjection of [false, true]) {
@@ -3897,7 +3897,7 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
     width: isMobile ? "26px" : "28px",
   });
   await expect(overlapChooser.getByText("Suspension", { exact: true })).toHaveCount(2);
-  await expect(overlapChooser.getByText("Active Closure", { exact: true })).toHaveCount(0);
+  await expect(overlapChooser.getByText("Planned Closure · In Effect", { exact: true })).toHaveCount(0);
   await expect(overlapChooser.getByText("Planned Advisory", { exact: true })).toBeVisible();
   await expect(overlapChooser.getByRole("button", { name: /Line 1: Stub Station to Stub Terminal , both directions Northbound & Southbound$/ })).toHaveCount(3);
   await expect(overlapChooser.locator('[data-overlap-choice-kind="planned-closure"] .overlap-chooser-choice-date'))
@@ -4685,6 +4685,90 @@ test("keyboard searches and selects a station", async ({ page, request, isMobile
   await expect(details).toBeFocused();
 });
 
+test("TMP station disclosure motion", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop only");
+  await installDismissedTransientUi(page);
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await page.locator('[data-dest="more"]').click();
+  await page.getByRole("button", { name: "Demo Account" }).click();
+  await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
+  await page.locator('[data-dest="status"]').click();
+  await page.getByRole("button", { name: "Stub Station station details" }).dispatchEvent("click");
+  await page.getByRole("button", { name: "Save Stub Station to My Stations" }).click();
+  const saveNotice = page.getByRole("status").filter({ hasText: "Stub Station added to" });
+  await saveNotice.getByRole("button", { name: "My Stations" }).click();
+  const panel = page.getByRole("region", { name: "My Stations" });
+  const station = panel.locator(".saved-station-disruption-disclosure").first();
+  await station.waitFor();
+  await station.locator("summary").click();
+  await page.waitForTimeout(600);
+  const box = await station.boundingBox();
+  await page.screenshot({ path: "/tmp/claude-1000/-home-ethioking-dev-linewatchto/6e448e9d-9278-4fa4-8754-9e973951ac01/scratchpad/station-open4.png", clip: { x: box!.x - 14, y: box!.y, width: box!.width + 28, height: box!.height } });
+});
+
+test("an alert on a saved commute is hinted in Current Service and links to it in My Commutes", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  if (isMobile) {
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "Demo Account" }).click();
+    await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
+    await page.goto("/");
+    await page.locator(".mobile-service-sheet-handle").press("End");
+  } else {
+    await openDashboardMenu(page, isMobile);
+    await signInDesktopDemoAccount(page);
+    await page.goto("/");
+  }
+  const card = isMobile
+    ? page.locator(".mobile-service-sheet .current-service-impact--compact:has(.commute-impact-hint)").first()
+    : page.locator(".desktop-status-incident-row:has(.commute-impact-hint)").first();
+  // The stub's demo commute (Morning commute) lies on its active closure.
+  await expect(card.getByRole("img", { name: "Affects Morning commute" })).toBeVisible();
+  await card.click();
+  const link = page.getByRole("button", { name: "Affects Morning commute: open it in My Commutes" }).first();
+  await expect(link).toBeVisible();
+  await link.click();
+  await expect(page.getByRole("heading", { name: "My Commutes" }).first()).toBeVisible();
+  await expect(page.locator('[data-commute-card-id="commute_demo_finch_union"]')).toBeVisible();
+});
+
+test.describe("speed zones on a saved commute", () => {
+  // page.route cannot see API reads the service worker answers.
+  test.use({ serviceWorkers: "block" });
+
+  test("a reduced speed zone card on a saved commute links to it in My Commutes", async ({ page, request, isMobile }) => {
+    test.skip(isMobile, "the phone's alert details share the badge row; this covers the desktop speed zone card");
+    await setStubMode(request, "seeded");
+    // Put the stub's south speed zone on the demo commute's watched legs.
+    const zoneId = "reduced-speed-zone-stub-zone-south-source";
+    await page.route(/\/api\/account\/commutes(?:\?|$)/, async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      const zone = { id: zoneId, kind: "reduced-speed-zone", status: "current", severity: "minor", title: "Reduced speed zone", lineId: "line-1", lineNumber: "1", location: null, displayDirection: null, source: "stub", matchedSegmentIds: [], matchedStationIds: [] };
+      for (const commute of body.commutes) {
+        for (const leg of [commute.outboundLeg, commute.returnLeg]) {
+          if (leg?.impact) leg.impact = { ...leg.impact, matchedImpacts: [...leg.impact.matchedImpacts, zone] };
+        }
+      }
+      await route.fulfill({ response, json: body });
+    });
+    await openDashboardMenu(page, isMobile);
+    await signInDesktopDemoAccount(page);
+    await page.goto("/");
+    // Speed zones have no Current Service card, so no hint; their full card links.
+    await openServiceCategory(page, isMobile, /Reduced Speed Zone/);
+    await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
+    const link = page.locator(`[data-impact-card-id="${zoneId}"]`).getByRole("button", { name: "Affects Morning commute: open it in My Commutes" });
+    await expect(link).toBeVisible();
+    await link.click();
+    await expect(page.getByRole("heading", { name: "My Commutes" }).first()).toBeVisible();
+    await expect(page.locator('[data-commute-card-id="commute_demo_finch_union"]')).toBeVisible();
+  });
+});
+
 test("demo account shows account-backed saved commutes", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   if (isMobile) {
@@ -4723,23 +4807,22 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(commuteCard.getByText("Union", { exact: false }).first()).toBeVisible();
   await expect(page.getByText("Default Scheduled Route · To Union")).toBeVisible();
   await expect(page.getByText("5 Stations", { exact: true })).toBeVisible();
-  await expect(page.getByText("Travel Time Unreliable", { exact: true })).toBeVisible();
-  await expect(page.getByText("Major Disruption on Route", { exact: true })).toBeVisible();
-  await expect(page.getByText("Travel Time", { exact: true })).toBeVisible();
+  // A travel time the backend won't estimate: the headline names what is
+  // reported and what it means on that stretch; the box keeps the estimate
+  // layout, with the usual time beside "Route Blocked".
+  await expect(page.getByText("Suspension on Route", { exact: true })).toBeVisible();
+  await expect(page.getByText("No Trains: Stub Station ⇄ Stub Terminal", { exact: true })).toBeVisible();
+  await expect(page.getByText("Travel Time Unreliable", { exact: true })).toHaveCount(0);
   await expect(page.locator('[data-travel-time-severity="severe"]')).toBeVisible();
-  await expect(page.getByText("Major Disruption on Route — Travel Time Not Reliable", { exact: true })).toBeVisible();
-  await expect(page.getByText("Typical 13 min", { exact: true })).toBeVisible();
-  await expect(page.getByText("Confidence: Low", { exact: true })).toBeVisible();
-  await expect(page.locator(".saved-commute-time-status-value").filter({ hasText: "13 min" })).toHaveCSS("color", "rgb(255, 255, 255)");
-  await expect(page.locator(".saved-commute-time-status-value").filter({ hasText: "Low" })).toHaveCSS("text-transform", "none");
-  const unreliableMetadata = page.locator(".saved-commute-time-estimate.unreliable p");
-  const unreliableMetadataSizes = await unreliableMetadata.evaluate((element) => ({
-    label: Number.parseFloat(getComputedStyle(element.querySelector("strong")!).fontSize),
-    value: Number.parseFloat(getComputedStyle(element.querySelector("span")!).fontSize),
-  }));
-  expect(unreliableMetadataSizes.label).toBeGreaterThanOrEqual(16);
-  expect(unreliableMetadataSizes.value).toBe(unreliableMetadataSizes.label);
-  await expect(unreliableMetadata.locator(":scope > span")).toHaveCSS("text-transform", "none");
+  const blockedBox = commuteCard.locator(".saved-commute-time-estimate.unreliable").first();
+  await expect(blockedBox.getByText("Travel Time", { exact: true })).toBeVisible();
+  await expect(blockedBox.locator(".saved-commute-time-estimate-grid > span")).toHaveText([/^Typical\s*13 min$/, /^With Impacts\s*Route Blocked$/]);
+  const blockedSizes = await blockedBox.locator(".saved-commute-time-estimate-grid > span").evaluateAll((cells) => cells.map((cell) => ({
+    label: Number.parseFloat(getComputedStyle(cell.querySelector("strong")!).fontSize),
+    value: Number.parseFloat(getComputedStyle(cell.querySelector("em")!).fontSize),
+  })));
+  expect(blockedSizes[0]).toEqual(blockedSizes[1]);
+  await expect(page.getByText("Confidence: Low", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Route Notifications: On", { exact: true })).toBeVisible();
   await expect(page.getByText("Outbound: Weekdays · 6:30 AM-9:30 AM", { exact: true })).toBeVisible();
   await expect(page.getByText("Return: Weekdays · 3:00 PM-7:00 PM", { exact: true })).toBeVisible();
@@ -4790,13 +4873,16 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(impactDisclosure).toBeVisible();
   await expect(impactDisclosure).not.toHaveAttribute("open", "");
   await expect(impactDisclosure.getByText("1 Suspension", { exact: true })).toBeVisible();
-  await expect(impactDisclosure.getByText("1 Active Closure", { exact: true })).toBeVisible();
+  await expect(impactDisclosure.getByText("1 Planned Closure · In Effect", { exact: true })).toBeVisible();
   await expect(impactDisclosure.getByText(/Line 1: Stub Station to Stub Terminal/).first()).toBeHidden();
   await impactDisclosure.locator("summary").click();
   await expect(impactDisclosure).toHaveAttribute("open", "");
+  // Open, the rows replace the summary chips.
+  await expect(impactDisclosure.getByText("1 Suspension", { exact: true })).toBeHidden();
   await expect(impactDisclosure.getByText("Suspension", { exact: true })).toBeVisible();
-  await expect(impactDisclosure.getByText("Active Closure", { exact: true })).toBeVisible();
+  await expect(impactDisclosure.getByText("Planned Closure · In Effect", { exact: true })).toBeVisible();
   await expect(impactDisclosure.getByText(/Line 1: Stub Station to Stub Terminal/).first()).toBeVisible();
+  await expect(impactDisclosure.getByRole("button", { name: /^View Suspension on the map for Morning commute$/ })).toContainText("View Alert");
 
   const commuteHeaderMetrics = await page.locator(".commute-card").first().evaluate((card) => {
     const header = card.querySelector<HTMLElement>(".saved-commute-card-header");
@@ -4827,9 +4913,11 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
     await expect(mobileChip).toBeVisible();
     await expect(mobileChip.getByRole("button", { name: "Back to My Commutes" })).toBeVisible();
   } else {
-    const desktopChip = page.locator('[data-impact-card-id="stub-alert-line-1"]').locator(".commute-path-preview-chip");
-    await expect(desktopChip).toBeVisible();
-    await expect(desktopChip.getByRole("button", { name: "Back to My Commutes" })).toBeVisible();
+    // Desktop: no preview banner on the card; its own View turns into Back, as
+    // My Stations' View Alert does.
+    const desktopCard = page.locator('[data-impact-card-id="stub-alert-line-1"]');
+    await expect(desktopCard.locator(".commute-path-preview-chip")).toHaveCount(0);
+    await expect(desktopCard.getByRole("button", { name: "Back to My Commutes" })).toContainText("Back");
   }
   const selectedImpactOverlay = page.locator('[data-selected-commute-impact-overlay="stub-alert-line-1"]');
   await expect(selectedImpactOverlay).toBeAttached();
@@ -4869,34 +4957,18 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
       strokeWidth: Number.parseFloat(style.strokeWidth),
     };
   });
-  await expect(page.locator(".station-commute-green-flash").first()).toBeVisible();
-  const commuteBeaconStyle = await page.locator(".station-commute-green-flash").first().evaluate((beacon) => {
-    const style = getComputedStyle(beacon);
-    return {
-      animationDelay: style.animationDelay,
-      animationDirection: style.animationDirection,
-      animationDuration: style.animationDuration,
-      animationName: style.animationName,
-    };
-  });
+  // The route and its ends are still on every device: a green blip marks each end.
+  await expect(page.locator(".station-endpoint-blip[data-commute-path-endpoint]").first()).toBeVisible();
+  const commuteBlipAnimation = await page.locator(".station-endpoint-blip[data-commute-path-endpoint]").first().evaluate((blip) => getComputedStyle(blip).animationName);
+  expect(commuteBlipAnimation).toBe("none");
+  expect(commutePathStyle).toEqual({ animationName: "none", strokeWidth: 102 });
+  expect(commuteGlowStyle.animationName).toBe("none");
   if (isMobile) {
-    expect(commutePathStyle).toEqual({ animationName: "none", strokeWidth: 112 });
-    expect(commuteGlowStyle.animationName).toBe("none");
     expect(commuteGlowStyle.filter).toBe("none");
     expect(commuteGlowStyle.strokeWidth).toBe(132);
-    expect(commuteBeaconStyle.animationName).toBe("none");
     expect(selectedImpactGlowStyle.display).toBe("none");
   } else {
-    expect(commutePathStyle.animationName).toBe("map-overlay-rail-pulse");
-    expect(commutePathStyle.strokeWidth).toBeGreaterThanOrEqual(102);
-    expect(commuteGlowStyle.animationName).toBe("aura-pulse");
     expect(commuteGlowStyle.strokeWidth).toBe(155);
-    expect(commuteBeaconStyle.animationName).toBe("station-commute-green-flash-anim");
-    expect(commuteBeaconStyle.animationDuration).toBe("1.2s");
-    expect(commuteBeaconStyle.animationDirection).toBe("alternate");
-    expect(commuteBeaconStyle.animationDelay).toBe(
-      await page.locator(".commute-path-preview-path").evaluate((path) => getComputedStyle(path).animationDelay),
-    );
   }
   await expect(page.getByRole("button", { name: "Back to My Commutes" })).toBeVisible();
   await page.getByRole("button", { name: "Back to My Commutes" }).click({ force: true });
@@ -5004,7 +5076,18 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   expect(Number.parseFloat(viewPathButtonStyle.borderWidth)).toBeGreaterThanOrEqual(1);
   await viewPathButton.click();
   await expect(page.locator("[data-commute-path-preview]")).toBeVisible();
-  await expect(page.getByRole("status").filter({ hasText: "Viewing" })).toBeVisible();
+  // The chip names the saved commute over its route.
+  await expect(page.getByRole("status").filter({ hasText: "Viewing" }).first()).toContainText("Morning commute");
+  if (!isMobile) {
+    // The card's View on Map reads Back while its route is drawn, and takes it off.
+    const cardBack = page.getByRole("button", { name: "Back: stop viewing Morning commute on the map" });
+    await expect(cardBack).toContainText("Back");
+    await cardBack.click();
+    await expect(page.locator("[data-commute-path-preview]")).toHaveCount(0);
+    await expect(viewPathButton).toContainText("View on Map");
+    await viewPathButton.click();
+    await expect(page.locator("[data-commute-path-preview]")).toBeVisible();
+  }
   // Phones label the preview's back button with the commute list it returns to.
   await page.getByRole("button", { name: /^Back( to My Commutes)?$/ }).first().click({ force: true });
   await expect(page.locator("[data-commute-path-preview]")).toHaveCount(0);
@@ -5025,7 +5108,7 @@ test("saved commute active closure focuses its current active-alert overlay", as
 
   const impactDisclosure = page.locator(".saved-commute-impact-disclosure").first();
   await impactDisclosure.locator("summary").click();
-  await page.getByRole("button", { name: /View Active Closure on the map for Morning commute/ }).click();
+  await page.getByRole("button", { name: /View Planned Closure · In Effect on the map for Morning commute/ }).click();
 
   const activeClosureOverlay = page.locator(
     '[data-selected-commute-impact-overlay="stub-active-closure-child-line-1"]',
@@ -5163,7 +5246,7 @@ test.describe("GO/UP commute preview", () => {
     // The demo account has only TTC commutes; add a Union to Long Branch one.
     const stationIds = ["union", "exhibition", "mimico", "long-branch"];
     const segmentIds = stationIds.slice(1).map((stationId, index) => `segment-lw-${stationIds[index]}-${stationId}`);
-    await page.route("**/api/account/commutes", async (route) => {
+    await page.route(/\/api\/account\/commutes(?:\?|$)/, async (route) => {
       if (route.request().method() !== "GET") return route.fallback();
       const response = await route.fetch();
       const body = await response.json();
@@ -5229,9 +5312,9 @@ test.describe("GO/UP commute preview", () => {
     expect(segmentIds.length).toBeGreaterThan(1);
     expect(routeD?.match(/M/g)?.length ?? 0).toBe(1);
     await expect(preview.locator(".commute-path-preview-endpoint")).toHaveCount(2);
-    // Green flashes above the artwork; Union's takes its pill shape.
-    await expect(page.locator('[data-system-map=regional] .station-commute-green-flash--pill[data-commute-path-endpoint="origin"]')).toHaveCount(1);
-    await expect(page.locator('[data-system-map=regional] circle.station-commute-green-flash[data-commute-path-endpoint="destination"]')).toHaveCount(1);
+    // Still green blips above the artwork; Union's takes its pill shape.
+    await expect(page.locator('[data-system-map=regional] rect.station-endpoint-blip[data-commute-path-endpoint="origin"]')).toHaveCount(1);
+    await expect(page.locator('[data-system-map=regional] circle.station-endpoint-blip[data-commute-path-endpoint="destination"]')).toHaveCount(1);
   });
 });
 
@@ -5295,9 +5378,9 @@ test("signed-in riders save, browse, remove, undo, and reload My Stations", asyn
   await expect(panel.locator(".my-stations-row-heading strong", { hasText: "Stub Station" })).toBeVisible();
   await expect(panel.getByText("Active Disruptions", { exact: true })).toBeVisible();
   await panel.getByText("Active Disruptions", { exact: true }).click();
-  await expect(panel.getByText("1 Active Closure", { exact: true })).toBeVisible();
+  await expect(panel.getByText("1 Planned Closure · In Effect", { exact: true })).toBeVisible();
   const viewAlertDetails = panel.getByRole("button", { name: "View Stub Station alert details" }).first();
-  await expect(viewAlertDetails).toContainText("View Details");
+  await expect(viewAlertDetails).toContainText("View Alert");
   await viewAlertDetails.click();
   if (isMobile) {
     await expect(page.getByRole("complementary", { name: "Selected map impact details" })).toBeVisible();

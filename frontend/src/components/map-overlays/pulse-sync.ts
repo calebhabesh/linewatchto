@@ -13,7 +13,6 @@ export const MAP_PULSE_CYCLE_MS = 2400;
  */
 export const SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
   "aura-pulse",
-  "map-overlay-rail-pulse",
   "station-selected-pulse",
   "station-alert-beacon-ping",
 ]);

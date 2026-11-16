@@ -8,13 +8,16 @@ public final class SavedCommuteAlertRules {
 
     public static boolean dashboardMatchCounts(
         SavedCommuteEntity commute,
-        String legId,
         CommuteResponses.MatchedImpactResponse match
     ) {
-        return commute != null
-            && commute.isNotificationEnabled()
-            && legAllowed(commute, legId)
-            && eventTypeAllowed(commute, match == null ? null : match.relatedPlannedClosureId() != null ? "planned-closure" : match.kind());
+        // The alert types a rider turned off filter what My Commutes counts while those filters are shown
+        // (notifications on). Turning notifications off, a leg's notifications, and their days and times
+        // decide only when to push; they never hide an impact on the route.
+        if (commute == null) {
+            return false;
+        }
+        return !commute.isNotificationEnabled()
+            || eventTypeAllowed(commute, match == null ? null : match.relatedPlannedClosureId() != null ? "planned-closure" : match.kind());
     }
 
     public static boolean legAllowed(SavedCommuteEntity commute, String legId) {

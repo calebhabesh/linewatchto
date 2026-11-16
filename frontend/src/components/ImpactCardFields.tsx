@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from "react";
+import { Fragment, useContext, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, createLucideIcon } from "lucide-react";
 import type { AccountCommutePathPreview } from "../app/commute-data";
 import type { ImpactSelection, PlannedClosure } from "../app/linewatch-data";
@@ -13,6 +13,8 @@ import { StationSectionJoiner, StationSpanConnector } from "./IncidentStationSpa
 import { ImpactTimestamp } from "./ImpactTimestamp";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
+import { CommutePreviewChipText } from "./CommuteRouteLabel";
+import { AffectedCommuteLinks, AffectedCommutesContext } from "./AffectedCommutes";
 
 // Preserve the Lucide geometry, painting the folded map before the pin.
 export const MapPinned = createLucideIcon("MapPinned", [
@@ -80,6 +82,8 @@ export function formatClosureScheduleValue(value: string) {
         .replace(/\bAll\s+Day\b/g, "All\u00A0Day")
         .replace(/([A-Za-z]{3})\s+(\d{1,2}:\d{2})/g, "$1\u00A0$2")
         .replace(/(\d{1,2}:\d{2})\s+([AP]M)/g, "$1\u00A0$2")
+        // "at 8:00 AM" and "from 11:00 PM" stay together; the line may break before them.
+        .replace(/\b(at|from)\s+(\d{1,2}:\d{2})/g, "$1\u00A0$2")
         // "Resumes Mon, Nov 16 6:00 AM" may break after "Resumes" in a narrow column.
         .replace(/\bResumes\u00A0/g, "Resumes ")
     )
@@ -113,6 +117,19 @@ export function replacementServiceRows(incident: Pick<IncidentRiderDetails, "rep
     { label: "Replacement", value: replacement },
     ...(skipped ? [{ label: "Buses Skip", value: skipped }] : []),
   ];
+}
+
+/** The card's badge row: its own badges, then a link to each saved commute it lies on. */
+function ImpactCardBadges({ impactId, children }: { impactId?: string; children?: ReactNode }) {
+  const affected = useContext(AffectedCommutesContext);
+  const onCommute = Boolean(impactId && affected && affected.commutesFor(impactId).length > 0);
+  if (!children && !onCommute) return null;
+  return (
+    <div className="impact-card-badges">
+      {children}
+      {onCommute && impactId ? <AffectedCommuteLinks impactId={impactId} /> : null}
+    </div>
+  );
 }
 
 export function RelatedPlannedClosureButton({
@@ -471,6 +488,7 @@ export function ImpactCardShell({
   mapUnavailable = false,
   badges,
   overlaps,
+  impactId,
 }: {
   lineId: string;
   lineNumber: string;
@@ -490,6 +508,8 @@ export function ImpactCardShell({
   mapUnavailable?: boolean;
   badges?: ReactNode;
   overlaps?: ReactNode;
+  /** Links the card to the saved commutes it lies on (AffectedCommuteLinks). */
+  impactId?: string;
 }) {
   const hasSecondaryDescription = Boolean(description && description !== title);
 
@@ -510,7 +530,7 @@ export function ImpactCardShell({
 
       <ImpactRouteHeader location={location} direction={direction} />
 
-      {badges ? <div className="impact-card-badges">{badges}</div> : null}
+      <ImpactCardBadges impactId={impactId}>{badges}</ImpactCardBadges>
 
       {showNarrative ? (
         <div className="impact-card-narrative">
@@ -579,7 +599,7 @@ export function CommutePathPreviewCardBanner({
       data-commute-path-preview-embedded
     >
       <span>
-        <span className="commute-path-preview-chip__caption">Viewing{commutePathPreview.chipLabel ? ` ${commutePathPreview.chipLabel}` : null}<span className="commute-path-preview-chip__colon">{commutePathPreview.chipLabel ? ":" : null}</span></span>{" "}<strong>{commutePathPreview.routeLabel}</strong>
+        <CommutePreviewChipText preview={commutePathPreview} arrow={false} />
       </span>
       <button
         type="button"

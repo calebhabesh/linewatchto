@@ -281,6 +281,5 @@ export function mapCommutePreview<S extends NetworkSegment>(
     label: preview.routeLabel,
     pathD,
     endpoints,
-    endpointStyle: preview.returnView === "alert-history" ? "static" : "beacon",
   };
 }

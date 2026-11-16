@@ -15,12 +15,17 @@ import {
   currentServiceIncidentPresentation,
   getLineStatusPresentation,
   lineStatusDescription,
-  getPlannedClosureCountBadgeLabel,
+  withUpcomingListedSeparately,
 } from "../app/current-service";
 import { LineBadge } from "./ImpactCardFields";
 import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { LineAdvisorySummary, LineServiceStatus } from "./LineServiceStatus";
+import { UpcomingAdvisoryCards } from "./UpcomingAdvisoryCards";
+import { useAdvisoryTrunkEnds } from "../hooks/useAdvisoryTrunkEnds";
+import { CardDetailsCue } from "./CardDetailsCue";
+import type { ImpactCommute } from "../app/commute-data";
+import { CommuteImpactTag } from "./CommuteImpactTag";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { CurrentServiceRouteBadges } from "./CurrentServiceRouteBadges";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
@@ -35,6 +40,8 @@ type Props = {
   onStatus: () => void;
   onCategory: (view: "closures" | "reduced-speed-zones", lineId?: string) => void;
   onNotices: () => void;
+  /** Saved commutes each impact lies on, by impact id; their cards are tagged and Upcoming ones lead. */
+  commutesByImpact?: Map<string, ImpactCommute[]>;
 };
 
 const noticeLabels: Record<string, string> = {
@@ -46,6 +53,8 @@ const noticeLabels: Record<string, string> = {
 
 function ServiceList({ children, rail = false }: { children: ReactNode; rail?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
+  // Each incident line's elbow ends on its last advisory heading.
+  useAdvisoryTrunkEnds(ref, '.current-service-line[data-has-advisories="true"]');
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
@@ -117,7 +126,7 @@ function desktopContentHeight(panel: HTMLElement): number {
   return Math.max(COLLAPSED_LIST_HEIGHT, Math.min(height, window.innerHeight - 200));
 }
 
-export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatus, onCategory, onNotices }: Props) {
+export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatus, onCategory, onNotices, commutesByImpact }: Props) {
   const [now, setNow] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -204,26 +213,21 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
   const affectedLines = data.lineStatuses
     .map((line) => {
       const rows = summary.rows.filter((row) => row.lineId === line.id);
-      const closureCount = (summary.upcoming ?? []).filter((c) => c.lineId === line.id).length;
+      const upcoming = (summary.upcoming ?? []).filter((c) => c.lineId === line.id);
       const rszCount = countReducedSpeedZones(
         (data.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id),
       );
-      return {
-        line,
-        rows,
-        closureCount,
-        rszCount,
-        advisoryCount: closureCount + rszCount,
-      };
+      return { line, rows, upcoming, rszCount };
     })
     .filter((item) => item.rows.length > 0);
   const remainingLines = data.lineStatuses
     .filter((line) => !affectedLines.some((item) => item.line.id === line.id))
     .map((line) => ({
       line,
-      presentation: getLineStatusPresentation(line, data, summary),
-      closureCount: (summary.upcoming ?? []).filter((c) => c.lineId === line.id).length,
+      presentation: withUpcomingListedSeparately(getLineStatusPresentation(line, data, summary)),
+      upcoming: (summary.upcoming ?? []).filter((c) => c.lineId === line.id),
     }));
+  const selectUpcoming = (closureId: string) => onImpact({ kind: "planned-closure", id: closureId });
   const activeCount = summary.rows.length;
   const surfaceRows = notices?.fresh && now > 0
     ? currentSurfaceNotices(notices.notices, now, data.networkId === "ttc")
@@ -267,7 +271,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
         </span>
       </button>
     </div>
-    <header className="current-service-heading"><h2>Current Service</h2><span>Suspensions, delays & planned advisories starting within 24h</span></header>
+    <header className="current-service-heading"><h2>Current Service</h2></header>
     {!summary.fresh && <p key={`avail-${data.networkId}`} className="current-service-availability">{data.availability === "fixture" ? "Demo Data · Current Status Unavailable" : "Current Status Unavailable"}</p>}
     <div key={data.networkId} className="current-service-columns">
       <section aria-label="Rail service status">
@@ -289,7 +293,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
         {data.snapshot && <p className="p-2 text-xs">Current status unknown.{data.snapshot?.savedAt != null ? " Saved reports follow; service may have changed." : " Connect for service information."}</p>}
         <ServiceList rail>
           {affectedLines.map((item) => (
-            <div className="current-service-line" data-has-advisories={item.closureCount > 0 || item.rszCount > 0} key={item.line.id}>
+            <div className="current-service-line" data-has-advisories={item.upcoming.length > 0 || item.rszCount > 0} key={item.line.id}>
               <div className="current-service-line-badge-wrap">
                 <LineBadge lineId={item.line.id} lineNumber={item.rows[0].lineNumber} size={28} />
               </div>
@@ -306,6 +310,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                           data-impact-kind={alertKind}
                           onClick={() => onImpact({ kind: row.kind, id: row.id })}
                         >
+                          <CommuteImpactTag commutes={commutesByImpact?.get(row.id)} />
                           <span className="current-service-impact-heading">
                             <strong data-kind={alertKind}>
                               <ImpactTypeIcon kind={alertKind} size={16} />
@@ -317,32 +322,26 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                           <IncidentFacts row={row} className="current-service-impact-timing" />
                           {(incident.timing || row.shuttle) && (
                             <span className="current-service-impact-timing">
-                              <IncidentTiming timing={incident.timing} target={row.timingTarget} now={now} shuttle={row.shuttle} />
+                              <IncidentTiming timing={incident.timing} target={row.timingTarget} now={now} shuttle={row.shuttle} notStarted={row.notStarted} />
                             </span>
                           )}
                           <IncidentPostedTime row={row} className="current-service-impact-timing" now={now} saved={Boolean(data.snapshot)} />
+                          <CardDetailsCue />
                         </button>
                       </IncidentElectricBorder>
                     );
                   })}
                 </div>
-                {(item.closureCount > 0 || item.rszCount > 0) && (
+                <UpcomingAdvisoryCards
+                  lineName={item.line.name}
+                  closures={item.upcoming}
+                  now={now}
+                  commutesByImpact={commutesByImpact}
+                  onSelect={selectUpcoming}
+                />
+                {item.rszCount > 0 && (
                   <div className="current-service-sub-badges">
-                    <LineAdvisorySummary count={item.advisoryCount} />
-                    {item.closureCount > 0 && (
-                      <button
-                        type="button"
-                        className="current-service-badge-incident-button"
-                        onClick={() => onCategory("closures", item.line.id)}
-                        title={`View ${item.line.name} Planned Advisories`}
-                        aria-label={`${item.line.name}: ${getPlannedClosureCountBadgeLabel(item.closureCount)}`}
-                      >
-                        <span className="current-service-planned-pill">
-                          <ImpactTypeIcon kind="planned-closure" size={11} />
-                          <span>{getPlannedClosureCountBadgeLabel(item.closureCount)}</span>
-                        </span>
-                      </button>
-                    )}
+                    <LineAdvisorySummary />
                     {item.rszCount > 0 && (
                       <button
                         type="button"
@@ -365,7 +364,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
             </div>
           ))}
 
-          {remainingLines.map(({ line, presentation, closureCount }) => (
+          {remainingLines.map(({ line, presentation, upcoming }) => (
             <div className={`current-service-line current-service-line--${presentation.state}`} key={line.id}>
               <div className="current-service-line-badge-wrap">
                 <LineBadge lineId={line.id} lineNumber={line.number} size={28} />
@@ -398,22 +397,19 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                     )}
                   </div>
                 </button>
-                {(closureCount > 0 || presentation.hasRsz) && (
+                {upcoming.length > 0 && (
+                  <div className="current-service-remaining-upcoming">
+                    <UpcomingAdvisoryCards
+                      lineName={line.name}
+                      closures={upcoming}
+                      now={now}
+                      commutesByImpact={commutesByImpact}
+                      onSelect={selectUpcoming}
+                    />
+                  </div>
+                )}
+                {presentation.hasRsz && (
                   <div className="current-service-sub-badges current-service-remaining-sub-badges">
-                    {closureCount > 0 && (
-                      <button
-                        type="button"
-                        className="current-service-badge-incident-button"
-                        onClick={() => onCategory("closures", line.id)}
-                        title={`View ${line.name} Planned Advisories`}
-                        aria-label={`${line.name}: ${getPlannedClosureCountBadgeLabel(closureCount)}`}
-                      >
-                        <span className="current-service-planned-pill">
-                          <ImpactTypeIcon kind="planned-closure" size={11} />
-                          <span>{getPlannedClosureCountBadgeLabel(closureCount)}</span>
-                        </span>
-                      </button>
-                    )}
                     {presentation.hasRsz && (
                       <button
                         type="button"

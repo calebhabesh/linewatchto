@@ -270,9 +270,9 @@ public class SavedCommuteService {
         CommuteResponses.PathResponse path = "regional".equals(commute.getNetworkId())
             ? requireRegionalPathService().path(fromStationId, toStationId)
             : commutePathService.path(fromStationId, toStationId);
-        CommuteResponses.ImpactResponse impact = "regional".equals(commute.getNetworkId())
+        CommuteResponses.ImpactResponse impact = annotatedImpactFor(commute, id, path, "regional".equals(commute.getNetworkId())
             ? requireRegionalImpactService().impactFor(path)
-            : filteredImpactFor(commute, id, path);
+            : commuteImpactService.impactFor(path));
         return new CommuteResponses.CommuteLegResponse(
             id,
             fromStationName + " -> " + toStationName,
@@ -285,17 +285,24 @@ public class SavedCommuteService {
         );
     }
 
-    private CommuteResponses.ImpactResponse filteredImpactFor(
+    /**
+     * Marks each match the route's alert-type filters leave out (ignoredByRule) and each upcoming
+     * planned closure outside the leg's trip times (SavedCommuteTripTimes.outside), then
+     * recounts the leg's status without the ignored ones.
+     */
+    private CommuteResponses.ImpactResponse annotatedImpactFor(
         SavedCommuteEntity commute,
         String legId,
-        CommuteResponses.PathResponse path
+        CommuteResponses.PathResponse path,
+        CommuteResponses.ImpactResponse impact
     ) {
-        CommuteResponses.ImpactResponse impact = commuteImpactService.impactFor(path);
         if (impact == null || impact.matchedImpacts() == null || impact.matchedImpacts().isEmpty()) {
             return impact;
         }
         List<CommuteResponses.MatchedImpactResponse> annotatedMatches = impact.matchedImpacts().stream()
-            .map(match -> match.withIgnoredByRule(!SavedCommuteAlertRules.dashboardMatchCounts(commute, legId, match)))
+            .map(match -> match
+                .withIgnoredByRule(!SavedCommuteAlertRules.dashboardMatchCounts(commute, match))
+                .withOutsideTripTimes(SavedCommuteTripTimes.outside(commute, legId, match)))
             .toList();
         return commuteImpactService.responseForMatches(path, annotatedMatches);
     }

@@ -148,7 +148,11 @@ public class CommuteImpactService {
                 closure.windowHours(), closure.windowDates(), false,
                 closure.notificationTitle(), closure.cause(), closure.shuttle()
             ).withServiceEffect(closure.serviceEffect(), closure.id())
-                .withDisplayLocation(closure.displayLocation()));
+                .withDisplayLocation(closure.displayLocation())
+                .withServiceWindows(activeNow || closure.upcomingWindows() == null || closure.upcomingWindows().isEmpty() ? null
+                    : new CommuteResponses.ServiceWindows(closure.upcomingWindows().stream()
+                        .map(window -> new CommuteResponses.ServiceWindow(window.startsAt(), window.endsAt(), false))
+                        .toList(), closure.lastWindowEnd() != null)));
         }
 
         List<CommuteResponses.MatchedImpactResponse> matches = matchesByIdentity.values().stream()

@@ -69,6 +69,8 @@ interface Props {
   stationCatalogs: Record<NetworkId, StationSummary[]>;
   networkId: NetworkId;
   viewedCommuteId?: string | null;
+  /** The route preview on the map now, whose card's View on Map reads Back. */
+  viewedPathPreviewId?: string | null;
   focusedCommuteId?: string | null;
   onFocusedCommuteIdChange?: (id: string | null) => void;
   onViewPath: (commute: AccountSavedCommute, legId?: AccountCommuteLegId) => void;
@@ -111,6 +113,7 @@ export function SavedCommutesPanel({
   stationCatalogs,
   networkId,
   viewedCommuteId,
+  viewedPathPreviewId,
   focusedCommuteId: propFocusedCommuteId,
   onFocusedCommuteIdChange,
   onViewPath,
@@ -999,7 +1002,8 @@ export function SavedCommutesPanel({
                         toggleCount={userToggledCommuteIds[commute.id] ?? 0}
                         onClearSwapAnimation={clearCommuteSwapAnimation}
                         stationNameFor={stationNameFor}
-                        viewedCommuteId={viewedCommuteId}
+                        viewedPathPreviewId={viewedPathPreviewId}
+                        onClearPath={onClearViewedPath}
                         onViewPath={(com, legId) => {
                           lastInteractedCommuteIdRef.current = com.id;
                           setFocusedCommuteId(com.id);

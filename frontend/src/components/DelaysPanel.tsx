@@ -6,11 +6,10 @@ import { serviceEffectLabel } from "../app/alert-categories";
 import { alertCauseReason } from "../app/alert-cause";
 import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
-import type { AccountCommutePathPreview } from "../app/commute-data";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { MetadataGrid, CardSource, RelatedPlannedClosureButton, CommutePathPreviewCardBanner, ImpactCardShell, plannedAdvisoryWindowRows, replacementServiceRows } from "./ImpactCardFields";
+import { MetadataGrid, CardSource, RelatedPlannedClosureButton, ImpactCardShell, plannedAdvisoryWindowRows, replacementServiceRows } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -34,8 +33,6 @@ interface Props {
   externalQuery?: string;
   externalSort?: ImpactListSort;
   showImpactTypeIndicator?: boolean;
-  commutePathPreview?: AccountCommutePathPreview | null;
-  onClearCommutePathPreview?: () => void;
   mapActionVariant?: "icon-only" | "labeled";
 }
 
@@ -53,8 +50,6 @@ export function DelaysPanel({
   externalQuery,
   externalSort,
   showImpactTypeIndicator = false,
-  commutePathPreview,
-  onClearCommutePathPreview,
   mapActionVariant,
 }: Props) {
   const dashboard = useDashboardData();
@@ -162,6 +157,7 @@ export function DelaysPanel({
                 }`}
               >
                 <ImpactCardShell
+                  impactId={delay.id}
                   lineId={delay.lineId}
                   lineNumber={delay.lineNumber}
                   title={delay.title}
@@ -213,12 +209,6 @@ export function DelaysPanel({
                   />
                 </div>
 
-                {isActive && commutePathPreview ? (
-                  <CommutePathPreviewCardBanner
-                    commutePathPreview={commutePathPreview}
-                    onClearCommutePathPreview={onClearCommutePathPreview}
-                  />
-                ) : null}
               </article>
             );
           })

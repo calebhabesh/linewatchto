@@ -426,6 +426,37 @@ class SavedCommuteServiceTest {
 
     @Test
     void disabledEventTypesDoNotMarkSavedCommuteAffectedButRemainVisibleAsIgnoredRouteMatches() {
+        CommuteResponses.ImpactResponse impact = reducedSpeedZoneCommuteImpact(true, true);
+
+        assertThat(impact.status()).isEqualTo("clear");
+        assertThat(impact.severity()).isEqualTo("clear");
+        assertThat(impact.statusLabel()).isEqualTo("Clear by filters");
+        assertThat(impact.matchedImpacts()).singleElement().satisfies(match -> {
+            assertThat(match.kind()).isEqualTo("reduced-speed-zone");
+            assertThat(match.ignoredByRule()).isTrue();
+        });
+        assertThat(impact.travelTimeEstimate().status()).isEqualTo("estimated");
+        assertThat(impact.travelTimeEstimate().extraHighSeconds()).isPositive();
+    }
+
+    @Test
+    void notificationSwitchesNeverHideImpactsOnTheRoute() {
+        // Notifications off hide the alert-type filters too, so nothing is filtered.
+        assertThat(reducedSpeedZoneCommuteImpact(false, true)).satisfies(impact -> {
+            assertThat(impact.status()).isEqualTo("affected");
+            assertThat(impact.matchedImpacts()).singleElement()
+                .satisfies(match -> assertThat(match.ignoredByRule()).isFalse());
+        });
+        // A leg's notifications off still count its impacts (only the RSZ type filter is off here).
+        SavedCommuteEntity rule = SavedCommuteEntity.create("c", account, "Work", "a", "b", false, Instant.parse("2026-06-05T14:30:00Z"));
+        rule.updateNotificationRule(true, 127, null, null, false, false, true, true, true, true, true, Instant.parse("2026-06-05T14:31:00Z"));
+        CommuteResponses.MatchedImpactResponse delay = new CommuteResponses.MatchedImpactResponse(
+            "d", "delay", "current", "minor", "Delay", "line-1", "1", null, null, null, "TTC", List.of(), List.of(),
+            null, null, null, "active-now", null, false);
+        assertThat(SavedCommuteAlertRules.dashboardMatchCounts(rule, delay)).isTrue();
+    }
+
+    private CommuteResponses.ImpactResponse reducedSpeedZoneCommuteImpact(boolean notificationsEnabled, boolean outboundEnabled) {
         AlertDashboardService dashboardService = mock(AlertDashboardService.class);
         SavedCommuteService serviceWithRealImpactMatching = new SavedCommuteService(
             commuteRepository,
@@ -446,11 +477,11 @@ class SavedCommuteServiceTest {
             Instant.parse("2026-06-05T14:30:00Z")
         );
         commute.updateNotificationRule(
-            true,
+            notificationsEnabled,
             127,
             null,
             null,
-            true,
+            outboundEnabled,
             true,
             true,
             true,
@@ -508,19 +539,7 @@ class SavedCommuteServiceTest {
         when(dashboardService.plannedClosures()).thenReturn(List.of());
         when(dashboardService.activeStationNodeImpacts()).thenReturn(List.of());
 
-        AccountResponses.SavedCommuteResponse response = serviceWithRealImpactMatching.list(account).commutes().getFirst();
-
-        assertThat(response.outboundLeg().impact()).satisfies(impact -> {
-            assertThat(impact.status()).isEqualTo("clear");
-            assertThat(impact.severity()).isEqualTo("clear");
-            assertThat(impact.statusLabel()).isEqualTo("Clear by filters");
-            assertThat(impact.matchedImpacts()).singleElement().satisfies(match -> {
-                assertThat(match.kind()).isEqualTo("reduced-speed-zone");
-                assertThat(match.ignoredByRule()).isTrue();
-            });
-            assertThat(impact.travelTimeEstimate().status()).isEqualTo("estimated");
-            assertThat(impact.travelTimeEstimate().extraHighSeconds()).isPositive();
-        });
+        return serviceWithRealImpactMatching.list(account).commutes().getFirst().outboundLeg().impact();
     }
 
     @Test

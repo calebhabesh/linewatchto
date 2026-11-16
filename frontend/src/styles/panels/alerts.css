@@ -634,6 +634,103 @@
   outline-offset: 2px;
 }
 
+/* A saved commute the impact lies on (AffectedCommuteLinks): the station
+   submenu's Schedule May Be Disrupted banner colours
+   (.station-detail-disruption-card in card-elevation.css), apart from the red
+   cards use for "in effect" and the planned blue, with My Commutes' green icon. */
+.affected-commute-link {
+  align-items: center;
+  background: #fef3c7;
+  border: none;
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  color: #78350f;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 1 auto;
+  font-size: 11px;
+  font-weight: 750;
+  gap: 5px;
+  line-height: 1;
+  max-width: 100%;
+  min-height: 24px;
+  min-width: 0;
+  padding: 4px 8px;
+  transition: background-color 150ms ease;
+}
+
+.dark .affected-commute-link {
+  background: linear-gradient(180deg, #592e10 0%, #442109 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.affected-commute-link:hover {
+  background: #fde68a;
+}
+
+.dark .affected-commute-link:hover {
+  background: linear-gradient(180deg, #6b3914 0%, #52280b 100%);
+}
+
+.affected-commute-link:focus-visible {
+  outline: 2px solid #d97706;
+  outline-offset: 2px;
+}
+
+.affected-commute-link__icon {
+  color: #15803d;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.dark .affected-commute-link__icon {
+  color: #86efac;
+}
+
+.affected-commute-link__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affected-commute-link > svg {
+  flex-shrink: 0;
+}
+
+/* Upcoming work that meets the commute only outside its trip times: neutral,
+   so it reads as on the route but not in the rider's way. */
+.affected-commute-link--outside {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.dark .affected-commute-link--outside {
+  background: linear-gradient(180deg, #273244 0%, #1e293b 100%);
+  color: #cbd5e1;
+}
+
+.affected-commute-link--outside:hover {
+  background: #cbd5e1;
+}
+
+.dark .affected-commute-link--outside:hover {
+  background: linear-gradient(180deg, #334155 0%, #273244 100%);
+}
+
+.affected-commute-link--outside:focus-visible {
+  outline-color: #64748b;
+}
+
+.affected-commute-link--outside .affected-commute-link__icon {
+  color: #64748b;
+}
+
+.dark .affected-commute-link--outside .affected-commute-link__icon {
+  color: #94a3b8;
+}
+
 .planned-closure-metadata .is-emphasized dt {
   color: var(--color-logo-blue);
   letter-spacing: 0.035em;

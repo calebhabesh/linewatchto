@@ -6,6 +6,8 @@ import {
   formatEstimateRange,
   formatExtraTimeRange,
   formatTravelTimeHeadline,
+  reportedRouteCondition,
+  routeConditionVerdict,
 } from "../src/app/commute-duration.ts";
 
 describe("saved commute duration formatting", () => {
@@ -61,6 +63,48 @@ describe("saved commute duration formatting", () => {
     });
   });
 
+  it("names what is reported on the route instead of calling the time unreliable", () => {
+    const unreliable = {
+      status: "unreliable",
+      baselineSeconds: 10 * 60,
+      estimatedLowSeconds: null,
+      estimatedHighSeconds: null,
+      confidence: "low",
+    };
+    const impact = (overrides) => ({
+      kind: "delay", status: "current", serviceEffect: null, lineNumber: "2",
+      location: "Kennedy to Victoria Park", displayDirection: "Eastbound & Westbound", ...overrides,
+    });
+    const suspension = reportedRouteCondition([
+      impact({ kind: "reduced-speed-zone" }),
+      impact({ kind: "suspension" }),
+    ]);
+    assert.equal(suspension.label, "Suspension");
+    assert.match(suspension.context, /^No Trains: Kennedy . Victoria Park$/);
+    assert.deepEqual(formatTravelTimeHeadline(unreliable, suspension), {
+      value: "Suspension on Route",
+      context: suspension.context,
+    });
+    // A closure in effect, and limited service (even filed as a closure or delay).
+    assert.equal(reportedRouteCondition([impact({ kind: "planned-closure" })]).label, "Closure");
+    assert.equal(reportedRouteCondition([impact({ kind: "planned-closure", serviceEffect: "limited-service" })]).label, "Limited Service");
+    assert.equal(reportedRouteCondition([impact({ kind: "delay", serviceEffect: "limited-service" })]).label, "Limited Service");
+    // Suspension outranks a closure; monitored impacts outrank ignored ones; planned ones don't count.
+    assert.equal(reportedRouteCondition([impact({ kind: "planned-closure" }), impact({ kind: "suspension" })]).label, "Suspension");
+    assert.equal(reportedRouteCondition([impact({ kind: "suspension", ignoredByRule: true }), impact({ kind: "planned-closure" })]).label, "Closure");
+    assert.equal(reportedRouteCondition([impact({ kind: "suspension", status: "planned" })]), null);
+    // Limited service: fewer trains; the box can't size the extra time.
+    const limited = reportedRouteCondition([impact({ kind: "planned-closure", serviceEffect: "limited-service" })]);
+    assert.match(limited.context, /^Fewer Trains: Kennedy . Victoria Park$/);
+    // The Travel Time box's With Impacts value.
+    assert.equal(routeConditionVerdict(suspension), "Route Blocked");
+    assert.equal(routeConditionVerdict(reportedRouteCondition([impact({ kind: "planned-closure" })])), "Route Blocked");
+    assert.equal(routeConditionVerdict(limited), "Extra Time Unknown");
+    assert.equal(routeConditionVerdict(null), "No Estimate");
+    // Without a stretch it still says what the alert type means.
+    assert.equal(reportedRouteCondition([impact({ kind: "suspension", location: null })]).context, "No Trains on Part of Route");
+  });
+
   it("does not invent a duration for unreliable or unavailable routes", () => {
     assert.deepEqual(formatTravelTimeHeadline({
       status: "unreliable",
@@ -69,8 +113,8 @@ describe("saved commute duration formatting", () => {
       estimatedHighSeconds: null,
       confidence: "none",
     }), {
-      value: "Travel Time Unreliable",
-      context: "Major Disruption on Route",
+      value: "Service Disrupted on Route",
+      context: "No Travel Time Estimate",
     });
     assert.deepEqual(formatTravelTimeHeadline({
       status: "unavailable",

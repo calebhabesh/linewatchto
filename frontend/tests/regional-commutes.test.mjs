@@ -62,7 +62,7 @@ describe("regional My Commutes UI boundary", () => {
     assert.match(regionalContentSource, /commutePreview: mapCommutePreview\(input\.commutePathPreview, drawnSegments,/);
     assert.match(regionalContentSource, /const pill = regionalStationPill\(geometry, dot\.id\);/);
     assert.match(regionalMapSource, /<g id=\{layerId\("dynamic-commute"\)\} aria-label="Commute route preview">\s*<MapCommutePreviewRoute preview=\{commutePreview\} \/>/);
-    assert.match(regionalMapSource, /<MapCommuteEndpointFlashes preview=\{commutePreview\} plane=\{overlayPlane\} \/>/);
+    assert.match(regionalMapSource, /<MapCommuteEndpointBlips preview=\{commutePreview\} plane=\{overlayPlane\} \/>/);
     assert.doesNotMatch(globalCss, /regional-commute/);
     assert.match(globalCss, /\.commute-path-preview-glow,\s*\.commute-path-preview-path\s*\{[^}]*stroke-linecap:\s*round;/s);
     assert.match(cardSource, /Route Notifications:/);

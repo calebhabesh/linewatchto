@@ -60,6 +60,7 @@ import { LogsDropdown, SourceDiagnosticsBody, SourceStatusRefreshButton } from "
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { ScrollOverflowAffordances } from "./ScrollOverflowAffordances";
 import { DataProvider, DashboardData } from "../app/DataContext";
+import { AffectedCommutesContext, type AffectedCommutesValue } from "./AffectedCommutes";
 import { DecorativeMotionPausedContext } from "./DecorativeMotionContext";
 import { serviceConnectionNotice, serviceOperatingNotice } from "../app/shell-service-notices";
 import { DesktopNoticeBanner, type DesktopNotice } from "./DesktopNoticeBanner";
@@ -137,6 +138,7 @@ import {
 import {
   commutePathPreviewFromCommute,
   getSavedCommutes,
+  impactCommutes,
   summarizeSavedCommuteStatuses,
   type AccountSavedCommute,
   type AccountCommuteLegId,
@@ -1665,6 +1667,9 @@ export function LineWatchShell({
     };
   }, [notificationStatusLabel]);
 
+  // Current Service tags every card on a saved commute (Upcoming cards on one
+  // also lead); alert cards link to each commute they lie on.
+  const commutesByImpact = useMemo(() => impactCommutes(accountCommutes), [accountCommutes]);
   const { clear: commuteClearCount, affectedNow: commuteAffectedCount } = useMemo(
     () => summarizeSavedCommuteStatuses(accountCommutes),
     [accountCommutes]
@@ -1877,6 +1882,15 @@ export function LineWatchShell({
         return;
     }
   }, [isMobile, navigateForward, openLineImpacts, pushBrowserNavigationEntry, selectionBackBehaviorRef, selectionRef, setActiveView, setCommutePathPreview, setCommutesFocusedCommuteId, setMobileInspectorDetent, setSelectedStationId, setSelection, setSurfaceNoticeInitialContent]);
+
+  // An alert card's "Affects <commute>" opens that commute in My Commutes, as a
+  // commute notification does.
+  const affectedCommutes = useMemo<AffectedCommutesValue | null>(() => (
+    commutesByImpact.size === 0 ? null : {
+      commutesFor: (impactId) => commutesByImpact.get(impactId) ?? [],
+      openCommute: (commuteId) => applyNotificationDestination({ type: "commutes", network: null, commuteId }),
+    }
+  ), [applyNotificationDestination, commutesByImpact]);
 
   useEffect(() => {
     if (!pendingNotificationTarget) return;
@@ -2499,15 +2513,23 @@ export function LineWatchShell({
   // A card opened from a station's details (View Details) steps back to that
   // station, as the panel's Back does: the alert clears, the station stays.
   const impactOpenedFromStation = Boolean(stationDrilldownOrigin && selection);
+  // A desktop card opened from a commute (View Alert, with its route drawn on
+  // the map) turns its own View into Back, which returns to that commute, as My
+  // Stations' View Alert does; phones keep the inspector's preview chip.
+  const impactOpenedFromCommute = !isMobile && Boolean(commutePathPreview && selection);
   const handleReturnImpactToMap = impactOpenedFromStation
     ? handleImpactStepBack
-    : desktopImpactIsMapFocused
+    : impactOpenedFromCommute
+      ? handleClearCommutePathPreview
+      : desktopImpactIsMapFocused
       ? () => handleMapSelectImpact(null)
       : impactBackContext ? handleImpactStepBack : undefined;
   // An impact opened from search steps back to the search results, not the map.
   const impactReturnLabel = impactOpenedFromStation
     ? "Back to Station"
-    : desktopImpactIsMapFocused
+    : impactOpenedFromCommute
+      ? commutePathPreview?.returnView === "alert-history" ? "Back to Alert History" : "Back to My Commutes"
+      : desktopImpactIsMapFocused
       ? "Back to Map"
       : impactBackContext?.origin.activeView === "search"
         ? "Back to Search Results"
@@ -3089,8 +3111,6 @@ export function LineWatchShell({
             onClose={handleClosePanel}
             onFocusMap={handleFocusMapFromPanel}
             initialLineId={impactListLaunch.lineId}
-            commutePathPreview={commutePathPreview}
-            onClearCommutePathPreview={handleClearCommutePathPreview}
           />
         );
       case "delays":
@@ -3106,8 +3126,6 @@ export function LineWatchShell({
             onClose={handleClosePanel}
             onFocusMap={handleFocusMapFromPanel}
             initialLineId={impactListLaunch.lineId}
-            commutePathPreview={commutePathPreview}
-            onClearCommutePathPreview={handleClearCommutePathPreview}
           />
         );
       case "reduced-speed-zones":
@@ -3123,8 +3141,6 @@ export function LineWatchShell({
             onClose={handleClosePanel}
             onFocusMap={handleFocusMapFromPanel}
             initialLineId={impactListLaunch.lineId}
-            commutePathPreview={commutePathPreview}
-            onClearCommutePathPreview={handleClearCommutePathPreview}
           />
         );
       case "closures":
@@ -3140,8 +3156,6 @@ export function LineWatchShell({
             onClose={handleClosePanel}
             onFocusMap={handleFocusMapFromPanel}
             initialLineId={impactListLaunch.lineId}
-            commutePathPreview={commutePathPreview}
-            onClearCommutePathPreview={handleClearCommutePathPreview}
           />
         );
       case "commutes":
@@ -3155,6 +3169,7 @@ export function LineWatchShell({
             focusedCommuteId={commutesFocusedCommuteId}
             onFocusedCommuteIdChange={setCommutesFocusedCommuteId}
             viewedCommuteId={commutesFocusedCommuteId ?? commutePathPreview?.commuteId ?? commutePathPreview?.id ?? null}
+            viewedPathPreviewId={commutePathPreview?.id ?? null}
             onViewPath={handleViewCommutePath}
             onViewImpactOnPath={handleViewCommuteImpactOnPath}
             onClearViewedPath={handleClearCommutePathPreview}
@@ -3677,6 +3692,7 @@ export function LineWatchShell({
             }}
             onSelectSurfaceNotice={handleSearchOpenSurfaceNotice}
             onNetworkChange={handleNetworkChange}
+            commutesByImpact={commutesByImpact}
           />
         );
       }
@@ -3916,6 +3932,7 @@ export function LineWatchShell({
 
   return (
     <DataProvider data={displayData}>
+      <AffectedCommutesContext.Provider value={affectedCommutes}>
       <DecorativeMotionPausedContext.Provider value={reducedMotion || highContrast}>
       <NetworkSwitchContext.Provider value={networkSwitchTarget ?? selectedNetwork}>
       <div
@@ -4729,6 +4746,7 @@ export function LineWatchShell({
               onStatus={() => navigateForward("status")}
               onCategory={(view, lineId) => openImpactCategory(view, lineId)}
               onNotices={openServiceNotices}
+              commutesByImpact={commutesByImpact}
             />}
         </MobileStatusPeek>
       ) : null}
@@ -4809,6 +4827,7 @@ export function LineWatchShell({
     </div>
       </NetworkSwitchContext.Provider>
       </DecorativeMotionPausedContext.Provider>
+      </AffectedCommutesContext.Provider>
     </DataProvider>
   );
 }

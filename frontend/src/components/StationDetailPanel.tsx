@@ -1,6 +1,6 @@
 "use client";
 
-import { serviceEffectLabel } from "../app/alert-categories";
+import { PLANNED_CLOSURE_IN_EFFECT, serviceEffectLabel } from "../app/alert-categories";
 
 
 import { Fragment, useEffect, useRef, useState } from "react";
@@ -143,7 +143,7 @@ function getStationImpactDetailsTarget(
   if (matchingAlert) {
     if (matchingAlert.severity === "planned") {
       return {
-        label: "Active Closure",
+        label: PLANNED_CLOSURE_IN_EFFECT,
         selection: { kind: "suspension", id: matchingAlert.id },
         tone: "active",
       };

@@ -1,4 +1,4 @@
-import { serviceEffectLabel } from "./alert-categories.ts";
+import { PLANNED_CLOSURE_IN_EFFECT, serviceEffectLabel } from "./alert-categories.ts";
 import { suppliedAlertCause } from "./alert-cause.ts";
 import { formatCompactDuration } from "./impact-time.ts";
 import type { ActiveAlert, DelayAlert, IncidentRiderDetails, ImpactKind, LineStatus, PlannedClosure, ReducedSpeedZone } from "./linewatch-data.ts";
@@ -32,6 +32,8 @@ export type CurrentServiceRow = IncidentRiderDetails & {
   postedAt?: string | null;
   direction?: string | null;
   shuttle: boolean;
+  /** A planned window starting within 24h that has not begun; replacement service reads in the future tense. */
+  notStarted?: boolean;
   priority: number;
 };
 
@@ -78,10 +80,18 @@ function incidentRiderDetails(incident: IncidentRiderDetails & { cause?: string 
   };
 }
 
-/** "GO Buses Replace Trains", or undefined when the source names no replacement. */
-export function replacementServiceLabel(replacementService: IncidentRiderDetails["replacementService"]) {
-  return replacementService === "go-bus" ? "GO Buses Replace Trains"
-    : replacementService === "bus" ? "Buses Replace Trains" : undefined;
+/**
+ * "GO Buses Replace Trains", or undefined when the source names no replacement.
+ * `future` words it for a planned window that has not started ("GO Buses Will Replace Trains").
+ */
+export function replacementServiceLabel(replacementService: IncidentRiderDetails["replacementService"], future = false) {
+  const buses = replacementService === "go-bus" ? "GO Buses" : replacementService === "bus" ? "Buses" : undefined;
+  return buses && `${buses} ${future ? "Will Replace" : "Replace"} Trains`;
+}
+
+/** TTC shuttle buses, in the tense of their window: running now, or yet to start. */
+export function shuttleServiceLabel(future = false) {
+  return future ? "Shuttle Buses Will Run" : "Shuttle Buses Running";
 }
 
 /** "Bloor, Mount Dennis and Weston" for stops a replacement service skips. */
@@ -113,7 +123,7 @@ export function incidentFacts(row: CurrentServiceRow, now = 0) {
     cause: cause && !/^(unknown|other(?: cause)?|metrolinx service update|modified trip|no service|delay(?:s)?)$/i.test(cause.replace(/_/g, " ").trim()) ? cause : undefined,
     service: [
       Number.isInteger(delay) && delay! > 0 ? `Reported Delay: ${delay} min` : undefined,
-      replacementServiceLabel(row.replacementService),
+      replacementServiceLabel(row.replacementService, row.notStarted),
       row.replacementService && skippedStationsLabel(row.replacementSkippedStations)
         ? `Buses Skip ${skippedStationsLabel(row.replacementSkippedStations)}` : undefined,
     ].filter(Boolean).join(" · "),
@@ -185,6 +195,7 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
       direction: closure.displayDirection,
       ...incidentRiderDetails(closure),
       shuttle: closure.shuttle,
+      notStarted: !active,
       priority: active ? 0 : 2,
     });
   }
@@ -220,6 +231,15 @@ export function currentSurfaceNotices(
   }).sort((a, b) => preferTtcServiceAlerts
     ? compareSurfaceNotices(a, b, "importance", undefined, true)
     : (a.routeIds[0] || "").localeCompare(b.routeIds[0] || "", undefined, { numeric: true }) || a.id.localeCompare(b.id));
+}
+
+/**
+ * The incident card header for a planned advisory that has not begun: "Planned
+ * Limited Service" when the source says so, otherwise "Planned Closure" (as
+ * getCanonicalAlertTitle titles upcoming planned rows). Upcoming cards share it.
+ */
+export function plannedAdvisoryHeader(incident: IncidentRiderDetails): string {
+  return incident.serviceEffect === "limited-service" ? serviceEffectLabel(incident, true) : "Planned Closure";
 }
 
 export function getCanonicalAlertTitle(row: CurrentServiceRow): string {
@@ -266,7 +286,7 @@ export function getCanonicalAlertTitle(row: CurrentServiceRow): string {
 export function currentServiceIncidentPresentation(row: CurrentServiceRow) {
   const title = getCanonicalAlertTitle(row)
     .replace(/\blimited service\b/i, "Limited Service")
-    .replace("Planned Closure in Effect", "Planned Closure · In Effect")
+    .replace("Planned Closure in Effect", PLANNED_CLOSURE_IN_EFFECT)
     .replace(/Planned Closure$/, "Planned Closure · Upcoming")
     .replace("Suspension", row.condition.endsWith("No Service") ? "No Service" : "Suspension")
     .replace("Last reported:", "Last Reported:");
@@ -306,6 +326,17 @@ export function lineStatusDescription(presentation: LineStatusPresentation): str
     ...(presentation.qualifiers ?? []).map(({ label }) => label),
     ...(presentation.advisoryCount ? [`+ ${lineAdvisoryCountLabel(presentation.advisoryCount)}`] : []),
   ].join(", ");
+}
+
+/**
+ * The status for a view that lists upcoming planned advisories as their own
+ * cards (Current Service's Upcoming): the line keeps its yellow "Normal
+ * Service" and qualifiers, since non-urgent disruptions still exist, but its
+ * count covers only Reduced Speed Zones, which have no card.
+ */
+export function withUpcomingListedSeparately(presentation: LineStatusPresentation): LineStatusPresentation {
+  if (!presentation.qualifiers?.some(({ kind }) => kind === "planned-closure")) return presentation;
+  return { ...presentation, advisoryCount: presentation.rszCount || undefined };
 }
 
 export function lineAdvisoryCountLabel(count: number): string {

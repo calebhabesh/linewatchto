@@ -121,10 +121,8 @@ describe("mobile performance guardrails", () => {
       /\.linewatch-shell\.mobile-performance-mode \.station-impact-ring\s*\{[^}]*stroke-width:\s*calc\(5px \* var\(--map-overlay-unit, 1\)\);[^}]*opacity:\s*0\.95;[^}]*\}/s,
     );
 
-    assert.match(
-      globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.commute-path-preview-path\s*\{[^}]*animation:\s*none\s*!important;[^}]*stroke-width:\s*calc\(112px \* var\(--map-overlay-unit, 1\)\);[^}]*\}/s,
-    );
+    // The commute route never moves, so phones need no override for it.
+    assert.doesNotMatch(globalCss, /\.commute-path-preview-path\s*\{[^}]*animation:(?!\s*none)/s);
 
     assert.match(
       globalCss,

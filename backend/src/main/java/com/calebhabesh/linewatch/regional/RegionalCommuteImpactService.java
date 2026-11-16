@@ -72,7 +72,10 @@ public class RegionalCommuteImpactService {
                 planned ? "Upcoming" : "Now", planned ? "scheduled" : "active", alert.activePeriodStart(),
                 null, closureDates, false, alert.title(), alert.cause(), false,
                 alert.hasDateOnlyServiceWindow() ? alert.activePeriodEnd() : null
-            ));
+            ).withServiceWindows(planned
+                ? new CommuteResponses.ServiceWindows(List.of(new CommuteResponses.ServiceWindow(
+                    alert.activePeriodStart(), alert.activePeriodEnd(), alert.hasDateOnlyServiceWindow())), true)
+                : null));
         }
         matches.sort(Comparator.comparing(CommuteResponses.MatchedImpactResponse::kind)
             .thenComparing(CommuteResponses.MatchedImpactResponse::id));
