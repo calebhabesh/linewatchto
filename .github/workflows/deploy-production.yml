@@ -17,6 +17,7 @@ permissions:
   contents: read
   actions: read
   packages: read
+  id-token: write # Tailscale workload identity
 
 concurrency:
   group: production-deploy
@@ -122,11 +123,22 @@ jobs:
         with:
           node-version: "24"
 
-      - name: Configure SSH and private network
+      # The VPS has no public SSH. The runner joins the tailnet as an ephemeral tag:ci node through
+      # Tailscale workload identity (GitHub's OIDC token; no stored Tailscale secret); the tailnet
+      # policy lets tag:ci reach only the VPS's SSH port.
+      - name: Join the tailnet
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ vars.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ vars.TS_AUDIENCE }}
+          tags: tag:ci
+          hostname: linewatchto-deploy-${{ github.run_id }}
+          ping: ${{ env.VPS_HOST }}
+
+      - name: Configure SSH
         env:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
-          VPS_WIREGUARD_CONFIG: ${{ secrets.VPS_WIREGUARD_CONFIG }}
         shell: bash
         run: |
           set -euo pipefail
@@ -140,13 +152,6 @@ jobs:
           printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/deploy_key"
           printf '%s\n' "$VPS_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
-          if [[ -n "$VPS_WIREGUARD_CONFIG" ]]; then
-            sudo apt-get update -qq
-            sudo apt-get install -y -qq wireguard-tools
-            printf '%s\n' "$VPS_WIREGUARD_CONFIG" | sudo tee /etc/wireguard/wg0.conf >/dev/null
-            sudo chmod 600 /etc/wireguard/wg0.conf
-            sudo wg-quick up wg0
-          fi
 
       - name: Backup and deploy production
         shell: bash
