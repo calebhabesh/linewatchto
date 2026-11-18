@@ -2,7 +2,7 @@
 
 This file documents the hosting configuration for the **LineWatchTO** production server.
 
-Do not commit passwords, SMTP credentials, VAPID private keys, or WireGuard private keys. Store application secrets in `.env.production` on the VPS and keep that file out of Git.
+Do not commit passwords, SMTP credentials, VAPID private keys, or SSH deploy keys. Store application secrets in `.env.production` on the VPS and keep that file out of Git.
 
 ## Hardware And Operating System
 
@@ -17,13 +17,13 @@ Do not commit passwords, SMTP credentials, VAPID private keys, or WireGuard priv
 The host manages:
 
 - Docker Engine and the Docker Compose plugin.
-- WireGuard.
+- Tailscale.
 - OCI ingress rules.
 - Host firewall rules.
 - The repository checkout, server-local `.env.production`, and generated `.env.release`.
 - Persistent Docker volumes and Caddy data.
 
-WireGuard stays outside Compose because it protects access to Docker and the host itself.
+Tailscale stays outside Compose because it protects access to Docker and the host itself.
 
 ## Public Network
 
@@ -31,33 +31,24 @@ Public traffic reaches the sites only through Cloudflare Tunnel: each `cloudflar
 
 OCI ingress (the default security list) allows only:
 
-- UDP `51820` for WireGuard.
 - TCP `8443` and UDP `3478` for the `orbit-net` relay.
 - ICMP types 3 and 4.
 
-There is no public TCP `22`, `80`, or `443`. SSH is reached over Tailscale (`100.67.196.101`) or WireGuard (`10.0.0.1`).
+There is no public TCP `22`, `80`, or `443`. SSH is reached only over Tailscale (`100.67.196.101`).
 
 The host firewall repeats those limits so a loosened security list does not expose the host. `/etc/iptables/rules.v4` and `rules.v6` are loaded at boot by `netfilter-persistent`, before Docker and Tailscale add their own chains. Edit those files by hand; never replace them with `iptables-save` output, which would capture Docker's per-container rules. They:
 
-- accept SSH only on `tailscale0` and on `wg0` from `10.0.0.0/24`;
-- accept the WireGuard, Tailscale (UDP `41641`), and `orbit-net` ports, and reject all other inbound traffic;
+- accept SSH only on `tailscale0`;
+- accept the Tailscale (UDP `41641`) and `orbit-net` ports, and reject all other inbound traffic;
 - drop new connections from the public interface (`enp0s6`) to containers in `DOCKER-USER`, because Docker's published ports bypass `INPUT`.
 
 `sshd` allows only `ubuntu`, with keys only and no root login (`/etc/ssh/sshd_config.d/10-hardening.conf`). Unattended upgrades install security updates daily and reboot at 09:00 UTC when a kernel or libc update needs it (`/etc/apt/apt.conf.d/52unattended-reboot`).
 
-## WireGuard
+## Private access
 
-- Hub IP: `10.0.0.1`.
-- Address range: `10.0.0.0/24`.
-- Config path: `/etc/wireguard/wg0.conf`.
-- SSH command: `ssh ubuntu@10.0.0.1`.
+Every device reaches the VPS over the owner's tailnet (`100.67.196.101`, MagicDNS `main-instance-vnic`), and GitHub Actions deploys join it as ephemeral `tag:ci` nodes (see the deploy setup below).
 
-Verify WireGuard starts automatically:
-
-```bash
-sudo systemctl enable --now wg-quick@wg0
-sudo systemctl status wg-quick@wg0
-```
+WireGuard (hub `10.0.0.1`) was retired on 2026-11-18: `wg-quick@wg0` is disabled, its firewall rules and the UDP `51820` security-list rule are removed, and its config and keys are kept root-only in `/root/wireguard-retired-20261118T145943Z`.
 
 ## Production Compose Stack
 
@@ -83,7 +74,7 @@ schedule-assets: 3 GB (the TTC bus generator peaks near 1.5 GB for about a minut
 alloy: 512 MB, only when the observability profile is enabled
 ```
 
-The backend JVM heap remains capped separately by `JAVA_TOOL_OPTIONS=-Xmx4g`; the backend container limit includes JVM native memory, metaspace, thread stacks, and process overhead. The caps intentionally leave several GB for Ubuntu, Docker, kernel memory, filesystem cache, WireGuard, deploys, backups, and temporary burst overhead.
+The backend JVM heap remains capped separately by `JAVA_TOOL_OPTIONS=-Xmx4g`; the backend container limit includes JVM native memory, metaspace, thread stacks, and process overhead. The caps intentionally leave several GB for Ubuntu, Docker, kernel memory, filesystem cache, deploys, backups, and temporary burst overhead.
 
 Production application images are built by the successful `main` CI run on a native ARM64 GitHub runner and published to GHCR. The CI run records each image's registry digest. The manual GitHub Actions deployment button selects those exact digests through `.env.release`; the VPS never runs `docker compose build` or `up --build`.
 
@@ -155,7 +146,7 @@ GitHub Actions CI owns:
 The VPS owns:
 
 - Docker Compose runtime only.
-- `.env.production`, `.env.release`, Docker volumes, Caddy data, and WireGuard access.
+- `.env.production`, `.env.release`, Docker volumes, and Caddy data.
 - Pulling published images, health-gated startup, backups, logs, and rollback.
 
 For the existing `linewatch-frontend`, `linewatch-backend`, and `linewatch-postgres` GHCR packages, grant this repository **Actions write access** to each package if they were first published with a personal access token. The CI `publish` job uses `packages: write` and `GITHUB_TOKEN`; it does not need a stored GHCR token. Keep these packages public so the VPS can pull without registry credentials. See [GitHub's package access settings](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility#ensuring-workflow-access-to-your-package).

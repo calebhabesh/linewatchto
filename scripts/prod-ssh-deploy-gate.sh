@@ -3,7 +3,7 @@
 #
 # Install a root-owned copy (not the checkout's, which a deploy rewrites) and pin the key to it:
 #   sudo install -m 755 scripts/prod-ssh-deploy-gate.sh /usr/local/sbin/linewatch-deploy-gate
-#   command="/usr/local/sbin/linewatch-deploy-gate",from="10.0.0.3",restrict ssh-ed25519 ...
+#   command="/usr/local/sbin/linewatch-deploy-gate",from="100.64.0.0/10,fd7a:115c:a1e0::/48",restrict ssh-ed25519 ...
 #
 # The workflow still sends `bash -c '<runner>' bash SHA PATH [FRONTEND BACKEND POSTGRES [SCHEDULE_ASSETS]]` with
 # the release script on stdin. The gate discards that script, keeps only the arguments, and runs
