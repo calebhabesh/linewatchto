@@ -322,6 +322,12 @@ list from the same volume (read-only, every minute). A new schedule needs no rel
 - A rejected feed keeps the last good files in service and is not regenerated again until the
   feed or the generator changes. The rejection's problems are in the log and in
   `/srv/schedule/.state/state.json` inside the container.
+- A `check-failed` at stage `generate` is a generator bug on a new feed; the event's message is
+  the generator's first error line. Reproduce it with the cached archive
+  (`docker exec linewatchto-schedule-assets-1 cat /srv/schedule/.state/gtfs/go.zip > go.zip`,
+  then the generator with `--go-gtfs go.zip` and scratch `--output`/`--backend-stops`). The
+  Schedule assets rules in [observability.md](observability.md#alerts) alert on two failed
+  checks in a row, a stale network, and a published feed ending within 7 days.
 - Force a full regeneration from the cached archives (for example after a manual fix):
   `scripts/prod-compose.sh exec schedule-assets rm /srv/schedule/.state/state.json` then
   `scripts/prod-compose.sh restart schedule-assets`.

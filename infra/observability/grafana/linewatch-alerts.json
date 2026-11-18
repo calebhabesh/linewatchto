@@ -108,6 +108,42 @@
       "severity": "warning",
       "summary": "The active TTC GTFS schedule ends in under 7 days.",
       "description": "The hourly refresh imports TTC's next package as soon as it is published, and TTC often publishes right at expiry. Check /api/health/schedule: refreshStatus success with refreshRecordsProcessed 0 and a recent refreshCompletedAt means TTC has not published yet; failed or an old refreshCompletedAt means the refresh job needs attention."
+    },
+    {
+      "uid": "linewatch-schedule-assets-failing",
+      "title": "Schedule assets failing",
+      "expr": "max(linewatch_schedule_assets_consecutive_failures{environment=\"production\"})",
+      "op": "gt",
+      "threshold": 1,
+      "for": "5m",
+      "noData": "OK",
+      "severity": "warning",
+      "summary": "The schedule-assets service failed two checks in a row for a network; riders keep its last published map and search files.",
+      "description": "/api/health/schedule-assets names the network and lastFailureStage; the VPS log (scripts/prod-compose.sh logs schedule-assets, event check-failed) has the error. A generate failure is a generator bug on a new feed: reproduce it with the feed archive from /srv/schedule/.state/gtfs in the container."
+    },
+    {
+      "uid": "linewatch-schedule-assets-stale",
+      "title": "Schedule assets stale",
+      "expr": "max(linewatch_schedule_assets_stale{environment=\"production\"})",
+      "op": "gt",
+      "threshold": 0,
+      "for": "15m",
+      "noData": "OK",
+      "severity": "warning",
+      "summary": "A schedule-assets network has had no successful feed check for three intervals.",
+      "description": "The schedule-assets container may be stopped or stuck. Check /api/health/schedule-assets and scripts/prod-compose.sh ps/logs schedule-assets on the VPS."
+    },
+    {
+      "uid": "linewatch-schedule-assets-feed-ending",
+      "title": "Schedule assets feed ending",
+      "expr": "min(linewatch_schedule_assets_feed_days_remaining{environment=\"production\"})",
+      "op": "lt",
+      "threshold": 7,
+      "for": "30m",
+      "noData": "OK",
+      "severity": "warning",
+      "summary": "A published Map View/search schedule (TTC or GO) ends in under 7 days.",
+      "description": "The service publishes a new feed as soon as the agency does, so this means either the agency has not published a longer feed or checks are failing. /api/health/schedule-assets shows each network's feedEndDate, state and lastFailureStage."
     }
   ]
 }

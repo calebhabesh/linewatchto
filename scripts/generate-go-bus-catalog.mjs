@@ -43,6 +43,7 @@ import { createInterface } from "node:readline";
 import { gzipSync } from "node:zlib";
 import { buildSurfaceCorridors, placeStopsAlongShape } from "./lib/surface-corridors.mjs";
 import { buildRouteStopSequences } from "./lib/route-stop-sequences.mjs";
+import { routesByShortName } from "./lib/gtfs-routes.mjs";
 import { validateCoordinate } from "./lib/geographic-geometry.mjs";
 
 const args = process.argv.slice(2);
@@ -147,10 +148,13 @@ const routeTrips = new Map([...routes.values()].map(route => [routeKey(route), 0
 const routeVariants = new Map([...routes.values()].map(route => [routeKey(route), new Set()]));
 /** trip_id -> { route short name, shape id } for the week's bus trips */
 const busTrips = new Map();
+/** route_ids with trips in the sample week */
+const weekRouteIds = new Set();
 let tripsWithoutShape = 0;
 for (const trip of readTable("trips.txt")) {
   const route = routes.get(trip.route_id);
   if (!route || !weekServices.has(trip.service_id)) continue;
+  weekRouteIds.add(trip.route_id);
   routeTrips.set(routeKey(route), routeTrips.get(routeKey(route)) + 1);
   if (trip.route_variant) routeVariants.get(routeKey(route)).add(trip.route_variant);
   if (!trip.shape_id) {
@@ -292,7 +296,8 @@ for (const sequences of Object.values(routeStopSequences)) {
 }
 
 const drawnRoutes = new Set(corridors.flatMap(c => c.routes));
-const routeSummaries = [...routes.values()]
+// A feed spanning two schedule periods lists a route once per period.
+const routeSummaries = routesByShortName(routes.values(), weekRouteIds)
   .sort((a, b) => routeOrder(routeKey(a), routeKey(b)))
   .map(route => ({
     route: routeKey(route),

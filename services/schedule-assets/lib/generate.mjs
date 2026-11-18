@@ -17,6 +17,17 @@ export const TTC_BAKED_INPUTS = ["ttc-catalog.json", "ttc-station-bays.json"];
 const GENERATOR_TIMEOUT_MS = 20 * 60 * 1000;
 const HEAP_MB = Number(process.env.SCHEDULE_ASSETS_GENERATOR_HEAP_MB || 2048);
 
+/**
+ * The line that names a failed generator's error. A crash in a child the
+ * generator runs (the search index) ends in Node's dump of the parent's
+ * execFileSync error ("stderr: null | } | Node.js v24"), so the last lines
+ * alone hide the cause; the first error line is the one that names it.
+ */
+export function failureSummary(output) {
+  const error = output.find(line => /^\s*(?:[A-Z]\w*)?Error(?: \[\w+\])?: /.test(line));
+  return (error ? error.trim() : output.slice(-3).join(" | ")).slice(0, 400);
+}
+
 function run(script, args, { cwd, log, timeoutMs = GENERATOR_TIMEOUT_MS }) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [`--max-old-space-size=${HEAP_MB}`, script, ...args], {
@@ -37,7 +48,7 @@ function run(script, args, { cwd, log, timeoutMs = GENERATOR_TIMEOUT_MS }) {
       // The generators print one summary line per catalog; keep those for the logs.
       for (const line of output.filter(line => line.startsWith("["))) log?.("generator", { line });
       if (code === 0) resolve(output);
-      else reject(new FeedError("generate", `${script.split("/").pop()} ${args.slice(0, 2).join(" ")} failed (${signal ?? code}): ${output.slice(-3).join(" | ").slice(0, 400)}`));
+      else reject(new FeedError("generate", `${script.split("/").pop()} ${args.slice(0, 2).join(" ")} failed (${signal ?? code}): ${failureSummary(output)}`));
     });
   });
 }

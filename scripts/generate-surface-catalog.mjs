@@ -45,6 +45,7 @@ import {
   tripKind,
 } from "./lib/surface-corridors.mjs";
 import { buildRouteStopSequences } from "./lib/route-stop-sequences.mjs";
+import { routesByShortName } from "./lib/gtfs-routes.mjs";
 import { validateCoordinate } from "./lib/geographic-geometry.mjs";
 
 const args = process.argv.slice(2);
@@ -142,9 +143,12 @@ const routeCounts = new Map([...routes.values()].map(route => [route.route_short
 }]));
 /** trip_id -> { route short name, shape id } for the weekday trips drawn */
 const streetcarTrips = new Map();
+/** route_ids with weekday trips */
+const weekdayRouteIds = new Set();
 for (const trip of readTable("trips.txt")) {
   const route = routes.get(trip.route_id);
   if (!route || !weekdayServices.has(trip.service_id)) continue;
+  weekdayRouteIds.add(trip.route_id);
   // tripKind's "streetcar" is a regular trip of the route: on a bus route, a bus trip.
   const kind = tripKind(trip.trip_headsign);
   routeCounts.get(route.route_short_name)[kind]++;
@@ -295,7 +299,8 @@ if (night) {
 }
 
 const drawnRoutes = new Set(corridors.flatMap(c => c.routes));
-const routeSummaries = [...routes.values()]
+// A feed spanning two schedule periods lists a route once per period.
+const routeSummaries = routesByShortName(routes.values(), weekdayRouteIds)
   .sort((a, b) => routeOrder(a.route_short_name, b.route_short_name))
   .map(route => {
     const counts = routeCounts.get(route.route_short_name);

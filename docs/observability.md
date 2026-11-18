@@ -87,6 +87,7 @@ We expose custom gauges in [LinewatchHealthMetrics.java](../backend/src/main/jav
 - `linewatch_schedule_refresh_age_seconds`: Age of the latest GTFS schedule refresh run in seconds.
 - `linewatch_schedule_refresh_records_processed`: Total records processed during the latest schedule refresh.
 - `linewatch_schedule_refresh_status{status="success|failed|running|never-run"}`: A set of gauges indicating the latest schedule refresh state.
+- `linewatch_schedule_assets_consecutive_failures`, `linewatch_schedule_assets_stale`, `linewatch_schedule_assets_feed_days_remaining`: the schedule-assets service's worst network (most consecutive failed checks, any network stale, soonest published feed end), from the same state as `/api/health/schedule-assets`; NaN without a schedule-assets volume.
 
 ## Grafana Alloy Configuration
 
@@ -151,12 +152,17 @@ Query constraints in this stack:
 | Backend metrics missing | `max(up{job="prometheus.scrape.backend"})` | `< 1` for 3m, or no data | critical |
 | GTFS schedule inactive | `max(linewatch_schedule_active)` | `< 1` for 15m | critical |
 | GTFS schedule expiring soon | `min(linewatch_schedule_service_days_remaining)` | `< 7` for 30m | warning |
+| Schedule assets failing | `max(linewatch_schedule_assets_consecutive_failures)` | `>= 2` for 5m | warning |
+| Schedule assets stale | `max(linewatch_schedule_assets_stale)` | `> 0` for 15m | warning |
+| Schedule assets feed ending | `min(linewatch_schedule_assets_feed_days_remaining)` | `< 7` for 30m | warning |
 
 All queries filter `environment="production"`. On Oct 19-20, 2026, a single over-long TTC
 alert title failed every poll for 4.5 hours with no rules provisioned; the first two rules
 would each have fired within minutes. On Nov 13, 2026 an untitled TTC bus detour failed every
 poll for about 2 hours; ingestion now quarantines such a record and keeps the rest of the feed
-live, and the quarantine rules report it.
+live, and the quarantine rules report it. On Nov 17-18, 2026 a two-period GO feed failed every
+schedule-assets check at the generate stage while the published GO files ran out on Nov 27;
+the schedule-assets rules would have fired at the second failed check.
 
 ### Not yet provisioned
 - Uptime synthetic checks for `https://linewatchto.ca/` and `https://api.linewatchto.ca/api/health`

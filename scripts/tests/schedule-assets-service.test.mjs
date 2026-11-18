@@ -18,6 +18,7 @@ import {
   sameApartFromArchive,
 } from "../../services/schedule-assets/lib/publish.mjs";
 import { createScheduleAssetService } from "../../services/schedule-assets/lib/service.mjs";
+import { failureSummary, generateGo } from "../../services/schedule-assets/lib/generate.mjs";
 
 const repo = fileURLToPath(new URL("../../", import.meta.url));
 const geographic = join(repo, "frontend/public/assets/linewatch/geographic");
@@ -265,6 +266,34 @@ describe("the service", () => {
     assert.equal(status.networks.ttc.lastFailure.stage, "lookup");
     assert.equal(status.networks.go.state, "ok");
     assert.equal(status.networks.ttc.published.origin, "release", "TTC keeps serving its last good set");
+  });
+});
+
+describe("generator failures", () => {
+  it("name the error, not the tail of Node's stack dump", async () => {
+    // A stub GO generator whose child (the search index) throws, as GO 20261117113605 did.
+    const scripts = temp("scripts");
+    writeFileSync(join(scripts, "search-index.mjs"), `throw new Error("Route 11 (go-bus) is in two catalogs");\n`);
+    writeFileSync(join(scripts, "generate-go-bus-catalog.mjs"), `
+      import { execFileSync } from "node:child_process";
+      console.log("[GO bus catalog] feed 20261117113605");
+      execFileSync(process.execPath, [new URL("./search-index.mjs", import.meta.url).pathname], { stdio: "inherit" });
+    `);
+    const lines = [];
+    await assert.rejects(
+      generateGo({ scriptsDir: scripts, archive: "go.zip", workDir: temp("work"), log: (_event, { line }) => lines.push(line) }),
+      (error) => {
+        assert.equal(error.stage, "generate");
+        assert.match(error.message, /failed \(1\): Error: Route 11 \(go-bus\) is in two catalogs$/);
+        return true;
+      },
+    );
+    assert.deepEqual(lines, ["[GO bus catalog] feed 20261117113605"]);
+  });
+
+  it("fall back to the last lines when no error line is printed", () => {
+    assert.equal(failureSummary(["a", "b", "c", "d"]), "b | c | d");
+    assert.equal(failureSummary(["x", "TypeError [ERR_INVALID_ARG_TYPE]: bad", "y"]), "TypeError [ERR_INVALID_ARG_TYPE]: bad");
   });
 });
 
