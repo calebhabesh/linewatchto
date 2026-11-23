@@ -8,6 +8,8 @@
   --panel-strong: rgba(255, 255, 255, 0.98);
   --light-container: #f1f5f9;
   --panel-soft: var(--light-container);
+  /* The station band in Current Service cards: one shade for incident and Upcoming cards. */
+  --station-band: rgba(15, 23, 42, 0.06);
   --border: rgba(15, 23, 42, 0.12);
   --border-strong: rgba(15, 23, 42, 0.22);
   --text: #0f172a;
@@ -89,6 +91,7 @@
   --panel-opaque: #0a0c10;
   --panel-strong: rgba(10, 12, 16, 0.98);
   --panel-soft: rgba(255, 255, 255, 0.07);
+  --station-band: var(--panel-soft);
   --border: rgba(255, 255, 255, 0.16);
   --border-strong: rgba(255, 255, 255, 0.26);
   --text: #f7f8fb;
@@ -204,6 +207,7 @@
   --panel-opaque: #000000;
   --panel-strong: #000000;
   --panel-soft: rgba(255, 255, 255, 0.15);
+  --station-band: var(--panel-soft);
   --border: rgba(255, 255, 255, 0.7);
   --border-strong: rgba(255, 255, 255, 0.9);
   --text: #ffffff;
