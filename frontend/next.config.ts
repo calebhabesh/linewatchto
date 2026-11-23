@@ -63,6 +63,9 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL: environmentLabel(),
   },
   output: "standalone",
+  experimental: {
+    agentUpgrade: "security",
+  },
   turbopack: {
     root: process.cwd(),
   },
