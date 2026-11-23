@@ -519,22 +519,11 @@ test("sub-badges and surface routes use flex alignment with safe wrapping", () =
   assert.match(desktopChromeStyles, /\.desktop-status-surface-list \.current-service-notice-text\s*\{[^}]*text-align:\s*left;/s);
   assert.match(currentServiceStyles, /\.current-service-notice\s*\{[^}]*text-align:\s*left;/s);
 
-  // ElectricBorder stays on rail incidents; surface notices remain compact
+  // Rail incidents are outlined cards; surface notices remain compact rows.
   const desktopStatusSource = readFileSync(new URL("../src/components/DesktopStatusOverview.tsx", import.meta.url), "utf8");
-  assert.match(desktopStatusSource, /<IncidentElectricBorder[\s\S]*?<button[^>]*className="desktop-status-incident-row"/);
   const surfaceSection = desktopStatusSource.slice(desktopStatusSource.indexOf('className="desktop-status-surface-list"'));
-  assert.doesNotMatch(surfaceSection, /<IncidentElectricBorder/);
+  assert.doesNotMatch(surfaceSection, /desktop-status-incident-row/);
 
-});
-
-test("incident electric borders keep no live canvas at rest and show their still while the sheet moves", () => {
-  // A resting border is a still image, not a live canvas (its own GPU layer).
-  // The still must not wait for a sheet drag to end, or the border pops in late.
-  const electricBorderSource = readFileSync(new URL("../src/components/ui/ElectricBorder.tsx", import.meta.url), "utf8");
-  assert.match(electricBorderSource, /<canvas ref=\{canvasRef\} className="eb-canvas" style=\{\{ display: "none" \}\} \/>/);
-  assert.match(electricBorderSource, /if \(canAnimate\(\)\) \{\s*draw\(\);\s*showCanvas\(\);\s*schedule\(\);\s*\} else \{\s*showStill\(\);/);
-  assert.match(electricBorderSource, /const canDraw = \(\) => visible && !motionQuery\.matches;/);
-  assert.match(electricBorderSource, /const canAnimate = \(\) => canDraw\(\) && !sheetMotionPaused && \(hovered \|\| focused\);/);
 });
 
 test("shared incident copy retains countdowns for active and upcoming closures", () => {

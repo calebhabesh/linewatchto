@@ -18,7 +18,6 @@ import {
   withUpcomingListedSeparately,
 } from "../app/current-service";
 import { LineBadge } from "./ImpactCardFields";
-import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { AdvisorySpine, LineAdvisorySummary, LineServiceStatus } from "./LineServiceStatus";
 import { UpcomingAdvisoryCards } from "./UpcomingAdvisoryCards";
@@ -304,32 +303,31 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                     const incident = currentServiceIncidentPresentation(row);
                     const alertKind = row.iconKind || row.kind;
                     return (
-                      <IncidentElectricBorder key={`${row.kind}:${row.id}`} kind={alertKind}>
-                        <button
-                          type="button"
-                          className="current-service-impact current-service-impact--compact"
-                          data-impact-kind={alertKind}
-                          onClick={() => onImpact({ kind: row.kind, id: row.id })}
-                        >
-                          <CommuteImpactTag commutes={commutesByImpact?.get(row.id)} />
-                          <span className="current-service-impact-heading">
-                            <strong data-kind={alertKind}>
-                              <ImpactTypeIcon kind={alertKind} size={16} />
-                              {incident.title}
-                            </strong>
+                      <button
+                        key={`${row.kind}:${row.id}`}
+                        type="button"
+                        className="current-service-impact current-service-impact--compact"
+                        data-impact-kind={alertKind}
+                        onClick={() => onImpact({ kind: row.kind, id: row.id })}
+                      >
+                        <CommuteImpactTag commutes={commutesByImpact?.get(row.id)} />
+                        <span className="current-service-impact-heading">
+                          <strong data-kind={alertKind}>
+                            <ImpactTypeIcon kind={alertKind} size={16} />
+                            {incident.title}
+                          </strong>
+                        </span>
+                        <span className="current-service-impact-location"><IncidentStationSpan location={row.location} direction={row.direction} /></span>
+                        {row.direction && <span className="current-service-impact-direction">{row.direction}</span>}
+                        <IncidentFacts row={row} className="current-service-impact-timing" />
+                        {(incident.timing || row.shuttle) && (
+                          <span className="current-service-impact-timing">
+                            <IncidentTiming timing={incident.timing} target={row.timingTarget} now={now} shuttle={row.shuttle} notStarted={row.notStarted} />
                           </span>
-                          <span className="current-service-impact-location"><IncidentStationSpan location={row.location} direction={row.direction} /></span>
-                          {row.direction && <span className="current-service-impact-direction">{row.direction}</span>}
-                          <IncidentFacts row={row} className="current-service-impact-timing" />
-                          {(incident.timing || row.shuttle) && (
-                            <span className="current-service-impact-timing">
-                              <IncidentTiming timing={incident.timing} target={row.timingTarget} now={now} shuttle={row.shuttle} notStarted={row.notStarted} />
-                            </span>
-                          )}
-                          <IncidentPostedTime row={row} className="current-service-impact-timing" now={now} saved={Boolean(data.snapshot)} />
-                          <CardDetailsCue />
-                        </button>
-                      </IncidentElectricBorder>
+                        )}
+                        <IncidentPostedTime row={row} className="current-service-impact-timing" now={now} saved={Boolean(data.snapshot)} />
+                        <CardDetailsCue />
+                      </button>
                     );
                   })}
                 </div>

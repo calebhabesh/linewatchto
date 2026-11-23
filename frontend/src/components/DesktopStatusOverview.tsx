@@ -33,7 +33,6 @@ import { CommuteImpactTag } from "./CommuteImpactTag";
 import { usePanelImpactHover } from "../hooks/usePanelImpactHover";
 import { useAdvisoryTrunkEnds } from "../hooks/useAdvisoryTrunkEnds";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
-import { IncidentElectricBorder } from "./IncidentElectricBorder";
 import { NetworkSelector } from "./NetworkSelector";
 import { CurrentServiceRouteBadges } from "./CurrentServiceRouteBadges";
 import { surfaceNoticePreviewLocation } from "../app/surface-notice-groups";
@@ -262,46 +261,45 @@ export function DesktopStatusOverview({
                       const incident = currentServiceIncidentPresentation(row);
                       const alertKind = row.iconKind || row.kind;
                       return (
-                        <IncidentElectricBorder key={`${row.kind}:${row.id}`} kind={alertKind}>
-                          <button
-                            type="button"
-                            className="desktop-status-incident-row"
-                            data-impact-kind={alertKind}
-                            {...hoverProps({ kind: row.kind, id: row.id })}
-                            onClick={() => {
-                              if (onSelectImpact) {
-                                onSelectImpact({ kind: row.kind, id: row.id });
-                              } else {
-                                onOpenCategory("alerts", row.lineId);
-                              }
-                            }}
-                          >
-                            <CommuteImpactTag commutes={commutesByImpact?.get(row.id)} />
-                            <div className="desktop-status-incident-header">
-                              <strong
-                                className="desktop-status-incident-title"
-                                data-kind={alertKind}
-                              >
-                                <ImpactTypeIcon kind={alertKind} size={16} />
-                                <span>{incident.title}</span>
-                              </strong>
+                        <button
+                          key={`${row.kind}:${row.id}`}
+                          type="button"
+                          className="desktop-status-incident-row"
+                          data-impact-kind={alertKind}
+                          {...hoverProps({ kind: row.kind, id: row.id })}
+                          onClick={() => {
+                            if (onSelectImpact) {
+                              onSelectImpact({ kind: row.kind, id: row.id });
+                            } else {
+                              onOpenCategory("alerts", row.lineId);
+                            }
+                          }}
+                        >
+                          <CommuteImpactTag commutes={commutesByImpact?.get(row.id)} />
+                          <div className="desktop-status-incident-header">
+                            <strong
+                              className="desktop-status-incident-title"
+                              data-kind={alertKind}
+                            >
+                              <ImpactTypeIcon kind={alertKind} size={16} />
+                              <span>{incident.title}</span>
+                            </strong>
+                          </div>
+                          <div className="desktop-status-incident-location">
+                            <IncidentStationSpan location={row.location} direction={row.direction} />
+                          </div>
+                          {row.direction && (
+                            <div className="desktop-status-incident-direction">{row.direction}</div>
+                          )}
+                          <IncidentFacts row={row} className="desktop-status-incident-timing" />
+                          {(incident.timing || row.shuttle) && (
+                            <div className="desktop-status-incident-timing">
+                              <IncidentTiming timing={incident.timing} target={row.timingTarget} now={now} shuttle={row.shuttle} notStarted={row.notStarted} />
                             </div>
-                            <div className="desktop-status-incident-location">
-                              <IncidentStationSpan location={row.location} direction={row.direction} />
-                            </div>
-                            {row.direction && (
-                              <div className="desktop-status-incident-direction">{row.direction}</div>
-                            )}
-                            <IncidentFacts row={row} className="desktop-status-incident-timing" />
-                            {(incident.timing || row.shuttle) && (
-                              <div className="desktop-status-incident-timing">
-                                <IncidentTiming timing={incident.timing} target={row.timingTarget} now={now} shuttle={row.shuttle} notStarted={row.notStarted} />
-                              </div>
-                            )}
-                            <IncidentPostedTime row={row} className="desktop-status-incident-timing" now={now} saved={Boolean(snapshot)} />
-                            <CardDetailsCue />
-                          </button>
-                        </IncidentElectricBorder>
+                          )}
+                          <IncidentPostedTime row={row} className="desktop-status-incident-timing" now={now} saved={Boolean(snapshot)} />
+                          <CardDetailsCue />
+                        </button>
                       );
                     })}
                   </div>

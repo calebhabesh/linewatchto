@@ -98,8 +98,13 @@ test("countdowns count Toronto calendar days", () => {
   // Late Sunday night: a Tuesday 11 PM start is two days away though under 48h.
   const lateSunday = Date.parse("2026-11-16T04:30:00Z");
   assert.equal(upcomingCountdown(Date.parse("2026-11-18T04:00:00Z"), lateSunday), "In 2 Days");
-  assert.equal(upcomingCountdown(Date.parse("2026-11-17T04:00:00Z"), now), "Tomorrow");
-  assert.equal(upcomingCountdown(Date.parse("2026-11-15T23:00:00Z"), now), "Today");
+  assert.equal(upcomingCountdown(Date.parse("2026-11-16T14:00:00Z"), now), "Tomorrow");
+  assert.equal(upcomingCountdown(Date.parse("2026-11-17T04:00:00Z"), now), "Tomorrow Night");
+  assert.equal(upcomingCountdown(Date.parse("2026-11-15T19:00:00Z"), now), "Today");
+  assert.equal(upcomingCountdown(Date.parse("2026-11-15T23:00:00Z"), now), "Tonight");
+  // Sunday 4:56 AM: a Monday 11:59 PM nightly closure is 43 hours out, so it is
+  // still an upcoming card, and its chip says which night rather than "Tomorrow".
+  assert.equal(upcomingCountdown(Date.parse("2026-11-24T04:59:00Z"), Date.parse("2026-11-22T09:56:00Z")), "Tomorrow Night");
   assert.equal(upcomingCountdown(now - 1, now), undefined);
 });
 

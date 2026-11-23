@@ -595,7 +595,6 @@
 .linewatch-shell.high-contrast .current-service-impact--compact[data-impact-kind]::before,
 .linewatch-shell.high-contrast .current-service-notice-copy[data-category]::before { background: currentColor; }
 .current-service-impact--compact + .current-service-impact--compact { margin-top: 6px; }
-.current-service .current-service-line-copy-main > .electric-border + .electric-border { margin-top: 6px; }
 .current-service-impact-heading { display: flex; align-items: center; gap: 4px; font-size: 13.5px; }
 .current-service-impact-heading strong { display: inline-flex; align-items: center; gap: 4px; font-size: 13.5px; font-weight: 700; }
 .current-service-impact-heading strong svg { width: 16px; height: 16px; min-width: 16px; min-height: 16px; flex-shrink: 0; display: inline-block; vertical-align: middle; margin: 0; }
@@ -1414,21 +1413,6 @@
     animation: none;
   }
   .mobile-service-sheet .current-service::before { display: none; }
-  /* Keep the border's outer stroke/glow in WebKit as well as Chromium.
-     Constrain the oversized canvas separately so it cannot widen the sheet. */
-  .mobile-service-sheet .electric-border { clip-path: inset(-4px round 12px); }
-  .mobile-service-sheet .eb-canvas-container {
-    inset: -4px;
-    transform: none;
-    overflow: hidden;
-    border-radius: 12px;
-  }
-  .mobile-service-sheet .eb-canvas {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
   .mobile-service-sheet .line-service-conditional,
   .mobile-service-sheet .current-service-notice-copy > .current-service-notice-heading { flex-wrap: wrap; }
   .mobile-service-sheet .current-service-clear,
@@ -1475,18 +1459,13 @@
     padding-left: 0;
   }
   .mobile-service-sheet .current-service-impact {
-    --mobile-incident-color: var(--electric-border-color);
     min-height: 44px;
     padding: 10px;
     gap: 3px;
-    border: 1px solid transparent;
     border-radius: 8px;
-    background: color-mix(in srgb, var(--mobile-incident-color) 8%, var(--panel-opaque));
-    box-shadow: none;
   }
   .mobile-service-sheet .current-service-impact--compact::before { display: none; }
   .linewatch-shell.high-contrast .mobile-service-sheet .current-service-impact {
-    --mobile-incident-color: var(--text);
     background: var(--panel-opaque);
     border-color: var(--text);
     box-shadow: none;
@@ -2268,6 +2247,35 @@
 .upcoming-advisory-head > .commute-impact-hint > svg {
   height: 10px;
   width: 10px;
+}
+
+/* Current Service incident cards (rail suspensions, delays and planned closures
+   within 24 hours): a block of the incident's colour inside a 2px outline with
+   a still glow, so they stand apart from the Upcoming cards below them. Hover
+   deepens the fill and glow; nothing animates at rest. */
+:is(.desktop-status-incident-row, .current-service-impact--compact)[data-impact-kind] {
+  --incident-color: #ef4444;
+  --incident-fill: 24%;
+  --incident-glow: 35%;
+  border: 2px solid var(--incident-color);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--incident-color) var(--incident-fill), transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--incident-color) 18%, transparent), 0 0 18px color-mix(in srgb, var(--incident-color) var(--incident-glow), transparent);
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), background-color 140ms ease, box-shadow 140ms ease;
+}
+:is(.desktop-status-incident-row, .current-service-impact--compact)[data-impact-kind="delay"] { --incident-color: #f59e0b; }
+:is(.desktop-status-incident-row, .current-service-impact--compact)[data-impact-kind="planned-closure"] { --incident-color: #3b82f6; }
+:is(.desktop-status-incident-row, .current-service-impact--compact)[data-impact-kind]:is(:hover, :focus-visible) { --incident-fill: 32%; --incident-glow: 50%; }
+/* The station row darkens against the fill rather than lightening it. */
+:is(.desktop-status-incident-row[data-impact-kind] .desktop-status-incident-location, .mobile-service-sheet .current-service-impact[data-impact-kind] .current-service-impact-location) {
+  background: color-mix(in srgb, var(--panel-opaque) 45%, transparent);
+}
+.linewatch-shell :is(.desktop-status-incident-row, .current-service-impact--compact)[data-impact-kind]:not(:disabled):active { transform: scale(0.98); }
+.high-contrast :is(.desktop-status-incident-row, .current-service-impact--compact)[data-impact-kind] { background: transparent; border: 2px solid currentColor; box-shadow: none; }
+.high-contrast :is(.desktop-status-incident-row[data-impact-kind] .desktop-status-incident-location, .mobile-service-sheet .current-service-impact[data-impact-kind] .current-service-impact-location) { background: var(--panel-soft); }
+.linewatch-shell.motion-paused :is(.desktop-status-incident-row, .current-service-impact--compact)[data-impact-kind]:not(:disabled):active { transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .linewatch-shell :is(.desktop-status-incident-row, .current-service-impact--compact)[data-impact-kind]:not(:disabled):active { transform: none; }
 }
 
 :is(.desktop-status-incident-row, .current-service-impact--compact) > .commute-impact-hint {

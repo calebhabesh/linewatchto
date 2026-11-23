@@ -1,9 +1,5 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 import { installDismissedTransientUi, setStubMode } from "./test-support";
-
-async function borderDraws(page: Page) {
-  return page.evaluate(() => (window as Window & { borderDraws?: number }).borderDraws ?? 0);
-}
 
 async function glyphFrames(glyphs: Locator) {
   return glyphs.evaluateAll(elements => elements.map(element => {
@@ -29,14 +25,6 @@ test.beforeEach(async ({ page, request, isMobile }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.addInitScript(() => {
     localStorage.removeItem("linewatch-reduced-motion-enabled-v1");
-    const original = CanvasRenderingContext2D.prototype.stroke;
-    CanvasRenderingContext2D.prototype.stroke = function (...args: [] | [Path2D]) {
-      if (this.canvas.classList.contains("eb-canvas")) {
-        const probe = window as Window & { borderDraws?: number };
-        probe.borderDraws = (probe.borderDraws ?? 0) + 1;
-      }
-      return Reflect.apply(original, this, args);
-    };
     const clear = CanvasRenderingContext2D.prototype.clearRect;
     CanvasRenderingContext2D.prototype.clearRect = function (...args: Parameters<typeof clear>) {
       if (this.canvas.classList.contains("constellation-background-canvas")) {
@@ -93,52 +81,19 @@ test("directional planned calendars keep their glyph density and stay at rest wh
   expectSameGlyphFrames(await glyphFrames(glyphs), resting);
 });
 
-test("incident borders draw once at idle, animate on focus, and honor app Reduced Motion", async ({ page, isMobile }) => {
-  test.skip(isMobile, "Desktop incident border interaction");
+test("incident cards stay still at rest, on hover and on focus", async ({ page, isMobile }) => {
+  test.skip(isMobile, "Desktop status rail incident cards");
   await page.goto("/");
-  const border = page.locator(".electric-border:visible").first();
-  await expect(border).toBeVisible();
-  await expect.poll(() => borderDraws(page)).toBeGreaterThan(0);
-  const idle = await borderDraws(page);
-  // Deliberate sampling interval: detect continuous idle drawing.
-  await page.waitForTimeout(250);
-  expect(await borderDraws(page)).toBe(idle);
-  await border.locator("button").first().focus();
-  await expect.poll(() => borderDraws(page)).toBeGreaterThan(idle);
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await page.getByRole("switch", { name: "Toggle reduced motion", exact: true }).click();
-  await expect(page.locator(".linewatch-shell")).toHaveClass(/motion-paused/);
-  await page.getByRole("button", { name: /^Status, / }).click();
-  await expect(border).toBeVisible();
-  const stopped = await borderDraws(page);
-  await border.locator("button").first().focus();
-  await page.waitForTimeout(250);
-  expect(await borderDraws(page)).toBe(stopped);
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await page.getByRole("switch", { name: "Toggle reduced motion", exact: true }).click();
-  await page.getByRole("button", { name: /^Status, / }).click();
-  await border.locator("button").first().focus();
-  await expect.poll(() => borderDraws(page)).toBeGreaterThan(stopped);
-  // OS changes still stop borders when the app explicitly allows motion.
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(border.locator(".eb-canvas-container")).toBeHidden();
-  const osStopped = await borderDraws(page);
-  await page.waitForTimeout(250);
-  expect(await borderDraws(page)).toBe(osStopped);
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await expect.poll(() => borderDraws(page)).toBeGreaterThan(osStopped);
-  const focusedDraws = await borderDraws(page);
-  await page.waitForTimeout(250);
-  expect(await borderDraws(page) - focusedDraws).toBeLessThanOrEqual(7);
-  await border.evaluate(element => { element.style.transform = "translateX(-10000px)"; });
-  await expect.poll(async () => {
-    const before = await borderDraws(page);
-    await page.waitForTimeout(150);
-    return await borderDraws(page) === before;
-  }).toBe(true);
-  const offscreenDraws = await borderDraws(page);
-  await border.evaluate(element => { element.style.transform = ""; });
-  await expect.poll(() => borderDraws(page)).toBeGreaterThan(offscreenDraws);
+  const card = page.locator(".desktop-status-incident-row:visible").first();
+  await expect(card).toBeVisible();
+  const running = () => card.evaluate(element => element.getAnimations({ subtree: true })
+    .filter(animation => animation.playState === "running" && animation.effect?.getTiming().iterations === Infinity).length);
+  await expect(card.locator("canvas")).toHaveCount(0);
+  expect(await running()).toBe(0);
+  await card.hover();
+  expect(await running()).toBe(0);
+  await card.focus();
+  expect(await running()).toBe(0);
 });
 
 test("canvas motion is paced and stops during sheet gestures and page suspension", async ({ page, isMobile }) => {
@@ -166,10 +121,8 @@ test("canvas motion is paced and stops during sheet gestures and page suspension
   await expect.poll(async () => (await frames()).length).toBeGreaterThan(pausedFrames);
   await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pagehide")));
   const hiddenFrames = (await frames()).length;
-  const hiddenBorders = await borderDraws(page);
   await page.waitForTimeout(250);
   expect((await frames()).length).toBe(hiddenFrames);
-  expect(await borderDraws(page)).toBe(hiddenBorders);
   await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pageshow")));
   await expect.poll(async () => (await frames()).length).toBeGreaterThan(hiddenFrames);
 });

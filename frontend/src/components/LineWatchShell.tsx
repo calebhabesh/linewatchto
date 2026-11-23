@@ -61,7 +61,6 @@ import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { ScrollOverflowAffordances } from "./ScrollOverflowAffordances";
 import { DataProvider, DashboardData } from "../app/DataContext";
 import { AffectedCommutesContext, type AffectedCommutesValue } from "./AffectedCommutes";
-import { DecorativeMotionPausedContext } from "./DecorativeMotionContext";
 import { serviceConnectionNotice, serviceOperatingNotice } from "../app/shell-service-notices";
 import { DesktopNoticeBanner, type DesktopNotice } from "./DesktopNoticeBanner";
 import {
@@ -3933,7 +3932,6 @@ export function LineWatchShell({
   return (
     <DataProvider data={displayData}>
       <AffectedCommutesContext.Provider value={affectedCommutes}>
-      <DecorativeMotionPausedContext.Provider value={reducedMotion || highContrast}>
       <NetworkSwitchContext.Provider value={networkSwitchTarget ?? selectedNetwork}>
       <div
         style={shellViewportStyle}
@@ -4826,7 +4824,6 @@ export function LineWatchShell({
       </div>
     </div>
       </NetworkSwitchContext.Provider>
-      </DecorativeMotionPausedContext.Provider>
       </AffectedCommutesContext.Provider>
     </DataProvider>
   );
