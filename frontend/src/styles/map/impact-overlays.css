@@ -437,28 +437,41 @@
    is the overlap of falling arrows, not a staircase. Above the budget, and
    in "ripple-stepped", arrows jump with no work between steps. It keeps
    running while the camera moves, like every desktop map animation
-   (base-map.css; measured in camera-motion-animations.spec.ts). */
+   (base-map.css; measured in camera-motion-animations.spec.ts).
+
+   The gates are switches on the overlay plane (--glyph-ripple-on,
+   --glyph-ripple-eased, 0 or 1), not ancestors in the arrows' selectors, so
+   the arrows of a hovered alert's hover copy ripple too: the copy is a
+   `<use>` clone (overlay-hover.ts), which matches only selectors within the
+   alert but inherits custom properties through the `<use>`. With a switch
+   off the arrows rest at full ink and size, with no transition. */
 @media (hover: hover) and (pointer: fine) and (min-width: 768px) and (prefers-reduced-motion: no-preference) {
-  :root[data-glyph-motion^="ripple"] .linewatch-shell:not(.mobile-performance-mode):not(.motion-paused) [data-glyph-ripple] [data-ripple-phase] .map-direction-chevron {
-    --glyph-ripple-head: max(0, 1 - max(var(--ripple-tick, 0) - var(--glyph-ripple-phase, 0), var(--glyph-ripple-phase, 0) - var(--ripple-tick, 0)));
-    stroke-opacity: calc(var(--glyph-ripple-floor, 0.65) + (1 - var(--glyph-ripple-floor, 0.65)) * var(--glyph-ripple-head));
+  :root[data-glyph-motion^="ripple"] .linewatch-shell:not(.mobile-performance-mode):not(.motion-paused) .map-overlay-plane {
+    --glyph-ripple-on: 1;
+  }
+
+  :root[data-glyph-motion="ripple"][data-glyph-ripple-eased="true"] .linewatch-shell:not(.mobile-performance-mode):not(.motion-paused) .map-overlay-plane {
+    --glyph-ripple-eased: 1;
+  }
+
+  [data-glyph-ripple] [data-ripple-phase] .map-direction-chevron {
+    --glyph-ripple-head: calc(var(--glyph-ripple-on, 0) * max(0, 1 - max(var(--ripple-tick, 0) - var(--glyph-ripple-phase, 0), var(--glyph-ripple-phase, 0) - var(--ripple-tick, 0))));
+    /* The floor, up to full ink at the head; full ink when off. */
+    stroke-opacity: calc(1 - var(--glyph-ripple-on, 0) * (1 - var(--glyph-ripple-floor, 0.65)) * (1 - var(--glyph-ripple-head)));
     /* About the glyph's own centre, its local origin. */
     transform-origin: 0 0;
     scale: calc(1 + 0.45 * var(--glyph-ripple-head));
-  }
-
-  :root[data-glyph-motion="ripple"][data-glyph-ripple-eased="true"] .linewatch-shell:not(.mobile-performance-mode):not(.motion-paused) [data-glyph-ripple] [data-ripple-phase] .map-direction-chevron {
     /* A transition takes the new state's duration: rising (head 1) over
        0.9 of a step, so it peaks just before it hands over, falling (head 0)
-       over 1.4 steps. */
+       over 1.4 steps; none unless eased. */
     transition-property: stroke-opacity, stroke, scale;
-    transition-duration: calc(var(--glyph-ripple-step, 550ms) * (1.4 - 0.5 * var(--glyph-ripple-head)));
+    transition-duration: calc(var(--glyph-ripple-eased, 0) * var(--glyph-ripple-step, 550ms) * (1.4 - 0.5 * var(--glyph-ripple-head)));
     transition-timing-function: ease-in-out;
   }
 
   /* Speed-zone chevrons: the head also darkens towards near-black brown, so
      it stands out against the resting chevrons. */
-  :root[data-glyph-motion^="ripple"] .linewatch-shell:not(.mobile-performance-mode):not(.motion-paused) [data-glyph-ripple] [data-ripple-phase] .rsz-chevron {
+  [data-glyph-ripple] [data-ripple-phase] .rsz-chevron {
     stroke: color-mix(in srgb, #1c0a02 calc(70% * var(--glyph-ripple-head)), var(--impact-rsz-ink));
   }
 }

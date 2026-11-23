@@ -27,6 +27,14 @@
  * base-map.css). The timer skips steps while the tab is hidden or a gate
  * fails.
  *
+ * A hovered alert's hover copy (overlay-hover.ts) ripples with it. The copy
+ * is a `<use>` clone, and Chrome copies a clone's inline styles once, so a
+ * lane's tick written on the lane alone stops in the copy. Each lane's
+ * --ripple-tick therefore reads a value passed down a copy's `<use>`
+ * (--ripple-copy-<lane key>, never set above the original) before the lane's
+ * own (--ripple-own), and each step writes both: the copy's arrows restyle
+ * in place, ease, and stay in step with the arrows under them.
+ *
  * Developer overrides from the URL (remembered in localStorage):
  *   ?glyphMotion=ripple-stepped   stepped ripple
  *   ?glyphMotion=off              still glyphs (tests and comparisons)
@@ -68,7 +76,10 @@ let stepMs = DEFAULT_STEP_MS;
 let desktopMotion: MediaQueryList | null = null;
 let timer: number | undefined;
 let observer: IntersectionObserver | null = null;
-const lanes = new Map<SVGGElement, { arrows: number; visible: boolean; tick: number; cycle: number }>();
+const lanes = new Map<SVGGElement, { arrows: number; visible: boolean; tick: number; cycle: number; key: string }>();
+/** Hover copies (`<use>` clones of an alert) whose lanes ripple. */
+const copies = new Set<SVGUseElement>();
+let nextLaneKey = 0;
 
 function readStored(key: string) {
   try {
@@ -132,7 +143,11 @@ function advance() {
     if (!state.visible || lane.closest("[data-preparing]")) continue;
     visibleArrows += state.arrows;
     state.tick = (state.tick + 1) % state.cycle;
-    lane.style.setProperty("--ripple-tick", String(state.tick));
+    lane.style.setProperty("--ripple-own", String(state.tick));
+  }
+  for (const use of copies) {
+    if (use.isConnected) syncCopy(use);
+    else copies.delete(use);
   }
   // Ease only while the arrows on screen fit the budget; set before the
   // step's styles resolve, so a step is either eased or not as a whole.
@@ -152,11 +167,32 @@ function laneObserver() {
   return observer;
 }
 
+/** Passes each rippling lane's tick down a hover copy's `<use>`; false when it has none. */
+function syncCopy(use: SVGUseElement) {
+  const id = use.getAttribute("href")?.slice(1);
+  const source = id ? use.ownerDocument.getElementById(id) : null;
+  let synced = false;
+  source?.querySelectorAll<SVGGElement>("[data-glyph-ripple]").forEach((lane) => {
+    const state = lanes.get(lane);
+    if (!state) return;
+    use.style.setProperty(`--ripple-copy-${state.key}`, String(state.tick));
+    synced = true;
+  });
+  return synced;
+}
+
+/** Keeps a new hover copy's arrows rippling with its alert's; dropped once the copy is removed. */
+export function trackGlyphRippleCopy(use: SVGUseElement) {
+  if (mode !== null && syncCopy(use)) copies.add(use);
+}
+
 /** Adds a lane of `arrows` ripple arrows to the shared clock; returns its removal. */
 export function registerGlyphRippleLane(lane: SVGGElement, arrows: number) {
   if (mode === null || arrows === 0) return () => undefined;
-  lanes.set(lane, { arrows, visible: false, tick: 0, cycle: rippleCycle(arrows) });
-  lane.style.setProperty("--ripple-tick", "0");
+  const key = String(nextLaneKey++);
+  lanes.set(lane, { arrows, visible: false, tick: 0, cycle: rippleCycle(arrows), key });
+  lane.style.setProperty("--ripple-own", "0");
+  lane.style.setProperty("--ripple-tick", `var(--ripple-copy-${key}, var(--ripple-own, 0))`);
   laneObserver().observe(lane);
   if (timer === undefined) timer = window.setInterval(advance, stepMs);
   return () => {

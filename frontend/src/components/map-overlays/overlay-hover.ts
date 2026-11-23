@@ -1,4 +1,5 @@
 import type { MapImpactKind } from "../../app/linewatch-data";
+import { trackGlyphRippleCopy } from "./glyph-motion.ts";
 
 /** The alert a hover belongs to, and which pointer or row owns that hover. */
 export type MapImpactHoverIdentity = {
@@ -11,7 +12,10 @@ export type MapImpactHoverIdentity = {
 const HOVER_TARGETS = "[data-map-hover-impact-kind][data-map-hover-impact-id]";
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
-/** A hover copy draws its alert through a `<use>` that exists only while hovered. */
+/**
+ * A hover copy draws its alert through a `<use>` that exists only while
+ * hovered; its direction arrows keep rippling (trackGlyphRippleCopy).
+ */
 function setHoverCopy(element: SVGElement, hovered: boolean) {
   const href = element.dataset.mapHoverCopyHref;
   if (!href) return;
@@ -20,6 +24,7 @@ function setHoverCopy(element: SVGElement, hovered: boolean) {
     const use = element.ownerDocument.createElementNS(SVG_NAMESPACE, "use");
     use.setAttribute("href", href);
     element.append(use);
+    trackGlyphRippleCopy(use);
   } else if (!hovered) {
     existing?.remove();
   }

@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import type { NetworkId } from "../../src/app/dashboard-contract";
 import { MAP_MANIFESTS, NETWORK_MAPS } from "../../src/app/map-manifests";
 import { regionalStationSummaries } from "../../src/app/regional-data";
+import { installRippleScenario } from "./glyph-ripple-scenarios";
 import { installDismissedTransientUi, setStubMode } from "./test-support";
 
 /*
@@ -282,6 +283,26 @@ function stationTargetIds(page: Page, network: NetworkId) {
   return page.evaluate((selector) => [...new Set(
     [...document.querySelectorAll<SVGElement>(`${selector} .station-hit-target`)].map((target) => target.dataset.stationId ?? ""),
   )].sort(), viewportSelector(network));
+}
+
+/** Pixels whose colour changed strongly (RGB channels differ by over 96 in all) between two screenshots. */
+function strongPixelChanges(page: Page, before: Buffer, after: Buffer) {
+  return page.evaluate(async (images) => {
+    const pixels = async (base64: string) => {
+      const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+      const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+      const context = new OffscreenCanvas(bitmap.width, bitmap.height).getContext("2d")!;
+      context.drawImage(bitmap, 0, 0);
+      return context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    };
+    const [a, b] = await Promise.all(images.map(pixels));
+    let changed = 0;
+    for (let index = 0; index < a.length; index += 4) {
+      const difference = Math.abs(a[index] - b[index]) + Math.abs(a[index + 1] - b[index + 1]) + Math.abs(a[index + 2] - b[index + 2]);
+      if (difference > 96) changed += 1;
+    }
+    return changed;
+  }, [before.toString("base64"), after.toString("base64")]);
 }
 
 /**
@@ -652,6 +673,33 @@ for (const network of MAPS) {
         await page.keyboard.press("Escape");
         await expect(chooser).toHaveCount(0);
         await expect(page.locator(`${stageSelector(network)} .overlap-indicator:focus`)).toHaveCount(1);
+      });
+    });
+
+    test.describe("glyph ripple", () => {
+      test.skip(({ isMobile }) => isMobile, "desktop motion and mouse hover");
+      // The service worker would answer the dashboard request before the route.
+      test.use({ serviceWorkers: "block", viewport: { width: 2048, height: 1164 } });
+
+      test("a hovered one-way alert's arrows keep rippling under its hover copy", async ({ page }) => {
+        await installRippleScenario(page, network, "rsz-one-way");
+        await page.addInitScript(() => localStorage.setItem("linewatch-estimated-trains-enabled-v1", "false"));
+        await openMap(page, network);
+        const alert = await alertPoint(page, network, { clearOfStations: true });
+        await page.mouse.move(alert.x, alert.y);
+        await expect(page.locator(
+          `.map-impact-hover-foreground[data-map-hover-impact-id="${alert.id}"][data-map-impact-hovered="true"] > use`,
+        ).first()).toBeAttached();
+        // The copy covers the alert, but the arrows under its tube show
+        // through faintly, so a copy whose arrows stopped still changes a few
+        // pixels a little (at most 20 here). Rippling arrows swell and darken
+        // under the pointer: dozens change a lot (about 60 on TTC, 110 on GO/UP).
+        const clip = { x: alert.x - 64, y: alert.y - 64, width: 128, height: 128 };
+        const first = await page.screenshot({ clip });
+        await expect.poll(
+          async () => strongPixelChanges(page, first, await page.screenshot({ clip })),
+          { timeout: 6_000, intervals: [150] },
+        ).toBeGreaterThanOrEqual(40);
       });
     });
 
