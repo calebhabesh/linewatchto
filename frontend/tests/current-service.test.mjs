@@ -535,6 +535,23 @@ test("shared incident copy retains countdowns for active and upcoming closures",
   assert.equal(currentServiceIncidentPresentation({ ...row, kind: "suspension", condition: "No Service" }).title, "No Service");
 });
 
+test("a card for planned work starting within 24 hours names when it starts, in the Upcoming countdown's words", () => {
+  // 1 PM in Toronto on Monday, Nov 23.
+  const now = Date.parse("2026-11-23T18:00:00Z");
+  const upcoming = { id: "closure", kind: "planned-closure", condition: "Upcoming Closure", location: "Bloor-Yonge to Osgoode", priority: 2, timing: "today at 11:59 PM (10h 59m)" };
+  const titled = (timingTarget, extra = {}) => currentServiceIncidentPresentation({ ...upcoming, timingTarget, ...extra }, now).title;
+  assert.equal(titled("2026-11-24T04:59:00Z"), "Planned Closure · Tonight");
+  assert.equal(titled("2026-11-23T20:00:00Z"), "Planned Closure · Today");
+  assert.equal(titled("2026-11-24T15:00:00Z"), "Planned Closure · Tomorrow");
+  assert.equal(titled("2026-11-24T04:59:00Z", { condition: "Planned Limited Service", serviceEffect: "limited-service" }), "Planned Limited Service · Tonight");
+  // Without a start or a clock (a saved snapshot, or the first render) it stays "Upcoming".
+  assert.equal(titled(undefined), "Planned Closure · Upcoming");
+  assert.equal(currentServiceIncidentPresentation({ ...upcoming, timingTarget: "2026-11-24T04:59:00Z" }).title, "Planned Closure · Upcoming");
+  assert.equal(titled(undefined, { condition: "Last reported: Upcoming Closure" }), "Last Reported: Planned Closure · Upcoming");
+  // Started work keeps its own title.
+  assert.equal(currentServiceIncidentPresentation({ ...upcoming, condition: "Planned Closure in Effect", iconKind: "suspension", priority: 0, timingTarget: "2026-11-24T10:00:00Z" }, now).title, "Planned Closure · In Effect");
+});
+
 test("window countdowns use compact units and truncate the smallest displayed unit", () => {
   const now = Date.parse("2026-09-28T16:00:00Z");
   for (const [milliseconds, expected] of [
@@ -573,6 +590,7 @@ test("TTC and GO/UP countdowns track upcoming starts and the active occurrence's
     const input = data({ networkId, lineStatuses: [line(lineId)], plannedClosures: [closure] });
     const upcoming = currentServiceIncidentPresentation(currentServiceSummary(input, now).rows[0]);
     assert.match(upcoming.timing, /^Starts today at 3:20 PM \(3h 20m\)$/);
+    assert.equal(currentServiceIncidentPresentation(currentServiceSummary(input, now).rows[0], now).title, "Planned Closure · Today");
     const active = currentServiceIncidentPresentation(currentServiceSummary(input, Date.parse(closure.nextWindowStart)).rows[0]);
     assert.match(active.timing, /^Ends Wed at 6:20 PM \(2d 3h\)$/);
 

@@ -2,6 +2,7 @@ import { PLANNED_CLOSURE_IN_EFFECT, serviceEffectLabel } from "./alert-categorie
 import { suppliedAlertCause } from "./alert-cause.ts";
 import { formatCompactDuration } from "./impact-time.ts";
 import type { ActiveAlert, DelayAlert, IncidentRiderDetails, ImpactKind, LineStatus, PlannedClosure, ReducedSpeedZone } from "./linewatch-data.ts";
+import { upcomingCountdown } from "./planned-advisory-status.ts";
 import { countReducedSpeedZones } from "./reduced-speed-zone-count.ts";
 import { compareSurfaceNotices } from "./surface-notice-groups.ts";
 
@@ -282,17 +283,25 @@ export function getCanonicalAlertTitle(row: CurrentServiceRow): string {
   return isSnapshot ? `Last reported: ${title}` : title;
 }
 
-/** Compact incident copy shared by desktop and mobile status views. */
-export function currentServiceIncidentPresentation(row: CurrentServiceRow) {
+/**
+ * Compact incident copy shared by desktop and mobile status views. A planned
+ * advisory that has not begun says when it starts in the Upcoming cards'
+ * countdown words, so the card above the Upcoming list reads "Planned Closure ·
+ * Tonight" rather than "Upcoming"; without a start time (a saved snapshot, or
+ * before the clock is read) it says "Upcoming".
+ */
+export function currentServiceIncidentPresentation(row: CurrentServiceRow, now = 0) {
   const title = getCanonicalAlertTitle(row)
     .replace(/\blimited service\b/i, "Limited Service")
     .replace("Planned Closure in Effect", PLANNED_CLOSURE_IN_EFFECT)
-    .replace(/Planned Closure$/, "Planned Closure · Upcoming")
     .replace("Suspension", row.condition.endsWith("No Service") ? "No Service" : "Suspension")
     .replace("Last reported:", "Last Reported:");
+  const startsIn = row.priority === 2
+    ? upcomingCountdown(Date.parse(row.timingTarget ?? ""), now) ?? "Upcoming"
+    : undefined;
   const timing = row.timing;
   return {
-    title,
+    title: startsIn ? `${title} · ${startsIn}` : title,
     timing: timing && row.priority === 2 && !/^(Starts|Ends) /.test(timing)
       ? `Starts ${timing}`
       : timing,

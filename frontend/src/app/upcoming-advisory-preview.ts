@@ -1,5 +1,6 @@
 import { plannedAdvisoryHeader, replacementServiceLabel, shuttleServiceLabel } from "./current-service.ts";
 import { alertCauseReason } from "./alert-cause.ts";
+import { upcomingCountdown } from "./planned-advisory-status.ts";
 import type { PlannedClosure } from "./linewatch-data.ts";
 import { commutesByTripTimes, type ImpactCommute } from "./commute-data.ts";
 
@@ -55,29 +56,11 @@ const timeFormat = new Intl.DateTimeFormat("en-US", { timeZone: TORONTO, hour: "
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SOON_MS = 7 * DAY_MS;
 const hourFormat = new Intl.DateTimeFormat("en-US", { timeZone: TORONTO, hour: "numeric", minute: "numeric", hourCycle: "h23" });
-const EVENING_START_HOUR = 17;
 
 function torontoDayNumber(time: number) {
   const [year, month, day] = dayKeyFormat.format(time).split("-").map(Number);
   return Date.UTC(year, month - 1, day) / DAY_MS;
 }
-
-/**
- * Calendar days in Toronto, so a Saturday start reads "In 6 Days" all Sunday.
- * A start from 5 PM is "Tonight" or "Tomorrow Night", as plannedAdvisoryStatus
- * says "Next Tonight": a Monday 11:59 PM closure, still over 24 hours away on
- * Sunday morning and so not yet a Current Service card, reads as a night.
- */
-export function upcomingCountdown(start: number, now: number): string | undefined {
-  if (!Number.isFinite(start) || !Number.isFinite(now) || now <= 0 || start <= now) return undefined;
-  const days = torontoDayNumber(start) - torontoDayNumber(now);
-  const evening = Number(hourFormat.format(start).split(":")[0]) >= EVENING_START_HOUR;
-  if (days <= 0) return evening ? "Tonight" : "Today";
-  if (days === 1) return evening ? "Tomorrow Night" : "Tomorrow";
-  if (days < 14) return `In ${days} Days`;
-  return `In ${Math.floor(days / 7)} Weeks`;
-}
-
 
 /**
  * "3:30 AM" on the start day, else the end's date too, overnight windows

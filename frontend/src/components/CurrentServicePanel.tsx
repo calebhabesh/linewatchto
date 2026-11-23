@@ -300,7 +300,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
               <div className="current-service-line-copy">
                 <div className="current-service-line-copy-main" data-has-impacts="true">
                   {item.rows.map((row) => {
-                    const incident = currentServiceIncidentPresentation(row);
+                    const incident = currentServiceIncidentPresentation(row, now);
                     const alertKind = row.iconKind || row.kind;
                     return (
                       <button

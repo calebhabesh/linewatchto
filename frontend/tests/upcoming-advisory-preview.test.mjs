@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { upcomingAdvisoryPreview, upcomingCountdown } from "../src/app/upcoming-advisory-preview.ts";
+import { upcomingAdvisoryPreview } from "../src/app/upcoming-advisory-preview.ts";
+import { upcomingCountdown } from "../src/app/planned-advisory-status.ts";
 import { withUpcomingListedSeparately } from "../src/app/current-service.ts";
 
 // Sun, Nov 15 2026, 12:00 PM Toronto.
