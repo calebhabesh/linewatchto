@@ -100,6 +100,8 @@ public final class GtfsCsvReader {
             .replace("&", " and ")
             .replace(".", "")
             .replace("-", " ")
+            // Archived feeds omit the dash: "Avenue Station Eastbound Platform".
+            .replaceAll("\\bstation\\s+(?:eastbound|westbound|northbound|southbound|subway|lrt)\\s+platform\\s*$", "")
             .replaceAll("\\bstation\\b", "")
             .replaceAll("[^a-z0-9 ]", " ")
             .replaceAll("\\s+", " ")

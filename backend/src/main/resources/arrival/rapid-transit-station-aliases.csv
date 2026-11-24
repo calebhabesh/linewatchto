@@ -31,7 +31,7 @@ davisville,line-1,Davisville|Davisville Station
 st-clair,line-1,St Clair|St Clair Station|St. Clair|St. Clair Station
 summerhill,line-1,Summerhill|Summerhill Station
 rosedale,line-1,Rosedale|Rosedale Station
-bloor-yonge,line-1,Bloor-Yonge|Bloor-Yonge Station|Bloor Yonge|Bloor Yonge Station|Yonge|Yonge Station
+bloor-yonge,line-1,Bloor-Yonge|Bloor-Yonge Station|Bloor Yonge|Bloor Yonge Station|Bloor|Bloor Station|Yonge|Yonge Station
 wellesley,line-1,Wellesley|Wellesley Station
 college,line-1,College|College Station
 tmu,line-1,TMU|TMU Station|Dundas|Dundas Station
@@ -54,7 +54,7 @@ bathurst,line-2,Bathurst|Bathurst Station
 spadina,line-2,Spadina|Spadina Station
 st-george,line-2,St George|St George Station|St. George|St. George Station
 bay,line-2,Bay|Bay Station
-bloor-yonge,line-2,Bloor-Yonge|Bloor-Yonge Station|Bloor Yonge|Bloor Yonge Station|Bloor|Bloor Station
+bloor-yonge,line-2,Bloor-Yonge|Bloor-Yonge Station|Bloor Yonge|Bloor Yonge Station|Bloor|Bloor Station|Yonge|Yonge Station
 sherbourne,line-2,Sherbourne|Sherbourne Station
 castle-frank,line-2,Castle Frank|Castle Frank Station
 broadview,line-2,Broadview|Broadview Station
