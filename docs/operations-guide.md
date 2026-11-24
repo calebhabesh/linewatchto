@@ -15,6 +15,7 @@ operational workflow. Routine frontend styling does not require these documents.
 - Performance measurements: `node scripts/measure-portfolio-performance.mjs --help`; retain workload/environment/success/failure metadata.
 - Script and tooling catalog: [script inventory](script-inventory.md).
 - Schedule-derived map and search files: the `schedule-assets` service publishes them at runtime ([production VPS](production-vps.md#schedule-assets), [plan 16](refactor-plan/16-runtime-schedule-assets.md)); new TTC or GO schedules need no release. Its health is `/api/health/schedule-assets`.
+- Reliability analytics derivation and rebuilds: nightly 04:30 America/Toronto derive job, 15-minute observation roll-up, schedule-span capture, one-off `ReliabilityRebuildRunner`, retention guard, and `/api/health/reliability` ([production VPS, Reliability analytics](production-vps.md#reliability-analytics), [plan 17](refactor-plan/17-reliability-analytics.md)).
 
 ## Alert scenarios
 

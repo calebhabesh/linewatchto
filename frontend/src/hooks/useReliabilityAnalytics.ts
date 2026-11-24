@@ -186,6 +186,7 @@ export function useReliabilityAnalytics(
     error: failure,
     online,
     demo: demo !== null,
+    demoModule: demo?.module ?? null,
     reload,
     showDemo,
     hideDemo,

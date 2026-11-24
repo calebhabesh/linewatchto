@@ -129,6 +129,76 @@ class ReliabilityRangeRequestTest {
         assertThat(fallBack[6 * 24 + 1]).isEqualTo(120.0);
     }
 
+    @Test
+    void episodeFiltersValidateAndHourOfWeekMatchesTorontoTime() {
+        var filter = ReliabilityRangeService.parseEpisodeFilter(
+            "service-stopped", "suspension", "medical_emergency", "false", "true", "15", "59", "5", "8", "longest");
+        assertThat(filter.disruptionClass()).isEqualTo("service-stopped");
+        assertThat(filter.impactKind()).isEqualTo("suspension");
+        assertThat(filter.cause()).isEqualTo("MEDICAL_EMERGENCY");
+        assertThat(filter.planned()).isFalse();
+        assertThat(filter.completed()).isTrue();
+        assertThat(filter.minMinutes()).isEqualTo(15);
+        assertThat(filter.maxMinutes()).isEqualTo(59);
+        assertThat(filter.dayOfWeek()).isEqualTo(5);
+        assertThat(filter.hour()).isEqualTo(8);
+        assertThat(filter.sort()).isEqualTo("longest");
+        assertThat(filter.cacheKeySuffix())
+            .isEqualTo(";class=service-stopped;kind=suspension;cause=MEDICAL_EMERGENCY;planned=false;completed=true;min=15;max=59;dow=5;hour=8;sort=longest");
+        assertThat(ReliabilityRangeService.EpisodeFilter.DEFAULT.cacheKeySuffix()).isEmpty();
+
+        assertRefused(() -> ReliabilityRangeService.parseEpisodeFilter(null, "advisory", null, null, null, null, null, null, null, null), "invalid_kind");
+        assertRefused(() -> ReliabilityRangeService.parseEpisodeFilter(null, null, "bad cause!", null, null, null, null, null, null, null), "invalid_cause");
+        assertRefused(() -> ReliabilityRangeService.parseEpisodeFilter(null, null, null, "maybe", null, null, null, null, null, null), "invalid_planned");
+        assertRefused(() -> ReliabilityRangeService.parseEpisodeFilter(null, null, null, null, null, "60", "30", null, null, null), "invalid_max_minutes");
+        assertRefused(() -> ReliabilityRangeService.parseEpisodeFilter(null, null, null, null, null, null, null, "8", null, null), "invalid_day_of_week");
+        assertRefused(() -> ReliabilityRangeService.parseEpisodeFilter(null, null, null, null, null, null, null, null, "24", null), "invalid_hour");
+        assertRefused(() -> ReliabilityRangeService.parseEpisodeFilter(null, null, null, null, null, null, null, null, null, "oldest"), "invalid_sort");
+        assertRefused(() -> ReliabilityRangeService.parseByLine("yes"), "invalid_by_line");
+        assertThat(ReliabilityRangeService.parseByLine("true")).isTrue();
+
+        List<TimeRange> fridayMorning = List.of(new TimeRange(
+            OffsetDateTime.parse("2026-11-20T08:30:00-05:00"), OffsetDateTime.parse("2026-11-20T09:15:00-05:00")));
+        assertThat(ReliabilityRangeService.overlapsHourOfWeek(fridayMorning, 5, 8)).isTrue();
+        assertThat(ReliabilityRangeService.overlapsHourOfWeek(fridayMorning, 5, 9)).isTrue();
+        assertThat(ReliabilityRangeService.overlapsHourOfWeek(fridayMorning, 5, 10)).isFalse();
+        assertThat(ReliabilityRangeService.overlapsHourOfWeek(fridayMorning, 4, 8)).isFalse();
+    }
+
+    @Test
+    void longestCursorRoundTripsAndRejectsWrongSort() {
+        var episode = new ReliabilityRangeService.EpisodeFact(
+            "alert-1:2026-11-20T13:00:00Z", "alert-1", "line-1", "reduced-speed-zone", "slow-zone", false, null, List.of(),
+            OffsetDateTime.parse("2026-11-20T08:00:00-05:00"), null, false, true,
+            List.of(new TimeRange(OffsetDateTime.parse("2026-11-20T08:00:00-05:00"), OffsetDateTime.parse("2026-11-20T10:00:00-05:00"))),
+            Map.of());
+        String longest = ReliabilityRangeService.encodeCursor(episode, "longest");
+        var decoded = ReliabilityRangeService.decodeCursor(longest, "longest");
+        assertThat(decoded.sort()).isEqualTo("longest");
+        assertThat(decoded.minutes()).isEqualTo(120L);
+        assertThat(decoded.key()).isEqualTo(episode.key());
+        assertRefused(() -> ReliabilityRangeService.decodeCursor(longest, "recent"), "invalid_cursor");
+        String recent = ReliabilityRangeService.encodeCursor(episode, "recent");
+        assertRefused(() -> ReliabilityRangeService.decodeCursor(recent, "longest"), "invalid_cursor");
+    }
+
+    @Test
+    void durationDistributionBinsPlannedAndUnplannedClearedEpisodes() {
+        var dist = ReliabilityRangeService.durationDistribution(List.of(
+            new ReliabilityRepository.EpisodeOutcome("e1", "line-1", "delay", "delay", null, 10, true, false),
+            new ReliabilityRepository.EpisodeOutcome("e2", "line-1", "suspension", "service-stopped", null, 45, true, false),
+            new ReliabilityRepository.EpisodeOutcome("e3", "line-1", "planned-closure", "service-stopped", null, 180, true, false),
+            new ReliabilityRepository.EpisodeOutcome("e4", "line-1", "delay", "delay", null, 900, false, true)
+        ));
+        assertThat(dist.all().clearedCount()).isEqualTo(3);
+        assertThat(dist.unplanned().clearedCount()).isEqualTo(2);
+        assertThat(dist.unplanned().medianMinutes()).isEqualTo(28L);
+        assertThat(dist.planned().clearedCount()).isEqualTo(1);
+        assertThat(dist.planned().medianMinutes()).isEqualTo(180L);
+        assertThat(dist.buckets()).extracting(b -> b.id() + ":" + b.unplanned() + ":" + b.planned())
+            .contains("under-15:1:0", "30-59:1:0", "120-239:0:1", "720-plus:0:0");
+    }
+
     private static ReliabilityRangeRequest parse(String from, String to) {
         return ReliabilityRangeRequest.parse("ttc", from, to, null, null, TODAY);
     }

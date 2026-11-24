@@ -8,21 +8,22 @@ flows, not repeat every data-shape or styling assertion from the fast suite.
 
 | Tier | Command | Purpose |
 | --- | --- | --- |
-| Fast | `npm --prefix frontend run test:fast` | Fixture contracts, pure logic, adapters, source guardrails, and CSS architecture checks. |
-| Scripts | `npm --prefix frontend run test:scripts` | Benchmark measurements, OG image generator, and regional map normalizer CLI tests. |
-| All script tools | `npm --prefix frontend run test:scripts:all` | Node script tool tests plus operational shell suites (production release, staging, AWS lab). Run in CI. |
+| Fast | `npm --prefix frontend run test:fast` | Fixture contracts, pure logic, adapters, reliability range/analytics/chart primitives (`reliability-range`, `reliability-analytics`, `reliability-charts`, `reliability-panel`, `reliability-query-safety`), source guardrails, and CSS architecture checks. |
+| Scripts | `npm --prefix frontend run test:scripts` | Benchmark measurements, OG image generator, Grafana alert rule validation, and regional map normalizer CLI tests. |
+| All script tools | `npm --prefix frontend run test:scripts:all` | Node script tool tests plus operational shell suites (production release, off-host backup `prod-backup-offsite.test.sh`, staging, AWS lab). Run in CI. |
 | Smoke | `npm --prefix frontend run test:smoke` | A small Chromium desktop/mobile release gate: dashboard boot, map-to-detail flow, cross-network search, and source-honest fallback. |
 | Offline snapshot gate | `npm --prefix frontend run test:offline` | PWA offline dashboard fallback, snapshot hydration, and independent network retention on mobile Chromium. Also run in CI. |
 | Lifecycle | `npm --prefix frontend run test:lifecycle` | Focused account dialog transitions, service badges, and geographic map camera/instance lifecycle checks. |
 | Desktop shell | `npm --prefix frontend run test:shell:desktop` | Focused sidebar sizing, docking/overlay, station detail, collapse/restore, search entry, more navigation, and cross-network layout checks. |
 | Mobile shell | `npm --prefix frontend run test:shell:mobile` | Focused pull-up sheet gestures, touch friction, overview scroll, legend pill, default framing, and notice layout checks. |
 | Full shell | `npm --prefix frontend run test:shell` | Runs both desktop and mobile shell suites sequentially. |
-| E2E regression | `npm --prefix frontend run test:e2e` | Chromium desktop/mobile interaction and layout coverage across core user journeys; stops after five failures. |
+| E2E regression | `npm --prefix frontend run test:e2e` | Chromium desktop/mobile interaction and layout coverage across core user journeys (including `reliability-analytics.spec.ts` for `/ttc/analytics` and `/go-up/analytics` ranges, charts, table views, drill-down, export, offline/demo states, and responsive themes); stops after five failures. |
 | Visual | `npm --prefix frontend run test:visual` | Deliberate screenshot baselines only (`visual-baselines.spec.ts`, `desktop-visual-acceptance.spec.ts`, `opaque-surfaces.spec.ts`). |
 | Browser compatibility | `npm --prefix frontend run test:browser-compat` | SVG/map geometry in Chrome, Firefox, and WebKit; animation and canvas budgets in Chrome, Firefox, and mobile Chromium. |
 | Mobile map fit | `npm --prefix frontend run test:map-fit` | Both rotated maps in mobile Chromium/WebKit: compact and changing viewports, safe areas, deferred gesture resizing, browser page zoom, and physical rotation. Also included in E2E and CI. |
 | Map interactions | `npm --prefix frontend run test:map-interactions` | TTC and GO/UP in Diagram, mobile rotated Diagram, and Geographic views: chooser dismissal, native drags, view switching, and camera stability across background refreshes and interrupted gestures. Also included in E2E and CI. |
 | Surface | `npm --prefix frontend run test:surface` | Map View streetcars, buses, night and GO bus routes, stop departures, live vehicle positions, the phone Layers sheet, notice View, and stop and route search (Back to Search, stop links, Stops Near Me, idle index prefetch), and loading those files through the schedule manifest (plan 16), on desktop-chrome and mobile-chromium. Also in CI. |
+| Analytics | `npm --prefix frontend run test:analytics` | Reliability Analytics pages (`/ttc/analytics` and `/go-up/analytics`): date presets, clipping, charts, table views, drill-down, CSV export, offline/demo/error states, and responsive themes on desktop-chrome and mobile-chromium. Also in CI. |
 | Map budgets | `npm --prefix frontend run test:map-budgets` | Manual, local only (real Chrome on a display and GPU; skipped in CI). Plan 09's budgets for every System Map at 2560 × 1309 on heavy data: tile-memory warnings, frame p95, frames over 20 ms, long animation frames, drawing-layer area at rest and one camera commit per gesture, across a wheel burst, a released drag and a hover sweep; plus a phone pass at 4× CPU (station-tap INP, longest frame during a live refresh, layers during a pinch). `LINEWATCH_MAP_BUDGET_URL=http://localhost:3000` measures live data. Run after changing map layers, overlays, gestures or what a selection renders. |
 | Map zoom memory | `npm --prefix frontend run test:map-zoom-memory` | Manual, local only (real Chrome on a display and GPU; skipped in CI). Fast-zooms TTC and GO/UP at 2560 × 1309 with the alert chooser open and fails if Chrome logs too many `tile memory limits exceeded` warnings, the cause of page-wide flicker. Run after changing map layers, overlay effects, or zoom handling. |
 | Full release gate | `npm --prefix frontend run test:release` | Consolidated release candidate verification: runs fast tests, all script tools, typecheck, lint, build, smoke, browser-compat, map-fit, map-interactions, offline, and lifecycle gates. |
@@ -117,7 +118,11 @@ Database integration tests use a local PostgreSQL/PostGIS test database at
 `127.0.0.1:5434/linewatch_test` by default; datasource system properties or
 `SPRING_DATASOURCE_*` variables can override its connection settings. The backend
 CI job supplies PostgreSQL 17/PostGIS so these checks run there. Without a reachable
-test database, database-dependent cases skip. `BootRuntimeIntegrationTest` starts
+test database, database-dependent cases skip. This includes the reliability persistence
+and read-model suites (`ReliabilityScheduleCaptureIntegrationTest`,
+`ReliabilityObservationRollupIntegrationTest`, `ReliabilityDerivationIntegrationTest`,
+`ReliabilityRangeIntegrationTest`, and `MaintenanceCleanupStoreIntegrationTest`).
+`BootRuntimeIntegrationTest` starts
 the complete application in a temporary schema, verifies migrations and Hibernate
 validation, API JSON compatibility, account sessions, and management-port
 isolation, then drops that schema. Never point test datasource settings at production.

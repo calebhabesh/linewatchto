@@ -7,6 +7,7 @@ import com.calebhabesh.linewatch.reliability.ReliabilityDerivationService.SliceD
 import com.calebhabesh.linewatch.reliability.ReliabilityDerivationService.SliceEpisode;
 import com.calebhabesh.linewatch.reliability.ReliabilityEpisodeSource.DisjointSpan;
 import com.calebhabesh.linewatch.reliability.ReliabilityIntervalCalculator.TimeRange;
+import com.calebhabesh.linewatch.reliability.ReliabilityRangeRepository.CancellationDayRow;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeRepository.DayFact;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeRepository.LineInfo;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeRepository.PollingDay;
@@ -15,9 +16,16 @@ import com.calebhabesh.linewatch.reliability.ReliabilityRangeRepository.StoredEp
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeRepository.TitleSighting;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.AvailabilityDay;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.AvailabilityResponse;
+import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.CancellationBucket;
+import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.CancellationCorridorBucket;
+import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.CancellationCoverage;
+import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.CancellationsResponse;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.CauseBreakdown;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.ClassMetric;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.Coverage;
+import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.DurationBucket;
+import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.DurationDistribution;
+import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.DurationStats;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.EpisodeItem;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.EpisodesResponse;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.ExportFile;
@@ -28,6 +36,7 @@ import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.PatternsR
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.PreviousPeriod;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.RangeInfo;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.SeriesBucket;
+import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.SeriesLineMetric;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.SeriesResponse;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.Source;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.SummaryResponse;
@@ -62,6 +71,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -83,7 +93,27 @@ public class ReliabilityRangeService {
     static final int MAX_EXPORT_ROWS = 20_000;
     static final int MAX_CURSOR_LENGTH = 512;
     static final int MAX_AVAILABILITY_DAYS = 3_660;
+    static final int MAX_DURATION_FILTER_MINUTES = 1_000_000;
     static final String TIME_ZONE = "America/Toronto";
+    private static final Pattern CAUSE_PATTERN = Pattern.compile("[A-Z0-9_]{1,60}");
+    private static final Set<String> VALID_IMPACT_KINDS = Set.of(
+        "suspension", "closure", "planned-closure", "delay", "limited-service", "reduced-speed-zone");
+
+    private record DurationBinSpec(String id, String label, int minMinutes, Integer maxMinutes) {
+        boolean matches(long minutes) {
+            return minutes >= minMinutes && (maxMinutes == null || minutes <= maxMinutes);
+        }
+    }
+
+    private static final List<DurationBinSpec> DURATION_BINS = List.of(
+        new DurationBinSpec("under-15", "< 15 min", 1, 14),
+        new DurationBinSpec("15-29", "15–29 min", 15, 29),
+        new DurationBinSpec("30-59", "30–59 min", 30, 59),
+        new DurationBinSpec("60-119", "1–2 hr", 60, 119),
+        new DurationBinSpec("120-239", "2–4 hr", 120, 239),
+        new DurationBinSpec("240-719", "4–12 hr", 240, 719),
+        new DurationBinSpec("720-plus", "12+ hr", 720, null)
+    );
 
     private final ReliabilityRepository reliability;
     private final ReliabilityRangeRepository ranges;
@@ -178,7 +208,7 @@ public class ReliabilityRangeService {
             return new SummaryResponse(
                 request.networkId(), range.version(), range.info(), null, scope, request.lineId(), request.stationId(),
                 emptyTotals(), List.of(), List.of(), List.of(), null, null,
-                "Not enough history for the previous period.", range.emptyMessage());
+                "Not enough history for the previous period.", range.emptyMessage(), emptyDurationDistribution());
         }
         OffsetDateTime until = range.until();
         ReliabilityAggregation aggregation = reliability.aggregateServiceDates(
@@ -258,7 +288,8 @@ public class ReliabilityRangeService {
             cancellations,
             previous,
             previousReason,
-            summaryMessage(request, range, aggregation)
+            summaryMessage(request, range, aggregation),
+            durationDistribution(outcomes)
         );
     }
 
@@ -280,6 +311,11 @@ public class ReliabilityRangeService {
 
     @Transactional(readOnly = true, timeout = 30)
     public SeriesResponse series(ReliabilityRangeRequest request, String granularity) {
+        return series(request, granularity, false);
+    }
+
+    @Transactional(readOnly = true, timeout = 30)
+    public SeriesResponse series(ReliabilityRangeRequest request, String granularity, boolean byLine) {
         String unit = parseGranularity(granularity);
         requireBucketCount(request.from(), request.to(), unit);
         Resolved range = resolve(request);
@@ -296,6 +332,8 @@ public class ReliabilityRangeService {
         Map<LocalDate, List<DayFact>> factsByDate = dayFacts.stream()
             .collect(Collectors.groupingBy(DayFact::serviceDate));
         boolean v2 = range.version() >= ReliabilityDerivationService.METHODOLOGY_V2;
+        boolean includeLines = byLine && !stationScope;
+        Map<String, LineInfo> catalogLines = includeLines ? lineInfo(request.networkId()) : Map.of();
 
         List<SeriesBucket> buckets = new ArrayList<>();
         for (LocalDate[] bucket : buckets(range.from(), range.to(), unit)) {
@@ -315,7 +353,7 @@ public class ReliabilityRangeService {
                 buckets.add(new SeriesBucket(
                     bucketFrom, bucketTo, bucketCoverage.totalDays(), bucketCoverage.analyzableDays(),
                     bucketCoverage.pollingPercentage(), bucketCoverage.schedulePercentage(), bucketCoverage.confidence(),
-                    totals.observed(), null, null, null, null, List.of(), includesToday));
+                    totals.observed(), null, null, null, null, List.of(), includesToday, List.of()));
                 continue;
             }
             List<EpisodeFact> bucketEpisodes = facts.episodes().stream()
@@ -331,16 +369,60 @@ public class ReliabilityRangeService {
                 : List.of();
             long unique = Math.min(totals.observed(), totals.impacted());
             double weighted = Math.min(totals.observed(), v2 ? totals.weighted() : unique);
+            List<SeriesLineMetric> lineMetrics = includeLines
+                ? seriesLineMetrics(bucketFacts, catalogLines, request.lineId(), v2)
+                : List.of();
             buckets.add(new SeriesBucket(
                 bucketFrom, bucketTo, bucketCoverage.totalDays(), bucketCoverage.analyzableDays(),
                 bucketCoverage.pollingPercentage(), bucketCoverage.schedulePercentage(), bucketCoverage.confidence(),
                 totals.observed(), unique, round1(weighted), percentage(weighted, totals.observed()),
-                (long) bucketEpisodes.size(), classes, includesToday));
+                (long) bucketEpisodes.size(), classes, includesToday, lineMetrics));
         }
         return new SeriesResponse(request.networkId(), range.version(), range.info(), unit, scope,
             request.lineId(), request.stationId(), List.copyOf(buckets),
             "Each bucket carries its own coverage; buckets without an analyzable day have no values."
                 + (range.includesToday() ? " The last bucket includes Today So Far." : ""));
+    }
+
+    private static List<SeriesLineMetric> seriesLineMetrics(
+        List<DayFact> bucketFacts,
+        Map<String, LineInfo> catalogLines,
+        String onlyLineId,
+        boolean v2
+    ) {
+        Map<String, List<DayFact>> byLine = bucketFacts.stream().collect(Collectors.groupingBy(DayFact::lineId));
+        List<SeriesLineMetric> metrics = new ArrayList<>();
+        for (LineInfo line : catalogLines.values()) {
+            if (onlyLineId != null && !onlyLineId.equals(line.id())) continue;
+            List<DayFact> lineFacts = byLine.getOrDefault(line.id(), List.of());
+            DayTotals totals = sumDays(lineFacts);
+            if (totals.observed() == 0) {
+                metrics.add(new SeriesLineMetric(line.id(), line.number(), line.label(), 0, null, null, null, null, null, null));
+                continue;
+            }
+            long unique = Math.min(totals.observed(), totals.impacted());
+            double weighted = Math.min(totals.observed(), v2 ? totals.weighted() : unique);
+            Map<String, ClassTotals> classes = classTotals(lineFacts);
+            Double stoppedShare = v2 ? percentage(Math.min(totals.observed(),
+                Math.max(0.0, classes.getOrDefault(AlertCategoryLabels.CLASS_SERVICE_STOPPED, ClassTotals.ZERO).weighted())), totals.observed()) : null;
+            Double delayShare = v2 ? percentage(Math.min(totals.observed(),
+                Math.max(0.0, classes.getOrDefault(AlertCategoryLabels.CLASS_DELAY, ClassTotals.ZERO).weighted())), totals.observed()) : null;
+            Double slowShare = v2 ? percentage(Math.min(totals.observed(),
+                Math.max(0.0, classes.getOrDefault(AlertCategoryLabels.CLASS_SLOW_ZONE, ClassTotals.ZERO).weighted())), totals.observed()) : null;
+            metrics.add(new SeriesLineMetric(
+                line.id(), line.number(), line.label(), totals.observed(),
+                unique, round1(weighted), percentage(weighted, totals.observed()),
+                stoppedShare, delayShare, slowShare));
+        }
+        return List.copyOf(metrics);
+    }
+
+    static boolean parseByLine(String value) {
+        if (value == null || value.isBlank()) return false;
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        if ("true".equals(normalized) || "1".equals(normalized)) return true;
+        if ("false".equals(normalized) || "0".equals(normalized)) return false;
+        throw ReliabilityRangeException.badRequest("invalid_by_line", "byLine must be true or false.");
     }
 
     static String parseGranularity(String granularity) {
@@ -592,28 +674,142 @@ public class ReliabilityRangeService {
 
     // ---------------------------------------------------------------- episodes
 
+    public record EpisodeFilter(
+        String disruptionClass,
+        String impactKind,
+        String cause,
+        Boolean planned,
+        Boolean completed,
+        Integer minMinutes,
+        Integer maxMinutes,
+        Integer dayOfWeek,
+        Integer hour,
+        String sort
+    ) {
+        static final EpisodeFilter DEFAULT = new EpisodeFilter(
+            null, null, null, null, null, null, null, null, null, "recent");
+
+        String cacheKeySuffix() {
+            StringBuilder suffix = new StringBuilder();
+            if (disruptionClass != null) suffix.append(";class=").append(disruptionClass);
+            if (impactKind != null) suffix.append(";kind=").append(impactKind);
+            if (cause != null) suffix.append(";cause=").append(cause);
+            if (planned != null) suffix.append(";planned=").append(planned);
+            if (completed != null) suffix.append(";completed=").append(completed);
+            if (minMinutes != null) suffix.append(";min=").append(minMinutes);
+            if (maxMinutes != null) suffix.append(";max=").append(maxMinutes);
+            if (dayOfWeek != null) suffix.append(";dow=").append(dayOfWeek);
+            if (hour != null) suffix.append(";hour=").append(hour);
+            if (!"recent".equals(sort)) suffix.append(";sort=").append(sort);
+            return suffix.toString();
+        }
+    }
+
+    static EpisodeFilter parseEpisodeFilter(
+        String disruptionClass,
+        String impactKind,
+        String cause,
+        String planned,
+        String completed,
+        String minMinutes,
+        String maxMinutes,
+        String dayOfWeek,
+        String hour,
+        String sort
+    ) {
+        String normalizedClass = parseDisruptionClass(disruptionClass);
+        String normalizedKind = parseImpactKind(impactKind);
+        String normalizedCause = parseCause(cause);
+        Boolean normalizedPlanned = parseOptionalBoolean("planned", planned);
+        Boolean normalizedCompleted = parseOptionalBoolean("completed", completed);
+        Integer normalizedMin = parseOptionalInt("min_minutes", minMinutes, 1, MAX_DURATION_FILTER_MINUTES);
+        Integer normalizedMax = parseOptionalInt("max_minutes", maxMinutes, 1, MAX_DURATION_FILTER_MINUTES);
+        if (normalizedMin != null && normalizedMax != null && normalizedMax < normalizedMin) {
+            throw ReliabilityRangeException.badRequest("invalid_max_minutes", "maxMinutes must not be less than minMinutes.");
+        }
+        Integer normalizedDow = parseOptionalInt("day_of_week", dayOfWeek, 1, 7);
+        Integer normalizedHour = parseOptionalInt("hour", hour, 0, 23);
+        String normalizedSort = parseEpisodeSort(sort);
+        return new EpisodeFilter(
+            normalizedClass, normalizedKind, normalizedCause, normalizedPlanned, normalizedCompleted,
+            normalizedMin, normalizedMax, normalizedDow, normalizedHour, normalizedSort);
+    }
+
+    static String parseImpactKind(String kind) {
+        if (kind == null || kind.isBlank()) return null;
+        String normalized = ReliabilityEpisodeSource.normalizeImpactKind(kind);
+        if (!VALID_IMPACT_KINDS.contains(normalized)) {
+            throw ReliabilityRangeException.badRequest("invalid_kind",
+                "kind must be suspension, closure, planned-closure, delay, limited-service or reduced-speed-zone.");
+        }
+        return normalized;
+    }
+
+    static String parseCause(String cause) {
+        if (cause == null || cause.isBlank()) return null;
+        String normalized = cause.trim().toUpperCase(Locale.ROOT);
+        if (!CAUSE_PATTERN.matcher(normalized).matches()) {
+            throw ReliabilityRangeException.badRequest("invalid_cause", "Unknown cause.");
+        }
+        return normalized;
+    }
+
+    static Boolean parseOptionalBoolean(String name, String value) {
+        if (value == null || value.isBlank()) return null;
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        if ("true".equals(normalized) || "1".equals(normalized)) return Boolean.TRUE;
+        if ("false".equals(normalized) || "0".equals(normalized)) return Boolean.FALSE;
+        throw ReliabilityRangeException.badRequest("invalid_" + name, name + " must be true or false.");
+    }
+
+    static Integer parseOptionalInt(String name, String value, int min, int max) {
+        if (value == null || value.isBlank()) return null;
+        return ReliabilityRangeRequest.parseInt(name, value, min, min, max);
+    }
+
+    static String parseEpisodeSort(String sort) {
+        if (sort == null || sort.isBlank()) return "recent";
+        String normalized = sort.trim().toLowerCase(Locale.ROOT);
+        if (!"recent".equals(normalized) && !"longest".equals(normalized)) {
+            throw ReliabilityRangeException.badRequest("invalid_sort", "sort must be recent or longest.");
+        }
+        return normalized;
+    }
+
     @Transactional(readOnly = true, timeout = 30)
     public EpisodesResponse episodes(ReliabilityRangeRequest request, String cursor, int limit) {
-        Cursor after = decodeCursor(cursor);
+        return episodes(request, cursor, limit, EpisodeFilter.DEFAULT);
+    }
+
+    @Transactional(readOnly = true, timeout = 30)
+    public EpisodesResponse episodes(ReliabilityRangeRequest request, String cursor, int limit, EpisodeFilter filter) {
+        EpisodeFilter activeFilter = filter == null ? EpisodeFilter.DEFAULT : filter;
+        String sort = parseEpisodeSort(activeFilter.sort());
+        Cursor after = decodeCursor(cursor, sort);
         Resolved range = resolve(request);
         if (range.empty()) {
             return new EpisodesResponse(request.networkId(), range.version(), range.info(), request.lineId(),
-                request.stationId(), limit, List.of(), null, range.emptyMessage());
+                request.stationId(), limit, 0, sort, List.of(), null, range.emptyMessage());
         }
         Facts facts = facts(range, request.lineId(), request.stationId(), false);
-        Comparator<EpisodeFact> order = Comparator.comparing(EpisodeFact::openedAt, Comparator.reverseOrder())
-            .thenComparing(EpisodeFact::key);
+        Comparator<EpisodeFact> order = "longest".equals(sort)
+            ? Comparator.comparingLong(EpisodeFact::minutes).reversed()
+                .thenComparing(EpisodeFact::openedAt)
+                .thenComparing(EpisodeFact::key)
+            : Comparator.comparing(EpisodeFact::openedAt, Comparator.reverseOrder())
+                .thenComparing(EpisodeFact::key);
         List<EpisodeFact> sorted = facts.episodes().stream()
             .filter(ep -> ep.minutes() > 0 || ep.active())
+            .filter(ep -> matchesFilter(ep, activeFilter))
             .sorted(order)
             .toList();
         int start = 0;
         if (after != null) {
-            while (start < sorted.size() && !isAfterCursor(sorted.get(start), after)) start++;
+            while (start < sorted.size() && !isAfterCursor(sorted.get(start), after, sort)) start++;
         }
         int end = Math.min(sorted.size(), start + limit);
         List<EpisodeFact> page = sorted.subList(start, end);
-        String nextCursor = end < sorted.size() ? encodeCursor(page.getLast()) : null;
+        String nextCursor = end < sorted.size() ? encodeCursor(page.getLast(), sort) : null;
 
         Map<String, LineInfo> lines = lineInfo(request.networkId());
         Map<String, List<TitleSighting>> titles = ranges.titleSightings(request.networkId(),
@@ -623,6 +819,7 @@ public class ReliabilityRangeService {
             OffsetDateTime titleAt = ep.closedAt() != null ? ep.closedAt() : range.now();
             return new EpisodeItem(
                 ep.key(),
+                ep.alertId(),
                 ep.lineId(),
                 line == null ? null : line.number(),
                 line == null ? ep.lineId() : line.label(),
@@ -642,8 +839,47 @@ public class ReliabilityRangeService {
             );
         }).toList();
         return new EpisodesResponse(request.networkId(), range.version(), range.info(), request.lineId(),
-            request.stationId(), limit, items, nextCursor,
-            "Episodes counted in this range, newest first. Minutes are each episode's counted time inside the range.");
+            request.stationId(), limit, sorted.size(), sort, items, nextCursor,
+            "Episodes counted in this range, " + ("longest".equals(sort) ? "longest counted first" : "newest first")
+                + ". Minutes are each episode's counted time inside the range.");
+    }
+
+    private static boolean matchesFilter(EpisodeFact ep, EpisodeFilter filter) {
+        if (filter.disruptionClass() != null && !filter.disruptionClass().equals(ep.disruptionClass())) return false;
+        if (filter.impactKind() != null) {
+            String epKind = ReliabilityEpisodeSource.normalizeImpactKind(ep.impactKind());
+            boolean kindMatch = "delay".equals(filter.impactKind())
+                ? ("delay".equals(epKind) || "limited-service".equals(epKind))
+                : filter.impactKind().equals(epKind);
+            if (!kindMatch) return false;
+        }
+        if (filter.cause() != null && !filter.cause().equals(normalizeCause(ep.cause()))) return false;
+        if (filter.planned() != null && filter.planned().booleanValue() != ep.planned()) return false;
+        if (filter.completed() != null && filter.completed().booleanValue() != ep.completed()) return false;
+        long minutes = ep.minutes();
+        if (filter.minMinutes() != null && minutes < filter.minMinutes()) return false;
+        if (filter.maxMinutes() != null && minutes > filter.maxMinutes()) return false;
+        if ((filter.dayOfWeek() != null || filter.hour() != null)
+            && !overlapsHourOfWeek(ep.counted(), filter.dayOfWeek(), filter.hour())) {
+            return false;
+        }
+        return true;
+    }
+
+    /** True when any counted interval hits the Toronto day of week (1=Mon..7=Sun) and/or hour (0..23). */
+    static boolean overlapsHourOfWeek(List<TimeRange> ranges, Integer dayOfWeek, Integer hour) {
+        for (TimeRange range : ranges) {
+            ZonedDateTime cursor = range.start().atZoneSameInstant(GtfsServiceTime.TORONTO);
+            ZonedDateTime end = range.end().atZoneSameInstant(GtfsServiceTime.TORONTO);
+            while (cursor.isBefore(end)) {
+                boolean dayMatches = dayOfWeek == null || cursor.getDayOfWeek().getValue() == dayOfWeek;
+                boolean hourMatches = hour == null || cursor.getHour() == hour;
+                if (dayMatches && hourMatches) return true;
+                ZonedDateTime hourEnd = cursor.truncatedTo(ChronoUnit.HOURS).plusHours(1);
+                cursor = hourEnd.isBefore(end) ? hourEnd : end;
+            }
+        }
+        return false;
     }
 
     /** The title the alert carried when the episode ended, as Alert History shows it. */
@@ -663,32 +899,225 @@ public class ReliabilityRangeService {
         return prefix + " " + AlertCategoryLabels.singular(impactKind);
     }
 
-    record Cursor(Instant openedAt, String key) {}
+    record Cursor(String sort, Long minutes, Instant openedAt, String key) {}
 
     static String encodeCursor(EpisodeFact ep) {
-        String raw = ep.openedAt().toInstant() + "\n" + ep.key();
+        return encodeCursor(ep, "recent");
+    }
+
+    static String encodeCursor(EpisodeFact ep, String sort) {
+        String raw = "longest".equals(sort)
+            ? "L\n" + ep.minutes() + "\n" + ep.openedAt().toInstant() + "\n" + ep.key()
+            : ep.openedAt().toInstant() + "\n" + ep.key();
         return Base64.getUrlEncoder().withoutPadding().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
     }
 
     static Cursor decodeCursor(String cursor) {
+        return decodeCursor(cursor, "recent");
+    }
+
+    static Cursor decodeCursor(String cursor, String expectedSort) {
         if (cursor == null || cursor.isBlank()) return null;
         if (cursor.length() > MAX_CURSOR_LENGTH) {
             throw ReliabilityRangeException.badRequest("invalid_cursor", "cursor is not valid for this list.");
         }
         try {
             String raw = new String(Base64.getUrlDecoder().decode(cursor.trim()), StandardCharsets.UTF_8);
+            if ("longest".equals(expectedSort)) {
+                String[] parts = raw.split("\n", 4);
+                if (parts.length != 4 || !"L".equals(parts[0]) || parts[3].isEmpty()) {
+                    throw new IllegalArgumentException();
+                }
+                return new Cursor("longest", Long.parseLong(parts[1]), Instant.parse(parts[2]), parts[3]);
+            }
             int split = raw.indexOf('\n');
             if (split <= 0 || split == raw.length() - 1) throw new IllegalArgumentException();
-            return new Cursor(Instant.parse(raw.substring(0, split)), raw.substring(split + 1));
+            String first = raw.substring(0, split);
+            if ("L".equals(first)) throw new IllegalArgumentException();
+            return new Cursor("recent", null, Instant.parse(first), raw.substring(split + 1));
         } catch (RuntimeException exception) {
             throw ReliabilityRangeException.badRequest("invalid_cursor", "cursor is not valid for this list.");
         }
     }
 
-    private static boolean isAfterCursor(EpisodeFact ep, Cursor cursor) {
+    private static boolean isAfterCursor(EpisodeFact ep, Cursor cursor, String sort) {
+        if ("longest".equals(sort)) {
+            int minutesCmp = Long.compare(ep.minutes(), cursor.minutes());
+            if (minutesCmp != 0) return minutesCmp < 0;
+            int openedCmp = ep.openedAt().toInstant().compareTo(cursor.openedAt());
+            if (openedCmp != 0) return openedCmp > 0;
+            return ep.key().compareTo(cursor.key()) > 0;
+        }
         int opened = ep.openedAt().toInstant().compareTo(cursor.openedAt());
         if (opened != 0) return opened < 0;
         return ep.key().compareTo(cursor.key()) > 0;
+    }
+
+    // ---------------------------------------------------------------- cancellations
+
+    @Transactional(readOnly = true, timeout = 30)
+    public CancellationsResponse cancellations(ReliabilityRangeRequest request, String granularity) {
+        String unit = parseGranularity(granularity);
+        requireBucketCount(request.from(), request.to(), unit);
+        requireScope(request);
+        int version = derivation.currentMethodologyVersion();
+        LocalDate today = today();
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        int requestedDays = (int) ChronoUnit.DAYS.between(request.from(), request.to()) + 1;
+        boolean includesToday = request.to().equals(today);
+
+        if (!"regional".equals(request.networkId())) {
+            RangeInfo info = new RangeInfo(request.from(), request.to(), request.from(), request.to(),
+                requestedDays, false, null, null, includesToday);
+            return new CancellationsResponse(
+                request.networkId(), version, info, unit, request.lineId(), request.stationId(), null,
+                new CancellationCoverage(0, 0.0, "low", 0, requestedDays, "Not published for TTC"),
+                null, List.of(),
+                "Train cancellation tracking applies to GO Transit and UP Express.");
+        }
+
+        OffsetDateTime since = ReliabilityObservationRollup.dayStart(request.from());
+        OffsetDateTime until = earlier(now, ReliabilityObservationRollup.dayStart(request.to().plusDays(1)));
+        OffsetDateTime trackingStartedAt = ranges.cancellationTrackingStartedAt(until);
+        LocalDate trackingStartDate = trackingStartedAt == null
+            ? null
+            : trackingStartedAt.atZoneSameInstant(GtfsServiceTime.TORONTO).toLocalDate();
+
+        RangeInfo info = new RangeInfo(request.from(), request.to(), request.from(), request.to(),
+            requestedDays, false, null, trackingStartDate, includesToday);
+
+        Map<LocalDate, PollingDay> polling = ranges.pollingDays("regional", request.from(), request.to());
+        record TrackingDay(LocalDate date, long trackedMinutes, long dayMinutes) {
+            boolean tracked() {
+                return trackedMinutes > 0;
+            }
+        }
+        Map<LocalDate, TrackingDay> trackingDays = new LinkedHashMap<>();
+        for (LocalDate date = request.from(); !date.isAfter(request.to()); date = date.plusDays(1)) {
+            OffsetDateTime dayStart = ReliabilityObservationRollup.dayStart(date);
+            OffsetDateTime dayEnd = earlier(ReliabilityObservationRollup.dayStart(date.plusDays(1)), now);
+            long dayMinutes = Math.max(1, Math.round(Duration.between(dayStart, dayEnd).toSeconds() / 60.0));
+            long tracked = 0;
+            if (trackingStartedAt != null && trackingStartedAt.isBefore(dayEnd) && dayStart.isBefore(dayEnd)) {
+                OffsetDateTime trackedStart = trackingStartedAt.isAfter(dayStart) ? trackingStartedAt : dayStart;
+                PollingDay row = polling.get(date);
+                if (trackedStart.equals(dayStart) && row != null && row.finalRow()) {
+                    tracked = Math.min(dayMinutes, row.polledMinutes());
+                } else if (!date.isBefore(today.minusDays(1)) || !trackedStart.equals(dayStart)) {
+                    tracked = Math.min(dayMinutes, ReliabilityIntervalCalculator.minutes(
+                        observationRollup.observationWindows("regional", trackedStart, dayEnd)));
+                } else {
+                    tracked = row == null ? 0 : Math.min(dayMinutes, row.polledMinutes());
+                }
+            }
+            trackingDays.put(date, new TrackingDay(date, tracked, dayMinutes));
+        }
+
+        List<CancellationDayRow> rows = trackingStartedAt == null
+            ? List.of()
+            : ranges.cancellationDays(request.from(), request.to(), since, until, request.lineId(), request.stationId());
+        Map<LocalDate, List<CancellationDayRow>> rowsByDate = rows.stream()
+            .collect(Collectors.groupingBy(CancellationDayRow::serviceDate));
+        Map<String, LineInfo> lines = lineInfo("regional");
+
+        List<CancellationBucket> buckets = new ArrayList<>();
+        for (LocalDate[] bucket : buckets(request.from(), request.to(), unit)) {
+            LocalDate bucketFrom = bucket[0];
+            LocalDate bucketTo = bucket[1];
+            long bucketTrackedMinutes = 0;
+            long bucketDayMinutes = 0;
+            int bucketTrackedDays = 0;
+            int bucketTotalDays = 0;
+            Map<String, long[]> corridorCounts = new LinkedHashMap<>();
+            for (LocalDate date = bucketFrom; !date.isAfter(bucketTo); date = date.plusDays(1)) {
+                TrackingDay day = trackingDays.get(date);
+                if (day != null) {
+                    bucketTotalDays++;
+                    bucketDayMinutes += day.dayMinutes();
+                    bucketTrackedMinutes += day.trackedMinutes();
+                    if (day.tracked()) bucketTrackedDays++;
+                }
+                for (CancellationDayRow row : rowsByDate.getOrDefault(date, List.of())) {
+                    long[] counts = corridorCounts.computeIfAbsent(row.lineId(), ignored -> new long[2]);
+                    counts[0] += row.cancellations();
+                    counts[1] += row.scheduleMatchedCancellations();
+                }
+            }
+            double bucketCoverage = percentage(bucketTrackedMinutes, bucketDayMinutes);
+            String bucketConfidence = ReliabilityService.confidence(bucketCoverage);
+            boolean bucketIncludesToday = !today.isBefore(bucketFrom) && !today.isAfter(bucketTo);
+            if (bucketTrackedDays == 0) {
+                buckets.add(new CancellationBucket(
+                    bucketFrom, bucketTo, bucketTotalDays, 0, bucketCoverage, bucketConfidence,
+                    null, null, List.of(), bucketIncludesToday));
+                continue;
+            }
+            long totalCancels = 0;
+            long matchedCancels = 0;
+            List<CancellationCorridorBucket> corridors = new ArrayList<>();
+            for (Map.Entry<String, long[]> entry : corridorCounts.entrySet()) {
+                long count = entry.getValue()[0];
+                long matched = entry.getValue()[1];
+                totalCancels += count;
+                matchedCancels += matched;
+                LineInfo line = lines.get(entry.getKey());
+                corridors.add(new CancellationCorridorBucket(
+                    entry.getKey(),
+                    line == null ? null : line.number(),
+                    line == null ? entry.getKey() : line.label(),
+                    count,
+                    matched));
+            }
+            corridors.sort(Comparator.comparingLong(CancellationCorridorBucket::cancellations).reversed()
+                .thenComparing(CancellationCorridorBucket::lineId));
+            buckets.add(new CancellationBucket(
+                bucketFrom, bucketTo, bucketTotalDays, bucketTrackedDays, bucketCoverage, bucketConfidence,
+                totalCancels, matchedCancels, List.copyOf(corridors), bucketIncludesToday));
+        }
+
+        long totalTrackedMinutes = trackingDays.values().stream().mapToLong(TrackingDay::trackedMinutes).sum();
+        long totalDayMinutes = trackingDays.values().stream().mapToLong(TrackingDay::dayMinutes).sum();
+        int totalTrackedDays = (int) trackingDays.values().stream().filter(TrackingDay::tracked).count();
+        double overallCoverage = percentage(totalTrackedMinutes, totalDayMinutes);
+        String overallConfidence = ReliabilityService.confidence(overallCoverage);
+        String coverageLabel = totalTrackedDays == 0
+            ? "No train cancellation tracking coverage in this range"
+            : String.format(Locale.CANADA, "%.1f%% tracking coverage · %d of %d days tracked",
+                overallCoverage, totalTrackedDays, requestedDays);
+
+        Map<String, long[]> totalCorridors = new LinkedHashMap<>();
+        for (CancellationDayRow row : rows) {
+            long[] counts = totalCorridors.computeIfAbsent(row.lineId(), ignored -> new long[2]);
+            counts[0] += row.cancellations();
+            counts[1] += row.scheduleMatchedCancellations();
+        }
+        List<ReliabilityRepository.CancellationRow> aggRows = totalCorridors.entrySet().stream()
+            .map(entry -> new ReliabilityRepository.CancellationRow(entry.getKey(), entry.getValue()[0], entry.getValue()[1]))
+            .sorted(Comparator.comparingLong(ReliabilityRepository.CancellationRow::cancellations).reversed()
+                .thenComparing(ReliabilityRepository.CancellationRow::lineId))
+            .toList();
+        CancellationAggregation agg = new CancellationAggregation(
+            aggRows.stream().mapToLong(ReliabilityRepository.CancellationRow::cancellations).sum(),
+            aggRows.stream().mapToLong(ReliabilityRepository.CancellationRow::scheduleMatchedCancellations).sum(),
+            totalTrackedMinutes,
+            overallCoverage,
+            aggRows);
+
+        return new CancellationsResponse(
+            request.networkId(),
+            version,
+            info,
+            unit,
+            request.lineId(),
+            request.stationId(),
+            trackingStartedAt,
+            new CancellationCoverage(totalTrackedMinutes, overallCoverage, overallConfidence, totalTrackedDays, requestedDays, coverageLabel),
+            ReliabilityService.trainCancellations(agg),
+            List.copyOf(buckets),
+            "GO Transit and UP Express train cancellations tracked separately from reliability minutes. "
+                + "Buckets without tracking coverage have no values."
+                + (includesToday ? " The last bucket includes Today So Far." : "")
+        );
     }
 
     // ---------------------------------------------------------------- export
@@ -1005,9 +1434,11 @@ public class ReliabilityRangeService {
             }
         }
 
-        if (range.to().isAfter(lastDerived)) {
-            LocalDate liveStart = laterDate(range.from(), laterDate(lastDerived.plusDays(1), range.to().minusDays(1)));
-            LiveSlice slice = derivation.computeLiveSlice(version, networkId, liveStart, range.to(), until);
+        LocalDate liveFloor = range.today().minusDays(1);
+        LocalDate liveStart = laterDate(range.from(), laterDate(lastDerived.plusDays(1), liveFloor));
+        LocalDate liveEnd = range.to().isAfter(range.today()) ? range.today() : range.to();
+        if (!liveStart.isAfter(liveEnd)) {
+            LiveSlice slice = derivation.computeLiveSlice(version, networkId, liveStart, liveEnd, until);
             Predicate<String> onLine = id -> lineId == null || lineId.equals(id);
             for (SliceDay day : slice.lineDays()) {
                 if (onLine.test(day.lineId())) lineDays.add(liveFact(day));
@@ -1219,6 +1650,49 @@ public class ReliabilityRangeService {
 
     private static Totals emptyTotals() {
         return new Totals(0, 0, 0, null, null, 0, 0.0, 0, 0.0, 0.0, List.of());
+    }
+
+    static DurationDistribution durationDistribution(List<EpisodeOutcome> outcomes) {
+        List<Long> allCleared = new ArrayList<>();
+        List<Long> unplannedCleared = new ArrayList<>();
+        List<Long> plannedCleared = new ArrayList<>();
+        long[] unplannedCounts = new long[DURATION_BINS.size()];
+        long[] plannedCounts = new long[DURATION_BINS.size()];
+        for (EpisodeOutcome ep : outcomes) {
+            if (!ep.completed() || ep.countedMinutes() <= 0) continue;
+            long minutes = ep.countedMinutes();
+            boolean planned = ReliabilityEpisodeSource.isPlanned(ep.impactKind());
+            allCleared.add(minutes);
+            if (planned) plannedCleared.add(minutes);
+            else unplannedCleared.add(minutes);
+            for (int i = 0; i < DURATION_BINS.size(); i++) {
+                if (DURATION_BINS.get(i).matches(minutes)) {
+                    if (planned) plannedCounts[i]++;
+                    else unplannedCounts[i]++;
+                    break;
+                }
+            }
+        }
+        List<DurationBucket> buckets = new ArrayList<>(DURATION_BINS.size());
+        for (int i = 0; i < DURATION_BINS.size(); i++) {
+            DurationBinSpec spec = DURATION_BINS.get(i);
+            buckets.add(new DurationBucket(
+                spec.id(), spec.label(), spec.minMinutes(), spec.maxMinutes(),
+                unplannedCounts[i], plannedCounts[i], unplannedCounts[i] + plannedCounts[i]));
+        }
+        return new DurationDistribution(
+            new DurationStats(allCleared.size(), median(allCleared), p90(allCleared)),
+            new DurationStats(unplannedCleared.size(), median(unplannedCleared), p90(unplannedCleared)),
+            new DurationStats(plannedCleared.size(), median(plannedCleared), p90(plannedCleared)),
+            List.copyOf(buckets));
+    }
+
+    private static DurationDistribution emptyDurationDistribution() {
+        DurationStats empty = new DurationStats(0, null, null);
+        List<DurationBucket> buckets = DURATION_BINS.stream()
+            .map(spec -> new DurationBucket(spec.id(), spec.label(), spec.minMinutes(), spec.maxMinutes(), 0, 0, 0))
+            .toList();
+        return new DurationDistribution(empty, empty, empty, buckets);
     }
 
     static List<ReliabilityResponses.AlertTypeBreakdown> kindBreakdown(List<EpisodeOutcome> outcomes) {

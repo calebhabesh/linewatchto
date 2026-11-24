@@ -129,6 +129,30 @@ public final class ReliabilityRangeResponses {
         List<SummaryRow> rows
     ) {}
 
+    /** One time-to-clear histogram bin, split into unplanned and planned cleared episodes. */
+    public record DurationBucket(
+        String id,
+        String label,
+        int minMinutes,
+        Integer maxMinutes,
+        long unplanned,
+        long planned,
+        long total
+    ) {}
+
+    public record DurationStats(
+        long clearedCount,
+        Long medianMinutes,
+        Long p90Minutes
+    ) {}
+
+    public record DurationDistribution(
+        DurationStats all,
+        DurationStats unplanned,
+        DurationStats planned,
+        List<DurationBucket> buckets
+    ) {}
+
     public record SummaryResponse(
         String networkId,
         int methodologyVersion,
@@ -144,7 +168,22 @@ public final class ReliabilityRangeResponses {
         ReliabilityResponses.TrainCancellationSummary trainCancellations,
         PreviousPeriod previous,
         String previousUnavailableReason,
-        String message
+        String message,
+        DurationDistribution durations
+    ) {}
+
+    /** Per-line daily or bucket metrics included in {@link SeriesBucket#lines()} when {@code byLine=true}. */
+    public record SeriesLineMetric(
+        String lineId,
+        String number,
+        String label,
+        long observedMinutes,
+        Long uniqueMinutes,
+        Double weightedMinutes,
+        Double weightedSharePercentage,
+        Double serviceStoppedShare,
+        Double delayShare,
+        Double slowZoneShare
     ) {}
 
     /**
@@ -165,7 +204,8 @@ public final class ReliabilityRangeResponses {
         Double weightedSharePercentage,
         Long incidents,
         List<ClassMetric> classes,
-        boolean includesToday
+        boolean includesToday,
+        List<SeriesLineMetric> lines
     ) {}
 
     public record SeriesResponse(
@@ -236,6 +276,7 @@ public final class ReliabilityRangeResponses {
     /** An episode as counted in the range. No provider body text is included. */
     public record EpisodeItem(
         String id,
+        String alertId,
         String lineId,
         String lineNumber,
         String lineLabel,
@@ -261,8 +302,55 @@ public final class ReliabilityRangeResponses {
         String lineId,
         String stationId,
         int limit,
+        long totalCount,
+        String sort,
         List<EpisodeItem> episodes,
         String nextCursor,
+        String message
+    ) {}
+
+    public record CancellationCoverage(
+        long observationMinutes,
+        double coveragePercentage,
+        String confidence,
+        int trackedDays,
+        int totalDays,
+        String label
+    ) {}
+
+    public record CancellationCorridorBucket(
+        String lineId,
+        String number,
+        String label,
+        long cancellations,
+        long scheduleMatchedCancellations
+    ) {}
+
+    /** One cancellation trend bucket with its own tracking coverage; counts are null when untracked. */
+    public record CancellationBucket(
+        LocalDate from,
+        LocalDate to,
+        int days,
+        int trackedDays,
+        double coveragePercentage,
+        String confidence,
+        Long cancellations,
+        Long scheduleMatchedCancellations,
+        List<CancellationCorridorBucket> corridors,
+        boolean includesToday
+    ) {}
+
+    public record CancellationsResponse(
+        String networkId,
+        int methodologyVersion,
+        RangeInfo range,
+        String granularity,
+        String lineId,
+        String stationId,
+        OffsetDateTime trackingStartedAt,
+        CancellationCoverage coverage,
+        ReliabilityResponses.TrainCancellationSummary totals,
+        List<CancellationBucket> buckets,
         String message
     ) {}
 

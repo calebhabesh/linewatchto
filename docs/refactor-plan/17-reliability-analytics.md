@@ -25,9 +25,9 @@ Read first: the Reliability section and the cancellation line of
 | A6 | Methodology v2: disruption classes and station-weighted impact | Done in code (2026-11-24); production rebuild after deploy |
 | A7 | Range API | Done in code (2026-11-24); edge caching (D8) after deploy |
 | A8 | Analytics page: route, controls, summary | Done in code (2026-11-24), on D3's recommended routes; production check after deploy |
-| A9 | Charts, drill-down and export | Planned |
+| A9 | Charts, drill-down and export | Done in code (2026-11-24); production check after deploy |
 | A10 | New sources, each gated separately | Owner decisions (D5, D6) |
-| A11 | Close: retention, fallbacks, docs and claims | Planned |
+| A11 | Close: retention, fallbacks, docs and claims | Done in code (2026-11-24); production D7 retention after deploy and A3 check |
 
 Order: A1 and A3, then A4, A5, A6, A7, A8, A9, A11. A2 can run any time after
 A1; A10 items after A7. Preservation comes first because the loss is daily and
@@ -668,7 +668,7 @@ and on the A4 restored copy. D7 then applies.
 
 ### A4 — Off-host backups and a restore drill (D4)
 
-**Done in code (2026-11-24); not committed, installed or drilled.** D4: R2 with
+**Done in code (2026-11-24); not installed or drilled.** D4: R2 with
 client-side `age` encryption. Owner setup, install and the drill are in
 [production VPS, Backups](../production-vps.md#backups).
 
@@ -1189,6 +1189,42 @@ Original plan:
 
 ### A9 — Charts, drill-down and export
 
+**Done in code (2026-11-24); not deployed.** Production check waits for deploy.
+
+What changed:
+
+- **Additive A7 range API extensions** (`ReliabilityRangeController`, `ReliabilityRangeService`, `ReliabilityRangeRepository`, `ReliabilityRangeResponses`), preserving existing fields, validation, cache keys when new params are omitted, rate limits and `{error, message}` errors:
+  - **Summary time-to-clear distribution:** `summary` now returns `durations` (`all`, `unplanned`, `planned` cleared count, median and P90, plus 7 inclusive duration bins from `< 15 min` to `12+ hr`), computed in memory from the summary's already-fetched episodes with zero extra requests or queries.
+  - **Drill-down filters and sorting on `/api/reliability/episodes`:** added optional validated `class`, `kind`, `cause`, `planned`, `completed`, `minMinutes`, `maxMinutes`, `dayOfWeek` (1–7 Toronto), `hour` (0–23 Toronto) and `sort=recent|longest` (`longest` sorts by counted minutes desc, then `openedAt` asc), plus `totalCount`, `sort` and `alertId` on responses and sort-matched cursors. Every new parameter is included in cache keys.
+  - **Per-line series in one request:** `/api/reliability/series` gained optional `byLine=true` (when not station-scoped), populating `buckets[].lines[]` from already-loaded `lineDays` so the all-lines Calendar renders in one request instead of one per line.
+  - **Independent GO/UP cancellation trend:** added `GET /api/reliability/cancellations` (`day|week|month`, 400-bucket cap, closed-range 6 h / open-range 1 min caching, same per-client rate limiter) backed by `regional_train_cancellations` and `regional_train_cancellation_tracking`, carrying its own per-bucket tracking coverage (`null` counts when untracked, never mixed into reliability minutes).
+- **Shared SVG primitives** in `frontend/src/components/analytics/` with no chart dependency: `ChartFrame` (lazy loading via `IntersectionObserver`, `Show Table` / `Show Chart` toggle, live keyboard/pointer readout, skeleton/error/empty states), `StackedBarChart`, `RankedBarChart`, `HeatmapChart`, `HistogramChart` and `CalendarChart`. Every chart has an accessible name, focusable marks (`tabIndex=0`, Enter/Space activation), non-color encoding (SVG hatch/stripe/dot patterns, proportional inner markers, dashed `Today So Far` borders, hatched `null` coverage gaps never drawn as zero), local `.chartScroll` scrolling on phones, light/dark/high-contrast tokens in `analytics.module.css` and static behavior under `prefers-reduced-motion`.
+- **All ten A9 modules** wired in `AnalyticsDashboard.tsx` with lazy loading (`useAnalyticsResource.ts`), strict key matching so one range's numbers never appear under another's dates, and opt-in demo generators in `reliability-analytics-fixture.ts`:
+  1. **Trend** (`TrendModule`): stacked by class, `Day`/`Week`/`Month` granularity and `Minutes`/`Share %` toggles, hatched gaps, `Today So Far`, clicking drills down Episodes to that bucket's dates.
+  2. **Breakdown** (`BreakdownModule`): by kind and (TTC) by Title Case GTFS-RT cause from `summary`, drilling down Episodes to `epKind`/`epCause`.
+  3. **When** (`WhenModule`): lazy 7×24 Toronto hour-of-week heatmap with class filter, drilling down to `epDow`/`epHour`.
+  4. **Where** (`WhereModule`): lazy station hotspots list defaulting TTC to `Service Stopped` (with class and minutes/incidents toggles) so Line 1 slow zones do not bury closures; drills down to `epLine`/`epStation`/`epClass`.
+  5. **How Long** (`HowLongModule`): time-to-clear histogram split into Unplanned (solid) and Planned (hatched) with Median and P90 stats from `summary.durations`; drills down to `epPlanned`/`epCompleted`/`epMin`/`epMax`.
+  6. **TTC Slow Zones** (`SlowZonesModule`, TTC only): active slow zones per day (honestly backed by `series` `classes[slow-zone].incidents`) plus longest-running slow zones (`episodes?class=slow-zone&sort=longest`).
+  7. **GO & UP Train Cancellations** (`CancellationsModule`, regional only): lazy corridor-stacked trend with independent tracking coverage and hatched untracked gaps.
+  8. **Daily Calendar** (`CalendarModule`): lazy per-line daily impact calendar in one request (`series?granularity=day&byLine=true`, capped at the last 366 days when a range exceeds a year), distinguishing coverage gaps, no-service days and `Today So Far`.
+  9. **Counted Episodes** (`EpisodesModule`): lazy (or immediate when URL drill-down params are present), URL-persisted drill-down chips (`epFrom`, `epTo`, `epLine`, `epStation`, `epClass`, `epKind`, `epCause`, `epPlanned`, `epCompleted`, `epMin`, `epMax`, `epDow`, `epHour`, `epSort`) with remove/clear controls, `Newest First`/`Longest Counted` sort and cursor `Load More`.
+  10. **CSV Export** (`ExportControl`): direct `/api/reliability/export` link whose click handler downloads the attachment and surfaces 429 rate limits (10 exports / 10 min) and the 20,000-row cap visibly in an inline alert.
+
+Deviations and deferred items:
+
+- **Alert History link omitted on historical episodes:** `/api/alert-history` only accepts `today`/`7d`/`30d` presets, `LineWatchShell` has no direct URL deep link to one historical alert, and active dashboard alert IDs use kind-prefixed formats (`reduced-speed-zone-<alertId>`). Rather than show a link that does not open the alert, episode rows show no Alert History link (while `EpisodeItem` exposes `alertId` for a future dedicated deep link).
+- **Drawing hotspots on the System Maps** remains out of scope for plan 17 (belongs to the shared map overlay layer).
+
+Checks (2026-11-24):
+
+- Backend (scratch copy, PostGIS test DB on 5434): extended `ReliabilityRangeRequestTest` (13), `ReliabilityRangeControllerTest` (5) and `ReliabilityRangeIntegrationTest` (11); full `mvn test` passed: 1,593 tests, 0 failures, 0 errors, 1 opt-in skipped (`BootRuntimeIntegrationTest` ran).
+- Frontend: extended `reliability-range.test.mjs`, `reliability-analytics.test.mjs`, added `reliability-charts.test.mjs`; `test:fast`, `typecheck` and `lint` passed (0 errors, 0 new warnings).
+- Production build + Playwright (scratch copy, desktop-chrome and mobile-chromium): `reliability-analytics.spec.ts` (including chart mark → episode drill-down on both networks, `Show Table`, network-specific Slow Zones / Cancellations modules, CSV export 429 and 20,000-row cap, and overflow across 360–1440 px in dark, light and high contrast) and `transit-guides.spec.ts` passed (45 passed, 0 failed, 3 mobile-width-setting skipped).
+- Visually inspected both TTC and GO/UP at 360, 767, 768 and 1440 px with zero horizontal overflow.
+
+Original plan:
+
 Shared SVG primitives live in `src/components/analytics/`: a bar and stacked-bar
 series, a heatmap grid, a calendar strip, a histogram and a ranked bar list.
 
@@ -1252,6 +1288,27 @@ of its own. None feeds LineWatchTO-observed minutes.
   the stored history.
 
 ### A11 — Close
+
+**Done in code (2026-11-24); not deployed.** Production retention lowering (D7: `P3650D` → `P400D`) and Grafana alert rule apply wait for deploy and the A3 production done check.
+
+What changed:
+
+- **Retention guard & D7 policy:** `MaintenanceCleanupProperties` keeps its `P90D` code default. `MaintenanceCleanupStore.deleteOldIngestionRuns` now preserves successful `alerts` and `metrolinx-alerts` runs until every Toronto calendar date touched by their 10-minute observation window (`completed_at` through `completed_at + 10 min - 1 us`) has a final row in `reliability_observation_windows`. Non-alert runs and failed alert runs prune normally while keeping the latest run per type. Production's `.env.production` remains at `P3650D` until plan 17 deploys and the A3 production done check passes; [production VPS, Reliability analytics](../production-vps.md#reliability-analytics) documents lowering it to `P400D`.
+- **Fallback removal:**
+  - `ReliabilityScheduleCapture`: removed the live-GTFS fallbacks from `serviceSpans`, `allSpans` (removed; callers use `capturedAllSpans`), `scheduleCoveragePercentage`, and `scheduledDates` (now delegates to `completeScheduleDays`), plus dead `StationScope.ONE_STATION` SQL branches. Only `capture(...)` reads `gtfs_*` / `regional_gtfs_*`.
+  - `ReliabilityObservationRollup`: `observationWindows` now reads final rows from `reliability_observation_windows` for completed dates and queries raw `ingestion_runs` only for today and unfinalized yesterday (`date >= today - 1`), never falling back to raw runs for earlier completed dates.
+  - `ReliabilityRepository` & `ReliabilityRangeService`: removed `ReliabilityRepository.aggregate(...)`, `aggregateLine(...)`, `serviceWindows(...)`, and the `derivedThrough == null` fallback. `ReliabilityRepository` now takes `Clock`, and both `aggregateServiceDates` and `ReliabilityRangeService.facts` bound live-tail computation strictly to `[today - 1 .. today]` (filtering live spans by complete schedule days).
+- **Observability & deploy smoke:** added `ReliabilityHealthMetrics` (`linewatch_reliability_derivation_consecutive_failures`, `linewatch_reliability_derivation_stale`, `linewatch_reliability_derivation_last_duration_seconds`, `linewatch_reliability_methodology_version`), added two Grafana alert rules (`linewatch-reliability-derivation-failing`, `linewatch-reliability-derivation-stale`) to `infra/observability/grafana/linewatch-alerts.json`, and extended `scripts/smoke-deploy.mjs` to check `/api/health/reliability` and `/api/reliability/availability?network=ttc`.
+- **Docs & methodology sweep:** updated `docs/domain-invariants.md`, `docs/feature-reference.md`, `README.md`, `ReliabilityGuidePage` (`/ttc/reliability` and `/go-up/reliability`), `docs/operations-guide.md`, `docs/production-vps.md` (added Reliability analytics section, updated Backups table, health checks, and restore drill), `docs/observability.md`, `docs/script-inventory.md`, and `docs/testing.md`.
+- **Release note (`1.4.0`):** added `1.4.0` ("Reliability Analytics over any range", `announceOnLaunch: true`, `releasedAt: "2026-11-24"`) to `frontend/src/app/release-notes.ts`, turned off `announceOnLaunch` on `1.3.0`, and bumped version references in `frontend/package.json`, `frontend/package-lock.json`, `frontend/next.config.ts`, `frontend/src/app/app-build.ts`, and the release-note/smoke/onboarding specs.
+
+Checks (2026-11-24):
+
+- Backend (scratch copy, PostGIS test DB on 5434): added `MaintenanceCleanupStoreIntegrationTest` (1), `ReliabilityHealthMetricsTest` (3), and `historicalRangeWithoutDerivationDoesNotRecomputeCompletedDaysOnRequest` in `ReliabilityDerivationIntegrationTest`; updated `MaintenanceCleanupStoreTest`, `ReliabilityScheduleCaptureIntegrationTest`, `ReliabilityObservationRollupIntegrationTest`, `ReliabilityDerivationIntegrationTest`, and `ReliabilityRangeIntegrationTest`; full `mvn test` passed: 1,598 tests, 0 failures, 0 errors, 1 opt-in skipped (`BootRuntimeIntegrationTest` ran).
+- Frontend & scripts: `test:fast`, `typecheck`, `lint` (0 errors), `test:scripts:all` (63 Node script tests including `grafana-apply-alerts.test.mjs`, 30 prod-release, deploy gate, 14 off-host backup, 8 staging, 7 aws lab), and `node scripts/grafana-apply-alerts.mjs --dry-run` all passed.
+- Production build + Playwright (scratch copy, `desktop-chrome`): `npm run build` succeeded (214 static pages); `opening-experience.spec.ts`, `transit-guides.spec.ts`, and `reliability-analytics.spec.ts` passed (26 passed, 0 failed on `desktop-chrome`; `mobile-chromium` could not run because Playwright's bundled Chromium binary is absent from `~/.cache/ms-playwright`).
+
+Original plan:
 
 - **Retention:** set D7's ingestion-run retention in production. The code
   default stays `P90D`, since other deployments no longer depend on it.

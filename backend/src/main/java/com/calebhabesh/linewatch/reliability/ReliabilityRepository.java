@@ -6,6 +6,7 @@ import com.calebhabesh.linewatch.reliability.ReliabilityEpisodeSource.ExtractedE
 import com.calebhabesh.linewatch.reliability.ReliabilityIntervalCalculator.TimeRange;
 import com.calebhabesh.linewatch.reliability.ReliabilityIntervalCalculator.WeightedInterval;
 import com.calebhabesh.linewatch.reliability.ReliabilityScheduleCapture.ServiceSpan;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -32,26 +33,30 @@ public class ReliabilityRepository {
     private final ReliabilityScheduleCapture scheduleCapture;
     private final ReliabilityObservationRollup observationRollup;
     private final ReliabilityEpisodeSource episodeSource;
+    private final Clock clock;
 
     @Autowired
     public ReliabilityRepository(
         NamedParameterJdbcTemplate jdbc,
         ReliabilityScheduleCapture scheduleCapture,
         ReliabilityObservationRollup observationRollup,
-        ReliabilityEpisodeSource episodeSource
+        ReliabilityEpisodeSource episodeSource,
+        Clock clock
     ) {
         this.jdbc = jdbc;
         this.scheduleCapture = scheduleCapture;
         this.observationRollup = observationRollup;
         this.episodeSource = episodeSource;
+        this.clock = clock;
     }
 
     ReliabilityRepository(
         NamedParameterJdbcTemplate jdbc,
         ReliabilityScheduleCapture scheduleCapture,
-        ReliabilityObservationRollup observationRollup
+        ReliabilityObservationRollup observationRollup,
+        Clock clock
     ) {
-        this(jdbc, scheduleCapture, observationRollup, new ReliabilityEpisodeSource(jdbc));
+        this(jdbc, scheduleCapture, observationRollup, new ReliabilityEpisodeSource(jdbc), clock);
     }
 
     /**
@@ -59,7 +64,7 @@ public class ReliabilityRepository {
      * derived read model ({@code reliability_line_days}, {@code reliability_station_days},
      * {@code reliability_episodes}) for completed derived days combined with a bounded live tail
      * for today (or yesterday+today during late-night service before the nightly job runs).
-     * Falls back to {@link #aggregate} if no derivation has succeeded yet for the active version.
+     * Never recomputes historical dates before yesterday on request.
      */
     public ReliabilityAggregation aggregateServiceDates(
         String networkId,
@@ -71,9 +76,8 @@ public class ReliabilityRepository {
         OffsetDateTime since = ReliabilityObservationRollup.dayStart(fromDate);
         int version = currentMethodologyVersion();
         LocalDate derivedThrough = derivedThrough(version, networkId);
-        if (derivedThrough == null) {
-            return aggregate(networkId, stationId, since, until);
-        }
+        LocalDate today = LocalDate.now(clock.withZone(TORONTO_ZONE));
+        LocalDate liveFloor = today.minusDays(1);
 
         List<TimeRange> observationWindows = observationWindows(networkId, since, until);
         long rollingMinutes = Math.max(1, Math.round(Duration.between(since, until).toSeconds() / 60.0));
@@ -98,12 +102,12 @@ public class ReliabilityRepository {
             );
         }
 
-        LocalDate derivedEnd = toDate.isAfter(derivedThrough) ? derivedThrough : toDate;
+        LocalDate lastDerived = derivedThrough == null ? fromDate.minusDays(1) : derivedThrough;
+        LocalDate derivedEnd = toDate.isAfter(lastDerived) ? lastDerived : toDate;
         boolean hasDerived = !fromDate.isAfter(derivedEnd);
-        boolean hasLive = toDate.isAfter(derivedThrough);
-        LocalDate liveStart = hasLive
-            ? laterDate(fromDate, laterDate(derivedThrough.plusDays(1), toDate.minusDays(1)))
-            : null;
+        LocalDate liveStart = laterDate(fromDate, laterDate(lastDerived.plusDays(1), liveFloor));
+        LocalDate liveEnd = toDate.isAfter(today) ? today : toDate;
+        boolean hasLive = !liveStart.isAfter(liveEnd);
 
         Map<String, DayTotals> lineTotals = new LinkedHashMap<>();
         Map<String, Map<String, ClassDayTotals>> classTotalsByLine = new LinkedHashMap<>();
@@ -118,9 +122,9 @@ public class ReliabilityRepository {
             accumulateDerivedEpisodes(version, networkId, stationId, fromDate, derivedEnd, until, mergedEpisodes);
         }
 
-        if (hasLive && liveStart != null && !liveStart.isAfter(toDate)) {
+        if (hasLive) {
             accumulateLiveTail(
-                v2, networkId, stationId, liveStart, toDate, until,
+                v2, networkId, stationId, liveStart, liveEnd, until,
                 observationWindows, lineTotals, classTotalsByLine, breakdownMinutes, mergedEpisodes
             );
         }
@@ -166,89 +170,6 @@ public class ReliabilityRepository {
         return new ReliabilityAggregation(
             rows, breakdown, observedMinutes, coveragePercentage,
             serviceWindowBasis, true, scheduleCoveragePercentage, cancellations, version, outcomes
-        );
-    }
-
-    /**
-     * Direct request-time aggregation over {@code [since, until)}. Retained as the v1 parity
-     * reference and as the fallback before the read model has been derived (removed in A11).
-     */
-    public ReliabilityAggregation aggregate(
-        String networkId,
-        String stationId,
-        OffsetDateTime since,
-        OffsetDateTime until
-    ) {
-        int version = currentMethodologyVersion();
-        boolean v2 = version >= ReliabilityDerivationService.METHODOLOGY_V2;
-        List<TimeRange> observationWindows = observationWindows(networkId, since, until);
-        ServiceWindowResult serviceWindowResult = serviceWindows(networkId, stationId, since, until, v2);
-        List<ExtractedEpisode> episodes = episodeSource.extract(networkId, stationId, since, until);
-        List<EvaluatedEpisode> evaluated = evaluate(
-            episodes,
-            observationWindows,
-            serviceWindowResult.byLine(),
-            until
-        );
-
-        List<LineRecord> lines = linesForNetwork(networkId);
-        Map<String, List<EvaluatedEpisode>> byLine = evaluated.stream()
-            .collect(Collectors.groupingBy(EvaluatedEpisode::lineId));
-
-        List<AggregateRow> rows = observationWindows.isEmpty() ? List.of() : lines.stream()
-            .filter(line -> serviceWindowResult.scheduleBacked())
-            .filter(line -> serviceWindowResult.byLine().containsKey(line.id()))
-            .filter(line -> stationId == null || byLine.containsKey(line.id()))
-            .map(line -> aggregateLine(
-                v2,
-                line,
-                byLine.getOrDefault(line.id(), List.of()),
-                ReliabilityIntervalCalculator.intersect(
-                    serviceWindowResult.byLine().getOrDefault(line.id(), List.of()),
-                    observationWindows
-                ),
-                serviceWindowResult.scheduledStationsByLine().getOrDefault(line.id(), Set.of()),
-                stationId != null
-            ))
-            .filter(row -> row.observedServiceMinutes() > 0)
-            .toList();
-
-        Map<String, List<EvaluatedEpisode>> byKind = evaluated.stream()
-            .collect(Collectors.groupingBy(episode -> ReliabilityEpisodeSource.v1BreakdownGroup(episode.impactKind())));
-        List<BreakdownRow> breakdown = byKind.entrySet().stream()
-            .map(entry -> new BreakdownRow(
-                entry.getKey(),
-                entry.getValue().size(),
-                entry.getValue().stream().mapToLong(EvaluatedEpisode::incidentMinutes).sum()
-            ))
-            .sorted((left, right) -> {
-                int minutes = Long.compare(right.incidentMinutes(), left.incidentMinutes());
-                return minutes != 0 ? minutes : Long.compare(right.incidents(), left.incidents());
-            })
-            .toList();
-
-        long rollingMinutes = Math.max(1, Math.round(Duration.between(since, until).toSeconds() / 60.0));
-        long observedMinutes = ReliabilityIntervalCalculator.minutes(observationWindows);
-        double coveragePercentage = Math.min(100.0, Math.round(observedMinutes * 1000.0 / rollingMinutes) / 10.0);
-        CancellationAggregation cancellations = "regional".equals(networkId)
-            ? regionalCancellations(stationId, since, until, observationWindows, rollingMinutes)
-            : CancellationAggregation.unavailable();
-        List<EpisodeOutcome> outcomes = rows.isEmpty() ? List.of() : evaluated.stream()
-            .map(ep -> new EpisodeOutcome(
-                ep.episodeKey(), ep.lineId(), ep.impactKind(), ep.disruptionClass(), ep.cause(),
-                ep.incidentMinutes(), ep.completed(), ep.active()))
-            .toList();
-        return new ReliabilityAggregation(
-            rows,
-            breakdown,
-            observedMinutes,
-            coveragePercentage,
-            serviceWindowResult.basis(),
-            serviceWindowResult.scheduleBacked(),
-            serviceWindowResult.coveragePercentage(),
-            cancellations,
-            version,
-            outcomes
         );
     }
 
@@ -427,8 +348,9 @@ public class ReliabilityRepository {
         Map<String, MergedEpisode> mergedEpisodes
     ) {
         List<ServiceSpan> rawSpans = (stationId == null && v2)
-            ? scheduleCapture.allSpans(networkId, liveStart.minusDays(1), toDate)
+            ? scheduleCapture.capturedAllSpans(networkId, liveStart.minusDays(1), toDate)
             : scheduleCapture.serviceSpans(networkId, stationId, liveStart.minusDays(1), toDate);
+        Set<LocalDate> completeDays = scheduleCapture.completeScheduleDays(networkId, liveStart, toDate);
         List<DisjointSpan> allDisjoint = ReliabilityEpisodeSource.disjointSpans(rawSpans);
 
         Map<String, Map<LocalDate, TimeRange>> liveDaySpansByLine = new LinkedHashMap<>();
@@ -436,6 +358,7 @@ public class ReliabilityRepository {
         OffsetDateTime minLiveStart = null;
         for (DisjointSpan span : allDisjoint) {
             if (span.serviceDate().isBefore(liveStart) || span.serviceDate().isAfter(toDate)) continue;
+            if (!completeDays.contains(span.serviceDate())) continue;
             boolean wholeLine = ReliabilityScheduleCapture.WHOLE_LINE.equals(span.stationId());
             if (stationId == null && !wholeLine) {
                 scheduledStationsByLineDate
@@ -704,86 +627,6 @@ public class ReliabilityRepository {
         );
     }
 
-    private AggregateRow aggregateLine(
-        boolean v2,
-        LineRecord line,
-        List<EvaluatedEpisode> episodes,
-        List<TimeRange> observedServiceWindows,
-        Set<String> scheduledStations,
-        boolean singleStationScope
-    ) {
-        List<TimeRange> uniqueImpactWindows = episodes.stream()
-            .flatMap(episode -> episode.countedRanges().stream())
-            .toList();
-        List<Long> completedDurations = episodes.stream()
-            .filter(EvaluatedEpisode::completed)
-            .map(EvaluatedEpisode::incidentMinutes)
-            .filter(minutes -> minutes > 0)
-            .toList();
-        long observedServiceMinutes = ReliabilityIntervalCalculator.minutes(observedServiceWindows);
-        long disruptedServiceMinutes = ReliabilityIntervalCalculator.minutes(uniqueImpactWindows);
-        long incidentMinutes = Math.max(
-            disruptedServiceMinutes,
-            episodes.stream().mapToLong(EvaluatedEpisode::incidentMinutes).sum()
-        );
-        double impactedPercentage = observedServiceMinutes == 0 ? 0.0
-            : Math.min(100.0, Math.round(disruptedServiceMinutes * 1000.0 / observedServiceMinutes) / 10.0);
-
-        if (!v2) {
-            return new AggregateRow(
-                line.id(), line.number(), line.label(), episodes.size(),
-                episodes.stream().filter(EvaluatedEpisode::active).count(),
-                computeMedian(completedDurations), disruptedServiceMinutes,
-                observedServiceMinutes, incidentMinutes, impactedPercentage
-            );
-        }
-
-        int denominator = singleStationScope ? 1 : scheduledStations.size();
-        List<WeightedInterval> allWeighted = episodes.stream()
-            .map(ep -> ReliabilityDerivationService.toWeightedInterval(
-                ep.countedRanges(), ep.stationIds(), scheduledStations, singleStationScope))
-            .toList();
-        double rawAllWeighted = ReliabilityDerivationService.clampWeighted(
-            ReliabilityIntervalCalculator.weightedMinutes(allWeighted, denominator), observedServiceMinutes);
-        double weightedImpactPercentage = observedServiceMinutes == 0 ? 0.0
-            : Math.min(100.0, Math.round(rawAllWeighted * 1000.0 / observedServiceMinutes) / 10.0);
-
-        Map<String, List<EvaluatedEpisode>> byClass = episodes.stream()
-            .collect(Collectors.groupingBy(EvaluatedEpisode::disruptionClass));
-        List<ClassAggregateRow> classes = new ArrayList<>(ReliabilityEpisodeSource.DISRUPTION_CLASSES.size());
-        for (String cls : ReliabilityEpisodeSource.DISRUPTION_CLASSES) {
-            List<EvaluatedEpisode> clsEps = byClass.getOrDefault(cls, List.of());
-            List<TimeRange> clsUniqueRanges = clsEps.stream()
-                .flatMap(ep -> ep.countedRanges().stream()).toList();
-            long clsUnique = Math.min(observedServiceMinutes, ReliabilityIntervalCalculator.minutes(clsUniqueRanges));
-            long clsIncident = Math.max(clsUnique, clsEps.stream().mapToLong(EvaluatedEpisode::incidentMinutes).sum());
-            List<WeightedInterval> clsWeightedIntervals = clsEps.stream()
-                .map(ep -> ReliabilityDerivationService.toWeightedInterval(
-                    ep.countedRanges(), ep.stationIds(), scheduledStations, singleStationScope))
-                .toList();
-            double clsRawWeighted = ReliabilityDerivationService.clampWeighted(
-                ReliabilityIntervalCalculator.weightedMinutes(clsWeightedIntervals, denominator), observedServiceMinutes);
-            double clsShare = observedServiceMinutes == 0 ? 0.0
-                : Math.min(100.0, Math.round(clsRawWeighted * 1000.0 / observedServiceMinutes) / 10.0);
-            classes.add(new ClassAggregateRow(
-                cls,
-                clsEps.size(),
-                clsEps.stream().filter(EvaluatedEpisode::active).count(),
-                clsUnique,
-                round1(clsRawWeighted),
-                clsShare,
-                clsIncident
-            ));
-        }
-        return new AggregateRow(
-            line.id(), line.number(), line.label(), episodes.size(),
-            episodes.stream().filter(EvaluatedEpisode::active).count(),
-            computeMedian(completedDurations), disruptedServiceMinutes,
-            observedServiceMinutes, incidentMinutes, impactedPercentage,
-            round1(rawAllWeighted), weightedImpactPercentage, List.copyOf(classes)
-        );
-    }
-
     private List<EvaluatedEpisode> evaluate(
         List<ExtractedEpisode> episodes,
         List<TimeRange> observationWindows,
@@ -815,66 +658,13 @@ public class ReliabilityRepository {
         return List.copyOf(evaluated);
     }
 
-    /** Polling coverage: rolled-up windows for completed dates, raw runs for today and the rest. */
+    /** Polling coverage: final roll-ups for completed dates, raw runs only for today and unfinalized yesterday. */
     private List<TimeRange> observationWindows(
         String networkId,
         OffsetDateTime since,
         OffsetDateTime until
     ) {
         return observationRollup.observationWindows(networkId, since, until);
-    }
-
-    private ServiceWindowResult serviceWindows(
-        String networkId,
-        String stationId,
-        OffsetDateTime since,
-        OffsetDateTime until,
-        boolean includeStationSpans
-    ) {
-        LocalDate startDate = since.atZoneSameInstant(TORONTO_ZONE).toLocalDate();
-        LocalDate endDate = until.atZoneSameInstant(TORONTO_ZONE).toLocalDate();
-        double scheduleCoveragePercentage =
-            scheduleCapture.scheduleCoveragePercentage(networkId, startDate, endDate);
-        if (scheduleCoveragePercentage == 0.0) {
-            return new ServiceWindowResult(
-                Map.of(),
-                Map.of(),
-                "published schedule coverage unavailable",
-                false,
-                0.0
-            );
-        }
-        // The previous service date is read too: its span can run past midnight into the window.
-        List<ServiceSpan> rawSpans = (stationId == null && includeStationSpans)
-            ? scheduleCapture.allSpans(networkId, startDate.minusDays(1), endDate)
-            : scheduleCapture.serviceSpans(networkId, stationId, startDate.minusDays(1), endDate);
-        List<ServiceWindowRecord> scheduled = new ArrayList<>();
-        Map<String, Set<String>> scheduledStationsByLine = new HashMap<>();
-        for (ServiceSpan span : rawSpans) {
-            boolean wholeLine = ReliabilityScheduleCapture.WHOLE_LINE.equals(span.stationId());
-            if (stationId == null && !wholeLine) {
-                scheduledStationsByLine
-                    .computeIfAbsent(span.lineId(), ignored -> new HashSet<>())
-                    .add(span.stationId());
-                continue;
-            }
-            TimeRange clipped = new TimeRange(later(span.start(), since), earlier(span.end(), until));
-            if (clipped.valid()) {
-                scheduled.add(new ServiceWindowRecord(span.lineId(), clipped));
-            }
-        }
-        return new ServiceWindowResult(
-            scheduled.stream().collect(Collectors.groupingBy(
-                ServiceWindowRecord::lineId,
-                Collectors.mapping(ServiceWindowRecord::range, Collectors.toList())
-            )),
-            scheduledStationsByLine,
-            "regional".equals(networkId)
-                ? "published GO/UP GTFS daily corridor service spans"
-                : "published TTC GTFS daily line service spans",
-            true,
-            scheduleCoveragePercentage
-        );
     }
 
     private List<LineRecord> linesForNetwork(String networkId) {
@@ -1131,12 +921,4 @@ public class ReliabilityRepository {
     }
 
     private record LineRecord(String id, String number, String label) {}
-    private record ServiceWindowRecord(String lineId, TimeRange range) {}
-    private record ServiceWindowResult(
-        Map<String, List<TimeRange>> byLine,
-        Map<String, Set<String>> scheduledStationsByLine,
-        String basis,
-        boolean scheduleBacked,
-        double coveragePercentage
-    ) {}
 }

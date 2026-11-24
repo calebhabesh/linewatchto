@@ -89,6 +89,13 @@ We expose custom gauges in [LinewatchHealthMetrics.java](../backend/src/main/jav
 - `linewatch_schedule_refresh_status{status="success|failed|running|never-run"}`: A set of gauges indicating the latest schedule refresh state.
 - `linewatch_schedule_assets_consecutive_failures`, `linewatch_schedule_assets_stale`, `linewatch_schedule_assets_feed_days_remaining`: the schedule-assets service's worst network (most consecutive failed checks, any network stale, soonest published feed end), from the same state as `/api/health/schedule-assets`; NaN without a schedule-assets volume.
 
+#### Reliability Derivation Gauges
+[ReliabilityHealthMetrics.java](../backend/src/main/java/com/calebhabesh/linewatch/observability/ReliabilityHealthMetrics.java) reads from the same state as `/api/health/reliability`. Each gauge is unlabelled and reports the worst network; derivation gauges read NaN while scheduled derivation is disabled.
+- `linewatch_reliability_derivation_consecutive_failures`: most consecutive failed reliability derivation runs of any network.
+- `linewatch_reliability_derivation_stale`: `1.0` when any network's derived read model is behind the latest completed Toronto service date (after 05:30), `0.0` otherwise.
+- `linewatch_reliability_derivation_last_duration_seconds`: longest last reliability derivation duration across networks in seconds (NaN before the first run).
+- `linewatch_reliability_methodology_version`: active reliability methodology version (`1`, `2`, …).
+
 ## Grafana Alloy Configuration
 
 Alloy configuration is defined in [config.alloy](../infra/observability/alloy/config.alloy).
@@ -155,6 +162,8 @@ Query constraints in this stack:
 | Schedule assets failing | `max(linewatch_schedule_assets_consecutive_failures)` | `>= 2` for 5m | warning |
 | Schedule assets stale | `max(linewatch_schedule_assets_stale)` | `> 0` for 15m | warning |
 | Off-host backup stale | `time() - max(linewatch_offsite_backup_last_success_timestamp_seconds)` | `> 129600` (36 h) for 15m, or no data | warning |
+| Reliability derivation failing | `max(linewatch_reliability_derivation_consecutive_failures)` | `> 0` for 15m | warning |
+| Reliability derivation stale | `max(linewatch_reliability_derivation_stale)` | `> 0` for 30m | warning |
 | Schedule assets feed ending | `min(linewatch_schedule_assets_feed_days_remaining)` | `< 7` for 30m | warning |
 
 All queries filter `environment="production"`. On Oct 19-20, 2026, a single over-long TTC

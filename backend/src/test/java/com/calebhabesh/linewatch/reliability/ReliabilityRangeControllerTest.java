@@ -79,6 +79,18 @@ class ReliabilityRangeControllerTest {
         mvc.perform(get("/api/reliability/episodes").param("from", "2026-11-01").param("to", "2026-11-24").param("cursor", "%%%"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.error").value("invalid_cursor"));
+        mvc.perform(get("/api/reliability/episodes").param("from", "2026-11-01").param("to", "2026-11-24").param("kind", "advisory"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("invalid_kind"));
+        mvc.perform(get("/api/reliability/episodes").param("from", "2026-11-01").param("to", "2026-11-24").param("dayOfWeek", "9"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("invalid_day_of_week"));
+        mvc.perform(get("/api/reliability/series").param("from", "2026-11-01").param("to", "2026-11-24").param("byLine", "maybe"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("invalid_by_line"));
+        mvc.perform(get("/api/reliability/cancellations").param("network", "regional").param("from", "2024-01-01").param("to", "2026-11-24"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("too_many_buckets"));
         mvc.perform(get("/api/reliability/availability").param("network", "subway"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.error").value("invalid_network"));
@@ -97,7 +109,7 @@ class ReliabilityRangeControllerTest {
     @Test
     @SuppressWarnings("unchecked")
     void closedRangesUseTheNightlyEvictedCacheAndOpenRangesTheOneMinuteDashboardCache() throws Exception {
-        when(service.series(any(), eq("week"))).thenReturn(series());
+        when(service.series(any(), eq("week"), eq(false))).thenReturn(series());
         mvc.perform(get("/api/reliability/series").param("network", "regional").param("from", "2026-10-01")
                 .param("to", "2026-11-22").param("granularity", "WEEK").param("line", "Regional-LW"))
             .andExpect(status().isOk());
@@ -112,6 +124,33 @@ class ReliabilityRangeControllerTest {
         verify(cache).getOrCompute(
             eq("reliability:v2:series:regional:2026-10-01:2026-11-23:-:-:granularity=week"),
             any(TypeReference.class), eq(Duration.ofMinutes(1)), any(Supplier.class));
+
+        when(service.series(any(), eq("day"), eq(true))).thenReturn(series());
+        mvc.perform(get("/api/reliability/series").param("network", "ttc").param("from", "2026-11-01")
+                .param("to", "2026-11-20").param("granularity", "day").param("byLine", "true"))
+            .andExpect(status().isOk());
+        verify(cache).getOrComputeClosedReliability(
+            eq("ttc"),
+            eq("reliability:v2:series:ttc:2026-11-01:2026-11-20:-:-:granularity=day;byLine=true"),
+            any(TypeReference.class), eq(Duration.ofHours(6)), any(Supplier.class));
+
+        when(service.episodes(any(), eq(""), eq(50), any())).thenReturn(null);
+        mvc.perform(get("/api/reliability/episodes").param("network", "ttc").param("from", "2026-11-01")
+                .param("to", "2026-11-20").param("class", "slow-zone").param("sort", "longest"))
+            .andExpect(status().isOk());
+        verify(cache).getOrComputeClosedReliability(
+            eq("ttc"),
+            eq("reliability:v2:episodes:ttc:2026-11-01:2026-11-20:-:-:limit=50;cursor=;class=slow-zone;sort=longest"),
+            any(TypeReference.class), eq(Duration.ofHours(6)), any(Supplier.class));
+
+        when(service.cancellations(any(), eq("day"))).thenReturn(null);
+        mvc.perform(get("/api/reliability/cancellations").param("network", "regional").param("from", "2026-11-01")
+                .param("to", "2026-11-20").param("granularity", "day"))
+            .andExpect(status().isOk());
+        verify(cache).getOrComputeClosedReliability(
+            eq("regional"),
+            eq("reliability:v2:cancellations:regional:2026-11-01:2026-11-20:-:-:granularity=day"),
+            any(TypeReference.class), eq(Duration.ofHours(6)), any(Supplier.class));
     }
 
     @Test

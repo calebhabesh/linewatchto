@@ -237,15 +237,18 @@ class ReliabilityDerivationIntegrationTest {
 
         OffsetDateTime until = OffsetDateTime.ofInstant(TODAY_NOON, ZoneOffset.UTC);
         ReliabilityAggregation served = repository.aggregateServiceDates("ttc", null, d1, TODAY, until);
-        ReliabilityAggregation reference = repository.aggregate("ttc", null, ReliabilityObservationRollup.dayStart(d1), until);
 
-        // Spanning episode must be counted ONCE (3 total incidents, 2 active), matching aggregate exactly!
+        // Spanning episode must be counted ONCE (3 total incidents, 2 active).
+        // Observed: Nov 22 (960m) + Nov 23 (960m) + Nov 24 06:00..12:00 (360m) = 2,280m.
+        // Unique impacted: 30m (Nov 22) + 120m (Nov 23) + 360m (Nov 24) = 510m; additive = 570m.
         assertThat(served.rows()).singleElement().satisfies(row -> {
             assertThat(row.incidents()).isEqualTo(3);
             assertThat(row.activeIncidents()).isEqualTo(2);
             assertThat(row.medianDurationMinutes()).isEqualTo(30L);
+            assertThat(row.observedServiceMinutes()).isEqualTo(2280L);
+            assertThat(row.serviceImpactMinutes()).isEqualTo(510L);
+            assertThat(row.incidentDisruptionMinutes()).isEqualTo(570L);
         });
-        assertThat(served).isEqualTo(reference);
     }
 
     @Test
@@ -365,27 +368,53 @@ class ReliabilityDerivationIntegrationTest {
             "select count(*) from reliability_line_days where service_date = :d",
             Map.of("d", d3), Integer.class)).isZero();
 
-        OffsetDateTime since = ReliabilityObservationRollup.dayStart(d1);
         OffsetDateTime until = odt("2026-11-21T23:00:00-05:00");
 
-        // Exact parity for TTC whole network, interchange station, branch station, and regional network + station!
-        assertThat(repository.aggregateServiceDates("ttc", null, d1, d4, until))
-            .isEqualTo(repository.aggregate("ttc", null, since, until));
-        assertThat(repository.aggregateServiceDates("ttc", "bloor-yonge", d1, d4, until))
-            .isEqualTo(repository.aggregate("ttc", "bloor-yonge", since, until));
-        ReliabilityAggregation branchServed = repository.aggregateServiceDates("ttc", "vaughan-metropolitan-centre", d1, d4, until);
-        ReliabilityAggregation branchRef = repository.aggregate("ttc", "vaughan-metropolitan-centre", since, until);
-        assertThat(branchServed).isEqualTo(branchRef);
-        // Early-morning alert 06:30..07:00 is outside vaughan's 08:00..20:00 span -> only 1 incident counted!
-        assertThat(branchServed.rows()).singleElement().extracting(AggregateRow::incidents).isEqualTo(1L);
+        // Exact derived serving for TTC whole network, interchange station, branch station, and regional network + station.
+        ReliabilityAggregation ttcAll = repository.aggregateServiceDates("ttc", null, d1, d4, until);
+        assertThat(ttcAll.rows()).hasSize(2);
+        assertThat(ttcAll.rows().get(0)).satisfies(line1 -> {
+            assertThat(line1.id()).isEqualTo("line-1");
+            assertThat(line1.incidents()).isEqualTo(3L); // d1 delay (40m), d1 suspension (40m, overlaps 20m), d2 early delay (30m); d3 outage excluded
+            assertThat(line1.serviceImpactMinutes()).isEqualTo(90L);
+            assertThat(line1.incidentDisruptionMinutes()).isEqualTo(110L);
+            assertThat(line1.observedServiceMinutes()).isEqualTo(3060L); // 3 analyzable days * 17h
+        });
+        assertThat(ttcAll.rows().get(1)).satisfies(line2 -> {
+            assertThat(line2.id()).isEqualTo("line-2");
+            assertThat(line2.incidents()).isEqualTo(1L);
+            assertThat(line2.serviceImpactMinutes()).isEqualTo(60L);
+        });
 
-        assertThat(repository.aggregateServiceDates("regional", null, d1, d4, until))
-            .isEqualTo(repository.aggregate("regional", null, since, until));
-        assertThat(repository.aggregateServiceDates("regional", "union", d1, d4, until))
-            .isEqualTo(repository.aggregate("regional", "union", since, until));
+        ReliabilityAggregation bloorYonge = repository.aggregateServiceDates("ttc", "bloor-yonge", d1, d4, until);
+        assertThat(bloorYonge.rows()).extracting(AggregateRow::id, AggregateRow::incidents, AggregateRow::serviceImpactMinutes)
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("line-1", 2L, 60L),
+                org.assertj.core.groups.Tuple.tuple("line-2", 1L, 60L)
+            );
+
+        ReliabilityAggregation branchServed = repository.aggregateServiceDates("ttc", "vaughan-metropolitan-centre", d1, d4, until);
+        // Early-morning alert 06:30..07:00 is outside vaughan's 08:00..20:00 span -> only 1 incident counted!
+        assertThat(branchServed.rows()).singleElement().satisfies(row -> {
+            assertThat(row.incidents()).isEqualTo(1L);
+            assertThat(row.serviceImpactMinutes()).isEqualTo(40L);
+            assertThat(row.observedServiceMinutes()).isEqualTo(2160L); // 3 days * 12h
+        });
+
+        ReliabilityAggregation regionalAll = repository.aggregateServiceDates("regional", null, d1, d4, until);
+        assertThat(regionalAll.rows()).extracting(AggregateRow::id, AggregateRow::incidents, AggregateRow::serviceImpactMinutes)
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("regional-lw", 2L, 155L),
+                org.assertj.core.groups.Tuple.tuple("regional-up", 0L, 0L)
+            );
+        ReliabilityAggregation regionalUnion = repository.aggregateServiceDates("regional", "union", d1, d4, until);
+        assertThat(regionalUnion.rows()).singleElement().satisfies(row -> {
+            assertThat(row.id()).isEqualTo("regional-lw");
+            assertThat(row.incidents()).isEqualTo(2L);
+            assertThat(row.serviceImpactMinutes()).isEqualTo(155L);
+        });
 
         // Breakdown folds limited-service into delay in v1.
-        ReliabilityAggregation ttcAll = repository.aggregateServiceDates("ttc", null, d1, d4, until);
         assertThat(ttcAll.breakdown()).extracting(BreakdownRow::impactKind).containsExactlyInAnyOrder("delay", "suspension");
 
         // Derivation status recorded cleanly without error text in public record.
@@ -423,14 +452,13 @@ class ReliabilityDerivationIntegrationTest {
 
         OffsetDateTime until = OffsetDateTime.ofInstant(oneAmToronto, ZoneOffset.UTC);
         ReliabilityAggregation served = repository.aggregateServiceDates("ttc", null, d1, TODAY, until);
-        ReliabilityAggregation reference = repository.aggregate("ttc", null, ReliabilityObservationRollup.dayStart(d1), until);
 
         assertThat(served.rows()).singleElement().satisfies(row -> {
             assertThat(row.incidents()).isEqualTo(2);
             assertThat(row.activeIncidents()).isEqualTo(1);
             assertThat(row.serviceImpactMinutes()).isEqualTo(50);
+            assertThat(row.observedServiceMinutes()).isEqualTo(3540L); // Nov 21 (1200) + Nov 22 (1200) + Nov 23 06:00..01:00 (1140)
         });
-        assertThat(served).isEqualTo(reference);
     }
 
     @Test
@@ -442,6 +470,7 @@ class ReliabilityDerivationIntegrationTest {
         for (LocalDate d : List.of(d1, d2)) {
             seedScheduleDay("regional", "go", d);
             seedScheduleDay("regional", "up", d);
+            seedSpan("regional", "go", "regional-lw", "", d, d + " 06:00:00-05", d + " 22:00:00-05");
             seedSpan("regional", "go", "regional-st", "", d, d + " 06:00:00-05", d + " 22:00:00-05");
             seedSpan("regional", "go", "regional-st", "union", d, d + " 06:00:00-05", d + " 22:00:00-05");
         }
@@ -455,7 +484,38 @@ class ReliabilityDerivationIntegrationTest {
         derivation.deriveRange(1, "regional", d1, d2, true);
         OffsetDateTime until = odt("2026-11-23T22:00:00-05:00");
         assertThat(repository.aggregateServiceDates("regional", "union", d1, d2, until).rows()).isEmpty();
-        assertThat(repository.aggregate("regional", "union", ReliabilityObservationRollup.dayStart(d1), until).rows()).isEmpty();
+    }
+
+    @Test
+    void historicalRangeWithoutDerivationDoesNotRecomputeCompletedDaysOnRequest() {
+        LocalDate d1 = LocalDate.parse("2026-11-18");
+        LocalDate d2 = LocalDate.parse("2026-11-20");
+        seedPolls("alerts", "2026-11-17 23:55:00-05", "2026-11-24 12:00:00-05");
+        rollup.rollUp("ttc");
+        for (LocalDate d : List.of(d1, d2, TODAY)) {
+            seedScheduleDay("ttc", "ttc", d);
+            seedSpan("ttc", "ttc", "line-1", "", d, d + " 06:00:00-05", d + " 22:00:00-05");
+        }
+        seedTtcAlert("a5-no-fallback-past", "line-1", "delay", "TECHNICAL_PROBLEM", List.of("union"), false);
+        seedTtcSnapshot("a5-no-fallback-past", "line-1", "delay", true, "2026-11-18 10:00:00-05");
+        seedTtcSnapshot("a5-no-fallback-past", "line-1", "delay", false, "2026-11-18 10:30:00-05");
+
+        seedTtcAlert("a5-no-fallback-today", "line-1", "delay", "MEDICAL_EMERGENCY", List.of("union"), true);
+        seedTtcSnapshot("a5-no-fallback-today", "line-1", "delay", true, "2026-11-24 11:00:00-05");
+
+        // No derivation has run yet (derived_through is null):
+        // Historical range before yesterday must NOT trigger request-time calculation.
+        assertThat(repository.aggregateServiceDates("ttc", null, d1, d2, odt("2026-11-20T23:00:00-05:00")).rows())
+            .isEmpty();
+
+        // Today So Far still computes the bounded live slice on request.
+        ReliabilityAggregation todayServed = repository.aggregateServiceDates(
+            "ttc", null, TODAY, TODAY, OffsetDateTime.ofInstant(TODAY_NOON, ZoneOffset.UTC));
+        assertThat(todayServed.rows()).singleElement().satisfies(row -> {
+            assertThat(row.incidents()).isEqualTo(1L);
+            assertThat(row.activeIncidents()).isEqualTo(1L);
+            assertThat(row.serviceImpactMinutes()).isEqualTo(60L);
+        });
     }
 
     private void seedPolls(String runType, String fromTs, String toTs) {
@@ -827,9 +887,10 @@ class ReliabilityDerivationIntegrationTest {
             NamedParameterJdbcTemplate jdbc,
             ReliabilityScheduleCapture scheduleCapture,
             ReliabilityObservationRollup observationRollup,
-            ReliabilityEpisodeSource episodeSource
+            ReliabilityEpisodeSource episodeSource,
+            MutableClock clock
         ) {
-            return new ReliabilityRepository(jdbc, scheduleCapture, observationRollup, episodeSource);
+            return new ReliabilityRepository(jdbc, scheduleCapture, observationRollup, episodeSource, clock);
         }
     }
 

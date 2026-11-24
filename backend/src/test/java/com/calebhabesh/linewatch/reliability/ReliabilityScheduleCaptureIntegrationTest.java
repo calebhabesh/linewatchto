@@ -74,31 +74,32 @@ class ReliabilityScheduleCaptureIntegrationTest {
     }
 
     @Test
-    void capturedLineAndStationSpansEqualTheSpansComputedFromTheImports() {
+    void capturedLineAndStationSpansPersistWithoutLiveGtfsFallback() {
         ttcImport(START, END, true, 0);
         goImport(START, END, 0, OffsetDateTime.parse("2026-11-16T12:00:00Z"));
         upImport(START, END);
         forgetCapture();
-        Map<String, List<ServiceSpan>> computed = allSpans();
-        assertThat(computed.get("ttc:line")).isNotEmpty();
-        assertThat(computed.get("regional:line")).isNotEmpty();
-        assertThat(computed.get("ttc:st-george")).isNotEmpty();
-        assertThat(computed.get("regional:exhibition")).isNotEmpty();
+        // Reads never fall back to live GTFS tables when schedule days are uncaptured.
+        assertThat(allSpans().values()).allSatisfy(list -> assertThat(list).isEmpty());
 
         captureAll();
-
-        assertThat(allSpans()).isEqualTo(computed);
+        Map<String, List<ServiceSpan>> captured = allSpans();
+        assertThat(captured.get("ttc:line")).isNotEmpty();
+        assertThat(captured.get("regional:line")).isNotEmpty();
+        assertThat(captured.get("ttc:st-george")).isNotEmpty();
+        assertThat(captured.get("regional:exhibition")).isNotEmpty();
         assertThat(count("reliability_schedule_days where network_id = 'ttc'")).isEqualTo(15);
         assertThat(count("reliability_schedule_days where network_id = 'regional' and source_system = 'go'")).isEqualTo(15);
-        // Reads come from the captured rows once the imports are gone.
+
+        // Reads stay identical from the captured rows once the GTFS imports are deleted.
         deleteImports();
-        assertThat(allSpans()).isEqualTo(computed);
+        assertThat(allSpans()).isEqualTo(captured);
 
         // Line 1's weekday span runs from its first departure to the 25:30 last train.
-        assertThat(computed.get("ttc:line")).contains(new ServiceSpan(
+        assertThat(captured.get("ttc:line")).contains(new ServiceSpan(
             TUESDAY, "line-1", "", GtfsServiceTime.at(TUESDAY, 21_600), GtfsServiceTime.at(TUESDAY, 91_800)
         ));
-        assertThat(computed.get("ttc:st-george")).contains(new ServiceSpan(
+        assertThat(captured.get("ttc:st-george")).contains(new ServiceSpan(
             TUESDAY, "line-1", "st-george", GtfsServiceTime.at(TUESDAY, 22_200), GtfsServiceTime.at(TUESDAY, 91_800)
         ));
     }
@@ -151,36 +152,24 @@ class ReliabilityScheduleCaptureIntegrationTest {
     }
 
     @Test
-    void coverageFromScheduleDaysEqualsCoverageFromTheImports() {
+    void coverageReadsCapturedScheduleDaysOnlyAndSurvivesImportDeletion() {
         ttcImport(START, END, true, 0);
         goImport(START, END, 0, OffsetDateTime.parse("2026-11-16T12:00:00Z"));
         upImport(LocalDate.parse("2026-11-10"), LocalDate.parse("2026-12-10"));
         forgetCapture();
-        successfulPolls("alerts");
-        successfulPolls("metrolinx-alerts");
         List<LocalDate[]> ranges = List.of(
             new LocalDate[]{LocalDate.parse("2026-11-01"), END},
             new LocalDate[]{START, TUESDAY},
             new LocalDate[]{LocalDate.parse("2026-11-20"), LocalDate.parse("2026-12-05")}
         );
-        List<Double> computed = coverage(ranges);
-        assertThat(computed).contains(50.0, 100.0);
-        OffsetDateTime until = OffsetDateTime.parse("2026-11-24T17:00:00Z");
-        OffsetDateTime since = until.minusDays(30);
-        var ttcBefore = reliability.aggregate("ttc", null, since, until);
-        var regionalBefore = reliability.aggregate("regional", null, since, until);
-        var stationBefore = reliability.aggregate("ttc", "st-george", since, until);
-        assertThat(ttcBefore.rows()).extracting(ReliabilityRepository.AggregateRow::id).contains("line-1", "line-2");
-        assertThat(regionalBefore.rows()).isNotEmpty();
+        // No live-GTFS fallback: uncaptured imports report 0% coverage.
+        assertThat(coverage(ranges)).containsOnly(0.0);
 
         captureAll();
-        assertThat(coverage(ranges)).isEqualTo(computed);
+        List<Double> expected = List.of(50.0, 50.0, 100.0, 100.0, 68.8, 68.8);
+        assertThat(coverage(ranges)).isEqualTo(expected);
         deleteImports();
-
-        assertThat(coverage(ranges)).isEqualTo(computed);
-        assertThat(reliability.aggregate("ttc", null, since, until)).isEqualTo(ttcBefore);
-        assertThat(reliability.aggregate("regional", null, since, until)).isEqualTo(regionalBefore);
-        assertThat(reliability.aggregate("ttc", "st-george", since, until)).isEqualTo(stationBefore);
+        assertThat(coverage(ranges)).isEqualTo(expected);
     }
 
     @Test
@@ -407,7 +396,7 @@ class ReliabilityScheduleCaptureIntegrationTest {
 
         @Bean
         ReliabilityRepository reliabilityRepository(NamedParameterJdbcTemplate jdbc, ReliabilityScheduleCapture capture, MutableClock clock) {
-            return new ReliabilityRepository(jdbc, capture, new ReliabilityObservationRollup(jdbc, clock));
+            return new ReliabilityRepository(jdbc, capture, new ReliabilityObservationRollup(jdbc, clock), clock);
         }
 
         @Bean

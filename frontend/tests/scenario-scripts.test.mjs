@@ -201,5 +201,7 @@ describe("alert scenario scripts", () => {
     assert.match(smokeDeployScript, /refreshErrorMessage/);
     assert.match(smokeDeployScript, /api\/reliability\/lines\?network=ttc/);
     assert.match(smokeDeployScript, /api\/reliability\/lines\?network=regional/);
+    assert.match(smokeDeployScript, /api\/health\/reliability/);
+    assert.match(smokeDeployScript, /api\/reliability\/availability\?network=ttc/);
   });
 });

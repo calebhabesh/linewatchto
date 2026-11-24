@@ -47,6 +47,8 @@ class ReliabilityObservationRollupIntegrationTest {
     private static final List<String> NETWORKS = List.of("ttc", "regional");
 
     @Autowired private ReliabilityObservationRollup rollup;
+    @Autowired private ReliabilityScheduleCapture scheduleCapture;
+    @Autowired private ReliabilityDerivationService derivation;
     @Autowired private ReliabilityRepository reliability;
     @Autowired private RegionalGtfsScheduleRepository regional;
     @Autowired private NamedParameterJdbcTemplate jdbc;
@@ -62,6 +64,11 @@ class ReliabilityObservationRollupIntegrationTest {
     void cleanTables() {
         clock.set(TODAY_NOON);
         jdbc.getJdbcTemplate().execute("""
+            delete from reliability_episodes;
+            delete from reliability_line_days;
+            delete from reliability_station_days;
+            delete from reliability_derivations;
+            update reliability_methodology set current_version = 1, switched_at = now() where id = 1;
             delete from reliability_observation_windows;
             delete from reliability_service_spans;
             delete from reliability_schedule_days;
@@ -203,19 +210,29 @@ class ReliabilityObservationRollupIntegrationTest {
     }
 
     @Test
-    void aggregateIsEqualBeforeAndAfterTheRollUpAndWithoutTheRawRuns() {
+    void completedDatesNeverFallBackToRawRunsAndDerivedServingSurvivesRawDeletion() {
         ttcImport();
+        scheduleCapture.capture(ReliabilityScheduleCapture.ScheduleSource.TTC);
         scheduleImport("go", "regional-lw", "exhibition", 20_000, 87_000);
         scheduleImport("up", "regional-up", "pearson-airport", 18_000, 84_000);
         disruptions();
         polls("2026-10-24 00:00:00-04", "2026-11-24 17:00:00+00");
         OffsetDateTime until = odt("2026-11-24T17:00:00Z");
-        OffsetDateTime since = until.minusDays(30);
-        Map<String, ReliabilityRepository.ReliabilityAggregation> before = aggregates(since, until);
-        assertThat(before.get("ttc").rows()).extracting(ReliabilityRepository.AggregateRow::incidents).contains(3L);
-        assertThat(before.get("regional").rows()).extracting(ReliabilityRepository.AggregateRow::incidents).contains(2L);
-        assertThat(before.get("ttc").rows()).anyMatch(row -> row.activeIncidents() == 1);
-        assertThat(before.get("regional:exhibition").rows()).isNotEmpty();
+
+        // Before roll-up: completed dates before yesterday never fall back to raw ingestion_runs,
+        // while today still reads bounded raw runs.
+        for (String networkId : NETWORKS) {
+            assertThat(rollup.observationWindows(
+                networkId,
+                ReliabilityObservationRollup.dayStart(LocalDate.parse("2026-11-10")),
+                ReliabilityObservationRollup.dayStart(LocalDate.parse("2026-11-22"))
+            )).isEmpty();
+            assertThat(rollup.observationWindows(
+                networkId,
+                ReliabilityObservationRollup.dayStart(TODAY),
+                until
+            )).isNotEmpty();
+        }
 
         // Roll up at 12:05 UTC, before the afternoon's polls: today's row is partial and not final.
         jdbc.update("delete from ingestion_runs where run_type in ('alerts', 'metrolinx-alerts') and completed_at >= :at",
@@ -224,28 +241,37 @@ class ReliabilityObservationRollupIntegrationTest {
         NETWORKS.forEach(rollup::rollUp);
         polls("2026-10-24 00:00:00-04", "2026-11-24 17:00:00+00", "2026-11-24 12:00:00+00");
         clock.set(TODAY_NOON);
+        NETWORKS.forEach(derivation::deriveIncremental);
+
         for (String networkId : NETWORKS) {
             OffsetDateTime todayStart = ReliabilityObservationRollup.dayStart(TODAY);
             assertThat(rows(networkId).get(TODAY).minutes())
                 .isLessThan(ReliabilityIntervalCalculator.minutes(rollup.rawWindows(networkId, todayStart, until)));
         }
-        assertThat(aggregates(since, until)).isEqualTo(before);
+
+        LocalDate fromDate = TODAY.minusDays(29);
+        Map<String, ReliabilityRepository.ReliabilityAggregation> beforeDeletion = aggregates(fromDate, TODAY, until);
+        assertThat(beforeDeletion.get("ttc").rows()).extracting(ReliabilityRepository.AggregateRow::incidents).contains(3L);
+        assertThat(beforeDeletion.get("regional").rows()).extracting(ReliabilityRepository.AggregateRow::incidents).contains(2L);
+        assertThat(beforeDeletion.get("ttc").rows()).anyMatch(row -> row.activeIncidents() == 1);
+        assertThat(beforeDeletion.get("regional:exhibition").rows()).isNotEmpty();
 
         // Without the raw runs of rolled-up dates (today reads from 10 minutes before its start).
         jdbc.update("delete from ingestion_runs where run_type in ('alerts', 'metrolinx-alerts') and completed_at < :before",
             Map.of("before", ReliabilityObservationRollup.dayStart(TODAY).minusMinutes(10)));
-        assertThat(aggregates(since, until)).isEqualTo(before);
+        assertThat(aggregates(fromDate, TODAY, until)).isEqualTo(beforeDeletion);
     }
 
-    private Map<String, ReliabilityRepository.ReliabilityAggregation> aggregates(OffsetDateTime since, OffsetDateTime until) {
+    private Map<String, ReliabilityRepository.ReliabilityAggregation> aggregates(
+        LocalDate fromDate,
+        LocalDate toDate,
+        OffsetDateTime until
+    ) {
         Map<String, ReliabilityRepository.ReliabilityAggregation> results = new LinkedHashMap<>();
-        results.put("ttc", reliability.aggregate("ttc", null, since, until));
-        results.put("ttc:st-george", reliability.aggregate("ttc", "st-george", since, until));
-        results.put("regional", reliability.aggregate("regional", null, since, until));
-        results.put("regional:exhibition", reliability.aggregate("regional", "exhibition", since, until));
-        // Bounds inside dates: 07:00 and 09:00 Toronto.
-        results.put("ttc:partial", reliability.aggregate("ttc", null, since.plusHours(7), until.minusHours(3)));
-        results.put("regional:partial", reliability.aggregate("regional", null, since.plusHours(7), until.minusHours(3)));
+        results.put("ttc", reliability.aggregateServiceDates("ttc", null, fromDate, toDate, until));
+        results.put("ttc:st-george", reliability.aggregateServiceDates("ttc", "st-george", fromDate, toDate, until));
+        results.put("regional", reliability.aggregateServiceDates("regional", null, fromDate, toDate, until));
+        results.put("regional:exhibition", reliability.aggregateServiceDates("regional", "exhibition", fromDate, toDate, until));
         return results;
     }
 
@@ -464,12 +490,31 @@ class ReliabilityObservationRollupIntegrationTest {
         }
 
         @Bean
+        ReliabilityEpisodeSource episodeSource(NamedParameterJdbcTemplate jdbc) {
+            return new ReliabilityEpisodeSource(jdbc);
+        }
+
+        @Bean
+        ReliabilityDerivationService derivationService(
+            NamedParameterJdbcTemplate jdbc,
+            ReliabilityScheduleCapture capture,
+            ReliabilityObservationRollup observationRollup,
+            ReliabilityEpisodeSource episodeSource,
+            PlatformTransactionManager txManager,
+            MutableClock clock
+        ) {
+            return new ReliabilityDerivationService(jdbc, capture, observationRollup, episodeSource, txManager, clock);
+        }
+
+        @Bean
         ReliabilityRepository reliabilityRepository(
             NamedParameterJdbcTemplate jdbc,
             ReliabilityScheduleCapture capture,
-            ReliabilityObservationRollup observationRollup
+            ReliabilityObservationRollup observationRollup,
+            ReliabilityEpisodeSource episodeSource,
+            MutableClock clock
         ) {
-            return new ReliabilityRepository(jdbc, capture, observationRollup);
+            return new ReliabilityRepository(jdbc, capture, observationRollup, episodeSource, clock);
         }
 
         @Bean
