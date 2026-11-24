@@ -159,6 +159,27 @@ linewatch:
     rebuild:
       enabled: ${LINEWATCH_RELIABILITY_REBUILD_ENABLED:false}
       target-version: ${LINEWATCH_RELIABILITY_REBUILD_TARGET_VERSION:2}
+    schedule-backfill:
+      enabled: ${LINEWATCH_RELIABILITY_SCHEDULE_BACKFILL_ENABLED:false}
+      source: ${LINEWATCH_RELIABILITY_SCHEDULE_BACKFILL_SOURCE:}
+      zip-path: ${LINEWATCH_RELIABILITY_SCHEDULE_BACKFILL_ZIP_PATH:}
+      archive-url: ${LINEWATCH_RELIABILITY_SCHEDULE_BACKFILL_ARCHIVE_URL:}
+      feed-version: ${LINEWATCH_RELIABILITY_SCHEDULE_BACKFILL_FEED_VERSION:}
+    sources:
+      regional-otp:
+        enabled: ${LINEWATCH_RELIABILITY_REGIONAL_OTP_ENABLED:false}
+        initial-delay: ${LINEWATCH_RELIABILITY_REGIONAL_OTP_INITIAL_DELAY:PT45S}
+        fixed-delay: ${LINEWATCH_RELIABILITY_REGIONAL_OTP_FIXED_DELAY:PT60S}
+        on-time-threshold-seconds: ${LINEWATCH_RELIABILITY_REGIONAL_OTP_THRESHOLD_SECONDS:300}
+      ttc-delay-log:
+        enabled: ${LINEWATCH_RELIABILITY_TTC_DELAY_LOG_ENABLED:false}
+        package-url: ${LINEWATCH_RELIABILITY_TTC_DELAY_LOG_PACKAGE_URL:https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action/package_show?id=ttc-subway-delay-data}
+        initial-delay: ${LINEWATCH_RELIABILITY_TTC_DELAY_LOG_INITIAL_DELAY:PT90S}
+        fixed-delay: ${LINEWATCH_RELIABILITY_TTC_DELAY_LOG_FIXED_DELAY:PT24H}
+        connect-timeout: ${LINEWATCH_RELIABILITY_TTC_DELAY_LOG_CONNECT_TIMEOUT:PT10S}
+        read-timeout: ${LINEWATCH_RELIABILITY_TTC_DELAY_LOG_READ_TIMEOUT:PT30S}
+      ttc-performance-history:
+        enabled: ${LINEWATCH_RELIABILITY_TTC_PERFORMANCE_HISTORY_ENABLED:true}
     range:
       closed-range-ttl: ${LINEWATCH_RELIABILITY_RANGE_CLOSED_RANGE_TTL:PT6H}
       availability-ttl: ${LINEWATCH_RELIABILITY_RANGE_AVAILABILITY_TTL:PT15M}

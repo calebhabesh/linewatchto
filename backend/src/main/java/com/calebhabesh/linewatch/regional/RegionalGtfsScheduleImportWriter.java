@@ -83,6 +83,57 @@ public class RegionalGtfsScheduleImportWriter {
         );
     }
 
+    /**
+     * Plan 17 A2 archive backfill: imports a regional (GO/UP) archive zip as an inactive import,
+     * captures spans only for missing dates ({@code source_kind = 'archive'}), then deletes the
+     * temporary import. Never activates or touches existing imports.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public com.calebhabesh.linewatch.reliability.ReliabilityScheduleCapture.CaptureResult writeArchiveBackfill(
+        Path zipPath,
+        RegionalGtfsPreparedImport prepared,
+        String feedVersion
+    ) throws IOException {
+        long importId = repository.beginReplacementImport(
+            prepared.sourceSystem(),
+            prepared.sourceUrl(),
+            OffsetDateTime.now(clock),
+            prepared.serviceStart(),
+            prepared.serviceEnd()
+        );
+        try {
+            repository.insertServices(importId, prepared.services());
+            repository.insertServiceExceptions(importId, prepared.exceptions());
+
+            DepartureBatcher batcher = new DepartureBatcher(repository, importId);
+            streamStopTimes(zipPath, row -> {
+                RegionalGtfsScheduleImportService.TripInfo trip = prepared.trips().get(row.value("trip_id"));
+                RegionalGtfsScheduleImportService.StopInfo stop = prepared.stops().get(row.value("stop_id"));
+                if (trip == null || stop == null) return;
+                String stationId = RegionalGtfsScheduleImportService.stationId(stop, prepared.stops(), row.value("stop_id"));
+                if (stationId == null || RegionalNetworkCatalog.route(trip.lineId())
+                    .map(route -> !route.stationIds().contains(stationId)).orElse(true)) return;
+                String departureTime = RegionalGtfsScheduleImportService.firstNonBlank(
+                    row.value("departure_time"), row.value("arrival_time")
+                );
+                if (departureTime.isBlank()) return;
+                batcher.accept(new RegionalGtfsScheduleImport.Departure(
+                    stationId, trip.lineId(), trip.serviceId(), row.value("trip_id"), trip.shortName(),
+                    trip.direction(), GtfsCsvReader.seconds(departureTime), stop.platform(),
+                    RegionalGtfsScheduleImportService.integer(row.value("stop_sequence"))
+                ));
+            });
+            batcher.finish();
+
+            if (batcher.totalRows() == 0) {
+                throw new IOException("Regional GTFS archive did not contain mapped rail schedule coverage");
+            }
+            return repository.captureArchiveForImport(prepared.sourceSystem(), importId, feedVersion);
+        } finally {
+            repository.deleteInactiveImport(importId);
+        }
+    }
+
     private void streamStopTimes(Path zipPath, Consumer<GtfsCsvReader.Row> consumer) throws IOException {
         try (ZipFile zipFile = new ZipFile(zipPath.toFile())) {
             ZipEntry entry = zipFile.getEntry("stop_times.txt");

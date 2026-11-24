@@ -32,6 +32,7 @@ import { CoverageStrip } from "./CoverageStrip";
 import { EpisodesModule } from "./EpisodesModule";
 import { ExportControl } from "./ExportButton";
 import { CalendarModule, CancellationsModule, SlowZonesModule } from "./NetworkSpecificModules";
+import { OnTimePerformanceModule, TtcDelayLogModule, TtcPerformanceHistoryModule } from "./SupplementalSourceModules";
 import { BreakdownModule, HowLongModule, TrendModule } from "./TrendAndBreakdownModules";
 import { WhenModule, WhereModule } from "./WhenAndWhereModules";
 import { useAnalyticsQuery } from "./use-analytics-query";
@@ -362,6 +363,30 @@ export function AnalyticsDashboard({ networkId, title, lines }: {
                 demoModule={demoModule}
                 onDrilldownChange={(next) => setQuery(withAnalyticsDrilldown(current, next))}
               />
+
+              {ttc ? (
+                <div className={styles.moduleGrid}>
+                  <TtcDelayLogModule
+                    query={current}
+                    range={range}
+                    demo={demo}
+                    demoModule={demoModule}
+                  />
+                  <TtcPerformanceHistoryModule
+                    range={range}
+                    demo={demo}
+                    demoModule={demoModule}
+                  />
+                </div>
+              ) : (
+                <OnTimePerformanceModule
+                  lines={lines}
+                  query={current}
+                  range={range}
+                  demo={demo}
+                  demoModule={demoModule}
+                />
+              )}
             </>
           ) : null}
         </div>

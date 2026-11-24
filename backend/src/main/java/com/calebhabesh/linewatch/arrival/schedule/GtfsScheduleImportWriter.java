@@ -144,6 +144,45 @@ public class GtfsScheduleImportWriter {
         );
     }
 
+    /**
+     * Plan 17 A2 archive backfill: imports rapid-transit schedule tables from an archived TTC zip
+     * as an inactive import, captures spans only for dates with no existing row in
+     * {@code reliability_schedule_days}, then deletes the temporary import. Never activates.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ReliabilityScheduleCapture.CaptureResult writeArchiveBackfill(
+        Path zipPath,
+        String sourceUrl,
+        String feedVersion,
+        GtfsSchedulePreparedImport prepared
+    ) throws IOException {
+        long importId = repository.beginReplacementImport(
+            "TTC archived GTFS backfill",
+            sourceUrl,
+            OffsetDateTime.now(clock),
+            prepared.serviceStart(),
+            prepared.serviceEnd()
+        );
+        try {
+            repository.insertRoutes(importId, prepared.routes());
+            repository.insertStops(importId, prepared.stops());
+            repository.insertServices(importId, prepared.services());
+            repository.insertServiceExceptions(importId, prepared.serviceExceptions());
+            repository.insertTrips(importId, prepared.trips());
+            StopTimeBatcher batcher = new StopTimeBatcher(repository, importId, prepared.rapidTransitTripIds());
+            streamStopTimes(zipPath, batcher::accept);
+            batcher.finish();
+            repository.insertStationStops(importId, prepared.stationStops());
+            return scheduleCapture.captureArchiveForImport(
+                ReliabilityScheduleCapture.ScheduleSource.TTC,
+                importId,
+                feedVersion
+            );
+        } finally {
+            repository.deleteInactiveImport(importId);
+        }
+    }
+
     private boolean coversToday(GtfsSchedulePreparedImport prepared) {
         LocalDate today = LocalDate.now(clock.withZone(TORONTO_ZONE));
         return prepared.serviceStart() != null

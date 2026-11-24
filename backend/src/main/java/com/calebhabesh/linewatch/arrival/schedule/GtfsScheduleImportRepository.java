@@ -441,6 +441,13 @@ public class GtfsScheduleImportRepository {
         return candidate.map(ActivationCandidate::id);
     }
 
+    public void deleteInactiveImport(long importId) {
+        jdbc.update(
+            "delete from gtfs_schedule_imports where id = :importId and active = false",
+            Map.of("importId", importId)
+        );
+    }
+
     private record ActivationCandidate(long id, boolean active) {
     }
 }

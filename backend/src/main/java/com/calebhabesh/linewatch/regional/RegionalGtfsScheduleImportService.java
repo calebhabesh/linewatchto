@@ -38,6 +38,21 @@ public class RegionalGtfsScheduleImportService {
     }
 
     public ImportSummary importZip(Path zipPath, String sourceSystem, String sourceUrl) throws IOException {
+        RegionalGtfsPreparedImport prepared = prepareZip(zipPath, sourceSystem, sourceUrl);
+        return writer.write(zipPath, prepared);
+    }
+
+    public com.calebhabesh.linewatch.reliability.ReliabilityScheduleCapture.CaptureResult importZipForArchiveBackfill(
+        Path zipPath,
+        String sourceSystem,
+        String sourceUrl,
+        String feedVersion
+    ) throws IOException {
+        RegionalGtfsPreparedImport prepared = prepareZip(zipPath, sourceSystem, sourceUrl);
+        return writer.writeArchiveBackfill(zipPath, prepared, feedVersion);
+    }
+
+    private RegionalGtfsPreparedImport prepareZip(Path zipPath, String sourceSystem, String sourceUrl) throws IOException {
         if (!Set.of("go", "up").contains(sourceSystem)) {
             throw new IllegalArgumentException("Unsupported regional GTFS source: " + sourceSystem);
         }
@@ -98,11 +113,9 @@ public class RegionalGtfsScheduleImportService {
             throw new IOException("Regional GTFS feed did not contain mapped rail schedule coverage");
         }
 
-        RegionalGtfsPreparedImport prepared = new RegionalGtfsPreparedImport(
+        return new RegionalGtfsPreparedImport(
             sourceSystem, sourceUrl, range[0], range[1], services, exceptions, routes.size(), trips, stops
         );
-
-        return writer.write(zipPath, prepared);
     }
 
     private String lineId(String sourceSystem, GtfsCsvReader.Row row) {

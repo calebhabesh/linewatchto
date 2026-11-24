@@ -11,8 +11,12 @@ import java.util.Optional;
  */
 public record GoTripUpdateFeed(
     OffsetDateTime sourceUpdatedAt,
-    List<Trip> trips
+    List<Trip> trips,
+    List<String> cancelledTripIds
 ) {
+    public GoTripUpdateFeed(OffsetDateTime sourceUpdatedAt, List<Trip> trips) {
+        this(sourceUpdatedAt, trips, List.of());
+    }
     public Optional<Trip> findTrip(String sourceTripId) {
         String requested = UpTripUpdateFeed.normalizedTripId(sourceTripId);
         if (requested.isBlank()) return Optional.empty();

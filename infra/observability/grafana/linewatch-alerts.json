@@ -158,6 +158,18 @@
       "description": "The nightly host timer (linewatch-offsite-backup.timer) has not uploaded and verified a copy since. No data means the textfile metric is missing: the timer has never succeeded, /var/lib/linewatch/textfile-metrics is gone, or Alloy is down. On the VPS: systemctl status linewatch-offsite-backup.service and journalctl -u linewatch-offsite-backup.service. See production-vps.md, Backups."
     },
     {
+      "uid": "linewatch-offsite-backup-storage-high",
+      "title": "Off-host backup storage near free-tier limit",
+      "expr": "max(linewatch_offsite_backup_size_bytes{environment=\"production\"}) * max(linewatch_offsite_backup_copies{environment=\"production\"})",
+      "op": "gt",
+      "threshold": 7500000000,
+      "for": "30m",
+      "noData": "OK",
+      "severity": "warning",
+      "summary": "Estimated off-host backup bucket usage exceeded 7.5 GB (Cloudflare R2 free tier is 10 GB).",
+      "description": "Review backup size and retention counts in rclone lsf / Cloudflare R2 before usage approaches the 10 GB free-tier ceiling. Check whether a new large table needs an exclusion pattern in scripts/prod-backup-offsite.sh."
+    },
+    {
       "uid": "linewatch-reliability-derivation-failing",
       "title": "Reliability derivation failing",
       "expr": "max(linewatch_reliability_derivation_consecutive_failures{environment=\"production\"})",

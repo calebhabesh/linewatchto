@@ -112,7 +112,8 @@ class ReliabilityRangeControllerTest {
         when(service.series(any(), eq("week"), eq(false))).thenReturn(series());
         mvc.perform(get("/api/reliability/series").param("network", "regional").param("from", "2026-10-01")
                 .param("to", "2026-11-22").param("granularity", "WEEK").param("line", "Regional-LW"))
-            .andExpect(status().isOk());
+            .andExpect(status().isOk())
+            .andExpect(header().string("Cache-Control", ReliabilityRangeController.CACHE_CLOSED));
         verify(cache).getOrComputeClosedReliability(
             eq("regional"),
             eq("reliability:v2:series:regional:2026-10-01:2026-11-22:regional-lw:-:granularity=week"),
