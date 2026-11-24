@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { impactDirectionLabel } from "../app/entire-line";
 import { useDashboardData } from "../app/DataContext";
 import { ArrowRight, Bus } from "lucide-react";
 import { plannedAdvisoryEffect, serviceEffectLabel } from "../app/alert-categories";
@@ -156,7 +157,7 @@ export function PlannedClosuresPanel({
                   lineNumber={closure.lineNumber}
                   title={plannedAdvisoryEffect(closure) === "closure" ? "Planned Closure" : serviceEffectLabel(closure, true)}
                   locationFirst
-                  details={<><p>{closure.title}</p><p>Direction: {closure.displayDirection || "Not Reported"}</p><p>Started: <CompactImpactTimeValue timestamp={closure.startedAt} /></p></>}
+                  details={<><p>{closure.title}</p><p>Direction: {impactDirectionLabel(closure) || "Not Reported"}</p><p>Started: <CompactImpactTimeValue timestamp={closure.startedAt} /></p></>}
                   location={closure.location}
                   facts={[
                     ...((closure.windowDates || closure.windowHours) ? [{ label: "Schedule", value: [closure.windowDates, closure.windowHours].filter(Boolean).map(value => formatClosureScheduleValue(value!)).join(" · "), emphasized: true }] : []),
@@ -193,7 +194,7 @@ export function PlannedClosuresPanel({
                   title={closure.title}
                   description={closure.description}
                   location={closure.location}
-                  direction={closure.displayDirection}
+                  direction={impactDirectionLabel(closure)}
                   isMapActive={isActive}
                   onReturnToMap={onReturnToMap}
                   onMapAction={() => handleClosureClick(closure.id)}

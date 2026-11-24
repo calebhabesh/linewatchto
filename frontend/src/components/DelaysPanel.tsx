@@ -6,6 +6,7 @@ import { serviceEffectLabel } from "../app/alert-categories";
 import { alertCauseReason } from "../app/alert-cause";
 import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
+import { impactDirectionLabel } from "../app/entire-line";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
@@ -133,7 +134,7 @@ export function DelaysPanel({
                   title={serviceEffectLabel(delay)}
                   details={<><p>{delay.title}</p>{delay.relatedPlannedClosureId ? <RelatedPlannedClosureButton closureId={delay.relatedPlannedClosureId} onSelectImpact={onSelectRelatedImpact} /> : null}</>}
                   location={delay.location}
-                  direction={delay.displayDirection}
+                  direction={impactDirectionLabel(delay)}
                   facts={[
                     ...(cause ? [{ column: 1 as const, label: "Cause", value: cause }] : []),
                     { column: 2, label: "Started", value: <CompactImpactTimeValue timestamp={delay.startedAt} /> },
@@ -163,7 +164,7 @@ export function DelaysPanel({
                   title={delay.title}
                   description={delay.description}
                   location={delay.location}
-                  direction={delay.displayDirection}
+                  direction={impactDirectionLabel(delay)}
                   isMapActive={isActive}
                   onReturnToMap={onReturnToMap}
                   mapBackLabel={returnToMapLabel}

@@ -1,5 +1,7 @@
 "use client";
 
+import { Accessibility, Bus, Gauge, TramFront, type LucideIcon } from "lucide-react";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import {
   defaultSeriesGranularity,
@@ -20,9 +22,25 @@ import {
   type ResolvedAnalyticsRange,
 } from "../../app/reliability-range";
 import { useAnalyticsResource } from "../../hooks/useAnalyticsResource";
+import { TransitLineBadge } from "../TransitLineBadge";
 import { ChartDataTable, ChartFrame, useInView } from "./ChartFrame";
 import { StackedBarChart, type StackedBarItem } from "./StackedBarChart";
 import styles from "./analytics.module.css";
+
+const OFFICIAL_ICONS: Record<string, LucideIcon> = {
+  bus: Bus,
+  streetcar: TramFront,
+  "wheel-trans": Accessibility,
+};
+
+function OfficialMetricIcon({ metricKey }: { metricKey: string }) {
+  if (metricKey.startsWith("line-")) return <TransitLineBadge lineId={metricKey} size={20} decorative />;
+  if (metricKey === "elevators" || metricKey === "escalators") {
+    return <Image src={`/assets/linewatch/outages/${metricKey === "elevators" ? "elevator" : "escalator"}.svg`} alt="" width={20} height={20} />;
+  }
+  const Icon = OFFICIAL_ICONS[metricKey] ?? Gauge;
+  return <Icon size={18} aria-hidden="true" />;
+}
 
 type DemoModule = typeof import("../../app/reliability-analytics-fixture");
 
@@ -298,7 +316,9 @@ export function TtcPerformanceHistoryModule({
 
   const resource = useAnalyticsResource<AnalyticsTtcPerformanceHistoryResponse>(path, seen, demoData, demo);
   const data = resource.data;
-  const metrics = data?.metrics ?? [];
+  // Lines, then surface routes, then accessibility, as in the dashboard panel.
+  const order = (key: string) => key.startsWith("line-") ? 0 : key === "elevators" || key === "escalators" ? 2 : 1;
+  const metrics = [...data?.metrics ?? []].sort((a, b) => order(a.metricKey) - order(b.metricKey));
 
   const table = (
     <ChartDataTable
@@ -330,6 +350,7 @@ export function TtcPerformanceHistoryModule({
       sectionRef={sectionRef}
       title="Official TTC Performance History"
       subtitle="Stored TTC.ca Daily Customer Service Report readings over this range; separate from LineWatchTO-observed disruptions."
+      readout={null}
       table={metrics.length > 0 ? table : undefined}
       loading={resource.loading || (!seen && !demo)}
       error={resource.error}
@@ -337,7 +358,26 @@ export function TtcPerformanceHistoryModule({
       empty={seen && !resource.loading && !resource.error && metrics.length === 0}
       emptyMessage={data?.message ?? "No stored TTC.ca performance readings recorded in this range yet."}
     >
-      {table}
+      <ul className={styles.metricTiles}>
+        {metrics.map((metric) => {
+          const latest = metric.points.at(-1);
+          const value = latest?.percentage ?? null;
+          return (
+            <li key={metric.metricKey}>
+              <span className={styles.metricTileName}><OfficialMetricIcon metricKey={metric.metricKey} /><span className={styles.metricTileText}>{metric.label}</span></span>
+              <strong>{latest?.valueLabel ?? (value !== null ? `${value}%` : "—")}</strong>
+              <span className={styles.metricTrack} aria-hidden="true">
+                {value !== null ? <span style={{ width: `${Math.max(0, Math.min(100, value))}%` }} /> : null}
+                {metric.target !== null ? <i style={{ left: `${metric.target}%` }} /> : null}
+              </span>
+              <small>
+                {metric.target !== null ? `Target ${metric.target}% · ` : ""}
+                {metric.points.length.toLocaleString("en-CA")} {metric.points.length === 1 ? "Day" : "Days"} Stored
+              </small>
+            </li>
+          );
+        })}
+      </ul>
     </ChartFrame>
   );
 }

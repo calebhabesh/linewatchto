@@ -1,3 +1,5 @@
+import { impactDirectionLabel } from "./entire-line.ts";
+
 export type ImpactListSort = "updated" | "line" | "location" | "soonest";
 
 type ImpactListControls = {
@@ -14,6 +16,7 @@ type SortableImpact = {
   location: string;
   description?: string;
   displayDirection?: string | null;
+  wholeLine?: boolean | null;
   cause?: string | null;
   updatedAt?: string | null;
   activeNow?: boolean;
@@ -46,6 +49,7 @@ export function filterAndSortImpacts<T extends SortableImpact>(items: T[], contr
           item.location,
           item.description,
           item.displayDirection,
+          impactDirectionLabel(item),
           item.cause,
           `line ${item.lineNumber ?? item.lineId.replace("line-", "")}`,
         ].filter(Boolean).join(" ").toLocaleLowerCase();

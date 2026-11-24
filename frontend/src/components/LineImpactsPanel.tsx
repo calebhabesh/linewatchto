@@ -11,6 +11,7 @@ import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { ImpactListSort } from "../app/impact-list-controls";
 import { useImpactListView } from "../hooks/useImpactListView";
+import { impactDirectionLabel } from "../app/entire-line";
 import { useDashboardData } from "../app/DataContext";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { ImpactListViewToggle, ToolbarSelectMenu } from "./ImpactListToolbar";
@@ -48,9 +49,9 @@ const CATEGORY_LABELS: Record<Exclude<LineImpactCategory, "all">, string> = {
   notices: "Service Notices",
 };
 
-function matchesQuery(item: { title: string; location: string; description?: string; displayDirection?: string | null; cause?: string | null }, query: string) {
+function matchesQuery(item: { lineId: string; title: string; location: string; description?: string; displayDirection?: string | null; wholeLine?: boolean | null; cause?: string | null }, query: string) {
   if (!query) return true;
-  return [item.title, item.location, item.description, item.displayDirection, item.cause]
+  return [item.title, item.location, item.description, item.displayDirection, impactDirectionLabel(item), item.cause]
     .filter(Boolean)
     .join(" ")
     .toLocaleLowerCase()

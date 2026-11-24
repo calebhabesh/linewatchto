@@ -1,5 +1,6 @@
 import { plannedAdvisoryHeader, replacementServiceLabel, shuttleServiceLabel } from "./current-service.ts";
 import { alertCauseReason } from "./alert-cause.ts";
+import { impactDirectionLabel } from "./entire-line.ts";
 import { upcomingCountdown } from "./planned-advisory-status.ts";
 import type { PlannedClosure } from "./linewatch-data.ts";
 import { commutesByTripTimes, type ImpactCommute } from "./commute-data.ts";
@@ -36,6 +37,7 @@ type PreviewInput = Pick<
   | "title"
   | "location"
   | "displayDirection"
+  | "wholeLine"
   | "cause"
   | "reason"
   | "serviceEffect"
@@ -131,7 +133,7 @@ export function upcomingAdvisoryPreview(input: PreviewInput, now: number): Upcom
     title: plannedAdvisoryHeader(input),
     countdown: dated ? upcomingCountdown(start, now) : undefined,
     location: input.location || input.title,
-    direction: input.displayDirection?.trim() || undefined,
+    direction: impactDirectionLabel(input) ?? undefined,
     cause: alertCauseReason(input.cause ?? input.reason) ?? undefined,
     when: previewWhen(input, start),
     replacement: upcomingReplacement(input),

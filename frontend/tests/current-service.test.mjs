@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
+  currentServiceLineGroups,
   currentServiceSummary,
   incidentFacts,
   currentServiceIncidentPresentation,
@@ -428,7 +429,7 @@ test("CurrentServicePanel renders individual remaining-line rows with route badg
   const stylesSource = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
 
   assert.match(panelSource, /remainingLines/);
-  assert.match(panelSource, /getLineStatusPresentation/);
+  assert.match(panelSource, /currentServiceLineGroups/);
   assert.match(panelSource, /current-service-line--\$\{presentation\.state\}/);
   assert.doesNotMatch(panelSource, /current-service-reassurance-badges/);
 
@@ -722,15 +723,11 @@ test("GO/UP replacement facts name the stops the buses skip", async () => {
   assert.equal(incidentFacts({ ...row, replacementSkippedStations: ["Bloor"] }).service, "");
 });
 
-test("whole-line GO/UP impacts say Entire Line under their terminal span", async () => {
+test("GO/UP rider facts leave the supplied direction alone", async () => {
   const { withIncidentDetails } = await import("../src/app/regional-data.ts");
-  const closure = { id: "up", displayDirection: null };
-  assert.equal(withIncidentDetails(closure, { wholeLine: true }).displayDirection, "Entire Line");
-  assert.equal(withIncidentDetails({ ...closure, displayDirection: "Towards Union Station" }, { wholeLine: true }).displayDirection,
-    "Entire Line · Towards Union Station");
-  assert.equal(withIncidentDetails({ ...closure, displayDirection: "Towards Union Station" }, { wholeLine: false }).displayDirection,
-    "Towards Union Station");
-  assert.equal(withIncidentDetails(closure, undefined), closure);
+  const closure = { id: "up", displayDirection: "Towards Union Station" };
+  assert.deepEqual(withIncidentDetails(closure, { wholeLine: true }), { ...closure, wholeLine: true });
+  assert.deepEqual(withIncidentDetails(closure, undefined), closure);
 });
 
 test("planned windows that have not begun word replacement service in the future tense", async () => {
@@ -752,4 +749,39 @@ test("planned windows that have not begun word replacement service in the future
   assert.equal(shuttleServiceLabel(true), "Shuttle Buses Will Run");
   assert.equal(replacementServiceLabel("bus", true), "Buses Will Replace Trains");
   assert.equal(replacementServiceLabel(null, true), undefined);
+});
+
+test("Current Service lists lines most pressing first, with normal service last", () => {
+  const now = Date.parse("2026-11-24T20:00:00Z");
+  const window = (nextWindowStart, nextWindowEnd) => ({ nextWindowStart, nextWindowEnd });
+  const later = window("2026-12-06T03:00:00Z", "2026-12-06T05:00:00Z");
+  const sooner = window("2026-11-28T05:00:00Z", "2026-11-30T11:00:00Z");
+  const tonight = window("2026-11-25T04:59:00Z", "2026-11-25T08:30:00Z");
+  const order = (input) => {
+    const { affected, remaining } = currentServiceLineGroups(input, currentServiceSummary(input, now));
+    return [affected, remaining].map((items) => items.map(({ line }) => line.id));
+  };
+  const lineStatuses = ["1", "2", "3", "4", "5", "6", "7"].map((id) => line(id));
+
+  assert.deepEqual(order(data({
+    lineStatuses,
+    plannedClosures: [impact("later", "5", later), impact("sooner", "6", sooner), impact("undated", "2")],
+    reducedSpeedZones: [impact("rsz", "4")],
+  })), [[], ["6", "5", "2", "4", "1", "3", "7"]]);
+
+  // Worst card decides: no service, delays, then work starting tonight; its line order breaks ties.
+  assert.deepEqual(order(data({
+    lineStatuses,
+    activeAlerts: [impact("stop", "6")],
+    delays: [impact("delay", "4"), impact("delay-2", "3")],
+    plannedClosures: [impact("tonight", "1", tonight), impact("later", "5", later)],
+  })), [["6", "3", "4", "1"], ["5", "2", "7"]]);
+
+  // A line whose status is not known sits above normal service.
+  assert.deepEqual(order(data({
+    lineStatuses: [line("1"), line("2", "ready", "Alert coverage incomplete"), line("3", "delay", "Delays")],
+  })), [[], ["3", "2", "1"]]);
+
+  // Without live data every line reads the same, so line order stands.
+  assert.deepEqual(order(data({ lineStatuses, generatedAt: { live: false } })), [[], ["1", "2", "3", "4", "5", "6", "7"]]);
 });

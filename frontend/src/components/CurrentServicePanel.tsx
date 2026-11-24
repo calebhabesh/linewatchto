@@ -10,12 +10,11 @@ import type { DashboardData } from "../app/DataContext";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { surfaceNoticeServiceLabel, type SurfaceNoticeResponse, type SurfaceNoticeDetail } from "../app/surface-notice-data";
 import {
+  currentServiceLineGroups,
   currentServiceSummary,
   currentSurfaceNotices,
   currentServiceIncidentPresentation,
-  getLineStatusPresentation,
   lineStatusDescription,
-  withUpcomingListedSeparately,
 } from "../app/current-service";
 import { LineBadge } from "./ImpactCardFields";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
@@ -27,7 +26,6 @@ import type { ImpactCommute } from "../app/commute-data";
 import { CommuteImpactTag } from "./CommuteImpactTag";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { CurrentServiceRouteBadges } from "./CurrentServiceRouteBadges";
-import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { surfaceNoticePreviewLocation } from "../app/surface-notice-groups";
 
 
@@ -209,23 +207,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
   };
 
   const summary = currentServiceSummary(data, now);
-  const affectedLines = data.lineStatuses
-    .map((line) => {
-      const rows = summary.rows.filter((row) => row.lineId === line.id);
-      const upcoming = (summary.upcoming ?? []).filter((c) => c.lineId === line.id);
-      const rszCount = countReducedSpeedZones(
-        (data.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id),
-      );
-      return { line, rows, upcoming, rszCount };
-    })
-    .filter((item) => item.rows.length > 0);
-  const remainingLines = data.lineStatuses
-    .filter((line) => !affectedLines.some((item) => item.line.id === line.id))
-    .map((line) => ({
-      line,
-      presentation: withUpcomingListedSeparately(getLineStatusPresentation(line, data, summary)),
-      upcoming: (summary.upcoming ?? []).filter((c) => c.lineId === line.id),
-    }));
+  const { affected: affectedLines, remaining: remainingLines } = currentServiceLineGroups(data, summary);
   const selectUpcoming = (closureId: string) => onImpact({ kind: "planned-closure", id: closureId });
   const activeCount = summary.rows.length;
   const surfaceRows = notices?.fresh && now > 0
@@ -293,7 +275,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
         <ServiceList rail>
           {affectedLines.map((item) => (
             <div className="current-service-line" data-has-advisories={item.upcoming.length > 0 || item.rszCount > 0} key={item.line.id}>
-              {(item.upcoming.length > 0 || item.rszCount > 0) && <AdvisorySpine />}
+              {(item.upcoming.length > 0 || item.rszCount > 0) && <AdvisorySpine lineId={item.line.id} />}
               <div className="current-service-line-badge-wrap" data-spine-start="">
                 <LineBadge lineId={item.line.id} lineNumber={item.rows[0].lineNumber} size={28} />
               </div>
@@ -365,7 +347,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
 
           {remainingLines.map(({ line, presentation, upcoming }) => (
             <div className={`current-service-line current-service-line--${presentation.state}`} data-has-advisories={upcoming.length > 0 || presentation.hasRsz} key={line.id}>
-              {(upcoming.length > 0 || presentation.hasRsz) && <AdvisorySpine />}
+              {(upcoming.length > 0 || presentation.hasRsz) && <AdvisorySpine lineId={line.id} />}
               <div className="current-service-line-badge-wrap" data-spine-start="">
                 <LineBadge lineId={line.id} lineNumber={line.number} size={28} />
               </div>

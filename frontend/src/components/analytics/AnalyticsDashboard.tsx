@@ -1,6 +1,6 @@
 "use client";
 
-import { CloudOff, FlaskConical, Info, RefreshCw, TriangleAlert } from "lucide-react";
+import { CloudOff, Database, FlaskConical, Info, RefreshCw, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import {
   analyticsEmptyState,
@@ -14,6 +14,7 @@ import {
 } from "../../app/reliability-analytics";
 import {
   analyticsQueryForOtherNetwork,
+  collectionNotice,
   defaultAnalyticsQuery,
   emptyAnalyticsDrilldown,
   formatDatesInMessage,
@@ -27,6 +28,7 @@ import {
 import { useReliabilityAnalytics } from "../../hooks/useReliabilityAnalytics";
 import { AnalyticsControls } from "./AnalyticsControls";
 import { AnalyticsKpis } from "./AnalyticsKpis";
+import { StatIcon } from "./AnalyticsIcons";
 import { AnalyticsTable } from "./AnalyticsTable";
 import { CoverageStrip } from "./CoverageStrip";
 import { EpisodesModule } from "./EpisodesModule";
@@ -96,6 +98,7 @@ export function AnalyticsDashboard({ networkId, title, lines }: {
   const previous = summary?.previous ?? null;
   const failed = error !== null && !summary;
   const coverage = summary?.coverage ?? null;
+  const collecting = availability && !demo ? collectionNotice(availability) : null;
 
   const otherQuery = serializeAnalyticsQuery(analyticsQueryForOtherNetwork(current));
   const announcement = loading || !range || failed
@@ -195,6 +198,13 @@ export function AnalyticsDashboard({ networkId, title, lines }: {
         </Notice>
       ) : null}
 
+      {collecting ? (
+        <Notice tone="info" icon={<Database size={18} aria-hidden="true" />}>
+          <strong>{collecting.title}</strong>
+          <p>{collecting.message}</p>
+        </Notice>
+      ) : null}
+
       {availability && range ? (
         <CoverageStrip range={range} availability={availability} />
       ) : !failed ? (
@@ -253,6 +263,7 @@ export function AnalyticsDashboard({ networkId, title, lines }: {
           <AnalyticsKpis kpis={kpis} compare={current.compare} compareUnavailable={Boolean(summary) && !previous} />
           <section className={styles.breakdown}>
             <h2>
+              <StatIcon id="lines" size={17} />
               {scope === "stations"
                 ? shownLine ? `${ttc ? `Line ${shownLine.number}` : shownLine.name} Stations` : "Stations"
                 : ttc ? "By Line" : "By Corridor"}
@@ -283,17 +294,15 @@ export function AnalyticsDashboard({ networkId, title, lines }: {
                 onDrilldown={handleChartDrilldown}
               />
 
-              <div className={styles.moduleGrid}>
-                <BreakdownModule
-                  networkId={networkId}
-                  summary={summary}
-                  onDrilldown={handleChartDrilldown}
-                />
-                <HowLongModule
-                  summary={summary}
-                  onDrilldown={handleChartDrilldown}
-                />
-              </div>
+              <BreakdownModule
+                networkId={networkId}
+                summary={summary}
+                onDrilldown={handleChartDrilldown}
+              />
+              <HowLongModule
+                summary={summary}
+                onDrilldown={handleChartDrilldown}
+              />
 
               <WhenModule
                 networkId={networkId}
@@ -306,39 +315,37 @@ export function AnalyticsDashboard({ networkId, title, lines }: {
                 onDrilldown={handleChartDrilldown}
               />
 
-              <div className={styles.moduleGrid}>
-                <WhereModule
-                  networkId={networkId}
+              <WhereModule
+                networkId={networkId}
+                lines={lines}
+                query={current}
+                range={range}
+                availability={availability}
+                showSlowZones={slowZonesVisible}
+                demo={demo}
+                demoModule={demoModule}
+                onDrilldown={handleChartDrilldown}
+              />
+              {ttc ? (
+                <SlowZonesModule
                   lines={lines}
                   query={current}
                   range={range}
                   availability={availability}
-                  showSlowZones={slowZonesVisible}
                   demo={demo}
                   demoModule={demoModule}
                   onDrilldown={handleChartDrilldown}
                 />
-                {ttc ? (
-                  <SlowZonesModule
-                    lines={lines}
-                    query={current}
-                    range={range}
-                    availability={availability}
-                    demo={demo}
-                    demoModule={demoModule}
-                    onDrilldown={handleChartDrilldown}
-                  />
-                ) : (
-                  <CancellationsModule
-                    lines={lines}
-                    query={current}
-                    range={range}
-                    availability={availability}
-                    demo={demo}
-                    demoModule={demoModule}
-                  />
-                )}
-              </div>
+              ) : (
+                <CancellationsModule
+                  lines={lines}
+                  query={current}
+                  range={range}
+                  availability={availability}
+                  demo={demo}
+                  demoModule={demoModule}
+                />
+              )}
 
               <CalendarModule
                 networkId={networkId}
@@ -365,7 +372,7 @@ export function AnalyticsDashboard({ networkId, title, lines }: {
               />
 
               {ttc ? (
-                <div className={styles.moduleGrid}>
+                <>
                   <TtcDelayLogModule
                     query={current}
                     range={range}
@@ -377,7 +384,7 @@ export function AnalyticsDashboard({ networkId, title, lines }: {
                     demo={demo}
                     demoModule={demoModule}
                   />
-                </div>
+                </>
               ) : (
                 <OnTimePerformanceModule
                   lines={lines}

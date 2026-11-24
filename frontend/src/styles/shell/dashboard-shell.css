@@ -23,8 +23,7 @@
    -------------------------------------------------------------------------- */
 
 .closure-heading p,
-.health-item p,
-.reliability-copy span {
+.health-item p {
   color: var(--muted);
   font-size: 0.78rem;
   letter-spacing: 0;

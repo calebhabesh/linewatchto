@@ -3,6 +3,8 @@ package com.calebhabesh.linewatch.regional;
 import com.calebhabesh.linewatch.alert.StationSpanFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,6 +47,28 @@ final class RegionalStationSpan {
         "\\bboth directions\\b|\\bbidirectional\\b", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
     );
 
+    /**
+     * A statement that one direction's service is disrupted ("eastbound GO train service is suspended").
+     * Plural or "service" only: "the next eastbound train" is one train, usually the alternative.
+     */
+    private static final Pattern DIRECTION_DISRUPTED = Pattern.compile(
+        "\\b(north|south|east|west)bound\\s+(?:(?:GO|UP|Express|train|rail)\\s+){0,3}(?:trains|service)\\s+"
+            + "(?:is|are|will be|remains?)\\s+(?:currently\\s+|temporarily\\s+)?"
+            + "(?:suspended|cancelled|delayed|not running|holding|experiencing\\s+(?:\\p{L}+\\s+)?delays)\\b",
+        Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+    );
+    private static final Pattern COMPASS = Pattern.compile(
+        "\\b(north|south|east|west)bound\\b", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+    );
+    /** Each line's compass direction towards Union, where its station list starts. */
+    private static final Map<String, String> TOWARDS_UNION = Map.of(
+        "regional-br", "south", "regional-rh", "south", "regional-st", "south", "regional-le", "west",
+        "regional-ki", "east", "regional-lw", "east", "regional-mi", "east", "regional-up", "east"
+    );
+    private static final Map<String, String> OPPOSITE = Map.of(
+        "north", "south", "south", "north", "east", "west", "west", "east"
+    );
+
     private RegionalStationSpan() {}
 
     static Span describe(RegionalNormalizedAlert alert) {
@@ -61,7 +85,7 @@ final class RegionalStationSpan {
         List<String> ordered = alert.stationIds() == null ? List.of()
             : route.stationIds().stream().filter(alert.stationIds()::contains).toList();
         // A whole-line impact names the line's terminals, like any other span; cards add "Entire Line".
-        if (ordered.isEmpty() && coversWholeLine(alert)) {
+        if (ordered.isEmpty() && coversEverySegment(alert)) {
             ordered = List.of(route.stationIds().getFirst(), route.stationIds().getLast());
         }
         if (ordered.isEmpty()) return new Span(route.displayName(), displayDirection);
@@ -90,16 +114,32 @@ final class RegionalStationSpan {
         if (NO_SERVICE_BETWEEN.matcher(text).find()) {
             return new Span(StationSpanFormatter.bothWays(first, last), null);
         }
+        Boolean inbound = trips.isEmpty() && coversWholeLine(alert) ? statedInbound(alert.lineId(), text) : null;
+        if (inbound != null) {
+            return inbound
+                ? new Span(StationSpanFormatter.oneWay(last, first), "Towards " + destinationName(ordered.getFirst()))
+                : new Span(StationSpanFormatter.oneWay(first, last), "Towards " + destinationName(ordered.getLast()));
+        }
         if (!trips.isEmpty() || mayDescribeOneTrip(alert, text) || namesOneDirection(text)) {
             return new Span(StationSpanFormatter.unspecified(first, last), null);
         }
         return new Span(StationSpanFormatter.bothWays(first, last), null);
     }
 
-    /** True when the impact covers every segment of its line. */
+    /**
+     * True when the impact covers every segment of its line, whether the notice names no stations or
+     * lists them all. A notice titled with one train's trip ("Train cancelled - Union Station 4:30 PM -
+     * Old Elm GO 5:43 PM") runs the line's length but is not the line, unless it states a service gap.
+     */
     static boolean coversWholeLine(RegionalNormalizedAlert alert) {
+        if (!coversEverySegment(alert)) return false;
+        RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(alert.lineId()).orElse(null);
+        return route != null && (trips(nullToEmpty(alert.title()), route).isEmpty()
+            || NO_SERVICE_BETWEEN.matcher(nullToEmpty(alert.description())).find());
+    }
+
+    private static boolean coversEverySegment(RegionalNormalizedAlert alert) {
         if (alert.affectedSegmentIds() == null || alert.affectedSegmentIds().isEmpty()) return false;
-        if (alert.stationIds() != null && !alert.stationIds().isEmpty()) return false;
         List<String> all = RegionalNetworkCatalog.segmentIds(alert.lineId(), List.of());
         return !all.isEmpty() && alert.affectedSegmentIds().containsAll(all);
     }
@@ -111,6 +151,24 @@ final class RegionalStationSpan {
 
     private static boolean namesOneDirection(String text) {
         return EXPLICIT_DIRECTION.matcher(text).find() && !BOTH_DIRECTIONS.matcher(text).find();
+    }
+
+    /**
+     * Whether the one direction a notice says is disrupted runs towards Union. Null when it states none,
+     * mentions any other direction, or uses a compass direction off the line's axis.
+     */
+    private static Boolean statedInbound(String lineId, String text) {
+        if (BOTH_DIRECTIONS.matcher(text).find()) return null;
+        Matcher stated = DIRECTION_DISRUPTED.matcher(text);
+        if (!stated.find()) return null;
+        String direction = stated.group(1).toLowerCase(Locale.ROOT);
+        Matcher mentions = COMPASS.matcher(text);
+        while (mentions.find()) {
+            if (!mentions.group(1).equalsIgnoreCase(direction)) return null;
+        }
+        String towardsUnion = TOWARDS_UNION.get(lineId);
+        if (direction.equals(towardsUnion)) return true;
+        return direction.equals(OPPOSITE.get(towardsUnion)) ? false : null;
     }
 
     private static List<Trip> trips(String text, RegionalNetworkCatalog.Route route) {

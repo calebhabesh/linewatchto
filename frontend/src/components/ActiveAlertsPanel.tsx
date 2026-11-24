@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { impactDirectionLabel } from "../app/entire-line";
 import { useDashboardData } from "../app/DataContext";
 import { AlertTriangle, Bus } from "lucide-react";
 import { PanelHeader } from "./PanelHeader";
@@ -144,7 +145,7 @@ export function ActiveAlertsPanel({
                   lineNumber={alert.lineNumber}
                   title={alert.title}
                   location={alert.location}
-                  direction={alert.displayDirection}
+                  direction={impactDirectionLabel(alert)}
                   facts={[
                     ...(cause ? [{ column: 1 as const, label: "Cause", value: cause }] : []),
                     { column: 2, label: "Started", value: <CompactImpactTimeValue timestamp={alert.startedAt} /> },
@@ -179,7 +180,7 @@ export function ActiveAlertsPanel({
                   title={alert.title}
                   description={alert.description}
                   location={alert.location}
-                  direction={alert.displayDirection}
+                  direction={impactDirectionLabel(alert)}
                   isMapActive={isActive}
                   onReturnToMap={onReturnToMap}
                   mapBackLabel={returnToMapLabel}

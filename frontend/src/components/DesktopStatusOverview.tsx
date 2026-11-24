@@ -42,12 +42,11 @@ import type { ImpactSelection } from "../app/linewatch-data";
 import { surfaceNoticeServiceLabel, type SurfaceNoticeResponse, type SurfaceNoticeDetail } from "../app/surface-notice-data";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import {
+  currentServiceLineGroups,
   currentServiceSummary,
   currentSurfaceNotices,
   currentServiceIncidentPresentation,
-  getLineStatusPresentation,
   lineStatusDescription,
-  withUpcomingListedSeparately,
 } from "../app/current-service";
 
 type StatusCategory =
@@ -116,7 +115,6 @@ export function DesktopStatusOverview({
     delays,
     reducedSpeedZones,
     plannedClosures,
-    lineStatuses,
     generatedAt,
     availability,
   } = dashboardData;
@@ -152,25 +150,7 @@ export function DesktopStatusOverview({
   const summary = currentServiceSummary(dashboardData, now);
   const activeCount = summary.rows.length;
 
-  const affectedLineIds = new Set(summary.rows.map((r) => r.lineId));
-  const qualifyingLines = lineStatuses
-    .map((line) => {
-      const rows = summary.rows.filter((r) => r.lineId === line.id);
-      const upcoming = (summary.upcoming ?? []).filter((c) => c.lineId === line.id);
-      const rszCount = countReducedSpeedZones(
-        (dashboardData.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id),
-      );
-      return { line, rows, upcoming, rszCount };
-    })
-    .filter((item) => item.rows.length > 0);
-
-  const remainingLines = lineStatuses
-    .filter((line) => !affectedLineIds.has(line.id))
-    .map((line) => ({
-      line,
-      presentation: withUpcomingListedSeparately(getLineStatusPresentation(line, dashboardData, summary)),
-      upcoming: (summary.upcoming ?? []).filter((c) => c.lineId === line.id),
-    }));
+  const { affected: qualifyingLines, remaining: remainingLines } = currentServiceLineGroups(dashboardData, summary);
 
   const selectUpcoming = (lineId: string) => (closureId: string) => {
     if (onSelectImpact) onSelectImpact({ kind: "planned-closure", id: closureId });
@@ -239,7 +219,7 @@ export function DesktopStatusOverview({
           <div className="desktop-status-rail-incident-list">
             {qualifyingLines.map((item) => (
               <div className="desktop-status-rail-line-group" data-has-advisories={item.upcoming.length > 0 || item.rszCount > 0} key={item.line.id}>
-                {(item.upcoming.length > 0 || item.rszCount > 0) && <AdvisorySpine />}
+                {(item.upcoming.length > 0 || item.rszCount > 0) && <AdvisorySpine lineId={item.line.id} />}
                 <button
                   type="button"
                   className="desktop-status-line-badge-btn"
@@ -342,7 +322,7 @@ export function DesktopStatusOverview({
           <div className="desktop-status-remaining-list">
             {remainingLines.map(({ line, presentation, upcoming }) => (
               <div className="desktop-status-remaining-group" data-has-advisories={upcoming.length > 0 || presentation.hasRsz} key={line.id}>
-                {(upcoming.length > 0 || presentation.hasRsz) && <AdvisorySpine />}
+                {(upcoming.length > 0 || presentation.hasRsz) && <AdvisorySpine lineId={line.id} />}
                 <button
                   type="button"
                   className="desktop-status-remaining-row"

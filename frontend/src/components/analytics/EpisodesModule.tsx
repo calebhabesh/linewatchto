@@ -24,6 +24,7 @@ import { fetchAnalyticsJson } from "../../hooks/useAnalyticsResource";
 import type { AnalyticsError } from "../../hooks/useReliabilityAnalytics";
 import { TransitLineBadge } from "../TransitLineBadge";
 import { useInView } from "./ChartFrame";
+import { CauseIcon, ClassIcon, KindIcon, StatIcon } from "./AnalyticsIcons";
 import styles from "./analytics.module.css";
 
 type DemoModule = typeof import("../../app/reliability-analytics-fixture");
@@ -175,7 +176,7 @@ export function EpisodesModule({
     >
       <div className={styles.moduleHeader}>
         <div className={styles.moduleTitleGroup}>
-          <h2 id="episodes-heading">Counted Episodes</h2>
+          <h2 id="episodes-heading"><StatIcon id="episodes" size={17} />Counted Episodes</h2>
           <p className={styles.moduleSubtitle}>
             {loading
               ? "Loading counted episodes..."
@@ -260,10 +261,10 @@ export function EpisodesModule({
                     <div className={styles.episodeContent}>
                       <p className={styles.episodeTitle}>{ep.title}</p>
                       <div className={styles.episodeTags}>
-                        <span className={styles.episodePill} data-class={ep.disruptionClass}>{ep.classLabel}</span>
-                        <span className={styles.episodePill}>{ep.kindLabel}</span>
-                        {ep.planned ? <span className={styles.episodePill} data-planned="true">Planned</span> : null}
-                        {ep.causeLabel ? <span className={styles.episodePill}>{ep.causeLabel}</span> : null}
+                        <span className={styles.episodePill} data-class={ep.disruptionClass}><ClassIcon id={ep.disruptionClass} size={12} />{ep.classLabel}</span>
+                        {ep.disruptionClass !== "delay" ? <span className={styles.episodePill}>{ep.kindLabel}</span> : null}
+                        {ep.planned ? <span className={styles.episodePill} data-planned="true"><KindIcon kind="planned-closure" size={12} />Planned</span> : null}
+                        {ep.causeLabel ? <span className={styles.episodePill}><CauseIcon cause={ep.cause ?? ""} size={12} />{ep.causeLabel}</span> : null}
                         {ep.active ? <span className={styles.activeTag}>Active</span> : null}
                       </div>
                       <p className={styles.episodeMeta}>

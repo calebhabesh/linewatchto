@@ -4,6 +4,9 @@ import {
   addServiceDays,
   addServiceMonths,
   analyticsQueryForOtherNetwork,
+  calendarMonthDates,
+  clampServiceDate,
+  collectionNotice,
   defaultAnalyticsQuery,
   emptyAnalyticsDrilldown,
   formatDatesInMessage,
@@ -11,6 +14,7 @@ import {
   hasAnalyticsDrilldown,
   isServiceDate,
   parseAnalyticsQuery,
+  presetHistory,
   resolveAnalyticsRange,
   serializeAnalyticsQuery,
   serviceDayCount,
@@ -166,5 +170,44 @@ describe("analytics date text", () => {
     assert.equal(formatServiceDateRange("2025-12-02", "2026-01-04"), "Dec 2, 2025–Jan 4, 2026");
     assert.equal(formatServiceDateRange("2026-11-24", "2026-11-24"), "Nov 24, 2026");
     assert.equal(formatDatesInMessage("History starts on 2026-11-01."), "History starts on Nov 1, 2026.");
+  });
+});
+
+describe("recorded history", () => {
+  const bounds = { today: "2026-11-24", firstAnalyzableDate: "2026-11-01" };
+
+  it("says how much of each preset is recorded", () => {
+    assert.deepEqual(presetHistory("30d", bounds), { recordedDays: 24, days: 30, share: 0.8 });
+    assert.equal(presetHistory("90d", bounds).recordedDays, 24);
+    assert.equal(presetHistory("ytd", bounds).days, 328);
+    assert.equal(presetHistory("all", bounds).share, 1);
+    assert.equal(presetHistory("30d", { ...bounds, firstAnalyzableDate: "2026-01-01" }).share, 1);
+    assert.equal(presetHistory("30d", { ...bounds, firstAnalyzableDate: null }).share, 0);
+  });
+
+  it("explains a short record and drops the notice after a year", () => {
+    assert.match(collectionNotice(bounds).message, /^History starts Nov 1, 2026 \(24 days so far\)\./);
+    assert.match(collectionNotice({ ...bounds, firstAnalyzableDate: "2026-11-24" }).message, /\(1 day so far\)/);
+    assert.equal(collectionNotice({ ...bounds, firstAnalyzableDate: null }).title, "Data Collection Is Starting");
+    assert.notEqual(collectionNotice({ ...bounds, firstAnalyzableDate: "2025-11-26" }), null);
+    assert.equal(collectionNotice({ ...bounds, firstAnalyzableDate: "2025-11-25" }), null);
+  });
+});
+
+describe("date picker months", () => {
+  it("lays out a month from Monday and keeps every day of it", () => {
+    // November 2026 starts on a Sunday; February 2027 on a Monday.
+    const november = calendarMonthDates("2026-11-24");
+    assert.equal(november.indexOf("2026-11-01"), 6);
+    assert.equal(november.at(-1), "2026-11-30");
+    assert.equal(calendarMonthDates("2027-02-10")[0], "2027-02-01");
+    assert.equal(calendarMonthDates("2028-02-10").filter(Boolean).length, 29);
+    for (const month of ["2026-11-01", "2027-02-01", "2026-08-01"]) assert.ok(calendarMonthDates(month).length <= 42);
+  });
+
+  it("keeps a date within its bounds", () => {
+    assert.equal(clampServiceDate("2026-10-01", "2026-11-01", "2026-11-24"), "2026-11-01");
+    assert.equal(clampServiceDate("2026-12-01", "2026-11-01", "2026-11-24"), "2026-11-24");
+    assert.equal(clampServiceDate("2026-11-10", "2026-11-01", "2026-11-24"), "2026-11-10");
   });
 });

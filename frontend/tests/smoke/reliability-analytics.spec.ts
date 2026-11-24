@@ -162,10 +162,13 @@ for (const network of NETWORKS) {
     await expect(page.getByText("Compared with Sep 26–Oct 25, 2026")).toBeVisible();
     await expect(page.getByRole("columnheader", { name: "Change" })).toBeVisible();
 
-    await page.getByRole("combobox", { name: network.id === "ttc" ? "Line" : "Corridor" }).selectOption(network.line);
+    await page.getByRole("combobox", { name: network.id === "ttc" ? "Line" : "Corridor" }).click();
+    await expect(page.getByRole("option")).toHaveCount(network.rows + 1);
+    await page.getByRole("option", { name: network.id === "ttc" ? "Line 2 Bloor-Danforth" : "Lakeshore West" }).click();
     await expect(page.getByRole("heading", { level: 2, name: network.lineLabel })).toBeVisible();
     await expect(bodyRows(page)).toHaveCount(network.stations);
-    await page.getByRole("combobox", { name: "Station" }).selectOption({ index: 1 });
+    await page.getByRole("combobox", { name: "Station" }).click();
+    await page.getByRole("option").nth(1).click();
     await expect(bodyRows(page)).toHaveCount(1);
 
     const filtered = page.url();
@@ -232,18 +235,82 @@ test("separates no history from no disruptions", async ({ page }) => {
   await expect(bodyRows(page)).toHaveCount(5);
 });
 
-test("dates commit only when real and in bounds", async ({ page }) => {
+test("the date pickers choose only days with history, by pointer and keyboard", async ({ page }) => {
   await routeAnalytics(page);
   await page.goto("/ttc/analytics");
   await ready(page);
-  await page.getByLabel("From", { exact: true }).fill("2026-11-10");
+  const from = page.getByRole("button", { name: /^From / });
+  const to = page.getByRole("button", { name: /^To / });
+  await from.click();
+  const picker = page.getByRole("dialog", { name: "Choose From Date" });
+  await expect(picker.getByText("October 2026")).toBeVisible();
+  await picker.getByRole("button", { name: "Next Month" }).click();
+  await picker.getByRole("button", { name: /November 10, 2026/ }).click();
+  await expect(picker).toHaveCount(0);
   await expect(page).toHaveURL(/range=custom&from=2026-11-10&to=2026-11-24$/);
   await expect(page.getByRole("button", { name: "Custom" })).toHaveAttribute("aria-pressed", "true");
-  await page.getByLabel("To", { exact: true }).fill("2027-01-01");
-  // Not blur() or Tab: Chromium's date control keeps focus through them, on phones and desktops in turn.
-  await page.getByRole("heading", { level: 1 }).click();
-  await expect(page.getByLabel("To", { exact: true })).toHaveValue(TODAY);
-  await expect(page).toHaveURL(/to=2026-11-24$/);
+  await expect(from).toBeFocused();
+
+  // Nothing after today, or before history.
+  await to.click();
+  const toPicker = page.getByRole("dialog", { name: "Choose To Date" });
+  await expect(toPicker.getByRole("button", { name: /November 25, 2026/ })).toBeDisabled();
+  await expect(toPicker.getByRole("button", { name: "Next Month" })).toBeDisabled();
+  await expect(toPicker.getByRole("button", { name: /November 24, 2026/ })).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowUp");
+  await expect(toPicker.getByRole("button", { name: /November 17, 2026/ })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/from=2026-11-10&to=2026-11-17$/);
+
+  await from.focus();
+  await page.keyboard.press("Enter");
+  for (let month = 0; month < 6; month += 1) await page.keyboard.press("PageUp");
+  await expect(picker.getByRole("button", { name: /July 8, 2026/ })).toBeFocused();
+  await expect(picker.getByRole("button", { name: /July 7, 2026/ })).toBeDisabled();
+  await expect(picker.getByRole("button", { name: "Previous Month" })).toBeDisabled();
+  await page.keyboard.press("Tab");
+  await expect(picker.getByRole("button", { name: "Next Month" })).toBeFocused();
+  await expectNoOverflow(page, "date picker open");
+  await page.keyboard.press("Escape");
+  await expect(picker).toHaveCount(0);
+  await expect(from).toBeFocused();
+  await expect(page).toHaveURL(/from=2026-11-10&to=2026-11-17$/);
+});
+
+test("the line and station menus work from the keyboard", async ({ page }) => {
+  await routeAnalytics(page);
+  await page.goto("/ttc/analytics");
+  await ready(page);
+  const line = page.getByRole("combobox", { name: "Line" });
+  const station = page.getByRole("combobox", { name: "Station" });
+  await expect(station).toBeDisabled();
+  await line.focus();
+  await line.press("ArrowDown");
+  await expect(line).toHaveAttribute("aria-expanded", "true");
+  // Names fit on one line, and the menu stays on screen, at any field width.
+  for (const option of await page.getByRole("option").all()) expect((await option.boundingBox())!.height).toBeLessThan(45);
+  await expectNoOverflow(page, "line menu open");
+  await line.press("Escape");
+  await expect(page.getByRole("listbox")).toHaveCount(0);
+  await expect(line).toBeFocused();
+  await line.press("Enter");
+  await line.press("ArrowDown");
+  await line.press("Enter");
+  await expect(line).toHaveText("Line 1 Yonge-University");
+  await expect(page).toHaveURL(/line=line-1$/);
+
+  await station.focus();
+  await station.press("Enter");
+  await station.press("End");
+  // The marked option stays in view, and typing jumps to a name.
+  await expect(page.getByRole("option").last()).toBeInViewport();
+  await page.keyboard.type("uni");
+  await page.keyboard.press("Enter");
+  await expect(station).toHaveText("Union");
+  await station.press("Enter");
+  await station.press("Tab");
+  await expect(page.getByRole("listbox")).toHaveCount(0);
 });
 
 test("sorts from the keyboard", async ({ page }) => {
@@ -389,4 +456,135 @@ test("CSV export handles 429 rate limits and the 20,000-row cap visibly", async 
   api.exportFailure = "too-large";
   await exportLink.click();
   await expect(alertBox).toContainText("20000");
+});
+
+for (const network of NETWORKS) {
+  test(`${network.id}: the dashboard panel has ranges, charts and links into the same range`, async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("linewatch-welcome-seen-v1", "true");
+      localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
+      localStorage.setItem("linewatch-seen-release-notes-version", "1.4.0");
+    });
+    const api = await routeAnalytics(page);
+    await page.goto(`/?network=${network.id}&panel=analytics`);
+    const panel = page.locator(".analytics-panel");
+    await expect(panel.getByText("Data Collection Is Just Beginning.")).toBeVisible();
+    await expect(panel.locator(".reliability-trend-bar")).toHaveCount(30);
+    await panel.locator(".reliability-trend").press("ArrowRight");
+    await expect(panel.locator(".reliability-insight > .reliability-chart-readout")).toContainText(/incidents|coverage gap/);
+
+    // 140 recorded days fill 90 days but not 12 months.
+    await expect(panel.getByRole("button", { name: "Last 90 days", exact: true })).toBeVisible();
+    await panel.getByRole("button", { name: /^Last 12 months \(140 of \d+ days recorded so far\)$/ }).click();
+    await expect(panel.locator(".reliability-intro")).toContainText("Jul 8–Nov 24, 2026");
+    expect(api.requests.some((path) => path.includes("/summary") && path.includes(`from=${FIRST}`))).toBe(true);
+    await expect(panel.getByRole("link", { name: "Full Analytics Page" })).toHaveAttribute("href", `${network.path}?range=12m`);
+    await expect(panel.locator("a.reliability-card-heading")).toHaveCount(network.rows);
+    await expect(panel.locator(`a.reliability-card-heading[href="${network.path}?range=12m&line=${network.line}"]`)).toBeVisible();
+
+    await panel.getByRole("button", { name: "When", exact: true }).click();
+    await expect(panel.locator(".reliability-heat-cell")).toHaveCount(168);
+    await panel.getByRole("button", { name: "Where", exact: true }).click();
+    await expect(panel.locator(".reliability-hotspots li")).toHaveCount(5);
+    await panel.getByRole("button", { name: "Type", exact: true }).click();
+    await expect(panel.getByText("Share of Incident-Hours")).toBeVisible();
+
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+    // The sidebar's height-limited list must scroll its cards, not squash the last ones.
+    const squashed = await panel.locator(".reliability-card").evaluateAll((cards) =>
+      cards.filter((card) => card.clientHeight < 40 || card.scrollHeight > card.clientHeight + 1).length);
+    expect(squashed).toBe(0);
+  });
+}
+
+/** Neighbouring text on one line whose baselines differ, as "label / number: px". */
+async function unevenBaselines(page: Page, selector: string): Promise<string[]> {
+  return page.evaluate((rows) => {
+    const canvas = document.createElement("canvas").getContext("2d")!;
+    const uneven: string[] = [];
+    for (const row of document.querySelectorAll(rows)) {
+      const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
+      let previous: { text: string; top: number; bottom: number; baseline: number } | null = null;
+      while (walker.nextNode()) {
+        const node = walker.currentNode as Text;
+        if (!node.data.trim() || node.parentElement!.closest(".sr-only")) continue;
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const rect = range.getClientRects()[0];
+        if (!rect) continue;
+        const style = getComputedStyle(node.parentElement!);
+        canvas.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+        const { fontBoundingBoxAscent: ascent, fontBoundingBoxDescent: descent } = canvas.measureText("x");
+        const item = { text: node.data.trim(), top: rect.top, bottom: rect.bottom, baseline: rect.top + rect.height * ascent / (ascent + descent) };
+        const difference = previous ? item.baseline - previous.baseline : 0;
+        if (previous && Math.min(item.bottom, previous.bottom) - Math.max(item.top, previous.top) > 6
+          && Math.abs(difference) > 0.5 && Math.abs(difference) < 6) {
+          uneven.push(`${previous.text} / ${item.text}: ${difference.toFixed(1)}`);
+        }
+        previous = item;
+      }
+    }
+    return [...new Set(uneven)];
+  }, selector);
+}
+
+for (const network of NETWORKS) {
+  test(`${network.id}: figures sit on the same baseline as their labels`, async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("linewatch-welcome-seen-v1", "true");
+      localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
+      localStorage.setItem("linewatch-seen-release-notes-version", "1.4.0");
+    });
+    await routeAnalytics(page);
+    await page.goto(`/?network=${network.id}&panel=analytics`);
+    await expect(page.locator(".reliability-trend-bar")).toHaveCount(30);
+    await page.evaluate(() => document.fonts.ready);
+    const panelRows = ".reliability-classes li, .reliability-card-heading, .reliability-caption, .reliability-official-row, .reliability-cancellations tr, .reliability-hotspots li, .reliability-kinds li, .reliability-intro p";
+    for (const view of ["Trend", "Where", "Type"]) {
+      await page.locator(".reliability-insights").getByRole("button", { name: view, exact: true }).click();
+      expect(await unevenBaselines(page, panelRows), view).toEqual([]);
+    }
+
+    await page.goto(network.path);
+    await ready(page);
+    await page.locator('[data-analytics-module="where"]').scrollIntoViewIfNeeded();
+    await expect(page.locator('[data-analytics-module="where"] [class*="rankedRow"]').first()).toBeVisible();
+    expect(await unevenBaselines(page, '[class*="rankedTop"], [class*="metricTiles"] li, [class*="durationStats"] dl > div, [class*="coverageLegend"] li')).toEqual([]);
+  });
+}
+
+test("marking a chart item never moves the page", async ({ page }) => {
+  await routeAnalytics(page);
+  await page.goto("/ttc/analytics");
+  await ready(page);
+  for (const [id, mark] of [["trend", '[class*="chartMark"]'], ["where", '[class*="rankedRow"]'], ["calendar", '[class*="chartMark"]']]) {
+    const card = page.locator(`[data-analytics-module="${id}"]`);
+    await card.scrollIntoViewIfNeeded();
+    const item = card.locator(mark).nth(2);
+    await item.waitFor();
+    const before = (await card.boundingBox())!.height;
+    await item.focus();
+    expect((await card.boundingBox())!.height, id).toBe(before);
+  }
+});
+
+test("the dashboard panel never shows the 30-day figures under a range that failed", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("linewatch-welcome-seen-v1", "true");
+    localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
+    localStorage.setItem("linewatch-seen-release-notes-version", "1.4.0");
+  });
+  const api = await routeAnalytics(page);
+  api.failing = 503;
+  await page.goto("/?network=ttc&panel=analytics");
+  const panel = page.locator(".analytics-panel");
+  await expect(panel.getByText("Reliability data is unavailable right now.")).toBeVisible();
+  await panel.getByRole("button", { name: "Last 90 days" }).click();
+  await expect(panel.locator("a.reliability-card-heading")).toHaveCount(0);
+  await expect(panel.getByText("Dates Unavailable")).toBeVisible();
+
+  api.failing = null;
+  await panel.getByRole("button", { name: "Try Again" }).click();
+  await expect(panel.locator("a.reliability-card-heading")).toHaveCount(5);
 });

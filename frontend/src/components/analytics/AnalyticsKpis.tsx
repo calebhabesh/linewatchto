@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import type { AnalyticsChange, AnalyticsKpi } from "../../app/reliability-analytics";
+import { StatIcon } from "./AnalyticsIcons";
 import styles from "./analytics.module.css";
 
 const CHANGE_ICONS = { up: ArrowUp, down: ArrowDown, same: Minus };
@@ -32,7 +33,7 @@ export function AnalyticsKpis({ kpis, compare, compareUnavailable }: {
         const kpi = typeof item === "string" ? null : item;
         return (
           <div key={kpi ? kpi.id : item as string} className={styles.kpi} data-kpi={kpi?.id}>
-            <dt>{kpi ? kpi.label : item as string}</dt>
+            <dt>{kpi ? <StatIcon id={kpi.id} size={15} /> : null}<span>{kpi ? kpi.label : item as string}</span></dt>
             <dd className={styles.kpiValue}>
               {kpi ? <>{kpi.value}{kpi.unit ? <small> {kpi.unit}</small> : null}</> : <span className={styles.skeleton} />}
             </dd>

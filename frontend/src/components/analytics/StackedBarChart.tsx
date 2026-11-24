@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useElementSize } from "../../hooks/useElementSize";
 import styles from "./analytics.module.css";
 
 export type StackedBarSegment = {
@@ -36,7 +37,8 @@ export function StackedBarChart({
   formatAxis,
   onSelect,
   onActiveChange,
-  minBarWidth = 18,
+  minBarWidth = 10,
+  fill = false,
 }: {
   accessibleName: string;
   items: readonly StackedBarItem[];
@@ -45,23 +47,27 @@ export function StackedBarChart({
   onSelect?: (item: StackedBarItem) => void;
   onActiveChange?: (item: StackedBarItem | null) => void;
   minBarWidth?: number;
+  /** Grows to the height of its card instead of the default. */
+  fill?: boolean;
 }) {
   const uid = useId().replace(/:/g, "");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [sizeRef, size] = useElementSize();
 
   const maxTotal = items.reduce((max, item) => (item.total !== null && item.total > max ? item.total : max), 0);
   const scaleMax = maxTotal > 0 ? maxTotal : 1;
 
-  const height = 220;
-  const padTop = 18;
+  const height = fill ? Math.max(220, size.height) : 220;
+  const padTop = 30;
   const padBottom = 34;
   const padLeft = 52;
   const padRight = 14;
   const plotHeight = height - padTop - padBottom;
   const count = Math.max(1, items.length);
-  const step = Math.max(minBarWidth, Math.min(44, Math.floor(680 / count)));
-  const barWidth = Math.max(8, Math.min(30, Math.floor(step * 0.72)));
-  const plotWidth = Math.max(320, count * step);
+  // Fills its card; a series too long for that scrolls inside it.
+  const plotWidth = Math.max(count * minBarWidth, (size.width || 680) - padLeft - padRight);
+  const step = plotWidth / count;
+  const barWidth = Math.max(5, Math.min(44, Math.floor(step * 0.72)));
   const svgWidth = padLeft + plotWidth + padRight;
 
   const yTicks = [0, 0.5, 1];
@@ -73,7 +79,7 @@ export function StackedBarChart({
   }
 
   return (
-    <div className={styles.chartScroll} tabIndex={0} role="region" aria-label={`${accessibleName} Chart`}>
+    <div ref={sizeRef} className={styles.chartScroll} data-fill={fill || undefined} tabIndex={0} role="region" aria-label={`${accessibleName} Chart`}>
       <svg
         className={styles.chartSvg}
         width={svgWidth}
@@ -114,7 +120,7 @@ export function StackedBarChart({
           );
         })}
 
-        <text x={padLeft} y={11} className={styles.chartAxisUnit}>{unitLabel}</text>
+        <text x={0} y={11} className={styles.chartAxisUnit}>{unitLabel}</text>
 
         {items.map((item, idx) => {
           const x = padLeft + idx * step + (step - barWidth) / 2;

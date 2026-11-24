@@ -5528,14 +5528,14 @@ test("shows official TTC performance metrics from backend", async ({ page, reque
   await expect(page.getByText("Source: TTC.ca")).toBeVisible();
 
   const onTimePerformance = page.getByRole("heading", { name: "On-Time Performance" }).locator("..");
-  const line1Row = onTimePerformance.locator(".reliability-row").filter({
+  const line1Row = onTimePerformance.locator(".reliability-official-row").filter({
     has: page.locator("strong", { hasText: /^Line 1 Yonge-University$/ }),
   });
   await expect(line1Row).toBeVisible();
   await expect(line1Row.getByText("94%")).toBeVisible();
 
   const availability = page.getByRole("heading", { name: "Availability" }).locator("..");
-  const elevatorsRow = availability.locator(".reliability-row").filter({
+  const elevatorsRow = availability.locator(".reliability-official-row").filter({
     has: page.locator("strong", { hasText: /^Elevators$/ }),
   });
   await expect(elevatorsRow).toBeVisible();

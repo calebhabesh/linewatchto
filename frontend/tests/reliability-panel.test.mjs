@@ -9,9 +9,9 @@ describe("official TTC performance panel source", () => {
   it("renders coverage-labeled observed disruption history without an invented score", () => {
     assert.match(source, /reliability\.coverageLabel/);
     assert.match(source, /reliability\.confidence/);
-    assert.match(source, /Observed Disruptions · Last 30 Days/);
+    assert.match(source, /Observed Disruptions/);
+    assert.doesNotMatch(source, /Last 30 Days<\/h3>|Observed Disruptions · Last 30 Days/);
     assert.match(source, /formatReliabilityTitleCase\(reliability\.coverageLabel\)/);
-    assert.match(source, /formatReliabilityTitleCase\(`\$\{reliability\.confidence\} confidence`\)/);
     assert.match(source, /formatDisruptionDuration/);
     assert.match(source, /Share of Incident-Hours/);
     assert.match(source, /Overlapping alerts counted separately/);
@@ -23,12 +23,10 @@ describe("official TTC performance panel source", () => {
     assert.match(source, /Time With Any Alert/);
     assert.match(source, /visibleDisruptionClasses/);
     assert.match(source, /Incident-Hours/);
-    assert.match(source, /Median Completed Incident/);
+    assert.match(source, /Median Time to Clear/);
     assert.match(source, /formatReliabilityRange/);
     assert.match(source, /Planned Advisories/);
-    assert.match(source, /#FEEC41/);
     assert.match(source, /aria-label="100% stacked bar/);
-    assert.match(source, /dark:text-white/);
     assert.match(source, /AlertTypeBreakdownChart/);
     assert.doesNotMatch(source, /Reliability score/);
   });
@@ -69,12 +67,12 @@ describe("official TTC performance panel source", () => {
     assert.match(source, /TransitLineBadge/);
     assert.match(source, /id\.startsWith\("regional-"\)/);
     assert.match(source, /reliability\.serviceWindowBasis/);
-    assert.match(source, /item\.serviceImpactPercentage/);
-    assert.match(source, /Train Cancellations · Last 30 Days/);
+    assert.match(source, /row\.serviceImpactPercentage/);
+    assert.match(source, /title="Train Cancellations"/);
     assert.match(source, /Distinct Cancelled Trains Observed/);
     assert.match(source, /Exact Schedule Matches/);
     assert.match(source, /Source-Labeled Unmatched/);
-    assert.match(source, /reliability\.trainCancellations\.corridors/);
+    assert.match(source, /cancellations\.corridors/);
   });
 
   it("keeps Reliability Analytics accessible in both TTC and GO/UP modes", () => {

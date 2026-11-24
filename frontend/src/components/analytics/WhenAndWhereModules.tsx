@@ -22,9 +22,11 @@ import type {
 } from "../../app/reliability-range";
 import { useAnalyticsResource } from "../../hooks/useAnalyticsResource";
 import { TransitLineBadge } from "../TransitLineBadge";
+import { ClassIcon } from "./AnalyticsIcons";
 import { ChartDataTable, ChartFrame, useInView } from "./ChartFrame";
 import { HeatmapChart, type HeatmapCellItem } from "./HeatmapChart";
 import { RankedBarChart, type RankedBarItem } from "./RankedBarChart";
+import { ShareScale } from "./ShareScale";
 import styles from "./analytics.module.css";
 
 type DemoModule = typeof import("../../app/reliability-analytics-fixture");
@@ -50,7 +52,10 @@ export function WhenModule({
   onDrilldown: (patch: Partial<AnalyticsDrilldown>) => void;
 }) {
   const [sectionRef, seen] = useInView(false);
-  const [selectedClass, setSelectedClass] = useState<ClassFilterOption>("all");
+  // As in Where: TTC slow zones run all day, so "All" would fill every hour alike.
+  const [selectedClass, setSelectedClass] = useState<ClassFilterOption>(
+    networkId === "ttc" ? "service-stopped" : "all",
+  );
   const [active, setActive] = useState<HeatmapCellItem | null>(null);
   const activeClass: ClassFilterOption = !showSlowZones && selectedClass === "slow-zone" ? "all" : selectedClass;
 
@@ -99,10 +104,6 @@ export function WhenModule({
     };
   }), [rawCells, activeClass]);
 
-  const tone = activeClass === "service-stopped" ? "stopped"
-    : activeClass === "delay" ? "delay"
-      : activeClass === "slow-zone" ? "slow" : "accent";
-
   const hasObserved = cells.some((c) => c.observedMinutes > 0);
 
   const table = (
@@ -135,7 +136,7 @@ export function WhenModule({
       id="when"
       sectionRef={sectionRef}
       title="When"
-      subtitle="Toronto hour-of-week share of observed service affected. Hatched cells had no observed service."
+      subtitle="How much of the observed service in each hour of the week was affected, in Toronto time."
       controls={(
         <div className={styles.segmentedSmall} role="group" aria-label="When Class Filter">
           {classOptions.map((opt) => (
@@ -145,18 +146,15 @@ export function WhenModule({
               aria-pressed={activeClass === opt.value}
               onClick={() => setSelectedClass(opt.value)}
             >
-              {opt.label}
+              <ClassIcon id={opt.value} size={13} plain />{opt.label}
             </button>
           ))}
         </div>
       )}
       legend={(
-        <ul className={styles.legendList}>
-          <li><span className={styles.legendSwatch} data-tone="level-0" />0%</li>
-          <li><span className={styles.legendSwatch} data-tone="level-2" />Moderate</li>
-          <li><span className={styles.legendSwatch} data-tone="level-4" />Peak Share</li>
+        <ShareScale max={Math.max(0, ...cells.map((cell) => cell.sharePercentage))}>
           <li><span className={styles.legendSwatch} data-tone="gap" />No Observed Service</li>
-        </ul>
+        </ShareScale>
       )}
       readout={active?.tooltip}
       defaultReadout="Hover or focus any cell for Toronto hour-of-week share; select a cell to filter matching episodes."
@@ -170,7 +168,6 @@ export function WhenModule({
       <HeatmapChart
         accessibleName="Hour-of-week disruption heatmap in Toronto time"
         cells={cells}
-        tone={tone}
         onActiveChange={setActive}
         onSelect={(cell) => onDrilldown({
           dayOfWeek: cell.dayOfWeek,
@@ -209,7 +206,6 @@ export function WhereModule({
     networkId === "ttc" ? "service-stopped" : "all",
   );
   const [sort, setSort] = useState<"minutes" | "incidents">("minutes");
-  const [active, setActive] = useState<RankedBarItem | null>(null);
   const activeClass: ClassFilterOption = !showSlowZones && selectedClass === "slow-zone" ? "all" : selectedClass;
   const classParam: DisruptionClassId | null = activeClass === "all" ? null : activeClass;
 
@@ -248,12 +244,6 @@ export function WhereModule({
       : `${formatPercentage(station.sharePercentage)} · ${station.incidents.toLocaleString("en-CA")} ${station.incidents === 1 ? "incident" : "incidents"}`,
     tone,
     ariaLabel: `#${station.rank} ${station.stationName} (${station.lineLabel}): ${formatMinutes(Math.round(station.weightedMinutes))}, ${formatPercentage(station.sharePercentage)}, ${station.incidents} incidents. Select to filter episodes.`,
-    tooltip: (
-      <span>
-        <strong>#{station.rank} {station.stationName}</strong> ({station.lineLabel}) —{" "}
-        {formatMinutes(Math.round(station.weightedMinutes))} ({formatPercentage(station.sharePercentage)} of observed service) across {station.incidents.toLocaleString("en-CA")} incidents.
-      </span>
-    ),
   })), [stations, sort, networkId, tone]);
 
   const byId = useMemo(() => new Map(stations.map((s) => [`${s.lineId}::${s.stationId}`, s])), [stations]);
@@ -294,8 +284,8 @@ export function WhereModule({
       sectionRef={sectionRef}
       title="Where · Station Hotspots"
       subtitle={networkId === "ttc"
-        ? "Stations ranked by alerts naming them. Filtered by disruption class so long-running Line 1 slow zones do not bury closures."
-        : "Stations ranked by alerts naming them during scheduled, polled service."}
+        ? "Stations ranked by alerts naming them. Filtered by disruption class so long-running Line 1 slow zones do not bury closures. Select a station to list its episodes."
+        : "Stations ranked by alerts naming them during scheduled, polled service. Select a station to list its episodes."}
       controls={(
         <div className={styles.controlCluster}>
           <div className={styles.segmentedSmall} role="group" aria-label="Hotspot Class Filter">
@@ -306,7 +296,7 @@ export function WhereModule({
                 aria-pressed={activeClass === opt.value}
                 onClick={() => setSelectedClass(opt.value)}
               >
-                {opt.label}
+                <ClassIcon id={opt.value} size={13} plain />{opt.label}
               </button>
             ))}
           </div>
@@ -316,8 +306,7 @@ export function WhereModule({
           </div>
         </div>
       )}
-      readout={active?.tooltip}
-      defaultReadout="Select any station to list matching episodes at that station."
+      readout={null}
       table={stations.length ? table : undefined}
       loading={resource.loading || (!seen && !demo)}
       error={resource.error}
@@ -328,7 +317,7 @@ export function WhereModule({
       <RankedBarChart
         accessibleName="Station hotspots list"
         items={items}
-        onActiveChange={setActive}
+        layout="columns"
         onSelect={(item) => {
           const station = byId.get(item.id);
           if (station) {

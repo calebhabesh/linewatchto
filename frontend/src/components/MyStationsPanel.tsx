@@ -10,6 +10,7 @@ import { PanelHeader } from "./PanelHeader";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import type { AccountSavedStation } from "../app/saved-station-data";
 import type { AccountState } from "../app/auth-data";
+import { impactDirectionLabel } from "../app/entire-line";
 import { filterAndSortSavedStations, summarizeSavedStationStatuses } from "../app/saved-stations";
 import {
   ARRIVAL_COUNTDOWN_TICK_MS,
@@ -187,7 +188,8 @@ function stationImpactContext(
     ?? dashboard.plannedClosures.find((impact) => impact.id === impactId);
 
   if (!match) return `Station: ${stationName}`;
-  return `Line ${match.lineNumber}: ${match.location}${match.displayDirection ? ` (${match.displayDirection})` : ""}`;
+  const direction = impactDirectionLabel(match);
+  return `Line ${match.lineNumber}: ${match.location}${direction ? ` (${direction})` : ""}`;
 }
 
 function StationLineBadges({ lineIds }: { lineIds: string[] }) {

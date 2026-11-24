@@ -278,8 +278,9 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /closure\?\.travelDirection \?\? segmentImpact\?\.travelDirection \?\? "bidirectional"/);
     assert.doesNotMatch(ttcMapRendererSource, /planned-preview-underlay/);
     assert.doesNotMatch(globalCss, /planned-preview-separator/);
-    assert.match(globalCss, /--planned-preview-rail:\s*#f1f5f9;/);
-    assert.match(globalCss, /--planned-preview-ink:\s*#087fff;/);
+    // Light mode: a slate rail that stands off the near-white canvas, with deeper ink.
+    assert.match(globalCss, /--planned-preview-rail:\s*#cbd5e1;\s*--planned-preview-ink:\s*#0066d6;/);
+    assert.match(globalCss, /--planned-preview-rail:\s*#f1f5f9;\s*--planned-preview-ink:\s*#087fff;/);
     assert.match(
       globalCss,
       /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*1;[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-width:\s*calc\(var\(--map-alert-rail-width\) \* var\(--map-overlay-unit, 1\)\);/s,

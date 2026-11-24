@@ -143,6 +143,19 @@ export function serviceDayCount(from: string, to: string): number {
   return Math.round((utc(to).getTime() - utc(from).getTime()) / 86_400_000) + 1;
 }
 
+export function clampServiceDate(date: string, min: string, max: string): string {
+  return date < min ? min : date > max ? max : date;
+}
+
+/** Monday-first cells for the date's month: null before its first day, then every day of it. */
+export function calendarMonthDates(date: string): (string | null)[] {
+  const first = `${date.slice(0, 7)}-01`;
+  const blanks = (utc(first).getUTCDay() + 6) % 7;
+  const cells: (string | null)[] = Array.from({ length: blanks }, () => null);
+  for (let day = first; day.slice(0, 7) === date.slice(0, 7); day = addServiceDays(day, 1)) cells.push(day);
+  return cells;
+}
+
 const VALID_CLASSES = new Set<AnalyticsDrilldownClass>(["service-stopped", "delay", "slow-zone"]);
 const VALID_KINDS = new Set(["suspension", "closure", "planned-closure", "delay", "limited-service", "reduced-speed-zone"]);
 const VALID_CAUSE = /^[A-Z0-9_]{1,60}$/;
@@ -318,6 +331,45 @@ export function resolveAnalyticsRange(query: AnalyticsQuery, bounds: AnalyticsRa
   }
   const clipped = requestedFrom < first;
   return { requestedFrom, requestedTo, from: clipped ? first : requestedFrom, to: requestedTo, clipped };
+}
+
+/** Service dates recorded so far, today included; 0 before history starts. */
+export function recordedHistoryDays({ today, firstAnalyzableDate }: AnalyticsRangeBounds): number {
+  return firstAnalyzableDate && firstAnalyzableDate <= today ? serviceDayCount(firstAnalyzableDate, today) : 0;
+}
+
+/** How much of a preset's length is recorded, from 0 to 1. "All" and "Custom" never promise more than there is. */
+export function presetHistory(preset: AnalyticsPreset, bounds: AnalyticsRangeBounds): {
+  recordedDays: number;
+  days: number;
+  share: number;
+} {
+  const recorded = recordedHistoryDays(bounds);
+  if (preset === "all" || preset === "custom") return { recordedDays: recorded, days: recorded, share: recorded ? 1 : 0 };
+  const [from, to] = requestedRange({ ...defaultAnalyticsQuery, preset }, bounds);
+  const days = serviceDayCount(from, to);
+  const recordedDays = Math.min(recorded, days);
+  return { recordedDays, days, share: recordedDays / days };
+}
+
+/** A year of history fills every preset, so the collection notice is dropped. */
+export const FULL_HISTORY_DAYS = 365;
+
+/** What to say while the record is still shorter than the longer presets; null once it is not. */
+export function collectionNotice(bounds: AnalyticsRangeBounds): { title: string; message: string } | null {
+  const recorded = recordedHistoryDays(bounds);
+  if (recorded >= FULL_HISTORY_DAYS) return null;
+  if (!bounds.firstAnalyzableDate || recorded === 0) {
+    return {
+      title: "Data Collection Is Starting",
+      message: "Figures appear after the first day with both a published schedule and successful polling.",
+    };
+  }
+  return {
+    title: "Data Collection Is Just Beginning",
+    message: `History starts ${formatServiceDate(bounds.firstAnalyzableDate)} (${recorded} ${recorded === 1 ? "day" : "days"} so far). `
+      + "Longer ranges show only these days for now, and get more useful as the record grows.",
+  };
 }
 
 const DAY_FORMAT = new Intl.DateTimeFormat("en-CA", { month: "short", day: "numeric", timeZone: "UTC" });

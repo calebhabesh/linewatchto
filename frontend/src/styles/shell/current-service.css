@@ -750,10 +750,21 @@
   width: 100%;
 }
 
+/* The line's badge colour, so a long group's cards read as that line's once its badge
+   has scrolled away. Only the spine: card edges and status bars colour alert types. */
 .advisory-spine path {
   fill: none;
+  stroke: var(--advisory-spine-color, var(--border-strong));
+  stroke-width: 2px;
+}
+
+.dark .advisory-spine[data-dark-line="true"] path {
+  stroke: color-mix(in srgb, var(--advisory-spine-color) 72%, white);
+}
+
+.high-contrast .advisory-spine path,
+.high-contrast .advisory-spine[data-dark-line="true"] path {
   stroke: var(--border-strong);
-  stroke-width: 1.5px;
 }
 
 .current-service-badge-incident-button {
@@ -2369,13 +2380,14 @@
 }
 
 /* The dot between direction and cause, muted as the cause; hidden once the
-   cause has wrapped to its own line (DirectionAndCause). */
+   cause has wrapped to its own line (DirectionAndCause). It keeps its width:
+   removing it could let the cause fit again, beside a missing dot. */
 .upcoming-advisory-cause-separator {
   color: var(--muted);
 }
 
 .upcoming-advisory-direction[data-cause-wrapped="true"] .upcoming-advisory-cause-separator {
-  display: none;
+  visibility: hidden;
 }
 
 /* When it happens, and what replaces trains: one line each, as the incident cards' timing rows. */

@@ -149,6 +149,64 @@ class RegionalStationSpanTest {
         assertThat(RegionalStationSpan.describe(advisory).displayLocation()).isEqualTo("UP Express");
     }
 
+    @Test
+    void aNoticeListingEveryStopOfItsLineIsWholeLine() {
+        var waits = alert("regional-up", "delay", "UP Express - Longer wait time between trains",
+            "You may have up to a 20 minute wait between UP trains until 7:00 PM due to an equipment issue.",
+            List.of("union", "bloor", "mount-dennis", "weston", "pearson-airport"));
+        assertThat(RegionalStationSpan.coversWholeLine(waits)).isTrue();
+        // A quoted time may mean one trip, so no direction is claimed.
+        assertThat(RegionalStationSpan.describe(waits).displayLocation()).isEqualTo("Union to Pearson Airport");
+        assertThat(RegionalStationSpan.describe(waits).displayDirection()).isNull();
+
+        // Both terminals bound the whole line too; one stop short does not.
+        assertThat(RegionalStationSpan.coversWholeLine(alert("regional-le", "planned-closure", "Service adjustments",
+            "There will be no GO train service between Union Station and Durham College Oshawa GO.",
+            List.of("union", "durham-college-oshawa")))).isTrue();
+        assertThat(RegionalStationSpan.coversWholeLine(alert("regional-le", "planned-closure", "Service adjustments",
+            "There will be no GO train service between Union Station and Whitby GO.",
+            List.of("union", "whitby")))).isFalse();
+    }
+
+    @Test
+    void oneTrainRunningTheLinesLengthIsNotTheEntireLine() {
+        var trip = alert("regional-st", "delay", "Train cancelled - Union Station 4:30 PM - Old Elm GO 5:43 PM",
+            "The Union Station 4:30 PM - Old Elm GO 5:43 PM train has been cancelled due to an operational issue.",
+            List.of("union", "kennedy", "agincourt", "milliken", "unionville", "centennial", "markham", "mount-joy",
+                "stouffville", "old-elm"));
+        assertThat(RegionalStationSpan.coversWholeLine(trip)).isFalse();
+        assertThat(RegionalStationSpan.describe(trip).displayLocation()).isEqualTo("Union → Old Elm");
+        assertThat(RegionalStationSpan.describe(trip).displayDirection()).isEqualTo("Towards Old Elm");
+    }
+
+    @Test
+    void aWholeLineNoticeAboutOneDirectionRunsThatWay() {
+        var outbound = RegionalStationSpan.describe(alert("regional-le", "suspension", "Lakeshore East - Track issue",
+            "At this time eastbound GO train service is suspended.", List.of()));
+        assertThat(outbound.displayLocation()).isEqualTo("Union → Durham College Oshawa");
+        assertThat(outbound.displayDirection()).isEqualTo("Towards Durham College Oshawa");
+
+        var inbound = RegionalStationSpan.describe(alert("regional-le", "delay", "Lakeshore East - Track issue",
+            "Westbound trains are experiencing significant delays.", List.of()));
+        assertThat(inbound.displayLocation()).isEqualTo("Durham College Oshawa → Union");
+        assertThat(inbound.displayDirection()).isEqualTo("Towards Union Station");
+    }
+
+    @Test
+    void aWholeLineNoticeThatOnlyMentionsADirectionClaimsNone() {
+        for (String text : List.of(
+            "Customers may take the next eastbound train.",
+            "Eastbound GO train service is suspended. Westbound trains are running as scheduled.",
+            "Eastbound trains are running as scheduled.",
+            "Northbound trains are delayed."
+        )) {
+            var span = RegionalStationSpan.describe(
+                alert("regional-le", "delay", "Lakeshore East - Track issue", text, List.of()));
+            assertThat(span.displayLocation()).as(text).isEqualTo("Union to Durham College Oshawa");
+            assertThat(span.displayDirection()).as(text).isNull();
+        }
+    }
+
     private static RegionalNormalizedAlert alert(
         String lineId, String impactKind, String title, String description, List<String> stationIds
     ) {

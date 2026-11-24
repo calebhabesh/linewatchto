@@ -19,10 +19,14 @@ const BIDIRECTIONAL_LABELS = new Set([
   "northbound & southbound", "southbound & northbound", "eastbound & westbound", "westbound & eastbound",
 ]);
 
+/** Said on the direction line of an impact on every segment of its line. */
+export const ENTIRE_LINE_LABEL = "Entire Line";
+const ENTIRE_LINE_PREFIX = /^entire line · /;
+
 /** True when a direction line already says every direction is affected. */
 function isBidirectionalDirection(direction?: string | null): boolean {
   if (!direction) return false;
-  return BIDIRECTIONAL_LABELS.has(direction.trim().toLowerCase().replace(/\s+/g, " "));
+  return BIDIRECTIONAL_LABELS.has(direction.trim().toLowerCase().replace(/\s+/g, " ").replace(ENTIRE_LINE_PREFIX, ""));
 }
 
 /**

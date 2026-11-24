@@ -18,7 +18,9 @@ describe("analytics A9 chart primitives and accessibility guardrails", () => {
     const ranked = read("RankedBarChart.tsx");
     assert.match(ranked, /aria-label=\{accessibleName\}/);
     assert.match(ranked, /<button/);
-    assert.match(ranked, /onFocus=/);
+    assert.match(ranked, /aria-label=\{item\.ariaLabel\}/);
+    // A stretched SVG distorts rounded ends.
+    assert.doesNotMatch(ranked, /preserveAspectRatio/);
   });
 
   it("ChartFrame provides Show Table toggle and lazy IntersectionObserver loading", () => {
@@ -47,5 +49,16 @@ describe("analytics A9 chart primitives and accessibility guardrails", () => {
   it("keeps TTC hotspots filtered by disruption class by default", () => {
     const where = read("WhenAndWhereModules.tsx");
     assert.match(where, /networkId === "ttc" \? "service-stopped" : "all"/);
+  });
+
+  it("keeps tiles in full rows and modules in full-width rows, so no card leaves a gap", () => {
+    assert.match(read("RankedBarChart.tsx"), /\[4, 3, 2\]\.find\(\(columns\) => count % columns === 0\)/);
+    assert.doesNotMatch(read("AnalyticsDashboard.tsx"), /moduleGrid/);
+    // Fixed pixel widths left wide cards part-empty and narrow ones scrolling.
+    for (const file of ["StackedBarChart.tsx", "HeatmapChart.tsx", "HistogramChart.tsx", "CalendarChart.tsx"]) {
+      assert.match(read(file), /useElementSize\(\)/, `${file} must draw at its card's width`);
+    }
+    // The median marker was drawn over the axis title, and mixed planned with unplanned.
+    assert.doesNotMatch(read("HistogramChart.tsx"), /Median|P90/);
   });
 });

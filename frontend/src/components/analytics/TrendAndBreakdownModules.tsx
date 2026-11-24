@@ -24,6 +24,7 @@ import {
   type ResolvedAnalyticsRange,
 } from "../../app/reliability-range";
 import { useAnalyticsResource } from "../../hooks/useAnalyticsResource";
+import { CauseIcon, ClassIcon, KindIcon } from "./AnalyticsIcons";
 import { ChartDataTable, ChartFrame, useInView } from "./ChartFrame";
 import { HistogramChart, type HistogramSelection } from "./HistogramChart";
 import { RankedBarChart, type RankedBarItem } from "./RankedBarChart";
@@ -218,9 +219,10 @@ export function TrendModule({
       )}
       legend={(
         <ul className={styles.legendList}>
-          <li><span className={styles.legendSwatch} data-tone="stopped" />Service Stopped</li>
-          <li><span className={styles.legendSwatch} data-tone="delay" data-pattern="stripe" />Delays</li>
-          {showSlowZones ? <li><span className={styles.legendSwatch} data-tone="slow" data-pattern="dots" />Slow Zones</li> : null}
+          <li><span className={styles.legendSwatch} data-tone="stopped" /><ClassIcon id="service-stopped" />Service Stopped</li>
+          <li><span className={styles.legendSwatch} data-tone="delay" data-pattern="stripe" /><ClassIcon id="delay" />Delays</li>
+          {showSlowZones ? <li><span className={styles.legendSwatch} data-tone="slow" data-pattern="dots" /><ClassIcon id="slow-zone" />Slow Zones</li> : null}
+          <li><span className={styles.legendSwatch} data-tone="partial" />Partly Observed</li>
           <li><span className={styles.legendSwatch} data-tone="gap" />Coverage Gap</li>
           <li><span className={styles.legendSwatch} data-tone="today" />Today So Far</li>
         </ul>
@@ -258,14 +260,14 @@ export function BreakdownModule({
   onDrilldown: (patch: Partial<AnalyticsDrilldown>) => void;
 }) {
   const [tab, setTab] = useState<"kind" | "cause">("kind");
-  const [active, setActive] = useState<RankedBarItem | null>(null);
   const ttc = networkId === "ttc";
   const effectiveTab = ttc ? tab : "kind";
   const kinds = useMemo(() => summary?.breakdown ?? [], [summary]);
   const causes = useMemo(() => summary?.causes ?? [], [summary]);
 
   const kindTone = (kind: string): RankedBarItem["tone"] => {
-    if (kind === "suspension" || kind === "closure" || kind === "planned-closure") return "stopped";
+    if (kind === "closure" || kind === "planned-closure") return "planned";
+    if (kind === "suspension") return "stopped";
     if (kind === "reduced-speed-zone") return "slow";
     return "delay";
   };
@@ -274,40 +276,32 @@ export function BreakdownModule({
     if (effectiveTab === "cause") {
       return causes.map((item) => ({
         id: item.cause,
+        badge: <CauseIcon cause={item.cause} />,
         label: item.label,
         value: item.incidentDisruptionMinutes,
         valueText: `${formatHours(item.incidentDisruptionMinutes)} hr`,
         detailText: `${item.incidents.toLocaleString("en-CA")} ${item.incidents === 1 ? "incident" : "incidents"} · ${formatPercentage(item.percentage)}`,
         tone: "accent",
         ariaLabel: `${item.label}: ${formatHours(item.incidentDisruptionMinutes)} incident-hours, ${item.incidents} incidents (${formatPercentage(item.percentage)}). Select to filter episodes.`,
-        tooltip: (
-          <span>
-            <strong>{item.label}</strong> — {formatHours(item.incidentDisruptionMinutes)} additive incident-hours across {item.incidents.toLocaleString("en-CA")} incidents ({formatPercentage(item.percentage)}).
-          </span>
-        ),
       }));
     }
     return kinds.map((item) => ({
       id: item.impactKind,
+      badge: <KindIcon kind={item.impactKind} />,
       label: item.label,
       value: item.incidentDisruptionMinutes,
       valueText: `${formatHours(item.incidentDisruptionMinutes)} hr`,
       detailText: `${item.incidents.toLocaleString("en-CA")} ${item.incidents === 1 ? "incident" : "incidents"} · ${formatPercentage(item.percentage)}`,
       tone: kindTone(item.impactKind),
       ariaLabel: `${item.label}: ${formatHours(item.incidentDisruptionMinutes)} incident-hours, ${item.incidents} incidents (${formatPercentage(item.percentage)}). Select to filter episodes.`,
-      tooltip: (
-        <span>
-          <strong>{item.label}</strong> — {formatHours(item.incidentDisruptionMinutes)} additive incident-hours across {item.incidents.toLocaleString("en-CA")} incidents ({formatPercentage(item.percentage)}).
-        </span>
-      ),
     }));
   }, [effectiveTab, kinds, causes]);
 
   const table = (
     <ChartDataTable
-      caption={effectiveTab === "cause" ? "Breakdown by Cause Table" : "Breakdown by Kind Table"}
+      caption={effectiveTab === "cause" ? "Breakdown by Cause Table" : "Breakdown by Type Table"}
       columns={[
-        { key: "name", label: effectiveTab === "cause" ? "Cause" : "Impact Kind", align: "left" },
+        { key: "name", label: effectiveTab === "cause" ? "Cause" : "Impact Type", align: "left" },
         { key: "incidents", label: "Incidents" },
         { key: "hours", label: "Incident-Hours" },
         { key: "share", label: "Share" },
@@ -338,21 +332,20 @@ export function BreakdownModule({
         : "Disruption types by additive incident-hours. Select a bar to list matching episodes."}
       controls={ttc ? (
         <div className={styles.segmentedSmall} role="group" aria-label="Breakdown Dimension">
-          <button type="button" aria-pressed={effectiveTab === "kind"} onClick={() => { setTab("kind"); setActive(null); }}>By Kind</button>
-          <button type="button" aria-pressed={effectiveTab === "cause"} onClick={() => { setTab("cause"); setActive(null); }}>By Cause</button>
+          <button type="button" aria-pressed={effectiveTab === "kind"} onClick={() => setTab("kind")}>By Type</button>
+          <button type="button" aria-pressed={effectiveTab === "cause"} onClick={() => setTab("cause")}>By Cause</button>
         </div>
       ) : undefined}
-      readout={active?.tooltip}
-      defaultReadout="Select any row to filter the episode list to that disruption type or cause."
+      readout={null}
       table={items.length ? table : undefined}
       loading={!summary}
       empty={Boolean(summary) && items.length === 0}
       emptyMessage="No disruptions observed in this range."
     >
       <RankedBarChart
-        accessibleName={effectiveTab === "cause" ? "Breakdown by cause" : "Breakdown by kind"}
+        accessibleName={effectiveTab === "cause" ? "Breakdown by cause" : "Breakdown by type"}
         items={items}
-        onActiveChange={setActive}
+        layout="tiles"
         onSelect={(item) => effectiveTab === "cause"
           ? onDrilldown({ cause: item.id, kind: null })
           : onDrilldown({ kind: item.id, cause: null })}
@@ -408,24 +401,21 @@ export function HowLongModule({
       id="how-long"
       title="How Long"
       subtitle="Time to clear for completed episodes, split into unplanned and planned disruptions."
-      legend={durations ? (
-        <div className={styles.durationStatsRow}>
-          <ul className={styles.legendList}>
-            <li><span className={styles.legendSwatch} data-tone="counted" />Unplanned ({durations.unplanned.clearedCount.toLocaleString("en-CA")})</li>
-            <li><span className={styles.legendSwatch} data-tone="planned" />Planned ({durations.planned.clearedCount.toLocaleString("en-CA")})</li>
-          </ul>
-          <dl className={styles.inlineStats}>
-            <div>
-              <dt>Unplanned Median / P90</dt>
-              <dd>{formatMinutes(durations.unplanned.medianMinutes)} / {formatMinutes(durations.unplanned.p90Minutes)}</dd>
-            </div>
-            <div>
-              <dt>Planned Median / P90</dt>
-              <dd>{formatMinutes(durations.planned.medianMinutes)} / {formatMinutes(durations.planned.p90Minutes)}</dd>
-            </div>
-          </dl>
+      aside={durations && hasCleared ? (
+        <div className={styles.durationStats}>
+          {([["counted", "Unplanned", durations.unplanned], ["planned", "Planned", durations.planned]] as const).map(([swatch, label, stats]) => (
+            <section key={label}>
+              <h3><span className={styles.legendSwatch} data-tone={swatch} />{label}</h3>
+              <dl>
+                <div><dt>Cleared</dt><dd>{stats.clearedCount.toLocaleString("en-CA")}</dd></div>
+                <div><dt>Median</dt><dd>{formatMinutes(stats.medianMinutes)}</dd></div>
+                <div><dt>9 in 10 Within</dt><dd>{formatMinutes(stats.p90Minutes)}</dd></div>
+              </dl>
+            </section>
+          ))}
         </div>
       ) : undefined}
+      asideNarrow
       readout={readout}
       defaultReadout="Select any duration bar to filter cleared episodes in that time range."
       table={hasCleared ? table : undefined}
@@ -436,8 +426,6 @@ export function HowLongModule({
       <HistogramChart
         accessibleName="Time to clear histogram, unplanned and planned"
         buckets={buckets}
-        medianMinutes={durations?.all.medianMinutes ?? null}
-        p90Minutes={durations?.all.p90Minutes ?? null}
         onActiveChange={setActive}
         onSelect={({ bucket, planned }) => onDrilldown({
           planned,
