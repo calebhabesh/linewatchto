@@ -20,11 +20,29 @@ export const RELEASE_NOTES_SEEN_STORAGE_KEY = "linewatch-seen-release-notes-vers
 
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "1.4.0",
+    releasedAt: "2026-11-24",
+    title: "Reliability Analytics over any range",
+    summary: "Explore TTC and GO/UP disruption history over any date range with station-weighted classes, charts, drill-down, and CSV export.",
+    announceOnLaunch: true,
+    sections: [
+      {
+        title: "Highlights",
+        items: [
+          "Open the new TTC and GO/UP Analytics pages for 30-day, 90-day, 6-month, year-to-date, 12-month, all-history, or custom date ranges, with line and station filters and previous-period comparisons.",
+          "Disruptions are grouped into Service Stopped, Delays, and Slow Zones weighted by the share of scheduled stations affected, while keeping Time With Any Alert alongside Service-Stopped Hours.",
+          "Explore trends, kinds and TTC causes, time-to-clear histograms, hour-of-week heatmaps, station hotspots, TTC Slow Zones, GO/UP train cancellations, daily calendars, counted episodes, and CSV exports, each with a table view and explicit polling and schedule coverage gaps.",
+          "The dashboard's Reliability panel now covers the last 30 Toronto service dates including today so far and links directly to the full analytics pages.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.3.0",
     releasedAt: "2026-11-01",
     title: "Clearer maps, steadier alerts",
     summary: "The TTC and GO/UP maps now work the same way, and notifications recover on their own.",
-    announceOnLaunch: true,
+    announceOnLaunch: false,
     sections: [
       {
         title: "Highlights",

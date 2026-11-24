@@ -678,8 +678,8 @@ public class ReliabilityDerivationService {
     /**
      * Computes {@code [fromDate..toDate]} for {@code version} up to {@code until} with the derive
      * job's rules, without writing: the range API's "Today So Far" (and yesterday while its
-     * service runs or before the nightly derive). Spans come from captured schedule days, or
-     * from retained imports for dates not captured.
+     * service runs or before the nightly derive). Spans come exclusively from captured schedule
+     * days.
      */
     public LiveSlice computeLiveSlice(
         int version,
@@ -689,7 +689,7 @@ public class ReliabilityDerivationService {
         OffsetDateTime until
     ) {
         if (fromDate.isAfter(toDate)) return LiveSlice.EMPTY;
-        List<ServiceSpan> rawSpans = scheduleCapture.allSpans(networkId, fromDate.minusDays(1), toDate);
+        List<ServiceSpan> rawSpans = scheduleCapture.capturedAllSpans(networkId, fromDate.minusDays(1), toDate);
         ChunkComputation computed = computeChunk(
             version, networkId, fromDate, toDate, rawSpans, OffsetDateTime.now(clock), until);
         OffsetDateTime activeProbe = until.minusSeconds(1);

@@ -3,19 +3,36 @@ import { describe, it } from "node:test";
 import {
   analyticsEmptyState,
   analyticsKpis,
+  buildEpisodesPath,
+  buildExportPath,
+  calendarRange,
   comparisonIsUneven,
   coverageDayTotals,
   coverageSegments,
+  defaultSeriesGranularity,
   derivationIsBehind,
+  describeDrilldown,
+  formatCauseLabel,
   formatHours,
+  formatHourOfWeek,
   formatMinutes,
+  granularityAllowed,
+  intensityLevel,
   pointsChange,
   segmentDates,
   showsSlowZones,
   sortAnalyticsRows,
 } from "../src/app/reliability-analytics.ts";
-import { demoAvailability, demoSummary } from "../src/app/reliability-analytics-fixture.ts";
-import { defaultAnalyticsQuery, resolveAnalyticsRange } from "../src/app/reliability-range.ts";
+import {
+  demoAvailability,
+  demoCancellations,
+  demoEpisodes,
+  demoHotspots,
+  demoPatterns,
+  demoSeries,
+  demoSummary,
+} from "../src/app/reliability-analytics-fixture.ts";
+import { defaultAnalyticsQuery, emptyAnalyticsDrilldown, resolveAnalyticsRange } from "../src/app/reliability-range.ts";
 
 const lines = [
   { id: "line-1", number: "1", name: "Yonge-University", stations: [{ id: "union", name: "Union" }, { id: "king", name: "King" }] },
@@ -152,7 +169,7 @@ describe("analytics formatting", () => {
 });
 
 describe("analytics demo data", () => {
-  it("covers both networks, with and without a previous period", () => {
+  it("covers both networks, with and without a previous period, across all A9 modules", () => {
     for (const networkId of ["ttc", "regional"]) {
       const availability = demoAvailability(networkId, "2026-11-24");
       const resolved = resolveAnalyticsRange(defaultAnalyticsQuery, availability);
@@ -160,10 +177,105 @@ describe("analytics demo data", () => {
       assert.equal(data.rows.length, 2);
       assert.ok(data.previous);
       assert.ok(data.totals.weightedImpactPercentage < 100);
+      assert.ok(data.breakdown.length > 0);
+      assert.equal(data.causes.length > 0, networkId === "ttc");
+      assert.equal(data.trainCancellations !== null, networkId === "regional");
+      assert.equal(data.durations.buckets.length, 7);
+
+      const series = demoSeries(networkId, lines, defaultAnalyticsQuery, resolved, availability, "day", true);
+      assert.equal(series.buckets.length, 30);
+      // Excluded demo gap days (indices 112 and 113) have null metrics, never zero.
+      const gaps = series.buckets.filter((b) => b.analyzableDays === 0);
+      assert.ok(gaps.length >= 2);
+      assert.equal(gaps[0].weightedMinutes, null);
+      assert.equal(gaps[0].incidents, null);
+      const observed = series.buckets.find((b) => b.analyzableDays > 0);
+      assert.equal(observed.lines.length, 2);
+
+      const patterns = demoPatterns(networkId, defaultAnalyticsQuery, resolved, availability);
+      assert.equal(patterns.cells.length, 168);
+
+      const hotspots = demoHotspots(networkId, lines, defaultAnalyticsQuery, resolved, availability, "service-stopped", "minutes", 5);
+      assert.ok(hotspots.stations.length > 0);
+      assert.equal(hotspots.disruptionClass, "service-stopped");
+
+      const episodes = demoEpisodes(networkId, lines, defaultAnalyticsQuery, resolved, availability, {
+        ...emptyAnalyticsDrilldown,
+        disruptionClass: "delay",
+      }, null, 10);
+      assert.ok(episodes.episodes.every((ep) => ep.disruptionClass === "delay"));
+
+      const cancels = demoCancellations(networkId, lines, defaultAnalyticsQuery, resolved, availability, "day");
+      assert.equal(cancels.buckets.length > 0, networkId === "regional");
+      if (networkId === "regional") {
+        const untracked = cancels.buckets.find((b) => b.trackedDays === 0);
+        assert.ok(untracked);
+        assert.equal(untracked.cancellations, null);
+      }
+
       const query = { ...defaultAnalyticsQuery, preset: "all", line: "line-1" };
       const all = demoSummary(networkId, lines, query, resolveAnalyticsRange(query, availability), availability);
       assert.equal(all.scope, "stations");
       assert.equal(all.previous, null);
     }
+  });
+});
+
+describe("analytics A9 chart helpers", () => {
+  it("picks default granularity, enforces 400-bucket cap, and caps calendar to 366 days", () => {
+    assert.equal(defaultSeriesGranularity(30), "day");
+    assert.equal(defaultSeriesGranularity(90), "week");
+    assert.equal(defaultSeriesGranularity(500), "month");
+    assert.equal(granularityAllowed(400, "day"), true);
+    assert.equal(granularityAllowed(401, "day"), false);
+    assert.equal(granularityAllowed(500, "week"), true);
+
+    assert.deepEqual(calendarRange("2026-11-01", "2026-11-24"), {
+      from: "2026-11-01", to: "2026-11-24", days: 24, capped: false,
+    });
+    const capped = calendarRange("2024-01-01", "2026-11-24");
+    assert.equal(capped.capped, true);
+    assert.equal(capped.days, 366);
+    assert.equal(capped.to, "2026-11-24");
+  });
+
+  it("formats hours, causes, intensity levels, drill-down chips, and API paths", () => {
+    assert.equal(formatHourOfWeek(1, 0), "Mon · 12 AM");
+    assert.equal(formatHourOfWeek(5, 17), "Fri · 5 PM");
+    assert.equal(formatCauseLabel("MEDICAL_EMERGENCY"), "Medical Emergency");
+    assert.equal(intensityLevel(0, 10), 0);
+    assert.equal(intensityLevel(2, 10), 1);
+    assert.equal(intensityLevel(5, 10), 2);
+    assert.equal(intensityLevel(7, 10), 3);
+    assert.equal(intensityLevel(10, 10), 4);
+
+    const chips = describeDrilldown({
+      ...emptyAnalyticsDrilldown,
+      from: "2026-11-20", to: "2026-11-20",
+      line: "line-1", station: "union",
+      disruptionClass: "service-stopped",
+      cause: "TECHNICAL_PROBLEM",
+      planned: false,
+      completed: true,
+      minMinutes: 15, maxMinutes: 29,
+      dayOfWeek: 5, hour: 8,
+      sort: "longest",
+    }, "ttc", lines);
+    assert.deepEqual(chips.map((c) => c.label), [
+      "Nov 20, 2026", "Line 1 Yonge-University", "Union", "Service Stopped",
+      "Technical Problem", "Unplanned", "Cleared: 15 min – 29 min", "Fri · 8 AM", "Sort: Longest Counted",
+    ]);
+
+    assert.equal(
+      buildExportPath("ttc", "2026-11-01", "2026-11-24", "line-1", "union"),
+      "/api/reliability/export?network=ttc&from=2026-11-01&to=2026-11-24&line=line-1&station=union",
+    );
+    const epPath = buildEpisodesPath("ttc", "2026-11-01", "2026-11-24", null, null, {
+      ...emptyAnalyticsDrilldown,
+      from: "2026-11-20", to: "2026-11-20", disruptionClass: "slow-zone", sort: "longest",
+    }, { limit: 25 });
+    assert.match(epPath, /from=2026-11-20&to=2026-11-20/);
+    assert.match(epPath, /class=slow-zone/);
+    assert.match(epPath, /sort=longest/);
   });
 });

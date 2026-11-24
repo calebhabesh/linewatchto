@@ -90,6 +90,8 @@ class ReliabilityRangeIntegrationTest {
             delete from alerts where id like 'a5-%' or id like 'a7-%';
             delete from regional_alert_snapshots where alert_id like 'a5-%';
             delete from regional_alerts where id like 'a5-%';
+            delete from regional_train_cancellations where trip_id like 'a9-%';
+            delete from regional_train_cancellation_tracking;
             """);
     }
 
@@ -160,6 +162,11 @@ class ReliabilityRangeIntegrationTest {
             .contains("Technical Problem", "Unknown Cause");
         assertThat(summary.previous()).isNull();
         assertThat(summary.previousUnavailableReason()).contains("History starts 2026-11-20");
+        assertThat(summary.durations().all().clearedCount()).isEqualTo(3);
+        assertThat(summary.durations().unplanned().clearedCount()).isEqualTo(3);
+        assertThat(summary.durations().planned().clearedCount()).isZero();
+        assertThat(summary.durations().buckets()).extracting(b -> b.id() + ":" + b.total())
+            .contains("30-59:1", "60-119:2");
     }
 
     @Test
@@ -263,6 +270,78 @@ class ReliabilityRangeIntegrationTest {
 
         EpisodesResponse atUnion = ranges.episodes(request("2026-11-20", "2026-11-24", null, "union"), null, 10);
         assertThat(atUnion.episodes()).extracting(ReliabilityRangeResponses.EpisodeItem::impactKind).containsExactly("suspension");
+        assertThat(atUnion.totalCount()).isEqualTo(1);
+        assertThat(atUnion.episodes().getFirst().alertId()).isEqualTo("a7-susp");
+
+        var byClass = ranges.episodes(request("2026-11-20", "2026-11-24", null, null), null, 10,
+            new ReliabilityRangeService.EpisodeFilter("slow-zone", null, null, null, null, null, null, null, null, "recent"));
+        assertThat(byClass.totalCount()).isEqualTo(1);
+        assertThat(byClass.episodes().getFirst().alertId()).isEqualTo("a7-rsz");
+
+        var byCause = ranges.episodes(request("2026-11-20", "2026-11-24", null, null), null, 10,
+            new ReliabilityRangeService.EpisodeFilter(null, null, "TECHNICAL_PROBLEM", null, null, null, null, null, null, "recent"));
+        assertThat(byCause.episodes()).extracting(ReliabilityRangeResponses.EpisodeItem::alertId).containsExactly("a7-delay");
+
+        var byHour = ranges.episodes(request("2026-11-20", "2026-11-24", null, null), null, 10,
+            new ReliabilityRangeService.EpisodeFilter(null, null, null, null, null, null, null, 5, 8, "recent"));
+        assertThat(byHour.episodes()).extracting(ReliabilityRangeResponses.EpisodeItem::alertId).containsExactly("a7-delay");
+
+        var longest = ranges.episodes(request("2026-11-20", "2026-11-24", null, null), null, 2,
+            new ReliabilityRangeService.EpisodeFilter(null, null, null, null, null, null, null, null, null, "longest"));
+        assertThat(longest.sort()).isEqualTo("longest");
+        assertThat(longest.totalCount()).isEqualTo(4);
+        assertThat(longest.episodes()).extracting(ReliabilityRangeResponses.EpisodeItem::countedMinutes)
+            .containsExactly(120L, 60L);
+        var longestPage2 = ranges.episodes(request("2026-11-20", "2026-11-24", null, null), longest.nextCursor(), 2,
+            new ReliabilityRangeService.EpisodeFilter(null, null, null, null, null, null, null, null, null, "longest"));
+        assertThat(longestPage2.episodes()).extracting(ReliabilityRangeResponses.EpisodeItem::countedMinutes)
+            .containsExactly(60L, 30L);
+    }
+
+    @Test
+    void seriesByLineReturnsPerLineMetricsInOneRequestAndCancellationsKeepOwnCoverage() {
+        var byLine = ranges.series(request("2026-11-20", "2026-11-24", null, null), "day", true);
+        assertThat(byLine.buckets().get(0).lines()).isNotEmpty();
+        assertThat(byLine.buckets().get(0).lines().stream().filter(l -> "line-1".equals(l.lineId())).findFirst())
+            .isPresent().get().satisfies(l -> {
+                assertThat(l.uniqueMinutes()).isEqualTo(60L);
+                assertThat(l.delayShare()).isGreaterThan(0.0);
+            });
+        // Gap day has empty per-line list.
+        assertThat(byLine.buckets().get(2).lines()).isEmpty();
+
+        // Regional cancellations trend keeps its own tracking coverage independent of schedule gaps.
+        jdbc.update("""
+            insert into ingestion_runs (run_type, status, started_at, completed_at)
+            select 'metrolinx-alerts', 'success', at, at
+            from generate_series(cast('2026-11-20 23:55:00-05' as timestamptz), cast('2026-11-24 12:00:00-05' as timestamptz), interval '5 minutes') at
+            """, new MapSqlParameterSource());
+        rollup.rollUp("regional");
+        jdbc.update("""
+            insert into regional_train_cancellation_tracking (id, started_at)
+            values (1, cast('2026-11-21 00:00:00-05' as timestamptz))
+            """, new MapSqlParameterSource());
+        jdbc.update("""
+            insert into regional_train_cancellations (service_date, line_id, trip_id, trip_number, scheduled_start_at, schedule_matched, station_ids, source_systems, first_seen_at, last_seen_at)
+            values
+              (date '2026-11-21', 'regional-lw', 'a9-1', '1001', cast('2026-11-21 08:00:00-05' as timestamptz), true, '["union"]'::jsonb, '["go"]'::jsonb, cast('2026-11-21 07:30:00-05' as timestamptz), cast('2026-11-21 08:00:00-05' as timestamptz)),
+              (date '2026-11-21', 'regional-ki', 'a9-2', '2001', cast('2026-11-21 09:00:00-05' as timestamptz), false, '["union"]'::jsonb, '["go"]'::jsonb, cast('2026-11-21 08:30:00-05' as timestamptz), cast('2026-11-21 09:00:00-05' as timestamptz)),
+              (date '2026-11-23', 'regional-lw', 'a9-3', '1003', cast('2026-11-23 17:00:00-05' as timestamptz), true, '["union"]'::jsonb, '["go"]'::jsonb, cast('2026-11-23 16:30:00-05' as timestamptz), cast('2026-11-23 17:00:00-05' as timestamptz))
+            """, new MapSqlParameterSource());
+
+        var cancels = ranges.cancellations(
+            ReliabilityRangeRequest.parse("regional", "2026-11-20", "2026-11-24", null, null, TODAY), "day");
+        // Nov 20 is before tracking started -> null count (gap).
+        assertThat(cancels.buckets().get(0).trackedDays()).isZero();
+        assertThat(cancels.buckets().get(0).cancellations()).isNull();
+        // Nov 21 has 2 cancellations across LW and KI.
+        assertThat(cancels.buckets().get(1).cancellations()).isEqualTo(2L);
+        assertThat(cancels.buckets().get(1).scheduleMatchedCancellations()).isEqualTo(1L);
+        assertThat(cancels.buckets().get(1).corridors()).hasSize(2);
+        // Nov 22 is tracked with 0 cancellations.
+        assertThat(cancels.buckets().get(2).cancellations()).isEqualTo(0L);
+        assertThat(cancels.totals().cancellations()).isEqualTo(3L);
+        assertThat(cancels.coverage().trackedDays()).isEqualTo(4);
     }
 
     @Test
@@ -441,9 +520,10 @@ class ReliabilityRangeIntegrationTest {
             NamedParameterJdbcTemplate jdbc,
             ReliabilityScheduleCapture scheduleCapture,
             ReliabilityObservationRollup observationRollup,
-            ReliabilityEpisodeSource episodeSource
+            ReliabilityEpisodeSource episodeSource,
+            MutableClock clock
         ) {
-            return new ReliabilityRepository(jdbc, scheduleCapture, observationRollup, episodeSource);
+            return new ReliabilityRepository(jdbc, scheduleCapture, observationRollup, episodeSource, clock);
         }
         @Bean ReliabilityService reliabilityService(ReliabilityRepository repository, MutableClock clock) {
             return new ReliabilityService(repository, clock);

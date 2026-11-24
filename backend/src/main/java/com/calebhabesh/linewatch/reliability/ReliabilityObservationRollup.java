@@ -22,9 +22,9 @@ import org.springframework.stereotype.Repository;
  * <p>Raw ingestion runs are pruned, so {@link #rollUp} keeps each Toronto calendar date's
  * merged windows in {@code reliability_observation_windows}. A row is final once it was rolled
  * up {@link #FINAL_AFTER} after its date ended; until then the next roll-up rewrites it, and
- * final rows are never rewritten. Reads ({@link #observationWindows}) use final rows and fall
- * back to the raw runs, bounded to the date, for every other date: today, and any date not yet
- * rolled up.
+ * final rows are never rewritten. Reads ({@link #observationWindows}) use final rows for
+ * completed dates and read raw runs only for today (and yesterday while its roll-up row is not
+ * yet final); unfinalized historical dates before yesterday never fall back to raw runs.
  */
 @Repository
 public class ReliabilityObservationRollup {
@@ -102,7 +102,9 @@ public class ReliabilityObservationRollup {
 
     /**
      * The network's merged observation windows clipped to {@code since}..{@code until}: final
-     * rows for their dates, raw runs bounded to each other date.
+     * rows for completed dates, and raw runs only for today (and yesterday while its roll-up row
+     * is not yet final). Unfinalized historical dates before yesterday never fall back to raw
+     * runs.
      */
     List<TimeRange> observationWindows(String networkId, OffsetDateTime since, OffsetDateTime until) {
         if (!since.isBefore(until)) return List.of();
@@ -128,8 +130,9 @@ public class ReliabilityObservationRollup {
                 OffsetDateTime start = rs.getObject("starts_at", OffsetDateTime.class);
                 if (start != null) windows.add(new TimeRange(start, rs.getObject("ends_at", OffsetDateTime.class)));
             });
+        LocalDate liveCutoff = torontoDate(OffsetDateTime.now(clock)).minusDays(1);
         List<TimeRange> rawSpans = ReliabilityIntervalCalculator.merge(days.stream()
-            .filter(day -> !rolledUp.contains(day.date()))
+            .filter(day -> !rolledUp.contains(day.date()) && !day.date().isBefore(liveCutoff))
             .map(ObservationDay::range)
             .toList(), Duration.ZERO);
         for (TimeRange span : rawSpans) windows.addAll(rawWindows(networkId, span.start(), span.end()));

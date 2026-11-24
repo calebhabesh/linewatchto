@@ -1044,6 +1044,7 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
               </div>
             </div>
             <p>Station-weighted class shares distinguish a brief two-station slow zone or local delay from a multi-station service stoppage. A 100% Time With Any Alert figure means at least one counted alert existed somewhere on that {ttc ? "line" : "corridor"} during all observed service minutes, even when the station-weighted share is small.</p>
+            <p>On the <a className={styles.link} href={`${parentPath}/analytics`}>{networkShortName(networkSlug)} Analytics page</a>, completed days come from derived daily facts and episodes while the current service day is computed on request and labelled Today So Far. Ranges starting before the first analyzable date are clipped and say so; an incident spanning multiple days counts once across the range while its minutes sum from daily rows. Every chart includes a table view, episode drill-down, and CSV export.</p>
             <p>Derived history is versioned by methodology. When calculation rules change, the new version is rebuilt beside the prior version from preserved inputs and switched in one step so views never mix versions.</p>
           </section>
         </aside>

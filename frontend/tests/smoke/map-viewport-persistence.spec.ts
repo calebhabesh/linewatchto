@@ -8,7 +8,7 @@ for (const network of ['ttc', 'regional'] as const) {
     await setStubMode(request, 'seeded');
     await installDismissedTransientUi(page);
     await page.addInitScript((selectedNetwork) => {
-      localStorage.setItem('linewatch-seen-release-notes-version', '1.3.0');
+      localStorage.setItem('linewatch-seen-release-notes-version', '1.4.0');
       localStorage.setItem('linewatch-default-network-v1', selectedNetwork);
       sessionStorage.setItem(`linewatch-map-viewport-v1:${selectedNetwork}`, JSON.stringify({
         version: 1, centerX: 2500, centerY: 1100, zoom: 2.3,
@@ -70,7 +70,7 @@ test('desktop camera stays where a cleared selection framed it when the map resi
   await page.setViewportSize({ width: 1600, height: 1000 });
   await setStubMode(request, 'seeded');
   await installDismissedTransientUi(page);
-  await page.addInitScript(() => localStorage.setItem('linewatch-seen-release-notes-version', '1.3.0'));
+  await page.addInitScript(() => localStorage.setItem('linewatch-seen-release-notes-version', '1.4.0'));
   await page.goto('/');
   const stage = page.locator('[data-system-map=ttc] .map-stage');
   await expect(stage).toHaveAttribute('data-raster-map-ready', 'true');

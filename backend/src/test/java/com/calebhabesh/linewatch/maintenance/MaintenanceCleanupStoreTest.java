@@ -62,7 +62,9 @@ class MaintenanceCleanupStoreTest {
         assertThat(update.sql())
             .contains("delete from ingestion_runs")
             .contains("started_at < :cutoff")
-            .contains("latest_runs");
+            .contains("latest_runs")
+            .contains("reliability_observation_windows")
+            .contains("'alerts', 'metrolinx-alerts'");
         assertThat(update.params().getValue("cutoff")).isEqualTo(cutoff);
     }
 

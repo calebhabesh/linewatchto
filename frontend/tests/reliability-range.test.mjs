@@ -5,13 +5,16 @@ import {
   addServiceMonths,
   analyticsQueryForOtherNetwork,
   defaultAnalyticsQuery,
+  emptyAnalyticsDrilldown,
   formatDatesInMessage,
   formatServiceDateRange,
+  hasAnalyticsDrilldown,
   isServiceDate,
   parseAnalyticsQuery,
   resolveAnalyticsRange,
   serializeAnalyticsQuery,
   serviceDayCount,
+  withAnalyticsDrilldown,
 } from "../src/app/reliability-range.ts";
 
 const lines = [
@@ -109,8 +112,50 @@ describe("analytics URL state", () => {
   });
 
   it("keeps the range and comparison, not the line, on the other network", () => {
-    const other = analyticsQueryForOtherNetwork({ ...defaultAnalyticsQuery, preset: "90d", line: "line-1", station: "union", compare: true });
+    const other = analyticsQueryForOtherNetwork({
+      ...defaultAnalyticsQuery,
+      preset: "90d",
+      line: "line-1",
+      station: "union",
+      compare: true,
+      drilldown: { ...emptyAnalyticsDrilldown, disruptionClass: "slow-zone", cause: "TECHNICAL_PROBLEM" },
+    });
     assert.equal(serializeAnalyticsQuery(other), "?range=90d&compare=1");
+  });
+
+  it("round-trips episode drill-down filters in the URL and rejects invalid values", () => {
+    const drilldown = {
+      ...emptyAnalyticsDrilldown,
+      from: "2026-11-10",
+      to: "2026-11-12",
+      line: "line-1",
+      station: "union",
+      disruptionClass: "service-stopped",
+      kind: "suspension",
+      cause: "MEDICAL_EMERGENCY",
+      planned: false,
+      completed: true,
+      minMinutes: 15,
+      maxMinutes: 59,
+      dayOfWeek: 5,
+      hour: 8,
+      sort: "longest",
+    };
+    const withDrill = withAnalyticsDrilldown(defaultAnalyticsQuery, drilldown);
+    const serialized = serializeAnalyticsQuery(withDrill);
+    assert.match(serialized, /epFrom=2026-11-10&epTo=2026-11-12/);
+    assert.match(serialized, /epClass=service-stopped/);
+    assert.match(serialized, /epCause=MEDICAL_EMERGENCY/);
+    assert.match(serialized, /epDow=5&epHour=8&epSort=longest/);
+    assert.deepEqual(parseAnalyticsQuery(serialized, lines), withDrill);
+    assert.equal(hasAnalyticsDrilldown(drilldown), true);
+    assert.equal(hasAnalyticsDrilldown(emptyAnalyticsDrilldown), false);
+
+    // Invalid drill-down values are ignored instead of breaking URL parsing.
+    const invalid = parseAnalyticsQuery("?epClass=bad&epKind=advisory&epDow=9&epHour=25&epMin=60&epMax=10&epSort=oldest", lines);
+    assert.equal(invalid.drilldown, undefined);
+    // Clearing drill-down removes the property cleanly.
+    assert.deepEqual(withAnalyticsDrilldown(withDrill, emptyAnalyticsDrilldown), defaultAnalyticsQuery);
   });
 });
 

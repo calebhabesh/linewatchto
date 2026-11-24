@@ -69,6 +69,14 @@ public class ReliabilityRangeRepository {
     /** A title an alert carried, first seen at {@code firstSeen}. */
     public record TitleSighting(String alertId, String title, OffsetDateTime firstSeen) {}
 
+    /** Daily GO/UP cancellation counts for one corridor. */
+    public record CancellationDayRow(
+        LocalDate serviceDate,
+        String lineId,
+        long cancellations,
+        long scheduleMatchedCancellations
+    ) {}
+
     public List<LineInfo> lines(String networkId) {
         if ("regional".equals(networkId)) {
             return RegionalNetworkCatalog.routes().stream()
@@ -286,6 +294,56 @@ public class ReliabilityRangeRepository {
                     alertId, rs.getString("title"), rs.getObject("first_seen", OffsetDateTime.class)));
             });
         return sightings;
+    }
+
+    public OffsetDateTime cancellationTrackingStartedAt(OffsetDateTime until) {
+        return jdbc.queryForObject("""
+            select min(started_at)
+            from regional_train_cancellation_tracking
+            where id = 1 and started_at < :until
+            """, new MapSqlParameterSource("until", until), OffsetDateTime.class);
+    }
+
+    public List<CancellationDayRow> cancellationDays(
+        LocalDate fromDate,
+        LocalDate toDate,
+        OffsetDateTime since,
+        OffsetDateTime until,
+        String lineId,
+        String stationId
+    ) {
+        if (fromDate.isAfter(toDate) || !since.isBefore(until)) return List.of();
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("fromDate", fromDate)
+            .addValue("toDate", toDate)
+            .addValue("since", since)
+            .addValue("until", until);
+        StringBuilder filters = new StringBuilder();
+        if (lineId != null) {
+            params.addValue("lineId", lineId);
+            filters.append(" and cancellation.line_id = :lineId ");
+        }
+        if (stationId != null) {
+            params.addValue("stationId", stationId);
+            filters.append(" and jsonb_exists(cancellation.station_ids, :stationId) ");
+        }
+        return jdbc.query("""
+            select least(greatest(cancellation.service_date, cast(:fromDate as date)), cast(:toDate as date)) bucket_date,
+                   cancellation.line_id,
+                   count(*) cancellations,
+                   count(*) filter (where cancellation.schedule_matched) schedule_matched_cancellations
+            from regional_train_cancellations cancellation
+            where coalesce(cancellation.scheduled_start_at, cancellation.first_seen_at) >= :since
+              and coalesce(cancellation.scheduled_start_at, cancellation.first_seen_at) < :until
+            """ + filters + """
+            group by bucket_date, cancellation.line_id
+            order by bucket_date, cancellation.line_id
+            """, params, (rs, row) -> new CancellationDayRow(
+                rs.getObject("bucket_date", LocalDate.class),
+                rs.getString("line_id"),
+                rs.getLong("cancellations"),
+                rs.getLong("schedule_matched_cancellations")
+            ));
     }
 
     private static DayFact dayFact(java.sql.ResultSet rs) throws java.sql.SQLException {

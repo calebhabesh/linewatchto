@@ -59,6 +59,12 @@ public class MaintenanceCleanupStore {
             """, new MapSqlParameterSource("now", now));
     }
 
+    /**
+     * Prunes ingestion runs older than {@code cutoff}, always keeping the latest run per type and
+     * preserving successful alert polls ({@code alerts}, {@code metrolinx-alerts}) until every
+     * Toronto calendar date their 10-minute observation window touches has a final row in
+     * {@code reliability_observation_windows}.
+     */
     public int deleteOldIngestionRuns(OffsetDateTime cutoff) {
         return jdbc.update("""
             with latest_runs as (
@@ -66,9 +72,28 @@ public class MaintenanceCleanupStore {
                 from ingestion_runs
                 order by run_type, started_at desc, id desc
             )
-            delete from ingestion_runs
-            where started_at < :cutoff
-              and id not in (select id from latest_runs)
+            delete from ingestion_runs run
+            where run.started_at < :cutoff
+              and run.id not in (select id from latest_runs)
+              and (
+                  run.run_type not in ('alerts', 'metrolinx-alerts')
+                  or run.status <> 'success'
+                  or run.completed_at is null
+                  or (
+                      exists (
+                          select 1 from reliability_observation_windows rolled
+                          where rolled.network_id = case run.run_type when 'alerts' then 'ttc' else 'regional' end
+                            and rolled.observation_date = (run.completed_at at time zone 'America/Toronto')::date
+                            and rolled.rolled_up_at >= ((rolled.observation_date + 1)::timestamp at time zone 'America/Toronto') + interval '10 minutes'
+                      )
+                      and exists (
+                          select 1 from reliability_observation_windows rolled
+                          where rolled.network_id = case run.run_type when 'alerts' then 'ttc' else 'regional' end
+                            and rolled.observation_date = ((run.completed_at + interval '10 minutes' - interval '1 microsecond') at time zone 'America/Toronto')::date
+                            and rolled.rolled_up_at >= ((rolled.observation_date + 1)::timestamp at time zone 'America/Toronto') + interval '10 minutes'
+                      )
+                  )
+              )
             """, new MapSqlParameterSource("cutoff", cutoff));
     }
 

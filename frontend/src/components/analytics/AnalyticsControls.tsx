@@ -4,7 +4,9 @@ import { ArrowLeftRight } from "lucide-react";
 import { useState } from "react";
 import type { AnalyticsNetworkId } from "../../app/reliability-analytics";
 import {
+  activeDrilldown,
   isServiceDate,
+  withAnalyticsDrilldown,
   type AnalyticsLineOption,
   type AnalyticsPreset,
   type AnalyticsQuery,
@@ -80,7 +82,11 @@ export function AnalyticsControls({
   const to = range?.to ?? range?.requestedTo ?? "";
 
   function setCustom(nextFrom: string, nextTo: string) {
-    onChange({ ...query, preset: "custom", from: nextFrom, to: nextTo });
+    const d = activeDrilldown(query);
+    onChange(withAnalyticsDrilldown(
+      { ...query, preset: "custom", from: nextFrom, to: nextTo },
+      { ...d, from: null, to: null },
+    ));
   }
 
   return (
@@ -95,7 +101,10 @@ export function AnalyticsControls({
             disabled={preset === "custom" && !from}
             onClick={() => preset === "custom"
               ? setCustom(from, to)
-              : onChange({ ...query, preset, from: null, to: null })}
+              : onChange(withAnalyticsDrilldown(
+                { ...query, preset, from: null, to: null },
+                { ...activeDrilldown(query), from: null, to: null },
+              ))}
           >
             {label}
           </button>
@@ -122,7 +131,10 @@ export function AnalyticsControls({
           <span className={styles.fieldLabel}>{ttc ? "Line" : "Corridor"}</span>
           <select
             value={query.line ?? ""}
-            onChange={(event) => onChange({ ...query, line: event.target.value || null, station: null })}
+            onChange={(event) => onChange(withAnalyticsDrilldown(
+              { ...query, line: event.target.value || null, station: null },
+              { ...activeDrilldown(query), line: null, station: null },
+            ))}
           >
             <option value="">{ttc ? "All Lines" : "All Corridors"}</option>
             {lines.map((option) => (
@@ -137,7 +149,10 @@ export function AnalyticsControls({
           <select
             value={query.station ?? ""}
             disabled={!line}
-            onChange={(event) => onChange({ ...query, station: event.target.value || null })}
+            onChange={(event) => onChange(withAnalyticsDrilldown(
+              { ...query, station: event.target.value || null },
+              { ...activeDrilldown(query), station: null },
+            ))}
           >
             <option value="">{line ? "All Stations" : ttc ? "Choose a Line First" : "Choose a Corridor First"}</option>
             {line?.stations.map((station) => (

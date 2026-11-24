@@ -1,7 +1,20 @@
 import { expect, test, type Page } from "@playwright/test";
-import { demoAvailability, demoSummary } from "../../src/app/reliability-analytics-fixture";
-import type { AnalyticsNetworkId, AnalyticsSummary } from "../../src/app/reliability-analytics";
-import { defaultAnalyticsQuery } from "../../src/app/reliability-range";
+import {
+  demoAvailability,
+  demoCancellations,
+  demoEpisodes,
+  demoHotspots,
+  demoPatterns,
+  demoSeries,
+  demoSummary,
+} from "../../src/app/reliability-analytics-fixture";
+import type {
+  AnalyticsGranularity,
+  AnalyticsNetworkId,
+  AnalyticsSummary,
+  DisruptionClassId,
+} from "../../src/app/reliability-analytics";
+import { defaultAnalyticsQuery, emptyAnalyticsDrilldown } from "../../src/app/reliability-range";
 import { regionalGuideRoutes, stationsForGuideRoute, ttcGuideRoutes } from "../../src/app/transit-guide-data";
 
 // Routed responses never reach the service worker's own fetches.
@@ -15,29 +28,87 @@ const NETWORKS = [
   { id: "regional" as const, path: "/go-up/analytics", title: "GO Transit & UP Express", rows: 8, line: "regional-lw", lineLabel: "Lakeshore West Stations", stations: 16, other: "/ttc/analytics" },
 ];
 
-type ApiState = { failing: 503 | 429 | "abort" | null; change?: (summary: AnalyticsSummary) => AnalyticsSummary; requests: string[] };
+type ApiState = {
+  failing: 503 | 429 | "abort" | null;
+  exportFailure?: 429 | "too-large" | null;
+  change?: (summary: AnalyticsSummary) => AnalyticsSummary;
+  requests: string[];
+};
 
 async function routeAnalytics(page: Page): Promise<ApiState> {
-  const state: ApiState = { failing: null, requests: [] };
+  const state: ApiState = { failing: null, exportFailure: null, requests: [] };
   await page.route("**/api/reliability/**", async (route) => {
     const url = new URL(route.request().url());
     state.requests.push(`${url.pathname}${url.search}`);
+    if (url.pathname.endsWith("/export")) {
+      if (state.exportFailure === 429) {
+        return route.fulfill({ status: 429, json: { error: "rate_limited", message: "Too many exports." } });
+      }
+      if (state.exportFailure === "too-large") {
+        return route.fulfill({
+          status: 400,
+          json: { error: "export_too_large", message: "This export has 25000 rows; the limit is 20000. Choose a shorter range." },
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        headers: {
+          "content-type": "text/csv;charset=UTF-8",
+          "content-disposition": 'attachment; filename="linewatchto-reliability-test.csv"',
+        },
+        body: "service_date,network_id,line_id\r\n2026-11-24,ttc,line-1\r\n",
+      });
+    }
     if (state.failing === "abort") return route.abort("internetdisconnected");
     if (state.failing) return route.fulfill({ status: state.failing, json: { error: "unavailable", message: "No." } });
-    const networkId = url.searchParams.get("network") as AnalyticsNetworkId;
+    const networkId = (url.searchParams.get("network") ?? "ttc") as AnalyticsNetworkId;
     const availability = demoAvailability(networkId, TODAY);
     if (url.pathname.endsWith("/availability")) return route.fulfill({ json: availability });
     const from = url.searchParams.get("from")!;
     const to = url.searchParams.get("to")!;
     const lines = (networkId === "ttc" ? ttcGuideRoutes : regionalGuideRoutes)
       .map((line) => ({ id: line.id, number: line.number, name: line.name, stations: stationsForGuideRoute(line) }));
-    const summary = demoSummary(
-      networkId,
-      lines,
-      { ...defaultAnalyticsQuery, line: url.searchParams.get("line"), station: url.searchParams.get("station") },
-      { requestedFrom: from, requestedTo: to, from, to, clipped: false },
-      availability,
-    )!;
+    const query = { ...defaultAnalyticsQuery, line: url.searchParams.get("line"), station: url.searchParams.get("station") };
+    const resolvedRange = { requestedFrom: from, requestedTo: to, from, to, clipped: false };
+
+    if (url.pathname.endsWith("/series")) {
+      const granularity = (url.searchParams.get("granularity") ?? "day") as AnalyticsGranularity;
+      const byLine = url.searchParams.get("byLine") === "true";
+      return route.fulfill({ json: demoSeries(networkId, lines, query, resolvedRange, availability, granularity, byLine) });
+    }
+    if (url.pathname.endsWith("/patterns")) {
+      return route.fulfill({ json: demoPatterns(networkId, query, resolvedRange, availability) });
+    }
+    if (url.pathname.endsWith("/hotspots")) {
+      const cls = (url.searchParams.get("class") || null) as DisruptionClassId | null;
+      const sort = (url.searchParams.get("sort") === "incidents" ? "incidents" : "minutes");
+      const limit = Number(url.searchParams.get("limit") ?? 12);
+      return route.fulfill({ json: demoHotspots(networkId, lines, query, resolvedRange, availability, cls, sort, limit) });
+    }
+    if (url.pathname.endsWith("/episodes")) {
+      const drilldown = {
+        ...emptyAnalyticsDrilldown,
+        disruptionClass: (url.searchParams.get("class") || null) as DisruptionClassId | null,
+        kind: url.searchParams.get("kind") || null,
+        cause: url.searchParams.get("cause") || null,
+        planned: url.searchParams.get("planned") === null ? null : url.searchParams.get("planned") === "true",
+        completed: url.searchParams.get("completed") === null ? null : url.searchParams.get("completed") === "true",
+        minMinutes: url.searchParams.get("minMinutes") ? Number(url.searchParams.get("minMinutes")) : null,
+        maxMinutes: url.searchParams.get("maxMinutes") ? Number(url.searchParams.get("maxMinutes")) : null,
+        dayOfWeek: url.searchParams.get("dayOfWeek") ? Number(url.searchParams.get("dayOfWeek")) : null,
+        hour: url.searchParams.get("hour") ? Number(url.searchParams.get("hour")) : null,
+        sort: (url.searchParams.get("sort") === "longest" ? "longest" : "recent") as "recent" | "longest",
+      };
+      const limit = Number(url.searchParams.get("limit") ?? 25);
+      const cursor = url.searchParams.get("cursor");
+      return route.fulfill({ json: demoEpisodes(networkId, lines, query, resolvedRange, availability, drilldown, cursor, limit) });
+    }
+    if (url.pathname.endsWith("/cancellations")) {
+      const granularity = (url.searchParams.get("granularity") ?? "day") as AnalyticsGranularity;
+      return route.fulfill({ json: demoCancellations(networkId, lines, query, resolvedRange, availability, granularity) });
+    }
+
+    const summary = demoSummary(networkId, lines, query, resolvedRange, availability)!;
     return route.fulfill({ json: state.change ? state.change(summary) : summary });
   });
   return state;
@@ -241,4 +312,67 @@ test("the methodology pages open analytics, whose document is not cached for a d
     const response = await page.request.get(network.path);
     expect(response.headers()["cache-control"]).toBe("public, max-age=0, must-revalidate");
   }
+});
+
+for (const network of NETWORKS) {
+  test(`${network.id}: chart mark drives the episode list, Show Table works, and network modules render`, async ({ page }) => {
+    const api = await routeAnalytics(page);
+    await page.goto(network.path);
+    await ready(page);
+
+    // Trend chart loads and exposes Show Table alternative.
+    const trend = page.locator('[data-analytics-module="trend"]');
+    await expect(trend.getByRole("img", { name: /Disruption trend by/ })).toBeVisible();
+    await trend.getByRole("button", { name: /Show Table/ }).click();
+    await expect(trend.getByRole("table")).toBeVisible();
+    await trend.getByRole("button", { name: /Show Table/ }).click();
+    await expect(trend.getByRole("img", { name: /Disruption trend by/ })).toBeVisible();
+
+    // Clicking a Breakdown mark updates the URL and filters Counted Episodes.
+    const breakdown = page.locator('[data-analytics-module="breakdown"]');
+    const firstBar = breakdown.locator("ul li button").first();
+    await expect(firstBar).toBeVisible();
+    await firstBar.click();
+
+    await expect(page).toHaveURL(/epKind=/);
+    const episodes = page.locator('[data-analytics-module="episodes"]');
+    await expect(episodes.getByRole("region", { name: "Active Episode Filters" })).toBeVisible();
+    await expect(episodes.locator("[data-episode-id]").first()).toBeVisible();
+    expect(api.requests.some((req) => req.includes("/api/reliability/episodes") && req.includes("kind="))).toBe(true);
+
+    // Clearing filters removes epKind from URL.
+    await episodes.getByRole("button", { name: "Clear Filters" }).click();
+    await expect(page).not.toHaveURL(/epKind=/);
+
+    // Network-specific module renders honestly.
+    if (network.id === "ttc") {
+      const slowZones = page.locator('[data-analytics-module="slow-zones"]');
+      await slowZones.scrollIntoViewIfNeeded();
+      await expect(slowZones.getByRole("heading", { name: "TTC Slow Zones" })).toBeVisible();
+      await expect(page.locator('[data-analytics-module="cancellations"]')).toHaveCount(0);
+    } else {
+      const cancellations = page.locator('[data-analytics-module="cancellations"]');
+      await cancellations.scrollIntoViewIfNeeded();
+      await expect(cancellations.getByRole("heading", { name: "GO & UP Train Cancellations" })).toBeVisible();
+      await expect(page.locator('[data-analytics-module="slow-zones"]')).toHaveCount(0);
+    }
+  });
+}
+
+test("CSV export handles 429 rate limits and the 20,000-row cap visibly", async ({ page }) => {
+  const api = await routeAnalytics(page);
+  await page.goto("/ttc/analytics");
+  await ready(page);
+
+  const exportLink = page.getByRole("link", { name: "Export CSV" });
+  await expect(exportLink).toHaveAttribute("href", /\/api\/reliability\/export\?network=ttc/);
+
+  const alertBox = dashboard(page).getByRole("alert");
+  api.exportFailure = 429;
+  await exportLink.click();
+  await expect(alertBox).toContainText("10 exports per 10 minutes");
+
+  api.exportFailure = "too-large";
+  await exportLink.click();
+  await expect(alertBox).toContainText("20000");
 });

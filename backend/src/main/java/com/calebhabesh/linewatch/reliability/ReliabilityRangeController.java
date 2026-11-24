@@ -4,6 +4,7 @@ import com.calebhabesh.linewatch.account.ClientAddressResolver;
 import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
 import com.calebhabesh.linewatch.cache.DashboardCacheService;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.AvailabilityResponse;
+import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.CancellationsResponse;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.EpisodesResponse;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.ErrorResponse;
 import com.calebhabesh.linewatch.reliability.ReliabilityRangeResponses.ExportFile;
@@ -41,6 +42,7 @@ public class ReliabilityRangeController {
     private static final TypeReference<PatternsResponse> PATTERNS = new TypeReference<>() {};
     private static final TypeReference<HotspotsResponse> HOTSPOTS = new TypeReference<>() {};
     private static final TypeReference<EpisodesResponse> EPISODES = new TypeReference<>() {};
+    private static final TypeReference<CancellationsResponse> CANCELLATIONS = new TypeReference<>() {};
     private static final MediaType CSV = new MediaType("text", "csv", StandardCharsets.UTF_8);
 
     private final ReliabilityRangeService service;
@@ -95,12 +97,15 @@ public class ReliabilityRangeController {
         @RequestParam(required = false) String line,
         @RequestParam(required = false) String station,
         @RequestParam(required = false) String granularity,
+        @RequestParam(required = false) String byLine,
         HttpServletRequest http
     ) {
         ReliabilityRangeRequest request = parse(network, from, to, line, station);
         String unit = ReliabilityRangeService.parseGranularity(granularity);
+        boolean includeLines = ReliabilityRangeService.parseByLine(byLine);
         ReliabilityRangeService.requireBucketCount(request.from(), request.to(), unit);
-        return cached(request, "series", "granularity=" + unit, SERIES, () -> service.series(request, unit), http);
+        String params = "granularity=" + unit + (includeLines ? ";byLine=true" : "");
+        return cached(request, "series", params, SERIES, () -> service.series(request, unit, includeLines), http);
     }
 
     @GetMapping("/patterns")
@@ -147,15 +152,45 @@ public class ReliabilityRangeController {
         @RequestParam(required = false) String station,
         @RequestParam(required = false) String cursor,
         @RequestParam(required = false) String limit,
+        @RequestParam(name = "class", required = false) String disruptionClass,
+        @RequestParam(required = false) String kind,
+        @RequestParam(required = false) String cause,
+        @RequestParam(required = false) String planned,
+        @RequestParam(required = false) String completed,
+        @RequestParam(required = false) String minMinutes,
+        @RequestParam(required = false) String maxMinutes,
+        @RequestParam(required = false) String dayOfWeek,
+        @RequestParam(required = false) String hour,
+        @RequestParam(required = false) String sort,
         HttpServletRequest http
     ) {
         ReliabilityRangeRequest request = parse(network, from, to, line, station);
         int normalizedLimit = ReliabilityRangeRequest.parseInt(
             "limit", limit, ReliabilityRangeService.DEFAULT_EPISODES, 1, ReliabilityRangeService.MAX_EPISODES);
-        ReliabilityRangeService.decodeCursor(cursor);
+        ReliabilityRangeService.EpisodeFilter filter = ReliabilityRangeService.parseEpisodeFilter(
+            disruptionClass, kind, cause, planned, completed, minMinutes, maxMinutes, dayOfWeek, hour, sort);
+        ReliabilityRangeService.decodeCursor(cursor, filter.sort());
         String normalizedCursor = cursor == null || cursor.isBlank() ? "" : cursor.trim();
-        return cached(request, "episodes", "limit=" + normalizedLimit + ";cursor=" + normalizedCursor, EPISODES,
-            () -> service.episodes(request, normalizedCursor, normalizedLimit), http);
+        String params = "limit=" + normalizedLimit + ";cursor=" + normalizedCursor + filter.cacheKeySuffix();
+        return cached(request, "episodes", params, EPISODES,
+            () -> service.episodes(request, normalizedCursor, normalizedLimit, filter), http);
+    }
+
+    @GetMapping("/cancellations")
+    public CancellationsResponse cancellations(
+        @RequestParam(required = false) String network,
+        @RequestParam(required = false) String from,
+        @RequestParam(required = false) String to,
+        @RequestParam(required = false) String line,
+        @RequestParam(required = false) String station,
+        @RequestParam(required = false) String granularity,
+        HttpServletRequest http
+    ) {
+        ReliabilityRangeRequest request = parse(network, from, to, line, station);
+        String unit = ReliabilityRangeService.parseGranularity(granularity);
+        ReliabilityRangeService.requireBucketCount(request.from(), request.to(), unit);
+        return cached(request, "cancellations", "granularity=" + unit, CANCELLATIONS,
+            () -> service.cancellations(request, unit), http);
     }
 
     @GetMapping("/export")

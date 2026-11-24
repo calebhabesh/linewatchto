@@ -5,7 +5,6 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -23,8 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
  * Dates from yesterday (Toronto) onwards are rewritten from the import the selection rule picks
  * (active first, then newest); earlier dates are written only where no day exists yet, so a
  * replacement feed's calendar never rewrites history. Days are never deleted. Reads
- * ({@link #serviceSpans}, {@link #scheduleCoveragePercentage}) use captured days and fall back
- * to the live GTFS tables only for dates with no captured day.
+ * ({@link #serviceSpans}, {@link #capturedAllSpans}, {@link #scheduleCoveragePercentage},
+ * {@link #scheduledDates}) read only the captured tables and never query live GTFS tables.
  */
 @Repository
 public class ReliabilityScheduleCapture {
@@ -169,9 +168,8 @@ public class ReliabilityScheduleCapture {
     }
 
     /**
-     * Each line's span per service date from {@code startDate} to {@code endDate}, for the whole
-     * line ({@code stationId} null) or one station. Captured dates read the captured spans; other
-     * dates are computed from the retained imports. Spans are not clipped.
+     * Each line's captured span per service date from {@code startDate} to {@code endDate}, for
+     * the whole line ({@code stationId} null) or one station. Spans are not clipped.
      */
     public List<ServiceSpan> serviceSpans(String networkId, String stationId, LocalDate startDate, LocalDate endDate) {
         List<ScheduleSource> sources = sources(networkId);
@@ -180,7 +178,7 @@ public class ReliabilityScheduleCapture {
             .addValue("startDate", startDate)
             .addValue("endDate", endDate)
             .addValue("stationId", stationId == null ? WHOLE_LINE : stationId);
-        List<ServiceSpan> spans = new ArrayList<>(jdbc.query("""
+        List<ServiceSpan> spans = jdbc.query("""
             select span.service_date, span.line_id, span.station_id, span.starts_at, span.ends_at
             from reliability_service_spans span
             where span.network_id = :networkId and span.station_id = :stationId
@@ -191,91 +189,14 @@ public class ReliabilityScheduleCapture {
                     and captured.source_system = span.source_system
                     and captured.service_date = span.service_date
               )
+            order by span.service_date, span.line_id, span.starts_at
             """, params, (rs, row) -> new ServiceSpan(
                 rs.getObject("service_date", LocalDate.class),
                 rs.getString("line_id"),
                 rs.getString("station_id"),
                 toronto(rs.getObject("starts_at", OffsetDateTime.class)),
                 toronto(rs.getObject("ends_at", OffsetDateTime.class))
-            )));
-        String uncapturedDates = """
-            select day.service_date, source.source_system
-            from (select generate_series(cast(:startDate as date), cast(:endDate as date), interval '1 day')::date service_date) day
-            cross join (values {sources}) source(source_system)
-            where not exists (
-                select 1 from reliability_schedule_days captured
-                where captured.network_id = :networkId
-                  and captured.source_system = source.source_system
-                  and captured.service_date = day.service_date
-            )
-            """.replace("{sources}", sourceValues(sources));
-        StationScope scope = stationId == null ? StationScope.WHOLE_LINE : StationScope.ONE_STATION;
-        spans.addAll(querySpans(spanSql(sources.getFirst(), uncapturedDates, scope), params));
-        spans.sort(Comparator.comparing(ServiceSpan::serviceDate)
-            .thenComparing(ServiceSpan::lineId)
-            .thenComparing(ServiceSpan::start));
-        return List.copyOf(spans);
-    }
-
-    /**
-     * All spans (whole-line and per-station) for {@code networkId} across
-     * {@code startDate}..{@code endDate}. Captured dates read {@code reliability_service_spans};
-     * uncaptured dates fall back to retained GTFS imports only when needed.
-     */
-    List<ServiceSpan> allSpans(String networkId, LocalDate startDate, LocalDate endDate) {
-        List<ScheduleSource> sources = sources(networkId);
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("networkId", sources.getFirst().networkId())
-            .addValue("startDate", startDate)
-            .addValue("endDate", endDate);
-        List<ServiceSpan> spans = new ArrayList<>(jdbc.query("""
-            select span.service_date, span.line_id, span.station_id, span.starts_at, span.ends_at
-            from reliability_service_spans span
-            where span.network_id = :networkId
-              and span.service_date between :startDate and :endDate
-              and exists (
-                  select 1 from reliability_schedule_days captured
-                  where captured.network_id = span.network_id
-                    and captured.source_system = span.source_system
-                    and captured.service_date = span.service_date
-              )
-            """, params, (rs, row) -> new ServiceSpan(
-                rs.getObject("service_date", LocalDate.class),
-                rs.getString("line_id"),
-                rs.getString("station_id"),
-                toronto(rs.getObject("starts_at", OffsetDateTime.class)),
-                toronto(rs.getObject("ends_at", OffsetDateTime.class))
-            )));
-        Integer uncapturedCount = jdbc.queryForObject("""
-            select count(*)
-            from (select generate_series(cast(:startDate as date), cast(:endDate as date), interval '1 day')::date service_date) day
-            cross join (values {sources}) source(source_system)
-            where not exists (
-                select 1 from reliability_schedule_days captured
-                where captured.network_id = :networkId
-                  and captured.source_system = source.source_system
-                  and captured.service_date = day.service_date
-            )
-            """.replace("{sources}", sourceValues(sources)), params, Integer.class);
-        if (uncapturedCount != null && uncapturedCount > 0) {
-            String uncapturedDates = """
-                select day.service_date, source.source_system
-                from (select generate_series(cast(:startDate as date), cast(:endDate as date), interval '1 day')::date service_date) day
-                cross join (values {sources}) source(source_system)
-                where not exists (
-                    select 1 from reliability_schedule_days captured
-                    where captured.network_id = :networkId
-                      and captured.source_system = source.source_system
-                      and captured.service_date = day.service_date
-                )
-                """.replace("{sources}", sourceValues(sources));
-            spans.addAll(querySpans(spanSql(sources.getFirst(), uncapturedDates, StationScope.WHOLE_LINE), params));
-            spans.addAll(querySpans(spanSql(sources.getFirst(), uncapturedDates, StationScope.EACH_STATION), params));
-        }
-        spans.sort(Comparator.comparing(ServiceSpan::serviceDate)
-            .thenComparing(ServiceSpan::lineId)
-            .thenComparing(ServiceSpan::stationId)
-            .thenComparing(ServiceSpan::start));
+            ));
         return List.copyOf(spans);
     }
 
@@ -359,22 +280,11 @@ public class ReliabilityScheduleCapture {
     }
 
     /**
-     * The share of service dates from {@code startDate} to {@code endDate} with a published
-     * schedule, captured or in a retained import; for regional, the lower of GO and UP.
+     * The share of service dates from {@code startDate} to {@code endDate} with a captured
+     * schedule day; for regional, the lower of GO and UP.
      */
     public double scheduleCoveragePercentage(String networkId, LocalDate startDate, LocalDate endDate) {
         List<ScheduleSource> sources = sources(networkId);
-        boolean regional = sources.getFirst().regional();
-        String importCovers = regional ? """
-            select 1 from regional_gtfs_schedule_imports schedule_import
-            where schedule_import.source_system = source.source_system
-              and schedule_import.service_start <= day.service_date
-              and schedule_import.service_end >= day.service_date
-            """ : """
-            select 1 from gtfs_schedule_imports schedule_import
-            where schedule_import.service_start <= day.service_date
-              and schedule_import.service_end >= day.service_date
-            """;
         Double coverage = jdbc.queryForObject("""
             with source_coverage as (
                 select source.source_system,
@@ -383,13 +293,13 @@ public class ReliabilityScheduleCapture {
                            where captured.network_id = :networkId
                              and captured.source_system = source.source_system
                              and captured.service_date = day.service_date
-                       ) or exists ({importCovers})) / nullif(count(*), 0) coverage
+                       )) / nullif(count(*), 0) coverage
                 from (select generate_series(cast(:startDate as date), cast(:endDate as date), interval '1 day')::date service_date) day
                 cross join (values {sources}) source(source_system)
                 group by source.source_system
             )
             select coalesce(min(coverage), 0) coverage from source_coverage
-            """.replace("{importCovers}", importCovers).replace("{sources}", sourceValues(sources)), new MapSqlParameterSource()
+            """.replace("{sources}", sourceValues(sources)), new MapSqlParameterSource()
                 .addValue("networkId", sources.getFirst().networkId())
                 .addValue("startDate", startDate)
                 .addValue("endDate", endDate), Double.class);
@@ -397,44 +307,12 @@ public class ReliabilityScheduleCapture {
     }
 
     /**
-     * Dates from {@code startDate} to {@code endDate} with a published schedule for every source
-     * of {@code networkId} (GO and UP both for regional), captured or in a retained import: the
-     * per-date form of {@link #scheduleCoveragePercentage}.
+     * Dates from {@code startDate} to {@code endDate} with a captured schedule day for every
+     * source of {@code networkId} (GO and UP both for regional): the per-date form of
+     * {@link #scheduleCoveragePercentage}.
      */
     java.util.Set<LocalDate> scheduledDates(String networkId, LocalDate startDate, LocalDate endDate) {
-        List<ScheduleSource> sources = sources(networkId);
-        boolean regional = sources.getFirst().regional();
-        String importCovers = regional ? """
-            select 1 from regional_gtfs_schedule_imports schedule_import
-            where schedule_import.source_system = source.source_system
-              and schedule_import.service_start <= day.service_date
-              and schedule_import.service_end >= day.service_date
-            """ : """
-            select 1 from gtfs_schedule_imports schedule_import
-            where schedule_import.service_start <= day.service_date
-              and schedule_import.service_end >= day.service_date
-            """;
-        List<LocalDate> dates = jdbc.query("""
-            select day.service_date
-            from (select generate_series(cast(:startDate as date), cast(:endDate as date), interval '1 day')::date service_date) day
-            cross join (values {sources}) source(source_system)
-            where exists (
-                select 1 from reliability_schedule_days captured
-                where captured.network_id = :networkId
-                  and captured.source_system = source.source_system
-                  and captured.service_date = day.service_date
-            ) or exists ({importCovers})
-            group by day.service_date
-            having count(distinct source.source_system) = :expectedSources
-            order by day.service_date
-            """.replace("{importCovers}", importCovers).replace("{sources}", sourceValues(sources)),
-            new MapSqlParameterSource()
-                .addValue("networkId", sources.getFirst().networkId())
-                .addValue("startDate", startDate)
-                .addValue("endDate", endDate)
-                .addValue("expectedSources", sources.size()),
-            (rs, row) -> rs.getObject("service_date", LocalDate.class));
-        return new java.util.LinkedHashSet<>(dates);
+        return completeScheduleDays(networkId, startDate, endDate);
     }
 
     private List<ServiceSpan> querySpans(String sql, MapSqlParameterSource params) {
@@ -518,7 +396,7 @@ public class ReliabilityScheduleCapture {
             .replace("{sourceFilter}", source.regional() ? "schedule_import.source_system = target.source_system and" : "");
     }
 
-    private enum StationScope { WHOLE_LINE, ONE_STATION, EACH_STATION }
+    private enum StationScope { WHOLE_LINE, EACH_STATION }
 
     /**
      * Each line's (or line and station's) first and last departure per service date in
@@ -538,7 +416,7 @@ public class ReliabilityScheduleCapture {
               on mapped_stop.import_id = stop_time.import_id
              and mapped_stop.stop_id = stop_time.stop_id
              and mapped_stop.line_id = trip.line_id
-            """ + (scope == StationScope.ONE_STATION ? " and mapped_stop.station_id = :stationId" : "");
+            """;
         return """
             , active_services as (
                 select selected.service_date, service.import_id, service.service_id
@@ -616,12 +494,10 @@ public class ReliabilityScheduleCapture {
                        max(departure.departure_seconds) end_seconds
                 from (select distinct import_id from active_services) selected
                 join regional_gtfs_departures departure on departure.import_id = selected.import_id
-                where true {stationFilter}
                 group by departure.import_id, departure.service_id, departure.line_id {stationGroup}
             )
             """
             .replace("{stationColumn}", scope == StationScope.WHOLE_LINE ? "cast('' as varchar(80))" : "departure.station_id")
-            .replace("{stationFilter}", scope == StationScope.ONE_STATION ? "and departure.station_id = :stationId" : "")
             .replace("{stationGroup}", scope == StationScope.WHOLE_LINE ? "" : ", departure.station_id");
     }
 

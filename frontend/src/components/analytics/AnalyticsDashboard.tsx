@@ -15,10 +15,13 @@ import {
 import {
   analyticsQueryForOtherNetwork,
   defaultAnalyticsQuery,
+  emptyAnalyticsDrilldown,
   formatDatesInMessage,
   formatServiceDate,
   formatServiceDateRange,
   serializeAnalyticsQuery,
+  withAnalyticsDrilldown,
+  type AnalyticsDrilldown,
   type AnalyticsLineOption,
 } from "../../app/reliability-range";
 import { useReliabilityAnalytics } from "../../hooks/useReliabilityAnalytics";
@@ -26,6 +29,11 @@ import { AnalyticsControls } from "./AnalyticsControls";
 import { AnalyticsKpis } from "./AnalyticsKpis";
 import { AnalyticsTable } from "./AnalyticsTable";
 import { CoverageStrip } from "./CoverageStrip";
+import { EpisodesModule } from "./EpisodesModule";
+import { ExportControl } from "./ExportButton";
+import { CalendarModule, CancellationsModule, SlowZonesModule } from "./NetworkSpecificModules";
+import { BreakdownModule, HowLongModule, TrendModule } from "./TrendAndBreakdownModules";
+import { WhenModule, WhereModule } from "./WhenAndWhereModules";
 import { useAnalyticsQuery } from "./use-analytics-query";
 import styles from "./analytics.module.css";
 
@@ -57,11 +65,22 @@ export function AnalyticsDashboard({ networkId, title, lines }: {
 }) {
   const [query, setQuery] = useAnalyticsQuery(lines);
   const analytics = useReliabilityAnalytics(networkId, query, lines);
-  const { availability, range, summary, loading, error, online, demo, loadedAt } = analytics;
+  const { availability, range, summary, loading, error, online, demo, demoModule, loadedAt } = analytics;
   const current = query ?? defaultAnalyticsQuery;
   const line = lines.find((candidate) => candidate.id === current.line);
   const station = line?.stations.find((candidate) => candidate.id === current.station);
   const ttc = networkId === "ttc";
+  const slowZonesVisible = showsSlowZones(networkId, summary);
+  const episodesRef = useRef<HTMLElement | null>(null);
+
+  function handleChartDrilldown(patch: Partial<AnalyticsDrilldown>) {
+    const next: AnalyticsDrilldown = { ...emptyAnalyticsDrilldown, ...patch };
+    setQuery(withAnalyticsDrilldown(current, next));
+    const reduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.requestAnimationFrame(() => {
+      episodesRef.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    });
+  }
 
   // While another line or station loads, the last numbers keep their own labels.
   const shownLine = summary ? lines.find((candidate) => candidate.id === summary.lineId) : line;
@@ -99,17 +118,28 @@ export function AnalyticsDashboard({ networkId, title, lines }: {
           <p className={styles.kicker}>Reliability Analytics{demo ? <span className={styles.demoTag}>Demo Data</span> : null}</p>
           <h1>{title}</h1>
         </div>
-        <nav className={styles.networkSwitch} aria-label="Analytics Network">
-          {NETWORKS.map((network) => (
-            <a
-              key={network.id}
-              href={network.id === networkId ? `${network.path}${serializeAnalyticsQuery(current)}` : `${network.path}${otherQuery}`}
-              aria-current={network.id === networkId ? "page" : undefined}
-            >
-              {network.label}
-            </a>
-          ))}
-        </nav>
+        <div className={styles.headingActions}>
+          <ExportControl
+            networkId={networkId}
+            from={range?.from ?? null}
+            to={range?.to ?? null}
+            line={current.line}
+            station={current.station}
+            disabled={loading || failed || noHistory || !range?.from}
+            demo={demo}
+          />
+          <nav className={styles.networkSwitch} aria-label="Analytics Network">
+            {NETWORKS.map((network) => (
+              <a
+                key={network.id}
+                href={network.id === networkId ? `${network.path}${serializeAnalyticsQuery(current)}` : `${network.path}${otherQuery}`}
+                aria-current={network.id === networkId ? "page" : undefined}
+              >
+                {network.label}
+              </a>
+            ))}
+          </nav>
+        </div>
       </header>
 
       <AnalyticsControls
@@ -232,11 +262,108 @@ export function AnalyticsDashboard({ networkId, title, lines }: {
               scope={scope}
               rows={summary?.rows ?? null}
               previousRows={previous?.rows ?? []}
-              showSlowZones={showsSlowZones(networkId, summary)}
+              showSlowZones={slowZonesVisible}
               showChange={current.compare && scope === "lines"}
               placeholderRows={line ? (station ? 1 : line.stations.length) : lines.length}
             />
           </section>
+
+          {availability && range && range.from && range.to ? (
+            <>
+              <TrendModule
+                networkId={networkId}
+                lines={lines}
+                query={current}
+                range={range}
+                availability={availability}
+                showSlowZones={slowZonesVisible}
+                demo={demo}
+                demoModule={demoModule}
+                onDrilldown={handleChartDrilldown}
+              />
+
+              <div className={styles.moduleGrid}>
+                <BreakdownModule
+                  networkId={networkId}
+                  summary={summary}
+                  onDrilldown={handleChartDrilldown}
+                />
+                <HowLongModule
+                  summary={summary}
+                  onDrilldown={handleChartDrilldown}
+                />
+              </div>
+
+              <WhenModule
+                networkId={networkId}
+                query={current}
+                range={range}
+                availability={availability}
+                showSlowZones={slowZonesVisible}
+                demo={demo}
+                demoModule={demoModule}
+                onDrilldown={handleChartDrilldown}
+              />
+
+              <div className={styles.moduleGrid}>
+                <WhereModule
+                  networkId={networkId}
+                  lines={lines}
+                  query={current}
+                  range={range}
+                  availability={availability}
+                  showSlowZones={slowZonesVisible}
+                  demo={demo}
+                  demoModule={demoModule}
+                  onDrilldown={handleChartDrilldown}
+                />
+                {ttc ? (
+                  <SlowZonesModule
+                    lines={lines}
+                    query={current}
+                    range={range}
+                    availability={availability}
+                    demo={demo}
+                    demoModule={demoModule}
+                    onDrilldown={handleChartDrilldown}
+                  />
+                ) : (
+                  <CancellationsModule
+                    lines={lines}
+                    query={current}
+                    range={range}
+                    availability={availability}
+                    demo={demo}
+                    demoModule={demoModule}
+                  />
+                )}
+              </div>
+
+              <CalendarModule
+                networkId={networkId}
+                lines={lines}
+                query={current}
+                range={range}
+                availability={availability}
+                showSlowZones={slowZonesVisible}
+                demo={demo}
+                demoModule={demoModule}
+                onDrilldown={handleChartDrilldown}
+              />
+
+              <EpisodesModule
+                sectionRef={episodesRef}
+                networkId={networkId}
+                lines={lines}
+                query={current}
+                range={range}
+                availability={availability}
+                demo={demo}
+                demoModule={demoModule}
+                onDrilldownChange={(next) => setQuery(withAnalyticsDrilldown(current, next))}
+              />
+            </>
+          ) : null}
         </div>
       )}
 

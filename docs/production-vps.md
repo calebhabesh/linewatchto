@@ -277,6 +277,7 @@ curl https://api.linewatchto.ca/api/health
 curl https://api.linewatchto.ca/api/health/ingestion
 curl https://api.linewatchto.ca/api/health/schedule
 curl https://api.linewatchto.ca/api/health/regional-ingestion
+curl https://api.linewatchto.ca/api/health/reliability
 ```
 
 A non-empty `possibleDuplicates` in the regional-ingestion response lists GO/UP events from the latest poll that may be one rider event published twice. Concurrent incidents can match too, so review the pairs (`scripts/audit-metrolinx-duplicates.sh` against a local copy of the feed shows why each stays separate) rather than treating them as failures.
@@ -311,7 +312,7 @@ gzip -dc tmp/prod-backups/linewatch-postgres-YYYYMMDDTHHMMSSZ.sql.gz | \
 | `regional_gtfs_*` | departures, schedule_imports, service_exceptions, services | Re-imported from GO and UP |
 | `ttc_alert_source_records`, `metrolinx_*_source_records` | ttc_alert_source_records, metrolinx_alert_source_records, metrolinx_operational_source_records | Raw provider records stay on the host |
 
-Everything else is included: alerts, snapshots, alert_active_periods, regional alerts and snapshots, cancellations, ingestion runs (and `metrolinx_ingestion_source_runs`), `reliability_schedule_days`, `reliability_service_spans`, `reliability_observation_windows`, and accounts, sessions, push subscriptions (keys included) and saved commutes. Each run compares the dump's table list with the live schema. Data must be present for every table outside the patterns and absent for every table inside them, each pattern must match a table, and the core tables must exist. Otherwise nothing is uploaded. A new table is therefore backed up by default. A new raw-record table needs a pattern in the script and here before it ships. No kept table holds an FK into an excluded one, so `pg_restore --exit-on-error` succeeds (rehearsed 2026-11-24).
+Everything else is included: alerts, snapshots, alert_active_periods, regional alerts and snapshots, cancellations, ingestion runs (and `metrolinx_ingestion_source_runs`), `reliability_schedule_days`, `reliability_service_spans`, `reliability_observation_windows`, `reliability_episodes`, `reliability_line_days`, `reliability_station_days`, `reliability_derivations`, `reliability_methodology`, and accounts, sessions, push subscriptions (keys included) and saved commutes. Each run compares the dump's table list with the live schema. Data must be present for every table outside the patterns and absent for every table inside them, each pattern must match a table, and the core tables must exist. Otherwise nothing is uploaded. A new table is therefore backed up by default. A new raw-record table needs a pattern in the script and here before it ships. No kept table holds an FK into an excluded one, so `pg_restore --exit-on-error` succeeds (rehearsed 2026-11-24).
 
 Owner decision, 2026-11-24: four kept tables carry a raw TTC open-data payload column (`alerts`, `accessibility_outages`, `surface_service_notices` and `ttc_announcements`, all `raw_payload`; about 17 MB). Those columns stay in the copy, encrypted. No raw source-record table and no Metrolinx payload leaves the host. On 2026-11-24 the kept tables held about 148 MB of table data and the excluded ones about 532 MB.
 
@@ -403,11 +404,23 @@ LINEWATCH_MAINTENANCE_INGESTION_RUN_RETENTION=P3650D \
 When `/api/health/schedule` and `/api/health/regional-schedule` on port 8097 report active imports and the first maintenance run has passed (10 minutes after start), run against port 5440:
 
 - the A1 production done check and the A3 production done check from [plan 17](refactor-plan/17-reliability-analytics.md). A1 must match production's output up to the copy's date, and A3 must report 0 mismatched days;
-- once A5 lands, its parity check (this restored copy is A5's parity fixture).
+- check `/api/health/reliability` and `/api/reliability/availability?network=ttc` / `regional` on port 8097 to confirm the restored derived read model serves the copy's date range cleanly.
 
 Record the copy name, its size, the restore time and the check results in plan 17 A4. Then stop both containers and delete `linewatch.dump` and the downloaded copy: they hold account data.
 
 A production restore follows the same decrypt and `pg_restore` steps into an empty production database (copy the archive to the VPS over Tailscale). The schedule tables then refill through the production refresh flags.
+
+## Reliability analytics
+
+Reliability Analytics (plan 17) serves completed Toronto service dates from derived tables (`reliability_episodes`, `reliability_line_days`, `reliability_station_days`) built from frozen schedule days (`reliability_schedule_days`, `reliability_service_spans`) and merged daily polling coverage (`reliability_observation_windows`), plus a bounded on-request live tail for Today So Far (and yesterday before the nightly derive). Completed dates never fall back to live GTFS tables, raw historical polling runs, or full-range request-time computation.
+
+- **Scheduled jobs:**
+  - `ReliabilityObservationRollupJob` (`LINEWATCH_RELIABILITY_OBSERVATION_ROLLUP_*`, enabled by default, initial delay `PT2M`, fixed delay `PT15M`) rolls up every unfinalized Toronto date from the earliest retained successful alert poll through today into `reliability_observation_windows`. A row becomes final 10 minutes after its Toronto date ends and is never rewritten.
+  - `ReliabilityScheduleCapture` captures TTC, GO, and UP daily line/station service spans on every GTFS import, before inactive regional imports are pruned, and daily in `MaintenanceCleanupService` (before deleting old inactive TTC imports).
+  - `ReliabilityDerivationJob` (`LINEWATCH_RELIABILITY_DERIVATION_*`, enabled by default, nightly at `04:30` America/Toronto plus startup catch-up after `PT3M` and every `PT6H`) captures schedules, rolls up observations, and re-derives the trailing 14 days (`LINEWATCH_RELIABILITY_DERIVATION_REDERIVE_DAYS`). On a fresh database that has never derived v1, catch-up initializes directly onto methodology v2 via `rebuildAndSwitch(2)`.
+- **Health and alerts:** `GET /api/health/reliability` exposes allowlisted fields (`status`, `methodologyVersion`, `switchedAt`, `derivationEnabled`, per-network `state`, `lastRunStatus`, `derivedThrough`, timestamps, `lastDurationMs`, `consecutiveFailures`). Internal error messages stay in `reliability_derivations.last_error` and backend logs. Prometheus gauges (`linewatch_reliability_derivation_*`, `linewatch_reliability_methodology_version`) and Grafana alert rules (`Reliability derivation failing`, `Reliability derivation stale`) are documented in [observability.md](observability.md).
+- **Full rebuild / methodology switch (`ReliabilityRebuildRunner`):** Disabled by default (`LINEWATCH_RELIABILITY_REBUILD_ENABLED=false`, `LINEWATCH_RELIABILITY_REBUILD_TARGET_VERSION=2`). To rebuild a methodology version from preserved inputs and switch reads atomically on the VPS without mixing versions, run a one-off backend container or recreate with `LINEWATCH_RELIABILITY_REBUILD_ENABLED=true LINEWATCH_RELIABILITY_REBUILD_TARGET_VERSION=2`, verify `/api/health/reliability` reports `methodologyVersion: 2` and `status: "ok"`, then unset the flag so routine restarts do not re-run a full rebuild.
+- **Ingestion-run retention (D7):** The code default remains `P90D`, and `MaintenanceCleanupStore.deleteOldIngestionRuns` preserves successful `alerts` and `metrolinx-alerts` runs until every Toronto calendar date touched by their 10-minute observation window has a final row in `reliability_observation_windows`. In production `.env.production`, A0 temporarily set `LINEWATCH_MAINTENANCE_INGESTION_RUN_RETENTION=P3650D`; after deploying plan 17 and confirming the A3 production done check passes with `mismatched_days = 0` on production (and on the A4 restored copy), lower `LINEWATCH_MAINTENANCE_INGESTION_RUN_RETENTION` to `P400D` (~1 year of audit evidence, ~1 GB) and recreate `backend` (`scripts/prod-compose.sh up -d --no-build --no-deps --wait --wait-timeout 240 backend`).
 
 ## Schedule assets
 

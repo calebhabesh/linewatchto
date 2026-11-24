@@ -8,6 +8,44 @@ export const ANALYTICS_PRESETS = ["30d", "90d", "6m", "ytd", "12m", "all", "cust
 export type AnalyticsPreset = (typeof ANALYTICS_PRESETS)[number];
 export const DEFAULT_ANALYTICS_PRESET: AnalyticsPreset = "30d";
 
+export type AnalyticsDrilldownClass = "service-stopped" | "delay" | "slow-zone";
+export type AnalyticsEpisodeSort = "recent" | "longest";
+
+/** Episode-list drill-down filters driven by chart marks and kept in the URL. */
+export type AnalyticsDrilldown = {
+  from: string | null;
+  to: string | null;
+  line: string | null;
+  station: string | null;
+  disruptionClass: AnalyticsDrilldownClass | null;
+  kind: string | null;
+  cause: string | null;
+  planned: boolean | null;
+  completed: boolean | null;
+  minMinutes: number | null;
+  maxMinutes: number | null;
+  dayOfWeek: number | null;
+  hour: number | null;
+  sort: AnalyticsEpisodeSort;
+};
+
+export const emptyAnalyticsDrilldown: AnalyticsDrilldown = {
+  from: null,
+  to: null,
+  line: null,
+  station: null,
+  disruptionClass: null,
+  kind: null,
+  cause: null,
+  planned: null,
+  completed: null,
+  minMinutes: null,
+  maxMinutes: null,
+  dayOfWeek: null,
+  hour: null,
+  sort: "recent",
+};
+
 export type AnalyticsQuery = {
   preset: AnalyticsPreset;
   /** Set only for `custom`. */
@@ -17,6 +55,8 @@ export type AnalyticsQuery = {
   /** Set only with `line`. */
   station: string | null;
   compare: boolean;
+  /** Optional episode drill-down filters (omitted from URL when empty). */
+  drilldown?: AnalyticsDrilldown;
 };
 
 export const defaultAnalyticsQuery: AnalyticsQuery = {
@@ -27,6 +67,22 @@ export const defaultAnalyticsQuery: AnalyticsQuery = {
   station: null,
   compare: false,
 };
+
+export function activeDrilldown(query: AnalyticsQuery): AnalyticsDrilldown {
+  return query.drilldown ?? emptyAnalyticsDrilldown;
+}
+
+export function hasAnalyticsDrilldown(drilldown: AnalyticsDrilldown | undefined | null): boolean {
+  if (!drilldown) return false;
+  return Boolean(
+    drilldown.from || drilldown.to || drilldown.line || drilldown.station
+    || drilldown.disruptionClass || drilldown.kind || drilldown.cause
+    || drilldown.planned !== null || drilldown.completed !== null
+    || drilldown.minMinutes !== null || drilldown.maxMinutes !== null
+    || drilldown.dayOfWeek !== null || drilldown.hour !== null
+    || drilldown.sort !== "recent",
+  );
+}
 
 /** Lines the network has, each with its stations: what `line` and `station` may name. */
 export type AnalyticsLineOption = {
@@ -87,6 +143,69 @@ export function serviceDayCount(from: string, to: string): number {
   return Math.round((utc(to).getTime() - utc(from).getTime()) / 86_400_000) + 1;
 }
 
+const VALID_CLASSES = new Set<AnalyticsDrilldownClass>(["service-stopped", "delay", "slow-zone"]);
+const VALID_KINDS = new Set(["suspension", "closure", "planned-closure", "delay", "limited-service", "reduced-speed-zone"]);
+const VALID_CAUSE = /^[A-Z0-9_]{1,60}$/;
+
+function parseBoundedInt(raw: string | null, min: number, max: number): number | null {
+  if (!raw || !/^\d+$/.test(raw)) return null;
+  const parsed = Number.parseInt(raw, 10);
+  return parsed >= min && parsed <= max ? parsed : null;
+}
+
+function parseBoolParam(raw: string | null): boolean | null {
+  if (raw === "1" || raw === "true") return true;
+  if (raw === "0" || raw === "false") return false;
+  return null;
+}
+
+function parseDrilldown(params: URLSearchParams, lines?: readonly AnalyticsLineOption[]): AnalyticsDrilldown {
+  const rawFrom = params.get("epFrom");
+  const rawTo = params.get("epTo");
+  let from: string | null = null;
+  let to: string | null = null;
+  if (isServiceDate(rawFrom) && isServiceDate(rawTo)) {
+    [from, to] = rawFrom <= rawTo ? [rawFrom, rawTo] : [rawTo, rawFrom];
+  } else if (isServiceDate(rawFrom)) {
+    from = rawFrom;
+    to = rawFrom;
+  }
+
+  const rawLine = params.get("epLine") || null;
+  const rawStation = params.get("epStation") || null;
+  const lineOpt = lines?.find((candidate) => candidate.id === rawLine);
+  const line = lines ? lineOpt?.id ?? null : rawLine;
+  const station = !rawStation
+    ? null
+    : line
+      ? !lineOpt || lineOpt.stations.some((candidate) => candidate.id === rawStation) ? rawStation : null
+      : !lines || lines.some((opt) => opt.stations.some((candidate) => candidate.id === rawStation)) ? rawStation : null;
+
+  const rawClass = params.get("epClass");
+  const disruptionClass = rawClass && VALID_CLASSES.has(rawClass as AnalyticsDrilldownClass)
+    ? rawClass as AnalyticsDrilldownClass
+    : null;
+  const rawKind = params.get("epKind")?.toLowerCase() ?? null;
+  const kind = rawKind && VALID_KINDS.has(rawKind) ? rawKind : null;
+  const rawCause = params.get("epCause")?.toUpperCase() ?? null;
+  const cause = rawCause && VALID_CAUSE.test(rawCause) ? rawCause : null;
+  const planned = parseBoolParam(params.get("epPlanned"));
+  const completed = parseBoolParam(params.get("epCompleted"));
+  const parsedMin = parseBoundedInt(params.get("epMin"), 1, 1_000_000);
+  const parsedMax = parseBoundedInt(params.get("epMax"), 1, 1_000_000);
+  const badBounds = parsedMin !== null && parsedMax !== null && parsedMax < parsedMin;
+  const minMinutes = badBounds ? null : parsedMin;
+  const maxMinutes = badBounds ? null : parsedMax;
+  const dayOfWeek = parseBoundedInt(params.get("epDow"), 1, 7);
+  const hour = parseBoundedInt(params.get("epHour"), 0, 23);
+  const sort: AnalyticsEpisodeSort = params.get("epSort") === "longest" ? "longest" : "recent";
+
+  return {
+    from, to, line, station, disruptionClass, kind, cause, planned, completed,
+    minMinutes, maxMinutes, dayOfWeek, hour, sort,
+  };
+}
+
 export function parseAnalyticsQuery(search: string, lines?: readonly AnalyticsLineOption[]): AnalyticsQuery {
   const params = new URLSearchParams(search);
   const rangeParam = params.get("range");
@@ -109,7 +228,9 @@ export function parseAnalyticsQuery(search: string, lines?: readonly AnalyticsLi
   const station = !line || !stationParam
     ? null
     : !option || option.stations.some((candidate) => candidate.id === stationParam) ? stationParam : null;
-  return { preset, from, to, line, station, compare: params.get("compare") === "1" };
+  const drilldown = parseDrilldown(params, lines);
+  const base: AnalyticsQuery = { preset, from, to, line, station, compare: params.get("compare") === "1" };
+  return hasAnalyticsDrilldown(drilldown) ? { ...base, drilldown } : base;
 }
 
 /** The query string (with "?"), or "" when everything is the default. */
@@ -127,13 +248,40 @@ export function serializeAnalyticsQuery(query: AnalyticsQuery): string {
     if (query.station) params.set("station", query.station);
   }
   if (query.compare) params.set("compare", "1");
+  const d = query.drilldown;
+  if (d && hasAnalyticsDrilldown(d)) {
+    if (d.from) params.set("epFrom", d.from);
+    if (d.to && d.to !== d.from) params.set("epTo", d.to);
+    if (d.line) params.set("epLine", d.line);
+    if (d.station) params.set("epStation", d.station);
+    if (d.disruptionClass) params.set("epClass", d.disruptionClass);
+    if (d.kind) params.set("epKind", d.kind);
+    if (d.cause) params.set("epCause", d.cause);
+    if (d.planned !== null) params.set("epPlanned", d.planned ? "1" : "0");
+    if (d.completed !== null) params.set("epCompleted", d.completed ? "1" : "0");
+    if (d.minMinutes !== null) params.set("epMin", String(d.minMinutes));
+    if (d.maxMinutes !== null) params.set("epMax", String(d.maxMinutes));
+    if (d.dayOfWeek !== null) params.set("epDow", String(d.dayOfWeek));
+    if (d.hour !== null) params.set("epHour", String(d.hour));
+    if (d.sort !== "recent") params.set("epSort", d.sort);
+  }
   const search = params.toString();
   return search ? `?${search}` : "";
 }
 
-/** Switching network keeps the range and comparison; its lines and stations do not carry over. */
+/** Switching network keeps the range and comparison; lines, stations and drill-down do not carry over. */
 export function analyticsQueryForOtherNetwork(query: AnalyticsQuery): AnalyticsQuery {
-  return { ...query, line: null, station: null };
+  return { preset: query.preset, from: query.from, to: query.to, line: null, station: null, compare: query.compare };
+}
+
+/** Returns a query with updated drill-down filters (omitting the field when empty). */
+export function withAnalyticsDrilldown(query: AnalyticsQuery, next: AnalyticsDrilldown): AnalyticsQuery {
+  if (!hasAnalyticsDrilldown(next)) {
+    const rest = { ...query };
+    delete rest.drilldown;
+    return rest;
+  }
+  return { ...query, drilldown: next };
 }
 
 function requestedRange(query: AnalyticsQuery, bounds: AnalyticsRangeBounds): [string, string] {
