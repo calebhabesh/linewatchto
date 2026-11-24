@@ -74,11 +74,11 @@ for (const network of ["ttc", "regional"] as const) {
       const startingSoon = timing.filter({ hasText: /^Starts / }).locator(".incident-countdown");
       await expect(startingSoon).toHaveText("(50m)");
       await expect(startingSoon).toHaveAttribute("data-stage", "soon");
-      await expect(startingSoon).toHaveCSS("color", theme === "dark" ? "rgb(183, 167, 215)" : "rgb(109, 40, 217)");
+      await expect(startingSoon).toHaveCSS("color", theme === "dark" ? "rgb(249, 168, 184)" : "rgb(225, 29, 72)");
       await advance(190 * 60_000);
       await expect(startingSoon).toHaveText("(10m)");
       await expect(startingSoon).toHaveAttribute("data-stage", "imminent");
-      await expect(startingSoon).toHaveCSS("color", theme === "dark" ? "rgb(216, 180, 254)" : "rgb(126, 34, 206)");
+      await expect(startingSoon).toHaveCSS("color", theme === "dark" ? "rgb(251, 113, 133)" : "rgb(190, 18, 60)");
       await service.screenshot({ path: `/tmp/linewatch-countdown-colors-${network}-${theme}-${isMobile ? "mobile" : "desktop"}.png` });
 
       await advance(50 * 60 * 60_000 + 50 * 60_000);
