@@ -281,8 +281,12 @@ import {
   chooseGeographicChooserLayout,
   geographicChooserLayoutsMatch,
   GEOGRAPHIC_CHOOSER_KEEPOUT_GAP,
+  placeGeographicAlertChooser,
+  valueAtZoom,
   type GeographicOverlapChooserLayout,
 } from "./geographic-chooser-placement";
+import type { PlacementObstacle } from "./overlap-badge-placement";
+import { GEOGRAPHIC_ROUTE_OFFSET_STOPS } from "../app/map-line-badges";
 import { overlapChooserSize, streetcarCardSize, streetcarVehicleCardSize } from "./map-chooser-layout";
 import { useMapGestureInterruption } from "../hooks/useMapGestureInterruption";
 import {
@@ -290,7 +294,9 @@ import {
   getOverlapBadgeKey,
   parseOverlapBadgeKey,
   createSvgImage,
-  MAP_BADGE_PIXEL_RATIO,
+  getOverlapBadgeDimensions,
+  mapBadgePixelRatio,
+  MAP_BADGE_DISPLAY_SCALE,
 } from "./map-overlap-svg";
 import { countUniqueImpactsByKind } from "../app/map-alert-selector";
 import {
@@ -326,6 +332,9 @@ import {
   GEOGRAPHIC_SELECTION_BAND_WIDTHS,
   GEOGRAPHIC_SELECTION_GLOW_WIDTHS,
   GEOGRAPHIC_SELECTION_GLOW_OPACITY,
+  GEOGRAPHIC_IMPACT_LINE_WIDTHS,
+  GEOGRAPHIC_IMPACT_STATION_RADII,
+  updateGeographicImpactFeatureState,
 } from "./geographic-map-operations.ts";
 import { getLinkFeatures } from "../app/geographic-catalog";
 import { measureDesktopMapInsets } from "../app/desktop-sidebar-state";
@@ -377,6 +386,15 @@ export type GeographicNetworkMapProps = {
   zoomOutSignal?: number;
   reducedMotion?: boolean;
   onReady?: () => void;
+  /**
+   * A System Map ⇄ Map View switch in progress (NetworkMap): "entering" while
+   * this map is prepared out of sight, "leaving" while it stays on screen to be
+   * replaced. Either way its toolbar does not place itself, and an entering
+   * map's layer deck waits rolled up until it shows.
+   */
+  viewHandoff?: "entering" | "leaving";
+  /** Once per load, when the map has drawn its first complete view (or failed to load). */
+  onSettled?: () => void;
   onSwitchToDiagram?: () => void;
   isMapActive?: boolean;
   onNetworkChange?: (network: NetworkId) => void;
@@ -414,6 +432,8 @@ export type GeographicNetworkMapProps = {
 
 const EMPTY_SEGMENTS: NetworkSegment[] = [];
 const EMPTY_STATION_IMPACTS: StationNodeImpact[] = [];
+/** The longest a loaded map waits to go idle before it counts as drawn (onSettled). */
+const GEOGRAPHIC_SETTLE_MAX_MS = 700;
 const EMPTY_ALERTS: ActiveAlert[] = [];
 const EMPTY_PLANNED_CLOSURES: PlannedClosure[] = [];
 const EMPTY_TRAIN_MARKERS: EstimatedTrainMarker[] = [];
@@ -432,6 +452,53 @@ type GeographicOverlapChooserState = {
   impacts: MapImpact[];
   coordinate: [number, number];
 };
+
+/** One shared empty collection, so an absent layer's data keeps its identity across renders. */
+const EMPTY_OVERLAY_COLLECTION = { type: "FeatureCollection" as const, features: [] as never[] };
+
+type AlertChooserOverlay = {
+  impactBadges: { features: Array<{ properties: { targetType: string; targetId: string; kindCounts?: unknown[] } }> };
+  impactedLinks: { features: Array<{ geometry: { coordinates: [number, number][] }; properties: { allCardIds: string[] } }> };
+  impactedStations: { features: Array<{ geometry: { coordinates: [number, number] }; properties: { allCardIds?: string[] } }> };
+};
+
+/** The open chooser's badge as drawn, in screen pixels. */
+function alertBadgeSize(overlay: AlertChooserOverlay, alert: GeographicOverlapChooserState) {
+  const badge = overlay.impactBadges.features.find((feature) => (
+    feature.properties.targetType === alert.targetType && feature.properties.targetId === alert.targetId
+  ));
+  const { width, height } = getOverlapBadgeDimensions(badge?.properties.kindCounts?.length ?? 1);
+  return { width: width * MAP_BADGE_DISPLAY_SCALE, height: height * MAP_BADGE_DISPLAY_SCALE };
+}
+
+/**
+ * The drawn overlays of the chooser's alerts, in map-container pixels: each
+ * affected segment as its line (half its width, plus the offset GO/UP lines
+ * take beside a shared track) and each affected station as its ring.
+ */
+function alertChooserAffectedArea(
+  map: MapLibreMap,
+  overlay: AlertChooserOverlay,
+  alert: GeographicOverlapChooserState,
+): PlacementObstacle[] {
+  const cardIds = new Set(alert.impacts.map((impact) => impact.cardId));
+  const listed = (ids: readonly string[] | undefined) => Boolean(ids?.some((id) => cardIds.has(id)));
+  const zoom = map.getZoom();
+  const lineRadius = valueAtZoom(GEOGRAPHIC_IMPACT_LINE_WIDTHS, zoom) / 2 + valueAtZoom(GEOGRAPHIC_ROUTE_OFFSET_STOPS, zoom);
+  const stationRadius = valueAtZoom(GEOGRAPHIC_IMPACT_STATION_RADII, zoom) + 1.5;
+  const project = (coordinate: [number, number]) => {
+    const point = map.project(coordinate);
+    return { x: point.x, y: point.y };
+  };
+  return [
+    ...overlay.impactedLinks.features
+      .filter((feature) => listed(feature.properties.allCardIds))
+      .map((feature) => ({ polyline: feature.geometry.coordinates.map(project), radius: lineRadius })),
+    ...overlay.impactedStations.features
+      .filter((feature) => listed(feature.properties.allCardIds))
+      .map((feature) => ({ polyline: [project(feature.geometry.coordinates)], radius: stationRadius })),
+  ];
+}
 
 /**
  * A press on a streetcar or bus line (the routes there and where the card
@@ -792,6 +859,8 @@ export function GeographicNetworkMap({
   zoomOutSignal,
   reducedMotion = false,
   onReady,
+  viewHandoff,
+  onSettled,
   onSwitchToDiagram,
   isMapActive = true,
   onNetworkChange,
@@ -1001,6 +1070,7 @@ export function GeographicNetworkMap({
       return {
         coordinate: overlapChooser.coordinate,
         size: (viewportWidth: number) => overlapChooserSize(overlapChooser.impacts.length, viewportWidth),
+        alert: overlapChooser,
       };
     }
     if (streetcarCard?.kind === "go-bus-vehicle") {
@@ -1090,6 +1160,9 @@ export function GeographicNetworkMap({
     overlapChooserLayoutRef.current = overlapChooserLayout;
   }, [overlapChooserLayout]);
   const [hoveredOverlapImpact, setHoveredOverlapImpact] = useState<MapImpact | null>(null);
+  /** The badge under a mouse pointer, "segment:<id>" or "station:<id>": drawn outlined as when selected, as System Map badges are on hover. */
+  const [hoveredBadge, setHoveredBadge] = useState<string | null>(null);
+  const openChooserMarkerId = overlapChooser?.markerId ?? null;
   const [hoveredMapTarget, setHoveredMapTarget] = useState<{
     type: "segment" | "station";
     id: string;
@@ -1182,19 +1255,11 @@ export function GeographicNetworkMap({
   }, [network]);
 
   // Compute active overlay GeoJSON projections
-  const overlayData = useMemo(() => {
-    if (!catalog) {
-      return {
-        impactedLinks: { type: "FeatureCollection" as const, features: [] },
-        impactedStations: { type: "FeatureCollection" as const, features: [] },
-        impactBadges: { type: "FeatureCollection" as const, features: [] },
-        impactArrows: { type: "FeatureCollection" as const, features: [] },
-        trainMarkers: { type: "FeatureCollection" as const, features: [] },
-        commuteLinks: { type: "FeatureCollection" as const, features: [] },
-        commuteStations: { type: "FeatureCollection" as const, features: [] },
-      };
-    }
-
+  // Overlay projections, in parts: a hover recomputes and re-sends only the
+  // badges and arrows it changes, never every alert's geometry (that took
+  // about 300ms per chooser row and made the raised alert lag behind).
+  const impactProjection = useMemo(() => {
+    if (!catalog) return null;
     const impactedLinks = projectImpactedLinks(
       catalog,
       resolvedNetworkSegments,
@@ -1216,7 +1281,23 @@ export function GeographicNetworkMap({
       selection,
     }), network);
     const rawBadges = projectImpactBadges(catalog, impactedLinks.features, impactedStations.features, network, selection);
-    const impactBadges = {
+    return { impactedLinks, impactedStations, rawBadges };
+  }, [
+    catalog,
+    resolvedNetworkSegments,
+    resolvedStationNodeImpacts,
+    resolvedPlannedClosures,
+    resolvedActiveAlerts,
+    dashboardData?.delays,
+    dashboardData?.reducedSpeedZones,
+    selection,
+    network,
+  ]);
+
+  const impactBadges = useMemo(() => {
+    if (!impactProjection) return EMPTY_OVERLAY_COLLECTION;
+    const { rawBadges } = impactProjection;
+    return {
       ...rawBadges,
       features: rawBadges.features.map((feature) => {
         const rawImpacts = feature.properties.rawImpacts ?? [{
@@ -1229,27 +1310,41 @@ export function GeographicNetworkMap({
         const isSelected = Boolean(
           selection?.id && (feature.properties.allCardIds?.includes(selection.id) || feature.properties.cardId === selection.id)
         );
+        const { targetType, targetId } = feature.properties;
+        // As on the System Map, a badge hides while its chooser is open, and
+        // a hovered badge looks selected.
+        const chooserOpen = openChooserMarkerId === `geographic-${targetType}-${targetId}`;
+        const isHovered = hoveredBadge === `${targetType}:${targetId}` && !chooserOpen;
         const badgeImageKey = getOverlapBadgeKey({
           kindCounts,
           isDark,
           highContrast,
-          isSelected,
+          isSelected: isSelected || isHovered,
         });
         return {
           ...feature,
           properties: {
             ...feature.properties,
             badgeImageKey,
+            // Loaded beside the plain image, so a hover swaps without a blank frame.
+            badgeHighlightImageKey: getOverlapBadgeKey({ kindCounts, isDark, highContrast, isSelected: true }),
             isSelected,
+            chooserOpen,
           },
         };
       }),
     };
-    const directionalSelection = hoveredOverlapImpact
-      ? { kind: hoveredOverlapImpact.kind, id: hoveredOverlapImpact.cardId }
-      : selection;
-    const impactArrows = projectImpactArrows(catalog, impactedLinks.features, directionalSelection);
-    const trainMarkers = projectEstimatedTrainMarkers(
+  }, [impactProjection, selection, isDark, highContrast, hoveredBadge, openChooserMarkerId]);
+
+  // Every alert's arrows on each link; a hover picks which show by feature
+  // state (updateGeographicImpactFeatureState), with no new data.
+  const impactArrows = useMemo(() => {
+    if (!catalog || !impactProjection) return EMPTY_OVERLAY_COLLECTION;
+    return projectImpactArrows(catalog, impactProjection.impactedLinks.features, selection, { allImpacts: true });
+  }, [catalog, impactProjection, selection]);
+
+  const trainMarkers = useMemo(() => (catalog
+    ? projectEstimatedTrainMarkers(
       catalog,
       estimatedTrainMarkers,
       {
@@ -1257,36 +1352,23 @@ export function GeographicNetworkMap({
         isOnline,
         selectedTrainId: selection?.id,
       },
-    );
-    const commute = projectCommutePreview(catalog, commutePathPreview);
+    )
+    : EMPTY_OVERLAY_COLLECTION), [catalog, estimatedTrainMarkers, estimatedTrainsEnabled, isOnline, selection?.id]);
 
-    return {
-      impactedLinks,
-      impactedStations,
-      impactBadges,
-      impactArrows,
-      trainMarkers,
-      commuteLinks: commute.links,
-      commuteStations: commute.stations,
-    };
-  }, [
-    catalog,
-    resolvedNetworkSegments,
-    resolvedStationNodeImpacts,
-    resolvedPlannedClosures,
-    resolvedActiveAlerts,
-    dashboardData?.delays,
-    dashboardData?.reducedSpeedZones,
-    selection,
-    hoveredOverlapImpact,
-    commutePathPreview,
-    network,
-    estimatedTrainsEnabled,
-    estimatedTrainMarkers,
-    isOnline,
-    isDark,
-    highContrast,
-  ]);
+  const commute = useMemo(
+    () => (catalog ? projectCommutePreview(catalog, commutePathPreview) : null),
+    [catalog, commutePathPreview],
+  );
+
+  const overlayData = useMemo(() => ({
+    impactedLinks: impactProjection?.impactedLinks ?? EMPTY_OVERLAY_COLLECTION,
+    impactedStations: impactProjection?.impactedStations ?? EMPTY_OVERLAY_COLLECTION,
+    impactBadges,
+    impactArrows,
+    trainMarkers,
+    commuteLinks: commute?.links ?? EMPTY_OVERLAY_COLLECTION,
+    commuteStations: commute?.stations ?? EMPTY_OVERLAY_COLLECTION,
+  }), [impactProjection, impactBadges, impactArrows, trainMarkers, commute]);
 
   // Stable references to dynamic data & props for map listeners & style reload
   const overlayDataRef = useRef(overlayData);
@@ -1415,15 +1497,17 @@ export function GeographicNetworkMap({
   );
 
   const attachMapListeners = useCallback((map: MapLibreMap) => {
+    // A badge hidden behind its open chooser takes no press, so the alert under it does.
     const impactBadgeAtPoint = (point: ReturnType<MapLibreMap["project"]>) => {
       const exactBadge = map.getLayer("transit-impact-badges")
-        ? map.queryRenderedFeatures(point, { layers: ["transit-impact-badges"] })[0]
+        ? map.queryRenderedFeatures(point, { layers: ["transit-impact-badges"] })
+          .find((feature) => !feature.properties?.chooserOpen)
         : undefined;
       if (exactBadge?.properties?.targetType && exactBadge.properties.targetId) return exactBadge;
 
       const hitRadius = GEOGRAPHIC_IMPACT_BADGE_MIN_HIT_DIAMETER_PX / 2;
       return overlayDataRef.current.impactBadges.features
-        .filter((feature) => (feature.properties.kindCounts?.length ?? 0) === 1)
+        .filter((feature) => (feature.properties.kindCounts?.length ?? 0) === 1 && !feature.properties.chooserOpen)
         .map((feature) => ({
           feature,
           distance: map.project(feature.geometry.coordinates).dist(point),
@@ -1511,12 +1595,20 @@ export function GeographicNetworkMap({
 
     // Hover on Disruption Badges
     map.on("mousemove", "transit-impact-badges", (e) => {
-      if (!e.features || e.features.length === 0) return;
-      const props = e.features[0].properties;
+      // The badge behind an open chooser is hidden and takes no hover.
+      const props = e.features?.find((feature) => !feature.properties?.chooserOpen)?.properties;
+      if (!props) {
+        setHoveredBadge(null);
+        return;
+      }
       if ((props?.targetType === "segment" || props?.targetType === "station") && props.targetId) {
         setHoveredMapTarget((current) => current?.type === props.targetType && current?.id === props.targetId
           ? current
           : { type: props.targetType, id: props.targetId });
+        // Mouse only: a tap's emulated mousemove would leave the outline stuck on.
+        if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+          setHoveredBadge(`${props.targetType}:${props.targetId}`);
+        }
       }
       if (props?.rawImpacts) {
         try {
@@ -1544,6 +1636,7 @@ export function GeographicNetworkMap({
     map.on("mouseleave", "transit-impact-badges", () => {
       setHoveredOverlapImpact(null);
       setHoveredMapTarget(null);
+      setHoveredBadge(null);
     });
 
     for (const [layerId, type, property] of [
@@ -1575,11 +1668,12 @@ export function GeographicNetworkMap({
       if (!id || !id.startsWith("overlap-badge:")) return;
       const badgeInfo = parseOverlapBadgeKey(id);
       if (!badgeInfo) return;
-      const svg = generateOverlapBadgeSvg(badgeInfo);
+      const pixelRatio = mapBadgePixelRatio();
+      const svg = generateOverlapBadgeSvg(badgeInfo, pixelRatio);
       createSvgImage(svg)
         .then((img) => {
           if (map && map.hasImage && !map.hasImage(id)) {
-            map.addImage(id, img, { pixelRatio: MAP_BADGE_PIXEL_RATIO });
+            map.addImage(id, img, { pixelRatio });
           }
         })
         .catch(() => {});
@@ -2089,42 +2183,59 @@ export function GeographicNetworkMap({
 
     let segmentIds: string[] = [];
     let stationIds: string[] = [];
+    // Everywhere these alerts are drawn, not only where the badge sits.
+    const outlineAlerts = (impactIds: string[]) => {
+      const listed = (ids: readonly string[] | undefined) => Boolean(ids?.some((id) => impactIds.includes(id)));
+      segmentIds = overlayData.impactedLinks.features
+        .filter((feature) => listed(feature.properties.allCardIds))
+        .map((feature) => feature.properties.segmentId);
+      stationIds = overlayData.impactedStations.features
+        .filter((feature) => listed(feature.properties.allCardIds))
+        .map((feature) => feature.properties.stationId);
+    };
+    const badgeUnderPointer = hoveredBadge
+      ? overlayData.impactBadges.features.find((feature) => (
+        `${feature.properties.targetType}:${feature.properties.targetId}` === hoveredBadge
+      ))
+      : undefined;
+    // As on the System Map: an open chooser outlines its hovered row's alert,
+    // else all its alerts; a hovered badge outlines all of its alerts.
     if (overlapChooser) {
-      const impactId = hoveredOverlapImpact?.cardId;
-      if (impactId) {
-        segmentIds = overlayData.impactedLinks.features
-          .filter((feature) => feature.properties.allCardIds.includes(impactId))
-          .map((feature) => feature.properties.segmentId);
-        stationIds = overlayData.impactedStations.features
-          .filter((feature) => feature.properties.allCardIds?.includes(impactId))
-          .map((feature) => feature.properties.stationId);
-      }
+      outlineAlerts(hoveredOverlapImpact
+        ? [hoveredOverlapImpact.cardId]
+        : overlapChooser.impacts.map((impact) => impact.cardId));
+    } else if (badgeUnderPointer) {
+      outlineAlerts((badgeUnderPointer.properties.rawImpacts ?? []).map((impact) => impact.cardId));
     } else if (hoveredMapTarget?.type === "segment") {
       segmentIds = [hoveredMapTarget.id];
     } else if (hoveredMapTarget?.type === "station") {
       stationIds = [hoveredMapTarget.id];
     }
 
-    const filterFor = (property: "segmentId" | "stationId", ids: string[]): Parameters<MapLibreMap["setFilter"]>[1] => (
-      ids.length > 0
-        ? ["in", ["get", property], ["literal", [...new Set(ids)]]]
-        : ["==", ["get", property], ""]
-    );
-    for (const layerId of ["transit-impacts-hover-edge", "transit-impacts-hover-core"]) {
-      if (map.getLayer(layerId)) map.setFilter(layerId, filterFor("segmentId", segmentIds));
-    }
-    if (map.getLayer("transit-station-impacts-hover")) {
-      map.setFilter("transit-station-impacts-hover", filterFor("stationId", stationIds));
-    }
+    // The raised alert: a hovered chooser row's, with its own arrows, else
+    // the selected one (whose arrows are already the defaults).
+    const rowRaised = overlapChooser && hoveredOverlapImpact
+      ? { kind: hoveredOverlapImpact.kind, id: hoveredOverlapImpact.cardId }
+      : null;
+    const raised = rowRaised ?? selection ?? null;
+    updateGeographicImpactFeatureState(map, overlayData, {
+      hoveredSegmentIds: segmentIds,
+      hoveredStationIds: stationIds,
+      raised,
+      raisedArrows: Boolean(rowRaised),
+    });
 
     const container = containerRef.current;
     if (container) {
-      if (segmentIds.length === 1) container.dataset.hoveredImpactSegment = segmentIds[0];
-      else delete container.dataset.hoveredImpactSegment;
-      if (stationIds.length === 1) container.dataset.hoveredImpactStation = stationIds[0];
-      else delete container.dataset.hoveredImpactStation;
+      // Space-separated, for tests: a hovered badge or chooser outlines every segment of its alerts.
+      if (segmentIds.length > 0) container.dataset.hoveredImpactSegments = [...new Set(segmentIds)].join(" ");
+      else delete container.dataset.hoveredImpactSegments;
+      if (stationIds.length > 0) container.dataset.hoveredImpactStations = [...new Set(stationIds)].join(" ");
+      else delete container.dataset.hoveredImpactStations;
+      if (raised) container.dataset.raisedImpact = `${raised.kind}:${raised.id}`;
+      else delete container.dataset.raisedImpact;
     }
-  }, [hoveredMapTarget, hoveredOverlapImpact, loadStatus, overlapChooser, overlayData, styleRevision]);
+  }, [hoveredBadge, hoveredMapTarget, hoveredOverlapImpact, loadStatus, overlapChooser, overlayData, selection, styleRevision]);
 
   // React to line/corridor filtering changes via paint properties
   useEffect(() => {
@@ -3427,35 +3538,61 @@ export function GeographicNetworkMap({
           .map((element) => element.getBoundingClientRect().bottom)
           .filter((bottom) => bottom > containerRect.top && bottom < containerRect.bottom)
           .reduce((bottom, nextBottom) => Math.max(bottom, nextBottom), containerRect.top);
-        const keepouts = visibleKeepoutElements
-          .map((element) => element.getBoundingClientRect())
-          .filter((rect) => (
-            rect.right > containerRect.left
-            && rect.left < containerRect.right
-            && rect.bottom > containerRect.top
-            && rect.top < containerRect.bottom
-          ))
-          .map((rect) => ({
-            left: Math.max(0, rect.left - containerRect.left - GEOGRAPHIC_CHOOSER_KEEPOUT_GAP),
-            top: Math.max(0, rect.top - containerRect.top - GEOGRAPHIC_CHOOSER_KEEPOUT_GAP),
-            right: Math.min(width, rect.right - containerRect.left + GEOGRAPHIC_CHOOSER_KEEPOUT_GAP),
-            bottom: Math.min(height, rect.bottom - containerRect.top + GEOGRAPHIC_CHOOSER_KEEPOUT_GAP),
-          }));
-        if (topChromeBottom > containerRect.top) {
-          keepouts.push({
-            left: 0,
-            top: 0,
-            right: width,
-            bottom: Math.min(height, topChromeBottom - containerRect.top + GEOGRAPHIC_CHOOSER_KEEPOUT_GAP),
-          });
-        }
+        // App controls over the map, in map-container pixels, with `gap` around each.
+        const keepoutsWithGap = (gap: number) => {
+          const boxes = visibleKeepoutElements
+            .map((element) => element.getBoundingClientRect())
+            .filter((rect) => (
+              rect.right > containerRect.left
+              && rect.left < containerRect.right
+              && rect.bottom > containerRect.top
+              && rect.top < containerRect.bottom
+            ))
+            .map((rect) => ({
+              left: Math.max(0, rect.left - containerRect.left - gap),
+              top: Math.max(0, rect.top - containerRect.top - gap),
+              right: Math.min(width, rect.right - containerRect.left + gap),
+              bottom: Math.min(height, rect.bottom - containerRect.top + gap),
+            }));
+          if (topChromeBottom > containerRect.top) {
+            boxes.push({
+              left: 0,
+              top: 0,
+              right: width,
+              bottom: Math.min(height, topChromeBottom - containerRect.top + gap),
+            });
+          }
+          return boxes;
+        };
         const current = opening ? null : overlapChooserLayoutRef.current;
-        const next = {
+        const alert = chooserAnchor.alert;
+        const next = alert ? {
+          // The alert chooser follows the System Map's rules, so it also keeps
+          // the overlays of the alerts it lists in view.
+          ...placeGeographicAlertChooser({
+            badgeCenter: { x: point.x, y: point.y },
+            badgeSize: alertBadgeSize(overlayDataRef.current, alert),
+            affectedArea: alertChooserAffectedArea(map, overlayDataRef.current, alert),
+            keepouts: keepoutsWithGap(0),
+            viewportSize: { width, height },
+            requestedSize: requestedChooserSize,
+            preferred: current
+              ? {
+                  offsetX: current.layout.left - current.followAnchor.badge.x,
+                  offsetY: current.layout.top - current.followAnchor.badge.y,
+                  width: current.chooserSize.width,
+                  height: current.chooserSize.height,
+                  coversAffectedArea: current.layout.coversAffectedArea,
+                }
+              : null,
+          }),
+          followAnchor: { badge: { x: point.x, y: point.y } },
+        } : {
           ...chooseGeographicChooserLayout({
             anchor: point,
             viewportSize: { width, height },
             requestedSize: requestedChooserSize,
-            keepouts,
+            keepouts: keepoutsWithGap(GEOGRAPHIC_CHOOSER_KEEPOUT_GAP),
             margin: compact ? 12 : 16,
             // Keep the open card's spot beside its badge while that spot is valid.
             preferred: current
@@ -3636,7 +3773,10 @@ export function GeographicNetworkMap({
   // does (captions drop, then a second row), now that the TTC Map View adds a
   // Bus Routes switch there (S5).
   const controlRailRef = useRef<HTMLDivElement | null>(null);
-  useLayoutEffect(() => observeDesktopControlRail(controlRailRef.current), []);
+  const placesControlRail = !viewHandoff;
+  useLayoutEffect(() => (
+    placesControlRail ? observeDesktopControlRail(controlRailRef.current) : undefined
+  ), [placesControlRail]);
 
   // The layer deck unrolls from under the toolbar as the Map View opens on
   // either network (once the map is ready and shown), and again after a
@@ -3651,14 +3791,16 @@ export function GeographicNetworkMap({
   // up with its switches hidden, so it never shows open and then snaps shut to
   // animate in. A map that fails to load shows the deck at once; so does
   // reduced motion (the app setting here, the system setting in map-controls.css).
-  const layerDeckWaiting = !reducedMotion && loadStatus === "loading";
+  // A map prepared behind the System Map waits the same way until it shows.
+  const layerDeckHeld = viewHandoff === "entering";
+  const layerDeckWaiting = !reducedMotion && (loadStatus === "loading" || layerDeckHeld);
   useLayoutEffect(() => {
     const deck = layerDeckRef.current;
     layerDeckExitRef.current = null;
     // A roll-up still holding the old network's deck closed gives way to the new deck.
     layerDeckExitAnimationsRef.current.forEach((animation) => animation.cancel());
     layerDeckExitAnimationsRef.current = [];
-    if (!mapReady || !deck || reducedMotion || typeof deck.animate !== "function") return;
+    if (!mapReady || layerDeckHeld || !deck || reducedMotion || typeof deck.animate !== "function") return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const easing = "cubic-bezier(0.2, 0.8, 0.2, 1)";
     const animations = [
@@ -3672,7 +3814,39 @@ export function GeographicNetworkMap({
       ], { duration: 240, delay: 90 + index * 45, easing, fill: "backwards" })),
     ];
     return () => animations.forEach((animation) => animation.cancel());
-  }, [mapReady, network, reducedMotion]);
+  }, [mapReady, network, reducedMotion, layerDeckHeld]);
+
+  // The first complete view after each load, for a view switch to reveal: a
+  // frame drawn with every tile and source loaded, including the transit
+  // layers' first data (not waiting out the labels' fade-in, as idle would),
+  // or at most GEOGRAPHIC_SETTLE_MAX_MS after loading. A failed load settles
+  // at once, so its error card shows.
+  const onSettledRef = useRef(onSettled);
+  useLayoutEffect(() => { onSettledRef.current = onSettled; }, [onSettled]);
+  useEffect(() => {
+    if (loadStatus === "error") {
+      onSettledRef.current?.();
+      return;
+    }
+    const map = mapRef.current;
+    if (loadStatus !== "ready" || !map) return;
+    let settled = false;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      onSettledRef.current?.();
+    };
+    const settleIfDrawn = () => {
+      if (map.loaded()) settle();
+    };
+    const timer = window.setTimeout(settle, GEOGRAPHIC_SETTLE_MAX_MS);
+    map.on("render", settleIfDrawn);
+    map.triggerRepaint();
+    return () => {
+      window.clearTimeout(timer);
+      map.off("render", settleIfDrawn);
+    };
+  }, [loadStatus]);
 
   // The inverse, as the rider leaves the Map View for the System Map, or
   // switches network: the switches fade out right to left, then the deck
@@ -3710,14 +3884,12 @@ export function GeographicNetworkMap({
   const handleMapViewTransitionStart = useCallback((next: MapViewPreference) => {
     if (next !== "geographic") void playLayerDeckExit();
   }, [playLayerDeckExit]);
+  // The switch itself does not wait for the roll-up (begun with the toggle's
+  // glide): this map stays on screen while the System Map is prepared behind
+  // it, and fades out over it (NetworkMap).
   const handleMapViewChange = useCallback((next: MapViewPreference) => {
-    if (!onMapViewChange) return;
-    if (next === "geographic") {
-      onMapViewChange(next);
-      return;
-    }
-    void playLayerDeckExit().then(() => onMapViewChange(next));
-  }, [onMapViewChange, playLayerDeckExit]);
+    onMapViewChange?.(next);
+  }, [onMapViewChange]);
   const handleNetworkChange = useCallback((next: NetworkId) => {
     // Each network has its own deck: the old one rolls up alongside the
     // network fade (the switch is not held for it) and the new one unrolls.

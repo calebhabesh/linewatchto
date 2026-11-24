@@ -7,25 +7,19 @@ import type { MapFadeController } from "../app/map-surface-transition";
 import { loadGeographicCatalog } from "../app/geographic-catalog-loader";
 import { MAP_MANIFESTS, NETWORK_MAPS } from "../app/map-manifests";
 import { preloadRasterMapSource, rasterMapSource, type RasterMapTheme, type RasterMapDensity } from "./RasterMapPlane";
-import dynamic from "next/dynamic";
 import type { NetworkId } from "../app/regional-data";
 import { prepareSystemMap, RegisteredSystemMap, type RegisteredSystemMapProps } from "./system-map/system-map-registry";
 import { NetworkMapLegend, type NetworkMapLegendProps } from "./NetworkMapLegends";
 import { SharedMapControlRailProvider } from "./SharedMapControlRail";
 import { useAdvancedTrainMarkers } from "../hooks/useAdvancedTrainMarkers";
+import { PreloadableGeographicMap } from "./geographic-map-loader";
+import type { MapViewPreference } from "../app/visual-preferences";
 
 const EMPTY_MARKERS: NonNullable<RegisteredSystemMapProps["estimatedTrainMarkers"]> = [];
 
-const loadGeographicMap = () => import("./GeographicNetworkMap");
-
-const GeographicNetworkMap = dynamic(
-  () => loadGeographicMap().then((mod) => mod.GeographicNetworkMap),
-  { ssr: false },
-);
-
 export async function prepareNetworkMap(network: NetworkId, view: "diagram" | "geographic", theme: RasterMapTheme, density: RasterMapDensity) {
   if (view === "geographic") {
-    await Promise.all([loadGeographicMap(), loadGeographicCatalog(network)]);
+    await Promise.all([PreloadableGeographicMap.preload(), loadGeographicCatalog(network)]);
     return;
   }
   const mapId = NETWORK_MAPS[network];
@@ -38,9 +32,10 @@ export async function prepareNetworkMap(network: NetworkId, view: "diagram" | "g
 type SystemMapShellProps = RegisteredSystemMapProps;
 
 /**
- * A hidden (preparing or warming) map keeps its last render: the shell's
- * selection, sheets and panels change on every interaction, and re-rendering
- * the map the rider cannot see cost a third of a phone station tap. Its
+ * A hidden (preparing or warming) map, or one a view switch is replacing,
+ * keeps its last render: the shell's selection, sheets and panels change on
+ * every interaction, and re-rendering the map the rider cannot see cost a
+ * third of a phone station tap. Its
  * dashboard data still arrives through context; the rest catches up when it
  * is shown.
  */
@@ -50,6 +45,21 @@ const FrozenWhileHidden = memo(
   },
   (previous, next) => previous.hidden && next.hidden,
 );
+/**
+ * A switch between the System Map and the Map View (the toggle, or a stop or
+ * notice opened on the Map View): the new view mounts out of sight while the
+ * old one stays on screen; once the new one has drawn, they crossfade
+ * (`revealed`) and the old one unmounts. A switch back during it drops the new view.
+ */
+type MapViewHandoff = { from: MapViewPreference; to: MapViewPreference; revealed: boolean };
+
+/** The longest the old view waits for the new one to draw before the switch shows it anyway. */
+const MAP_VIEW_HANDOFF_MAX_HOLD_MS = 2500;
+const MAP_VIEW_HANDOFF_FADE_MS = 240;
+
+const diagramReadySelector = (network: NetworkId) =>
+  `.network-diagram-layer[data-network-map-layer="${network}"][data-map-ready="true"] .map-stage[data-raster-map-ready="true"]`;
+
 type NetworkMapProps = SystemMapShellProps & {
   network: NetworkId;
   mobileAnnouncementVisible: boolean;
@@ -114,67 +124,151 @@ export function NetworkMap({
     ? shellProps
     : { ...shellProps, estimatedTrainMarkers };
   const isMapActive = props.isMapActive ?? (props.mapChromeVisible);
-  const isGeographic = props.mapView === "geographic";
 
-  if (isGeographic) {
-    return (
-      <>
-        <GeographicNetworkMap
-          network={network}
-          networkFadeRef={geographicFadeRef}
-          isDark={props.isDark}
-          highContrast={Boolean(props.highContrast)}
-          selectedStationId={props.selectedStationId}
-          onSelectStationId={props.onSelectStationId}
-          selectedSurfaceStopCode={selectedSurfaceStopCode}
-          onSelectSurfaceStop={onSelectSurfaceStop}
-          onOpenSurfaceRoute={onOpenSurfaceRoute}
-          surfaceSelection={surfaceSelection}
-          selection={props.selection}
-          onSelectImpact={(next) => {
-            if (!isRepeatMapSelection(props, next)) props.onSelectImpact(next);
-          }}
-          commutePathPreview={props.commutePathPreview}
-          onClearCommutePathPreview={props.onClearCommutePathPreview}
-          recenterSignal={props.recenterSignal}
-          zoomInSignal={props.zoomInSignal}
-          zoomOutSignal={props.zoomOutSignal}
-          reducedMotion={props.reducedMotion}
-          onReady={onMapReady}
-          onSwitchToDiagram={() => props.onMapViewChange?.("diagram")}
-          isMapActive={isMapActive}
-          onNetworkChange={props.onNetworkChange}
-          mapView={props.mapView}
-          onMapViewChange={props.onMapViewChange}
-          estimatedTrainsEnabled={props.estimatedTrainsEnabled}
-          estimatedTrainMarkers={props.estimatedTrainMarkers}
-          selectionAttentionGeneration={props.selectionAttentionGeneration}
-          selectionIntroKey={props.selectionIntroKey}
-          mobilePerformanceMode={props.mobilePerformanceMode}
-          layoutResetSignal={props.layoutResetSignal}
-          busesEnabled={busesEnabled}
-          onToggleBuses={onToggleBuses}
-          goBusesEnabled={goBusesEnabled}
-          onToggleGoBuses={onToggleGoBuses}
-          trainMarkersControl={trainMarkersControl}
-          layersSheetOpen={layersSheetOpen}
-          onCloseLayersSheet={onCloseLayersSheet}
-          onLayersCustomizedChange={onLayersCustomizedChange}
-        />
-        <NetworkMapLegend
-          mode={network}
-          closingSoon={mobileAnnouncementVisible}
-          {...legendProps}
-        />
-      </>
-    );
+  const view: MapViewPreference = props.mapView === "geographic" ? "geographic" : "diagram";
+  const [requestedView, setRequestedView] = useState(view);
+  const [handoff, setHandoff] = useState<MapViewHandoff | null>(null);
+  // A map has drawn: before that (a stored view applied just after load) there is nothing to hold on screen.
+  const [drawn, setDrawn] = useState(false);
+  if (requestedView !== view) {
+    setRequestedView(view);
+    // Asked back to the view still on screen: the one being prepared is dropped.
+    setHandoff(!drawn || handoff?.from === view ? null : { from: requestedView, to: view, revealed: false });
   }
+  const handleMapReady = useCallback(() => {
+    setDrawn(true);
+    onMapReady?.();
+  }, [onMapReady]);
+  const reducedMotion = Boolean(props.reducedMotion);
+  const revealIncomingView = useCallback(() => {
+    const still = reducedMotion || Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+    setHandoff(current => !current || current.revealed ? current : still ? null : { ...current, revealed: true });
+  }, [reducedMotion]);
+
+  // Hold the old view until the new one has drawn: the Map View reports it
+  // (onSettled); a System Map is ready once its network's layer is, with its
+  // artwork decoded. A slow source is shown anyway after the cap.
+  const diagramLayerRef = useRef<HTMLDivElement | null>(null);
+  const geographicLayerRef = useRef<HTMLDivElement | null>(null);
+  const holdingFor = handoff && !handoff.revealed ? handoff.to : null;
+  useEffect(() => {
+    if (!holdingFor) return;
+    const cap = window.setTimeout(revealIncomingView, MAP_VIEW_HANDOFF_MAX_HOLD_MS);
+    const layer = holdingFor === "diagram" ? diagramLayerRef.current : null;
+    const check = () => {
+      if (layer?.querySelector(diagramReadySelector(network))) revealIncomingView();
+    };
+    const observer = layer ? new MutationObserver(check) : null;
+    if (layer) observer?.observe(layer, {
+      subtree: true, attributes: true, attributeFilter: ["data-map-ready", "data-raster-map-ready"],
+    });
+    const firstCheck = layer ? window.requestAnimationFrame(check) : null;
+    return () => {
+      window.clearTimeout(cap);
+      observer?.disconnect();
+      if (firstCheck !== null) window.cancelAnimationFrame(firstCheck);
+    };
+  }, [holdingFor, network, revealIncomingView]);
+
+  // Then the two crossfade and the old one unmounts. The Map View is the opaque
+  // one, so it always does the fading, in or out, above a still System Map. Its
+  // toolbar is left out: the two toolbars share a place and swap at once.
+  const fading = handoff?.revealed ? handoff : null;
+  useLayoutEffect(() => {
+    if (!fading) return;
+    const finish = () => setHandoff(current => current === fading ? null : current);
+    const frames = fading.to === "geographic" ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 0 }];
+    const faded = geographicLayerRef.current?.querySelectorAll(".geographic-network-map > :not(.map-control-rail)") ?? [];
+    const animations = [...faded].map(element => element.animate(frames, {
+      duration: MAP_VIEW_HANDOFF_FADE_MS, easing: "cubic-bezier(0.4, 0, 0.2, 1)", fill: "both",
+    }));
+    void Promise.all(animations.map(animation => animation.finished)).then(finish, () => undefined);
+    return () => animations.forEach(animation => animation.cancel());
+  }, [fading]);
+
+  const roleOf = (layerView: MapViewPreference) =>
+    !handoff ? undefined : layerView === handoff.from ? "leaving" as const : handoff.revealed ? undefined : "entering" as const;
+  const layerAttributes = (layerView: MapViewPreference) => {
+    const role = roleOf(layerView);
+    return {
+      className: "map-view-layer",
+      "data-map-view-layer": layerView,
+      "data-map-view-handoff": role,
+      "data-map-view-fading": handoff?.revealed ? "true" : undefined,
+      "aria-hidden": role ? true : undefined,
+      inert: Boolean(role),
+    };
+  };
+  const diagramRole = roleOf("diagram");
+  const geographicRole = roleOf("geographic");
+  const geographicShown = view === "geographic" || handoff?.from === "geographic";
+  // The System Map's toolbar sits outside its layer (SharedMapControlRailProvider):
+  // it stays while that map is on screen, and hands over when the other view shows.
+  const diagramRail = diagramRole === "entering" || (diagramRole === "leaving" && handoff?.revealed)
+    ? "hidden" as const : diagramRole === "leaving" ? "held" as const : "shown" as const;
 
   return (
-    <SharedMapControlRailProvider network={network}>
-      <DiagramNetworkMaps network={network} preparingNetwork={preparingNetwork} warmingNetwork={warmingNetwork}
-        diagramData={diagramData} diagramStations={diagramStations}
-        onMapReady={onMapReady} onPreparedMapReady={onPreparedMapReady} props={props} />
+    <SharedMapControlRailProvider network={network} railState={diagramRail}>
+      {view === "diagram" || handoff?.from === "diagram" ? (
+        <div ref={diagramLayerRef} {...layerAttributes("diagram")}>
+          <FrozenWhileHidden hidden={diagramRole === "leaving"}>
+            <DiagramNetworkMaps network={network} preparingNetwork={preparingNetwork} warmingNetwork={warmingNetwork}
+              diagramData={diagramData} diagramStations={diagramStations}
+              onMapReady={handleMapReady} onPreparedMapReady={onPreparedMapReady}
+              props={diagramRole === "leaving" ? { ...props, mapView: "diagram" } : props} />
+          </FrozenWhileHidden>
+        </div>
+      ) : null}
+      {geographicShown ? (
+        <div ref={geographicLayerRef} {...layerAttributes("geographic")}>
+          <FrozenWhileHidden hidden={geographicRole === "leaving"}>
+            <PreloadableGeographicMap
+              network={network}
+              networkFadeRef={geographicFadeRef}
+              isDark={props.isDark}
+              highContrast={Boolean(props.highContrast)}
+              selectedStationId={props.selectedStationId}
+              onSelectStationId={props.onSelectStationId}
+              selectedSurfaceStopCode={selectedSurfaceStopCode}
+              onSelectSurfaceStop={onSelectSurfaceStop}
+              onOpenSurfaceRoute={onOpenSurfaceRoute}
+              surfaceSelection={surfaceSelection}
+              selection={props.selection}
+              onSelectImpact={(next) => {
+                if (!isRepeatMapSelection(props, next)) props.onSelectImpact(next);
+              }}
+              commutePathPreview={props.commutePathPreview}
+              onClearCommutePathPreview={props.onClearCommutePathPreview}
+              recenterSignal={props.recenterSignal}
+              zoomInSignal={props.zoomInSignal}
+              zoomOutSignal={props.zoomOutSignal}
+              reducedMotion={props.reducedMotion}
+              onReady={handleMapReady}
+              viewHandoff={geographicRole}
+              onSettled={revealIncomingView}
+              onSwitchToDiagram={() => props.onMapViewChange?.("diagram")}
+              isMapActive={isMapActive}
+              onNetworkChange={props.onNetworkChange}
+              mapView={geographicRole === "leaving" ? "geographic" : props.mapView}
+              onMapViewChange={props.onMapViewChange}
+              estimatedTrainsEnabled={props.estimatedTrainsEnabled}
+              estimatedTrainMarkers={props.estimatedTrainMarkers}
+              selectionAttentionGeneration={props.selectionAttentionGeneration}
+              selectionIntroKey={props.selectionIntroKey}
+              mobilePerformanceMode={props.mobilePerformanceMode}
+              layoutResetSignal={props.layoutResetSignal}
+              busesEnabled={busesEnabled}
+              onToggleBuses={onToggleBuses}
+              goBusesEnabled={goBusesEnabled}
+              onToggleGoBuses={onToggleGoBuses}
+              trainMarkersControl={trainMarkersControl}
+              layersSheetOpen={layersSheetOpen}
+              onCloseLayersSheet={onCloseLayersSheet}
+              onLayersCustomizedChange={onLayersCustomizedChange}
+            />
+          </FrozenWhileHidden>
+        </div>
+      ) : null}
       <NetworkMapLegend mode={network} closingSoon={mobileAnnouncementVisible} {...legendProps} />
     </SharedMapControlRailProvider>
   );

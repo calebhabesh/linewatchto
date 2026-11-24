@@ -11,8 +11,21 @@ type PublishRail = (network: NetworkId, rail: ReactNode | null) => void;
 type RailContextValue = { publish: PublishRail; hasRail: (network: NetworkId) => boolean };
 const RailContext = createContext<RailContextValue | null>(null);
 
+/**
+ * How a System Map ⇄ Map View switch (NetworkMap) treats the System Map's toolbar:
+ * "held" on screen but out of use while the System Map waits to be replaced,
+ * "hidden" while the System Map is prepared or the Map View fades in over it. A
+ * hidden toolbar does not place itself, so it never contends with the Map View's
+ * for the right-hand buttons' captions.
+ */
+export type SharedMapControlRailState = "shown" | "held" | "hidden";
+
 /** Reconcile both maps' controls in one place so hover, focus and the toggle survive a swap. */
-export function SharedMapControlRailProvider({ network, children }: { network: NetworkId; children: ReactNode }) {
+export function SharedMapControlRailProvider({ network, railState = "shown", children }: {
+  network: NetworkId;
+  railState?: SharedMapControlRailState;
+  children: ReactNode;
+}) {
   const railsRef = useRef<Partial<Record<NetworkId, ReactNode>>>({});
   const [rails, setRails] = useState<Partial<Record<NetworkId, ReactNode>>>({});
   const publish = useCallback<PublishRail>((id, rail) => {
@@ -38,12 +51,22 @@ export function SharedMapControlRailProvider({ network, children }: { network: N
   // Observe the rail element, not each render's rail: every map render
   // publishes a new rail node, and re-subscribing read layout mid-commit.
   const observedRailRef = useRef<{ element: HTMLElement | null; stop: () => void } | null>(null);
+  const placed = railState !== "hidden";
+  const placedRail = placed ? activeRail : null;
+  // Stops in the cleanup, before the Map View's toolbar places itself in the same commit.
   useLayoutEffect(() => {
-    const element = anchorRef.current?.querySelector<HTMLElement>(".desktop-map-control-rail") ?? null;
+    if (!placed) return;
+    return () => {
+      observedRailRef.current?.stop();
+      observedRailRef.current = null;
+    };
+  }, [placed]);
+  useLayoutEffect(() => {
+    const element = placedRail ? anchorRef.current?.querySelector<HTMLElement>(".desktop-map-control-rail") ?? null : null;
     if (observedRailRef.current && observedRailRef.current.element === element) return;
     observedRailRef.current?.stop();
     observedRailRef.current = { element, stop: observeDesktopControlRail(element) };
-  }, [activeRail]);
+  }, [placedRail]);
   useEffect(() => () => {
     observedRailRef.current?.stop();
     observedRailRef.current = null;
@@ -51,7 +74,8 @@ export function SharedMapControlRailProvider({ network, children }: { network: N
   return (
     <RailContext.Provider value={context}>
       {children}
-      <span ref={anchorRef} style={{ display: "contents" }} onClickCapture={holdCameraControl} onChangeCapture={holdCameraControl}>{activeRail}</span>
+      <span ref={anchorRef} style={{ display: "contents", visibility: railState === "hidden" ? "hidden" : undefined }}
+        inert={railState !== "shown"} onClickCapture={holdCameraControl} onChangeCapture={holdCameraControl}>{activeRail}</span>
     </RailContext.Provider>
   );
 }

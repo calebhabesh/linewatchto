@@ -8,7 +8,20 @@ export const OVERLAP_BADGE_ITEM_SPACING =
 export const OVERLAP_BADGE_PILL_THICKNESS =
   OVERLAP_BADGE_CIRCLE_RADIUS * 2 + OVERLAP_BADGE_ITEM_GAP * 2;
 export const MAP_BADGE_DISPLAY_SCALE = 0.25;
+/** The densest badge raster, for screens of 3x and above. */
 export const MAP_BADGE_PIXEL_RATIO = 3;
+/** Room around the pill, in badge units, for the outer half of its 6-unit selected outline and the count's ring. */
+const MAP_BADGE_IMAGE_MARGIN = 6;
+
+/**
+ * The pixel ratio to rasterise badges at: the screen's own, from 1x to 3x, so
+ * MapLibre draws each image pixel to one screen pixel. A 3x image shrunk to a
+ * 1x screen samples unevenly and its thin outline looks grainy.
+ */
+export function mapBadgePixelRatio(): number {
+  const ratio = typeof window === "undefined" ? MAP_BADGE_PIXEL_RATIO : window.devicePixelRatio;
+  return Math.min(MAP_BADGE_PIXEL_RATIO, Math.max(1, Number.isFinite(ratio) ? ratio : 1));
+}
 export const MAP_BADGE_GLYPH_TOP = 124;
 export const MAP_BADGE_GLYPH_BOTTOM = 1662;
 export const MAP_BADGE_GLYPH_GAP = 28;
@@ -142,7 +155,7 @@ export function generateOverlapBadgeSvg({
   isDark = false,
   highContrast = false,
   isSelected = false,
-}: MapOverlapBadgeOptions): string {
+}: MapOverlapBadgeOptions, pixelRatio = MAP_BADGE_PIXEL_RATIO): string {
   const visibleKindCounts = kindCounts.slice(0, 3);
   const hiddenKindCount = Math.max(0, kindCounts.length - visibleKindCounts.length);
   const totalItems = visibleKindCounts.length + (hiddenKindCount > 0 ? 1 : 0);
@@ -195,13 +208,16 @@ export function generateOverlapBadgeSvg({
     itemSvgs.push(renderVectorLabelSvg(`+${hiddenKindCount}`, x, 0, 22, 44));
   }
 
-  // Rasterize at the final logical size so MapLibre does not heavily shrink
-  // the texture in its sprite atlas. Three source pixels cover DPR 1–3.
-  const rasterScale = MAP_BADGE_DISPLAY_SCALE * MAP_BADGE_PIXEL_RATIO;
-  const renderWidth = Math.round(width * rasterScale);
-  const renderHeight = Math.round(height * rasterScale);
+  // Rasterize at the final logical size and the screen's density (see
+  // mapBadgePixelRatio), so MapLibre neither shrinks nor stretches the texture.
+  // The margin keeps the outline's outer half, which a pill-sized image cut off.
+  const rasterScale = MAP_BADGE_DISPLAY_SCALE * pixelRatio;
+  const imageWidth = width + MAP_BADGE_IMAGE_MARGIN * 2;
+  const imageHeight = height + MAP_BADGE_IMAGE_MARGIN * 2;
+  const renderWidth = Math.round(imageWidth * rasterScale);
+  const renderHeight = Math.round(imageHeight * rasterScale);
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${renderWidth}" height="${renderHeight}" viewBox="${-width / 2} ${-height / 2} ${width} ${height}">${pillSvg}<g transform="scale(${OVERLAP_INDICATOR_SCALE})">${itemSvgs.join("")}</g></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${renderWidth}" height="${renderHeight}" viewBox="${-imageWidth / 2} ${-imageHeight / 2} ${imageWidth} ${imageHeight}">${pillSvg}<g transform="scale(${OVERLAP_INDICATOR_SCALE})">${itemSvgs.join("")}</g></svg>`;
 }
 
 export function getOverlapBadgeKey({

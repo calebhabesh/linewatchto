@@ -3,8 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Map } from "lucide-react";
 import type { MapViewPreference } from "../app/visual-preferences";
+import { PreloadableGeographicMap } from "./geographic-map-loader";
 
 const MAP_VIEW_SELECTOR_ANIMATION_MS = 160;
+
+/**
+ * Starts loading the Map View's code (MapLibre with it) when a switch to it
+ * looks likely: the toggle is hovered, focused or pressed. The System Map
+ * stays on screen until the Map View has drawn, so this shortens that wait.
+ */
+const warmMapView = () => {
+  void PreloadableGeographicMap.preload().catch(() => undefined);
+};
 
 function EarthViewIcon() {
   return (
@@ -82,6 +92,10 @@ export function MapViewSelector({
   const displayedView = isTransitioning ? pendingView : view;
   const nextView: MapViewPreference = displayedView === "diagram" ? "geographic" : "diagram";
 
+  const warmNextView = () => {
+    if (nextView === "geographic" && !disabled) warmMapView();
+  };
+
   const requestToggle = () => {
     if (isTransitioning || disabled) return;
 
@@ -110,6 +124,9 @@ export function MapViewSelector({
       <button
         type="button"
         onClick={requestToggle}
+        onPointerEnter={warmNextView}
+        onPointerDown={warmNextView}
+        onFocus={warmNextView}
         disabled={disabled || isTransitioning}
         className={`map-view-toggle-btn map-view-toggle-btn--compact panel group${className ? ` ${className}` : ""}`}
         title={targetTitle}
@@ -140,6 +157,9 @@ export function MapViewSelector({
     <button
       type="button"
       onClick={requestToggle}
+      onPointerEnter={warmNextView}
+      onPointerDown={warmNextView}
+      onFocus={warmNextView}
       disabled={disabled || isTransitioning}
       className={`map-control-button map-view-toggle-btn group${className ? ` ${className}` : ""}`}
       title={targetTitle}
