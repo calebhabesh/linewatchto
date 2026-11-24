@@ -1,5 +1,22 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { installDismissedTransientUi, setStubMode, waitForNetworkTransition } from "./test-support";
+
+/** How many pixels in `clip` are close to `rgb`: a way to see a MapLibre symbol, which has no DOM. */
+async function pixelsNear(page: Page, clip: { x: number; y: number; width: number; height: number }, rgb: [number, number, number]) {
+  const base64 = (await page.screenshot({ clip })).toString("base64");
+  return page.evaluate(async ({ base64, rgb }) => {
+    const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+    const context = new OffscreenCanvas(bitmap.width, bitmap.height).getContext("2d")!;
+    context.drawImage(bitmap, 0, 0);
+    const data = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    let near = 0;
+    for (let index = 0; index < data.length; index += 4) {
+      if (Math.abs(data[index] - rgb[0]) + Math.abs(data[index + 1] - rgb[1]) + Math.abs(data[index + 2] - rgb[2]) < 80) near += 1;
+    }
+    return near;
+  }, { base64, rgb });
+}
 
 test.describe("Geographic Map Stability & Lifecycle", () => {
   test.beforeEach(async ({ page, request }) => {
@@ -168,14 +185,15 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
         // Hover updates React state and MapLibre paint on the next frame.
         // Read the committed result before probing a different point.
         await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-        if (await hoverSurface.getAttribute("data-hovered-impact-segment") === segmentId) break;
+        const hovered = await hoverSurface.getAttribute("data-hovered-impact-segments");
+        if (hovered?.split(" ").includes(segmentId)) break;
       }
-      await expect(hoverSurface).toHaveAttribute("data-hovered-impact-segment", segmentId);
+      await expect(hoverSurface).toHaveAttribute("data-hovered-impact-segments", new RegExp(`(^| )${segmentId}( |$)`));
     };
 
     await hoverProjectedSegment("line-1-tmu-college", "stub-delay-line-4");
     await page.mouse.move(10, 10);
-    await expect(hoverSurface).not.toHaveAttribute("data-hovered-impact-segment");
+    await expect(hoverSurface).not.toHaveAttribute("data-hovered-impact-segments");
 
     await setStubMode(request, "regional-live");
     await page.getByRole("button", { name: /^Status/ }).click();
@@ -187,6 +205,49 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     // Network switching preserves the TTC camera; focus the GO/UP alert before checking its hover.
     await page.getByRole("button", { name: /^Delays/ }).click();
     await hoverProjectedSegment("segment-le-ajax-whitby", "regional-demo-delay");
+  });
+
+  test("a hovered alert badge takes the blue outline, as on the System Map", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop pointer hover");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.route("**/api/dashboard?network=ttc*", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      const segment = body.map.segments.find(
+        (candidate: { id: string }) => candidate.id === "line-4-sheppard-yonge-don-mills",
+      );
+      segment.id = "line-1-tmu-college";
+      segment.lineId = "line-1";
+      await route.fulfill({ response, json: body });
+    });
+    await page.goto("/?panel=delays");
+
+    const geoMap = page.locator(".geographic-network-map");
+    await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
+    // Fly to the delay, then clear the selection: a selected badge is already outlined.
+    await page.locator('[data-impact-card-id="stub-delay-line-4"]').locator(".impact-card-map-btn").click();
+    await expect.poll(() => page.evaluate(() => window.__linewatchGeographicMapLifecycle?.isMoving())).toBe(false);
+    await page.keyboard.press("Escape");
+    await page.mouse.move(5, 5);
+
+    const canvasBox = (await geoMap.locator("canvas").boundingBox())!;
+    await expect.poll(() => page.evaluate(
+      () => window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor("segment:line-1-tmu-college") ?? null,
+    )).not.toBeNull();
+    const badge = (await page.evaluate(
+      () => window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor("segment:line-1-tmu-college") ?? null,
+    ))!;
+    const center = { x: canvasBox.x + badge.x, y: canvasBox.y + badge.y };
+    const clip = { x: center.x - 22, y: center.y - 22, width: 44, height: 44 };
+    // Pixels in the outline's blue (#60a5fa); the badge's resting ring is grey.
+    const outlinePixels = () => pixelsNear(page, clip, [96, 165, 250]);
+
+    await expect.poll(outlinePixels).toBeLessThan(10);
+    await page.mouse.move(center.x, center.y);
+    // About 120 when outlined.
+    await expect.poll(outlinePixels).toBeGreaterThanOrEqual(60);
+    await page.mouse.move(5, 5);
+    await expect.poll(outlinePixels).toBeLessThan(10);
   });
 
   test("camera center/zoom and active selection survive sidebar toggles, data refreshes, and filter changes", async ({ page, isMobile }) => {
@@ -537,6 +598,10 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     expect(anchor).not.toBeNull();
     const clientX = canvasBox!.x + anchor!.x;
     const clientY = canvasBox!.y + anchor!.y;
+    // The badge's delay yellow (#feec41), to see it hide behind its chooser as on the System Map.
+    const badgeClip = { x: clientX - 14, y: clientY - 14, width: 28, height: 28 };
+    const badgePixels = () => pixelsNear(page, badgeClip, [254, 236, 65]);
+    if (!isMobile) await expect.poll(badgePixels).toBeGreaterThanOrEqual(40);
     await page.mouse.click(clientX, clientY);
 
     const chooser = page.locator("[data-overlap-chooser]");
@@ -602,7 +667,90 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     } else {
       expect(chooserBox!.x).toBeGreaterThan(canvasBox!.x);
       expect(chooserBox!.y).toBeGreaterThanOrEqual(canvasBox!.y);
+      // As on the System Map, the card never covers its badge, with a 12px gap
+      // (here, with no room clear of the segment, it covers part of that instead).
+      expect(chooserBox!.x >= badgeClip.x + badgeClip.width || chooserBox!.x + chooserBox!.width <= badgeClip.x
+        || chooserBox!.y >= badgeClip.y + badgeClip.height || chooserBox!.y + chooserBox!.height <= badgeClip.y).toBe(true);
+      // As on the System Map, an open chooser outlines all its alerts until a row is hovered.
+      await expect(geoMap.locator(':scope > [role="region"]'))
+        .toHaveAttribute("data-hovered-impact-segments", /(^| )line-1-tmu-college( |$)/);
+      // As on the System Map, an open chooser outlines all its alerts until a row is hovered.
+      await expect(geoMap.locator(':scope > [role="region"]'))
+        .toHaveAttribute("data-hovered-impact-segments", /(^| )line-1-tmu-college( |$)/);
+      // Look through the chooser, which can cover the badge, at the map under it.
+      const seeThrough = await page.addStyleTag({ content: "[data-overlap-chooser] { visibility: hidden !important; }" });
+      // About 110 shown; the pale direction arrows under it leave a few.
+      await expect.poll(badgePixels).toBeLessThan(20);
+      await seeThrough.evaluate((element) => element.parentNode?.removeChild(element));
+      await chooser.getByRole("button", { name: "Close alert chooser" }).click();
+      await expect(chooser).toBeHidden();
+      await page.mouse.move(5, 5);
+      await expect.poll(badgePixels).toBeGreaterThanOrEqual(40);
     }
+  });
+
+  test("hovering an alert in the chooser draws its segment in its own colour, over a more severe one, as on the System Map", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop pointer hover");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    // A delay and a suspension on one segment: it is drawn in the suspension's red.
+    await page.route("**/api/dashboard?network=ttc*", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      const segment = body.map.segments.find(
+        (candidate: { id: string }) => candidate.id === "line-4-sheppard-yonge-don-mills",
+      );
+      segment.id = "line-1-tmu-college";
+      segment.lineId = "line-1";
+      segment.stationAId = "tmu";
+      segment.stationBId = "college";
+      segment.impacts.push({ kind: "suspension", cardId: "raised-suspension", travelDirection: "bidirectional", sourceAlertIds: ["raised-suspension"] });
+      const delay = body.delays.find((candidate: { id: string }) => candidate.id === "stub-delay-line-4");
+      delay.affectedSegmentIds = ["line-1-tmu-college"];
+      delay.lineId = "line-1";
+      delay.lineNumber = "1";
+      await route.fulfill({ response, json: body });
+    });
+    await page.goto("/?panel=delays");
+    const geoMap = page.locator(".geographic-network-map");
+    await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
+    await page.locator('[data-impact-card-id="stub-delay-line-4"]').locator(".impact-card-map-btn").click();
+    await expect.poll(() => page.evaluate(() => window.__linewatchGeographicMapLifecycle?.isMoving())).toBe(false);
+    // Clear the selection, which would raise the delay itself, on open map beside the sidebar.
+    const canvasBox = (await geoMap.locator("canvas").boundingBox())!;
+    const sidebarBox = (await page.locator("#desktop-sidebar-container").boundingBox())!;
+    await page.mouse.click(sidebarBox.x + sidebarBox.width + 40, canvasBox.y + canvasBox.height - 40);
+
+    await expect.poll(() => page.evaluate(
+      () => window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor("segment:line-1-tmu-college") ?? null,
+    )).not.toBeNull();
+    const anchor = (await page.evaluate(
+      () => window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor("segment:line-1-tmu-college") ?? null,
+    ))!;
+    const center = { x: canvasBox.x + anchor.x, y: canvasBox.y + anchor.y };
+    await page.mouse.click(center.x, center.y);
+    const chooser = page.locator("[data-overlap-chooser]");
+    await expect(chooser).toBeVisible();
+
+    // The segment under the hidden badge: the chooser keeps 12px clear of the badge's 34px box.
+    const clip = { x: center.x - 20, y: center.y - 20, width: 40, height: 40 };
+    const red = () => pixelsNear(page, clip, [239, 68, 68]);
+    const amber = () => pixelsNear(page, clip, [245, 158, 11]);
+    // About 40 red at rest, about 30 amber when raised; the direction arrows take the rest.
+    await expect.poll(red).toBeGreaterThanOrEqual(15);
+    expect(await amber()).toBeLessThan(5);
+
+    const delayRow = chooser.locator('[data-overlap-choice-id="stub-delay-line-4"]');
+    // A pointer that reaches the row while the card is still opening is not a hover; enter it again.
+    await expect.poll(async () => {
+      await chooser.locator(".overlap-chooser-close").hover();
+      await delayRow.hover();
+      return amber();
+    }).toBeGreaterThanOrEqual(15);
+    expect(await red()).toBeLessThan(5);
+
+    await chooser.locator(".overlap-chooser-close").hover();
+    await expect.poll(red).toBeGreaterThanOrEqual(15);
   });
 
   test("single circular alert badges have a forgiving click target", async ({ page, isMobile }) => {

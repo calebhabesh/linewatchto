@@ -169,6 +169,10 @@ type ProjectedImpactArrowFeature = {
     travelDirection: TravelDirection;
     directionCertainty: "explicit" | "unspecified";
     isSelected: boolean;
+    /** Unique per arrow, for MapLibre feature state (the source's promoteId). */
+    arrowId: string;
+    /** Shown when no alert is raised: the selected alert's arrows on its links, else the drawn alert's. */
+    isDefault: boolean;
   };
 };
 
@@ -1204,10 +1208,18 @@ const MAX_ARROWS_PER_LINK = 6;
  * Keeps at least one indicator on short links, repeats them at bounded intervals,
  * and avoids inferring arrows for unknown directions.
  */
+/**
+ * Direction arrows along each impacted link: the selected alert's where it is
+ * on the link, else the drawn (most severe) alert's. With `allImpacts`, every
+ * alert on the link gets its arrows too, marked `isDefault: false`, so the map
+ * can show a hovered alert's arrows with feature state alone, in the frame the
+ * hover lands, instead of re-sending the arrows.
+ */
 export function projectImpactArrows(
   catalog: GeographicCatalog,
   impactedLinks: ProjectedImpactLinkFeature[],
   selection?: ImpactSelection,
+  options: { allImpacts?: boolean } = {},
 ): FeatureCollection<ProjectedImpactArrowFeature> {
   const features: ProjectedImpactArrowFeature[] = [];
   const links = getLinkFeatures(catalog);
@@ -1239,64 +1251,40 @@ export function projectImpactArrows(
       directionCertainty: impactLink.properties.directionCertainty ?? "unspecified",
       sourceAlertIds: impactLink.properties.allCardIds,
     };
-
-    // Unknown direction gets no inferred arrow
-    if (governingImpact.directionCertainty === "unspecified") {
-      continue;
-    }
-
-    const travelDirection = governingImpact.travelDirection;
-    if (!travelDirection) continue;
+    const candidates = options.allImpacts
+      ? [governingImpact, ...rawImpacts.filter((impact) => impact.cardId !== governingImpact.cardId)]
+      : [governingImpact];
 
     // Check if polyline coordinates run forward along route topology
     const isForward = catalogLink ? isLinkPolylineForward(catalog, catalogLink) : true;
-    const isSelected = Boolean(selectedSecondary);
-    const impactColor = getImpactColor(governingImpact.kind, impactLink.properties.network);
-    const arrowColors = getImpactArrowColors(governingImpact.kind, impactLink.properties.network);
-
     const count = Math.max(1, Math.min(
       MAX_ARROWS_PER_LINK,
       Math.ceil(table.totalDistance / ARROW_SPACING_METERS),
     ));
 
-    for (let index = 0; index < count; index += 1) {
-      const fraction = (index + 1) / (count + 1);
-      const sample = getPointAndBearingAlongPolyline(coords, fraction);
+    for (const impact of candidates) {
+      // Unknown direction gets no inferred arrow
+      if ((impact.directionCertainty ?? "unspecified") === "unspecified") continue;
+      const travelDirection = impact.travelDirection;
+      if (!travelDirection) continue;
 
-      if (travelDirection === "bidirectional") {
-        features.push({
-          type: "Feature",
-          id: `arrow-${impactLink.id}-${index}`,
-          geometry: {
-            type: "Point",
-            coordinates: sample.coordinates,
-          },
-          properties: {
-            targetId: impactLink.properties.segmentId,
-            lineId: impactLink.properties.lineId,
-            impactKind: governingImpact.kind,
-            impactColor,
-            casingColor: arrowColors.casingColor,
-            coreColor: arrowColors.coreColor,
-            cardId: governingImpact.cardId,
-            allCardIds: impactLink.properties.allCardIds,
-            bearing: Math.round(sample.bearing),
-            travelDirection: "bidirectional",
-            directionCertainty: "explicit",
-            isSelected,
-            iconImage: "direction-arrow-bidirectional",
-            fraction,
-          },
-        });
-      } else {
-        const topologyForward = travelDirection === "forward";
-        const bearing = isForward === topologyForward
+      const isDefault = impact === governingImpact;
+      const isSelected = Boolean(selectedSecondary) && impact === selectedSecondary;
+      const impactColor = getImpactColor(impact.kind, impactLink.properties.network);
+      const arrowColors = getImpactArrowColors(impact.kind, impactLink.properties.network);
+
+      for (let index = 0; index < count; index += 1) {
+        const fraction = (index + 1) / (count + 1);
+        const sample = getPointAndBearingAlongPolyline(coords, fraction);
+        const bidirectional = travelDirection === "bidirectional";
+        const bearing = bidirectional || isForward === (travelDirection === "forward")
           ? sample.bearing
           : (sample.bearing + 180) % 360;
+        const id = isDefault ? `arrow-${impactLink.id}-${index}` : `arrow-${impactLink.id}-${impact.cardId}-${index}`;
 
         features.push({
           type: "Feature",
-          id: `arrow-${impactLink.id}-${index}`,
+          id,
           geometry: {
             type: "Point",
             coordinates: sample.coordinates,
@@ -1304,18 +1292,20 @@ export function projectImpactArrows(
           properties: {
             targetId: impactLink.properties.segmentId,
             lineId: impactLink.properties.lineId,
-            impactKind: governingImpact.kind,
+            impactKind: impact.kind,
             impactColor,
             casingColor: arrowColors.casingColor,
             coreColor: arrowColors.coreColor,
-            cardId: governingImpact.cardId,
+            cardId: impact.cardId,
             allCardIds: impactLink.properties.allCardIds,
             bearing: Math.round(bearing),
-            travelDirection,
+            travelDirection: bidirectional ? "bidirectional" : travelDirection,
             directionCertainty: "explicit",
             isSelected,
-            iconImage: "direction-arrow",
+            iconImage: bidirectional ? "direction-arrow-bidirectional" : "direction-arrow",
             fraction,
+            arrowId: id,
+            isDefault,
           },
         });
       }

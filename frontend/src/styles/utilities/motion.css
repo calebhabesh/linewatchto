@@ -20,6 +20,37 @@
   animation-play-state: paused !important;
 }
 
+/* A System Map ⇄ Map View switch (NetworkMap): the new view is prepared out of
+   sight while the old one stays, then they crossfade. The Map View does the
+   fading, above the System Map, whose own chrome is kept below it meanwhile. */
+.map-view-layer {
+  position: absolute;
+  inset: 0;
+}
+
+/* Opacity too: the Map View's container sets visibility: visible once loaded. */
+.map-view-layer[data-map-view-handoff="entering"] {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.map-view-layer[data-map-view-handoff="leaving"] {
+  pointer-events: none;
+}
+
+.map-view-layer[data-map-view-fading][data-map-view-layer="diagram"] {
+  isolation: isolate;
+}
+
+.map-view-layer[data-map-view-fading] .geographic-network-map {
+  background-color: transparent;
+}
+
+.map-view-layer[data-map-view-fading][data-map-view-handoff="leaving"] .geographic-network-map > .map-control-rail {
+  visibility: hidden;
+  opacity: 0;
+}
+
 .network-map-transition-surface[data-map-surface-transition="leaving"] :is(.map-stage, .geographic-network-map > [role="region"]) {
   pointer-events: none;
 }

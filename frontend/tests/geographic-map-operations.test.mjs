@@ -10,6 +10,7 @@ import {
   lineBreadcrumbSpriteExpression,
   updateGeographicDynamicSources,
   updateGeographicLineFilter,
+  updateGeographicImpactFeatureState,
   updateGeographicStationSelection,
   updateGeographicStationHover,
   createGeographicStationHoverAnimator,
@@ -95,6 +96,83 @@ describe("Geographic map operations", () => {
 
       assert.equal(addImageCalled, false);
     });
+
+    it("also loads each badge's hover outline image, once per key, so a hover swaps without a blank frame", () => {
+      const checked = [];
+      const mockMap = {
+        hasImage: (key) => {
+          checked.push(key);
+          return true;
+        },
+        addImage: () => {},
+      };
+      const badge = {
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [0, 0] },
+        properties: {
+          badgeImageKey: "overlap-badge:dark:0:suspension.1_delay.1",
+          badgeHighlightImageKey: "overlap-badge:dark:1:suspension.1_delay.1",
+        },
+      };
+
+      ensureBadgeImages(mockMap, [badge, badge]);
+
+      assert.deepEqual(checked, [
+        "overlap-badge:dark:0:suspension.1_delay.1",
+        "overlap-badge:dark:1:suspension.1_delay.1",
+      ]);
+    });
+  });
+
+  describe("updateGeographicImpactFeatureState", () => {
+    it("outlines hovered alerts and raises one, with its arrows in place of the drawn ones, by feature state alone", () => {
+      const states = [];
+      let cleared = [];
+      const mockMap = {
+        getSource: () => ({}),
+        removeFeatureState: ({ source }) => cleared.push(source),
+        setFeatureState: ({ source, id }, state) => states.push({ source, id, state }),
+        setFilter: () => assert.fail("no filter change"),
+        setPaintProperty: () => assert.fail("no paint change"),
+      };
+      const data = {
+        impactedLinks: { features: [
+          { properties: { segmentId: "a", allCardIds: ["sus", "pc"] } },
+          { properties: { segmentId: "b", allCardIds: ["sus"] } },
+        ] },
+        impactedStations: { features: [{ properties: { stationId: "union", allCardIds: ["pc"] } }] },
+        impactArrows: { features: [
+          { properties: { arrowId: "a-0", targetId: "a", cardId: "sus" } },
+          { properties: { arrowId: "a-pc-0", targetId: "a", cardId: "pc" } },
+          { properties: { arrowId: "b-0", targetId: "b", cardId: "sus" } },
+        ] },
+      };
+      updateGeographicImpactFeatureState(mockMap, data, {
+        hoveredSegmentIds: ["a"], hoveredStationIds: [], raised: { kind: "planned-closure", id: "pc" }, raisedArrows: true,
+      });
+      assert.deepEqual(cleared, ["transit-impacts", "transit-impact-stations", "transit-impact-arrows"]);
+      assert.deepEqual(states, [
+        { source: "transit-impacts", id: "a", state: { hovered: true, raised: "planned-closure" } },
+        { source: "transit-impact-stations", id: "union", state: { raised: "planned-closure" } },
+        // On the raised alert's segment only: its arrows show, the drawn alert's hide.
+        { source: "transit-impact-arrows", id: "a-0", state: { shown: false } },
+        { source: "transit-impact-arrows", id: "a-pc-0", state: { shown: true } },
+      ]);
+
+      // A selection is raised too, but its arrows are already the defaults; nothing raised clears all.
+      states.length = 0;
+      updateGeographicImpactFeatureState(mockMap, data, {
+        hoveredSegmentIds: [], hoveredStationIds: [], raised: { kind: "suspension", id: "sus" }, raisedArrows: false,
+      });
+      assert.deepEqual(states.map(({ id, state }) => [id, state]), [["a", { raised: "suspension" }], ["b", { raised: "suspension" }]]);
+      states.length = 0;
+      cleared = [];
+      updateGeographicImpactFeatureState(mockMap, data, {
+        hoveredSegmentIds: [], hoveredStationIds: [], raised: null, raisedArrows: false,
+      });
+      assert.equal(cleared.length, 3);
+      assert.deepEqual(states, []);
+    });
   });
 
   describe("updateGeographicDynamicSources", () => {
@@ -144,6 +222,13 @@ describe("Geographic map operations", () => {
       assert.equal(setDataCalls.find((c) => c.name === "transit-train-markers")?.data, overlayData.trainMarkers);
       assert.equal(setDataCalls.find((c) => c.name === "transit-commute-links")?.data, overlayData.commuteLinks);
       assert.equal(setDataCalls.find((c) => c.name === "transit-commute-stations")?.data, overlayData.commuteStations);
+
+      // A hover changes only the arrows: only they are sent again, not every alert's geometry.
+      setDataCalls.length = 0;
+      const hovered = { ...overlayData, impactArrows: { type: "FeatureCollection", features: [{ id: "a2" }] } };
+      updateGeographicDynamicSources(mockMap, hovered);
+      assert.deepEqual(setDataCalls.map((call) => call.name), ["transit-impact-arrows"]);
+      assert.equal(stats.sourceUpdates, 2);
     });
 
     it("handles missing sources gracefully without throwing", () => {
@@ -532,7 +617,7 @@ describe("Geographic map operations", () => {
   });
 
   describe("installTransitLayers", () => {
-    it("registers static and dynamic sources, installs 29 layers, and is idempotent", () => {
+    it("registers static and dynamic sources, installs 33 layers, and is idempotent", () => {
       const addedSources = {};
       const addedLayers = [];
 
@@ -592,7 +677,7 @@ describe("Geographic map operations", () => {
       assert.ok(addedLayers.find((l) => l.id === "transit-train-markers-halo"));
 
       const layerCount = addedLayers.length;
-      assert.equal(layerCount, 29, "Should install exactly 29 transit layers");
+      assert.equal(layerCount, 33, "Should install exactly 33 transit layers");
 
       // The selected alert's glow sits under its band, and both are wider than
       // the alert line so the selection shows beside its glyphs.
@@ -612,9 +697,36 @@ describe("Geographic map operations", () => {
       assert.equal(addedSources["transit-stations"].promoteId, "stationId");
       assert.equal(addedLayers.find((l) => l.id === "transit-impact-badges").layout["icon-ignore-placement"], false);
 
+      // The raised alert (a hovered chooser row's, else the selected one) draws
+      // over the alert line and under its arrows. Its layers' paint never
+      // changes: feature state shows the alert's own colour and dash at once.
+      const ids = addedLayers.map((l) => l.id);
+      assert.ok(ids.indexOf("transit-impacts-line") < ids.indexOf("transit-impacts-raised-base"));
+      assert.ok(ids.indexOf("transit-impacts-raised-base") < ids.indexOf("transit-impacts-raised"));
+      assert.ok(ids.indexOf("transit-impacts-raised-planned") < ids.indexOf("transit-impact-arrows-casing"));
+      assert.equal(addedSources["transit-impacts"].promoteId, "segmentId");
+      assert.equal(addedSources["transit-impact-stations"].promoteId, "stationId");
+      assert.equal(addedSources["transit-impact-arrows"].promoteId, "arrowId");
+      const paintAt = (layerId, name, featureState, properties = {}) => createExpression(
+        addedLayers.find((l) => l.id === layerId).paint[name], `paint.${name}`,
+      ).value.evaluateWithoutErrorHandling({ zoom: 14 }, { properties }, featureState);
+      assert.equal(paintAt("transit-impacts-raised", "line-opacity", {}), 0);
+      assert.equal(paintAt("transit-impacts-raised", "line-opacity", { raised: "delay" }), 1);
+      assert.equal(paintAt("transit-impacts-raised-planned", "line-opacity", { raised: "delay" }), 0);
+      assert.equal(paintAt("transit-impacts-raised-planned", "line-opacity", { raised: "planned-closure" }), 1);
+      assert.equal(paintAt("transit-impacts-raised-base", "line-opacity", { raised: "planned-closure" }), 1);
+      assert.deepEqual(addedLayers.find((l) => l.id === "transit-impacts-raised-planned").paint["line-dasharray"], [2.5, 1.8]);
+      assert.equal(paintAt("transit-impacts-hover-edge", "line-opacity", {}), 0);
+      assert.equal(paintAt("transit-impacts-hover-edge", "line-opacity", { hovered: true }), 1);
+      assert.equal(paintAt("transit-station-impacts-raised", "circle-stroke-opacity", { raised: "suspension" }), 0.95);
+      // An arrow shows by default only if it is the drawn alert's, unless feature state says otherwise.
+      assert.equal(paintAt("transit-impact-arrows", "icon-opacity", {}, { isDefault: false, isSelected: false }), 0);
+      assert.equal(paintAt("transit-impact-arrows", "icon-opacity", {}, { isDefault: true, isSelected: false }), 0.85);
+      assert.equal(paintAt("transit-impact-arrows", "icon-opacity", { shown: true }, { isDefault: false, isSelected: false }), 0.85);
+      assert.equal(paintAt("transit-impact-arrows", "icon-opacity", { shown: false }, { isDefault: true, isSelected: false }), 0);
+
       // Station hover: a ring under the station marker, a lifted name that
       // always draws, and a pointer target a little larger than the marker.
-      const ids = addedLayers.map((l) => l.id);
       assert.ok(ids.indexOf("transit-station-hover") < ids.indexOf("transit-stations-outer"));
       const hoverLabel = addedLayers.find((l) => l.id === "transit-station-labels-hover");
       assert.ok(ids.indexOf("transit-station-labels") < ids.indexOf("transit-station-labels-hover"));

@@ -372,10 +372,16 @@ describe("geographic bundle isolation", () => {
     assert.equal(ttcMap.includes('from "maplibre-gl"'), false);
     assert.equal(ttcMap.includes('import("maplibre-gl")'), false);
 
-    const networkMap = readFileSync(new URL("../src/components/NetworkMap.tsx", import.meta.url), "utf8");
-    assert.ok(networkMap.includes("dynamic("));
-    assert.ok(networkMap.includes("./GeographicNetworkMap"));
-    assert.ok(networkMap.includes("ssr: false"));
+    // The Map View loads only through its preloadable, client-only loader;
+    // everything a System Map session loads may name it for its types alone.
+    const loader = readFileSync(new URL("../src/components/geographic-map-loader.ts", import.meta.url), "utf8");
+    assert.match(loader, /preloadablePanel<GeographicNetworkMapProps>\(\s*\(\) => import\("\.\/GeographicNetworkMap"\)/);
+    const preloadable = readFileSync(new URL("../src/components/preloadable-panel.tsx", import.meta.url), "utf8");
+    assert.match(preloadable, /dynamic\(preload, \{ ssr: false \}\)/);
+    for (const file of ["NetworkMap.tsx", "MapViewSelector.tsx", "geographic-map-loader.ts"]) {
+      const source = readFileSync(new URL(`../src/components/${file}`, import.meta.url), "utf8");
+      assert.doesNotMatch(source, /^import (?!type )[^;]*from "\.\/GeographicNetworkMap"/m, `${file} loads the Map View statically`);
+    }
   });
 });
 

@@ -147,6 +147,48 @@ test("Session 3: Direction indicators and travel direction resolution", async (t
     assert.equal(bidiArrow.properties.iconImage, "direction-arrow-bidirectional");
   });
 
+  await t.test("projectImpactArrows: with allImpacts, every alert on a link gets its own arrows, the drawn one's by default", () => {
+    const broadviewChester = ttcCatalog.features.find(
+      (f) => f.properties?.segmentId === "line-2-broadview-chester",
+    );
+    const link = {
+      type: "Feature",
+      id: "impact-link-2",
+      geometry: broadviewChester.geometry,
+      properties: {
+        segmentId: broadviewChester.properties.segmentId,
+        lineId: "line-2",
+        network: "ttc",
+        impactKind: "suspension",
+        impactColor: "#ef4444",
+        impactCardId: "sus",
+        allCardIds: ["sus", "pc"],
+        travelDirection: "forward",
+        directionCertainty: "explicit",
+        rawImpacts: [
+          { kind: "suspension", cardId: "sus", travelDirection: "forward", directionCertainty: "explicit", sourceAlertIds: ["sus"] },
+          { kind: "planned-closure", cardId: "pc", travelDirection: "reverse", directionCertainty: "explicit", sourceAlertIds: ["pc"] },
+        ],
+      },
+    };
+    const drawnOnly = projectImpactArrows(ttcCatalog, [link]);
+    const all = projectImpactArrows(ttcCatalog, [link], null, { allImpacts: true });
+    const count = drawnOnly.features.length;
+    assert.equal(all.features.length, count * 2);
+    const byCard = (cardId) => all.features.filter((feature) => feature.properties.cardId === cardId);
+    assert.ok(byCard("sus").every((feature) => feature.properties.isDefault && feature.properties.travelDirection === "forward"));
+    assert.ok(byCard("pc").every((feature) => !feature.properties.isDefault && feature.properties.travelDirection === "reverse"));
+    assert.equal(byCard("pc")[0].properties.impactKind, "planned-closure");
+    // The drawn alert's arrows keep their ids; every arrow id is unique, for feature state.
+    assert.deepEqual(byCard("sus").map((feature) => feature.properties.arrowId), drawnOnly.features.map((feature) => feature.id));
+    assert.equal(new Set(all.features.map((feature) => feature.properties.arrowId)).size, all.features.length);
+
+    // A selected secondary alert's arrows are the defaults instead.
+    const selected = projectImpactArrows(ttcCatalog, [link], { kind: "planned-closure", id: "pc" }, { allImpacts: true });
+    assert.ok(selected.features.filter((feature) => feature.properties.cardId === "pc").every((feature) => feature.properties.isDefault && feature.properties.isSelected));
+    assert.ok(selected.features.filter((feature) => feature.properties.cardId === "sus").every((feature) => !feature.properties.isDefault));
+  });
+
   await t.test("projectImpactArrows: equidistant placement fractions (i + 1) / (count + 1) and count rules", () => {
     // Test count rule clamp(ceil(segmentLengthMeters / 240), 1, 6)
     // Short: ~100m -> count = 1 -> fraction [0.5]

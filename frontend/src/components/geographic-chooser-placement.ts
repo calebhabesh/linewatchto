@@ -1,6 +1,8 @@
-/** Screen-space alert chooser placement for the MapLibre geographic map. */
+/** Screen-space card placement for the MapLibre geographic map. */
 import type { OverlapChooserScreenLayout } from "./map-chooser-placement";
 import { chooserWidthCandidates } from "./map-chooser-layout.ts";
+import type { PlacementObstacle } from "./overlap-badge-placement.ts";
+import { placeOverlapChooser, type OverlapChooserPreferredBox } from "./overlap-chooser-placement.ts";
 
 type GeographicChooserKeepout = {
   left: number;
@@ -159,6 +161,61 @@ export function chooseGeographicChooserLayout({
     }))
     .sort((a, b) => a.covered - b.covered || a.distance - b.distance)[0];
   return result(width, height, fallback.left, fallback.top);
+}
+
+/** A paint value interpolated linearly between zoom stops, as MapLibre draws it. */
+export function valueAtZoom(stops: ReadonlyArray<readonly [number, number]>, zoom: number): number {
+  const upper = stops.findIndex(([stopZoom]) => zoom <= stopZoom);
+  if (upper === 0) return stops[0][1];
+  if (upper < 0) return stops[stops.length - 1][1];
+  const [lowZoom, lowValue] = stops[upper - 1];
+  const [highZoom, highValue] = stops[upper];
+  return lowValue + (highValue - lowValue) * ((zoom - lowZoom) / (highZoom - lowZoom));
+}
+
+/**
+ * The alert chooser, placed by the System Map's rules (overlap-chooser-placement.ts):
+ * never over app controls or the badge, clear of the overlays of the alerts it
+ * lists wherever a spot allows, and as near the badge as it can be. Streetcar
+ * and bus cards, which list no overlays, keep chooseGeographicChooserLayout.
+ */
+export function placeGeographicAlertChooser({
+  badgeCenter,
+  badgeSize,
+  affectedArea,
+  keepouts,
+  viewportSize,
+  requestedSize,
+  preferred = null,
+}: {
+  badgeCenter: { x: number; y: number };
+  badgeSize: { width: number; height: number };
+  /** The overlays of the chooser's alerts, in map-container pixels. */
+  affectedArea: PlacementObstacle[];
+  /** App controls over the map, without a gap: the placer adds its own. */
+  keepouts: GeographicChooserKeepout[];
+  viewportSize: { width: number; height: number };
+  requestedSize: { width: number; height: number };
+  preferred?: OverlapChooserPreferredBox | null;
+}): GeographicOverlapChooserLayout {
+  const placement = placeOverlapChooser({
+    viewportSize,
+    badgeBox: {
+      x: badgeCenter.x - badgeSize.width / 2,
+      y: badgeCenter.y - badgeSize.height / 2,
+      width: badgeSize.width,
+      height: badgeSize.height,
+    },
+    affectedArea,
+    keepouts: keepouts.map((box) => ({ x: box.left, y: box.top, width: box.right - box.left, height: box.bottom - box.top })),
+    requestedSize,
+    preferred,
+  });
+  return {
+    chooserSize: { width: placement.width, height: placement.height },
+    layout: { ...placement, badgeCenter },
+    viewportSize,
+  };
 }
 
 /** True when two solves would draw the card in the same place for the same badge position. */

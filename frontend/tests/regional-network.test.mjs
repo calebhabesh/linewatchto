@@ -206,10 +206,10 @@ describe("network-scoped regional dashboard", () => {
       /animateInitialEntrance=\{false\}/,
     );
     assert.match(shellSource, /onMapReady=\{handleMapReady\}/);
-    assert.match(
-      networkMapSource,
-      /onReady=\{onMapReady\}/g,
-    );
+    // Through handleMapReady, which also starts holding the old view during a map view switch.
+    assert.match(networkMapSource, /const handleMapReady = useCallback\(\(\) => \{[^}]*onMapReady\?\.\(\);/);
+    assert.match(networkMapSource, /<DiagramNetworkMaps[^>]*onMapReady=\{handleMapReady\}/);
+    assert.match(networkMapSource, /onReady=\{handleMapReady\}/);
     assert.match(
       panZoomSource,
       /const initializeCamera = useCallback\(\(\) => \{\s*if \(!restoreSavedCamera\(\)\) moveToDefaultCamera\(animateInitialEntrance, animateInitialEntrance\)/,

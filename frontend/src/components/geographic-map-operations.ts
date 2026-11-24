@@ -5,10 +5,10 @@ import {
   createSvgImage,
   generateOverlapBadgeSvg,
   parseOverlapBadgeKey,
-  MAP_BADGE_PIXEL_RATIO,
+  mapBadgePixelRatio,
 } from "./map-overlap-svg.ts";
 import type { GeographicCatalog } from "../app/geographic-catalog.ts";
-import { partitionCatalogFeatures } from "../app/geographic-overlays.ts";
+import { getImpactColor, partitionCatalogFeatures } from "../app/geographic-overlays.ts";
 import {
   GEOGRAPHIC_LINE_BADGE_FULL_ZOOM,
   GEOGRAPHIC_LINE_BADGE_HALF_ZOOM,
@@ -22,7 +22,7 @@ import {
 } from "../app/map-line-badges.ts";
 import { ALL_LINE_COLORS } from "../app/geographic-config.ts";
 import { REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data.ts";
-import type { PlannedClosure } from "../app/linewatch-data.ts";
+import type { ImpactKind, PlannedClosure } from "../app/linewatch-data.ts";
 import { recordGeographicMapLifecycle } from "../app/geographic-lifecycle.ts";
 import { cachedStreetcarCatalog } from "../app/geographic-surface-catalog.ts";
 import { installStreetcarLayers, updateStreetcarFilter } from "./geographic-streetcar-layers.ts";
@@ -86,16 +86,17 @@ export function ensureBadgeImages(
   features: GeoJSON.Feature<GeoJSON.Point, Record<string, unknown>>[],
 ): void {
   if (!map || !map.hasImage) return;
-  for (const feature of features) {
-    const key = feature.properties?.badgeImageKey as string | undefined;
-    if (!key || map.hasImage(key)) continue;
+  const keys = features.flatMap((feature) => [feature.properties?.badgeImageKey, feature.properties?.badgeHighlightImageKey]);
+  for (const key of new Set(keys)) {
+    if (typeof key !== "string" || !key || map.hasImage(key)) continue;
     const badgeInfo = parseOverlapBadgeKey(key);
     if (!badgeInfo) continue;
-    const svg = generateOverlapBadgeSvg(badgeInfo);
+    const pixelRatio = mapBadgePixelRatio();
+    const svg = generateOverlapBadgeSvg(badgeInfo, pixelRatio);
     createSvgImage(svg)
       .then((img) => {
         if (map && map.hasImage && !map.hasImage(key)) {
-          map.addImage(key, img, { pixelRatio: MAP_BADGE_PIXEL_RATIO });
+          map.addImage(key, img, { pixelRatio });
         }
       })
       .catch(() => {});
@@ -220,6 +221,88 @@ export const GEOGRAPHIC_STATION_LABEL_MIN_ZOOM = { ttc: 10.5, regional: 9 } as c
  * The attention flash scales these widths.
  */
 export const GEOGRAPHIC_SELECTION_BAND_WIDTHS = [[9, 12], [14, 24], [17, 32]] as const;
+/** An alert's line width and station ring radius by zoom; the alert chooser keeps clear of both. */
+export const GEOGRAPHIC_IMPACT_LINE_WIDTHS = [[9, 3.2], [14, 6.5], [17, 9.5]] as const;
+export const GEOGRAPHIC_IMPACT_STATION_RADII = [[9, 7], [14, 12], [17, 18]] as const;
+
+/**
+ * The hovered outline and the raised alert are MapLibre feature state, not
+ * filters or paint changes: both apply in the next frame on the main thread.
+ * A filter or `setData` re-tiles in the worker, so the outline, line and
+ * arrows of a hovered chooser row arrived a few frames apart.
+ */
+const IMPACT_FEATURE_STATE_SOURCES = ["transit-impacts", "transit-impact-stations", "transit-impact-arrows"] as const;
+/** Each dynamic source's feature-state id. */
+const DYNAMIC_SOURCE_PROMOTE_IDS: Record<string, string> = {
+  "transit-impacts": "segmentId",
+  "transit-impact-stations": "stationId",
+  "transit-impact-arrows": "arrowId",
+};
+const RAISED_DASH = [2.5, 1.8];
+
+type ImpactFeatureStateData = {
+  impactedLinks: { features: Array<{ properties: { segmentId: string; allCardIds: string[] } }> };
+  impactedStations: { features: Array<{ properties: { stationId: string; allCardIds?: string[] } }> };
+  impactArrows: { features: Array<{ properties: { arrowId?: string; targetId: string; cardId: string } }> };
+};
+
+/**
+ * Outlines the hovered segments and stations, and raises one alert: draws it
+ * over the others on its segments and stations in its own colour and dash
+ * (a segment is otherwise drawn in its most severe alert's), as the System
+ * Map raises its copy of that alert. A raised alert that is not the selection
+ * also shows its own direction arrows there in place of the drawn ones.
+ */
+export function updateGeographicImpactFeatureState(
+  map: MapLibreMap,
+  data: ImpactFeatureStateData,
+  {
+    hoveredSegmentIds,
+    hoveredStationIds,
+    raised,
+    raisedArrows,
+  }: {
+    hoveredSegmentIds: readonly string[];
+    hoveredStationIds: readonly string[];
+    raised: { kind: ImpactKind; id: string } | null;
+    /** Swap in the raised alert's arrows (a hover); a selection's are already the defaults. */
+    raisedArrows: boolean;
+  },
+): void {
+  for (const source of IMPACT_FEATURE_STATE_SOURCES) {
+    if (map.getSource(source)) map.removeFeatureState({ source });
+  }
+  const set = (source: string, id: string, state: Record<string, unknown>) => {
+    if (map.getSource(source)) map.setFeatureState({ source, id }, state);
+  };
+  const raisedSegments = new Set<string>();
+  for (const { properties } of data.impactedLinks.features) {
+    const state: Record<string, unknown> = {};
+    if (hoveredSegmentIds.includes(properties.segmentId)) state.hovered = true;
+    if (raised && properties.allCardIds.includes(raised.id)) {
+      state.raised = raised.kind;
+      raisedSegments.add(properties.segmentId);
+    }
+    if (Object.keys(state).length > 0) set("transit-impacts", properties.segmentId, state);
+  }
+  for (const { properties } of data.impactedStations.features) {
+    const state: Record<string, unknown> = {};
+    if (hoveredStationIds.includes(properties.stationId)) state.hovered = true;
+    if (raised && properties.allCardIds?.includes(raised.id)) state.raised = raised.kind;
+    if (Object.keys(state).length > 0) set("transit-impact-stations", properties.stationId, state);
+  }
+  if (raised && raisedArrows) {
+    for (const { properties } of data.impactArrows.features) {
+      if (!properties.arrowId || !raisedSegments.has(properties.targetId)) continue;
+      set("transit-impact-arrows", properties.arrowId, { shown: properties.cardId === raised.id });
+    }
+  }
+}
+
+/** An arrow layer's opacity, zero for an arrow its segment's raised alert has hidden. */
+function arrowShownOpacity(opacity: ExpressionSpecification | number): ExpressionSpecification {
+  return ["case", ["boolean", ["feature-state", "shown"], ["get", "isDefault"], true], opacity, 0];
+}
 export const GEOGRAPHIC_SELECTION_GLOW_WIDTHS = [[9, 22], [14, 40], [17, 52]] as const;
 export const GEOGRAPHIC_SELECTION_GLOW_OPACITY = 0.55;
 
@@ -296,36 +379,35 @@ export function lineBadgeOpacityExpression(activeLine: string | null): Expressio
     : zoomFade) as unknown as ExpressionSpecification;
 }
 
+/** The data each GeoJSON source last received, so an unchanged one is not re-sent. */
+const sentSourceData = new WeakMap<GeoJSONSource, unknown>();
+
+/**
+ * Sends each dynamic source its data, skipping a source whose data is the
+ * same object it last received: a hover changes the badges or arrows, and
+ * re-sending every alert's geometry made MapLibre re-tile all of them.
+ */
 export function updateGeographicDynamicSources(
   map: MapLibreMap,
   overlayData: GeographicDynamicSourcesData,
 ): void {
-  const impactsSource = map.getSource("transit-impacts") as GeoJSONSource | undefined;
-  if (impactsSource) impactsSource.setData(overlayData.impactedLinks);
-
-  const impactStationsSource = map.getSource("transit-impact-stations") as GeoJSONSource | undefined;
-  if (impactStationsSource) impactStationsSource.setData(overlayData.impactedStations);
-
-  const badgesSource = map.getSource("transit-impact-badges") as GeoJSONSource | undefined;
-  if (badgesSource) {
-    ensureBadgeImages(
-      map,
-      overlayData.impactBadges.features as GeoJSON.Feature<GeoJSON.Point, Record<string, unknown>>[],
-    );
-    badgesSource.setData(overlayData.impactBadges);
-  }
-
-  const arrowsSource = map.getSource("transit-impact-arrows") as GeoJSONSource | undefined;
-  if (arrowsSource) arrowsSource.setData(overlayData.impactArrows);
-
-  const trainsSource = map.getSource("transit-train-markers") as GeoJSONSource | undefined;
-  if (trainsSource) trainsSource.setData(overlayData.trainMarkers);
-
-  const commuteLinksSource = map.getSource("transit-commute-links") as GeoJSONSource | undefined;
-  if (commuteLinksSource) commuteLinksSource.setData(overlayData.commuteLinks);
-
-  const commuteStationsSource = map.getSource("transit-commute-stations") as GeoJSONSource | undefined;
-  if (commuteStationsSource) commuteStationsSource.setData(overlayData.commuteStations);
+  const send = (sourceId: string, data: GeoJSON.GeoJSON, beforeSend?: () => void) => {
+    const source = map.getSource(sourceId) as GeoJSONSource | undefined;
+    if (!source || sentSourceData.get(source) === data) return;
+    beforeSend?.();
+    source.setData(data);
+    sentSourceData.set(source, data);
+  };
+  send("transit-impacts", overlayData.impactedLinks);
+  send("transit-impact-stations", overlayData.impactedStations);
+  send("transit-impact-badges", overlayData.impactBadges, () => ensureBadgeImages(
+    map,
+    overlayData.impactBadges.features as GeoJSON.Feature<GeoJSON.Point, Record<string, unknown>>[],
+  ));
+  send("transit-impact-arrows", overlayData.impactArrows);
+  send("transit-train-markers", overlayData.trainMarkers);
+  send("transit-commute-links", overlayData.commuteLinks);
+  send("transit-commute-stations", overlayData.commuteStations);
 
   recordGeographicMapLifecycle("sourceUpdate");
 }
@@ -398,14 +480,14 @@ export function updateGeographicLineFilter(
     setTransitPaintProperty(map,
       "transit-impact-arrows",
       "icon-opacity",
-      activeFilteredLine
+      arrowShownOpacity(activeFilteredLine
         ? [
             "case",
             ["==", ["get", "lineId"], activeFilteredLine],
             ["case", ["get", "isSelected"], 1.0, 0.85],
             0.2,
           ]
-        : ["case", ["get", "isSelected"], 1.0, 0.85],
+        : ["case", ["get", "isSelected"], 1.0, 0.85]),
     );
   }
 
@@ -413,9 +495,9 @@ export function updateGeographicLineFilter(
     setTransitPaintProperty(map,
       "transit-impact-arrows-casing",
       "icon-opacity",
-      activeFilteredLine
+      arrowShownOpacity(activeFilteredLine
         ? ["case", ["==", ["get", "lineId"], activeFilteredLine], 0.98, 0.2]
-        : 0.98,
+        : 0.98),
     );
   }
 
@@ -814,7 +896,8 @@ export function installTransitLayers(
         (map.getSource(source.id) as GeoJSONSource).setData(source.data);
       }
     } else {
-      map.addSource(source.id, { type: "geojson", data: source.data });
+      const promoteId = DYNAMIC_SOURCE_PROMOTE_IDS[source.id];
+      map.addSource(source.id, { type: "geojson", data: source.data, ...(promoteId ? { promoteId } : {}) });
     }
   }
 
@@ -1027,12 +1110,13 @@ export function installTransitLayers(
       id,
       type: "line",
       source: "transit-impacts",
-      filter: ["==", ["get", "segmentId"], ""],
       layout: { "line-cap": "round", "line-join": "round" },
       paint: {
         "line-color": color,
         "line-width": ["interpolate", ["linear"], ["zoom"], 9, widths[0], 14, widths[1], 17, widths[2]],
         "line-offset": routeOffsetExpr,
+        "line-opacity": ["case", ["boolean", ["feature-state", "hovered"], false], 1, 0],
+        "line-opacity-transition": { duration: 0, delay: 0 },
       },
     });
   }
@@ -1049,17 +1133,7 @@ export function installTransitLayers(
       },
       paint: {
         "line-color": ["get", "impactColor"],
-        "line-width": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          9,
-          3.2,
-          14,
-          6.5,
-          17,
-          9.5,
-        ],
+        "line-width": ["interpolate", ["linear"], ["zoom"], ...GEOGRAPHIC_IMPACT_LINE_WIDTHS.flat()],
         "line-dasharray": [
           "case",
           ["get", "isDashed"],
@@ -1067,6 +1141,45 @@ export function installTransitLayers(
           ["literal", [1, 0]],
         ],
         "line-offset": routeOffsetExpr,
+      },
+    });
+  }
+
+  // --- LAYER 6a: The raised alert (see updateGeographicImpactFeatureState) ---
+  // A dark base, so a raised planned closure's dash gaps do not show the
+  // alert drawn under it, then the alert's own colour: solid kinds in one
+  // layer, planned closures dashed in another. Paint never changes, so a
+  // raised alert switches with no fade or re-tiling.
+  const raisedKind: ExpressionSpecification = ["coalesce", ["feature-state", "raised"], ""];
+  const solidKinds = ["suspension", "delay", "reduced-speed-zone"] as const;
+  const raisedLines: Array<{ id: string; color: ExpressionSpecification | string; shown: ExpressionSpecification; dashed?: boolean }> = [
+    { id: "transit-impacts-raised-base", color: "#0f172a", shown: ["!=", raisedKind, ""] },
+    {
+      id: "transit-impacts-raised",
+      color: ["match", raisedKind, ...solidKinds.flatMap((kind) => [kind, getImpactColor(kind, network)]), "#000000"] as unknown as ExpressionSpecification,
+      shown: ["in", raisedKind, ["literal", [...solidKinds]]],
+    },
+    {
+      id: "transit-impacts-raised-planned",
+      color: getImpactColor("planned-closure", network),
+      shown: ["==", raisedKind, "planned-closure"],
+      dashed: true,
+    },
+  ];
+  for (const { id, color, shown, dashed } of raisedLines) {
+    if (map.getLayer(id)) continue;
+    map.addLayer({
+      id,
+      type: "line",
+      source: "transit-impacts",
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": color,
+        "line-width": ["interpolate", ["linear"], ["zoom"], ...GEOGRAPHIC_IMPACT_LINE_WIDTHS.flat()],
+        "line-offset": routeOffsetExpr,
+        "line-opacity": ["case", shown, 1, 0],
+        "line-opacity-transition": { duration: 0, delay: 0 },
+        ...(dashed ? { "line-dasharray": RAISED_DASH } : {}),
       },
     });
   }
@@ -1090,9 +1203,10 @@ export function installTransitLayers(
       },
       paint: {
         "icon-color": highContrast ? "#0f172a" : ["coalesce", ["get", "casingColor"], "#0f172a"],
-        "icon-opacity": initialData?.activeFilteredLine
+        "icon-opacity": arrowShownOpacity(initialData?.activeFilteredLine
           ? ["case", ["==", ["get", "lineId"], initialData.activeFilteredLine], 0.98, 0.2]
-          : 0.98,
+          : 0.98),
+        "icon-opacity-transition": { duration: 0, delay: 0 },
       },
     });
   }
@@ -1126,14 +1240,15 @@ export function installTransitLayers(
       },
       paint: {
         "icon-color": highContrast ? "#ffffff" : ["coalesce", ["get", "coreColor"], "#ffffff"],
-        "icon-opacity": initialData?.activeFilteredLine
+        "icon-opacity": arrowShownOpacity(initialData?.activeFilteredLine
           ? [
               "case",
               ["==", ["get", "lineId"], initialData.activeFilteredLine],
               ["case", ["get", "isSelected"], 1.0, 0.85],
               0.2,
             ]
-          : ["case", ["get", "isSelected"], 1.0, 0.85],
+          : ["case", ["get", "isSelected"], 1.0, 0.85]),
+        "icon-opacity-transition": { duration: 0, delay: 0 },
       },
     });
   }
@@ -1277,21 +1392,29 @@ export function installTransitLayers(
       type: "circle",
       source: "transit-impact-stations",
       paint: {
-        "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          9,
-          7.0,
-          14,
-          12.0,
-          17,
-          18.0,
-        ],
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], ...GEOGRAPHIC_IMPACT_STATION_RADII.flat()],
         "circle-color": "transparent",
         "circle-stroke-width": 3,
         "circle-stroke-color": ["get", "impactColor"],
         "circle-stroke-opacity": 0.95,
+      },
+    });
+  }
+
+  if (!map.getLayer("transit-station-impacts-raised")) {
+    const raisedStationKind: ExpressionSpecification = ["coalesce", ["feature-state", "raised"], ""];
+    const kinds = ["suspension", "delay", "reduced-speed-zone", "planned-closure"] as const;
+    map.addLayer({
+      id: "transit-station-impacts-raised",
+      type: "circle",
+      source: "transit-impact-stations",
+      paint: {
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], ...GEOGRAPHIC_IMPACT_STATION_RADII.flat()],
+        "circle-color": "transparent",
+        "circle-stroke-width": 3,
+        "circle-stroke-color": ["match", raisedStationKind, ...kinds.flatMap((kind) => [kind, getImpactColor(kind, network)]), "#000000"] as unknown as ExpressionSpecification,
+        "circle-stroke-opacity": ["case", ["!=", raisedStationKind, ""], 0.95, 0],
+        "circle-stroke-opacity-transition": { duration: 0, delay: 0 },
       },
     });
   }
@@ -1301,13 +1424,13 @@ export function installTransitLayers(
       id: "transit-station-impacts-hover",
       type: "circle",
       source: "transit-impact-stations",
-      filter: ["==", ["get", "stationId"], ""],
       paint: {
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 9, 14, 16, 17, 23],
         "circle-color": "transparent",
         "circle-stroke-width": 2.5,
         "circle-stroke-color": "#f8fafc",
-        "circle-stroke-opacity": 0.95,
+        "circle-stroke-opacity": ["case", ["boolean", ["feature-state", "hovered"], false], 0.95, 0],
+        "circle-stroke-opacity-transition": { duration: 0, delay: 0 },
       },
     });
   }
@@ -1600,6 +1723,11 @@ export function installTransitLayers(
         "icon-allow-overlap": true,
         // Badges always draw, and station names keep clear of them.
         "icon-ignore-placement": false,
+      },
+      paint: {
+        // Hidden while its chooser is open, as on the System Map; it keeps its
+        // place so station names do not move in under the chooser.
+        "icon-opacity": ["case", ["boolean", ["get", "chooserOpen"], false], 0, 1],
       },
     });
   }
