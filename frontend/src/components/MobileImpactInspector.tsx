@@ -5,7 +5,7 @@ import { NightlyBadge, PlannedEffectBadge } from "./PlannedEffectBadge";
 import { PlannedAdvisorySchedule } from "./PlannedAdvisorySchedule";
 import { plannedAdvisorySchedule, type PlannedScheduleView } from "../app/planned-advisory-schedule";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { AlertTriangle, ArrowLeft, ArrowRight, Bus, ChevronDown, ChevronUp, Construction, ExternalLink, X } from "lucide-react";
 import type { DashboardData } from "../app/DataContext";
 import { useDashboardData } from "../app/DataContext";
@@ -26,6 +26,7 @@ import { reducedSpeedZoneTimingEntries } from "../app/reduced-speed-zone-timing"
 import { ReducedSpeedZoneTimingBreakdown } from "./ReducedSpeedZoneTimingBreakdown";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { plannedClosureTiming } from "../app/planned-closure-timing";
+import { usePanelClose } from "../hooks/usePanelClose";
 
 export type MobileInspectorDetent = "map-focus" | "details-focus";
 
@@ -71,6 +72,7 @@ type Props = {
   detent: MobileInspectorDetent;
   onChangeDetent: (detent: MobileInspectorDetent) => void;
   onUnfocus: () => void;
+  reducedMotion: boolean;
   onBack?: () => void;
   backLabel?: string;
   onViewFullDetails: () => void;
@@ -360,6 +362,7 @@ export function MobileImpactInspector({
   detent,
   onChangeDetent,
   onUnfocus,
+  reducedMotion,
   onBack,
   backLabel = "Back to Previous Impact",
   onViewFullDetails,
@@ -413,14 +416,7 @@ export function MobileImpactInspector({
     };
   }, [detent, selectedDetailKey]);
 
-  const [isClosing, setIsClosing] = useState(false);
-  const closeTimeoutRef = useRef<number | null>(null);
-
-  useEffect(() => () => {
-    if (closeTimeoutRef.current !== null) {
-      window.clearTimeout(closeTimeoutRef.current);
-    }
-  }, []);
+  const { isClosing, requestClose } = usePanelClose(inspectorRef, { reducedMotion, onClose: onUnfocus });
 
   if (!details) return null;
 
@@ -428,15 +424,6 @@ export function MobileImpactInspector({
     { kind: details.kind, id: details.id, segmentIds: details.segmentIds },
     data,
   );
-
-  const handleUnfocusClick = () => {
-    setIsClosing(true);
-    closeTimeoutRef.current = window.setTimeout(() => {
-      closeTimeoutRef.current = null;
-      onUnfocus();
-      setIsClosing(false);
-    }, 380);
-  };
 
   return (
     <aside
@@ -468,7 +455,7 @@ export function MobileImpactInspector({
               <ArrowLeft size={20} aria-hidden="true" />
             </button>
           ) : null}
-          <button type="button" onClick={handleUnfocusClick} className="mobile-impact-inspector-icon-button" aria-label="Close Details">
+          <button type="button" onClick={requestClose} className="mobile-impact-inspector-icon-button" aria-label="Close Details">
             <X size={20} aria-hidden="true" />
           </button>
         </div>

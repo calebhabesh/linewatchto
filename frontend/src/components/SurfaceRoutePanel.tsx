@@ -32,6 +32,7 @@ import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { SurfaceNoticeStartsChip } from "./SurfaceStopImpacts";
 import type { PreparedSurfaceIndex } from "../app/surface-search";
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
+import { usePanelClose } from "../hooks/usePanelClose";
 import { FilterSearchRow } from "./FilterSearchRow";
 import { MapPinned } from "./ImpactCardFields";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
@@ -132,11 +133,10 @@ export function SurfaceRoutePanel({
   nearbyStopCodes = NO_STOPS,
   searchBack = null,
 }: Props) {
-  const [isClosing, setIsClosing] = useState(false);
-  const closeTimeoutRef = useRef<number | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const filterRef = useRef<HTMLDivElement | null>(null);
   const { sheetRef, isDragging, isExpanded, handleToggleExpand, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
+  const { isClosing, requestClose } = usePanelClose(sheetRef, { reducedMotion, onClose });
   const layer = surfaceRouteLayer(route.kind);
 
   const [stops, setStops] = useState<StopsState>(() => {
@@ -178,10 +178,6 @@ export function SurfaceRoutePanel({
     });
     return () => { active = false; };
   }, [route.network]);
-
-  useEffect(() => () => {
-    if (closeTimeoutRef.current !== null) window.clearTimeout(closeTimeoutRef.current);
-  }, []);
 
   const stopName = (code: string) => {
     const at = index?.stopByCode.get(code);
@@ -232,15 +228,6 @@ export function SurfaceRoutePanel({
     restoredScrollRef.current = true;
     if (initialPlace) scrollRef.current.scrollTop = initialPlace.scrollTop;
   }, [branch, initialPlace]);
-
-  const handleClose = () => {
-    setIsClosing(true);
-    const duration = reducedMotion ? 0 : window.innerWidth < 768 ? 240 : 180;
-    closeTimeoutRef.current = window.setTimeout(() => {
-      closeTimeoutRef.current = null;
-      onClose();
-    }, duration);
-  };
 
   const place = (): SurfaceRoutePanelPlace => ({
     direction: direction?.direction ?? 0,
@@ -318,7 +305,7 @@ export function SurfaceRoutePanel({
         stationName={route.name}
         nameBadge={<span className="surface-route-title-badge" style={surfaceRouteBadgeStyle(route)}>{route.route}</span>}
         updating={false}
-        onClose={handleClose}
+        onClose={requestClose}
         closeLabel="Close route"
       />
       <div ref={scrollRef} className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-2 md:mt-3.5 pb-3 station-detail-scroll">

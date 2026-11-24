@@ -59,6 +59,7 @@ import {
 import { StationDetailHeader } from "./StationDetailHeader";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
+import { usePanelClose } from "../hooks/usePanelClose";
 import { StationImpactTags } from "./StationImpactTags";
 import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
 import { DelayIcon } from "./DelayIcon";
@@ -313,8 +314,8 @@ export function RegionalStationDetailPanel({
   const dashboard = useDashboardData();
   const scrollBodyRef = useRef<HTMLDivElement>(null);
   useStationPanelRestore(scrollBodyRef, restorePosition, true, onRestorePositionApplied);
-  const [isClosing, setIsClosing] = useState(false);
   const { sheetRef, isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
+  const { isClosing, requestClose } = usePanelClose(sheetRef, { reducedMotion, onClose });
   const [arrivalTick, setArrivalTick] = useState(() => Date.now());
   const [arrivalState, setArrivalState] = useState<RegionalArrivalDataResult | null>(() => recentRegionalArrivals.get(station.id) ?? null);
 
@@ -337,7 +338,6 @@ export function RegionalStationDetailPanel({
   const arrivalSnapshot = arrivalsLoading || dashboard.snapshot
     ? emptyRegionalArrivalSnapshot(station.id)
     : arrivalState.data;
-  const closeTimeoutRef = useRef<number | null>(null);
   const routes = REGIONAL_ROUTE_DEFINITIONS.filter((route) => station.lineIds.includes(route.id));
   const impacts = useMemo(() => {
     const related = new Map<string, RegionalStationImpact>();
@@ -428,12 +428,6 @@ export function RegionalStationDetailPanel({
     }
     onToggleSaved(station.id);
   };
-
-  useEffect(() => () => {
-    if (closeTimeoutRef.current !== null) {
-      window.clearTimeout(closeTimeoutRef.current);
-    }
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -655,16 +649,6 @@ export function RegionalStationDetailPanel({
     }
   };
 
-  const handleClose = () => {
-    setIsClosing(true);
-    const duration = reducedMotion ? 0 : (typeof window !== "undefined" && window.innerWidth < 768) ? 240 : 180;
-    closeTimeoutRef.current = window.setTimeout(() => {
-      closeTimeoutRef.current = null;
-      onClose();
-      setIsClosing(false);
-    }, duration);
-  };
-
   return (
     <aside
       ref={sheetRef}
@@ -688,7 +672,7 @@ export function RegionalStationDetailPanel({
         saved={saved}
         savePending={savePending}
         onToggleSaved={toggleSaved}
-        onClose={handleClose}
+        onClose={requestClose}
       />
 
       <div className="station-detail-body-wrapper w-full min-w-0 max-w-full flex-1 min-h-0 flex flex-col">

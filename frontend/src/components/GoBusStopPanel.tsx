@@ -1,7 +1,7 @@
 "use client";
 
 import { Bus, LoaderCircle } from "lucide-react";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import {
   getGoBusStopDepartures,
   goBusStopDisclaimer,
@@ -11,6 +11,7 @@ import {
 } from "../app/go-bus-stop-departures";
 import { parseSurfaceRouteDetails, SURFACE_ARRIVAL_COUNTDOWN_TICK_MS } from "../app/surface-arrivals";
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
+import { usePanelClose } from "../hooks/usePanelClose";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { StationDetailHeader } from "./StationDetailHeader";
 import type { SurfaceNoticeDetail } from "../app/surface-notice-data";
@@ -52,9 +53,8 @@ export function GoBusStopPanel({ stopCode, fallbackName = null, routeColor, onCl
   const [loadedStopCode, setLoadedStopCode] = useState<string | null>(null);
   const loading = loadedStopCode !== stopCode;
   const [now, setNow] = useState(() => Date.now());
-  const [isClosing, setIsClosing] = useState(false);
-  const closeTimeoutRef = useRef<number | null>(null);
   const { sheetRef, isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
+  const { isClosing, requestClose } = usePanelClose(sheetRef, { reducedMotion, onClose });
 
   useEffect(() => {
     if (!isWellFormedStopCode(stopCode)) {
@@ -93,19 +93,6 @@ export function GoBusStopPanel({ stopCode, fallbackName = null, routeColor, onCl
     return () => window.clearInterval(tick);
   }, []);
 
-  useEffect(() => () => {
-    if (closeTimeoutRef.current !== null) window.clearTimeout(closeTimeoutRef.current);
-  }, []);
-
-  const handleClose = () => {
-    setIsClosing(true);
-    const duration = reducedMotion ? 0 : window.innerWidth < 768 ? 240 : 180;
-    closeTimeoutRef.current = window.setTimeout(() => {
-      closeTimeoutRef.current = null;
-      onClose();
-    }, duration);
-  };
-
   const data = result?.kind === "ok" ? result.data : null;
   const name = data?.stopName ?? fallbackName ?? `GO Stop ${stopCode}`;
   const groups = data ? goBusStopGroups(data) : [];
@@ -138,7 +125,7 @@ export function GoBusStopPanel({ stopCode, fallbackName = null, routeColor, onCl
         eyebrow={`GO Stop ${stopCode}`}
         stationName={name}
         updating={loading && Boolean(result)}
-        onClose={handleClose}
+        onClose={requestClose}
         closeLabel="Close stop departures"
       />
 
