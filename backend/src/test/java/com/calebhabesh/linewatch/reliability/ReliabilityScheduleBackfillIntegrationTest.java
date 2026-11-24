@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.reliability;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.calebhabesh.linewatch.arrival.schedule.GtfsScheduleImportRepository;
 import com.calebhabesh.linewatch.arrival.schedule.GtfsScheduleImportService;
@@ -154,6 +155,60 @@ class ReliabilityScheduleBackfillIntegrationTest {
             order by service_date
             """, Map.of(), LocalDate.class);
         assertThat(dates).containsExactly(LocalDate.parse("2026-09-10"), LocalDate.parse("2026-09-11"));
+    }
+
+    /** The October 2026 TTC archive has no parent stations and omits the dash on Lines 5 and 6. */
+    @Test
+    void ttcArchiveBackfillMapsArchivedPlatformNames(@TempDir Path tempDir) throws Exception {
+        Path ttcZip = tempDir.resolve("ttc-archive.zip");
+        writeZip(ttcZip, Map.of(
+            "routes.txt", "route_id,route_short_name,route_long_name,route_type\n1,1,Line 1,1\n2,2,Line 2,1\n5,5,Line 5 Eglinton,0\n",
+            "trips.txt", "route_id,service_id,trip_id,trip_headsign,direction_id\n1,S1,T1,Finch,0\n1,S1,T1B,Finch,0\n2,S1,T2,Kennedy,0\n2,S1,T2B,Kennedy,0\n5,S1,T5,Kennedy,0\n5,S1,T5B,Kennedy,0\n",
+            "stops.txt", "stop_id,stop_code,stop_name,parent_station,stop_lat,stop_lon\n"
+                + "13863,1,Bloor Station - Northbound Platform,,43.67,-79.38\n"
+                + "13809,2,TMU Station - Northbound Platform,,43.65,-79.38\n"
+                + "13756,3,Yonge Station - Eastbound Platform,,43.67,-79.38\n"
+                + "13753,4,Sherbourne Station - Eastbound Platform,,43.67,-79.37\n"
+                + "16071,5,Avenue Station Eastbound Platform,,43.70,-79.40\n"
+                + "16081,6,Kennedy Station LRT Platform,,43.73,-79.26\n",
+            "calendar.txt", "service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\nS1,1,1,1,1,1,1,1,20260910,20260910\n",
+            "stop_times.txt", "trip_id,arrival_time,departure_time,stop_id,stop_sequence\n"
+                + "T1,06:00:00,06:00:00,13809,1\nT1,06:05:00,06:05:00,13863,2\n"
+                + "T2,06:00:00,06:00:00,13756,1\nT2,06:05:00,06:05:00,13753,2\n"
+                + "T5,06:00:00,06:00:00,16071,1\nT5,06:30:00,06:30:00,16081,2\n"
+                + "T1B,07:00:00,07:00:00,13809,1\nT1B,07:05:00,07:05:00,13863,2\n"
+                + "T2B,07:00:00,07:00:00,13756,1\nT2B,07:05:00,07:05:00,13753,2\n"
+                + "T5B,07:00:00,07:00:00,16071,1\nT5B,07:30:00,07:30:00,16081,2\n"
+        ));
+
+        runner.backfill("ttc", ttcZip, "https://archive.example/ttc-202609.zip", "ttc-archive-2026-09");
+
+        List<String> stations = jdbc.queryForList("""
+            select line_id || ':' || station_id from reliability_service_spans
+            where network_id = 'ttc' and station_id <> ''
+            order by 1
+            """, Map.of(), String.class);
+        assertThat(stations).contains("line-1:bloor-yonge", "line-2:bloor-yonge", "line-5:avenue", "line-5:kennedy");
+    }
+
+    @Test
+    void ttcArchiveBackfillRejectsUnmappedStopsAndKeepsNothing(@TempDir Path tempDir) throws Exception {
+        Path ttcZip = tempDir.resolve("ttc-archive.zip");
+        writeZip(ttcZip, Map.of(
+            "routes.txt", "route_id,route_short_name,route_long_name,route_type\nR1,1,Line 1 (Yonge-University),1\n",
+            "trips.txt", "route_id,service_id,trip_id,trip_headsign,direction_id\nR1,S1,T1,Finch,0\n",
+            "stops.txt", "stop_id,stop_code,stop_name,parent_station,stop_lat,stop_lon\nST_UN,1,Union Station,,43.645,-79.380\nST_XX,2,Nowhere Station,,43.668,-79.399\n",
+            "calendar.txt", "service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\nS1,1,1,1,1,1,1,1,20260910,20260911\n",
+            "stop_times.txt", "trip_id,arrival_time,departure_time,stop_id,stop_sequence\nT1,06:00:00,06:00:00,ST_UN,1\nT1,06:20:00,06:20:00,ST_XX,2\n"
+        ));
+
+        assertThatThrownBy(() -> runner.backfill(
+            "ttc", ttcZip, "https://archive.example/ttc-202609.zip", "ttc-archive-2026-09"
+        )).isInstanceOf(IllegalStateException.class).hasMessageContaining("line-1:ST_XX (Nowhere Station)");
+
+        assertThat(jdbc.queryForObject("select count(*) from gtfs_schedule_imports", Map.of(), Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from reliability_schedule_days", Map.of(), Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from reliability_service_spans", Map.of(), Integer.class)).isZero();
     }
 
     private static void writeZip(Path target, Map<String, String> entries) throws IOException {

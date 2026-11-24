@@ -148,6 +148,8 @@ public class GtfsScheduleImportWriter {
      * Plan 17 A2 archive backfill: imports rapid-transit schedule tables from an archived TTC zip
      * as an inactive import, captures spans only for dates with no existing row in
      * {@code reliability_schedule_days}, then deletes the temporary import. Never activates.
+     * Fails if a served rapid-transit stop maps to no station on its line, because the captured
+     * days would otherwise count as complete while missing that station's spans.
      */
     @Transactional(rollbackFor = Exception.class)
     public ReliabilityScheduleCapture.CaptureResult writeArchiveBackfill(
@@ -163,24 +165,34 @@ public class GtfsScheduleImportWriter {
             prepared.serviceStart(),
             prepared.serviceEnd()
         );
-        try {
-            repository.insertRoutes(importId, prepared.routes());
-            repository.insertStops(importId, prepared.stops());
-            repository.insertServices(importId, prepared.services());
-            repository.insertServiceExceptions(importId, prepared.serviceExceptions());
-            repository.insertTrips(importId, prepared.trips());
-            StopTimeBatcher batcher = new StopTimeBatcher(repository, importId, prepared.rapidTransitTripIds());
-            streamStopTimes(zipPath, batcher::accept);
-            batcher.finish();
-            repository.insertStationStops(importId, prepared.stationStops());
-            return scheduleCapture.captureArchiveForImport(
-                ReliabilityScheduleCapture.ScheduleSource.TTC,
-                importId,
-                feedVersion
+        repository.insertRoutes(importId, prepared.routes());
+        repository.insertStops(importId, prepared.stops());
+        repository.insertServices(importId, prepared.services());
+        repository.insertServiceExceptions(importId, prepared.serviceExceptions());
+        repository.insertTrips(importId, prepared.trips());
+        StopTimeBatcher batcher = new StopTimeBatcher(repository, importId, prepared.rapidTransitTripIds());
+        streamStopTimes(zipPath, batcher::accept);
+        batcher.finish();
+        repository.insertStationStops(importId, prepared.stationStops());
+        // Until the statistics include this import ID, the cascades behind the delete below can
+        // look up stop times by import alone and rescan the whole import for every deleted trip.
+        repository.refreshPlannerStatistics();
+        List<String> unmappedStops = repository.findUnmappedRapidTransitStops(importId);
+        if (!unmappedStops.isEmpty()) {
+            throw new IllegalStateException(
+                "Archived TTC GTFS has rapid-transit stops without a station mapping: "
+                    + String.join(", ", unmappedStops)
             );
-        } finally {
-            repository.deleteInactiveImport(importId);
         }
+        ReliabilityScheduleCapture.CaptureResult captured = scheduleCapture.captureArchiveForImport(
+            ReliabilityScheduleCapture.ScheduleSource.TTC,
+            importId,
+            feedVersion
+        );
+        // A failure above rolls the whole import back, so only success needs the delete.
+        repository.deleteInactiveImport(importId);
+        repository.refreshPlannerStatistics();
+        return captured;
     }
 
     private boolean coversToday(GtfsSchedulePreparedImport prepared) {

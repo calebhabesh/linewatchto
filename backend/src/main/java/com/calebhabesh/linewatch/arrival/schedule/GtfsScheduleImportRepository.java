@@ -299,6 +299,29 @@ public class GtfsScheduleImportRepository {
             """, Map.of("importId", importId), (rs, rowNum) -> rs.getString("station_line"));
     }
 
+    /** Rapid-transit stops with scheduled trips on a line that map to none of that line's stations. */
+    public List<String> findUnmappedRapidTransitStops(long importId) {
+        return jdbc.query("""
+            select distinct route.line_id || ':' || stop_time.stop_id || ' (' || stop.stop_name || ')' as unmapped
+            from gtfs_stop_times stop_time
+            join gtfs_trips trip
+              on trip.import_id = stop_time.import_id and trip.trip_id = stop_time.trip_id
+            join gtfs_routes route
+              on route.import_id = trip.import_id and route.route_id = trip.route_id
+            join gtfs_stops stop
+              on stop.import_id = stop_time.import_id and stop.stop_id = stop_time.stop_id
+            where stop_time.import_id = :importId
+              and not exists (
+                  select 1
+                  from gtfs_station_stops mapping
+                  where mapping.import_id = stop_time.import_id
+                    and mapping.stop_id = stop_time.stop_id
+                    and mapping.line_id = route.line_id
+              )
+            order by unmapped
+            """, Map.of("importId", importId), (rs, rowNum) -> rs.getString("unmapped"));
+    }
+
     public void insertSurfaceRoutes(long importId, List<GtfsImportModels.SurfaceRouteRow> rows) {
         if (rows.isEmpty()) return;
         String sql = """
