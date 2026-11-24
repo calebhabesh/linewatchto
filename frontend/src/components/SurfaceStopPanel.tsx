@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight, Bus, LoaderCircle, TramFront } from "lucide-react";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import {
   getSurfaceStopArrivals,
   surfaceNoticesForStop,
@@ -13,6 +13,7 @@ import {
 import { parseSurfaceRouteDetails, SURFACE_ARRIVAL_COUNTDOWN_TICK_MS } from "../app/surface-arrivals";
 import type { SurfaceNoticeDetail } from "../app/surface-notice-data";
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
+import { usePanelClose } from "../hooks/usePanelClose";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { StationDetailHeader } from "./StationDetailHeader";
 import { SurfaceNoticeBackLink, SurfaceRouteBackLink, SurfaceSearchBackLink, type SurfaceNoticeBack, type SurfaceRouteBack, type SurfaceSearchBack } from "./SurfaceRoutePanel";
@@ -65,9 +66,8 @@ export function SurfaceStopPanel({
   const loading = loadedStopCode !== stopCode;
   const notices = useFreshSurfaceNotices("ttc");
   const [now, setNow] = useState(() => Date.now());
-  const [isClosing, setIsClosing] = useState(false);
-  const closeTimeoutRef = useRef<number | null>(null);
   const { sheetRef, isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
+  const { isClosing, requestClose } = usePanelClose(sheetRef, { reducedMotion, onClose });
 
   useEffect(() => {
     if (!isWellFormedStopCode(stopCode)) {
@@ -109,19 +109,6 @@ export function SurfaceStopPanel({
     return () => window.clearInterval(tick);
   }, []);
 
-  useEffect(() => () => {
-    if (closeTimeoutRef.current !== null) window.clearTimeout(closeTimeoutRef.current);
-  }, []);
-
-  const handleClose = () => {
-    setIsClosing(true);
-    const duration = reducedMotion ? 0 : window.innerWidth < 768 ? 240 : 180;
-    closeTimeoutRef.current = window.setTimeout(() => {
-      closeTimeoutRef.current = null;
-      onClose();
-    }, duration);
-  };
-
   const data = result?.kind === "ok" ? result.data : null;
   const name = data?.stopName ?? fallbackName ?? `Stop ${stopCode}`;
   const groups = data ? surfaceStopGroups(data) : [];
@@ -155,7 +142,7 @@ export function SurfaceStopPanel({
         eyebrow={`Stop ${stopCode}`}
         stationName={name}
         updating={loading && Boolean(result)}
-        onClose={handleClose}
+        onClose={requestClose}
         closeLabel="Close stop departures"
       />
 

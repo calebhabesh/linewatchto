@@ -4671,6 +4671,7 @@ export function LineWatchShell({
           detent={mobileInspectorDetent}
           onChangeDetent={setMobileInspectorDetent}
           onUnfocus={handleClearMobileImpactSelection}
+          reducedMotion={reducedMotion}
           onBack={mobileInspectorBack ? (mobileInspectorBack.kind === "my-stations" ? handleReturnMobileImpactToMyStations : handleSubmenuBack) : undefined}
           backLabel={mobileInspectorBack?.label}
           onViewFullDetails={() => navigateForward(viewForImpactSelection(selection))}

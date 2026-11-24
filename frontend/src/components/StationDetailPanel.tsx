@@ -65,6 +65,7 @@ import { ArrivalTileSourceIndicator } from "./ArrivalTileSourceIndicator";
 import { StationDetailHeader } from "./StationDetailHeader";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
+import { usePanelClose } from "../hooks/usePanelClose";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { ttcStationConnections } from "../app/station-connections";
@@ -583,25 +584,8 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
     }, reducedMotion ? 0 : 150);
   };
 
-  const [isClosing, setIsClosing] = useState(false);
-  const closeTimeoutRef = useRef<number | null>(null);
   const { sheetRef, isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
-
-  useEffect(() => () => {
-    if (closeTimeoutRef.current !== null) {
-      window.clearTimeout(closeTimeoutRef.current);
-    }
-  }, []);
-
-  const handleCloseClick = () => {
-    setIsClosing(true);
-    const duration = reducedMotion ? 0 : (typeof window !== "undefined" && window.innerWidth < 768) ? 240 : 180;
-    closeTimeoutRef.current = window.setTimeout(() => {
-      closeTimeoutRef.current = null;
-      onClose();
-      setIsClosing(false);
-    }, duration);
-  };
+  const { isClosing, requestClose } = usePanelClose(sheetRef, { reducedMotion: Boolean(reducedMotion), onClose });
 
   return (
     <aside
@@ -634,7 +618,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
           }
           if (station?.id) onToggleSaved?.(station.id);
         }}
-        onClose={handleCloseClick}
+        onClose={requestClose}
       />
 
       <div className={`station-detail-body-wrapper w-full min-w-0 max-w-full flex-1 min-h-0 flex flex-col transition-all duration-200 ${updating ? "station-detail-body-updating" : ""}`}>

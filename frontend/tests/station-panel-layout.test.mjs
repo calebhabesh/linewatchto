@@ -6,6 +6,7 @@ import { readShellSource } from "./helpers/shell-source.mjs";
 
 const panelSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 const regionalPanelSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
+const panelCloseSource = readFileSync(new URL("../src/hooks/usePanelClose.ts", import.meta.url), "utf8");
 const myStationsPanelSource = readFileSync(new URL("../src/components/MyStationsPanel.tsx", import.meta.url), "utf8");
 const surfaceConnectionsSource = readFileSync(new URL("../src/components/SurfaceConnectionsSection.tsx", import.meta.url), "utf8");
 const stationConnectionsSource = readFileSync(new URL("../src/components/StationConnectionBadges.tsx", import.meta.url), "utf8");
@@ -36,7 +37,8 @@ describe("station detail panel layout", () => {
     );
     assert.match(shellSource + navSource, /setSelectedStationId\(\(current\) => current === expectedStationId \? null : current\)/);
     assert.match(shellSource, /key=\{`\$\{selectedStationId\}:\$\{stationPanelActivationKey\}`\}/);
-    assert.match(panelSource, /window\.clearTimeout\(closeTimeoutRef\.current\)/);
+    assert.match(panelCloseSource, /window\.clearTimeout\(timerRef\.current\)/);
+    for (const source of [panelSource, regionalPanelSource]) assert.match(source, /onClose=\{requestClose\}/);
   });
 
   it("uses matching tactile drop-and-scale close animations for station detail panels", () => {
