@@ -17,17 +17,17 @@ Read first: the Reliability section and the cancellation line of
 | Phase | Owns | State |
 | --- | --- | --- |
 | A0 | Stop deleting polling evidence (production env) | Done (2026-11-24) |
-| A1 | Preserve schedule coverage: schedule days and service spans | Done in code (2026-11-24); production check after deploy |
+| A1 | Preserve schedule coverage: schedule days and service spans | Deployed & verified (2026-11-24, `83812000`); watch next GO import |
 | A2 | Backfill schedule history from archived GTFS | Owner decision (D2) |
-| A3 | Preserve polling coverage: observation windows | Done in code (2026-11-24); production check after deploy |
-| A4 | Off-host backups and a restore drill | Done in code (2026-11-24); install and drill after owner setup |
-| A5 | Derived read model, methodology v1 (today's rules) | Done in code (2026-11-24); production rebuild and drill parity after deploy |
-| A6 | Methodology v2: disruption classes and station-weighted impact | Done in code (2026-11-24); production rebuild after deploy |
-| A7 | Range API | Done in code (2026-11-24); edge caching (D8) after deploy |
-| A8 | Analytics page: route, controls, summary | Done in code (2026-11-24), on D3's recommended routes; production check after deploy |
-| A9 | Charts, drill-down and export | Done in code (2026-11-24); production check after deploy |
+| A3 | Preserve polling coverage: observation windows | Deployed & verified (2026-11-24, `83812000`, 0 mismatched days across 90 days per network); repeat on A4 restored copy before D7 |
+| A4 | Off-host backups and a restore drill | Done in code (2026-11-24); install and drill wait on owner R2 enablement & off-host `age` key |
+| A5 | Derived read model, methodology v1 (today's rules) | Deployed (2026-11-24, `83812000`, initialized directly on v2); repeat drill parity after A4 restore |
+| A6 | Methodology v2: disruption classes and station-weighted impact | Deployed & verified (2026-11-24, `83812000`, live v2 build in 931 ms total) |
+| A7 | Range API | Deployed & verified (2026-11-24, `83812000`, WAF extended to `/api/reliability/`); edge caching (D8) open |
+| A8 | Analytics page: route, controls, summary | Deployed & verified (2026-11-24, `83812000`, `/ttc/analytics` and `/go-up/analytics` live) |
+| A9 | Charts, drill-down and export | Deployed & verified (2026-11-24, `83812000`, `test:analytics` green on desktop & mobile CI) |
 | A10 | New sources, each gated separately | Owner decisions (D5, D6) |
-| A11 | Close: retention, fallbacks, docs and claims | Done in code (2026-11-24); production D7 retention after deploy and A3 check |
+| A11 | Close: retention, fallbacks, docs and claims | Deployed & verified (2026-11-24, `83812000`); Grafana rule apply & D7 (`P400D`) wait on A4 first backup & restore drill |
 
 Order: A1 and A3, then A4, A5, A6, A7, A8, A9, A11. A2 can run any time after
 A1; A10 items after A7. Preservation comes first because the loss is daily and
@@ -1289,7 +1289,17 @@ of its own. None feeds LineWatchTO-observed minutes.
 
 ### A11 — Close
 
-**Done in code (2026-11-24); not deployed.** Production retention lowering (D7: `P3650D` → `P400D`) and Grafana alert rule apply wait for deploy and the A3 production done check.
+**Deployed & verified (2026-11-24, `83812000e06db083a052f0cca85d8223f5732622`, `Deploy Production` run `45464002811`).** Remaining production operations: A4 off-host backup setup/upload/restore drill (blocked on R2 enablement in the Cloudflare dashboard and off-host `age` key creation), Grafana alert rule apply (after first verified off-host backup so the no-data backup alert does not fire), and D7 retention lowering (`P3650D` → `P400D`, after repeating the A3 check on the A4 restored copy).
+
+Production verification (2026-11-24 18:53–18:58 UTC, read-only):
+
+- **CI & deploy:** PR #31 passed `CI/Backend` (1m26s) and `CI/Frontend` (26m58s, including `test:analytics` on `desktop-chrome` and `mobile-chromium`); `main` CI run `45458970697` passed and published ARM64 images; `Deploy Production` run `45464002811` deployed `83812000` with pre-deploy backup and passing `smoke-deploy.mjs`.
+- **Cloudflare WAF:** Extended `Block Non-Read Methods on Public APIs` (zone `linewatchto.ca`, rule `3e77e955cc3f4f1daf1b49acf58fdb34`, version 3) to `starts_with(http.request.uri.path, "/api/reliability/")`. Verified `POST` returns `403` on both `linewatchto.ca` and `api.linewatchto.ca`.
+- **Migrations:** Flyway V94–V97 applied cleanly (`2026-11-24 18:53:02 UTC`).
+- **A1 check:** `reliability_schedule_days` has TTC `2026-11-01..2026-12-21` (51 days), GO `2026-11-17..2027-01-01` (46 days), UP `2026-11-17..2027-05-16` (181 days); `reliability_service_spans` has TTC 255 line / 5,967 station spans, regional 473 line / 4,158 station spans.
+- **A3 check:** `reliability_observation_windows` for `2026-08-26..2026-11-23` has 90/90 final days and **0 mismatched days** on both networks (`ttc`: 129,281 raw = 129,281 rolled minutes; `regional`: 129,599 raw = 129,599 rolled minutes).
+- **A5/A6 derivation & metrics:** Fresh startup catch-up built methodology v2 and switched at `2026-11-24T18:56:12Z` (TTC 828 ms: 322 episodes, 476 line days, 5,421 station days; regional 103 ms: 29 episodes, 88 line days, 615 station days). `/api/health/reliability` reports `status: "ok"`, `methodologyVersion: 2`, `derivedThrough: "2026-11-23"`, 0 failures. Prometheus gauges (`linewatch_reliability_derivation_*`, `linewatch_reliability_methodology_version`) report `0.0` failures, `0.0` stale, `0.828` s duration, version `2.0`.
+- **A7/A8/A9 live endpoints:** `/ttc/analytics` and `/go-up/analytics` return `200`; `/api/reliability/{availability,lines,summary,series,patterns,hotspots,episodes,cancellations,export}` all return `200` in 74–208 ms (`firstAnalyzableDate` `2026-11-01` TTC / `2026-11-17` regional; regional `scheduleCoveragePercentage: 26.7` baseline for tracking the next GO import).
 
 What changed:
 
