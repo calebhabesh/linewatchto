@@ -18,16 +18,16 @@ Read first: the Reliability section and the cancellation line of
 | --- | --- | --- |
 | A0 | Stop deleting polling evidence (production env) | Done (2026-11-24) |
 | A1 | Preserve schedule coverage: schedule days and service spans | Deployed & verified (2026-11-24, `83812000`); watch next GO import |
-| A2 | Backfill schedule history from archived GTFS | Owner decision (D2) |
-| A3 | Preserve polling coverage: observation windows | Deployed & verified (2026-11-24, `83812000`, 0 mismatched days across 90 days per network); repeat on A4 restored copy before D7 |
-| A4 | Off-host backups and a restore drill | Done in code (2026-11-24); install and drill wait on owner R2 enablement & off-host `age` key |
-| A5 | Derived read model, methodology v1 (today's rules) | Deployed (2026-11-24, `83812000`, initialized directly on v2); repeat drill parity after A4 restore |
-| A6 | Methodology v2: disruption classes and station-weighted impact | Deployed & verified (2026-11-24, `83812000`, live v2 build in 931 ms total) |
-| A7 | Range API | Deployed & verified (2026-11-24, `83812000`, WAF extended to `/api/reliability/`); edge caching (D8) open |
-| A8 | Analytics page: route, controls, summary | Deployed & verified (2026-11-24, `83812000`, `/ttc/analytics` and `/go-up/analytics` live) |
-| A9 | Charts, drill-down and export | Deployed & verified (2026-11-24, `83812000`, `test:analytics` green on desktop & mobile CI) |
-| A10 | New sources, each gated separately | Owner decisions (D5, D6) |
-| A11 | Close: retention, fallbacks, docs and claims | Deployed & verified (2026-11-24, `83812000`); Grafana rule apply & D7 (`P400D`) wait on A4 first backup & restore drill |
+| A2 | Backfill schedule history from archived GTFS | Done in code (2026-11-24, D2 approved); ready to backfill archived zips on deploy |
+| A3 | Preserve polling coverage: observation windows | Deployed & verified on production & A4 restored copy (2026-11-24, 0 mismatched days across 90 days per network) |
+| A4 | Off-host backups and a restore drill | Done & drilled (2026-11-24, R2 `linewatchto-backups` ENAM, 16.6 MB copy, 114 s restore drill, 7.5 GB storage alert added) |
+| A5 | Derived read model, methodology v1 (today's rules) | Deployed & verified on restored copy (2026-11-24) |
+| A6 | Methodology v2: disruption classes and station-weighted impact | Deployed & verified (2026-11-24, live v2 build in 931 ms total) |
+| A7 | Range API | Deployed & verified (2026-11-24, WAF extended to `/api/reliability/`, D8 closed-range edge caching enabled) |
+| A8 | Analytics page: route, controls, summary | Deployed & verified (2026-11-24, `/ttc/analytics` and `/go-up/analytics` live) |
+| A9 | Charts, drill-down and export | Deployed & verified (2026-11-24, `test:analytics` green on desktop & mobile CI) |
+| A10 | New sources, each gated separately | Done in code (2026-11-24, D5 GO/UP OTP, D6 TTC delay log, TTC performance history); deploy & enable next |
+| A11 | Close: retention, fallbacks, docs and claims | Done & verified (2026-11-24: Grafana rules applied, D7 retention lowered to `P400D`) |
 
 Order: A1 and A3, then A4, A5, A6, A7, A8, A9, A11. A2 can run any time after
 A1; A10 items after A7. Preservation comes first because the loss is daily and
@@ -728,6 +728,14 @@ Remaining: owner setup and the first real upload, then the drill (A1 and A3
 done checks on the restored copy; A5 parity once A5 lands). Record its result
 here.
 
+**Production setup & restore drill (2026-11-24):**
+
+- Cloudflare R2 bucket `linewatchto-backups` (`ENAM`), bucket-scoped RW token on VPS (`~/.config/linewatch/offsite-backup.env`, mode 600) and RO restore token off-host (`~/.config/linewatch/offsite-restore.env`), off-host `age` key generated locally (only public key on VPS).
+- Alloy recreated (`v1.17.0`), systemd timer installed and enabled (`07:15 UTC` daily), first copy uploaded and verified: `linewatch-postgres-20261124T190858Z.dump.age`, **17,384,589 bytes (16.6 MB)** (projected 34-copy full retention ~0.55 GB, <6% of R2's 10 GB free tier; added Grafana rule `linewatch-offsite-backup-storage-high` warning at 7.5 GB).
+- **Restore drill:** downloaded with RO token, decrypted off-host, restored into throwaway `postgis/postgis:17-3.6` (`pg_restore` 11 s, total drill 114 s including live TTC/GO/UP schedule re-import with deployed commit `83812000`). Excluded schedule & raw-record tables all 0 rows; A1 check matched production row-for-row (`ttc` 51 days, `go` 46, `up` 181); A3 check reported **90/90 final days and 0 mismatched days** on both networks (`ttc` 129,281, `regional` 129,599); `/api/health/reliability` `status: "ok"` v2 and `/api/reliability/availability` clean. Throwaway containers and decrypted dumps deleted.
+- Grafana Cloud: `node scripts/grafana-apply-alerts.mjs` applied 14 rules to `LineWatchTO/linewatch`.
+- D7: lowered production `LINEWATCH_MAINTENANCE_INGESTION_RUN_RETENTION` from `P3650D` to `P400D` and recreated `backend` healthy (`status: "ok"`, v2).
+
 Original plan:
 
 - A nightly host timer, independent of the application, runs a new
@@ -1260,6 +1268,19 @@ Tests: primitive rendering and table alternatives in `test:fast`; the smoke
 spec drives one filter from a chart mark to the episode list on each network.
 
 ### A10 — New sources, each gated separately
+
+**Done in code (2026-11-24); D5, D6, and TTC performance history approved by owner.** Launch-gate entries added to [source launch gates](../source-licensing-launch-gates.md).
+
+What changed:
+
+- `V98__reliability_a10_sources.sql` creates `regional_scheduled_trip_counts`, `regional_trip_observations`, `ttc_official_delay_imports`, `ttc_official_delay_incidents`, and `ttc_performance_readings`.
+- **D5 (GO/UP on-time performance):** `ReliabilityScheduleCapture` preserves daily scheduled trip counts per corridor; `GoTripUpdateFeed` captures cancelled trip IDs alongside running stop-time predictions; `RegionalTripObservationService` & `RegionalTripObservationPollingJob` (`LINEWATCH_RELIABILITY_REGIONAL_OTP_ENABLED`, default `false`) derive one upserted row per trip-day using Metrolinx's published 5-minute terminal arrival definition with honest observed/scheduled coverage; served at `GET /api/reliability/on-time` and rendered by `OnTimePerformanceModule` on `/go-up/analytics`.
+- **D6 (TTC Delay Log):** `TtcOfficialDelayLogService` & `TtcOfficialDelayLogRefreshJob` (`LINEWATCH_RELIABILITY_TTC_DELAY_LOG_ENABLED`, default `false`) stream Open Data Toronto's `TTC Subway Delay Data since 2025.csv` and `Code Descriptions.csv` (OGL–Toronto) in 1,000-row batches; served at `GET /api/reliability/ttc-delay-log` with publication period and rendered by `TtcDelayLogModule` on `/ttc/analytics`, never merged into observed minutes.
+- **Official TTC Performance History:** `TtcPerformanceHistoryRepository` persists each fresh `TtcPerformanceService` snapshot reading (`TTC.ca`); served at `GET /api/reliability/ttc-performance` and rendered by `TtcPerformanceHistoryModule` on `/ttc/analytics`.
+- **A2 (Schedule backfill, D2):** `ReliabilityScheduleCapture.captureArchiveForImport`, `GtfsScheduleImportService.importZipForArchiveBackfill`, `RegionalGtfsScheduleImportService.importZipForArchiveBackfill`, and `ReliabilityScheduleBackfillRunner` (`LINEWATCH_RELIABILITY_SCHEDULE_BACKFILL_*`) import archived GTFS zips as temporary inactive imports, capture only missing dates (`source_kind = 'archive'`), and immediately delete the temporary import without activating.
+- **D8 (Closed-range edge caching):** `ReliabilityRangeController` emits `Cache-Control: public, max-age=300, s-maxage=21600, stale-while-revalidate=3600` on closed ranges, `public, max-age=15, s-maxage=30, stale-while-revalidate=30` on open ranges, `public, max-age=60, s-maxage=900, stale-while-revalidate=300` on `/availability`, `public, max-age=300, s-maxage=3600, stale-while-revalidate=600` on daily context sources, and `no-store` on `/export` and errors. Cloudflare Cache Rule 3 (`ebe34059b28b4cd683cad60858a796a6`, `bypass_by_default`) updated to include all read-only range endpoints (excluding `/export`).
+
+Original plan:
 
 Each needs its own launch-gate entry, the owner's go-ahead and an A7 endpoint
 of its own. None feeds LineWatchTO-observed minutes.

@@ -138,6 +138,25 @@ public class RegionalGtfsScheduleRepository {
             """, Map.of("sourceSystem", sourceSystem));
     }
 
+    public void deleteInactiveImport(long importId) {
+        jdbc.update(
+            "delete from regional_gtfs_schedule_imports where id = :id and active = false",
+            Map.of("id", importId)
+        );
+    }
+
+    public ReliabilityScheduleCapture.CaptureResult captureArchiveForImport(
+        String sourceSystem,
+        long importId,
+        String feedVersion
+    ) {
+        return scheduleCapture.captureArchiveForImport(
+            ReliabilityScheduleCapture.ScheduleSource.regional(sourceSystem),
+            importId,
+            feedVersion
+        );
+    }
+
     public void analyzeTables() {
         jdbc.getJdbcTemplate().execute("""
             analyze regional_gtfs_schedule_imports, regional_gtfs_services,

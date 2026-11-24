@@ -26,6 +26,8 @@ public class TtcPerformanceService {
     private final ObjectMapper objectMapper;
     private final DashboardCacheService cache;
     private final DashboardCacheProperties cacheProperties;
+    @Autowired(required = false)
+    private TtcPerformanceHistoryRepository historyRepository;
     private volatile CachedPerformanceSnapshot lastAttempt;
     private volatile TtcPerformanceResponses.SnapshotResponse lastSuccessfulSnapshot;
 
@@ -121,6 +123,7 @@ public class TtcPerformanceService {
             TtcPerformanceResponses.SnapshotResponse snapshot = client.fetch();
             lastSuccessfulSnapshot = snapshot;
             saveToRedis(snapshot);
+            recordHistory(snapshot, now);
             lastAttempt = new CachedPerformanceSnapshot(snapshot, now);
             return snapshot;
         } catch (RuntimeException exception) {
@@ -179,6 +182,18 @@ public class TtcPerformanceService {
             redis.opsForValue().set(REDIS_KEY, objectMapper.writeValueAsString(snapshot));
         } catch (Exception e) {
             log.warn("Failed to persist performance snapshot to Redis", e);
+        }
+    }
+
+    private void recordHistory(TtcPerformanceResponses.SnapshotResponse snapshot, OffsetDateTime now) {
+        TtcPerformanceHistoryRepository repo = historyRepository;
+        if (repo == null || snapshot == null || snapshot.stale() || !isCacheableSnapshot(snapshot)) {
+            return;
+        }
+        try {
+            repo.record(snapshot, now.atZoneSameInstant(java.time.ZoneId.of("America/Toronto")).toLocalDate());
+        } catch (Exception e) {
+            log.warn("Failed to record TTC performance history reading", e);
         }
     }
 

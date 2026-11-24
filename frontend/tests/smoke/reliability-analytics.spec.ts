@@ -4,9 +4,12 @@ import {
   demoCancellations,
   demoEpisodes,
   demoHotspots,
+  demoOnTime,
   demoPatterns,
   demoSeries,
   demoSummary,
+  demoTtcDelayLog,
+  demoTtcPerformanceHistory,
 } from "../../src/app/reliability-analytics-fixture";
 import type {
   AnalyticsGranularity,
@@ -106,6 +109,17 @@ async function routeAnalytics(page: Page): Promise<ApiState> {
     if (url.pathname.endsWith("/cancellations")) {
       const granularity = (url.searchParams.get("granularity") ?? "day") as AnalyticsGranularity;
       return route.fulfill({ json: demoCancellations(networkId, lines, query, resolvedRange, availability, granularity) });
+    }
+    if (url.pathname.endsWith("/on-time")) {
+      const granularity = (url.searchParams.get("granularity") ?? "day") as AnalyticsGranularity;
+      return route.fulfill({ json: demoOnTime(lines, query, resolvedRange, granularity) });
+    }
+    if (url.pathname.endsWith("/ttc-delay-log")) {
+      const granularity = (url.searchParams.get("granularity") ?? "day") as AnalyticsGranularity;
+      return route.fulfill({ json: demoTtcDelayLog(resolvedRange, granularity) });
+    }
+    if (url.pathname.endsWith("/ttc-performance")) {
+      return route.fulfill({ json: demoTtcPerformanceHistory(resolvedRange) });
     }
 
     const summary = demoSummary(networkId, lines, query, resolvedRange, availability)!;

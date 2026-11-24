@@ -43,6 +43,20 @@ public class GtfsScheduleImportService {
     }
 
     public ImportSummary importZip(Path zipPath, String sourceUrl) throws IOException {
+        GtfsSchedulePreparedImport prepared = prepareZip(zipPath);
+        return writer.write(zipPath, sourceUrl, prepared);
+    }
+
+    public com.calebhabesh.linewatch.reliability.ReliabilityScheduleCapture.CaptureResult importZipForArchiveBackfill(
+        Path zipPath,
+        String sourceUrl,
+        String feedVersion
+    ) throws IOException {
+        GtfsSchedulePreparedImport prepared = prepareZip(zipPath);
+        return writer.writeArchiveBackfill(zipPath, sourceUrl, feedVersion, prepared);
+    }
+
+    private GtfsSchedulePreparedImport prepareZip(Path zipPath) throws IOException {
         DateTimeFormatter dateGen = DateTimeFormatter.ofPattern("yyyyMMdd");
         List<GtfsImportModels.RouteRow> routes = new ArrayList<>();
         List<GtfsImportModels.StopRow> stops = new ArrayList<>();
@@ -378,7 +392,7 @@ public class GtfsScheduleImportService {
             stops.addAll(allStopsById.values());
         }
 
-        GtfsSchedulePreparedImport prepared = new GtfsSchedulePreparedImport(
+        return new GtfsSchedulePreparedImport(
             routes,
             stops,
             services,
@@ -394,8 +408,6 @@ public class GtfsScheduleImportService {
             dateRange[0],
             dateRange[1]
         );
-
-        return writer.write(zipPath, sourceUrl, prepared);
     }
 
     private static Double coordinate(String value) {

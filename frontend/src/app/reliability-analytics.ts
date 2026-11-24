@@ -323,6 +323,87 @@ export type AnalyticsCancellationsResponse = {
   message: string;
 };
 
+export type AnalyticsOnTimeTotals = {
+  scheduledTrips: number;
+  observedTrips: number;
+  terminalObservedTrips: number;
+  onTimeTrips: number;
+  lateTrips: number;
+  cancelledTrips: number;
+  coveragePercentage: number;
+  onTimePercentage: number | null;
+};
+
+export type AnalyticsOnTimeCorridor = AnalyticsOnTimeTotals & {
+  lineId: string;
+  number: string | null;
+  label: string;
+};
+
+export type AnalyticsOnTimeBucket = AnalyticsOnTimeTotals & {
+  from: string;
+  to: string;
+};
+
+export type AnalyticsOnTimeResponse = {
+  networkId: "regional";
+  from: string;
+  to: string;
+  granularity: AnalyticsGranularity;
+  enabled: boolean;
+  onTimeThresholdSeconds: number;
+  definition: string;
+  source: string;
+  totals: AnalyticsOnTimeTotals;
+  corridors: AnalyticsOnTimeCorridor[];
+  buckets: AnalyticsOnTimeBucket[];
+  message: string;
+};
+
+export type AnalyticsTtcDelayLogResponse = {
+  networkId: "ttc";
+  from: string;
+  to: string;
+  granularity: AnalyticsGranularity;
+  source: string;
+  licence: string;
+  publicationPeriod: {
+    from: string | null;
+    to: string | null;
+    lastModified: string | null;
+    rowCount: number;
+  } | null;
+  totals: {
+    incidents: number;
+    delayMinutes: number;
+    medianDelayMinutes: number | null;
+  };
+  lines: { lineId: string; label: string; incidents: number; delayMinutes: number }[];
+  topCodes: { code: string; description: string; incidents: number; delayMinutes: number }[];
+  buckets: { from: string; to: string; incidents: number; delayMinutes: number }[];
+  message: string;
+};
+
+export type AnalyticsTtcPerformanceHistoryResponse = {
+  networkId: "ttc";
+  from: string;
+  to: string;
+  source: string;
+  metrics: {
+    metricKey: string;
+    label: string;
+    category: string | null;
+    target: number | null;
+    points: {
+      readingDate: string;
+      percentage: number | null;
+      valueLabel: string | null;
+      updatedLabel: string;
+    }[];
+  }[];
+  message: string;
+};
+
 export type DisruptionClassId = "service-stopped" | "delay" | "slow-zone";
 
 export function classMetric(totals: AnalyticsTotals, id: DisruptionClassId): DisruptionClassMetricItem | null {

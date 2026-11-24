@@ -61,16 +61,20 @@ public class MetrolinxUpTripUpdateParser {
             throw new MetrolinxClientException("Metrolinx GO trip-update response was not a full dataset");
         }
         List<GoTripUpdateFeed.Trip> trips = new ArrayList<>();
+        List<String> cancelledTripIds = new ArrayList<>();
         for (JsonNode entity : root.path("entity")) {
             JsonNode tripUpdate = entity.path("trip_update");
             JsonNode tripNode = tripUpdate.path("trip");
-            if ("CANCELED".equalsIgnoreCase(tripNode.path("schedule_relationship").asText(""))) continue;
             String tripId = preferred(tripNode.path("trip_id").asText(""), entity.path("id").asText(""));
             if (tripId.isBlank()) continue;
+            if ("CANCELED".equalsIgnoreCase(tripNode.path("schedule_relationship").asText(""))) {
+                cancelledTripIds.add(tripId);
+                continue;
+            }
             List<UpTripUpdateFeed.StopTime> stopTimes = parseStopTimes(tripUpdate.path("stop_time_update"));
             if (!stopTimes.isEmpty()) trips.add(new GoTripUpdateFeed.Trip(tripId, stopTimes));
         }
-        return new GoTripUpdateFeed(epoch(root.path("header").get("timestamp")), List.copyOf(trips));
+        return new GoTripUpdateFeed(epoch(root.path("header").get("timestamp")), List.copyOf(trips), List.copyOf(cancelledTripIds));
     }
 
     private List<UpTripUpdateFeed.StopTime> parseStopTimes(JsonNode updates) {

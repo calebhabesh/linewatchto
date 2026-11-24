@@ -164,7 +164,193 @@ public class ReliabilityScheduleCapture {
                 .addValue("importId", target.importId())
                 .addValue("feedVersion", target.feedVersion())
                 .addValue("capturedAt", capturedAt)).toList());
+        if (source.regional()) {
+            captureRegionalTripCounts(source, targetDates, params, capturedAt, true);
+        }
         return new CaptureResult(source, targets.size(), spans.size());
+    }
+
+    /**
+     * Plan 17 A2 archive backfill: captures schedule days and spans from one temporary inactive
+     * {@code importId} ONLY for dates that have no row in {@code reliability_schedule_days} yet.
+     * Existing rows are never overwritten. Written days record {@code source_kind = 'archive'}
+     * and {@code import_id = null} because the temporary import is deleted immediately after.
+     */
+    @Transactional
+    public CaptureResult captureArchiveForImport(ScheduleSource source, long importId, String feedVersion) {
+        jdbc.query(
+            "select pg_advisory_xact_lock(hashtext('reliability_schedule_capture_' || :sourceSystem))",
+            new MapSqlParameterSource("sourceSystem", source.sourceSystem()),
+            (rs, row) -> null
+        );
+        String importTable = source.regional() ? "regional_gtfs_schedule_imports" : "gtfs_schedule_imports";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("networkId", source.networkId())
+            .addValue("sourceSystem", source.sourceSystem())
+            .addValue("importId", importId);
+        List<LocalDate> dates = jdbc.query("""
+            select day.service_date
+            from (select generate_series(
+                (select service_start from {table} where id = :importId),
+                (select service_end from {table} where id = :importId),
+                interval '1 day')::date service_date) day
+            where day.service_date is not null
+              and not exists (
+                  select 1 from reliability_schedule_days captured
+                  where captured.network_id = :networkId
+                    and captured.source_system = :sourceSystem
+                    and captured.service_date = day.service_date
+              )
+            order by day.service_date
+            """.replace("{table}", importTable), params, (rs, row) -> rs.getObject("service_date", LocalDate.class));
+        if (dates.isEmpty()) return new CaptureResult(source, 0, 0);
+
+        params.addValue("dates", dates)
+            .addValue("firstDate", dates.getFirst())
+            .addValue("lastDate", dates.getLast());
+        String targetDates = """
+            select service_date, cast(:sourceSystem as varchar(16)) source_system
+            from (select generate_series(cast(:firstDate as date), cast(:lastDate as date), interval '1 day')::date service_date) day
+            where service_date in (:dates)
+            """;
+        String fixedSelectedImport = """
+            selected_imports as (
+                select target.service_date, cast(:importId as bigint) import_id
+                from target_dates target
+            )
+            """;
+        List<ServiceSpan> spans = new ArrayList<>(querySpans(
+            "with target_dates as (" + targetDates + "), " + fixedSelectedImport
+                + (source.regional() ? regionalSpans(StationScope.WHOLE_LINE) : ttcSpans(StationScope.WHOLE_LINE))
+                + SPAN_SELECT,
+            params
+        ));
+        spans.addAll(querySpans(
+            "with target_dates as (" + targetDates + "), " + fixedSelectedImport
+                + (source.regional() ? regionalSpans(StationScope.EACH_STATION) : ttcSpans(StationScope.EACH_STATION))
+                + SPAN_SELECT,
+            params
+        ));
+
+        OffsetDateTime capturedAt = OffsetDateTime.now(clock);
+        batch("""
+            insert into reliability_service_spans (
+                network_id, line_id, station_id, service_date, source_system, starts_at, ends_at
+            ) values (
+                :networkId, :lineId, :stationId, :serviceDate, :sourceSystem, :startsAt, :endsAt
+            ) on conflict (network_id, line_id, station_id, service_date) do nothing
+            """, spans.stream().map(span -> (SqlParameterSource) new MapSqlParameterSource()
+                .addValue("networkId", source.networkId())
+                .addValue("sourceSystem", source.sourceSystem())
+                .addValue("lineId", span.lineId())
+                .addValue("stationId", span.stationId())
+                .addValue("serviceDate", span.serviceDate())
+                .addValue("startsAt", span.start())
+                .addValue("endsAt", span.end())).toList());
+        batch("""
+            insert into reliability_schedule_days (
+                network_id, source_system, service_date, import_id, feed_version, source_kind, captured_at
+            ) values (
+                :networkId, :sourceSystem, :serviceDate, null, :feedVersion, 'archive', :capturedAt
+            ) on conflict (network_id, source_system, service_date) do nothing
+            """, dates.stream().map(date -> (SqlParameterSource) new MapSqlParameterSource()
+                .addValue("networkId", source.networkId())
+                .addValue("sourceSystem", source.sourceSystem())
+                .addValue("serviceDate", date)
+                .addValue("feedVersion", feedVersion)
+                .addValue("capturedAt", capturedAt)).toList());
+        if (source.regional()) {
+            captureRegionalTripCountsForFixedImport(source, targetDates, fixedSelectedImport, params, capturedAt);
+        }
+        return new CaptureResult(source, dates.size(), spans.size());
+    }
+
+    private void captureRegionalTripCounts(
+        ScheduleSource source,
+        String targetDates,
+        MapSqlParameterSource params,
+        OffsetDateTime capturedAt,
+        boolean overwrite
+    ) {
+        captureRegionalTripCountsSql(source, targetDates, selectedImports(source), params, capturedAt, overwrite);
+    }
+
+    private void captureRegionalTripCountsForFixedImport(
+        ScheduleSource source,
+        String targetDates,
+        String selectedImportCte,
+        MapSqlParameterSource params,
+        OffsetDateTime capturedAt
+    ) {
+        captureRegionalTripCountsSql(source, targetDates, selectedImportCte, params, capturedAt, false);
+    }
+
+    private void captureRegionalTripCountsSql(
+        ScheduleSource source,
+        String targetDates,
+        String selectedImportCte,
+        MapSqlParameterSource params,
+        OffsetDateTime capturedAt,
+        boolean overwrite
+    ) {
+        String sql = "with target_dates as (" + targetDates + "), " + selectedImportCte + """
+            , active_services as (
+                select selected.service_date, service.import_id, service.service_id
+                from selected_imports selected
+                join regional_gtfs_services service on service.import_id = selected.import_id
+                where case extract(isodow from selected.service_date)
+                    when 1 then service.monday when 2 then service.tuesday
+                    when 3 then service.wednesday when 4 then service.thursday
+                    when 5 then service.friday when 6 then service.saturday
+                    when 7 then service.sunday end
+                  and not exists (
+                    select 1 from regional_gtfs_service_exceptions exception
+                    where exception.import_id = service.import_id
+                      and exception.service_id = service.service_id
+                      and exception.service_date = selected.service_date
+                      and exception.exception_type = 2
+                  )
+                union
+                select selected.service_date, exception.import_id, exception.service_id
+                from selected_imports selected
+                join regional_gtfs_service_exceptions exception
+                  on exception.import_id = selected.import_id
+                 and exception.service_date = selected.service_date
+                 and exception.exception_type = 1
+            ), service_line_trips as materialized (
+                select departure.import_id, departure.service_id, departure.line_id,
+                       count(distinct departure.trip_id) trip_count
+                from (select distinct import_id from active_services) selected
+                join regional_gtfs_departures departure on departure.import_id = selected.import_id
+                group by departure.import_id, departure.service_id, departure.line_id
+            )
+            select active.service_date, trips.line_id, sum(trips.trip_count)::integer scheduled_trips
+            from active_services active
+            join service_line_trips trips
+              on trips.import_id = active.import_id and trips.service_id = active.service_id
+            group by active.service_date, trips.line_id
+            """;
+        List<SqlParameterSource> rows = jdbc.query(sql, params, (rs, row) -> (SqlParameterSource) new MapSqlParameterSource()
+            .addValue("sourceSystem", source.sourceSystem())
+            .addValue("lineId", rs.getString("line_id"))
+            .addValue("serviceDate", rs.getObject("service_date", LocalDate.class))
+            .addValue("scheduledTrips", rs.getInt("scheduled_trips"))
+            .addValue("capturedAt", capturedAt));
+        if (overwrite) {
+            jdbc.update("""
+                delete from regional_scheduled_trip_counts
+                where source_system = :sourceSystem and service_date in (:dates)
+                """, params);
+        }
+        String conflict = overwrite
+            ? "on conflict (source_system, line_id, service_date) do update set scheduled_trips = excluded.scheduled_trips, captured_at = excluded.captured_at"
+            : "on conflict (source_system, line_id, service_date) do nothing";
+        batch("""
+            insert into regional_scheduled_trip_counts (
+                source_system, line_id, service_date, scheduled_trips, captured_at
+            ) values (
+                :sourceSystem, :lineId, :serviceDate, :scheduledTrips, :capturedAt
+            ) """ + conflict, rows);
     }
 
     /**

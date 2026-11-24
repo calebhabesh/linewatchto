@@ -744,3 +744,161 @@ export function demoCancellations(
     message: "Demo GO Transit and UP Express train cancellations.",
   };
 }
+
+export function demoOnTime(
+  lines: readonly AnalyticsLineOption[],
+  query: AnalyticsQuery,
+  range: ResolvedAnalyticsRange,
+  granularity: AnalyticsGranularity,
+): import("./reliability-analytics.ts").AnalyticsOnTimeResponse {
+  const from = range.from ?? range.requestedFrom;
+  const to = range.to ?? range.requestedTo;
+  const scoped = query.line ? lines.filter((l) => l.id === query.line) : lines;
+  const bucketBounds = buildBuckets(from, to, granularity);
+  const buckets = bucketBounds.map(([bFrom, bTo], idx) => {
+    const days = serviceDayCount(bFrom, bTo);
+    const scheduledTrips = days * Math.max(1, scoped.length) * 18;
+    const observedTrips = Math.round(scheduledTrips * (0.86 - (idx % 3) * 0.04));
+    const cancelledTrips = Math.max(0, Math.round(observedTrips * 0.015));
+    const terminalObservedTrips = Math.max(0, observedTrips - cancelledTrips);
+    const onTimeTrips = Math.round(terminalObservedTrips * (0.93 - (idx % 4) * 0.015));
+    const lateTrips = Math.max(0, terminalObservedTrips - onTimeTrips);
+    const evaluated = terminalObservedTrips + cancelledTrips;
+    return {
+      from: bFrom,
+      to: bTo,
+      scheduledTrips,
+      observedTrips,
+      terminalObservedTrips,
+      onTimeTrips,
+      lateTrips,
+      cancelledTrips,
+      coveragePercentage: Math.round((1000 * observedTrips) / Math.max(1, scheduledTrips)) / 10,
+      onTimePercentage: evaluated ? Math.round((1000 * onTimeTrips) / evaluated) / 10 : null,
+    };
+  });
+  const totalScheduled = buckets.reduce((s, b) => s + b.scheduledTrips, 0);
+  const totalObserved = buckets.reduce((s, b) => s + b.observedTrips, 0);
+  const totalTerminal = buckets.reduce((s, b) => s + b.terminalObservedTrips, 0);
+  const totalOnTime = buckets.reduce((s, b) => s + b.onTimeTrips, 0);
+  const totalLate = buckets.reduce((s, b) => s + b.lateTrips, 0);
+  const totalCancelled = buckets.reduce((s, b) => s + b.cancelledTrips, 0);
+  const evalTotal = totalTerminal + totalCancelled;
+  return {
+    networkId: "regional",
+    from,
+    to,
+    granularity,
+    enabled: true,
+    onTimeThresholdSeconds: 300,
+    definition: "Metrolinx published threshold: rail arrival at the final destination within 5 minutes of schedule, excluding cancellations. Unobserved scheduled trips are unknown, never counted on time.",
+    source: "Metrolinx GO & UP GTFS-RT TripUpdates",
+    totals: {
+      scheduledTrips: totalScheduled,
+      observedTrips: totalObserved,
+      terminalObservedTrips: totalTerminal,
+      onTimeTrips: totalOnTime,
+      lateTrips: totalLate,
+      cancelledTrips: totalCancelled,
+      coveragePercentage: Math.round((1000 * totalObserved) / Math.max(1, totalScheduled)) / 10,
+      onTimePercentage: evalTotal ? Math.round((1000 * totalOnTime) / evalTotal) / 10 : null,
+    },
+    corridors: scoped.map((line, i) => {
+      const sched = Math.max(10, Math.round(totalScheduled / Math.max(1, scoped.length)));
+      const obs = Math.round(sched * 0.85);
+      const cancel = Math.max(0, Math.round(obs * 0.015));
+      const term = obs - cancel;
+      const ot = Math.round(term * (0.94 - (i % 3) * 0.02));
+      return {
+        lineId: line.id,
+        number: line.number,
+        label: line.name,
+        scheduledTrips: sched,
+        observedTrips: obs,
+        terminalObservedTrips: term,
+        onTimeTrips: ot,
+        lateTrips: term - ot,
+        cancelledTrips: cancel,
+        coveragePercentage: Math.round((1000 * obs) / sched) / 10,
+        onTimePercentage: Math.round((1000 * ot) / Math.max(1, term + cancel)) / 10,
+      };
+    }),
+    buckets,
+    message: "Demo GO/UP on-time performance observations.",
+  };
+}
+
+export function demoTtcDelayLog(
+  range: ResolvedAnalyticsRange,
+  granularity: AnalyticsGranularity,
+): import("./reliability-analytics.ts").AnalyticsTtcDelayLogResponse {
+  const from = range.from ?? range.requestedFrom;
+  const to = range.to ?? range.requestedTo;
+  const bucketBounds = buildBuckets(from, to, granularity);
+  const buckets = bucketBounds.map(([bFrom, bTo], idx) => {
+    const days = serviceDayCount(bFrom, bTo);
+    const incidents = days * (6 + (idx % 4));
+    const delayMinutes = incidents * (9 + (idx % 3));
+    return { from: bFrom, to: bTo, incidents, delayMinutes };
+  });
+  const totalIncidents = buckets.reduce((s, b) => s + b.incidents, 0);
+  const totalMinutes = buckets.reduce((s, b) => s + b.delayMinutes, 0);
+  return {
+    networkId: "ttc",
+    from,
+    to,
+    granularity,
+    source: "TTC Delay Log · Open Data Toronto",
+    licence: "Open Government Licence – Toronto",
+    publicationPeriod: { from: "2025-01-01", to, lastModified: `${to}T20:00:00`, rowCount: totalIncidents },
+    totals: { incidents: totalIncidents, delayMinutes: totalMinutes, medianDelayMinutes: 8 },
+    lines: [
+      { lineId: "line-1", label: "Line 1 Yonge-University", incidents: Math.round(totalIncidents * 0.56), delayMinutes: Math.round(totalMinutes * 0.58) },
+      { lineId: "line-2", label: "Line 2 Bloor-Danforth", incidents: Math.round(totalIncidents * 0.39), delayMinutes: Math.round(totalMinutes * 0.38) },
+      { lineId: "line-4", label: "Line 4 Sheppard", incidents: Math.max(1, Math.round(totalIncidents * 0.05)), delayMinutes: Math.max(5, Math.round(totalMinutes * 0.04)) },
+    ],
+    topCodes: [
+      { code: "SUDP", description: "DISORDERLY PATRON", incidents: Math.round(totalIncidents * 0.2), delayMinutes: Math.round(totalMinutes * 0.22) },
+      { code: "MUI", description: "INJURED OR ILL CUSTOMER (ON TRAIN) - TRANSPORTED", incidents: Math.round(totalIncidents * 0.16), delayMinutes: Math.round(totalMinutes * 0.18) },
+      { code: "PUTR", description: "TRACK CIRCUIT PROBLEM", incidents: Math.round(totalIncidents * 0.12), delayMinutes: Math.round(totalMinutes * 0.15) },
+    ],
+    buckets,
+    message: "Demo official TTC subway delay log.",
+  };
+}
+
+export function demoTtcPerformanceHistory(
+  range: ResolvedAnalyticsRange,
+): import("./reliability-analytics.ts").AnalyticsTtcPerformanceHistoryResponse {
+  const from = range.from ?? range.requestedFrom;
+  const to = range.to ?? range.requestedTo;
+  return {
+    networkId: "ttc",
+    from,
+    to,
+    source: "TTC.ca",
+    metrics: [
+      {
+        metricKey: "subway-line-1",
+        label: "Line 1 Yonge-University",
+        category: "Subway",
+        target: 95,
+        points: [
+          { readingDate: from, percentage: 94, valueLabel: "94%", updatedLabel: from },
+          { readingDate: to, percentage: 96, valueLabel: "96%", updatedLabel: to },
+        ],
+      },
+      {
+        metricKey: "subway-line-2",
+        label: "Line 2 Bloor-Danforth",
+        category: "Subway",
+        target: 95,
+        points: [
+          { readingDate: from, percentage: 93, valueLabel: "93%", updatedLabel: from },
+          { readingDate: to, percentage: 95, valueLabel: "95%", updatedLabel: to },
+        ],
+      },
+    ],
+    message: "Demo stored TTC.ca performance readings.",
+  };
+}

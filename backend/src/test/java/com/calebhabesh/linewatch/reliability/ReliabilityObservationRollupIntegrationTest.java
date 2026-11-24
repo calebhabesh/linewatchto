@@ -75,10 +75,10 @@ class ReliabilityObservationRollupIntegrationTest {
             delete from gtfs_schedule_imports;
             delete from regional_gtfs_schedule_imports;
             delete from ingestion_runs where run_type in ('alerts', 'metrolinx-alerts');
-            delete from snapshots where alert_id like 'a3-%';
-            delete from alert_stations where alert_id like 'a3-%';
-            delete from alerts where id like 'a3-%';
-            delete from regional_alert_snapshots where alert_id like 'a3-%';
+            delete from snapshots where alert_id like 'a3-%' or alert_id like 'a5-%' or alert_id like 'a7-%';
+            delete from alert_stations where alert_id like 'a3-%' or alert_id like 'a5-%' or alert_id like 'a7-%';
+            delete from alerts where id like 'a3-%' or id like 'a5-%' or id like 'a7-%';
+            delete from regional_alert_snapshots where alert_id like 'a3-%' or alert_id like 'a5-%' or alert_id like 'a7-%';
             """);
     }
 

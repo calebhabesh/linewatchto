@@ -356,5 +356,131 @@ public final class ReliabilityRangeResponses {
 
     public record ExportFile(String filename, String csv, int rows) {}
 
+    public record OnTimeTotals(
+        int scheduledTrips,
+        int observedTrips,
+        int terminalObservedTrips,
+        int onTimeTrips,
+        int lateTrips,
+        int cancelledTrips,
+        double coveragePercentage,
+        Double onTimePercentage
+    ) {}
+
+    public record OnTimeCorridorRow(
+        String lineId,
+        String number,
+        String label,
+        int scheduledTrips,
+        int observedTrips,
+        int terminalObservedTrips,
+        int onTimeTrips,
+        int lateTrips,
+        int cancelledTrips,
+        double coveragePercentage,
+        Double onTimePercentage
+    ) {}
+
+    public record OnTimeBucket(
+        LocalDate from,
+        LocalDate to,
+        int scheduledTrips,
+        int observedTrips,
+        int terminalObservedTrips,
+        int onTimeTrips,
+        int lateTrips,
+        int cancelledTrips,
+        double coveragePercentage,
+        Double onTimePercentage
+    ) {}
+
+    public record OnTimeResponse(
+        String networkId,
+        LocalDate from,
+        LocalDate to,
+        String granularity,
+        boolean enabled,
+        int onTimeThresholdSeconds,
+        String definition,
+        String source,
+        OnTimeTotals totals,
+        List<OnTimeCorridorRow> corridors,
+        List<OnTimeBucket> buckets,
+        String message
+    ) {}
+
+    public record TtcDelayLogPublicationPeriod(
+        LocalDate from,
+        LocalDate to,
+        String lastModified,
+        int rowCount
+    ) {}
+
+    public record TtcDelayLogTotals(
+        int incidents,
+        int delayMinutes,
+        Integer medianDelayMinutes
+    ) {}
+
+    public record TtcDelayLogLineRow(
+        String lineId,
+        String label,
+        int incidents,
+        int delayMinutes
+    ) {}
+
+    public record TtcDelayLogCodeRow(
+        String code,
+        String description,
+        int incidents,
+        int delayMinutes
+    ) {}
+
+    public record TtcDelayLogBucket(
+        LocalDate from,
+        LocalDate to,
+        int incidents,
+        int delayMinutes
+    ) {}
+
+    public record TtcDelayLogResponse(
+        String networkId,
+        LocalDate from,
+        LocalDate to,
+        String granularity,
+        String source,
+        String licence,
+        TtcDelayLogPublicationPeriod publicationPeriod,
+        TtcDelayLogTotals totals,
+        List<TtcDelayLogLineRow> lines,
+        List<TtcDelayLogCodeRow> topCodes,
+        List<TtcDelayLogBucket> buckets,
+        String message
+    ) {}
+
+    public record TtcPerformancePoint(
+        LocalDate readingDate,
+        Integer percentage,
+        String valueLabel,
+        String updatedLabel
+    ) {}
+
+    public record TtcPerformanceSeries(
+        String metricKey,
+        String label,
+        String category,
+        Integer target,
+        List<TtcPerformancePoint> points
+    ) {}
+
+    public record TtcPerformanceHistoryResponse(
+        String networkId,
+        LocalDate from,
+        LocalDate to,
+        String source,
+        List<TtcPerformanceSeries> metrics,
+        String message
+    ) {}
+
     public record ErrorResponse(String error, String message) {}
 }
