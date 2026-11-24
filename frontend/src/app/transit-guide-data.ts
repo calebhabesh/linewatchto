@@ -293,6 +293,8 @@ export function transitGuideSitemapPages() {
     { path: "/explore", changeFrequency: "monthly" as const, priority: 0.8 },
     { path: "/ttc", changeFrequency: "monthly" as const, priority: 0.9 },
     { path: "/go-up", changeFrequency: "monthly" as const, priority: 0.9 },
+    { path: "/ttc/analytics", changeFrequency: "daily" as const, priority: 0.8 },
+    { path: "/go-up/analytics", changeFrequency: "daily" as const, priority: 0.8 },
     { path: "/ttc/reliability", changeFrequency: "monthly" as const, priority: 0.7 },
     { path: "/go-up/reliability", changeFrequency: "monthly" as const, priority: 0.7 },
     { path: "/privacy", changeFrequency: "yearly" as const, priority: 0.3 },

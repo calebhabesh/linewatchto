@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-const reliabilityRepository = readFileSync(
+const scheduleCapture = readFileSync(
   new URL(
-    "../../backend/src/main/java/com/calebhabesh/linewatch/reliability/ReliabilityRepository.java",
+    "../../backend/src/main/java/com/calebhabesh/linewatch/reliability/ReliabilityScheduleCapture.java",
     import.meta.url,
   ),
   "utf8",
@@ -23,16 +23,16 @@ const applicationConfig = readFileSync(
 
 describe("reliability query safeguards", () => {
   it("materializes the bounded trip set before joining GTFS stop times", () => {
-    const selectedTrips = reliabilityRepository.indexOf(
+    const selectedTrips = scheduleCapture.indexOf(
       "), selected_trips as materialized (",
     );
-    const serviceLineSpans = reliabilityRepository.indexOf(
+    const serviceLineSpans = scheduleCapture.indexOf(
       "), service_line_spans as materialized (",
     );
     assert.ok(selectedTrips >= 0);
     assert.ok(serviceLineSpans > selectedTrips);
     assert.match(
-      reliabilityRepository,
+      scheduleCapture,
       /from selected_trips trip\s+join gtfs_stop_times stop_time/,
     );
   });

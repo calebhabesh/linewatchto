@@ -3,7 +3,7 @@
 import { Search, SunMoon, X } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   persistVisualPreferencesCookie,
   defaultVisualPreferences,
@@ -35,8 +35,11 @@ function applyStoredDisplayPreferences() {
 export function GuideNav() {
   const pathname = usePathname();
   const reliabilityHref = pathname.startsWith("/go-up") ? "/go-up/reliability" : "/ttc/reliability";
+  const analyticsHref = pathname.startsWith("/go-up") ? "/go-up/analytics" : "/ttc/analytics";
   const activeKey = pathname.endsWith("/reliability")
     ? "reliability"
+    : pathname.endsWith("/analytics")
+    ? "analytics"
     : pathname.startsWith("/ttc")
       ? "ttc"
       : pathname.startsWith("/go-up")
@@ -44,6 +47,16 @@ export function GuideNav() {
         : pathname.startsWith("/explore")
           ? "explore"
           : null;
+
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    // The row scrolls sideways on phones; start with the current page's link in it.
+    const nav = navRef.current;
+    const link = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!nav || !link) return;
+    const overflow = link.getBoundingClientRect().right - nav.getBoundingClientRect().right;
+    if (overflow > 0) nav.scrollLeft += overflow;
+  }, [activeKey]);
 
   function toggleTheme() {
     const currentTheme = readVisualPreferencesFromStorage(window.localStorage).theme ?? defaultVisualPreferences.theme;
@@ -66,12 +79,13 @@ export function GuideNav() {
     { key: "explore", href: "/explore", label: "Explore" },
     { key: "ttc", href: "/ttc", label: "TTC" },
     { key: "go-up", href: "/go-up", label: "GO & UP" },
+    { key: "analytics", href: analyticsHref, label: "Analytics" },
     { key: "reliability", href: reliabilityHref, label: "Reliability" },
   ];
 
   return (
     <div className={styles.navGroup}>
-      <nav className={styles.nav} aria-label="Transit guides">
+      <nav ref={navRef} className={styles.nav} aria-label="Transit guides">
         {links.map((link) => (
           <a key={link.key} href={link.href} aria-current={activeKey === link.key ? "page" : undefined}>
             {link.label}

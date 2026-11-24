@@ -284,6 +284,17 @@ export type AlertTypeBreakdownItem = {
   percentage: number;
 };
 
+export type DisruptionClassMetricItem = {
+  disruptionClass: string;
+  label: string;
+  incidents: number;
+  activeIncidents: number;
+  uniqueMinutes: number;
+  weightedMinutes: number;
+  weightedSharePercentage: number;
+  incidentDisruptionMinutes: number;
+};
+
 export type ReliabilitySnapshot = {
   networkId: "ttc" | "regional";
   period: "30d";
@@ -299,6 +310,7 @@ export type ReliabilitySnapshot = {
   scheduleBacked: boolean;
   scheduleCoveragePercentage: number;
   message: string;
+  methodologyVersion?: number;
   metrics: {
     id: string;
     number: string;
@@ -311,6 +323,9 @@ export type ReliabilitySnapshot = {
     incidentDisruptionMinutes: number;
     serviceImpactPercentage: number;
     confidence: "low" | "medium" | "high";
+    weightedImpactMinutes?: number;
+    weightedImpactPercentage?: number;
+    classes?: DisruptionClassMetricItem[];
   }[];
   breakdown?: AlertTypeBreakdownItem[];
   trainCancellations?: {
@@ -548,20 +563,61 @@ export const reliabilitySnapshot: ReliabilitySnapshot = {
   serviceWindowBasis: "fixture scheduled-service windows",
   scheduleBacked: false,
   scheduleCoveragePercentage: 100,
-  message: "Observed TTC alerts during scheduled subway service and successful polling. A line counts as affected when there is an alert anywhere on it; 100% does not mean the entire line was disrupted. Incident-hours add overlapping alerts.",
-  metrics: reliabilitySummaries.map((item) => ({
-    id: item.lineId,
-    number: item.lineNumber,
-    label: item.label,
-    incidents: item.incidents7d,
-    activeIncidents: 0,
-    medianDurationMinutes: Number.parseInt(item.medianDuration, 10),
-    serviceImpactMinutes: item.incidents7d * Number.parseInt(item.medianDuration, 10),
-    observedServiceMinutes: 36000,
-    incidentDisruptionMinutes: item.incidents7d * Number.parseInt(item.medianDuration, 10),
-    serviceImpactPercentage: 0.5,
-    confidence: "high",
-  })),
+  methodologyVersion: 2,
+  message: "Observed TTC alerts during scheduled subway and LRT service and successful polling. Class shares weight each disruption by the share of scheduled stations affected on the line; alerts without listed stations count as whole-line. Time With Any Alert counts any alert anywhere on the line, and incident-hours add overlapping alerts.",
+  metrics: reliabilitySummaries.map((item) => {
+    const minutes = item.incidents7d * Number.parseInt(item.medianDuration, 10);
+    const stoppedMinutes = Math.round(minutes * 0.25);
+    const delayMinutes = Math.round(minutes * 0.5);
+    const slowZoneMinutes = Math.max(0, minutes - stoppedMinutes - delayMinutes);
+    return {
+      id: item.lineId,
+      number: item.lineNumber,
+      label: item.label,
+      incidents: item.incidents7d,
+      activeIncidents: 0,
+      medianDurationMinutes: Number.parseInt(item.medianDuration, 10),
+      serviceImpactMinutes: minutes,
+      observedServiceMinutes: 36000,
+      incidentDisruptionMinutes: minutes,
+      serviceImpactPercentage: 0.5,
+      confidence: "high" as const,
+      weightedImpactMinutes: Math.round(minutes * 2.5) / 10,
+      weightedImpactPercentage: 0.2,
+      classes: [
+        {
+          disruptionClass: "service-stopped",
+          label: "Service Stopped",
+          incidents: Math.max(1, Math.round(item.incidents7d * 0.2)),
+          activeIncidents: 0,
+          uniqueMinutes: stoppedMinutes,
+          weightedMinutes: Math.round(stoppedMinutes * 3) / 10,
+          weightedSharePercentage: 0.1,
+          incidentDisruptionMinutes: stoppedMinutes,
+        },
+        {
+          disruptionClass: "delay",
+          label: "Delays",
+          incidents: Math.max(1, Math.round(item.incidents7d * 0.6)),
+          activeIncidents: 0,
+          uniqueMinutes: delayMinutes,
+          weightedMinutes: Math.round(delayMinutes * 2) / 10,
+          weightedSharePercentage: 0.1,
+          incidentDisruptionMinutes: delayMinutes,
+        },
+        {
+          disruptionClass: "slow-zone",
+          label: "Slow Zones",
+          incidents: Math.max(0, item.incidents7d - Math.max(1, Math.round(item.incidents7d * 0.2)) - Math.max(1, Math.round(item.incidents7d * 0.6))),
+          activeIncidents: 0,
+          uniqueMinutes: slowZoneMinutes,
+          weightedMinutes: Math.round(slowZoneMinutes * 1.5) / 10,
+          weightedSharePercentage: 0.0,
+          incidentDisruptionMinutes: slowZoneMinutes,
+        },
+      ],
+    };
+  }),
   breakdown: [
     { impactKind: "delay", label: "Delays", incidents: 28, incidentDisruptionMinutes: 340, percentage: 56.7 },
     { impactKind: "reduced-speed-zone", label: "Reduced Speed Zones", incidents: 12, incidentDisruptionMinutes: 180, percentage: 30.0 },

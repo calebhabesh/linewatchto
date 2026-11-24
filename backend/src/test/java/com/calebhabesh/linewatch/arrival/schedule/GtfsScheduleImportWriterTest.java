@@ -12,8 +12,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.calebhabesh.linewatch.reliability.ReliabilityScheduleCapture;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -39,7 +41,8 @@ class GtfsScheduleImportWriterTest {
 
     private final GtfsScheduleImportRepository repository = mock(GtfsScheduleImportRepository.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-04T12:00:00Z"), ZoneOffset.UTC);
-    private final GtfsScheduleImportWriter writer = new GtfsScheduleImportWriter(repository, clock);
+    private final ReliabilityScheduleCapture scheduleCapture = mock(ReliabilityScheduleCapture.class);
+    private final GtfsScheduleImportWriter writer = new GtfsScheduleImportWriter(repository, scheduleCapture, clock);
 
     @Test
     void storesBoardableDeparturesAtEveryCatalogStopAndPreservesAfterMidnightTimes() throws Exception {
@@ -123,7 +126,7 @@ class GtfsScheduleImportWriterTest {
             .allSatisfy(batch -> assertThat(batch).hasSizeLessThanOrEqualTo(1000));
         assertThat(summary.stopTimes()).isEqualTo(2501);
 
-        InOrder order = inOrder(repository);
+        InOrder order = inOrder(repository, scheduleCapture);
         order.verify(repository).beginReplacementImport(any(), any(), any(), any(), any());
         order.verify(repository).insertRoutes(eq(42L), any());
         order.verify(repository).insertStops(eq(42L), any());
@@ -135,6 +138,7 @@ class GtfsScheduleImportWriterTest {
         order.verify(repository).insertStationStops(eq(42L), any());
         order.verify(repository).activateImport(42L);
         order.verify(repository).refreshPlannerStatistics();
+        order.verify(scheduleCapture).capture(ReliabilityScheduleCapture.ScheduleSource.TTC);
     }
 
     @Test
@@ -206,6 +210,7 @@ class GtfsScheduleImportWriterTest {
 
         verify(repository, never()).activateImport(anyLong());
         verify(repository, never()).refreshPlannerStatistics();
+        verifyNoInteractions(scheduleCapture);
     }
 
     @Test

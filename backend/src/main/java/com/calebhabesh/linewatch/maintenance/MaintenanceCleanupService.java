@@ -1,5 +1,7 @@
 package com.calebhabesh.linewatch.maintenance;
 
+import com.calebhabesh.linewatch.reliability.ReliabilityScheduleCapture;
+import com.calebhabesh.linewatch.reliability.ReliabilityScheduleCapture.ScheduleSource;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -14,15 +16,18 @@ public class MaintenanceCleanupService {
 
     private final MaintenanceCleanupStore store;
     private final MaintenanceCleanupProperties properties;
+    private final ReliabilityScheduleCapture scheduleCapture;
     private final Clock clock;
 
     public MaintenanceCleanupService(
         MaintenanceCleanupStore store,
         MaintenanceCleanupProperties properties,
+        ReliabilityScheduleCapture scheduleCapture,
         Clock clock
     ) {
         this.store = store;
         this.properties = properties;
+        this.scheduleCapture = scheduleCapture;
         this.clock = clock;
     }
 
@@ -32,8 +37,12 @@ public class MaintenanceCleanupService {
         }
         OffsetDateTime now = OffsetDateTime.now(clock);
         int demoAccountsDeleted = store.deleteExpiredDemoAccounts(now);
-        int gtfsImportsDeleted =
-            store.deleteOldInactiveGtfsImports(properties.getRetainInactiveGtfsImports());
+        // The daily schedule capture: refreshes yesterday onwards (a TTC import activated since
+        // the last capture changes the selection) and must precede deleting old TTC imports.
+        boolean ttcScheduleCaptured = captureReliabilitySchedules();
+        int gtfsImportsDeleted = ttcScheduleCaptured
+            ? store.deleteOldInactiveGtfsImports(properties.getRetainInactiveGtfsImports())
+            : 0;
         if (gtfsImportsDeleted > 0) {
             store.refreshGtfsPlannerStatistics();
         }
@@ -61,6 +70,20 @@ public class MaintenanceCleanupService {
             );
         }
         return result;
+    }
+
+    /** Captures each schedule source separately; false when TTC failed, so its imports stay. */
+    private boolean captureReliabilitySchedules() {
+        boolean ttcCaptured = true;
+        for (ScheduleSource source : ScheduleSource.values()) {
+            try {
+                scheduleCapture.capture(source);
+            } catch (RuntimeException exception) {
+                log.error("Reliability schedule capture failed for {}", source, exception);
+                if (source == ScheduleSource.TTC) ttcCaptured = false;
+            }
+        }
+        return ttcCaptured;
     }
 
     private Duration retention(Duration retention) {

@@ -1,0 +1,21 @@
+# Plan 17 A4: nightly encrypted off-host PostgreSQL backup (scripts/prod-backup-offsite.sh).
+# Installed as a root-owned copy in /etc/systemd/system; reinstall when this file changes.
+# See docs/production-vps.md, Backups.
+[Unit]
+Description=LineWatchTO off-host PostgreSQL backup
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/apps/linewatchto
+Environment=LINEWATCH_OFFSITE_ENV_FILE=/home/ubuntu/.config/linewatch/offsite-backup.env
+ExecStart=/home/ubuntu/apps/linewatchto/scripts/prod-backup-offsite.sh
+TimeoutStartSec=1h
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full

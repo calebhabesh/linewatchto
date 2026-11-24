@@ -33,6 +33,11 @@ prometheus.scrape "backend" {
 }
 
 prometheus.exporter.unix "node" {
+  // Host scripts write *.prom files here (the off-host backup's freshness, plan 17 A4).
+  // The host root is mounted at /host/root; a missing directory yields no textfile metrics.
+  textfile {
+    directory = "/host/root/var/lib/linewatch/textfile-metrics"
+  }
 }
 
 prometheus.scrape "host" {

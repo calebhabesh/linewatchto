@@ -144,6 +144,18 @@
       "severity": "warning",
       "summary": "A published Map View/search schedule (TTC or GO) ends in under 7 days.",
       "description": "The service publishes a new feed as soon as the agency does, so this means either the agency has not published a longer feed or checks are failing. /api/health/schedule-assets shows each network's feedEndDate, state and lastFailureStage."
+    },
+    {
+      "uid": "linewatch-offsite-backup-stale",
+      "title": "Off-host backup stale",
+      "expr": "time() - max(linewatch_offsite_backup_last_success_timestamp_seconds{environment=\"production\"})",
+      "op": "gt",
+      "threshold": 129600,
+      "for": "15m",
+      "noData": "Alerting",
+      "severity": "warning",
+      "summary": "The newest verified off-host database backup is older than 36 hours.",
+      "description": "The nightly host timer (linewatch-offsite-backup.timer) has not uploaded and verified a copy since. No data means the textfile metric is missing: the timer has never succeeded, /var/lib/linewatch/textfile-metrics is gone, or Alloy is down. On the VPS: systemctl status linewatch-offsite-backup.service and journalctl -u linewatch-offsite-backup.service. See production-vps.md, Backups."
     }
   ]
 }

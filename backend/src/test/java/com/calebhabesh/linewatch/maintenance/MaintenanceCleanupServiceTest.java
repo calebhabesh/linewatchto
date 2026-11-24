@@ -1,17 +1,24 @@
 package com.calebhabesh.linewatch.maintenance;
 
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.calebhabesh.linewatch.reliability.ReliabilityScheduleCapture;
+import com.calebhabesh.linewatch.reliability.ReliabilityScheduleCapture.ScheduleSource;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 class MaintenanceCleanupServiceTest {
     private static final Clock CLOCK = Clock.fixed(
@@ -21,8 +28,42 @@ class MaintenanceCleanupServiceTest {
 
     private final MaintenanceCleanupStore store = mock(MaintenanceCleanupStore.class);
     private final MaintenanceCleanupProperties properties = new MaintenanceCleanupProperties();
+    private final ReliabilityScheduleCapture scheduleCapture = mock(ReliabilityScheduleCapture.class);
     private final MaintenanceCleanupService service =
-        new MaintenanceCleanupService(store, properties, CLOCK);
+        new MaintenanceCleanupService(store, properties, scheduleCapture, CLOCK);
+
+    @Test
+    void capturesEveryScheduleSourceBeforeDeletingOldGtfsImports() {
+        service.cleanup();
+
+        InOrder order = inOrder(scheduleCapture, store);
+        order.verify(scheduleCapture).capture(ScheduleSource.TTC);
+        order.verify(store).deleteOldInactiveGtfsImports(1);
+        verify(scheduleCapture).capture(ScheduleSource.GO);
+        verify(scheduleCapture).capture(ScheduleSource.UP);
+    }
+
+    @Test
+    void failedTtcCaptureKeepsOldGtfsImportsAndTheRestOfCleanup() {
+        doThrow(new IllegalStateException("capture failed")).when(scheduleCapture).capture(ScheduleSource.TTC);
+
+        service.cleanup();
+
+        verify(store, never()).deleteOldInactiveGtfsImports(anyInt());
+        verify(scheduleCapture).capture(ScheduleSource.GO);
+        verify(scheduleCapture).capture(ScheduleSource.UP);
+        verify(store).deleteOldIngestionRuns(OffsetDateTime.parse("2026-04-09T12:00:00Z"));
+    }
+
+    @Test
+    void failedRegionalCaptureStillDeletesOldTtcImports() {
+        doThrow(new IllegalStateException("capture failed")).when(scheduleCapture).capture(ScheduleSource.GO);
+
+        service.cleanup();
+
+        verify(scheduleCapture).capture(ScheduleSource.UP);
+        verify(store).deleteOldInactiveGtfsImports(1);
+    }
 
     @Test
     void prunesOperationalDataWithConservativeDefaults() {
@@ -45,7 +86,7 @@ class MaintenanceCleanupServiceTest {
 
         service.cleanup();
 
-        verifyNoInteractions(store);
+        verifyNoInteractions(store, scheduleCapture);
     }
 
     @Test

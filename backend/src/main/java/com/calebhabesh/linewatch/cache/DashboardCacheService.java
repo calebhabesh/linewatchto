@@ -19,6 +19,12 @@ import org.springframework.stereotype.Service;
 public class DashboardCacheService {
     private static final Logger log = LoggerFactory.getLogger(DashboardCacheService.class);
     private static final String PREFIX = "linewatch:dashboard:v1:";
+    /**
+     * Reliability ranges that end before yesterday. Kept outside {@link #PREFIX} so ingestion
+     * success, which evicts the dashboard keys, leaves them alone; the nightly derive evicts them
+     * per network through {@link #evictClosedReliabilityRanges(String)}.
+     */
+    private static final String CLOSED_RELIABILITY_PREFIX = "linewatch:reliability-closed:v1:";
 
     private final StringRedisTemplate redis;
     private final ObjectMapper objectMapper;
@@ -46,10 +52,34 @@ public class DashboardCacheService {
         Predicate<T> shouldCache,
         Supplier<T> supplier
     ) {
+        return getOrComputeRedisKey(PREFIX + key, type, ttl, shouldCache, supplier);
+    }
+
+    /**
+     * Caches a closed reliability range for {@code networkId}: evicted by the nightly derive for
+     * that network, never by ingestion success.
+     */
+    public <T> T getOrComputeClosedReliability(
+        String networkId,
+        String key,
+        TypeReference<T> type,
+        Duration ttl,
+        Supplier<T> supplier
+    ) {
+        return getOrComputeRedisKey(
+            CLOSED_RELIABILITY_PREFIX + networkId + ":" + key, type, ttl, value -> true, supplier);
+    }
+
+    private <T> T getOrComputeRedisKey(
+        String redisKey,
+        TypeReference<T> type,
+        Duration ttl,
+        Predicate<T> shouldCache,
+        Supplier<T> supplier
+    ) {
         if (!properties.isEnabled() || ttl == null || ttl.isNegative() || ttl.isZero()) {
             return supplier.get();
         }
-        String redisKey = PREFIX + key;
         T cached = readCached(redisKey, type, shouldCache);
         if (cached != null) {
             return cached;
@@ -138,6 +168,22 @@ public class DashboardCacheService {
             }
         } catch (Exception exception) {
             log.warn("Dashboard cache eviction failed", exception);
+        }
+    }
+
+    /** Evicts {@code networkId}'s closed reliability ranges, or every network's when null. */
+    public void evictClosedReliabilityRanges(String networkId) {
+        if (!properties.isEnabled()) {
+            return;
+        }
+        try {
+            String pattern = CLOSED_RELIABILITY_PREFIX + (networkId == null ? "" : networkId + ":") + "*";
+            Set<String> keys = redis.keys(pattern);
+            if (keys != null && !keys.isEmpty()) {
+                redis.delete(keys);
+            }
+        } catch (Exception exception) {
+            log.warn("Closed reliability range cache eviction failed", exception);
         }
     }
 

@@ -69,10 +69,10 @@ class LimitedServicePersistenceIntegrationTest {
             assertThat(jdbc.queryForObject("select count(*) from alerts where source_id = :id", Map.of("id", parent.sourceId()), Integer.class)).isEqualTo(1);
             assertThat(jdbc.queryForObject("select count(*) from snapshots where alert_id = :id", Map.of("id", parent.id()), Integer.class)).isEqualTo(2);
             assertThat(jdbc.queryForObject("select raw_payload::text from alerts where id = :id", Map.of("id", parent.id()), String.class)).contains("limited nightly");
-            List<?> lifecycle = ReflectionTestUtils.invokeMethod(
-                new com.calebhabesh.linewatch.reliability.ReliabilityRepository(jdbc), "rawTtcEpisodes", now.plusSeconds(2));
-            assertThat(lifecycle.stream().filter(episode -> parent.id().equals(ReflectionTestUtils.getField(episode, "alertId"))))
-                .singleElement().satisfies(episode -> assertThat(ReflectionTestUtils.getField(episode, "impactKind"))
+            var episodes = new com.calebhabesh.linewatch.reliability.ReliabilityEpisodeSource(jdbc)
+                .extract("ttc", null, now.minusHours(2), now.plusSeconds(2));
+            assertThat(episodes.stream().filter(episode -> parent.id().equals(episode.alertId())))
+                .singleElement().satisfies(episode -> assertThat(episode.impactKind())
                     .isEqualTo("limited-service"));
             List<AlertEntity> readback = normalized.stream().map(alert -> {
                 AlertEntity entity = org.springframework.beans.BeanUtils.instantiateClass(AlertEntity.class);

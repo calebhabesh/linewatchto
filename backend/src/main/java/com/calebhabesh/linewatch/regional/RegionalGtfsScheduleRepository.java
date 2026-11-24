@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.regional;
 
+import com.calebhabesh.linewatch.reliability.ReliabilityScheduleCapture;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -21,9 +22,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 public class RegionalGtfsScheduleRepository {
     private final NamedParameterJdbcTemplate jdbc;
+    private final ReliabilityScheduleCapture scheduleCapture;
 
-    public RegionalGtfsScheduleRepository(NamedParameterJdbcTemplate jdbc) {
+    public RegionalGtfsScheduleRepository(
+        NamedParameterJdbcTemplate jdbc,
+        ReliabilityScheduleCapture scheduleCapture
+    ) {
         this.jdbc = jdbc;
+        this.scheduleCapture = scheduleCapture;
     }
 
     public long beginReplacementImport(
@@ -111,7 +117,13 @@ public class RegionalGtfsScheduleRepository {
         jdbc.update("update regional_gtfs_schedule_imports set active = true where id = :id", Map.of("id", importId));
     }
 
+    /**
+     * Keeps the newest inactive import of {@code sourceSystem} and deletes the rest. Reliability
+     * captures the source's schedule days first, in the caller's transaction, so the outgoing
+     * import's dates (yesterday included) survive the delete.
+     */
     public void pruneInactiveImports(String sourceSystem) {
+        scheduleCapture.capture(ReliabilityScheduleCapture.ScheduleSource.regional(sourceSystem));
         jdbc.update("""
             delete from regional_gtfs_schedule_imports
             where source_system = :sourceSystem

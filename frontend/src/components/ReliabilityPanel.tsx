@@ -9,6 +9,7 @@ import { TransitLineBadge } from "./TransitLineBadge";
 import { PanelHeader } from "./PanelHeader";
 import { 
   BarChart3, 
+  ChevronRight,
   ShieldCheck, 
   Bus, 
   Accessibility,
@@ -16,7 +17,7 @@ import {
   TrainFront,
   Info
 } from "lucide-react";
-import type { AlertTypeBreakdownItem } from "../app/linewatch-data";
+import type { AlertTypeBreakdownItem, DisruptionClassMetricItem } from "../app/linewatch-data";
 
 interface ReliabilityProps {
   onBack?: () => void;
@@ -181,13 +182,40 @@ function DisruptionDuration({ minutes }: { minutes: number | null | undefined })
 function formatReliabilityRange(since: string, until: string): string {
   const start = new Date(since);
   const end = new Date(until);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "Rolling 30 days";
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "Last 30 days";
   const formatter = new Intl.DateTimeFormat("en-CA", {
     month: "short",
     day: "numeric",
     timeZone: "America/Toronto",
   });
   return `${formatter.format(start)}–${formatter.format(end)}`;
+}
+
+function getDisruptionClassColor(disruptionClass: string): { bar: string; dot: string } {
+  switch (disruptionClass.toLowerCase().replace(/_/g, "-")) {
+    case "service-stopped":
+      return { bar: "bg-red-500 dark:bg-red-400", dot: "#ef4444" };
+    case "delay":
+      return { bar: "bg-orange-500 dark:bg-orange-400", dot: "#f97316" };
+    case "slow-zone":
+      return { bar: "bg-amber-500 dark:bg-amber-400", dot: "#f59e0b" };
+    default:
+      return { bar: "bg-purple-500 dark:bg-purple-400", dot: "#8b5cf6" };
+  }
+}
+
+function visibleDisruptionClasses(
+  classes: DisruptionClassMetricItem[] | undefined,
+  networkId: "ttc" | "regional",
+): DisruptionClassMetricItem[] {
+  if (!classes || classes.length === 0) return [];
+  return classes.filter(
+    (cls) =>
+      networkId === "ttc"
+      || cls.disruptionClass !== "slow-zone"
+      || cls.incidents > 0
+      || cls.uniqueMinutes > 0,
+  );
 }
 
 function formatReliabilityTitleCase(value: string): string {
@@ -414,12 +442,21 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
           <div className="min-w-0 flex flex-col gap-1.5">
             <div className="min-w-0 flex flex-col gap-0.5">
               <h3 className="text-[15px] font-black leading-snug text-slate-900 dark:text-white break-words">
-                Observed Disruptions · Rolling 30 Day Basis
+                Observed Disruptions · Last 30 Days
               </h3>
               <p className="text-[11px] leading-tight text-slate-500 dark:text-slate-400 break-words">
                 Confidence reflects how complete the records are, using the lower of polling and schedule-date coverage: low below 75%, medium from 75% to below 95%, and high at 95% or above. Gaps can leave disruptions uncounted.
               </p>
             </div>
+            <a
+              href={networkId === "regional" ? "/go-up/analytics" : "/ttc/analytics"}
+              className="reliability-open-analytics min-h-[40px] w-full px-3 rounded-lg border border-black/10 dark:border-white/15 bg-black/[0.03] dark:bg-white/[0.05] hover:bg-black/[0.07] dark:hover:bg-white/[0.1] flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-white no-underline"
+            >
+              <BarChart3 className="w-4 h-4 text-purple-500 shrink-0" aria-hidden="true" />
+              <span className="min-w-0 flex-1">Open Analytics</span>
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Any Date Range</span>
+              <ChevronRight className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+            </a>
             <ul className="grid grid-cols-1 gap-1 text-[11px] text-slate-500 dark:text-slate-400 list-none p-0 m-0">
               <li className="flex items-start gap-1.5 min-w-0">
                 <span className="text-slate-400 dark:text-slate-500 shrink-0 select-none">•</span>
@@ -457,6 +494,11 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
             </div>
           ) : reliability.metrics.map((item) => {
             const details = getMetricDetails(item.id, item.label);
+            const classItems = reliability.methodologyVersion === 1
+              ? []
+              : visibleDisruptionClasses(item.classes, networkId);
+            const hasV2Classes = classItems.length > 0;
+            const serviceStopped = classItems.find((cls) => cls.disruptionClass === "service-stopped");
             return (
               <div key={item.id} className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col gap-2.5 overflow-hidden">
                 {/* Line Header */}
@@ -479,89 +521,209 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
                   </div>
                 </div>
 
-                {/* Tier 1: Service Window & Wall-Clock Impact */}
-                <div className="rounded-md bg-black/[0.02] dark:bg-white/[0.02] p-2.5 flex flex-col gap-2 min-w-0">
-                  <div className="flex items-start justify-between gap-2 min-w-0">
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-tight">
-                        {networkId === "regional" ? "Time with any alert on this corridor" : "Time with any alert on this line"}
-                      </span>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight mt-0.5">
-                        Unique wall-clock disruption during scheduled service
-                      </span>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-sm font-black font-mono tabular-nums text-slate-900 dark:text-white">
-                        {item.serviceImpactPercentage.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
+                {hasV2Classes ? (
+                  <>
+                    {/* Tier 1 (v2): Station-Weighted Disruption Class Shares */}
+                    <div className="rounded-md bg-black/[0.02] dark:bg-white/[0.02] p-2.5 flex flex-col gap-2 min-w-0">
+                      <div className="flex items-start justify-between gap-2 min-w-0">
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-tight">
+                            Station-Weighted Share
+                          </span>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight mt-0.5">
+                            Weighted by affected stations during observed service
+                          </span>
+                        </div>
+                        <div className="text-right shrink-0 flex flex-col">
+                          <span className="font-mono tabular-nums font-bold text-[11px] text-slate-800 dark:text-slate-200 leading-tight">
+                            <DisruptionDuration minutes={item.observedServiceMinutes} />
+                          </span>
+                          <span className="text-[9.5px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
+                            Observed Service Time
+                          </span>
+                        </div>
+                      </div>
 
-                  {/* Proportion bar */}
-                  <div
-                    className="w-full h-1.5 rounded-full overflow-hidden bg-black/10 dark:bg-white/10"
-                    aria-hidden="true"
-                  >
-                    <div
-                      className="h-full rounded-full transition-all duration-300 bg-amber-500 dark:bg-amber-400"
-                      style={{
-                        width: `${Math.min(100, Math.max(item.serviceImpactPercentage > 0 ? 1 : 0, item.serviceImpactPercentage))}%`,
-                      }}
-                    />
-                  </div>
-
-                  {/* Symmetric Service Impact Ratio */}
-                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 pt-1 border-t border-black/[0.04] dark:border-white/[0.04] text-[11px]">
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-mono tabular-nums font-bold text-xs text-slate-900 dark:text-white leading-tight">
-                        <DisruptionDuration minutes={item.serviceImpactMinutes} />
-                      </span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans leading-tight mt-0.5">
-                        Suspension Time
-                      </span>
+                      <div className="flex flex-col gap-2 pt-1 border-t border-black/[0.04] dark:border-white/[0.04]">
+                        {classItems.map((cls) => {
+                          const color = getDisruptionClassColor(cls.disruptionClass);
+                          return (
+                            <div key={cls.disruptionClass} className="flex flex-col gap-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2 min-w-0 text-[11px]">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span
+                                    className="w-2 h-2 rounded-[2px] shrink-0"
+                                    style={{ backgroundColor: color.dot }}
+                                    aria-hidden="true"
+                                  />
+                                  <span className="font-bold text-slate-800 dark:text-slate-100 truncate">
+                                    {cls.label}
+                                  </span>
+                                  <span className="text-[10px] font-mono tabular-nums text-slate-500 dark:text-slate-400 shrink-0">
+                                    · {cls.incidents}
+                                  </span>
+                                </div>
+                                <span className="font-black font-mono tabular-nums text-xs text-slate-900 dark:text-white shrink-0">
+                                  {cls.weightedSharePercentage.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div
+                                className="w-full h-1.5 rounded-full overflow-hidden bg-black/10 dark:bg-white/10"
+                                aria-hidden="true"
+                              >
+                                <div
+                                  className={`h-full rounded-full transition-all duration-300 ${color.bar}`}
+                                  style={{
+                                    width: `${Math.min(100, Math.max(cls.weightedSharePercentage > 0 ? 1 : 0, cls.weightedSharePercentage))}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 font-medium shrink-0 px-1 select-none">
-                      of
-                    </span>
-                    <div className="flex flex-col min-w-0 text-right">
-                      <span className="font-mono tabular-nums font-bold text-xs text-slate-900 dark:text-white leading-tight">
-                        <DisruptionDuration minutes={item.observedServiceMinutes} />
-                      </span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans leading-tight mt-0.5">
-                        Observed Service Time
-                      </span>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Tier 2: Disruption Volume & Turnaround (2-Column Stat Grid) */}
-                <div className={`grid ${item.medianDurationMinutes != null ? "grid-cols-2" : "grid-cols-1"} gap-2 text-[11px]`}>
-                  <div className="flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0">
-                    <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
-                      Incident-Hours
-                    </span>
-                    <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
-                      <DisruptionDuration minutes={item.incidentDisruptionMinutes} />
-                    </strong>
-                    <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight" title="Sum of durations across all concurrent alerts">
-                      Overlapping alerts sum
-                    </span>
-                  </div>
+                    {/* Tier 2 (v2): Service-Stopped Hours, Secondary Time With Any Alert, Volume & Turnaround */}
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div className="flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
+                          Service-Stopped Hours
+                        </span>
+                        <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
+                          <DisruptionDuration minutes={serviceStopped?.uniqueMinutes ?? 0} />
+                        </strong>
+                        <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight">
+                          Unique stopped-service time
+                        </span>
+                      </div>
 
-                  {item.medianDurationMinutes != null && (
-                    <div className="flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0">
-                      <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
-                        Median Completed Incident
-                      </span>
-                      <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
-                        <DisruptionDuration minutes={item.medianDurationMinutes} />
-                      </strong>
-                      <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight">
-                        Resolution turnaround
-                      </span>
+                      <div className="flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
+                          Time With Any Alert
+                        </span>
+                        <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
+                          {item.serviceImpactPercentage.toFixed(1)}%
+                        </strong>
+                        <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight">
+                          {formatDisruptionDuration(item.serviceImpactMinutes)} {networkId === "regional" ? "on corridor" : "on line"}
+                        </span>
+                      </div>
+
+                      <div className={`flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0 ${item.medianDurationMinutes == null ? "col-span-2" : ""}`}>
+                        <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
+                          Incident-Hours
+                        </span>
+                        <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
+                          <DisruptionDuration minutes={item.incidentDisruptionMinutes} />
+                        </strong>
+                        <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight" title="Sum of durations across all concurrent alerts">
+                          Overlapping alerts sum
+                        </span>
+                      </div>
+
+                      {item.medianDurationMinutes != null && (
+                        <div className="flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0">
+                          <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
+                            Median Completed Incident
+                          </span>
+                          <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
+                            <DisruptionDuration minutes={item.medianDurationMinutes} />
+                          </strong>
+                          <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight">
+                            Resolution turnaround
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Tier 1 (v1 fallback): Service Window & Wall-Clock Impact */}
+                    <div className="rounded-md bg-black/[0.02] dark:bg-white/[0.02] p-2.5 flex flex-col gap-2 min-w-0">
+                      <div className="flex items-start justify-between gap-2 min-w-0">
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-tight">
+                            Time With Any Alert
+                          </span>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight mt-0.5">
+                            Unique wall-clock disruption during scheduled service
+                          </span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-sm font-black font-mono tabular-nums text-slate-900 dark:text-white">
+                            {item.serviceImpactPercentage.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Proportion bar */}
+                      <div
+                        className="w-full h-1.5 rounded-full overflow-hidden bg-black/10 dark:bg-white/10"
+                        aria-hidden="true"
+                      >
+                        <div
+                          className="h-full rounded-full transition-all duration-300 bg-amber-500 dark:bg-amber-400"
+                          style={{
+                            width: `${Math.min(100, Math.max(item.serviceImpactPercentage > 0 ? 1 : 0, item.serviceImpactPercentage))}%`,
+                          }}
+                        />
+                      </div>
+
+                      {/* Symmetric Service Impact Ratio */}
+                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 pt-1 border-t border-black/[0.04] dark:border-white/[0.04] text-[11px]">
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-mono tabular-nums font-bold text-xs text-slate-900 dark:text-white leading-tight">
+                            <DisruptionDuration minutes={item.serviceImpactMinutes} />
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans leading-tight mt-0.5">
+                            Alert Time
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 font-medium shrink-0 px-1 select-none">
+                          of
+                        </span>
+                        <div className="flex flex-col min-w-0 text-right">
+                          <span className="font-mono tabular-nums font-bold text-xs text-slate-900 dark:text-white leading-tight">
+                            <DisruptionDuration minutes={item.observedServiceMinutes} />
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans leading-tight mt-0.5">
+                            Observed Service Time
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tier 2 (v1 fallback): Disruption Volume & Turnaround */}
+                    <div className={`grid ${item.medianDurationMinutes != null ? "grid-cols-2" : "grid-cols-1"} gap-2 text-[11px]`}>
+                      <div className="flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
+                          Incident-Hours
+                        </span>
+                        <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
+                          <DisruptionDuration minutes={item.incidentDisruptionMinutes} />
+                        </strong>
+                        <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight" title="Sum of durations across all concurrent alerts">
+                          Overlapping alerts sum
+                        </span>
+                      </div>
+
+                      {item.medianDurationMinutes != null && (
+                        <div className="flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0">
+                          <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
+                            Median Completed Incident
+                          </span>
+                          <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
+                            <DisruptionDuration minutes={item.medianDurationMinutes} />
+                          </strong>
+                          <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight">
+                            Resolution turnaround
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             );
           })}
@@ -576,7 +738,7 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
               <div className="min-w-0">
                 <h3 className="text-[15px] font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <TrainFront className="w-4 h-4 text-rose-500 shrink-0" />
-                  Train Cancellations · Rolling 30 Day Basis
+                  Train Cancellations · Last 30 Days
                 </h3>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 break-words">
                   Source: Recorded GO Trip Changes · {reliability.trainCancellations.coveragePercentage.toFixed(1)}% polling coverage since tracking began · {formatReliabilityTitleCase(`${reliability.trainCancellations.confidence} confidence`)}

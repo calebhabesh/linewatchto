@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.regional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.calebhabesh.linewatch.reliability.ReliabilityScheduleCapture;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -63,7 +64,11 @@ class RegionalGtfsScheduleImportIntegrationTest {
 
     @BeforeEach
     void cleanTables() {
-        jdbc.getJdbcTemplate().execute("DELETE FROM regional_gtfs_schedule_imports;");
+        jdbc.getJdbcTemplate().execute("""
+            DELETE FROM regional_gtfs_schedule_imports;
+            DELETE FROM reliability_service_spans WHERE network_id = 'regional';
+            DELETE FROM reliability_schedule_days WHERE network_id = 'regional';
+            """);
     }
 
     @Test
@@ -242,6 +247,26 @@ class RegionalGtfsScheduleImportIntegrationTest {
             Map.of(), Long.class
         );
         assertThat(remainingIds).containsExactly(largeSummary.importId(), thirdSummary.importId());
+
+        // Each import captured its reliability schedule days before pruning. The clock's
+        // yesterday is 2026-07-28: earlier dates keep the first import, later ones the newest.
+        Map<LocalDate, Long> capturedImports = new java.util.LinkedHashMap<>();
+        jdbc.query("""
+            SELECT service_date, import_id FROM reliability_schedule_days
+            WHERE network_id = 'regional' AND source_system = 'go' ORDER BY service_date
+            """, Map.of(), rs -> {
+                capturedImports.put(rs.getObject("service_date", LocalDate.class), rs.getLong("import_id"));
+            });
+        assertThat(capturedImports).hasSize(63)
+            .containsEntry(LocalDate.parse("2026-07-01"), initialSummary.importId())
+            .containsEntry(LocalDate.parse("2026-07-27"), initialSummary.importId())
+            .containsEntry(LocalDate.parse("2026-07-28"), thirdSummary.importId())
+            .containsEntry(LocalDate.parse("2026-09-01"), thirdSummary.importId());
+        // 2026-08-03 is removed by calendar_dates: a schedule day with no span.
+        assertThat(jdbc.queryForObject("""
+            SELECT count(*) FROM reliability_service_spans
+            WHERE network_id = 'regional' AND service_date IN ('2026-08-03', '2026-08-04') AND station_id = ''
+            """, Map.of(), Integer.class)).isEqualTo(1);
     }
 
     @Test
@@ -612,8 +637,16 @@ class RegionalGtfsScheduleImportIntegrationTest {
         }
 
         @Bean
-        RegionalGtfsScheduleRepository repository(NamedParameterJdbcTemplate jdbc) {
-            return new RegionalGtfsScheduleRepository(jdbc);
+        ReliabilityScheduleCapture scheduleCapture(NamedParameterJdbcTemplate jdbc, Clock clock) {
+            return new ReliabilityScheduleCapture(jdbc, clock);
+        }
+
+        @Bean
+        RegionalGtfsScheduleRepository repository(
+            NamedParameterJdbcTemplate jdbc,
+            ReliabilityScheduleCapture scheduleCapture
+        ) {
+            return new RegionalGtfsScheduleRepository(jdbc, scheduleCapture);
         }
 
         @Bean

@@ -19,7 +19,7 @@ LineWatchTO is an unofficial transit dashboard for Toronto's TTC subway/LRT and 
 | What is happening at my station? | Station details, source-labeled live or scheduled arrivals, surface connections, TTC bus and streetcar and GO bus stop departures (each time labeled live or scheduled), accessibility outages, and **My Stations** bookmarks. |
 | Which stop do I want? | One search box for lines, stations and notices, plus every TTC and GO route and surface stop, by stop number, route number or street names in either order. Results come from the published schedule and are not service status. Route panels list a route's notices and its stops by direction. **Stops Near Me** asks for location only when tapped and keeps the position on the device; Recent Stops stay in the browser. Stops have links (`?stop=7658`, `?network=regional&stop=00008`). |
 | What is coming up? | Planned advisories, searchable service notices with a View that shows their stops or routes on the Map View (selection only, not service status), and station-specific information. |
-| What has happened over time? | Alert lifecycle history and disruption analytics with coverage and confidence boundaries. |
+| What has happened over time? | Alert lifecycle history and station-weighted disruption analytics by class (Service Stopped, Delays, Slow Zones) over any date range with history, with explicit polling and schedule coverage boundaries. |
 
 <table>
   <tr>

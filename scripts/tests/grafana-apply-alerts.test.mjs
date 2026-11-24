@@ -21,6 +21,8 @@ test("the stale-ingestion and missing-metrics rules alert when data disappears",
   const byUid = Object.fromEntries(buildRuleGroup(definitions).rules.map((rule) => [rule.uid, rule]));
   assert.equal(byUid["linewatch-ttc-ingestion-stale"].noDataState, "Alerting");
   assert.equal(byUid["linewatch-backend-scrape-missing"].noDataState, "Alerting");
+  // A missing backup metric means no verified off-host copy is known.
+  assert.equal(byUid["linewatch-offsite-backup-stale"].noDataState, "Alerting");
 });
 
 test("routing replaces only the LineWatch route and keeps the default receiver", () => {

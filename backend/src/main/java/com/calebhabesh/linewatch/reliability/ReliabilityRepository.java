@@ -1,22 +1,25 @@
 package com.calebhabesh.linewatch.reliability;
 
-import com.calebhabesh.linewatch.arrival.schedule.GtfsServiceTime;
 import com.calebhabesh.linewatch.regional.RegionalNetworkCatalog;
+import com.calebhabesh.linewatch.reliability.ReliabilityEpisodeSource.DisjointSpan;
+import com.calebhabesh.linewatch.reliability.ReliabilityEpisodeSource.ExtractedEpisode;
 import com.calebhabesh.linewatch.reliability.ReliabilityIntervalCalculator.TimeRange;
+import com.calebhabesh.linewatch.reliability.ReliabilityIntervalCalculator.WeightedInterval;
+import com.calebhabesh.linewatch.reliability.ReliabilityScheduleCapture.ServiceSpan;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -24,26 +27,163 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class ReliabilityRepository {
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
-    private static final Duration OBSERVATION_FRESHNESS = Duration.ofMinutes(10);
-    private static final Duration LIFECYCLE_STITCH_GAP = Duration.ofMinutes(5);
 
     private final NamedParameterJdbcTemplate jdbc;
+    private final ReliabilityScheduleCapture scheduleCapture;
+    private final ReliabilityObservationRollup observationRollup;
+    private final ReliabilityEpisodeSource episodeSource;
 
-    public ReliabilityRepository(NamedParameterJdbcTemplate jdbc) {
+    @Autowired
+    public ReliabilityRepository(
+        NamedParameterJdbcTemplate jdbc,
+        ReliabilityScheduleCapture scheduleCapture,
+        ReliabilityObservationRollup observationRollup,
+        ReliabilityEpisodeSource episodeSource
+    ) {
         this.jdbc = jdbc;
+        this.scheduleCapture = scheduleCapture;
+        this.observationRollup = observationRollup;
+        this.episodeSource = episodeSource;
     }
 
+    ReliabilityRepository(
+        NamedParameterJdbcTemplate jdbc,
+        ReliabilityScheduleCapture scheduleCapture,
+        ReliabilityObservationRollup observationRollup
+    ) {
+        this(jdbc, scheduleCapture, observationRollup, new ReliabilityEpisodeSource(jdbc));
+    }
+
+    /**
+     * Serves a service-date range {@code [fromDate..toDate]} clipped at {@code until} from the
+     * derived read model ({@code reliability_line_days}, {@code reliability_station_days},
+     * {@code reliability_episodes}) for completed derived days combined with a bounded live tail
+     * for today (or yesterday+today during late-night service before the nightly job runs).
+     * Falls back to {@link #aggregate} if no derivation has succeeded yet for the active version.
+     */
+    public ReliabilityAggregation aggregateServiceDates(
+        String networkId,
+        String stationId,
+        LocalDate fromDate,
+        LocalDate toDate,
+        OffsetDateTime until
+    ) {
+        OffsetDateTime since = ReliabilityObservationRollup.dayStart(fromDate);
+        int version = currentMethodologyVersion();
+        LocalDate derivedThrough = derivedThrough(version, networkId);
+        if (derivedThrough == null) {
+            return aggregate(networkId, stationId, since, until);
+        }
+
+        List<TimeRange> observationWindows = observationWindows(networkId, since, until);
+        long rollingMinutes = Math.max(1, Math.round(Duration.between(since, until).toSeconds() / 60.0));
+        long observedMinutes = ReliabilityIntervalCalculator.minutes(observationWindows);
+        double coveragePercentage = Math.min(100.0, Math.round(observedMinutes * 1000.0 / rollingMinutes) / 10.0);
+        double scheduleCoveragePercentage = scheduleCapture.scheduleCoveragePercentage(networkId, fromDate, toDate);
+        boolean scheduleBacked = scheduleCoveragePercentage > 0.0;
+        String serviceWindowBasis = !scheduleBacked
+            ? "published schedule coverage unavailable"
+            : ("regional".equals(networkId)
+                ? "published GO/UP GTFS daily corridor service spans"
+                : "published TTC GTFS daily line service spans");
+        CancellationAggregation cancellations = "regional".equals(networkId)
+            ? regionalCancellations(stationId, since, until, observationWindows, rollingMinutes)
+            : CancellationAggregation.unavailable();
+
+        boolean v2 = version >= ReliabilityDerivationService.METHODOLOGY_V2;
+        if (!scheduleBacked || observationWindows.isEmpty()) {
+            return new ReliabilityAggregation(
+                List.of(), List.of(), observedMinutes, coveragePercentage,
+                serviceWindowBasis, scheduleBacked, scheduleCoveragePercentage, cancellations, version
+            );
+        }
+
+        LocalDate derivedEnd = toDate.isAfter(derivedThrough) ? derivedThrough : toDate;
+        boolean hasDerived = !fromDate.isAfter(derivedEnd);
+        boolean hasLive = toDate.isAfter(derivedThrough);
+        LocalDate liveStart = hasLive
+            ? laterDate(fromDate, laterDate(derivedThrough.plusDays(1), toDate.minusDays(1)))
+            : null;
+
+        Map<String, DayTotals> lineTotals = new LinkedHashMap<>();
+        Map<String, Map<String, ClassDayTotals>> classTotalsByLine = new LinkedHashMap<>();
+        Map<String, Long> breakdownMinutes = new LinkedHashMap<>();
+        Map<String, MergedEpisode> mergedEpisodes = new LinkedHashMap<>();
+
+        if (hasDerived) {
+            accumulateDerivedDayTotals(
+                version, networkId, stationId, fromDate, derivedEnd,
+                lineTotals, classTotalsByLine, breakdownMinutes
+            );
+            accumulateDerivedEpisodes(version, networkId, stationId, fromDate, derivedEnd, until, mergedEpisodes);
+        }
+
+        if (hasLive && liveStart != null && !liveStart.isAfter(toDate)) {
+            accumulateLiveTail(
+                v2, networkId, stationId, liveStart, toDate, until,
+                observationWindows, lineTotals, classTotalsByLine, breakdownMinutes, mergedEpisodes
+            );
+        }
+
+        List<LineRecord> lines = linesForNetwork(networkId);
+        Map<String, List<MergedEpisode>> episodesByLine = mergedEpisodes.values().stream()
+            .collect(Collectors.groupingBy(MergedEpisode::lineId));
+
+        List<AggregateRow> rows = lines.stream()
+            .filter(line -> lineTotals.containsKey(line.id()))
+            .filter(line -> stationId == null || episodesByLine.containsKey(line.id()))
+            .map(line -> buildAggregateRow(
+                v2,
+                line,
+                lineTotals.get(line.id()),
+                classTotalsByLine.getOrDefault(line.id(), Map.of()),
+                episodesByLine.getOrDefault(line.id(), List.of())
+            ))
+            .filter(row -> row.observedServiceMinutes() > 0)
+            .toList();
+
+        Map<String, List<MergedEpisode>> episodesByKind = mergedEpisodes.values().stream()
+            .collect(Collectors.groupingBy(ep -> ReliabilityEpisodeSource.v1BreakdownGroup(ep.impactKind())));
+        List<BreakdownRow> breakdown = episodesByKind.entrySet().stream()
+            .map(entry -> {
+                String kind = entry.getKey();
+                long episodeCount = entry.getValue().size();
+                long minutes = breakdownMinutes.getOrDefault(kind, 0L);
+                return new BreakdownRow(kind, episodeCount, minutes);
+            })
+            .sorted((left, right) -> {
+                int minutes = Long.compare(right.incidentMinutes(), left.incidentMinutes());
+                return minutes != 0 ? minutes : Long.compare(right.incidents(), left.incidents());
+            })
+            .toList();
+
+        List<EpisodeOutcome> outcomes = mergedEpisodes.values().stream()
+            .filter(ep -> lineTotals.containsKey(ep.lineId()))
+            .map(ep -> new EpisodeOutcome(
+                ep.episodeKey(), ep.lineId(), ep.impactKind(), ep.disruptionClass(), ep.cause(),
+                ReliabilityIntervalCalculator.minutes(ep.countedRanges()), ep.completed(), ep.active()))
+            .toList();
+        return new ReliabilityAggregation(
+            rows, breakdown, observedMinutes, coveragePercentage,
+            serviceWindowBasis, true, scheduleCoveragePercentage, cancellations, version, outcomes
+        );
+    }
+
+    /**
+     * Direct request-time aggregation over {@code [since, until)}. Retained as the v1 parity
+     * reference and as the fallback before the read model has been derived (removed in A11).
+     */
     public ReliabilityAggregation aggregate(
         String networkId,
         String stationId,
         OffsetDateTime since,
         OffsetDateTime until
     ) {
+        int version = currentMethodologyVersion();
+        boolean v2 = version >= ReliabilityDerivationService.METHODOLOGY_V2;
         List<TimeRange> observationWindows = observationWindows(networkId, since, until);
-        ServiceWindowResult serviceWindowResult = serviceWindows(networkId, stationId, since, until);
-        List<Episode> episodes = "regional".equals(networkId)
-            ? regionalEpisodes(stationId, since, until)
-            : ttcEpisodes(stationId, since, until);
+        ServiceWindowResult serviceWindowResult = serviceWindows(networkId, stationId, since, until, v2);
+        List<ExtractedEpisode> episodes = episodeSource.extract(networkId, stationId, since, until);
         List<EvaluatedEpisode> evaluated = evaluate(
             episodes,
             observationWindows,
@@ -51,11 +191,7 @@ public class ReliabilityRepository {
             until
         );
 
-        List<LineRecord> lines = "regional".equals(networkId)
-            ? RegionalNetworkCatalog.routes().stream()
-                .map(route -> new LineRecord(route.id(), route.number(), route.name()))
-                .toList()
-            : fetchTransitLines();
+        List<LineRecord> lines = linesForNetwork(networkId);
         Map<String, List<EvaluatedEpisode>> byLine = evaluated.stream()
             .collect(Collectors.groupingBy(EvaluatedEpisode::lineId));
 
@@ -64,19 +200,21 @@ public class ReliabilityRepository {
             .filter(line -> serviceWindowResult.byLine().containsKey(line.id()))
             .filter(line -> stationId == null || byLine.containsKey(line.id()))
             .map(line -> aggregateLine(
+                v2,
                 line,
                 byLine.getOrDefault(line.id(), List.of()),
                 ReliabilityIntervalCalculator.intersect(
                     serviceWindowResult.byLine().getOrDefault(line.id(), List.of()),
                     observationWindows
-                )
+                ),
+                serviceWindowResult.scheduledStationsByLine().getOrDefault(line.id(), Set.of()),
+                stationId != null
             ))
             .filter(row -> row.observedServiceMinutes() > 0)
             .toList();
 
         Map<String, List<EvaluatedEpisode>> byKind = evaluated.stream()
-            .collect(Collectors.groupingBy(episode -> "limited-service".equals(normalizeImpactKind(episode.impactKind()))
-                ? "delay" : normalizeImpactKind(episode.impactKind())));
+            .collect(Collectors.groupingBy(episode -> ReliabilityEpisodeSource.v1BreakdownGroup(episode.impactKind())));
         List<BreakdownRow> breakdown = byKind.entrySet().stream()
             .map(entry -> new BreakdownRow(
                 entry.getKey(),
@@ -95,6 +233,11 @@ public class ReliabilityRepository {
         CancellationAggregation cancellations = "regional".equals(networkId)
             ? regionalCancellations(stationId, since, until, observationWindows, rollingMinutes)
             : CancellationAggregation.unavailable();
+        List<EpisodeOutcome> outcomes = rows.isEmpty() ? List.of() : evaluated.stream()
+            .map(ep -> new EpisodeOutcome(
+                ep.episodeKey(), ep.lineId(), ep.impactKind(), ep.disruptionClass(), ep.cause(),
+                ep.incidentMinutes(), ep.completed(), ep.active()))
+            .toList();
         return new ReliabilityAggregation(
             rows,
             breakdown,
@@ -103,8 +246,406 @@ public class ReliabilityRepository {
             serviceWindowResult.basis(),
             serviceWindowResult.scheduleBacked(),
             serviceWindowResult.coveragePercentage(),
-            cancellations
+            cancellations,
+            version,
+            outcomes
         );
+    }
+
+    private void accumulateDerivedDayTotals(
+        int version,
+        String networkId,
+        String stationId,
+        LocalDate fromDate,
+        LocalDate derivedEnd,
+        Map<String, DayTotals> lineTotals,
+        Map<String, Map<String, ClassDayTotals>> classTotalsByLine,
+        Map<String, Long> breakdownMinutes
+    ) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("version", version)
+            .addValue("networkId", networkId)
+            .addValue("fromDate", fromDate)
+            .addValue("derivedEnd", derivedEnd);
+        String sql;
+        if (stationId == null) {
+            sql = """
+                select line_id, impact_group,
+                       sum(observed_minutes) observed_minutes,
+                       sum(impacted_minutes) impacted_minutes,
+                       sum(weighted_impacted_minutes) weighted_impacted_minutes,
+                       sum(incident_minutes) incident_minutes
+                from reliability_line_days
+                where methodology_version = :version
+                  and network_id = :networkId
+                  and service_date between :fromDate and :derivedEnd
+                group by line_id, impact_group
+                """;
+        } else {
+            params.addValue("stationId", stationId);
+            sql = """
+                select line_id, impact_group,
+                       sum(observed_minutes) observed_minutes,
+                       sum(impacted_minutes) impacted_minutes,
+                       sum(weighted_impacted_minutes) weighted_impacted_minutes,
+                       sum(incident_minutes) incident_minutes
+                from reliability_station_days
+                where methodology_version = :version
+                  and network_id = :networkId
+                  and station_id = :stationId
+                  and service_date between :fromDate and :derivedEnd
+                group by line_id, impact_group
+                """;
+        }
+        jdbc.query(sql, params, rs -> {
+            String lineId = rs.getString("line_id");
+            String group = rs.getString("impact_group");
+            long observed = rs.getLong("observed_minutes");
+            long impacted = rs.getLong("impacted_minutes");
+            double weighted = rs.getDouble("weighted_impacted_minutes");
+            long incident = rs.getLong("incident_minutes");
+            if ("all".equals(group)) {
+                lineTotals.merge(lineId, new DayTotals(observed, impacted, weighted, incident), DayTotals::add);
+            } else if (group.startsWith(ReliabilityEpisodeSource.CLASS_GROUP_PREFIX)) {
+                String cls = group.substring(ReliabilityEpisodeSource.CLASS_GROUP_PREFIX.length());
+                classTotalsByLine
+                    .computeIfAbsent(lineId, ignored -> new LinkedHashMap<>())
+                    .merge(cls, new ClassDayTotals(impacted, weighted, incident), ClassDayTotals::add);
+            } else {
+                breakdownMinutes.merge(ReliabilityEpisodeSource.v1BreakdownGroup(group), incident, Long::sum);
+            }
+        });
+    }
+
+    private void accumulateDerivedEpisodes(
+        int version,
+        String networkId,
+        String stationId,
+        LocalDate fromDate,
+        LocalDate derivedEnd,
+        OffsetDateTime until,
+        Map<String, MergedEpisode> mergedEpisodes
+    ) {
+        List<ServiceSpan> rawSpans = scheduleCapture.serviceSpans(
+            networkId, stationId, fromDate.minusDays(1), derivedEnd);
+        Set<LocalDate> completeDays = scheduleCapture.completeScheduleDays(networkId, fromDate, derivedEnd);
+        List<DisjointSpan> disjoint = ReliabilityEpisodeSource.disjointSpans(rawSpans).stream()
+            .filter(span -> !span.serviceDate().isBefore(fromDate) && !span.serviceDate().isAfter(derivedEnd))
+            .filter(span -> completeDays.contains(span.serviceDate()))
+            .toList();
+        if (disjoint.isEmpty()) return;
+
+        Map<String, List<TimeRange>> spansByLine = new HashMap<>();
+        OffsetDateTime minStart = null;
+        OffsetDateTime maxEnd = null;
+        for (DisjointSpan span : disjoint) {
+            spansByLine.computeIfAbsent(span.lineId(), ignored -> new ArrayList<>()).add(span.range());
+            if (minStart == null || span.range().start().isBefore(minStart)) minStart = span.range().start();
+            if (maxEnd == null || span.range().end().isAfter(maxEnd)) maxEnd = span.range().end();
+        }
+        if (minStart == null || maxEnd == null) return;
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("version", version)
+            .addValue("networkId", networkId)
+            .addValue("rangeStart", minStart)
+            .addValue("rangeEnd", maxEnd);
+        String stationFilter = "";
+        if (stationId != null) {
+            params.addValue("stationId", stationId);
+            stationFilter = " and jsonb_exists(ep.station_ids, :stationId) ";
+        }
+
+        Map<String, StoredEpisodeBuilder> builders = new LinkedHashMap<>();
+        jdbc.query("""
+            select ep.episode_key, ep.line_id, ep.impact_kind, ep.disruption_class, ep.cause, ep.closed_at, ep.completed,
+                   lower(piece) starts_at, upper(piece) ends_at
+            from reliability_episodes ep
+            join lateral unnest(ep.counted * tstzmultirange(tstzrange(cast(:rangeStart as timestamptz), cast(:rangeEnd as timestamptz)))) piece on true
+            where ep.methodology_version = :version
+              and ep.network_id = :networkId
+              and ep.counted && tstzrange(cast(:rangeStart as timestamptz), cast(:rangeEnd as timestamptz))
+              """ + stationFilter + """
+            order by ep.id, lower(piece)
+            """, params, rs -> {
+                String key = rs.getString("episode_key");
+                StoredEpisodeBuilder builder = builders.computeIfAbsent(key, ignored -> {
+                    try {
+                        String impactKind = rs.getString("impact_kind");
+                        String storedClass = rs.getString("disruption_class");
+                        String disruptionClass = storedClass != null && !storedClass.isBlank()
+                            ? storedClass
+                            : ReliabilityEpisodeSource.disruptionClass(impactKind);
+                        return new StoredEpisodeBuilder(
+                            key,
+                            rs.getString("line_id"),
+                            impactKind,
+                            disruptionClass,
+                            rs.getString("cause"),
+                            rs.getObject("closed_at", OffsetDateTime.class),
+                            rs.getBoolean("completed")
+                        );
+                    } catch (java.sql.SQLException e) {
+                        throw new IllegalStateException(e);
+                    }
+                });
+                OffsetDateTime start = rs.getObject("starts_at", OffsetDateTime.class);
+                OffsetDateTime end = rs.getObject("ends_at", OffsetDateTime.class);
+                if (start != null && end != null && end.isAfter(start)) {
+                    builder.ranges.add(new TimeRange(start, end));
+                }
+            });
+
+        OffsetDateTime activeProbe = until.minusSeconds(1);
+        for (StoredEpisodeBuilder builder : builders.values()) {
+            List<TimeRange> lineSpans = spansByLine.getOrDefault(builder.lineId, List.of());
+            List<TimeRange> clipped = ReliabilityIntervalCalculator.intersect(builder.ranges, lineSpans);
+            if (clipped.isEmpty()) continue;
+            boolean completedAtUntil = builder.completed
+                && builder.closedAt != null
+                && !builder.closedAt.isAfter(until);
+            boolean activeAtUntil = !completedAtUntil
+                && ReliabilityIntervalCalculator.contains(clipped, activeProbe);
+            mergedEpisodes.put(builder.episodeKey, new MergedEpisode(
+                builder.episodeKey, builder.lineId, builder.impactKind, builder.disruptionClass,
+                builder.cause, clipped, completedAtUntil, activeAtUntil
+            ));
+        }
+    }
+
+    private void accumulateLiveTail(
+        boolean v2,
+        String networkId,
+        String stationId,
+        LocalDate liveStart,
+        LocalDate toDate,
+        OffsetDateTime until,
+        List<TimeRange> observationWindows,
+        Map<String, DayTotals> lineTotals,
+        Map<String, Map<String, ClassDayTotals>> classTotalsByLine,
+        Map<String, Long> breakdownMinutes,
+        Map<String, MergedEpisode> mergedEpisodes
+    ) {
+        List<ServiceSpan> rawSpans = (stationId == null && v2)
+            ? scheduleCapture.allSpans(networkId, liveStart.minusDays(1), toDate)
+            : scheduleCapture.serviceSpans(networkId, stationId, liveStart.minusDays(1), toDate);
+        List<DisjointSpan> allDisjoint = ReliabilityEpisodeSource.disjointSpans(rawSpans);
+
+        Map<String, Map<LocalDate, TimeRange>> liveDaySpansByLine = new LinkedHashMap<>();
+        Map<String, Map<LocalDate, Set<String>>> scheduledStationsByLineDate = new HashMap<>();
+        OffsetDateTime minLiveStart = null;
+        for (DisjointSpan span : allDisjoint) {
+            if (span.serviceDate().isBefore(liveStart) || span.serviceDate().isAfter(toDate)) continue;
+            boolean wholeLine = ReliabilityScheduleCapture.WHOLE_LINE.equals(span.stationId());
+            if (stationId == null && !wholeLine) {
+                scheduledStationsByLineDate
+                    .computeIfAbsent(span.lineId(), ignored -> new HashMap<>())
+                    .computeIfAbsent(span.serviceDate(), ignored -> new HashSet<>())
+                    .add(span.stationId());
+                continue;
+            }
+            TimeRange clipped = new TimeRange(span.range().start(), earlier(span.range().end(), until));
+            if (!clipped.valid()) continue;
+            liveDaySpansByLine
+                .computeIfAbsent(span.lineId(), ignored -> new LinkedHashMap<>())
+                .put(span.serviceDate(), clipped);
+            if (minLiveStart == null || clipped.start().isBefore(minLiveStart)) {
+                minLiveStart = clipped.start();
+            }
+        }
+        if (minLiveStart == null || !minLiveStart.isBefore(until)) return;
+
+        Map<String, List<TimeRange>> liveSpansByLine = new LinkedHashMap<>();
+        for (Map.Entry<String, Map<LocalDate, TimeRange>> entry : liveDaySpansByLine.entrySet()) {
+            liveSpansByLine.put(entry.getKey(), List.copyOf(entry.getValue().values()));
+        }
+
+        List<ExtractedEpisode> liveExtracted = episodeSource.extract(networkId, stationId, minLiveStart, until);
+        List<EvaluatedEpisode> liveEvaluated = evaluate(liveExtracted, observationWindows, liveSpansByLine, until);
+        Map<String, List<EvaluatedEpisode>> liveByLine = liveEvaluated.stream()
+            .collect(Collectors.groupingBy(EvaluatedEpisode::lineId));
+
+        boolean singleStationScope = stationId != null;
+        for (Map.Entry<String, Map<LocalDate, TimeRange>> lineEntry : liveDaySpansByLine.entrySet()) {
+            String lineId = lineEntry.getKey();
+            List<EvaluatedEpisode> lineEps = liveByLine.getOrDefault(lineId, List.of());
+            Map<LocalDate, Set<String>> lineScheduledByDate =
+                scheduledStationsByLineDate.getOrDefault(lineId, Map.of());
+            for (Map.Entry<LocalDate, TimeRange> dayEntry : lineEntry.getValue().entrySet()) {
+                LocalDate serviceDate = dayEntry.getKey();
+                List<TimeRange> daySpan = List.of(dayEntry.getValue());
+                long dayObserved = ReliabilityIntervalCalculator.minutes(
+                    ReliabilityIntervalCalculator.intersect(daySpan, observationWindows));
+                if (dayObserved <= 0) continue;
+
+                Set<String> scheduledStations = singleStationScope
+                    ? Set.of(stationId)
+                    : lineScheduledByDate.getOrDefault(serviceDate, Set.of());
+                int denominator = singleStationScope ? 1 : scheduledStations.size();
+
+                List<TimeRange> allDayRanges = new ArrayList<>();
+                List<WeightedInterval> allDayWeighted = new ArrayList<>();
+                long allDayIncident = 0;
+
+                Map<String, List<TimeRange>> classDayRanges = new LinkedHashMap<>();
+                Map<String, List<WeightedInterval>> classDayWeighted = new LinkedHashMap<>();
+                Map<String, Long> classDayIncident = new LinkedHashMap<>();
+
+                for (EvaluatedEpisode ep : lineEps) {
+                    List<TimeRange> epDayRanges = ReliabilityIntervalCalculator.intersect(ep.countedRanges(), daySpan);
+                    if (epDayRanges.isEmpty()) continue;
+                    long epDayMinutes = ReliabilityIntervalCalculator.minutes(epDayRanges);
+                    allDayRanges.addAll(epDayRanges);
+                    allDayIncident += epDayMinutes;
+
+                    if (v2) {
+                        WeightedInterval wi = ReliabilityDerivationService.toWeightedInterval(
+                            epDayRanges, ep.stationIds(), scheduledStations, singleStationScope);
+                        allDayWeighted.add(wi);
+                        classDayRanges.computeIfAbsent(ep.disruptionClass(), ignored -> new ArrayList<>()).addAll(epDayRanges);
+                        classDayWeighted.computeIfAbsent(ep.disruptionClass(), ignored -> new ArrayList<>()).add(wi);
+                        classDayIncident.merge(ep.disruptionClass(), epDayMinutes, Long::sum);
+                    }
+                }
+
+                long dayImpacted = ReliabilityIntervalCalculator.minutes(allDayRanges);
+                long dayIncident = Math.max(dayImpacted, allDayIncident);
+                double dayWeighted = v2
+                    ? ReliabilityDerivationService.clampWeighted(
+                        ReliabilityIntervalCalculator.weightedMinutes(allDayWeighted, denominator), dayObserved)
+                    : dayImpacted;
+                lineTotals.merge(lineId, new DayTotals(dayObserved, dayImpacted, dayWeighted, dayIncident), DayTotals::add);
+
+                if (v2) {
+                    for (Map.Entry<String, List<TimeRange>> clsEntry : classDayRanges.entrySet()) {
+                        String cls = clsEntry.getKey();
+                        long clsImpacted = ReliabilityIntervalCalculator.minutes(clsEntry.getValue());
+                        long clsIncident = Math.max(clsImpacted, classDayIncident.getOrDefault(cls, 0L));
+                        double clsWeighted = ReliabilityDerivationService.clampWeighted(
+                            ReliabilityIntervalCalculator.weightedMinutes(classDayWeighted.get(cls), denominator), dayObserved);
+                        classTotalsByLine
+                            .computeIfAbsent(lineId, ignored -> new LinkedHashMap<>())
+                            .merge(cls, new ClassDayTotals(clsImpacted, clsWeighted, clsIncident), ClassDayTotals::add);
+                    }
+                }
+            }
+        }
+
+        for (EvaluatedEpisode ep : liveEvaluated) {
+            breakdownMinutes.merge(ReliabilityEpisodeSource.v1BreakdownGroup(ep.impactKind()), ep.incidentMinutes(), Long::sum);
+            mergedEpisodes.merge(
+                ep.episodeKey(),
+                new MergedEpisode(
+                    ep.episodeKey(), ep.lineId(), ep.impactKind(), ep.disruptionClass(),
+                    ep.cause(), ep.countedRanges(), ep.completed(), ep.active()
+                ),
+                (existing, live) -> {
+                    List<TimeRange> combined = new ArrayList<>(existing.countedRanges().size() + live.countedRanges().size());
+                    combined.addAll(existing.countedRanges());
+                    combined.addAll(live.countedRanges());
+                    return new MergedEpisode(
+                        existing.episodeKey(),
+                        existing.lineId(),
+                        live.impactKind(),
+                        live.disruptionClass(),
+                        live.cause() != null ? live.cause() : existing.cause(),
+                        ReliabilityIntervalCalculator.merge(combined, Duration.ZERO),
+                        live.completed(),
+                        live.active()
+                    );
+                }
+            );
+        }
+    }
+
+    private AggregateRow buildAggregateRow(
+        boolean v2,
+        LineRecord line,
+        DayTotals totals,
+        Map<String, ClassDayTotals> classTotals,
+        List<MergedEpisode> episodes
+    ) {
+        long observedServiceMinutes = totals.observedMinutes();
+        long disruptedServiceMinutes = Math.min(observedServiceMinutes, totals.impactedMinutes());
+        long incidentMinutes = Math.max(disruptedServiceMinutes, totals.incidentMinutes());
+        double impactedPercentage = observedServiceMinutes == 0 ? 0.0
+            : Math.min(100.0, Math.round(disruptedServiceMinutes * 1000.0 / observedServiceMinutes) / 10.0);
+        double rawAllWeighted = v2
+            ? Math.min(observedServiceMinutes, Math.max(0.0, totals.weightedMinutes()))
+            : disruptedServiceMinutes;
+        double weightedImpactMinutes = round1(rawAllWeighted);
+        double weightedImpactPercentage = observedServiceMinutes == 0 ? 0.0
+            : Math.min(100.0, Math.round(rawAllWeighted * 1000.0 / observedServiceMinutes) / 10.0);
+        List<Long> completedDurations = episodes.stream()
+            .filter(MergedEpisode::completed)
+            .map(ep -> ReliabilityIntervalCalculator.minutes(ep.countedRanges()))
+            .filter(minutes -> minutes > 0)
+            .toList();
+        List<ClassAggregateRow> classes = v2
+            ? buildClassRows(observedServiceMinutes, classTotals, episodes)
+            : List.of();
+        return new AggregateRow(
+            line.id(), line.number(), line.label(),
+            episodes.size(),
+            episodes.stream().filter(MergedEpisode::active).count(),
+            computeMedian(completedDurations),
+            disruptedServiceMinutes,
+            observedServiceMinutes,
+            incidentMinutes,
+            impactedPercentage,
+            weightedImpactMinutes,
+            weightedImpactPercentage,
+            classes
+        );
+    }
+
+    private List<ClassAggregateRow> buildClassRows(
+        long observedServiceMinutes,
+        Map<String, ClassDayTotals> classTotals,
+        List<MergedEpisode> episodes
+    ) {
+        Map<String, List<MergedEpisode>> episodesByClass = episodes.stream()
+            .collect(Collectors.groupingBy(MergedEpisode::disruptionClass));
+        List<ClassAggregateRow> rows = new ArrayList<>(ReliabilityEpisodeSource.DISRUPTION_CLASSES.size());
+        for (String cls : ReliabilityEpisodeSource.DISRUPTION_CLASSES) {
+            List<MergedEpisode> clsEps = episodesByClass.getOrDefault(cls, List.of());
+            ClassDayTotals totals = classTotals.getOrDefault(cls, ClassDayTotals.ZERO);
+            long uniqueMinutes = Math.min(observedServiceMinutes, totals.impactedMinutes());
+            double rawWeighted = Math.min(observedServiceMinutes, Math.max(0.0, totals.weightedMinutes()));
+            long incidentMinutes = Math.max(uniqueMinutes, totals.incidentMinutes());
+            double share = observedServiceMinutes == 0 ? 0.0
+                : Math.min(100.0, Math.round(rawWeighted * 1000.0 / observedServiceMinutes) / 10.0);
+            rows.add(new ClassAggregateRow(
+                cls,
+                clsEps.size(),
+                clsEps.stream().filter(MergedEpisode::active).count(),
+                uniqueMinutes,
+                round1(rawWeighted),
+                share,
+                incidentMinutes
+            ));
+        }
+        return List.copyOf(rows);
+    }
+
+    int currentMethodologyVersion() {
+        List<Integer> versions = jdbc.query(
+            "select current_version from reliability_methodology where id = 1",
+            (rs, row) -> rs.getInt("current_version")
+        );
+        return versions.isEmpty() ? 1 : versions.getFirst();
+    }
+
+    LocalDate derivedThrough(int version, String networkId) {
+        List<LocalDate> rows = jdbc.query("""
+            select derived_through
+            from reliability_derivations
+            where methodology_version = :version and network_id = :networkId
+            """, new MapSqlParameterSource()
+                .addValue("version", version)
+                .addValue("networkId", networkId),
+            (rs, row) -> rs.getObject("derived_through", LocalDate.class));
+        return rows.isEmpty() ? null : rows.getFirst();
     }
 
     private CancellationAggregation regionalCancellations(
@@ -164,9 +705,12 @@ public class ReliabilityRepository {
     }
 
     private AggregateRow aggregateLine(
+        boolean v2,
         LineRecord line,
         List<EvaluatedEpisode> episodes,
-        List<TimeRange> observedServiceWindows
+        List<TimeRange> observedServiceWindows,
+        Set<String> scheduledStations,
+        boolean singleStationScope
     ) {
         List<TimeRange> uniqueImpactWindows = episodes.stream()
             .flatMap(episode -> episode.countedRanges().stream())
@@ -184,23 +728,71 @@ public class ReliabilityRepository {
         );
         double impactedPercentage = observedServiceMinutes == 0 ? 0.0
             : Math.min(100.0, Math.round(disruptedServiceMinutes * 1000.0 / observedServiceMinutes) / 10.0);
+
+        if (!v2) {
+            return new AggregateRow(
+                line.id(), line.number(), line.label(), episodes.size(),
+                episodes.stream().filter(EvaluatedEpisode::active).count(),
+                computeMedian(completedDurations), disruptedServiceMinutes,
+                observedServiceMinutes, incidentMinutes, impactedPercentage
+            );
+        }
+
+        int denominator = singleStationScope ? 1 : scheduledStations.size();
+        List<WeightedInterval> allWeighted = episodes.stream()
+            .map(ep -> ReliabilityDerivationService.toWeightedInterval(
+                ep.countedRanges(), ep.stationIds(), scheduledStations, singleStationScope))
+            .toList();
+        double rawAllWeighted = ReliabilityDerivationService.clampWeighted(
+            ReliabilityIntervalCalculator.weightedMinutes(allWeighted, denominator), observedServiceMinutes);
+        double weightedImpactPercentage = observedServiceMinutes == 0 ? 0.0
+            : Math.min(100.0, Math.round(rawAllWeighted * 1000.0 / observedServiceMinutes) / 10.0);
+
+        Map<String, List<EvaluatedEpisode>> byClass = episodes.stream()
+            .collect(Collectors.groupingBy(EvaluatedEpisode::disruptionClass));
+        List<ClassAggregateRow> classes = new ArrayList<>(ReliabilityEpisodeSource.DISRUPTION_CLASSES.size());
+        for (String cls : ReliabilityEpisodeSource.DISRUPTION_CLASSES) {
+            List<EvaluatedEpisode> clsEps = byClass.getOrDefault(cls, List.of());
+            List<TimeRange> clsUniqueRanges = clsEps.stream()
+                .flatMap(ep -> ep.countedRanges().stream()).toList();
+            long clsUnique = Math.min(observedServiceMinutes, ReliabilityIntervalCalculator.minutes(clsUniqueRanges));
+            long clsIncident = Math.max(clsUnique, clsEps.stream().mapToLong(EvaluatedEpisode::incidentMinutes).sum());
+            List<WeightedInterval> clsWeightedIntervals = clsEps.stream()
+                .map(ep -> ReliabilityDerivationService.toWeightedInterval(
+                    ep.countedRanges(), ep.stationIds(), scheduledStations, singleStationScope))
+                .toList();
+            double clsRawWeighted = ReliabilityDerivationService.clampWeighted(
+                ReliabilityIntervalCalculator.weightedMinutes(clsWeightedIntervals, denominator), observedServiceMinutes);
+            double clsShare = observedServiceMinutes == 0 ? 0.0
+                : Math.min(100.0, Math.round(clsRawWeighted * 1000.0 / observedServiceMinutes) / 10.0);
+            classes.add(new ClassAggregateRow(
+                cls,
+                clsEps.size(),
+                clsEps.stream().filter(EvaluatedEpisode::active).count(),
+                clsUnique,
+                round1(clsRawWeighted),
+                clsShare,
+                clsIncident
+            ));
+        }
         return new AggregateRow(
             line.id(), line.number(), line.label(), episodes.size(),
             episodes.stream().filter(EvaluatedEpisode::active).count(),
             computeMedian(completedDurations), disruptedServiceMinutes,
-            observedServiceMinutes, incidentMinutes, impactedPercentage
+            observedServiceMinutes, incidentMinutes, impactedPercentage,
+            round1(rawAllWeighted), weightedImpactPercentage, List.copyOf(classes)
         );
     }
 
     private List<EvaluatedEpisode> evaluate(
-        List<Episode> episodes,
+        List<ExtractedEpisode> episodes,
         List<TimeRange> observationWindows,
         Map<String, List<TimeRange>> serviceWindows,
         OffsetDateTime until
     ) {
         List<EvaluatedEpisode> evaluated = new ArrayList<>();
         OffsetDateTime activeProbe = until.minusSeconds(1);
-        for (Episode episode : episodes) {
+        for (ExtractedEpisode episode : episodes) {
             List<TimeRange> counted = ReliabilityIntervalCalculator.intersectAll(
                 episode.ranges(),
                 observationWindows,
@@ -208,7 +800,13 @@ public class ReliabilityRepository {
             );
             if (counted.isEmpty()) continue;
             evaluated.add(new EvaluatedEpisode(
-                episode.lineId(), episode.impactKind(), counted,
+                episode.episodeKey(),
+                episode.lineId(),
+                episode.impactKind(),
+                ReliabilityEpisodeSource.disruptionClass(episode.impactKind()),
+                episode.cause(),
+                episode.stationIds(),
+                counted,
                 ReliabilityIntervalCalculator.minutes(counted),
                 episode.completed(),
                 episode.sourceActive() && ReliabilityIntervalCalculator.contains(counted, activeProbe)
@@ -217,54 +815,60 @@ public class ReliabilityRepository {
         return List.copyOf(evaluated);
     }
 
+    /** Polling coverage: rolled-up windows for completed dates, raw runs for today and the rest. */
     private List<TimeRange> observationWindows(
         String networkId,
         OffsetDateTime since,
         OffsetDateTime until
     ) {
-        String runType = "regional".equals(networkId) ? "metrolinx-alerts" : "alerts";
-        List<OffsetDateTime> successes = jdbc.query("""
-            select completed_at
-            from ingestion_runs
-            where run_type = :runType and status = 'success' and completed_at is not null
-              and completed_at >= :querySince and completed_at < :until
-            order by completed_at, id
-            """, new MapSqlParameterSource()
-            .addValue("runType", runType)
-            .addValue("querySince", since.minus(OBSERVATION_FRESHNESS))
-            .addValue("until", until),
-            (rs, row) -> rs.getObject("completed_at", OffsetDateTime.class));
-        return ReliabilityIntervalCalculator.merge(successes.stream()
-            .map(success -> new TimeRange(
-                later(success, since),
-                earlier(success.plus(OBSERVATION_FRESHNESS), until)
-            ))
-            .toList(), Duration.ZERO);
+        return observationRollup.observationWindows(networkId, since, until);
     }
 
     private ServiceWindowResult serviceWindows(
         String networkId,
         String stationId,
         OffsetDateTime since,
-        OffsetDateTime until
+        OffsetDateTime until,
+        boolean includeStationSpans
     ) {
-        double scheduleCoveragePercentage = scheduleCoveragePercentage(networkId, since, until);
+        LocalDate startDate = since.atZoneSameInstant(TORONTO_ZONE).toLocalDate();
+        LocalDate endDate = until.atZoneSameInstant(TORONTO_ZONE).toLocalDate();
+        double scheduleCoveragePercentage =
+            scheduleCapture.scheduleCoveragePercentage(networkId, startDate, endDate);
         if (scheduleCoveragePercentage == 0.0) {
             return new ServiceWindowResult(
+                Map.of(),
                 Map.of(),
                 "published schedule coverage unavailable",
                 false,
                 0.0
             );
         }
-        List<ServiceWindowRecord> scheduled = "regional".equals(networkId)
-            ? regionalServiceWindows(stationId, since, until)
-            : ttcServiceWindows(stationId, since, until);
+        // The previous service date is read too: its span can run past midnight into the window.
+        List<ServiceSpan> rawSpans = (stationId == null && includeStationSpans)
+            ? scheduleCapture.allSpans(networkId, startDate.minusDays(1), endDate)
+            : scheduleCapture.serviceSpans(networkId, stationId, startDate.minusDays(1), endDate);
+        List<ServiceWindowRecord> scheduled = new ArrayList<>();
+        Map<String, Set<String>> scheduledStationsByLine = new HashMap<>();
+        for (ServiceSpan span : rawSpans) {
+            boolean wholeLine = ReliabilityScheduleCapture.WHOLE_LINE.equals(span.stationId());
+            if (stationId == null && !wholeLine) {
+                scheduledStationsByLine
+                    .computeIfAbsent(span.lineId(), ignored -> new HashSet<>())
+                    .add(span.stationId());
+                continue;
+            }
+            TimeRange clipped = new TimeRange(later(span.start(), since), earlier(span.end(), until));
+            if (clipped.valid()) {
+                scheduled.add(new ServiceWindowRecord(span.lineId(), clipped));
+            }
+        }
         return new ServiceWindowResult(
             scheduled.stream().collect(Collectors.groupingBy(
                 ServiceWindowRecord::lineId,
                 Collectors.mapping(ServiceWindowRecord::range, Collectors.toList())
             )),
+            scheduledStationsByLine,
             "regional".equals(networkId)
                 ? "published GO/UP GTFS daily corridor service spans"
                 : "published TTC GTFS daily line service spans",
@@ -273,400 +877,12 @@ public class ReliabilityRepository {
         );
     }
 
-    private double scheduleCoveragePercentage(
-        String networkId,
-        OffsetDateTime since,
-        OffsetDateTime until
-    ) {
-        LocalDate startDate = since.atZoneSameInstant(TORONTO_ZONE).toLocalDate();
-        LocalDate endDate = until.atZoneSameInstant(TORONTO_ZONE).toLocalDate();
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("startDate", startDate)
-            .addValue("endDate", endDate);
-        String sql = "regional".equals(networkId) ? """
-            with source_coverage as (
-                select source.source_system,
-                       100.0 * count(*) filter (where exists (
-                           select 1 from regional_gtfs_schedule_imports schedule_import
-                           where schedule_import.source_system = source.source_system
-                             and schedule_import.service_start <= service_date.service_date
-                             and schedule_import.service_end >= service_date.service_date
-                       )) / nullif(count(*), 0) coverage
-                from generate_series(cast(:startDate as date), cast(:endDate as date), interval '1 day')
-                    service_date(service_date)
-                cross join (values ('go'), ('up')) source(source_system)
-                group by source.source_system
-            )
-            select coalesce(min(coverage), 0) coverage from source_coverage
-            """ : """
-            select coalesce(100.0 * count(*) filter (where exists (
-                select 1 from gtfs_schedule_imports schedule_import
-                where schedule_import.service_start <= service_date.service_date
-                  and schedule_import.service_end >= service_date.service_date
-            )) / nullif(count(*), 0), 0) coverage
-            from generate_series(cast(:startDate as date), cast(:endDate as date), interval '1 day')
-                service_date(service_date)
-            """;
-        Double coverage = jdbc.queryForObject(sql, params, Double.class);
-        return coverage == null ? 0.0 : Math.min(100.0, Math.round(coverage * 10.0) / 10.0);
-    }
-
-    private List<ServiceWindowRecord> ttcServiceWindows(
-        String stationId,
-        OffsetDateTime since,
-        OffsetDateTime until
-    ) {
-        String stationJoin = stationId == null ? "" : """
-            join gtfs_station_stops mapped_stop
-              on mapped_stop.import_id = stop_time.import_id
-             and mapped_stop.stop_id = stop_time.stop_id
-             and mapped_stop.line_id = trip.line_id
-             and mapped_stop.station_id = :stationId
-            """;
-        return queryServiceWindows("""
-            with service_dates as (
-                select generate_series(cast(:startDate as date), cast(:endDate as date), interval '1 day')::date service_date
-            ), selected_imports as (
-                select service_date,
-                       (select schedule_import.id from gtfs_schedule_imports schedule_import
-                        where schedule_import.service_start <= service_date
-                          and schedule_import.service_end >= service_date
-                        order by schedule_import.active desc, schedule_import.imported_at desc, schedule_import.id desc
-                        limit 1) import_id
-                from service_dates
-            ), active_services as (
-                select selected.service_date, service.import_id, service.service_id
-                from selected_imports selected
-                join gtfs_services service on service.import_id = selected.import_id
-                where case extract(isodow from selected.service_date)
-                    when 1 then service.monday when 2 then service.tuesday
-                    when 3 then service.wednesday when 4 then service.thursday
-                    when 5 then service.friday when 6 then service.saturday
-                    when 7 then service.sunday end
-                  and not exists (
-                    select 1 from gtfs_service_exceptions exception
-                    where exception.import_id = service.import_id
-                      and exception.service_id = service.service_id
-                      and exception.service_date = selected.service_date
-                      and exception.exception_type = 2
-                  )
-                union
-                select selected.service_date, exception.import_id, exception.service_id
-                from selected_imports selected
-                join gtfs_service_exceptions exception
-                  on exception.import_id = selected.import_id
-                 and exception.service_date = selected.service_date
-                 and exception.exception_type = 1
-            ), selected_trips as materialized (
-                select trip.import_id, trip.trip_id, trip.service_id, route.line_id
-                from (select distinct import_id from active_services) selected
-                join gtfs_trips trip on trip.import_id = selected.import_id
-                join gtfs_routes route
-                  on route.import_id = trip.import_id and route.route_id = trip.route_id
-            ), service_line_spans as materialized (
-                select trip.import_id, trip.service_id, trip.line_id,
-                       min(stop_time.departure_seconds) start_seconds,
-                       max(stop_time.departure_seconds) end_seconds
-                from selected_trips trip
-                join gtfs_stop_times stop_time
-                  on stop_time.import_id = trip.import_id and stop_time.trip_id = trip.trip_id
-                """ + stationJoin + """
-                group by trip.import_id, trip.service_id, trip.line_id
-            )
-            select active.service_date, span.line_id,
-                   min(span.start_seconds) start_seconds,
-                   max(span.end_seconds) end_seconds
-            from active_services active
-            join service_line_spans span
-              on span.import_id = active.import_id and span.service_id = active.service_id
-            group by active.service_date, span.line_id
-            having max(span.end_seconds) > min(span.start_seconds)
-            order by service_date, line_id, start_seconds
-            """, stationId, since, until);
-    }
-
-    private List<ServiceWindowRecord> regionalServiceWindows(
-        String stationId,
-        OffsetDateTime since,
-        OffsetDateTime until
-    ) {
-        String stationFilter = stationId == null ? "" : " and departure.station_id = :stationId ";
-        return queryServiceWindows("""
-            with service_dates as (
-                select generate_series(cast(:startDate as date), cast(:endDate as date), interval '1 day')::date service_date
-            ), selected_imports as (
-                select service_date, source_system,
-                       (select schedule_import.id from regional_gtfs_schedule_imports schedule_import
-                        where schedule_import.source_system = sources.source_system
-                          and schedule_import.service_start <= service_date
-                          and schedule_import.service_end >= service_date
-                        order by schedule_import.active desc, schedule_import.imported_at desc, schedule_import.id desc
-                        limit 1) import_id
-                from service_dates cross join (values ('go'), ('up')) sources(source_system)
-            ), active_services as (
-                select selected.service_date, service.import_id, service.service_id
-                from selected_imports selected
-                join regional_gtfs_services service on service.import_id = selected.import_id
-                where case extract(isodow from selected.service_date)
-                    when 1 then service.monday when 2 then service.tuesday
-                    when 3 then service.wednesday when 4 then service.thursday
-                    when 5 then service.friday when 6 then service.saturday
-                    when 7 then service.sunday end
-                  and not exists (
-                    select 1 from regional_gtfs_service_exceptions exception
-                    where exception.import_id = service.import_id
-                      and exception.service_id = service.service_id
-                      and exception.service_date = selected.service_date
-                      and exception.exception_type = 2
-                  )
-                union
-                select selected.service_date, exception.import_id, exception.service_id
-                from selected_imports selected
-                join regional_gtfs_service_exceptions exception
-                  on exception.import_id = selected.import_id
-                 and exception.service_date = selected.service_date
-                 and exception.exception_type = 1
-            ), service_line_spans as materialized (
-                select departure.import_id, departure.service_id, departure.line_id,
-                       min(departure.departure_seconds) start_seconds,
-                       max(departure.departure_seconds) end_seconds
-                from (select distinct import_id from active_services) selected
-                join regional_gtfs_departures departure on departure.import_id = selected.import_id
-                where true """ + stationFilter + """
-                group by departure.import_id, departure.service_id, departure.line_id
-            )
-            select active.service_date, span.line_id,
-                   min(span.start_seconds) start_seconds,
-                   max(span.end_seconds) end_seconds
-            from active_services active
-            join service_line_spans span
-              on span.import_id = active.import_id and span.service_id = active.service_id
-            group by active.service_date, span.line_id
-            having max(span.end_seconds) > min(span.start_seconds)
-            order by service_date, line_id, start_seconds
-            """, stationId, since, until);
-    }
-
-    private List<ServiceWindowRecord> queryServiceWindows(
-        String sql,
-        String stationId,
-        OffsetDateTime since,
-        OffsetDateTime until
-    ) {
-        LocalDate startDate = since.atZoneSameInstant(TORONTO_ZONE).toLocalDate().minusDays(1);
-        LocalDate endDate = until.atZoneSameInstant(TORONTO_ZONE).toLocalDate();
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("startDate", startDate)
-            .addValue("endDate", endDate);
-        if (stationId != null) params.addValue("stationId", stationId);
-        return jdbc.query(sql, params, (rs, row) -> {
-            LocalDate serviceDate = rs.getObject("service_date", LocalDate.class);
-            OffsetDateTime start = GtfsServiceTime.at(serviceDate, rs.getInt("start_seconds"));
-            OffsetDateTime end = GtfsServiceTime.at(serviceDate, rs.getInt("end_seconds"));
-            return new ServiceWindowRecord(rs.getString("line_id"), new TimeRange(
-                later(start, since), earlier(end, until)
-            ));
-        }).stream().filter(record -> record.range().valid()).toList();
-    }
-
-    private List<Episode> ttcEpisodes(String stationId, OffsetDateTime since, OffsetDateTime until) {
-        List<RawEpisode> raw = rawTtcEpisodes(until);
-        Set<String> stationAlertIds = stationId == null ? Set.of() : new HashSet<>(jdbc.query("""
-            select alert_id from alert_stations where station_id = :stationId
-            """, new MapSqlParameterSource("stationId", stationId), (rs, row) -> rs.getString("alert_id")));
-        if (stationId != null) raw = raw.stream().filter(episode -> stationAlertIds.contains(episode.alertId())).toList();
-
-        Map<String, List<ClosurePeriodRecord>> periodsByAlert = fetchClosurePeriods();
-        Map<String, String> childPeriodParent = periodsByAlert.values().stream()
-            .flatMap(List::stream)
-            .filter(period -> !"parent".equalsIgnoreCase(period.sourcePeriodId()))
-            .collect(Collectors.toMap(
-                ClosurePeriodRecord::sourcePeriodId,
-                ClosurePeriodRecord::alertId,
-                (first, second) -> first
-            ));
-        Map<String, List<RawEpisode>> byAlert = raw.stream().collect(Collectors.groupingBy(RawEpisode::alertId));
-        Map<String, List<RawEpisode>> bySource = raw.stream().filter(episode -> episode.sourceId() != null)
-            .collect(Collectors.groupingBy(RawEpisode::sourceId));
-        List<Episode> episodes = new ArrayList<>();
-        for (Map.Entry<String, List<RawEpisode>> entry : byAlert.entrySet()) {
-            List<RawEpisode> alertEpisodes = entry.getValue();
-            RawEpisode representative = alertEpisodes.getFirst();
-            String linkedParent = childPeriodParent.get(representative.sourceId());
-            if (linkedParent != null && byAlert.containsKey(linkedParent) && !linkedParent.equals(entry.getKey())) continue;
-            if (isClosure(representative.impactKind())
-                || ("limited-service".equals(representative.impactKind()) && periodsByAlert.containsKey(entry.getKey()))) {
-                String parentAlertId = childPeriodParent.get(representative.sourceId());
-                if (parentAlertId != null && !parentAlertId.equals(representative.alertId())) continue;
-                OffsetDateTime firstObserved = alertEpisodes.stream().map(RawEpisode::openedAt)
-                    .min(OffsetDateTime::compareTo).orElse(since);
-                boolean sourceActive = alertEpisodes.stream().anyMatch(RawEpisode::sourceActive);
-                Map<String, List<TimeRange>> rangesByEffect = new LinkedHashMap<>();
-                for (ClosurePeriodRecord period : periodsByAlert.getOrDefault(entry.getKey(), List.of())) {
-                    // Only exact linked evidence may override this occurrence's canonical effect.
-                    String effect = bySource.getOrDefault(period.sourcePeriodId(), List.of()).stream()
-                        .filter(child -> !child.openedAt().isAfter(period.endsAt()))
-                        .filter(child -> child.clearedAt() == null || child.clearedAt().isAfter(period.startsAt()))
-                        .max(Comparator.comparing(RawEpisode::openedAt))
-                        .map(RawEpisode::impactKind).orElse(representative.impactKind());
-                    rangesByEffect.computeIfAbsent(effect, ignored -> new ArrayList<>())
-                        .add(new TimeRange(later(period.startsAt(), firstObserved), period.endsAt()));
-                }
-                for (Map.Entry<String, List<TimeRange>> effect : rangesByEffect.entrySet()) {
-                    for (TimeRange occurrence : ReliabilityIntervalCalculator.merge(effect.getValue(), Duration.ZERO)) {
-                        if (occurrence.end().isAfter(since) && occurrence.start().isBefore(until)) {
-                            episodes.add(new Episode(
-                                representative.lineId(), effect.getKey(), List.of(occurrence),
-                                !occurrence.end().isAfter(until), sourceActive
-                            ));
-                        }
-                    }
-                }
-            } else {
-                episodes.addAll(stitchLifecycleEpisodes(alertEpisodes, since, until));
-            }
-        }
-        return List.copyOf(episodes);
-    }
-
-    private List<Episode> regionalEpisodes(String stationId, OffsetDateTime since, OffsetDateTime until) {
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("until", until);
-        if (stationId != null) params.addValue("stationId", stationId);
-        String stationFilter = stationId == null
-            ? ""
-            : " and jsonb_exists(s.station_ids, :stationId) ";
-        List<RawEpisode> raw = jdbc.query("""
-            with lifecycle as (
-                select s.alert_id, s.line_id, s.snapshot_time, s.active, s.impact_kind,
-                       lag(s.active) over (partition by s.alert_id order by s.snapshot_time, s.id) previous_active
-                from regional_alert_snapshots s
-                where s.snapshot_time < :until """ + stationFilter + """
-            )
-            select o.alert_id, o.alert_id source_id, o.line_id, o.impact_kind,
-                   o.snapshot_time opened_at,
-                   (select min(c.snapshot_time) from lifecycle c
-                    where c.alert_id = o.alert_id and c.snapshot_time > o.snapshot_time and c.active = false) cleared_at,
-                   not exists (select 1 from lifecycle c where c.alert_id = o.alert_id
-                    and c.snapshot_time > o.snapshot_time and c.active = false) source_active
-            from lifecycle o
-            where o.active = true and (o.previous_active is null or o.previous_active = false)
-            """, params, this::rawEpisode);
-        Map<String, ApplicablePeriod> applicablePeriods = jdbc.query("""
-            select id, active_period_start, active_period_end
-            from regional_alerts
-            where impact_kind = 'planned-closure' and active_period_start is not null
-              and active_period_end is not null and active_period_end > active_period_start
-            """, (rs, row) -> new ApplicablePeriod(
-                rs.getString("id"),
-                rs.getObject("active_period_start", OffsetDateTime.class),
-                rs.getObject("active_period_end", OffsetDateTime.class)
-            )).stream().collect(Collectors.toMap(ApplicablePeriod::alertId, Function.identity()));
-
-        List<Episode> episodes = new ArrayList<>();
-        for (List<RawEpisode> alertEpisodes : raw.stream().collect(Collectors.groupingBy(RawEpisode::alertId)).values()) {
-            RawEpisode representative = alertEpisodes.getFirst();
-            if (isClosure(representative.impactKind())) {
-                ApplicablePeriod period = applicablePeriods.get(representative.alertId());
-                if (period == null) continue;
-                OffsetDateTime firstObserved = alertEpisodes.stream().map(RawEpisode::openedAt)
-                    .min(OffsetDateTime::compareTo).orElse(since);
-                TimeRange occurrence = new TimeRange(later(period.start(), firstObserved), period.end());
-                if (occurrence.valid() && occurrence.end().isAfter(since) && occurrence.start().isBefore(until)) {
-                    episodes.add(new Episode(
-                        representative.lineId(), representative.impactKind(), List.of(occurrence),
-                        !occurrence.end().isAfter(until), alertEpisodes.stream().anyMatch(RawEpisode::sourceActive)
-                    ));
-                }
-            } else {
-                episodes.addAll(stitchLifecycleEpisodes(alertEpisodes, since, until));
-            }
-        }
-        return List.copyOf(episodes);
-    }
-
-    private List<RawEpisode> rawTtcEpisodes(OffsetDateTime until) {
-        return jdbc.query("""
-            with lifecycle as (
-                select s.id, s.alert_id, s.source_id, s.line_id, s.snapshot_time, s.active, s.impact_kind,
-                       lag(s.active) over (partition by s.alert_id order by s.snapshot_time, s.id) previous_active
-                from snapshots s where s.snapshot_time < :until
-            )
-            select o.alert_id, o.source_id, o.line_id,
-                   coalesce((select c.impact_kind from lifecycle c
-                       where c.alert_id = o.alert_id and c.active = true
-                         and c.snapshot_time >= o.snapshot_time
-                         and c.snapshot_time < coalesce((select min(e.snapshot_time) from lifecycle e
-                             where e.alert_id = o.alert_id and e.snapshot_time > o.snapshot_time and e.active = false), :until)
-                       order by c.snapshot_time desc, c.id desc limit 1), o.impact_kind) impact_kind,
-                   o.snapshot_time opened_at,
-                   (select min(c.snapshot_time) from lifecycle c
-                    where c.alert_id = o.alert_id and c.snapshot_time > o.snapshot_time and c.active = false) cleared_at,
-                   not exists (select 1 from lifecycle c where c.alert_id = o.alert_id
-                    and c.snapshot_time > o.snapshot_time and c.active = false) source_active
-            from lifecycle o
-            where o.active = true and (o.previous_active is null or o.previous_active = false)
-            """, new MapSqlParameterSource("until", until), this::rawEpisode);
-    }
-
-    private RawEpisode rawEpisode(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
-        return new RawEpisode(
-            rs.getString("alert_id"), rs.getString("source_id"), rs.getString("line_id"),
-            rs.getString("impact_kind"), rs.getObject("opened_at", OffsetDateTime.class),
-            rs.getObject("cleared_at", OffsetDateTime.class), rs.getBoolean("source_active")
-        );
-    }
-
-    private List<Episode> stitchLifecycleEpisodes(
-        List<RawEpisode> raw,
-        OffsetDateTime since,
-        OffsetDateTime until
-    ) {
-        if (raw.isEmpty()) return List.of();
-        RawEpisode representative = raw.getFirst();
-        List<TimeRange> stitched = ReliabilityIntervalCalculator.merge(raw.stream()
-            .map(episode -> new TimeRange(
-                later(episode.openedAt(), since),
-                earlier(episode.clearedAt() == null ? until : episode.clearedAt(), until)
-            ))
-            .toList(), LIFECYCLE_STITCH_GAP);
-        return stitched.stream().filter(TimeRange::valid).map(range -> new Episode(
-            representative.lineId(), representative.impactKind(), List.of(range),
-            raw.stream().anyMatch(episode -> episode.clearedAt() != null
-                && !episode.clearedAt().isBefore(range.end())),
-            raw.stream().anyMatch(RawEpisode::sourceActive)
-        )).toList();
-    }
-
-    private Map<String, List<ClosurePeriodRecord>> fetchClosurePeriods() {
-        return jdbc.query("""
-            with closure_child_counts as (
-                select alert_id, count(*) filter (where source_period_id != 'parent') child_count
-                from alert_active_periods group by alert_id
-            )
-            select ap.alert_id, ap.source_period_id, ap.starts_at, ap.ends_at
-            from alert_active_periods ap
-            join closure_child_counts counts on counts.alert_id = ap.alert_id and counts.child_count > 0
-            where ap.source_period_id != 'parent' and ap.starts_at is not null
-              and ap.ends_at is not null and ap.ends_at > ap.starts_at
-            union all
-            select ap.alert_id, ap.source_period_id, ap.starts_at, ap.ends_at
-            from alert_active_periods ap
-            join closure_child_counts counts on counts.alert_id = ap.alert_id and counts.child_count = 0
-            where ap.starts_at is not null and ap.ends_at is not null and ap.ends_at > ap.starts_at
-              and (ap.source_current_continuous = true or ap.ends_at - ap.starts_at <= interval '80 hours')
-            union all
-            select alert.id, 'fallback', alert.active_period_start, alert.active_period_end
-            from alerts alert
-            where alert.type = 'planned-closure'
-              and alert.active_period_start is not null and alert.active_period_end is not null
-              and alert.active_period_end > alert.active_period_start
-              and alert.active_period_end - alert.active_period_start <= interval '80 hours'
-              and not exists (select 1 from alert_active_periods period where period.alert_id = alert.id)
-            """, (rs, row) -> new ClosurePeriodRecord(
-                rs.getString("alert_id"), rs.getString("source_period_id"),
-                rs.getObject("starts_at", OffsetDateTime.class),
-                rs.getObject("ends_at", OffsetDateTime.class)
-            )).stream().collect(Collectors.groupingBy(ClosurePeriodRecord::alertId));
+    private List<LineRecord> linesForNetwork(String networkId) {
+        return "regional".equals(networkId)
+            ? RegionalNetworkCatalog.routes().stream()
+                .map(route -> new LineRecord(route.id(), route.number(), route.name()))
+                .toList()
+            : fetchTransitLines();
     }
 
     private List<LineRecord> fetchTransitLines() {
@@ -677,16 +893,6 @@ public class ReliabilityRepository {
             """, (rs, row) -> new LineRecord(
                 rs.getString("id"), rs.getString("number"), rs.getString("name")
             ));
-    }
-
-    private static boolean isClosure(String impactKind) {
-        String normalized = normalizeImpactKind(impactKind);
-        return "planned-closure".equals(normalized) || "closure".equals(normalized);
-    }
-
-    private static String normalizeImpactKind(String impactKind) {
-        if (impactKind == null || impactKind.isBlank()) return "service-alert";
-        return impactKind.trim().toLowerCase().replace('_', '-');
     }
 
     private static Long computeMedian(List<Long> values) {
@@ -707,6 +913,14 @@ public class ReliabilityRepository {
         return first.isAfter(second) ? first : second;
     }
 
+    private static LocalDate laterDate(LocalDate first, LocalDate second) {
+        return first.isAfter(second) ? first : second;
+    }
+
+    private static double round1(double value) {
+        return Math.round(value * 10.0) / 10.0;
+    }
+
     public record ReliabilityAggregation(
         List<AggregateRow> rows,
         List<BreakdownRow> breakdown,
@@ -715,8 +929,45 @@ public class ReliabilityRepository {
         String serviceWindowBasis,
         boolean scheduleBacked,
         double scheduleCoveragePercentage,
-        CancellationAggregation cancellations
-    ) {}
+        CancellationAggregation cancellations,
+        int methodologyVersion,
+        List<EpisodeOutcome> episodes
+    ) {
+        public ReliabilityAggregation(
+            List<AggregateRow> rows,
+            List<BreakdownRow> breakdown,
+            long observationMinutes,
+            double coveragePercentage,
+            String serviceWindowBasis,
+            boolean scheduleBacked,
+            double scheduleCoveragePercentage,
+            CancellationAggregation cancellations,
+            int methodologyVersion
+        ) {
+            this(
+                rows, breakdown, observationMinutes, coveragePercentage,
+                serviceWindowBasis, scheduleBacked, scheduleCoveragePercentage,
+                cancellations, methodologyVersion, List.of()
+            );
+        }
+
+        public ReliabilityAggregation(
+            List<AggregateRow> rows,
+            List<BreakdownRow> breakdown,
+            long observationMinutes,
+            double coveragePercentage,
+            String serviceWindowBasis,
+            boolean scheduleBacked,
+            double scheduleCoveragePercentage,
+            CancellationAggregation cancellations
+        ) {
+            this(
+                rows, breakdown, observationMinutes, coveragePercentage,
+                serviceWindowBasis, scheduleBacked, scheduleCoveragePercentage,
+                cancellations, ReliabilityDerivationService.METHODOLOGY_V1
+            );
+        }
+    }
 
     public record AggregateRow(
         String id,
@@ -728,10 +979,57 @@ public class ReliabilityRepository {
         long serviceImpactMinutes,
         long observedServiceMinutes,
         long incidentDisruptionMinutes,
-        double serviceImpactPercentage
+        double serviceImpactPercentage,
+        double weightedImpactMinutes,
+        double weightedImpactPercentage,
+        List<ClassAggregateRow> classes
+    ) {
+        public AggregateRow(
+            String id,
+            String number,
+            String label,
+            long incidents,
+            long activeIncidents,
+            Long medianDurationMinutes,
+            long serviceImpactMinutes,
+            long observedServiceMinutes,
+            long incidentDisruptionMinutes,
+            double serviceImpactPercentage
+        ) {
+            this(
+                id, number, label, incidents, activeIncidents, medianDurationMinutes,
+                serviceImpactMinutes, observedServiceMinutes, incidentDisruptionMinutes,
+                serviceImpactPercentage, serviceImpactMinutes, serviceImpactPercentage, List.of()
+            );
+        }
+    }
+
+    public record ClassAggregateRow(
+        String disruptionClass,
+        long incidents,
+        long activeIncidents,
+        long uniqueMinutes,
+        double weightedMinutes,
+        double weightedSharePercentage,
+        long incidentDisruptionMinutes
     ) {}
 
     public record BreakdownRow(String impactKind, long incidents, long incidentMinutes) {}
+
+    /**
+     * One counted episode in the aggregated range, for percentiles, totals and the cause
+     * breakdown. {@code countedMinutes} is its counted time inside the range.
+     */
+    public record EpisodeOutcome(
+        String episodeKey,
+        String lineId,
+        String impactKind,
+        String disruptionClass,
+        String cause,
+        long countedMinutes,
+        boolean completed,
+        boolean active
+    ) {}
 
     public record CancellationAggregation(
         long cancellations,
@@ -751,45 +1049,92 @@ public class ReliabilityRepository {
         long scheduleMatchedCancellations
     ) {}
 
-    private record RawEpisode(
-        String alertId,
-        String sourceId,
-        String lineId,
-        String impactKind,
-        OffsetDateTime openedAt,
-        OffsetDateTime clearedAt,
-        boolean sourceActive
-    ) {}
-
-    private record Episode(
-        String lineId,
-        String impactKind,
-        List<TimeRange> ranges,
-        boolean completed,
-        boolean sourceActive
-    ) {}
-
     private record EvaluatedEpisode(
+        String episodeKey,
         String lineId,
         String impactKind,
+        String disruptionClass,
+        String cause,
+        List<String> stationIds,
         List<TimeRange> countedRanges,
         long incidentMinutes,
         boolean completed,
         boolean active
     ) {}
 
-    private record ClosurePeriodRecord(
-        String alertId,
-        String sourcePeriodId,
-        OffsetDateTime startsAt,
-        OffsetDateTime endsAt
+    private record MergedEpisode(
+        String episodeKey,
+        String lineId,
+        String impactKind,
+        String disruptionClass,
+        String cause,
+        List<TimeRange> countedRanges,
+        boolean completed,
+        boolean active
     ) {}
 
-    private record ApplicablePeriod(String alertId, OffsetDateTime start, OffsetDateTime end) {}
+    private record DayTotals(
+        long observedMinutes,
+        long impactedMinutes,
+        double weightedMinutes,
+        long incidentMinutes
+    ) {
+        DayTotals add(DayTotals other) {
+            return new DayTotals(
+                observedMinutes + other.observedMinutes,
+                impactedMinutes + other.impactedMinutes,
+                weightedMinutes + other.weightedMinutes,
+                incidentMinutes + other.incidentMinutes
+            );
+        }
+    }
+
+    private record ClassDayTotals(long impactedMinutes, double weightedMinutes, long incidentMinutes) {
+        static final ClassDayTotals ZERO = new ClassDayTotals(0L, 0.0, 0L);
+
+        ClassDayTotals add(ClassDayTotals other) {
+            return new ClassDayTotals(
+                impactedMinutes + other.impactedMinutes,
+                weightedMinutes + other.weightedMinutes,
+                incidentMinutes + other.incidentMinutes
+            );
+        }
+    }
+
+    private static final class StoredEpisodeBuilder {
+        final String episodeKey;
+        final String lineId;
+        final String impactKind;
+        final String disruptionClass;
+        final String cause;
+        final OffsetDateTime closedAt;
+        final boolean completed;
+        final List<TimeRange> ranges = new ArrayList<>();
+
+        StoredEpisodeBuilder(
+            String episodeKey,
+            String lineId,
+            String impactKind,
+            String disruptionClass,
+            String cause,
+            OffsetDateTime closedAt,
+            boolean completed
+        ) {
+            this.episodeKey = episodeKey;
+            this.lineId = lineId;
+            this.impactKind = impactKind;
+            this.disruptionClass = disruptionClass;
+            this.cause = cause;
+            this.closedAt = closedAt;
+            this.completed = completed;
+        }
+    }
+
     private record LineRecord(String id, String number, String label) {}
     private record ServiceWindowRecord(String lineId, TimeRange range) {}
     private record ServiceWindowResult(
         Map<String, List<TimeRange>> byLine,
+        Map<String, Set<String>> scheduledStationsByLine,
         String basis,
         boolean scheduleBacked,
         double coveragePercentage

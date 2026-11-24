@@ -1,0 +1,12 @@
+# Plan 17 A4: runs linewatch-offsite-backup.service nightly, independent of the application.
+# 07:15 UTC is 02:15 or 03:15 in Toronto, clear of the 09:00 UTC unattended-upgrade reboot.
+[Unit]
+Description=Nightly LineWatchTO off-host PostgreSQL backup
+
+[Timer]
+OnCalendar=*-*-* 07:15:00 UTC
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

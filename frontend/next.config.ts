@@ -81,6 +81,12 @@ const nextConfig: NextConfig = {
           },
         ],
       })),
+      // After the guide rules, which it overrides: the page is nothing without its scripts, so
+      // a day-old cached document must not outlive the build that those scripts came from.
+      ...["/ttc/analytics", "/go-up/analytics"].map((source) => ({
+        source,
+        headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }],
+      })),
       {
         source: '/sw.js',
         headers: [

@@ -213,7 +213,7 @@ The runner reaches SSH over **Tailscale** (since 2026-11-18; before that, a dedi
 
 The production checkout needs a working `origin` fetch and must have no tracked local changes. Actions leaves it detached at the deployed SHA. The new workflow file and scripts must be pushed to `main` before the button appears. No production credentials belong in Git.
 
-The current backup script keeps only the latest verified local dump, deleting the prior dump after a successful new backup. Arrange separate retained/off-host backups before relying on this as your only restore point. A failed dump preserves the previous one. `.env.release` records the deployed SHA and exact image digests; old GHCR versions can be pulled again after local Docker image pruning, provided they have not been deleted from GHCR. Rollback across Flyway migrations still requires schema compatibility review.
+The pre-deploy backup script keeps only the latest verified local dump on the VPS, deleting the prior dump after a successful new backup; a failed dump preserves the previous one. Retained copies are the nightly encrypted off-host backups described in [Backups](#backups). `.env.release` records the deployed SHA and exact image digests; old GHCR versions can be pulled again after local Docker image pruning, provided they have not been deleted from GHCR. Rollback across Flyway migrations still requires schema compatibility review.
 
 ### Manual fallback
 
@@ -294,6 +294,120 @@ gzip -dc tmp/prod-backups/linewatch-postgres-YYYYMMDDTHHMMSSZ.sql.gz | \
   scripts/prod-compose.sh exec -T postgres \
   sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 ```
+
+## Backups
+
+- **Pre-deploy dump.** `scripts/prod-backup-postgres.sh` runs before every deploy and keeps only the latest verified local dump in `tmp/prod-backups`. It is the release's rollback point, not a retained backup.
+- **Nightly off-host copies** (plan 17 A4). `linewatch-offsite-backup.timer`, a host systemd timer independent of the application and of deploys, runs `scripts/prod-backup-offsite.sh` at 07:15 UTC (up to 10 minutes later). Copies go to Cloudflare R2, encrypted on the host with `age` to the owner's public key. The private key never lives on the VPS.
+
+### What a copy holds
+
+`pg_dump -Fc` of the whole schema, with data for every table except these (resolved against production on 2026-11-24):
+
+| Pattern | Tables | Why |
+| --- | --- | --- |
+| `gtfs_*` | routes, schedule_imports, service_exceptions, services, station_stops, stop_times, stops, trips | Re-imported from the TTC feed |
+| `ttc_surface_*` | routes, station_connections, station_stops, stop_routes, stop_times, stops, trips | Re-imported from the TTC feed |
+| `regional_gtfs_*` | departures, schedule_imports, service_exceptions, services | Re-imported from GO and UP |
+| `ttc_alert_source_records`, `metrolinx_*_source_records` | ttc_alert_source_records, metrolinx_alert_source_records, metrolinx_operational_source_records | Raw provider records stay on the host |
+
+Everything else is included: alerts, snapshots, alert_active_periods, regional alerts and snapshots, cancellations, ingestion runs (and `metrolinx_ingestion_source_runs`), `reliability_schedule_days`, `reliability_service_spans`, `reliability_observation_windows`, and accounts, sessions, push subscriptions (keys included) and saved commutes. Each run compares the dump's table list with the live schema. Data must be present for every table outside the patterns and absent for every table inside them, each pattern must match a table, and the core tables must exist. Otherwise nothing is uploaded. A new table is therefore backed up by default. A new raw-record table needs a pattern in the script and here before it ships. No kept table holds an FK into an excluded one, so `pg_restore --exit-on-error` succeeds (rehearsed 2026-11-24).
+
+Owner decision, 2026-11-24: four kept tables carry a raw TTC open-data payload column (`alerts`, `accessibility_outages`, `surface_service_notices` and `ttc_announcements`, all `raw_payload`; about 17 MB). Those columns stay in the copy, encrypted. No raw source-record table and no Metrolinx payload leaves the host. On 2026-11-24 the kept tables held about 148 MB of table data and the excluded ones about 532 MB.
+
+### How a run works
+
+1. `pg_dump` writes into the postgres container's `/tmp`. `pg_restore` then reads the whole archive back, and the table-list check runs.
+2. The archive streams out of the container through `age -R <recipients>` into `tmp/offsite-backups/run.*`, so only ciphertext touches the host disk. The container copy is then removed (on failure too).
+3. `rclone copyto` uploads `linewatch-postgres-YYYYMMDDTHHMMSSZ.dump.age`. The bucket listing must then show it at the local size.
+4. Only then are older copies pruned. Objects with other names are never touched.
+5. The script writes `/var/lib/linewatch/textfile-metrics/linewatch_offsite_backup.prom`.
+
+Any failure exits non-zero, deletes nothing off-host, and removes the local and container temporary files. A failed prune keeps the new copy, still records it as the newest copy, and fails the run. The script refuses a settings file readable by group or others, and refuses any file holding `AGE-SECRET-KEY-`.
+
+**Retention: 14 daily, 8 weekly (ISO weeks), 12 monthly**, about 30 copies. A run keeps the newest copy of each of the 14 newest UTC days, the 8 newest weeks and the 12 newest months that have copies. The script enforces this, not R2 lifecycle rules. Lifecycle rules only expire objects by age per prefix: they cannot keep "the newest copy of each week" without uploading extra copies under per-tier prefixes, and they keep deleting while backups fail (a 15-day outage would leave no daily copy). Script-side selection counts only periods that have copies and prunes only after the new copy verifies. The trade-off is that the R2 token needs delete rights, so a compromised VPS could delete copies. An R2 bucket lock (for example 7 days) would protect the newest week. With a lock, a second copy taken the same day cannot be pruned until it ages out, and the nightly run fails until then.
+
+**Staleness alert.** The Grafana rule "Off-host backup stale" fires when `time() - linewatch_offsite_backup_last_success_timestamp_seconds` exceeds 36 hours for 15 minutes, or when the metric is missing. Alloy's unix exporter reads the textfile through the host-root mount (`textfile` block in `config.alloy`). This mechanism was chosen because the value is the dump time of the newest verified copy, so it ages even when the timer stops running altogether, which no "run failed" signal can show. It also needs no new credentials or network path. The backend cannot see host timers, and Alloy ships only Docker logs, not the systemd journal.
+
+### Owner setup (once)
+
+1. On a trusted machine (never the VPS), run `age-keygen -o linewatch-offsite.key`. It prints the public key (`age1...`). Keep the key file offline; a second recipient key is optional.
+2. In R2, create the bucket (for example `cf r2 buckets create`). Create an S3 API token with Object Read & Write scoped to that bucket for the VPS, and a separate read-only token for restores.
+3. On the VPS:
+
+```bash
+sudo apt-get install -y age rclone
+sudo install -d -o ubuntu -g ubuntu -m 755 /var/lib/linewatch /var/lib/linewatch/textfile-metrics
+install -d -m 700 ~/.config/linewatch
+printf '%s\n' 'age1...' > ~/.config/linewatch/offsite-backup.age-recipients
+install -m 600 /dev/null ~/.config/linewatch/offsite-backup.env
+```
+
+   `~/.config/linewatch/offsite-backup.env` (mode 600; rclone reads the remote from these variables):
+
+```env
+LINEWATCH_OFFSITE_REMOTE=r2offsite:<bucket>/postgres
+RCLONE_CONFIG_R2OFFSITE_TYPE=s3
+RCLONE_CONFIG_R2OFFSITE_PROVIDER=Cloudflare
+RCLONE_CONFIG_R2OFFSITE_ACCESS_KEY_ID=<access key id>
+RCLONE_CONFIG_R2OFFSITE_SECRET_ACCESS_KEY=<secret>
+RCLONE_CONFIG_R2OFFSITE_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+RCLONE_CONFIG_R2OFFSITE_NO_CHECK_BUCKET=true
+```
+
+4. Deploy a release containing these files. Then recreate Alloy so it reads the new config (a plain `up` does not notice a changed bind-mounted file): `COMPOSE_PROFILES=observability scripts/prod-compose.sh up -d --no-build --force-recreate --wait alloy`.
+5. Install the units, run the first upload by hand, then enable the timer:
+
+```bash
+sudo install -m 644 infra/systemd/linewatch-offsite-backup.service infra/systemd/linewatch-offsite-backup.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl start linewatch-offsite-backup.service
+journalctl -u linewatch-offsite-backup.service -n 30 --no-pager
+cat /var/lib/linewatch/textfile-metrics/linewatch_offsite_backup.prom
+sudo systemctl enable --now linewatch-offsite-backup.timer
+systemctl list-timers linewatch-offsite-backup.timer --no-pager
+```
+
+   Reinstall the unit copies whenever the files in `infra/systemd` change.
+6. Once the first copy has verified, apply the alert rules: `node scripts/grafana-apply-alerts.mjs`. The rule alerts on no data, so applying it earlier sends an email.
+
+### Restore drill
+
+Run this on the owner's machine with throwaway containers, never against the dev or test database. Repeat it after setup and after any change to the backup.
+
+```bash
+rclone lsf r2restore:<bucket>/postgres | sort | tail -1      # newest copy, read-only token
+rclone copyto r2restore:<bucket>/postgres/<name> ./<name>
+age -d -i linewatch-offsite.key -o linewatch.dump <name>
+docker run -d --rm --name linewatch-restore-drill -e POSTGRES_USER=linewatch \
+  -e POSTGRES_PASSWORD=drill -e POSTGRES_DB=postgres -p 127.0.0.1:5440:5432 postgis/postgis:17-3.6
+docker exec linewatch-restore-drill createdb -U linewatch -T template0 linewatch
+docker cp linewatch.dump linewatch-restore-drill:/tmp/linewatch.dump
+docker exec linewatch-restore-drill pg_restore -U linewatch -d linewatch \
+  --no-owner --no-privileges --exit-on-error /tmp/linewatch.dump
+```
+
+To re-import schedules, run the backend at the deployed commit (`LINEWATCH_IMAGE_TAG` in `.env.release`), extracted with `git archive <sha> backend | tar -x -C <scratch>`, so the dev backend's `target/classes` stay untouched. Point it at the drill database and a throwaway Redis, with alert ingestion off (the default) and production's retention:
+
+```bash
+docker run -d --rm --name linewatch-restore-redis -p 127.0.0.1:6390:6379 redis:7-alpine
+SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:5440/linewatch SPRING_DATASOURCE_PASSWORD=drill \
+SPRING_DATA_REDIS_PORT=6390 SERVER_PORT=8097 \
+LINEWATCH_ARRIVALS_ENABLED=true LINEWATCH_ARRIVALS_GTFS_REFRESH_ENABLED=true \
+LINEWATCH_REGIONAL_ARRIVALS_ENABLED=true LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_ENABLED=true \
+LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_REFRESH_ENABLED=true \
+LINEWATCH_MAINTENANCE_INGESTION_RUN_RETENTION=P3650D \
+  mvn -q -f <scratch>/backend/pom.xml spring-boot:run
+```
+
+When `/api/health/schedule` and `/api/health/regional-schedule` on port 8097 report active imports and the first maintenance run has passed (10 minutes after start), run against port 5440:
+
+- the A1 production done check and the A3 production done check from [plan 17](refactor-plan/17-reliability-analytics.md). A1 must match production's output up to the copy's date, and A3 must report 0 mismatched days;
+- once A5 lands, its parity check (this restored copy is A5's parity fixture).
+
+Record the copy name, its size, the restore time and the check results in plan 17 A4. Then stop both containers and delete `linewatch.dump` and the downloaded copy: they hold account data.
+
+A production restore follows the same decrypt and `pg_restore` steps into an empty production database (copy the archive to the VPS over Tailscale). The schedule tables then refill through the production refresh flags.
 
 ## Schedule assets
 

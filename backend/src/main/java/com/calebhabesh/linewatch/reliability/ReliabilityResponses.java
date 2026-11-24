@@ -23,7 +23,8 @@ public final class ReliabilityResponses {
         String message,
         List<ReliabilityMetric> metrics,
         List<AlertTypeBreakdown> breakdown,
-        TrainCancellationSummary trainCancellations
+        TrainCancellationSummary trainCancellations,
+        int methodologyVersion
     ) {}
 
     public record ReliabilityMetric(
@@ -37,7 +38,21 @@ public final class ReliabilityResponses {
         long observedServiceMinutes,
         long incidentDisruptionMinutes,
         double serviceImpactPercentage,
-        String confidence
+        String confidence,
+        double weightedImpactMinutes,
+        double weightedImpactPercentage,
+        List<DisruptionClassMetric> classes
+    ) {}
+
+    public record DisruptionClassMetric(
+        String disruptionClass,
+        String label,
+        long incidents,
+        long activeIncidents,
+        long uniqueMinutes,
+        double weightedMinutes,
+        double weightedSharePercentage,
+        long incidentDisruptionMinutes
     ) {}
 
     public record AlertTypeBreakdown(

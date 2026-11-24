@@ -122,8 +122,8 @@ test("opens TTC and regional line impacts from guide destinations", async ({ pag
 
 test("opens network-scoped reliability from both methodology guides", async ({ page }) => {
   for (const destination of [
-    { guide: "/ttc/reliability", href: "/?network=ttc&panel=analytics", network: "ttc" },
-    { guide: "/go-up/reliability", href: "/?network=regional&panel=analytics", network: "regional" },
+    { guide: "/ttc/reliability", href: "/?network=ttc&panel=analytics", network: "ttc", analytics: "/ttc/analytics" },
+    { guide: "/go-up/reliability", href: "/?network=regional&panel=analytics", network: "regional", analytics: "/go-up/analytics" },
   ]) {
     await page.goto(destination.guide);
     const link = page.getByRole("link", { name: "View reliability" });
@@ -132,6 +132,7 @@ test("opens network-scoped reliability from both methodology guides", async ({ p
     await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", destination.network);
     await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-active-view", "analytics");
     await expect(page.getByRole("region", { name: "Reliability Analytics" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Open Analytics" })).toHaveAttribute("href", destination.analytics);
   }
 });
 

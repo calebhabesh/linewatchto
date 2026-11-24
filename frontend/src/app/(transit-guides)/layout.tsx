@@ -80,6 +80,12 @@ export default function TransitGuideLayout({ children }: Readonly<{ children: Re
                 </a>
               </li>
               <li>
+                <a href="/ttc/analytics" className={styles.footerNavLink}>
+                  <span>Reliability analytics</span>
+                  <ArrowRight size={12} className={styles.footerNavArrow} aria-hidden="true" />
+                </a>
+              </li>
+              <li>
                 <a href="/ttc/reliability" className={styles.footerNavLink}>
                   <span>TTC reliability methodology</span>
                   <ArrowRight size={12} className={styles.footerNavArrow} aria-hidden="true" />
