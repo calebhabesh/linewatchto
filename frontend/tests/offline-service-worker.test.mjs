@@ -26,6 +26,16 @@ test('API reads remain network only even with an available cached response',asyn
  let result; w.listeners.get('fetch')({request:{url:'https://linewatch.test/api/dashboard',method:'GET'},respondWith:p=>{result=p}});
  await assert.rejects(result,/offline/); assert.equal(w.writes.length,0);
 });
+test('analytics reads are never cached and its page has no offline copy',async()=>{
+ for(const path of ['/api/reliability/availability?network=ttc','/api/reliability/summary?network=ttc&from=2026-11-01&to=2026-11-24']){
+  const w=worker(async()=>new Response('{}'),new Map([['https://linewatch.test'+path,new Response('old')]]));
+  let result; w.listeners.get('fetch')({request:{url:'https://linewatch.test'+path,method:'GET'},respondWith:p=>{result=p}});
+  assert.equal(await(await result).text(),'{}'); assert.equal(w.writes.length,0);
+ }
+ const w=worker(async()=>{throw Error('offline')},new Map([['/offline',new Response('public shell')],['/offline.html',new Response('offline page')]]));
+ for(const path of ['/ttc/analytics','/go-up/analytics?range=90d']) assert.equal(await(await w.networkFirstNavigation(new Request('https://linewatch.test'+path))).text(),'offline page');
+ assert.equal(w.writes.length,0);
+});
 test('uncached raster variants fall back to compact installed maps only offline',async()=>{
  const w=worker(async()=>{throw Error('offline')},new Map([['/assets/linewatch/raster-maps/regional-labels-dark-mobile.png',new Response('map')]]));
  assert.equal(await(await w.networkFirstStatic(new Request('https://linewatch.test/assets/linewatch/raster-maps/regional-labels-dark-balanced.png?v=release'))).text(),'map');

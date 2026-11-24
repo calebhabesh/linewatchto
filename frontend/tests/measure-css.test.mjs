@@ -241,13 +241,14 @@ describe("CSS measurement tool (Chunk C1)", () => {
     assert.equal(metrics.graph.duplicateKeyframes.length, 0, "resolved graph must have zero duplicate keyframe names");
 
     // Population 3: Other Authored Component Styles
-    assert.equal(metrics.otherAuthored.fileCount, 3, "must identify 3 standalone component/module stylesheets");
+    assert.equal(metrics.otherAuthored.fileCount, 4, "must identify 4 standalone component/module stylesheets");
     assert.ok(metrics.otherAuthored.files.some(f => f.path.includes("transit-guide.module.css")));
+    assert.ok(metrics.otherAuthored.files.some(f => f.path.includes("analytics.module.css")));
     assert.ok(metrics.otherAuthored.files.some(f => f.path.includes("SquishSwitch.css")));
     assert.ok(metrics.otherAuthored.files.some(f => f.path.includes("Stepper.css")));
 
     // Population 4: Combined Authored CSS Summary
-    assert.equal(metrics.authored.totalFiles, 55, "total authored files must be exactly 52 + 3 = 55");
+    assert.equal(metrics.authored.totalFiles, 56, "total authored files must be exactly 52 + 4 = 56");
     assert.equal(
       metrics.authored.totalLines,
       metrics.graph.totalLines + metrics.otherAuthored.totalLines,

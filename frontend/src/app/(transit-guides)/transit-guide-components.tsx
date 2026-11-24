@@ -6,6 +6,7 @@ import {
   AlertCircle,
   ArrowDownToLine,
   ArrowRight,
+  BarChart3,
   CheckCircle2,
   Compass,
   ConciergeBell,
@@ -490,7 +491,7 @@ export function ExploreGuidePage() {
               5 TTC lines · 8 GO/UP corridors
             </span>
             <span className={styles.pillBadge}>181 mapped stations</span>
-            <span className={`${styles.pillBadge} ${styles.pillBadgeSuccess}`}>30-day reliability</span>
+            <span className={`${styles.pillBadge} ${styles.pillBadgeSuccess}`}>Reliability analytics</span>
           </>
         )}
         actions={(
@@ -662,7 +663,7 @@ export function NetworkGuidePage({ networkSlug }: { networkSlug: TransitGuideNet
               <li>Station details and accessibility outages</li>
               <li>{ttc ? "Fresh TTC arrivals with schedule fallback where supported" : "Fresh regional arrivals where supported, with published schedules kept distinct"}</li>
               <li>{ttc ? "Planned advisories, surface connections, and reviewed station notices" : "GO trip changes and service notices kept separate from corridor status"}</li>
-              <li>Thirty-day reliability with explicit coverage confidence</li>
+              <li>Station-weighted reliability with explicit coverage confidence</li>
             </ul>
           </section>
           <SourceDisclaimer networkSlug={networkSlug} />
@@ -949,7 +950,7 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
         "@type": "WebPage",
         name: `${networkName(networkSlug)} Reliability Methodology`,
         url: absoluteUrl(path),
-        description: `How LineWatchTO calculates coverage-aware 30-day ${networkShortName(networkSlug)} disruption metrics.`,
+        description: `How LineWatchTO calculates coverage-aware, station-weighted ${networkShortName(networkSlug)} disruption classes over Toronto service dates.`,
       }} />
       <PageHero
         eyebrow="Reliability methodology"
@@ -957,22 +958,28 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
         badges={(
           <>
             <span className={`${styles.pillBadge} ${styles.pillBadgeAccent}`}>
-              Rolling 30-day window
+              Station-weighted classes
             </span>
             <span className={`${styles.pillBadge} ${styles.pillBadgeSuccess}`}>
-              Coverage-aware metrics
+              Coverage-aware service dates
             </span>
           </>
         )}
         actions={(
-          <a className={styles.cta} href={networkDashboardUrl(networkSlug, "analytics")}>
-            <Activity size={16} aria-hidden="true" />
-            <span>View reliability</span>
-            <ArrowRight size={14} className={styles.ctaArrow} aria-hidden="true" />
-          </a>
+          <>
+            <a className={styles.cta} href={`${parentPath}/analytics`}>
+              <BarChart3 size={16} aria-hidden="true" />
+              <span>Open Analytics</span>
+              <ArrowRight size={14} className={styles.ctaArrow} aria-hidden="true" />
+            </a>
+            <a className={styles.secondaryCta} href={networkDashboardUrl(networkSlug, "analytics")}>
+              <Activity size={16} aria-hidden="true" />
+              <span>View reliability</span>
+            </a>
+          </>
         )}
       >
-        LineWatchTO summarizes a rolling 30-day observation window from {source}. Results are coverage-aware and are not presented as official agency performance statistics.
+        LineWatchTO summarizes {source} across inclusive Toronto service dates (including today so far in the dashboard&apos;s Last 30 Days panel). Disruptions are grouped into classes and weighted by the share of scheduled stations affected. Results are coverage-aware and are not presented as official agency performance statistics.
       </PageHero>
       <SectionJumps items={[
         { href: "#counted", label: "What is counted" },
@@ -992,10 +999,10 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
               </div>
             </div>
             <ul className={styles.plainList}>
-              <li>Normalized rail service-impact intervals that overlap verified successful polling.</li>
-              <li>Only the applicable published daily service span when schedule coverage is available.</li>
-              <li>Planned service impacts only during their applicable active windows.</li>
-              <li>Unique service-impact time separately from additive incident-hours, so overlapping incidents are not hidden.</li>
+              <li>Normalized rail service-impact intervals that overlap verified successful polling and the frozen published daily service span for that Toronto service date.</li>
+              <li>Three disruption classes, each flagged planned (planned closures) or unplanned: <strong>Service Stopped</strong> (suspensions, closures, and planned closures during their applicable active windows), <strong>Delays</strong> (delays and limited service),{ttc ? <> and <strong>Slow Zones</strong> (explicit Reduced Speed Zones)</> : <> and <strong>Slow Zones</strong> where published</>}.</li>
+              <li><strong>Station-weighted impact:</strong> at each instant during observed service, a class&apos;s share is the union of affected stations divided by that {ttc ? "line" : "corridor"}&apos;s stations with scheduled service on that date. Alerts without listed stations cover the whole {ttc ? "line" : "corridor"}, and interchange stations count on each of their {ttc ? "lines" : "corridors"}.</li>
+              <li><strong>Service-Stopped Hours</strong> reports unique stopped-service time; <strong>Time With Any Alert</strong> keeps the unweighted wall-clock metric as a secondary figure for continuity; additive <strong>Incident-Hours</strong> sums concurrent alerts separately.</li>
               {!ttc ? <li>Distinct observed train cancellations as a separate count, with exact schedule matches distinguished from source-labeled unmatched notices.</li> : null}
             </ul>
           </section>
@@ -1007,8 +1014,8 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
                 <h2>Coverage and confidence</h2>
               </div>
             </div>
-            <p>Polling coverage and schedule-date coverage are reported separately. Confidence uses the weaker available coverage source, which keeps gaps visible instead of treating missing observations as normal service.</p>
-            {!ttc ? <p>Regional history begins with LineWatchTO&apos;s regional reliability migration, so early GO/UP results can remain explicitly low-confidence while coverage accumulates.</p> : null}
+            <p>Polling coverage (preserved daily observation windows) and schedule-date coverage (frozen daily service spans captured from published GTFS) are reported separately. Days missing either are excluded as gaps rather than treated as zero disruption. Confidence uses the weaker available coverage source: high at 95% or above, medium from 75% to below 95%, and low below 75%.</p>
+            {!ttc ? <p>Regional dates require both GO and UP schedule coverage. Because regional history accumulates from the network&apos;s schedule capture and reliability migration, earlier windows stay explicitly low-confidence until full coverage is recorded.</p> : null}
           </section>
           <section className={styles.section} id="excluded">
             <div className={styles.sectionHeading}>
@@ -1021,8 +1028,8 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
             <ul className={styles.plainList}>
               <li>Accessibility outages and surface service notices.</li>
               <li>Station arrivals and estimated schematic train markers.</li>
-              {!ttc ? <li>Train cancellations and other operational trip changes from reliability incidents, corridor status, and duration calculations; only the separate cancellation insight counts them.</li> : null}
-              <li>Any claim that a whole line or corridor was disrupted when an alert affected only part of it.</li>
+              {!ttc ? <li>General GO/UP advisories, train cancellations, and other operational trip changes from reliability incidents, corridor status, and duration calculations; only the separate cancellation insight counts cancellations.</li> : null}
+              <li>Slow zones from Service Stopped totals, and any claim that a whole {ttc ? "line" : "corridor"} was stopped when an alert affected only part of it.</li>
             </ul>
           </section>
           <SourceDisclaimer networkSlug={networkSlug} />
@@ -1036,7 +1043,8 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
                 <h2>Reading the results</h2>
               </div>
             </div>
-            <p>A 100% affected-line observation means at least one counted alert existed somewhere on that line during all observed service minutes. It does not mean every station or segment was disrupted.</p>
+            <p>Station-weighted class shares distinguish a brief two-station slow zone or local delay from a multi-station service stoppage. A 100% Time With Any Alert figure means at least one counted alert existed somewhere on that {ttc ? "line" : "corridor"} during all observed service minutes, even when the station-weighted share is small.</p>
+            <p>Derived history is versioned by methodology. When calculation rules change, the new version is rebuilt beside the prior version from preserved inputs and switched in one step so views never mix versions.</p>
           </section>
         </aside>
       </div>

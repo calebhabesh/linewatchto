@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, Bell, BatteryCharging, MapPin, BookOpen, Download, FileText, HeartHandshake, LogIn, LogOut, Megaphone, MessageSquareText, Navigation, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, TriangleAlert, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
+import { BarChart3, Bell, BatteryCharging, ChartSpline, MapPin, BookOpen, Download, FileText, HeartHandshake, LogIn, LogOut, Megaphone, MessageSquareText, Navigation, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, TriangleAlert, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/auth-data";
 import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
@@ -417,6 +417,10 @@ export function MobileMoreSheet({
             <BarChart3 size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             Reliability Analytics
           </button>
+          <a href={currentNetwork === "regional" ? "/go-up/analytics" : "/ttc/analytics"} className="mobile-more-row">
+            <ChartSpline size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
+            Analytics by Date Range
+          </a>
 
         </div>
 

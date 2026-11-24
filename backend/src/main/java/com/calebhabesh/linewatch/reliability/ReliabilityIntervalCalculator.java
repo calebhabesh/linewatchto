@@ -4,7 +4,10 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 final class ReliabilityIntervalCalculator {
     private ReliabilityIntervalCalculator() {}
@@ -60,11 +63,85 @@ final class ReliabilityIntervalCalculator {
         return result;
     }
 
-    static long minutes(List<TimeRange> ranges) {
-        long seconds = merge(ranges, Duration.ZERO).stream()
+    static long seconds(List<TimeRange> ranges) {
+        return merge(ranges, Duration.ZERO).stream()
             .mapToLong(range -> Duration.between(range.start(), range.end()).toSeconds())
             .sum();
-        return Math.max(0, Math.round(seconds / 60.0));
+    }
+
+    static long minutes(List<TimeRange> ranges) {
+        return Math.max(0, Math.round(seconds(ranges) / 60.0));
+    }
+
+    /**
+     * Integrates the instantaneous station share of active episodes across {@code intervals}.
+     * At each instant, if any active episode is whole-line (or {@code totalScheduledStations <= 0}),
+     * the share is 1.0; otherwise it is {@code |union(affectedStations)| / totalScheduledStations}.
+     * Returns fractional weighted minutes.
+     */
+    static double weightedMinutes(List<WeightedInterval> intervals, int totalScheduledStations) {
+        if (intervals == null || intervals.isEmpty()) return 0.0;
+        record Event(OffsetDateTime time, boolean start, int episodeIndex) {}
+
+        List<WeightedInterval> normalized = new ArrayList<>(intervals.size());
+        List<Event> events = new ArrayList<>();
+        for (WeightedInterval interval : intervals) {
+            if (interval == null || interval.ranges() == null || interval.ranges().isEmpty()) continue;
+            List<TimeRange> merged = merge(interval.ranges(), Duration.ZERO);
+            if (merged.isEmpty()) continue;
+            int idx = normalized.size();
+            boolean wholeLine = interval.wholeLine() || totalScheduledStations <= 0;
+            Set<String> stations = wholeLine || interval.affectedStations() == null
+                ? Set.of()
+                : interval.affectedStations();
+            if (!wholeLine && stations.isEmpty()) continue;
+            normalized.add(new WeightedInterval(merged, stations, wholeLine));
+            for (TimeRange range : merged) {
+                events.add(new Event(range.start(), true, idx));
+                events.add(new Event(range.end(), false, idx));
+            }
+        }
+        if (events.isEmpty()) return 0.0;
+
+        events.sort(Comparator.comparing(Event::time));
+        int activeWholeLine = 0;
+        Map<String, Integer> stationRefCounts = new HashMap<>();
+        double weightedSeconds = 0.0;
+        OffsetDateTime previousTime = null;
+
+        int i = 0;
+        while (i < events.size()) {
+            OffsetDateTime currentTime = events.get(i).time();
+            if (previousTime != null && currentTime.isAfter(previousTime)) {
+                long segSeconds = Duration.between(previousTime, currentTime).toSeconds();
+                if (segSeconds > 0) {
+                    double share = activeWholeLine > 0
+                        ? 1.0
+                        : Math.min(1.0, (double) stationRefCounts.size() / totalScheduledStations);
+                    if (share > 0.0) {
+                        weightedSeconds += segSeconds * share;
+                    }
+                }
+            }
+            while (i < events.size() && events.get(i).time().isEqual(currentTime)) {
+                Event event = events.get(i);
+                WeightedInterval ep = normalized.get(event.episodeIndex());
+                if (ep.wholeLine()) {
+                    activeWholeLine += event.start() ? 1 : -1;
+                } else {
+                    for (String station : ep.affectedStations()) {
+                        if (event.start()) {
+                            stationRefCounts.merge(station, 1, Integer::sum);
+                        } else {
+                            stationRefCounts.computeIfPresent(station, (k, count) -> count <= 1 ? null : count - 1);
+                        }
+                    }
+                }
+                i++;
+            }
+            previousTime = currentTime;
+        }
+        return Math.max(0.0, weightedSeconds / 60.0);
     }
 
     static boolean contains(List<TimeRange> ranges, OffsetDateTime instant) {
@@ -86,4 +163,6 @@ final class ReliabilityIntervalCalculator {
             return start != null && end != null && end.isAfter(start);
         }
     }
+
+    record WeightedInterval(List<TimeRange> ranges, Set<String> affectedStations, boolean wholeLine) {}
 }

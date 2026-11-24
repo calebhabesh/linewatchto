@@ -4,6 +4,11 @@ import java.util.Locale;
 
 /** Public bucket names. Wire keys also identify persisted preferences and lifecycles. */
 public final class AlertCategoryLabels {
+    public static final String CLASS_SERVICE_STOPPED = "service-stopped";
+    public static final String CLASS_DELAY = "delay";
+    public static final String CLASS_SLOW_ZONE = "slow-zone";
+    public static final String CLASS_OTHER = "service-alert";
+
     private AlertCategoryLabels() {}
 
     public static String singular(String kind) {
@@ -27,6 +32,30 @@ public final class AlertCategoryLabels {
             case "trip-cancellation", "cancellation" -> "Train Cancellations";
             default -> "Service Notices";
         };
+    }
+
+    /** Maps a normalized impact kind to its reliability methodology v2 disruption class key. */
+    public static String disruptionClass(String kind) {
+        return switch (key(kind)) {
+            case "suspension", "active-alert", "closure", "planned-closure" -> CLASS_SERVICE_STOPPED;
+            case "delay", "limited-service" -> CLASS_DELAY;
+            case "reduced-speed-zone", "rsz" -> CLASS_SLOW_ZONE;
+            default -> CLASS_OTHER;
+        };
+    }
+
+    /** Title Case public label for a reliability methodology v2 disruption class key. */
+    public static String disruptionClassLabel(String disruptionClass) {
+        return switch (key(disruptionClass)) {
+            case CLASS_SERVICE_STOPPED -> "Service Stopped";
+            case CLASS_DELAY -> "Delays";
+            case CLASS_SLOW_ZONE -> "Slow Zones";
+            default -> "Service Alerts";
+        };
+    }
+
+    public static boolean isPlannedImpactKind(String kind) {
+        return "planned-closure".equals(key(kind));
     }
 
     private static String key(String kind) {

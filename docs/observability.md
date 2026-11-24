@@ -94,7 +94,7 @@ We expose custom gauges in [LinewatchHealthMetrics.java](../backend/src/main/jav
 Alloy configuration is defined in [config.alloy](../infra/observability/alloy/config.alloy).
 
 - **App Scrape (30s)**: pulls metrics from `backend:9090/actuator/prometheus`.
-- **Host Scrape (60s)**: collects CPU, memory, network, and disk metrics via the built-in unix/node exporter.
+- **Host Scrape (60s)**: collects CPU, memory, network, and disk metrics via the built-in unix/node exporter, plus `*.prom` textfiles that host scripts write to `/var/lib/linewatch/textfile-metrics` (read through the `/host/root` mount): `linewatch_offsite_backup_*` from the off-host backup ([production VPS, Backups](production-vps.md#backups)).
 - **Container Scrape (60s)**: collects Docker container metrics via the built-in cAdvisor exporter.
 - **PostgreSQL Exporter (60s)**: connects to postgres to extract connection counts, transaction rates, and lock details.
 - **Redis Exporter (60s)**: collects memory usage, command rate, and eviction stats.
@@ -154,6 +154,7 @@ Query constraints in this stack:
 | GTFS schedule expiring soon | `min(linewatch_schedule_service_days_remaining)` | `< 7` for 30m | warning |
 | Schedule assets failing | `max(linewatch_schedule_assets_consecutive_failures)` | `>= 2` for 5m | warning |
 | Schedule assets stale | `max(linewatch_schedule_assets_stale)` | `> 0` for 15m | warning |
+| Off-host backup stale | `time() - max(linewatch_offsite_backup_last_success_timestamp_seconds)` | `> 129600` (36 h) for 15m, or no data | warning |
 | Schedule assets feed ending | `min(linewatch_schedule_assets_feed_days_remaining)` | `< 7` for 30m | warning |
 
 All queries filter `environment="production"`. On Oct 19-20, 2026, a single over-long TTC

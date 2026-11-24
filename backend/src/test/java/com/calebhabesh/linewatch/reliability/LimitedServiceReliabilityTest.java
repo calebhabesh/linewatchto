@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.calebhabesh.linewatch.reliability.ReliabilityEpisodeSource.ExtractedEpisode;
 import com.calebhabesh.linewatch.reliability.ReliabilityIntervalCalculator.TimeRange;
 import java.sql.ResultSet;
 import java.time.Duration;
@@ -15,7 +16,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.test.util.ReflectionTestUtils;
 
 class LimitedServiceReliabilityTest {
     @Test
@@ -25,6 +25,12 @@ class LimitedServiceReliabilityTest {
         OffsetDateTime start = OffsetDateTime.parse("2026-09-29T03:00:00Z");
         ResultSet parent = episode("parent", "parent-source", start.minusMinutes(15));
         ResultSet child = episode("child", "child-source", start);
+        when(jdbc.query(contains("with candidates as"), any(SqlParameterSource.class), any(RowMapper.class)))
+            .thenReturn(List.of("parent", "child"));
+        when(jdbc.query(contains("s.source_id in (:sourceIds)"), any(SqlParameterSource.class), any(RowMapper.class)))
+            .thenReturn(List.of("child"));
+        when(jdbc.query(contains("ap.source_period_id in"), any(SqlParameterSource.class), any(RowMapper.class)))
+            .thenReturn(List.of("parent"));
         when(jdbc.query(contains("with lifecycle"), any(SqlParameterSource.class), any(RowMapper.class)))
             .thenAnswer(invocation -> {
                 RowMapper<?> mapper = invocation.getArgument(2);
@@ -32,27 +38,28 @@ class LimitedServiceReliabilityTest {
             });
         ResultSet first = period("child-source", start, start.plusHours(3));
         ResultSet second = period("later-child", start.plusDays(1), start.plusDays(1).plusHours(3));
-        when(jdbc.query(contains("with closure_child_counts"), any(RowMapper.class)))
+        when(jdbc.query(contains("with closure_child_counts"), any(SqlParameterSource.class), any(RowMapper.class)))
             .thenAnswer(invocation -> {
-                RowMapper<?> mapper = invocation.getArgument(1);
+                RowMapper<?> mapper = invocation.getArgument(2);
                 return List.of(mapper.mapRow(first, 0), mapper.mapRow(second, 1));
             });
-        List<?> episodes = ReflectionTestUtils.invokeMethod(new ReliabilityRepository(jdbc), "ttcEpisodes",
-            null, start.minusDays(1), start.plusDays(2));
+
+        ReliabilityEpisodeSource source = new ReliabilityEpisodeSource(jdbc);
+        List<ExtractedEpisode> episodes = source.extract("ttc", null, start.minusDays(1), start.plusDays(2));
         assertThat(episodes).hasSize(2);
         long minutes = 0;
-        for (Object episode : episodes) {
-            assertThat(ReflectionTestUtils.getField(episode, "impactKind")).isEqualTo("limited-service");
-            List<TimeRange> ranges = (List<TimeRange>) ReflectionTestUtils.getField(episode, "ranges");
+        for (ExtractedEpisode episode : episodes) {
+            assertThat(episode.impactKind()).isEqualTo("limited-service");
+            List<TimeRange> ranges = episode.ranges();
             assertThat(ranges).hasSize(1);
             minutes += Duration.between(ranges.getFirst().start(), ranges.getFirst().end()).toMinutes();
         }
         assertThat(minutes).isEqualTo(360);
+
         when(child.getString("impact_kind")).thenReturn("suspension");
-        List<?> overridden = ReflectionTestUtils.invokeMethod(new ReliabilityRepository(jdbc), "ttcEpisodes",
-            null, start.minusDays(1), start.plusDays(2));
+        List<ExtractedEpisode> overridden = source.extract("ttc", null, start.minusDays(1), start.plusDays(2));
         assertThat(overridden).hasSize(2);
-        assertThat(overridden.stream().map(episode -> ReflectionTestUtils.getField(episode, "impactKind")))
+        assertThat(overridden).extracting(ExtractedEpisode::impactKind)
             .containsExactlyInAnyOrder("suspension", "limited-service");
     }
 
@@ -61,6 +68,7 @@ class LimitedServiceReliabilityTest {
         when(row.getString("alert_id")).thenReturn(alertId);
         when(row.getString("source_id")).thenReturn(sourceId);
         when(row.getString("line_id")).thenReturn("line-1");
+        when(row.getString("cause")).thenReturn(null);
         when(row.getString("impact_kind")).thenReturn("limited-service");
         when(row.getObject("opened_at", OffsetDateTime.class)).thenReturn(openedAt);
         when(row.getBoolean("source_active")).thenReturn(true);

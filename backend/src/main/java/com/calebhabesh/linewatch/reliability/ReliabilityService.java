@@ -1,11 +1,15 @@
 package com.calebhabesh.linewatch.reliability;
 
+import com.calebhabesh.linewatch.alert.AlertCategoryLabels;
+import com.calebhabesh.linewatch.arrival.schedule.GtfsServiceTime;
 import com.calebhabesh.linewatch.regional.RegionalNetworkCatalog;
+import com.calebhabesh.linewatch.reliability.ReliabilityResponses.DisruptionClassMetric;
 import com.calebhabesh.linewatch.reliability.ReliabilityResponses.ReliabilityMetric;
 import com.calebhabesh.linewatch.reliability.ReliabilityResponses.ReliabilityResponse;
 import com.calebhabesh.linewatch.reliability.ReliabilityResponses.TrainCancellationMetric;
 import com.calebhabesh.linewatch.reliability.ReliabilityResponses.TrainCancellationSummary;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Locale;
@@ -35,9 +39,11 @@ public class ReliabilityService {
 
     private ReliabilityResponse response(String networkId, String stationId) {
         OffsetDateTime until = OffsetDateTime.now(clock);
-        OffsetDateTime since = until.minusDays(PERIOD_DAYS);
+        LocalDate today = LocalDate.now(clock.withZone(GtfsServiceTime.TORONTO));
+        LocalDate startDate = today.minusDays(PERIOD_DAYS - 1L);
+        OffsetDateTime since = ReliabilityObservationRollup.dayStart(startDate);
         ReliabilityRepository.ReliabilityAggregation aggregation =
-            repository.aggregate(networkId, stationId, since, until);
+            repository.aggregateServiceDates(networkId, stationId, startDate, today, until);
         double effectiveCoverage = Math.min(
             aggregation.coveragePercentage(),
             aggregation.scheduleCoveragePercentage()
@@ -63,11 +69,11 @@ public class ReliabilityService {
             observedDays, aggregation.observationMinutes(), aggregation.coveragePercentage(),
             confidence, coverage, aggregation.serviceWindowBasis(), aggregation.scheduleBacked(),
             aggregation.scheduleCoveragePercentage(),
-            message, metrics, breakdown, trainCancellations
+            message, metrics, breakdown, trainCancellations, aggregation.methodologyVersion()
         );
     }
 
-    private TrainCancellationSummary trainCancellations(
+    static TrainCancellationSummary trainCancellations(
         ReliabilityRepository.CancellationAggregation aggregation
     ) {
         String cancellationConfidence = confidence(aggregation.coveragePercentage());
@@ -124,16 +130,27 @@ public class ReliabilityService {
             return "Published " + ("regional".equals(networkId) ? "GO/UP" : "TTC")
                 + " schedule coverage is unavailable, so service-hour totals are withheld.";
         }
+        boolean v2 = aggregation.methodologyVersion() >= ReliabilityDerivationService.METHODOLOGY_V2;
         if ("regional".equals(networkId)) {
-            return "Observed GO/UP alerts during scheduled train service and successful polling. "
+            if (!v2) {
+                return "Observed GO/UP alerts during scheduled train service and successful polling. "
+                    + (stationId == null
+                        ? "A corridor counts as affected when there is an alert anywhere on it; 100% does not mean the entire corridor was disrupted. Incident-hours add overlapping alerts."
+                        : "A station counts as affected when any linked alert exists; incident-hours add overlapping alerts.");
+            }
+            return stationId == null
+                ? "Observed GO/UP alerts during scheduled train service and successful polling. Class shares weight each disruption by the share of scheduled stations affected on the corridor; alerts without listed stations count as whole-corridor. Time With Any Alert counts any alert anywhere on the corridor, and incident-hours add overlapping alerts."
+                : "Observed GO/UP alerts linked to this station during scheduled train service and successful polling, grouped by disruption class. Incident-hours add overlapping alerts.";
+        }
+        if (!v2) {
+            return "Observed TTC alerts during scheduled subway service and successful polling. "
                 + (stationId == null
-                    ? "A corridor counts as affected when there is an alert anywhere on it; 100% does not mean the entire corridor was disrupted. Incident-hours add overlapping alerts."
+                    ? "A line counts as affected when there is an alert anywhere on it; 100% does not mean the entire line was disrupted. Incident-hours add overlapping alerts."
                     : "A station counts as affected when any linked alert exists; incident-hours add overlapping alerts.");
         }
-        return "Observed TTC alerts during scheduled subway service and successful polling. "
-            + (stationId == null
-                ? "A line counts as affected when there is an alert anywhere on it; 100% does not mean the entire line was disrupted. Incident-hours add overlapping alerts."
-                : "A station counts as affected when any linked alert exists; incident-hours add overlapping alerts.");
+        return stationId == null
+            ? "Observed TTC alerts during scheduled subway and LRT service and successful polling. Class shares weight each disruption by the share of scheduled stations affected on the line; alerts without listed stations count as whole-line. Time With Any Alert counts any alert anywhere on the line, and incident-hours add overlapping alerts."
+            : "Observed TTC alerts linked to this station during scheduled subway and LRT service and successful polling, grouped by disruption class. Incident-hours add overlapping alerts.";
     }
 
     private List<ReliabilityResponses.AlertTypeBreakdown> breakdown(
@@ -173,11 +190,24 @@ public class ReliabilityService {
                 label = route.name();
             }
         }
+        List<DisruptionClassMetric> classes = row.classes().stream()
+            .map(cls -> new DisruptionClassMetric(
+                cls.disruptionClass(),
+                AlertCategoryLabels.disruptionClassLabel(cls.disruptionClass()),
+                cls.incidents(),
+                cls.activeIncidents(),
+                cls.uniqueMinutes(),
+                cls.weightedMinutes(),
+                cls.weightedSharePercentage(),
+                cls.incidentDisruptionMinutes()
+            ))
+            .toList();
         return new ReliabilityMetric(
             row.id(), number, label, row.incidents(), row.activeIncidents(),
             row.medianDurationMinutes(), row.serviceImpactMinutes(),
             row.observedServiceMinutes(), row.incidentDisruptionMinutes(),
-            row.serviceImpactPercentage(), confidence
+            row.serviceImpactPercentage(), confidence,
+            row.weightedImpactMinutes(), row.weightedImpactPercentage(), classes
         );
     }
 
@@ -192,7 +222,7 @@ public class ReliabilityService {
         return stationId.trim().toLowerCase(Locale.ROOT);
     }
 
-    private String confidence(double coveragePercentage) {
+    static String confidence(double coveragePercentage) {
         if (coveragePercentage >= 95.0) return "high";
         if (coveragePercentage >= 75.0) return "medium";
         return "low";

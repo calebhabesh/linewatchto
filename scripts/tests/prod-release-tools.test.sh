@@ -1080,3 +1080,4 @@ run_test "manifest verification covers the schedule-assets image when a release 
 printf '%s tests passed\n' "$TEST_COUNT"
 
 bash "$ROOT_DIR/scripts/tests/prod-ssh-deploy-gate.test.sh"
+bash "$ROOT_DIR/scripts/tests/prod-backup-offsite.test.sh"

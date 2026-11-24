@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.arrival.schedule;
 
+import com.calebhabesh.linewatch.reliability.ReliabilityScheduleCapture;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -23,10 +24,16 @@ public class GtfsScheduleImportWriter {
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
 
     private final GtfsScheduleImportRepository repository;
+    private final ReliabilityScheduleCapture scheduleCapture;
     private final Clock clock;
 
-    public GtfsScheduleImportWriter(GtfsScheduleImportRepository repository, Clock clock) {
+    public GtfsScheduleImportWriter(
+        GtfsScheduleImportRepository repository,
+        ReliabilityScheduleCapture scheduleCapture,
+        Clock clock
+    ) {
         this.repository = repository;
+        this.scheduleCapture = scheduleCapture;
         this.clock = clock;
     }
 
@@ -121,6 +128,9 @@ public class GtfsScheduleImportWriter {
         // while its import IDs change completely. Refresh all related statistics in
         // the replacement transaction so readers never plan against mismatched IDs.
         repository.refreshPlannerStatistics();
+        // Reliability keeps each date's spans after this import is pruned. Part of the import's
+        // transaction: if capture fails the import rolls back and the active schedule stays.
+        scheduleCapture.capture(ReliabilityScheduleCapture.ScheduleSource.TTC);
 
         return new GtfsScheduleImportService.ImportSummary(
             importId,

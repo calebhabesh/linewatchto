@@ -63,6 +63,34 @@ class DashboardCacheServiceTest {
     }
 
     @Test
+    void closedReliabilityRangesLiveOutsideTheDashboardPrefixAndAreEvictedPerNetwork() {
+        when(redis.opsForValue()).thenReturn(values);
+        when(values.get("linewatch:reliability-closed:v1:ttc:reliability:v2:summary")).thenReturn(null);
+
+        List<String> result = cache.getOrComputeClosedReliability(
+            "ttc",
+            "reliability:v2:summary",
+            new TypeReference<List<String>>() {},
+            Duration.ofHours(6),
+            () -> List.of("computed")
+        );
+
+        assertThat(result).containsExactly("computed");
+        verify(values).set(
+            eq("linewatch:reliability-closed:v1:ttc:reliability:v2:summary"), eq("[\"computed\"]"), eq(Duration.ofHours(6)));
+
+        // Ingestion success evicts only the dashboard prefix, which closed ranges are not under.
+        cache.evictDashboard();
+        verify(redis).keys("linewatch:dashboard:v1:*");
+        verify(redis, never()).keys("linewatch:reliability-closed:v1:*");
+
+        cache.evictClosedReliabilityRanges("regional");
+        verify(redis).keys("linewatch:reliability-closed:v1:regional:*");
+        cache.evictClosedReliabilityRanges(null);
+        verify(redis).keys("linewatch:reliability-closed:v1:*");
+    }
+
+    @Test
     void ignoresCachedValuesRejectedByPredicate() {
         when(redis.opsForValue()).thenReturn(values);
         when(values.get("linewatch:dashboard:v1:test")).thenReturn("[]");

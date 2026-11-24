@@ -9,7 +9,7 @@ describe("official TTC performance panel source", () => {
   it("renders coverage-labeled observed disruption history without an invented score", () => {
     assert.match(source, /reliability\.coverageLabel/);
     assert.match(source, /reliability\.confidence/);
-    assert.match(source, /Observed Disruptions · Rolling 30 Day Basis/);
+    assert.match(source, /Observed Disruptions · Last 30 Days/);
     assert.match(source, /formatReliabilityTitleCase\(reliability\.coverageLabel\)/);
     assert.match(source, /formatReliabilityTitleCase\(`\$\{reliability\.confidence\} confidence`\)/);
     assert.match(source, /formatDisruptionDuration/);
@@ -18,8 +18,10 @@ describe("official TTC performance panel source", () => {
     assert.match(source, /During Active Subway Service Only/);
     assert.match(source, /During Scheduled Train Service Only/);
     assert.match(source, /Observed Service Time/);
-    assert.match(source, /Time with any alert on this line/);
-    assert.match(source, /Time with any alert on this corridor/);
+    assert.match(source, /Station-Weighted Share/);
+    assert.match(source, /Service-Stopped Hours/);
+    assert.match(source, /Time With Any Alert/);
+    assert.match(source, /visibleDisruptionClasses/);
     assert.match(source, /Incident-Hours/);
     assert.match(source, /Median Completed Incident/);
     assert.match(source, /formatReliabilityRange/);
@@ -29,6 +31,29 @@ describe("official TTC performance panel source", () => {
     assert.match(source, /dark:text-white/);
     assert.match(source, /AlertTypeBreakdownChart/);
     assert.doesNotMatch(source, /Reliability score/);
+  });
+
+  it("updates reliability guide methodology copy for station-weighted classes over service dates", () => {
+    const guideSource = readFileSync(
+      new URL("../src/app/(transit-guides)/transit-guide-components.tsx", import.meta.url),
+      "utf8",
+    );
+    const ttcMeta = readFileSync(
+      new URL("../src/app/(transit-guides)/ttc/reliability/page.tsx", import.meta.url),
+      "utf8",
+    );
+    const regionalMeta = readFileSync(
+      new URL("../src/app/(transit-guides)/go-up/reliability/page.tsx", import.meta.url),
+      "utf8",
+    );
+
+    assert.match(guideSource, /Station-weighted classes/);
+    assert.match(guideSource, /Service Stopped/);
+    assert.match(guideSource, /Time With Any Alert/);
+    assert.match(guideSource, /Service-Stopped Hours/);
+    assert.match(guideSource, /versioned by methodology/);
+    assert.doesNotMatch(ttcMeta, /30-day/);
+    assert.doesNotMatch(regionalMeta, /30-day/);
   });
 
   it("renders official TTC performance metrics instead of fake reliability scores", () => {
@@ -45,7 +70,7 @@ describe("official TTC performance panel source", () => {
     assert.match(source, /id\.startsWith\("regional-"\)/);
     assert.match(source, /reliability\.serviceWindowBasis/);
     assert.match(source, /item\.serviceImpactPercentage/);
-    assert.match(source, /Train Cancellations · Rolling 30 Day Basis/);
+    assert.match(source, /Train Cancellations · Last 30 Days/);
     assert.match(source, /Distinct Cancelled Trains Observed/);
     assert.match(source, /Exact Schedule Matches/);
     assert.match(source, /Source-Labeled Unmatched/);
