@@ -1081,3 +1081,4 @@ printf '%s tests passed\n' "$TEST_COUNT"
 
 bash "$ROOT_DIR/scripts/tests/prod-ssh-deploy-gate.test.sh"
 bash "$ROOT_DIR/scripts/tests/prod-backup-offsite.test.sh"
+bash "$ROOT_DIR/scripts/tests/prod-select-auto-release.test.sh"
