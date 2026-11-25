@@ -18,7 +18,7 @@ Read first: the Reliability section and the cancellation line of
 | --- | --- | --- |
 | A0 | Stop deleting polling evidence (production env) | Done (2026-11-24) |
 | A1 | Preserve schedule coverage: schedule days and service spans | Deployed & verified (2026-11-24, `83812000`); watch next GO import |
-| A2 | Backfill schedule history from archived GTFS | Done in code (2026-11-24, D2 approved); ready to backfill archived zips on deploy |
+| A2 | Backfill schedule history from archived GTFS | Run on production (2026-11-25, `642455a7`): TTC from 2026-09-30, GO/UP from 2026-10-07; earlier dates have no complete archive coverage |
 | A3 | Preserve polling coverage: observation windows | Deployed & verified on production & A4 restored copy (2026-11-24, 0 mismatched days across 90 days per network) |
 | A4 | Off-host backups and a restore drill | Done & drilled (2026-11-24, R2 `linewatchto-backups` ENAM, 16.6 MB copy, 114 s restore drill, 7.5 GB storage alert added) |
 | A5 | Derived read model, methodology v1 (today's rules) | Deployed & verified on restored copy (2026-11-24) |
@@ -26,7 +26,7 @@ Read first: the Reliability section and the cancellation line of
 | A7 | Range API | Deployed & verified (2026-11-24, WAF extended to `/api/reliability/`, D8 closed-range edge caching enabled) |
 | A8 | Analytics page: route, controls, summary | Deployed & verified (2026-11-24, `/ttc/analytics` and `/go-up/analytics` live) |
 | A9 | Charts, drill-down and export | Deployed & verified (2026-11-24, `test:analytics` green on desktop & mobile CI) |
-| A10 | New sources, each gated separately | Done in code (2026-11-24, D5 GO/UP OTP, D6 TTC delay log, TTC performance history); deploy & enable next |
+| A10 | New sources, each gated separately | Deployed, enabled & verified (2026-11-24, D5 GO/UP OTP, D6 TTC delay log, TTC performance history) |
 | A11 | Close: retention, fallbacks, docs and claims | Done & verified (2026-11-24: Grafana rules applied, D7 retention lowered to `P400D`) |
 
 Order: A1 and A3, then A4, A5, A6, A7, A8, A9, A11. A2 can run any time after
@@ -418,6 +418,32 @@ Done when production has days and spans from 2026-11-01 (TTC) and 2026-11-17
 at the next GO import that starts later. Check the first such import.
 
 ### A2 — Backfill schedule history (D2)
+
+**Run on production (GO/UP 2026-11-24, TTC 2026-11-25 01:28 UTC).** Archives are
+Internet Archive snapshots, read once and removed from the VPS:
+
+| Feed version | Snapshot (`https://web.archive.org/web/…`) | SHA-256 | Days captured |
+| --- | --- | --- | --- |
+| `wayback-ttc-20261018` | `20261018104208id_/https://ckan0.cf.opendata.inter.prod-toronto.ca/dataset/7795b45e-e65a-4465-81fc-c36b9dfff169/resource/cfb6b2b8-6191-41e3-bda1-b175c51148cb/download/TTC%20Routes%20and%20Schedules%20Data.zip` | `b4f78c1eb2181f0fdbf678f60a4b03c5dcebc79fbad9f821c17a2df5c0f0deb3` | 32 (2026-09-30..2026-10-31) |
+| `wayback-go-20260817` | `20260817182501id_/https://assets.metrolinx.com/raw/upload/Documents/Metrolinx/Open%20Data/GO-GTFS.zip` | `6641f14ec4ac89cecf6c8dd1918053afc7e887f6b9dea6616374b2cfeaf8cd46` | 22 (2026-08-14..2026-09-04) |
+| `wayback-go-20261018` | `20261018061840id_/https://assets.metrolinx.com/raw/upload/Documents/Metrolinx/Open%20Data/GO-GTFS.zip` | `0309e1e6c625e091a26c7e3245bdd29e3dc7bdfd26825fc36ec836e77e38a38c` | 30 (2026-10-05..2026-11-03) |
+| `wayback-go-20261106` | `20261106124419id_/https://assets.metrolinx.com/raw/upload/Documents/Metrolinx/Open%20Data/GO-GTFS.zip` | `da94c09d960e9301bc142ef7bec12e2372ea98fb13107e25c6487940fd551689` | 13 (2026-11-04..2026-11-16) |
+| `wayback-up-20261018` | `20261018061840id_/https://assets.metrolinx.com/raw/upload/Documents/Metrolinx/Open%20Data/UP-GTFS.zip` | `cf805c859a4fcf9bc5cdc098979c8166204a3c2772c57b8b7522bc9db270856b` | 41 (2026-10-07..2026-11-16) |
+| `wayback-up-20261106` | `20261106124419id_/https://assets.metrolinx.com/raw/upload/Documents/Metrolinx/Open%20Data/UP-GTFS.zip` | `dad1123a480d3069629c2a0cb9863243ff9cf3e2b4035308dbd6236b2b370c84` | 181 (2025-11-19..2026-05-18, before polling evidence, so never counted) |
+
+- **TTC result:** 3,904 spans, 122 per day like the live import (38, 31, 5, 25
+  and 18 stations on Lines 1, 2, 4, 5 and 6). The v2 rebuild covers TTC
+  2026-09-30..2026-11-23 and GO/UP 2026-10-07..2026-11-23. Both networks report
+  `scheduleCoveragePercentage: 100.0` and `confidence: "high"` over 30 days.
+- **Not covered:** TTC 2026-08-26..2026-09-29 and GO/UP 2026-08-26..2026-10-06
+  (GO has 2026-08-26..2026-09-04 and 2026-10-05..06, but UP has none), so the
+  2026-08-26 target below is not met.
+- **Fixes the TTC archive needed (#33):** planner statistics are refreshed before
+  the temporary import is deleted (265 s to under 1 s locally); Line 5 and 6
+  platform names without a dash, and Bloor and Yonge platforms without a parent
+  station, now map; the backfill fails if a served rapid-transit stop is unmapped.
+- **One-off containers** ran with push, ingestion and scheduled jobs disabled, so
+  they could not duplicate notifications.
 
 - **Feeds needed:** TTC versions covering 2026-08-26 to 2026-10-31, and GO
   and UP versions covering 2026-08-26 to 2026-11-16. Both are needed for
@@ -1269,7 +1295,7 @@ spec drives one filter from a chart mark to the episode list on each network.
 
 ### A10 — New sources, each gated separately
 
-**Done in code (2026-11-24); D5, D6, and TTC performance history approved by owner.** Launch-gate entries added to [source launch gates](../source-licensing-launch-gates.md).
+**Deployed, enabled and verified (2026-11-24); D5, D6, and TTC performance history approved by owner.** Read-only checks, about 21:45 UTC: `/api/reliability/on-time` returned 200 with `enabled: true` and 75 of 514 scheduled trips observed on the first day (61 GO and 14 UP rows, coverage 14.6%); `/ttc-delay-log` returned 200 from 50,682 rows published for 2025-01-01..2026-10-31; `/ttc-performance` returned 200 from 8 metric readings. Launch-gate entries added to [source launch gates](../source-licensing-launch-gates.md).
 
 What changed:
 
