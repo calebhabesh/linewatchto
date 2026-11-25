@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useElementSize } from "../../hooks/useElementSize";
 import { DAY_OF_WEEK_LABELS, formatHourLabel, intensityLevel } from "../../app/reliability-analytics";
 import styles from "./analytics.module.css";
 
@@ -16,19 +17,17 @@ export type HeatmapCellItem = {
 
 /**
  * Shared 7x24 hour-of-week SVG heatmap primitive.
- * Uses stepped intensity fills PLUS proportional inner dots so meaning is never color-only,
+ * Four fill steps from faint to full, named by ShareScale and stated in every cell's label,
  * and diagonal hatching for hours with zero observed service.
  */
 export function HeatmapChart({
   accessibleName,
   cells,
-  tone = "accent",
   onSelect,
   onActiveChange,
 }: {
   accessibleName: string;
   cells: readonly HeatmapCellItem[];
-  tone?: "accent" | "stopped" | "delay" | "slow";
   onSelect?: (cell: HeatmapCellItem) => void;
   onActiveChange?: (cell: HeatmapCellItem | null) => void;
 }) {
@@ -36,12 +35,13 @@ export function HeatmapChart({
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const maxShare = cells.reduce((max, c) => (c.observedMinutes > 0 ? Math.max(max, c.sharePercentage) : max), 0);
 
-  const cellW = 24;
-  const cellH = 24;
+  const [sizeRef, size] = useElementSize();
+  const cellH = 26;
   const gap = 3;
   const padLeft = 40;
   const padTop = 26;
-  const padRight = 10;
+  const padRight = 2;
+  const cellW = Math.max(20, ((size.width || 690) - padLeft - padRight + gap) / 24 - gap);
   const padBottom = 10;
   const width = padLeft + 24 * (cellW + gap) - gap + padRight;
   const height = padTop + 7 * (cellH + gap) - gap + padBottom;
@@ -52,7 +52,7 @@ export function HeatmapChart({
   }
 
   return (
-    <div className={styles.chartScroll} tabIndex={0} role="region" aria-label={`${accessibleName} Grid`}>
+    <div ref={sizeRef} className={styles.chartScroll} tabIndex={0} role="region" aria-label={`${accessibleName} Grid`}>
       <svg
         className={styles.chartSvg}
         width={width}
@@ -99,7 +99,6 @@ export function HeatmapChart({
           const unobserved = cell.observedMinutes <= 0;
           const level = unobserved ? 0 : intensityLevel(cell.sharePercentage, maxShare);
           const clickable = Boolean(onSelect && !unobserved && cell.valueMinutes > 0);
-          const dotRadius = level === 0 ? 0 : 1.6 + level * 1.1;
 
           return (
             <g
@@ -132,19 +131,8 @@ export function HeatmapChart({
                 fill={unobserved ? `url(#${uid}-unobs)` : undefined}
                 stroke={unobserved ? "var(--analytics-gap)" : undefined}
                 strokeWidth={unobserved ? 0.8 : undefined}
-                data-tone={tone}
                 data-level={level}
               />
-              {!unobserved && dotRadius > 0 ? (
-                <circle
-                  cx={x + cellW / 2}
-                  cy={y + cellH / 2}
-                  r={dotRadius}
-                  className={styles.heatDot}
-                  data-level={level}
-                  pointerEvents="none"
-                />
-              ) : null}
             </g>
           );
         })}

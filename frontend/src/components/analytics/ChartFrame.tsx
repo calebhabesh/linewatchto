@@ -3,6 +3,7 @@
 import { Table2, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { AnalyticsError } from "../../hooks/useReliabilityAnalytics";
+import { StatIcon } from "./AnalyticsIcons";
 import styles from "./analytics.module.css";
 
 /** Triggers once when a module enters (or nears) the viewport, so below-the-fold charts load lazily. */
@@ -91,7 +92,8 @@ export function ChartFrame({
   empty,
   emptyMessage,
   sectionRef,
-  footer,
+  aside,
+  asideNarrow = false,
   children,
 }: {
   id: string;
@@ -99,6 +101,7 @@ export function ChartFrame({
   subtitle?: React.ReactNode;
   controls?: React.ReactNode;
   legend?: React.ReactNode;
+  /** The marked item's details; null when the chart states everything itself. */
   readout?: React.ReactNode;
   defaultReadout?: string;
   table?: React.ReactNode;
@@ -109,7 +112,9 @@ export function ChartFrame({
   empty?: boolean;
   emptyMessage?: string;
   sectionRef?: React.RefObject<HTMLElement | null>;
-  footer?: React.ReactNode;
+  /** Shown beside the chart on wide cards. */
+  aside?: React.ReactNode;
+  asideNarrow?: boolean;
   children: React.ReactNode;
 }) {
   const [showTable, setShowTable] = useState(false);
@@ -125,7 +130,7 @@ export function ChartFrame({
     >
       <div className={styles.moduleHeader}>
         <div className={styles.moduleTitleGroup}>
-          <h2 id={headingId}>{title}</h2>
+          <h2 id={headingId}><StatIcon id={id} size={17} />{title}</h2>
           {subtitle ? <p className={styles.moduleSubtitle}>{subtitle}</p> : null}
         </div>
         <div className={styles.moduleActions}>
@@ -169,15 +174,21 @@ export function ChartFrame({
       ) : showTable && table ? (
         table
       ) : (
-        <>
-          <div className={styles.chartReadout} aria-live="polite">
-            {readout ?? <span className={styles.chartReadoutHint}>{defaultReadout ?? "Hover or focus a mark for details; select one to filter episodes."}</span>}
+        <div className={styles.moduleBody} data-split={aside ? (asideNarrow ? "narrow" : "even") : undefined}>
+          <div className={styles.moduleChart}>
+            {readout === null ? null : (
+              <div className={styles.chartReadoutSlot}>
+                <div className={styles.chartReadout} aria-live="polite">
+                  {readout ?? <span className={styles.chartReadoutHint}>{defaultReadout ?? "Hover or focus a mark for details; select one to filter episodes."}</span>}
+                </div>
+              </div>
+            )}
+            {children}
           </div>
-          {children}
-        </>
+          {aside ? <div className={styles.moduleAside}>{aside}</div> : null}
+        </div>
       )}
 
-      {footer ? <div className={styles.moduleFooter}>{footer}</div> : null}
     </section>
   );
 }

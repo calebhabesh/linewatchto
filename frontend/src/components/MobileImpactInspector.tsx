@@ -8,6 +8,7 @@ import { plannedAdvisorySchedule, type PlannedScheduleView } from "../app/planne
 import { useEffect, useRef, type ReactNode } from "react";
 import { AlertTriangle, ArrowLeft, ArrowRight, Bus, ChevronDown, ChevronUp, Construction, ExternalLink, X } from "lucide-react";
 import type { DashboardData } from "../app/DataContext";
+import { impactDirectionLabel } from "../app/entire-line";
 import { useDashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/commute-data";
@@ -118,7 +119,7 @@ export function getSelectedImpactDetails(
       lineNumber: alert.lineNumber,
       title: alert.title,
       location: alert.location,
-      displayDirection: alert.displayDirection,
+      displayDirection: impactDirectionLabel(alert),
       extraRows: replacementServiceRows(alert),
       description: alert.description,
       source: alert.source,
@@ -149,7 +150,7 @@ export function getSelectedImpactDetails(
         lineNumber: delay.lineNumber,
         title: delay.title,
         location: delay.location,
-        displayDirection: delay.displayDirection,
+        displayDirection: impactDirectionLabel(delay),
         extraRows: replacementServiceRows(delay),
         description: delay.description,
         source: delay.source,
@@ -175,7 +176,7 @@ export function getSelectedImpactDetails(
       lineNumber: alertDelay.lineNumber,
       title: alertDelay.title,
       location: alertDelay.location,
-      displayDirection: alertDelay.displayDirection,
+      displayDirection: impactDirectionLabel(alertDelay),
       extraRows: replacementServiceRows(alertDelay),
       description: alertDelay.description,
       source: alertDelay.source,
@@ -289,7 +290,7 @@ export function getSelectedImpactDetails(
     lineNumber: closure.lineNumber,
     title: closure.title,
     location: closure.location,
-    displayDirection: closure.displayDirection,
+    displayDirection: impactDirectionLabel(closure),
     extraRows: replacementServiceRows(closure),
     description: closure.description,
     source: closure.source,

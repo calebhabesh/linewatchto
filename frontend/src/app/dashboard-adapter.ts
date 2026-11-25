@@ -9,6 +9,7 @@ import {
 } from "./linewatch-data.ts";
 import type { ReliabilitySnapshot } from "./linewatch-data.ts";
 import type { DashboardApiResponse } from "./dashboard-contract.ts";
+import { withWholeLineImpacts } from "./entire-line.ts";
 import { withDisplayLocations } from "./station-span.ts";
 
 export function dashboardDataFromApi(
@@ -29,7 +30,7 @@ export function dashboardDataFromApi(
     stations: payload.map.stations,
     lineStatuses: payload.status.lines,
     generatedAt: payload.status.generatedAt,
-    ...withDisplayLocations(payload),
+    ...withDisplayLocations({ ...payload, ...withWholeLineImpacts(payload, payload.map.segments) }),
     stationNodeImpacts: payload.map.stationNodeImpacts,
     commuteImpacts,
     reliabilitySummaries,

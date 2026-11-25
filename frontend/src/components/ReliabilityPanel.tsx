@@ -1,23 +1,38 @@
 "use client";
 
-import { formatDisruptionDuration } from "../app/reliability-time";
-
-import { Fragment } from "react";
+import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import Image from "next/image";
-import { useDashboardData } from "../app/DataContext";
-import { TransitLineBadge } from "./TransitLineBadge";
-import { PanelHeader } from "./PanelHeader";
-import { 
-  BarChart3, 
-  ChevronRight,
-  ShieldCheck, 
-  Bus, 
+import {
   Accessibility,
-  PieChart,
+  ArrowUpRight,
+  BarChart3,
+  Bus,
+  ChevronDown,
+  Database,
+  Info,
+  ShieldCheck,
   TrainFront,
-  Info
 } from "lucide-react";
+import { useDashboardData } from "../app/DataContext";
 import type { AlertTypeBreakdownItem, DisruptionClassMetricItem } from "../app/linewatch-data";
+import { analyticsKpis, type AnalyticsRow, type AnalyticsTrainCancellationSummary } from "../app/reliability-analytics";
+import {
+  collectionNotice,
+  defaultAnalyticsQuery,
+  formatServiceDateRange,
+  presetHistory,
+  serializeAnalyticsQuery,
+  type AnalyticsLineOption,
+  type AnalyticsPreset,
+  type AnalyticsQuery,
+} from "../app/reliability-range";
+import { formatDisruptionDuration } from "../app/reliability-time";
+import { useReliabilityAnalytics } from "../hooks/useReliabilityAnalytics";
+import { ClassIcon, KindIcon, StatIcon } from "./analytics/AnalyticsIcons";
+import { PanelHeader } from "./PanelHeader";
+import { ReliabilityCard } from "./ReliabilityCard";
+import { ReliabilityInsights } from "./ReliabilityInsights";
+import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
 
 interface ReliabilityProps {
   onBack?: () => void;
@@ -174,7 +189,7 @@ function DisruptionDuration({ minutes }: { minutes: number | null | undefined })
   return (
     <>
       <span className="block">{precise}</span>
-      {equivalent ? <span className="block whitespace-nowrap">({equivalent}</span> : null}
+      {equivalent ? <small>({equivalent}</small> : null}
     </>
   );
 }
@@ -191,18 +206,11 @@ function formatReliabilityRange(since: string, until: string): string {
   return `${formatter.format(start)}–${formatter.format(end)}`;
 }
 
-function getDisruptionClassColor(disruptionClass: string): { bar: string; dot: string } {
-  switch (disruptionClass.toLowerCase().replace(/_/g, "-")) {
-    case "service-stopped":
-      return { bar: "bg-red-500 dark:bg-red-400", dot: "#ef4444" };
-    case "delay":
-      return { bar: "bg-orange-500 dark:bg-orange-400", dot: "#f97316" };
-    case "slow-zone":
-      return { bar: "bg-amber-500 dark:bg-amber-400", dot: "#f59e0b" };
-    default:
-      return { bar: "bg-purple-500 dark:bg-purple-400", dot: "#8b5cf6" };
-  }
-}
+const DISRUPTION_CLASS_TONES: Record<string, string> = {
+  "service-stopped": "stopped",
+  delay: "delay",
+  "slow-zone": "slow",
+};
 
 function visibleDisruptionClasses(
   classes: DisruptionClassMetricItem[] | undefined,
@@ -222,23 +230,20 @@ function formatReliabilityTitleCase(value: string): string {
   return value.replace(/\b[a-z]/g, character => character.toUpperCase());
 }
 
-function getImpactKindColor(kind: string): { stroke: string; bg: string; text: string } {
+/** The colours of the type's icon, so the bar needs no separate key. */
+function getImpactKindColor(kind: string): string {
   switch (kind.toLowerCase().replace(/_/g, "-")) {
     case "limited-service":
     case "delay":
-      return { stroke: "#FEEC41", bg: "bg-[#FEEC41]", text: "text-yellow-600 dark:text-yellow-300" };
+      return "var(--reliability-delay)";
     case "reduced-speed-zone":
     case "rsz":
-      return { stroke: "#F59E0B", bg: "bg-amber-500", text: "text-amber-700 dark:text-amber-400" };
+      return "var(--reliability-slow)";
     case "planned-closure":
     case "closure":
-      return { stroke: "#3b82f6", bg: "bg-blue-500", text: "text-blue-700 dark:text-blue-400" };
-    case "suspension":
-      return { stroke: "#ef4444", bg: "bg-red-500", text: "text-red-700 dark:text-red-400" };
-    case "cancellation":
-      return { stroke: "#f43f5e", bg: "bg-rose-500", text: "text-rose-700 dark:text-rose-400" };
+      return "var(--reliability-planned)";
     default:
-      return { stroke: "#8b5cf6", bg: "bg-purple-500", text: "text-purple-700 dark:text-purple-400" };
+      return "var(--reliability-stopped)";
   }
 }
 
@@ -272,162 +277,445 @@ function AlertTypeBreakdownChart({
   breakdown?: AlertTypeBreakdownItem[];
   networkId: "ttc" | "regional";
 }) {
-  if (!breakdown || breakdown.length === 0) return null;
+  if (!breakdown || breakdown.length === 0) {
+    return <div className="reliability-insight-message">No counted alerts in this range.</div>;
+  }
 
   const totalMinutes = breakdown.reduce((sum, item) => sum + item.incidentDisruptionMinutes, 0);
   const totalIncidents = breakdown.reduce((sum, item) => sum + item.incidents, 0);
-
-  const slices = breakdown.map((item) => {
-    const color = getImpactKindColor(item.impactKind);
-    const label = getImpactKindCanonicalLabel(item.impactKind, item.label);
-    return {
-      ...item,
-      label,
-      color,
-    };
-  });
+  const slices = breakdown.map((item) => ({
+    ...item,
+    label: getImpactKindCanonicalLabel(item.impactKind, item.label),
+    color: getImpactKindColor(item.impactKind),
+  }));
 
   return (
-    <div className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col gap-2.5 mt-1 overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-col gap-0.5 min-w-0">
-        <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5 min-w-0">
-          <PieChart className="w-3.5 h-3.5 text-purple-500 shrink-0" />
-          <span>Share of Incident-Hours</span>
-        </h4>
-        <p className="text-[10.5px] text-slate-500 dark:text-slate-400 leading-tight pl-5">
-          Overlapping alerts counted separately
-        </p>
-      </div>
-
-      {/* Bar section with linked metrics on top */}
-      <div className="flex flex-col gap-1.5 min-w-0 w-full mt-1">
-        <div className="flex items-center justify-between flex-wrap gap-2 text-[10px] sm:text-[10.5px] font-mono tabular-nums text-slate-500 dark:text-slate-400 w-full min-w-0">
-          <span className="shrink-0 font-normal">
-            {totalIncidents} total {totalIncidents === 1 ? "incident" : "incidents"}
-          </span>
-          <span className="font-semibold text-slate-700 dark:text-slate-300 text-right min-w-0">
-            <DisruptionDuration minutes={totalMinutes} /> Total
-          </span>
-        </div>
-
-        {/* 100% Stacked Horizontal Spectrum Bar */}
-        <div
-          className="w-full h-3.5 sm:h-4 flex rounded-md overflow-hidden gap-[1px] bg-black/10 dark:bg-white/10 p-[1px]"
-          aria-label="100% stacked bar showing proportion of incident-hours by alert category"
-        >
-          {slices.map((slice) => {
-            if (slice.percentage <= 0 && slice.incidentDisruptionMinutes <= 0) return null;
-            return (
-              <div
-                key={slice.impactKind}
-                className="h-full first:rounded-l-[3px] last:rounded-r-[3px] transition-all duration-300 relative group cursor-default min-w-[3px]"
-                style={{
-                  width: `${Math.max(1, slice.percentage)}%`,
-                  backgroundColor: slice.color.stroke,
-                }}
-                title={`${slice.label}: ${slice.percentage.toFixed(1)}% · ${formatDisruptionDuration(slice.incidentDisruptionMinutes)} (${slice.incidents} ${slice.incidents === 1 ? "incident" : "incidents"})`}
-              />
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Compact Ranked Breakdown List - 2-line per item with equivalent divider padding */}
-      <div className="w-full flex flex-col min-w-0 pt-0.5">
-        {slices.map((slice) => (
-          <div
+    <div className="reliability-kinds">
+      <p className="reliability-chart-readout">
+        <strong>Share of Incident-Hours</strong> · Overlapping alerts counted separately. {totalIncidents.toLocaleString("en-CA")}{" "}
+        {totalIncidents === 1 ? "incident" : "incidents"}, {formatDisruptionDuration(totalMinutes)}.
+      </p>
+      <div
+        className="reliability-kinds-bar"
+        role="img"
+        aria-label="100% stacked bar showing proportion of incident-hours by alert category"
+      >
+        {slices.map((slice) => slice.percentage <= 0 && slice.incidentDisruptionMinutes <= 0 ? null : (
+          <span
             key={slice.impactKind}
-            className="flex flex-col gap-0.5 min-w-0 py-2 border-b border-black/[0.05] dark:border-white/[0.05] first:pt-1 last:pb-0.5 last:border-b-0"
-          >
-            {/* Top line: Label + Percentage */}
-            <div className="flex items-center justify-between gap-2 min-w-0">
-              <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                <span
-                  className="w-2.5 h-2.5 rounded-[2px] shrink-0"
-                  style={{ backgroundColor: slice.color.stroke }}
-                  aria-hidden="true"
-                />
-                <strong className="font-bold text-slate-800 dark:text-white text-xs leading-tight whitespace-nowrap">
-                  {slice.label}
-                </strong>
-                {slice.impactKind.toLowerCase().includes("closure") && (
-                  <span className="text-[10px] font-normal text-slate-400 dark:text-slate-300/80 whitespace-nowrap tracking-tight">
-                    {networkId === "ttc"
-                      ? "(During Active Subway Service Only)"
-                      : "(During Scheduled Train Service Only)"}
-                  </span>
-                )}
-              </div>
-              <span className="font-black text-slate-900 dark:text-white font-mono tabular-nums text-xs shrink-0 text-right">
-                {slice.percentage.toFixed(1)}%
-              </span>
-            </div>
-
-            {/* Bottom line: Duration + Incidents */}
-            <div className="flex items-center justify-between gap-2 min-w-0 text-[11px] font-mono tabular-nums pl-4">
-              <span className="font-semibold text-slate-700 dark:text-slate-300 break-words">
-                <DisruptionDuration minutes={slice.incidentDisruptionMinutes} />
-              </span>
-              <span className="text-slate-500 dark:text-slate-400 shrink-0 text-right">
-                {slice.incidents} {slice.incidents === 1 ? "incident" : "incidents"}
-              </span>
-            </div>
-          </div>
+            style={{ width: `${Math.max(1, slice.percentage)}%`, backgroundColor: slice.color }}
+            title={`${slice.label}: ${slice.percentage.toFixed(1)}%`}
+          />
         ))}
       </div>
+      <ul>
+        {slices.map((slice) => (
+          <li key={slice.impactKind}>
+            <KindIcon kind={slice.impactKind} size={15} />
+            <span className="reliability-kinds-label">
+              {slice.label}
+              {slice.impactKind.toLowerCase().includes("closure") ? (
+                <small>{networkId === "ttc" ? "(During Active Subway Service Only)" : "(During Scheduled Train Service Only)"}</small>
+              ) : null}
+            </span>
+            <span className="reliability-kinds-detail">
+              {formatDisruptionDuration(slice.incidentDisruptionMinutes)} · {slice.incidents.toLocaleString("en-CA")}{" "}
+              {slice.incidents === 1 ? "incident" : "incidents"}
+            </span>
+            <strong>{slice.percentage.toFixed(1)}%</strong>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
 
-export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
-  const { networkId, reliability, ttcPerformance } = useDashboardData();
-  const metrics = ttcPerformance.metrics;
+/** One line's or corridor's figures, from the dashboard snapshot or a range summary. */
+type PanelRow = {
+  id: string;
+  number: string | null;
+  label: string;
+  incidents: number;
+  activeIncidents: number;
+  medianDurationMinutes: number | null;
+  observedServiceMinutes: number;
+  serviceImpactPercentage: number;
+  serviceImpactMinutes: number;
+  incidentDisruptionMinutes: number;
+  classes: DisruptionClassMetricItem[];
+};
 
-  const onTimeMetrics = metrics.filter(m => m.category !== "accessibility");
-  const availabilityMetrics = metrics.filter(m => m.category === "accessibility");
+function rangeRow(row: AnalyticsRow): PanelRow {
+  return {
+    id: row.id,
+    number: row.number,
+    label: row.label,
+    incidents: row.incidents,
+    activeIncidents: row.activeIncidents,
+    medianDurationMinutes: row.medianTimeToClearMinutes,
+    observedServiceMinutes: row.observedMinutes,
+    serviceImpactPercentage: row.anyAlertPercentage,
+    serviceImpactMinutes: row.uniqueMinutes,
+    incidentDisruptionMinutes: row.incidentDisruptionMinutes,
+    classes: row.classes,
+  };
+}
 
-  const renderMetric = (item: typeof metrics[0]) => {
-    const details = getMetricDetails(item.id, item.label);
-    return (
-      <div key={item.id} className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col justify-between gap-3 overflow-hidden">
-        <div className="flex min-w-0 items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5 flex-1">
-            {details.icon}
-            <div className="reliability-copy min-w-0 flex-1">
-              <strong className="text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">{details.label}</strong>
-            </div>
-          </div>
-          <strong className="text-sm text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap font-mono tabular-nums shrink-0">{item.valueLabel}</strong>
-        </div>
-        {item.percentage !== null ? (
-          <div className="flex flex-col gap-1.5 min-w-0">
-            <div className="score-track relative bg-black/10 dark:border-white/10 rounded-full h-2 mx-4">
-              <div className="bg-gradient-to-r from-amber-500 to-green-500 h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, item.percentage))}%` }} />
-              {item.target != null && (
-                <div 
-                  className="absolute top-[-3px] bottom-[-3px] w-[3px] bg-slate-800 dark:bg-white z-10 rounded-full shadow-sm"
-                  style={{ left: `${item.target}%`, transform: 'translateX(-50%)' }}
-                  title={`Target: ${item.target}%`}
-                />
-              )}
-            </div>
-            {item.target != null && (
-              <div className="relative h-3 mx-4">
-                <span 
-                  className="absolute text-[9px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap font-mono tabular-nums"
-                  style={{ left: `${item.target}%`, transform: 'translateX(-50%)' }}
-                >
-                  Target: {item.target}%
+function Stat({ icon, label, title, children, detail }: { icon?: string; label: string; title: string; children: ReactNode; detail?: string }) {
+  return (
+    <div title={title}>
+      <dt>{icon ? <StatIcon id={icon} size={13} /> : null}<span>{label}</span></dt>
+      <dd>
+        <strong>{children}</strong>
+        {detail ? <small>{detail}</small> : null}
+      </dd>
+    </div>
+  );
+}
+
+function LineCard({ row, networkId, href }: { row: PanelRow; networkId: "ttc" | "regional"; href: string }) {
+  const details = getMetricDetails(row.id, row.label);
+  const classItems = visibleDisruptionClasses(row.classes, networkId);
+  const serviceStopped = classItems.find((cls) => cls.disruptionClass === "service-stopped");
+  const where = networkId === "regional" ? "on corridor" : "on line";
+  return (
+    <ReliabilityCard
+      tint={transitLineBadgeColors(row.id).backgroundColor}
+      icon={details.icon}
+      title={details.label}
+      meta={(
+        <>
+          {row.activeIncidents > 0 ? <span className="reliability-card-active">{row.activeIncidents} Active</span> : null}
+          <span>{row.incidents.toLocaleString("en-CA")} {row.incidents === 1 ? "incident" : "incidents"}</span>
+        </>
+      )}
+      href={href}
+      linkLabel="View Details"
+    >
+      {classItems.length > 0 ? (
+        <>
+          <p className="reliability-caption">
+            <span><StatIcon id="share-affected" size={13} />Station-Weighted Share</span>
+            <span>{formatDisruptionDuration(row.observedServiceMinutes)} Observed Service Time</span>
+          </p>
+          <ul className="reliability-classes">
+            {classItems.map((cls) => (
+              <li key={cls.disruptionClass}>
+                <span className="reliability-class-label"><ClassIcon id={cls.disruptionClass} size={14} />{cls.label} <small>{cls.incidents}</small></span>
+                <strong>{cls.weightedSharePercentage.toFixed(1)}%</strong>
+                <ShareTrack tone={DISRUPTION_CLASS_TONES[cls.disruptionClass] ?? "accent"} percentage={cls.weightedSharePercentage} />
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      <dl className="reliability-stats">
+        {serviceStopped ? (
+          <Stat icon="service-stopped-hours" label="Service-Stopped Hours" title="Unique stopped-service time">
+            <DisruptionDuration minutes={serviceStopped.uniqueMinutes} />
+          </Stat>
+        ) : null}
+        <Stat
+          icon="any-alert"
+          label="Time With Any Alert"
+          title={`${formatDisruptionDuration(row.serviceImpactMinutes)} ${where}: unique wall-clock disruption during scheduled service`}
+        >
+          {row.serviceImpactPercentage.toFixed(1)}%
+        </Stat>
+        <Stat icon="incident-hours" label="Incident-Hours" title="Sum of durations across all concurrent alerts">
+          <DisruptionDuration minutes={row.incidentDisruptionMinutes} />
+        </Stat>
+        <Stat icon="median-time-to-clear" label="Median Time to Clear" title="Half of completed incidents cleared within this time">
+          {row.medianDurationMinutes != null ? <DisruptionDuration minutes={row.medianDurationMinutes} /> : "—"}
+        </Stat>
+      </dl>
+    </ReliabilityCard>
+  );
+}
+
+function ShareTrack({ tone, percentage }: { tone: string; percentage: number }) {
+  return (
+    <span className="reliability-track" aria-hidden="true">
+      <span
+        data-tone={tone}
+        style={{ "--reliability-share": `${Math.min(100, Math.max(percentage > 0 ? 1 : 0, percentage))}%` } as CSSProperties}
+      />
+    </span>
+  );
+}
+
+function CancellationTable({ cancellations }: { cancellations: AnalyticsTrainCancellationSummary }) {
+  const most = Math.max(1, ...cancellations.corridors.map((corridor) => corridor.cancellations));
+  const count = (value: number) => value.toLocaleString("en-CA");
+  return (
+    <table className="reliability-cancellations">
+      <thead>
+        <tr>
+          <th scope="col">Corridor</th>
+          <td className="reliability-cancellations-bar" />
+          <th scope="col" title="Exact Schedule Matches">Matched</th>
+          <th scope="col" title="Source-Labeled Unmatched">Unmatched</th>
+          <th scope="col" title="Distinct Cancelled Trains Observed">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {cancellations.corridors.map((corridor) => {
+          const details = getMetricDetails(corridor.id, corridor.label);
+          const unmatched = Math.max(0, corridor.cancellations - corridor.scheduleMatchedCancellations);
+          return (
+            <tr key={corridor.id}>
+              <th scope="row"><span><TransitLineBadge lineId={corridor.id} size={20} decorative />{details.label}</span></th>
+              <td className="reliability-cancellations-bar" aria-hidden="true">
+                <span>
+                  <i style={{ width: `${(corridor.scheduleMatchedCancellations / most) * 100}%` }} />
+                  <i data-unmatched="true" style={{ width: `${(unmatched / most) * 100}%` }} />
                 </span>
-              </div>
-            )}
+              </td>
+              <td>{count(corridor.scheduleMatchedCancellations)}</td>
+              <td>{count(unmatched)}</td>
+              <td>{count(corridor.cancellations)}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row">All Corridors</th>
+          <td className="reliability-cancellations-bar" />
+          <td>{count(cancellations.scheduleMatchedCancellations)}</td>
+          <td>{count(cancellations.sourceLabeledCancellations)}</td>
+          <td>{count(cancellations.cancellations)}</td>
+        </tr>
+      </tfoot>
+    </table>
+  );
+}
+
+/** Presets the sidebar offers; custom dates need the analytics page. */
+const PANEL_PRESETS: { preset: AnalyticsPreset; label: string; title: string }[] = [
+  { preset: "30d", label: "30D", title: "Last 30 days" },
+  { preset: "90d", label: "90D", title: "Last 90 days" },
+  { preset: "6m", label: "6M", title: "Last 6 months" },
+  { preset: "ytd", label: "YTD", title: "Year to date" },
+  { preset: "12m", label: "12M", title: "Last 12 months" },
+  { preset: "all", label: "All", title: "All history" },
+];
+const NO_LINES: AnalyticsLineOption[] = [];
+const KPI_PLACEHOLDERS = ["Service-Stopped Hours", "Delay Incidents", "Median Time to Clear", "Share Affected"];
+
+function ObservedDisruptions() {
+  const { networkId, reliability } = useDashboardData();
+  const [preset, setPreset] = useState<AnalyticsPreset>("30d");
+  const query = useMemo<AnalyticsQuery>(() => ({ ...defaultAnalyticsQuery, preset }), [preset]);
+  const { availability, range, summary, loading, error, reload } = useReliabilityAnalytics(networkId, query, NO_LINES);
+  // The dashboard already carries the default range, offline copies included.
+  const snapshot = preset === "30d";
+  const pagePath = networkId === "regional" ? "/go-up/analytics" : "/ttc/analytics";
+  const collecting = availability ? collectionNotice(availability) : null;
+  const kpis = summary
+    ? analyticsKpis(summary, { networkId, line: false, station: false }).filter((kpi) => kpi.id !== "coverage")
+    : null;
+  const unavailable = error?.message ?? (range && !range.from ? "History has not started." : null);
+
+  // The last summary stays up while another range loads, under its own dates.
+  const shown = !snapshot && summary?.range.from ? summary.range : range;
+  const dates = shown?.from && shown.to
+    ? formatServiceDateRange(shown.from, shown.to)
+    : snapshot ? formatReliabilityRange(reliability.since, reliability.until) : null;
+  const rows: PanelRow[] = snapshot
+    ? reliability.metrics.map((item) => ({ ...item, classes: reliability.methodologyVersion === 1 ? [] : item.classes ?? [] }))
+    : (summary?.rows ?? []).map(rangeRow);
+  const confidence = snapshot ? reliability.confidence : summary?.coverage?.confidence ?? null;
+  const breakdown = snapshot ? reliability.breakdown : summary?.breakdown;
+  const cancellations = snapshot ? reliability.trainCancellations : summary?.trainCancellations;
+
+  return (
+    <div className="flex flex-col gap-2 min-w-0">
+      <div className="reliability-intro">
+        <div className="min-w-0">
+          <h3>Observed Disruptions</h3>
+          <p>
+            <span><StatIcon id="dates" size={12} /><strong>{dates ?? "Dates Unavailable"}</strong></span>
+            {confidence ? <span><StatIcon id="coverage" size={12} />{formatReliabilityTitleCase(`${confidence} confidence`)}</span> : null}
+          </p>
+          <p>
+            <span>
+              <StatIcon id="source" size={12} />
+              {snapshot ? `Source: ${formatReliabilityTitleCase(reliability.source.replace(/alert history/gi, "Alert History"))}` : "Source: LineWatchTO Range History"}
+            </span>
+          </p>
+        </div>
+        <a className="reliability-open-analytics" href={`${pagePath}${serializeAnalyticsQuery(query)}`}>
+          Full Analytics Page
+          <ArrowUpRight size={15} aria-hidden="true" />
+        </a>
+      </div>
+
+      <div className="reliability-segments" data-emphasis="true" role="group" aria-label="Date Range">
+        {PANEL_PRESETS.map((option) => {
+          const history = availability && option.preset !== "all" ? presetHistory(option.preset, availability) : null;
+          const filling = history && history.share < 1 ? history : null;
+          const recorded = filling ? ` (${filling.recordedDays} of ${filling.days} days recorded so far)` : "";
+          return (
+            <button
+              key={option.preset}
+              type="button"
+              title={`${option.title}${recorded}`}
+              aria-label={`${option.title}${recorded}`}
+              aria-pressed={preset === option.preset}
+              onClick={() => setPreset(option.preset)}
+            >
+              {option.label}
+              <span className="reliability-segment-fill" aria-hidden="true">
+                {filling ? <span style={{ width: `${filling.share * 100}%` }} /> : null}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {collecting ? (
+        <div className="reliability-notice-banner">
+          <Database size={15} aria-hidden="true" />
+          <p><strong>{collecting.title}.</strong> {collecting.message}</p>
+        </div>
+      ) : null}
+
+      <ReliabilityCard
+        icon={<BarChart3 size={17} aria-hidden="true" />}
+        title="Network Overview"
+        meta={summary?.coverage ? <span>{summary.coverage.analyzableDays} of {summary.coverage.totalDays} Days Counted</span> : undefined}
+      >
+        <dl className="reliability-stats reliability-kpis" aria-busy={loading || undefined}>
+          {kpis
+            ? kpis.map((kpi) => (
+              <Stat key={kpi.id} icon={kpi.id} label={kpi.label} title={kpi.detail} detail={kpi.detail}>
+                {kpi.value}{kpi.unit ? ` ${kpi.unit}` : ""}
+              </Stat>
+            ))
+            : KPI_PLACEHOLDERS.map((label) => (
+              <Stat key={label} label={label} title={label}>{loading ? "…" : "—"}</Stat>
+            ))}
+        </dl>
+        <ReliabilityInsights
+          networkId={networkId}
+          from={range?.from ?? null}
+          to={range?.to ?? null}
+          unavailable={unavailable}
+          onRetry={error ? reload : null}
+          kinds={<AlertTypeBreakdownChart breakdown={breakdown} networkId={networkId} />}
+        />
+      </ReliabilityCard>
+
+      <div className="reliability-cards" data-loading={(!snapshot && loading) || undefined}>
+        {rows.length > 0 ? rows.map((row) => (
+          <LineCard
+            key={row.id}
+            row={row}
+            networkId={networkId}
+            href={`${pagePath}${serializeAnalyticsQuery({ ...query, line: row.id })}`}
+          />
+        )) : snapshot ? (
+          <div className="reliability-row">
+            <strong>{reliability.scheduleBacked ? "History is accumulating" : "Schedule coverage unavailable"}</strong>
+            <p>{reliability.coverageLabel}</p>
           </div>
         ) : null}
-      </div>
-    );
-  };
 
+        {networkId === "regional" && cancellations ? (
+          <ReliabilityCard
+            icon={<TrainFront size={17} aria-hidden="true" />}
+            title="Train Cancellations"
+            meta={dates ? <span>{dates}</span> : undefined}
+          >
+            {cancellations.observationMinutes > 0
+              ? <CancellationTable cancellations={cancellations} />
+              : <p className="reliability-chart-readout"><strong>No trip changes have been observed for this range yet.</strong></p>}
+            <p className="reliability-chart-readout">
+              Source: Recorded GO Trip Changes · {cancellations.coveragePercentage.toFixed(1)}% polling coverage since tracking began ·{" "}
+              {formatReliabilityTitleCase(`${cancellations.confidence} confidence`)}
+            </p>
+          </ReliabilityCard>
+        ) : null}
+      </div>
+
+      <details className="reliability-method">
+        <summary>
+          <Info size={15} aria-hidden="true" />
+          How This Is Measured
+          <ChevronDown size={15} aria-hidden="true" />
+        </summary>
+        <p>{snapshot ? reliability.message : summary?.message ?? reliability.message}</p>
+        {networkId === "regional" && cancellations ? <p><strong>Train Cancellations:</strong> {cancellations.message}</p> : null}
+        <p>
+          Confidence reflects how complete the records are, using the lower of polling and schedule-date coverage: low below
+          75%, medium from 75% to below 95%, and high at 95% or above. Gaps can leave disruptions uncounted.
+        </p>
+        <p>
+          <strong>Service Window:</strong> {formatReliabilityTitleCase(reliability.serviceWindowBasis)} ·{" "}
+          {(reliability.scheduleCoveragePercentage ?? 0).toFixed(1)}% {networkId === "regional" ? "Minimum Date Coverage" : "Date Coverage"}
+          {snapshot ? "" : " (Last 30 Days)"}
+        </p>
+        <p>
+          <strong>Coverage:</strong>{" "}
+          {snapshot
+            ? formatReliabilityTitleCase(reliability.coverageLabel).replace(/\s*·\s*/g, ", ")
+            : summary?.coverage ? formatReliabilityTitleCase(summary.coverage.label).replace(/\s*·\s*/g, ", ") : "Unavailable"}
+        </p>
+      </details>
+    </div>
+  );
+}
+
+function OfficialPerformance() {
+  const { ttcPerformance } = useDashboardData();
+  const metrics = ttcPerformance.metrics;
+  const groups = [
+    { title: "On-Time Performance", icon: "on-time", metrics: metrics.filter((metric) => metric.category !== "accessibility") },
+    { title: "Availability", icon: "availability", metrics: metrics.filter((metric) => metric.category === "accessibility") },
+  ].filter((group) => group.metrics.length > 0);
+
+  return (
+    <ReliabilityCard
+      icon={<ShieldCheck size={17} aria-hidden="true" />}
+      title="Official TTC Performance"
+    >
+      <p className="reliability-chart-readout">Source: {ttcPerformance.source} · Updated: {ttcPerformance.updatedLabel}</p>
+      {metrics.length === 0 ? (
+        <p className="reliability-chart-readout"><strong>Official Metrics Unavailable.</strong> {ttcPerformance.message}</p>
+      ) : groups.map((group) => (
+        <div key={group.title} className="reliability-official">
+          <h5><StatIcon id={group.icon} size={15} />{group.title}</h5>
+          {group.metrics.map((metric) => {
+            const details = getMetricDetails(metric.id, metric.label);
+            return (
+              <div key={metric.id} className="reliability-official-row">
+                {details.icon}
+                <strong>{details.label}</strong>
+                <span>{metric.target != null ? `Target ${metric.target}%` : ""}</span>
+                <b>{metric.valueLabel}</b>
+                {metric.percentage !== null ? (
+                  <span
+                    className="reliability-track reliability-track--official"
+                    style={metric.target != null ? { "--reliability-target": `${metric.target}%` } as CSSProperties : undefined}
+                    aria-hidden="true"
+                  >
+                    <span
+                      style={{ "--reliability-share": `${Math.max(0, Math.min(100, metric.percentage))}%` } as CSSProperties}
+                    />
+                  </span>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </ReliabilityCard>
+  );
+}
+
+export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
+  const { networkId } = useDashboardData();
   return (
     <section className="panel analytics-panel min-w-0 max-w-full w-full border border-transparent rounded-2xl" aria-label="Reliability Analytics" style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}>
       <PanelHeader
@@ -438,402 +726,9 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
         onClose={onClose}
       />
       <div className="reliability-list min-w-0 max-w-full w-full px-4 pt-1 pb-4 flex flex-col gap-2 overflow-x-hidden">
-        <div className="flex flex-col gap-2 min-w-0">
-          <div className="min-w-0 flex flex-col gap-1.5">
-            <div className="min-w-0 flex flex-col gap-0.5">
-              <h3 className="text-[15px] font-black leading-snug text-slate-900 dark:text-white break-words">
-                Observed Disruptions · Last 30 Days
-              </h3>
-              <p className="text-[11px] leading-tight text-slate-500 dark:text-slate-400 break-words">
-                Confidence reflects how complete the records are, using the lower of polling and schedule-date coverage: low below 75%, medium from 75% to below 95%, and high at 95% or above. Gaps can leave disruptions uncounted.
-              </p>
-            </div>
-            <a
-              href={networkId === "regional" ? "/go-up/analytics" : "/ttc/analytics"}
-              className="reliability-open-analytics min-h-[40px] w-full px-3 rounded-lg border border-black/10 dark:border-white/15 bg-black/[0.03] dark:bg-white/[0.05] hover:bg-black/[0.07] dark:hover:bg-white/[0.1] flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-white no-underline"
-            >
-              <BarChart3 className="w-4 h-4 text-purple-500 shrink-0" aria-hidden="true" />
-              <span className="min-w-0 flex-1">Open Analytics</span>
-              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Any Date Range</span>
-              <ChevronRight className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
-            </a>
-            <ul className="grid grid-cols-1 gap-1 text-[11px] text-slate-500 dark:text-slate-400 list-none p-0 m-0">
-              <li className="flex items-start gap-1.5 min-w-0">
-                <span className="text-slate-400 dark:text-slate-500 shrink-0 select-none">•</span>
-                <span className="min-w-0 break-words leading-tight">
-                  <strong className="font-semibold text-slate-700 dark:text-slate-200">Source:</strong>{" "}
-                  {formatReliabilityTitleCase(reliability.source.replace(/alert history/gi, "Alert History"))} · {formatReliabilityRange(reliability.since, reliability.until)}
-                </span>
-              </li>
-              <li className="flex items-start gap-1.5 min-w-0">
-                <span className="text-slate-400 dark:text-slate-500 shrink-0 select-none">•</span>
-                <span className="min-w-0 break-words leading-tight">
-                  <strong className="font-semibold text-slate-700 dark:text-slate-200">Service Window:</strong>{" "}
-                  {formatReliabilityTitleCase(reliability.serviceWindowBasis)} · {(reliability.scheduleCoveragePercentage ?? 0).toFixed(1)}% {networkId === "regional" ? "Minimum Date Coverage" : "Date Coverage"}
-                </span>
-              </li>
-              <li className="flex items-start gap-1.5 min-w-0">
-                <span className="text-slate-400 dark:text-slate-500 shrink-0 select-none">•</span>
-                <span className="min-w-0 break-words leading-tight">
-                  <strong className="font-semibold text-slate-700 dark:text-slate-200">Coverage & Confidence:</strong>{" "}
-                  {formatReliabilityTitleCase(reliability.coverageLabel).replace(/\s*·\s*/g, ", ")}, {formatReliabilityTitleCase(`${reliability.confidence} confidence`)}
-                </span>
-              </li>
-            </ul>
-          </div>
-          <div className="reliability-notice-banner rounded-lg border border-purple-500/20 dark:border-purple-500/25 bg-[#f6f2fb] dark:bg-[#201530] shadow-xs px-2.5 py-2 flex items-start gap-2 text-[10.5px] sm:text-[11px] text-purple-950 dark:text-purple-100 leading-relaxed">
-            <Info className="w-3.5 h-3.5 text-purple-600 dark:text-purple-300 shrink-0 mt-0.5" aria-hidden="true" />
-            <p className="min-w-0 flex-1 break-words font-medium">{reliability.message}</p>
-          </div>
-          {reliability.metrics.length === 0 ? (
-            <div className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5">
-              <strong className="text-sm font-bold text-slate-800 dark:text-white">
-                {reliability.scheduleBacked ? "History is accumulating" : "Schedule coverage unavailable"}
-              </strong>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{reliability.coverageLabel}</p>
-            </div>
-          ) : reliability.metrics.map((item) => {
-            const details = getMetricDetails(item.id, item.label);
-            const classItems = reliability.methodologyVersion === 1
-              ? []
-              : visibleDisruptionClasses(item.classes, networkId);
-            const hasV2Classes = classItems.length > 0;
-            const serviceStopped = classItems.find((cls) => cls.disruptionClass === "service-stopped");
-            return (
-              <div key={item.id} className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col gap-2.5 overflow-hidden">
-                {/* Line Header */}
-                <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-1 sm:gap-2 min-w-0 pb-1.5 border-b border-black/[0.05] dark:border-white/[0.05]">
-                  <div className="flex min-w-0 items-center gap-2 flex-1 basis-full sm:basis-auto">
-                    {details.icon}
-                    <strong className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                      {networkId === "regional" && item.number ? `${item.number} · ` : ""}{details.label}
-                    </strong>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0 text-xs sm:text-[12.5px] font-mono tabular-nums text-slate-600 dark:text-slate-300">
-                    <span>
-                      {item.incidents} {item.incidents === 1 ? "incident" : "incidents"}
-                    </span>
-                    {item.activeIncidents > 0 && (
-                      <span className="px-1.5 py-0.5 rounded text-[10.5px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 whitespace-nowrap">
-                        {item.activeIncidents} active
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {hasV2Classes ? (
-                  <>
-                    {/* Tier 1 (v2): Station-Weighted Disruption Class Shares */}
-                    <div className="rounded-md bg-black/[0.02] dark:bg-white/[0.02] p-2.5 flex flex-col gap-2 min-w-0">
-                      <div className="flex items-start justify-between gap-2 min-w-0">
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-tight">
-                            Station-Weighted Share
-                          </span>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight mt-0.5">
-                            Weighted by affected stations during observed service
-                          </span>
-                        </div>
-                        <div className="text-right shrink-0 flex flex-col">
-                          <span className="font-mono tabular-nums font-bold text-[11px] text-slate-800 dark:text-slate-200 leading-tight">
-                            <DisruptionDuration minutes={item.observedServiceMinutes} />
-                          </span>
-                          <span className="text-[9.5px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
-                            Observed Service Time
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-2 pt-1 border-t border-black/[0.04] dark:border-white/[0.04]">
-                        {classItems.map((cls) => {
-                          const color = getDisruptionClassColor(cls.disruptionClass);
-                          return (
-                            <div key={cls.disruptionClass} className="flex flex-col gap-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2 min-w-0 text-[11px]">
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  <span
-                                    className="w-2 h-2 rounded-[2px] shrink-0"
-                                    style={{ backgroundColor: color.dot }}
-                                    aria-hidden="true"
-                                  />
-                                  <span className="font-bold text-slate-800 dark:text-slate-100 truncate">
-                                    {cls.label}
-                                  </span>
-                                  <span className="text-[10px] font-mono tabular-nums text-slate-500 dark:text-slate-400 shrink-0">
-                                    · {cls.incidents}
-                                  </span>
-                                </div>
-                                <span className="font-black font-mono tabular-nums text-xs text-slate-900 dark:text-white shrink-0">
-                                  {cls.weightedSharePercentage.toFixed(1)}%
-                                </span>
-                              </div>
-                              <div
-                                className="w-full h-1.5 rounded-full overflow-hidden bg-black/10 dark:bg-white/10"
-                                aria-hidden="true"
-                              >
-                                <div
-                                  className={`h-full rounded-full transition-all duration-300 ${color.bar}`}
-                                  style={{
-                                    width: `${Math.min(100, Math.max(cls.weightedSharePercentage > 0 ? 1 : 0, cls.weightedSharePercentage))}%`,
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Tier 2 (v2): Service-Stopped Hours, Secondary Time With Any Alert, Volume & Turnaround */}
-                    <div className="grid grid-cols-2 gap-2 text-[11px]">
-                      <div className="flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0">
-                        <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
-                          Service-Stopped Hours
-                        </span>
-                        <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
-                          <DisruptionDuration minutes={serviceStopped?.uniqueMinutes ?? 0} />
-                        </strong>
-                        <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight">
-                          Unique stopped-service time
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0">
-                        <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
-                          Time With Any Alert
-                        </span>
-                        <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
-                          {item.serviceImpactPercentage.toFixed(1)}%
-                        </strong>
-                        <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight">
-                          {formatDisruptionDuration(item.serviceImpactMinutes)} {networkId === "regional" ? "on corridor" : "on line"}
-                        </span>
-                      </div>
-
-                      <div className={`flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0 ${item.medianDurationMinutes == null ? "col-span-2" : ""}`}>
-                        <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
-                          Incident-Hours
-                        </span>
-                        <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
-                          <DisruptionDuration minutes={item.incidentDisruptionMinutes} />
-                        </strong>
-                        <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight" title="Sum of durations across all concurrent alerts">
-                          Overlapping alerts sum
-                        </span>
-                      </div>
-
-                      {item.medianDurationMinutes != null && (
-                        <div className="flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0">
-                          <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
-                            Median Completed Incident
-                          </span>
-                          <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
-                            <DisruptionDuration minutes={item.medianDurationMinutes} />
-                          </strong>
-                          <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight">
-                            Resolution turnaround
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Tier 1 (v1 fallback): Service Window & Wall-Clock Impact */}
-                    <div className="rounded-md bg-black/[0.02] dark:bg-white/[0.02] p-2.5 flex flex-col gap-2 min-w-0">
-                      <div className="flex items-start justify-between gap-2 min-w-0">
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-tight">
-                            Time With Any Alert
-                          </span>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight mt-0.5">
-                            Unique wall-clock disruption during scheduled service
-                          </span>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-sm font-black font-mono tabular-nums text-slate-900 dark:text-white">
-                            {item.serviceImpactPercentage.toFixed(1)}%
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Proportion bar */}
-                      <div
-                        className="w-full h-1.5 rounded-full overflow-hidden bg-black/10 dark:bg-white/10"
-                        aria-hidden="true"
-                      >
-                        <div
-                          className="h-full rounded-full transition-all duration-300 bg-amber-500 dark:bg-amber-400"
-                          style={{
-                            width: `${Math.min(100, Math.max(item.serviceImpactPercentage > 0 ? 1 : 0, item.serviceImpactPercentage))}%`,
-                          }}
-                        />
-                      </div>
-
-                      {/* Symmetric Service Impact Ratio */}
-                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 pt-1 border-t border-black/[0.04] dark:border-white/[0.04] text-[11px]">
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-mono tabular-nums font-bold text-xs text-slate-900 dark:text-white leading-tight">
-                            <DisruptionDuration minutes={item.serviceImpactMinutes} />
-                          </span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans leading-tight mt-0.5">
-                            Alert Time
-                          </span>
-                        </div>
-                        <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 font-medium shrink-0 px-1 select-none">
-                          of
-                        </span>
-                        <div className="flex flex-col min-w-0 text-right">
-                          <span className="font-mono tabular-nums font-bold text-xs text-slate-900 dark:text-white leading-tight">
-                            <DisruptionDuration minutes={item.observedServiceMinutes} />
-                          </span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans leading-tight mt-0.5">
-                            Observed Service Time
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Tier 2 (v1 fallback): Disruption Volume & Turnaround */}
-                    <div className={`grid ${item.medianDurationMinutes != null ? "grid-cols-2" : "grid-cols-1"} gap-2 text-[11px]`}>
-                      <div className="flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0">
-                        <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
-                          Incident-Hours
-                        </span>
-                        <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
-                          <DisruptionDuration minutes={item.incidentDisruptionMinutes} />
-                        </strong>
-                        <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight" title="Sum of durations across all concurrent alerts">
-                          Overlapping alerts sum
-                        </span>
-                      </div>
-
-                      {item.medianDurationMinutes != null && (
-                        <div className="flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0">
-                          <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
-                            Median Completed Incident
-                          </span>
-                          <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
-                            <DisruptionDuration minutes={item.medianDurationMinutes} />
-                          </strong>
-                          <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight">
-                            Resolution turnaround
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })}
-
-          <AlertTypeBreakdownChart breakdown={reliability.breakdown} networkId={networkId} />
-        </div>
-
-        {networkId === "regional" && reliability.trainCancellations ? (
-          <>
-            <hr className="border-black/10 dark:border-white/10 my-2" />
-            <div className="flex flex-col gap-2 min-w-0">
-              <div className="min-w-0">
-                <h3 className="text-[15px] font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <TrainFront className="w-4 h-4 text-rose-500 shrink-0" />
-                  Train Cancellations · Last 30 Days
-                </h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 break-words">
-                  Source: Recorded GO Trip Changes · {reliability.trainCancellations.coveragePercentage.toFixed(1)}% polling coverage since tracking began · {formatReliabilityTitleCase(`${reliability.trainCancellations.confidence} confidence`)}
-                </p>
-              </div>
-
-              <div className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col gap-2 overflow-hidden">
-                <div className="flex items-center justify-between gap-3 min-w-0">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Distinct Cancelled Trains Observed</span>
-                  <strong className="font-mono tabular-nums text-base text-slate-900 dark:text-white shrink-0">
-                    {reliability.trainCancellations.cancellations}
-                  </strong>
-                </div>
-                <div className="grid grid-cols-2 gap-2 border-t border-black/[0.05] dark:border-white/[0.05] pt-2 text-[11px]">
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-slate-500 dark:text-slate-400">Exact Schedule Matches</span>
-                    <strong className="font-mono tabular-nums text-slate-800 dark:text-slate-200">
-                      {reliability.trainCancellations.scheduleMatchedCancellations}
-                    </strong>
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-slate-500 dark:text-slate-400">Source-Labeled Unmatched</span>
-                    <strong className="font-mono tabular-nums text-slate-800 dark:text-slate-200">
-                      {reliability.trainCancellations.sourceLabeledCancellations}
-                    </strong>
-                  </div>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 break-words leading-relaxed">
-                  {reliability.trainCancellations.message}
-                </p>
-              </div>
-
-              {reliability.trainCancellations.corridors.map((corridor) => {
-                const details = getMetricDetails(corridor.id, corridor.label);
-                const sourceLabeled = Math.max(0, corridor.cancellations - corridor.scheduleMatchedCancellations);
-                return (
-                  <div key={corridor.id} className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col gap-2 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2 min-w-0">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {details.icon}
-                        <strong className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                          {corridor.number ? `${corridor.number} · ` : ""}{details.label}
-                        </strong>
-                      </div>
-                      <strong className="font-mono tabular-nums text-sm text-slate-900 dark:text-white shrink-0">
-                        {corridor.cancellations}
-                      </strong>
-                    </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 pl-8">
-                      {corridor.scheduleMatchedCancellations} schedule matched{sourceLabeled > 0 ? ` · ${sourceLabeled} source-labeled unmatched` : ""}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        ) : null}
-
-        {networkId === "ttc" && <hr className="border-black/10 dark:border-white/10 my-2" />}
-
-        {networkId === "ttc" && (
-          <div className="flex flex-col gap-2">
-            <h3 className="text-[15px] font-black text-slate-900 dark:text-white">Official TTC Performance</h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Source: {ttcPerformance.source} · Updated: {ttcPerformance.updatedLabel}
-            </p>
-          </div>
-        )}
-
-        {networkId === "ttc" && (metrics.length === 0 ? (
-          <div className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5">
-            <strong className="text-sm font-bold text-slate-800 dark:text-white">Official Metrics Unavailable</strong>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{ttcPerformance.message}</p>
-          </div>
-        ) : (
-          <>
-            {onTimeMetrics.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <h3 className="text-[15px] font-black text-slate-900 dark:text-white mb-1">On-Time Performance</h3>
-                {onTimeMetrics.map(renderMetric)}
-              </div>
-            )}
-            
-            {onTimeMetrics.length > 0 && availabilityMetrics.length > 0 && (
-              <hr className="border-black/10 dark:border-white/10 my-2" />
-            )}
-
-            {availabilityMetrics.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <h3 className="text-[15px] font-black text-slate-900 dark:text-white mb-1">Availability</h3>
-                {availabilityMetrics.map(renderMetric)}
-              </div>
-            )}
-          </>
-        ))}
+        {/* Remounted per network, so one network's range is never shown under the other. */}
+        <ObservedDisruptions key={networkId} />
+        {networkId === "ttc" ? <OfficialPerformance /> : null}
       </div>
     </section>
   );

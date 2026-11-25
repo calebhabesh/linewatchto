@@ -122,7 +122,7 @@ export type IncidentRiderDetails = {
   publishedAt?: string | null;
   replacementService?: "go-bus" | "bus" | null;
   maximumDelayMinutes?: number | null;
-  /** GO/UP: the impact covers every segment of its line. */
+  /** The impact covers every segment of its line (GO/UP: from the backend; TTC: derived by the adapter). */
   wholeLine?: boolean | null;
   /** GO/UP: station names, in route order, that the replacement service does not serve. */
   replacementSkippedStations?: string[] | null;

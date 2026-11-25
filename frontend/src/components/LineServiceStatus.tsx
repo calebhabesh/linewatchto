@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react";
 import { Plus } from "lucide-react";
 import { SPINE_ATTRIBUTE } from "../hooks/useAdvisoryTrunkEnds";
 import { lineAdvisoryCountLabel, type LineStatusPresentation } from "../app/current-service";
+import { transitLineBadgeColors } from "./TransitLineBadge";
 
 function LineAdvisoryCount({ count }: { count: number }) {
   return (
@@ -11,10 +13,19 @@ function LineAdvisoryCount({ count }: { count: number }) {
   );
 }
 
-/** A line's spine to its advisory headings; useAdvisoryTrunkEnds draws the path. */
-export function AdvisorySpine() {
+/** Lines whose badge colour is under 3:1 on the dark panel; their dark-mode spine is lightened. */
+const DARK_LINE_IDS = new Set(["line-4", "regional-br", "regional-lw", "regional-st"]);
+
+/** A line's spine to its advisory headings, in its badge colour; useAdvisoryTrunkEnds draws the path. */
+export function AdvisorySpine({ lineId }: { lineId: string }) {
   return (
-    <svg className="advisory-spine" aria-hidden="true" {...{ [SPINE_ATTRIBUTE]: "" }}>
+    <svg
+      className="advisory-spine"
+      aria-hidden="true"
+      data-dark-line={DARK_LINE_IDS.has(lineId) ? "true" : undefined}
+      style={{ "--advisory-spine-color": transitLineBadgeColors(lineId).backgroundColor } as CSSProperties}
+      {...{ [SPINE_ATTRIBUTE]: "" }}
+    >
       <path />
     </svg>
   );

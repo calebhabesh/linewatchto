@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import type { CSSProperties } from "react";
 import styles from "./analytics.module.css";
 
 export type RankedBarItem = {
@@ -12,51 +12,49 @@ export type RankedBarItem = {
   value: number;
   valueText: string;
   detailText: string;
-  tone?: "stopped" | "delay" | "slow" | "accent" | "muted";
+  tone?: "stopped" | "delay" | "slow" | "planned" | "accent" | "muted";
   ariaLabel: string;
-  tooltip: React.ReactNode;
 };
 
+/** Columns that leave no part-filled row where the count allows it. */
+export function tileColumns(count: number): number {
+  return [4, 3, 2].find((columns) => count % columns === 0) ?? (count > 4 ? 3 : Math.max(1, count));
+}
+
 /**
- * Shared horizontal ranked bar list primitive (Breakdown by Kind/Cause, Hotspots).
- * Every row is a focusable button driving pointer/keyboard tooltips and episode drill-down.
+ * Shared horizontal ranked bar list primitive (Breakdown by Type/Cause, Hotspots).
+ * Each row states its own figures, so it has no hover readout; selecting one drills down.
  */
 export function RankedBarChart({
   accessibleName,
   items,
+  layout = "list",
   onSelect,
-  onActiveChange,
 }: {
   accessibleName: string;
   items: readonly RankedBarItem[];
+  /** On wide cards: two columns read downwards, or equal tiles in full rows. */
+  layout?: "list" | "columns" | "tiles";
   onSelect?: (item: RankedBarItem) => void;
-  onActiveChange?: (item: RankedBarItem | null) => void;
 }) {
-  const [activeId, setActiveId] = useState<string | null>(null);
   const max = items.reduce((highest, item) => Math.max(highest, item.value), 0) || 1;
 
-  function activate(item: RankedBarItem | null) {
-    setActiveId(item?.id ?? null);
-    onActiveChange?.(item);
-  }
-
   return (
-    <ul className={styles.rankedList} aria-label={accessibleName}>
+    <ul
+      className={styles.rankedList}
+      data-layout={layout}
+      style={{ "--ranked-rows": Math.ceil(items.length / 2), "--ranked-tiles": tileColumns(items.length) } as CSSProperties}
+      aria-label={accessibleName}
+    >
       {items.map((item) => {
         const pct = Math.max(0, Math.min(100, (item.value / max) * 100));
-        const active = activeId === item.id;
         return (
           <li key={item.id}>
             <button
               type="button"
               className={styles.rankedRow}
-              data-active={active || undefined}
               aria-label={item.ariaLabel}
               disabled={!onSelect}
-              onMouseEnter={() => activate(item)}
-              onMouseLeave={() => activate(null)}
-              onFocus={() => activate(item)}
-              onBlur={() => activate(null)}
               onClick={() => onSelect?.(item)}
             >
               <span className={styles.rankedTop}>
@@ -71,20 +69,11 @@ export function RankedBarChart({
                   <span>{item.detailText}</span>
                 </span>
               </span>
-              <svg className={styles.rankedBarSvg} viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true">
-                <rect x={0} y={0} width={100} height={8} rx={3} className={styles.rankedTrack} />
+              <span className={styles.rankedTrack} aria-hidden="true">
                 {pct > 0 ? (
-                  <rect
-                    x={0}
-                    y={0}
-                    width={Math.max(1.5, pct)}
-                    height={8}
-                    rx={3}
-                    className={styles.barSegment}
-                    data-tone={item.tone ?? "accent"}
-                  />
+                  <span className={styles.rankedFill} data-tone={item.tone ?? "accent"} style={{ width: `${Math.max(1, pct)}%` }} />
                 ) : null}
-              </svg>
+              </span>
             </button>
           </li>
         );

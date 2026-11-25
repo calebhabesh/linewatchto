@@ -412,10 +412,10 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /mobileStationInspectorOpen/);
   });
 
-  it("asserts those panels pass displayDirection", () => {
-    assert.match(activeAlertsSource, /direction=\{alert\.displayDirection\}/);
-    assert.match(delaysPanelSource, /direction=\{delay\.displayDirection\}/);
-    assert.match(plannedClosuresSource, /direction=\{closure\.displayDirection\}/);
+  it("asserts those panels pass the direction line", () => {
+    assert.match(activeAlertsSource, /direction=\{impactDirectionLabel\(alert\)\}/);
+    assert.match(delaysPanelSource, /direction=\{impactDirectionLabel\(delay\)\}/);
+    assert.match(plannedClosuresSource, /direction=\{impactDirectionLabel\(closure\)\}/);
   });
 
   it("draws route headers with the shared direction-aware station span", () => {

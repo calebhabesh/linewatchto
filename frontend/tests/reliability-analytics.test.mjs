@@ -22,6 +22,7 @@ import {
   segmentDates,
   showsSlowZones,
   sortAnalyticsRows,
+  shareScaleSteps,
 } from "../src/app/reliability-analytics.ts";
 import {
   demoAvailability,
@@ -277,5 +278,17 @@ describe("analytics A9 chart helpers", () => {
     assert.match(epPath, /from=2026-11-20&to=2026-11-20/);
     assert.match(epPath, /class=slow-zone/);
     assert.match(epPath, /sort=longest/);
+  });
+});
+
+describe("heatmap share scale", () => {
+  it("names the largest share of every colour step", () => {
+    const steps = shareScaleSteps(40);
+    assert.deepEqual(steps, [10, 20, 30, 40]);
+    steps.forEach((limit, index) => {
+      assert.equal(intensityLevel(limit, 40), index + 1);
+      if (index < 3) assert.equal(intensityLevel(limit + 0.1, 40), index + 2);
+    });
+    assert.deepEqual(shareScaleSteps(0), []);
   });
 });

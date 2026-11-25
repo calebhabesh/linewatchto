@@ -39,8 +39,10 @@ describe("release notes data", () => {
     const preview = releaseNotePreviewForVersion(packageJson.version);
 
     assert.equal(preview?.version, packageJson.version);
-    assert.equal(preview?.title, "Reliability Analytics over any range");
+    assert.equal(preview?.title, "Reliability Analytics starts collecting");
     assert.match(preview?.summary ?? "", /TTC and GO\/UP disruption history/);
+    // The ranges must not read as a claim that the history already exists.
+    assert.match(preview?.sections[0].items[0] ?? "", /only just begun/);
   });
 
   it("shows the one-time notice only until the current app version has been seen", () => {

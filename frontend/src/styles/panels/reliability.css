@@ -2,7 +2,7 @@
  * Reliability Analytics & Ingestion Health Panel Styles
  *
  * Covers reliability analytics dashboard panel container, metrics grid,
- * reliability rows, score tracks, and ingestion system health indicators.
+ * reliability cards, and ingestion system health indicators.
  */
 
 /* ==========================================================================
@@ -26,7 +26,7 @@
 }
 
 /* ==========================================================================
-   Reliability Rows, Copy & Score Tracks
+   Reliability Rows
    ========================================================================== */
 
 .reliability-row {
@@ -42,22 +42,612 @@
   width: 100%;
 }
 
-.reliability-copy strong,
-.reliability-copy span {
-  display: block;
+/* Alert-type and section icons on the analytics pages and in the submenu. */
+/* Centred on its row, so the text beside it can share one baseline. */
+.analytics-icon { align-self: center; display: inline-flex; flex: none; }
+.analytics-icon[data-class="service-stopped"] { color: var(--analytics-stopped, var(--reliability-stopped)); }
+.analytics-icon[data-class="delay"] { color: var(--analytics-delay, var(--reliability-delay)); }
+.analytics-icon[data-class="slow-zone"] { color: var(--analytics-slow, var(--reliability-slow)); }
+.analytics-icon[data-class="planned"] { color: var(--analytics-planned, var(--reliability-planned)); }
+
+/* ==========================================================================
+   Reliability Submenu
+   ========================================================================== */
+
+.analytics-panel {
+  --reliability-well: #f5f6f8;
+  --reliability-text: #0f172a;
+  --reliability-muted: #526077;
+  --reliability-line: rgba(15, 23, 42, 0.1);
+  --reliability-soft: rgba(15, 23, 42, 0.07);
+  --reliability-raised: #ffffff;
+  --reliability-footer: #eaecf0;
+  --reliability-tint-strength: 16%;
+  --reliability-tint-hover: 34%;
+  --reliability-accent: #7c3aed;
+  --reliability-stopped: #dc2626;
+  --reliability-delay: #ea580c;
+  --reliability-slow: #d97706;
+  --reliability-planned: #2563eb;
+  --reliability-active: #92400e;
 }
 
-.score-track {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
-  height: 9px;
-  overflow: hidden;
+.dark .analytics-panel {
+  --reliability-well: #161a22;
+  --reliability-text: #f8fafc;
+  --reliability-muted: #a3b0c4;
+  --reliability-line: rgba(255, 255, 255, 0.1);
+  --reliability-soft: rgba(255, 255, 255, 0.09);
+  --reliability-raised: #3a404c;
+  --reliability-footer: #1d222c;
+  --reliability-tint-strength: 20%;
+  --reliability-tint-hover: 40%;
+  --reliability-accent: #a78bfa;
+  --reliability-stopped: #f87171;
+  --reliability-delay: #fb923c;
+  --reliability-slow: #fbbf24;
+  --reliability-planned: #60a5fa;
+  --reliability-active: #fbbf24;
 }
 
-.score-track span {
-  background: linear-gradient(90deg, var(--warning), var(--ok));
+.high-contrast .analytics-panel {
+  --reliability-well: #000000;
+  --reliability-footer: #000000;
+  --reliability-text: #ffffff;
+  --reliability-muted: #ffffff;
+  --reliability-line: #ffffff;
+}
+
+.reliability-intro {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.reliability-intro h3 {
+  color: var(--reliability-text);
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.reliability-intro p { display: flex; flex-wrap: wrap; gap: 0 10px; }
+.reliability-intro p > span { align-items: baseline; display: inline-flex; gap: 4px; }
+.reliability-caption > span { align-items: baseline; display: inline-flex; gap: 5px; }
+.reliability-intro p strong { color: var(--reliability-text); font-weight: 750; }
+
+.reliability-intro p {
+  color: var(--reliability-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.reliability-open-analytics {
+  align-items: center;
+  background: var(--reliability-soft);
+  border-radius: 8px;
+  color: var(--reliability-text);
+  display: inline-flex;
+  flex: none;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 4px;
+  min-height: 40px;
+  padding: 0 8px 0 12px;
+  text-decoration: none;
+}
+
+.reliability-open-analytics:hover { background: color-mix(in srgb, var(--reliability-text) 16%, transparent); }
+
+.reliability-segments {
+  background: var(--reliability-soft);
+  border-radius: 8px;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+}
+
+.reliability-segments button {
+  border-radius: 6px;
+  color: var(--reliability-muted);
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 1 1 0;
+  font-size: 12px;
+  gap: 6px;
+  justify-content: center;
+  font-weight: 800;
+  min-height: 34px;
+  min-width: 0;
+  position: relative;
+}
+
+.reliability-segments button:hover { color: var(--reliability-text); }
+
+.reliability-segments button[aria-pressed="true"] {
+  background: var(--reliability-raised);
+  color: var(--reliability-text);
+}
+
+/* The range governs the whole panel, so it alone takes the accent. */
+.reliability-segments[data-emphasis] button[aria-pressed="true"] { background: var(--reliability-accent); color: #ffffff; }
+.dark .reliability-segments[data-emphasis] button[aria-pressed="true"] { color: #140a2a; }
+
+/* How much of a preset has been recorded; empty once the range is full. */
+.reliability-segment-fill {
+  bottom: 3px;
+  height: 3px;
+  left: 20%;
+  position: absolute;
+  right: 20%;
+}
+
+.reliability-segment-fill:not(:empty) {
+  background: color-mix(in srgb, currentColor 24%, transparent);
+  border-radius: 2px;
+}
+
+.reliability-segment-fill > span {
+  background: currentColor;
+  border-radius: 2px;
   display: block;
   height: 100%;
+  min-width: 3px;
+}
+
+.reliability-notice-banner {
+  align-items: flex-start;
+  background: var(--reliability-well);
+  border-radius: 8px;
+  color: var(--reliability-muted);
+  display: flex;
+  font-size: 11.5px;
+  gap: 8px;
+  line-height: 1.45;
+  padding: 9px 11px;
+}
+
+.reliability-notice-banner > svg { color: var(--reliability-accent); flex: none; margin-top: 1px; }
+.reliability-notice-banner p { flex: 1; min-width: 0; }
+.reliability-notice-banner strong { color: var(--reliability-text); font-weight: 800; }
+
+.reliability-insight-message button {
+  color: inherit;
+  cursor: pointer;
+  flex: none;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.reliability-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: opacity 120ms ease-out;
+}
+
+.reliability-cards[data-loading] { opacity: 0.55; }
+
+/* One neutral surface; a route shows as its badge and a soft tint behind its name.
+   Not clipped: the sidebar's height-limited grid would collapse a clipped card. */
+.reliability-card {
+  background: var(--reliability-well);
+  border-radius: 8px;
+  color: var(--reliability-text);
+  min-width: 0;
+}
+
+.reliability-card[data-tinted] .reliability-card-heading {
+  border-radius: 8px 8px 0 0;
+  background: color-mix(in srgb, var(--reliability-tint) var(--reliability-tint-strength), var(--reliability-well));
+}
+
+/* The route colour deepens and the arrow steps forward: the whole header is the link. */
+a.reliability-card-heading { transition: background-color 120ms ease-out; }
+a.reliability-card-heading > svg { transition: color 120ms ease-out, transform 120ms ease-out; }
+.reliability-card[data-tinted] a.reliability-card-heading:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--reliability-tint) var(--reliability-tint-hover), var(--reliability-well));
+}
+a.reliability-card-heading:is(:hover, :focus-visible) > svg { color: var(--reliability-text); transform: translateX(3px); }
+a.reliability-card-heading:is(:hover, :focus-visible) .reliability-card-meta { color: var(--reliability-text); }
+
+.reliability-card-heading {
+  align-content: center;
+  align-items: baseline;
+  color: inherit;
+  display: grid;
+  grid-auto-flow: column;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 42px;
+  padding: 0 12px;
+  text-decoration: none;
+}
+
+.analytics-panel :is(a, button, summary, [tabindex]):focus-visible { outline: 2px solid var(--reliability-text); outline-offset: 1px; }
+.reliability-card-heading:focus-visible { outline-color: currentColor; outline-offset: -3px; }
+.reliability-card-heading > svg { flex: none; }
+
+/* Padded to the badge's height, so the shared baseline leaves the name level with it. */
+.reliability-card-heading h4 {
+  padding-block: 4px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.reliability-card-icon { display: inline-flex; flex: none; }
+.reliability-card:not([data-tinted]) .reliability-card-body { padding-top: 0; }
+.reliability-card:not([data-tinted]) .reliability-card-icon { color: var(--reliability-muted); }
+
+.reliability-card-heading > svg,
+.reliability-card-icon { align-self: center; }
+.reliability-card-heading > svg { color: var(--reliability-muted); }
+
+.reliability-card-meta {
+  align-items: baseline;
+  color: var(--reliability-muted);
+  display: flex;
+  flex: none;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  gap: 7px;
+}
+
+.reliability-cards > .reliability-row { background: var(--reliability-well); border-color: transparent; font-size: 12px; gap: 2px; padding: 12px; }
+.reliability-cards > .reliability-row strong { font-size: 14px; font-weight: 800; }
+.reliability-cards > .reliability-row p { color: var(--reliability-muted); }
+
+.reliability-card-active {
+  background: color-mix(in srgb, var(--reliability-slow) 18%, transparent);
+  border-radius: 4px;
+  color: var(--reliability-active);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 1px 6px;
+}
+
+.reliability-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px 12px;
+}
+
+.reliability-caption {
+  color: var(--reliability-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 11px;
+  gap: 0 10px;
+  justify-content: space-between;
+  line-height: 1.35;
+}
+
+.reliability-caption > :first-child { color: var(--reliability-text); font-weight: 750; }
+
+.reliability-classes {
+  display: grid;
+  gap: 6px 12px;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+}
+
+.reliability-classes li {
+  align-items: baseline;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.reliability-class-label { align-items: baseline; column-gap: 4px; display: flex; flex-wrap: wrap; font-size: 11px; font-weight: 700; line-height: 1.2; }
+.reliability-class-label small { color: var(--reliability-muted); font-size: 10.5px; font-weight: 600; white-space: nowrap; }
+.reliability-classes strong { font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 800; line-height: 1.2; }
+
+.reliability-track {
+  background: var(--reliability-soft);
+  border-radius: 2px;
+  display: block;
+  grid-column: 1 / -1;
+  height: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.reliability-track > span {
+  background: var(--reliability-accent);
+  display: block;
+  height: 100%;
+  width: var(--reliability-share, 0%);
+}
+
+.analytics-panel [data-tone="stopped"] { background: var(--reliability-stopped); }
+.analytics-panel [data-tone="delay"] { background: var(--reliability-delay); }
+.analytics-panel [data-tone="slow"] { background: var(--reliability-slow); }
+
+/* Labels start level and figures end level, whatever wraps between them. */
+.reliability-stats {
+  display: grid;
+  gap: 10px 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* A line's figures close its card on a second tone instead of under a rule. */
+.reliability-card[data-tinted] .reliability-stats {
+  background: var(--reliability-footer);
+  border-radius: 0 0 8px 8px;
+  margin: 2px -12px -12px;
+  padding: 10px 12px 12px;
+}
+
+.high-contrast .reliability-card[data-tinted] .reliability-stats { border-top: 1px solid #ffffff; }
+
+.reliability-stats > div {
+  border-left: 1px solid var(--reliability-line);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0 8px;
+}
+
+.reliability-stats > div:first-child { border-left: 0; padding-left: 0; }
+.reliability-stats dt { align-items: flex-start; display: flex; gap: 5px; color: var(--reliability-muted); font-size: 10.5px; font-weight: 700; line-height: 1.25; }
+.reliability-stats dt > .analytics-icon { align-self: flex-start; }
+.reliability-stats dd { margin-top: auto; padding-top: 5px; }
+.reliability-stats dd strong { display: block; font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 800; line-height: 1.25; }
+.reliability-stats dd small { color: var(--reliability-muted); display: block; font-size: 10.5px; line-height: 1.3; }
+.reliability-stats dd strong small { font-size: 11px; font-weight: 600; white-space: nowrap; }
+.reliability-kpis dd strong { font-size: 18px; line-height: 1.15; }
+.reliability-kpis dd > small { min-height: 2.6em; }
+
+.reliability-insights {
+  border-top: 1px solid var(--reliability-line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.reliability-insight {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: flex-end;
+  min-height: 172px;
+}
+
+.reliability-insight-loading {
+  background: var(--reliability-soft);
+  border-radius: 6px;
+  flex: 1;
+}
+
+.reliability-insight-message {
+  align-items: center;
+  color: var(--reliability-muted);
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 8px;
+  justify-content: center;
+  text-align: center;
+}
+
+.reliability-chart-axis {
+  color: var(--reliability-muted);
+  display: flex;
+  font-size: 10.5px;
+  justify-content: space-between;
+}
+
+.reliability-chart-axis--hours { padding-left: 30px; }
+.reliability-chart-axis--hours > span { flex: 1; }
+
+.reliability-chart-readout {
+  color: var(--reliability-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.reliability-chart-readout strong { color: var(--reliability-text); font-weight: 750; }
+.reliability-insight > .reliability-chart-readout { min-height: 1.4em; }
+.reliability-legend { display: flex; flex-wrap: wrap; gap: 0 12px; }
+.reliability-legend > span { align-items: baseline; display: inline-flex; gap: 5px; }
+.reliability-legend i { align-self: center; border-radius: 2px; height: 9px; width: 9px; }
+.reliability-legend .analytics-icon { margin-right: -1px; }
+.reliability-legend i[data-gap] { box-shadow: inset 0 0 0 1px var(--reliability-muted); }
+
+.reliability-trend {
+  border-bottom: 1px solid var(--reliability-line);
+  display: flex;
+  flex: 1;
+  gap: 1px;
+  min-height: 92px;
+  padding-top: 15px;
+  position: relative;
+}
+
+.reliability-trend-peak {
+  color: var(--reliability-muted);
+  font-size: 10.5px;
+  left: 0;
+  line-height: 1;
+  position: absolute;
+  top: 0;
+}
+
+.reliability-trend-bar {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column-reverse;
+  min-width: 0;
+}
+
+.reliability-trend-bar > span { min-height: 1px; }
+.reliability-trend-bar > span:last-child { border-radius: 2px 2px 0 0; }
+.reliability-trend-bar[data-active] { background: var(--reliability-soft); }
+.reliability-trend-bar[data-today] { outline: 1.5px dashed var(--reliability-muted); outline-offset: -1px; }
+
+.reliability-trend-bar[data-gap],
+.reliability-legend i[data-gap],
+.reliability-heat-cell[data-level="none"] {
+  background: repeating-linear-gradient(135deg, var(--reliability-soft) 0 2px, transparent 2px 5px);
+}
+
+.reliability-heat {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  grid-template-columns: 28px repeat(24, minmax(0, 1fr));
+  grid-template-rows: repeat(7, minmax(13px, 1fr));
+}
+
+.reliability-heat-day { align-self: center; color: var(--reliability-muted); font-size: 10px; grid-column: 1; line-height: 1; }
+.reliability-heat-cell { background: var(--reliability-soft); border-radius: 2px; }
+.reliability-heat-cell[data-level="1"] { background: color-mix(in srgb, var(--reliability-accent) 30%, var(--reliability-well)); }
+.reliability-heat-cell[data-level="2"] { background: color-mix(in srgb, var(--reliability-accent) 52%, var(--reliability-well)); }
+.reliability-heat-cell[data-level="3"] { background: color-mix(in srgb, var(--reliability-accent) 76%, var(--reliability-well)); }
+.reliability-heat-cell[data-level="4"] { background: var(--reliability-accent); }
+.reliability-heat-cell[data-active] { outline: 2px solid var(--reliability-text); }
+
+.reliability-hotspots { display: flex; flex: 1; flex-direction: column; gap: 5px; }
+
+.reliability-hotspots li {
+  align-items: baseline;
+  display: grid;
+  font-size: 12px;
+  font-weight: 650;
+  gap: 2px 8px;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+}
+
+.reliability-hotspots li > :first-child { align-self: center; }
+.reliability-hotspots strong { font-variant-numeric: tabular-nums; font-weight: 800; }
+.reliability-hotspots .reliability-track { grid-column: 2 / -1; height: 4px; }
+
+.reliability-kinds { display: flex; flex: 1; flex-direction: column; gap: 8px; }
+.reliability-kinds-bar { background: var(--reliability-soft); border-radius: 4px; display: flex; gap: 1px; height: 14px; overflow: hidden; }
+.reliability-kinds-bar > span { min-width: 3px; }
+.reliability-kinds ul { display: flex; flex-direction: column; gap: 5px; margin-top: auto; }
+
+.reliability-kinds li {
+  align-items: baseline;
+  display: grid;
+  font-size: 12px;
+  gap: 0 7px;
+  grid-template-columns: 16px minmax(0, 1fr) auto 46px;
+}
+
+.reliability-kinds li > .analytics-icon { align-self: center; }
+.reliability-kinds-label { font-weight: 750; }
+.reliability-kinds-label small { color: var(--reliability-muted); display: block; font-size: 10px; font-weight: 500; line-height: 1.2; }
+.reliability-kinds-detail { color: var(--reliability-muted); font-size: 11px; }
+.reliability-kinds li strong { text-align: right; font-variant-numeric: tabular-nums; font-weight: 800; }
+
+/* Rows are told apart by space; only the totals are ruled off. */
+.reliability-cancellations { border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; width: 100%; }
+.reliability-cancellations :is(th, td) { line-height: 1; padding: 8px 0; text-align: right; vertical-align: baseline; white-space: nowrap; width: 68px; }
+.reliability-cancellations :is(th, td):first-child { text-align: left; width: auto; }
+.reliability-cancellations :is(th, td):last-child { width: 48px; }
+.reliability-cancellations thead :is(th, td) { color: var(--reliability-muted); font-size: 10.5px; font-weight: 700; padding-block: 4px 6px; }
+.reliability-cancellations tbody th { font-weight: 700; }
+.reliability-cancellations tbody th > span { align-items: baseline; display: flex; gap: 9px; }
+.reliability-cancellations tbody th > span > :first-child { align-self: center; margin-block: -4px; }
+.reliability-cancellations td { color: var(--reliability-muted); font-weight: 600; }
+.reliability-cancellations td:last-child { color: var(--reliability-text); font-weight: 800; }
+.reliability-cancellations tbody::after { content: ""; display: block; height: 5px; }
+.reliability-cancellations tfoot :is(th, td) { border-top: 1px solid var(--reliability-line); color: var(--reliability-text); font-weight: 800; padding-top: 12px; }
+.reliability-cancellations :is(th, td).reliability-cancellations-bar { padding-left: 14px; width: 42%; }
+.reliability-cancellations td.reliability-cancellations-bar { vertical-align: middle; }
+.reliability-cancellations-bar > span { display: flex; gap: 1px; height: 6px; }
+.reliability-cancellations-bar i { background: var(--reliability-muted); border-radius: 2px; }
+.reliability-cancellations-bar i[data-unmatched] { opacity: 0.4; }
+
+.reliability-official { display: flex; flex-direction: column; gap: 9px; }
+.reliability-official + .reliability-official { border-top: 1px solid var(--reliability-line); padding-top: 10px; }
+.reliability-official h5 { align-items: center; display: flex; gap: 7px; font-size: 13px; font-weight: 800; }
+
+.reliability-official-row {
+  align-items: baseline;
+  display: grid;
+  gap: 3px 8px;
+  grid-template-columns: 24px minmax(0, 1fr) auto auto;
+}
+
+.reliability-official-row > :first-child { align-self: center; justify-self: center; }
+.reliability-official-row > strong { font-size: 12.5px; font-weight: 700; }
+.reliability-official-row > span:not(.reliability-track) { color: var(--reliability-muted); font-size: 10.5px; }
+.reliability-official-row > b { font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 800; min-width: 38px; text-align: right; }
+.reliability-official-row .reliability-track { grid-column: 2 / -1; }
+
+.reliability-track--official { border-radius: 3px; height: 8px; }
+.reliability-track--official > span { background: linear-gradient(to right in oklab, #f59e0b, #22c55e); }
+
+.reliability-track--official[style]::after {
+  background: var(--reliability-text);
+  content: "";
+  inset: 0 auto 0 var(--reliability-target);
+  position: absolute;
+  transform: translateX(-50%);
+  width: 3px;
+}
+
+.reliability-method { color: var(--reliability-muted); font-size: 11.5px; line-height: 1.5; }
+
+.reliability-method summary {
+  align-items: center;
+  color: var(--reliability-text);
+  cursor: pointer;
+  display: flex;
+  font-size: 12px;
+  font-weight: 750;
+  gap: 7px;
+  list-style: none;
+  min-height: 40px;
+  padding-right: 10px;
+}
+
+.reliability-method summary::-webkit-details-marker { display: none; }
+.reliability-method summary > :last-child { margin-left: auto; }
+.reliability-method[open] summary > :last-child { transform: rotate(180deg); }
+.reliability-method p + p { margin-top: 6px; }
+.reliability-method strong { color: var(--reliability-text); font-weight: 750; }
+
+.motion-paused :is(.reliability-cards, a.reliability-card-heading, a.reliability-card-heading > svg) { transition: none; }
+
+.high-contrast .reliability-card,
+.high-contrast .reliability-notice-banner,
+.high-contrast .reliability-segments { border: 1px solid #ffffff; }
+.high-contrast .reliability-card[data-tinted] .reliability-card-heading { background: #000000; border-bottom: 1px solid #ffffff; }
+.high-contrast .reliability-card[data-tinted] a.reliability-card-heading:is(:hover, :focus-visible) { background: #2b2b2b; }
+.high-contrast .reliability-segments button[aria-pressed="true"] { background: #ffffff; color: #000000; }
+
+@media (max-width: 479px) {
+  .reliability-intro { align-items: stretch; flex-direction: column; gap: 8px; }
+  .reliability-open-analytics { justify-content: center; }
+  .reliability-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .reliability-stats > div:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .reliability-kpis dd > small { min-height: 0; }
+  .reliability-classes { grid-auto-flow: row; }
+  .reliability-insight { min-height: 198px; }
+  .reliability-kinds li { grid-template-columns: 16px minmax(0, 1fr) auto; }
+  .reliability-kinds-detail { grid-column: 2; grid-row: 2; }
+  .reliability-insight > .reliability-chart-readout { min-height: 2.8em; }
+  .reliability-cancellations-bar { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reliability-cards,
+  a.reliability-card-heading,
+  a.reliability-card-heading > svg { transition: none; }
 }
 
 /* ==========================================================================
@@ -113,9 +703,5 @@
 @media (max-width: 900px) {
   .reliability-row {
     grid-template-columns: auto minmax(0, 1fr) auto;
-  }
-
-  .score-track {
-    grid-column: 1 / -1;
   }
 }

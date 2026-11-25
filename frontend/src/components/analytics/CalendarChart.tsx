@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useElementSize } from "../../hooks/useElementSize";
 import { DAY_OF_WEEK_LABELS, intensityLevel } from "../../app/reliability-analytics";
 import { TransitLineBadge } from "../TransitLineBadge";
 import styles from "./analytics.module.css";
@@ -26,18 +27,22 @@ export type CalendarLineRow = {
 
 const MONTH_FORMAT = new Intl.DateTimeFormat("en-CA", { month: "short", timeZone: "UTC" });
 
+/** At least 5%, so a quiet range does not paint small shares at full strength. */
+export function calendarScaleMax(rows: readonly CalendarLineRow[]): number {
+  return Math.max(5, ...rows.flatMap((row) => row.days.map((day) => day.sharePercentage ?? 0)));
+}
+
 /**
  * Shared SVG per-line calendar strip primitive.
  * Renders each line as a compact 7-row (Mon-Sun) week-column grid.
  * Coverage gaps are hatched, no-service days are dotted outlines, Today So Far is ringed,
- * and impact intensity uses both fill and proportional inner square size.
+ * and impact is four fill steps, named by ShareScale and stated in every day's label.
  */
 export function CalendarChart({
   accessibleName,
   rows,
   weekCount,
   monthLabels,
-  tone = "accent",
   onSelect,
   onActiveChange,
 }: {
@@ -45,26 +50,31 @@ export function CalendarChart({
   rows: readonly CalendarLineRow[];
   weekCount: number;
   monthLabels: readonly { weekIndex: number; label: string }[];
-  tone?: "accent" | "stopped" | "delay" | "slow";
   onSelect?: (lineId: string, cell: CalendarDayCell) => void;
   onActiveChange?: (active: { lineLabel: string; cell: CalendarDayCell } | null) => void;
 }) {
   const uid = useId().replace(/:/g, "");
   const [activeKey, setActiveKey] = useState<string | null>(null);
 
-  const maxShare = rows.reduce(
-    (max, row) => row.days.reduce((m, d) => (d.sharePercentage !== null ? Math.max(m, d.sharePercentage) : m), max),
-    0,
-  );
-  const scaleMax = Math.max(5, maxShare);
+  const scaleMax = calendarScaleMax(rows);
 
-  const cellSize = 13;
+  const [sizeRef, size] = useElementSize();
+  const weeks = Math.max(1, weekCount);
   const gap = 3;
-  const padLeft = 30;
+  const padLeft = 22;
   const padTop = 18;
-  const padRight = 8;
+  const padRight = 2;
+  // As many equal columns as leave no row part-filled; long ranges take the full width each.
+  const available = size.width || 680;
+  const columns = weeks > 16 ? 1
+    : available < 560 ? Math.min(2, rows.length)
+      : [8, 5, 4, 2, 1].find((count) => rows.length % count === 0 && available / count >= 170) ?? 1;
+  const columnGap = 20;
+  const columnWidth = (available - columnGap * (columns - 1)) / columns;
+  const cellWidth = Math.min(64, Math.max(11, (columnWidth - padLeft - padRight + gap) / weeks - gap));
+  const cellSize = Math.min(22, cellWidth);
   const padBottom = 6;
-  const svgWidth = padLeft + Math.max(1, weekCount) * (cellSize + gap) - gap + padRight;
+  const svgWidth = padLeft + weeks * (cellWidth + gap) - gap + padRight;
   const svgHeight = padTop + 7 * (cellSize + gap) - gap + padBottom;
 
   function activate(line: CalendarLineRow | null, cell: CalendarDayCell | null) {
@@ -73,7 +83,12 @@ export function CalendarChart({
   }
 
   return (
-    <div className={styles.calendarStack} data-compact={weekCount <= 16 || undefined} aria-label={accessibleName}>
+    <div
+      ref={sizeRef}
+      className={styles.calendarStack}
+      style={{ gridTemplateColumns: `repeat(${Math.max(1, columns)}, minmax(0, 1fr))`, columnGap }}
+      aria-label={accessibleName}
+    >
       {rows.map((row) => (
         <div key={row.lineId} className={styles.calendarRow}>
           <div className={styles.calendarLineHeader}>
@@ -99,7 +114,7 @@ export function CalendarChart({
               {monthLabels.map((m) => (
                 <text
                   key={`${m.weekIndex}-${m.label}`}
-                  x={padLeft + m.weekIndex * (cellSize + gap)}
+                  x={padLeft + m.weekIndex * (cellWidth + gap)}
                   y={12}
                   className={styles.chartAxisText}
                 >
@@ -120,14 +135,13 @@ export function CalendarChart({
               ))}
 
               {row.days.map((cell) => {
-                const x = padLeft + cell.weekIndex * (cellSize + gap);
+                const x = padLeft + cell.weekIndex * (cellWidth + gap);
                 const y = padTop + cell.weekday * (cellSize + gap);
                 const key = `${row.lineId}-${cell.date}`;
                 const level = cell.state === "observed" && cell.sharePercentage !== null
                   ? intensityLevel(cell.sharePercentage, scaleMax)
                   : 0;
                 const clickable = Boolean(onSelect && cell.state === "observed");
-                const innerSize = level === 0 ? 0 : 2 + level * 1.5;
 
                 return (
                   <g
@@ -153,7 +167,7 @@ export function CalendarChart({
                     <rect
                       x={x}
                       y={y}
-                      width={cellSize}
+                      width={cellWidth}
                       height={cellSize}
                       rx={2.5}
                       className={cell.state === "observed" ? styles.heatCell : undefined}
@@ -167,21 +181,8 @@ export function CalendarChart({
                             : undefined}
                       strokeWidth={cell.today ? 1.8 : cell.state !== "observed" ? 1 : 0}
                       strokeDasharray={cell.state === "no-service" ? "2 1.5" : undefined}
-                      data-tone={tone}
                       data-level={level}
                     />
-                    {cell.state === "observed" && innerSize > 0 ? (
-                      <rect
-                        x={x + (cellSize - innerSize) / 2}
-                        y={y + (cellSize - innerSize) / 2}
-                        width={innerSize}
-                        height={innerSize}
-                        rx={1}
-                        className={styles.heatDot}
-                        data-level={level}
-                        pointerEvents="none"
-                      />
-                    ) : null}
                   </g>
                 );
               })}

@@ -1,5 +1,6 @@
 import { PLANNED_CLOSURE_IN_EFFECT, serviceEffectLabel } from "./alert-categories.ts";
 import { suppliedAlertCause } from "./alert-cause.ts";
+import { impactDirectionLabel } from "./entire-line.ts";
 import { formatCompactDuration } from "./impact-time.ts";
 import type { ActiveAlert, DelayAlert, IncidentRiderDetails, ImpactKind, LineStatus, PlannedClosure, ReducedSpeedZone } from "./linewatch-data.ts";
 import { upcomingCountdown } from "./planned-advisory-status.ts";
@@ -150,7 +151,7 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
     timing: planned ? windowTime(closure?.activeWindowEnd, now, true) : undefined,
     timingTarget: planned ? closure?.activeWindowEnd : undefined,
     location: alert.location || alert.title,
-    direction: alert.displayDirection, shuttle: alert.shuttle,
+    direction: impactDirectionLabel(alert), shuttle: alert.shuttle,
     ...incidentRiderDetails(alert),
     postedAt: planned ? undefined : unplannedPostedAt(alert, data.networkId),
     priority: alert.severity === "delay" ? 1 : 0,
@@ -164,7 +165,7 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
       condition: delay.serviceEffect === "limited-service" ? "Limited Service" : "Delays",
       timing,
       timingTarget: delay.activeWindowEnd ?? closure?.activeWindowEnd,
-      location: delay.location || delay.title, direction: delay.displayDirection, shuttle: !!delay.shuttle,
+      location: delay.location || delay.title, direction: impactDirectionLabel(delay), shuttle: !!delay.shuttle,
       priority: 1, ...incidentRiderDetails(delay),
       // One time anchor per card: a scheduled end outranks the posting time.
       postedAt: timing || delay.relatedPlannedClosureId ? undefined : unplannedPostedAt(delay, data.networkId) });
@@ -193,7 +194,7 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
       timing: windowTime(active ? closure.nextWindowEnd : closure.nextWindowStart, now, active),
       timingTarget: active ? closure.nextWindowEnd : closure.nextWindowStart,
       location: closure.location || closure.title,
-      direction: closure.displayDirection,
+      direction: impactDirectionLabel(closure),
       ...incidentRiderDetails(closure),
       shuttle: closure.shuttle,
       notStarted: !active,
@@ -447,4 +448,57 @@ export function getLineStatusPresentation(
     isNormal: true,
     hasRsz: false,
   };
+}
+
+/** Remaining lines: reported disruption, upcoming work, slow zones, status not known, then normal. */
+function remainingLineRank(presentation: LineStatusPresentation, upcoming: PlannedClosure[]): number {
+  if (presentation.state === "suspension") return 0;
+  if (presentation.state === "delay") return 1;
+  if (upcoming.length > 0) return 2;
+  if (presentation.hasRsz) return 3;
+  return presentation.isNormal ? 5 : 4;
+}
+
+/** When a line's first dated upcoming work starts; undated work follows dated work. */
+function firstUpcomingStart(upcoming: PlannedClosure[]): number {
+  return Math.min(...upcoming.map((closure) => {
+    const start = Date.parse(closure.nextWindowStart || "");
+    return Number.isFinite(start) ? start : Number.MAX_SAFE_INTEGER;
+  }), Number.MAX_SAFE_INTEGER);
+}
+
+/**
+ * Current Service's lines, most pressing first, for TTC and GO/UP alike. `affected` lines have an
+ * incident card, ranked by their worst one: no service or a closure in effect, delays, then work
+ * starting within 24 hours. `remaining` lines follow: upcoming work (soonest first), Reduced Speed
+ * Zones only, status not known, and normal service last. Ties keep the network's line order, so
+ * polling never moves a line whose service has not changed.
+ */
+export function currentServiceLineGroups(
+  data: CurrentServiceData,
+  summary: ReturnType<typeof currentServiceSummary>,
+) {
+  const lines = data.lineStatuses.map((line) => ({
+    line,
+    rows: summary.rows.filter((row) => row.lineId === line.id),
+    upcoming: summary.upcoming.filter((closure) => closure.lineId === line.id),
+  }));
+  // Rows are sorted by priority, so a line's first row is its worst. Array sorts are stable.
+  const affected = lines
+    .filter(({ rows }) => rows.length > 0)
+    .map((item) => ({
+      ...item,
+      rszCount: countReducedSpeedZones((data.reducedSpeedZones ?? []).filter((zone) => zone.lineId === item.line.id)),
+    }))
+    .sort((a, b) => a.rows[0].priority - b.rows[0].priority);
+  const remaining = lines
+    .filter(({ rows }) => rows.length === 0)
+    .map(({ line, upcoming }) => ({
+      line,
+      upcoming,
+      presentation: withUpcomingListedSeparately(getLineStatusPresentation(line, data, summary)),
+    }))
+    .sort((a, b) => remainingLineRank(a.presentation, a.upcoming) - remainingLineRank(b.presentation, b.upcoming)
+      || firstUpcomingStart(a.upcoming) - firstUpcomingStart(b.upcoming));
+  return { affected, remaining };
 }

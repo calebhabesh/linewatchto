@@ -132,7 +132,7 @@ test("opens network-scoped reliability from both methodology guides", async ({ p
     await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", destination.network);
     await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-active-view", "analytics");
     await expect(page.getByRole("region", { name: "Reliability Analytics" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Open Analytics" })).toHaveAttribute("href", destination.analytics);
+    await expect(page.getByRole("link", { name: "Full Analytics Page" })).toHaveAttribute("href", destination.analytics);
   }
 });
 

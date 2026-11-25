@@ -17,6 +17,7 @@ import {
 } from "../../app/reliability-analytics";
 import { TransitLineBadge } from "../TransitLineBadge";
 import { ChangeText } from "./AnalyticsKpis";
+import { ClassIcon } from "./AnalyticsIcons";
 import styles from "./analytics.module.css";
 
 type Column = {
@@ -121,7 +122,7 @@ export function AnalyticsTable({
     return (
       <th key={key} scope="col" aria-sort={active ? (sort.descending ? "descending" : "ascending") : "none"}>
         <button type="button" title={title} onClick={() => toggle(key)}>
-          {swatch ? <span className={styles.swatch} data-class={swatch} aria-hidden="true" /> : null}
+          {swatch ? <ClassIcon id={swatch} size={14} /> : null}
           <span>{label}</span>
           <Icon size={13} aria-hidden="true" data-active={active || undefined} />
         </button>

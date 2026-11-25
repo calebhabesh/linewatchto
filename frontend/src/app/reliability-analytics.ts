@@ -489,7 +489,7 @@ export function analyticsKpis(
       label: "Delay Incidents",
       value: observed ? (delays?.incidents ?? 0).toLocaleString("en-CA") : "—",
       unit: null,
-      detail: observed ? `${totals.incidents.toLocaleString("en-CA")} incidents of every kind` : "No covered service",
+      detail: observed ? `${totals.incidents.toLocaleString("en-CA")} incidents of every type` : "No covered service",
       change: delays && delaysBefore
         ? signed(delays.incidents - delaysBefore.incidents, 0, (value) => value.toLocaleString("en-CA"))
         : null,
@@ -712,6 +712,11 @@ export function formatCauseLabel(cause: string): string {
 }
 
 /** Maps a share or ratio (0..max) into 5 discrete intensity levels (0 = none, 1..4 = rising). */
+/** The largest share in each colour step of a heatmap, matching `intensityLevel`; none when nothing was affected. */
+export function shareScaleSteps(max: number): number[] {
+  return max > 0 ? [0.25, 0.5, 0.75, 1].map((part) => max * part) : [];
+}
+
 export function intensityLevel(value: number, max: number): 0 | 1 | 2 | 3 | 4 {
   if (value <= 0 || max <= 0) return 0;
   const ratio = value / max;

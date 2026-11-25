@@ -31,12 +31,16 @@ import {
 } from "../../app/reliability-range";
 import { useAnalyticsResource } from "../../hooks/useAnalyticsResource";
 import { TransitLineBadge } from "../TransitLineBadge";
-import { CalendarChart, calendarGridDates, type CalendarDayCell, type CalendarLineRow } from "./CalendarChart";
+import { CalendarChart, calendarScaleMax, calendarGridDates, type CalendarDayCell, type CalendarLineRow } from "./CalendarChart";
+import { ClassIcon } from "./AnalyticsIcons";
 import { ChartDataTable, ChartFrame, useInView } from "./ChartFrame";
 import { StackedBarChart, type StackedBarItem, type StackedBarSegment } from "./StackedBarChart";
 import { slowZoneDayCount } from "./TrendAndBreakdownModules";
+import { ShareScale } from "./ShareScale";
 import styles from "./analytics.module.css";
 
+/** The rest are in the episode list, one press away. */
+const LONGEST_SHOWN = 4;
 type DemoModule = typeof import("../../app/reliability-analytics-fixture");
 type CalendarClassOption = "all" | DisruptionClassId;
 
@@ -173,7 +177,7 @@ export function SlowZonesModule({
       subtitle={`Distinct Reduced Speed Zones active per ${granularity} during observed service, and the longest-running zones in this range.`}
       legend={(
         <ul className={styles.legendList}>
-          <li><span className={styles.legendSwatch} data-tone="slow" data-pattern="dots" />Active Slow Zones</li>
+          <li><span className={styles.legendSwatch} data-tone="slow" data-pattern="dots" /><ClassIcon id="slow-zone" />Active Slow Zones</li>
           <li><span className={styles.legendSwatch} data-tone="gap" />Coverage Gap</li>
           <li><span className={styles.legendSwatch} data-tone="today" />Today So Far</li>
         </ul>
@@ -185,7 +189,7 @@ export function SlowZonesModule({
       error={seriesRes.error}
       onRetry={() => { seriesRes.retry(); longestRes.retry(); }}
       empty={seen && !seriesRes.loading && !seriesRes.error && buckets.length === 0}
-      footer={seen && !longestRes.loading && longest.length > 0 ? (
+      aside={seen && !longestRes.loading && longest.length > 0 ? (
         <div className={styles.subList}>
           <div className={styles.subListHeader}>
             <h3>Longest-Running Slow Zones in Range</h3>
@@ -198,12 +202,12 @@ export function SlowZonesModule({
             </button>
           </div>
           <ol className={styles.slowZoneList}>
-            {longest.map((ep) => (
+            {longest.slice(0, LONGEST_SHOWN).map((ep) => (
               <li key={ep.id}>
                 <div className={styles.slowZoneMain}>
                   <TransitLineBadge lineId={ep.lineId} lineNumber={ep.lineNumber ?? undefined} size={22} decorative />
                   <div>
-                    <p className={styles.episodeTitle}>{ep.title}</p>
+                    <p className={styles.slowZoneTitle} title={ep.title}>{ep.title}</p>
                     <p className={styles.episodeMeta}>
                       Opened {formatServiceDate(ep.openedAt.slice(0, 10))}
                       {ep.active ? " · Still Active" : ep.closedAt ? ` · Cleared ${formatServiceDate(ep.closedAt.slice(0, 10))}` : ""}
@@ -220,6 +224,7 @@ export function SlowZonesModule({
       <StackedBarChart
         accessibleName={`Active TTC slow zones per ${granularity}`}
         items={items}
+        fill
         unitLabel="Active Zones"
         formatAxis={(v) => String(Math.round(v))}
         onActiveChange={setActive}
@@ -541,9 +546,6 @@ export function CalendarModule({
     return { calendarRows: rows, weekCount: grid.weekCount, monthLabels: grid.monthLabels };
   }, [buckets, lines, query.line, networkId, activeClass]);
 
-  const tone = activeClass === "service-stopped" ? "stopped"
-    : activeClass === "delay" ? "delay"
-      : activeClass === "slow-zone" ? "slow" : "accent";
 
   const table = (
     <ChartDataTable
@@ -593,20 +595,17 @@ export function CalendarModule({
               aria-pressed={activeClass === opt.value}
               onClick={() => setSelectedClass(opt.value)}
             >
-              {opt.label}
+              <ClassIcon id={opt.value} size={13} plain />{opt.label}
             </button>
           ))}
         </div>
       )}
       legend={(
-        <ul className={styles.legendList}>
-          <li><span className={styles.legendSwatch} data-tone="level-0" />0%</li>
-          <li><span className={styles.legendSwatch} data-tone="level-2" />Moderate</li>
-          <li><span className={styles.legendSwatch} data-tone="level-4" />High Share</li>
+        <ShareScale max={calendarScaleMax(calendarRows)}>
           <li><span className={styles.legendSwatch} data-tone="gap" />Coverage Gap</li>
           <li><span className={styles.legendSwatch} data-tone="no-service" />No Service</li>
           <li><span className={styles.legendSwatch} data-tone="today" />Today So Far</li>
-        </ul>
+        </ShareScale>
       )}
       readout={active?.cell.tooltip}
       defaultReadout="Hover or focus any day cell for details; select an observed day to filter episodes on that line."
@@ -622,7 +621,6 @@ export function CalendarModule({
         rows={calendarRows}
         weekCount={weekCount}
         monthLabels={monthLabels}
-        tone={tone}
         onActiveChange={setActive}
         onSelect={(lineId, cell) => onDrilldown({
           from: cell.date,

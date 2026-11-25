@@ -1,4 +1,5 @@
 import { ALERT_CATEGORIES } from "./alert-categories.ts";
+import { impactDirectionLabel } from "./entire-line.ts";
 import type {
   ActiveAlert,
   DelayAlert,
@@ -174,6 +175,7 @@ export function searchDashboardImpacts(
       if (stationName) relatedStationNames.push(stationName);
     }
 
+    const directionLabel = impactDirectionLabel(impact);
     const searchableFields = [
       category.label,
       category.singularLabel,
@@ -185,6 +187,7 @@ export function searchDashboardImpacts(
       impact.location,
       impact.description,
       impact.displayDirection,
+      directionLabel,
       impact.cause,
       "reason" in impact ? impact.reason : null,
       "window" in impact ? impact.window : null,
@@ -206,7 +209,7 @@ export function searchDashboardImpacts(
       title: impact.title,
       location: impact.location,
       description: impact.description,
-      displayDirection: impact.displayDirection,
+      displayDirection: directionLabel,
       updatedAt: impact.updatedAt,
       activeNow: "activeNow" in impact ? impact.activeNow : undefined,
       shuttle: "shuttle" in impact ? impact.shuttle : undefined,

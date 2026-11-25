@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useElementSize } from "../../hooks/useElementSize";
 import type { AnalyticsDurationBucket } from "../../app/reliability-analytics";
 import styles from "./analytics.module.css";
 
@@ -15,15 +16,11 @@ export type HistogramSelection = {
 export function HistogramChart({
   accessibleName,
   buckets,
-  medianMinutes,
-  p90Minutes,
   onSelect,
   onActiveChange,
 }: {
   accessibleName: string;
   buckets: readonly AnalyticsDurationBucket[];
-  medianMinutes: number | null;
-  p90Minutes: number | null;
   onSelect?: (selection: HistogramSelection) => void;
   onActiveChange?: (selection: HistogramSelection | null) => void;
 }) {
@@ -31,22 +28,19 @@ export function HistogramChart({
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const maxVal = buckets.reduce((max, b) => Math.max(max, b.unplanned, b.planned), 0) || 1;
 
-  const height = 236;
-  const padTop = 38;
+  const [sizeRef, size] = useElementSize();
+  const height = Math.max(220, size.height);
+  const padTop = 42;
   const padBottom = 34;
   const padLeft = 44;
-  const padRight = 14;
+  const padRight = 4;
   const plotHeight = height - padTop - padBottom;
-  const groupW = 86;
-  const barW = 28;
+  const count = Math.max(1, buckets.length);
+  const plotWidth = Math.max(count * 60, (size.width || 560) - padLeft - padRight);
+  const groupW = plotWidth / count;
   const innerGap = 6;
-  const plotWidth = Math.max(360, buckets.length * groupW);
+  const barW = Math.min(40, Math.floor((groupW - innerGap) * 0.38));
   const width = padLeft + plotWidth + padRight;
-
-  function bucketMatches(bucket: AnalyticsDurationBucket, value: number | null): boolean {
-    if (value === null) return false;
-    return value >= bucket.minMinutes && (bucket.maxMinutes === null || value <= bucket.maxMinutes);
-  }
 
   function activate(sel: HistogramSelection | null) {
     setActiveKey(sel ? `${sel.bucket.id}-${sel.planned}` : null);
@@ -54,7 +48,7 @@ export function HistogramChart({
   }
 
   return (
-    <div className={styles.chartScroll} tabIndex={0} role="region" aria-label={`${accessibleName} Chart`}>
+    <div ref={sizeRef} className={styles.chartScroll} data-fill="true" tabIndex={0} role="region" aria-label={`${accessibleName} Chart`}>
       <svg
         className={styles.chartSvg}
         width={width}
@@ -82,16 +76,13 @@ export function HistogramChart({
           );
         })}
 
-        <text x={padLeft} y={12} className={styles.chartAxisUnit}>Cleared Episodes</text>
+        <text x={0} y={12} className={styles.chartAxisUnit}>Cleared Episodes</text>
 
         {buckets.map((bucket, idx) => {
           const groupX = padLeft + idx * groupW;
           const startX = groupX + (groupW - (barW * 2 + innerGap)) / 2;
           const uH = bucket.unplanned > 0 ? Math.max(3, (bucket.unplanned / maxVal) * plotHeight) : 0;
           const pH = bucket.planned > 0 ? Math.max(3, (bucket.planned / maxVal) * plotHeight) : 0;
-          const hasMedian = bucketMatches(bucket, medianMinutes);
-          const hasP90 = bucketMatches(bucket, p90Minutes);
-          const markerText = hasMedian && hasP90 ? "Med · P90" : hasMedian ? "Median" : hasP90 ? "P90" : null;
 
           const bars = [
             { planned: false, count: bucket.unplanned, x: startX, h: uH, label: "Unplanned" },
@@ -100,12 +91,6 @@ export function HistogramChart({
 
           return (
             <g key={bucket.id}>
-              {markerText ? (
-                <text x={groupX + groupW / 2} y={24} textAnchor="middle" className={styles.chartMarkerTag}>
-                  {markerText}
-                </text>
-              ) : null}
-
               {bars.map((bar) => {
                 const key = `${bucket.id}-${bar.planned}`;
                 const clickable = Boolean(onSelect && bar.count > 0);

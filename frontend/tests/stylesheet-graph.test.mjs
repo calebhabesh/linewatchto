@@ -899,8 +899,7 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.analytics-panel/);
     assert.match(content, /\.health-panel/);
     assert.match(content, /\.reliability-row/);
-    assert.match(content, /\.reliability-copy/);
-    assert.match(content, /\.score-track/);
+    assert.match(content, /\.reliability-card/);
     assert.match(content, /\.health-grid/);
     assert.match(content, /\.health-item/);
     assert.match(content, /@media \(max-width: 1180px\)/);

@@ -677,22 +677,13 @@ export type RegionalDashboardApiResponse = {
   incidentDetails?: Record<string, import("./linewatch-data").IncidentRiderDetails>;
 };
 
-/**
- * Adds published rider facts to an impact. A whole-line impact's heading names the line's
- * terminals like any span, so its direction line also says "Entire Line".
- */
-export function withIncidentDetails<T extends { displayDirection?: string | null }>(
+/** Adds published rider facts to an impact. Cards add "Entire Line" (`impactDirectionLabel`). */
+export function withIncidentDetails<T>(
   impact: T,
   details: import("./linewatch-data").IncidentRiderDetails | undefined,
 ): T & import("./linewatch-data").IncidentRiderDetails {
-  if (!details) return impact;
-  const direction = details.wholeLine
-    ? [ENTIRE_LINE_LABEL, impact.displayDirection?.trim()].filter(Boolean).join(" · ")
-    : impact.displayDirection;
-  return { ...impact, ...details, displayDirection: direction };
+  return { ...impact, ...details };
 }
-
-export const ENTIRE_LINE_LABEL = "Entire Line";
 
 export function regionalDashboardDataFromApi(
   payload: RegionalDashboardApiResponse,

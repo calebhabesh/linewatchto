@@ -22,17 +22,17 @@ export const releaseNotes: ReleaseNote[] = [
   {
     version: "1.4.0",
     releasedAt: "2026-11-24",
-    title: "Reliability Analytics over any range",
-    summary: "Explore TTC and GO/UP disruption history over any date range with station-weighted classes, charts, drill-down, and CSV export.",
+    title: "Reliability Analytics starts collecting",
+    summary: "LineWatchTO has begun recording TTC and GO/UP disruption history. The sample is small for now, and gets more useful as it grows.",
     announceOnLaunch: true,
     sections: [
       {
         title: "Highlights",
         items: [
-          "Open the new TTC and GO/UP Analytics pages for 30-day, 90-day, 6-month, year-to-date, 12-month, all-history, or custom date ranges, with line and station filters and previous-period comparisons.",
-          "Disruptions are grouped into Service Stopped, Delays, and Slow Zones weighted by the share of scheduled stations affected, while keeping Time With Any Alert alongside Service-Stopped Hours.",
-          "Explore trends, kinds and TTC causes, time-to-clear histograms, hour-of-week heatmaps, station hotspots, TTC Slow Zones, GO/UP train cancellations, daily calendars, counted episodes, and CSV exports, each with a table view and explicit polling and schedule coverage gaps.",
-          "The dashboard's Reliability panel now covers the last 30 Toronto service dates including today so far and links directly to the full analytics pages.",
+          "Data collection has only just begun. The 30-day, 90-day, 6-month, year-to-date, and 12-month ranges are ready, but each shows only the days recorded so far until there is enough history to fill it.",
+          "The Reliability Analytics panel has its own range picker, key figures, daily trend, time-of-day, station, and alert-type views, with a card for each line in its own colour.",
+          "The full TTC and GO/UP Analytics pages add custom dates, line and station filters, comparisons, charts, counted episodes, and CSV exports, with polling and schedule gaps shown.",
+          "Disruptions are grouped into Service Stopped, Delays, and Slow Zones, weighted by the share of scheduled stations affected. Time With Any Alert and Service-Stopped Hours stay alongside.",
         ],
       },
     ],
