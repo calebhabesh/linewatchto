@@ -2,6 +2,8 @@
 
 const frontendUrl = process.env.LINEWATCH_DEPLOY_FRONTEND_URL;
 const backendUrl = process.env.LINEWATCH_DEPLOY_BACKEND_URL;
+// Optional: the full Git SHA that should now be live.
+const expectedSha = process.env.LINEWATCH_DEPLOY_EXPECTED_SHA;
 const requestTimeoutMs = Number(process.env.LINEWATCH_DEPLOY_REQUEST_TIMEOUT_MS || 10000);
 
 if (!frontendUrl || !backendUrl) {
@@ -36,6 +38,9 @@ async function checkHtml(label, url, expectedText) {
 }
 
 await checkJson("frontend health", `${frontendUrl}/healthz`, body => body.service === "linewatch-frontend" && body.status === "ok");
+if (expectedSha) {
+  await checkJson("live release", `${frontendUrl}/version.json`, body => body.buildLabel === `prod-${expectedSha.slice(0, 12)}`);
+}
 await checkJson("backend health", `${backendUrl}/api/health`, body => body.status === "ok");
 await checkJson("ingestion health", `${backendUrl}/api/health/ingestion`, body => typeof body.status === "string" && typeof body.dashboardLive === "boolean");
 await checkJson("schedule health", `${backendUrl}/api/health/schedule`, body => typeof body.status === "string" && typeof body.scheduleActive === "boolean" && Object.hasOwn(body, "serviceDaysRemaining") && Object.hasOwn(body, "refreshStatus") && Object.hasOwn(body, "refreshStartedAt") && Object.hasOwn(body, "refreshCompletedAt") && Object.hasOwn(body, "refreshErrorMessage"));

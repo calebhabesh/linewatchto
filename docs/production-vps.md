@@ -76,7 +76,7 @@ alloy: 512 MB, only when the observability profile is enabled
 
 The backend JVM heap remains capped separately by `JAVA_TOOL_OPTIONS=-Xmx4g`; the backend container limit includes JVM native memory, metaspace, thread stacks, and process overhead. The caps intentionally leave several GB for Ubuntu, Docker, kernel memory, filesystem cache, deploys, backups, and temporary burst overhead.
 
-Production application images are built by the successful `main` CI run on a native ARM64 GitHub runner and published to GHCR. The CI run records each image's registry digest. The manual GitHub Actions deployment button selects those exact digests through `.env.release`; the VPS never runs `docker compose build` or `up --build`.
+Production application images are built by the successful `main` CI run on a native ARM64 GitHub runner and published to GHCR. The CI run records each image's registry digest. The **Deploy Production** workflow, started automatically by that CI run or by hand, selects those exact digests through `.env.release`; the VPS never runs `docker compose build` or `up --build`.
 
 The production PostGIS image is built from `infra/postgres/Dockerfile`, which extends the official multi-architecture `postgres:17-bookworm` image. The official `postgis/postgis` image used for local development does not publish an ARM64 manifest for the selected tag.
 
@@ -190,11 +190,36 @@ docker pull ghcr.io/calebhabesh/linewatch-postgres:<full-git-sha>
 
 ### Deploy through GitHub Actions
 
-1. Push the commit to `main` and wait for the **CI** workflow to pass.
-2. CI builds and publishes the three ARM64 images under that full SHA, checks the frontend image, and saves their digests in the run's release artifact.
-3. In GitHub, open **Actions → Deploy Production → Run workflow**, select `main`, and leave `sha` blank to deploy the selected main commit. Enter a previous full SHA to redeploy an older release.
+Merging or pushing to `main` deploys to production. No one has to press a button:
 
-The deploy workflow checks the latest main-push CI result for that SHA, downloads its digest artifact, and verifies all three images still exist for the selected commit. It then connects to the VPS, locks the release, fetches the commit, runs `prod-backup-postgres.sh`, checks out the commit, and runs `prod-deploy.sh` with the pinned digests. GitHub Actions executes the public HTTP smoke check afterward. A failed backup stops before checkout and deployment. The workflow fails if the public smoke check fails; it does not automatically roll back after the release file has been promoted.
+1. **CI** runs on the pushed commit. When it passes, it builds and publishes the ARM64 images under that full SHA, checks them, and saves their digests in the run's release artifact.
+2. The finished CI run starts **Deploy Production**. `scripts/prod-select-auto-release.sh` reads the live release from `https://linewatchto.ca/version.json` and picks the newest commit on `main` that is newer than it and has passed CI.
+3. That commit is backed up, deployed and smoke-checked as described below. The run's summary says what was deployed, or why it was skipped.
+
+An automatic run skips when:
+
+- CI failed, or the run was for a pull request.
+- Nothing newer than the live release has passed CI. CI runs can finish out of order; an older commit never replaces a newer one.
+- Only `docs/`, `.github/`, tests or Markdown changed since the live release. A deploy recreates the containers, PostgreSQL included, and shows riders the update banner. The comparison is with the live release, so code from an earlier commit whose CI failed still ships with the next green commit, even a docs one.
+- Automatic deploys are paused.
+
+An automatic run fails, and deploys nothing, when the live release cannot be read. If the site is down, deploy by hand.
+
+Anything a release needs on the VPS (a new `.env.production` value, an external volume, a reinstalled deploy gate) must be in place **before** it is merged.
+
+To deploy by hand, open **Actions → Deploy Production → Run workflow**, select `main`, and leave `sha` blank to deploy the selected main commit. Enter a full SHA to deploy another commit on `main`. A manual run skips none of the CI or digest checks, but ignores the pause and the skip rules.
+
+#### Pause and roll back
+
+There is no automatic rollback. A failed deploy or smoke check leaves the run red; GitHub notifies whoever triggered it according to their notification settings. To roll back:
+
+1. Pause automatic deploys, so the next green commit does not undo the rollback: `gh variable set PRODUCTION_DEPLOY_PAUSED --body true` (a **repository** variable; an environment variable has no effect).
+2. Check Flyway compatibility, then run Deploy Production by hand with the last good full SHA.
+3. After the fix is on `main`, resume with `gh variable delete PRODUCTION_DEPLOY_PAUSED`. Resuming deploys nothing by itself: the next green CI run on `main` does, or run the workflow by hand.
+
+#### What the workflow does
+
+The deploy workflow checks the latest main-push CI result for that SHA, downloads its digest artifact, and verifies all three images still exist for the selected commit. It also checks out that commit, so the smoke check matches the release. It then connects to the VPS, locks the release, fetches the commit, runs `prod-backup-postgres.sh`, checks out the commit, and runs `prod-deploy.sh` with the pinned digests. GitHub Actions executes the public HTTP smoke check afterward, which also confirms that the live build is the deployed commit. A failed backup stops before checkout and deployment. The workflow fails if the public smoke check fails; it does not automatically roll back after the release file has been promoted.
 
 For commits made **before** CI image publication, the deploy workflow can verify and recover digests from the older SHA tags, but the older checkout's Compose configuration deploys by tag. Digest-pinned deployment applies to releases containing the new Compose and deployment scripts. For CI-built commits, a missing or expired release artifact stops deployment by default. In a recovery case, select **Recover digests from SHA tags** on the button; this verifies the image revision labels and pins the current tag digests, but cannot prove they are the same digests originally recorded by CI. GitHub Actions artifacts have a configurable retention period; retain the artifact for the rollback window you need. [GitHub artifact retention](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts)
 
