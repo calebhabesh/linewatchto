@@ -44,6 +44,9 @@ const MAP_SELECTION_INTRO_LIMIT_MS = 15_000;
  * cutting it short. With nothing animating (reduced motion, mobile
  * performance mode) it ends after `MAP_SELECTION_INTRO_MS`. Returns whether
  * the intro has finished; `onComplete` runs once when it does.
+ *
+ * A map that mounts with a selection `introduced` elsewhere (the Map View, before
+ * a switch) plays no intro for it: it breathes from the start.
  */
 export function useMapSelectionIntro(
   key: string | null,
@@ -53,8 +56,10 @@ export function useMapSelectionIntro(
   scope = ".map-selection-attention",
   /** When the intro starts (document timeline ms), or null when nothing animates. */
   onStart?: (startTime: number | null) => void,
+  introduced = false,
 ): boolean {
-  const [completedKey, setCompletedKey] = useState<string | null>(null);
+  const [completedKey, setCompletedKey] = useState(introduced ? key : null);
+  const introducedKeyRef = useRef(introduced ? key : null);
   const onCompleteRef = useRef(onComplete);
   const onStartRef = useRef(onStart);
   useEffect(() => {
@@ -62,7 +67,9 @@ export function useMapSelectionIntro(
     onStartRef.current = onStart;
   }, [onComplete, onStart]);
   useEffect(() => {
-    if (!key) return;
+    // Moving on forgets it, so selecting it again plays its intro.
+    if (introducedKeyRef.current !== key) introducedKeyRef.current = null;
+    if (!key || introducedKeyRef.current === key) return;
     let done = false;
     const complete = () => {
       if (done) return;

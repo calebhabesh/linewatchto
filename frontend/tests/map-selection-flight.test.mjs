@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  cameraRestsAt,
   createDeferredSelectionFlight,
   paddingBeyondHeld,
   selectionFlightDuration,
@@ -38,6 +39,21 @@ describe("selectionFlightDuration", () => {
     assert.ok(selectionFlightDuration(1, 0) > selectionFlightDuration(0.2, 0));
     assert.ok(selectionFlightDuration(0.2, 2) > selectionFlightDuration(0.2, 0));
     assert.equal(selectionFlightDuration(0.2, -2), selectionFlightDuration(0.2, 2));
+  });
+});
+
+describe("cameraRestsAt", () => {
+  const map = { isMoving: () => false, getZoom: () => 14, project: () => ({ x: 400, y: 300 }) };
+  const target = { coordinate: [-79.4, 43.7], at: { x: 400.4, y: 300.4 }, zoom: 14 };
+
+  it("needs no flight to where the camera already is", () => {
+    assert.equal(cameraRestsAt(map, target), true);
+  });
+
+  it("flies for a visible move, a zoom, or out of a move under way", () => {
+    assert.equal(cameraRestsAt(map, { ...target, at: { x: 403, y: 300 } }), false);
+    assert.equal(cameraRestsAt(map, { ...target, zoom: 14.1 }), false);
+    assert.equal(cameraRestsAt({ ...map, isMoving: () => true }, target), false);
   });
 });
 

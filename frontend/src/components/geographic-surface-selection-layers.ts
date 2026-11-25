@@ -42,6 +42,7 @@ const ROUTE_GLOW_WIDTHS = [[9, 13], [14, 24], [17, 36]] as const;
 const ROUTE_GLOW_OPACITY = 0.55;
 const STOP_RING_RADII = [[10, 7], [15, 9], [19, 11]] as const;
 const STOP_RING_WIDTH = 4;
+const NO_TRANSITION = { duration: 0, delay: 0 };
 
 function widthsAtZoom(stops: ReadonlyArray<readonly [number, number]>, multiplier = 1) {
   return ["interpolate", ["linear"], ["zoom"], ...stops.flatMap(([zoom, width]) => [zoom, width * multiplier])];
@@ -234,6 +235,8 @@ export function applySurfaceSelectionLayers(
           "line-color": line.color,
           "line-width": line.width as never,
           ...(line.opacity !== undefined ? { "line-opacity": line.opacity } : {}),
+          // The flash is written every frame, without MapLibre's default 300 ms transition.
+          "line-opacity-transition": NO_TRANSITION,
           ...(line.blur ? { "line-blur": line.blur as never } : {}),
           ...(line.dash ? { "line-dasharray": line.dash } : {}),
         },
@@ -262,6 +265,7 @@ export function applySurfaceSelectionLayers(
         "circle-opacity": 0,
         "circle-stroke-color": SELECTION_BAND,
         "circle-stroke-width": STOP_RING_WIDTH,
+        "circle-stroke-opacity-transition": NO_TRANSITION,
       },
     }, before);
   }
@@ -303,7 +307,7 @@ export function applySurfaceSelectionLayers(
       source: target.stopSource!,
       filter,
       layout: pillLayout(SELECTED_STOP_OUTLINE_IMAGE),
-      paint: { "text-opacity": 0 },
+      paint: { "text-opacity": 0, "icon-opacity-transition": NO_TRANSITION },
     }, before);
   }
   if (map.getLayer(ids.stops)) map.setFilter(ids.stops, filter);
@@ -443,6 +447,7 @@ export function applySurfaceStretchLayers(
         "line-color": SELECTION_GLOW,
         "line-width": widthsAtZoom(STRETCH_WIDTHS, 2) as never,
         "line-opacity": STRETCH_GLOW_OPACITY,
+        "line-opacity-transition": NO_TRANSITION,
         "line-blur": widthsAtZoom(STRETCH_WIDTHS, 0.8) as never,
       },
     }, before);

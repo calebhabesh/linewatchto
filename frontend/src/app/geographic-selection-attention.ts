@@ -1,11 +1,15 @@
 /**
  * Pure selection-attention controller for the geographic map.
  * Implements the system-map attention cadence:
- * - 2s intro: it eases in from what was drawn, flashes three times (peaks at
+ * - 2s intro: it eases in from nothing, flashes three times (peaks at
  *   0.5s, 1.1s and 1.7s) at a constant width, and the last flash falls fully
  *   before the breathe eases up from that trough
  * - 1.2s alternate breathe afterwards
- * - Static legible halo during the selection's camera flight and in fallback modes
+ * - Straight to the breathe for a selection already introduced on the System Map
+ *   (a view switch)
+ * - Nothing drawn during the selection's camera flight: the flash fades in once
+ *   the camera lands (docs/map-renderer-parity.md rule 15)
+ * - Static legible halo in fallback modes
  * - Keeps its cadence through user pans and zooms, as the System Map's pulses
  *   do (docs/map-renderer-parity.md rule 6), so a gesture never restarts it
  * - Cancellable on unmount, selection change, or style reload
@@ -31,8 +35,10 @@ interface SelectionAttentionRequest {
   kind?: string;
   generation: number;
   hasCameraFlight?: boolean;
-  /** Linked planned/current hop: keep the running cadence instead of replaying the intro. */
+  /** Linked planned/current hop: keep the running cadence, through any flight, instead of replaying the intro. */
   continueAttention?: boolean;
+  /** The rider has already seen its intro, on the System Map they switched from. */
+  introduced?: boolean;
 }
 
 export const ATTENTION_INTRO_DURATION_MS = 2000;
@@ -48,10 +54,11 @@ const ATTENTION_TROUGH_WIDTH_MULTIPLIER = 1.0;
 const ATTENTION_BREATHE_HIGH_WIDTH_MULTIPLIER = 1.0;
 
 export const ATTENTION_STATIC_OPACITY = 0.90;
+export const ATTENTION_FLIGHT_OPACITY = 0;
 export const ATTENTION_STATIC_WIDTH_MULTIPLIER = 1.0;
 
 /**
- * The intro's keyframes after its start (the System Map's
+ * The intro's keyframes after its start, which is nothing (the System Map's
  * map-selection-path-intro): three full flashes at the breathe's starting
  * width, ending on the trough the breathe starts from.
  */
@@ -67,12 +74,9 @@ const ATTENTION_INTRO_KEYFRAMES = [
 /** Every step eases in and out, so the first flash starts gently. */
 const easeInOut = (t: number) => 0.5 - 0.5 * Math.cos(t * Math.PI);
 
-/** Opacity and width `elapsed` ms into the intro, starting from what was drawn. */
-export function attentionIntroValues(
-  elapsed: number,
-  start: { opacity: number; width: number },
-): { opacity: number; width: number } {
-  let from = { at: 0, opacity: start.opacity, width: start.width };
+/** Opacity and width `elapsed` ms into the intro. */
+export function attentionIntroValues(elapsed: number): { opacity: number; width: number } {
+  let from = { at: 0, opacity: 0, width: ATTENTION_TROUGH_WIDTH_MULTIPLIER };
   for (const to of ATTENTION_INTRO_KEYFRAMES) {
     if (elapsed < to.at) {
       const progress = (elapsed - from.at) / (to.at - from.at);
@@ -93,9 +97,6 @@ export class GeographicSelectionAttention {
   private currentGeneration = 0;
   private startTime = 0;
   private breatheBaseTime = 0;
-  private flightResumesBreathe = false;
-  /** What the intro eases in from: nothing for a new overlay, the flight's halo after a flight. */
-  private introStart = { opacity: 0, width: ATTENTION_TROUGH_WIDTH_MULTIPLIER };
 
   public getState(): SelectionAttentionState {
     return this.state;
@@ -143,19 +144,20 @@ export class GeographicSelectionAttention {
       && (this.state === "intro" || this.state === "breathe")) {
       this.currentSelectionId = request.id;
       this.currentGeneration = request.generation;
-      if (request.hasCameraFlight) {
-        this.state = "camera-flight";
-        this.flightResumesBreathe = true;
-      }
       return this.computeFrame(now);
     }
 
     this.currentSelectionId = request.id;
     this.currentGeneration = request.generation;
-    this.flightResumesBreathe = false;
 
     if (staticFallback) {
       this.state = "static-fallback";
+      return this.computeFrame(now);
+    }
+
+    if (request.introduced) {
+      this.state = "breathe";
+      this.breatheBaseTime = now;
       return this.computeFrame(now);
     }
 
@@ -166,7 +168,6 @@ export class GeographicSelectionAttention {
 
     this.state = "intro";
     this.startTime = now;
-    this.introStart = { opacity: 0, width: ATTENTION_TROUGH_WIDTH_MULTIPLIER };
     return this.computeFrame(now);
   }
 
@@ -179,16 +180,8 @@ export class GeographicSelectionAttention {
     now: number = typeof performance !== "undefined" ? performance.now() : 0,
   ): SelectionAttentionFrame {
     if (this.state === "camera-flight" && flightGeneration === this.currentGeneration) {
-      if (this.flightResumesBreathe) {
-        this.state = "breathe";
-        this.breatheBaseTime = now;
-      } else {
-        this.state = "intro";
-        this.startTime = now;
-        // The halo was drawn still through the flight; ease on from it.
-        this.introStart = { opacity: ATTENTION_STATIC_OPACITY, width: ATTENTION_STATIC_WIDTH_MULTIPLIER };
-      }
-      this.flightResumesBreathe = false;
+      this.state = "intro";
+      this.startTime = now;
     }
     return this.computeFrame(now);
   }
@@ -211,7 +204,7 @@ export class GeographicSelectionAttention {
       case "camera-flight":
       case "static-fallback":
         return {
-          opacity: ATTENTION_STATIC_OPACITY,
+          opacity: this.state === "camera-flight" ? ATTENTION_FLIGHT_OPACITY : ATTENTION_STATIC_OPACITY,
           widthMultiplier: ATTENTION_STATIC_WIDTH_MULTIPLIER,
           state: this.state,
           active: false,
@@ -226,7 +219,7 @@ export class GeographicSelectionAttention {
           return this.computeFrame(now);
         }
 
-        const { opacity, width: widthMultiplier } = attentionIntroValues(elapsed, this.introStart);
+        const { opacity, width: widthMultiplier } = attentionIntroValues(elapsed);
 
         return {
           opacity: Number(opacity.toFixed(3)),
@@ -265,6 +258,5 @@ export class GeographicSelectionAttention {
     this.currentGeneration = 0;
     this.startTime = 0;
     this.breatheBaseTime = 0;
-    this.flightResumesBreathe = false;
   }
 }

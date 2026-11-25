@@ -17,6 +17,8 @@ type Padding = { top: number; bottom: number; left: number; right: number };
 const SHORTEST_FLIGHT_MS = 700;
 const LONGEST_FLIGHT_MS = 1400;
 const FLIGHT_MS_PER_STEP = 250;
+const REST_DISTANCE_PX = 1;
+const REST_ZOOM_TOLERANCE = 0.002;
 /** MapLibre's default is 1.42; less of a zoom-out means fewer tile levels on the way. */
 const FLIGHT_CURVE = 1.2;
 
@@ -60,6 +62,33 @@ export function paddingBeyondHeld(wanted: Padding, held: PaddingOptions): Paddin
     left: Math.max(0, wanted.left - (held.left ?? 0)),
     right: Math.max(0, wanted.right - (held.right ?? 0)),
   };
+}
+
+/**
+ * Whether the camera already rests here, as the System Map's camera decides
+ * (usePanZoom `animateTransformTo`): a flight that would not move anything only
+ * delays the selection's flash.
+ */
+export function cameraRestsAt(
+  map: Pick<MapLibreMap, "isMoving" | "getZoom" | "project">,
+  target: { coordinate: LngLatLike; at: { x: number; y: number }; zoom: number },
+): boolean {
+  if (map.isMoving() || Math.abs(map.getZoom() - target.zoom) > REST_ZOOM_TOLERANCE) return false;
+  const point = map.project(target.coordinate);
+  return Math.hypot(point.x - target.at.x, point.y - target.at.y) < REST_DISTANCE_PX;
+}
+
+/** Whether these bounds are already framed. */
+export function selectionBoundsFramed(
+  map: MapLibreMap,
+  bounds: [[number, number], [number, number]],
+  options: { padding: Padding; maxZoom: number },
+): boolean {
+  const camera = map.cameraForBounds(bounds, {
+    padding: paddingBeyondHeld(options.padding, map.getPadding()), maxZoom: options.maxZoom,
+  });
+  return Boolean(camera?.center && camera.zoom !== undefined)
+    && cameraRestsAt(map, { coordinate: camera!.center!, at: map.project(map.getCenter()), zoom: camera!.zoom! });
 }
 
 /** Frames these bounds with a selection flight, or at once for reduced motion. */

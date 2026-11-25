@@ -670,7 +670,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(framingSource, /x: rect\.left - viewportRect\.left/);
     assert.match(framingSource, /const fitScale = defaultTransformForViewport\(logicalWidth, logicalHeight\)\.scale \|\| 1;/);
     assert.match(framingSource, /const SELECTED_STATION_ZOOM = \{ mobile: 3\.8, desktop: 1\.8 \} as const;/);
-    assert.match(framingSource, /animateTransformTo\(\{ x: focusX - mapX \* scale, y: focusY - mapY \* scale, scale \}, fitScale\);/);
+    assert.match(framingSource, /animateTransformTo\(\{ x: focusX - mapX \* scale, y: focusY - mapY \* scale, scale \}, fitScale, !inPlace\);/);
     assert.match(hookSource, /animateTransformTo\(\{ x: newX, y: newY, scale: targetAbsoluteScale \}, currentFitScale\);/);
     assert.match(hookSource, /animateTransformTo\(\{[\s\S]*scale: targetAbsoluteScale,[\s\S]*\}, currentFitScale\);/);
   });

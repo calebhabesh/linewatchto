@@ -136,6 +136,14 @@ export type SystemMapProps = {
   selectionAttentionGeneration?: number;
   /** Shared intro key; linked planned/current hops keep it so the map keeps breathing. */
   selectionIntroKey?: string | null;
+  /**
+   * The rider already had this selection on the Map View when they switched to
+   * this map (NetworkMap): it is framed without motion, and pulses without the
+   * fast flash. Until the selection changes.
+   */
+  inheritsSelection?: boolean;
+  /** A switch between the System Map and the Map View is in progress. */
+  viewSwitching?: boolean;
 };
 
 const NO_TRAIN_MARKERS: EstimatedTrainMarker[] = [];
@@ -211,6 +219,8 @@ function SystemMapComponent({
   onMapViewChange,
   selectionAttentionGeneration = 0,
   selectionIntroKey: linkedSelectionIntroKey = null,
+  inheritsSelection = false,
+  viewSwitching = false,
 }: SystemMapProps) {
   const { manifest, geometry, overlayPlane } = map;
   const {
@@ -500,7 +510,7 @@ function SystemMapComponent({
     selection: settledSelection,
     linkedSelectionIntroKey: settled.introKey,
     generation: selectionAttentionGeneration,
-  }) : null, rootRef, undefined, LINE_ALERT_INTRO_SCOPE, reportLineIntroStart);
+  }) : null, rootRef, undefined, LINE_ALERT_INTRO_SCOPE, reportLineIntroStart, inheritsSelection);
   // A hop between linked alerts keeps the intro (same key): no flash starts,
   // so the card glows at once.
   const settledKind = settledSelection?.kind;
@@ -518,7 +528,7 @@ function SystemMapComponent({
     selectedStationId,
     commutePreviewKey: commutePathPreview ? `${commutePathPreview.id}:${commutePathPreview.legId}` : null,
     generation: selectionAttentionGeneration,
-  }), rootRef, undefined, OTHER_SELECTION_INTRO_SCOPE);
+  }), rootRef, undefined, OTHER_SELECTION_INTRO_SCOPE, undefined, inheritsSelection);
 
   // The entrance: the camera is placed once the artwork has loaded and the
   // viewport has a size. While the shell defers the entrance, or the raster
@@ -615,6 +625,8 @@ function SystemMapComponent({
     ready: Boolean(artwork) && cameraPlaced,
     contentKey: String(rasterMapReady),
     focusTargetKey,
+    inheritsSelection,
+    viewSwitching,
     desktopInsets,
     viewportOrientation,
     mobilePerformanceMode,
