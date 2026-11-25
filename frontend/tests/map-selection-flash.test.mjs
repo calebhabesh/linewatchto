@@ -68,7 +68,7 @@ describe("map selection flash", () => {
     assert.match(introSource, /Promise\.all\(intros\.map\(\(animation\) => animation\.finished\)\)\.then\(complete, complete\)/);
     // With nothing animating (reduced motion, phones), a timer ends it.
     assert.match(introSource, /let timer = window\.setTimeout\(complete, MAP_SELECTION_INTRO_MS\);/);
-    assert.match(maps.ttc, /useMapSelectionIntro\([\s\S]*?\}\), rootRef, undefined, OTHER_SELECTION_INTRO_SCOPE\);/);
+    assert.match(maps.ttc, /useMapSelectionIntro\([\s\S]*?\}\), rootRef, undefined, OTHER_SELECTION_INTRO_SCOPE, undefined, inheritsSelection\);/);
   });
 
   it("plays each line alert's intro with its own flash: the line intro key settles with the selection", () => {
@@ -76,9 +76,25 @@ describe("map selection flash", () => {
     // Keyed by the shell, the previous alert's flash finished the new key's
     // intro and the new alert went straight to breathing.
     assert.match(maps.ttc, /const settled = useSettledMapSelection\(selection, linkedSelectionIntroKey, isCameraInteracting\);/);
-    assert.match(maps.ttc, /useMapSelectionIntro\(settledSelection \? mapSelectionIntroKey\(\{\s*selection: settledSelection,\s*linkedSelectionIntroKey: settled\.introKey,[\s\S]*?LINE_ALERT_INTRO_SCOPE, reportLineIntroStart\);/);
+    assert.match(maps.ttc, /useMapSelectionIntro\(settledSelection \? mapSelectionIntroKey\(\{\s*selection: settledSelection,\s*linkedSelectionIntroKey: settled\.introKey,[\s\S]*?LINE_ALERT_INTRO_SCOPE, reportLineIntroStart, inheritsSelection\);/);
     assert.match(maps.ttc, /<MapLineAlertSelection[\s\S]*?introComplete=\{lineSelectionIntroComplete\}/);
     assert.match(source("../src/components/map-overlays/settled-selection.ts"), /a\.introKey === b\.introKey/);
+  });
+
+  it("starts the Map View's flash from nothing: its selection layers have no paint transition", () => {
+    // MapLibre fades paint changes over 300 ms by default. The band faded out
+    // from its resting opacity as the flash began: a flash before the flash.
+    const layers = source("../src/components/geographic-map-operations.ts");
+    for (const [id, property] of [
+      ["transit-impacts-selection-glow", "line-opacity"],
+      ["transit-impacts-selection", "line-opacity"],
+      ["transit-station-impacts-selection", "circle-stroke-opacity"],
+    ]) {
+      const layer = layers.slice(layers.indexOf(`id: "${id}",`)).split("});")[0];
+      assert.match(layer, new RegExp(`"${property}-transition": \\{ duration: 0, delay: 0 \\}`), id);
+    }
+    const surface = source("../src/components/geographic-surface-selection-layers.ts");
+    assert.equal([...surface.matchAll(/"(?:line|circle-stroke|icon)-opacity-transition": NO_TRANSITION/g)].length, 4);
   });
 
   it("keeps the flash and camera when the selected alert is pressed again on the map", () => {

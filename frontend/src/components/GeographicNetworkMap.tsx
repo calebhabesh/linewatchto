@@ -4,7 +4,13 @@ import { CommutePreviewChipText } from "./CommuteRouteLabel";
 import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo, type RefObject } from "react";
 import { Map as MapLibreMap, AttributionControl, getVersion, setWorkerUrl, type VectorTileSource } from "maplibre-gl";
 import { installTilePrefetch, type PrefetchSource } from "./map-tile-prefetch";
-import { createDeferredSelectionFlight, fitSelectionBounds, selectionFlightMotion } from "./map-selection-flight";
+import {
+  cameraRestsAt,
+  createDeferredSelectionFlight,
+  fitSelectionBounds,
+  selectionBoundsFramed,
+  selectionFlightMotion,
+} from "./map-selection-flight";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { AlertCircle, RefreshCw, Layers, Locate, ZoomIn, ZoomOut } from "lucide-react";
 import { cachedGeographicCatalog, loadGeographicCatalog } from "../app/geographic-catalog-loader";
@@ -393,6 +399,12 @@ export type GeographicNetworkMapProps = {
    * map's layer deck waits rolled up until it shows.
    */
   viewHandoff?: "entering" | "leaving";
+  /**
+   * The rider already had this selection on the System Map when they switched to
+   * this map (NetworkMap): it is framed without motion, before the map loads
+   * where possible, and pulses without the fast flash. Until the selection changes.
+   */
+  inheritsSelection?: boolean;
   /** Once per load, when the map has drawn its first complete view (or failed to load). */
   onSettled?: () => void;
   onSwitchToDiagram?: () => void;
@@ -434,6 +446,8 @@ const EMPTY_SEGMENTS: NetworkSegment[] = [];
 const EMPTY_STATION_IMPACTS: StationNodeImpact[] = [];
 /** The longest a loaded map waits to go idle before it counts as drawn (onSettled). */
 const GEOGRAPHIC_SETTLE_MAX_MS = 700;
+/** The same for a map opening on an inherited selection, with no wider view drawn under its streets. */
+const GEOGRAPHIC_SETTLE_IN_PLACE_MAX_MS = 1500;
 const EMPTY_ALERTS: ActiveAlert[] = [];
 const EMPTY_PLANNED_CLOSURES: PlannedClosure[] = [];
 const EMPTY_TRAIN_MARKERS: EstimatedTrainMarker[] = [];
@@ -779,17 +793,11 @@ const SURFACE_STOP_FOCUS_ZOOM = 16;
 const GO_BUS_STOP_FOCUS_ZOOM = 15;
 
 /**
- * Flies to a selected station or stop the same way: at least `minZoom`, centred
- * above the phone's submenu sheet, or in the area the desktop sidebar, toolbar
- * and legend leave showing.
+ * The camera for a selected station or stop: at least `minZoom`, centred above
+ * the phone's submenu sheet, or in the area the desktop sidebar, toolbar and
+ * legend leave showing.
  */
-function focusGeographicCamera(
-  map: MapLibreMap,
-  container: HTMLDivElement | null,
-  coords: [number, number],
-  minZoom: number,
-  reducedMotion: boolean,
-) {
+function geographicPointCamera(map: MapLibreMap, container: HTMLDivElement | null, minZoom: number) {
   const targetZoom = Math.max(map.getZoom(), minZoom);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   const padding = isMobile && container ? {
@@ -804,6 +812,31 @@ function focusGeographicCamera(
   const offset: [number, number] | undefined = desktopPadding
     ? [(desktopPadding.left - desktopPadding.right) / 2, (desktopPadding.top - desktopPadding.bottom) / 2]
     : undefined;
+  return { targetZoom, padding, offset };
+}
+
+/** Whether the camera already has a selected station or stop there. */
+function geographicPointFramed(map: MapLibreMap, container: HTMLDivElement | null, coords: [number, number], minZoom: number) {
+  const { targetZoom, padding, offset = [0, 0] } = geographicPointCamera(map, container, minZoom);
+  const held = map.getPadding();
+  const { top = 0, bottom = 0, left = 0, right = 0 } = padding ?? held;
+  const { clientWidth, clientHeight } = map.getCanvas();
+  return cameraRestsAt(map, {
+    coordinate: coords,
+    at: { x: (clientWidth + left - right) / 2 + offset[0], y: (clientHeight + top - bottom) / 2 + offset[1] },
+    zoom: targetZoom,
+  });
+}
+
+/** Flies to a selected station or stop, or goes there at once. */
+function focusGeographicCamera(
+  map: MapLibreMap,
+  container: HTMLDivElement | null,
+  coords: [number, number],
+  minZoom: number,
+  reducedMotion: boolean,
+) {
+  const { targetZoom, padding, offset } = geographicPointCamera(map, container, minZoom);
   if (reducedMotion) {
     map.jumpTo({ center: coords, zoom: targetZoom, padding });
     if (offset) map.panBy([-offset[0], -offset[1]], { animate: false });
@@ -816,6 +849,126 @@ function focusGeographicCamera(
       ...selectionFlightMotion(map, coords, targetZoom),
     });
   }
+}
+
+/** Where the camera goes for a selection: a point at least this close, or an area in the space left showing. */
+type GeographicFrame =
+  | { point: [number, number]; zoom: number }
+  | { bounds: [[number, number], [number, number]]; padding: ReturnType<typeof geographicDesktopFocusPadding>; maxZoom: number };
+
+/** Whether the camera already rests on a frame, so nothing needs to move. */
+function geographicFrameReached(map: MapLibreMap, container: HTMLDivElement | null, frame: GeographicFrame) {
+  return "point" in frame
+    ? geographicPointFramed(map, container, frame.point, frame.zoom)
+    : selectionBoundsFramed(map, frame.bounds, frame);
+}
+
+/** Flies to a frame unless the camera is there, or goes there at once. */
+function applyGeographicFrame(map: MapLibreMap, container: HTMLDivElement | null, frame: GeographicFrame, still: boolean) {
+  if (!still && geographicFrameReached(map, container, frame)) return;
+  if ("point" in frame) focusGeographicCamera(map, container, frame.point, frame.zoom, still);
+  else fitSelectionBounds(map, frame.bounds, { padding: frame.padding, maxZoom: frame.maxZoom, reducedMotion: still });
+}
+
+function coordinateBounds(coordinates: readonly (readonly number[])[]): [[number, number], [number, number]] | null {
+  if (coordinates.length === 0) return null;
+  const lngs = coordinates.map(([lng]) => lng);
+  const lats = coordinates.map(([, lat]) => lat);
+  return [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]];
+}
+
+type ProjectedImpacts = {
+  impactedLinks: { features: Parameters<typeof getProjectedSelectionBounds>[1] };
+  impactedStations: { features: Parameters<typeof getProjectedSelectionBounds>[2] };
+};
+
+/** A selected alert: its lines and stations, and a planned closure's previewed stations. */
+function impactSelectionFrame(
+  container: HTMLDivElement | null,
+  selection: NonNullable<ImpactSelection>,
+  { impactedLinks, impactedStations }: ProjectedImpacts,
+  plannedClosures: readonly PlannedClosure[],
+  catalog: GeographicCatalog | null,
+): GeographicFrame | null {
+  const plannedStationIds = (selection.kind === "planned-closure"
+    ? plannedClosures.find((closure) => closure.id === selection.id)?.previewStationIds
+    : undefined) ?? [];
+  const bounds = coordinateBounds([
+    ...plannedStationIds.flatMap((stationId) => {
+      const coordinate = catalog && getStationCoordinates(catalog, stationId);
+      return coordinate ? [coordinate] : [];
+    }),
+    ...(getProjectedSelectionBounds(selection, impactedLinks.features, impactedStations.features) ?? []),
+  ]);
+  if (!bounds) return null;
+  const padding = container && window.innerWidth >= 768
+    ? geographicDesktopFocusPadding(container)
+    : { top: 90, bottom: 90, left: 60, right: 60 };
+  return { bounds, padding, maxZoom: 15 };
+}
+
+/** A selected alert on a phone, above its inspector; null on desktop, or with nothing drawn. */
+function phoneImpactSelectionFrame(
+  container: HTMLDivElement | null,
+  selection: NonNullable<ImpactSelection>,
+  { impactedLinks, impactedStations }: ProjectedImpacts,
+): GeographicFrame | null {
+  if (!container || window.innerWidth >= 768) return null;
+  const bounds = getProjectedSelectionBounds(selection, impactedLinks.features, impactedStations.features);
+  return bounds && {
+    bounds, padding: geographicMobileSelectionPadding(container), maxZoom: GEOGRAPHIC_MOBILE_SELECTION_MAX_ZOOM,
+  };
+}
+
+/**
+ * Selected surface stops and routes: one stop at street level, like a station;
+ * routes or several stops in the space left showing. "loading" while a file it
+ * needs is, null with nothing to frame.
+ */
+function surfaceSelectionFrame(
+  container: HTMLDivElement | null,
+  network: NetworkId,
+  selection: SurfaceMapSelection,
+  files: Parameters<typeof surfaceSelectionPoints>[2],
+): GeographicFrame | "loading" | null {
+  const target = surfaceSelectionPoints(network, selection, files);
+  if (!target) return "loading";
+  if (target.length === 0) return null;
+  if (selection.routes.length === 0 && target.length === 1) {
+    return { point: target[0], zoom: network === "regional" ? GO_BUS_STOP_FOCUS_ZOOM : SURFACE_STOP_FOCUS_ZOOM };
+  }
+  const bounds = surfaceSelectionBounds(target);
+  if (!bounds || !container) return null;
+  const isMobile = window.innerWidth < 768;
+  const padding = isMobile ? geographicMobileSurfaceSelectionPadding(container) : geographicDesktopFocusPadding(container);
+  // A stop's pill stands above its position: keep the top one clear of the chrome.
+  if (selection.stopCodes.length > 0) padding.top += SELECTED_STOP_PILL_ROOM_PX;
+  const maxZoom = selection.routes.length > 0 ? (isMobile ? GEOGRAPHIC_MOBILE_SELECTION_MAX_ZOOM : 15) : SURFACE_STOP_FOCUS_ZOOM;
+  return { bounds, padding, maxZoom };
+}
+
+/**
+ * A commute preview's route, framed like a selection: clear of the sidebar,
+ * toolbar and legend on desktop, the top pill on phones, and the preview chip
+ * below. fitSelectionBounds allows for padding the camera still holds from an
+ * earlier flight, which would otherwise leave no room and skip the move.
+ */
+function commutePreviewFrame(
+  container: HTMLDivElement | null,
+  preview: AccountCommutePathPreview,
+  catalog: GeographicCatalog | null,
+): GeographicFrame | null {
+  const bounds = coordinateBounds(preview.stationIds.flatMap((stationId) => {
+    const coordinate = catalog && getStationCoordinates(catalog, stationId);
+    return coordinate ? [coordinate] : [];
+  }));
+  if (!bounds) return null;
+  const base = !container
+    ? { top: 110, bottom: 110, left: 80, right: 80 }
+    : window.innerWidth < 768
+      ? geographicMobileSurfaceSelectionPadding(container)
+      : geographicDesktopFocusPadding(container);
+  return { bounds, padding: { ...base, bottom: Math.max(base.bottom, readCommutePreviewInset(container)) }, maxZoom: 13 };
 }
 
 /**
@@ -860,6 +1013,7 @@ export function GeographicNetworkMap({
   reducedMotion = false,
   onReady,
   viewHandoff,
+  inheritsSelection = false,
   onSettled,
   onSwitchToDiagram,
   isMapActive = true,
@@ -891,6 +1045,17 @@ export function GeographicNetworkMap({
   }, []);
   useMapGestureInterruption(interruptCameraMotion);
   const attributionRef = useRef<AttributionControl | null>(null);
+  // Read by the framing effects, which run on a new selection, not on this changing.
+  const inheritsSelectionRef = useRef(inheritsSelection);
+  useLayoutEffect(() => { inheritsSelectionRef.current = inheritsSelection; }, [inheritsSelection]);
+  /** The map has drawn its first complete view (onSettled). */
+  const settledRef = useRef(false);
+  const reducedMotionRef = useRef(reducedMotion);
+  useLayoutEffect(() => {
+    reducedMotionRef.current = reducedMotion;
+  }, [reducedMotion]);
+  /** Bumped as each MapLibre map is created, before it has loaded. */
+  const [createdMaps, setCreatedMaps] = useState(0);
   const [loadedCatalog, setCatalog] = useState<GeographicCatalog | null>(null);
   const catalog = cachedGeographicCatalog(network) ?? (loadedCatalog?.network === network ? loadedCatalog : null);
   const networkRef = useRef(network);
@@ -918,6 +1083,24 @@ export function GeographicNetworkMap({
     const flight = selectionFlightRef.current;
     return () => flight.cancel();
   }, []);
+  /**
+   * Frames a new selection; true when the camera flies there. An inherited one
+   * is framed at once, and one already framed needs no flight, so its flash
+   * starts at once, as on the System Map.
+   */
+  const frameSelection = useCallback((owner: "surface" | "rail" | "station", map: MapLibreMap, frame: GeographicFrame) => {
+    const container = containerRef.current;
+    if (inheritsSelectionRef.current) {
+      applyGeographicFrame(map, container, frame, true);
+      return false;
+    }
+    if (geographicFrameReached(map, container, frame)) {
+      selectionFlightRef.current.cancel();
+      return false;
+    }
+    startSelectionFlight(owner, map, () => applyGeographicFrame(map, containerRef.current, frame, reducedMotionRef.current));
+    return true;
+  }, [startSelectionFlight]);
   const lastSelectionIntroKeyRef = useRef<string | null>(null);
   /** The selection whose flash start the card has been told, so a poll update does not restart its glow. */
   const settledIntroKeyRef = useRef<string | null>(null);
@@ -1179,10 +1362,6 @@ export function GeographicNetworkMap({
   const hoveredStationIdRef = useRef<string | null>(null);
   const hoveredStationNameDrawnRef = useRef(true);
   const stationHoverAnimatorRef = useRef<ReturnType<typeof createGeographicStationHoverAnimator> | null>(null);
-  const reducedMotionRef = useRef(reducedMotion);
-  useLayoutEffect(() => {
-    reducedMotionRef.current = reducedMotion;
-  }, [reducedMotion]);
 
   // Resolve real-time dashboard data with stable references
   const dashboardData = useOptionalDashboardData();
@@ -1206,7 +1385,9 @@ export function GeographicNetworkMap({
   const lastRecenterSignalRef = useRef(recenterSignal ?? 0);
   const lastZoomInSignalRef = useRef(zoomInSignal ?? 0);
   const lastZoomOutSignalRef = useRef(zoomOutSignal ?? 0);
-  const lastSelectedStationIdRef = useRef<string | null>(selectedStationId ?? null);
+  // A station or commute preview open as the app loads keeps the restored
+  // camera; one brought from the System Map by a view switch is framed.
+  const lastSelectedStationIdRef = useRef<string | null>(inheritsSelection ? null : selectedStationId ?? null);
   // The open stop and what an open panel shows on the map, as one selection
   // (plan 14, U4), drawn by syncSurfaceSelection and framed once.
   const mapSurfaceSelection = mergeSurfaceSelection(selectedSurfaceStopCode, surfaceSelection);
@@ -1235,7 +1416,7 @@ export function GeographicNetworkMap({
   ));
   const streetcarRoutesShownRef = useRef(streetcarRoutesShown);
   const lastSelectionRef = useRef<string | null>(null);
-  const lastCommutePreviewIdRef = useRef<string | null>(commutePathPreview?.id ?? null);
+  const lastCommutePreviewIdRef = useRef<string | null>(inheritsSelection ? null : commutePathPreview?.id ?? null);
   const cameraAdjustedByUserRef = useRef(false);
 
   // A map camera is transient working context. Persist only settled mobile
@@ -2014,6 +2195,7 @@ export function GeographicNetworkMap({
         // Disable pitch and rotation interactions
         map.touchZoomRotate.disableRotation();
         mapRef.current = map;
+        setCreatedMaps((current) => current + 1);
         // Dev-only handle for scripted checks (never return the map itself from page.evaluate).
         if (process.env.NODE_ENV !== "production") window.__geographicMapDebug = { map };
         attributionRef.current = new AttributionControl({ compact: false, customAttribution: getGeographicAttribution(network) });
@@ -2611,8 +2793,10 @@ export function GeographicNetworkMap({
     }).needs
     : null;
   const goStopFileNeeded = network === "regional" && Boolean(mapSurfaceSelection?.stopCodes.length);
+  // An inherited selection's files load with the map, so it opens framed on them.
+  const loadsSelectionFiles = loadStatus === "ready" || inheritsSelection;
   useEffect(() => {
-    if (loadStatus !== "ready") return;
+    if (!loadsSelectionFiles) return;
     let cancelled = false;
     const keep = <T,>(set: (value: T) => void) => (value: T) => { if (!cancelled) set(value); };
     const optional = () => {
@@ -2625,7 +2809,7 @@ export function GeographicNetworkMap({
     if (network === "regional" && goRoutesSelected) loadGoBusCatalog().then(keep(setGoBusCatalog), optional);
     if (goStopFileNeeded) loadGoBusStops().then(keep(setGoBusStops), optional);
     return () => { cancelled = true; };
-  }, [busRoutesSelected, goRoutesSelected, goStopFileNeeded, loadStatus, network, nightRoutesSelected, ttcStopFileNeeded]);
+  }, [busRoutesSelected, goRoutesSelected, goStopFileNeeded, loadsSelectionFiles, network, nightRoutesSelected, ttcStopFileNeeded]);
 
   // A new selection is framed once its files are in: one stop is flown to
   // like a station, at street level; routes or several stops are fitted with
@@ -2649,36 +2833,18 @@ export function GeographicNetworkMap({
     }
     if (!map || loadStatus !== "ready" || surfaceSelectionKeyValue === lastFramedSurfaceSelectionRef.current) return;
     if (appliedCatalogRef.current?.network !== network) return;
-    const target = surfaceSelectionPoints(network, selection, {
+    const frame = surfaceSelectionFrame(containerRef.current, network, selection, {
       streetcars: streetcarCatalog, busCorridors: busCatalog, busStops, nightCorridors: nightCatalog, nightStops,
       goCorridors: goBusCatalog, goStops: goBusStops,
     });
-    if (!target) return; // a file it needs is still loading
+    if (frame === "loading") return; // a file it needs is still loading
     lastFramedSurfaceSelectionRef.current = surfaceSelectionKeyValue;
-    if (target.length === 0) return;
-    if (selection.routes.length === 0 && target.length === 1) {
-      const zoom = network === "regional" ? GO_BUS_STOP_FOCUS_ZOOM : SURFACE_STOP_FOCUS_ZOOM;
-      recordGeographicMapLifecycle("focus", `surface:${surfaceSelectionKeyValue}`);
-      startSelectionFlight("surface", map, () => {
-        focusGeographicCamera(map, containerRef.current, target[0], zoom, reducedMotion);
-      });
-      return;
-    }
-    const bounds = surfaceSelectionBounds(target);
-    const container = containerRef.current;
-    if (!bounds || !container) return;
-    const isMobile = window.innerWidth < 768;
-    const padding = isMobile ? geographicMobileSurfaceSelectionPadding(container) : geographicDesktopFocusPadding(container);
-    // A stop's pill stands above its position: keep the top one clear of the chrome.
-    if (selection.stopCodes.length > 0) padding.top += SELECTED_STOP_PILL_ROOM_PX;
+    if (!frame) return;
     recordGeographicMapLifecycle("focus", `surface:${surfaceSelectionKeyValue}`);
-    const maxZoom = selection.routes.length > 0 ? (isMobile ? GEOGRAPHIC_MOBILE_SELECTION_MAX_ZOOM : 15) : SURFACE_STOP_FOCUS_ZOOM;
-    startSelectionFlight("surface", map, () => {
-      fitSelectionBounds(map, bounds, { padding, maxZoom, reducedMotion: Boolean(reducedMotion) });
-    });
+    frameSelection("surface", map, frame);
   }, [
-    busCatalog, busStops, goBusCatalog, goBusStops, loadStatus, network, nightCatalog, nightStops, reducedMotion,
-    startSelectionFlight, streetcarCatalog, surfaceSelectionKeyValue,
+    busCatalog, busStops, goBusCatalog, goBusStops, loadStatus, network, nightCatalog, nightStops, frameSelection,
+    streetcarCatalog, surfaceSelectionKeyValue,
   ]);
 
   // After the framing above, so a selection that just took off waits for the camera.
@@ -2701,7 +2867,12 @@ export function GeographicNetworkMap({
     }
     const staticFallback = Boolean(reducedMotion || mobilePerformanceMode || document.visibilityState === "hidden");
     runSurfaceAttention(surfaceAttentionRef.current.requestAttention(
-      { id: surfaceSelectionKeyValue, generation: surfaceAttentionGenerationRef.current, hasCameraFlight },
+      {
+        id: surfaceSelectionKeyValue,
+        generation: surfaceAttentionGenerationRef.current,
+        hasCameraFlight,
+        introduced: inheritsSelectionRef.current,
+      },
       staticFallback,
     ));
   }, [
@@ -3180,19 +3351,17 @@ export function GeographicNetworkMap({
       if (catalogRef.current) {
         const coords = getStationCoordinates(catalogRef.current, selectedStationId);
         if (coords) {
-          startSelectionFlight("station", map, () => {
-            focusGeographicCamera(map, containerRef.current, coords, STATION_FOCUS_ZOOM, reducedMotion);
-          });
+          frameSelection("station", map, { point: coords, zoom: STATION_FOCUS_ZOOM });
         }
       }
     }
     lastSelectedStationIdRef.current = selectedStationId ?? null;
-  }, [selectedStationId, loadStatus, reducedMotion, startSelectionFlight]);
+  }, [selectedStationId, loadStatus, frameSelection]);
 
   // The selected alert's card glows on this map's flash clock (app/selection-intro-sync.ts),
   // as on the System Maps: the active map says a flash is coming before the card checks,
   // then reports when it starts (now, or when its camera lands).
-  const announcesIntro = Boolean(selection && isMapActive && loadStatus === "ready" && !reducedMotion && !mobilePerformanceMode);
+  const announcesIntro = Boolean(selection && !inheritsSelection && isMapActive && loadStatus === "ready" && !reducedMotion && !mobilePerformanceMode);
   const announcedKind = selection?.kind;
   const announcedId = selection?.id;
   useLayoutEffect(() => {
@@ -3217,8 +3386,8 @@ export function GeographicNetworkMap({
       selectionFlightRef.current.cancel("rail");
       stopAttentionLoop();
       selectionAttentionRef.current.reset();
-      const idleFrame = selectionAttentionRef.current.computeFrame();
-      applyAttentionFrame(idleFrame);
+      // Out of sight at once: the old band stays drawn until its filter has been reapplied.
+      applyAttentionFrame({ ...selectionAttentionRef.current.computeFrame(), opacity: 0 });
       return;
     }
 
@@ -3226,41 +3395,18 @@ export function GeographicNetworkMap({
     let hasCameraFlight = false;
 
     if (currentSelectionKey !== lastSelectionRef.current) {
-      const selectedPlannedClosure = selection.kind === "planned-closure"
-        ? resolvedPlannedClosures.find((closure) => closure.id === selection.id)
-        : undefined;
-      const plannedStationIds = selectedPlannedClosure?.previewStationIds ?? [];
-      const impactBounds = getProjectedSelectionBounds(
+      const frame = impactSelectionFrame(
+        containerRef.current,
         selection,
-        overlayData.impactedLinks.features,
-        overlayData.impactedStations.features,
+        { impactedLinks: overlayData.impactedLinks, impactedStations: overlayData.impactedStations },
+        resolvedPlannedClosures,
+        catalogRef.current,
       );
-      const stationCoordinates = plannedStationIds.flatMap((stationId) => {
-        const coordinate = catalogRef.current && getStationCoordinates(catalogRef.current, stationId);
-        return coordinate ? [coordinate] : [];
-      });
-      const coordinates = [...stationCoordinates, ...(impactBounds ? [impactBounds[0], impactBounds[1]] : [])];
-      const bounds: [[number, number], [number, number]] | null = coordinates.length > 0
-        ? [
-            [Math.min(...coordinates.map((coordinate) => coordinate[0])), Math.min(...coordinates.map((coordinate) => coordinate[1]))],
-            [Math.max(...coordinates.map((coordinate) => coordinate[0])), Math.max(...coordinates.map((coordinate) => coordinate[1]))],
-          ]
-        : null;
-      if (bounds) {
+      if (frame) {
         recordGeographicMapLifecycle("focus", currentSelectionKey);
-        const container = containerRef.current;
-        const padding = container && window.innerWidth >= 768
-          ? geographicDesktopFocusPadding(container)
-          : { top: 90, bottom: 90, left: 60, right: 60 };
-        startSelectionFlight("rail", map, () => {
-          fitSelectionBounds(map, bounds, { padding, maxZoom: 15, reducedMotion: Boolean(reducedMotion) });
-        });
+        hasCameraFlight = frameSelection("rail", map, frame) && !reducedMotion;
+        pendingCameraFlightGenRef.current = hasCameraFlight ? selectionAttentionGeneration : null;
         lastSelectionRef.current = currentSelectionKey;
-
-        if (!reducedMotion) {
-          hasCameraFlight = true;
-          pendingCameraFlightGenRef.current = selectionAttentionGeneration;
-        }
       }
     }
 
@@ -3277,11 +3423,14 @@ export function GeographicNetworkMap({
         generation: selectionAttentionGeneration,
         hasCameraFlight,
         continueAttention,
+        introduced: inheritsSelectionRef.current,
       },
       staticFallback,
       requestedAt,
     );
     applyAttentionFrame(frame);
+    // A linked hop keeps its cadence through its flight, so nothing waits for the landing.
+    if (frame.state !== "camera-flight") pendingCameraFlightGenRef.current = null;
     // Once per selection: with no flight to wait for, the flash starts now, or
     // (a linked hop keeping its cadence, or a still fallback) the card glows on its own.
     if (currentSelectionKey !== settledIntroKeyRef.current) {
@@ -3306,8 +3455,8 @@ export function GeographicNetworkMap({
     reducedMotion,
     mobilePerformanceMode,
     applyAttentionFrame,
+    frameSelection,
     startAttentionLoop,
-    startSelectionFlight,
     stopAttentionLoop,
   ]);
 
@@ -3317,26 +3466,48 @@ export function GeographicNetworkMap({
     if (typeof window === "undefined" || window.innerWidth >= 768 || !selection) return;
     const map = mapRef.current;
     if (!map || loadStatus !== "ready") return;
-    const bounds = getProjectedSelectionBounds(
-      selection,
-      overlayDataRef.current.impactedLinks.features,
-      overlayDataRef.current.impactedStations.features,
-    );
-    if (!bounds) return;
-    startSelectionFlight("rail", map, () => {
+    if (!phoneImpactSelectionFrame(containerRef.current, selection, overlayDataRef.current)) return;
+    // Once drawn, a layout change reframes it with a flight.
+    const inPlace = inheritsSelectionRef.current && !settledRef.current;
+    const start = () => {
       // Resizing reallocates the canvas, a long frame right as the flight starts.
       const canvas = map.getCanvas();
       const mapContainer = map.getContainer();
       if (canvas.clientWidth !== mapContainer.clientWidth || canvas.clientHeight !== mapContainer.clientHeight) map.resize();
-      const container = containerRef.current;
-      if (!container) return;
-      fitSelectionBounds(map, bounds, {
-        padding: geographicMobileSelectionPadding(container),
-        maxZoom: GEOGRAPHIC_MOBILE_SELECTION_MAX_ZOOM,
-        reducedMotion: Boolean(reducedMotion),
-      });
-    });
+      // Measured as the flight starts, with the inspector in place.
+      const frame = phoneImpactSelectionFrame(containerRef.current, selection, overlayDataRef.current);
+      if (frame) applyGeographicFrame(map, containerRef.current, frame, inPlace || Boolean(reducedMotion));
+    };
+    if (inPlace) start();
+    else startSelectionFlight("rail", map, start);
   }, [layoutResetSignal, loadStatus, reducedMotion, selection, startSelectionFlight]);
+
+  // An inherited selection is also framed as soon as the map exists, so it
+  // loads those tiles and not the whole network's first. The effects above
+  // frame it again once the map is ready, with everything measured.
+  useEffect(() => {
+    const map = mapRef.current;
+    const container = containerRef.current;
+    const loadingCatalog = catalogRef.current;
+    if (!inheritsSelection || !createdMaps || !map || !container || loadStatus !== "loading") return;
+    if (!catalog || loadingCatalog?.network !== network) return;
+    const surface = surfaceSelectionRef.current;
+    const stationCoords = selectedStationId ? getStationCoordinates(loadingCatalog, selectedStationId) : null;
+    const frame = selection
+      ? phoneImpactSelectionFrame(container, selection, overlayData)
+        ?? impactSelectionFrame(container, selection, overlayData, resolvedPlannedClosures, loadingCatalog)
+      : stationCoords ? { point: stationCoords, zoom: STATION_FOCUS_ZOOM }
+        : surface ? surfaceSelectionFrame(container, network, surface, {
+          streetcars: streetcarCatalog, busCorridors: busCatalog, busStops, nightCorridors: nightCatalog, nightStops,
+          goCorridors: goBusCatalog, goStops: goBusStops,
+        })
+          : commutePathPreview ? commutePreviewFrame(container, commutePathPreview, loadingCatalog) : null;
+    if (frame && frame !== "loading") applyGeographicFrame(map, container, frame, true);
+  }, [
+    busCatalog, busStops, catalog, commutePathPreview, createdMaps, goBusCatalog, goBusStops, inheritsSelection, loadStatus,
+    network, nightCatalog, nightStops, overlayData, resolvedPlannedClosures, selectedStationId, selection, streetcarCatalog,
+    surfaceSelectionKeyValue,
+  ]);
 
   // Invisibility fallback handler
   useEffect(() => {
@@ -3645,36 +3816,11 @@ export function GeographicNetworkMap({
     if (!map || loadStatus !== "ready") return;
 
     if (commutePathPreview.id !== lastCommutePreviewIdRef.current && catalogRef.current) {
-      const coords: [number, number][] = [];
-      for (const stId of commutePathPreview.stationIds) {
-        const c = getStationCoordinates(catalogRef.current, stId);
-        if (c) coords.push(c);
-      }
-      if (coords.length > 0) {
-        let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
-        for (const [lng, lat] of coords) {
-          if (lng < minLng) minLng = lng;
-          if (lng > maxLng) maxLng = lng;
-          if (lat < minLat) minLat = lat;
-          if (lat > maxLat) maxLat = lat;
-        }
-        // Framed like a selection: clear of the sidebar, toolbar and legend on
-        // desktop, the top pill on phones, and the preview chip below.
-        // fitSelectionBounds allows for padding the camera still holds from an
-        // earlier flight, which would otherwise leave no room and skip the move.
-        const container = containerRef.current;
-        const chipInset = readCommutePreviewInset(container);
-        const base = !container
-          ? { top: 110, bottom: 110, left: 80, right: 80 }
-          : window.innerWidth < 768
-            ? geographicMobileSurfaceSelectionPadding(container)
-            : geographicDesktopFocusPadding(container);
-        fitSelectionBounds(map, [[minLng, minLat], [maxLng, maxLat]], {
-          padding: { ...base, bottom: Math.max(base.bottom, chipInset) },
-          maxZoom: 13,
-          reducedMotion: Boolean(reducedMotion),
-        });
-      }
+      // A selection the rider also has open keeps an inherited frame, as on the System Map.
+      const inPlace = inheritsSelectionRef.current;
+      const outranked = inPlace && Boolean(selectionRef.current || selectedStationIdRef.current || surfaceSelectionRef.current);
+      const frame = outranked ? null : commutePreviewFrame(containerRef.current, commutePathPreview, catalogRef.current);
+      if (frame) applyGeographicFrame(map, containerRef.current, frame, inPlace || Boolean(reducedMotion));
     }
     lastCommutePreviewIdRef.current = commutePathPreview.id;
   }, [commutePathPreview, loadStatus, reducedMotion]);
@@ -3820,7 +3966,8 @@ export function GeographicNetworkMap({
   // frame drawn with every tile and source loaded, including the transit
   // layers' first data (not waiting out the labels' fade-in, as idle would),
   // or at most GEOGRAPHIC_SETTLE_MAX_MS after loading. A failed load settles
-  // at once, so its error card shows.
+  // at once, so its error card shows. An inherited surface selection is framed
+  // first, once its files are in.
   const onSettledRef = useRef(onSettled);
   useLayoutEffect(() => { onSettledRef.current = onSettled; }, [onSettled]);
   useEffect(() => {
@@ -3834,12 +3981,17 @@ export function GeographicNetworkMap({
     const settle = () => {
       if (settled) return;
       settled = true;
+      settledRef.current = true;
       onSettledRef.current?.();
     };
+    const awaitsFraming = () => inheritsSelectionRef.current
+      && surfaceSelectionKey(surfaceSelectionRef.current) !== lastFramedSurfaceSelectionRef.current;
     const settleIfDrawn = () => {
-      if (map.loaded()) settle();
+      if (map.loaded() && !awaitsFraming()) settle();
     };
-    const timer = window.setTimeout(settle, GEOGRAPHIC_SETTLE_MAX_MS);
+    const timer = window.setTimeout(
+      settle, inheritsSelectionRef.current ? GEOGRAPHIC_SETTLE_IN_PLACE_MAX_MS : GEOGRAPHIC_SETTLE_MAX_MS,
+    );
     map.on("render", settleIfDrawn);
     map.triggerRepaint();
     return () => {

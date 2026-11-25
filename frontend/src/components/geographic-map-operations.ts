@@ -1074,6 +1074,9 @@ export function installTransitLayers(
         "line-width": geographicSelectionWidthExpression(GEOGRAPHIC_SELECTION_GLOW_WIDTHS),
         "line-blur": geographicSelectionWidthExpression(GEOGRAPHIC_SELECTION_GLOW_WIDTHS, 0.45),
         "line-opacity": GEOGRAPHIC_SELECTION_GLOW_OPACITY,
+        // The flash is written every frame. MapLibre's default 300 ms transition would
+        // blur it, and fade the band out from its resting opacity as the flash starts.
+        "line-opacity-transition": { duration: 0, delay: 0 },
         "line-offset": routeOffsetExpr,
       },
     });
@@ -1095,6 +1098,7 @@ export function installTransitLayers(
         "line-color": "#38bdf8",
         "line-width": geographicSelectionWidthExpression(GEOGRAPHIC_SELECTION_BAND_WIDTHS),
         "line-opacity": 0.9,
+        "line-opacity-transition": { duration: 0, delay: 0 },
         "line-offset": routeOffsetExpr,
       },
     });
@@ -1381,6 +1385,7 @@ export function installTransitLayers(
         "circle-stroke-width": 4,
         "circle-stroke-color": "#38bdf8",
         "circle-stroke-opacity": 0.95,
+        "circle-stroke-opacity-transition": { duration: 0, delay: 0 },
       },
     });
   }

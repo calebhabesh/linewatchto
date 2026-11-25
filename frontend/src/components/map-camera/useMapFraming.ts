@@ -190,6 +190,10 @@ type MapFramingOptions = MapSelectionState & {
   contentKey: string;
   /** From `mapFocusTargetKey`. */
   focusTargetKey: string | null;
+  /** The selection was open before a switch from the Map View: it is first framed without motion. */
+  inheritsSelection: boolean;
+  /** A view switch is in progress: an inherited selection is reframed without motion too. */
+  viewSwitching: boolean;
   desktopInsets: DesktopMapInsets;
   viewportOrientation: MapViewportOrientation;
   mobilePerformanceMode: boolean;
@@ -221,6 +225,8 @@ export function useMapFraming({
   ready,
   contentKey,
   focusTargetKey,
+  inheritsSelection,
+  viewSwitching,
   desktopInsets,
   viewportOrientation,
   mobilePerformanceMode,
@@ -267,6 +273,8 @@ export function useMapFraming({
     ),
     [commutePathPreview, desktopInsets, selectedStationId, selection],
   );
+
+  const lastFocusedTargetKeyRef = useRef<string | null>(null);
 
   /** Frames the drawn selection; false while it has not mounted yet. */
   const focusSelection = useCallback(() => {
@@ -324,7 +332,8 @@ export function useMapFraming({
       focusX = focus.focusX;
       focusY = rotated ? logicalHeight * ROTATED_FOCUS_Y_RATIO : focus.focusY;
     }
-    animateTransformTo({ x: focusX - mapX * scale, y: focusY - mapY * scale, scale }, fitScale);
+    const inPlace = inheritsSelection && (viewSwitching || lastFocusedTargetKeyRef.current === null);
+    animateTransformTo({ x: focusX - mapX * scale, y: focusY - mapY * scale, scale }, fitScale, !inPlace);
     return true;
   }, [
     animateTransformTo,
@@ -332,16 +341,17 @@ export function useMapFraming({
     containerRef,
     currentRenderedTransform,
     defaultTransformForViewport,
+    inheritsSelection,
     logicalViewportSize,
     readCamera,
     readOccludedInsets,
     selectedStationId,
     selection,
     viewportOrientation,
+    viewSwitching,
   ]);
 
   // Frame each new selection, and again when the layout around it changes.
-  const lastFocusedTargetKeyRef = useRef<string | null>(null);
   const lastFocusLayoutKeyRef = useRef("");
   useEffect(() => {
     if (!ready || isGestureActive()) return;

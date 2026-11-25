@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   GeographicSelectionAttention,
   ATTENTION_INTRO_DURATION_MS,
+  ATTENTION_FLIGHT_OPACITY,
   ATTENTION_STATIC_OPACITY,
   ATTENTION_STATIC_WIDTH_MULTIPLIER,
   ATTENTION_TROUGH_OPACITY,
@@ -63,12 +64,29 @@ test("Geographic Selection Attention Controller", async (t) => {
     }
   });
 
-  await t.test("after a camera flight the intro eases on from the still halo", () => {
-    const attention = new GeographicSelectionAttention();
-    attention.requestAttention({ id: "a", generation: 1, hasCameraFlight: true }, false, 0);
-    const landed = attention.onCameraFlightEnd(1, 500);
+  await t.test("nothing is drawn before the flash, with or without a camera flight", () => {
+    const flown = new GeographicSelectionAttention();
+    assert.equal(flown.requestAttention({ id: "a", generation: 1, hasCameraFlight: true }, false, 0).opacity, 0);
+    const landed = flown.onCameraFlightEnd(1, 500);
     assert.equal(landed.state, "intro");
-    assert.equal(landed.opacity, ATTENTION_STATIC_OPACITY);
+    assert.equal(landed.opacity, 0);
+
+    const framed = new GeographicSelectionAttention();
+    const started = framed.requestAttention({ id: "a", generation: 1 }, false, 0);
+    assert.equal(started.state, "intro");
+    assert.equal(started.opacity, 0);
+  });
+
+  await t.test("a selection already introduced on the System Map breathes at once", () => {
+    const attention = new GeographicSelectionAttention();
+    const frame = attention.requestAttention({ id: "a", generation: 1, introduced: true }, false, 0);
+    assert.equal(frame.state, "breathe");
+    assert.equal(frame.opacity, ATTENTION_TROUGH_OPACITY);
+    assert.equal(attention.requestAttention({ id: "a", generation: 1 }, false, 900).state, "breathe", "a poll keeps it");
+    assert.equal(attention.requestAttention({ id: "a", generation: 2 }, false, 1000).state, "intro", "View again flashes");
+
+    const still = new GeographicSelectionAttention();
+    assert.equal(still.requestAttention({ id: "a", generation: 1, introduced: true }, true, 0).state, "static-fallback");
   });
 
   await t.test("new explicit request and same-alert reselect restart intro, while same-key poll preserves phase", () => {
@@ -118,7 +136,7 @@ test("Geographic Selection Attention Controller", async (t) => {
     );
     assert.equal(frameFlight.state, "camera-flight");
     assert.equal(frameFlight.active, false, "No animation loop while camera is flying");
-    assert.equal(frameFlight.opacity, ATTENTION_STATIC_OPACITY);
+    assert.equal(frameFlight.opacity, ATTENTION_FLIGHT_OPACITY);
     assert.equal(frameFlight.widthMultiplier, ATTENTION_STATIC_WIDTH_MULTIPLIER);
 
     // Stale camera flight end callback (older generation) is ignored
@@ -196,7 +214,7 @@ test("Geographic Selection Attention Controller", async (t) => {
       false,
       hopAt + 100,
     );
-    assert.equal(attention.getState(), "camera-flight");
+    assert.equal(attention.getState(), "breathe", "a hop's flight keeps the cadence, as on the System Map");
     assert.equal(attention.onCameraFlightEnd(3, hopAt + 900).state, "breathe");
 
     const unrelated = attention.requestAttention({ id: "other", kind: "suspension", generation: 4 }, false, hopAt + 1000);

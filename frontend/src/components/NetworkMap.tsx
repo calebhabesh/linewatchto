@@ -1,6 +1,7 @@
 import type { SurfaceMapSelection } from "../app/surface-map-selection";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { DataProvider, type DashboardData } from "../app/DataContext";
+import { mapViewFocusKey } from "../app/map-view-focus";
 import { isRepeatMapSelection } from "../app/map-repeat-selection";
 import type { GeographicNetworkMapProps } from "./GeographicNetworkMap";
 import type { MapFadeController } from "../app/map-surface-transition";
@@ -50,6 +51,11 @@ const FrozenWhileHidden = memo(
  * notice opened on the Map View): the new view mounts out of sight while the
  * old one stays on screen; once the new one has drawn, they crossfade
  * (`revealed`) and the old one unmounts. A switch back during it drops the new view.
+ *
+ * A selection open before the switch is inherited until it changes: the new
+ * view frames it without motion while out of sight, so the maps change in
+ * place, and it goes on pulsing without another fast flash. One made with the
+ * switch, or during it, is flown to and flashes as usual.
  */
 type MapViewHandoff = { from: MapViewPreference; to: MapViewPreference; revealed: boolean };
 
@@ -126,15 +132,27 @@ export function NetworkMap({
   const isMapActive = props.isMapActive ?? (props.mapChromeVisible);
 
   const view: MapViewPreference = props.mapView === "geographic" ? "geographic" : "diagram";
-  const [requestedView, setRequestedView] = useState(view);
+  const focusKey = mapViewFocusKey({
+    network,
+    selection: props.selection,
+    selectedStationId: props.selectedStationId,
+    commutePathPreview: props.commutePathPreview,
+    selectionAttentionGeneration: props.selectionAttentionGeneration ?? 0,
+    selectedSurfaceStopCode,
+    surfaceSelection,
+  });
+  // The view and focus last rendered, and whether the view inherited that focus.
+  const [shown, setShown] = useState({ view, focusKey, inherited: false });
   const [handoff, setHandoff] = useState<MapViewHandoff | null>(null);
   // A map has drawn: before that (a stored view applied just after load) there is nothing to hold on screen.
   const [drawn, setDrawn] = useState(false);
-  if (requestedView !== view) {
-    setRequestedView(view);
+  if (shown.view !== view || shown.focusKey !== focusKey) {
+    const switched = shown.view !== view;
+    setShown({ view, focusKey, inherited: switched && drawn && focusKey !== null && shown.focusKey === focusKey });
     // Asked back to the view still on screen: the one being prepared is dropped.
-    setHandoff(!drawn || handoff?.from === view ? null : { from: requestedView, to: view, revealed: false });
+    if (switched) setHandoff(!drawn || handoff?.from === view ? null : { from: shown.view, to: view, revealed: false });
   }
+  const inheritsSelection = shown.inherited && shown.view === view && shown.focusKey === focusKey;
   const handleMapReady = useCallback(() => {
     setDrawn(true);
     onMapReady?.();
@@ -215,7 +233,7 @@ export function NetworkMap({
             <DiagramNetworkMaps network={network} preparingNetwork={preparingNetwork} warmingNetwork={warmingNetwork}
               diagramData={diagramData} diagramStations={diagramStations}
               onMapReady={handleMapReady} onPreparedMapReady={onPreparedMapReady}
-              props={diagramRole === "leaving" ? { ...props, mapView: "diagram" } : props} />
+              props={diagramRole === "leaving" ? { ...props, mapView: "diagram" } : { ...props, inheritsSelection, viewSwitching: Boolean(handoff) }} />
           </FrozenWhileHidden>
         </div>
       ) : null}
@@ -245,6 +263,7 @@ export function NetworkMap({
               reducedMotion={props.reducedMotion}
               onReady={handleMapReady}
               viewHandoff={geographicRole}
+              inheritsSelection={inheritsSelection && view === "geographic"}
               onSettled={revealIncomingView}
               onSwitchToDiagram={() => props.onMapViewChange?.("diagram")}
               isMapActive={isMapActive}
@@ -323,6 +342,7 @@ function DiagramNetworkMaps({ network, preparingNetwork, warmingNetwork, diagram
       selection={preparing ? null : props.selection}
       selectedStationId={preparing ? null : props.selectedStationId}
       commutePathPreview={preparing ? null : props.commutePathPreview}
+      inheritsSelection={!preparing && Boolean(props.inheritsSelection)}
       deferInitialEntrance={preparing ? false : props.deferInitialEntrance}
       isMapActive={!preparing && isMapActive}
       cameraCommandsEnabled={!preparing}
