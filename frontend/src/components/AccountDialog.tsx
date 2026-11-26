@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Mail, X } from "lucide-react";
 import { AccountRequestError } from "../app/account-transport";
 import {
@@ -84,10 +84,15 @@ export function AccountDialog({
   const [successMessage, setSuccessMessage] = useState<string | null>(() => request?.successMessage ?? null);
   const [busy, setBusy] = useState(false);
 
-  // Closing animation state
+  // Closing animation state. The exit starts in the same render that receives
+  // isOpen=false: starting it from an effect would commit one render without the
+  // dialog, then remount it, replaying the content entrance during the exit.
   const [isClosing, setIsClosing] = useState(false);
-  const closingTimeoutRef = useRef<number | null>(null);
-  const wasOpenRef = useRef(isOpen);
+  const [renderedOpen, setRenderedOpen] = useState(isOpen);
+  if (renderedOpen !== isOpen) {
+    setRenderedOpen(isOpen);
+    setIsClosing(!isOpen && !reducedMotion);
+  }
 
   const resetForm = useCallback(() => {
     setEmail("");
@@ -135,35 +140,12 @@ export function AccountDialog({
     }
   }, [isOpen, request]);
 
-  // Handle transitions when isOpen changes
+  // Unmount once the 180ms exit has played; reopening cancels it.
   useEffect(() => {
-    if (closingTimeoutRef.current !== null) {
-      window.clearTimeout(closingTimeoutRef.current);
-      closingTimeoutRef.current = null;
-    }
-
-    if (isOpen) {
-      setIsClosing(false);
-      wasOpenRef.current = true;
-    } else if (wasOpenRef.current) {
-      wasOpenRef.current = false;
-      if (reducedMotion) {
-        setIsClosing(false);
-      } else {
-        setIsClosing(true);
-        closingTimeoutRef.current = window.setTimeout(() => {
-          setIsClosing(false);
-          closingTimeoutRef.current = null;
-        }, 180);
-      }
-    }
-
-    return () => {
-      if (closingTimeoutRef.current !== null) {
-        window.clearTimeout(closingTimeoutRef.current);
-      }
-    };
-  }, [isOpen, reducedMotion]);
+    if (!isClosing) return;
+    const timer = window.setTimeout(() => setIsClosing(false), 180);
+    return () => window.clearTimeout(timer);
+  }, [isClosing]);
 
   const handleDismiss = useCallback(() => {
     if (isClosing) return;

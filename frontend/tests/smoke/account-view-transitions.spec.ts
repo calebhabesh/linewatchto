@@ -111,3 +111,38 @@ test("unauthenticated My Stations view scrolls to reveal Sign In and Create Acco
   await expect(createAccountBtn).toBeVisible();
 });
 
+
+test("account dialog close plays its exit without unmounting and remounting first", async ({ page, request, isMobile }) => {
+  test.skip(isMobile);
+  await setStubMode(request, "seeded");
+  await installDismissedTransientUi(page);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  await page.locator('.desktop-rail-item[data-dest="sign-in"]').click();
+  const dialog = page.getByRole("dialog", { name: "Choose how to sign in to LineWatchTO" });
+  await expect(dialog).toBeVisible();
+  await page.waitForTimeout(300);
+
+  await page.evaluate(() => {
+    const log: string[] = [];
+    (window as unknown as { __accountDialogLog: string[] }).__accountDialogLog = log;
+    new MutationObserver(records => {
+      for (const record of records) {
+        for (const node of record.removedNodes) {
+          if (node instanceof Element && node.classList.contains("account-dialog-backdrop")) log.push(`removed ${node.className.trim()}`);
+        }
+        for (const node of record.addedNodes) {
+          if (node instanceof Element && node.classList.contains("account-dialog-backdrop")) log.push(`added ${node.className.trim()}`);
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+
+  await dialog.getByRole("button", { name: "Close account dialog" }).click();
+  await expect(page.locator(".account-dialog--closing")).toHaveCount(1);
+  // The content keeps its entrance end state while the container exits.
+  await expect(page.locator(".account-dialog-intro")).toHaveCSS("opacity", "1");
+  await expect(page.locator(".account-dialog-backdrop")).toHaveCount(0);
+  const log = await page.evaluate(() => (window as unknown as { __accountDialogLog: string[] }).__accountDialogLog);
+  expect(log).toEqual(["removed account-dialog-backdrop account-dialog-backdrop--closing"]);
+});
