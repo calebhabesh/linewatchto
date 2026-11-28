@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { desktopControlRailFits, placeDesktopControlRail } from "../src/app/desktop-sidebar-state.ts";
+import { desktopControlRailFits, placeDesktopControlRail, restingSidebarRight } from "../src/app/desktop-sidebar-state.ts";
 
 describe("desktop toolbar placement", () => {
   it("sits midway between an open sidebar and the right-hand buttons", () => {
@@ -57,5 +57,48 @@ describe("desktop toolbar placement", () => {
       containerWidth: 820, workspaceLeft: 420, railWidth: 330, rightControls: { left: 567, bottom: 81 },
     });
     assert.equal(desktopControlRailFits({ containerWidth: 820, left: narrower.left, railWidth: 330 }), true);
+  });
+});
+
+describe("toolbar against a sidebar mid-animation", () => {
+  // The sidebar opens, closes and widens with 160ms transitions; the toolbar is placed once,
+  // against where it lands, so it glides there instead of chasing the animated edge.
+  const sidebar = ({ collapsed = false, rect, width }) => ({
+    classList: { contains: (name) => collapsed && name === "desktop-sidebar-container--collapsed" },
+    getAttribute: (name) => (name === "aria-hidden" && collapsed ? "true" : null),
+    getBoundingClientRect: () => rect,
+    style: { getPropertyValue: (name) => (name === "--desktop-sidebar-width" ? width : "") },
+  });
+  const withWindow = (transform, run) => {
+    const saved = { window: globalThis.window, matrix: globalThis.DOMMatrixReadOnly };
+    globalThis.window = { getComputedStyle: () => ({ display: "block", transform }) };
+    globalThis.DOMMatrixReadOnly = class {
+      constructor(value) { this.m41 = Number(value.match(/matrix\(([^)]*)\)/)[1].split(",")[4]); }
+    };
+    try { run(); } finally {
+      globalThis.window = saved.window;
+      globalThis.DOMMatrixReadOnly = saved.matrix;
+    }
+  };
+
+  it("has no edge for a closed sidebar", () => {
+    withWindow("none", () => {
+      assert.equal(restingSidebarRight(sidebar({ collapsed: true, rect: { left: 68, width: 0 }, width: "420px" })), null);
+      assert.equal(restingSidebarRight(null), null);
+    });
+  });
+
+  it("reads where an opening sidebar lands, not its first frame", () => {
+    // First frame of opening: still slid 12px left and only 30px wide.
+    withWindow("matrix(1, 0, 0, 1, -12, 0)", () => {
+      assert.equal(restingSidebarRight(sidebar({ rect: { left: 68, width: 30 }, width: "420px" })), 500);
+    });
+  });
+
+  it("reads the width a sidebar is widening to", () => {
+    // Station details widen it from 420px to 560px; this frame is part-way.
+    withWindow("none", () => {
+      assert.equal(restingSidebarRight(sidebar({ rect: { left: 80, width: 470 }, width: "560px" })), 640);
+    });
   });
 });

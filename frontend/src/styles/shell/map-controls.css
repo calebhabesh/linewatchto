@@ -47,14 +47,6 @@
   }
 }
 
-/* After its first placement the toolbar glides to a new one on the sidebar's curve, so opening,
-   closing or widening the sidebar moves it with the sidebar instead of making it jump. */
-@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
-  .linewatch-shell:not(.motion-paused) .desktop-map-control-rail[data-glide="true"] {
-    transition: left 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-}
-
 /* Narrow desktop windows: drop the zoom slider and captions so the toolbar fits beside the
    right-hand buttons. Every button keeps its aria-label. */
 @media (min-width: 768px) {

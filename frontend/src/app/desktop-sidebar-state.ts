@@ -163,6 +163,31 @@ function visibleRect(element: Element | null | undefined): DOMRect | null {
   return rect.width > 0 && rect.height > 0 ? rect : null;
 }
 
+/**
+ * Where an open sidebar's right edge comes to rest (viewport x), or null when it is closed. The
+ * sidebar opens, closes and changes width with 160ms transitions (max-width, width, transform), so
+ * its drawn box is mid-animation; the toolbar is placed once against where the sidebar lands
+ * instead of chasing its edge frame by frame.
+ */
+export function restingSidebarRight(sidebar: HTMLElement | null | undefined): number | null {
+  if (!sidebar || sidebar.classList.contains("desktop-sidebar-container--collapsed")) return null;
+  if (sidebar.getAttribute("aria-hidden") === "true") return null;
+  const style = window.getComputedStyle(sidebar);
+  if (style.display === "none") return null;
+  const rect = sidebar.getBoundingClientRect();
+  const slide = style.transform !== "none" && typeof DOMMatrixReadOnly === "function"
+    ? new DOMMatrixReadOnly(style.transform).m41
+    : 0;
+  const width = Number.parseFloat(sidebar.style.getPropertyValue("--desktop-sidebar-width"));
+  return rect.left - slide + (Number.isFinite(width) && width > 0 ? width : rect.width);
+}
+
+/** The sidebar's open, close and resize curve; the toolbar moves on it. */
+const DESKTOP_RAIL_GLIDE: KeyframeAnimationOptions = {
+  duration: 160,
+  easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+};
+
 export type DesktopControlRailPlacement = { left: number; top: number };
 
 /**
@@ -269,6 +294,14 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
   // The map workspace learns the toolbar's centre, so the preview chip lines up under it.
   const workspace = rail.closest<HTMLElement>(".desktop-map-workspace");
   let frame: number | null = null;
+  // The last placement written, the container width it was made for, and the move in flight.
+  let placed: DesktopControlRailPlacement | null = null;
+  let placedForWidth = 0;
+  let glide: Animation | null = null;
+  const stopGlide = () => {
+    glide?.cancel();
+    glide = null;
+  };
 
   const place = () => {
     frame = null;
@@ -278,18 +311,19 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
       }
       delete rail.dataset.compact;
       delete rail.dataset.hideNetwork;
-      delete rail.dataset.glide;
+      stopGlide();
+      placed = null;
       const cluster = shell?.querySelector<HTMLElement>(".map-utility-cluster");
       if (cluster) delete cluster.dataset.compact;
       workspace?.style.removeProperty("--desktop-rail-center");
       return;
     }
+    // Where the toolbar is drawn now, part-way through a move or not.
+    const drawnLeft = rail.getBoundingClientRect().left;
     const containerRect = container.getBoundingClientRect();
-    const sidebar = visibleRect(shell?.querySelector(
-      ".desktop-sidebar-container:not(.desktop-sidebar-container--collapsed)",
-    ));
+    const sidebarRight = restingSidebarRight(shell?.querySelector<HTMLElement>(".desktop-sidebar-container"));
     const clusterElement = shell?.querySelector<HTMLElement>(".map-utility-cluster") ?? null;
-    const workspaceLeft = sidebar ? Math.max(0, sidebar.right - containerRect.left) : 0;
+    const workspaceLeft = sidebarRight === null ? 0 : Math.max(0, sidebarRight - containerRect.left);
     const placeWith = (railWidth: number) => {
       const cluster = visibleRect(clusterElement);
       return placeDesktopControlRail({
@@ -327,7 +361,7 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
     }
     // Beside a floating sidebar on a narrow window even the second row can be
     // too short. The sidebar has its own network switch, so drop the toolbar's.
-    if (sidebar && !desktopControlRailFits({
+    if (sidebarRight !== null && !desktopControlRailFits({
       containerWidth: containerRect.width, left: placement.left, railWidth: rail.offsetWidth,
     })) {
       rail.dataset.hideNetwork = "true";
@@ -340,16 +374,26 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
       const center = containerRect.left + placement.left + rail.offsetWidth / 2 - workspace.getBoundingClientRect().left;
       workspace.style.setProperty("--desktop-rail-center", `${Math.round(center)}px`);
     }
-    // Later placements glide with the sidebar (map-controls.css). While the right-hand buttons
-    // fold or unfold (as they do on load), the toolbar follows their edge frame by frame instead.
-    // Reading the rect first applies this placement without a transition, so the toolbar never
-    // slides in from the middle of the map.
-    if (clusterHeld) {
-      delete rail.dataset.glide;
-    } else if (rail.dataset.glide !== "true") {
-      rail.getBoundingClientRect();
-      rail.dataset.glide = "true";
-    }
+    // A new place glides there from where the toolbar is drawn, with a transform animation the
+    // compositor runs, so a busy main thread (the sidebar rendering) can't drop its frames. It
+    // starts once per change: an unchanged placement leaves a move in flight alone. The first
+    // placement, a window resize, a change of row, the right-hand buttons folding or unfolding
+    // (followed frame by frame) and reduced motion all land at once.
+    const previous = placed;
+    const resized = containerRect.width !== placedForWidth;
+    placed = placement;
+    placedForWidth = containerRect.width;
+    if (!previous || (previous.left === placement.left && previous.top === placement.top)) return;
+    stopGlide();
+    const reducedMotion = shell?.classList.contains("motion-paused")
+      || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (resized || clusterHeld || reducedMotion || previous.top !== placement.top) return;
+    const offset = drawnLeft - rail.getBoundingClientRect().left;
+    if (Math.abs(offset) < 0.5) return;
+    glide = rail.animate(
+      [{ transform: `translateX(${offset}px)` }, { transform: "translateX(0)" }],
+      DESKTOP_RAIL_GLIDE,
+    );
   };
   const schedule = () => {
     if (frame === null) frame = window.requestAnimationFrame(place);
@@ -371,22 +415,14 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
     resizeObserver.observe(element);
     classObserver.observe(element, { attributes: true, attributeFilter: ["class", "aria-hidden", "style"] });
   }
-  // The sidebar slides open with a transform, which the observers above don't see; place the
-  // toolbar again where the sidebar lands.
-  const sidebarElement = shell?.querySelector<HTMLElement>(".desktop-sidebar-container") ?? null;
-  const onSidebarTransitionEnd = (event: TransitionEvent) => {
-    if (event.target === sidebarElement) schedule();
-  };
-  sidebarElement?.addEventListener("transitionend", onSidebarTransitionEnd);
   window.addEventListener("resize", schedule);
   return () => {
     if (frame !== null) window.cancelAnimationFrame(frame);
-    sidebarElement?.removeEventListener("transitionend", onSidebarTransitionEnd);
+    stopGlide();
     activeRailPlacements.delete(place);
     resizeObserver.disconnect();
     classObserver.disconnect();
     window.removeEventListener("resize", schedule);
-    delete rail.dataset.glide;
     workspace?.style.removeProperty("--desktop-rail-center");
   };
 }
