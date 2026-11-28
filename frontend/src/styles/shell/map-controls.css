@@ -26,10 +26,14 @@
 .regional-map-controls svg { width: 1.15rem; }
 
 @media (min-width: 768px) {
-  /* Placed by observeDesktopControlRail: centered beside the sidebar, clear of the
-     right-hand buttons, or on a second row when the window is too narrow for both. */
+  /* Placed by observeDesktopControlRail: midway between an open sidebar and the right-hand
+     buttons, centered over the map when the sidebar is collapsed, or on a second row when the
+     window is too narrow for both. */
   .desktop-map-control-rail {
-    left: var(--desktop-rail-left, 50%);
+    /* Until it is placed, it starts where it lands in the page's first state (the 420px Status
+       sidebar open, the right-hand buttons with captions about 359px from the right edge):
+       midway between them, 30px right of the map's centre, so it doesn't jump on hydration. */
+    left: var(--desktop-rail-left, calc(50% + 30px));
     top: var(--desktop-rail-top, 20px) !important;
     translate: var(--desktop-rail-translate, -50% 0);
     height: 56px;
@@ -40,6 +44,14 @@
   .map-control-rail .map-control-button,
   .map-control-rail .map-view-toggle-btn {
     gap: 4px;
+  }
+}
+
+/* After its first placement the toolbar glides to a new one on the sidebar's curve, so opening,
+   closing or widening the sidebar moves it with the sidebar instead of making it jump. */
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .linewatch-shell:not(.motion-paused) .desktop-map-control-rail[data-glide="true"] {
+    transition: left 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 }
 
