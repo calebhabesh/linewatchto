@@ -377,7 +377,7 @@ export function LineLegend({
   const LIMITED_SERVICE_GREY = "#8292a7";
 
   const renderLimitedServiceItem = (slotClass: string | null) => (
-    <div key="limited-service" className="flex items-center gap-2 min-w-0">
+    <div key="limited-service" className="legend-service-key flex items-center gap-2 min-w-0">
       {slotClass ? <div className={`${slotClass} h-[48px] shrink-0`} aria-hidden="true" /> : null}
       <div
         className="legend-line-segment relative shrink-0 flex items-center justify-center rounded-none overflow-hidden"
@@ -411,7 +411,7 @@ export function LineLegend({
   );
 
   const renderRegularServiceItem = (slotClass: string | null) => (
-    <div key="regular-service" className="flex items-center gap-2 min-w-0">
+    <div key="regular-service" className="legend-service-key flex items-center gap-2 min-w-0">
       {slotClass ? <div className={`${slotClass} h-[48px] shrink-0`} aria-hidden="true" /> : null}
       <div
         className="legend-line-segment relative shrink-0 flex items-center justify-center rounded-none overflow-hidden"

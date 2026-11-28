@@ -1294,6 +1294,13 @@
     width: var(--mobile-top-action-button-size);
   }
 
+  /* While the map's own network switch is shown, the one in the View Trains stack is a
+     duplicate: a landscape phone or a short window (a quarter-screen tile) showed both. The
+     stack's switch is for the rotated map, which has no other. */
+  .linewatch-shell:has(.mobile-map-network-switch) .site-guide-network-stack .mobile-network-selector-slot {
+    display: none;
+  }
+
   .network-selector--compact-vertical {
     --compact-network-option-height: 40px;
     --compact-network-glider-height: 40px;

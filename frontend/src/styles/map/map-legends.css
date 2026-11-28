@@ -113,6 +113,17 @@
   }
 }
 
+/* On a window under 1024px wide (a half-screen or quarter tile) the full legend is wider than the
+   map beside the open sidebar and slid under it. It drops the line names, keeping each line's
+   badge, status and alert counts (each button's label still names its line), and GO/UP's
+   service key, whose swatches mean nothing without their labels. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .desktop-map-legend .legend-line-name,
+  .desktop-map-legend .legend-service-key {
+    display: none;
+  }
+}
+
 .legend-line-name {
   display: inline-block;
   line-height: 1;

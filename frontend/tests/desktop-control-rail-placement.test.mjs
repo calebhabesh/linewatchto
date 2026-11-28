@@ -47,6 +47,22 @@ describe("desktop toolbar placement", () => {
     assert.ok(placement.left + 674 <= 1286 - 16);
   });
 
+  it("tucks a second row under the right-hand buttons, right edges aligned", () => {
+    // A half-screen tile on a 1440p monitor: 960px map, sidebar edge at 420, buttons 707-944.
+    const placement = placeDesktopControlRail({
+      containerWidth: 960, workspaceLeft: 420, railWidth: 298, rightControls: { left: 707, right: 944, bottom: 76 },
+    });
+    assert.deepEqual(placement, { left: 646, top: 88 });
+    assert.equal(placement.left + 298, 944);
+  });
+
+  it("keeps a second row clear of the sidebar when it can't reach the buttons' edge", () => {
+    const placement = placeDesktopControlRail({
+      containerWidth: 760, workspaceLeft: 420, railWidth: 330, rightControls: { left: 507, right: 744, bottom: 76 },
+    });
+    assert.deepEqual(placement, { left: 436, top: 88 });
+  });
+
   it("reports a second row that still runs past a narrow window", () => {
     // 900px window: 820px map, 420px floating sidebar, 552px compact toolbar.
     const placement = placeDesktopControlRail({

@@ -196,7 +196,9 @@ export type DesktopControlRailPlacement = { left: number; top: number };
  * window size; centering it over the whole map instead left it 60px nearer the sidebar, pinned
  * against it on laptop-sized windows. With the sidebar collapsed nothing is on its left, so it is
  * centered over the whole map and moves only to clear the right-hand buttons. When the gap is too
- * narrow it sits on a second row.
+ * narrow (tiled and half-screen windows) it tucks under the right-hand buttons on a second row,
+ * right edges aligned, so the two stack as one group in the corner; centered under the map they
+ * sat on a diagonal. It never moves left past the sidebar's edge.
  */
 export function placeDesktopControlRail({
   containerWidth,
@@ -209,7 +211,7 @@ export function placeDesktopControlRail({
   containerWidth: number;
   workspaceLeft: number;
   railWidth: number;
-  rightControls: { left: number; bottom: number } | null;
+  rightControls: { left: number; right?: number; bottom: number } | null;
   margin?: number;
   top?: number;
 }): DesktopControlRailPlacement {
@@ -223,10 +225,9 @@ export function placeDesktopControlRail({
     return { left: Math.round(Math.min(Math.max(preferred, lowestLeft), highestLeft)), top };
   }
 
-  const rowCenter = workspaceLeft + (containerWidth - workspaceLeft - railWidth) / 2;
-  const rowHighest = Math.max(lowestLeft, containerWidth - margin - railWidth);
+  const rowRight = rightControls?.right ?? containerWidth - margin;
   return {
-    left: Math.round(Math.min(Math.max(rowCenter, lowestLeft), rowHighest)),
+    left: Math.round(Math.max(lowestLeft, rowRight - railWidth)),
     top: Math.round((rightControls?.bottom ?? top) + 12),
   };
 }
@@ -331,7 +332,11 @@ export function observeDesktopControlRail(rail: HTMLElement | null): () => void 
         workspaceLeft,
         railWidth,
         rightControls: cluster
-          ? { left: cluster.left - containerRect.left, bottom: cluster.bottom - containerRect.top }
+          ? {
+            left: cluster.left - containerRect.left,
+            right: cluster.right - containerRect.left,
+            bottom: cluster.bottom - containerRect.top,
+          }
           : null,
       });
     };
