@@ -71,11 +71,35 @@
   }
 }
 
-/* The legend keeps its designed size, and shrinks on small windows so it doesn't cover the
-   map. `zoom`, unlike a transform, also scales its layout box and click targets. */
-@media (min-width: 768px) and (max-width: 1499px), (min-width: 768px) and (max-height: 859px) {
+/* The legend is designed at a 2560x1320 window. The map fits the window, so it shrinks
+   with the smaller of width / 2560 and height / 1320; the legend steps down with it to keep
+   its share of the map (a full-size legend covers Union on a 1620x930 laptop window), until
+   it reaches the size that keeps its text readable. GO/UP's two-column legend is wider, so it
+   shrinks further. `zoom`, unlike a transform, also scales its layout box and click targets.
+   Each step overrides the one before, so keep them in this order. */
+@media (min-width: 768px) and (max-width: 2431px), (min-width: 768px) and (max-height: 1253px) {
+  .desktop-map-legend {
+    zoom: 0.9;
+  }
+
+  .desktop-map-legend--regional {
+    zoom: 0.85;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 2175px), (min-width: 768px) and (max-height: 1121px) {
   .desktop-map-legend {
     zoom: 0.8;
+  }
+
+  .desktop-map-legend--regional {
+    zoom: 0.75;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1919px), (min-width: 768px) and (max-height: 989px) {
+  .desktop-map-legend--regional {
+    zoom: 0.64;
   }
 }
 
@@ -83,16 +107,7 @@
   .desktop-map-legend {
     zoom: 0.7;
   }
-}
 
-/* GO/UP's two-column legend is wider, so it shrinks further on small windows. */
-@media (min-width: 768px) and (max-width: 1499px), (min-width: 768px) and (max-height: 859px) {
-  .desktop-map-legend--regional {
-    zoom: 0.64;
-  }
-}
-
-@media (min-width: 768px) and (max-height: 699px) {
   .desktop-map-legend--regional {
     zoom: 0.56;
   }
