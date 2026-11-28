@@ -1,6 +1,5 @@
 import { memo, useMemo, type CSSProperties, type ReactNode } from "react";
 import type { ImpactSelection } from "../../app/linewatch-data";
-import { samplePath } from "../../app/map-geometry";
 import {
   ChevronGlyphLane,
   HourglassGlyphLane,
@@ -73,14 +72,9 @@ export const MapLineAlertTube = memo(function MapLineAlertTube({
   idSuffix?: string;
 }) {
   const { pathD, visualState, travelDirection } = alert;
+  // Lanes lay their glyphs out between the plane's stations, with steps in
+  // TTC units (glyph-placement.ts): chevrons 56 apart, icon-and-arrow pairs 112.
   const unit = plane.unit;
-  const { step } = useMemo(() => (
-    (visualState === "reduced-speed-zone" || visualState === "delay-static" || visualState === "suspension") && pathD
-      ? samplePath(pathD, 56 * unit)
-      : { step: 56 * unit }
-  ), [pathD, unit, visualState]);
-  // Lanes take their step in TTC units and scale it themselves.
-  const laneStep = step / unit;
   if (!pathD) return null;
 
   const visualId = lineAlertVisualId(plane, alert, idSuffix);
@@ -121,19 +115,20 @@ export const MapLineAlertTube = memo(function MapLineAlertTube({
               // A directionless delay shows one row of hourglasses, no arrows.
               <HourglassGlyphLane
                 pathD={pathD}
-                step={28}
+                step={56}
                 direction="forward"
                 travelDirection="forward"
                 onlyHourglasses
                 unit={unit}
+                stations={plane}
               />
             ) : (
               <>
                 {renderForwardLane ? (
-                  <HourglassGlyphLane pathD={pathD} step={laneStep} direction="forward" travelDirection={travelDirection} unit={unit} />
+                  <HourglassGlyphLane pathD={pathD} step={112} direction="forward" travelDirection={travelDirection} unit={unit} stations={plane} />
                 ) : null}
                 {renderReverseLane ? (
-                  <HourglassGlyphLane pathD={pathD} step={laneStep} direction="reverse" travelDirection={travelDirection} unit={unit} />
+                  <HourglassGlyphLane pathD={pathD} step={112} direction="reverse" travelDirection={travelDirection} unit={unit} stations={plane} />
                 ) : null}
               </>
             )}
@@ -148,7 +143,7 @@ export const MapLineAlertTube = memo(function MapLineAlertTube({
             d={pathD}
             style={{ pointerEvents: "none" }}
           />
-          <PlannedClosureIconLane pathD={pathD} travelDirection={travelDirection} unit={unit} />
+          <PlannedClosureIconLane pathD={pathD} travelDirection={travelDirection} unit={unit} stations={plane} />
         </>
       ) : null}
 
@@ -159,12 +154,12 @@ export const MapLineAlertTube = memo(function MapLineAlertTube({
             d={pathD}
             style={{ pointerEvents: "none", stroke: RSZ_IMPACT_COLOR }}
           />
-          <g className="rsz-chevron-lanes" style={{ "--chevron-step": `${step}px` } as CSSProperties}>
+          <g className="rsz-chevron-lanes">
             {renderForwardLane ? (
-              <ChevronGlyphLane pathD={pathD} step={laneStep} direction="forward" travelDirection={travelDirection} unit={unit} />
+              <ChevronGlyphLane pathD={pathD} step={56} direction="forward" travelDirection={travelDirection} unit={unit} stations={plane} />
             ) : null}
             {renderReverseLane ? (
-              <ChevronGlyphLane pathD={pathD} step={laneStep} direction="reverse" travelDirection={travelDirection} unit={unit} />
+              <ChevronGlyphLane pathD={pathD} step={56} direction="reverse" travelDirection={travelDirection} unit={unit} stations={plane} />
             ) : null}
           </g>
         </>
@@ -179,7 +174,7 @@ export const MapLineAlertTube = memo(function MapLineAlertTube({
               style={{ pointerEvents: "none", stroke: SUSPENSION_COLOR }}
             />
             <g className="map-glyph-lane">
-              <SuspensionNoEntryLane pathD={pathD} step={88} unit={unit} />
+              <SuspensionNoEntryLane pathD={pathD} step={88} unit={unit} stations={plane} />
             </g>
           </>
         ) : (
@@ -192,10 +187,11 @@ export const MapLineAlertTube = memo(function MapLineAlertTube({
             <g className="map-glyph-lane">
               <SuspensionGlyphLane
                 pathD={pathD}
-                step={laneStep}
+                step={112}
                 direction={travelDirection}
                 travelDirection={travelDirection}
                 unit={unit}
+                stations={plane}
               />
             </g>
           </>

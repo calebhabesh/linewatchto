@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { extrapolatedPathFrame, samplePath, type MapPoint } from "../../app/map-geometry";
 import type { TravelDirection } from "../../app/linewatch-data";
 import { PlannedClosureIcon } from "../PlannedClosureIcon";
 import { glyphRipplePhase, installGlyphMotion, registerGlyphRippleLane } from "./glyph-motion";
+import { laneGlyphs, type LaneGlyph } from "./glyph-placement";
+import type { MapOverlayPlane } from "./overlay-plane";
 
 // Glyph art and spacing are designed in TTC overlay units. `unit` scales them
 // to a map's own units (MapOverlayPlane.unit), so both maps draw one design.
@@ -10,88 +11,30 @@ function scaled(unit: number) {
   return unit === 1 ? "" : ` scale(${unit})`;
 }
 
-type GlyphLaneMetrics = {
-  count: number;
-  frames: Array<{
-    x: number;
-    y: number;
-    rotation: number;
-  }>;
-};
+/**
+ * Paired lanes' slots: an icon a quarter of the way in, then its arrow three
+ * quarters in, so the pairs alternate evenly and every gap between stations
+ * holds whole pairs.
+ */
+const ICON_THEN_ARROW = [0.25, 0.75];
+/** The stations a lane lays its glyphs out between: the map's dots and pill stations. */
+export type GlyphLaneStations = Pick<MapOverlayPlane, "outlineDots" | "outlineCutouts">;
+const NO_STATIONS: GlyphLaneStations = { outlineDots: [], outlineCutouts: [] };
 
-function measureGlyphLane(
-  pathD: string,
-  requestedStep: number,
-  normalOffset: number,
-  direction: "forward" | "reverse",
-): GlyphLaneMetrics | null {
-  if (typeof document === "undefined") return null;
-
-  try {
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", pathD);
-    const length = path.getTotalLength();
-    if (length <= 0) return null;
-
-    const count = Math.max(1, Math.floor(length / requestedStep));
-    let lanePathD = pathD;
-
-    if (normalOffset !== 0) {
-      // Offset the two bidirectional lanes to either side of the rail.
-      const sampleCount = Math.max(2, Math.ceil(length / 12));
-      const points = Array.from({ length: sampleCount + 1 }, (_, index) => {
-        const distance = length * index / sampleCount;
-        const frame = extrapolatedPathFrame(path, length, distance);
-        if (!frame) return null;
-        const angle = Math.atan2(frame.tangent.y, frame.tangent.x);
-        return {
-          x: frame.point.x - normalOffset * Math.sin(angle),
-          y: frame.point.y + normalOffset * Math.cos(angle),
-        };
-      }).filter((point): point is MapPoint => Boolean(point));
-
-      if (points.length >= 2) {
-        lanePathD = points
-          .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
-          .join(" ");
-      }
-    }
-
-    // Glyphs sit on the offset lane's own distance and tangent, including on
-    // curves where the two lanes have different lengths.
-    path.setAttribute("d", lanePathD);
-    const laneLength = path.getTotalLength();
-    const frames = Array.from({ length: count }, (_, index) => {
-      const progress = index / count;
-      const distance = laneLength * (direction === "forward" ? progress : 1 - progress);
-      const frame = extrapolatedPathFrame(path, laneLength, distance);
-      if (!frame) return { x: 0, y: 0, rotation: 0 };
-      return {
-        x: frame.point.x,
-        y: frame.point.y,
-        rotation: Math.atan2(frame.tangent.y, frame.tangent.x) * (180 / Math.PI)
-          + (direction === "reverse" ? 180 : 0),
-      };
-    });
-
-    return { count, frames };
-  } catch (error) {
-    console.error("Error measuring SVG glyph lane:", error);
-    return null;
-  }
+/** Lanes place their glyphs once mounted, after their tube's first frame. */
+function useMounted() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const handle = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(handle);
+  }, []);
+  return mounted;
 }
 
-function glyphLaneTransform(
-  metrics: GlyphLaneMetrics,
-  index: number,
-  rotate: boolean,
-  unit: number,
-): string {
-  const frame = metrics.frames[index];
-  if (!frame) return "";
+function glyphTransform(glyph: LaneGlyph, rotate: boolean, unit: number): string {
   return rotate
-    ? `translate(${frame.x} ${frame.y}) rotate(${frame.rotation})${scaled(unit)}`
-    : `translate(${frame.x} ${frame.y})${scaled(unit)}`;
+    ? `translate(${glyph.x} ${glyph.y}) rotate(${glyph.rotation})${scaled(unit)}`
+    : `translate(${glyph.x} ${glyph.y})${scaled(unit)}`;
 }
 
 /**
@@ -115,7 +58,10 @@ function DirectionChevron({ kind }: { kind: "rsz" | "delay" | "suspension" | "pl
 const everyGlyph = (index: number) => index;
 const oddGlyphs = (index: number) => (index % 2 === 1 ? (index - 1) / 2 : null);
 
-/** Alert glyphs at rest along a lane; alert overlays never move (map-renderer-parity.md). */
+/**
+ * Alert glyphs at rest along a lane, laid out between the stations it passes
+ * (glyph-placement.ts); alert overlays never move (map-renderer-parity.md).
+ */
 function GlyphLane({
   pathD,
   step,
@@ -124,6 +70,8 @@ function GlyphLane({
   renderGlyph,
   rotateGlyph = true,
   unit,
+  stations,
+  pattern,
   ripplePhase,
 }: {
   pathD: string;
@@ -133,10 +81,12 @@ function GlyphLane({
   renderGlyph: (index: number) => ReactNode;
   rotateGlyph?: boolean | ((index: number) => boolean);
   unit: number;
+  stations: GlyphLaneStations;
+  pattern?: readonly number[];
   /** Each ripple arrow's order along travel, null for icons (glyph-motion.ts). */
   ripplePhase?: (index: number) => number | null;
 }) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const laneRef = useRef<SVGGElement>(null);
 
   const ripple = ripplePhase !== undefined;
@@ -144,32 +94,35 @@ function GlyphLane({
     if (ripple) installGlyphMotion();
   }, [ripple]);
 
-  useEffect(() => {
-    const handle = setTimeout(() => setMounted(true), 0);
-    return () => clearTimeout(handle);
-  }, []);
-
-  const normalOffset = travelDirection === "bidirectional"
+  // A two-way lane's rows run either side of the rail.
+  const offset = travelDirection === "bidirectional"
     ? (direction === "reverse" ? 18 : -18) * unit
     : 0;
-  const metrics = useMemo(
-    () => mounted ? measureGlyphLane(pathD, step * unit, normalOffset, direction) : null,
-    [direction, mounted, normalOffset, pathD, step, unit],
+  const glyphs = useMemo(
+    () => mounted ? laneGlyphs(pathD, {
+      step: step * unit,
+      dots: stations.outlineDots,
+      cutouts: stations.outlineCutouts,
+      offset,
+      direction,
+      pattern,
+    }) : null,
+    [direction, mounted, offset, pathD, pattern, stations, step, unit],
   );
 
-  const rippleArrows = metrics && ripplePhase
-    ? Array.from({ length: metrics.count }, (_, index) => ripplePhase(index)).filter((phase) => phase !== null).length
+  const rippleArrows = glyphs && ripplePhase
+    ? glyphs.filter((_, index) => ripplePhase(index) !== null).length
     : 0;
   useEffect(() => {
     if (rippleArrows === 0 || !laneRef.current) return;
     return registerGlyphRippleLane(laneRef.current, rippleArrows);
   }, [rippleArrows]);
 
-  if (!metrics) return null;
+  if (!glyphs) return null;
 
   return (
     <g ref={laneRef} data-glyph-lane data-glyph-ripple={ripple ? "" : undefined}>
-      {Array.from({ length: metrics.count }, (_, index) => {
+      {glyphs.map((glyph, index) => {
         const shouldRotate = typeof rotateGlyph === "function" ? rotateGlyph(index) : rotateGlyph;
         const phase = ripplePhase?.(index) ?? null;
         return (
@@ -178,7 +131,7 @@ function GlyphLane({
             data-index={index}
             data-ripple-phase={phase === null ? undefined : ""}
             style={phase === null ? undefined : { "--glyph-ripple-phase": glyphRipplePhase(phase) } as CSSProperties}
-            transform={glyphLaneTransform(metrics, index, shouldRotate, unit)}
+            transform={glyphTransform(glyph, shouldRotate, unit)}
           >
             {renderGlyph(index)}
           </g>
@@ -194,6 +147,7 @@ export function ChevronGlyphLane({
   direction,
   travelDirection,
   unit = 1,
+  stations = NO_STATIONS,
   still = false,
 }: {
   pathD: string;
@@ -201,6 +155,8 @@ export function ChevronGlyphLane({
   direction: "forward" | "reverse";
   travelDirection: string;
   unit?: number;
+  /** The map's stations, which glyphs are laid out between (glyph-placement.ts). */
+  stations?: GlyphLaneStations;
   /** Never ripples (the site guide's still samples). */
   still?: boolean;
 }) {
@@ -211,6 +167,7 @@ export function ChevronGlyphLane({
       direction={direction}
       travelDirection={travelDirection}
       unit={unit}
+      stations={stations}
       ripplePhase={still ? undefined : everyGlyph}
       renderGlyph={() => <DirectionChevron kind="rsz" />}
     />
@@ -223,13 +180,16 @@ export function SuspensionGlyphLane({
   direction,
   travelDirection,
   unit = 1,
+  stations = NO_STATIONS,
   still = false,
 }: {
   pathD: string;
+  /** One no-entry sign and its arrow. */
   step: number;
   direction: "forward" | "reverse";
   travelDirection: string;
   unit?: number;
+  stations?: GlyphLaneStations;
   /** Never ripples (the site guide's still samples). */
   still?: boolean;
 }) {
@@ -240,6 +200,8 @@ export function SuspensionGlyphLane({
       direction={direction}
       travelDirection={travelDirection}
       unit={unit}
+      stations={stations}
+      pattern={ICON_THEN_ARROW}
       rotateGlyph={(index) => index % 2 !== 0}
       ripplePhase={still ? undefined : oddGlyphs}
       renderGlyph={(index) => index % 2 === 0 ? (
@@ -276,28 +238,28 @@ export function SuspensionNoEntryLane({
   pathD,
   step,
   unit = 1,
+  stations = NO_STATIONS,
 }: {
   pathD: string;
   step: number;
   unit?: number;
+  stations?: GlyphLaneStations;
 }) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
+  const glyphs = useMemo(
+    () => mounted ? laneGlyphs(pathD, {
+      step: step * unit,
+      dots: stations.outlineDots,
+      cutouts: stations.outlineCutouts,
+    }) : [],
+    [mounted, pathD, stations, step, unit],
+  );
 
-  useEffect(() => {
-    const handle = setTimeout(() => setMounted(true), 0);
-    return () => clearTimeout(handle);
-  }, []);
-
-  const { points } = useMemo(() => {
-    if (!mounted) return { points: [], step };
-    return samplePath(pathD, step * unit);
-  }, [mounted, pathD, step, unit]);
-
-  if (!mounted || points.length === 0) return null;
+  if (glyphs.length === 0) return null;
 
   return (
     <g className="suspension-no-entry-lane" aria-hidden="true">
-      {points.map((point, index) => (
+      {glyphs.map((point, index) => (
         <g
           key={`${point.x}-${point.y}-${index}`}
           transform={`translate(${point.x} ${point.y})${scaled(unit)}`}
@@ -316,14 +278,17 @@ export function HourglassGlyphLane({
   travelDirection,
   onlyHourglasses = false,
   unit = 1,
+  stations = NO_STATIONS,
   still = false,
 }: {
   pathD: string;
+  /** One hourglass and its arrow; one hourglass with `onlyHourglasses`. */
   step: number;
   direction: "forward" | "reverse";
   travelDirection: string;
   onlyHourglasses?: boolean;
   unit?: number;
+  stations?: GlyphLaneStations;
   /** Never ripples (the site guide's still samples). */
   still?: boolean;
 }) {
@@ -334,10 +299,11 @@ export function HourglassGlyphLane({
       direction={direction}
       travelDirection={travelDirection}
       unit={unit}
+      stations={stations}
+      pattern={onlyHourglasses ? undefined : ICON_THEN_ARROW}
       ripplePhase={onlyHourglasses || still ? undefined : oddGlyphs}
       renderGlyph={(index) => {
-        const isHourglass = index % 2 === 0;
-        if (!isHourglass && onlyHourglasses) return null;
+        const isHourglass = onlyHourglasses || index % 2 === 0;
         return isHourglass ? (
           <g transform="scale(0.09) translate(-550, -512)" className="delay-hourglass">
                 <path
@@ -375,66 +341,44 @@ export function HourglassGlyphLane({
   );
 }
 
+/**
+ * A planned closure's calendars, 112 units apart; a one-way closure follows
+ * each with its direction arrow (ICON_THEN_ARROW).
+ */
 export function PlannedClosureIconLane({
   pathD,
   travelDirection,
   unit = 1,
+  stations = NO_STATIONS,
   still = false,
 }: {
   pathD: string;
   travelDirection: TravelDirection;
   unit?: number;
+  stations?: GlyphLaneStations;
   /** Never ripples (the site guide's still samples). */
   still?: boolean;
 }) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
+  const direction = travelDirection === "bidirectional" ? null : travelDirection;
 
-  useEffect(() => {
-    const handle = setTimeout(() => setMounted(true), 0);
-    return () => clearTimeout(handle);
-  }, []);
+  // One-way pairs come in travel order: calendar, then its arrow.
+  const pairs = useMemo(() => {
+    if (!mounted) return [];
+    const glyphs = laneGlyphs(pathD, {
+      step: 112 * unit,
+      dots: stations.outlineDots,
+      cutouts: stations.outlineCutouts,
+      direction: direction ?? "forward",
+      pattern: direction ? ICON_THEN_ARROW : undefined,
+    });
+    if (!direction) return glyphs.map((icon) => ({ icon, arrow: null }));
+    return glyphs.flatMap((icon, index) => index % 2 === 0 ? [{ icon, arrow: glyphs[index + 1] ?? null }] : []);
+  }, [direction, mounted, pathD, stations, unit]);
 
-  const pathMetrics = useMemo(() => {
-    if (!mounted || typeof document === "undefined") return [];
-
-    try {
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", pathD);
-      const length = path.getTotalLength();
-      if (length <= 0) return { length: 0, points: [] };
-
-      const isDirectional = travelDirection !== "bidirectional";
-      const count = Math.max(1, isDirectional ? Math.round(length / (112 * unit)) : Math.floor(length / (112 * unit)));
-      const step = length / count;
-      return {
-        length,
-        points: Array.from({ length: count }, (_, index) => {
-          const distance = isDirectional
-            ? (index + 0.25) * step
-            : (length * (index + 1)) / (count + 1);
-          const chevronDistance = (distance + step / 2) % length;
-          const point = path.getPointAtLength(distance);
-          const chevronPoint = path.getPointAtLength(chevronDistance);
-          const before = path.getPointAtLength(Math.max(0, chevronDistance - 4 * unit));
-          const after = path.getPointAtLength(Math.min(length, chevronDistance + 4 * unit));
-          return {
-            x: point.x,
-            y: point.y,
-            chevronX: chevronPoint.x,
-            chevronY: chevronPoint.y,
-            angle: Math.atan2(after.y - before.y, after.x - before.x) * (180 / Math.PI),
-          };
-        }),
-      };
-    } catch {
-      return { length: 0, points: [] };
-    }
-  }, [mounted, pathD, travelDirection, unit]);
-
-  // Ripple: a one-way closure's chevrons, counted the travel way
-  // (points run from the path's start for both directions).
+  // Ripple: a one-way closure's arrows, counted the travel way.
   const laneRef = useRef<SVGGElement>(null);
-  const rippleArrows = !still && travelDirection !== "bidirectional" && !Array.isArray(pathMetrics) ? pathMetrics.points.length : 0;
+  const rippleArrows = !still && direction ? pairs.length : 0;
   useEffect(() => {
     if (rippleArrows > 0) installGlyphMotion();
   }, [rippleArrows]);
@@ -443,7 +387,7 @@ export function PlannedClosureIconLane({
     return registerGlyphRippleLane(laneRef.current, rippleArrows);
   }, [rippleArrows]);
 
-  if (Array.isArray(pathMetrics) || pathMetrics.points.length === 0) return null;
+  if (pairs.length === 0) return null;
 
   return (
     <g
@@ -452,10 +396,10 @@ export function PlannedClosureIconLane({
       aria-hidden="true"
       data-glyph-ripple={rippleArrows > 0 ? "" : undefined}
     >
-      {pathMetrics.points.map((point, index) => {
-        if (travelDirection === "bidirectional") {
+      {pairs.map(({ icon, arrow }, index) => {
+        if (!direction) {
           return (
-            <g key={`${point.x}-${point.y}-${index}`} transform={`translate(${point.x} ${point.y})${scaled(unit)}`}>
+            <g key={`${icon.x}-${icon.y}-${index}`} transform={`translate(${icon.x} ${icon.y})${scaled(unit)}`}>
               <PlannedClosureIcon
                 className="planned-closure-map-icon planned-closure-map-icon--static"
                 x={-36}
@@ -468,17 +412,14 @@ export function PlannedClosureIconLane({
           );
         }
 
-        const direction = travelDirection;
-        const staticAngle = point.angle + (direction === "reverse" ? 180 : 0);
-
         return (
           <g
-            key={`${point.x}-${point.y}-${index}`}
+            key={`${icon.x}-${icon.y}-${index}`}
             className={`planned-closure-lane-glyph planned-closure-lane-glyph--${direction}`}
             data-ripple-phase=""
-            style={{ "--glyph-ripple-phase": glyphRipplePhase(direction === "reverse" ? pathMetrics.points.length - 1 - index : index) } as CSSProperties}
+            style={{ "--glyph-ripple-phase": glyphRipplePhase(index) } as CSSProperties}
           >
-            <g transform={`translate(${point.x} ${point.y})${scaled(unit)}`}>
+            <g transform={`translate(${icon.x} ${icon.y})${scaled(unit)}`}>
               <PlannedClosureIcon
                 className="planned-closure-map-icon"
                 x={-36}
@@ -488,9 +429,11 @@ export function PlannedClosureIconLane({
                 strokeWidth={2.25}
               />
             </g>
-            <g transform={`translate(${point.chevronX} ${point.chevronY}) rotate(${staticAngle})${scaled(unit)}`}>
-              <DirectionChevron kind="planned" />
-            </g>
+            {arrow ? (
+              <g transform={`translate(${arrow.x} ${arrow.y}) rotate(${arrow.rotation})${scaled(unit)}`}>
+                <DirectionChevron kind="planned" />
+              </g>
+            ) : null}
           </g>
         );
       })}

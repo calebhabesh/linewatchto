@@ -4,7 +4,6 @@ export type MapPoint = { x: number; y: number };
 export type MapBounds = { x: number; y: number; width: number; height: number };
 export type MapPolygon = [MapPoint, MapPoint, MapPoint, MapPoint];
 export type PathFrame = { point: MapPoint; tangent: MapPoint; normal: MapPoint };
-type MeasurableSvgPath = Pick<SVGPathElement, "getPointAtLength">;
 export type MapMatrix = {
   a: number;
   b: number;
@@ -14,12 +13,6 @@ export type MapMatrix = {
   f: number;
 };
 
-export type ChevronInstance = {
-  x: number;
-  y: number;
-  angle: number;
-};
-
 export function visualTravelDirection(segment: NetworkSegment) {
   const direction = segment.travelDirection ?? "bidirectional";
   if (!segment.guidePathReversed || direction === "bidirectional") {
@@ -27,11 +20,6 @@ export function visualTravelDirection(segment: NetworkSegment) {
   }
   return direction === "forward" ? "reverse" : "forward";
 }
-
-export type SampledPath = {
-  points: ChevronInstance[];
-  step: number;
-};
 
 type CorridorTravelDirection = NonNullable<NetworkSegment["travelDirection"]>;
 
@@ -49,82 +37,6 @@ export type ComposedNetworkSegmentPath = {
   travelDirection: CorridorTravelDirection;
   segmentIds: string[];
 };
-
-export function samplePath(pathD: string, spacing: number = 56): SampledPath {
-  if (typeof document === "undefined") return { points: [], step: spacing };
-  try {
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", pathD);
-    const length = path.getTotalLength();
-    const points: ChevronInstance[] = [];
-
-    if (length <= 0) return { points: [], step: spacing };
-
-    const count = Math.max(1, Math.floor(length / spacing));
-    const step = length / count;
-
-    // Glyphs run from end to end and stop there: lanes are not clipped, so
-    // nothing past an end may be drawn outside the alert's tube.
-    for (let i = 0; i <= count; i++) {
-      const dist = i * step;
-      const p = path.getPointAtLength(dist);
-
-      const delta = 1;
-      const pAhead = path.getPointAtLength(Math.min(length, dist + delta));
-      const pBehind = path.getPointAtLength(Math.max(0, dist - delta));
-
-      const dx = pAhead.x - pBehind.x;
-      const dy = pAhead.y - pBehind.y;
-      const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-
-      points.push({ x: p.x, y: p.y, angle });
-    }
-
-    return { points, step };
-  } catch (e) {
-    console.error("Error sampling SVG path:", e);
-    return { points: [], step: spacing };
-  }
-}
-
-export function extrapolatedPathFrame(
-  path: MeasurableSvgPath,
-  length: number,
-  distance: number,
-  tangentSampleDistance = 1,
-): PathFrame | null {
-  if (length <= 0) return null;
-
-  const resolvedDistance = Math.max(0, Math.min(length, distance));
-  const sampleDistance = Math.max(Number.EPSILON, Math.min(length, tangentSampleDistance));
-  const beforeDistance = resolvedDistance <= 0
-    ? 0
-    : Math.max(0, resolvedDistance - sampleDistance);
-  const afterDistance = resolvedDistance >= length
-    ? length
-    : Math.min(length, resolvedDistance + sampleDistance);
-  const before = path.getPointAtLength(beforeDistance);
-  const after = path.getPointAtLength(afterDistance);
-  const magnitude = Math.hypot(after.x - before.x, after.y - before.y);
-  if (magnitude <= Number.EPSILON) return null;
-
-  const tangent = {
-    x: (after.x - before.x) / magnitude,
-    y: (after.y - before.y) / magnitude,
-  };
-  const anchor = path.getPointAtLength(resolvedDistance);
-  const overflowDistance = distance - resolvedDistance;
-  const point = {
-    x: anchor.x + tangent.x * overflowDistance,
-    y: anchor.y + tangent.y * overflowDistance,
-  };
-
-  return {
-    point,
-    tangent,
-    normal: { x: -tangent.y, y: tangent.x },
-  };
-}
 
 export function pathCenter(pathD: string): MapPoint | null {
   const points = pathToPolylinePoints(pathD);
@@ -198,6 +110,22 @@ export function composeNetworkSegmentPath(
   segments: ComposableNetworkSegment[],
   travelDirection: CorridorTravelDirection = "bidirectional",
 ): ComposedNetworkSegmentPath {
+  const oriented = orientNetworkSegmentPolylines(segments, travelDirection);
+  return {
+    pathD: pointsToPath(dedupePoints(oriented.polylines.flat())),
+    travelDirection: oriented.travelDirection,
+    segmentIds: oriented.segmentIds,
+  };
+}
+
+/**
+ * A run of segments' drawn paths as polylines, each oriented to follow on
+ * from the one before, and the run's travel direction along them.
+ */
+export function orientNetworkSegmentPolylines(
+  segments: ComposableNetworkSegment[],
+  travelDirection: CorridorTravelDirection = "bidirectional",
+): { polylines: MapPoint[][]; travelDirection: CorridorTravelDirection; segmentIds: string[] } {
   const sampledSegments = segments
     .map((segment) => {
       const points = pathToPolylinePoints(segment.pathD);
@@ -209,13 +137,152 @@ export function composeNetworkSegmentPath(
     .filter((segment) => segment.points.length > 0);
 
   const oriented = orientSequentialPolylines(sampledSegments);
-  const points = dedupePoints(oriented.flatMap((segment) => segment.points));
-
   return {
-    pathD: pointsToPath(points),
+    polylines: oriented.map((segment) => segment.points),
     travelDirection: oriented[0]?.reversed ? flipTravelDirection(travelDirection) : travelDirection,
     segmentIds: sampledSegments.map((segment) => segment.id),
   };
+}
+
+/** Closer than this to a drawn stretch, a path runs along it (map units). */
+const RETRACE_TOLERANCE = 2;
+/**
+ * Shorter overlaps are where two paths meet (a corner's first units lie
+ * within the tolerance of the stretch it leaves), not where one retraces the other.
+ */
+const MIN_RETRACE_LENGTH = RETRACE_TOLERANCE * 4;
+
+/**
+ * Trails of polylines (each trail's pieces in order, each piece one segment's
+ * path) as subpaths that never draw a stretch twice. Where a piece runs back
+ * along a stretch already drawn, that stretch is left out of it: a guide that
+ * overshoots its station (Line 1's St Andrew and King) no longer folds the
+ * path back on itself, and a branch drawn along its trunk (Lakeshore West's
+ * Hamilton branch, below Aldershot) starts where it leaves the trunk. What is
+ * left of a piece continues its subpath where it starts at the subpath's end,
+ * and otherwise starts a new one; every trail starts a new subpath.
+ */
+export function withoutRetracedStretches(trails: MapPoint[][][]): MapPoint[][] {
+  const subpaths: MapPoint[][] = [];
+  const drawn: [MapPoint, MapPoint][] = [];
+  const draw = (points: MapPoint[]) => {
+    for (let index = 1; index < points.length; index++) drawn.push([points[index - 1], points[index]]);
+  };
+
+  for (const trail of trails) {
+    let current: MapPoint[] = [];
+    const finish = () => {
+      const points = dedupePoints(current);
+      if (points.length > 1) subpaths.push(points);
+      current = [];
+    };
+    for (const piece of trail) {
+      for (const { points, fromStart } of untracedStretches(dedupePoints(piece), drawn)) {
+        const end = current.at(-1);
+        if (!end || fromStart) current.push(...points);
+        // Picking up where the subpath ends (past a guide's overshoot): join it there.
+        else if (pointDistance(end, points[0]) <= RETRACE_TOLERANCE) current.push(...points.slice(1));
+        else {
+          finish();
+          current.push(...points);
+        }
+      }
+      // A piece may run along the trail's earlier pieces, not along itself.
+      draw(piece);
+    }
+    finish();
+  }
+  return subpaths;
+}
+
+/**
+ * A piece's stretches that do not run along any drawn edge for at least
+ * `MIN_RETRACE_LENGTH`, and whether each starts at the piece's own start.
+ */
+function untracedStretches(
+  piece: MapPoint[],
+  drawn: readonly [MapPoint, MapPoint][],
+): { points: MapPoint[]; fromStart: boolean }[] {
+  const whole = [{ points: piece, fromStart: true }];
+  if (piece.length < 2 || drawn.length === 0) return whole;
+  const covered: [number, number][] = [];
+  let travelled = 0;
+  for (let index = 1; index < piece.length; index++) {
+    const from = piece[index - 1];
+    const to = piece[index];
+    const length = pointDistance(from, to);
+    for (const edge of drawn) {
+      const range = edgeRunAlong(from, to, edge);
+      if (range) covered.push([travelled + range[0] * length, travelled + range[1] * length]);
+    }
+    travelled += length;
+  }
+
+  // Merge the covered ranges and keep the long ones: those are retraced.
+  covered.sort((a, b) => a[0] - b[0]);
+  const retraced: [number, number][] = [];
+  let run: [number, number] | null = null;
+  for (const range of covered) {
+    if (run && range[0] <= run[1] + 0.001) run[1] = Math.max(run[1], range[1]);
+    else {
+      if (run && run[1] - run[0] >= MIN_RETRACE_LENGTH) retraced.push(run);
+      run = [...range];
+    }
+  }
+  if (run && run[1] - run[0] >= MIN_RETRACE_LENGTH) retraced.push(run);
+  if (retraced.length === 0) return whole;
+
+  // Paths part at a shared vertex: a cut within the tolerance of one of the
+  // piece's vertices (a branch leaving its trunk's corner) moves onto it.
+  const vertices: number[] = [0];
+  for (let index = 1; index < piece.length; index++) vertices.push(vertices[index - 1] + pointDistance(piece[index - 1], piece[index]));
+  const snap = (distance: number) => vertices.find((vertex) => Math.abs(vertex - distance) <= RETRACE_TOLERANCE) ?? distance;
+
+  const stretches: { points: MapPoint[]; fromStart: boolean }[] = [];
+  let from = 0;
+  for (const [start, end] of [...retraced, [travelled, travelled] as [number, number]]) {
+    const to = snap(start);
+    // Stubs left between retraced stretches are not drawn on their own.
+    if (to - from >= MIN_RETRACE_LENGTH) stretches.push({ points: polylineStretch(piece, from, to), fromStart: from === 0 });
+    from = snap(end);
+  }
+  return stretches;
+}
+
+/**
+ * The part of edge `from`–`to` (as fractions of it) that runs along `edge`:
+ * within the tolerance of its line, beside the edge itself rather than past its ends.
+ */
+function edgeRunAlong(from: MapPoint, to: MapPoint, [start, end]: [MapPoint, MapPoint]): [number, number] | null {
+  const tolerance = RETRACE_TOLERANCE;
+  if (
+    Math.max(from.x, to.x) < Math.min(start.x, end.x) - tolerance
+    || Math.min(from.x, to.x) > Math.max(start.x, end.x) + tolerance
+    || Math.max(from.y, to.y) < Math.min(start.y, end.y) - tolerance
+    || Math.min(from.y, to.y) > Math.max(start.y, end.y) + tolerance
+  ) return null;
+  const length = pointDistance(start, end);
+  if (length === 0) return null;
+  const along = { x: (end.x - start.x) / length, y: (end.y - start.y) / length };
+  const offset = { x: from.x - start.x, y: from.y - start.y };
+  const delta = { x: to.x - from.x, y: to.y - from.y };
+  // Distance off the edge's line and position along it are linear in t.
+  const across = linearRange(-along.y * offset.x + along.x * offset.y, -along.y * delta.x + along.x * delta.y, -tolerance, tolerance);
+  const beside = linearRange(along.x * offset.x + along.y * offset.y, along.x * delta.x + along.y * delta.y, 0, length);
+  if (!across || !beside) return null;
+  const low = Math.max(across[0], beside[0]);
+  const high = Math.min(across[1], beside[1]);
+  return high > low ? [low, high] : null;
+}
+
+/** The t in [0, 1] where `low <= base + slope * t <= high`. */
+function linearRange(base: number, slope: number, low: number, high: number): [number, number] | null {
+  if (Math.abs(slope) < 1e-12) return base >= low && base <= high ? [0, 1] : null;
+  const a = (low - base) / slope;
+  const b = (high - base) / slope;
+  const from = Math.max(0, Math.min(a, b));
+  const to = Math.min(1, Math.max(a, b));
+  return to >= from ? [from, to] : null;
 }
 
 export function pathPolylinePoints(pathD: string): MapPoint[] {

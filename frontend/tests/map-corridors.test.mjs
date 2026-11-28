@@ -61,6 +61,39 @@ describe("shared map corridors", () => {
     const backBranch = { ...branch, pathD: "M 20 10 L 20 0", guidePathReversed: true };
     assert.equal(mapCorridors([s1, s2, s3, backBranch], "forward")[0].pathD, "M 0 0 L 10 0 L 20 0 L 30 0 M 20 0 L 20 10");
   });
+
+  // Paths that run back over a stretch already drawn would place its glyphs
+  // twice, out of step (bunched at Line 1's St Andrew and King, doubled below
+  // Lakeshore West's Aldershot).
+  it("never folds back where a segment's path overshoots its station", () => {
+    // a–b's guide runs 30 past b; b–c's path starts at b.
+    const overshoot = segment("o1", "a", "b", "M 0 0 L 0 130");
+    const onward = segment("o2", "b", "c", "M 0 100 L 0 200 L 100 300");
+    assert.equal(mapCorridors([overshoot, onward], "bidirectional")[0].pathD, "M 0 0 L 0 130 L 0 200 L 100 300");
+    // The other way round: the second path starts back behind the first's end.
+    const short = segment("o3", "a", "b", "M 0 0 L 0 100");
+    const behind = segment("o4", "b", "c", "M 0 70 L 0 200");
+    assert.equal(mapCorridors([short, behind], "bidirectional")[0].pathD, "M 0 0 L 0 100 L 0 200");
+  });
+
+  it("starts a branch drawn along its trunk where it leaves the trunk", () => {
+    // From x, both branches run down the same 100 units before parting.
+    const trunk = segment("t1", "w", "x", "M -100 0 L 0 0");
+    const left = segment("t2", "x", "y", "M 0 0 L 0 100 L -100 100");
+    const right = segment("t3", "x", "z", "M 0 0 L 0 100 L 0 200 L 100 200");
+    assert.deepEqual(mapCorridors([trunk, left, right], "bidirectional").map(({ pathD }) => pathD), [
+      "M -100 0 L 0 0 L 0 100 L -100 100 M 0 100 L 0 200 L 100 200",
+    ]);
+    // Two branches alone: one runs up to x, the other leaves its trunk at the fork.
+    assert.equal(mapCorridors([left, right], "bidirectional")[0].pathD, "M -100 100 L 0 100 L 0 0 M 0 100 L 0 200 L 100 200");
+  });
+
+  it("keeps a short overlap where paths only meet at a station", () => {
+    // A guide ending a hair past the next path's start is not a retrace.
+    const near = segment("n1", "a", "b", "M 0 0 L 0 102");
+    const next = segment("n2", "b", "c", "M 0 100 L 0 200");
+    assert.equal(mapCorridors([near, next], "bidirectional")[0].pathD, "M 0 0 L 0 102 L 0 100 L 0 200");
+  });
 });
 
 describe("shared commute preview", () => {

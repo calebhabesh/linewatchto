@@ -4,6 +4,8 @@ import geometry from "../src/app/map-geometry/ttc.json" with { type: "json" };
 import { networkSegments, stations as mapStations } from "../src/app/linewatch-data.ts";
 import { ttcMapContent, ttcRenderedNetworkSegments } from "../src/app/ttc-map-content.ts";
 import { mapContentReuser, placeMapOverlapBadges, reuseMapItems } from "../src/app/map-content.ts";
+import { mapCorridors } from "../src/app/map-corridors.ts";
+import { pathPolylinePoints } from "../src/app/map-geometry.ts";
 
 const impact = (kind, cardId) => ({ kind, cardId, travelDirection: "bidirectional", sourceAlertIds: [cardId] });
 const summary = (id, name, interchange = false) => ({
@@ -208,6 +210,39 @@ describe("TTC map content", () => {
         [{ label: "Spadina", layoutId: "station:spadina:station-spadina-2", cards: ["line-2-delay", "spadina-line-2"] }],
       );
     });
+  });
+});
+
+describe("TTC alert corridors", () => {
+  it("runs down Line 1's U without folding back at St Andrew or King", () => {
+    // Each station's guided path and track path overlap past the station by
+    // about 32 units; joined as they were, the path folded back there and
+    // bunched its glyphs.
+    const lineSegment = (stationAId, stationBId, guidePathId = null, guidePathReversed = false) => ({
+      id: `line-1-${stationAId}-${stationBId}`, lineId: "line-1", label: `${stationAId} to ${stationBId}`,
+      stationAId, stationBId, stationAAnchorId: `station-${stationAId}`, stationBAnchorId: `station-${stationBId}`,
+      guidePathId, guidePathReversed, pathD: "", overlay: "suspension", impacts: [],
+    });
+    const drawn = ttcRenderedNetworkSegments(geometry, {
+      networkSegments: [
+        lineSegment("osgoode", "st-andrew"),
+        lineSegment("st-andrew", "union", "seg-line-1-st-andrew-union"),
+        lineSegment("king", "union", "seg-line-1-union-king", true),
+        lineSegment("queen", "king"),
+      ],
+      mapStations,
+    });
+    assert.equal(drawn.length, 4);
+    const [corridor, ...rest] = mapCorridors(drawn, "bidirectional");
+    assert.deepEqual(rest, []);
+    assert.equal(corridor.pathD.match(/M/g).length, 1);
+    const points = pathPolylinePoints(corridor.pathD);
+    for (let index = 1; index < points.length - 1; index++) {
+      const [a, b, c] = points.slice(index - 1, index + 2);
+      const turn = ((b.x - a.x) * (c.x - b.x) + (b.y - a.y) * (c.y - b.y))
+        / (Math.hypot(b.x - a.x, b.y - a.y) * Math.hypot(c.x - b.x, c.y - b.y));
+      assert.ok(turn > -0.5, `folds back at ${b.x}, ${b.y}`);
+    }
   });
 });
 

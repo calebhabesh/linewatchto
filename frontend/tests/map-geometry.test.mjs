@@ -5,39 +5,12 @@ import * as geometry from "../src/app/map-geometry.ts";
 
 const {
   composeNetworkSegmentPath,
-  extrapolatedPathFrame,
   pathCorridorCollisionBoxes,
   pathMidpointFrame,
   pathSamplingDistances,
   resolveNetworkSegmentPath,
   visualTravelDirection,
-  samplePath,
 } = geometry;
-
-function polylinePath(points) {
-  const lengths = points.slice(1).map((point, index) =>
-    Math.hypot(point.x - points[index].x, point.y - points[index].y));
-  const totalLength = lengths.reduce((sum, length) => sum + length, 0);
-  return {
-    length: totalLength,
-    getPointAtLength(distance) {
-      const target = Math.max(0, Math.min(totalLength, distance));
-      let walked = 0;
-      for (let index = 1; index < points.length; index++) {
-        const segmentLength = lengths[index - 1];
-        if (walked + segmentLength >= target) {
-          const progress = segmentLength <= 0 ? 0 : (target - walked) / segmentLength;
-          return {
-            x: points[index - 1].x + (points[index].x - points[index - 1].x) * progress,
-            y: points[index - 1].y + (points[index].y - points[index - 1].y) * progress,
-          };
-        }
-        walked += segmentLength;
-      }
-      return points.at(-1);
-    },
-  };
-}
 
 const stations = [
   { id: "eglinton", name: "Eglinton", x: 4547, y: 1808 },
@@ -171,66 +144,6 @@ describe("map overlay geometry", () => {
       }),
       "reverse",
     );
-  });
-
-  it("safely returns an empty array for samplePath when document is undefined", () => {
-    const result = samplePath("M 0 0 L 100 0");
-    assert.deepEqual(result.points, []);
-    assert.equal(result.step, 56);
-  });
-
-  it("keeps sampled glyphs on the path, with none past its ends", () => {
-    // Glyph lanes are not clipped to their alert's tube, so a glyph past an
-    // end (as at a terminus like Pearson) would be drawn off the line.
-    const line = polylinePath([{ x: 0, y: 0 }, { x: 224, y: 0 }]);
-    const previousDocument = globalThis.document;
-    globalThis.document = {
-      createElementNS: () => ({
-        setAttribute() {},
-        getTotalLength: () => line.length,
-        getPointAtLength: (distance) => line.getPointAtLength(distance),
-      }),
-    };
-    try {
-      const { points, step } = samplePath("M 0 0 L 224 0", 56);
-      assert.equal(step, 56);
-      assert.deepEqual(points.map((point) => point.x), [0, 56, 112, 168, 224]);
-    } finally {
-      if (previousDocument === undefined) delete globalThis.document;
-      else globalThis.document = previousDocument;
-    }
-  });
-
-  it("continues moving glyph frames through both ends of a nonlinear guide", () => {
-    const guide = polylinePath([
-      { x: 0, y: 0 },
-      { x: 0, y: 80 },
-      { x: 60, y: 100 },
-    ]);
-
-    const before = extrapolatedPathFrame(guide, guide.length, -12);
-    const after = extrapolatedPathFrame(guide, guide.length, guide.length + 12);
-
-    assert.deepEqual(before.point, { x: 0, y: -12 });
-    assert.ok(after.point.x > 71 && after.point.x < 72);
-    assert.ok(after.point.y > 103 && after.point.y < 104);
-    assert.ok(after.tangent.x > 0.94 && after.tangent.y > 0.31);
-  });
-
-  it("samples a composed path continuously across a nonlinear guide subset boundary", () => {
-    const corridor = polylinePath([
-      { x: 0, y: 0 },
-      { x: 0, y: 80 },
-      { x: 60, y: 100 },
-      { x: 120, y: 120 },
-    ]);
-    const guideBoundary = 80 + Math.hypot(60, 20);
-
-    const frame = extrapolatedPathFrame(corridor, corridor.length, guideBoundary);
-
-    assert.ok(Math.abs(frame.point.x - 60) < 0.001);
-    assert.ok(Math.abs(frame.point.y - 100) < 0.001);
-    assert.ok(frame.tangent.x > 0.94 && frame.tangent.y > 0.31);
   });
 
   it("preserves endpoint tangents when flattening whole guides and guide subsets", () => {

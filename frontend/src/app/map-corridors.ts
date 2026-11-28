@@ -16,7 +16,13 @@ import type {
   TravelDirection,
 } from "./linewatch-data.ts";
 import type { AccountCommutePathPreview } from "./commute-data.ts";
-import { composeNetworkSegmentPath, pathPolylinePoints, pointsToPath, type MapPoint } from "./map-geometry.ts";
+import {
+  composeNetworkSegmentPath,
+  orientNetworkSegmentPolylines,
+  pointsToPath,
+  withoutRetracedStretches,
+  type MapPoint,
+} from "./map-geometry.ts";
 import {
   commuteEndpointSizes,
   currentSegmentImpacts,
@@ -97,29 +103,35 @@ export function mapCorridors<S extends NetworkSegment>(
   }
 
   // Trails that share a station are one corridor.
-  const corridors: { segments: S[]; paths: string[]; stations: Set<string> }[] = [];
+  const corridors: { segments: S[]; trails: MapPoint[][][]; stations: Set<string> }[] = [];
   for (const trail of trails) {
     const stations = new Set(trail.flatMap(ends));
-    const composed = composeNetworkSegmentPath(trail, travelDirection);
-    if (!composed.pathD) continue;
+    const oriented = orientNetworkSegmentPolylines(trail, travelDirection);
+    if (oriented.polylines.length === 0) continue;
     // Keep the alert's direction on every subpath: a trail drawn against it runs backwards.
-    const pathD = composed.travelDirection === travelDirection
-      ? composed.pathD
-      : pointsToPath([...pathPolylinePoints(composed.pathD)].reverse());
+    const pieces = oriented.travelDirection === travelDirection
+      ? oriented.polylines
+      : oriented.polylines.map((points) => [...points].reverse()).reverse();
     const joined = corridors.filter((corridor) => [...stations].some((stationId) => corridor.stations.has(stationId)));
-    const into = joined[0] ?? { segments: [], paths: [], stations: new Set<string>() };
+    const into = joined[0] ?? { segments: [], trails: [], stations: new Set<string>() };
     if (!joined[0]) corridors.push(into);
     for (const other of joined.slice(1)) {
       into.segments.push(...other.segments);
-      into.paths.push(...other.paths);
+      into.trails.push(...other.trails);
       other.stations.forEach((stationId) => into.stations.add(stationId));
       corridors.splice(corridors.indexOf(other), 1);
     }
     into.segments.push(...trail);
-    into.paths.push(pathD);
+    into.trails.push(pieces);
     stations.forEach((stationId) => into.stations.add(stationId));
   }
-  return corridors.map(({ segments: stretch, paths }) => ({ segments: stretch, pathD: paths.join(" "), travelDirection }));
+  // A stretch two segments are drawn along (a branch beside its trunk, a
+  // guide past its station) is drawn once, so its glyphs are not doubled.
+  return corridors.map(({ segments: stretch, trails: corridorTrails }) => ({
+    segments: stretch,
+    pathD: withoutRetracedStretches(corridorTrails).map(pointsToPath).join(" "),
+    travelDirection,
+  }));
 }
 
 type LineAlertGroup<S extends NetworkSegment> = {

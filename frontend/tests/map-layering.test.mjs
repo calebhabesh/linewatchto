@@ -263,18 +263,17 @@ describe("asset-backed map layering", () => {
     assert.match(ttcGlyphLanesSource, /function PlannedClosureIconLane\(/);
     assert.match(ttcGlyphLanesSource, /className="planned-closure-icon-lane"/);
     assert.match(ttcGlyphLanesSource, /<PlannedClosureIcon[\s\S]*?className="planned-closure-map-icon"/);
-    assert.match(ttcGlyphLanesSource, /isDirectional \? Math\.round\(length \/ \(112 \* unit\)\) : Math\.floor\(length \/ \(112 \* unit\)\)/);
-    assert.match(ttcGlyphLanesSource, /const step = length \/ count/);
-    assert.match(ttcGlyphLanesSource, /const chevronDistance = \(distance \+ step \/ 2\) % length/);
+    // Calendars 112 units apart, between stations; a one-way closure pairs each with its arrow.
+    assert.match(ttcGlyphLanesSource, /laneGlyphs\(pathD, \{\s*step: 112 \* unit,\s*dots: stations\.outlineDots,[\s\S]*?pattern: direction \? ICON_THEN_ARROW : undefined/);
     assert.match(plannedClosureIconSource, /<rect[\s\S]*?x="3"[\s\S]*?y="5"[\s\S]*?width="18"[\s\S]*?height="16"[\s\S]*?rx="3"/);
     assert.match(plannedClosureIconSource, /M3 9H21M12 12V15M12 18H12\.01M7 3V5M17 3V5/);
     assert.match(ttcGlyphLanesSource, /travelDirection === "bidirectional"[\s\S]*?planned-closure-map-icon planned-closure-map-icon--static/);
     // One-way closures draw the shared direction chevron (the speed-zone design).
     assert.match(ttcGlyphLanesSource, /planned: "planned-closure-direction-chevron"/);
     assert.match(ttcGlyphLanesSource, /<DirectionChevron kind="planned" \/>/);
-    assert.match(ttcGlyphLanesSource, /transform=\{`translate\(\$\{point\.chevronX\} \$\{point\.chevronY\}\) rotate\(\$\{staticAngle\}\)\$\{scaled\(unit\)\}`\}/);
+    assert.match(ttcGlyphLanesSource, /transform=\{`translate\(\$\{arrow\.x\} \$\{arrow\.y\}\) rotate\(\$\{arrow\.rotation\}\)\$\{scaled\(unit\)\}`\}/);
     assert.match(ttcGlyphLanesSource, /x=\{-36\}[\s\S]*?y=\{-36\}[\s\S]*?width=\{72\}[\s\S]*?height=\{72\}/);
-    assert.match(interactiveMapSource, /<PlannedClosureIconLane pathD=\{pathD\} travelDirection=\{travelDirection\} unit=\{unit\} \/>/);
+    assert.match(interactiveMapSource, /<PlannedClosureIconLane pathD=\{pathD\} travelDirection=\{travelDirection\} unit=\{unit\} stations=\{plane\} \/>/);
     assert.match(interactiveMapSource, /closure\?\.travelDirection \?\? segmentImpact\?\.travelDirection \?\? "bidirectional"/);
     assert.doesNotMatch(ttcMapRendererSource, /planned-preview-underlay/);
     assert.doesNotMatch(globalCss, /planned-preview-separator/);
@@ -411,9 +410,9 @@ describe("asset-backed map layering", () => {
     const laneBlock = ttcGlyphLanesSource.slice(laneStart, laneEnd);
 
     assert.ok(laneStart > -1, "GlyphLane must exist");
-    assert.match(laneBlock, /transform=\{glyphLaneTransform\(metrics, index, shouldRotate, unit\)\}/);
-    assert.match(ttcGlyphLanesSource, /function measureGlyphLane/);
-    assert.match(ttcGlyphLanesSource, /const sampleCount = Math\.max\(2, Math\.ceil\(length \/ 12\)\)/);
+    assert.match(laneBlock, /transform=\{glyphTransform\(glyph, shouldRotate, unit\)\}/);
+    // Every lane rests its glyphs where the shared placement puts them.
+    assert.match(ttcGlyphLanesSource, /import \{ laneGlyphs, type LaneGlyph \} from "\.\/glyph-placement"/);
     // No moving glyphs, alert pulses, or motion budget on either map.
     assert.doesNotMatch(ttcMapRendererSource, /<animateMotion|MAX_CONTINUOUSLY_ANIMATED_OVERLAY_LAYERS|data-map-overlay-motion-paused/);
     assert.doesNotMatch(regionalOverlaysSource, /animateMotion|MAX_CONTINUOUSLY_ANIMATED_OVERLAY_LAYERS/);

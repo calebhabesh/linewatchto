@@ -133,6 +133,37 @@ describe("regional map geometry", () => {
       assert.deepEqual(corridors.map((corridor) => corridor.segments.length), [3]);
       assert.equal(corridors[0].pathD.match(/M/g).length, 2);
     });
+
+    it("draws the Hamilton branch from where it leaves the West Harbour line, not twice below Aldershot", () => {
+      // Both of Aldershot's branches are drawn down the same stretch; drawn
+      // twice, its glyphs doubled up out of step.
+      const subpaths = (pathD) => pathD.split(/(?=M)/).map((subpath) => pathPolylinePoints(subpath));
+      const runsAlong = (points, other) => {
+        let length = 0;
+        for (let index = 1; index < points.length; index++) {
+          const mid = { x: (points[index - 1].x + points[index].x) / 2, y: (points[index - 1].y + points[index].y) / 2 };
+          if (projectOntoPolyline(other, mid).gap < 1) length += distance(points[index - 1], points[index]);
+        }
+        return length;
+      };
+      for (const ids of [
+        ["segment-lw-burlington-aldershot", "segment-lw-aldershot-west-harbour", "segment-lw-aldershot-hamilton"],
+        ["segment-lw-aldershot-west-harbour", "segment-lw-aldershot-hamilton"],
+      ]) {
+        const [corridor, ...rest] = mapCorridors(regionalDrawnSegments(geometry, ids.map(segment)), "bidirectional");
+        assert.deepEqual(rest, []);
+        const [trunk, branch, ...more] = subpaths(corridor.pathD);
+        assert.deepEqual(more, []);
+        assert.equal(runsAlong(branch, trunk), 0);
+        // Each branch still reaches its terminal.
+        const [hamilton] = regionalStation(geometry, "hamilton").anchors;
+        const [westHarbour] = regionalStation(geometry, "west-harbour").anchors;
+        const ends = [trunk[0], trunk.at(-1), branch.at(-1)];
+        for (const terminal of [hamilton, westHarbour]) {
+          assert.ok(ends.some((end) => distance(end, terminal) < 100), `a branch ends at ${JSON.stringify(terminal)}`);
+        }
+      }
+    });
   });
 
   describe("train markers", () => {

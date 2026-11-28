@@ -32,8 +32,8 @@ const path = (length: number) => `M 0 0 L ${length} 0`;
 
 /**
  * The glyphs a lane draws, as LineAlertOverlays chooses them, along a path
- * long enough for a short, balanced run: alternating lanes start and end on
- * an icon (five glyphs), speed zones show five chevrons a row.
+ * long enough for a short, balanced run: paired lanes show three icons, each
+ * with its arrow, and speed zones five chevrons a row.
  */
 function laneGlyphs(kind: OverlayLaneSampleKind, oneWay: boolean): { glyphs: ReactNode; length: number } {
   switch (kind) {
@@ -43,17 +43,9 @@ function laneGlyphs(kind: OverlayLaneSampleKind, oneWay: boolean): { glyphs: Rea
         length: 280,
         glyphs: (
           <g className="rsz-chevron-lanes">
-            {oneWay ? (
-              <ChevronGlyphLane pathD={path(280)} step={56} direction="forward" travelDirection={travelDirection} still />
-            ) : (
-              // Both rows span the same stretch, six chevrons each. On the map
-              // the rows share one path, so the reverse row starts a step past
-              // the forward row's first chevron and each row leaves an empty
-              // step at its own end; the sample fills both.
-              <>
-                <ChevronGlyphLane pathD="M 0 0 L 336 0" step={56} direction="forward" travelDirection={travelDirection} still />
-                <ChevronGlyphLane pathD="M -56 0 L 280 0" step={56} direction="reverse" travelDirection={travelDirection} still />
-              </>
+            <ChevronGlyphLane pathD={path(280)} step={56} direction="forward" travelDirection={travelDirection} still />
+            {oneWay ? null : (
+              <ChevronGlyphLane pathD={path(280)} step={56} direction="reverse" travelDirection={travelDirection} still />
             )}
           </g>
         ),
@@ -61,12 +53,12 @@ function laneGlyphs(kind: OverlayLaneSampleKind, oneWay: boolean): { glyphs: Rea
     }
     case "delay":
       return oneWay
-        ? { length: 280, glyphs: <HourglassGlyphLane pathD={path(280)} step={56} direction="forward" travelDirection="forward" still /> }
-        : { length: 280, glyphs: <HourglassGlyphLane pathD={path(280)} step={28} direction="forward" travelDirection="forward" onlyHourglasses still /> };
+        ? { length: 336, glyphs: <HourglassGlyphLane pathD={path(336)} step={112} direction="forward" travelDirection="forward" still /> }
+        : { length: 280, glyphs: <HourglassGlyphLane pathD={path(280)} step={56} direction="forward" travelDirection="forward" onlyHourglasses still /> };
     case "suspension":
       return oneWay
-        ? { length: 280, glyphs: <SuspensionGlyphLane pathD={path(280)} step={56} direction="forward" travelDirection="forward" still /> }
-        : { length: 352, glyphs: <SuspensionNoEntryLane pathD={path(352)} step={88} /> };
+        ? { length: 336, glyphs: <SuspensionGlyphLane pathD={path(336)} step={112} direction="forward" travelDirection="forward" still /> }
+        : { length: 440, glyphs: <SuspensionNoEntryLane pathD={path(440)} step={88} /> };
     case "planned-closure":
       return {
         length: 336,
